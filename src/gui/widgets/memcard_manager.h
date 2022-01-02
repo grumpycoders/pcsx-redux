@@ -62,7 +62,9 @@ class MemcardManager {
         char textInput[3] = "";
     } m_pendingAction;
 
-    void drawIcon(int blockNumber, PCSX::SIO::McdBlock& block);
+    void drawIcon(int blockNumber, const PCSX::SIO::McdBlock& block);
+    void exportPNG(int blockNumber, const PCSX::SIO::McdBlock& block);
+    void getPocketstationIcon(uint32_t* pixels, int blockNumber);
     void performAction();
 };
 

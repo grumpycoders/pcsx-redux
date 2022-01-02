@@ -23,6 +23,9 @@
 #include "fmt/format.h"
 #include "gui/widgets/memcard_manager.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb/stb_image_write.h"
+
 PCSX::Widgets::MemcardManager::MemcardManager() {
     m_memoryEditor.OptShowDataPreview = true;
     m_memoryEditor.OptUpperCaseHex = false;
@@ -167,6 +170,12 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
                 selectedBlock = i;
                 m_pendingAction.popupText = fmt::format("Choose block to swap block {} with", selectedBlock);
             }
+            ImGui::SameLine();
+
+            buttonName = fmt::format(_("Export PNG##{}"), i);
+            if (ImGui::SmallButton(buttonName.c_str())) {
+                exportPNG(i, block);
+            }
         }
         ImGui::EndTable();
     }
@@ -212,7 +221,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     return changed;
 }
 
-void PCSX::Widgets::MemcardManager::drawIcon(int blockNumber, PCSX::SIO::McdBlock& block) {
+void PCSX::Widgets::MemcardManager::drawIcon(int blockNumber, const PCSX::SIO::McdBlock& block) {
     int currentFrame = 0; // 1st frame = 0, 2nd frame = 1, 3rd frame = 2 and so on
     const auto texture = m_iconTextures[blockNumber - 1];
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -231,30 +240,7 @@ void PCSX::Widgets::MemcardManager::drawIcon(int blockNumber, PCSX::SIO::McdBloc
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, icon);
     } else {
         uint32_t pixels[32 * 32];
-        const auto data = m_currentCardData;
-        const auto titleFrame = data + blockNumber * PCSX::SIO::MCD_BLOCK_SIZE;
-
-        // Calculate icon offset using the header info documented here
-        // https://psx-spx.consoledev.net/pocketstation/#pocketstation-file-headericons
-        int iconOffset = 0x80 + (titleFrame[0x2] & 0xf) * 0x80;
-        //iconOffset += ~((titleFrame[0x57] * 8 + 0x7f) & 0x7f);
-        const auto icon = (uint32_t*)(titleFrame + iconOffset);
-
-        int index = 0;
-        for (auto scanline = 0; scanline < 32; scanline++) {
-            auto line = icon[scanline];
-            
-            for (auto pixel = 0; pixel < 32; pixel++) {
-                if ((line & 1) != 0) {
-                    pixels[index++] = 0xff; // Black
-                } else {
-                    pixels[index++] = 0xffffffff; // White
-                }
-
-                line >>= 1; // lsb = next pixel
-            }
-        }
-
+        getPocketstationIcon(pixels, blockNumber);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     }
     
@@ -310,4 +296,41 @@ void PCSX::Widgets::MemcardManager::performAction() {
     }
 
     m_pendingAction.type = Actions::None; // Cancel action
+}
+
+// Extract the pocketstation icon from the block indicated by blockNumber into the pixels array (In RGBA8888)
+void PCSX::Widgets::MemcardManager::getPocketstationIcon(uint32_t* pixels, int blockNumber) {
+    const auto data = m_currentCardData;
+    const auto titleFrame = data + blockNumber * PCSX::SIO::MCD_BLOCK_SIZE;
+
+    // Calculate icon offset using the header info documented here
+    // https://psx-spx.consoledev.net/pocketstation/#pocketstation-file-headericons
+    int iconOffset = 0x80 + (titleFrame[0x2] & 0xf) * 0x80;
+    iconOffset += (titleFrame[0x57] * 8 + 0x7f) & ~0x7f;
+    const auto icon = (uint32_t*)(titleFrame + iconOffset);
+
+    int index = 0;
+    for (auto scanline = 0; scanline < 32; scanline++) {
+        auto line = icon[scanline];
+
+        for (auto pixel = 0; pixel < 32; pixel++) {
+            if ((line & 1) != 0) {
+                pixels[index++] = 0xff;  // Black
+            } else {
+                pixels[index++] = 0xffffffff;  // White
+            }
+
+            line >>= 1;  // lsb = next pixel
+        }
+    }
+}
+
+void PCSX::Widgets::MemcardManager::exportPNG(int blockNumber, const PCSX::SIO::McdBlock& block) {
+    if (m_drawPocketstationIcons) {
+        uint32_t pixels[32 * 32];
+        getPocketstationIcon(pixels, blockNumber);
+
+        const auto filename = fmt::format("icon{}.png", blockNumber);
+        stbi_write_png(filename.c_str(), 32, 32, 4, pixels, 128); // Stride = 32 pixels, 4 bytes each, so 128
+    }
 }
