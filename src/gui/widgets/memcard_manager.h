@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "core/sio.h"
 #include "GL/gl3w.h"
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
@@ -35,13 +36,16 @@ class MemcardManager {
     int m_frameCount = 0;
 
     MemcardManager();
-    void init();
+    void initTextures();
 
   private:
     int m_selectedCard = 1;
     int m_iconSize = 32; // The width and length of the icon images
     int m_selectedBlock;
     bool m_showMemoryEditor = false;
+    bool m_drawPocketstationIcons = false;
+    uint8_t* m_currentCardData = (uint8_t*)g_emulator->m_sio->GetMcdData(m_selectedCard);
+
     GLuint m_iconTextures[15];
     MemoryEditor m_memoryEditor;
 
@@ -58,7 +62,7 @@ class MemcardManager {
         char textInput[3] = "";
     } m_pendingAction;
 
-    void drawIcon(int blockNumber, uint16_t* icon);
+    void drawIcon(int blockNumber, PCSX::SIO::McdBlock& block);
     void performAction();
 };
 

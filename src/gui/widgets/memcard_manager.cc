@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cstdlib>
-#include "core/sio.h"
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/widgets/memcard_manager.h"
@@ -29,15 +28,20 @@ PCSX::Widgets::MemcardManager::MemcardManager() {
     m_memoryEditor.OptUpperCaseHex = false;
 }
 
-void PCSX::Widgets::MemcardManager::init() {
+void PCSX::Widgets::MemcardManager::initTextures() {
     // Initialize the OpenGL textures used for the icon images
-    // This can't happen in the constructor cause our context won't be ready yet
+    // This must only be called when our OpenGL context is set up
     glGenTextures(15, m_iconTextures);
     for (int i = 0; i < 15; i++) {
         glBindTexture(GL_TEXTURE_2D, m_iconTextures[i]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 16, 16);
+
+        if (!m_drawPocketstationIcons) {
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 16, 16);
+        } else {
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 32, 32);
+        }
     }
 }
 
@@ -76,7 +80,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
         const int otherCard = (m_selectedCard == 1) ? 2 : 1;
         const auto copyButtonText = fmt::format(_("Copy all to card {}"), otherCard);
         if (ImGui::Button(copyButtonText.c_str())) {
-            const auto source = PCSX::g_emulator->m_sio->GetMcdData(m_selectedCard);
+            const auto source = m_currentCardData;
             auto dest = PCSX::g_emulator->m_sio->GetMcdData(otherCard);
 
             std::memcpy(dest, source, PCSX::SIO::MCD_SIZE);
@@ -84,13 +88,19 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     }
 
     ImGui::SliderInt("Icon size", &m_iconSize, 16, 512);
+    ImGui::SameLine();
+    if (ImGui::Checkbox("Draw Pockestation icons", &m_drawPocketstationIcons)) {
+        glDeleteTextures(15, m_iconTextures); // Recreate our textures to fit our new format
+        initTextures();
+    }
 
     static const char* cardNames[] = {_("Memory card 1"), _("Memory card 2")};
     // Code below is slightly odd because m_selectedCart is 1-indexed while arrays are 0-indexed
     if (ImGui::BeginCombo(_("Card"), cardNames[m_selectedCard - 1])) {
-        for (unsigned i = 0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             if (ImGui::Selectable(cardNames[i], m_selectedCard == i + 1)) {
                 m_selectedCard = i + 1;
+                m_currentCardData = (uint8_t*)g_emulator->m_sio->GetMcdData(m_selectedCard);
             }
         }
         ImGui::EndCombo();
@@ -112,25 +122,12 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
 
         for (auto i = 1; i < 16; i++) {
             g_emulator->m_sio->GetMcdBlockInfo(m_selectedCard, i, &block);
-            int currentFrame = 0; // 1st frame = 0, 2nd frame = 1, 3rd frame = 2
-            const auto animationFrames = block.IconCount;
-
-            // Check if we should display the 3rd frame, then check if we should display the 2nd one
-            if (m_frameCount >= 40 && animationFrames == 3) {
-                currentFrame = 2;
-            } else if (m_frameCount >= 20 && animationFrames >= 2) {
-                currentFrame = 1;
-            }
-
-            // Pointer to the current frame. Skip 16x16 pixels for each frame
-            const auto icon = block.Icon + (currentFrame * 16 * 16);
-            bool selected = i == 3;
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::Text("%d", i);
             ImGui::TableSetColumnIndex(1);
-            drawIcon(i, icon);
+            drawIcon(i, block);
 
             ImGui::TableSetColumnIndex(2);
             ImGui::Text(block.Title);
@@ -175,7 +172,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     }
 
     if (m_showMemoryEditor) {
-        const auto data = g_emulator->m_sio->GetMcdData(m_selectedCard);
+        const auto data = m_currentCardData;
         m_memoryEditor.DrawWindow(_("Memory Card Viewer"), data, PCSX::SIO::MCD_SIZE);
     }
 
@@ -215,17 +212,59 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     return changed;
 }
 
-void PCSX::Widgets::MemcardManager::drawIcon(int blockNumber, uint16_t* icon) {
+void PCSX::Widgets::MemcardManager::drawIcon(int blockNumber, PCSX::SIO::McdBlock& block) {
+    int currentFrame = 0; // 1st frame = 0, 2nd frame = 1, 3rd frame = 2 and so on
     const auto texture = m_iconTextures[blockNumber - 1];
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, icon);
+
+    if (!m_drawPocketstationIcons) {
+        const auto animationFrames = block.IconCount;
+        // Check if we should display the 3rd frame, then check if we should display the 2nd one
+        if (m_frameCount >= 40 && animationFrames == 3) {
+            currentFrame = 2;
+        } else if (m_frameCount >= 20 && animationFrames >= 2) {
+            currentFrame = 1;
+        }
+
+        // Pointer to the current frame. Skip 16x16 pixels for each frame
+        const auto icon = block.Icon + (currentFrame * 16 * 16);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, icon);
+    } else {
+        uint32_t pixels[32 * 32];
+        const auto data = m_currentCardData;
+        const auto titleFrame = data + blockNumber * PCSX::SIO::MCD_BLOCK_SIZE;
+
+        // Calculate icon offset using the header info documented here
+        // https://psx-spx.consoledev.net/pocketstation/#pocketstation-file-headericons
+        int iconOffset = 0x80 + (titleFrame[0x2] & 0xf) * 0x80;
+        //iconOffset += ~((titleFrame[0x57] * 8 + 0x7f) & 0x7f);
+        const auto icon = (uint32_t*)(titleFrame + iconOffset);
+
+        int index = 0;
+        for (auto scanline = 0; scanline < 32; scanline++) {
+            auto line = icon[scanline];
+            
+            for (auto pixel = 0; pixel < 32; pixel++) {
+                if ((line & 1) != 0) {
+                    pixels[index++] = 0xff; // Black
+                } else {
+                    pixels[index++] = 0xffffffff; // White
+                }
+
+                line >>= 1; // lsb = next pixel
+            }
+        }
+
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    }
+    
     ImGui::Image((void*)texture, ImVec2(m_iconSize, m_iconSize));
 }
 
 // Perform the pending memory card action (Move, copy, swap)
 void PCSX::Widgets::MemcardManager::performAction() {
     // Data of source and dest cards respectively
-    auto data1 = (uint8_t*)g_emulator->m_sio->GetMcdData(m_selectedCard);
+    auto data1 = m_currentCardData;
     auto data2 = (uint8_t*)g_emulator->m_sio->GetMcdData(m_pendingAction.targetCard);
 
     const int sourceBlock = m_pendingAction.sourceBlock;
