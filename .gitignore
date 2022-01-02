@@ -77,6 +77,8 @@ fb.bat
 offscreen.frag
 offscreen.lua
 offscreen.vert
+offscreen.json
+output.json
 output.frag
 output.lua
 output.vert
