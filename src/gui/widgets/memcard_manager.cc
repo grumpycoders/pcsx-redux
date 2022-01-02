@@ -17,11 +17,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "gui/widgets/memcard_manager.h"
+
 #include <algorithm>
 #include <cstdlib>
+
 #include "core/system.h"
 #include "fmt/format.h"
-#include "gui/widgets/memcard_manager.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
@@ -93,7 +95,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     ImGui::SliderInt("Icon size", &m_iconSize, 16, 512);
     ImGui::SameLine();
     if (ImGui::Checkbox("Draw Pockestation icons", &m_drawPocketstationIcons)) {
-        glDeleteTextures(15, m_iconTextures); // Recreate our textures to fit our new format
+        glDeleteTextures(15, m_iconTextures);  // Recreate our textures to fit our new format
         initTextures();
     }
 
@@ -110,9 +112,9 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     }
 
     static constexpr ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
-                                                  ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
-                                                  ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
-    PCSX::SIO::McdBlock block; // The current memory card block we're looking into
+                                             ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
+                                             ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
+    PCSX::SIO::McdBlock block;  // The current memory card block we're looking into
 
     if (ImGui::BeginTable("Memory card information", 6, flags)) {
         ImGui::TableSetupColumn("Block number");
@@ -147,7 +149,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
                 g_emulator->m_sio->FormatMcdBlock(m_selectedCard, i);
             }
             ImGui::SameLine();
-            
+
             buttonName = fmt::format(_("Copy##{}"), i);
             if (ImGui::SmallButton(buttonName.c_str())) {
                 action = Actions::Copy;
@@ -155,7 +157,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
                 m_pendingAction.popupText = fmt::format("Choose block to copy block {} to", selectedBlock);
             }
             ImGui::SameLine();
-            
+
             buttonName = fmt::format(_("Move##{}"), i);
             if (ImGui::SmallButton(buttonName.c_str())) {
                 action = Actions::Move;
@@ -187,11 +189,11 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
 
     if (action != Actions::None) {
         m_pendingAction.type = action;
-        m_pendingAction.targetCard = m_selectedCard; // Default to current card as the target for the action
+        m_pendingAction.targetCard = m_selectedCard;  // Default to current card as the target for the action
         m_pendingAction.sourceBlock = selectedBlock;
         ImGui::OpenPopup(m_pendingAction.popupText.c_str());
     }
-    
+
     ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
     if (ImGui::BeginPopupModal(m_pendingAction.popupText.c_str())) {
@@ -209,7 +211,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
             performAction();
             ImGui::CloseCurrentPopup();
         } else if (ImGui::Button("Cancel")) {
-            m_pendingAction.type = Actions::None; // Cancel action
+            m_pendingAction.type = Actions::None;  // Cancel action
             ImGui::CloseCurrentPopup();
         }
 
@@ -222,7 +224,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
 }
 
 void PCSX::Widgets::MemcardManager::drawIcon(int blockNumber, const PCSX::SIO::McdBlock& block) {
-    int currentFrame = 0; // 1st frame = 0, 2nd frame = 1, 3rd frame = 2 and so on
+    int currentFrame = 0;  // 1st frame = 0, 2nd frame = 1, 3rd frame = 2 and so on
     const auto texture = m_iconTextures[blockNumber - 1];
     glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -243,8 +245,8 @@ void PCSX::Widgets::MemcardManager::drawIcon(int blockNumber, const PCSX::SIO::M
         getPocketstationIcon(pixels, blockNumber);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     }
-    
-    ImGui::Image((void*)texture, ImVec2(m_iconSize, m_iconSize));
+
+    ImGui::Image(reinterpret_cast<ImTextureID*>(texture), ImVec2(m_iconSize, m_iconSize));
 }
 
 // Perform the pending memory card action (Move, copy, swap)
@@ -258,15 +260,15 @@ void PCSX::Widgets::MemcardManager::performAction() {
     auto source = data1 + sourceBlock * PCSX::SIO::MCD_BLOCK_SIZE;
     auto dest = data2 + destBlock * PCSX::SIO::MCD_BLOCK_SIZE;
 
-    if (destBlock > 15) { // Invalid block number, do nothing
+    if (destBlock > 15) {  // Invalid block number, do nothing
         m_pendingAction.type = Actions::None;
         return;
     }
 
     switch (m_pendingAction.type) {
         case Actions::Move:
-            std::memcpy(dest, source, PCSX::SIO::MCD_BLOCK_SIZE); // Copy source to dest
-            PCSX::g_emulator->m_sio->FormatMcdBlock(m_selectedCard, sourceBlock); // Format source
+            std::memcpy(dest, source, PCSX::SIO::MCD_BLOCK_SIZE);                  // Copy source to dest
+            PCSX::g_emulator->m_sio->FormatMcdBlock(m_selectedCard, sourceBlock);  // Format source
             break;
 
         case Actions::Copy: {
@@ -295,7 +297,7 @@ void PCSX::Widgets::MemcardManager::performAction() {
         } break;
     }
 
-    m_pendingAction.type = Actions::None; // Cancel action
+    m_pendingAction.type = Actions::None;  // Cancel action
 }
 
 // Extract the pocketstation icon from the block indicated by blockNumber into the pixels array (In RGBA8888)
@@ -326,11 +328,28 @@ void PCSX::Widgets::MemcardManager::getPocketstationIcon(uint32_t* pixels, int b
 }
 
 void PCSX::Widgets::MemcardManager::exportPNG(int blockNumber, const PCSX::SIO::McdBlock& block) {
+    const auto filename = fmt::format("icon{}.png", blockNumber);
+
     if (m_drawPocketstationIcons) {
         uint32_t pixels[32 * 32];
         getPocketstationIcon(pixels, blockNumber);
 
-        const auto filename = fmt::format("icon{}.png", blockNumber);
-        stbi_write_png(filename.c_str(), 32, 32, 4, pixels, 128); // Stride = 32 pixels, 4 bytes each, so 128
+        stbi_write_png(filename.c_str(), 32, 32, 4, pixels, 128);  // Stride = 32 pixels, 4 bytes each, so 128
+    } else {  // PSX memcard icons - currently always dumps the 1st frame of the icon
+        const auto toColor8 = [](uint8_t color5) {
+            int color8 = (color5 << 3) | (color5 >> 2);
+            return color8;
+        };
+
+        uint32_t pixels[16 * 16];
+        for (auto i = 0; i < 16 * 16; i++) {       // Convert pixels from RGB555 to RGBA8888 to give to stbi_write_png
+            const uint16_t pixel = block.Icon[i];  // Pixel in RGB555
+            const int red = toColor8(pixel & 0x1F);
+            const int green = toColor8((pixel >> 5) & 0x1F);
+            const int blue = toColor8((pixel >> 10) & 0x1F);
+
+            pixels[i] = 0xff000000 | (blue << 16) | (green << 8) | red;
+        }
+        stbi_write_png(filename.c_str(), 16, 16, 4, pixels, 64);
     }
 }

@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include "core/sio.h"
 #include "GL/gl3w.h"
+#include "core/sio.h"
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 
@@ -40,7 +40,7 @@ class MemcardManager {
 
   private:
     int m_selectedCard = 1;
-    int m_iconSize = 32; // The width and length of the icon images
+    int m_iconSize = 32;  // The width and length of the icon images
     int m_selectedBlock;
     bool m_showMemoryEditor = false;
     bool m_drawPocketstationIcons = false;

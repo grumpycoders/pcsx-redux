@@ -332,8 +332,7 @@ end)(jit.status()))
         }
 
         setFullscreen(m_fullscreen);
-        const auto currentTheme =
-            emuSettings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
+        const auto currentTheme = emuSettings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
         applyTheme(currentTheme);
 
         if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
@@ -803,7 +802,7 @@ void PCSX::GUI::endFrame() {
                     }
                 }
                 if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
-                    m_memcardManager.m_frameCount = 0; // Reset frame count when memcard manager is toggled
+                    m_memcardManager.m_frameCount = 0;  // Reset frame count when memcard manager is toggled
                 }
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
@@ -1546,11 +1545,11 @@ bool PCSX::GUI::about() {
                 if (glDebugMessageCallback) {
                     changed |= ImGui::Checkbox(_("Enable OpenGL error reporting"),
                                                &g_emulator->settings.get<Emulator::SettingGLErrorReporting>().value);
-                    
-                    ShowHelpMarker(_(
-                            "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
-                            "However it requires OpenGL 4.3+ and might have performance repercussions on "
-                            "some PCs. (Requires reboot)"));
+
+                    ShowHelpMarker(
+                        _("OpenGL error reporting is necessary for properly reporting OpenGL problems. "
+                          "However it requires OpenGL 4.3+ and might have performance repercussions on "
+                          "some PCs. (Requires reboot)"));
                 }
                 ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
                 someString(_("Vendor"), GL_VENDOR);
