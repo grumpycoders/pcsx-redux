@@ -631,15 +631,10 @@ void PCSX::GUI::flip() {
 
     glClearColor(0, 0, 0, 0);
     glClearDepthf(0.f);
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glFrontFace(GL_CW);
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
-
     glDisable(GL_CULL_FACE);
-    m_currentTexture = m_currentTexture ? 0 : 1;
+    m_currentTexture ^= 1;
 }
 
 void PCSX::GUI::endFrame() {

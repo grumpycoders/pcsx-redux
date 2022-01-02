@@ -812,7 +812,6 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     Info->Flags = directoryFrame[0];
     std::strncpy(Info->ID, (const char*) &directoryFrame[0xa], 12);
     std::strncpy(Info->Name, (const char*) &directoryFrame[0x16], 16);
-    g_system->printf("ID: %s\nName: %s\n", Info->ID, Info->Name);
 
     const uint32_t fileSize =
         directoryFrame[0x4] | (directoryFrame[0x5] << 8) | (directoryFrame[0x6] << 16) | (directoryFrame[0x7] << 24);
