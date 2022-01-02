@@ -186,6 +186,8 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
         ImGui::OpenPopup(m_pendingAction.popupText.c_str());
     }
     
+    ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
     if (ImGui::BeginPopupModal(m_pendingAction.popupText.c_str())) {
         if (ImGui::BeginCombo(_("Destination card"), cardNames[m_pendingAction.targetCard - 1])) {
             for (unsigned i = 0; i < 2; i++) {
