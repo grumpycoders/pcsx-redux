@@ -339,9 +339,7 @@ uint8_t PCSX::SIO::sioRead8() {
 }
 
 uint16_t PCSX::SIO::readStatus16() {
-    uint16_t hard;
-
-    hard = m_statusReg;
+    uint16_t hard = m_statusReg;
 
 #if 0
     // wait for IRQ first
@@ -372,7 +370,6 @@ void PCSX::SIO::netError() {
 
 void PCSX::SIO::interrupt() {
     SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
-    //  PCSX::g_system->printf("Sio Interrupt\n");
     m_statusReg |= IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
@@ -398,11 +395,11 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
     }
 
     FILE* f = fopen(fname, "rb");
-    if (f == NULL) {
+    if (f == nullptr) {
         PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), fname);
         CreateMcd(str);
         f = fopen(fname, "rb");
-        if (f != NULL) {
+        if (f != nullptr) {
             struct stat buf;
 
             if (stat(fname, &buf) != -1) {
@@ -414,7 +411,7 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
                     fseek(f, 3904, SEEK_SET);
             }
             if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-                throw("File read error.");
+                throw("Error reading memory card.");
             }
             fclose(f);
         } else
@@ -429,7 +426,7 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
                 fseek(f, 3904, SEEK_SET);
         }
         if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-            throw("File read error.");
+            throw("Error reading memory card.");
         }
         fclose(f);
     }
