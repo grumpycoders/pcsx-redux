@@ -256,8 +256,6 @@ void DoTextSnapShot(int iNum) {
     fclose(txtfile);
 }
 
-////////////////////////////////////////////////////////////////////////
-
 extern "C" void softGPUmakeSnapshot()  // snapshot of whole vram
 {
     FILE *bmpfile;
@@ -393,12 +391,9 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 // Here starts all...
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
-{
+int32_t PCSX::SoftGPU::impl::open(GUI *gui) {
     m_gui = gui;
-
     bDoVSyncUpdate = true;
-
     ulInitDisplay();  // setup direct draw
 
     return 0;
@@ -439,8 +434,7 @@ void updateDisplay()  // UPDATE DISPLAY
 // roughly emulated screen centering bits... not complete !!!
 ////////////////////////////////////////////////////////////////////////
 
-void ChangeDispOffsetsX()  // X CENTER
-{
+void ChangeDispOffsetsX() {
     if (!PSXDisplay.Range.x1) return;
 
     int32_t l = PreviousPSXDisplay.DisplayMode.x;
@@ -477,8 +471,7 @@ void ChangeDispOffsetsX()  // X CENTER
 
 ////////////////////////////////////////////////////////////////////////
 
-void ChangeDispOffsetsY()  // Y CENTER
-{
+void ChangeDispOffsetsY() {
     int iT, iO = PreviousPSXDisplay.Range.y0;
     int iOldYOffset = PreviousPSXDisplay.DisplayModeNew.y;
 
@@ -522,8 +515,7 @@ void ChangeDispOffsetsY()  // Y CENTER
 // check if update needed
 ////////////////////////////////////////////////////////////////////////
 
-void updateDisplayIfChanged()  // UPDATE DISPLAY IF CHANGED
-{
+void updateDisplayIfChanged() {
     if ((PSXDisplay.DisplayMode.y == PSXDisplay.DisplayModeNew.y) &&
         (PSXDisplay.DisplayMode.x == PSXDisplay.DisplayModeNew.x)) {
         if ((PSXDisplay.RGB24 == PSXDisplay.RGB24New) && (PSXDisplay.Interlaced == PSXDisplay.InterlacedNew)) return;
@@ -580,8 +572,7 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
 // update lace is called every VSync
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::impl::updateLace()  // VSYNC
-{
+void PCSX::SoftGPU::impl::updateLace() {
     if (m_dumpFile) {
         uint32_t data = 0x02000000;
         fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);

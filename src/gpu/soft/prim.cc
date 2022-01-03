@@ -676,9 +676,6 @@ void PCSX::SoftGPU::SoftPrim::primMoveImage(unsigned char *baseAddr) {
 // cmd: draw free-size Tile
 ////////////////////////////////////////////////////////////////////////
 
-//#define SMALLDEBUG
-//#include <dbgout.h>
-
 void PCSX::SoftGPU::SoftPrim::primTileS(unsigned char *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
