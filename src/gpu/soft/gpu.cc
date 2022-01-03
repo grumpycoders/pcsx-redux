@@ -139,9 +139,6 @@
 #include "imgui.h"
 #include "tracy/Tracy.hpp"
 
-//#define SMALLDEBUG
-//#include <dbgout.h>
-
 ////////////////////////////////////////////////////////////////////////
 // PPDK developer must change libraryName field and can change revision and build
 ////////////////////////////////////////////////////////////////////////
@@ -206,14 +203,6 @@ int iRumbleTime = 0;
 // some misc external display funcs
 ////////////////////////////////////////////////////////////////////////
 
-/*
-uint32_t PCADDR;
-void GPUdebugSetPC(uint32_t addr)
-{
- PCADDR=addr;
-}
-*/
-
 #include <time.h>
 time_t tStart;
 
@@ -269,7 +258,7 @@ void DoTextSnapShot(int iNum) {
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
+extern "C" void softGPUmakeSnapshot()  // snapshot of whole vram
 {
     FILE *bmpfile;
     char filename[256];
@@ -419,12 +408,7 @@ int32_t PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 // time to leave...
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::close()  // GPU CLOSE
-{
-    //    ReleaseKeyHandler();  // de-subclass window
-
-    CloseDisplay();  // shutdown direct draw
-
+int32_t PCSX::SoftGPU::impl::close() {
     return 0;
 }
 
@@ -432,10 +416,8 @@ int32_t PCSX::SoftGPU::impl::close()  // GPU CLOSE
 // I shot the sheriff
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
-{
+int32_t PCSX::SoftGPU::impl::shutdown() {
     delete[] psxVSecure;
-
     return 0;  // nothing to do
 }
 
@@ -443,10 +425,9 @@ int32_t PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
 // Update display (swap buffers)
 ////////////////////////////////////////////////////////////////////////
 
-void updateDisplay(void)  // UPDATE DISPLAY
+void updateDisplay()  // UPDATE DISPLAY
 {
-    if (PSXDisplay.Disabled)  // disable?
-    {
+    if (PSXDisplay.Disabled) {
         DoClearFrontBuffer();  // -> clear frontbuffer
         return;                // -> and bye
     }
@@ -458,17 +439,15 @@ void updateDisplay(void)  // UPDATE DISPLAY
 // roughly emulated screen centering bits... not complete !!!
 ////////////////////////////////////////////////////////////////////////
 
-void ChangeDispOffsetsX(void)  // X CENTER
+void ChangeDispOffsetsX()  // X CENTER
 {
-    int32_t lx, l;
-
     if (!PSXDisplay.Range.x1) return;
 
-    l = PreviousPSXDisplay.DisplayMode.x;
+    int32_t l = PreviousPSXDisplay.DisplayMode.x;
 
     l *= (int32_t)PSXDisplay.Range.x1;
     l /= 2560;
-    lx = l;
+    int32_t lx = l;
     l &= 0xfffffff8;
 
     if (l == PreviousPSXDisplay.Range.y1) return;  // abusing range.y1 for
@@ -498,12 +477,10 @@ void ChangeDispOffsetsX(void)  // X CENTER
 
 ////////////////////////////////////////////////////////////////////////
 
-void ChangeDispOffsetsY(void)  // Y CENTER
+void ChangeDispOffsetsY()  // Y CENTER
 {
     int iT, iO = PreviousPSXDisplay.Range.y0;
     int iOldYOffset = PreviousPSXDisplay.DisplayModeNew.y;
-
-    // new
 
     if ((PreviousPSXDisplay.DisplayModeNew.x + PSXDisplay.DisplayModeNew.y) > iGPUHeight) {
         int dy1 = iGPUHeight - PreviousPSXDisplay.DisplayModeNew.x;
@@ -518,15 +495,11 @@ void ChangeDispOffsetsY(void)  // Y CENTER
     } else
         PreviousPSXDisplay.DisplayModeNew.y = 0;
 
-    // eon
-
     if (PreviousPSXDisplay.DisplayModeNew.y != iOldYOffset)  // if old offset!=new offset: recalc height
     {
         PSXDisplay.Height = PSXDisplay.Range.y1 - PSXDisplay.Range.y0 + PreviousPSXDisplay.DisplayModeNew.y;
         PSXDisplay.DisplayModeNew.y = PSXDisplay.Height * PSXDisplay.Double;
     }
-
-    //
 
     if (PSXDisplay.PAL)
         iT = 48;
@@ -549,7 +522,7 @@ void ChangeDispOffsetsY(void)  // Y CENTER
 // check if update needed
 ////////////////////////////////////////////////////////////////////////
 
-void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
+void updateDisplayIfChanged()  // UPDATE DISPLAY IF CHANGED
 {
     if ((PSXDisplay.DisplayMode.y == PSXDisplay.DisplayModeNew.y) &&
         (PSXDisplay.DisplayMode.x == PSXDisplay.DisplayModeNew.x)) {
@@ -577,13 +550,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
     ChangeDispOffsetsX();
 }
 
-////////////////////////////////////////////////////////////////////////
-
-void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
-{
-    //    softGPUclose();
+// TOGGLE FULLSCREEN - WINDOW
+void ChangeWindowMode() {
     iWindowMode = !iWindowMode;
-    //    softGPUopen(textureId);
     bChangeWinMode = false;
     bDoVSyncUpdate = true;
 }
@@ -608,7 +577,7 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// update lace is called evry VSync
+// update lace is called every VSync
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::impl::updateLace()  // VSYNC
@@ -643,8 +612,7 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
 // process read request from GPU status register
 ////////////////////////////////////////////////////////////////////////
 
-uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
-{
+uint32_t PCSX::SoftGPU::impl::readStatus() {
     if (dwActFixes & 1) {
         static int iNumRead = 0;  // odd/even hack
         if ((iNumRead++) == 2) {
@@ -919,7 +887,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 // vram read/write helpers, needed by LEWPY's optimized vram read/write :)
 ////////////////////////////////////////////////////////////////////////
 
-__inline void FinishedVRAMWrite(void) {
+__inline void FinishedVRAMWrite() {
     /*
     // NEWX
      if(!PSXDisplay.Interlaced && g_useFrameSkip)            // stupid frame skipping
@@ -945,7 +913,7 @@ __inline void FinishedVRAMWrite(void) {
     VRAMWrite.RowsRemaining = 0;
 }
 
-__inline void FinishedVRAMRead(void) {
+__inline void FinishedVRAMRead() {
     // Set register to NORMAL operation
     DataReadMode = DR_NORMAL;
     // Reset transfer values, to prevent mis-transfer of data
@@ -1247,7 +1215,7 @@ extern "C" void softGPUsetMode(uint32_t gdata) {
     // DataReadMode =(gdata&2)?DR_VRAMTRANSFER:DR_NORMAL;
 }
 
-extern "C" int32_t softGPUgetMode(void) {
+extern "C" int32_t softGPUgetMode() {
     int32_t iT = 0;
 
     if (DataWriteMode == DR_VRAMTRANSFER) iT |= 0x1;
@@ -1259,13 +1227,13 @@ extern "C" int32_t softGPUgetMode(void) {
 // call config dlg
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" int32_t softGPUconfigure(void) { return 0; }
+extern "C" int32_t softGPUconfigure() { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // sets all kind of act fixes
 ////////////////////////////////////////////////////////////////////////
 
-void SetFixes(void) {
+void SetFixes() {
     if (dwActFixes & 0x02)
         sDispWidths[4] = 384;
     else
@@ -1504,11 +1472,8 @@ extern "C" void softGPUgetScreenPic(unsigned char *pMem) {}
 // release your picture data and stop displaying
 // the screen pic
 
-extern "C" void softGPUshowScreenPic(unsigned char *pMem) {
-    DestroyPic();           // destroy old pic data
-    if (pMem == 0) return;  // done
-    CreatePic(pMem);        // create new pic... don't free pMem or something like that... just read from it
-}
+// Unimplemented
+extern "C" void softGPUshowScreenPic(unsigned char *pMem) {}
 
 ////////////////////////////////////////////////////////////////////////
 
