@@ -104,7 +104,6 @@
 #include "GL/gl3w.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
-#include "gpu/soft/menu.h"
 #include "gpu/soft/prim.h"
 #include "gui/gui.h"
 

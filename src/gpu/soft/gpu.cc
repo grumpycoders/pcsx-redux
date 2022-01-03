@@ -135,8 +135,6 @@
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
-#include "gpu/soft/key.h"
-#include "gpu/soft/menu.h"
 #include "gpu/soft/prim.h"
 #include "imgui.h"
 #include "tracy/Tracy.hpp"
