@@ -406,8 +406,10 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
             struct stat buf;
 
             if (stat(fname, &buf) != -1) {
+                // Check if the file is a VGS memory card, skip the header if it is
                 if (buf.st_size == MCD_SIZE + 64)
                     fseek(f, 64, SEEK_SET);
+                // Check if the file is a Dexdrive memory card, skip the header if it is
                 else if (buf.st_size == MCD_SIZE + 3904)
                     fseek(f, 3904, SEEK_SET);
             }
