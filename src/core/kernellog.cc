@@ -143,7 +143,7 @@ static const char *const A0names[] = {
     "memset", "memmove", "memcmp", "memchr", "rand",
     // 30
     "srand", "qsort", "strtod", "user_malloc", "user_free", "lsearch", "bsearch", "user_calloc", "user_realloc",
-    "user_initheap", nullptr, "getchar", "putchar", "gets", "puts", "printf",
+    "user_initheap", "SystemErrorExit", "getchar", "putchar", "gets", "puts", "printf",
     // 40
     "SystemErrorUnresolvedException", "loadExeHeader", "loadExe", "exec", "flushCache", "installKernelHandlers",
     "GPU_dw", "GPU_mem2vram", "GPU_send", "GPU_cw", "GPU_cwb", "GPU_sendPackets", "GPU_abort", "GPU_getStatus",
@@ -443,6 +443,10 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
         }
         case 0x39: {
             g_system->log(LogClass::KERNEL, "0x%08x, %i)", n.a0, n.a1);
+            break;
+        }
+        case 0x3a: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
             break;
         }
         case 0x3b: {
