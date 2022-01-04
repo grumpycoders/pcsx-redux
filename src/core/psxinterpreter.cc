@@ -1199,7 +1199,7 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_psxREG[32] = {
     &InterpretedCPU::psxBLTZAL, &InterpretedCPU::psxBGEZAL, &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 10
     &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 14
     &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 18
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ // 1c
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ  // 1c
 };
 
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxCP0[32] = {
