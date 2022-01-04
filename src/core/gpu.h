@@ -61,15 +61,13 @@ class GPU {
     virtual void save(SaveStates::GPU &gpu) = 0;
     virtual void load(const SaveStates::GPU &gpu) = 0;
 
-    virtual void keypressed(int key) {}
     virtual void displayText(char *pText) { PCSX::g_system->printf("%s\n", pText); }
     virtual void makeSnapshot(void) {}
     virtual void toggleDebug(void) {}
     virtual int32_t getScreenPic(unsigned char *pMem) { return -1; }
     virtual int32_t showScreenPic(unsigned char *pMem) { return -1; }
     virtual void clearDynarec(void (*callback)(void)) {}
-    virtual void hSync(int val) {}
-    virtual void vBlank(int val) {}
+    virtual void vBlank() {}
     virtual void visualVibration(uint32_t iSmall, uint32_t iBig) {}
     virtual void cursor(int player, int x, int y) {}
     virtual void addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {}
