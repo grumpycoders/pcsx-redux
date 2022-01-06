@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <bit>
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
@@ -79,34 +80,17 @@ class GTE {
     // If MSB is set, return the number of leading ones, else return the number of leading zeroes
     // For an input of 0, 32 is returned
     static uint32_t countLeadingBits(uint32_t value) {
-#ifdef __GNUC__
         if (value & 0x80000000) {
             value = ~value;
         }
-        return (value == 0) ? 32 : __builtin_clz(value);
-#elif defined(_MSC_VER)
-        if (value & 0x80000000) {
-            value = ~value;
-        }
+        return std::countl_zero<uint32_t>(value);
+    }
 
-        if (value == 0) return 32;
-
-        unsigned long count;
-        _BitScanReverse(&count, value);
-        return 31 - count;
-#else
-        if ((value & 0x80000000) == 0) {
-            value = ~value;
-        }
-
-        uint32_t count = 0;
-        while ((value & 0x80000000) != 0) {
-            count++;
-            value <<= 1;
-        }
-
-        return count;
-#endif
+    // Count leading zeroes of a 16-bit value. For an input of 0, 16 is returned
+    static uint32_t countLeadingZeros16(uint16_t value) {
+        // Use a 32-bit CLZ as it's what's most commonly and Clang/GCC fail to optimize 16-bit CLZ
+        const auto count = std::countl_zero<uint32_t>((uint32_t)value);
+        return count - 16;
     }
 
   private:

@@ -383,7 +383,7 @@ int32_t PCSX::GTE::BOUNDS(/*int44*/ int64_t value, int max_flag, int min_flag) {
     return gte_shift(value /*.value()*/, s_sf);
 }
 
-static uint32_t gte_divide(uint32_t numerator, uint32_t denominator) {
+static uint32_t gte_divide(uint16_t numerator, uint16_t denominator) {
     if (numerator >= denominator * 2) {  // Division overflow
         FLAG |= (1 << 31) | (1 << 17);
         return 0x1ffff;
@@ -406,7 +406,7 @@ static uint32_t gte_divide(uint32_t numerator, uint32_t denominator) {
         0x0a, 0x0a, 0x09, 0x09, 0x08, 0x08, 0x07, 0x07, 0x06, 0x06, 0x05, 0x05, 0x04, 0x04, 0x03, 0x03, 0x02, 0x02,
         0x01, 0x01, 0x00, 0x00, 0x00};
 
-    int shift = PCSX::GTE::countLeadingBits(denominator) - 16;
+    int shift = PCSX::GTE::countLeadingZeros16(denominator);
 
     int r1 = (denominator << shift) & 0x7fff;
     int r2 = table[((r1 + 0x40) >> 7)] + 0x101;
