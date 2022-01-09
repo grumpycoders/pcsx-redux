@@ -88,7 +88,7 @@ class GTE {
 
     // Count leading zeroes of a 16-bit value. For an input of 0, 16 is returned
     static uint32_t countLeadingZeros16(uint16_t value) {
-        // Use a 32-bit CLZ as it's what's most commonly and Clang/GCC fail to optimize 16-bit CLZ
+        // Use a 32-bit CLZ as it's what's most commonly available and Clang/GCC fail to optimize 16-bit CLZ
         const auto count = std::countl_zero<uint32_t>((uint32_t)value);
         return count - 16;
     }
