@@ -25,8 +25,9 @@
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <queue>
 #include <stdexcept>
-
+#include <tuple>
 namespace PCSX {
 
 template <typename T, size_t BS = 1024>
@@ -41,10 +42,28 @@ class Circular {
         std::unique_lock<std::mutex> l(m_mu);
         return bufferedLocked();
     }
+
+    std::queue<std::tuple<const T*, size_t>> tempQueue;
     bool enqueue(const T* data, size_t N) {
-        if (N > BUFFER_SIZE) {
-            throw std::runtime_error("Trying to enqueue too much data");
+        if (tempQueue.size()) {
+            // throw std::runtime_error("Trying to enqueue too much data");
+            tempQueue.push(std::make_tuple(data, N));
+            if (std::get<1>(tempQueue.front()) < BUFFER_SIZE) {
+                do {
+                    std::tuple<const T*, size_t> front = tempQueue.front();
+                    tempQueue.pop();
+                    startEnqueueSafe(std::get<0>(front), std::get<1>(front));
+                } while (tempQueue.size() && std::get<1>(tempQueue.front()) < BUFFER_SIZE);
+            }
+            return true;
+        } else if (N > BUFFER_SIZE) {
+            tempQueue.push(std::make_tuple(data, N));
+            return true;
+        } else {
+            return startEnqueueSafe(data, N);
         }
+    }
+    inline bool startEnqueueSafe(const T* data, size_t N) {
         std::unique_lock<std::mutex> l(m_mu);
         using namespace std::chrono_literals;
         bool safe = m_cv.wait_for(l, 200ms, [this, N]() -> bool { return N < availableLocked(); });

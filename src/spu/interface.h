@@ -91,8 +91,37 @@ class impl final : public SPUInterface {
     static const size_t NSSIZE = 45;
 
     // spu
+    class main_t_variables {
+      public:
+        int s_1, s_2, fa, ns;
+        uint8_t *start;
+        unsigned int nSample;
+        int ch, predict_nr, shift_factor, flags, d, s;
+        int bIRQReturn = 0;
+        int voldiv = 0;
+        int32_t tmpCapVoice1Index = 0;
+        int32_t tmpCapVoice3Index = 0;
+        PCSX::SPU::SPUCHAN *pChannel;
+        void reset() {
+            s_1 = s_2 = fa = ns = 0;
+            start = nullptr;
+            nSample = ch = predict_nr = shift_factor = flags = d = s = bIRQReturn = voldiv = 0;
+            tmpCapVoice1Index = 0;
+            tmpCapVoice3Index = 0;
+            pChannel = nullptr;
+        }
+    } _vars;
     void MainThread();
     void writeCaptureBufferCD(int numbSamples);
+    void mixAllChannels();
+    void main_t_pMixIrq();
+    void main_t_FeedStreamData();
+    void main_t_IrqCheck();
+    void main_t_FlagHandler();
+    void main_t_StopSign();
+    void main_t_SBPos_28();
+    void main_t_get_noise_or_sample_mixedSample();
+    void main_t_fmod_freq_channel();
     void SetupStreams();
     void RemoveStreams();
     void SetupThread();
