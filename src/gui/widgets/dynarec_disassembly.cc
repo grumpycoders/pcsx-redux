@@ -182,8 +182,7 @@ size_t PCSX::Widgets::Disassembly::disassembleBuffer() {
     // Walk code buffer and try to disassemble
     count = cs_disasm(handle, buffer, bufferSize, 0x0, 0, &insn);
     if (count > 0) {
-        size_t j;
-        for (j = 0; j < count; j++) {
+        for (size_t j = 0; j < count; j++) {
             // Write instruction (address, mnemonic, and operand to string
             std::string s =
                 fmt::sprintf("%#010" PRIx64 ":\t\t%-12s\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str);
