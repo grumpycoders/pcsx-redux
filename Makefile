@@ -10,7 +10,7 @@ PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresam
 
 LOCALES := fr
 
-ifeq ($(wildcard third_party/zlib/zlib.h),)
+ifeq ($(wildcard third_party/imgui/imgui.h),)
 HAS_SUBMODULES = false
 else
 HAS_SUBMODULES = true
