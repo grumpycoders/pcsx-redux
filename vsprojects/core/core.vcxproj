@@ -216,6 +216,7 @@
     <ClCompile Include="..\..\src\core\psxmem.cc" />
     <ClCompile Include="..\..\src\core\r3000a.cc" />
     <ClCompile Include="..\..\src\core\sio.cc" />
+    <ClCompile Include="..\..\src\core\uart-server.cpp" />
     <ClCompile Include="..\..\src\core\spu.cc" />
     <ClCompile Include="..\..\src\core\sstate.cc" />
     <ClCompile Include="..\..\src\core\stacktrace.cc" />
@@ -259,6 +260,8 @@
     <ClInclude Include="..\..\src\core\psxmem.h" />
     <ClInclude Include="..\..\src\core\r3000a.h" />
     <ClInclude Include="..\..\src\core\sio.h" />
+    <ClInclude Include="..\..\src\core\uart.h" />
+    <ClInclude Include="..\..\src\core\uart-server.h" />
     <ClInclude Include="..\..\src\core\spu.h" />
     <ClInclude Include="..\..\src\core\sstate.h" />
     <ClInclude Include="..\..\src\core\stacktrace.h" />

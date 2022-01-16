@@ -48,6 +48,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
+#include "core/uart-server.h"
 #include "core/web-server.h"
 #include "flags.h"
 #include "gpu/soft/externals.h"
@@ -1354,11 +1355,25 @@ the gdb server system itself.)"));
                 g_emulator->m_webServer->stopServer();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a web-server, that you can
+        ShowHelpMarker(_(R"(This will activate a tcp server, that will
 query using a REST api. See the wiki for details.
 The debugger might be required in some cases.)"));
         changed |=
             ImGui::InputInt(_("Web Server Port"), &debugSettings.get<Emulator::DebugSettings::WebServerPort>().value);
+        if (ImGui::Checkbox(_("Enable UART Server"), &debugSettings.get<Emulator::DebugSettings::UARTServer>().value)) {
+            changed = true;
+            if (debugSettings.get<Emulator::DebugSettings::UARTServer>()) {
+                g_emulator->m_uartServer->startServer(&g_emulator->m_loop,
+                                                     debugSettings.get<Emulator::DebugSettings::UARTServerPort>());
+            } else {
+                g_emulator->m_uartServer->stopServer();
+            }
+        }
+        ShowHelpMarker(_(R"(This will activate a tcp server, that will
+relay information between tcp and sio1/uart.
+See the wiki for details.)"));
+        changed |=
+            ImGui::InputInt(_("UART Server Port"), &debugSettings.get<Emulator::DebugSettings::UARTServerPort>().value);
         if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
             auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
             if (ImGui::Button(_("Add one entry"))) overlays.push_back({});
