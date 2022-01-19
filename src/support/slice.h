@@ -162,7 +162,7 @@ class Slice {
 
     uint8_t getByte(size_t offset) {
         if (offset >= size()) throw std::runtime_error("getByte called with an out of range offset");
-        return reinterpret_cast<const uint8_t *>(data())[offset];
+        return static_cast<const uint8_t *>(data())[offset];
     }
 
   private:

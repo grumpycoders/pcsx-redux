@@ -1357,7 +1357,7 @@ the gdb server system itself.)"));
                 g_emulator->m_webServer->stopServer();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a tcp server, that will
+        ShowHelpMarker(_(R"(This will activate a web-server, that you can
 query using a REST api. See the wiki for details.
 The debugger might be required in some cases.)"));
         changed |=

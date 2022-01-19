@@ -38,6 +38,8 @@ class UART {
         {
             ret = m_slices.getByte();
             m_statusReg &= ~SR_RXRDY;
+            psxHu32(0x1054) = m_statusReg;
+            psxHu8(0x1050) = ret;
         }
 
         return ret;
@@ -45,10 +47,10 @@ class UART {
     unsigned char SIO1_readStat8() {
         if (m_slices.m_sliceQueue.size() > 0) {
             m_statusReg |= SR_RXRDY;
-            m_statusReg |= SR_TXRDY | SR_TXEMPTY;
         } else {
             m_statusReg &= ~SR_RXRDY;
         }
+        psxHu32(0x1054) = m_statusReg;
         
         return m_statusReg & 0x00FF;
     }
@@ -66,37 +68,55 @@ class UART {
     unsigned short SIO1_readBaud16() { return m_baudReg; }
 
     void SIO1_writeData8(unsigned char v) {
+        psxHu8(0x1050) = v;
         PCSX::g_emulator->m_uartServer->write(v);
+
+        m_statusReg |= SR_TXRDY | SR_TXEMPTY;
+        psxHu32(0x1054) = m_statusReg;
     }
 
     void SIO1_writeData16(unsigned short v) { psxHu16(0x1050) = v; }
-    void SIO1_writeData32(uint32_t v) { psxHu16(0x1050) = v; }
+    void SIO1_writeData32(uint32_t v) { psxHu32(0x1050) = v; }
 
-    void SIO1_writeStat8(unsigned char v) { psxHu16(0x1054) = v; }
+    void SIO1_writeStat8(unsigned char v) { psxHu8(0x1054) = v; }
 
     void SIO1_writeStat16(uint16_t v) { 
         m_statusReg = v;
+        psxHu32(0x1054) = m_statusReg;
     }
     void SIO1_writeMode16(uint16_t v) { 
         m_modeReg = v;
+        psxHu16(0x1058) = v;
     }
     void SIO1_writeCtrl16(uint16_t v) {
         m_ctrlReg = v;
         if (m_ctrlReg & CR_ACK) {
             m_ctrlReg &= ~CR_ACK;
-            m_statusReg &= ~(SR_PARITYERR | SR_RXOVERRUN | SR_FRAMINGERR | SR_IRQ);
-        }
+            psxHu16(0x105A) = m_ctrlReg;
 
+            m_statusReg &= ~(SR_PARITYERR | SR_RXOVERRUN | SR_FRAMINGERR | SR_IRQ);
+            psxHu32(0x1054) = m_statusReg;
+        }
+ 
         if (m_ctrlReg & CR_UNKNOWN) {
             m_statusReg &= ~SR_IRQ;
             m_statusReg |= SR_TXRDY | SR_TXEMPTY;
+            psxHu32(0x1054) = m_statusReg;
+
             m_modeReg = 0;
+            psxHu16(0x1058) = m_modeReg;
+
             m_ctrlReg = 0;
+            psxHu16(0x105A) = m_ctrlReg;
+
             m_baudReg = 0;
+            psxHu16(0x105E) = m_baudReg;
+
         }
     }
     void SIO1_writeBaud16(uint16_t v) {
         m_baudReg = v;
+        psxHu16(0x105E) = m_baudReg;
     }
 
     struct Slices {
@@ -110,7 +130,7 @@ class UART {
             uint8_t r = slice.getByte(m_cursor);
             if (++m_cursor >= slice.size()) {
                 m_cursor = 0;
-                m_sliceQueue.pop();
+                while (!m_sliceQueue.empty()) m_sliceQueue.pop();
             }
             return r;
         }
@@ -152,7 +172,7 @@ class UART {
     };
 
     // Transfer Ready and the Buffer is Empty
-    uint16_t m_statusReg = SR_TXRDY | SR_TXEMPTY | SR_DSR | SR_CTS;
+    uint32_t m_statusReg = SR_TXRDY | SR_TXEMPTY | SR_DSR | SR_CTS;
     uint16_t m_modeReg = 0;
     uint16_t m_ctrlReg = 0;
     uint16_t m_baudReg = 0;
