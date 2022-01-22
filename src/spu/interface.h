@@ -91,7 +91,7 @@ class impl final : public SPUInterface {
     static const size_t NSSIZE = 45;
 
     // spu
-    class main_t_variables {
+    struct MainThreadVariables {
       public:
         int s_1, s_2, fa, ns;
         uint8_t *start;
@@ -102,26 +102,18 @@ class impl final : public SPUInterface {
         int32_t tmpCapVoice1Index = 0;
         int32_t tmpCapVoice3Index = 0;
         PCSX::SPU::SPUCHAN *pChannel;
-        void reset() {
-            s_1 = s_2 = fa = ns = 0;
-            start = nullptr;
-            nSample = ch = predict_nr = shift_factor = flags = d = s = bIRQReturn = voldiv = 0;
-            tmpCapVoice1Index = 0;
-            tmpCapVoice3Index = 0;
-            pChannel = nullptr;
-        }
-    } _vars;
+    };
     void MainThread();
     void writeCaptureBufferCD(int numbSamples);
-    void mixAllChannels();
-    void main_t_pMixIrq();
-    void main_t_FeedStreamData();
-    void main_t_IrqCheck();
-    void main_t_FlagHandler();
-    void main_t_StopSign();
-    void main_t_SBPos_28();
-    void main_t_get_noise_or_sample_mixedSample();
-    void main_t_fmod_freq_channel();
+    void MixAllChannels(MainThreadVariables &mainThraadVars);
+    void PMixIrq(MainThreadVariables &mainThraadVars);
+    void FeedStreamData(MainThreadVariables &mainThraadVars);
+    void IrqCheck(MainThreadVariables &mainThraadVars);
+    void FlagHandler(MainThreadVariables &mainThraadVars);
+    void StopSign(MainThreadVariables &mainThraadVars);
+    void SBPos_28(MainThreadVariables &mainThraadVars); // needs a better explanatory naming, I didn't find one 
+    void GetNoiseOrSampleMixedSample(MainThreadVariables &mainThraadVars);
+    void FModFreqChannel(MainThreadVariables &mainThraadVars);
     void SetupStreams();
     void RemoveStreams();
     void SetupThread();

@@ -423,10 +423,10 @@ inline int PCSX::SPU::impl::iGetInterpolationVal(SPUCHAN *pChannel) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::MainThread() {
-    _vars.reset();
+    MainThreadVariables mVars;
     while (!bEndThread)  // until we are shutting down
     {
-        _vars.voldiv = 4 - settings.get<Volume>();
+        mVars.voldiv = 4 - settings.get<Volume>();
         ///////////////////////////////////////////////////////////////////
         // ok, at the beginning we are looking if there is
         // enuff free place in the dsound/oss buffer to
@@ -453,76 +453,76 @@ void PCSX::SPU::impl::MainThread() {
         // continue from irq handling in timer mode?
         if (lastch >= 0)  // will be -1 if no continue is pending
         {
-            _vars.ch = lastch;
-            _vars.ns = lastns;
+            mVars.ch = lastch;
+            mVars.ns = lastns;
             lastch = -1;  // -> setup all kind of vars to continue
-            _vars.pChannel = &s_chan[_vars.ch];
+            mVars.pChannel = &s_chan[mVars.ch];
             goto GOON;  // -> directly jump to the continue point
         }
-        _vars.tmpCapVoice1Index = capBufVoiceIndex;
-        _vars.tmpCapVoice3Index = capBufVoiceIndex;
+        mVars.tmpCapVoice1Index = capBufVoiceIndex;
+        mVars.tmpCapVoice3Index = capBufVoiceIndex;
         //--------------------------------------------------//
         //- main channel loop                              -//
         //--------------------------------------------------//
         {
-            _vars.pChannel = s_chan;
-            for (_vars.ch = 0; _vars.ch < MAXCHAN; _vars.ch++,
-                _vars.pChannel++)  // loop em all... we will collect 1 ms of sound of each playing channel
+            mVars.pChannel = s_chan;
+            for (mVars.ch = 0; mVars.ch < MAXCHAN; mVars.ch++,
+                mVars.pChannel++)  // loop em all... we will collect 1 ms of sound of each playing channel
             {
-                if (_vars.pChannel->data.get<PCSX::SPU::Chan::New>().value) {
-                    StartSound(_vars.pChannel);        // start new sound
-                    dwNewChannel &= ~(1 << _vars.ch);  // clear new channel bit
+                if (mVars.pChannel->data.get<PCSX::SPU::Chan::New>().value) {
+                    StartSound(mVars.pChannel);        // start new sound
+                    dwNewChannel &= ~(1 << mVars.ch);  // clear new channel bit
                 }
-                if (!_vars.pChannel->data.get<PCSX::SPU::Chan::On>().value) {
+                if (!mVars.pChannel->data.get<PCSX::SPU::Chan::On>().value) {
                     // Although the voices may stop outputting audio, the capture buffer is still filling up.
-                    if (pMixIrq && _vars.ch == 1) {
+                    if (pMixIrq && mVars.ch == 1) {
                         std::unique_lock<std::mutex> lock(cbMtx);
-                        for (int c = 0; c < NSSIZE; c++) spuMem[_vars.tmpCapVoice1Index + c + 0x400] = 0;
-                        _vars.tmpCapVoice1Index = (_vars.tmpCapVoice1Index + NSSIZE) % 0x200;
-                    } else if (pMixIrq && _vars.ch == 3) {
+                        for (int c = 0; c < NSSIZE; c++) spuMem[mVars.tmpCapVoice1Index + c + 0x400] = 0;
+                        mVars.tmpCapVoice1Index = (mVars.tmpCapVoice1Index + NSSIZE) % 0x200;
+                    } else if (pMixIrq && mVars.ch == 3) {
                         std::unique_lock<std::mutex> lock(cbMtx);
-                        for (int c = 0; c < NSSIZE; c++) spuMem[_vars.tmpCapVoice3Index + c + 0x600] = 0;
-                        _vars.tmpCapVoice3Index = (_vars.tmpCapVoice3Index + NSSIZE) % 0x200;
+                        for (int c = 0; c < NSSIZE; c++) spuMem[mVars.tmpCapVoice3Index + c + 0x600] = 0;
+                        mVars.tmpCapVoice3Index = (mVars.tmpCapVoice3Index + NSSIZE) % 0x200;
                     }
                     continue;  // channel not playing? next
                 }
-                if (_vars.pChannel->data.get<PCSX::SPU::Chan::ActFreq>().value !=
-                    _vars.pChannel->data.get<PCSX::SPU::Chan::UsedFreq>().value)  // new psx frequency?
-                    VoiceChangeFrequency(_vars.pChannel);
-                _vars.ns = 0;
-                while (_vars.ns < NSSIZE)  // loop until 1 ms of data is reached
+                if (mVars.pChannel->data.get<PCSX::SPU::Chan::ActFreq>().value !=
+                    mVars.pChannel->data.get<PCSX::SPU::Chan::UsedFreq>().value)  // new psx frequency?
+                    VoiceChangeFrequency(mVars.pChannel);
+                mVars.ns = 0;
+                while (mVars.ns < NSSIZE)  // loop until 1 ms of data is reached
                 {
-                    if (_vars.pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 &&
-                        iFMod[_vars.ns])  // fmod freq channel
-                        FModChangeFrequency(_vars.pChannel, _vars.ns);
-                    while (_vars.pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) {
-                        if (_vars.pChannel->data.get<PCSX::SPU::Chan::SBPos>().value == 28)  // 28 reached?
+                    if (mVars.pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 &&
+                        iFMod[mVars.ns])  // fmod freq channel
+                        FModChangeFrequency(mVars.pChannel, mVars.ns);
+                    while (mVars.pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) {
+                        if (mVars.pChannel->data.get<PCSX::SPU::Chan::SBPos>().value == 28)  // 28 reached?
                         {
-                            _vars.start = _vars.pChannel->pCurr;  // set up the current pos
-                            if (_vars.start == (uint8_t *)-1)     // special "stop" sign
+                            mVars.start = mVars.pChannel->pCurr;  // set up the current pos
+                            if (mVars.start == (uint8_t *)-1)     // special "stop" sign
                             {
-                                main_t_StopSign();
+                                StopSign(mVars);
                                 goto ENDX;  // and done for this channel
                             }
                             // spu irq handler here? mmm... do it later
-                            main_t_SBPos_28();
+                            SBPos_28(mVars);
                         GOON:;
                         }
-                        _vars.fa = _vars.pChannel->data.get<PCSX::SPU::Chan::SB>()
-                                       .value[_vars.pChannel->data.get<PCSX::SPU::Chan::SBPos>().value++]
+                        mVars.fa = mVars.pChannel->data.get<PCSX::SPU::Chan::SB>()
+                                       .value[mVars.pChannel->data.get<PCSX::SPU::Chan::SBPos>().value++]
                                        .value;  // get sample data
 
-                        StoreInterpolationVal(_vars.pChannel, _vars.fa);  // store val for later interpolation
-                        _vars.pChannel->data.get<PCSX::SPU::Chan::spos>().value -= 0x10000L;
+                        StoreInterpolationVal(mVars.pChannel, mVars.fa);  // store val for later interpolation
+                        mVars.pChannel->data.get<PCSX::SPU::Chan::spos>().value -= 0x10000L;
                     }
                     ////////////////////////////////////////////////
-                    main_t_get_noise_or_sample_mixedSample();
-                    main_t_fmod_freq_channel();
+                    GetNoiseOrSampleMixedSample(mVars);
+                    FModFreqChannel(mVars);
                     ////////////////////////////////////////////////
                     // ok, go on until 1 ms data of this channel is collected
-                    _vars.ns++;
-                    _vars.pChannel->data.get<PCSX::SPU::Chan::spos>().value +=
-                        _vars.pChannel->data.get<PCSX::SPU::Chan::sinc>().value;
+                    mVars.ns++;
+                    mVars.pChannel->data.get<PCSX::SPU::Chan::spos>().value +=
+                        mVars.pChannel->data.get<PCSX::SPU::Chan::sinc>().value;
                 }
             ENDX:;
             }
@@ -532,114 +532,114 @@ void PCSX::SPU::impl::MainThread() {
         //---------------------------------------------------//
         //- here we have another 1 ms of sound data
         //---------------------------------------------------//
-        mixAllChannels();
-        if (pMixIrq) main_t_pMixIrq();
+        MixAllChannels(mVars);
+        if (pMixIrq) PMixIrq(mVars);
         InitREVERB();
-        main_t_FeedStreamData();
+        FeedStreamData(mVars);
     }
     // end of big main loop...
     bThreadEnded = 1;
 }
-void PCSX::SPU::impl::main_t_fmod_freq_channel() {
-    if (_vars.pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 2)  // fmod freq channel
-        iFMod[_vars.ns] = _vars.pChannel->data.get<PCSX::SPU::Chan::sval>()
+void PCSX::SPU::impl::FModFreqChannel(MainThreadVariables &mVars) {
+    if (mVars.pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 2)  // fmod freq channel
+        iFMod[mVars.ns] = mVars.pChannel->data.get<PCSX::SPU::Chan::sval>()
                               .value;  // -> store 1T sample data, use that to do fmod on next channel
     else                               // no fmod freq channel
     {
         //////////////////////////////////////////////
         // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
 
-        if (_vars.pChannel->data.get<PCSX::SPU::Chan::Mute>().value)
-            _vars.pChannel->data.get<PCSX::SPU::Chan::sval>().value = 0;  // debug mute
+        if (mVars.pChannel->data.get<PCSX::SPU::Chan::Mute>().value)
+            mVars.pChannel->data.get<PCSX::SPU::Chan::sval>().value = 0;  // debug mute
         else {
-            SSumL[_vars.ns] += (_vars.pChannel->data.get<PCSX::SPU::Chan::sval>().value *
-                                _vars.pChannel->data.get<PCSX::SPU::Chan::LeftVolume>().value) /
+            SSumL[mVars.ns] += (mVars.pChannel->data.get<PCSX::SPU::Chan::sval>().value *
+                                mVars.pChannel->data.get<PCSX::SPU::Chan::LeftVolume>().value) /
                                0x4000L;
-            SSumR[_vars.ns] += (_vars.pChannel->data.get<PCSX::SPU::Chan::sval>().value *
-                                _vars.pChannel->data.get<PCSX::SPU::Chan::RightVolume>().value) /
+            SSumR[mVars.ns] += (mVars.pChannel->data.get<PCSX::SPU::Chan::sval>().value *
+                                mVars.pChannel->data.get<PCSX::SPU::Chan::RightVolume>().value) /
                                0x4000L;
         }
 
         //////////////////////////////////////////////
         // now let us store sound data for reverb
 
-        if (_vars.pChannel->data.get<PCSX::SPU::Chan::RVBActive>().value) StoreREVERB(_vars.pChannel, _vars.ns);
+        if (mVars.pChannel->data.get<PCSX::SPU::Chan::RVBActive>().value) StoreREVERB(mVars.pChannel, mVars.ns);
     }
 }
 
-void PCSX::SPU::impl::main_t_get_noise_or_sample_mixedSample() {
-    if (_vars.pChannel->data.get<PCSX::SPU::Chan::Noise>().value)
-        _vars.fa = iGetNoiseVal(_vars.pChannel);  // get noise val
+void PCSX::SPU::impl::GetNoiseOrSampleMixedSample(MainThreadVariables &mVars) {
+    if (mVars.pChannel->data.get<PCSX::SPU::Chan::Noise>().value)
+        mVars.fa = iGetNoiseVal(mVars.pChannel);  // get noise val
     else
-        _vars.fa = iGetInterpolationVal(_vars.pChannel);  // get sample val
+        mVars.fa = iGetInterpolationVal(mVars.pChannel);  // get sample val
 
-    int32_t mixedSample = (m_adsr.mix(_vars.pChannel) * _vars.fa) / 1023;  // mix adsr
-    _vars.pChannel->data.get<PCSX::SPU::Chan::sval>().value = mixedSample;
+    int32_t mixedSample = (m_adsr.mix(mVars.pChannel) * mVars.fa) / 1023;  // mix adsr
+    mVars.pChannel->data.get<PCSX::SPU::Chan::sval>().value = mixedSample;
 
     // Capture buffer should contain voice1/3 sample after any adsr processing but before volume
     // processing?
     mixedSample = std::min(0xFFFF, std::max(-0xFFFF, mixedSample));
-    if (pMixIrq && _vars.ch == 1) {
+    if (pMixIrq && mVars.ch == 1) {
         std::unique_lock<std::mutex> lock(cbMtx);
-        spuMem[_vars.tmpCapVoice1Index + 0x400] = mixedSample;
-        _vars.tmpCapVoice1Index = (_vars.tmpCapVoice1Index + 1) % 0x200;
-    } else if (pMixIrq && _vars.ch == 3) {
+        spuMem[mVars.tmpCapVoice1Index + 0x400] = mixedSample;
+        mVars.tmpCapVoice1Index = (mVars.tmpCapVoice1Index + 1) % 0x200;
+    } else if (pMixIrq && mVars.ch == 3) {
         std::unique_lock<std::mutex> lock(cbMtx);
-        spuMem[_vars.tmpCapVoice3Index + 0x600] = mixedSample;
-        _vars.tmpCapVoice3Index = (_vars.tmpCapVoice3Index + 1) % 0x200;
+        spuMem[mVars.tmpCapVoice3Index + 0x600] = mixedSample;
+        mVars.tmpCapVoice3Index = (mVars.tmpCapVoice3Index + 1) % 0x200;
     }
 }
-void PCSX::SPU::impl::main_t_SBPos_28() {
-    _vars.pChannel->data.get<PCSX::SPU::Chan::SBPos>().value = 0;
+void PCSX::SPU::impl::SBPos_28(MainThreadVariables &mVars) {
+    mVars.pChannel->data.get<PCSX::SPU::Chan::SBPos>().value = 0;
 
-    _vars.s_1 = _vars.pChannel->data.get<PCSX::SPU::Chan::s_1>().value;
-    _vars.s_2 = _vars.pChannel->data.get<PCSX::SPU::Chan::s_2>().value;
+    mVars.s_1 = mVars.pChannel->data.get<PCSX::SPU::Chan::s_1>().value;
+    mVars.s_2 = mVars.pChannel->data.get<PCSX::SPU::Chan::s_2>().value;
 
-    _vars.predict_nr = (int)*_vars.start;
-    _vars.start++;
-    _vars.shift_factor = _vars.predict_nr & 0xf;
-    _vars.predict_nr >>= 4;
-    _vars.flags = (int)*_vars.start;
-    _vars.start++;
+    mVars.predict_nr = (int)*mVars.start;
+    mVars.start++;
+    mVars.shift_factor = mVars.predict_nr & 0xf;
+    mVars.predict_nr >>= 4;
+    mVars.flags = (int)*mVars.start;
+    mVars.start++;
 
     // -------------------------------------- //
-    for (_vars.nSample = 0; _vars.nSample < 28; _vars.start++) {
-        _vars.d = (int)*_vars.start;
-        _vars.s = ((_vars.d & 0xf) << 12);
-        if (_vars.s & 0x8000) _vars.s |= 0xffff0000;
+    for (mVars.nSample = 0; mVars.nSample < 28; mVars.start++) {
+        mVars.d = (int)*mVars.start;
+        mVars.s = ((mVars.d & 0xf) << 12);
+        if (mVars.s & 0x8000) mVars.s |= 0xffff0000;
 
-        _vars.fa = (_vars.s >> _vars.shift_factor);
-        _vars.fa = _vars.fa + ((_vars.s_1 * f[_vars.predict_nr][0]) >> 6) + ((_vars.s_2 * f[_vars.predict_nr][1]) >> 6);
-        _vars.s_2 = _vars.s_1;
-        _vars.s_1 = _vars.fa;
-        _vars.s = ((_vars.d & 0xf0) << 8);
+        mVars.fa = (mVars.s >> mVars.shift_factor);
+        mVars.fa = mVars.fa + ((mVars.s_1 * f[mVars.predict_nr][0]) >> 6) + ((mVars.s_2 * f[mVars.predict_nr][1]) >> 6);
+        mVars.s_2 = mVars.s_1;
+        mVars.s_1 = mVars.fa;
+        mVars.s = ((mVars.d & 0xf0) << 8);
 
-        _vars.pChannel->data.get<PCSX::SPU::Chan::SB>().value[_vars.nSample++].value = _vars.fa;
+        mVars.pChannel->data.get<PCSX::SPU::Chan::SB>().value[mVars.nSample++].value = mVars.fa;
 
-        if (_vars.s & 0x8000) _vars.s |= 0xffff0000;
-        _vars.fa = (_vars.s >> _vars.shift_factor);
-        _vars.fa = _vars.fa + ((_vars.s_1 * f[_vars.predict_nr][0]) >> 6) + ((_vars.s_2 * f[_vars.predict_nr][1]) >> 6);
-        _vars.s_2 = _vars.s_1;
-        _vars.s_1 = _vars.fa;
+        if (mVars.s & 0x8000) mVars.s |= 0xffff0000;
+        mVars.fa = (mVars.s >> mVars.shift_factor);
+        mVars.fa = mVars.fa + ((mVars.s_1 * f[mVars.predict_nr][0]) >> 6) + ((mVars.s_2 * f[mVars.predict_nr][1]) >> 6);
+        mVars.s_2 = mVars.s_1;
+        mVars.s_1 = mVars.fa;
 
-        _vars.pChannel->data.get<PCSX::SPU::Chan::SB>().value[_vars.nSample++].value = _vars.fa;
+        mVars.pChannel->data.get<PCSX::SPU::Chan::SB>().value[mVars.nSample++].value = mVars.fa;
     }
 
     //////////////////////////////////////////// irq check
-    main_t_IrqCheck();
+    IrqCheck(mVars);
     //////////////////////////////////////////// flag handler
-    main_t_FlagHandler();
+    FlagHandler(mVars);
 
-    _vars.pChannel->pCurr = _vars.start;  // store values for next cycle
-    _vars.pChannel->data.get<PCSX::SPU::Chan::s_1>().value = _vars.s_1;
-    _vars.pChannel->data.get<PCSX::SPU::Chan::s_2>().value = _vars.s_2;
+    mVars.pChannel->pCurr = mVars.start;  // store values for next cycle
+    mVars.pChannel->data.get<PCSX::SPU::Chan::s_1>().value = mVars.s_1;
+    mVars.pChannel->data.get<PCSX::SPU::Chan::s_2>().value = mVars.s_2;
 
     ////////////////////////////////////////////
 
-    if (_vars.bIRQReturn)  // special return for "spu irq - wait for cpu action"
+    if (mVars.bIRQReturn)  // special return for "spu irq - wait for cpu action"
     {
         using namespace std::chrono_literals;
-        _vars.bIRQReturn = 0;
+        mVars.bIRQReturn = 0;
         auto dwWatchTime = std::chrono::steady_clock::now() + 2500ms;
 
         while (iSpuAsyncWait && !bEndThread && std::chrono::steady_clock::now() < dwWatchTime) {
@@ -647,45 +647,45 @@ void PCSX::SPU::impl::main_t_SBPos_28() {
         }
     }
 }
-void PCSX::SPU::impl::main_t_StopSign() {
-    _vars.pChannel->data.get<PCSX::SPU::Chan::On>().value = false;  // -> turn everything off
-    _vars.pChannel->ADSRX.get<exVolume>().value = 0;
-    _vars.pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
+void PCSX::SPU::impl::StopSign(MainThreadVariables &mVars) {
+    mVars.pChannel->data.get<PCSX::SPU::Chan::On>().value = false;  // -> turn everything off
+    mVars.pChannel->ADSRX.get<exVolume>().value = 0;
+    mVars.pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
     // Although the voices may stop outputting audio, the capture buffer is still filling
     // up. At this point, ns samples are already filled, we need (NSSIZE-ns) more samples.
-    if (pMixIrq && _vars.ch == 1) {
+    if (pMixIrq && mVars.ch == 1) {
         std::unique_lock<std::mutex> lock(cbMtx);
-        for (int c = _vars.ns; c < NSSIZE; c++) spuMem[_vars.tmpCapVoice1Index + c + 0x400] = 0;
-        _vars.tmpCapVoice1Index = (_vars.tmpCapVoice1Index + (NSSIZE - _vars.ns)) % 0x200;
-    } else if (pMixIrq && _vars.ch == 3) {
+        for (int c = mVars.ns; c < NSSIZE; c++) spuMem[mVars.tmpCapVoice1Index + c + 0x400] = 0;
+        mVars.tmpCapVoice1Index = (mVars.tmpCapVoice1Index + (NSSIZE - mVars.ns)) % 0x200;
+    } else if (pMixIrq && mVars.ch == 3) {
         std::unique_lock<std::mutex> lock(cbMtx);
-        for (int c = _vars.ns; c < NSSIZE; c++) spuMem[_vars.tmpCapVoice3Index + c + 0x600] = 0;
-        _vars.tmpCapVoice3Index = (_vars.tmpCapVoice3Index + (NSSIZE - _vars.ns)) % 0x200;
+        for (int c = mVars.ns; c < NSSIZE; c++) spuMem[mVars.tmpCapVoice3Index + c + 0x600] = 0;
+        mVars.tmpCapVoice3Index = (mVars.tmpCapVoice3Index + (NSSIZE - mVars.ns)) % 0x200;
     }
 }
-void PCSX::SPU::impl::main_t_IrqCheck() {
+void PCSX::SPU::impl::IrqCheck(MainThreadVariables &mVars) {
     if ((spuCtrl & 0x40))  // some callback and irq active?
     {
-        if ((pSpuIrq > _vars.start - 16 &&  // irq address reached?
-             pSpuIrq <= _vars.start) ||
-            ((_vars.flags & 1) &&  // special: irq on looping addr, when stop/loop flag is set
-             (pSpuIrq > _vars.pChannel->pLoop - 16 && pSpuIrq <= _vars.pChannel->pLoop))) {
-            _vars.pChannel->data.get<PCSX::SPU::Chan::IrqDone>().value = 1;  // -> debug flag
+        if ((pSpuIrq > mVars.start - 16 &&  // irq address reached?
+             pSpuIrq <= mVars.start) ||
+            ((mVars.flags & 1) &&  // special: irq on looping addr, when stop/loop flag is set
+             (pSpuIrq > mVars.pChannel->pLoop - 16 && pSpuIrq <= mVars.pChannel->pLoop))) {
+            mVars.pChannel->data.get<PCSX::SPU::Chan::IrqDone>().value = 1;  // -> debug flag
             scheduleInterrupt();                                             // -> call main emu
 
             if (settings.get<SPUIRQWait>())  // -> option: wait after irq for main emu
             {
                 iSpuAsyncWait = 1;
-                _vars.bIRQReturn = 1;
+                mVars.bIRQReturn = 1;
             }
         }
     }
 }
-void PCSX::SPU::impl::main_t_FlagHandler() {
-    if ((_vars.flags & 4) && (!_vars.pChannel->data.get<PCSX::SPU::Chan::IgnoreLoop>().value)) {
-        _vars.pChannel->pLoop = _vars.start - 16;  // loop adress
+void PCSX::SPU::impl::FlagHandler(MainThreadVariables &mVars) {
+    if ((mVars.flags & 4) && (!mVars.pChannel->data.get<PCSX::SPU::Chan::IgnoreLoop>().value)) {
+        mVars.pChannel->pLoop = mVars.start - 16;  // loop adress
     }
-    if (_vars.flags & 1)  // 1: stop/loop
+    if (mVars.flags & 1)  // 1: stop/loop
     {
         // We play this block out first...
         // if(!(flags&2))
@@ -693,24 +693,27 @@ void PCSX::SPU::impl::main_t_FlagHandler() {
         // PETE: if we don't check exactly for 3, loop hang
         // ups will happen (DQ4, for example)
         // and checking if pLoop is set avoids crashes, yeah
-        _vars.start = (_vars.flags != 3 || _vars.pChannel->pLoop == NULL) ? (uint8_t *)-1 : _vars.pChannel->pLoop;
+        mVars.start = (mVars.flags != 3 || mVars.pChannel->pLoop == NULL) ? (uint8_t *)-1 : mVars.pChannel->pLoop;
     }
 }
-void PCSX::SPU::impl::main_t_FeedStreamData() {
+void PCSX::SPU::impl::FeedStreamData(MainThreadVariables &mVars) {
     // feed the sound
     // wanna have around 1/60 sec (16.666 ms) updates
     if (iCycle++ > 16) {
-        m_audioOut.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(pSpuBuffer),
-                                  (((uint8_t *)pS) - ((uint8_t *)pSpuBuffer)) / sizeof(MiniAudio::Frame));
-        if (bEndThread) {
-            bThreadEnded = 1;
-            return;
+        bool done = false;
+        while (!done) {
+            done = m_audioOut.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(pSpuBuffer),
+                                             (((uint8_t *)pS) - ((uint8_t *)pSpuBuffer)) / sizeof(MiniAudio::Frame));
+            if (bEndThread) {
+                bThreadEnded = 1;
+                return;
+            }
         }
         pS = (int16_t *)pSpuBuffer;
         iCycle = 0;
     }
 }
-void PCSX::SPU::impl::main_t_pMixIrq() {
+void PCSX::SPU::impl::PMixIrq(MainThreadVariables &mVars) {
     //////////////////////////////////////////////////////
     // special irq handling in the decode buffers (0x0000-0x1000)
     // we know:
@@ -731,12 +734,12 @@ void PCSX::SPU::impl::main_t_pMixIrq() {
     // Also note: we abuse the channel 0-3 irq debug display for those irqs
     // (since that's the easiest way to display such irqs in debug mode :))
     // pMixIRQ will only be set, if the config option is active
-    for (_vars.ns = 0; _vars.ns < NSSIZE; _vars.ns++) {
+    for (mVars.ns = 0; mVars.ns < NSSIZE; mVars.ns++) {
         if ((spuCtrl & 0x40) && pSpuIrq && pSpuIrq < spuMemC + 0x1000) {
-            for (_vars.ch = 0; _vars.ch < 4; _vars.ch++) {
-                if (pSpuIrq >= pMixIrq + (_vars.ch * 0x400) && pSpuIrq < pMixIrq + (_vars.ch * 0x400) + 2) {
+            for (mVars.ch = 0; mVars.ch < 4; mVars.ch++) {
+                if (pSpuIrq >= pMixIrq + (mVars.ch * 0x400) && pSpuIrq < pMixIrq + (mVars.ch * 0x400) + 2) {
                     scheduleInterrupt();
-                    s_chan[_vars.ch].data.get<PCSX::SPU::Chan::IrqDone>().value = 1;
+                    s_chan[mVars.ch].data.get<PCSX::SPU::Chan::IrqDone>().value = 1;
                 }
             }
         }
@@ -744,45 +747,45 @@ void PCSX::SPU::impl::main_t_pMixIrq() {
         if (pMixIrq > spuMemC + 0x3ff) pMixIrq = spuMemC;
     }
 }
-void PCSX::SPU::impl::mixAllChannels() {
+void PCSX::SPU::impl::MixAllChannels(MainThreadVariables &mVars) {
     ///////////////////////////////////////////////////////
     // mix all channels (including reverb) into one buffer
     if (settings.get<Mono>())  // no stereo?
     {
         int dl, dr;
-        for (_vars.ns = 0; _vars.ns < NSSIZE; _vars.ns++) {
-            SSumL[_vars.ns] += MixREVERBLeft(_vars.ns);
+        for (mVars.ns = 0; mVars.ns < NSSIZE; mVars.ns++) {
+            SSumL[mVars.ns] += MixREVERBLeft(mVars.ns);
 
-            dl = SSumL[_vars.ns] / _vars.voldiv;
-            SSumL[_vars.ns] = 0;
+            dl = SSumL[mVars.ns] / mVars.voldiv;
+            SSumL[mVars.ns] = 0;
             if (dl < -32767) dl = -32767;
             if (dl > 32767) dl = 32767;
 
-            SSumR[_vars.ns] += MixREVERBRight();
+            SSumR[mVars.ns] += MixREVERBRight();
 
-            dr = SSumR[_vars.ns] / _vars.voldiv;
-            SSumR[_vars.ns] = 0;
+            dr = SSumR[mVars.ns] / mVars.voldiv;
+            SSumR[mVars.ns] = 0;
             if (dr < -32767) dr = -32767;
             if (dr > 32767) dr = 32767;
             *pS++ = (dl + dr) / 2;
         }
     } else  // stereo:
-        for (_vars.ns = 0; _vars.ns < NSSIZE; _vars.ns++) {
-            SSumL[_vars.ns] += MixREVERBLeft(_vars.ns);
+        for (mVars.ns = 0; mVars.ns < NSSIZE; mVars.ns++) {
+            SSumL[mVars.ns] += MixREVERBLeft(mVars.ns);
 
-            _vars.d = SSumL[_vars.ns] / _vars.voldiv;
-            SSumL[_vars.ns] = 0;
-            if (_vars.d < -32767) _vars.d = -32767;
-            if (_vars.d > 32767) _vars.d = 32767;
-            *pS++ = _vars.d;
+            mVars.d = SSumL[mVars.ns] / mVars.voldiv;
+            SSumL[mVars.ns] = 0;
+            if (mVars.d < -32767) mVars.d = -32767;
+            if (mVars.d > 32767) mVars.d = 32767;
+            *pS++ = mVars.d;
 
-            SSumR[_vars.ns] += MixREVERBRight();
+            SSumR[mVars.ns] += MixREVERBRight();
 
-            _vars.d = SSumR[_vars.ns] / _vars.voldiv;
-            SSumR[_vars.ns] = 0;
-            if (_vars.d < -32767) _vars.d = -32767;
-            if (_vars.d > 32767) _vars.d = 32767;
-            *pS++ = _vars.d;
+            mVars.d = SSumR[mVars.ns] / mVars.voldiv;
+            SSumR[mVars.ns] = 0;
+            if (mVars.d < -32767) mVars.d = -32767;
+            if (mVars.d > 32767) mVars.d = 32767;
+            *pS++ = mVars.d;
         }
 }
 void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
@@ -870,7 +873,7 @@ void PCSX::SPU::impl::wipeChannels() {
 ////////////////////////////////////////////////////////////////////////
 // SETUPTIMER: init of certain buffers and threads/timers
 ////////////////////////////////////////////////////////////////////////
-std::future<int> main_t_rst;
+
 
 void PCSX::SPU::impl::SetupThread() {
     memset(SSumR, 0, NSSIZE * sizeof(int));  // init some mixing buffers
@@ -882,12 +885,7 @@ void PCSX::SPU::impl::SetupThread() {
     bEndThread = 0;  // init thread vars
     bThreadEnded = 0;
     bSpuInit = 1;  // flag: we are inited
-    // Threads are expensive and causes Thread init and switch overheads
-    // hMainThread = std::thread([this]() { MainThread(); });
-    main_t_rst = std::async([this]() {
-        MainThread();
-        return 0;
-    });
+    hMainThread = std::thread([this]() { MainThread(); });
 }
 
 ////////////////////////////////////////////////////////////////////////
