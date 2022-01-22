@@ -64,7 +64,7 @@ class Disassembly {
         if (m_items.size() >= 320000) m_items.clear();
         m_items.push_back(str);
     }
-    int writeFile();
+    void writeFile();
 };
 
 }  // namespace Widgets

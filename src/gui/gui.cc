@@ -863,8 +863,11 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
                 ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
-                if (PCSX::g_emulator->m_psxCpu->isDynarec())
+                if (PCSX::g_emulator->m_psxCpu->isDynarec()) {
                     ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, &m_disassembly.m_show);
+                } else {
+                    ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, false, false);
+                }
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
                 ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
                 ImGui::MenuItem(_("Breakpoint on vsync"), nullptr, &m_breakOnVSync);
@@ -1062,8 +1065,8 @@ void PCSX::GUI::endFrame() {
                         _("Assembly"));
     }
 
-    if (m_disassembly.m_show) {
-        m_disassembly.draw(this, _("DynaRec Disassembler"));
+    if (m_disassembly.m_show && PCSX::g_emulator->m_psxCpu->isDynarec()) {
+            m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
 
     if (m_breakpoints.m_show) {

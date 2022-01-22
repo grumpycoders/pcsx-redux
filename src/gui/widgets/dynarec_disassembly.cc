@@ -27,7 +27,7 @@
 #include "gui/gui.h"
 #include "imgui.h"
 
-int PCSX::Widgets::Disassembly::writeFile() {
+void PCSX::Widgets::Disassembly::writeFile() {
     std::ofstream file;
     // Open file - default location in resources directory
     file.open("DynarecDisassembly.txt", std::ios::app);
@@ -39,7 +39,7 @@ int PCSX::Widgets::Disassembly::writeFile() {
     } else {
         PCSX::g_system->printf("Disassembler Error: failed to open output file for disassembly.\n");
         m_showError = true;
-        return -1;
+        return;
     }
     // Close out file
     file.close();
@@ -47,9 +47,8 @@ int PCSX::Widgets::Disassembly::writeFile() {
     if (file.fail()) {
         PCSX::g_system->printf("Disassembler Error: failed to write disassembly to output file.\n");
         m_showError = true;
-        return -1;
+        return;
     }
-    return 0;
 }
 
 void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
