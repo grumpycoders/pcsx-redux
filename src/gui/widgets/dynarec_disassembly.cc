@@ -47,7 +47,6 @@ void PCSX::Widgets::Disassembly::writeFile() {
     if (file.fail()) {
         PCSX::g_system->printf("Disassembler Error: failed to write disassembly to output file.\n");
         m_showError = true;
-        return;
     }
 }
 
