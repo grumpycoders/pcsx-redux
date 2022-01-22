@@ -31,8 +31,8 @@
 #include "core/pcsxlua.h"
 #include "core/ppf.h"
 #include "core/r3000a.h"
-#include "core/uart.h"
-#include "core/uart-server.h"
+#include "core/sio1.h"
+#include "core/sio1-server.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
 #include "lua/luawrapper.h"
@@ -53,8 +53,8 @@ PCSX::Emulator::Emulator()
       m_gpu(new PCSX::SoftGPU::impl()),
       m_gdbServer(new PCSX::GdbServer()),
       m_webServer(new PCSX::WebServer()),
-      m_uart(new PCSX::UART()),
-      m_uartServer(new PCSX::UARTServer()),
+      m_sio1(new PCSX::SIO1()),
+      m_sio1Server(new PCSX::SIO1Server()),
       m_debug(new PCSX::Debug()),
       m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),

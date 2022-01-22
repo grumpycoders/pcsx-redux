@@ -48,7 +48,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
-#include "core/uart-server.h"
+#include "core/sio1-server.h"
 #include "core/web-server.h"
 #include "flags.h"
 #include "gpu/soft/externals.h"
@@ -1362,20 +1362,20 @@ query using a REST api. See the wiki for details.
 The debugger might be required in some cases.)"));
         changed |=
             ImGui::InputInt(_("Web Server Port"), &debugSettings.get<Emulator::DebugSettings::WebServerPort>().value);
-        if (ImGui::Checkbox(_("Enable UART Server"), &debugSettings.get<Emulator::DebugSettings::UARTServer>().value)) {
+        if (ImGui::Checkbox(_("Enable SIO1 Server"), &debugSettings.get<Emulator::DebugSettings::SIO1Server>().value)) {
             changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::UARTServer>()) {
-                g_emulator->m_uartServer->startServer(&g_emulator->m_loop,
-                                                     debugSettings.get<Emulator::DebugSettings::UARTServerPort>());
+            if (debugSettings.get<Emulator::DebugSettings::SIO1Server>()) {
+                g_emulator->m_sio1Server->startServer(&g_emulator->m_loop,
+                                                     debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
             } else {
-                g_emulator->m_uartServer->stopServer();
+                g_emulator->m_sio1Server->stopServer();
             }
         }
         ShowHelpMarker(_(R"(This will activate a tcp server, that will
-relay information between tcp and sio1/uart.
+relay information between tcp and sio1.
 See the wiki for details.)"));
         changed |=
-            ImGui::InputInt(_("UART Server Port"), &debugSettings.get<Emulator::DebugSettings::UARTServerPort>().value);
+            ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
         if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
             auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
             if (ImGui::Button(_("Add one entry"))) overlays.push_back({});

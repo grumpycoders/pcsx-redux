@@ -32,13 +32,13 @@
 
 
 namespace PCSX {
-    class UARTClient;
-    class UARTServer;
+    class SIO1Client;
+    class SIO1Server;
 
-    class UARTClient : public Intrusive::List<UARTClient>::Node {
+    class SIO1Client : public Intrusive::List<SIO1Client>::Node {
     public:
-        UARTClient(uv_tcp_t* server);
-        typedef Intrusive::List<UARTClient> ListType;
+        SIO1Client(uv_tcp_t* server);
+        typedef Intrusive::List<SIO1Client> ListType;
 
     bool accept(uv_tcp_t* server) {
             assert(m_status == CLOSED);
@@ -62,11 +62,11 @@ namespace PCSX {
 
         EventBus::Listener m_listener;
         uv_loop_t* m_loop;
-        friend UARTServer;
+        friend SIO1Server;
         static constexpr size_t BUFFER_SIZE = 256;
 
         static void allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
-            UARTClient* client = static_cast<UARTClient*>(handle->data);
+            SIO1Client* client = static_cast<SIO1Client*>(handle->data);
             client->alloc(suggestedSize, buf);
         }
 
@@ -78,7 +78,7 @@ namespace PCSX {
         }
 
         static void readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
-            UARTClient* client = static_cast<UARTClient*>(stream->data);
+            SIO1Client* client = static_cast<SIO1Client*>(stream->data);
             client->read(nread, buf);
         }
         void read(ssize_t nread, const uv_buf_t* buf) {
@@ -87,6 +87,7 @@ namespace PCSX {
                 close();
                 return;
             }
+
             Slice slice;
             slice.borrow(m_buffer, nread);
             processData(slice);
@@ -99,7 +100,7 @@ namespace PCSX {
             req->enqueue(this);            
         }
         static void closeCB(uv_handle_t* handle) {
-            UARTClient* client = static_cast<UARTClient*>(handle->data);
+            SIO1Client* client = static_cast<SIO1Client*>(handle->data);
             delete client;
         }
 
@@ -108,14 +109,14 @@ namespace PCSX {
         struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
             WriteRequest() {}
             WriteRequest(Slice&& slice) : m_slice(std::move(slice)) {}
-            void enqueue(UARTClient* client) {
+            void enqueue(SIO1Client* client) {
                 m_buf.base = static_cast<char*>(const_cast<void*>(m_slice.data()));
                 m_buf.len = m_slice.size();
                 client->m_requests.insert(reinterpret_cast<uintptr_t>(&m_req), this);
                 uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), &m_buf, 1, writeCB);
             }
             static void writeCB(uv_write_t* request, int status) {
-                UARTClient* client = static_cast<UARTClient*>(request->handle->data);
+                SIO1Client* client = static_cast<SIO1Client*>(request->handle->data);
                 auto self = client->m_requests.find(reinterpret_cast<uintptr_t>(request));
                 delete &*self;
                 if (status != 0) client->close();
@@ -129,16 +130,16 @@ namespace PCSX {
         char m_buffer[BUFFER_SIZE];
     };
 
-    class UARTServer {
+    class SIO1Server {
     public:
-        UARTServer();
-        //~UARTServer() { }
-        enum UARTServerStatus {
+        SIO1Server();
+        //~SIO1Server() { }
+        enum SIO1ServerStatus {
             SERVER_STOPPED,
             SERVER_STOPPING,
             SERVER_STARTED,
         };
-        UARTServerStatus getServerStatus() { return m_serverStatus; }
+        SIO1ServerStatus getServerStatus() { return m_serverStatus; }
 
         void startServer(uv_loop_t* loop, int port = 6699);
         void stopServer();
@@ -152,10 +153,10 @@ namespace PCSX {
         static void onNewConnectionTrampoline(uv_stream_t* server, int status);
         void onNewConnection(int status);
         static void closeCB(uv_handle_t* handle);
-        UARTServerStatus m_serverStatus = SERVER_STOPPED;
+        SIO1ServerStatus m_serverStatus = SERVER_STOPPED;
         uv_tcp_t m_server;
         uv_loop_t* m_loop;
-        UARTClient::ListType m_clients;
+        SIO1Client::ListType m_clients;
         EventBus::Listener m_listener;
 
         std::string m_gotError;

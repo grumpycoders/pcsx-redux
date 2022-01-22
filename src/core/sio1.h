@@ -24,71 +24,70 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sio1-server.h"
 #include "core/sstate.h"
-#include "core/uart-server.h"
 
 namespace PCSX {
 
-class UART {
+class SIO1 {
   public:
-    unsigned char SIO1_readData8() {
+    unsigned char readData8() {
         uint8_t ret = 0;
 
         if (m_statusReg & SR_RXRDY)
         {
             ret = m_slices.getByte();
-            m_statusReg &= ~SR_RXRDY;
-            psxHu32(0x1054) = m_statusReg;
+            readStat8();
             psxHu8(0x1050) = ret;
         }
 
         return ret;
     }
-    unsigned char SIO1_readStat8() {
-        if (m_slices.m_sliceQueue.size() > 0) {
-            m_statusReg |= SR_RXRDY;
-        } else {
+    unsigned char readStat8() {
+        if (m_slices.m_sliceQueue.empty()) {
             m_statusReg &= ~SR_RXRDY;
+        } else {
+            m_statusReg |= SR_RXRDY;
         }
         psxHu32(0x1054) = m_statusReg;
         
-        return m_statusReg & 0x00FF;
+        return m_statusReg & 0xFF;
     }
-    unsigned short SIO1_readData16() {
+    unsigned short readData16() {
         
         return psxHu16(0x1050);
     }
-    uint32_t SIO1_readData32() {
+    uint32_t readData32() {
         return psxHu32(0x1050);
     }
 
-    unsigned short SIO1_readStat16() { return m_statusReg; }
-    unsigned short SIO1_readMode16() { return m_modeReg; }
-    unsigned short SIO1_readCtrl16() { return m_ctrlReg; }
-    unsigned short SIO1_readBaud16() { return m_baudReg; }
+    unsigned short readStat16() { return m_statusReg; }
+    unsigned short readMode16() { return m_modeReg; }
+    unsigned short readCtrl16() { return m_ctrlReg; }
+    unsigned short readBaud16() { return m_baudReg; }
 
-    void SIO1_writeData8(unsigned char v) {
+    void writeData8(unsigned char v) {
         psxHu8(0x1050) = v;
-        PCSX::g_emulator->m_uartServer->write(v);
+        PCSX::g_emulator->m_sio1Server->write(v);
 
         m_statusReg |= SR_TXRDY | SR_TXEMPTY;
         psxHu32(0x1054) = m_statusReg;
     }
 
-    void SIO1_writeData16(unsigned short v) { psxHu16(0x1050) = v; }
-    void SIO1_writeData32(uint32_t v) { psxHu32(0x1050) = v; }
+    void writeData16(unsigned short v) { psxHu16(0x1050) = v; }
+    void writeData32(uint32_t v) { psxHu32(0x1050) = v; }
 
-    void SIO1_writeStat8(unsigned char v) { psxHu8(0x1054) = v; }
+    void writeStat8(unsigned char v) { psxHu8(0x1054) = v; }
 
-    void SIO1_writeStat16(uint16_t v) { 
+    void writeStat16(uint16_t v) { 
         m_statusReg = v;
         psxHu32(0x1054) = m_statusReg;
     }
-    void SIO1_writeMode16(uint16_t v) { 
+    void writeMode16(uint16_t v) { 
         m_modeReg = v;
         psxHu16(0x1058) = v;
     }
-    void SIO1_writeCtrl16(uint16_t v) {
+    void writeCtrl16(uint16_t v) {
         m_ctrlReg = v;
         if (m_ctrlReg & CR_ACK) {
             m_ctrlReg &= ~CR_ACK;
@@ -114,7 +113,7 @@ class UART {
 
         }
     }
-    void SIO1_writeBaud16(uint16_t v) {
+    void writeBaud16(uint16_t v) {
         m_baudReg = v;
         psxHu16(0x105E) = m_baudReg;
     }
@@ -126,11 +125,12 @@ class UART {
         }
 
         uint8_t getByte() {
+            if (m_sliceQueue.empty()) return 0xff;  // derp?
             Slice& slice = m_sliceQueue.front();
             uint8_t r = slice.getByte(m_cursor);
             if (++m_cursor >= slice.size()) {
                 m_cursor = 0;
-                while (!m_sliceQueue.empty()) m_sliceQueue.pop();
+                m_sliceQueue.pop();
             }
             return r;
         }
