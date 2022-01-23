@@ -63,7 +63,7 @@ namespace PCSX {
         EventBus::Listener m_listener;
         uv_loop_t* m_loop;
         friend SIO1Server;
-        static constexpr size_t BUFFER_SIZE = 256;
+        static constexpr size_t BUFFER_SIZE = 4096;
 
         static void allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
             SIO1Client* client = static_cast<SIO1Client*>(handle->data);

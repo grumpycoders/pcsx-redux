@@ -130,7 +130,6 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
             hard = PCSX::g_emulator->m_sio->readBaud16();
             SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
-#ifndef ARMORED_CORE_FIX
         case 0x1f801050:
             hard = PCSX::g_emulator->m_sio1->readData16();
             SIO1_LOG("SIO1.DATA read16 %x; ret = %x\n", add & 0xf, hard);
@@ -151,14 +150,15 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
             hard = PCSX::g_emulator->m_sio1->readBaud16();
             SIO1_LOG("SIO1.BAUD read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
-#else
         /* Fixes Armored Core misdetecting the Link cable being detected.
          * We want to turn that thing off and force it to do local multiplayer instead.
          * Thanks Sony for the fix, they fixed it in their PS Classic fork.
          */
+        /* Stat's value set in SIO1/m_sio1, Armored Core local multiplayer is working.
         case 0x1f801054:
             return 0x80;
-#endif
+        */
+
         case 0x1f801100:
             hard = PCSX::g_emulator->m_psxCounters->psxRcntRcount(0);
             PSXHW_LOG("T0 count read16: %x\n", hard);
@@ -344,9 +344,11 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
             break;
         case 0x1f801050:    // rx/tx data register
             PCSX::g_emulator->m_sio1->writeData8(value);
+            SIO1_LOG("SIO1.DATA write8 %x; ret = %x\n", add & 0xf, value);
             break;
         case 0x1f801054:    // stat register
             PCSX::g_emulator->m_sio1->writeStat8(value);
+            SIO1_LOG("SIO1.STAT write8 %x; ret = %x\n", add & 0xf, value);
             break;
         case 0x1f801800:
             PCSX::g_emulator->m_cdrom->write0(value);

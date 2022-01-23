@@ -253,9 +253,9 @@ class Emulator {
     std::unique_ptr<Pads> m_pads;
     std::unique_ptr<R3000Acpu> m_psxCpu;
     std::unique_ptr<SIO> m_sio;
-    std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<SIO1> m_sio1;
     std::unique_ptr<SIO1Server> m_sio1Server;
+    std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
 
     uv_loop_t m_loop;

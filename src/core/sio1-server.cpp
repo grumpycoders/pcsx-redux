@@ -96,11 +96,5 @@ PCSX::SIO1Client::SIO1Client(uv_tcp_t* server) : m_listener(g_system->m_eventBus
 
 void PCSX::SIO1Client::processData(const Slice& slice) {
     PCSX::g_emulator->m_sio1->m_slices.pushSlice(slice);
-    // const char* ptr = reinterpret_cast<const char*>(slice.data());
-    // auto size = slice.size();
-    //while (size) {
-    //    char c = *ptr++;
-    //    //SIO1 buffered write
-    //    size--;
-    //}
+    PCSX::g_emulator->m_sio1->receiveCallback();
 }
