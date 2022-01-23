@@ -27,8 +27,10 @@
 #include "core/sio1-server.h"
 #include "core/sstate.h"
 
-namespace PCSX {
+//#define SIO1_CYCLES (m_baudReg * 8)
+#define SIO1_CYCLES (1)
 
+namespace PCSX {  
 class SIO1 {
   public:
     unsigned char readData8() {
@@ -70,6 +72,13 @@ class SIO1 {
         psxHu8(0x1050) = v;
         PCSX::g_emulator->m_sio1Server->write(v);
 
+        if (m_ctrlReg & CR_TXIRQEN) {
+            if (!(m_statusReg & SR_IRQ)) {
+                scheduleInterrupt(SIO1_CYCLES);
+                m_statusReg |= SR_IRQ;
+            }
+        }
+
         m_statusReg |= SR_TXRDY | SR_TXEMPTY;
         psxHu32(0x1054) = m_statusReg;
     }
@@ -96,8 +105,13 @@ class SIO1 {
             m_statusReg &= ~(SR_PARITYERR | SR_RXOVERRUN | SR_FRAMINGERR | SR_IRQ);
             psxHu32(0x1054) = m_statusReg;
         }
+
+        if (m_ctrlReg & CR_ACK) {
+            m_ctrlReg &= ~CR_ACK;
+            m_statusReg &= ~(SR_PARITYERR | SR_RXOVERRUN | SR_FRAMINGERR | SR_IRQ);
+        }
  
-        if (m_ctrlReg & CR_UNKNOWN) {
+        if (m_ctrlReg & CR_RESET) {
             m_statusReg &= ~SR_IRQ;
             m_statusReg |= SR_TXRDY | SR_TXEMPTY;
             psxHu32(0x1054) = m_statusReg;
@@ -111,11 +125,27 @@ class SIO1 {
             m_baudReg = 0;
             psxHu16(0x105E) = m_baudReg;
 
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
         }
     }
     void writeBaud16(uint16_t v) {
         m_baudReg = v;
         psxHu16(0x105E) = m_baudReg;
+    }
+
+    void interrupt() {
+        SIO1_LOG("Sio1 Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
+        m_statusReg |= SR_IRQ;
+        psxHu32ref(0x1070) |= SWAP_LEu32(0x100);
+    }
+
+    void receiveCallback() {
+        if (m_ctrlReg & CR_RXIRQEN) {
+            if (!(m_statusReg & SR_IRQ)) {
+                scheduleInterrupt(SIO1_CYCLES);
+                m_statusReg |= SR_IRQ;
+            }
+        }
     }
 
     struct Slices {
@@ -164,17 +194,23 @@ class SIO1 {
         CR_TXOUTLVL = 0x0008,
         CR_ACK = 0x0010,
         CR_RTSOUTLVL = 0x0020,
-        CR_UNKNOWN = 0x0040, // RESET?
-        CR_RXIRQMODE = 0x0080,
-        CR_TXIRQMODE = 0x0100,
-        CR_RXIRQEN = 0x0200,
+        CR_RESET = 0x0040, // RESET INT?
+        CR_UNKNOWN = 0x0080,
+        CR_RXIRQMODE = 0x0100, // FIFO byte count, need to implement
+        CR_TXIRQEN = 0x0400,
+        CR_RXIRQEN = 0x0800,
         CR_DSRIRQEN = 0x0400,
     };
 
-    // Transfer Ready and the Buffer is Empty
+    //uint32_t m_dataReg = 0;
     uint32_t m_statusReg = SR_TXRDY | SR_TXEMPTY | SR_DSR | SR_CTS;
     uint16_t m_modeReg = 0;
     uint16_t m_ctrlReg = 0;
+    //uint16_t m_miscReg = 0;
     uint16_t m_baudReg = 0;
+
+    inline void scheduleInterrupt(uint32_t eCycle) {
+        g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO1, eCycle);
+    }
 };
 }  // namespace PCSX

@@ -328,6 +328,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
         };
 
         checkAndUpdate(PSXINT_SIO, []() { g_emulator->m_sio->interrupt(); });
+        checkAndUpdate(PSXINT_SIO1, []() { g_emulator->m_sio1->interrupt(); });
         checkAndUpdate(PSXINT_CDR, []() { g_emulator->m_cdrom->interrupt(); });
         checkAndUpdate(PSXINT_CDREAD, []() { g_emulator->m_cdrom->readInterrupt(); });
         checkAndUpdate(PSXINT_GPUDMA, []() { GPU::gpuInterrupt(); });
