@@ -112,6 +112,18 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
     s_this->magicOpen(paths[0]);
 }
 
+static void ShowHelpMarker(const char* desc) {
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
+
 void LoadImguiBindings(lua_State* lState);
 
 ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine) {
@@ -867,6 +879,9 @@ void PCSX::GUI::endFrame() {
                     ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, &m_disassembly.m_show);
                 } else {
                     ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, false, false);
+                    ShowHelpMarker(
+                        _(R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
+in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 }
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
                 ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
@@ -1066,7 +1081,7 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_disassembly.m_show && PCSX::g_emulator->m_psxCpu->isDynarec()) {
-            m_disassembly.draw(this, _("DynaRec Disassembler"));
+        m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
 
     if (m_breakpoints.m_show) {
@@ -1192,18 +1207,6 @@ void PCSX::GUI::endFrame() {
     }
 
     FrameMark
-}
-
-static void ShowHelpMarker(const char* desc) {
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
 }
 
 bool PCSX::GUI::configure() {
