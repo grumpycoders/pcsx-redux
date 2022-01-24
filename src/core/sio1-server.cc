@@ -67,7 +67,6 @@ void PCSX::SIO1Server::startServer(uv_loop_t* loop, int port) {
     m_serverStatus = SERVER_STARTED;
 }
 
-
 void PCSX::SIO1Server::closeCB(uv_handle_t* handle) {
     SIO1Server* self = static_cast<SIO1Server*>(handle->data);
     self->m_serverStatus = SERVER_STOPPED;
@@ -95,6 +94,6 @@ PCSX::SIO1Client::SIO1Client(uv_tcp_t* server) : m_listener(g_system->m_eventBus
 }
 
 void PCSX::SIO1Client::processData(const Slice& slice) {
-    PCSX::g_emulator->m_sio1->m_slices.pushSlice(slice);
+    PCSX::g_emulator->m_sio1->pushSlice(slice);
     PCSX::g_emulator->m_sio1->receiveCallback();
 }

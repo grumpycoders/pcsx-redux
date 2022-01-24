@@ -30,146 +30,55 @@
 //#define SIO1_CYCLES (m_baudReg * 8)
 #define SIO1_CYCLES (1)
 
-namespace PCSX {  
+namespace PCSX {
 class SIO1 {
+    /*
+     * To-do:
+     * STAT Baudrate timer + BAUD register
+     *
+     * FIFO buffer - not 100% how this will work, spx
+     * unclear and the server receives large packets[2048+] at a time.
+     * 
+     * Test and finish interrupts, only RX is tested
+     * 
+     * Add/verify cases for all R/W functions exist in psxhw.cpp
+    */
+
   public:
-    unsigned char readData8() {
-        uint8_t ret = 0;
+    void interrupt();
 
-        if (m_statusReg & SR_RXRDY)
-        {
-            ret = m_slices.getByte();
-            readStat8();
-            psxHu8(0x1050) = ret;
-        }
+    uint8_t readBaud8() { return m_baudReg & 0xFF; }
+    uint16_t readBaud16() { return m_baudReg; }
 
-        return ret;
-    }
-    unsigned char readStat8() {
-        if (m_slices.m_sliceQueue.empty()) {
-            m_statusReg &= ~SR_RXRDY;
-        } else {
-            m_statusReg |= SR_RXRDY;
-        }
-        psxHu32(0x1054) = m_statusReg;
-        
-        return m_statusReg & 0xFF;
-    }
-    unsigned short readData16() {
-        
-        return psxHu16(0x1050);
-    }
-    uint32_t readData32() {
-        return psxHu32(0x1050);
-    }
+    uint16_t readCtrl16() { return m_ctrlReg; }
 
-    unsigned short readStat16() { return m_statusReg; }
-    unsigned short readMode16() { return m_modeReg; }
-    unsigned short readCtrl16() { return m_ctrlReg; }
-    unsigned short readBaud16() { return m_baudReg; }
+    uint8_t readData8();
+    uint16_t readData16() { return psxHu16(0x1050); }
+    uint32_t readData32() { return psxHu32(0x1050); }
 
-    void writeData8(unsigned char v) {
-        psxHu8(0x1050) = v;
-        PCSX::g_emulator->m_sio1Server->write(v);
+    uint8_t readMode8() { return m_modeReg & 0xFF; }
+    uint16_t readMode16() { return m_modeReg; }
 
-        if (m_ctrlReg & CR_TXIRQEN) {
-            if (!(m_statusReg & SR_IRQ)) {
-                scheduleInterrupt(SIO1_CYCLES);
-                m_statusReg |= SR_IRQ;
-            }
-        }
+    uint8_t readStat8();
+    uint16_t readStat16() { return m_statusReg; }
 
-        m_statusReg |= SR_TXRDY | SR_TXEMPTY;
-        psxHu32(0x1054) = m_statusReg;
-    }
+    void writeBaud16(uint16_t v);
 
-    void writeData16(unsigned short v) { psxHu16(0x1050) = v; }
+    void writeCtrl16(uint16_t v);
+
+    void writeData8(uint8_t v);
+    void writeData16(uint16_t v) { psxHu16(0x1050) = v; }
     void writeData32(uint32_t v) { psxHu32(0x1050) = v; }
 
-    void writeStat8(unsigned char v) { psxHu8(0x1054) = v; }
+    void writeMode8(uint8_t v);
+    void writeMode16(uint16_t v);
 
-    void writeStat16(uint16_t v) { 
-        m_statusReg = v;
-        psxHu32(0x1054) = m_statusReg;
-    }
-    void writeMode16(uint16_t v) { 
-        m_modeReg = v;
-        psxHu16(0x1058) = v;
-    }
-    void writeCtrl16(uint16_t v) {
-        m_ctrlReg = v;
-        if (m_ctrlReg & CR_ACK) {
-            m_ctrlReg &= ~CR_ACK;
-            psxHu16(0x105A) = m_ctrlReg;
+    void writeStat8(uint8_t v);
+    void writeStat16(uint16_t v);
+    void writeStat32(uint32_t v);
 
-            m_statusReg &= ~(SR_PARITYERR | SR_RXOVERRUN | SR_FRAMINGERR | SR_IRQ);
-            psxHu32(0x1054) = m_statusReg;
-        }
-
-        if (m_ctrlReg & CR_ACK) {
-            m_ctrlReg &= ~CR_ACK;
-            m_statusReg &= ~(SR_PARITYERR | SR_RXOVERRUN | SR_FRAMINGERR | SR_IRQ);
-        }
- 
-        if (m_ctrlReg & CR_RESET) {
-            m_statusReg &= ~SR_IRQ;
-            m_statusReg |= SR_TXRDY | SR_TXEMPTY;
-            psxHu32(0x1054) = m_statusReg;
-
-            m_modeReg = 0;
-            psxHu16(0x1058) = m_modeReg;
-
-            m_ctrlReg = 0;
-            psxHu16(0x105A) = m_ctrlReg;
-
-            m_baudReg = 0;
-            psxHu16(0x105E) = m_baudReg;
-
-            PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
-        }
-    }
-    void writeBaud16(uint16_t v) {
-        m_baudReg = v;
-        psxHu16(0x105E) = m_baudReg;
-    }
-
-    void interrupt() {
-        SIO1_LOG("Sio1 Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
-        m_statusReg |= SR_IRQ;
-        psxHu32ref(0x1070) |= SWAP_LEu32(0x100);
-    }
-
-    void receiveCallback() {
-        if (m_ctrlReg & CR_RXIRQEN) {
-            if (!(m_statusReg & SR_IRQ)) {
-                scheduleInterrupt(SIO1_CYCLES);
-                m_statusReg |= SR_IRQ;
-            }
-        }
-    }
-
-    struct Slices {
-        void pushSlice(const Slice& slice) { m_sliceQueue.push(slice); }
-        ~Slices() {
-            while (!m_sliceQueue.empty()) m_sliceQueue.pop();
-        }
-
-        uint8_t getByte() {
-            if (m_sliceQueue.empty()) return 0xff;  // derp?
-            Slice& slice = m_sliceQueue.front();
-            uint8_t r = slice.getByte(m_cursor);
-            if (++m_cursor >= slice.size()) {
-                m_cursor = 0;
-                m_sliceQueue.pop();
-            }
-            return r;
-        }
-
-        std::queue<Slice> m_sliceQueue;
-        uint32_t m_cursor = 0;
-    };
-
-    Slices m_slices;
+    void receiveCallback();
+    void pushSlice(Slice slice) { m_slices.pushSlice(slice); }
 
   private:
     enum {
@@ -194,23 +103,43 @@ class SIO1 {
         CR_TXOUTLVL = 0x0008,
         CR_ACK = 0x0010,
         CR_RTSOUTLVL = 0x0020,
-        CR_RESET = 0x0040, // RESET INT?
+        CR_RESET = 0x0040,  // RESET INT?
         CR_UNKNOWN = 0x0080,
-        CR_RXIRQMODE = 0x0100, // FIFO byte count, need to implement
+        CR_RXIRQMODE = 0x0100,  // FIFO byte count, need to implement
         CR_TXIRQEN = 0x0400,
         CR_RXIRQEN = 0x0800,
         CR_DSRIRQEN = 0x0400,
     };
 
-    //uint32_t m_dataReg = 0;
+    struct Slices {
+        void pushSlice(const Slice& slice) { m_sliceQueue.push(slice); }
+        ~Slices() {
+            while (!m_sliceQueue.empty()) m_sliceQueue.pop();
+        }
+
+        uint8_t getByte() {
+            if (m_sliceQueue.empty()) return 0xff;  // derp?
+            Slice& slice = m_sliceQueue.front();
+            uint8_t r = slice.getByte(m_cursor);
+            if (++m_cursor >= slice.size()) {
+                m_cursor = 0;
+                m_sliceQueue.pop();
+            }
+            return r;
+        }
+
+        std::queue<Slice> m_sliceQueue;
+        uint32_t m_cursor = 0;
+    };
+
+    // uint32_t m_dataReg = 0;
     uint32_t m_statusReg = SR_TXRDY | SR_TXEMPTY | SR_DSR | SR_CTS;
     uint16_t m_modeReg = 0;
     uint16_t m_ctrlReg = 0;
-    //uint16_t m_miscReg = 0;
+    // uint16_t m_miscReg = 0;
     uint16_t m_baudReg = 0;
+    Slices m_slices;
 
-    inline void scheduleInterrupt(uint32_t eCycle) {
-        g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO1, eCycle);
-    }
+    inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
 };
 }  // namespace PCSX
