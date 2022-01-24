@@ -228,7 +228,7 @@ runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
 psyq-obj-parser: $(SUPPORT_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO
+	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO
 
 ps1-packer: $(SUPPORT_OBJECTS) tools/ps1-packer/ps1-packer.cc
 	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/ps1-packer/ps1-packer.cc
