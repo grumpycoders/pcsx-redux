@@ -32,7 +32,8 @@ enum class LogClass : unsigned {
     MIPS,           // only the things coming from MIPS code
     UI,             // messages from the UI specifically
     SIO0,           // pad and memory card information
-    SIO1,           // uart information
+    SIO1,           // uart/sio1 information
+    SIO1SERVER,     // uart/sio1 server information
     GTE,            // gte information
     CDROM,          // low level cdrom information
     CDROM_IO,       // high level cdrom information (iso file access)
@@ -68,7 +69,7 @@ struct Logger {
 // The rule of thumb is they typically can be spammy or costly,
 // and shouldn't be enabled on a retail build.
 typedef Logger<LogClass::SIO0, false> SIO0_LOGGER;
-typedef Logger<LogClass::SIO1, true> SIO1_LOGGER;
+typedef Logger<LogClass::SIO1, false> SIO1_LOGGER;
 typedef Logger<LogClass::GTE, false> GTE_LOGGER;
 typedef Logger<LogClass::CDROM, false> CDROM_LOGGER;
 typedef Logger<LogClass::CDROM_IO, false> CDROM_IO_LOGGER;

@@ -36,10 +36,11 @@ class SIO1 {
      * To-do:
      * STAT Baudrate timer + BAUD register
      *
-     * FIFO buffer - not 100% how this will work, spx
-     * unclear and the server receives large packets[2048+] at a time.
+     * FIFO buffer - not 100% how this will work,
+     * spx unclear and the server receives large packets[2048+] at a time.
      * 
-     * Test and finish interrupts, only RX is tested
+     * Test and finish interrupts,
+     * only RX is tested
      * 
      * Add/verify cases for all R/W functions exist in psxhw.cpp
     */
@@ -47,9 +48,20 @@ class SIO1 {
   public:
     void interrupt();
 
+    void sio1Reset() {
+        m_slices.discardSlices();
+        // uint32_t m_dataReg = 0;
+        m_statusReg = SR_TXRDY | SR_TXEMPTY | SR_DSR | SR_CTS;
+        m_modeReg = 0;
+        m_ctrlReg = 0;
+        // uint16_t m_miscReg = 0;
+        m_baudReg = 0;
+    }
+
     uint8_t readBaud8() { return m_baudReg & 0xFF; }
     uint16_t readBaud16() { return m_baudReg; }
 
+    uint8_t readCtrl8() { return m_ctrlReg & 0xFF; }
     uint16_t readCtrl16() { return m_ctrlReg; }
 
     uint8_t readData8();
@@ -60,15 +72,26 @@ class SIO1 {
     uint16_t readMode16() { return m_modeReg; }
 
     uint8_t readStat8();
-    uint16_t readStat16() { return m_statusReg; }
+    uint16_t readStat16();
+    uint32_t readStat32();
 
+    void writeBaud8(uint8_t v) { writeBaud16(v); }
     void writeBaud16(uint16_t v);
 
+    void writeCtrl8(uint8_t v) { writeCtrl16(v); }
     void writeCtrl16(uint16_t v);
 
     void writeData8(uint8_t v);
-    void writeData16(uint16_t v) { psxHu16(0x1050) = v; }
-    void writeData32(uint32_t v) { psxHu32(0x1050) = v; }
+    void writeData16(uint16_t v) {
+        writeData8((unsigned char)v);
+        writeData8((unsigned char)(v >> 8));
+    }
+    void writeData32(uint32_t v) {
+        writeData8((unsigned char)v);
+        writeData8((unsigned char)(v >> 8));
+        writeData8((unsigned char)(v >> 16));
+        writeData8((unsigned char)(v >> 24));
+    }
 
     void writeMode8(uint8_t v);
     void writeMode16(uint16_t v);
@@ -78,6 +101,7 @@ class SIO1 {
     void writeStat32(uint32_t v);
 
     void receiveCallback();
+
     void pushSlice(Slice slice) { m_slices.pushSlice(slice); }
 
   private:
@@ -112,10 +136,12 @@ class SIO1 {
     };
 
     struct Slices {
-        void pushSlice(const Slice& slice) { m_sliceQueue.push(slice); }
-        ~Slices() {
+        ~Slices() { discardSlices(); }
+
+        void discardSlices() {
             while (!m_sliceQueue.empty()) m_sliceQueue.pop();
         }
+        void pushSlice(const Slice& slice) { m_sliceQueue.push(slice); }
 
         uint8_t getByte() {
             if (m_sliceQueue.empty()) return 0xff;  // derp?
@@ -132,6 +158,10 @@ class SIO1 {
         uint32_t m_cursor = 0;
     };
 
+    inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
+
+    void updateStat();
+
     // uint32_t m_dataReg = 0;
     uint32_t m_statusReg = SR_TXRDY | SR_TXEMPTY | SR_DSR | SR_CTS;
     uint16_t m_modeReg = 0;
@@ -139,7 +169,5 @@ class SIO1 {
     // uint16_t m_miscReg = 0;
     uint16_t m_baudReg = 0;
     Slices m_slices;
-
-    inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
 };
 }  // namespace PCSX

@@ -103,6 +103,7 @@ void PCSX::Emulator::EmuReset() {
     m_gpu->clearVRAM();
     m_pads->shutdown();
     m_pads->init();
+    m_sio1->sio1Reset();
 }
 
 void PCSX::Emulator::EmuShutdown() {

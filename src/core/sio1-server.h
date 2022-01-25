@@ -36,82 +36,60 @@ class SIO1Server;
 
 class SIO1Client : public Intrusive::List<SIO1Client>::Node {
   public:
-    SIO1Client(uv_tcp_t* server);
     typedef Intrusive::List<SIO1Client> ListType;
+
+    SIO1Client(uv_tcp_t* server);
 
     bool accept(uv_tcp_t* server);
     void close();
 
   private:
-    uv_tcp_t m_tcp;
     enum class SIO1ClientStatus { CLOSED, OPEN, CLOSING };
+
+    struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
+        uv_buf_t m_buf = {};
+        Slice m_slice;
+        uv_write_t m_req = {};
+
+        WriteRequest() {}
+        WriteRequest(Slice&& slice) : m_slice(std::move(slice)) {}
+        void enqueue(SIO1Client* client);
+        static void writeCB(uv_write_t* request, int status);
+    };
+
     SIO1ClientStatus m_status = SIO1ClientStatus::CLOSED;
 
-    bool m_allocated = false;
-
-    EventBus::Listener m_listener;
-    uv_loop_t* m_loop = 0;
-    friend SIO1Server;
     static constexpr size_t BUFFER_SIZE = 4096;
 
     void alloc(size_t suggestedSize, uv_buf_t* buf);
-
-    static void allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
-        SIO1Client* client = static_cast<SIO1Client*>(handle->data);
-        client->alloc(suggestedSize, buf);
-    }
-
-    static void closeCB(uv_handle_t* handle) {
-        SIO1Client* client = static_cast<SIO1Client*>(handle->data);
-        delete client;
-    }
-
+    static void allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf);
+    static void closeCB(uv_handle_t* handle);
     void processData(const Slice& slice);
-
     void read(ssize_t nread, const uv_buf_t* buf);
-
-    static void readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
-        SIO1Client* client = static_cast<SIO1Client*>(stream->data);
-        client->read(nread, buf);
-    }
-
+    static void readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf);
     void write(unsigned char c);
 
-    struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
-        WriteRequest() {}
-        WriteRequest(Slice&& slice) : m_slice(std::move(slice)) {}
-        void enqueue(SIO1Client* client) {
-            m_buf.base = static_cast<char*>(const_cast<void*>(m_slice.data()));
-            m_buf.len = m_slice.size();
-            client->m_requests.insert(reinterpret_cast<uintptr_t>(&m_req), this);
-            uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), &m_buf, 1, writeCB);
-        }
-        static void writeCB(uv_write_t* request, int status) {
-            SIO1Client* client = static_cast<SIO1Client*>(request->handle->data);
-            auto self = client->m_requests.find(reinterpret_cast<uintptr_t>(request));
-            delete &*self;
-            if (status != 0) client->close();
-        }
-        uv_buf_t m_buf;
-        uv_write_t m_req;
-        Slice m_slice;
-    };
+    bool m_allocated = false;
+    char m_buffer[BUFFER_SIZE] = {};
+    EventBus::Listener m_listener;
+    uv_loop_t* m_loop = NULL;
     Intrusive::HashTable<uintptr_t, WriteRequest> m_requests;
+    uv_tcp_t m_tcp;
 
-    char m_buffer[BUFFER_SIZE];
+    friend SIO1Server;
 };
 
 class SIO1Server {
   public:
-    SIO1Server();
-    //~SIO1Server() { }
     enum class SIO1ServerStatus {
         SERVER_STOPPED,
         SERVER_STOPPING,
         SERVER_STARTED,
     };
+
     SIO1ServerStatus getServerStatus() { return m_serverStatus; }
 
+    SIO1Server();
     void startServer(uv_loop_t* loop, int port = 6699);
     void stopServer();
 
@@ -120,16 +98,16 @@ class SIO1Server {
     }
 
   private:
-    static void onNewConnectionTrampoline(uv_stream_t* server, int status);
-    void onNewConnection(int status);
     static void closeCB(uv_handle_t* handle);
-    SIO1ServerStatus m_serverStatus = SIO1ServerStatus::SERVER_STOPPED;
-    uv_tcp_t m_server;
-    uv_loop_t* m_loop;
-    SIO1Client::ListType m_clients;
-    EventBus::Listener m_listener;
+    void onNewConnection(int status);
+    static void onNewConnectionTrampoline(uv_stream_t* server, int status);
 
+    SIO1Client::ListType m_clients;
     std::string m_gotError;
+    EventBus::Listener m_listener;
+    uv_loop_t* m_loop = NULL;
+    uv_tcp_t m_server = {};
+    SIO1ServerStatus m_serverStatus = SIO1ServerStatus::SERVER_STOPPED;
 };
 
 }  // namespace PCSX

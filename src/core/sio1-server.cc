@@ -26,7 +26,6 @@ PCSX::SIO1Client::SIO1Client(uv_tcp_t* server) : m_listener(g_system->m_eventBus
     m_loop = server->loop;
     uv_tcp_init(m_loop, &m_tcp);
     m_tcp.data = this;
-    memset(m_buffer, 0, BUFFER_SIZE);
 }
 
 bool PCSX::SIO1Client::accept(uv_tcp_t* server) {
@@ -45,10 +44,20 @@ void PCSX::SIO1Client::alloc(size_t suggestedSize, uv_buf_t* buf) {
     buf->len = sizeof(m_buffer);
 }
 
+void PCSX::SIO1Client::allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
+    SIO1Client* client = static_cast<SIO1Client*>(handle->data);
+    client->alloc(suggestedSize, buf);
+}
+
 void PCSX::SIO1Client::close() {
     if (m_status != SIO1ClientStatus::OPEN) return;
     m_status = SIO1ClientStatus::CLOSING;
     uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), closeCB);
+}
+
+void PCSX::SIO1Client::closeCB(uv_handle_t* handle) {
+    SIO1Client* client = static_cast<SIO1Client*>(handle->data);
+    delete client;
 }
 
 void PCSX::SIO1Client::processData(const Slice& slice) {
@@ -63,15 +72,41 @@ void PCSX::SIO1Client::read(ssize_t nread, const uv_buf_t* buf) {
         return;
     }
 
+    if (nread > BUFFER_SIZE) {
+        g_system->log(LogClass::SIO1SERVER,
+                      "SIO1Server: Received more data[%i] than buffer[%i] can store, data truncated.\n", nread,
+                      BUFFER_SIZE);
+        nread = BUFFER_SIZE;
+    }
+
     Slice slice;
-    slice.borrow(m_buffer, static_cast <uint32_t>(nread));
+    slice.borrow(m_buffer, static_cast<uint32_t>(nread));
     processData(slice);
+}
+
+void PCSX::SIO1Client::readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
+    SIO1Client* client = static_cast<SIO1Client*>(stream->data);
+    client->read(nread, buf);
 }
 
 void PCSX::SIO1Client::write(unsigned char c) {
     auto* req = new WriteRequest();
     req->m_slice.copy(static_cast<void*>(&c), 1);
     req->enqueue(this);
+}
+
+void PCSX::SIO1Client::WriteRequest::enqueue(SIO1Client* client) {
+    m_buf.base = static_cast<char*>(const_cast<void*>(m_slice.data()));
+    m_buf.len = m_slice.size();
+    client->m_requests.insert(reinterpret_cast<uintptr_t>(&m_req), this);
+    uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), &m_buf, 1, writeCB);
+}
+
+void PCSX::SIO1Client::WriteRequest::writeCB(uv_write_t* request, int status) {
+    SIO1Client* client = static_cast<SIO1Client*>(request->handle->data);
+    auto self = client->m_requests.find(reinterpret_cast<uintptr_t>(request));
+    delete &*self;
+    if (status != 0) client->close();
 }
 
 PCSX::SIO1Server::SIO1Server() : m_listener(g_system->m_eventBus) {

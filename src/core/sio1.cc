@@ -39,14 +39,18 @@ uint8_t PCSX::SIO1::readData8() {
 }
 
 uint8_t PCSX::SIO1::readStat8() {
-    if (m_slices.m_sliceQueue.empty()) {
-        m_statusReg &= ~SR_RXRDY;
-    } else {
-        m_statusReg |= SR_RXRDY;
-    }
-    psxHu32(0x1054) = m_statusReg;
-
+    updateStat();
     return m_statusReg & 0xFF;
+}
+
+uint16_t PCSX::SIO1::readStat16() {
+    updateStat();
+    return m_statusReg & 0xFFFF;
+}
+
+uint32_t PCSX::SIO1::readStat32() {
+    updateStat();
+    return m_statusReg;
 }
 
 void PCSX::SIO1::receiveCallback() {
@@ -56,6 +60,15 @@ void PCSX::SIO1::receiveCallback() {
             m_statusReg |= SR_IRQ;
         }
     }
+}
+
+void PCSX::SIO1::updateStat() {
+    if (m_slices.m_sliceQueue.empty()) {
+        m_statusReg &= ~SR_RXRDY;
+    } else {
+        m_statusReg |= SR_RXRDY;
+    }
+    psxHu32(0x1054) = m_statusReg;
 }
 
 void PCSX::SIO1::writeBaud16(uint16_t v) {

@@ -54,14 +54,27 @@ uint8_t PCSX::HW::psxHwRead8(uint32_t add) {
         case 0x1f801040:
             hard = PCSX::g_emulator->m_sio->sioRead8();
             break;
-        case 0x1f801050:
+        case 0x1f801050:  // rx/tx data register
             hard = PCSX::g_emulator->m_sio1->readData8();
             SIO1_LOG("SIO1.DATA read8 %x; ret = %x\n", add & 0xf, hard);
             break;
-         case 0x1f801054:
+        case 0x1f801054:  // stat register
             hard = PCSX::g_emulator->m_sio1->readStat8();
+            // Log command below is overly spammy
             //SIO1_LOG("SIO1.STAT read8 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
+        case 0x1f801058:  // mode register
+            hard = PCSX::g_emulator->m_sio1->readMode8();
+            SIO1_LOG("SIO1.MODE read8 %x; ret = %x\n", add & 0xf, hard);
+            break;
+        case 0x1f80105a: // control register
+            hard = PCSX::g_emulator->m_sio1->readCtrl8();
+            SIO1_LOG("SIO1.CTRL read8 %x; ret = %x\n", add & 0xf, hard);
+            break;
+        case 0x1f80105e: // baudrate register
+            hard = PCSX::g_emulator->m_sio1->readBaud8();
+            SIO1_LOG("SIO1.BAUD read8 %x; ret = %x\n", add & 0xf, hard);
+            break;
         case 0x1f801800:
             hard = PCSX::g_emulator->m_cdrom->read0();
             break;
@@ -130,23 +143,24 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
             hard = PCSX::g_emulator->m_sio->readBaud16();
             SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
-        case 0x1f801050:
+        case 0x1f801050:  // rx/tx data register
             hard = PCSX::g_emulator->m_sio1->readData16();
             SIO1_LOG("SIO1.DATA read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
-        case 0x1f801054:
+        case 0x1f801054:  // stat register
             hard = PCSX::g_emulator->m_sio1->readStat16();
-            SIO1_LOG("SIO1.STAT read16 %x; ret = %x\n", add & 0xf, hard);
+            // Log command below is overly spammy
+            //SIO1_LOG("SIO1.STAT read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
-        case 0x1f801058:
+        case 0x1f801058:  // mode register
             hard = PCSX::g_emulator->m_sio1->readMode16();
             SIO1_LOG("SIO1.MODE read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
-        case 0x1f80105a:
+        case 0x1f80105a:  // control register
             hard = PCSX::g_emulator->m_sio1->readCtrl16();
             SIO1_LOG("SIO1.CTRL read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
-        case 0x1f80105e:
+        case 0x1f80105e:  // baudrate register
             hard = PCSX::g_emulator->m_sio1->readBaud16();
             SIO1_LOG("SIO1.BAUD read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
@@ -231,9 +245,14 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
             hard |= PCSX::g_emulator->m_sio->sioRead8() << 24;
             SIO0_LOG("sio read32 ;ret = %x\n", hard);
             return hard;
-        case 0x1f801050:
+        case 0x1f801050:  // rx/tx data register
             hard = PCSX::g_emulator->m_sio1->readData32();
             SIO1_LOG("SIO1.DATA read32 ;ret = %x\n", hard);
+            return hard;
+        case 0x1f801054:  // stat register
+            hard = PCSX::g_emulator->m_sio1->readStat32();
+            // Log command below is overly spammy
+            //SIO1_LOG("SIO1.STAT read32 ;ret = %x\n", hard);
             return hard;
         case 0x1f801060:
             PSXHW_LOG("RAM size read %x\n", psxHu32(0x1060));
@@ -349,6 +368,18 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
         case 0x1f801054:    // stat register
             PCSX::g_emulator->m_sio1->writeStat8(value);
             SIO1_LOG("SIO1.STAT write8 %x; ret = %x\n", add & 0xf, value);
+            break;
+        case 0x1f801058:  // mode register
+            PCSX::g_emulator->m_sio1->writeMode8(value);
+            SIO1_LOG("SIO1.MODE write8 %x; ret = %x\n", add & 0xf, value);
+            break;
+        case 0x1f80105a:  // control register
+            PCSX::g_emulator->m_sio1->writeCtrl8(value);
+            SIO1_LOG("SIO1.CTRL write8 %x; ret = %x\n", add & 0xf, value);
+            break;
+        case 0x1f80105e:  // baudrate register
+            PCSX::g_emulator->m_sio1->writeBaud8(value);
+            SIO1_LOG("SIO1.Baud write8 %x; ret = %x\n", add & 0xf, value);
             break;
         case 0x1f801800:
             PCSX::g_emulator->m_cdrom->write0(value);
@@ -538,6 +569,10 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
         case 0x1f801050:
             PCSX::g_emulator->m_sio1->writeData32(value);
             SIO1_LOG("SIO1.DATA write32 %x\n", value);
+            return;
+        case 0x1f801054:
+            PCSX::g_emulator->m_sio1->writeStat32(value);
+            SIO1_LOG("SIO1.STAT write32 %x\n", value);
             return;
         case 0x1f801060:
             PSXHW_LOG("RAM size write %x\n", value);
