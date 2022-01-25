@@ -44,9 +44,15 @@ enum class PsyqOpcode : uint8_t {
     FILENAME = 28,
     PROGRAMTYPE = 46,
     UNINITIALIZED = 48,
-    SLD_END = 60,
+    INC_SLD_LINENUM = 50,
+    INC_SLD_LINENUM_BY_BYTE = 52,
+    SET_SLD_LINENUM = 56,
+    SET_SLD_LINENUM_FILE = 58,
+    END_SLD = 60,
     FUNCTION = 74,
     FUNCTION_END = 76,
+    SECTION_DEF = 82,
+    SECTION_DEF2 = 84,
 };
 
 enum class PsyqRelocType : uint8_t {
@@ -412,11 +418,37 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 ret->symbols.insert(symbolIndex, symbol);
                 break;
             }
-            case (uint8_t)PsyqOpcode::SLD_END: {
+            case (uint8_t)PsyqOpcode::INC_SLD_LINENUM: {
+                uint16_t offset = file->read<uint16_t>();
+                vprint("INC_SLD_LINENUM offset {}\n", offset);
+
+                break;
+            }
+            case (uint8_t)PsyqOpcode::INC_SLD_LINENUM_BY_BYTE: {
+                uint16_t offset = file->read<uint16_t>();
+                uint8_t _byte = file->read<uint8_t>();
+                vprint("INC_SLD_LINENUM_BY_BYTE offset {}, _byte {}\n", offset, _byte);
+
+                break;
+            }
+            case (uint8_t)PsyqOpcode::SET_SLD_LINENUM: {
+                uint16_t offset = file->read<uint16_t>();
+                uint32_t lineNum = file->read<uint32_t>();
+                vprint("SET_SLD_LINENUM lineNum {}, offset {}\n", lineNum, offset);
+                break;
+            }
+            case (uint8_t)PsyqOpcode::SET_SLD_LINENUM_FILE: {
+                uint16_t offset = file->read<uint16_t>();
+                uint32_t lineNum = file->read<uint32_t>();
+                uint16_t _file = file->read<uint16_t>();
+                vprint("SET_SLD_LINENUM_FILE lineNum {}, offset {}, _file {}\n", lineNum, offset, _file);
+                break;
+            }
+            case (uint8_t)PsyqOpcode::END_SLD: {
                 // 2 bytes of nothing
                 uint16_t zero = file->read<uint16_t>();
                 assert(zero == 0);
-                vprint("SLD_END\n");
+                vprint("END_SLD\n");
                 break;
             }
             case (uint8_t)PsyqOpcode::FUNCTION: {
@@ -440,6 +472,36 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
 				uint32_t endLine = file->read<uint32_t>();
                 vprint("FUNCTION_END: section {}, offset {}, endLine {}\n",
                         section, offset, endLine);
+                break;
+            }
+            case (uint8_t)PsyqOpcode::SECTION_DEF: {
+                uint16_t section = file->read<uint16_t>();
+                uint32_t value = file->read<uint32_t>();
+                uint16_t _class = file->read<uint16_t>();
+                uint16_t type = file->read<uint16_t>();
+                uint32_t size = file->read<uint32_t>();
+                std::string name = readPsyqString(file);
+                vprint("SECTION_DEF: section {}, value {}, _class {}, type {}, size {}\n",
+                        section, value, _class, type, size);
+                break;
+            }
+            case (uint8_t)PsyqOpcode::SECTION_DEF2: {
+                uint16_t section = file->read<uint16_t>();
+                uint32_t value = file->read<uint32_t>();
+                uint16_t _class = file->read<uint16_t>();
+                uint16_t type = file->read<uint16_t>();
+                uint32_t size = file->read<uint32_t>();
+
+                uint16_t dims = file->read<uint16_t>();
+                while (dims-- > 0) {
+                    // ignore for now
+                    uint16_t dim = file->read<uint16_t>();
+                }
+
+                std::string tag = readPsyqString(file);
+                std::string name = readPsyqString(file);
+                vprint("SECTION_DEF2: section {}, value {}, _class {}, type {}, size {}, dims {}, tag {}, name {}\n",
+                        section, value, _class, type, size, dims, tag, name);
                 break;
             }
             default: {
