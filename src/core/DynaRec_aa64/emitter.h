@@ -18,7 +18,9 @@
  ***************************************************************************/
 
 #pragma once
+#ifdef DYNAREC_AA64
 #include "vixl/src/aarch64/macro-assembler-aarch64.h"
+#include <sys/mman.h> // For mmap/mprotect
 
 using namespace vixl::aarch64;
 
@@ -52,7 +54,20 @@ public:
         return GetCursorOffset();
     }
 
+    // TODO: Verify. VIXL states this must be called before code in buffer can be executed
+    // Default option here is NoFallThrough, which means any code emiited after this is called
+    // is ignore. I believe this is to ensure literals have been emitted before code is executed
     void ready() { FinalizeCode(); }
+
+    // TODO: VIXL methods only allow for RW or RE; This will need to be handled manually for M1 Mac regardless
+    bool setRWX() {
+        // GetBuffer()->SetExecutable
+        return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE | PROT_EXEC) != -1;
+    }
+    // Aligns to 4-byte with no argument
+    void align() {
+        GetBuffer()->Align();
+    }
 
     #define MAKE_CONDITIONAL_BRANCH(properName, alias) \
     void b##properName(Label& l) { b(&l, properName); } \
@@ -80,4 +95,38 @@ public:
         std::ofstream file("DynarecOutput.dump", std::ios::binary);  // Make a file for our dump
         file.write(getCode<const char*>(), getSize());       // Write the code buffer to the dump
     }
+
+    // Returns a signed integer that shows how many bytes of free space are left in the code buffer
+    int64_t getRemainingSize() { return (int64_t)codeCacheSize - (int64_t)getSize(); }
+
+    // Adds "value" to "source" and stores the result in dest
+    // Uses add if the value is non-zero, or mov otherwise
+    void moveAndAdd(Register dest, Register source, uint32_t value) {
+        if (value != 0) {
+            Add(dest, source, value);
+        } else {
+            Mov(dest, source);
+        }
+    }
+
+    // Logical OR dest by value (Skip the OR if value == 0)
+    void orImm(Register dest, uint32_t value) {
+        if (value != 0) {
+            Orr(dest, dest, value);
+        }
+    }
+    // Logical OR source by value (
+    void orImm(Register dest, Register source, uint32_t value) {
+        if (value != 0) {
+            Orr(dest, source, value);
+        } else if (!dest.Is(source)) {
+            Mov(dest, source);
+        }
+    }
+
+    // Emit a trap instruction that gdb/lldb/Visual Studio can interpret as a breakpoint
+    void breakpoint() {
+        Brk(0);
+    }
 };
+#endif  // DYNAREC_AA64
