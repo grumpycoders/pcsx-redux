@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// TODO: Profiler will need to be added at some point
+
 #pragma once
 #include "core/r3000a.h"
 
@@ -156,12 +158,40 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
-    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc);
+    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc); // TODO: x64 version has a bool argument for alignment
     void error();
     void flushCache();
     void handleLinking();
     void handleFastboot();
+    void handleKernelCall();
+    void emitDispatcher();
     void uncompileAll();
+
+    // Class Wrapper Functions
+    static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->psxException(e, bd); }
+    static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
+    static void recBranchTestWrapper(DynaRecCPU* that) { that->psxBranchTest(); }
+    static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
+
+    static void signalShellReached(DynaRecCPU* that);
+    static DynarecCallback recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
+        return that->recompile(callback, that->m_psxRegs.pc);
+    }
+
+    template <uint32_t pc>
+    static void interceptKernelCallWrapper(DynaRecCPU* that) {
+        that->InterceptBIOS<false>(pc);
+    }
+
+    //TODO: This is currently un-unsed in x64 DynaRec. Check this.
+    void inlineClear(uint32_t address) {
+        if (isPcValid(address & ~3)) {
+            loadThisPointer(arg1.X());
+            gen.mov(arg2, address & ~3);
+            call(recClearWrapper);
+        }
+    }
+
 
   public:
     DynaRecCPU() : R3000Acpu("AA64 DynaRec") {}
@@ -179,7 +209,108 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         }
     }
 
+    // For the GUI dynarec disassembly widget
+    virtual const uint8_t *getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
+    virtual const size_t getBufferSize() final { return gen.getSize(); }
+
   private:
+
+    // Emit log of current instruction in jitted code for debugging
+    void emitLog() {
+        gen.Mov(arg1, m_pc);
+        call(log_instruction);
+    }
+
+    // Calculate the number of instructions between the current PC and the branch target
+    // Returns a negative number for backwards jumps
+    int64_t getPCOffset(const void* current, const void* target) {
+        return (int64_t)((ptrdiff_t) target - (ptrdiff_t)current) >> 2;
+    }
+
+    // Load a pointer to the JIT object in "reg" using lea with the context pointer
+    void loadThisPointer(Register reg) { gen.Mov(reg, contextPointer); }
+
+    // Loads a value into dest from the given pointer.
+    // TODO: This may need to use contextPointer + distance instead
+    template <int size, bool signExtend>
+    void load(Register dest, const void* pointer) {
+        const auto distance = (intptr_t)pointer - (intptr_t)this;
+        gen.Mov(scratch.X(), (uintptr_t)pointer);
+        switch (size) {
+            case 8:
+                signExtend ? gen.Ldrsb(dest, MemOperand(scratch.X())) : gen.Ldrb(dest, MemOperand(scratch.X()));
+                break;
+            case 16:
+                signExtend ? gen.Ldrsh(dest, MemOperand(scratch.X())) : gen.Ldrh(dest, MemOperand(scratch.X()));
+                break;
+            case 32:
+                gen.Ldr(dest, MemOperand(scratch.X()));
+                break;
+        }
+    }
+
+    // Stores a value of "size" bits from "source" to the given pointer
+    /* TODO: value must be moved into register first before it can be stored unlike x64 with can use mov to write to memory */
+    // TODO: This may need to use contextPointer + distance instead
+    template <int size>
+    void store(Register source, const void* pointer) {
+        const auto distance = (intptr_t)pointer - (intptr_t)this;
+        gen.Mov(scratch.X(), (uintptr_t)pointer);
+        switch (size) {
+            case 8:
+                gen.Strb(source, MemOperand(scratch.X()));
+                break;
+            case 16:
+                gen.Strh(source, MemOperand(scratch.X()));
+                break;
+            case 32:
+                gen.Str(source, MemOperand(scratch.X()));
+                break;
+        }
+    }
+
+    // Prepare for a call to a C++ function and then actually emit it
+    template <typename T>
+    void call(T& func) {
+        prepareForCall();
+        const auto ptr = reinterpret_cast<const void*>(func);
+        const int64_t disp = getPCOffset(gen.getCurr<const void*>(), ptr);
+
+        // If the displacement can fit in a 26-bit int, that means we can emit a direct call to the address
+        // Otherwise, load the address into a register and emit a blr
+        const bool canDoDirectCall = vixl::IsInt26(disp);
+
+        if (canDoDirectCall) {
+            gen.bl(disp);
+        } else {
+            gen.Mov(scratch2.X(), (uintptr_t)ptr);
+            gen.Blr(scratch2.X());
+        }
+    }
+
+    // jmp function using same method as call to attempt direct jump
+    void jmp(void * pointer) {
+        const int64_t disp = getPCOffset(gen.getCurr<const void*>(), pointer);
+
+        // If the displacement can fit in a 26-bit int, that means we can emit a direct call to the address
+        // Otherwise, load the address into a register and emit a br
+        const bool canDoDirectJump = vixl::IsInt26(disp);
+
+        if (canDoDirectJump) {
+            gen.b(disp);
+        } else {
+            gen.Mov(scratch2.X(), (uintptr_t)pointer);
+            gen.Br(scratch2.X());
+        }
+    }
+
+    void maybeCancelDelayedLoad(uint32_t index) {
+        const unsigned other = m_currentDelayedLoad ^ 1;
+        if (m_delayedLoadInfo[other].index == index) {
+            m_delayedLoadInfo[other].active = false;
+        }
+    }
+
     // Instruction definitions
     void recUnknown();
     void recSpecial();
@@ -276,6 +407,15 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recRTPT();
     void recSQR();
 
+    template <bool isAVSZ4>
+    void recAVSZ();
+
+    template <bool readSR>
+    void testSoftwareInterrupt();
+
+    template <int size, bool signExtend>
+    void recompileLoad();
+
     const recompilationFunc m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00
         &DynaRecCPU::recBEQ,     &DynaRecCPU::recBNE,     &DynaRecCPU::recBLEZ,    &DynaRecCPU::recBGTZ,     // 04
@@ -332,6 +472,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 38
         &DynaRecCPU::recUnknown, &DynaRecCPU::recGPF,     &DynaRecCPU::recGPL,     &DynaRecCPU::recNCCT,     // 3c
     };
+
+    static constexpr bool ENABLE_BLOCK_LINKING = true;
 };
 
 #endif  // DYNAREC_AA64
