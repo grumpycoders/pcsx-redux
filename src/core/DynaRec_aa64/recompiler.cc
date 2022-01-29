@@ -110,6 +110,13 @@ DynarecCallback* DynaRecCPU::getBlockPointer(uint32_t pc) {
     return &base[offset];
 }
 
+void DynaRecCPU::signalShellReached(DynaRecCPU* that) {
+    if (!that->m_shellStarted) {
+        that->m_shellStarted = true;
+        PCSX::g_system->m_eventBus->signal(PCSX::Events::ExecutionFlow::ShellReached{});
+    }
+}
+
 void DynaRecCPU::error() {
     PCSX::g_system->hardReset();
     PCSX::g_system->stop();
@@ -125,6 +132,13 @@ void DynaRecCPU::uncompileAll() {
         m_biosBlocks[i] = m_uncompiledBlock;
     }
 }
+
+void DynaRecCPU::flushCache() {
+    gen.Reset();       // Reset the emitter's code pointer and code size variables
+    emitDispatcher();  // Re-emit dispatcher
+    uncompileAll();    // Mark all blocks as uncompiled
+}
+
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() { return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU()); }
 
