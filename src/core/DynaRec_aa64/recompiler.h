@@ -156,12 +156,40 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
-    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc);
+    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc); // TODO: x64 version has a bool argument for alignment
     void error();
     void flushCache();
     void handleLinking();
     void handleFastboot();
+    void handleKernelCall();
+    void emitDispatcher();
     void uncompileAll();
+
+    // Class Wrapper Functions
+    static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->psxException(e, bd); }
+    static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
+    static void recBranchTestWrapper(DynaRecCPU* that) { that->psxBranchTest(); }
+    static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
+
+    static void signalShellReached(DynaRecCPU* that);
+    static DynarecCallback recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
+        return that->recompile(callback, that->m_psxRegs.pc);
+    }
+
+    template <uint32_t pc>
+    static void interceptKernelCallWrapper(DynaRecCPU* that) {
+        that->InterceptBIOS<false>(pc);
+    }
+
+    //TODO: This is currently un-unsed in x64 DynaRec. Check this.
+    void inlineClear(uint32_t address) {
+        if (isPcValid(address & ~3)) {
+            loadThisPointer(arg1.X());
+            gen.mov(arg2, address & ~3);
+            call(recClearWrapper);
+        }
+    }
+
 
   public:
     DynaRecCPU() : R3000Acpu("AA64 DynaRec") {}
