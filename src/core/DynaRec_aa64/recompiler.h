@@ -32,6 +32,8 @@
 #include "spu/interface.h"
 #include "tracy/Tracy.hpp"
 
+#include "regAllocation.h"
+
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)this)
 #define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)this)
 #define COP0_OFFSET(x) ((uintptr_t)&m_psxRegs.CP0.r[(x)] - (uintptr_t)this)
@@ -56,6 +58,10 @@ static void psxMemWrite16Wrapper(uint32_t address, uint16_t value) {
 }
 static void psxMemWrite32Wrapper(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_psxMem->psxMemWrite32(address, value);
+}
+// Used to emit print statements in jitted code for debugging
+static void log_instruction(uint32_t pc) {
+    printf("Emulating instruction @ %08X\n", pc);
 }
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
@@ -86,6 +92,65 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     const int MAX_BLOCK_SIZE = 50;
 
     enum class RegState { Unknown, Constant };
+    enum class LoadingMode { DoNotLoad, Load };
+    // Renamed temporarily to mRegister since it collides with Register in vixl::aarch64 namespace
+    struct mRegister {
+        uint32_t val = 0;                    // The register's cached value used for constant propagation
+        RegState state = RegState::Unknown;  // Is this register's value a constant, or an unknown value?
+
+        bool allocated = false;  // Has this guest register been allocated to a host reg?
+        bool writeback = false;  // Does this register need to be written back to memory at the end of the block?
+        Register allocatedReg;      // If a host reg has been allocated to this register, which reg is it?
+        int allocatedRegIndex = 0;
+
+        inline bool isConst() { return state == RegState::Constant; }
+        inline bool isAllocated() { return allocated; }
+        inline void markConst(uint32_t value) {
+            val = value;
+            state = RegState::Constant;
+            writeback = false;  // Disable writeback in case the reg was previously allocated with writeback
+            allocated = false;  // Unallocate register
+        }
+
+        // Note: It's important that markUnknown does not modify the val field as that would mess up codegen
+        inline void markUnknown() { state = RegState::Unknown; }
+
+        inline void setWriteback(bool wb) { writeback = wb; }
+    };
+
+    inline void markConst(int index, uint32_t value) {
+        m_regs[index].markConst(value);
+        if (m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg == index) {
+            m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg =
+                std::nullopt;  // Unmap the register on the host reg side too
+        }
+    }
+
+    struct HostRegister {
+        std::optional<int> mappedReg = std::nullopt;  // The register this is allocated to, if any
+    };
+
+    mRegister m_regs[32];
+    std::array<HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
+    std::optional<uint32_t> m_linkedPC = std::nullopt;
+
+    template <LoadingMode mode = LoadingMode::Load>
+    void reserveReg(int index);
+    void allocateReg(int reg);
+    void allocateRegWithoutLoad(int reg);
+
+    template <int T, int U>
+    void allocateRegisters(std::array<int, T> regsWithoutWb, std::array<int, U> regsWithWb);
+    void alloc_rt_rs();
+    void alloc_rt_wb_rd();
+    void alloc_rs_wb_rd();
+    void alloc_rs_wb_rt();
+    void alloc_rt_rs_wb_rd();
+
+    void flushRegs();
+    void spillRegisterCache();
+    void prepareForCall();
+    unsigned int m_allocatedRegisters = 0;  // how many registers have been allocated in this block?
 
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
