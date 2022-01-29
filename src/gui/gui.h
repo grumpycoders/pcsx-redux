@@ -162,7 +162,7 @@ class GUI final {
 
     bool configure();
     bool showThemes();  // Theme window : Allows for custom imgui themes
-    void about();
+    bool about();
     void interruptsScaler();
 
   public:
@@ -296,6 +296,7 @@ class GUI final {
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
 
     bool m_gotImguiUserError = false;
+    bool m_reportGLErrors = false;
     std::string m_imguiUserError;
 
     ImFont *m_mainFont;

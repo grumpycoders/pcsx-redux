@@ -73,13 +73,13 @@ jumptable1:
     .word   sb1
 
 sb3:
-    sb      $t0, 0($a0)
+    sb      $a1, 0($a0)
     addiu   $a0, 1
 sb2:
-    sb      $t0, 0($a0)
+    sb      $a1, 0($a0)
     addiu   $a0, 1
 sb1:
-    sb      $t0, 0($a0)
+    sb      $a1, 0($a0)
     addiu   $a0, 1
 sb0:
 
