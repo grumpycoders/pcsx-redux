@@ -64,6 +64,9 @@
 [submodule "third_party/miniaudio"]
 	path = third_party/miniaudio
 	url = https://github.com/mackron/miniaudio.git
+[submodule "third_party/vixl"]
+	path = third_party/vixl
+	url = https://github.com/Linaro/vixl
 [submodule "third_party/capstone"]
 	path = third_party/capstone
 	url = https://github.com/capstone-engine/capstone.git
