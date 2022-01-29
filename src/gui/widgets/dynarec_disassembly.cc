@@ -31,7 +31,7 @@ void PCSX::Widgets::Disassembly::writeFile() {
     std::ofstream file;
     // Open file - default location in resources directory
     file.open("DynarecDisassembly.txt", std::ios::app);
-    // If file exists, write to it, otherwise return -1
+    // If file exists, write to it, otherwise return
     if (file) {
         for (auto i = 0; i < m_items.size(); ++i) {
             file << m_items[i];
@@ -163,17 +163,17 @@ size_t PCSX::Widgets::Disassembly::disassembleBuffer() {
     if (buffer == nullptr) {
         PCSX::g_system->printf("Disassembler Error: nullpointer to code buffer.\n");
         m_showError = true;
-        return -1;
+        return 0;
     } else if (bufferSize <= 0) {
         PCSX::g_system->printf("Disassembler Error: Invalid code buffer size.\n");
         m_showError = true;
-        return -1;
+        return 0;
     }
     // Attempt to initialize Capstone disassembler, if error log it and return
     if (cs_open(CS_ARCH, CS_MODE, &handle) != CS_ERR_OK) {
         PCSX::g_system->printf("Disassembler Error: Failed to initialize Capstone.\n");
         m_showError = true;
-        return -1;
+        return 0;
     }
     // Set SKIPDATA option as to not break disassembler
     cs_option(handle, CS_OPT_SKIPDATA, CS_OPT_ON);
@@ -196,7 +196,7 @@ size_t PCSX::Widgets::Disassembly::disassembleBuffer() {
         cs_close(&handle);
         PCSX::g_system->printf("Disassembler Error: Failed to disassemble buffer.\n");
         m_showError = true;
-        return -1;
+        return 0;
     }
     // Successful disassembly, clean up disassembler instance and return successful result
     cs_close(&handle);
