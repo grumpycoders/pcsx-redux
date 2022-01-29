@@ -152,6 +152,73 @@ void DynaRecCPU::emitBlockLookup() {
     gen.Br(x0);
 }
 
+void DynaRecCPU::emitDispatcher() {
+    vixl::aarch64::Label done;
+
+    gen.align();
+    m_dispatcher = gen.getCurr<DynarecCallback>();
+    gen.Str(contextPointer, MemOperand(sp, -16, PreIndex)); // Save context pointer register in stack (also align stack pointer)
+    gen.Mov(contextPointer, (uintptr_t)this); // Load context pointer
+
+    // Back up all our allocateable volatile regs
+    static_assert((ALLOCATEABLE_NON_VOLATILE_COUNT & 1) == 0);  // Make sure we've got an even number of regs
+    for (auto i = 0; i < ALLOCATEABLE_NON_VOLATILE_COUNT; i++) {
+        const auto reg = allocateableNonVolatiles[i];
+        gen.Str(reg.X(), MemOperand(sp, -16, PreIndex));
+    }
+
+    gen.Str(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0))); // Store runningPointer Register in host reg cache
+    gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr()); // Move runningPtr to runningPointer register
+
+    emitBlockLookup(); // Look up block
+
+    // Code to be executed after each block
+    // Blocks will jmp to here
+    gen.align();
+    m_returnFromBlock = gen.getCurr<DynarecCallback>();
+
+    loadThisPointer(arg1.X());  // Poll events
+    call(recBranchTestWrapper);
+    gen.Ldrb(w0, MemOperand(runningPointer)); // Check if PCSX::g_system->running is true
+    gen.Tbz(w0, 0, &done); // If it's not, return
+    emitBlockLookup();                               // Otherwise, look up next block
+
+    gen.align();
+
+    // Code for exiting JIT context
+    gen.L(done);
+
+    // Restore all non-volatiles
+    for (int i = ALLOCATEABLE_NON_VOLATILE_COUNT - 1; i >= 0; i--) {
+        const auto reg = allocateableNonVolatiles[i];
+        gen.Ldr(reg.X(), MemOperand(sp, 16, PostIndex));
+    }
+    gen.Ldr(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));
+
+    gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex));
+    gen.Ret();
+
+    // Code for when the block to be executed needs to be compiled.
+    // x0 = Base pointer to the page of m_recompilerLUT we're executing from
+    // x1 = Index into the page, multiplied by 4
+    gen.align();
+    m_uncompiledBlock = gen.getCurr<DynarecCallback>();
+
+    loadThisPointer(arg1.X());
+    gen.Lsl(arg2.X(), x3, 1);
+    gen.Add(arg2.X(), arg2.X(), x0);
+    gen.Br(x0);
+
+    // Code for when the block we've jumped to is invalid. Throws an error and exits
+    gen.align();
+    m_invalidBlock = gen.getCurr<DynarecCallback>();
+
+    loadThisPointer(arg1.X());  // Throw recompiler error
+    call(recErrorWrapper);
+    gen.B(&done);  // Exit
+
+}
+
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() { return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU()); }
 
 #endif // DYNAREC_AA64
