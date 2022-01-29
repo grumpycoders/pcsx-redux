@@ -405,6 +405,15 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recRTPT();
     void recSQR();
 
+    template <bool isAVSZ4>
+    void recAVSZ();
+
+    template <bool readSR>
+    void testSoftwareInterrupt();
+
+    template <int size, bool signExtend>
+    void recompileLoad();
+
     const recompilationFunc m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00
         &DynaRecCPU::recBEQ,     &DynaRecCPU::recBNE,     &DynaRecCPU::recBLEZ,    &DynaRecCPU::recBGTZ,     // 04
