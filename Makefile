@@ -3,6 +3,7 @@ BUILD ?= Release
 DESTDIR ?= /usr/local
 
 UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
@@ -88,6 +89,7 @@ LD := $(CXX)
 SRCS := $(call rwildcard,src/,*.cc)
 SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
+VIXL_SRCS := $(call rwildcard, third_party/vixl/src,*.cc)
 SRCS += $(IMGUI_SRCS)
 SRCS += $(wildcard third_party/libelfin/*.cc)
 SRCS += third_party/clip/clip.cpp
@@ -111,6 +113,11 @@ ifeq ($(UNAME_S),Darwin)
 else
     SRCS += third_party/clip/clip_x11.cpp
 endif
+ifeq ($(UNAME_M),aarch64)
+    SRCS += $(VIXL_SRCS)
+	CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+	CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+endif
 SUPPORT_SRCS := $(call rwildcard,src/support/,*.cc)
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
@@ -125,7 +132,7 @@ SUPPORT_OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS)))
 SUPPORT_OBJECTS += third_party/luajit/src/libluajit.a
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
 IMGUI_OBJECTS := $(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS)))
-
+VIXL_OBJECTS := $(patsubst %.cc,%.o,$(filter %.cc,$(VIXL_SRCS)))
 $(IMGUI_OBJECTS): EXTRA_CPPFLAGS := $(IMGUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
