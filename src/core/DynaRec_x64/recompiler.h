@@ -299,11 +299,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
-    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc);
+    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc, bool align = true);
     void error();
     void flushCache();
     void handleLinking();
     void handleFastboot();
+    void emitBlockLookup();
 
     std::string m_symbols;
     RecompilerProfiler<10000000> m_profiler;
@@ -415,6 +416,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recRTPS();
     void recRTPT();
     void recSQR();
+
+    template <bool isAVSZ4>
+    void recAVSZ();
 
     template <bool readSR>
     void testSoftwareInterrupt();

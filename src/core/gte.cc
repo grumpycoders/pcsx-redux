@@ -361,6 +361,14 @@ void PCSX::GTE::CTC2_internal(uint32_t value, int reg) {
     PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[reg].d = value;
 }
 
+// Push a Z value to the Z-coordinate FIFO
+void PCSX::GTE::pushZ(uint16_t z) {
+    SZ0 = SZ1;
+    SZ1 = SZ2;
+    SZ2 = SZ3;
+    SZ3 = z;
+}
+
 static inline int64_t gte_shift(int64_t a, int sf) {
     if (sf > 0)
         return a >> 12;
@@ -536,10 +544,7 @@ void PCSX::GTE::RTPS(uint32_t op) {
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
-    SZ0 = SZ1;
-    SZ1 = SZ2;
-    SZ2 = SZ3;
-    SZ3 = Lm_D(s_mac3, 1);
+    pushZ(Lm_D(s_mac3, 1));
 
     const int32_t h_over_sz3 = Lm_E(gte_divide(H, SZ3));
     SXY0 = SXY1;
@@ -561,8 +566,6 @@ void PCSX::GTE::RTPS(uint32_t op) {
 
 void PCSX::GTE::NCLIP(uint32_t op) {
     GTE_LOG("%08x GTE: NCLIP|", op);
-
-    s_sf = GTE_SF(gteop(op));
     FLAG = 0;
 
     if (PGXP_NLCIP_valid(SXY0, SXY1, SXY2))
@@ -582,8 +585,8 @@ void PCSX::GTE::OP(uint32_t op) {
     MAC2 = A2((int64_t)(R33 * IR1) - (R11 * IR3));
     MAC3 = A3((int64_t)(R11 * IR2) - (R22 * IR1));
     IR1 = Lm_B1(MAC1, lm);
-    IR2 = Lm_B1(MAC2, lm);
-    IR3 = Lm_B1(MAC3, lm);
+    IR2 = Lm_B2(MAC2, lm);
+    IR3 = Lm_B3(MAC3, lm);
 }
 
 void PCSX::GTE::DPCS(uint32_t op) {
@@ -937,7 +940,6 @@ void PCSX::GTE::DPCT(uint32_t op) {
 
 void PCSX::GTE::AVSZ3(uint32_t op) {
     GTE_LOG("%08x GTE: AVSZ3|", op);
-    s_sf = GTE_SF(gteop(op));
     FLAG = 0;
 
     MAC0 = F((int64_t)(ZSF3 * SZ1) + (ZSF3 * SZ2) + (ZSF3 * SZ3));
@@ -946,7 +948,6 @@ void PCSX::GTE::AVSZ3(uint32_t op) {
 
 void PCSX::GTE::AVSZ4(uint32_t op) {
     GTE_LOG("%08x GTE: AVSZ4|", op);
-    s_sf = GTE_SF(gteop(op));
     FLAG = 0;
 
     MAC0 = F((int64_t)(ZSF4 * SZ0) + (ZSF4 * SZ1) + (ZSF4 * SZ2) + (ZSF4 * SZ3));
@@ -968,10 +969,8 @@ void PCSX::GTE::RTPT(uint32_t op) {
         IR1 = Lm_B1(MAC1, lm);
         IR2 = Lm_B2(MAC2, lm);
         IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
-        SZ0 = SZ1;
-        SZ1 = SZ2;
-        SZ2 = SZ3;
-        SZ3 = Lm_D(s_mac3, 1);
+        pushZ(Lm_D(s_mac3, 1));
+
         h_over_sz3 = Lm_E(gte_divide(H, SZ3));
         SXY0 = SXY1;
         SXY1 = SXY2;
@@ -979,13 +978,6 @@ void PCSX::GTE::RTPT(uint32_t op) {
             F((int64_t)OFX + ((int64_t)IR1 * h_over_sz3) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)) >> 16);
         SY2 = Lm_G2(F((int64_t)OFY + ((int64_t)IR2 * h_over_sz3)) >> 16);
 
-        // float tempMx = MAC1;
-        // float tempx = IR1;
-        // float temphow = (float)h_over_sz3 / (float)(1 << 16);
-
-        // float tempMz = MAC3;
-        // float tempZ = SZ3;
-        //
         PGXP_pushSXYZ2s(
             Lm_G1_ia((int64_t)OFX + (int64_t)(IR1 * h_over_sz3) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)),
             Lm_G2_ia((int64_t)OFY + (int64_t)(IR2 * h_over_sz3)), std::max((int)SZ3, H / 2), SXY2);

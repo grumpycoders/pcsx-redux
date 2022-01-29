@@ -39,8 +39,8 @@ void DynaRecCPU::makeSymbols() {
 
     static constexpr std::array<const char*, 32> COP2_dataRegs = {
         "GTE_vxy0", "GTE_vz0",  "GTE_vxy1", "GTE_vz1",  "GTE_vxy2", "GTE_vz2",  "GTE_rgb",  "GTE_otz",   // 00
-        "GTE_ir0",  "GTE_ir1",  "ir2",      "ir3",      "GTE_sxy0", "GTE_sxy1", "GTE_sxy2", "GTE_sxyp",  // 08
-        "GTE_sz0",  "GTE_sz1",  "sz2",      "sz3",      "GTE_rgb0", "GTE_rgb1", "GTE_rgb2", "GTE_res1",  // 10
+        "GTE_ir0",  "GTE_ir1",  "GTE_ir2",  "GTE_ir3",  "GTE_sxy0", "GTE_sxy1", "GTE_sxy2", "GTE_sxyp",  // 08
+        "GTE_sz0",  "GTE_sz1",  "GTE_sz2",  "GTE_sz3",  "GTE_rgb0", "GTE_rgb1", "GTE_rgb2", "GTE_res1",  // 10
         "GTE_mac0", "GTE_mac1", "GTE_mac2", "GTE_mac3", "GTE_irgb", "GTE_orgb", "GTE_lzcs", "GTE_lzcr",  // 18
     };
 

@@ -333,7 +333,7 @@ end)(jit.status()))
 
         setFullscreen(m_fullscreen);
         const auto currentTheme =
-            g_emulator->settings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
+            emuSettings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
         applyTheme(currentTheme);
 
         if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
@@ -397,8 +397,10 @@ end)(jit.status()))
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     glfwSetJoystickCallback([](int jid, int event) { PCSX::g_emulator->m_pads->scanGamepads(); });
     ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
-    glEnable(GL_DEBUG_OUTPUT);
-    if (glDebugMessageCallback) {
+
+    if (glDebugMessageCallback && g_emulator->settings.get<Emulator::SettingGLErrorReporting>()) {
+        m_reportGLErrors = true;
+        glEnable(GL_DEBUG_OUTPUT);
         glDebugMessageCallback(
             [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
                GLvoid* userParam) {
@@ -1064,7 +1066,7 @@ void PCSX::GUI::endFrame() {
         m_breakpoints.draw(_("Breakpoints"));
     }
 
-    about();
+    changed |= about();
     interruptsScaler();
 
     if (m_dwarf.m_show) {
@@ -1508,8 +1510,10 @@ bool PCSX::GUI::showThemes() {
     return changed;
 }
 
-void PCSX::GUI::about() {
-    if (!m_showAbout) return;
+bool PCSX::GUI::about() {
+    if (!m_showAbout) return false;
+    bool changed = false;
+
     ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
     if (ImGui::Begin(_("About"), &m_showAbout)) {
@@ -1529,16 +1533,28 @@ void PCSX::GUI::about() {
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(_("OpenGL information"))) {
-                if (glDebugMessageCallback) {
+                if (m_reportGLErrors) {
                     ImGui::TextUnformatted(_("OpenGL error reporting: enabled"));
                 } else {
                     ImGui::TextUnformatted(_("OpenGL error reporting: disabled"));
-                    ShowHelpMarker(
-                        _("OpenGL error reporting has been disabled because your OpenGL driver is too old. Error "
-                          "reporting requires at least OpenGL 4.3. Please update your graphics drivers, or contact "
-                          "your GPU vendor for correct OpenGL drivers. Disabled OpenGL error reporting won't have a "
-                          "negative impact on the performances of this software, but user code such as the shader "
-                          "editor won't be able to properly report problems accurately."));
+                    if (!glDebugMessageCallback) {
+                        ShowHelpMarker(_(
+                            "OpenGL error reporting has been disabled because your OpenGL driver is too old. Error "
+                            "reporting requires at least OpenGL 4.3. Please update your graphics drivers, or contact "
+                            "your GPU vendor for correct OpenGL drivers. Disabled OpenGL error reporting won't have a "
+                            "negative impact on the performances of this software, but user code such as the shader "
+                            "editor won't be able to properly report problems accurately."));
+                    }
+                }
+
+                if (glDebugMessageCallback) {
+                    changed |= ImGui::Checkbox(_("Enable OpenGL error reporting"),
+                                               &g_emulator->settings.get<Emulator::SettingGLErrorReporting>().value);
+                    
+                    ShowHelpMarker(_(
+                            "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
+                            "However it requires OpenGL 4.3+ and might have performance repercussions on "
+                            "some PCs. (Requires reboot)"));
                 }
                 ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
                 someString(_("Vendor"), GL_VENDOR);
@@ -1560,6 +1576,7 @@ void PCSX::GUI::about() {
         }
     }
     ImGui::End();
+    return changed;
 }
 
 void PCSX::GUI::update(bool vsync) {

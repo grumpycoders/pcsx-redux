@@ -7,9 +7,15 @@ UNAME_M := $(shell uname -m)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
-PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv zlib freetype2
+PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib
 
 LOCALES := fr
+
+ifeq ($(wildcard third_party/imgui/imgui.h),)
+HAS_SUBMODULES = false
+else
+HAS_SUBMODULES = true
+endif
 
 CXXFLAGS += -std=c++2a
 CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
@@ -131,7 +137,16 @@ TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
 CP ?= cp
 MKDIRP ?= mkdir -p
 
-all: dep $(TARGET)
+all: check_submodules dep $(TARGET)
+
+ifeq ($(HAS_SUBMODULES),true)
+check_submodules:
+
+else
+check_submodules:
+	@echo "You need to clone this repository recursively, in order to get its submodules."
+	@false
+endif
 
 strip: all
 	strip $(TARGET)
@@ -220,7 +235,7 @@ runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
 psyq-obj-parser: $(SUPPORT_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO
+	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO
 
 ps1-packer: $(SUPPORT_OBJECTS) tools/ps1-packer/ps1-packer.cc
 	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/ps1-packer/ps1-packer.cc
@@ -236,7 +251,9 @@ dep: $(DEPS)
 ifneq ($(MAKECMDGOALS), regen-i18n)
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), gitclean)
+ifeq ($(HAS_SUBMODULES), true)
 -include $(DEPS)
+endif
 endif
 endif
 endif

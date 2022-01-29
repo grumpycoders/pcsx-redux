@@ -30,7 +30,6 @@ AppDir:
     - sourceline: deb http://security.ubuntu.com/ubuntu/ focal-security universe
     - sourceline: deb http://security.ubuntu.com/ubuntu/ focal-security multiverse
     include:
-    - libasound2-data
     - libbz2-1.0:amd64
     - libcom-err2:amd64
     - libexpat1:amd64
@@ -54,7 +53,6 @@ AppDir:
     - /lib/x86_64-linux-gnu/libXfixes.so.3
     - /lib/x86_64-linux-gnu/libXrender.so.1
     - /lib/x86_64-linux-gnu/libaom.so.0
-    - /lib/x86_64-linux-gnu/libasound.so.2
     - /lib/x86_64-linux-gnu/libavcodec.so.58
     - /lib/x86_64-linux-gnu/libavformat.so.58
     - /lib/x86_64-linux-gnu/libavutil.so.56
@@ -62,6 +60,7 @@ AppDir:
     - /lib/x86_64-linux-gnu/libbsd.so.0
     - /lib/x86_64-linux-gnu/libcairo-gobject.so.2
     - /lib/x86_64-linux-gnu/libcairo.so.2
+    - /lib/x86_64-linux-gnu/libcapstone.so.3
     - /lib/x86_64-linux-gnu/libchromaprint.so.1
     - /lib/x86_64-linux-gnu/libcodec2.so.0.9
     - /lib/x86_64-linux-gnu/libdatrie.so.1

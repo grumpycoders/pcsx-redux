@@ -1343,13 +1343,13 @@ void DynaRecCPU::testSoftwareInterrupt() {
     if constexpr (loadSR) {
         gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]);  // eax = SR
     }
-    gen.test(eax, 1);                                 // Check if interrupts are enabled
-    gen.jz(label, CodeGenerator::LabelType::T_NEAR);  // If not, skip to the end
+    gen.test(eax, 1);  // Check if interrupts are enabled
+    gen.jz(label);     // If not, skip to the end
 
     gen.mov(arg2, dword[contextPointer + COP0_OFFSET(13)]);  // arg2 = CAUSE
     gen.and_(eax, arg2);
-    gen.test(eax, 0x300);                             // Check if an interrupt was force-fired
-    gen.jz(label, CodeGenerator::LabelType::T_NEAR);  // Skip to the end if not
+    gen.test(eax, 0x300);  // Check if an interrupt was force-fired
+    gen.jz(label);         // Skip to the end if not
 
     // Fire the interrupt if it was triggered
     // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
@@ -1602,7 +1602,6 @@ void DynaRecCPU::recBLEZ() {
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
 }
 
-// TODO: Handle INT_MIN / -1
 void DynaRecCPU::recDIV() {
     Label notIntMin, divisionByZero, end;
     bool emitIntMinCheck = true;
@@ -1655,9 +1654,9 @@ void DynaRecCPU::recDIV() {
             gen.mov(eax, m_regs[_Rs_].allocatedReg);  // Dividend in eax
         }
 
-        gen.mov(ecx, m_regs[_Rt_].allocatedReg);                   // Divisor in ecx
-        gen.test(ecx, ecx);                                        // Check if divisor is 0
-        gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
+        gen.mov(ecx, m_regs[_Rt_].allocatedReg);  // Divisor in ecx
+        gen.test(ecx, ecx);                       // Check if divisor is 0
+        gen.jz(divisionByZero);                   // Jump to divisionByZero label if so
     }
 
     if (emitIntMinCheck) {
@@ -1677,8 +1676,8 @@ void DynaRecCPU::recDIV() {
     gen.idiv(ecx);  // Signed division by divisor
 
     if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
-        gen.jmp(end, CodeGenerator::LabelType::T_NEAR);  // skip to the end if not a div by zero
-        gen.L(divisionByZero);                           // Here starts our division by 0 handler
+        gen.jmp(end);               // skip to the end if not a div by zero
+        gen.L(divisionByZero);      // Here starts our division by 0 handler
 
         gen.mov(edx, eax);  // Set hi to $rs
         gen.shr(eax, 31);
@@ -1730,18 +1729,18 @@ void DynaRecCPU::recDIVU() {
             gen.mov(eax, m_regs[_Rs_].allocatedReg);  // Dividend in eax
         }
 
-        gen.mov(ecx, m_regs[_Rt_].allocatedReg);                   // Divisor in ecx
-        gen.test(ecx, ecx);                                        // Check if divisor is 0
-        gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
+        gen.mov(ecx, m_regs[_Rt_].allocatedReg);  // Divisor in ecx
+        gen.test(ecx, ecx);                       // Check if divisor is 0
+        gen.jz(divisionByZero);                   // Jump to divisionByZero label if so
     }
 
-    gen.xor_(edx, edx);  // Set top 32 bits of dividend to
+    gen.xor_(edx, edx);  // Set top 32 bits of dividend to 0
     gen.div(ecx);        // Unsigned division by divisor
 
     if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
         Label end;
-        gen.jmp(end, CodeGenerator::LabelType::T_NEAR);  // skip to the end if not a div by zero
-        gen.L(divisionByZero);                           // Here starts our division by 0 handler
+        gen.jmp(end);           // skip to the end if not a div by zero
+        gen.L(divisionByZero);  // Here starts our division by 0 handler
 
         gen.mov(edx, eax);  // Set hi to $rs
         gen.mov(eax, -1);   // Set lo to -1
