@@ -165,6 +165,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void handleFastboot();
     void handleKernelCall();
     void emitDispatcher();
+    void emitBlockLookup();
     void uncompileAll();
 
     // Class Wrapper Functions

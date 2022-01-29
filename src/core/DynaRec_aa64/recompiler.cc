@@ -139,6 +139,18 @@ void DynaRecCPU::flushCache() {
     uncompileAll();    // Mark all blocks as uncompiled
 }
 
+void DynaRecCPU::emitBlockLookup() {
+    gen.Ldr(w7, MemOperand(contextPointer, PC_OFFSET)); // w7 = pc
+    gen.And(w6, w7, 0xfffc); // w6 = index into the recompiler LUT page, multiplied by 4
+    gen.Lsr(w7, w7, 16); // w7 = pc >> 16
+
+    // Load base pointer to recompiler LUT page in x0
+    gen.Mov(x0, (uintptr_t)m_recompilerLUT);
+    gen.Ldr(x0, MemOperand(x0, x7, LSL, 3));
+    gen.Ldr(x0, MemOperand(x0, x6, LSL, 1));
+    // Jump to block
+    gen.Br(x0);
+}
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() { return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU()); }
 
