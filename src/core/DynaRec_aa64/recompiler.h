@@ -207,6 +207,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         }
     }
 
+    // For the GUI dynarec disassembly widget
+    virtual const uint8_t *getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
+    virtual const size_t getBufferSize() final { return gen.getSize(); }
+
   private:
     // Instruction definitions
     void recUnknown();
