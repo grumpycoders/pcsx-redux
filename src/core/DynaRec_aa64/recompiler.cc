@@ -92,6 +92,15 @@ void DynaRecCPU::Reset() {
     Init();
 }
 
+void DynaRecCPU::Shutdown() {
+    delete[] m_recompilerLUT;
+    delete[] m_ramBlocks;
+    delete[] m_biosBlocks;
+    delete[] m_dummyBlocks;
+
+    gen.dumpBuffer(); // TODO: Possibly move x64 dumpBuffer() method to emitter.h
+}
+
 /// Params: A program counter value
 /// Returns: A pointer to the host aa64 code that points to the block that starts from the given PC
 DynarecCallback* DynaRecCPU::getBlockPointer(uint32_t pc) {
