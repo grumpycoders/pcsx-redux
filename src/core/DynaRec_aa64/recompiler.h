@@ -196,11 +196,19 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
   public:
     DynaRecCPU() : R3000Acpu("AA64 DynaRec") {}
     virtual bool Implemented() final { return true; }
-    virtual bool Init() final { return false; }
+    virtual bool Init() final;
     virtual void Reset() final;
-    virtual void Execute() final { abort(); }
-    virtual void Clear(uint32_t Addr, uint32_t Size) final { abort(); }
-    virtual void Shutdown() final { abort(); }
+    virtual void Execute() final {
+        ZoneScoped;         // Tell the Tracy profiler to do its thing
+        (*m_dispatcher)();  // Jump to assembly dispatcher
+    }
+    virtual void Clear(uint32_t Addr, uint32_t Size) final {
+        auto pointer = getBlockPointer(Addr);
+        for (auto i = 0; i < Size; i++) {
+            *pointer++ = m_uncompiledBlock;
+        }
+    }
+    virtual void Shutdown() final;
     virtual bool isDynarec() final { return true; }
 
     virtual void SetPGXPMode(uint32_t pgxpMode) final {
