@@ -40,10 +40,7 @@ void DynaRecCPU::recBGTZ() { throw std::runtime_error("[Unimplemented] BGTZ inst
 void DynaRecCPU::recBLEZ() { throw std::runtime_error("[Unimplemented] BLEZ instruction"); }
 void DynaRecCPU::recBNE() { throw std::runtime_error("[Unimplemented] BNE instruction"); }
 void DynaRecCPU::recBREAK() { throw std::runtime_error("[Unimplemented] BREAK instruction"); }
-void DynaRecCPU::recCFC2() { throw std::runtime_error("[Unimplemented] CFC2 instruction"); }
 void DynaRecCPU::recCOP0() { throw std::runtime_error("[Unimplemented] COP0 instruction"); }
-void DynaRecCPU::recCOP2() { throw std::runtime_error("[Unimplemented] COP2 instruction"); }
-void DynaRecCPU::recCTC2() { throw std::runtime_error("[Unimplemented] CTC2 instruction"); }
 void DynaRecCPU::recDIV() { throw std::runtime_error("[Unimplemented] DIV instruction"); }
 void DynaRecCPU::recDIVU() { throw std::runtime_error("[Unimplemented] DIVU instruction"); }
 void DynaRecCPU::recJ() { throw std::runtime_error("[Unimplemented] J instruction"); }
@@ -56,15 +53,12 @@ void DynaRecCPU::recLH() { throw std::runtime_error("[Unimplemented] LH instruct
 void DynaRecCPU::recLHU() { throw std::runtime_error("[Unimplemented] LHU instruction"); }
 void DynaRecCPU::recLUI() { throw std::runtime_error("[Unimplemented] LUI instruction"); }
 void DynaRecCPU::recLW() { throw std::runtime_error("[Unimplemented] LW instruction"); }
-void DynaRecCPU::recLWC2() { throw std::runtime_error("[Unimplemented] LWC2 instruction"); }
 void DynaRecCPU::recLWL() { throw std::runtime_error("[Unimplemented] LWL instruction"); }
 void DynaRecCPU::recLWR() { throw std::runtime_error("[Unimplemented] LWR instruction"); }
 void DynaRecCPU::recMFC0() { throw std::runtime_error("[Unimplemented] MFC0 instruction"); }
-void DynaRecCPU::recMFC2() { throw std::runtime_error("[Unimplemented] MFC2 instruction"); }
 void DynaRecCPU::recMFHI() { throw std::runtime_error("[Unimplemented] MFHI instruction"); }
 void DynaRecCPU::recMFLO() { throw std::runtime_error("[Unimplemented] MFLO instruction"); }
 void DynaRecCPU::recMTC0() { throw std::runtime_error("[Unimplemented] MTC0 instruction"); }
-void DynaRecCPU::recMTC2() { throw std::runtime_error("[Unimplemented] MTC2 instruction"); }
 void DynaRecCPU::recMTHI() { throw std::runtime_error("[Unimplemented] MTHI instruction"); }
 void DynaRecCPU::recMTLO() { throw std::runtime_error("[Unimplemented] MTLP instruction"); }
 void DynaRecCPU::recMULT() { throw std::runtime_error("[Unimplemented] MULT instruction"); }
@@ -89,7 +83,6 @@ void DynaRecCPU::recSRLV() { throw std::runtime_error("[Unimplemented] SRLV inst
 void DynaRecCPU::recSUB() { throw std::runtime_error("[Unimplemented] SUB instruction"); }
 void DynaRecCPU::recSUBU() { throw std::runtime_error("[Unimplemented] SUBU instruction"); }
 void DynaRecCPU::recSW() { throw std::runtime_error("[Unimplemented] SW instruction"); }
-void DynaRecCPU::recSWC2() { throw std::runtime_error("[Unimplemented] SWC2 instruction"); }
 void DynaRecCPU::recSWL() { throw std::runtime_error("[Unimplemented] SWL instruction"); }
 void DynaRecCPU::recSWR() { throw std::runtime_error("[Unimplemented] SWR instruction"); }
 void DynaRecCPU::recSYSCALL() { throw std::runtime_error("[Unimplemented] SYSCALL instruction"); }
