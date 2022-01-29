@@ -470,6 +470,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 38
         &DynaRecCPU::recUnknown, &DynaRecCPU::recGPF,     &DynaRecCPU::recGPL,     &DynaRecCPU::recNCCT,     // 3c
     };
+
+    static constexpr bool ENABLE_BLOCK_LINKING = true;
 };
 
 #endif  // DYNAREC_AA64
