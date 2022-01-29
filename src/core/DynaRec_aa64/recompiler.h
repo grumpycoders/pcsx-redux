@@ -212,6 +212,103 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     virtual const size_t getBufferSize() final { return gen.getSize(); }
 
   private:
+
+    // Emit log of current instruction in jitted code for debugging
+    void emitLog() {
+        gen.Mov(arg1, m_pc);
+        call(log_instruction);
+    }
+
+    // Calculate the number of instructions between the current PC and the branch target
+    // Returns a negative number for backwards jumps
+    int64_t getPCOffset(const void* current, const void* target) {
+        return (int64_t)((ptrdiff_t) target - (ptrdiff_t)current) >> 2;
+    }
+
+    // Load a pointer to the JIT object in "reg" using lea with the context pointer
+    void loadThisPointer(Register reg) { gen.Mov(reg, contextPointer); }
+
+    // Loads a value into dest from the given pointer.
+    // TODO: This may need to use contextPointer + distance instead
+    template <int size, bool signExtend>
+    void load(Register dest, const void* pointer) {
+        const auto distance = (intptr_t)pointer - (intptr_t)this;
+        gen.Mov(scratch.X(), (uintptr_t)pointer);
+        switch (size) {
+            case 8:
+                signExtend ? gen.Ldrsb(dest, MemOperand(scratch.X())) : gen.Ldrb(dest, MemOperand(scratch.X()));
+                break;
+            case 16:
+                signExtend ? gen.Ldrsh(dest, MemOperand(scratch.X())) : gen.Ldrh(dest, MemOperand(scratch.X()));
+                break;
+            case 32:
+                gen.Ldr(dest, MemOperand(scratch.X()));
+                break;
+        }
+    }
+
+    // Stores a value of "size" bits from "source" to the given pointer
+    /* TODO: value must be moved into register first before it can be stored unlike x64 with can use mov to write to memory */
+    // TODO: This may need to use contextPointer + distance instead
+    template <int size>
+    void store(Register source, const void* pointer) {
+        const auto distance = (intptr_t)pointer - (intptr_t)this;
+        gen.Mov(scratch.X(), (uintptr_t)pointer);
+        switch (size) {
+            case 8:
+                gen.Strb(source, MemOperand(scratch.X()));
+                break;
+            case 16:
+                gen.Strh(source, MemOperand(scratch.X()));
+                break;
+            case 32:
+                gen.Str(source, MemOperand(scratch.X()));
+                break;
+        }
+    }
+
+    // Prepare for a call to a C++ function and then actually emit it
+    template <typename T>
+    void call(T& func) {
+        prepareForCall();
+        const auto ptr = reinterpret_cast<const void*>(func);
+        const int64_t disp = getPCOffset(gen.getCurr<const void*>(), ptr);
+
+        // If the displacement can fit in a 26-bit int, that means we can emit a direct call to the address
+        // Otherwise, load the address into a register and emit a blr
+        const bool canDoDirectCall = vixl::IsInt26(disp);
+
+        if (canDoDirectCall) {
+            gen.bl(disp);
+        } else {
+            gen.Mov(scratch2.X(), (uintptr_t)ptr);
+            gen.Blr(scratch2.X());
+        }
+    }
+
+    // jmp function using same method as call to attempt direct jump
+    void jmp(void * pointer) {
+        const int64_t disp = getPCOffset(gen.getCurr<const void*>(), pointer);
+
+        // If the displacement can fit in a 26-bit int, that means we can emit a direct call to the address
+        // Otherwise, load the address into a register and emit a br
+        const bool canDoDirectJump = vixl::IsInt26(disp);
+
+        if (canDoDirectJump) {
+            gen.b(disp);
+        } else {
+            gen.Mov(scratch2.X(), (uintptr_t)pointer);
+            gen.Br(scratch2.X());
+        }
+    }
+
+    void maybeCancelDelayedLoad(uint32_t index) {
+        const unsigned other = m_currentDelayedLoad ^ 1;
+        if (m_delayedLoadInfo[other].index == index) {
+            m_delayedLoadInfo[other].active = false;
+        }
+    }
+
     // Instruction definitions
     void recUnknown();
     void recSpecial();
