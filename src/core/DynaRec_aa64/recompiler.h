@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// TODO: Profiler will need to be added at some point
+
 #pragma once
 #include "core/r3000a.h"
 
