@@ -405,7 +405,7 @@ void DynaRecCPU::recompileLoad() {
 void DynaRecCPU::recMTC0() {
     if (m_regs[_Rt_].isConst()) {
         if (_Rd_ == 13) {
-            gen.Mov(scratch,  m_regs[_Rt_].val & ~0xFC00);
+            gen.Mov(scratch, m_regs[_Rt_].val & ~0xFC00);
             gen.Str(scratch, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
         } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
             gen.Mov(scratch, m_regs[_Rt_].val);
