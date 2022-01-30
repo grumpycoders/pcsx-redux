@@ -208,8 +208,10 @@ void DynaRecCPU::emitDispatcher() {
     m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.X());
-    gen.Lsl(arg2.X(), x3, 1);
-    gen.Add(arg2.X(), arg2.X(), x0);
+    // TODO: Check support for add with lsl
+    gen.Lsl(arg2.X(), arg3.X(), 1);
+    gen.Mov(scratch.X(), (uintptr_t)m_recompilerLUT);
+    gen.Add(arg2.X(), arg2.X(), scratch.X());
     call(recRecompileWrapper);
     gen.Br(x0);
 
