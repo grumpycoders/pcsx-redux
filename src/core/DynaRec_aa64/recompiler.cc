@@ -219,6 +219,88 @@ void DynaRecCPU::emitDispatcher() {
 
 }
 
+// Compile a block, write address of compiled code to *callback
+// Returns the address of the compiled block
+DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
+    m_stopCompiling = false;
+    m_inDelaySlot = false;
+    m_nextIsDelaySlot = false;
+    m_delayedLoadInfo[0].active = false;
+    m_delayedLoadInfo[1].active = false;
+    m_pcWrittenBack = false;
+    m_linkedPC = std::nullopt;
+    m_pc = pc & ~3;
+
+    const auto startingPC = m_pc;
+    int count = 0;  // How many instructions have we compiled?
+
+    gen.align(); // TODO: Add bool alignment check here
+
+    if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
+        flushCache();
+    }
+
+    // TODO: Add profiler stuff here
+
+    const auto pointer = gen.getCurr<DynarecCallback>();  // Pointer to emitted code
+
+    *callback = pointer;
+    handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.
+
+    auto shouldContinue = [&]() {
+        if (m_nextIsDelaySlot) {
+            return true;
+        }
+        if (m_stopCompiling) {
+            return false;
+        }
+        if (count >= MAX_BLOCK_SIZE) {  // TODO: Check delay slots here
+            return false;
+        }
+        return true;
+    };
+
+    while (shouldContinue()) {
+        m_inDelaySlot = m_nextIsDelaySlot;
+        m_nextIsDelaySlot = false;
+
+        const auto p = (uint32_t*)PSXM(m_pc);  // Fetch instruction
+        if (p == nullptr) {                    // Error if it can't be fetched
+            return m_invalidBlock;
+        }
+
+        m_psxRegs.code = *p;  // Actually read the instruction
+        m_pc += 4;            // Increment recompiler PC
+        count++;              // Increment instruction count
+
+        const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
+        (*this.*func)();                                   // Jump into the handler to recompile it
+    }
+
+    flushRegs();
+    if (!m_pcWrittenBack) { // Write PC back if needed
+        gen.Mov(scratch, m_pc);
+        gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+    }
+
+    // If this was the block at 0x8003'0000 (Start of shell) send the GUI a "shell reached" signal
+    // This must happen after the PC is written back, otherwise our PC after sideloading will be overriden.
+    if (startingPC == 0x80030000) {
+        loadThisPointer(arg1.X());
+        call(signalShellReached);
+        m_linkedPC = std::nullopt;
+    }
+
+    gen.Mov(scratch, count * PCSX::Emulator::BIAS); // Add block cycles;
+    gen.Str(scratch, MemOperand(contextPointer, CYCLE_OFFSET));
+    if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
+        handleLinking();
+    } else {
+        jmp((void*)m_returnFromBlock);
+    }
+    return pointer;
+}
+
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() { return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU()); }
 
 #endif // DYNAREC_AA64
