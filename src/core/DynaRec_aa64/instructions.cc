@@ -72,7 +72,29 @@ void DynaRecCPU::recMULT() { throw std::runtime_error("[Unimplemented] MULT inst
 void DynaRecCPU::recMULTU() { throw std::runtime_error("[Unimplemented] MULTU instruction"); }
 void DynaRecCPU::recNOR() { throw std::runtime_error("[Unimplemented] NOR instruction"); }
 void DynaRecCPU::recOR() { throw std::runtime_error("[Unimplemented] OR instruction"); }
-void DynaRecCPU::recORI() { throw std::runtime_error("[Unimplemented] ORI instruction"); }
+
+void DynaRecCPU::recORI() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (_Rs_ == _Rt_) {
+        if (m_regs[_Rs_].isConst()) {
+            m_regs[_Rt_].val |= _ImmU_;
+        } else {
+            allocateReg(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
+            gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _ImmU_);
+        }
+    } else {
+        if (m_regs[_Rs_].isConst()) {
+            markConst(_Rt_, m_regs[_Rs_].val | _ImmU_);
+        } else {
+            alloc_rs_wb_rt();
+            gen.orImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg, _ImmU_);
+        }
+    }
+}
+
 void DynaRecCPU::recREGIMM() { throw std::runtime_error("[Unimplemented] REGIMM instruction"); }
 void DynaRecCPU::recRFE() { throw std::runtime_error("[Unimplemented] RFE instruction"); }
 void DynaRecCPU::recSB() { throw std::runtime_error("[Unimplemented] SB instruction"); }
@@ -89,7 +111,47 @@ void DynaRecCPU::recSRL() { throw std::runtime_error("[Unimplemented] SRL instru
 void DynaRecCPU::recSRLV() { throw std::runtime_error("[Unimplemented] SRLV instruction"); }
 void DynaRecCPU::recSUB() { throw std::runtime_error("[Unimplemented] SUB instruction"); }
 void DynaRecCPU::recSUBU() { throw std::runtime_error("[Unimplemented] SUBU instruction"); }
-void DynaRecCPU::recSW() { throw std::runtime_error("[Unimplemented] SW instruction"); }
+
+void DynaRecCPU::recSW() {
+    if (m_regs[_Rs_].isConst()) {
+        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);
+        if (pointer != nullptr) {
+            if (m_regs[_Rt_].isConst()) {
+                store<32>(m_regs[_Rt_].val, pointer);
+            } else {
+                allocateReg(_Rt_);
+                store<32>(m_regs[_Rt_].allocatedReg, pointer);
+            }
+
+            return;
+        }
+
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.Mov(arg2, m_regs[_Rt_].val);
+        } else {
+            allocateReg(_Rt_);
+            gen.Mov(arg2, m_regs[_Rt_].allocatedReg);
+        }
+
+        gen.Mov(arg1, addr);  // Address to write to in arg1   TODO: Optimize
+        call(psxMemWrite32Wrapper);
+    }
+
+    else {
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.Mov(arg2, m_regs[_Rt_].val);
+        } else {
+            allocateReg(_Rt_);
+            gen.Mov(arg2, m_regs[_Rt_].allocatedReg);
+        }
+
+        allocateReg(_Rs_);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address to write to in arg1   TODO: Optimize
+        call(psxMemWrite32Wrapper);
+    }
+}
+
 void DynaRecCPU::recSWL() { throw std::runtime_error("[Unimplemented] SWL instruction"); }
 void DynaRecCPU::recSWR() { throw std::runtime_error("[Unimplemented] SWR instruction"); }
 void DynaRecCPU::recSYSCALL() { throw std::runtime_error("[Unimplemented] SYSCALL instruction"); }
