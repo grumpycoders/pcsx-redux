@@ -133,7 +133,18 @@ void DynaRecCPU::recCOP0() {
 
 void DynaRecCPU::recDIV() { throw std::runtime_error("[Unimplemented] DIV instruction"); }
 void DynaRecCPU::recDIVU() { throw std::runtime_error("[Unimplemented] DIVU instruction"); }
-void DynaRecCPU::recJ() { throw std::runtime_error("[Unimplemented] J instruction"); }
+
+void DynaRecCPU::recJ() {
+    const uint32_t target = (m_pc & 0xf0000000) | (_Target_ << 2);
+    m_nextIsDelaySlot = true;
+    m_stopCompiling = true;
+    m_pcWrittenBack = true;
+
+    gen.Mov(scratch, target);
+    gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET)); // Write PC
+    m_linkedPC = target;
+}
+
 void DynaRecCPU::recJAL() { throw std::runtime_error("[Unimplemented] JAL instruction"); }
 void DynaRecCPU::recJALR() { throw std::runtime_error("[Unimplemented] JALR instruction"); }
 void DynaRecCPU::recJR() { throw std::runtime_error("[Unimplemented] JR instruction"); }
