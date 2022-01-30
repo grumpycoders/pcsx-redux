@@ -40,12 +40,17 @@ void DynaRecCPU::reserveReg(int index) {
     m_allocatedRegisters++;  // Advance our register allcoator
 }
 
-//// Flush constants and allocated registers to host regs at the end of a block
+// Flush constants and allocated registers to host regs at the end of a block
 void DynaRecCPU::flushRegs() {
     for (auto i = 1; i < 32; i++) {
         if (m_regs[i].isConst()) {  // If const: Write the value directly, mark as unknown. Possibly change when constants will be stored in host regs
-            gen.Mov(scratch, m_regs[i].val);
-            gen.Str(scratch, MemOperand(contextPointer, GPR_OFFSET(i)));
+            if (m_regs[i].val != 0) {
+                gen.Mov(w4, m_regs[i].val);
+                gen.Str(w4, MemOperand(contextPointer, GPR_OFFSET(i)));
+            } else {
+                gen.Str(wzr, MemOperand(contextPointer, GPR_OFFSET(i)));
+            }
+
             m_regs[i].markUnknown();
         }
 
@@ -65,7 +70,7 @@ void DynaRecCPU::flushRegs() {
     m_allocatedRegisters = 0;
 }
 
-//// Spill the volatile allocated registers into guest registers in preparation for a call to a C++ function
+// Spill the volatile allocated registers into guest registers in preparation for a call to a C++ function
 void DynaRecCPU::prepareForCall() {
     if (m_allocatedRegisters > ALLOCATEABLE_NON_VOLATILE_COUNT) {  // Check if there's any allocated volatiles to flush
         for (auto i = ALLOCATEABLE_NON_VOLATILE_COUNT; i < m_allocatedRegisters; i++) {  // iterate volatile regs
@@ -89,7 +94,7 @@ void DynaRecCPU::prepareForCall() {
     }
 }
 
-//// Used when our register cache overflows. Spill the entirety of it to host registers.
+// Used when our register cache overflows. Spill the entirety of it to host registers.
 void DynaRecCPU::spillRegisterCache() {
     for (auto i = 0; i < m_allocatedRegisters; i++) {
         if (m_hostRegs[i].mappedReg) {  // Check if the register is still allocated to a guest register
@@ -127,9 +132,9 @@ void DynaRecCPU::allocateRegWithoutLoad(int reg) {
     }
 }
 
-//// T: Number of regs without writeback we must allocate
-//// U: Number of regs with writeback we must allocate
-//// We want both of them to be compile-time constants for efficiency
+// T: Number of regs without writeback we must allocate
+// U: Number of regs with writeback we must allocate
+// We want both of them to be compile-time constants for efficiency
 template <int T, int U>
 void DynaRecCPU::allocateRegisters(std::array<int, T> regsWithoutWb, std::array<int, U> regsWithWb) {
     static_assert(T + U < ALLOCATEABLE_REG_COUNT, "Trying to allocate too many registers");
