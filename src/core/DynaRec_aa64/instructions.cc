@@ -414,14 +414,14 @@ void DynaRecCPU::recSH() {
         else if (addr == 0x1f801070) {  // I_STAT
             gen.Mov(x0, (uint64_t)&PCSX::g_emulator->m_psxMem->g_psxH[0x1070]);
             if (m_regs[_Rt_].isConst()) {
-                gen.Ldr(w1, MemOperand(x0));
+                gen.Ldrh(w1, MemOperand(x0));
                 gen.And(w1, w1, m_regs[_Rt_].val & 0xFFFF);
-                gen.Str(w1, MemOperand(x0));
+                gen.Strh(w1, MemOperand(x0));
             } else {
                 allocateReg(_Rt_);
-                gen.Ldr(w1, MemOperand(x0));
+                gen.Ldrh(w1, MemOperand(x0));
                 gen.And(w1, w1, m_regs[_Rt_].allocatedReg);
-                gen.Str(w1, MemOperand(x0));
+                gen.Strh(w1, MemOperand(x0));
             }
 
             return;
