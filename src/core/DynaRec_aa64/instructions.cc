@@ -33,7 +33,61 @@ void DynaRecCPU::recSpecial() {
     (*this.*func)();                                    // Jump into the handler to recompile it
 }
 
-void DynaRecCPU::recADD() { throw std::runtime_error("[Unimplemented] ADD instruction"); }
+// The Dynarec doesn't currently handle overflow exceptions, so we treat ADD the same as ADDU
+void DynaRecCPU::recADD() { recADDU(); }
+
+void DynaRecCPU::recADDU() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rs_].val + m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        alloc_rt_wb_rd();
+
+        if (_Rt_ == _Rd_) {
+            switch (m_regs[_Rs_].val) {
+                case 1:
+                    gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, 1);
+                    break;
+                case 0xFFFFFFFF:
+                    gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, 1);
+                    break;
+                default:
+                    gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
+            }
+        } else {
+            gen.moveAndAdd(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        }
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+
+        if (_Rs_ == _Rd_) {
+            switch (m_regs[_Rt_].val) {
+                case 1:
+                    gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, 1);
+                    break;
+                case 0xFFFFFFFF:
+                    gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, 1);
+                    break;
+                default:
+                    gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+            }
+        } else {
+            gen.moveAndAdd(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        }
+    } else {
+        alloc_rt_rs_wb_rd();
+
+        if (_Rs_ == _Rd_) {  // Rd+= Rt
+            gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        } else if (_Rt_ == _Rd_) {  // Rd+= Rs
+            gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        } else {  // Rd = Rs + Rt
+            gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        }
+    }
+}
 
 void DynaRecCPU::recADDIU() {
     BAILZERO(_Rt_);
