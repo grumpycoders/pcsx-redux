@@ -420,7 +420,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     template <bool isAVSZ4>
     void recAVSZ();
 
-    template <bool readSR>
+    template <bool loadSR>
     void testSoftwareInterrupt();
 
     template <int size, bool signExtend>
