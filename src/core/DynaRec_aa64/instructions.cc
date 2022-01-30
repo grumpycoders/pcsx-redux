@@ -34,7 +34,39 @@ void DynaRecCPU::recSpecial() {
 }
 
 void DynaRecCPU::recADD() { throw std::runtime_error("[Unimplemented] ADD instruction"); }
-void DynaRecCPU::recADDIU() { throw std::runtime_error("[Unimplemented] ADDIU instruction"); }
+
+void DynaRecCPU::recADDIU() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (_Rs_ == _Rt_) {
+        if (m_regs[_Rt_].isConst()) {
+            m_regs[_Rt_].val += _Imm_;
+        } else {
+            allocateReg(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
+            switch (_Imm_) {
+                case 1:
+                    gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, 1);
+                    break;
+                case -1:
+                    gen.Sub(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, 1);
+                    break;
+                default:
+                    gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _Imm_);
+                    break;
+            }
+        }
+    } else {
+        if (m_regs[_Rs_].isConst()) {
+            markConst(_Rt_, m_regs[_Rs_].val + _Imm_);
+        } else {
+            alloc_rs_wb_rt();
+            gen.moveAndAdd(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg, _Imm_);
+        }
+    }
+}
+
 void DynaRecCPU::recADDU() { throw std::runtime_error("[Unimplemented] ADDU instruction"); }
 void DynaRecCPU::recAND() { throw std::runtime_error("[Unimplemented] AND instruction"); }
 void DynaRecCPU::recANDI() { throw std::runtime_error("[Unimplemented] ANDI instruction"); }
