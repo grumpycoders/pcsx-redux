@@ -28,7 +28,10 @@ void DynaRecCPU::recUnknown() {
     PCSX::g_system->message("Unknown instruction for dynarec - address %08x, instruction %08x\n", m_pc, m_psxRegs.code);
     recException(Exception::ReservedInstruction);
 }
-void DynaRecCPU::recSpecial() { throw std::runtime_error("[Unimplemented] Special instruction"); }
+void DynaRecCPU::recSpecial() {
+    const auto func = m_recSPC[m_psxRegs.code & 0x3F];  // Look up the opcode in our decoding LUT
+    (*this.*func)();                                    // Jump into the handler to recompile it
+}
 
 void DynaRecCPU::recADD() { throw std::runtime_error("[Unimplemented] ADD instruction"); }
 void DynaRecCPU::recADDIU() { throw std::runtime_error("[Unimplemented] ADDIU instruction"); }
