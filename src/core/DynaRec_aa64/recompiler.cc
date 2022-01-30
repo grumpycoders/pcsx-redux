@@ -157,6 +157,8 @@ void DynaRecCPU::emitDispatcher() {
 
     gen.align();
     m_dispatcher = gen.getCurr<DynarecCallback>();
+
+    gen.Str(x30, MemOperand(sp, -16, PreIndex)); // Backup link register
     gen.Str(contextPointer, MemOperand(sp, -16, PreIndex)); // Save context pointer register in stack (also align stack pointer)
     gen.Mov(contextPointer, (uintptr_t)this); // Load context pointer
 
@@ -196,6 +198,7 @@ void DynaRecCPU::emitDispatcher() {
     gen.Ldr(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));
 
     gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex));
+    gen.Ldr(x30, MemOperand(sp, 16, PostIndex)); // Restore link register
     gen.Ret();
 
     // Code for when the block to be executed needs to be compiled.
@@ -207,6 +210,7 @@ void DynaRecCPU::emitDispatcher() {
     loadThisPointer(arg1.X());
     gen.Lsl(arg2.X(), x3, 1);
     gen.Add(arg2.X(), arg2.X(), x0);
+    call(recRecompileWrapper);
     gen.Br(x0);
 
     // Code for when the block we've jumped to is invalid. Throws an error and exits
