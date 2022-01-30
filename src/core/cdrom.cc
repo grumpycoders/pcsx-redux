@@ -69,6 +69,8 @@ class CDRomImpl : public PCSX::CDRom {
         CdlReadToc = 30,
     };
 
+    static const size_t cdCmdEnumCount = magic_enum::enum_count<Commands>();
+
     static const inline uint8_t Test04[] = {0};
     static const inline uint8_t Test05[] = {0};
     static const inline uint8_t Test20[] = {0x98, 0x06, 0x10, 0xC3};
@@ -1232,9 +1234,11 @@ class CDRomImpl : public PCSX::CDRom {
             m_ctrl &= ~0x20;
         }
 
-        if (m_OCUP) m_ctrl |= 0x40;
-        //  else
-        //      m_ctrl &= ~0x40;
+        if (m_OCUP) {
+            m_ctrl |= 0x40;
+        } else {
+            m_ctrl &= ~0x40;
+        }
 
         m_ctrl |= 0x18;
 
@@ -1276,7 +1280,12 @@ class CDRomImpl : public PCSX::CDRom {
         m_cmd = rt;
         m_OCUP = 0;
 
-        CDROM_IO_LOG("CD1 write: %x (%s)", rt, magic_enum::enum_names<Commands>()[rt]);
+        if (rt > cdCmdEnumCount) {
+            CDROM_IO_LOG("CD1 write: %x (CdlUnknown)", rt);
+        } else {
+            CDROM_IO_LOG("CD1 write: %x (%s)", rt, magic_enum::enum_names<Commands>()[rt]);
+        }
+   
         if (m_paramC) {
             CDROM_IO_LOG(" Param[%d] = {", m_paramC);
             for (i = 0; i < m_paramC; i++) CDROM_IO_LOG(" %x,", m_param[i]);
@@ -1342,6 +1351,7 @@ class CDRomImpl : public PCSX::CDRom {
         unsigned char ret;
 
         if (m_read == 0) {
+            m_OCUP = 0;
             ret = 0;
         } else {
             ret = m_transfer[m_transferIndex];
@@ -1658,8 +1668,12 @@ class CDRomImpl : public PCSX::CDRom {
                                     m_param[0]);
                 break;
             default:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: %s\n", delayedString,
-                                    magic_enum::enum_names<Commands>()[command & 0xff]);
+                if (command > cdCmdEnumCount) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: CdlUnknown\n", delayedString);
+                } else {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: %s\n", delayedString,
+                                        magic_enum::enum_names<Commands>()[command & 0xff]);
+                }
                 break;
         }
     }
