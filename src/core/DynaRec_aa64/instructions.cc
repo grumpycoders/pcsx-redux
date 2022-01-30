@@ -642,7 +642,6 @@ void DynaRecCPU::recSLL() {
         markConst(_Rd_, m_regs[_Rt_].val << _Sa_);
     } else {
         alloc_rt_wb_rd();
-        // Was using shlImm in emitter.h - possible optimization opportunity
         gen.Lsl(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, _Sa_);
     }
 }
