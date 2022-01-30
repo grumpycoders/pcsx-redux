@@ -431,7 +431,47 @@ void DynaRecCPU::recORI() {
 
 void DynaRecCPU::recREGIMM() { throw std::runtime_error("[Unimplemented] REGIMM instruction"); }
 void DynaRecCPU::recRFE() { throw std::runtime_error("[Unimplemented] RFE instruction"); }
-void DynaRecCPU::recSB() { throw std::runtime_error("[Unimplemented] SB instruction"); }
+
+void DynaRecCPU::recSB() {
+    if (m_regs[_Rs_].isConst()) {
+        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);
+
+        if (pointer != nullptr) {
+            if (m_regs[_Rt_].isConst()) {
+                store<8>(m_regs[_Rt_].val & 0xFF, pointer);
+            } else {
+                allocateReg(_Rt_);
+                store<8>(m_regs[_Rt_].allocatedReg, pointer);
+            }
+
+            return;
+        }
+
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFF);
+        } else {
+            allocateReg(_Rt_);
+            gen.Uxtb(arg2, m_regs[_Rt_].allocatedReg);
+        }
+
+        gen.Mov(arg1, addr);  // Address to write to in arg1 TODO: Optimize
+        call(psxMemWrite8Wrapper);
+    }
+
+    else {
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFF);
+        } else {
+            allocateReg(_Rt_);
+            gen.Uxtb(arg2, m_regs[_Rt_].allocatedReg);
+        }
+
+        allocateReg(_Rs_);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address to write to in arg1   TODO: Optimize
+        call(psxMemWrite8Wrapper);
+    }
+}
 
 void DynaRecCPU::recSH() {
     if (m_regs[_Rs_].isConst()) {
