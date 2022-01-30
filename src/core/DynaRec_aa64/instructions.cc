@@ -160,7 +160,8 @@ void DynaRecCPU::recLUI() {
     markConst(_Rt_, m_psxRegs.code << 16);
 }
 
-void DynaRecCPU::recLW() { throw std::runtime_error("[Unimplemented] LW instruction"); }
+void DynaRecCPU::recLW() { recompileLoad<32, true>(); }
+
 void DynaRecCPU::recLWL() { throw std::runtime_error("[Unimplemented] LWL instruction"); }
 void DynaRecCPU::recLWR() { throw std::runtime_error("[Unimplemented] LWR instruction"); }
 void DynaRecCPU::recMFC0() { throw std::runtime_error("[Unimplemented] MFC0 instruction"); }
