@@ -120,6 +120,25 @@ public:
         }
     }
 
+    // dest = source & value
+    // Optimizes to Uxt or xor wherever possible
+    void andImm(Register dest, Register source, uint32_t value) {
+        switch (value) {
+            case 0:
+                Eor(dest, dest, dest);
+                break;
+            case 0xFF:
+                Uxtb(dest, source);
+                break;
+            case 0xFFFF:
+                Uxth(dest, source);
+                break;
+            default:
+                And(dest, source, value);
+                break;
+        }
+    }
+
     // Logical OR dest by value (Skip the OR if value == 0)
     void orImm(Register dest, uint32_t value) {
         if (value != 0) {
