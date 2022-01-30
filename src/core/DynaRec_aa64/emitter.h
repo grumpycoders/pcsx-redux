@@ -125,7 +125,7 @@ public:
     void andImm(Register dest, Register source, uint32_t value) {
         switch (value) {
             case 0:
-                Eor(dest, dest, dest);
+                Mov(dest, 0);
                 break;
             case 0xFF:
                 Uxtb(dest, source);
