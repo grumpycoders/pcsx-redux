@@ -44,48 +44,13 @@ void DynaRecCPU::recADDU() {
         markConst(_Rd_, m_regs[_Rs_].val + m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-
-        if (_Rt_ == _Rd_) {
-            switch (m_regs[_Rs_].val) {
-                case 1:
-                    gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, 1);
-                    break;
-                case 0xFFFFFFFF:
-                    gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, 1);
-                    break;
-                default:
-                    gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
-            }
-        } else {
-            gen.moveAndAdd(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
-        }
+        gen.moveAndAdd(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-
-        if (_Rs_ == _Rd_) {
-            switch (m_regs[_Rt_].val) {
-                case 1:
-                    gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, 1);
-                    break;
-                case 0xFFFFFFFF:
-                    gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, 1);
-                    break;
-                default:
-                    gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
-            }
-        } else {
-            gen.moveAndAdd(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
-        }
+        gen.moveAndAdd(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         alloc_rt_rs_wb_rd();
-
-        if (_Rs_ == _Rd_) {  // Rd+= Rt
-            gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        } else if (_Rt_ == _Rd_) {  // Rd+= Rs
-            gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
-        } else {  // Rd = Rs + Rt
-            gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        }
+        gen.Add(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
     }
 }
 
