@@ -54,10 +54,7 @@ public:
         return GetCursorOffset();
     }
 
-    // TODO: Verify. VIXL states this must be called before code in buffer can be executed
-    // Default option here is NoFallThrough, which means any code emiited after this is called
-    // is ignore. I believe this is to ensure literals have been emitted before code is executed
-    void ready() { FinalizeCode(kFallThrough); }
+    void ready() { FinalizeCode(); }
 
     // TODO: VIXL methods only allow for RW or RE; This will need to be handled manually for M1 Mac regardless
     bool setRWX() {
