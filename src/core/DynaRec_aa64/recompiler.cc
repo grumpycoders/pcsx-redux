@@ -310,6 +310,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
 
     // Clear aarch64 CPU cache due to coherency issues causing illegal instruction errors
     __builtin___clear_cache(gen.getCode<char*>(), gen.getCode<char*>() + allocSize);
+    gen.ready();
 
     return pointer;
 }
