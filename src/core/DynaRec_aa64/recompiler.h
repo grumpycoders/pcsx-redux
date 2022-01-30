@@ -261,19 +261,20 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Stores a value of "size" bits from "source" to the given pointer
     /* TODO: value must be moved into register first before it can be stored unlike x64 with can use mov to write to memory */
     // TODO: This may need to use contextPointer + distance instead
-    template <int size>
-    void store(Register source, const void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)this;
+    template <int size, typename T>
+    void store(T source, const void* pointer) {
+//        const auto distance = (intptr_t)pointer - (intptr_t)this;
         gen.Mov(scratch.X(), (uintptr_t)pointer);
+        gen.Mov(scratch2, source);
         switch (size) {
             case 8:
-                gen.Strb(source, MemOperand(scratch.X()));
+                gen.Strb(scratch2, MemOperand(scratch.X()));
                 break;
             case 16:
-                gen.Strh(source, MemOperand(scratch.X()));
+                gen.Strh(scratch2, MemOperand(scratch.X()));
                 break;
             case 32:
-                gen.Str(source, MemOperand(scratch.X()));
+                gen.Str(scratch2, MemOperand(scratch.X()));
                 break;
         }
     }
