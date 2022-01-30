@@ -146,8 +146,78 @@ void DynaRecCPU::recANDI() {
     }
 }
 
-void DynaRecCPU::recBEQ() { throw std::runtime_error("[Unimplemented] BEQ instruction"); }
-void DynaRecCPU::recBGTZ() { throw std::runtime_error("[Unimplemented] BGTZ instruction"); }
+void DynaRecCPU::recBEQ() {
+    const auto target = _Imm_ * 4 + m_pc;
+    m_nextIsDelaySlot = true;
+
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        if (m_regs[_Rs_].val == m_regs[_Rt_].val) {
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            gen.Mov(scratch, target);
+            gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+            m_linkedPC = target;
+        }
+        return;
+    } else if (m_regs[_Rs_].isConst()) {
+        allocateReg(_Rt_);
+        gen.cmpEqImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rs_);
+        gen.cmpEqImm(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        alloc_rt_rs();
+        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    gen.Mov(scratch, target); // scratch = addr if jump taken
+    gen.Mov(scratch2, m_pc + 4); // scratch2 = addr if jump not taken
+    gen.Csel(w0, scratch, scratch2, eq); // if not equal, return the jump addr into w0
+    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+}
+
+void DynaRecCPU::recBGTZ() {
+    uint32_t target = _Imm_ * 4 + m_pc;
+
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        if ((int32_t)m_regs[_Rs_].val > 0) {
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            gen.Mov(scratch, target);
+            gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+            m_linkedPC = target;
+        }
+        return;
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    if (m_regs[_Rs_].isAllocated()) {  // Don't bother allocating Rs unless it's already allocated
+        gen.Tst(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    } else {
+        gen.Ldr(scratch, MemOperand(contextPointer, GPR_OFFSET(_Rs_)));
+        gen.Cmp(scratch, 0);
+    }
+
+    gen.Mov(scratch, target); // scratch = addr if jump taken
+    gen.Mov(scratch2, m_pc + 4); // scratch2 = addr if jump not taken
+    gen.Csel(w0, scratch, scratch2, gt); // if not equal, return the jump addr into w0
+    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+}
+
 void DynaRecCPU::recBLEZ() { throw std::runtime_error("[Unimplemented] BLEZ instruction"); }
 
 void DynaRecCPU::recBNE() {
