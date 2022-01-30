@@ -20,7 +20,7 @@
 #include "core/sio.h"
 
 #include <algorithm> 
-#include <cassert>
+#include <stdexcept>
 #include <sys/stat.h>
 
 #include "core/misc.h"
@@ -725,8 +725,6 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     std::memset(Info, 0, sizeof(McdBlock));
 
     char *data = GetMcdData(mcd);
-    assert(data != nullptr);
-
     char *ptr = data + block * MCD_BLOCK_SIZE + 2;
     char *str = Info->Title;
     char *sstr = Info->sTitle;
@@ -831,6 +829,7 @@ char *PCSX::SIO::GetMcdData(int mcd) {
         case 2:
             return g_mcd2Data;
         default:
+            throw std::runtime_error("Attempt to access invalid memory card");
             return nullptr;
     }
 }
@@ -840,7 +839,6 @@ char *PCSX::SIO::GetMcdData(int mcd) {
 // block: A block from 1 to 15 inclusive
 void PCSX::SIO::FormatMcdBlock(int mcd, int block) {
     char *data = GetMcdData(mcd);
-    assert(data != nullptr);
 
     // Set the block data to 0
     const size_t offset = block * MCD_BLOCK_SIZE;
@@ -858,12 +856,14 @@ void PCSX::SIO::FormatMcdBlock(int mcd, int block) {
 // mcd: The memory card to back up (1 or 2)
 void PCSX::SIO::SaveMcd(int mcd) {
     const auto data = GetMcdData(mcd);
-    
-    if (mcd == 1) {
-        const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string();
-        SaveMcd(path, data, 0, MCD_SIZE);
-    } else if (mcd == 2) {
-        const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string();
-        SaveMcd(path, data, 0, MCD_SIZE);
+    switch (mcd) {
+        case 1:
+            const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string();
+            SaveMcd(path, data, 0, MCD_SIZE);
+            break;
+        case 2:
+            const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string();
+            SaveMcd(path, data, 0, MCD_SIZE);
+            break;
     }
 }
