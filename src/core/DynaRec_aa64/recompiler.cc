@@ -302,6 +302,10 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     } else {
         jmp((void*)m_returnFromBlock);
     }
+
+    // Clear aarch64 CPU cache due to coherency issues causing illegal instruction errors
+    __builtin___clear_cache(gen.getCode<char *>(), gen.getCode<char*>() + allocSize);
+
     return pointer;
 }
 
