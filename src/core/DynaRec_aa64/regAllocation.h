@@ -47,7 +47,5 @@ const Register arg1 = w0;  // register where first arg is stored
 const Register arg2 = w1;  // register where second arg is stored
 const Register arg3 = w2;  // register where third arg is stored
 const Register arg4 = w3;  // register where fourth arg is stored
-const Register scratch = w4;
-const Register scratch2 = w5;
 #define IS_VOLATILE(x) ((x) >= ALLOCATEABLE_NON_VOLATILE_COUNT)
 #endif // DYNAREC_AA64

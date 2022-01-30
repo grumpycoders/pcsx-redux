@@ -40,7 +40,7 @@ bool DynaRecCPU::Init() {
     m_biosBlocks = new DynarecCallback[biosSize / 4];
     m_dummyBlocks = new DynarecCallback[0x10000 / 4];  // Allocate one page worth of dummy blocks
 
-    gen.Reset(); // Reset code generator
+    gen.Reset();  // Reset code generator
 
     for (int page = 0; page < 0x10000; page++) {  // Default all pages to dummy blocks
         m_recompilerLUT[page] = &m_dummyBlocks[0];
@@ -73,14 +73,15 @@ bool DynaRecCPU::Init() {
         m_dummyBlocks[i] = m_invalidBlock;
     }
 
-    // Profiler not yet implemented
-//    if constexpr (ENABLE_SYMBOLS) {
-//        makeSymbols();
-//    }
-//
-//    if constexpr (ENABLE_PROFILER) {
-//        m_profiler.init();
-//    }
+    /*
+    if constexpr (ENABLE_SYMBOLS) {
+        makeSymbols();
+    }
+
+    if constexpr (ENABLE_PROFILER) {
+        m_profiler.init();
+    }
+    */
 
     m_regs[0].markConst(0);  // $zero is always zero
     return true;
@@ -98,7 +99,7 @@ void DynaRecCPU::Shutdown() {
     delete[] m_biosBlocks;
     delete[] m_dummyBlocks;
 
-    gen.dumpBuffer(); // TODO: Possibly move x64 dumpBuffer() method to emitter.h
+    gen.dumpBuffer();
 }
 
 /// Params: A program counter value
@@ -140,16 +141,17 @@ void DynaRecCPU::flushCache() {
 }
 
 void DynaRecCPU::emitBlockLookup() {
-    gen.Ldr(arg4, MemOperand(contextPointer, PC_OFFSET)); // w4 = pc
-    gen.And(arg3, arg4, 0xfffc); // w3 = index into the recompiler LUT page, multiplied by 4
-    gen.Lsr(arg4, arg4, 16); // w4 = pc >> 16
+    gen.Ldr(w4, MemOperand(contextPointer, PC_OFFSET));  // w4 = pc
+    gen.And(w3, w4, 0xfffc);                             // w3 = index into the recompiler LUT page, multiplied by 4
+    gen.Lsr(w4, w4, 16);                                 // w4 = pc >> 16
 
     // Load base pointer to recompiler LUT page in x0
     gen.Mov(x0, (uintptr_t)m_recompilerLUT);
-    gen.Ldr(x0, MemOperand(x0, arg4.X(), LSL, 3));
-    gen.Ldr(x0, MemOperand(x0, arg3.X(), LSL, 1));
-    // Jump to block
-    gen.Br(x0);
+    gen.Ldr(x0, MemOperand(x0, x4, LSL, 3));
+
+    // Load pointer to block in x5 and jump to it
+    gen.Ldr(x5, MemOperand(x0, x3, LSL, 1));
+    gen.Br(x5);
 }
 
 void DynaRecCPU::emitDispatcher() {
@@ -158,9 +160,10 @@ void DynaRecCPU::emitDispatcher() {
     gen.align();
     m_dispatcher = gen.getCurr<DynarecCallback>();
 
-    gen.Str(x30, MemOperand(sp, -16, PreIndex)); // Backup link register
-    gen.Str(contextPointer, MemOperand(sp, -16, PreIndex)); // Save context pointer register in stack (also align stack pointer)
-    gen.Mov(contextPointer, (uintptr_t)this); // Load context pointer
+    gen.Str(x30, MemOperand(sp, -16, PreIndex));  // Backup link register
+    gen.Str(contextPointer,
+            MemOperand(sp, -16, PreIndex));    // Save context pointer register in stack (also align stack pointer)
+    gen.Mov(contextPointer, (uintptr_t)this);  // Load context pointer
 
     // Back up all our allocateable volatile regs
     // TODO: Change back to STP
@@ -170,21 +173,21 @@ void DynaRecCPU::emitDispatcher() {
         gen.Str(reg.X(), MemOperand(sp, -16, PreIndex));
     }
 
-    gen.Str(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0))); // Store runningPointer Register in host reg cache
-    gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr()); // Move runningPtr to runningPointer register
+    gen.Str(runningPointer,
+            MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));  // Store runningPointer Register in host reg cache
+    gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());  // Move runningPtr to runningPointer register
 
-    emitBlockLookup(); // Look up block
+    emitBlockLookup();  // Look up block
 
-    // Code to be executed after each block
-    // Blocks will jmp to here
+    // Code to be executed after each block.
     gen.align();
     m_returnFromBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.X());  // Poll events
     call(recBranchTestWrapper);
-    gen.Ldrb(w0, MemOperand(runningPointer)); // Check if PCSX::g_system->running is true
-    gen.Tbz(w0, 0, &done); // If it's not, return
-    emitBlockLookup();                               // Otherwise, look up next block
+    gen.Ldrb(w0, MemOperand(runningPointer));  // Check if PCSX::g_system->running is true
+    gen.Tbz(w0, 0, &done);                     // If it's not, return
+    emitBlockLookup();                         // Otherwise, look up next block
 
     gen.align();
 
@@ -200,22 +203,21 @@ void DynaRecCPU::emitDispatcher() {
     gen.Ldr(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));
 
     gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex));
-    gen.Ldr(x30, MemOperand(sp, 16, PostIndex)); // Restore link register before emiiting return
+    gen.Ldr(x30, MemOperand(sp, 16, PostIndex));  // Restore link register before returning
     gen.Ret();
 
     // Code for when the block to be executed needs to be compiled.
     // x0 = Base pointer to the page of m_recompilerLUT we're executing from
-    // x1 = Index into the page, multiplied by 4
+    // x3 = Index into the page, multiplied by 4
+    // Doing x0 + (x3 << 1) gets us the pointer to where the block callback should be stored
     gen.align();
     m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
+    // Do arg2 = x0 + (x3 << 1). Now arg2 points to the address we'll store the block callback to.
+    gen.Add(arg2.X(), x0, Operand(x3, LSL, 1));
     loadThisPointer(arg1.X());
-    // TODO: Check support for add with lsl and revisit this section of code
-    gen.Lsl(arg2.X(), arg3.X(), 1);
-    gen.Mov(scratch.X(), (uintptr_t)m_recompilerLUT);
-    gen.Add(arg2.X(), arg2.X(), scratch.X());
     call(recRecompileWrapper);
-    gen.Br(x0);
+    gen.Br(x0);  // Jump to compiled block
 
     // Code for when the block we've jumped to is invalid. Throws an error and exits
     gen.align();
@@ -241,7 +243,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
 
-    gen.align(); // TODO: Add bool alignment check here
+    gen.align();  // TODO: Add bool alignment check here
 
     if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
         flushCache();
@@ -285,9 +287,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     }
 
     flushRegs();
-    if (!m_pcWrittenBack) { // Write PC back if needed
-        gen.Mov(scratch, m_pc);
-        gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+    if (!m_pcWrittenBack) {  // Write PC back if needed
+        gen.Mov(w0, m_pc);
+        gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
     }
 
     // If this was the block at 0x8003'0000 (Start of shell) send the GUI a "shell reached" signal
@@ -297,9 +299,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
         call(signalShellReached);
         m_linkedPC = std::nullopt;
     }
-    gen.Ldr(scratch, MemOperand(contextPointer, CYCLE_OFFSET)); // Fetch block cycle count from memory
-    gen.Add(scratch, scratch, count * PCSX::Emulator::BIAS); // Add block cycles;
-    gen.Str(scratch, MemOperand(contextPointer, CYCLE_OFFSET)); // Store block cycles back to memory
+    gen.Ldr(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Fetch block cycle count from memory
+    gen.Add(w0, w0, count * PCSX::Emulator::BIAS);          // Add block cycles;
+    gen.Str(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Store block cycles back to memory
     if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
         handleLinking();
     } else {
@@ -307,7 +309,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     }
 
     // Clear aarch64 CPU cache due to coherency issues causing illegal instruction errors
-    __builtin___clear_cache(gen.getCode<char *>(), gen.getCode<char*>() + allocSize);
+    __builtin___clear_cache(gen.getCode<char*>(), gen.getCode<char*>() + allocSize);
 
     return pointer;
 }
@@ -358,23 +360,23 @@ void DynaRecCPU::handleLinking() {
             // Check that the block hasn't been invalidated/moved
             // The value will be patched later. Since all code is within the same 32MB segment,
             // We can get away with only checking the low 32 bits of the block pointer
-            gen.Mov(scratch.X(), (uintptr_t)nextBlockPointer);
-            gen.Ldr(scratch, MemOperand(scratch.X()));
-            gen.Cmp(scratch, 0xcccccccc);
+            gen.Mov(x0, (uintptr_t)nextBlockPointer);
+            gen.Ldr(w0, MemOperand(x0));
+            gen.Cmp(w0, 0xcccccccc);
 
             const auto pointer = gen.getCurr<uint8_t*>();
-            gen.bne(returnFromBlock);    // Return if the block addr changed
+            gen.bne(returnFromBlock);  // Return if the block addr changed
             // TODO: fix when recompile() alignment bool is added
             recompile(nextBlockPointer, nextPC);  // Fallthrough to next block
 
             *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
         } else {  // If it has already been compiled, link by jumping to the compiled code
-            gen.Mov(scratch.X(), (uintptr_t)nextBlockPointer);
-            gen.Ldr(scratch, MemOperand(scratch.X()));
-            gen.Mov(scratch2, (uint32_t)(uintptr_t)*nextBlockPointer);
-            gen.Cmp(scratch, scratch2);
+            gen.Mov(x0, (uintptr_t)nextBlockPointer);
+            gen.Ldr(w0, MemOperand(x0));
+            gen.Mov(w1, (uint32_t)(uintptr_t)*nextBlockPointer);
+            gen.Cmp(w0, w1);
 
-            gen.bne(returnFromBlock);  // Return if the block addr changed
+            gen.bne(returnFromBlock);       // Return if the block addr changed
             jmp((void*)*nextBlockPointer);  // Jump to linked block otherwise
 
             gen.L(returnFromBlock);
@@ -388,11 +390,12 @@ void DynaRecCPU::handleLinking() {
 void DynaRecCPU::handleFastboot() {
     vixl::aarch64::Label noFastBoot;
 
-    gen.Mov(x0, (uintptr_t)&m_shellStarted); // Check if shell has already been reached
+    gen.Mov(x0, (uintptr_t)&m_shellStarted);  // Check if shell has already been reached
     gen.Ldrb(w1, MemOperand(x0));
-    gen.Cbnz(w1, &noFastBoot); // Don't fastboot if so
+    gen.Cbnz(w1, &noFastBoot);  // Don't fastboot if so
 
-    gen.Mov(x0, (uintptr_t)&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()); // Check if fastboot is on
+    gen.Mov(x0,
+            (uintptr_t)&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>());  // Check if fastboot is on
     gen.Ldrb(w1, MemOperand(x0));
     gen.Cbz(w1, &noFastBoot);
 
@@ -407,4 +410,4 @@ void DynaRecCPU::handleFastboot() {
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() { return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU()); }
 
-#endif // DYNAREC_AA64
+#endif  // DYNAREC_AA64
