@@ -360,7 +360,33 @@ void DynaRecCPU::recSLLV() { throw std::runtime_error("[Unimplemented] SLLV inst
 void DynaRecCPU::recSLT() { throw std::runtime_error("[Unimplemented] SLT instruction"); }
 void DynaRecCPU::recSLTI() { throw std::runtime_error("[Unimplemented] SLTI instruction"); }
 void DynaRecCPU::recSLTIU() { throw std::runtime_error("[Unimplemented] SLTIU instruction"); }
-void DynaRecCPU::recSLTU() { throw std::runtime_error("[Unimplemented] SLTU instruction"); }
+
+void DynaRecCPU::recSLTU() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rs_].val < m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        alloc_rt_wb_rd();
+        // TODO: Verify this works properly, possibly check for better solution for alternative to seta/setb
+        gen.Mov(scratch, m_regs[_Rs_].val);
+        gen.Cmp(scratch, m_regs[_Rt_].allocatedReg);
+        gen.Cset(m_regs[_Rd_].allocatedReg, cs);
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+
+        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.Cset(m_regs[_Rd_].allocatedReg, cs);
+    } else {
+        alloc_rt_rs_wb_rd();
+
+        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        gen.Cset(m_regs[_Rd_].allocatedReg, cs);
+    }
+    gen.dumpBuffer();
+}
+
 void DynaRecCPU::recSRA() { throw std::runtime_error("[Unimplemented] SRA instruction"); }
 void DynaRecCPU::recSRAV() { throw std::runtime_error("[Unimplemented] SRAV instruction"); }
 void DynaRecCPU::recSRL() { throw std::runtime_error("[Unimplemented] SRL instruction"); }
