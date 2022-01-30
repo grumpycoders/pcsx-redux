@@ -395,7 +395,76 @@ void DynaRecCPU::recORI() {
 void DynaRecCPU::recREGIMM() { throw std::runtime_error("[Unimplemented] REGIMM instruction"); }
 void DynaRecCPU::recRFE() { throw std::runtime_error("[Unimplemented] RFE instruction"); }
 void DynaRecCPU::recSB() { throw std::runtime_error("[Unimplemented] SB instruction"); }
-void DynaRecCPU::recSH() { throw std::runtime_error("[Unimplemented] SH instruction"); }
+
+void DynaRecCPU::recSH() {
+    if (m_regs[_Rs_].isConst()) {
+        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);
+        if (pointer != nullptr) {
+            if (m_regs[_Rt_].isConst()) {
+                store<16>(m_regs[_Rt_].val & 0xFFFF, pointer);
+            } else {
+                allocateReg(_Rt_);
+                store<16>(m_regs[_Rt_].allocatedReg, pointer);
+            }
+
+            return;
+        }
+        // TODO: Verify this, aarch64 can't perform arithmetic on items directly in memory, it needs moved to a register first
+        // This is not optimal
+        else if (addr == 0x1f801070) {  // I_STAT
+            gen.Mov(x0, (uint64_t)&PCSX::g_emulator->m_psxMem->g_psxH[0x1070]);
+            if (m_regs[_Rt_].isConst()) {
+                gen.Ldr(w1, MemOperand(x0));
+                gen.And(w1, w1, m_regs[_Rt_].val & 0xFFFF);
+                gen.Str(w1, MemOperand(x0));
+            } else {
+                allocateReg(_Rt_);
+                gen.Ldr(w1, MemOperand(x0));
+                gen.And(w1, w1, m_regs[_Rt_].allocatedReg);
+                gen.Str(w1, MemOperand(x0));
+            }
+
+            return;
+        }
+
+        else if (addr >= 0x1f801c00 && addr < 0x1f801e00) {  // SPU registers
+            gen.Mov(arg1, addr);
+            if (m_regs[_Rt_].isConst()) {
+                gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
+            } else {
+                allocateReg(_Rt_);
+                gen.Uxth(arg2, m_regs[_Rt_].allocatedReg);
+            }
+
+            call(SPU_writeRegisterWrapper);
+            return;
+        }
+
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
+        } else {
+            allocateReg(_Rt_);
+            gen.Uxth(arg2, m_regs[_Rt_].allocatedReg);
+        }
+
+        gen.Mov(arg1, addr);  // Address to write to in arg1   TODO: Optimize
+        call(psxMemWrite16Wrapper);
+    }
+
+    else {
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
+        } else {
+            allocateReg(_Rt_);
+            gen.Uxth(arg2, m_regs[_Rt_].allocatedReg);
+        }
+
+        allocateReg(_Rs_);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address to write to in arg1   TODO: Optimize
+        call(psxMemWrite16Wrapper);
+    }
+}
 
 void DynaRecCPU::recSLL() {
     BAILZERO(_Rd_);
