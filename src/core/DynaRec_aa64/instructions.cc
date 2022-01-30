@@ -172,7 +172,33 @@ void DynaRecCPU::recMTLO() { throw std::runtime_error("[Unimplemented] MTLP inst
 void DynaRecCPU::recMULT() { throw std::runtime_error("[Unimplemented] MULT instruction"); }
 void DynaRecCPU::recMULTU() { throw std::runtime_error("[Unimplemented] MULTU instruction"); }
 void DynaRecCPU::recNOR() { throw std::runtime_error("[Unimplemented] NOR instruction"); }
-void DynaRecCPU::recOR() { throw std::runtime_error("[Unimplemented] OR instruction"); }
+
+void DynaRecCPU::recOR() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rs_].val | m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        alloc_rt_wb_rd();
+
+        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+
+        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        alloc_rt_rs_wb_rd();
+
+        if (_Rd_ == _Rs_) {
+            gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        } else if (_Rd_ == _Rt_) {
+            gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        } else {
+            gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        }
+    }
+}
 
 void DynaRecCPU::recORI() {
     BAILZERO(_Rt_);
