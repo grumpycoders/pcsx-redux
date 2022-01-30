@@ -220,7 +220,6 @@ void DynaRecCPU::emitDispatcher() {
     loadThisPointer(arg1.X());  // Throw recompiler error
     call(recErrorWrapper);
     gen.B(&done);  // Exit
-
 }
 
 // Compile a block, write address of compiled code to *callback
