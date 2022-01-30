@@ -72,7 +72,29 @@ void DynaRecCPU::recMULT() { throw std::runtime_error("[Unimplemented] MULT inst
 void DynaRecCPU::recMULTU() { throw std::runtime_error("[Unimplemented] MULTU instruction"); }
 void DynaRecCPU::recNOR() { throw std::runtime_error("[Unimplemented] NOR instruction"); }
 void DynaRecCPU::recOR() { throw std::runtime_error("[Unimplemented] OR instruction"); }
-void DynaRecCPU::recORI() { throw std::runtime_error("[Unimplemented] ORI instruction"); }
+
+void DynaRecCPU::recORI() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (_Rs_ == _Rt_) {
+        if (m_regs[_Rs_].isConst()) {
+            m_regs[_Rt_].val |= _ImmU_;
+        } else {
+            allocateReg(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
+            gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _ImmU_);
+        }
+    } else {
+        if (m_regs[_Rs_].isConst()) {
+            markConst(_Rt_, m_regs[_Rs_].val | _ImmU_);
+        } else {
+            alloc_rs_wb_rt();
+            gen.orImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg, _ImmU_);
+        }
+    }
+}
+
 void DynaRecCPU::recREGIMM() { throw std::runtime_error("[Unimplemented] REGIMM instruction"); }
 void DynaRecCPU::recRFE() { throw std::runtime_error("[Unimplemented] RFE instruction"); }
 void DynaRecCPU::recSB() { throw std::runtime_error("[Unimplemented] SB instruction"); }
