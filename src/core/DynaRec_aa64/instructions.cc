@@ -199,7 +199,12 @@ void DynaRecCPU::recJ() {
     m_linkedPC = target;
 }
 
-void DynaRecCPU::recJAL() { throw std::runtime_error("[Unimplemented] JAL instruction"); }
+void DynaRecCPU::recJAL() {
+    maybeCancelDelayedLoad(31);
+    markConst(31, m_pc + 4);  // Set $ra to the return value, then treat instruction like a normal J
+    recJ();
+}
+
 void DynaRecCPU::recJALR() { throw std::runtime_error("[Unimplemented] JALR instruction"); }
 void DynaRecCPU::recJR() { throw std::runtime_error("[Unimplemented] JR instruction"); }
 void DynaRecCPU::recLB() { throw std::runtime_error("[Unimplemented] LB instruction"); }
