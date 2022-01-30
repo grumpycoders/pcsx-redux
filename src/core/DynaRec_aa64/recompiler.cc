@@ -297,9 +297,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
         call(signalShellReached);
         m_linkedPC = std::nullopt;
     }
-
-    gen.Mov(scratch, count * PCSX::Emulator::BIAS); // Add block cycles;
-    gen.Str(scratch, MemOperand(contextPointer, CYCLE_OFFSET));
+    gen.Ldr(scratch, MemOperand(contextPointer, CYCLE_OFFSET)); // Fetch block cycle count from memory
+    gen.Add(scratch, scratch, count * PCSX::Emulator::BIAS); // Add block cycles;
+    gen.Str(scratch, MemOperand(contextPointer, CYCLE_OFFSET)); // Store block cycles back to memory
     if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
         handleLinking();
     } else {
