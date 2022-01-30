@@ -252,6 +252,10 @@ void DynaRecCPU::recLUI() {
     markConst(_Rt_, m_psxRegs.code << 16);
 }
 
+void DynaRecCPU::recLB() { recompileLoad<8, true>(); }
+void DynaRecCPU::recLBU() { recompileLoad<8, false>(); }
+void DynaRecCPU::recLH() { recompileLoad<16, true>(); }
+void DynaRecCPU::recLHU() { recompileLoad<16, false>(); }
 void DynaRecCPU::recLW() { recompileLoad<32, true>(); }
 
 void DynaRecCPU::recLWL() { throw std::runtime_error("[Unimplemented] LWL instruction"); }
