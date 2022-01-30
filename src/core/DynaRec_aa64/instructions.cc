@@ -99,18 +99,7 @@ void DynaRecCPU::recADDIU() {
         } else {
             allocateReg(_Rt_);
             m_regs[_Rt_].setWriteback(true);
-            // TODO: Revisit - this may be less optimal than just a single instruction
-            switch (_Imm_) {
-                case 1:
-                    gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, 1);
-                    break;
-                case -1:
-                    gen.Sub(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, 1);
-                    break;
-                default:
-                    gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _Imm_);
-                    break;
-            }
+            gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _Imm_);
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
