@@ -330,7 +330,15 @@ void DynaRecCPU::recLW() { recompileLoad<32, true>(); }
 
 void DynaRecCPU::recLWL() { throw std::runtime_error("[Unimplemented] LWL instruction"); }
 void DynaRecCPU::recLWR() { throw std::runtime_error("[Unimplemented] LWR instruction"); }
-void DynaRecCPU::recMFC0() { throw std::runtime_error("[Unimplemented] MFC0 instruction"); }
+
+void DynaRecCPU::recMFC0() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+    allocateRegWithoutLoad(_Rt_);
+    m_regs[_Rt_].setWriteback(true);
+    gen.Ldr(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
+}
+
 void DynaRecCPU::recMFHI() { throw std::runtime_error("[Unimplemented] MFHI instruction"); }
 void DynaRecCPU::recMFLO() { throw std::runtime_error("[Unimplemented] MFLO instruction"); }
 
