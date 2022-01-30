@@ -112,7 +112,25 @@ void DynaRecCPU::recBNE() {
 }
 
 void DynaRecCPU::recBREAK() { throw std::runtime_error("[Unimplemented] BREAK instruction"); }
-void DynaRecCPU::recCOP0() { throw std::runtime_error("[Unimplemented] COP0 instruction"); }
+
+void DynaRecCPU::recCOP0() {
+    switch (_Rs_) {  // figure out the type of COP0 opcode
+        case 0:
+            recMFC0();
+            break;
+        case 4:
+            recMTC0();
+            break;
+        case 16:
+            recRFE();
+            break;
+        default:
+            fmt::print("Unimplemented cop0 op {}\n", _Rs_);
+            recUnknown();
+            break;
+    }
+}
+
 void DynaRecCPU::recDIV() { throw std::runtime_error("[Unimplemented] DIV instruction"); }
 void DynaRecCPU::recDIVU() { throw std::runtime_error("[Unimplemented] DIVU instruction"); }
 void DynaRecCPU::recJ() { throw std::runtime_error("[Unimplemented] J instruction"); }
