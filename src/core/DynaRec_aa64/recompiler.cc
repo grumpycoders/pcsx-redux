@@ -341,6 +341,30 @@ void DynaRecCPU::handleKernelCall() {
     }
 }
 
+// Emits a jump to the dispatcher if there's no block to link to.
+// Otherwise, handle linking blocks
+void DynaRecCPU::handleLinking() {}
+
+void DynaRecCPU::handleFastboot() {
+    vixl::aarch64::Label noFastBoot;
+
+    gen.Mov(x0, (uintptr_t)&m_shellStarted); // Check if shell has already been reached
+    gen.Ldrb(w1, MemOperand(x0));
+    gen.Cbnz(w1, &noFastBoot); // Don't fastboot if so
+
+    gen.Mov(x0, (uintptr_t)&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()); // Check if fastboot is on
+    gen.Ldrb(w1, MemOperand(x0));
+    gen.Cbz(w1, &noFastBoot);
+
+    loadThisPointer(arg1.X());  // If fastbooting, call the signalShellReached function, set pc, and exit the block
+    call(signalShellReached);
+    gen.Ldr(w0, MemOperand(contextPointer, GPR_OFFSET(31)));
+    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+    jmp((void*)m_returnFromBlock);
+
+    gen.L(noFastBoot);
+}
+
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() { return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU()); }
 
 #endif // DYNAREC_AA64
