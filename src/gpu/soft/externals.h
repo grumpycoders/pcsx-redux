@@ -46,8 +46,6 @@
 
 #include <stdint.h>
 
-/////////////////////////////////////////////////////////////////////////////
-
 #define INFO_TW 0
 #define INFO_DRAWSTART 1
 #define INFO_DRAWEND 2

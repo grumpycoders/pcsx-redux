@@ -244,16 +244,16 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     template <int size, bool signExtend>
     void load(Register dest, const void* pointer) {
 //        const auto distance = (intptr_t)pointer - (intptr_t)this;
-        gen.Mov(scratch.X(), (uintptr_t)pointer);
+        gen.Mov(x4, (uintptr_t)pointer);
         switch (size) {
             case 8:
-                signExtend ? gen.Ldrsb(dest, MemOperand(scratch.X())) : gen.Ldrb(dest, MemOperand(scratch.X()));
+                signExtend ? gen.Ldrsb(dest, MemOperand(x4)) : gen.Ldrb(dest, MemOperand(x4));
                 break;
             case 16:
-                signExtend ? gen.Ldrsh(dest, MemOperand(scratch.X())) : gen.Ldrh(dest, MemOperand(scratch.X()));
+                signExtend ? gen.Ldrsh(dest, MemOperand(x4)) : gen.Ldrh(dest, MemOperand(x4));
                 break;
             case 32:
-                gen.Ldr(dest, MemOperand(scratch.X()));
+                gen.Ldr(dest, MemOperand(x4));
                 break;
         }
     }
@@ -263,18 +263,17 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // TODO: This may need to use contextPointer + distance instead
     template <int size, typename T>
     void store(T source, const void* pointer) {
-//        const auto distance = (intptr_t)pointer - (intptr_t)this;
-        gen.Mov(scratch.X(), (uintptr_t)pointer);
-        gen.Mov(scratch2, source);
+        gen.Mov(x4, (uintptr_t)pointer);
+        gen.Mov(w5, source);
         switch (size) {
             case 8:
-                gen.Strb(scratch2, MemOperand(scratch.X()));
+                gen.Strb(w5, MemOperand(x4));
                 break;
             case 16:
-                gen.Strh(scratch2, MemOperand(scratch.X()));
+                gen.Strh(w5, MemOperand(x4));
                 break;
             case 32:
-                gen.Str(scratch2, MemOperand(scratch.X()));
+                gen.Str(w5, MemOperand(x4));
                 break;
         }
     }
@@ -293,8 +292,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         if (canDoDirectCall) {
             gen.bl(disp);
         } else {
-            gen.Mov(scratch2.X(), (uintptr_t)ptr);
-            gen.Blr(scratch2.X());
+            gen.Mov(x4, (uintptr_t)ptr);
+            gen.Blr(x4);
         }
     }
 
@@ -309,8 +308,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         if (canDoDirectJump) {
             gen.b(disp);
         } else {
-            gen.Mov(scratch2.X(), (uintptr_t)pointer);
-            gen.Br(scratch2.X());
+            gen.Mov(x4, (uintptr_t)pointer);
+            gen.Br(x4);
         }
     }
 

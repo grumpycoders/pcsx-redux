@@ -165,8 +165,8 @@ void DynaRecCPU::recBEQ() {
         if (m_regs[_Rs_].val == m_regs[_Rt_].val) {
             m_pcWrittenBack = true;
             m_stopCompiling = true;
-            gen.Mov(scratch, target);
-            gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+            gen.Mov(w0, target);
+            gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
             m_linkedPC = target;
         }
         return;
@@ -184,9 +184,9 @@ void DynaRecCPU::recBEQ() {
     m_pcWrittenBack = true;
     m_stopCompiling = true;
 
-    gen.Mov(scratch, target); // scratch = addr if jump taken
-    gen.Mov(scratch2, m_pc + 4); // scratch2 = addr if jump not taken
-    gen.Csel(w0, scratch, scratch2, eq); // if not equal, return the jump addr into w0
+    gen.Mov(w0, target); // w0 = addr if jump taken
+    gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
+    gen.Csel(w0, w0, w1, eq); // if not equal, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -202,8 +202,8 @@ void DynaRecCPU::recBGTZ() {
         if ((int32_t)m_regs[_Rs_].val > 0) {
             m_pcWrittenBack = true;
             m_stopCompiling = true;
-            gen.Mov(scratch, target);
-            gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+            gen.Mov(w0, target);
+            gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
             m_linkedPC = target;
         }
         return;
@@ -213,15 +213,15 @@ void DynaRecCPU::recBGTZ() {
     m_stopCompiling = true;
 
     if (m_regs[_Rs_].isAllocated()) {  // Don't bother allocating Rs unless it's already allocated
-        gen.Tst(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, 0);
     } else {
-        gen.Ldr(scratch, MemOperand(contextPointer, GPR_OFFSET(_Rs_)));
-        gen.Cmp(scratch, 0);
+        gen.Ldr(w0, MemOperand(contextPointer, GPR_OFFSET(_Rs_)));
+        gen.Cmp(w0, 0);
     }
 
-    gen.Mov(scratch, target); // scratch = addr if jump taken
-    gen.Mov(scratch2, m_pc + 4); // scratch2 = addr if jump not taken
-    gen.Csel(w0, scratch, scratch2, gt); // if not equal, return the jump addr into w0
+    gen.Mov(w0, target); // w0 = addr if jump taken
+    gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
+    gen.Csel(w0, w0, w1, gt); // if not equal, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -239,8 +239,8 @@ void DynaRecCPU::recBNE() {
         if (m_regs[_Rs_].val != m_regs[_Rt_].val) {
             m_pcWrittenBack = true;
             m_stopCompiling = true;
-            gen.Mov(scratch, target);
-            gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+            gen.Mov(w0, target);
+            gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
             m_linkedPC = target;
         }
         return;
@@ -258,9 +258,9 @@ void DynaRecCPU::recBNE() {
     m_pcWrittenBack = true;
     m_stopCompiling = true;
 
-    gen.Mov(scratch, target); // scratch = addr if jump taken
-    gen.Mov(scratch2, m_pc + 4); // scratch2 = addr if jump not taken
-    gen.Csel(w0, scratch, scratch2, ne); // if not equal, return the jump addr into w0
+    gen.Mov(w0, target); // w0 = addr if jump taken
+    gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
+    gen.Csel(w0, w0, w1, ne); // if not equal, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -293,8 +293,8 @@ void DynaRecCPU::recJ() {
     m_stopCompiling = true;
     m_pcWrittenBack = true;
 
-    gen.Mov(scratch, target);
-    gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET)); // Write PC
+    gen.Mov(w0, target);
+    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET)); // Write PC
     m_linkedPC = target;
 }
 
@@ -312,8 +312,8 @@ void DynaRecCPU::recJR() {
     m_pcWrittenBack = true;
 
     if (m_regs[_Rs_].isConst()) {
-        gen.Mov(scratch, m_regs[_Rs_].val & ~3);
-        gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET)); // force align jump address
+        gen.Mov(w0, m_regs[_Rs_].val & ~3);
+        gen.Str(w0, MemOperand(contextPointer, PC_OFFSET)); // force align jump address
         m_linkedPC = m_regs[_Rs_].val;
     } else {
         allocateReg(_Rs_);
@@ -405,11 +405,11 @@ void DynaRecCPU::recompileLoad() {
 void DynaRecCPU::recMTC0() {
     if (m_regs[_Rt_].isConst()) {
         if (_Rd_ == 13) {
-            gen.Mov(scratch, m_regs[_Rt_].val & ~0xFC00);
-            gen.Str(scratch, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
+            gen.Mov(w0, m_regs[_Rt_].val & ~0xFC00);
+            gen.Str(w0, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
         } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
-            gen.Mov(scratch, m_regs[_Rt_].val);
-            gen.Str(scratch, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
+            gen.Mov(w0, m_regs[_Rt_].val);
+            gen.Str(w0, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
         }
     }
 
@@ -433,31 +433,34 @@ void DynaRecCPU::recMTC0() {
 template <bool loadSR>
 void DynaRecCPU::testSoftwareInterrupt() {
     Label label;
+    const auto pc = w3; // Register to hold temporary PC values in
+    const auto sr = w4; // Register to hold SR in
+
     if (!m_pcWrittenBack) {
-        gen.Mov(scratch, m_pc);
-        gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+        gen.Mov(pc, m_pc);
+        gen.Str(pc, MemOperand(contextPointer, PC_OFFSET));
         m_pcWrittenBack = true;
     }
 
     m_stopCompiling = true;
 
     if constexpr (loadSR) {
-        gen.Ldr(scratch, MemOperand(contextPointer, COP0_OFFSET(12))); // scratch = SR
+        gen.Ldr(sr, MemOperand(contextPointer, COP0_OFFSET(12))); // w4 = SR
     }
     // TODO: Possibly use Tbz or similar here
-    gen.Tst(scratch, 1); // Check if interrupts are enabled
+    gen.Tst(sr, 1); // Check if interrupts are enabled
     gen.bz(label);     // If not, skip to the end
     gen.Ldr(arg2, MemOperand(contextPointer, COP0_OFFSET(13))); // arg2 = CAUSE
-    gen.And(scratch, scratch, arg2);
-    gen.Tst(scratch, 0x300); // Check if an interrupt was force-fired
+    gen.And(sr, sr, arg2);
+    gen.Tst(sr, 0x300); // Check if an interrupt was force-fired
     gen.bz(label);         // Skip to the end if not
 
     // Fire the interrupt if it was triggered
     // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
     loadThisPointer(arg1.X());
     gen.Mov(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
-    gen.Mov(scratch, m_pc - 4); // PC for exception handler to use
-    gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET)); // Store the PC
+    gen.Mov(pc, m_pc - 4); // PC for exception handler to use
+    gen.Str(pc, MemOperand(contextPointer, PC_OFFSET)); // Store the PC
     call(psxExceptionWrapper);                             // Call the exception wrapper function
 
     gen.L(label); // Execution will jump here if interrupts not enabled
@@ -576,8 +579,7 @@ void DynaRecCPU::recSH() {
 
             return;
         }
-        // TODO: Verify this, aarch64 can't perform arithmetic on items directly in memory, it needs moved to a register first
-        // This is not optimal
+
         else if (addr == 0x1f801070) {  // I_STAT
             gen.Mov(x0, (uint64_t)&PCSX::g_emulator->m_psxMem->g_psxH[0x1070]);
             if (m_regs[_Rt_].isConst()) {
@@ -659,8 +661,8 @@ void DynaRecCPU::recSLTU() {
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
         // TODO: Verify this works properly, possibly check for better solution for alternative to seta/setb
-        gen.Mov(scratch, m_regs[_Rs_].val);
-        gen.Cmp(scratch, m_regs[_Rt_].allocatedReg);
+        gen.Mov(w0, m_regs[_Rs_].val);
+        gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
         gen.Cset(m_regs[_Rd_].allocatedReg, cs);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
