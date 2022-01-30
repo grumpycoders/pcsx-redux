@@ -151,7 +151,7 @@ void DynaRecCPU::recBEQ() {
 
     gen.Mov(w0, target); // w0 = addr if jump taken
     gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
-    gen.Csel(w0, w0, w1, eq); // if not equal, return the jump addr into w0
+    gen.Csel(w0, w0, w1, eq); // if equal, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -186,7 +186,7 @@ void DynaRecCPU::recBGTZ() {
 
     gen.Mov(w0, target); // w0 = addr if jump taken
     gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
-    gen.Csel(w0, w0, w1, gt); // if not equal, return the jump addr into w0
+    gen.Csel(w0, w0, w1, gt); // if greater, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
