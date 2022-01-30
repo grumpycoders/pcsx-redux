@@ -298,7 +298,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     // jmp function using same method as call to attempt direct jump
-    void jmp(void * pointer) {
+    void jmp(void* pointer) {
         const int64_t disp = getPCOffset(gen.getCurr<const void*>(), pointer);
 
         // If the displacement can fit in a 26-bit int, that means we can emit a direct call to the address
