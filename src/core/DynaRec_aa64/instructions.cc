@@ -122,7 +122,6 @@ void DynaRecCPU::recADDIU() {
     }
 }
 
-void DynaRecCPU::recADDU() { throw std::runtime_error("[Unimplemented] ADDU instruction"); }
 void DynaRecCPU::recAND() { throw std::runtime_error("[Unimplemented] AND instruction"); }
 void DynaRecCPU::recANDI() { throw std::runtime_error("[Unimplemented] ANDI instruction"); }
 void DynaRecCPU::recBEQ() { throw std::runtime_error("[Unimplemented] BEQ instruction"); }
