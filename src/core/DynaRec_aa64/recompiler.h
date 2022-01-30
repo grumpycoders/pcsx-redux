@@ -243,7 +243,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // TODO: This may need to use contextPointer + distance instead
     template <int size, bool signExtend>
     void load(Register dest, const void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)this;
+//        const auto distance = (intptr_t)pointer - (intptr_t)this;
         gen.Mov(scratch.X(), (uintptr_t)pointer);
         switch (size) {
             case 8:
