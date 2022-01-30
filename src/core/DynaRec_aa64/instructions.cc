@@ -45,6 +45,7 @@ void DynaRecCPU::recADDIU() {
         } else {
             allocateReg(_Rt_);
             m_regs[_Rt_].setWriteback(true);
+            // TODO: Revisit - this may be less optimal than just a single instruction
             switch (_Imm_) {
                 case 1:
                     gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, 1);
@@ -263,6 +264,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     if constexpr (loadSR) {
         gen.Ldr(w0, MemOperand(contextPointer, COP0_OFFSET(12))); // w0 = SR
     }
+    // TODO: Possibly use Tbz or similar here
     gen.Tst(w0, 1); // Check if interrupts are enabled
     gen.bz(label);     // If not, skip to the end
     gen.Ldr(arg2, MemOperand(contextPointer, COP0_OFFSET(13))); // arg2 = CAUSE
