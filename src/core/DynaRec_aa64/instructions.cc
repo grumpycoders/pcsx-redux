@@ -73,7 +73,44 @@ void DynaRecCPU::recANDI() { throw std::runtime_error("[Unimplemented] ANDI inst
 void DynaRecCPU::recBEQ() { throw std::runtime_error("[Unimplemented] BEQ instruction"); }
 void DynaRecCPU::recBGTZ() { throw std::runtime_error("[Unimplemented] BGTZ instruction"); }
 void DynaRecCPU::recBLEZ() { throw std::runtime_error("[Unimplemented] BLEZ instruction"); }
-void DynaRecCPU::recBNE() { throw std::runtime_error("[Unimplemented] BNE instruction"); }
+
+void DynaRecCPU::recBNE() {
+    const auto target = _Imm_ * 4 + m_pc;
+    m_nextIsDelaySlot = true;
+
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        if (m_regs[_Rs_].val != m_regs[_Rt_].val) {
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            gen.Mov(scratch, target);
+            gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+            m_linkedPC = target;
+        }
+        return;
+    } else if (m_regs[_Rs_].isConst()) {
+        allocateReg(_Rt_);
+        gen.cmpEqImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rs_);
+        gen.cmpEqImm(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        alloc_rt_rs();
+        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    gen.Mov(scratch, target); // scratch = addr if jump taken
+    gen.Mov(scratch2, m_pc + 4); // scratch2 = addr if jump not taken
+    gen.Csel(w0, scratch, scratch2, ne); // if not equal, return the jump addr into w0
+    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+}
+
 void DynaRecCPU::recBREAK() { throw std::runtime_error("[Unimplemented] BREAK instruction"); }
 void DynaRecCPU::recCOP0() { throw std::runtime_error("[Unimplemented] COP0 instruction"); }
 void DynaRecCPU::recDIV() { throw std::runtime_error("[Unimplemented] DIV instruction"); }
