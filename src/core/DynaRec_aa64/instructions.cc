@@ -99,18 +99,7 @@ void DynaRecCPU::recADDIU() {
         } else {
             allocateReg(_Rt_);
             m_regs[_Rt_].setWriteback(true);
-            // TODO: Revisit - this may be less optimal than just a single instruction
-            switch (_Imm_) {
-                case 1:
-                    gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, 1);
-                    break;
-                case -1:
-                    gen.Sub(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, 1);
-                    break;
-                default:
-                    gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _Imm_);
-                    break;
-            }
+            gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _Imm_);
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
@@ -122,7 +111,25 @@ void DynaRecCPU::recADDIU() {
     }
 }
 
-void DynaRecCPU::recAND() { throw std::runtime_error("[Unimplemented] AND instruction"); }
+void DynaRecCPU::recAND() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rs_].val & m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        alloc_rt_wb_rd();
+
+        gen.And(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+
+        gen.And(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        alloc_rt_rs_wb_rd();
+        gen.And(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    }
+}
 
 void DynaRecCPU::recANDI() {
     BAILZERO(_Rt_);
@@ -398,7 +405,7 @@ void DynaRecCPU::recompileLoad() {
 void DynaRecCPU::recMTC0() {
     if (m_regs[_Rt_].isConst()) {
         if (_Rd_ == 13) {
-            gen.Mov(scratch,  m_regs[_Rt_].val & ~0xFC00);
+            gen.Mov(scratch, m_regs[_Rt_].val & ~0xFC00);
             gen.Str(scratch, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
         } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
             gen.Mov(scratch, m_regs[_Rt_].val);
@@ -435,14 +442,14 @@ void DynaRecCPU::testSoftwareInterrupt() {
     m_stopCompiling = true;
 
     if constexpr (loadSR) {
-        gen.Ldr(w0, MemOperand(contextPointer, COP0_OFFSET(12))); // w0 = SR
+        gen.Ldr(scratch, MemOperand(contextPointer, COP0_OFFSET(12))); // scratch = SR
     }
     // TODO: Possibly use Tbz or similar here
-    gen.Tst(w0, 1); // Check if interrupts are enabled
+    gen.Tst(scratch, 1); // Check if interrupts are enabled
     gen.bz(label);     // If not, skip to the end
     gen.Ldr(arg2, MemOperand(contextPointer, COP0_OFFSET(13))); // arg2 = CAUSE
-    gen.And(w0, w0, arg2);
-    gen.Tst(w0, 0x300); // Check if an interrupt was force-fired
+    gen.And(scratch, scratch, arg2);
+    gen.Tst(scratch, 0x300); // Check if an interrupt was force-fired
     gen.bz(label);         // Skip to the end if not
 
     // Fire the interrupt if it was triggered
