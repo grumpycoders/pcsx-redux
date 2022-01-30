@@ -228,11 +228,22 @@ void DynaRecCPU::recJAL() {
 }
 
 void DynaRecCPU::recJALR() { throw std::runtime_error("[Unimplemented] JALR instruction"); }
-void DynaRecCPU::recJR() { throw std::runtime_error("[Unimplemented] JR instruction"); }
-void DynaRecCPU::recLB() { throw std::runtime_error("[Unimplemented] LB instruction"); }
-void DynaRecCPU::recLBU() { throw std::runtime_error("[Unimplemented] LBU instruction"); }
-void DynaRecCPU::recLH() { throw std::runtime_error("[Unimplemented] LH instruction"); }
-void DynaRecCPU::recLHU() { throw std::runtime_error("[Unimplemented] LHU instruction"); }
+
+void DynaRecCPU::recJR() {
+    m_nextIsDelaySlot = true;
+    m_stopCompiling = true;
+    m_pcWrittenBack = true;
+
+    if (m_regs[_Rs_].isConst()) {
+        gen.Mov(scratch, m_regs[_Rs_].val & ~3);
+        gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET)); // force align jump address
+        m_linkedPC = m_regs[_Rs_].val;
+    } else {
+        allocateReg(_Rs_);
+        // PC will get force aligned in the dispatcher since it discards the 2 lower bits
+        gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, PC_OFFSET));
+    }
+}
 
 void DynaRecCPU::recLUI() {
     BAILZERO(_Rt_);
