@@ -163,6 +163,7 @@ void DynaRecCPU::emitDispatcher() {
     gen.Mov(contextPointer, (uintptr_t)this); // Load context pointer
 
     // Back up all our allocateable volatile regs
+    // TODO: Change back to STP
     static_assert((ALLOCATEABLE_NON_VOLATILE_COUNT & 1) == 0);  // Make sure we've got an even number of regs
     for (auto i = 0; i < ALLOCATEABLE_NON_VOLATILE_COUNT; i++) {
         const auto reg = allocateableNonVolatiles[i];
@@ -191,6 +192,7 @@ void DynaRecCPU::emitDispatcher() {
     gen.L(done);
 
     // Restore all non-volatiles
+    // TODO: Change back to LDP
     for (int i = ALLOCATEABLE_NON_VOLATILE_COUNT - 1; i >= 0; i--) {
         const auto reg = allocateableNonVolatiles[i];
         gen.Ldr(reg.X(), MemOperand(sp, 16, PostIndex));
@@ -198,7 +200,7 @@ void DynaRecCPU::emitDispatcher() {
     gen.Ldr(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));
 
     gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex));
-    gen.Ldr(x30, MemOperand(sp, 16, PostIndex)); // Restore link register
+    gen.Ldr(x30, MemOperand(sp, 16, PostIndex)); // Restore link register before emiiting return
     gen.Ret();
 
     // Code for when the block to be executed needs to be compiled.
@@ -208,7 +210,7 @@ void DynaRecCPU::emitDispatcher() {
     m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.X());
-    // TODO: Check support for add with lsl
+    // TODO: Check support for add with lsl and revisit this section of code
     gen.Lsl(arg2.X(), arg3.X(), 1);
     gen.Mov(scratch.X(), (uintptr_t)m_recompilerLUT);
     gen.Add(arg2.X(), arg2.X(), scratch.X());
