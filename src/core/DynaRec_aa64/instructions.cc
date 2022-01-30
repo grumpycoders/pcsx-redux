@@ -51,7 +51,14 @@ void DynaRecCPU::recLB() { throw std::runtime_error("[Unimplemented] LB instruct
 void DynaRecCPU::recLBU() { throw std::runtime_error("[Unimplemented] LBU instruction"); }
 void DynaRecCPU::recLH() { throw std::runtime_error("[Unimplemented] LH instruction"); }
 void DynaRecCPU::recLHU() { throw std::runtime_error("[Unimplemented] LHU instruction"); }
-void DynaRecCPU::recLUI() { throw std::runtime_error("[Unimplemented] LUI instruction"); }
+
+void DynaRecCPU::recLUI() {
+    BAILZERO(_Rt_);
+
+    maybeCancelDelayedLoad(_Rt_);
+    markConst(_Rt_, m_psxRegs.code << 16);
+}
+
 void DynaRecCPU::recLW() { throw std::runtime_error("[Unimplemented] LW instruction"); }
 void DynaRecCPU::recLWL() { throw std::runtime_error("[Unimplemented] LWL instruction"); }
 void DynaRecCPU::recLWR() { throw std::runtime_error("[Unimplemented] LWR instruction"); }
