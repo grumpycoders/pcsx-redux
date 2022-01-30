@@ -123,7 +123,29 @@ void DynaRecCPU::recADDIU() {
 }
 
 void DynaRecCPU::recAND() { throw std::runtime_error("[Unimplemented] AND instruction"); }
-void DynaRecCPU::recANDI() { throw std::runtime_error("[Unimplemented] ANDI instruction"); }
+
+void DynaRecCPU::recANDI() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (_Rs_ == _Rt_) {
+        if (m_regs[_Rs_].isConst()) {
+            m_regs[_Rt_].val &= _ImmU_;
+        } else {
+            allocateReg(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
+            gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _ImmU_);
+        }
+    } else {
+        if (m_regs[_Rs_].isConst()) {
+            markConst(_Rt_, m_regs[_Rs_].val & _ImmU_);
+        } else {
+            alloc_rs_wb_rt();
+            gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg, _ImmU_);
+        }
+    }
+}
+
 void DynaRecCPU::recBEQ() { throw std::runtime_error("[Unimplemented] BEQ instruction"); }
 void DynaRecCPU::recBGTZ() { throw std::runtime_error("[Unimplemented] BGTZ instruction"); }
 void DynaRecCPU::recBLEZ() { throw std::runtime_error("[Unimplemented] BLEZ instruction"); }
