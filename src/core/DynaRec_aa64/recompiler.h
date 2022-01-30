@@ -188,7 +188,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void inlineClear(uint32_t address) {
         if (isPcValid(address & ~3)) {
             loadThisPointer(arg1.X());
-            gen.mov(arg2, address & ~3);
+            gen.Mov(arg2, address & ~3);
             call(recClearWrapper);
         }
     }
