@@ -144,15 +144,6 @@ public:
         }
     }
 
-    // Returns whether dest is equal to value via the zero flag
-    void cmpEqImm(Register dest, uint32_t value) {
-        if (value == 0) {
-            Tst(dest, dest);
-        } else {
-            Cmp(dest, value);
-        }
-    }
-
     // Emit a trap instruction that gdb/lldb/Visual Studio can interpret as a breakpoint
     void breakpoint() {
         Brk(0);

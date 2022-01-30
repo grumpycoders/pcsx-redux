@@ -172,10 +172,10 @@ void DynaRecCPU::recBEQ() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.cmpEqImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.cmpEqImm(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         alloc_rt_rs();
         gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -246,10 +246,10 @@ void DynaRecCPU::recBNE() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.cmpEqImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.cmpEqImm(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         alloc_rt_rs();
         gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
