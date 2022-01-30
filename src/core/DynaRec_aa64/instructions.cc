@@ -448,7 +448,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     // Fire the interrupt if it was triggered
     // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
     loadThisPointer(arg1.X());
-    gen.moveImm(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
+    gen.Mov(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
     gen.Mov(scratch, m_pc - 4); // PC for exception handler to use
     gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET)); // Store the PC
     call(psxExceptionWrapper);                             // Call the exception wrapper function
@@ -531,7 +531,7 @@ void DynaRecCPU::recSB() {
         }
 
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFF);
+            gen.Mov(arg2, m_regs[_Rt_].val & 0xFF);
         } else {
             allocateReg(_Rt_);
             gen.Uxtb(arg2, m_regs[_Rt_].allocatedReg);
@@ -543,7 +543,7 @@ void DynaRecCPU::recSB() {
 
     else {
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFF);
+            gen.Mov(arg2, m_regs[_Rt_].val & 0xFF);
         } else {
             allocateReg(_Rt_);
             gen.Uxtb(arg2, m_regs[_Rt_].allocatedReg);
@@ -590,7 +590,7 @@ void DynaRecCPU::recSH() {
         else if (addr >= 0x1f801c00 && addr < 0x1f801e00) {  // SPU registers
             gen.Mov(arg1, addr);
             if (m_regs[_Rt_].isConst()) {
-                gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
+                gen.Mov(arg2, m_regs[_Rt_].val & 0xFFFF);
             } else {
                 allocateReg(_Rt_);
                 gen.Uxth(arg2, m_regs[_Rt_].allocatedReg);
@@ -601,7 +601,7 @@ void DynaRecCPU::recSH() {
         }
 
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
+            gen.Mov(arg2, m_regs[_Rt_].val & 0xFFFF);
         } else {
             allocateReg(_Rt_);
             gen.Uxth(arg2, m_regs[_Rt_].allocatedReg);
@@ -613,7 +613,7 @@ void DynaRecCPU::recSH() {
 
     else {
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
+            gen.Mov(arg2, m_regs[_Rt_].val & 0xFFFF);
         } else {
             allocateReg(_Rt_);
             gen.Uxth(arg2, m_regs[_Rt_].allocatedReg);
