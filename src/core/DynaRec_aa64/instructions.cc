@@ -639,7 +639,6 @@ void DynaRecCPU::recSLTU() {
         gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
         gen.Cset(m_regs[_Rd_].allocatedReg, cs);
     }
-    gen.dumpBuffer();
 }
 
 void DynaRecCPU::recSRA() { throw std::runtime_error("[Unimplemented] SRA instruction"); }
