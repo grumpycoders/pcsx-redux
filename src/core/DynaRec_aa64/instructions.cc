@@ -102,7 +102,20 @@ void DynaRecCPU::recREGIMM() { throw std::runtime_error("[Unimplemented] REGIMM 
 void DynaRecCPU::recRFE() { throw std::runtime_error("[Unimplemented] RFE instruction"); }
 void DynaRecCPU::recSB() { throw std::runtime_error("[Unimplemented] SB instruction"); }
 void DynaRecCPU::recSH() { throw std::runtime_error("[Unimplemented] SH instruction"); }
-void DynaRecCPU::recSLL() { throw std::runtime_error("[Unimplemented] SLL instruction"); }
+
+void DynaRecCPU::recSLL() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rt_].val << _Sa_);
+    } else {
+        alloc_rt_wb_rd();
+        // Was using shlImm in emitter.h - possible optimization opportunity
+        gen.Lsl(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, _Sa_);
+    }
+}
+
 void DynaRecCPU::recSLLV() { throw std::runtime_error("[Unimplemented] SLLV instruction"); }
 void DynaRecCPU::recSLT() { throw std::runtime_error("[Unimplemented] SLT instruction"); }
 void DynaRecCPU::recSLTI() { throw std::runtime_error("[Unimplemented] SLTI instruction"); }
