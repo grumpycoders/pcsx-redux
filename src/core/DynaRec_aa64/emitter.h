@@ -99,6 +99,17 @@ public:
     // Returns a signed integer that shows how many bytes of free space are left in the code buffer
     int64_t getRemainingSize() { return (int64_t)codeCacheSize - (int64_t)getSize(); }
 
+    // Moves "value" into "dest". Optimizes the move to xor dest, wzr if value is 0.
+    // Thrashes EFLAGS
+    // TODO XOR for zeroing probably not more efficient on aarch64 - maybe use wzr here
+    void moveImm(Register dest, uint32_t value) {
+        if (value == 0) {
+            Eor(dest, dest, dest);
+        } else {
+            Mov(dest, value);
+        }
+    }
+
     // Adds "value" to "source" and stores the result in dest
     // Uses add if the value is non-zero, or mov otherwise
     void moveAndAdd(Register dest, Register source, uint32_t value) {
@@ -121,6 +132,15 @@ public:
             Orr(dest, source, value);
         } else if (!dest.Is(source)) {
             Mov(dest, source);
+        }
+    }
+
+    // Returns whether dest is equal to value via the zero flag
+    void cmpEqImm(Register dest, uint32_t value) {
+        if (value == 0) {
+            Tst(dest, dest);
+        } else {
+            Cmp(dest, value);
         }
     }
 
