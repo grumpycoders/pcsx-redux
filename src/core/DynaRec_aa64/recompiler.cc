@@ -346,7 +346,44 @@ void DynaRecCPU::handleKernelCall() {
 
 // Emits a jump to the dispatcher if there's no block to link to.
 // Otherwise, handle linking blocks
-void DynaRecCPU::handleLinking() {}
+void DynaRecCPU::handleLinking() {
+    vixl::aarch64::Label returnFromBlock;
+    // Don't link unless the next PC is valid, and there's over 1MB of free space in the code cache
+    if (isPcValid(m_linkedPC.value()) && gen.getRemainingSize() > 0x100000) {
+        const auto nextPC = m_linkedPC.value();
+        const auto nextBlockPointer = getBlockPointer(nextPC);
+        const auto nextBlockOffset = (size_t)nextBlockPointer - (size_t)this;
+
+        if (*nextBlockPointer == m_uncompiledBlock) {  // If the next block hasn't been compiled yet
+            // Check that the block hasn't been invalidated/moved
+            // The value will be patched later. Since all code is within the same 32MB segment,
+            // We can get away with only checking the low 32 bits of the block pointer
+            gen.Mov(scratch.X(), (uintptr_t)nextBlockPointer);
+            gen.Ldr(scratch, MemOperand(scratch.X()));
+            gen.Cmp(scratch, 0xcccccccc);
+
+            const auto pointer = gen.getCurr<uint8_t*>();
+            gen.bne(returnFromBlock);    // Return if the block addr changed
+            // TODO: fix when recompile() alignment bool is added
+            recompile(nextBlockPointer, nextPC);  // Fallthrough to next block
+
+            *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
+        } else {  // If it has already been compiled, link by jumping to the compiled code
+            gen.Mov(scratch.X(), (uintptr_t)nextBlockPointer);
+            gen.Ldr(scratch, MemOperand(scratch.X()));
+            gen.Mov(scratch2, (uint32_t)(uintptr_t)*nextBlockPointer);
+            gen.Cmp(scratch, scratch2);
+
+            gen.bne(returnFromBlock);  // Return if the block addr changed
+            jmp((void*)*nextBlockPointer);  // Jump to linked block otherwise
+
+            gen.L(returnFromBlock);
+            jmp((void*)m_returnFromBlock);
+        }
+    } else {  // Can't link, so return to dispatcher
+        jmp((void*)m_returnFromBlock);
+    }
+}
 
 void DynaRecCPU::handleFastboot() {
     vixl::aarch64::Label noFastBoot;
