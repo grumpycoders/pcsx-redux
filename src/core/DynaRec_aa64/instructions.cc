@@ -166,7 +166,120 @@ void DynaRecCPU::recLWR() { throw std::runtime_error("[Unimplemented] LWR instru
 void DynaRecCPU::recMFC0() { throw std::runtime_error("[Unimplemented] MFC0 instruction"); }
 void DynaRecCPU::recMFHI() { throw std::runtime_error("[Unimplemented] MFHI instruction"); }
 void DynaRecCPU::recMFLO() { throw std::runtime_error("[Unimplemented] MFLO instruction"); }
-void DynaRecCPU::recMTC0() { throw std::runtime_error("[Unimplemented] MTC0 instruction"); }
+
+template <int size, bool signExtend>
+void DynaRecCPU::recompileLoad() {
+    if (m_regs[_Rs_].isConst()) {  // Store the address in first argument register
+        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerRead(addr);
+
+        if (pointer != nullptr && (_Rt_) != 0) {
+            allocateRegWithoutLoad(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
+            load<size, signExtend>(m_regs[_Rt_].allocatedReg, pointer);
+            return;
+        }
+
+        gen.Mov(arg1, addr);
+    } else {
+        allocateReg(_Rs_);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
+    }
+
+    switch (size) {
+        case 8:
+            call(psxMemRead8Wrapper);
+            break;
+        case 16:
+            call(psxMemRead16Wrapper);
+            break;
+        case 32:
+            call(psxMemRead32Wrapper);
+            break;
+        default:
+            PCSX::g_system->message("Invalid size for memory load in dynarec. Instruction %08x\n", m_psxRegs.code);
+            break;
+    }
+
+    if (_Rt_) {
+        allocateRegWithoutLoad(_Rt_);  // Allocate $rt after calling the read function, otherwise call() might flush it.
+        m_regs[_Rt_].setWriteback(true);
+
+        switch (size) {
+            case 8:
+                signExtend ? gen.Sxtb(m_regs[_Rt_].allocatedReg, w0) : gen.Uxtb(m_regs[_Rt_].allocatedReg, w0);
+                break;
+            case 16:
+                signExtend ? gen.Sxth(m_regs[_Rt_].allocatedReg, w0) : gen.Uxth(m_regs[_Rt_].allocatedReg, w0);
+                break;
+            case 32:
+                gen.Mov(m_regs[_Rt_].allocatedReg, w0);
+                break;
+        }
+    }
+}
+
+// TODO: Handle all COP0 register writes properly. Don't treat read-only field as writeable!
+void DynaRecCPU::recMTC0() {
+    if (m_regs[_Rt_].isConst()) {
+        if (_Rd_ == 13) {
+            gen.Mov(scratch,  m_regs[_Rt_].val & ~0xFC00);
+            gen.Str(scratch, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
+        } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
+            gen.Mov(scratch, m_regs[_Rt_].val);
+            gen.Str(scratch, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
+        }
+    }
+
+    else {
+        allocateReg(_Rt_);
+        if (_Rd_ == 13) {
+            gen.And(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, ~0xFC00);
+        } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
+            gen.Str(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP0_OFFSET(_Rd_))); // Write rt to the cop0 reg
+        }
+    }
+
+    // Writing to SR/Cause can sometimes forcefully fire an interrupt. So we need to emit extra code to check.
+    if (_Rd_ == 12 || _Rd_ == 13) {
+        testSoftwareInterrupt<true>();
+    }
+}
+
+// Checks if a write to SR/CAUSE forcibly triggered an interrupt
+// loadSR: Shows if SR is already in eax or if it should be loaded from memory
+template <bool loadSR>
+void DynaRecCPU::testSoftwareInterrupt() {
+    Label label;
+    if (!m_pcWrittenBack) {
+        gen.Mov(scratch, m_pc);
+        gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET));
+        m_pcWrittenBack = true;
+    }
+
+    m_stopCompiling = true;
+
+    if constexpr (loadSR) {
+        gen.Ldr(w0, MemOperand(contextPointer, COP0_OFFSET(12))); // w0 = SR
+    }
+    gen.Tst(w0, 1); // Check if interrupts are enabled
+    gen.bz(label);     // If not, skip to the end
+    gen.Ldr(arg2, MemOperand(contextPointer, COP0_OFFSET(13))); // arg2 = CAUSE
+    gen.And(w0, w0, arg2);
+    gen.Tst(w0, 0x300); // Check if an interrupt was force-fired
+    gen.bz(label);         // Skip to the end if not
+
+    // Fire the interrupt if it was triggered
+    // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
+    loadThisPointer(arg1.X());
+    gen.moveImm(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
+    gen.Mov(scratch, m_pc - 4); // PC for exception handler to use
+    gen.Str(scratch, MemOperand(contextPointer, PC_OFFSET)); // Store the PC
+    call(psxExceptionWrapper);                             // Call the exception wrapper function
+
+    gen.L(label); // Execution will jump here if interrupts not enabled
+}
+
 void DynaRecCPU::recMTHI() { throw std::runtime_error("[Unimplemented] MTHI instruction"); }
 void DynaRecCPU::recMTLO() { throw std::runtime_error("[Unimplemented] MTLP instruction"); }
 void DynaRecCPU::recMULT() { throw std::runtime_error("[Unimplemented] MULT instruction"); }
