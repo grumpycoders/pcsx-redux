@@ -887,7 +887,30 @@ void DynaRecCPU::recSLL() {
 }
 
 void DynaRecCPU::recSLLV() { throw std::runtime_error("[Unimplemented] SLLV instruction"); }
-void DynaRecCPU::recSLT() { throw std::runtime_error("[Unimplemented] SLT instruction"); }
+
+void DynaRecCPU::recSLT() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, (int32_t)m_regs[_Rs_].val < (int32_t)m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        alloc_rt_wb_rd();
+        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.Cset(m_regs[_Rd_].allocatedReg, gt);
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+
+        gen.Mov(w0, m_regs[_Rs_].val);
+        gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
+        gen.Cset(m_regs[_Rd_].allocatedReg, lt);
+    } else {
+        alloc_rt_rs_wb_rd();
+
+        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        gen.Cset(m_regs[_Rd_].allocatedReg, lt);
+    }
+}
 
 void DynaRecCPU::recSLTI() {
     BAILZERO(_Rt_);
