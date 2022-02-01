@@ -283,7 +283,72 @@ void DynaRecCPU::recCOP0() {
 }
 
 void DynaRecCPU::recDIV() { throw std::runtime_error("[Unimplemented] DIV instruction"); }
-void DynaRecCPU::recDIVU() { throw std::runtime_error("[Unimplemented] DIVU instruction"); }
+
+void DynaRecCPU::recDIVU() {
+    Label divisionByZero;
+
+    if (m_regs[_Rt_].isConst()) {                            // Check divisor if constant
+        if (m_regs[_Rt_].val == 0) {                         // Handle case where divisor is 0
+            gen.Mov(w0, -1);
+            gen.Str(w0, MemOperand(contextPointer, LO_OFFSET)); // Set lo to -1
+
+            if (m_regs[_Rs_].isConst()) {
+                gen.Mov(w0, m_regs[_Rs_].val);
+                gen.Str(w0, MemOperand(contextPointer, HI_OFFSET)); // HI = $rs
+            }
+
+            else {
+                allocateReg(_Rs_);
+                gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, HI_OFFSET)); // Set hi to $rs
+            }
+
+            return;
+        }
+
+        if (m_regs[_Rs_].isConst()) {
+            gen.Mov(w0, m_regs[_Rs_].val / m_regs[_Rt_].val);
+            gen.Mov(w1, m_regs[_Rs_].val % m_regs[_Rt_].val);
+            gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
+            gen.Str(w1, MemOperand(contextPointer, HI_OFFSET));
+            return;
+        }
+
+        allocateReg(_Rs_);
+        gen.Mov(w0, m_regs[_Rs_].allocatedReg);
+        gen.Mov(w1, m_regs[_Rt_].val); // Divisor in w1
+
+    } else {                             // non-constant divisor
+        if (m_regs[_Rs_].isConst()) {
+            allocateReg(_Rt_);
+            gen.Mov(w0, m_regs[_Rs_].val); // Dividend in w0
+        }
+
+        else {
+            alloc_rt_rs();
+            gen.Mov(w0, m_regs[_Rs_].allocatedReg); // Dividend in w0
+        }
+
+        gen.Mov(w1, m_regs[_Rt_].allocatedReg);  // Divisor in w1
+        gen.Tst(w1, w1);                       // Check if divisor is 0
+        gen.bz(divisionByZero);                   // Jump to divisionByZero label if so
+    }
+    // TODO: This may be able to be optimized with a proper AND depending
+    gen.Eor(w3, w3, w3);  // Set top 32 bits of dividend to 0
+    gen.Udiv(w2, w0, w1);        // Unsigned division by divisor
+    gen.Msub(w3, w2, w1, w0); // Get remainder by msub
+
+    if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
+        Label end;
+        gen.B(&end);           // skip to the end if not a div by zero
+        gen.L(divisionByZero);  // Here starts our division by 0 handler
+        gen.Mov(w3, w0); // Set hi to $rs
+        gen.Mov(w2, -1); // Set lo to -1
+
+        gen.L(end);
+    }
+    gen.Str(w2, MemOperand(contextPointer, LO_OFFSET)); // Lo = quotient = w2
+    gen.Str(w3, MemOperand(contextPointer, HI_OFFSET)); // Hi = remainder = w3
+}
 
 void DynaRecCPU::recJ() {
     const uint32_t target = (m_pc & 0xf0000000) | (_Target_ << 2);
