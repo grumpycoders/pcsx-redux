@@ -141,6 +141,17 @@ public:
         }
     }
 
+    // dest = value - source
+    // Optimizes the value == 0 case, thrases w0 but not FLAGs
+    void reverseSub(Register dest, Register source, uint32_t value) {
+        if (value == 0) {;
+            Neg(dest, source);
+        } else {
+            Mov(w0, value);
+            Sub(dest, w0, source);
+        }
+    }
+
     // Emit a trap instruction that gdb/lldb/Visual Studio can interpret as a breakpoint
     void breakpoint() {
         Brk(0);
