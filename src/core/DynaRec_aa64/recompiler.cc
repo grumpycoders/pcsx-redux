@@ -378,7 +378,7 @@ void DynaRecCPU::handleLinking() {
             gen.Mov(x0, (uintptr_t)nextBlockPointer);
             gen.Ldr(x0, MemOperand(x0));
             // Extract lower 32 bits and zero extend the rest
-            gen.Ubfx(x0, x0, 0, 31);
+            gen.Ubfx(x0, x0, 0, 32);
             // Move value to compare against into w1
             gen.Mov(w1, 0xcccccccc);
             gen.Cmp(w0, w1);
@@ -393,7 +393,7 @@ void DynaRecCPU::handleLinking() {
             gen.Mov(x0, (uintptr_t)nextBlockPointer);
             gen.Ldr(x0, MemOperand(x0));
             // Extract lower 32 bits and zero extend the rest
-            gen.Ubfx(x0, x0, 0, 31);
+            gen.Ubfx(x0, x0, 0, 32);
             // Move value to compare against into w1
             gen.Mov(w1, (uint32_t)(uintptr_t)*nextBlockPointer);
             gen.Cmp(w0, w1);
