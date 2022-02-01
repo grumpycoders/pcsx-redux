@@ -158,7 +158,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
-    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc); // TODO: x64 version has a bool argument for alignment
+    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc, bool align = true);
     void error();
     void flushCache();
     void handleLinking();
