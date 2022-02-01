@@ -151,7 +151,7 @@ void DynaRecCPU::recBEQ() {
 
     gen.Mov(w0, target); // w0 = addr if jump taken
     gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
-    gen.Csel(w0, w0, w1, eq); // if equal, return the jump addr into w0
+    gen.Csel(w0, w0, w1, eq); // if taken, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -186,11 +186,44 @@ void DynaRecCPU::recBGTZ() {
 
     gen.Mov(w0, target); // w0 = addr if jump taken
     gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
-    gen.Csel(w0, w0, w1, gt); // if greater, return the jump addr into w0
+    gen.Csel(w0, w0, w1, gt); // if taken, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
-void DynaRecCPU::recBLEZ() { throw std::runtime_error("[Unimplemented] BLEZ instruction"); }
+void DynaRecCPU::recBLEZ() {
+    uint32_t target = _Imm_ * 4 + m_pc;
+
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        if ((int32_t)m_regs[_Rs_].val <= 0) {
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            gen.Mov(w0, target);
+            gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+            m_linkedPC = target;
+        }
+        return;
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    if (m_regs[_Rs_].isAllocated()) {  // Don't bother allocating Rs unless it's already allocated
+        gen.Tst(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    } else {
+        gen.Ldr(w0, MemOperand(contextPointer, GPR_OFFSET(_Rs_)));
+        gen.Cmp(w0, 0);
+    }
+
+    gen.Mov(w0, target); // w0 = addr if jump taken
+    gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
+    gen.Csel(w0, w0, w1, le); // if taken, return the jump addr into w0
+    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+}
 
 void DynaRecCPU::recBNE() {
     const auto target = _Imm_ * 4 + m_pc;
@@ -225,7 +258,7 @@ void DynaRecCPU::recBNE() {
 
     gen.Mov(w0, target); // w0 = addr if jump taken
     gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
-    gen.Csel(w0, w0, w1, ne); // if not equal, return the jump addr into w0
+    gen.Csel(w0, w0, w1, ne); // if taken, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -486,7 +519,66 @@ void DynaRecCPU::recORI() {
     }
 }
 
-void DynaRecCPU::recREGIMM() { throw std::runtime_error("[Unimplemented] REGIMM instruction"); }
+void DynaRecCPU::recREGIMM() {
+    const bool isBGEZ = ((m_psxRegs.code >> 16) & 1) != 0;
+    const bool link = ((m_psxRegs.code >> 17) & 0xF) == 8;
+    const auto target = _Imm_ * 4 + m_pc;
+
+    m_nextIsDelaySlot = true;
+
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        if (isBGEZ) {  // BGEZ
+            if ((int32_t)m_regs[_Rs_].val >= 0) {
+                m_pcWrittenBack = true;
+                m_stopCompiling = true;
+                gen.Mov(w0, target);
+                gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+                m_linkedPC = target;
+            }
+        }
+
+        else {  // BLTZ
+            if ((int32_t)m_regs[_Rs_].val < 0) {
+                m_pcWrittenBack = true;
+                m_stopCompiling = true;
+                gen.Mov(w0, target);
+                gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+                m_linkedPC = target;
+            }
+        }
+
+        if (link) {
+            maybeCancelDelayedLoad(31);
+            markConst(31, m_pc + 4);
+        }
+
+        return;
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    allocateReg(_Rs_);
+    gen.Tst(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    gen.Mov(w0, target);    // ecx = addr if jump taken
+    gen.Mov(w1, m_pc + 4);  // eax = addr if jump not taken
+    // TODO: Verify Csel below is using proper conditions for signed/unsigned
+    if (isBGEZ) {
+        gen.Csel(w0, w0, w1, hs); // if $rs >= 0, move the jump addr into eax
+    } else {
+        gen.Csel(w0, w0, w1, lt); // if $rs < 0, move the jump addr into eax
+    }
+    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+    if (link) {
+        maybeCancelDelayedLoad(31);
+        markConst(31, m_pc + 4);
+    }
+}
+
 void DynaRecCPU::recRFE() { throw std::runtime_error("[Unimplemented] RFE instruction"); }
 
 void DynaRecCPU::recSB() {
@@ -613,7 +705,20 @@ void DynaRecCPU::recSLL() {
 
 void DynaRecCPU::recSLLV() { throw std::runtime_error("[Unimplemented] SLLV instruction"); }
 void DynaRecCPU::recSLT() { throw std::runtime_error("[Unimplemented] SLT instruction"); }
-void DynaRecCPU::recSLTI() { throw std::runtime_error("[Unimplemented] SLTI instruction"); }
+
+void DynaRecCPU::recSLTI() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (m_regs[_Rs_].isConst()) {
+        markConst(_Rt_, (int32_t)m_regs[_Rs_].val < _Imm_);
+    } else {
+        alloc_rs_wb_rt();
+        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.Cset(m_regs[_Rt_].allocatedReg, lt);
+    }
+}
+
 void DynaRecCPU::recSLTIU() { throw std::runtime_error("[Unimplemented] SLTIU instruction"); }
 
 void DynaRecCPU::recSLTU() {
