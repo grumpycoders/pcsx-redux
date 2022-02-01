@@ -750,8 +750,26 @@ void DynaRecCPU::recSRA() { throw std::runtime_error("[Unimplemented] SRA instru
 void DynaRecCPU::recSRAV() { throw std::runtime_error("[Unimplemented] SRAV instruction"); }
 void DynaRecCPU::recSRL() { throw std::runtime_error("[Unimplemented] SRL instruction"); }
 void DynaRecCPU::recSRLV() { throw std::runtime_error("[Unimplemented] SRLV instruction"); }
-void DynaRecCPU::recSUB() { throw std::runtime_error("[Unimplemented] SUB instruction"); }
-void DynaRecCPU::recSUBU() { throw std::runtime_error("[Unimplemented] SUBU instruction"); }
+
+void DynaRecCPU::recSUB() { recSUBU(); }
+
+void DynaRecCPU::recSUBU() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rs_].val - m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        alloc_rt_wb_rd();
+        gen.reverseSub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+        gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        alloc_rt_rs_wb_rd();
+        gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
+    }
+}
 
 void DynaRecCPU::recSW() {
     if (m_regs[_Rs_].isConst()) {
