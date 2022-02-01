@@ -719,7 +719,19 @@ void DynaRecCPU::recSLTI() {
     }
 }
 
-void DynaRecCPU::recSLTIU() { throw std::runtime_error("[Unimplemented] SLTIU instruction"); }
+void DynaRecCPU::recSLTIU() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (m_regs[_Rs_].isConst()) {
+        markConst(_Rt_, m_regs[_Rs_].val < (uint32_t)_Imm_);
+    } else {
+        alloc_rs_wb_rt();
+
+        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.Cset(m_regs[_Rt_].allocatedReg, cs);
+    }
+}
 
 void DynaRecCPU::recSLTU() {
     BAILZERO(_Rd_);
@@ -746,12 +758,49 @@ void DynaRecCPU::recSLTU() {
     }
 }
 
-void DynaRecCPU::recSRA() { throw std::runtime_error("[Unimplemented] SRA instruction"); }
+void DynaRecCPU::recSRA() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, (int32_t)m_regs[_Rt_].val >> _Sa_);
+    } else {
+        alloc_rt_wb_rd();
+        gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, _Sa_);
+        // TODO: Possibly don't need this check with 3 operand support but verify
+//        if (_Rd_ != _Rt_) {
+//            gen.Mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+//        }
+//
+//        if (_Sa_) {
+//            gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, _Sa_);
+//        }
+    }
+}
+
 void DynaRecCPU::recSRAV() { throw std::runtime_error("[Unimplemented] SRAV instruction"); }
 void DynaRecCPU::recSRL() { throw std::runtime_error("[Unimplemented] SRL instruction"); }
 void DynaRecCPU::recSRLV() { throw std::runtime_error("[Unimplemented] SRLV instruction"); }
-void DynaRecCPU::recSUB() { throw std::runtime_error("[Unimplemented] SUB instruction"); }
-void DynaRecCPU::recSUBU() { throw std::runtime_error("[Unimplemented] SUBU instruction"); }
+
+void DynaRecCPU::recSUB() { recSUBU(); }
+
+void DynaRecCPU::recSUBU() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rs_].val - m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        alloc_rt_wb_rd();
+        gen.reverseSub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+        gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        alloc_rt_rs_wb_rd();
+        gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
+    }
+}
 
 void DynaRecCPU::recSW() {
     if (m_regs[_Rs_].isConst()) {
