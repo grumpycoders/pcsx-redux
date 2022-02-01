@@ -96,6 +96,7 @@ public:
     // Returns a signed integer that shows how many bytes of free space are left in the code buffer
     int64_t getRemainingSize() { return (int64_t)codeCacheSize - (int64_t)getSize(); }
 
+    // TODO: Possibly remove this and replace with regular Add
     // Adds "value" to "source" and stores the result in dest
     // Uses add if the value is non-zero, or mov otherwise
     void moveAndAdd(Register dest, Register source, uint32_t value) {
