@@ -150,7 +150,14 @@ void DynaRecCPU::emitBlockLookup() {
     gen.Ldr(x0, MemOperand(x0, x4, LSL, 3));
 
     // Load pointer to block in x5 and jump to it
-    gen.Ldr(x5, MemOperand(x0, x3, LSL, 1));
+    gen.Lsl(x6, x3, 1);
+    gen.Ldr(x5, MemOperand(x0, x6));
+    /* TODO: gen.Ldr(x5, MemOperand(x0, x3, LSL, 1)); is broken,
+     * it emits as 'ldr x5, x0, x3, lsl, 3' causing block lookup
+     * to jump into uncompiled blocks. We need to keep x3 intact
+     * so we use x6 to store x3 << 1 here
+     */
+    // gen.Ldr(x5, MemOperand(x0, x3, LSL, 1));
     gen.Br(x5);
 }
 
@@ -299,9 +306,13 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
         call(signalShellReached);
         m_linkedPC = std::nullopt;
     }
+
+    // Block Cycles
     gen.Ldr(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Fetch block cycle count from memory
     gen.Add(w0, w0, count * PCSX::Emulator::BIAS);          // Add block cycles;
     gen.Str(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Store block cycles back to memory
+
+    // Link block else return to dispatcher
     if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
         handleLinking();
     } else {
@@ -310,6 +321,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
 
     // Clear aarch64 CPU cache due to coherency issues causing illegal instruction errors
     __builtin___clear_cache(gen.getCode<char*>(), gen.getCode<char*>() + allocSize);
+    // Finalize code buffer
     gen.ready();
 
     return pointer;
