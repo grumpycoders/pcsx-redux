@@ -868,7 +868,19 @@ void DynaRecCPU::recSRA() {
 }
 
 void DynaRecCPU::recSRAV() { throw std::runtime_error("[Unimplemented] SRAV instruction"); }
-void DynaRecCPU::recSRL() { throw std::runtime_error("[Unimplemented] SRL instruction"); }
+
+void DynaRecCPU::recSRL() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rt_].val >> _Sa_);
+    } else {
+        alloc_rt_wb_rd();
+        gen.Lsr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, _Sa_);
+    }
+}
+
 void DynaRecCPU::recSRLV() { throw std::runtime_error("[Unimplemented] SRLV instruction"); }
 
 void DynaRecCPU::recSUB() { recSUBU(); }
