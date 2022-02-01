@@ -519,7 +519,66 @@ void DynaRecCPU::recORI() {
     }
 }
 
-void DynaRecCPU::recREGIMM() { throw std::runtime_error("[Unimplemented] REGIMM instruction"); }
+void DynaRecCPU::recREGIMM() {
+    const bool isBGEZ = ((m_psxRegs.code >> 16) & 1) != 0;
+    const bool link = ((m_psxRegs.code >> 17) & 0xF) == 8;
+    const auto target = _Imm_ * 4 + m_pc;
+
+    m_nextIsDelaySlot = true;
+
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        if (isBGEZ) {  // BGEZ
+            if ((int32_t)m_regs[_Rs_].val >= 0) {
+                m_pcWrittenBack = true;
+                m_stopCompiling = true;
+                gen.Mov(w0, target);
+                gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+                m_linkedPC = target;
+            }
+        }
+
+        else {  // BLTZ
+            if ((int32_t)m_regs[_Rs_].val < 0) {
+                m_pcWrittenBack = true;
+                m_stopCompiling = true;
+                gen.Mov(w0, target);
+                gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+                m_linkedPC = target;
+            }
+        }
+
+        if (link) {
+            maybeCancelDelayedLoad(31);
+            markConst(31, m_pc + 4);
+        }
+
+        return;
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    allocateReg(_Rs_);
+    gen.Tst(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    gen.Mov(w0, target);    // ecx = addr if jump taken
+    gen.Mov(w1, m_pc + 4);  // eax = addr if jump not taken
+    // TODO: Verify Csel below is using proper conditions for signed/unsigned
+    if (isBGEZ) {
+        gen.Csel(w0, w0, w1, hs); // if $rs >= 0, move the jump addr into eax
+    } else {
+        gen.Csel(w0, w0, w1, lt); // if $rs < 0, move the jump addr into eax
+    }
+    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+    if (link) {
+        maybeCancelDelayedLoad(31);
+        markConst(31, m_pc + 4);
+    }
+}
+
 void DynaRecCPU::recRFE() { throw std::runtime_error("[Unimplemented] RFE instruction"); }
 
 void DynaRecCPU::recSB() {
