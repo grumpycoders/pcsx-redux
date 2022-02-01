@@ -237,7 +237,7 @@ void DynaRecCPU::emitDispatcher() {
 
 // Compile a block, write address of compiled code to *callback
 // Returns the address of the compiled block
-DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
+DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bool align) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
@@ -250,7 +250,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
 
-    gen.align();  // TODO: Add bool alignment check here
+    if (align) {
+        gen.align();  // Align next block
+    }
 
     if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
         flushCache();
