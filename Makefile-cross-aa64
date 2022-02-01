@@ -1,5 +1,5 @@
 TARGET := pcsx-redux
-BUILD ?= Debug
+BUILD ?= Release
 DESTDIR ?= /usr/local
 
 UNAME_S := $(shell uname -s)
