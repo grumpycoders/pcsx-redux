@@ -376,18 +376,25 @@ void DynaRecCPU::handleLinking() {
             // The value will be patched later. Since all code is within the same 32MB segment,
             // We can get away with only checking the low 32 bits of the block pointer
             gen.Mov(x0, (uintptr_t)nextBlockPointer);
-            gen.Ldr(w0, MemOperand(x0));
-            gen.Cmp(w0, 0xcccccccc);
+            gen.Ldr(x0, MemOperand(x0));
+            // Extract lower 32 bits and zero extend the rest
+            gen.Ubfx(x0, x0, 0, 31);
+            // Move value to compare against into w1
+            gen.Mov(w1, 0xcccccccc);
+            gen.Cmp(w0, w1);
 
             const auto pointer = gen.getCurr<uint8_t*>();
             gen.bne(returnFromBlock);  // Return if the block addr changed
-            // TODO: fix when recompile() alignment bool is added
-            recompile(nextBlockPointer, nextPC);  // Fallthrough to next block
+
+            recompile(nextBlockPointer, nextPC, false);  // Fallthrough to next block
 
             *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
         } else {  // If it has already been compiled, link by jumping to the compiled code
             gen.Mov(x0, (uintptr_t)nextBlockPointer);
-            gen.Ldr(w0, MemOperand(x0));
+            gen.Ldr(x0, MemOperand(x0));
+            // Extract lower 32 bits and zero extend the rest
+            gen.Ubfx(x0, x0, 0, 31);
+            // Move value to compare against into w1
             gen.Mov(w1, (uint32_t)(uintptr_t)*nextBlockPointer);
             gen.Cmp(w0, w1);
 
