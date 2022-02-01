@@ -705,7 +705,20 @@ void DynaRecCPU::recSLL() {
 
 void DynaRecCPU::recSLLV() { throw std::runtime_error("[Unimplemented] SLLV instruction"); }
 void DynaRecCPU::recSLT() { throw std::runtime_error("[Unimplemented] SLT instruction"); }
-void DynaRecCPU::recSLTI() { throw std::runtime_error("[Unimplemented] SLTI instruction"); }
+
+void DynaRecCPU::recSLTI() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (m_regs[_Rs_].isConst()) {
+        markConst(_Rt_, (int32_t)m_regs[_Rs_].val < _Imm_);
+    } else {
+        alloc_rs_wb_rt();
+        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.Cset(m_regs[_Rt_].allocatedReg, lt);
+    }
+}
+
 void DynaRecCPU::recSLTIU() { throw std::runtime_error("[Unimplemented] SLTIU instruction"); }
 
 void DynaRecCPU::recSLTU() {
