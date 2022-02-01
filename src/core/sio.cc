@@ -857,13 +857,15 @@ void PCSX::SIO::FormatMcdBlock(int mcd, int block) {
 void PCSX::SIO::SaveMcd(int mcd) {
     const auto data = GetMcdData(mcd);
     switch (mcd) {
-        case 1:
+        case 1: {
             const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string();
             SaveMcd(path, data, 0, MCD_SIZE);
             break;
-        case 2:
+        }
+        case 2: {
             const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string();
             SaveMcd(path, data, 0, MCD_SIZE);
             break;
+        }
     }
 }
