@@ -262,8 +262,6 @@ void DynaRecCPU::recBNE() {
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
-void DynaRecCPU::recBREAK() { throw std::runtime_error("[Unimplemented] BREAK instruction"); }
-
 void DynaRecCPU::recCOP0() {
     switch (_Rs_) {  // figure out the type of COP0 opcode
         case 0:
@@ -367,7 +365,14 @@ void DynaRecCPU::recJAL() {
     recJ();
 }
 
-void DynaRecCPU::recJALR() { throw std::runtime_error("[Unimplemented] JALR instruction"); }
+void DynaRecCPU::recJALR() {
+    recJR();
+
+    if (_Rd_) {
+        maybeCancelDelayedLoad(_Rd_);
+        markConst(_Rd_, m_pc + 4);  // Link
+    }
+}
 
 void DynaRecCPU::recJR() {
     m_nextIsDelaySlot = true;
