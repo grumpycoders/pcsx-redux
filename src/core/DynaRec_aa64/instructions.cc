@@ -729,7 +729,7 @@ void DynaRecCPU::recSLTU() {
         markConst(_Rd_, m_regs[_Rs_].val < m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-        // TODO: Verify this works properly, possibly check for better solution for alternative to seta/setb
+
         gen.Mov(w0, m_regs[_Rs_].val);
         gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
         gen.Cset(m_regs[_Rd_].allocatedReg, cs);
