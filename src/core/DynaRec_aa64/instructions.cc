@@ -945,10 +945,29 @@ void DynaRecCPU::recSW() {
 
 void DynaRecCPU::recSWL() { throw std::runtime_error("[Unimplemented] SWL instruction"); }
 void DynaRecCPU::recSWR() { throw std::runtime_error("[Unimplemented] SWR instruction"); }
-void DynaRecCPU::recSYSCALL() { throw std::runtime_error("[Unimplemented] SYSCALL instruction"); }
+
+void DynaRecCPU::recSYSCALL() { recException(Exception::Syscall); }
+
 void DynaRecCPU::recXOR() { throw std::runtime_error("[Unimplemented] XOR instruction"); }
 void DynaRecCPU::recXORI() { throw std::runtime_error("[Unimplemented] XORI instruction"); }
-void DynaRecCPU::recException(Exception e) { throw std::runtime_error("[Unimplemented] Recompile exception"); }
+
+void DynaRecCPU::recException(Exception e) {
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    loadThisPointer(arg1.X());                                                  // Pointer to this object in arg1
+    gen.Mov(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2);  // Exception type in arg2
+    gen.Mov(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
+    gen.Mov(w3, m_pc - 4);
+    gen.Str(w3, MemOperand(contextPointer, PC_OFFSET)); // PC for exception handler to use
+
+    call(psxExceptionWrapper);  // Call the exception wrapper
+}
+
+void DynaRecCPU::recBREAK() {
+    flushRegs();  // For PCDRV support, we need to flush all registers before handling the exception.
+    recException(Exception::Break);
+}
 
 #undef BAILZERO
 #endif  // DYNAREC_AA64
