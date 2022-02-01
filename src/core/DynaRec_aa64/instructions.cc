@@ -758,7 +758,26 @@ void DynaRecCPU::recSLTU() {
     }
 }
 
-void DynaRecCPU::recSRA() { throw std::runtime_error("[Unimplemented] SRA instruction"); }
+void DynaRecCPU::recSRA() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, (int32_t)m_regs[_Rt_].val >> _Sa_);
+    } else {
+        alloc_rt_wb_rd();
+        gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, _Sa_);
+        // TODO: Possibly don't need this check with 3 operand support but verify
+//        if (_Rd_ != _Rt_) {
+//            gen.Mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+//        }
+//
+//        if (_Sa_) {
+//            gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, _Sa_);
+//        }
+    }
+}
+
 void DynaRecCPU::recSRAV() { throw std::runtime_error("[Unimplemented] SRAV instruction"); }
 void DynaRecCPU::recSRL() { throw std::runtime_error("[Unimplemented] SRL instruction"); }
 void DynaRecCPU::recSRLV() { throw std::runtime_error("[Unimplemented] SRLV instruction"); }
