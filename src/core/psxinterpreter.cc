@@ -98,11 +98,13 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;
     virtual bool isDynarec() override { return false; }
-
     void maybeCancelDelayedLoad(uint32_t index) {
         unsigned other = m_currentDelayedLoad ^ 1;
         if (m_delayedLoadInfo[other].index == index) m_delayedLoadInfo[other].active = false;
     }
+    // For the GUI dynarec disassembly widget
+    virtual const uint8_t *getBufferPtr() final { return nullptr; }
+    virtual const size_t getBufferSize() final { return 0; }
 
     void psxTestSWInts();
 
@@ -787,7 +789,7 @@ void InterpretedCPU::psxRFE(uint32_t code) {
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
 #define RepBranchi32(op) \
-    if ((int32_t)_rRs_ op (int32_t)_rRt_) doBranch(_BranchTarget_, false);
+    if ((int32_t)_rRs_ op(int32_t) _rRt_) doBranch(_BranchTarget_, false);
 
 void InterpretedCPU::psxBEQ(uint32_t code) { RepBranchi32(==) }  // Branch if Rs == Rt
 void InterpretedCPU::psxBNE(uint32_t code) { RepBranchi32(!=) }  // Branch if Rs != Rt
