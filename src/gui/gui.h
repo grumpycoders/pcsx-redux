@@ -28,6 +28,7 @@
 #include "flags.h"
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
+#include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/callstacks.h"
 #include "gui/widgets/console.h"
@@ -248,6 +249,7 @@ class GUI final {
     Widgets::MemcardManager m_memcardManager;
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly;
+    Widgets::Disassembly m_disassembly;
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};

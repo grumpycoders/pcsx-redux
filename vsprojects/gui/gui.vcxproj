@@ -187,6 +187,7 @@
     <ClCompile Include="..\..\src\gui\widgets\callstacks.cc" />
     <ClCompile Include="..\..\src\gui\widgets\console.cc" />
     <ClCompile Include="..\..\src\gui\widgets\dwarf.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\dynarec_disassembly.cc" />
     <ClCompile Include="..\..\src\gui\widgets\events.cc" />
     <ClCompile Include="..\..\src\gui\widgets\filedialog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\kernellog.cc" />
@@ -211,6 +212,7 @@
     <ClInclude Include="..\..\src\gui\widgets\callstacks.h" />
     <ClInclude Include="..\..\src\gui\widgets\console.h" />
     <ClInclude Include="..\..\src\gui\widgets\dwarf.h" />
+    <ClInclude Include="..\..\src\gui\widgets\dynarec_disassembly.h" />
     <ClInclude Include="..\..\src\gui\widgets\events.h" />
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h" />
     <ClInclude Include="..\..\src\gui\widgets\kernellog.h" />

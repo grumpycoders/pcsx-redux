@@ -98,11 +98,13 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;
     virtual bool isDynarec() override { return false; }
-
     void maybeCancelDelayedLoad(uint32_t index) {
         unsigned other = m_currentDelayedLoad ^ 1;
         if (m_delayedLoadInfo[other].index == index) m_delayedLoadInfo[other].active = false;
     }
+    // For the GUI dynarec disassembly widget
+    virtual const uint8_t *getBufferPtr() final { return nullptr; }
+    virtual const size_t getBufferSize() final { return 0; }
 
     void psxTestSWInts();
 
@@ -787,7 +789,7 @@ void InterpretedCPU::psxRFE(uint32_t code) {
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
 #define RepBranchi32(op) \
-    if ((int32_t)_rRs_ op (int32_t)_rRt_) doBranch(_BranchTarget_, false);
+    if ((int32_t)_rRs_ op(int32_t) _rRt_) doBranch(_BranchTarget_, false);
 
 void InterpretedCPU::psxBEQ(uint32_t code) { RepBranchi32(==) }  // Branch if Rs == Rt
 void InterpretedCPU::psxBNE(uint32_t code) { RepBranchi32(!=) }  // Branch if Rs != Rt
@@ -1188,15 +1190,18 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_psxSPC[64] = {
     &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 3c
 };
 
+// The REGIMM instruction is actually valid for every single value that the rt field might have
+// If the lowest bit of the rt field is 1 then the instruction is a BGEZ, otherwise it's a BLTZ.
+// If ((_Rt_ >> 4) & 0xF) == 0x8 then the instruction should link the return address to $ra, otherwise not.
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxREG[32] = {
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 00
-    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 04
-    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 08
-    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 0c
-    &InterpretedCPU::psxBLTZAL, &InterpretedCPU::psxBGEZAL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 10
-    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 14
-    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 18
-    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 1c
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 00
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 04
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 08
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 0c
+    &InterpretedCPU::psxBLTZAL, &InterpretedCPU::psxBGEZAL, &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 10
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 14
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 18
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ  // 1c
 };
 
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxCP0[32] = {

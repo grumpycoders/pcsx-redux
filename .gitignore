@@ -6,6 +6,9 @@
 *.sln.docstates
 *.userprefs
 
+#Clion Files
+.idea/
+
 Debug/
 Release/
 ReleaseWithTracy/
@@ -88,4 +91,5 @@ vram-viewer.vert
 pcsx.lua
 DynarecOutput.map
 DynarecProfileData.txt
+DynarecDisassembly.txt
 sstate.proto

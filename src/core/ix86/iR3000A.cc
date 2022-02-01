@@ -86,6 +86,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     virtual void Shutdown() final;
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
     virtual bool isDynarec() final { return true; }
+    // For the GUI dynarec disassembly widget
+    virtual const uint8_t *getBufferPtr() final { return gen.getCode<const uint8_t *>(); }
+    virtual const size_t getBufferSize() final { return gen.getSize(); }
 
     static void recClearWrapper(DynaRecCPU *that, uint32_t a, uint32_t s) { that->Clear(a, s); }
     static uint32_t psxExceptionWrapper(DynaRecCPU *that, int e, int32_t bd) {
@@ -2861,14 +2864,14 @@ const func_t DynaRecCPU::m_recSPC[64] = {
 };
 
 const func_t DynaRecCPU::m_recREG[32] = {
-    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recNULL, &DynaRecCPU::recNULL,  // 00
-    &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL, &DynaRecCPU::recNULL,  // 04
-    &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL, &DynaRecCPU::recNULL,  // 08
-    &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL, &DynaRecCPU::recNULL,  // 0c
-    &DynaRecCPU::recBLTZAL, &DynaRecCPU::recBGEZAL, &DynaRecCPU::recNULL, &DynaRecCPU::recNULL,  // 10
-    &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL, &DynaRecCPU::recNULL,  // 14
-    &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL, &DynaRecCPU::recNULL,  // 18
-    &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL,   &DynaRecCPU::recNULL, &DynaRecCPU::recNULL,  // 1c
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 00
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 04
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 08
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 0c
+    &DynaRecCPU::recBLTZAL, &DynaRecCPU::recBGEZAL, &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 10
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 14
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 18
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ  // 1c
 };
 
 const func_t DynaRecCPU::m_recCP0[32] = {
