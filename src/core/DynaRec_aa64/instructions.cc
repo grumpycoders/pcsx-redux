@@ -818,7 +818,7 @@ void DynaRecCPU::recSLTIU() {
         alloc_rs_wb_rt();
 
         gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
-        gen.Cset(m_regs[_Rt_].allocatedReg, cs);
+        gen.Cset(m_regs[_Rt_].allocatedReg, cc);
     }
 }
 
@@ -833,17 +833,17 @@ void DynaRecCPU::recSLTU() {
 
         gen.Mov(w0, m_regs[_Rs_].val);
         gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
-        gen.Cset(m_regs[_Rd_].allocatedReg, cs);
+        gen.Cset(m_regs[_Rd_].allocatedReg, cc);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
 
         gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
-        gen.Cset(m_regs[_Rd_].allocatedReg, cs);
+        gen.Cset(m_regs[_Rd_].allocatedReg, cc);
     } else {
         alloc_rt_rs_wb_rd();
 
         gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        gen.Cset(m_regs[_Rd_].allocatedReg, cs);
+        gen.Cset(m_regs[_Rd_].allocatedReg, cc);
     }
 }
 
