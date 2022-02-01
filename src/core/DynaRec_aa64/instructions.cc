@@ -719,7 +719,19 @@ void DynaRecCPU::recSLTI() {
     }
 }
 
-void DynaRecCPU::recSLTIU() { throw std::runtime_error("[Unimplemented] SLTIU instruction"); }
+void DynaRecCPU::recSLTIU() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (m_regs[_Rs_].isConst()) {
+        markConst(_Rt_, m_regs[_Rs_].val < (uint32_t)_Imm_);
+    } else {
+        alloc_rs_wb_rt();
+
+        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.Cset(m_regs[_Rt_].allocatedReg, cs);
+    }
+}
 
 void DynaRecCPU::recSLTU() {
     BAILZERO(_Rd_);
