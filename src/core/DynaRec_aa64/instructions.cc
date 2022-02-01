@@ -414,8 +414,27 @@ void DynaRecCPU::recMFC0() {
     gen.Ldr(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
 }
 
-void DynaRecCPU::recMFHI() { throw std::runtime_error("[Unimplemented] MFHI instruction"); }
-void DynaRecCPU::recMFLO() { throw std::runtime_error("[Unimplemented] MFLO instruction"); }
+// TODO: Constant propagation for MFLO/HI, read the result from register if possible instead of reading memory again
+void DynaRecCPU::recMFLO() {
+    BAILZERO(_Rd_);
+
+    maybeCancelDelayedLoad(_Rd_);
+    allocateRegWithoutLoad(_Rd_);
+    m_regs[_Rd_].setWriteback(true);
+
+    gen.Ldr(m_regs[_Rd_].allocatedReg, MemOperand(contextPointer, LO_OFFSET));
+}
+
+// TODO: Constant propagation for MFLO/HI, read the result from register if possible instead of reading memory again
+void DynaRecCPU::recMFHI() {
+    BAILZERO(_Rd_);
+
+    maybeCancelDelayedLoad(_Rd_);
+    allocateRegWithoutLoad(_Rd_);
+    m_regs[_Rd_].setWriteback(true);
+
+    gen.Ldr(m_regs[_Rd_].allocatedReg, MemOperand(contextPointer, HI_OFFSET));
+}
 
 template <int size, bool signExtend>
 void DynaRecCPU::recompileLoad() {
