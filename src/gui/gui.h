@@ -39,6 +39,7 @@
 #include "gui/widgets/log.h"
 #include "gui/widgets/luaeditor.h"
 #include "gui/widgets/luainspector.h"
+#include "gui/widgets/memcard_manager.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
 #include "gui/widgets/source.h"
@@ -245,6 +246,7 @@ class GUI final {
     MemoryEditorWrapper m_scratchPadEditor;
     MemoryEditorWrapper m_hwrEditor;
     MemoryEditorWrapper m_biosEditor;
+    Widgets::MemcardManager m_memcardManager;
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly;
     Widgets::Disassembly m_disassembly;
