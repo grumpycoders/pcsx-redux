@@ -117,6 +117,7 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - VRAM viewer and debugger
 - fully featured MIPS debugger
 - memory cards
+- memory card manager
 - XBox controller support
 - save states
 - save state slots
@@ -124,7 +125,6 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 ### What still requires some work?
 - GLSL GPU
 - proper SPU multithreaded code
-- memory card manager
 - better customization
 - more generic dynarec
 - ...

@@ -6,7 +6,6 @@ List of things to still do here, in no particular order.
   - Re-add iCatbutler's PGXP stuff.
   - Add a GPU logger / debugger.
   - Properly integrate IRQ control.
-  - Better framerate control with SPU pushback.
 
 - SPU cleanup
   - Properly support CDDA/XA volume settings.
@@ -20,10 +19,8 @@ List of things to still do here, in no particular order.
   - Throw away the current parallel port support.
 
 - Scripting
-  - Add a scripting engine (LuaJIT).
-  - Bind most of the emulator functions to it.
+  - Bind more emulator functions to Lua.
   - Bind parallel port card system to it, so to have a flexible cart management system.
-  - Bind ImGui to it.
 
 - Tooling
   - Integrate dosbox-x.

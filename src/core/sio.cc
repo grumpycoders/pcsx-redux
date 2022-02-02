@@ -19,6 +19,8 @@
 
 #include "core/sio.h"
 
+#include <algorithm> 
+#include <stdexcept>
 #include <sys/stat.h>
 
 #include "core/misc.h"
@@ -28,17 +30,6 @@
 // 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
 // TODO: add SioModePrescaler
 #define SIO_CYCLES (m_baudReg * 8)
-
-// rely on this for now - someone's actual testing
-//#define SIO_CYCLES (PCSX::g_emulator->m_psxClockSpeed / 57600)
-// PCSX 1.9.91
-//#define SIO_CYCLES 200
-// PCSX 1.9.91
-//#define SIO_CYCLES 270
-// ePSXe 1.6.0
-//#define SIO_CYCLES        535
-// ePSXe 1.7.0
-//#define SIO_CYCLES 635
 
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
@@ -251,7 +242,7 @@ void PCSX::SIO::write8(uint8_t value) {
                     // case 0x82: case 0x83: case 0x84: // Multitap memcard access
             m_statusReg |= RX_RDY;
 
-            memset(m_buffer, 0, 4);
+            std::memset(m_buffer, 0, 4);
             if ((m_ctrlReg & 0x2002) == 0x0002) {
                 if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
                     m_buffer[1] = m_wasMcd1Inserted ? 0 : MCDST_CHANGED;
@@ -348,9 +339,7 @@ uint8_t PCSX::SIO::sioRead8() {
 }
 
 uint16_t PCSX::SIO::readStatus16() {
-    uint16_t hard;
-
-    hard = m_statusReg;
+    uint16_t hard = m_statusReg;
 
 #if 0
     // wait for IRQ first
@@ -381,7 +370,6 @@ void PCSX::SIO::netError() {
 
 void PCSX::SIO::interrupt() {
     SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
-    //  PCSX::g_system->printf("Sio Interrupt\n");
     m_statusReg |= IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
@@ -394,8 +382,7 @@ void PCSX::SIO::interrupt() {
 }
 
 void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
-    FILE *f;
-    char *data = NULL;
+    char *data = nullptr;
     const char *fname = reinterpret_cast<const char *>(str.c_str());
 
     if (mcd == 1) {
@@ -407,22 +394,24 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
         m_wasMcd2Inserted = false;
     }
 
-    f = fopen(fname, "rb");
-    if (f == NULL) {
+    FILE* f = fopen(fname, "rb");
+    if (f == nullptr) {
         PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), fname);
         CreateMcd(str);
         f = fopen(fname, "rb");
-        if (f != NULL) {
+        if (f != nullptr) {
             struct stat buf;
 
             if (stat(fname, &buf) != -1) {
+                // Check if the file is a VGS memory card, skip the header if it is
                 if (buf.st_size == MCD_SIZE + 64)
                     fseek(f, 64, SEEK_SET);
+                // Check if the file is a Dexdrive memory card, skip the header if it is
                 else if (buf.st_size == MCD_SIZE + 3904)
                     fseek(f, 3904, SEEK_SET);
             }
             if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-                throw("File read error.");
+                throw("Error reading memory card.");
             }
             fclose(f);
         } else
@@ -437,7 +426,7 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
                 fseek(f, 3904, SEEK_SET);
         }
         if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-            throw("File read error.");
+            throw("Error reading memory card.");
         }
         fclose(f);
     }
@@ -449,11 +438,10 @@ void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
 }
 
 void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
-    FILE *f;
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
+    FILE* f = fopen(fname, "r+b");
 
-    f = fopen(fname, "r+b");
-    if (f != NULL) {
+    if (f != nullptr) {
         struct stat buf;
 
         if (stat(fname, &buf) != -1) {
@@ -485,14 +473,12 @@ void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr
 }
 
 void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
-    FILE *f;
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     struct stat buf;
     int s = MCD_SIZE;
-    int i = 0, j;
 
-    f = fopen(fname, "wb");
-    if (f == NULL) return;
+    const auto f = fopen(fname, "wb");
+    if (f == nullptr) return;
 
     if (stat(fname, &buf) != -1) {
         if ((buf.st_size == MCD_SIZE + 3904) || strstr(fname, ".gme")) {
@@ -519,7 +505,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
             s--;
             fputc('D', f);
             s--;
-            for (i = 0; i < 7; i++) {
+            for (int i = 0; i < 7; i++) {
                 fputc(0, f);
                 s--;
             }
@@ -533,7 +519,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
             s--;
             fputc('Q', f);
             s--;
-            for (i = 0; i < 14; i++) {
+            for (int i = 0; i < 14; i++) {
                 fputc(0xa0, f);
                 s--;
             }
@@ -551,7 +537,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
             s--;
             fputc('M', f);
             s--;
-            for (i = 0; i < 3; i++) {
+            for (int i = 0; i < 3; i++) {
                 fputc(1, f);
                 s--;
                 fputc(0, f);
@@ -575,7 +561,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
     fputc(0xe, f);
     s--;
 
-    for (i = 0; i < 15; i++) {  // 15 blocks
+    for (int i = 0; i < 15; i++) {  // 15 blocks
         fputc(0xa0, f);
         s--;
         fputc(0x00, f);
@@ -596,7 +582,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
         s--;
         fputc(0xff, f);
         s--;
-        for (j = 0; j < 117; j++) {
+        for (int j = 0; j < 117; j++) {
             fputc(0x00, f);
             s--;
         }
@@ -604,7 +590,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
         s--;
     }
 
-    for (i = 0; i < 20; i++) {
+    for (int i = 0; i < 20; i++) {
         fputc(0xff, f);
         s--;
         fputc(0xff, f);
@@ -625,7 +611,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
         s--;
         fputc(0xff, f);
         s--;
-        for (j = 0; j < 118; j++) {
+        for (int j = 0; j < 118; j++) {
             fputc(0x00, f);
             s--;
         }
@@ -637,14 +623,12 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
 }
 
 void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
-    FILE *f;
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    int i = 0;
     int s = MCD_SIZE;
 
     if (strstr(fname, ".gme")) {
-        f = fopen(fname, "wb");
-        if (f != NULL) {
+        auto f = fopen(fname, "wb");
+        if (f != nullptr) {
             fwrite(data - 3904, 1, MCD_SIZE + 3904, f);
             fclose(f);
         }
@@ -672,7 +656,7 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         s--;
         fputc('D', f);
         s--;
-        for (i = 0; i < 7; i++) {
+        for (int i = 0; i < 7; i++) {
             fputc(0, f);
             s--;
         }
@@ -686,7 +670,7 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         s--;
         fputc('Q', f);
         s--;
-        for (i = 0; i < 14; i++) {
+        for (int i = 0; i < 14; i++) {
             fputc(0xa0, f);
             s--;
         }
@@ -696,8 +680,8 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         while (s-- > (MCD_SIZE + 1)) fputc(0, f);
         fclose(f);
     } else if (strstr(fname, ".mem") || strstr(fname, ".vgs")) {
-        f = fopen(fname, "wb");
-        if (f != NULL) {
+        auto f = fopen(fname, "wb");
+        if (f != nullptr) {
             fwrite(data - 64, 1, MCD_SIZE + 64, f);
             fclose(f);
         }
@@ -711,7 +695,7 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         s--;
         fputc('M', f);
         s--;
-        for (i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             fputc(1, f);
             s--;
             fputc(0, f);
@@ -727,8 +711,8 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         while (s-- > (MCD_SIZE + 1)) fputc(0, f);
         fclose(f);
     } else {
-        f = fopen(fname, "wb");
-        if (f != NULL) {
+        const auto f = fopen(fname, "wb");
+        if (f != nullptr) {
             fwrite(data, 1, MCD_SIZE, f);
             fclose(f);
         }
@@ -736,29 +720,21 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
 }
 
 void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
-    char *data = NULL, *ptr, *str, *sstr;
-    unsigned short clut[16];
-    unsigned short c;
-    int i, x;
+    uint16_t clut[16];
 
-    memset(Info, 0, sizeof(McdBlock));
+    std::memset(Info, 0, sizeof(McdBlock));
 
-    if (mcd == 1) data = g_mcd1Data;
-    if (mcd == 2) data = g_mcd2Data;
-
-    ptr = data + block * 8192 + 2;
-
-    Info->IconCount = *ptr & 0x3;
+    char *data = GetMcdData(mcd);
+    char *ptr = data + block * MCD_BLOCK_SIZE + 2;
+    char *str = Info->Title;
+    char *sstr = Info->sTitle;
+    Info->IconCount = std::max(1, *ptr & 0x3);
 
     ptr += 2;
+    int x = 0;
 
-    x = 0;
-
-    str = Info->Title;
-    sstr = Info->sTitle;
-
-    for (i = 0; i < 48; i++) {
-        c = *(ptr) << 8;
+    for (int i = 0; i < 48; i++) {
+        uint16_t c = (*ptr) << 8;
         c |= *(ptr + 1);
         if (!c) break;
 
@@ -809,31 +785,87 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     trim(str);
     trim(sstr);
 
-    ptr = data + block * 8192 + 0x60;  // icon palette data
+    // Read CLUT
+    ptr = data + block * MCD_BLOCK_SIZE + 0x60;
+    std::memcpy(clut, ptr, 16 * sizeof(uint16_t));
 
-    for (i = 0; i < 16; i++) {
-        clut[i] = *((unsigned short *)ptr);
-        ptr += 2;
-    }
-
-    for (i = 0; i < Info->IconCount; i++) {
+    // Icons can have 1 to 3 frames of animation
+    for (int i = 0; i < Info->IconCount; i++) {
         uint16_t *icon = &Info->Icon[i * 16 * 16];
+        ptr = data + block * MCD_BLOCK_SIZE + 128 + 128 * i;  // icon data
 
-        ptr = data + block * 8192 + 128 + 128 * i;  // icon data
-
+        // Fetch each pixel, store it in the icon array in ABBBBBGGGGGRRRRR with the alpha bit set to 1
         for (x = 0; x < 16 * 16; x++) {
-            icon[x++] = clut[*ptr & 0xf];
-            icon[x] = clut[*ptr >> 4];
+            const uint8_t entry = (uint8_t)*ptr;
+            icon[x++] = clut[entry & 0xf] | (1 << 15);
+            icon[x] = clut[entry >> 4] | (1 << 15);
             ptr++;
         }
     }
 
-    ptr = data + block * 128;
+    
+    // Parse directory frame info
+    const auto directoryFrame = (uint8_t *)data + block * MCD_SECT_SIZE;
+    Info->Flags = directoryFrame[0];
+    std::strncpy(Info->ID, (const char*) &directoryFrame[0xa], 12);
+    std::strncpy(Info->Name, (const char*) &directoryFrame[0x16], 16);
 
-    Info->Flags = *ptr;
+    const uint32_t fileSize =
+        directoryFrame[0x4] | (directoryFrame[0x5] << 8) | (directoryFrame[0x6] << 16) | (directoryFrame[0x7] << 24);
+    Info->Filesize = fileSize;
 
-    ptr += 0xa;
-    strncpy(Info->ID, ptr, 12);
-    ptr += 12;
-    strncpy(Info->Name, ptr, 16);
+    // Check if the block is marked as free in the directory frame and adjust the name/filename if so
+    if (Info->Flags == 0xa0) {
+        std::strcpy(Info->Title, "Free Block");
+        std::strcpy(Info->Name, "Empty File");
+        Info->Filesize = 0;
+    }
+}
+
+char *PCSX::SIO::GetMcdData(int mcd) {
+    switch (mcd) {
+        case 1:
+            return g_mcd1Data;
+        case 2:
+            return g_mcd2Data;
+        default:
+            throw std::runtime_error("Attempt to access invalid memory card");
+            return nullptr;
+    }
+}
+
+// Format a memory card block by clearing it with 0s
+// mcd: The memory card we want to use (1 or 2)
+// block: A block from 1 to 15 inclusive
+void PCSX::SIO::FormatMcdBlock(int mcd, int block) {
+    char *data = GetMcdData(mcd);
+
+    // Set the block data to 0
+    const size_t offset = block * MCD_BLOCK_SIZE;
+    std::memset(data + offset, 0, MCD_BLOCK_SIZE);
+
+    // Fix up the corresponding directory frame in block 0.
+    const auto frame = (uint8_t *)data + block * MCD_SECT_SIZE;
+    frame[0] = 0xa0;  // Code for a freshly formatted block
+    for (auto i = 1; i < 0x7f; i++) { // Zero the rest of the frame
+        frame[i] = 0;
+    }
+    frame[0x7f] = 0xa0; // xor checksum of frame
+}
+// Back up the entire memory card to a file
+// mcd: The memory card to back up (1 or 2)
+void PCSX::SIO::SaveMcd(int mcd) {
+    const auto data = GetMcdData(mcd);
+    switch (mcd) {
+        case 1: {
+            const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string();
+            SaveMcd(path, data, 0, MCD_SIZE);
+            break;
+        }
+        case 2: {
+            const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string();
+            SaveMcd(path, data, 0, MCD_SIZE);
+            break;
+        }
+    }
 }

@@ -104,8 +104,9 @@ class SIO {
     void writeMcd(uint8_t value);
 
   public:
-    static const uint64_t MCD_SECT_SIZE = 8 * 16;
-    static const uint64_t MCD_SIZE = 1024 * MCD_SECT_SIZE;
+    static const size_t MCD_SECT_SIZE = 8 * 16;
+    static const size_t MCD_BLOCK_SIZE = 8192;
+    static const size_t MCD_SIZE = 1024 * MCD_SECT_SIZE;
 
     char g_mcd1Data[MCD_SIZE], g_mcd2Data[MCD_SIZE];
 
@@ -128,6 +129,7 @@ class SIO {
     void LoadMcd(int mcd, const PCSX::u8string str);
     void LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);
     void SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+    void SaveMcd(int mcd);
     void CreateMcd(const PCSX::u8string mcd);
     void ConvertMcd(const PCSX::u8string mcd, const char *data);
 
@@ -136,12 +138,15 @@ class SIO {
         char sTitle[48 * 2 + 1];  // Title in Shift-JIS
         char ID[12 + 1];
         char Name[16 + 1];
+        uint32_t Filesize;
         uint32_t IconCount;
         uint16_t Icon[16 * 16 * 3];
         uint8_t Flags;
     } McdBlock;
 
     void GetMcdBlockInfo(int mcd, int block, McdBlock *info);
+    void FormatMcdBlock(int mcd, int block);
+    char *GetMcdData(int mcd);
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
 
