@@ -280,8 +280,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
 
     static void signalShellReached(DynaRecCPU* that);
-    static DynarecCallback recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
-        return that->recompile(callback, that->m_psxRegs.pc);
+    static DynarecCallback recRecompileWrapper(DynaRecCPU* that) {
+        return that->recompile(that->m_psxRegs.pc);
     }
 
     void inlineClear(uint32_t address) {
@@ -301,7 +301,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
-    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc, bool align = true);
+    DynarecCallback recompile(uint32_t pc, bool align = true);
     void error();
     void flushCache();
     void handleLinking();
