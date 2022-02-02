@@ -474,8 +474,8 @@ bool PCSX::Pads::Pad::configure() {
                 hasToPop = true;
             }
 
-            const auto keyName =
-                fmt::format("{}##{}", glfwKeyToString(getButtonFromGUIIndex(i)), i);  // THe name of the mapped key
+            // The name of the mapped key
+            const auto keyName = fmt::format("{}##{}", glfwKeyToString(getButtonFromGUIIndex(i)), i);
             if (ImGui::Button(keyName.c_str(), ImVec2{-1, 0})) {
                 m_buttonToWait = i;
             }

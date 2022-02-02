@@ -345,8 +345,7 @@ end)(jit.status()))
         }
 
         setFullscreen(m_fullscreen);
-        const auto currentTheme =
-            emuSettings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
+        const auto currentTheme = emuSettings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
         applyTheme(currentTheme);
 
         if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
@@ -440,6 +439,8 @@ end)(jit.status()))
     m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
     m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
+    m_memcardManager.initTextures();
+
     unsigned counter = 1;
     for (auto& viewer : m_VRAMviewers) {
         viewer.setTitle([counter]() { return _("Vram Viewer #") + std::to_string(counter); });
@@ -642,15 +643,10 @@ void PCSX::GUI::flip() {
 
     glClearColor(0, 0, 0, 0);
     glClearDepthf(0.f);
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glFrontFace(GL_CW);
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
-
     glDisable(GL_CULL_FACE);
-    m_currentTexture = m_currentTexture ? 0 : 1;
+    m_currentTexture ^= 1;
 }
 
 void PCSX::GUI::endFrame() {
@@ -775,14 +771,6 @@ void PCSX::GUI::endFrame() {
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 ImGui::Separator();
-                if (ImGui::MenuItem(_("Memory Card 1 inserted"), nullptr,
-                                    &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
-                    g_emulator->m_sio->interrupt();
-                }
-                if (ImGui::MenuItem(_("Memory Card 2 inserted"), nullptr,
-                                    &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value)) {
-                    g_emulator->m_sio->interrupt();
-                }
                 if (ImGui::MenuItem(_("Reboot"))) {
                     g_system->quit(0x12eb007);
                 }
@@ -825,6 +813,9 @@ void PCSX::GUI::endFrame() {
                         m_overlayLoadSizes[counter] = str;
                         counter++;
                     }
+                }
+                if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
+                    m_memcardManager.m_frameCount = 0;  // Reset frame count when memcard manager is toggled
                 }
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
@@ -1072,6 +1063,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
             m_biosEditor.draw(PCSX::g_emulator->m_psxMem->g_psxR, 512 * 1024, 0xbfc00000);
         }
+    }
+
+    if (m_memcardManager.m_show) {
+        changed |= m_memcardManager.draw(_("Memory Card Manager"));
     }
 
     if (m_registers.m_show) {
@@ -1577,11 +1572,11 @@ bool PCSX::GUI::about() {
                 if (glDebugMessageCallback) {
                     changed |= ImGui::Checkbox(_("Enable OpenGL error reporting"),
                                                &g_emulator->settings.get<Emulator::SettingGLErrorReporting>().value);
-                    
-                    ShowHelpMarker(_(
-                            "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
-                            "However it requires OpenGL 4.3+ and might have performance repercussions on "
-                            "some PCs. (Requires reboot)"));
+
+                    ShowHelpMarker(
+                        _("OpenGL error reporting is necessary for properly reporting OpenGL problems. "
+                          "However it requires OpenGL 4.3+ and might have performance repercussions on "
+                          "some PCs. (Requires reboot)"));
                 }
                 ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
                 someString(_("Vendor"), GL_VENDOR);
