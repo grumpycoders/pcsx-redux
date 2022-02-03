@@ -649,11 +649,118 @@ void DynaRecCPU::testSoftwareInterrupt() {
     gen.L(label); // Execution will jump here if interrupts not enabled
 }
 
-void DynaRecCPU::recMTHI() { throw std::runtime_error("[Unimplemented] MTHI instruction"); }
-void DynaRecCPU::recMTLO() { throw std::runtime_error("[Unimplemented] MTLP instruction"); }
-void DynaRecCPU::recMULT() { throw std::runtime_error("[Unimplemented] MULT instruction"); }
-void DynaRecCPU::recMULTU() { throw std::runtime_error("[Unimplemented] MULTU instruction"); }
-void DynaRecCPU::recNOR() { throw std::runtime_error("[Unimplemented] NOR instruction"); }
+void DynaRecCPU::recMTHI() {
+    if (m_regs[_Rs_].isConst()) {
+        gen.Mov(w0, m_regs[_Rs_].val);
+        gen.Str(w0, MemOperand(contextPointer, HI_OFFSET));
+    } else {
+        allocateReg(_Rs_);
+        gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, HI_OFFSET));
+    }
+}
+
+void DynaRecCPU::recMTLO() {
+    if (m_regs[_Rs_].isConst()) {
+        gen.Mov(w0, m_regs[_Rs_].val);
+        gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
+    } else {
+        allocateReg(_Rs_);
+        gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, LO_OFFSET));
+    }
+}
+// TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
+void DynaRecCPU::recMULT() {
+    if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
+        printf("LOHI 64bit WRITE CHECK\n");
+        gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET)); // Set both LO and HI to 0 in a single 64-bit write
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        if (m_regs[_Rt_].isConst()) {
+            const uint64_t result = (int64_t)(int32_t)m_regs[_Rt_].val * (int64_t)(int32_t)m_regs[_Rs_].val;
+            gen.Mov(w0, (uint32_t)result);
+            gen.Mov(w1, (uint32_t)(result >> 32));
+            gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
+            gen.Str(w1, MemOperand(contextPointer, HI_OFFSET));
+        } else {
+            allocateReg(_Rt_);
+            gen.Sxtw(x0, m_regs[_Rt_].allocatedReg);
+            mov(w1, m_regs[_Rs_].val);
+            gen.Mul(x0, x0, x1);
+        }
+    } else {
+        if (m_regs[_Rt_].isConst()) {
+            allocateReg(_Rs_);
+            gen.Sxtw(x0, m_regs[_Rs_].allocatedReg);
+            gen.Mov(w1, m_regs[_Rt_].val);
+            gen.Mul(x0, x0, x1);
+        } else {
+            alloc_rt_rs();
+            gen.Sxtw(x0, m_regs[_Rs_].allocatedReg);
+            gen.Sxtw(x1, m_regs[_Rt_].allocatedReg);
+            gen.Mul(x0, x0, x1);
+        }
+    }
+    printf("LOHI 64bit WRITE CHECK\n");
+    // Write 64-bit result to lo and hi at the same time
+    gen.Str(x0, MemOperand(contextPointer, LO_OFFSET));
+}
+
+// TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
+void DynaRecCPU::recMULTU() {
+    if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
+        printf("LOHI 64bit WRITE CHECK\n");
+        gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET)); // Set both LO and HI to 0 in a single 64-bit write
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        gen.Mov(w0, m_regs[_Rs_].val);
+
+        if (m_regs[_Rt_].isConst()) {
+            gen.Mov(w1, m_regs[_Rt_].val);
+            gen.Mul(x0, x0, x1);
+        } else {
+            allocateReg(_Rt_);
+            gen.Mul(x0, x0, m_regs[_Rt_].allocatedReg.X());
+        }
+    } else {
+        if (m_regs[_Rt_].isConst()) {
+            allocateReg(_Rs_);
+            gen.Mov(w0, m_regs[_Rt_].val);
+            gen.Mul(x0, x0, m_regs[_Rs_].allocatedReg.X());
+        } else {
+            alloc_rt_rs();
+            gen.Mov(w0, m_regs[_Rs_].allocatedReg);
+            gen.Mul(x0, x0, m_regs[_Rt_].allocatedReg.X());
+        }
+    }
+    gen.Lsr(x1, x0, 32);
+    gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
+    gen.Str(w1, MemOperand(contextPointer, HI_OFFSET));
+}
+
+void DynaRecCPU::recNOR() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, ~(m_regs[_Rs_].val | m_regs[_Rt_].val));
+    } else if (m_regs[_Rs_].isConst()) {
+        alloc_rt_wb_rd();
+        gen.Mov(w0, m_regs[_Rs_].val);
+        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Orn(m_regs[_Rd_].allocatedReg, w0, m_regs[_Rs_].allocatedReg);
+        gen.Mvn(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg);
+    } else {
+        alloc_rt_rs_wb_rd();
+        gen.Orn(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    }
+}
 
 void DynaRecCPU::recOR() {
     BAILZERO(_Rd_);
