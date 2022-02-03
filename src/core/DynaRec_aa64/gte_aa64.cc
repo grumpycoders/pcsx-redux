@@ -49,38 +49,24 @@ void DynaRecCPU::recGTEMove() {
     }
 }
 
-void DynaRecCPU::recCTC2() {
-    throw std::runtime_error("[Unimplemented] CTC2 instruction");
-}
+void DynaRecCPU::recCTC2() { throw std::runtime_error("[Unimplemented] CTC2 instruction"); }
 
-void DynaRecCPU::recMTC2() {
-    throw std::runtime_error("[Unimplemented] MTC2 instruction");
-}
+void DynaRecCPU::recMTC2() { throw std::runtime_error("[Unimplemented] MTC2 instruction"); }
 
 static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg); }
 
-void DynaRecCPU::recMFC2() {
-    throw std::runtime_error("[Unimplemented] MFC2 instruction");
-}
+void DynaRecCPU::recMFC2() { throw std::runtime_error("[Unimplemented] MFC2 instruction"); }
 
-void DynaRecCPU::recCFC2() {
-    throw std::runtime_error("[Unimplemented] CFC2 instruction");
-}
+void DynaRecCPU::recCFC2() { throw std::runtime_error("[Unimplemented] CFC2 instruction"); }
 
-void DynaRecCPU::recLWC2() {
-    throw std::runtime_error("[Unimplemented] LWC2 instruction");
-}
+void DynaRecCPU::recLWC2() { throw std::runtime_error("[Unimplemented] LWC2 instruction"); }
 
-void DynaRecCPU::recSWC2() {
-    throw std::runtime_error("[Unimplemented] SWC2 instruction");
-}
+void DynaRecCPU::recSWC2() { throw std::runtime_error("[Unimplemented] SWC2 instruction"); }
 
 #define GTE_FALLBACK(name)                                                                          \
     static void name##Wrapper(uint32_t instruction) { PCSX::g_emulator->m_gte->name(instruction); } \
                                                                                                     \
-    void DynaRecCPU::rec##name() {                                                                  \
-        throw std::runtime_error("[Unimplemented] Unimplemented GTE fallback");                     \
-    }
+    void DynaRecCPU::rec##name() { throw std::runtime_error("[Unimplemented] Unimplemented GTE fallback"); }
 
 GTE_FALLBACK(AVSZ3);
 GTE_FALLBACK(AVSZ4);

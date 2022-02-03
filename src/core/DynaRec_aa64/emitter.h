@@ -19,8 +19,9 @@
 
 #pragma once
 #ifdef DYNAREC_AA64
+#include <sys/mman.h>  // For mmap/mprotect
+
 #include "vixl/src/aarch64/macro-assembler-aarch64.h"
-#include <sys/mman.h> // For mmap/mprotect
 
 using namespace vixl::aarch64;
 
@@ -33,12 +34,10 @@ constexpr size_t allocSize = codeCacheSize + 0x1000;
 alignas(4096) static uint8_t s_codeCache[allocSize];
 
 class Emitter : public MacroAssembler {
-public:
+  public:
     Emitter() : MacroAssembler(s_codeCache, allocSize) {}
 
-    void L(Label& l) {
-        bind(&l);
-    }
+    void L(Label& l) { bind(&l); }
 
     template <typename T = void*>
     T getCurr() {
@@ -50,9 +49,7 @@ public:
         return GetBuffer()->GetStartAddress<T>();
     }
 
-    size_t getSize() {
-        return GetCursorOffset();
-    }
+    size_t getSize() { return GetCursorOffset(); }
 
     void ready() { FinalizeCode(); }
 
@@ -62,11 +59,9 @@ public:
         return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE | PROT_EXEC) != -1;
     }
     // Aligns to 4-byte with no argument
-    void align() {
-        GetBuffer()->Align();
-    }
+    void align() { GetBuffer()->Align(); }
 
-    #define MAKE_CONDITIONAL_BRANCH(properName, alias) \
+#define MAKE_CONDITIONAL_BRANCH(properName, alias)      \
     void b##properName(Label& l) { b(&l, properName); } \
     void b##alias(Label& l) { b##properName(l); }
 
@@ -86,11 +81,11 @@ public:
     void ble(Label& l) { b(&l, le); }
     void bal(Label& l) { b(&l); }
 
-    #undef MAKE_CONDITIONAL_BRANCH
+#undef MAKE_CONDITIONAL_BRANCH
 
     void dumpBuffer() {
         std::ofstream file("DynarecOutput.dump", std::ios::binary);  // Make a file for our dump
-        file.write(getCode<const char*>(), getSize());       // Write the code buffer to the dump
+        file.write(getCode<const char*>(), getSize());               // Write the code buffer to the dump
     }
 
     // Returns a signed integer that shows how many bytes of free space are left in the code buffer
@@ -149,7 +144,8 @@ public:
     // dest = value - source
     // Optimizes the value == 0 case, thrases w0 but not FLAGs
     void reverseSub(Register dest, Register source, uint32_t value) {
-        if (value == 0) {;
+        if (value == 0) {
+            ;
             Neg(dest, source);
         } else {
             Mov(w0, value);
@@ -158,8 +154,6 @@ public:
     }
 
     // Emit a trap instruction that gdb/lldb/Visual Studio can interpret as a breakpoint
-    void breakpoint() {
-        Brk(0);
-    }
+    void breakpoint() { Brk(0); }
 };
 #endif  // DYNAREC_AA64

@@ -523,8 +523,7 @@ void DynaRecCPU::recLWL() {
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_regs[_Rt_].setWriteback(true);
         gen.Mov(m_regs[_Rt_].allocatedReg, previousValue & mask);  // Mask the previous $rt value
-//        gen.Lsl(w0, w0, shift);                                    // Shift the value read from the aligned address
-        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSL, shift));                   // Or $rt with shifted value
+        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSL, shift));  // Or $rt with shifted value in w0
     } else if (m_regs[_Rs_].isConst()) {                           // Only address is constant
         const uint32_t address = m_regs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
@@ -537,8 +536,7 @@ void DynaRecCPU::recLWL() {
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_regs[_Rt_].setWriteback(true);
         gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, mask);  // Mask the previous $rt value
-//        gen.Lsl(w0, w0, shift);                   // Shift the value read from the aligned address
-        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSL, shift));  // Or $rt with shifted value
+        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSL, shift));  // Or $rt with shifted value in w0
     } else if (m_regs[_Rt_].isConst()) {          // Only previous rt value is constant
         const uint32_t previousValue = m_regs[_Rt_].val;
 
@@ -572,7 +570,7 @@ void DynaRecCPU::recLWL() {
         alloc_rt_rs();
         m_regs[_Rt_].setWriteback(true);
 
-        gen.moveAndAdd(w1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in edx again
+        gen.moveAndAdd(w1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in w1
         gen.And(w1, w1, 3);                                       // Get the low 2 bits
         gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);            // Base to mask and shift lookup table in x3
         gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));   // Load the mask and shift from LUT by indexing using the bottom 2 bits of
@@ -601,7 +599,7 @@ void DynaRecCPU::recLWR() {
         const auto shift = LWR_SHIFT[address & 3];
         const uint32_t previousValue = m_regs[_Rt_].val;
 
-        gen.Mov(arg1, alignedAddress);  // Address in arg1
+        gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
         call(psxMemRead32Wrapper);      // Read value returned in w0
 
         allocateReg(_Rt_);  // Allocate $rt with writeback
@@ -1159,7 +1157,6 @@ void DynaRecCPU::recSLL() {
     }
 }
 
-// Note: This code doesn't mask the shift amount to 32 bits, as x86 processors do that implicitly
 void DynaRecCPU::recSLLV() {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
@@ -1268,18 +1265,9 @@ void DynaRecCPU::recSRA() {
     } else {
         alloc_rt_wb_rd();
         gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, _Sa_);
-        // TODO: Possibly don't need this check with 3 operand support but verify
-//        if (_Rd_ != _Rt_) {
-//            gen.Mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-//        }
-//
-//        if (_Sa_) {
-//            gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, _Sa_);
-//        }
     }
 }
 
-// Note: This code doesn't mask the shift amount to 32 bits, as x86 processors do that implicitly
 void DynaRecCPU::recSRAV() {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
@@ -1320,7 +1308,6 @@ void DynaRecCPU::recSRL() {
     }
 }
 
-// Note: This code doesn't mask the shift amount to 32 bits, as x86 processors do that implicitly
 void DynaRecCPU::recSRLV() {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);

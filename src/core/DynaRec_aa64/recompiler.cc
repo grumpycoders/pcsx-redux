@@ -99,7 +99,7 @@ void DynaRecCPU::Shutdown() {
     delete[] m_biosBlocks;
     delete[] m_dummyBlocks;
 
-    gen.dumpBuffer();
+    gen.dumpBuffer();  // dump buffer on shutdown/hard-reset for diagnostics
 }
 
 /// Params: A program counter value
@@ -175,9 +175,10 @@ void DynaRecCPU::emitDispatcher() {
     // Back up all our allocateable volatile regs
     // TODO: Change back to STP
     static_assert((ALLOCATEABLE_NON_VOLATILE_COUNT & 1) == 0);  // Make sure we've got an even number of regs
-    for (auto i = 0; i < ALLOCATEABLE_NON_VOLATILE_COUNT; i++) {
+    for (auto i = 0; i < ALLOCATEABLE_NON_VOLATILE_COUNT; i += 2) {
         const auto reg = allocateableNonVolatiles[i];
-        gen.Str(reg.X(), MemOperand(sp, -16, PreIndex));
+        const auto reg2 = allocateableNonVolatiles[i + 1];
+        gen.Stp(reg.X(), reg2.X(), MemOperand(sp, -16, PreIndex));
     }
 
     gen.Str(runningPointer,
@@ -203,9 +204,10 @@ void DynaRecCPU::emitDispatcher() {
 
     // Restore all non-volatiles
     // TODO: Change back to LDP
-    for (int i = ALLOCATEABLE_NON_VOLATILE_COUNT - 1; i >= 0; i--) {
+    for (int i = ALLOCATEABLE_NON_VOLATILE_COUNT - 1; i >= 0; i -= 2) {
         const auto reg = allocateableNonVolatiles[i];
-        gen.Ldr(reg.X(), MemOperand(sp, 16, PostIndex));
+        const auto reg2 = allocateableNonVolatiles[i - 1];
+        gen.Ldp(reg2.X(), reg.X(), MemOperand(sp, 16, PostIndex));
     }
     gen.Ldr(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));
 
@@ -250,9 +252,11 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
 
-    if (align) {
-        gen.align();  // Align next block
-    }
+    //    if (align) {
+    //        gen.align();  // Align next block
+    //    }
+
+    gen.align();  // Always align for now since we are not linking blocks
 
     if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
         flushCache();
@@ -312,7 +316,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     // Block Cycles
     gen.Ldr(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Fetch block cycle count from memory
     gen.Mov(w1, count * PCSX::Emulator::BIAS);
-    gen.Add(w0, w0, w1);          // Add block cycles;
+    gen.Add(w0, w0, w1);                                    // Add block cycles;
     gen.Str(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Store block cycles back to memory
 
     // Link block else return to dispatcher
@@ -414,13 +418,13 @@ void DynaRecCPU::handleFastboot() {
     vixl::aarch64::Label noFastBoot;
 
     gen.Mov(x0, (uintptr_t)&m_shellStarted);  // Check if shell has already been reached
-    gen.Ldrb(w1, MemOperand(x0));
-    gen.Cbnz(w1, &noFastBoot);  // Don't fastboot if so
+    gen.Ldrb(w0, MemOperand(x0));
+    gen.Cbnz(w0, &noFastBoot);  // Don't fastboot if so
 
     gen.Mov(x0,
             (uintptr_t)&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>());  // Check if fastboot is on
-    gen.Ldrb(w1, MemOperand(x0));
-    gen.Cbz(w1, &noFastBoot);
+    gen.Ldrb(w0, MemOperand(x0));
+    gen.Cbz(w0, &noFastBoot);
 
     loadThisPointer(arg1.X());  // If fastbooting, call the signalShellReached function, set pc, and exit the block
     call(signalShellReached);
