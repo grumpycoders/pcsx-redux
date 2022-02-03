@@ -1015,7 +1015,8 @@ void DynaRecCPU::recSUBU() {
         gen.reverseSub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-        gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, w0);
     } else {
         alloc_rt_rs_wb_rd();
         gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
