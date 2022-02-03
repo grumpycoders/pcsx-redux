@@ -101,7 +101,8 @@ public:
     // Uses add if the value is non-zero, or mov otherwise
     void moveAndAdd(Register dest, Register source, uint32_t value) {
         if (value != 0) {
-            Add(dest, source, value);
+            Mov(w0, value);
+            Add(dest, source, w0);
         } else {
             Mov(dest, source);
         }
@@ -121,7 +122,8 @@ public:
                 Uxth(dest, source);
                 break;
             default:
-                And(dest, source, value);
+                Mov(w0, value);
+                And(dest, source, w0);
                 break;
         }
     }
@@ -129,14 +131,16 @@ public:
     // Logical OR dest by value (Skip the OR if value == 0)
     void orImm(Register dest, uint32_t value) {
         if (value != 0) {
-            Orr(dest, dest, value);
+            Mov(w0, value);
+            Orr(dest, dest, w0);
         }
     }
 
     // Logical OR source by value (
     void orImm(Register dest, Register source, uint32_t value) {
         if (value != 0) {
-            Orr(dest, source, value);
+            Mov(w0, value);
+            Orr(dest, source, w0);
         } else if (!dest.Is(source)) {
             Mov(dest, source);
         }
