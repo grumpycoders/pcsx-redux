@@ -297,7 +297,8 @@ void DynaRecCPU::recDIV() {
                 allocateReg(_Rs_);
                 gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, HI_OFFSET)); // Set hi to $rs
                 gen.Lsr(w0, m_regs[_Rs_].allocatedReg, 31);
-                gen.Add(w0, w0, -1);
+                gen.Sub(w1, w0, 1);
+                gen.Add(w0, w0, w1);
                 gen.Str(w0, MemOperand(contextPointer, LO_OFFSET)); // Set lo to 1 or -1 depending on the sign of $rs
             }
 
@@ -352,7 +353,7 @@ void DynaRecCPU::recDIV() {
 
         // Handle INT_MIN / -1
         gen.Mov(w0, 0x80000000);  // Set lo to INT_MIN
-        gen.Eor(w3, w3, w3);        // Set hi to 0
+        gen.Mov(w3, 0);        // Set hi to 0
         gen.B(&end);
     }
 
@@ -366,7 +367,8 @@ void DynaRecCPU::recDIV() {
 
         gen.Mov(w3, w0);  // Set hi to $rs
         gen.Lsr(w2, w2, 31);
-        gen.Add(w2, w2, -1); // Set lo to 1 or -1 depending on the sign of $rs
+        gen.Sub(w5, w2, 1);
+        gen.Add(w2, w2, w5); // Set lo to 1 or -1 depending on the sign of $rs
     }
 
     gen.L(end);
@@ -425,7 +427,7 @@ void DynaRecCPU::recDIVU() {
         gen.bz(divisionByZero);                   // Jump to divisionByZero label if so
     }
     // TODO: This may be able to be optimized with a proper AND depending
-    gen.Eor(w3, w3, w3);  // Set top 32 bits of dividend to 0
+    gen.Mov(w3, 0);  // Set top 32 bits of dividend to 0
     gen.Udiv(w2, w0, w1);        // Unsigned division by divisor
     gen.Msub(w3, w2, w1, w0); // Get remainder by msub
 
