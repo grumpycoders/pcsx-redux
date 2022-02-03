@@ -1159,7 +1159,6 @@ void DynaRecCPU::recSLL() {
     }
 }
 
-// Note: This code doesn't mask the shift amount to 32 bits, as x86 processors do that implicitly
 void DynaRecCPU::recSLLV() {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
@@ -1268,14 +1267,6 @@ void DynaRecCPU::recSRA() {
     } else {
         alloc_rt_wb_rd();
         gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, _Sa_);
-        // TODO: Possibly don't need this check with 3 operand support but verify
-//        if (_Rd_ != _Rt_) {
-//            gen.Mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-//        }
-//
-//        if (_Sa_) {
-//            gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, _Sa_);
-//        }
     }
 }
 
