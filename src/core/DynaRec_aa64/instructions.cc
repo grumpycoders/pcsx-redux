@@ -673,7 +673,6 @@ void DynaRecCPU::recMTLO() {
 // TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
 void DynaRecCPU::recMULT() {
     if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
-        printf("LOHI 64bit WRITE CHECK\n");
         gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET)); // Set both LO and HI to 0 in a single 64-bit write
         return;
     }
@@ -688,7 +687,7 @@ void DynaRecCPU::recMULT() {
         } else {
             allocateReg(_Rt_);
             gen.Sxtw(x0, m_regs[_Rt_].allocatedReg);
-            mov(w1, m_regs[_Rs_].val);
+            gen.Mov(w1, m_regs[_Rs_].val);
             gen.Mul(x0, x0, x1);
         }
     } else {
@@ -704,7 +703,6 @@ void DynaRecCPU::recMULT() {
             gen.Mul(x0, x0, x1);
         }
     }
-    printf("LOHI 64bit WRITE CHECK\n");
     // Write 64-bit result to lo and hi at the same time
     gen.Str(x0, MemOperand(contextPointer, LO_OFFSET));
 }
@@ -712,7 +710,6 @@ void DynaRecCPU::recMULT() {
 // TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
 void DynaRecCPU::recMULTU() {
     if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
-        printf("LOHI 64bit WRITE CHECK\n");
         gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET)); // Set both LO and HI to 0 in a single 64-bit write
         return;
     }
@@ -752,12 +749,11 @@ void DynaRecCPU::recNOR() {
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
         gen.Mov(w0, m_regs[_Rs_].val);
-        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+        gen.Orn(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
         gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Orn(m_regs[_Rd_].allocatedReg, w0, m_regs[_Rs_].allocatedReg);
-        gen.Mvn(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg);
+        gen.Orn(m_regs[_Rd_].allocatedReg,m_regs[_Rs_].allocatedReg, w0);
     } else {
         alloc_rt_rs_wb_rd();
         gen.Orn(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
