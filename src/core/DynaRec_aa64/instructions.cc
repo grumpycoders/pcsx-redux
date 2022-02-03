@@ -922,7 +922,8 @@ void DynaRecCPU::recSLTI() {
         markConst(_Rt_, (int32_t)m_regs[_Rs_].val < _Imm_);
     } else {
         alloc_rs_wb_rt();
-        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.Mov(w0, _Imm_);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
         gen.Cset(m_regs[_Rt_].allocatedReg, lt);
     }
 }
@@ -935,8 +936,8 @@ void DynaRecCPU::recSLTIU() {
         markConst(_Rt_, m_regs[_Rs_].val < (uint32_t)_Imm_);
     } else {
         alloc_rs_wb_rt();
-
-        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.Mov(w0, _Imm_);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
         gen.Cset(m_regs[_Rt_].allocatedReg, cc);
     }
 }
