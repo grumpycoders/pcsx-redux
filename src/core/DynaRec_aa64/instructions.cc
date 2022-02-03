@@ -749,14 +749,17 @@ void DynaRecCPU::recNOR() {
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
         gen.Mov(w0, m_regs[_Rs_].val);
-        gen.Orn(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+        gen.Mvn(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
         gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Orn(m_regs[_Rd_].allocatedReg,m_regs[_Rs_].allocatedReg, w0);
+        gen.Orr(m_regs[_Rd_].allocatedReg,m_regs[_Rs_].allocatedReg, w0);
+        gen.Mvn(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg);
     } else {
         alloc_rt_rs_wb_rd();
-        gen.Orn(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.Mvn(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg);
     }
 }
 
