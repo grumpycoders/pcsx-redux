@@ -917,6 +917,15 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlID + 0x100:
                 SetResultSize(8);
+
+                 if (!m_iso.isActive()) {
+                    m_result[0] = 0x08;
+                    m_result[1] = 0x40;
+                    memset((char *)&m_result[2], 0, 6);
+                    m_stat = DiskError;
+                    break;
+                }
+
                 m_result[0] = m_statP;
                 m_result[1] = 0;
                 m_result[2] = 0;
@@ -1049,12 +1058,12 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         if (!no_busy_error) {
-            if (!m_iso.isActive()) {
+            /* if (!m_iso.isActive()) {
                 SetResultSize(2);
                 m_result[0] = m_statP | STATUS_ERROR;
                 m_result[1] = ERROR_NOTREADY;
                 m_stat = DiskError;
-            } else {
+            } else {*/
                 switch (m_driveState) {
                     case DRIVESTATE_LID_OPEN:
                     case DRIVESTATE_RESCAN_CD:
@@ -1065,7 +1074,7 @@ class CDRomImpl : public PCSX::CDRom {
                         m_stat = DiskError;
                         break;
                 }
-            }
+            //}
         }
 
     finish:
