@@ -64,7 +64,7 @@ void DynaRecCPU::recADDIU() {
         } else {
             allocateReg(_Rt_);
             m_regs[_Rt_].setWriteback(true);
-            gen.Add(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _Imm_);
+            gen.moveAndAdd(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _Imm_);
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
@@ -84,12 +84,10 @@ void DynaRecCPU::recAND() {
         markConst(_Rd_, m_regs[_Rs_].val & m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-
-        gen.And(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.andImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-
-        gen.And(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.andImm(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         alloc_rt_rs_wb_rd();
         gen.And(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -137,10 +135,12 @@ void DynaRecCPU::recBEQ() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.Mov(w0, m_regs[_Rs_].val);
+        gen.Cmp(m_regs[_Rt_].allocatedReg, w0);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
     } else {
         alloc_rt_rs();
         gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -244,10 +244,12 @@ void DynaRecCPU::recBNE() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.Mov(w0, m_regs[_Rs_].val);
+        gen.Cmp(m_regs[_Rt_].allocatedReg, w0);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
     } else {
         alloc_rt_rs();
         gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -279,7 +281,7 @@ void DynaRecCPU::recCOP0() {
             break;
     }
 }
-
+// TODO: CHECK IF REMAINDER NEEDS SIGNED
 void DynaRecCPU::recDIV() {
     Label notIntMin, divisionByZero, end;
     bool emitIntMinCheck = true;
@@ -770,22 +772,13 @@ void DynaRecCPU::recOR() {
         markConst(_Rd_, m_regs[_Rs_].val | m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-
         gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-
         gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         alloc_rt_rs_wb_rd();
-
-        if (_Rd_ == _Rs_) {
-            gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        } else if (_Rd_ == _Rt_) {
-            gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
-        } else {
-            gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
-        }
+        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
     }
 }
 
@@ -799,7 +792,7 @@ void DynaRecCPU::recORI() {
         } else {
             allocateReg(_Rt_);
             m_regs[_Rt_].setWriteback(true);
-            gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _ImmU_);
+            gen.orImm(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _ImmU_);
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
@@ -856,13 +849,13 @@ void DynaRecCPU::recREGIMM() {
 
     allocateReg(_Rs_);
     gen.Tst(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
-    gen.Mov(w0, target);    // ecx = addr if jump taken
-    gen.Mov(w1, m_pc + 4);  // eax = addr if jump not taken
+    gen.Mov(w0, target);    // w0 = addr if jump taken
+    gen.Mov(w1, m_pc + 4);  // w1 = addr if jump not taken
     // TODO: Verify Csel below is using proper conditions for signed/unsigned
     if (isBGEZ) {
-        gen.Csel(w0, w0, w1, hs); // if $rs >= 0, move the jump addr into eax
+        gen.Csel(w0, w0, w1, pl); // if $rs >= 0 unsigned compare, move the jump addr into eax
     } else {
-        gen.Csel(w0, w0, w1, lt); // if $rs < 0, move the jump addr into eax
+        gen.Csel(w0, w0, w1, mi); // if $rs < 0 signed compare, move the jump addr into eax
     }
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
     if (link) {
@@ -959,7 +952,7 @@ void DynaRecCPU::recSH() {
                 gen.Mov(arg2, m_regs[_Rt_].val & 0xFFFF);
             } else {
                 allocateReg(_Rt_);
-                gen.Uxth(arg2, m_regs[_Rt_].allocatedReg);
+                gen.Mov(arg2, m_regs[_Rt_].allocatedReg);
             }
 
             call(SPU_writeRegisterWrapper);
