@@ -1096,7 +1096,8 @@ void DynaRecCPU::recSH() {
             gen.Mov(x0, (uint64_t)&PCSX::g_emulator->m_psxMem->g_psxH[0x1070]);
             if (m_regs[_Rt_].isConst()) {
                 gen.Ldrh(w1, MemOperand(x0));
-                gen.And(w1, w1, m_regs[_Rt_].val & 0xFFFF);
+                gen.Mov(w2, m_regs[_Rt_].val & 0xFFFF);
+                gen.And(w1, w1, w2);
                 gen.Strh(w1, MemOperand(x0));
             } else {
                 allocateReg(_Rt_);
