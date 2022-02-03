@@ -1058,16 +1058,16 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         if (!no_busy_error) {
-                switch (m_driveState) {
-                    case DRIVESTATE_LID_OPEN:
-                    case DRIVESTATE_RESCAN_CD:
-                    case DRIVESTATE_PREPARE_CD:
-                        SetResultSize(2);
-                        m_result[0] = m_statP | STATUS_ERROR;
-                        m_result[1] = ERROR_NOTREADY;
-                        m_stat = DiskError;
-                        break;
-                }
+            switch (m_driveState) {
+                case DRIVESTATE_LID_OPEN:
+                case DRIVESTATE_RESCAN_CD:
+                case DRIVESTATE_PREPARE_CD:
+                    SetResultSize(2);
+                    m_result[0] = m_statP | STATUS_ERROR;
+                    m_result[1] = ERROR_NOTREADY;
+                    m_stat = DiskError;
+                    break;
+            }
         }
 
     finish:
