@@ -949,18 +949,16 @@ void DynaRecCPU::recSLTU() {
         markConst(_Rd_, m_regs[_Rs_].val < m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-
         gen.Mov(w0, m_regs[_Rs_].val);
         gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
         gen.Cset(m_regs[_Rd_].allocatedReg, cc);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-
-        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
         gen.Cset(m_regs[_Rd_].allocatedReg, cc);
     } else {
         alloc_rt_rs_wb_rd();
-
         gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
         gen.Cset(m_regs[_Rd_].allocatedReg, cc);
     }
