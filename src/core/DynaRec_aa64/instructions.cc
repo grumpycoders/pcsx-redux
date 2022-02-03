@@ -585,8 +585,87 @@ void DynaRecCPU::recLWL() {
     }
 }
 
+void DynaRecCPU::recLWR() {
+    if (!_Rt_) {
+        error();
+    }
 
-void DynaRecCPU::recLWR() { throw std::runtime_error("[Unimplemented] LWR instruction"); }
+    // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
+    // Depending on the low 3 bits of the unaligned address
+    static const uint64_t MASKS_AND_SHIFTS[4] = {0, 0xFF00000000000008, 0xFFFF000000000010, 0xFFFFFF0000000018};
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {  // Both previous register value and address are constant
+        const uint32_t address = m_regs[_Rs_].val + _Imm_;
+        const uint32_t alignedAddress = address & ~3;
+        const uint32_t mask = LWR_MASK[address & 3];
+        const auto shift = LWR_SHIFT[address & 3];
+        const uint32_t previousValue = m_regs[_Rt_].val;
+
+        gen.Mov(arg1, alignedAddress);  // Address in arg1
+        call(psxMemRead32Wrapper);      // Read value returned in w0
+
+        allocateReg(_Rt_);  // Allocate $rt with writeback
+        m_regs[_Rt_].setWriteback(true);
+        gen.Mov(m_regs[_Rt_].allocatedReg, previousValue & mask);  // Mask the previous $rt value
+        // Shift the read value from aligned address and Or $re with shifted value
+        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSR, shift));
+    } else if (m_regs[_Rs_].isConst()) {                           // Only address is constant
+        const uint32_t address = m_regs[_Rs_].val + _Imm_;
+        const uint32_t alignedAddress = address & ~3;
+        const uint32_t mask = LWR_MASK[address & 3];
+        const auto shift = LWR_SHIFT[address & 3];
+
+        gen.Mov(arg1, alignedAddress);  // Address in arg1
+        call(psxMemRead32Wrapper);      // Read value returned in w0
+
+        allocateReg(_Rt_);  // Allocate $rt with writeback
+        m_regs[_Rt_].setWriteback(true);
+        gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, mask);  // Mask the previous $rt value
+        // Shift the read value from aligned address and Or $re with shifted value
+        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSR, shift));
+    } else if (m_regs[_Rt_].isConst()) {          // Only previous rt value is constant
+        const uint32_t previousValue = m_regs[_Rt_].val;
+
+        allocateReg(_Rs_);                                       // Allocate address reg
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        gen.And(arg1, arg1, ~3);                                      // Force align it
+        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
+
+        // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
+        alloc_rt_rs();
+        m_regs[_Rt_].setWriteback(true);
+
+        gen.Mov(m_regs[_Rt_].allocatedReg, previousValue);      // Flush constant value in $rt
+        gen.moveAndAdd(w1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in w1 again
+        gen.And(w1, w1, 3);                                     // Get the low 2 bits
+        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);              // Form PC-relative address to mask and shift lookup table
+        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));                // Load the mask and shift from LUT by indexing using the bottom 2 bits of
+                                                                // the unaligned addr.
+        gen.Lsr(x4, x3, 32);                                    // Mask now in w4
+        gen.Lsr(w0, w0, w3);                                    // Shift the read value by the shift amount
+        gen.And(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w4); // Mask previous $rt value
+        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0); // Merge with newly read value
+    } else {                                                     // Nothing is constant
+        allocateReg(_Rs_);                                       // Allocate address reg
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        gen.And(arg1, arg1, ~3);                                      // Force align it
+        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in eax
+
+        // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
+        alloc_rt_rs();
+        m_regs[_Rt_].setWriteback(true);
+
+        gen.moveAndAdd(w1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in w1 again
+        gen.And(w1, w1, 3);                                    // Get the low 2 bits
+        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);             // Form PC-relative address to mask and shift lookup table
+        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));               // Load the mask and shift from LUT by indexing using the bottom 2 bits of
+                                                               // the unaligned addr.
+        gen.Lsr(x4, x3, 32);                                    // Mask now in w4
+        gen.Lsr(w0, w0, w3);                                    // Shift the read value by the shift amount
+        gen.And(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w4);  // Mask previous $rt value
+        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);  // Merge with newly read value
+    }
+}
 
 void DynaRecCPU::recMFC0() {
     BAILZERO(_Rt_);
