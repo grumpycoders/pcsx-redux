@@ -1067,8 +1067,52 @@ void DynaRecCPU::recSWR() { throw std::runtime_error("[Unimplemented] SWR instru
 
 void DynaRecCPU::recSYSCALL() { recException(Exception::Syscall); }
 
-void DynaRecCPU::recXOR() { throw std::runtime_error("[Unimplemented] XOR instruction"); }
-void DynaRecCPU::recXORI() { throw std::runtime_error("[Unimplemented] XORI instruction"); }
+void DynaRecCPU::recXOR() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rs_].val ^ m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        alloc_rt_wb_rd();
+        gen.Mov(w0, m_regs[_Rs_].val);
+        gen.Eor(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Eor(m_regs[_Rd_].allocatedReg, w0, m_regs[_Rs_].allocatedReg);
+    } else {
+        alloc_rt_rs_wb_rd();
+        gen.Eor(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    }
+}
+
+void DynaRecCPU::recXORI() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (_Rs_ == _Rt_) {
+        if (m_regs[_Rs_].isConst()) {
+            m_regs[_Rt_].val ^= _ImmU_;
+        } else {
+            allocateReg(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
+            gen.Mov(w0, _ImmU_);
+            gen.Eor(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+        }
+    } else {
+        if (m_regs[_Rs_].isConst()) {
+            markConst(_Rt_, m_regs[_Rs_].val ^ _ImmU_);
+        } else {
+            alloc_rs_wb_rt();
+            gen.Mov(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+            if (_ImmU_) {
+                gen.Mov(w0, _ImmU_);
+                gen.Eor(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+            }
+        }
+    }
+}
 
 void DynaRecCPU::recException(Exception e) {
     m_pcWrittenBack = true;
