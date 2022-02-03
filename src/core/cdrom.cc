@@ -1049,15 +1049,22 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         if (!no_busy_error) {
-            switch (m_driveState) {
-                case DRIVESTATE_LID_OPEN:
-                case DRIVESTATE_RESCAN_CD:
-                case DRIVESTATE_PREPARE_CD:
-                    SetResultSize(2);
-                    m_result[0] = m_statP | STATUS_ERROR;
-                    m_result[1] = ERROR_NOTREADY;
-                    m_stat = DiskError;
-                    break;
+            if (!m_iso.isActive()) {
+                SetResultSize(2);
+                m_result[0] = m_statP | STATUS_ERROR;
+                m_result[1] = ERROR_NOTREADY;
+                m_stat = DiskError;
+            } else {
+                switch (m_driveState) {
+                    case DRIVESTATE_LID_OPEN:
+                    case DRIVESTATE_RESCAN_CD:
+                    case DRIVESTATE_PREPARE_CD:
+                        SetResultSize(2);
+                        m_result[0] = m_statP | STATUS_ERROR;
+                        m_result[1] = ERROR_NOTREADY;
+                        m_stat = DiskError;
+                        break;
+                }
             }
         }
 
@@ -1668,8 +1675,9 @@ class CDRomImpl : public PCSX::CDRom {
                                     m_param[0]);
                 break;
             default:
-                if (command > cdCmdEnumCount) {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: CdlUnknown\n", delayedString);
+                if ((command & 0xff) > cdCmdEnumCount) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: CdlUnknown(0x%02X)\n", delayedString,
+                                        command & 0xff);
                 } else {
                     PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: %s\n", delayedString,
                                         magic_enum::enum_names<Commands>()[command & 0xff]);
