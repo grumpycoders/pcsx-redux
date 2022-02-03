@@ -1030,8 +1030,8 @@ void DynaRecCPU::recRFE() {
     gen.Ldr(w0, MemOperand(contextPointer, COP0_OFFSET(12)));  // w0 = COP0 status register
     gen.And(w1, w0, 0x3c);                                     // mask out the rest of the SR value
     gen.And(w0, w0, ~0xF);                                    // Clear bottom 4 bits of w0
-    gen.Lsr(w1, w1, 2);                                        // Shift bits [5:2] of SR two places to the right
-    gen.Orr(w0, w0, w1);                                      // Merge the shifted bits into w0
+    gen.Orr(w0, w0, Operand(w1, LSR, 2));                     // Shift bits [5:2] of SR two places to the right
+                                                              // & merge the shifted bits into w0
     gen.Str(w0, MemOperand(contextPointer, COP0_OFFSET(12))); // Write w0 back to SR
     testSoftwareInterrupt<false>();
 }
