@@ -986,7 +986,34 @@ void DynaRecCPU::recSRA() {
     }
 }
 
-void DynaRecCPU::recSRAV() { throw std::runtime_error("[Unimplemented] SRAV instruction"); }
+// Note: This code doesn't mask the shift amount to 32 bits, as x86 processors do that implicitly
+void DynaRecCPU::recSRAV() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, (int32_t)m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
+    } else if (m_regs[_Rs_].isConst()) {
+        if (_Rt_ == _Rd_) {
+            allocateReg(_Rd_);
+            m_regs[_Rd_].setWriteback(true);
+            gen.Mov(w0, m_regs[_Rs_].val & 0x1F);
+            gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, w0);
+        } else {
+            alloc_rt_wb_rd();
+            gen.Mov(w0, m_regs[_Rs_].val & 0x1F);
+            gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+        }
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Asr(m_regs[_Rd_].allocatedReg, w0 ,m_regs[_Rs_].allocatedReg);
+
+    } else {
+        alloc_rt_rs_wb_rd();
+        gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    }
+}
 
 void DynaRecCPU::recSRL() {
     BAILZERO(_Rd_);
@@ -1000,7 +1027,31 @@ void DynaRecCPU::recSRL() {
     }
 }
 
-void DynaRecCPU::recSRLV() { throw std::runtime_error("[Unimplemented] SRLV instruction"); }
+// Note: This code doesn't mask the shift amount to 32 bits, as x86 processors do that implicitly
+void DynaRecCPU::recSRLV() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        markConst(_Rd_, m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
+    } else if (m_regs[_Rs_].isConst()) {
+        if (_Rt_ == _Rd_) {
+            allocateReg(_Rd_);
+            m_regs[_Rd_].setWriteback(true);
+            gen.Lsr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
+        } else {
+            alloc_rt_wb_rd();
+            gen.Lsr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val & 0x1F);
+        }
+    } else if (m_regs[_Rt_].isConst()) {
+        alloc_rs_wb_rd();
+        gen.Mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+        gen.Lsr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    } else {
+        alloc_rt_rs_wb_rd();
+        gen.Lsr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    }
+}
 
 void DynaRecCPU::recSUB() { recSUBU(); }
 
