@@ -898,17 +898,16 @@ void DynaRecCPU::recSLT() {
         markConst(_Rd_, (int32_t)m_regs[_Rs_].val < (int32_t)m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.Mov(w0, m_regs[_Rs_].val);
+        gen.Cmp(m_regs[_Rt_].allocatedReg, w0);
         gen.Cset(m_regs[_Rd_].allocatedReg, gt);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-
         gen.Mov(w0, m_regs[_Rs_].val);
         gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
         gen.Cset(m_regs[_Rd_].allocatedReg, lt);
     } else {
         alloc_rt_rs_wb_rd();
-
         gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
         gen.Cset(m_regs[_Rd_].allocatedReg, lt);
     }
@@ -922,7 +921,8 @@ void DynaRecCPU::recSLTI() {
         markConst(_Rt_, (int32_t)m_regs[_Rs_].val < _Imm_);
     } else {
         alloc_rs_wb_rt();
-        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.Mov(w0, _Imm_);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
         gen.Cset(m_regs[_Rt_].allocatedReg, lt);
     }
 }
@@ -935,8 +935,8 @@ void DynaRecCPU::recSLTIU() {
         markConst(_Rt_, m_regs[_Rs_].val < (uint32_t)_Imm_);
     } else {
         alloc_rs_wb_rt();
-
-        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.Mov(w0, _Imm_);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
         gen.Cset(m_regs[_Rt_].allocatedReg, cc);
     }
 }
@@ -949,18 +949,16 @@ void DynaRecCPU::recSLTU() {
         markConst(_Rd_, m_regs[_Rs_].val < m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-
         gen.Mov(w0, m_regs[_Rs_].val);
         gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
         gen.Cset(m_regs[_Rd_].allocatedReg, cc);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-
-        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
         gen.Cset(m_regs[_Rd_].allocatedReg, cc);
     } else {
         alloc_rt_rs_wb_rd();
-
         gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
         gen.Cset(m_regs[_Rd_].allocatedReg, cc);
     }
