@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #pragma once
+#include "core/r3000a.h"
 #ifdef DYNAREC_AA64
 #include <sys/mman.h>  // For mmap/mprotect
 
@@ -96,8 +97,8 @@ class Emitter : public MacroAssembler {
     // Uses add if the value is non-zero, or mov otherwise
     void moveAndAdd(Register dest, Register source, uint32_t value) {
         if (value != 0) {
-            Mov(w0, value);
-            Add(dest, source, w0);
+            Mov(w5, value);
+            Add(dest, source, w5);
         } else {
             Mov(dest, source);
         }
@@ -134,8 +135,8 @@ class Emitter : public MacroAssembler {
     // Logical OR source by value (
     void orImm(Register dest, Register source, uint32_t value) {
         if (value != 0) {
-            Mov(w0, value);
-            Orr(dest, source, w0);
+            Mov(w4, value);
+            Orr(dest, source, w4);
         } else if (!dest.Is(source)) {
             Mov(dest, source);
         }
