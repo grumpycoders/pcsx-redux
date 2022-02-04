@@ -149,9 +149,9 @@ void DynaRecCPU::recBEQ() {
     m_pcWrittenBack = true;
     m_stopCompiling = true;
 
-    gen.Mov(w0, target); // w0 = addr if jump taken
-    gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
-    gen.Csel(w0, w0, w1, eq); // if taken, return the jump addr into w0
+    gen.Mov(w0, target);       // w0 = addr if jump taken
+    gen.Mov(w1, m_pc + 4);     // w1 = addr if jump not taken
+    gen.Csel(w0, w0, w1, eq);  // if taken, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -184,9 +184,9 @@ void DynaRecCPU::recBGTZ() {
         gen.Cmp(w0, 0);
     }
 
-    gen.Mov(w0, target); // w0 = addr if jump taken
-    gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
-    gen.Csel(w0, w0, w1, gt); // if taken, return the jump addr into w0
+    gen.Mov(w0, target);       // w0 = addr if jump taken
+    gen.Mov(w1, m_pc + 4);     // w1 = addr if jump not taken
+    gen.Csel(w0, w0, w1, gt);  // if taken, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -219,9 +219,9 @@ void DynaRecCPU::recBLEZ() {
         gen.Cmp(w0, 0);
     }
 
-    gen.Mov(w0, target); // w0 = addr if jump taken
-    gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
-    gen.Csel(w0, w0, w1, le); // if taken, return the jump addr into w0
+    gen.Mov(w0, target);       // w0 = addr if jump taken
+    gen.Mov(w1, m_pc + 4);     // w1 = addr if jump not taken
+    gen.Csel(w0, w0, w1, le);  // if taken, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -258,9 +258,9 @@ void DynaRecCPU::recBNE() {
     m_pcWrittenBack = true;
     m_stopCompiling = true;
 
-    gen.Mov(w0, target); // w0 = addr if jump taken
-    gen.Mov(w1, m_pc + 4); // w1 = addr if jump not taken
-    gen.Csel(w0, w0, w1, ne); // if taken, return the jump addr into w0
+    gen.Mov(w0, target);       // w0 = addr if jump taken
+    gen.Mov(w1, m_pc + 4);     // w1 = addr if jump not taken
+    gen.Csel(w0, w0, w1, ne);  // if taken, return the jump addr into w0
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
@@ -289,19 +289,19 @@ void DynaRecCPU::recDIV() {
     if (m_regs[_Rt_].isConst()) {     // Check divisor if constant
         if (m_regs[_Rt_].val == 0) {  // Handle case where divisor is 0
             if (m_regs[_Rs_].isConst()) {
-                gen.Mov(w0, m_regs[_Rs_].val & 0x80000000 ? 1 : -1); // LO = 1 or -1 depending on the sign of $rs
+                gen.Mov(w0, m_regs[_Rs_].val & 0x80000000 ? 1 : -1);  // LO = 1 or -1 depending on the sign of $rs
                 gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
                 gen.Mov(w0, m_regs[_Rs_].val);
-                gen.Str(w0, MemOperand(contextPointer, HI_OFFSET)); // HI = $rs
+                gen.Str(w0, MemOperand(contextPointer, HI_OFFSET));  // HI = $rs
             }
 
             else {
                 allocateReg(_Rs_);
-                gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, HI_OFFSET)); // Set hi to $rs
+                gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, HI_OFFSET));  // Set hi to $rs
                 gen.Lsr(w0, m_regs[_Rs_].allocatedReg, 31);
                 gen.Sub(w1, w0, 1);
                 gen.Add(w0, w0, w1);
-                gen.Str(w0, MemOperand(contextPointer, LO_OFFSET)); // Set lo to 1 or -1 depending on the sign of $rs
+                gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));  // Set lo to 1 or -1 depending on the sign of $rs
             }
 
             return;
@@ -326,12 +326,12 @@ void DynaRecCPU::recDIV() {
 
         allocateReg(_Rs_);
         gen.Mov(w0, m_regs[_Rs_].allocatedReg);
-        gen.Mov(w1, m_regs[_Rt_].val); // Divisor in w1
+        gen.Mov(w1, m_regs[_Rt_].val);  // Divisor in w1
 
-    } else {                             // non-constant divisor
+    } else {  // non-constant divisor
         if (m_regs[_Rs_].isConst()) {
             allocateReg(_Rt_);
-            gen.Mov(w0, m_regs[_Rs_].val); // Dividend in w0
+            gen.Mov(w0, m_regs[_Rs_].val);  // Dividend in w0
             emitIntMinCheck = m_regs[_Rs_].val == 0x80000000;
         }
 
@@ -341,61 +341,60 @@ void DynaRecCPU::recDIV() {
         }
 
         gen.Mov(w1, m_regs[_Rt_].allocatedReg);  // Divisor in w1
-        gen.Tst(w1, w1);                       // Check if divisor is 0
-        gen.bz(divisionByZero);                   // Jump to divisionByZero label if so
+        gen.Tst(w1, w1);                         // Check if divisor is 0
+        gen.bz(divisionByZero);                  // Jump to divisionByZero label if so
     }
 
     if (emitIntMinCheck) {
         gen.Mov(w4, 0x80000000);
-        gen.Cmp(w0, w4);  // Check if dividend is INT_MIN
-        gen.bne(notIntMin); // Bail if not
+        gen.Cmp(w0, w4);     // Check if dividend is INT_MIN
+        gen.bne(notIntMin);  // Bail if not
         gen.Mov(w4, 0xffffffff);
-        gen.Cmp(w1, w4);  // Check if divisor is -1
-        gen.bne(notIntMin);        // Bail if not
+        gen.Cmp(w1, w4);     // Check if divisor is -1
+        gen.bne(notIntMin);  // Bail if not
 
         // Handle INT_MIN / -1
         gen.Mov(w0, 0x80000000);  // Set lo to INT_MIN
-        gen.Mov(w3, 0);        // Set hi to 0
+        gen.Mov(w3, 0);           // Set hi to 0
         gen.B(&end);
     }
 
     gen.L(notIntMin);
-    gen.Sdiv(w2, w0, w1); // Signed divide
-    gen.Msub(w3, w2, w1, w0); // Get remainder by msub
+    gen.Sdiv(w2, w0, w1);      // Signed divide
+    gen.Msub(w3, w2, w1, w0);  // Get remainder by msub
 
     if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
-        gen.B(&end);               // skip to the end if not a div by zero
+        gen.B(&end);                // skip to the end if not a div by zero
         gen.L(divisionByZero);      // Here starts our division by 0 handler
 
         gen.Mov(w3, w0);  // Set hi to $rs
         gen.Lsr(w2, w2, 31);
         gen.Sub(w5, w2, 1);
-        gen.Add(w2, w2, w5); // Set lo to 1 or -1 depending on the sign of $rs
+        gen.Add(w2, w2, w5);  // Set lo to 1 or -1 depending on the sign of $rs
     }
 
     gen.L(end);
 
-    gen.Str(w2, MemOperand(contextPointer, LO_OFFSET)); // Lo = quotient
-    gen.Str(w3, MemOperand(contextPointer, HI_OFFSET)); // Hi = remainder
-
+    gen.Str(w2, MemOperand(contextPointer, LO_OFFSET));  // Lo = quotient
+    gen.Str(w3, MemOperand(contextPointer, HI_OFFSET));  // Hi = remainder
 }
 
 void DynaRecCPU::recDIVU() {
     Label divisionByZero;
 
-    if (m_regs[_Rt_].isConst()) {                            // Check divisor if constant
-        if (m_regs[_Rt_].val == 0) {                         // Handle case where divisor is 0
+    if (m_regs[_Rt_].isConst()) {     // Check divisor if constant
+        if (m_regs[_Rt_].val == 0) {  // Handle case where divisor is 0
             gen.Mov(w0, -1);
-            gen.Str(w0, MemOperand(contextPointer, LO_OFFSET)); // Set lo to -1
+            gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));  // Set lo to -1
 
             if (m_regs[_Rs_].isConst()) {
                 gen.Mov(w0, m_regs[_Rs_].val);
-                gen.Str(w0, MemOperand(contextPointer, HI_OFFSET)); // HI = $rs
+                gen.Str(w0, MemOperand(contextPointer, HI_OFFSET));  // HI = $rs
             }
 
             else {
                 allocateReg(_Rs_);
-                gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, HI_OFFSET)); // Set hi to $rs
+                gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, HI_OFFSET));  // Set hi to $rs
             }
 
             return;
@@ -411,39 +410,39 @@ void DynaRecCPU::recDIVU() {
 
         allocateReg(_Rs_);
         gen.Mov(w0, m_regs[_Rs_].allocatedReg);
-        gen.Mov(w1, m_regs[_Rt_].val); // Divisor in w1
+        gen.Mov(w1, m_regs[_Rt_].val);  // Divisor in w1
 
-    } else {                             // non-constant divisor
+    } else {  // non-constant divisor
         if (m_regs[_Rs_].isConst()) {
             allocateReg(_Rt_);
-            gen.Mov(w0, m_regs[_Rs_].val); // Dividend in w0
+            gen.Mov(w0, m_regs[_Rs_].val);  // Dividend in w0
         }
 
         else {
             alloc_rt_rs();
-            gen.Mov(w0, m_regs[_Rs_].allocatedReg); // Dividend in w0
+            gen.Mov(w0, m_regs[_Rs_].allocatedReg);  // Dividend in w0
         }
 
         gen.Mov(w1, m_regs[_Rt_].allocatedReg);  // Divisor in w1
-        gen.Tst(w1, w1);                       // Check if divisor is 0
-        gen.bz(divisionByZero);                   // Jump to divisionByZero label if so
+        gen.Tst(w1, w1);                         // Check if divisor is 0
+        gen.bz(divisionByZero);                  // Jump to divisionByZero label if so
     }
     // TODO: This may be able to be optimized with a proper AND depending
-    gen.Mov(w3, 0);  // Set top 32 bits of dividend to 0
-    gen.Udiv(w2, w0, w1);        // Unsigned division by divisor
-    gen.Msub(w3, w2, w1, w0); // Get remainder by msub
+    gen.Mov(w3, 0);            // Set top 32 bits of dividend to 0
+    gen.Udiv(w2, w0, w1);      // Unsigned division by divisor
+    gen.Msub(w3, w2, w1, w0);  // Get remainder by msub
 
     if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
         Label end;
-        gen.B(&end);           // skip to the end if not a div by zero
+        gen.B(&end);            // skip to the end if not a div by zero
         gen.L(divisionByZero);  // Here starts our division by 0 handler
-        gen.Mov(w3, w0); // Set hi to $rs
-        gen.Mov(w2, -1); // Set lo to -1
+        gen.Mov(w3, w0);        // Set hi to $rs
+        gen.Mov(w2, -1);        // Set lo to -1
 
         gen.L(end);
     }
-    gen.Str(w2, MemOperand(contextPointer, LO_OFFSET)); // Lo = quotient = w2
-    gen.Str(w3, MemOperand(contextPointer, HI_OFFSET)); // Hi = remainder = w3
+    gen.Str(w2, MemOperand(contextPointer, LO_OFFSET));  // Lo = quotient = w2
+    gen.Str(w3, MemOperand(contextPointer, HI_OFFSET));  // Hi = remainder = w3
 }
 
 void DynaRecCPU::recJ() {
@@ -453,7 +452,7 @@ void DynaRecCPU::recJ() {
     m_pcWrittenBack = true;
 
     gen.Mov(w0, target);
-    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET)); // Write PC
+    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));  // Write PC
     m_linkedPC = target;
 }
 
@@ -479,7 +478,7 @@ void DynaRecCPU::recJR() {
 
     if (m_regs[_Rs_].isConst()) {
         gen.Mov(w0, m_regs[_Rs_].val & ~3);
-        gen.Str(w0, MemOperand(contextPointer, PC_OFFSET)); // force align jump address
+        gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));  // force align jump address
         m_linkedPC = m_regs[_Rs_].val;
     } else {
         allocateReg(_Rs_);
@@ -523,8 +522,9 @@ void DynaRecCPU::recLWL() {
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_regs[_Rt_].setWriteback(true);
         gen.Mov(m_regs[_Rt_].allocatedReg, previousValue & mask);  // Mask the previous $rt value
-        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSL, shift));  // Or $rt with shifted value in w0
-    } else if (m_regs[_Rs_].isConst()) {                           // Only address is constant
+        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg,
+                Operand(w0, LSL, shift));  // Or $rt with shifted value in w0
+    } else if (m_regs[_Rs_].isConst()) {   // Only address is constant
         const uint32_t address = m_regs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWL_MASK[address & 3];
@@ -536,34 +536,35 @@ void DynaRecCPU::recLWL() {
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_regs[_Rt_].setWriteback(true);
         gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, mask);  // Mask the previous $rt value
-        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSL, shift));  // Or $rt with shifted value in w0
-    } else if (m_regs[_Rt_].isConst()) {          // Only previous rt value is constant
+        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg,
+                Operand(w0, LSL, shift));  // Or $rt with shifted value in w0
+    } else if (m_regs[_Rt_].isConst()) {   // Only previous rt value is constant
         const uint32_t previousValue = m_regs[_Rt_].val;
 
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, arg1, ~3);                                      // Force align it
+        gen.And(arg1, arg1, ~3);                                 // Force align it
         call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
         m_regs[_Rt_].setWriteback(true);
 
-        gen.Mov(m_regs[_Rt_].allocatedReg, previousValue);      // Flush constant value in $rt
+        gen.Mov(m_regs[_Rt_].allocatedReg, previousValue);     // Flush constant value in $rt
         gen.moveAndAdd(w1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in w1 again
-        gen.And(w1, w1, 3);                                     // Get the low 2 bits
-        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);                         // Form PC-relative address to mask and shift lookup table
-        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));                // Load the mask and shift from LUT by indexing using the bottom 2 bits of
-                                                                            // the unaligned addr.
-        gen.Lsr(x4, x3, 32);                                    // Shift x3 32 places to the right, resulting in mask in x4
-        gen.Lsl(w0, w0, w3);                                    // Shift the read value by the shift amount
+        gen.And(w1, w1, 3);                                    // Get the low 2 bits
+        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);  // Form PC-relative address to mask and shift lookup table
+        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));    // Load the mask and shift from LUT by indexing using the bottom 2
+                                                  // bits of the unaligned addr.
+        gen.Lsr(x4, x3, 32);  // Shift x3 32 places to the right, resulting in mask in x4
+        gen.Lsl(w0, w0, w3);  // Shift the read value by the shift amount
         gen.And(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w4);  // Mask with w4
         gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);  // Merge with shifted value
 
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, arg1, ~3);                                      // Force align it
+        gen.And(arg1, arg1, ~3);                                 // Force align it
         call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
@@ -571,12 +572,12 @@ void DynaRecCPU::recLWL() {
         m_regs[_Rt_].setWriteback(true);
 
         gen.moveAndAdd(w1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in w1
-        gen.And(w1, w1, 3);                                       // Get the low 2 bits
-        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);            // Base to mask and shift lookup table in x3
-        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));   // Load the mask and shift from LUT by indexing using the bottom 2 bits of
-                                                               // the unaligned addr.
+        gen.And(w1, w1, 3);                                    // Get the low 2 bits
+        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);             // Base to mask and shift lookup table in x3
+        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));  // Load the mask and shift from LUT by indexing using the bottom 2
+                                                  // bits of the unaligned addr.
 
-        gen.Lsr(x4, x3, 32);                       // Shift x3 32 places to the right, resulting in mask in x4
+        gen.Lsr(x4, x3, 32);  // Shift x3 32 places to the right, resulting in mask in x4
         gen.Lsl(w0, w0, w3);
         gen.And(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w4);  // Mask with w4
         gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);  // Merge with shifted value
@@ -607,7 +608,7 @@ void DynaRecCPU::recLWR() {
         gen.Mov(m_regs[_Rt_].allocatedReg, previousValue & mask);  // Mask the previous $rt value
         // Shift the read value from aligned address and Or $re with shifted value
         gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSR, shift));
-    } else if (m_regs[_Rs_].isConst()) {                           // Only address is constant
+    } else if (m_regs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_regs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWR_MASK[address & 3];
@@ -621,33 +622,33 @@ void DynaRecCPU::recLWR() {
         gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, mask);  // Mask the previous $rt value
         // Shift the read value from aligned address and Or $re with shifted value
         gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, Operand(w0, LSR, shift));
-    } else if (m_regs[_Rt_].isConst()) {          // Only previous rt value is constant
+    } else if (m_regs[_Rt_].isConst()) {  // Only previous rt value is constant
         const uint32_t previousValue = m_regs[_Rt_].val;
 
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, arg1, ~3);                                      // Force align it
+        gen.And(arg1, arg1, ~3);                                 // Force align it
         call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
         m_regs[_Rt_].setWriteback(true);
 
-        gen.Mov(m_regs[_Rt_].allocatedReg, previousValue);      // Flush constant value in $rt
+        gen.Mov(m_regs[_Rt_].allocatedReg, previousValue);     // Flush constant value in $rt
         gen.moveAndAdd(w1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in w1 again
-        gen.And(w1, w1, 3);                                     // Get the low 2 bits
-        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);              // Form PC-relative address to mask and shift lookup table
-        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));                // Load the mask and shift from LUT by indexing using the bottom 2 bits of
-                                                                // the unaligned addr.
-        gen.Lsr(x4, x3, 32);                                    // Mask now in w4
-        gen.Lsr(w0, w0, w3);                                    // Shift the read value by the shift amount
-        gen.And(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w4); // Mask previous $rt value
-        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0); // Merge with newly read value
-    } else {                                                     // Nothing is constant
-        allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, arg1, ~3);                                      // Force align it
-        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in eax
+        gen.And(w1, w1, 3);                                    // Get the low 2 bits
+        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);  // Form PC-relative address to mask and shift lookup table
+        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));    // Load the mask and shift from LUT by indexing using the bottom 2
+                                                  // bits of the unaligned addr.
+        gen.Lsr(x4, x3, 32);                                                // Mask now in w4
+        gen.Lsr(w0, w0, w3);                                                // Shift the read value by the shift amount
+        gen.And(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w4);  // Mask previous $rt value
+        gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);  // Merge with newly read value
+    } else {                                                                // Nothing is constant
+        allocateReg(_Rs_);                                                  // Allocate address reg
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);             // Address in arg1
+        gen.And(arg1, arg1, ~3);                                            // Force align it
+        call(psxMemRead32Wrapper);  // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
@@ -655,11 +656,11 @@ void DynaRecCPU::recLWR() {
 
         gen.moveAndAdd(w1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in w1 again
         gen.And(w1, w1, 3);                                    // Get the low 2 bits
-        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);             // Form PC-relative address to mask and shift lookup table
-        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));               // Load the mask and shift from LUT by indexing using the bottom 2 bits of
-                                                               // the unaligned addr.
-        gen.Lsr(x4, x3, 32);                                    // Mask now in w4
-        gen.Lsr(w0, w0, w3);                                    // Shift the read value by the shift amount
+        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);  // Form PC-relative address to mask and shift lookup table
+        gen.Ldr(x3, MemOperand(x3, x1, LSL, 3));    // Load the mask and shift from LUT by indexing using the bottom 2
+                                                  // bits of the unaligned addr.
+        gen.Lsr(x4, x3, 32);                                                // Mask now in w4
+        gen.Lsr(w0, w0, w3);                                                // Shift the read value by the shift amount
         gen.And(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w4);  // Mask previous $rt value
         gen.Orr(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);  // Merge with newly read value
     }
@@ -764,7 +765,8 @@ void DynaRecCPU::recMTC0() {
         if (_Rd_ == 13) {
             gen.And(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, ~0xFC00);
         } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
-            gen.Str(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP0_OFFSET(_Rd_))); // Write rt to the cop0 reg
+            gen.Str(m_regs[_Rt_].allocatedReg,
+                    MemOperand(contextPointer, COP0_OFFSET(_Rd_)));  // Write rt to the cop0 reg
         }
     }
 
@@ -779,8 +781,8 @@ void DynaRecCPU::recMTC0() {
 template <bool loadSR>
 void DynaRecCPU::testSoftwareInterrupt() {
     Label label;
-    const auto pc = w3; // Register to hold temporary PC values in
-    const auto sr = w4; // Register to hold SR in
+    const auto pc = w3;  // Register to hold temporary PC values in
+    const auto sr = w4;  // Register to hold SR in
 
     if (!m_pcWrittenBack) {
         gen.Mov(pc, m_pc);
@@ -791,25 +793,25 @@ void DynaRecCPU::testSoftwareInterrupt() {
     m_stopCompiling = true;
 
     if constexpr (loadSR) {
-        gen.Ldr(sr, MemOperand(contextPointer, COP0_OFFSET(12))); // w4 = SR
+        gen.Ldr(sr, MemOperand(contextPointer, COP0_OFFSET(12)));  // w4 = SR
     }
     // TODO: Possibly use Tbz or similar here
-    gen.Tst(sr, 1); // Check if interrupts are enabled
-    gen.bz(label);     // If not, skip to the end
-    gen.Ldr(arg2, MemOperand(contextPointer, COP0_OFFSET(13))); // arg2 = CAUSE
+    gen.Tst(sr, 1);                                              // Check if interrupts are enabled
+    gen.bz(label);                                               // If not, skip to the end
+    gen.Ldr(arg2, MemOperand(contextPointer, COP0_OFFSET(13)));  // arg2 = CAUSE
     gen.And(sr, sr, arg2);
-    gen.Tst(sr, 0x300); // Check if an interrupt was force-fired
-    gen.bz(label);         // Skip to the end if not
+    gen.Tst(sr, 0x300);  // Check if an interrupt was force-fired
+    gen.bz(label);       // Skip to the end if not
 
     // Fire the interrupt if it was triggered
     // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
     loadThisPointer(arg1.X());
-    gen.Mov(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
-    gen.Mov(pc, m_pc - 4); // PC for exception handler to use
-    gen.Str(pc, MemOperand(contextPointer, PC_OFFSET)); // Store the PC
-    call(psxExceptionWrapper);                             // Call the exception wrapper function
+    gen.Mov(arg3, (int32_t)m_inDelaySlot);               // Store whether we're in a delay slot in arg3
+    gen.Mov(pc, m_pc - 4);                               // PC for exception handler to use
+    gen.Str(pc, MemOperand(contextPointer, PC_OFFSET));  // Store the PC
+    call(psxExceptionWrapper);                           // Call the exception wrapper function
 
-    gen.L(label); // Execution will jump here if interrupts not enabled
+    gen.L(label);  // Execution will jump here if interrupts not enabled
 }
 
 void DynaRecCPU::recMTHI() {
@@ -834,7 +836,7 @@ void DynaRecCPU::recMTLO() {
 // TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
 void DynaRecCPU::recMULT() {
     if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
-        gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET)); // Set both LO and HI to 0 in a single 64-bit write
+        gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET));  // Set both LO and HI to 0 in a single 64-bit write
         return;
     }
 
@@ -871,7 +873,7 @@ void DynaRecCPU::recMULT() {
 // TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
 void DynaRecCPU::recMULTU() {
     if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
-        gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET)); // Set both LO and HI to 0 in a single 64-bit write
+        gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET));  // Set both LO and HI to 0 in a single 64-bit write
         return;
     }
 
@@ -915,7 +917,7 @@ void DynaRecCPU::recNOR() {
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
         gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Orr(m_regs[_Rd_].allocatedReg,m_regs[_Rs_].allocatedReg, w0);
+        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, w0);
         gen.Mvn(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg);
     } else {
         alloc_rt_rs_wb_rd();
@@ -1013,9 +1015,9 @@ void DynaRecCPU::recREGIMM() {
     gen.Mov(w1, m_pc + 4);  // w1 = addr if jump not taken
     // TODO: Verify Csel below is using proper conditions for signed/unsigned
     if (isBGEZ) {
-        gen.Csel(w0, w0, w1, pl); // if $rs >= 0 unsigned compare, move the jump addr into eax
+        gen.Csel(w0, w0, w1, pl);  // if $rs >= 0 unsigned compare, move the jump addr into eax
     } else {
-        gen.Csel(w0, w0, w1, mi); // if $rs < 0 signed compare, move the jump addr into eax
+        gen.Csel(w0, w0, w1, mi);  // if $rs < 0 signed compare, move the jump addr into eax
     }
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
     if (link) {
@@ -1027,10 +1029,10 @@ void DynaRecCPU::recREGIMM() {
 void DynaRecCPU::recRFE() {
     gen.Ldr(w0, MemOperand(contextPointer, COP0_OFFSET(12)));  // w0 = COP0 status register
     gen.And(w1, w0, 0x3c);                                     // mask out the rest of the SR value
-    gen.And(w0, w0, ~0xF);                                    // Clear bottom 4 bits of w0
-    gen.Orr(w0, w0, Operand(w1, LSR, 2));                     // Shift bits [5:2] of SR two places to the right
-                                                              // & merge the shifted bits into w0
-    gen.Str(w0, MemOperand(contextPointer, COP0_OFFSET(12))); // Write w0 back to SR
+    gen.And(w0, w0, ~0xF);                                     // Clear bottom 4 bits of w0
+    gen.Orr(w0, w0, Operand(w1, LSR, 2));                      // Shift bits [5:2] of SR two places to the right
+                                                               // & merge the shifted bits into w0
+    gen.Str(w0, MemOperand(contextPointer, COP0_OFFSET(12)));  // Write w0 back to SR
     testSoftwareInterrupt<false>();
 }
 
@@ -1288,7 +1290,7 @@ void DynaRecCPU::recSRAV() {
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
         gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Asr(m_regs[_Rd_].allocatedReg, w0 ,m_regs[_Rs_].allocatedReg);
+        gen.Asr(m_regs[_Rd_].allocatedReg, w0, m_regs[_Rs_].allocatedReg);
 
     } else {
         alloc_rt_rs_wb_rd();
@@ -1620,9 +1622,9 @@ void DynaRecCPU::recException(Exception e) {
 
     loadThisPointer(arg1.X());                                                  // Pointer to this object in arg1
     gen.Mov(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2);  // Exception type in arg2
-    gen.Mov(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
+    gen.Mov(arg3, (int32_t)m_inDelaySlot);  // Store whether we're in a delay slot in arg3
     gen.Mov(w3, m_pc - 4);
-    gen.Str(w3, MemOperand(contextPointer, PC_OFFSET)); // PC for exception handler to use
+    gen.Str(w3, MemOperand(contextPointer, PC_OFFSET));  // PC for exception handler to use
 
     call(psxExceptionWrapper);  // Call the exception wrapper
 }
