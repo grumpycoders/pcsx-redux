@@ -173,7 +173,6 @@ void DynaRecCPU::emitDispatcher() {
     gen.Mov(contextPointer, (uintptr_t)this);  // Load context pointer
 
     // Back up all our allocateable volatile regs
-    // TODO: Change back to STP
     static_assert((ALLOCATEABLE_NON_VOLATILE_COUNT & 1) == 0);  // Make sure we've got an even number of regs
     for (auto i = 0; i < ALLOCATEABLE_NON_VOLATILE_COUNT; i += 2) {
         const auto reg = allocateableNonVolatiles[i];
@@ -203,11 +202,10 @@ void DynaRecCPU::emitDispatcher() {
     gen.L(done);
 
     // Restore all non-volatiles
-    // TODO: Change back to LDP
     for (int i = ALLOCATEABLE_NON_VOLATILE_COUNT - 1; i >= 0; i -= 2) {
         const auto reg = allocateableNonVolatiles[i];
         const auto reg2 = allocateableNonVolatiles[i - 1];
-        gen.Ldp(reg2.X(), reg.X(), MemOperand(sp, 16, PostIndex));
+        gen.Ldp(reg.X(), reg2.X(), MemOperand(sp, 16, PostIndex));
     }
     gen.Ldr(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));
 
@@ -235,6 +233,7 @@ void DynaRecCPU::emitDispatcher() {
     loadThisPointer(arg1.X());  // Throw recompiler error
     call(recErrorWrapper);
     gen.B(&done);  // Exit
+    gen.ready(); // Ready code buffer before emulator jumps into dispatcher for the first time
 }
 
 // Compile a block, write address of compiled code to *callback
@@ -256,7 +255,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     //        gen.align();  // Align next block
     //    }
 
-    gen.align();  // Always align for now since we are not linking blocks
+//    gen.align();  // Always align for now since we are not linking blocks
 
     if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
         flushCache();
@@ -294,6 +293,12 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         m_psxRegs.code = *p;  // Actually read the instruction
         m_pc += 4;            // Increment recompiler PC
         count++;              // Increment instruction count
+//        emitLog();
+        if (m_psxRegs.code >> 26 == 0) {
+            printf("recompiling instruction at m_recSPC[0x%x]\n", m_psxRegs.code & 0x3F);
+        } else {
+            printf("recompiling instruction at m_recBSC[0x%x]\n", m_psxRegs.code >> 26);
+        }
 
         const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)();                                   // Jump into the handler to recompile it
@@ -330,6 +335,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     __builtin___clear_cache(gen.getCode<char*>(), gen.getCode<char*>() + allocSize);
     // Finalize code buffer
     gen.ready();
+    gen.dumpBuffer();
 
     return pointer;
 }
@@ -418,13 +424,13 @@ void DynaRecCPU::handleFastboot() {
     vixl::aarch64::Label noFastBoot;
 
     gen.Mov(x0, (uintptr_t)&m_shellStarted);  // Check if shell has already been reached
-    gen.Ldrb(w0, MemOperand(x0));
-    gen.Cbnz(w0, &noFastBoot);  // Don't fastboot if so
+    gen.Ldrb(w1, MemOperand(x0));
+    gen.Cbnz(w1, &noFastBoot);  // Don't fastboot if so
 
     gen.Mov(x0,
             (uintptr_t)&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>());  // Check if fastboot is on
-    gen.Ldrb(w0, MemOperand(x0));
-    gen.Cbz(w0, &noFastBoot);
+    gen.Ldrb(w1, MemOperand(x0));
+    gen.Cbz(w1, &noFastBoot);
 
     loadThisPointer(arg1.X());  // If fastbooting, call the signalShellReached function, set pc, and exit the block
     call(signalShellReached);
