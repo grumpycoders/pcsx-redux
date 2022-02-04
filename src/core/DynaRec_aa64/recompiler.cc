@@ -424,13 +424,13 @@ void DynaRecCPU::handleFastboot() {
     vixl::aarch64::Label noFastBoot;
 
     gen.Mov(x0, (uintptr_t)&m_shellStarted);  // Check if shell has already been reached
-    gen.Ldrb(w1, MemOperand(x0));
-    gen.Cbnz(w1, &noFastBoot);  // Don't fastboot if so
+    gen.Ldrb(w0, MemOperand(x0));
+    gen.Cbnz(w0, &noFastBoot);  // Don't fastboot if so
 
     gen.Mov(x0,
             (uintptr_t)&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>());  // Check if fastboot is on
-    gen.Ldrb(w1, MemOperand(x0));
-    gen.Cbz(w1, &noFastBoot);
+    gen.Ldrb(w0, MemOperand(x0));
+    gen.Cbz(w0, &noFastBoot);
 
     loadThisPointer(arg1.X());  // If fastbooting, call the signalShellReached function, set pc, and exit the block
     call(signalShellReached);
