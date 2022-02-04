@@ -19,6 +19,7 @@
 
 #include <list>
 #include <map>
+#include <assert.h>
 
 #include "elfio/elfio.hpp"
 #include "flags.h"
@@ -26,6 +27,7 @@
 #include "support/file.h"
 #include "support/hashtable.h"
 #include "support/slice.h"
+#include "support/windowswrapper.h"
 
 #define vprint(...) \
     if (verbose) fmt::print(__VA_ARGS__)
