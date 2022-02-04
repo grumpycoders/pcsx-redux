@@ -19,7 +19,7 @@
 
 #include <memory.h>
 #include <stdint.h>
-
+#include <assert.h>
 #include <vector>
 
 #include "flags.h"
