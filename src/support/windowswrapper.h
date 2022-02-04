@@ -27,6 +27,6 @@
 // Don't #define min or max as it will break std::min/max
 #ifndef NOMINMAX
 #define NOMINMAX
-#include <windows.h>
 #endif
+#include <windows.h>
 #endif
