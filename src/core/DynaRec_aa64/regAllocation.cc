@@ -1,24 +1,26 @@
 /***************************************************************************
-*   Copyright (C) 2022 PCSX-Redux authors                                 *
-*                                                                         *
-*   This program is free software; you can redistribute it and/or modify  *
-*   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
-*   (at your option) any later version.                                   *
-*                                                                         *
-*   This program is distributed in the hope that it will be useful,       *
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
-*   GNU General Public License for more details.                          *
-*                                                                         *
-*   You should have received a copy of the GNU General Public License     *
-*   along with this program; if not, write to the                         *
-*   Free Software Foundation, Inc.,                                       *
-*   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
-***************************************************************************/
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
 
 #include "regAllocation.h"
+
 #include <cassert>
+
 #include "recompiler.h"
 #if defined(DYNAREC_AA64)
 
@@ -43,7 +45,8 @@ void DynaRecCPU::reserveReg(int index) {
 // Flush constants and allocated registers to host regs at the end of a block
 void DynaRecCPU::flushRegs() {
     for (auto i = 1; i < 32; i++) {
-        if (m_regs[i].isConst()) {  // If const: Write the value directly, mark as unknown. Possibly change when constants will be stored in host regs
+        if (m_regs[i].isConst()) {  // If const: Write the value directly, mark as unknown. Possibly change when
+                                    // constants will be stored in host regs
             if (m_regs[i].val != 0) {
                 gen.Mov(w4, m_regs[i].val);
                 gen.Str(w4, MemOperand(contextPointer, GPR_OFFSET(i)));
@@ -189,7 +192,7 @@ start:
     }
 }
 
-void DynaRecCPU::alloc_rt_rs() { allocateRegisters<2, 0>({(int) _Rt_, (int)_Rs_}, {}); }
+void DynaRecCPU::alloc_rt_rs() { allocateRegisters<2, 0>({(int)_Rt_, (int)_Rs_}, {}); }
 
 void DynaRecCPU::alloc_rt_wb_rd() { allocateRegisters<1, 1>({(int)_Rt_}, {(int)_Rd_}); }
 
@@ -199,4 +202,4 @@ void DynaRecCPU::alloc_rs_wb_rt() { allocateRegisters<1, 1>({(int)_Rs_}, {(int)_
 
 void DynaRecCPU::alloc_rt_rs_wb_rd() { allocateRegisters<2, 1>({(int)_Rt_, (int)_Rs_}, {(int)_Rd_}); }
 
-#endif // DYNAREC_AA64
+#endif  // DYNAREC_AA64

@@ -31,10 +31,9 @@
 
 #include "emitter.h"
 #include "fmt/format.h"
+#include "regAllocation.h"
 #include "spu/interface.h"
 #include "tracy/Tracy.hpp"
-
-#include "regAllocation.h"
 
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)this)
 #define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)this)
@@ -62,9 +61,7 @@ static void psxMemWrite32Wrapper(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_psxMem->psxMemWrite32(address, value);
 }
 // Used to emit print statements in jitted code for debugging
-static void log_instruction(uint32_t pc) {
-    printf("Emulating instruction @ %08X\n", pc);
-}
+static void log_instruction(uint32_t pc) { printf("Emulating instruction @ %08X\n", pc); }
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 
@@ -102,7 +99,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
         bool allocated = false;  // Has this guest register been allocated to a host reg?
         bool writeback = false;  // Does this register need to be written back to memory at the end of the block?
-        Register allocatedReg;      // If a host reg has been allocated to this register, which reg is it?
+        Register allocatedReg;   // If a host reg has been allocated to this register, which reg is it?
         int allocatedRegIndex = 0;
 
         inline bool isConst() { return state == RegState::Constant; }
@@ -184,7 +181,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         that->InterceptBIOS<false>(pc);
     }
 
-    //TODO: This is currently un-unsed in x64 DynaRec. Check this.
+    // TODO: This is currently un-unsed in x64 DynaRec. Check this.
     void inlineClear(uint32_t address) {
         if (isPcValid(address & ~3)) {
             loadThisPointer(arg1.X());
@@ -192,7 +189,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             call(recClearWrapper);
         }
     }
-
 
   public:
     DynaRecCPU() : R3000Acpu("AA64 DynaRec") {}
@@ -219,11 +215,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     // For the GUI dynarec disassembly widget
-    virtual const uint8_t *getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
+    virtual const uint8_t* getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
     virtual const size_t getBufferSize() final { return gen.getSize(); }
 
   private:
-
     // Emit log of current instruction in jitted code for debugging
     void emitLog() {
         gen.Mov(arg1, m_pc);
@@ -233,7 +228,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Calculate the number of instructions between the current PC and the branch target
     // Returns a negative number for backwards jumps
     int64_t getPCOffset(const void* current, const void* target) {
-        return (int64_t)((ptrdiff_t) target - (ptrdiff_t)current) >> 2;
+        return (int64_t)((ptrdiff_t)target - (ptrdiff_t)current) >> 2;
     }
 
     // Load a pointer to the JIT object in "reg" using lea with the context pointer
@@ -243,7 +238,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // TODO: This may need to use contextPointer + distance instead
     template <int size, bool signExtend>
     void load(Register dest, const void* pointer) {
-//        const auto distance = (intptr_t)pointer - (intptr_t)this;
+        //        const auto distance = (intptr_t)pointer - (intptr_t)this;
         gen.Mov(x4, (uintptr_t)pointer);
         switch (size) {
             case 8:
@@ -259,7 +254,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     // Stores a value of "size" bits from "source" to the given pointer
-    /* TODO: value must be moved into register first before it can be stored unlike x64 with can use mov to write to memory */
+    /* TODO: value must be moved into register first before it can be stored unlike x64 with can use mov to write to
+     * memory */
     // TODO: This may need to use contextPointer + distance instead
     template <int size, typename T>
     void store(T source, const void* pointer) {
