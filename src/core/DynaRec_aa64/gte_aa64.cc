@@ -49,7 +49,71 @@ void DynaRecCPU::recGTEMove() {
     }
 }
 
-void DynaRecCPU::recCTC2() { throw std::runtime_error("[Unimplemented] CTC2 instruction"); }
+void DynaRecCPU::recCTC2() {
+    if (m_regs[_Rt_].isConst()) {
+        switch (_Rd_) {
+            case 4:  // These registers are signed 16-bit values. Reading from them returns their value sign-extended to
+                     // 32 bits
+            case 12:
+            case 20:
+            case 26:
+            case 27:
+            case 29:
+            case 30:
+                gen.Mov(w0, (uint32_t)(int16_t)m_regs[_Rt_].val);
+                gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
+                break;
+
+            case 31: {  // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
+                    uint32_t value = m_regs[_Rt_].val & 0x7ffff000;
+                    if ((value & 0x7f87e000) != 0) {
+                        value |= 0x80000000;
+                    }
+                    gen.Mov(w0, value);
+                gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(31)));
+                break;
+            }
+
+            default:
+                gen.Mov(w0, m_regs[_Rt_].val);
+                gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
+                break;
+        }
+
+    } else {
+        allocateReg(_Rt_);
+
+        switch (_Rd_) {
+            case 4:  // These registers are signed 16-bit values. Reading from them returns their value sign-extended to
+                     // 32 bits
+            case 12:
+            case 20:
+            case 26:
+            case 27:
+            case 29:
+            case 30:
+                // Could probably use a regular Mov then Strsh here
+                gen.Sxth(w0, m_regs[_Rt_].allocatedReg); // Sign extend value from 16 to 32 bits
+                gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
+                break;
+
+            case 31:  // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
+                gen.And(w1, m_regs[_Rt_].allocatedReg, 0x7f87e000);
+                gen.Mov(w0, 0x80000000);
+                gen.Sub(w0, w1, 0x80000000);
+                gen.Mov(w2, 0x7f87e000);
+                gen.Tst(m_regs[_Rt_].allocatedReg, w2);
+                // Change order here and condition to possibly eliminate an unneeded mov
+                gen.Csel(w0, w1, w0, eq);
+                gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(31)));
+                break;
+
+            default:
+                gen.Str(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
+                break;
+        }
+    }
+}
 
 void DynaRecCPU::recMTC2() { throw std::runtime_error("[Unimplemented] MTC2 instruction"); }
 
