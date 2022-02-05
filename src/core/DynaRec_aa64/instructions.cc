@@ -213,7 +213,7 @@ void DynaRecCPU::recBLEZ() {
     m_stopCompiling = true;
 
     if (m_regs[_Rs_].isAllocated()) {  // Don't bother allocating Rs unless it's already allocated
-        gen.Tst(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, 0);
     } else {
         gen.Ldr(w0, MemOperand(contextPointer, GPR_OFFSET(_Rs_)));
         gen.Cmp(w0, 0);
@@ -281,7 +281,7 @@ void DynaRecCPU::recCOP0() {
             break;
     }
 }
-// TODO: CHECK IF REMAINDER NEEDS SIGNED
+
 void DynaRecCPU::recDIV() {
     Label notIntMin, divisionByZero, end;
     bool emitIntMinCheck = true;
@@ -341,8 +341,8 @@ void DynaRecCPU::recDIV() {
         }
 
         gen.Mov(w1, m_regs[_Rt_].allocatedReg);  // Divisor in w1
-        gen.Tst(w1, w1);                         // Check if divisor is 0
-        gen.bz(divisionByZero);                  // Jump to divisionByZero label if so
+        gen.Cmp(w1, 0);                          // Check if divisor is 0
+        gen.beq(divisionByZero);                  // Jump to divisionByZero label if so
     }
 
     if (emitIntMinCheck) {
@@ -424,8 +424,8 @@ void DynaRecCPU::recDIVU() {
         }
 
         gen.Mov(w1, m_regs[_Rt_].allocatedReg);  // Divisor in w1
-        gen.Tst(w1, w1);                         // Check if divisor is 0
-        gen.bz(divisionByZero);                  // Jump to divisionByZero label if so
+        gen.Cmp(w1, 0);                          // Check if divisor is 0
+        gen.beq(divisionByZero);                 // Jump to divisionByZero label if so
     }
     // TODO: This may be able to be optimized with a proper AND depending
     gen.Mov(w3, 0);            // Set top 32 bits of dividend to 0
@@ -1010,7 +1010,7 @@ void DynaRecCPU::recREGIMM() {
     m_stopCompiling = true;
 
     allocateReg(_Rs_);
-    gen.Tst(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    gen.Cmp(m_regs[_Rs_].allocatedReg, 0);
     gen.Mov(w0, target);    // w0 = addr if jump taken
     gen.Mov(w1, m_pc + 4);  // w1 = addr if jump not taken
     // TODO: Verify Csel below is using proper conditions for signed/unsigned
