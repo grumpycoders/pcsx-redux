@@ -340,15 +340,13 @@ void DynaRecCPU::recDIV() {
     }
 
     if (emitIntMinCheck) {
-        gen.Mov(w4, 0x80000000);
-        gen.Cmp(w0, w4);     // Check if dividend is INT_MIN
+        gen.Cmp(w0, 0x80000000); // Check if dividend is INT_MIN
         gen.bne(notIntMin);  // Bail if not
-        gen.Mov(w4, 0xffffffff);
-        gen.Cmp(w1, w4);     // Check if divisor is -1
+        gen.Cmp(w1, 0xffffffff); // Check if divisor is -1
         gen.bne(notIntMin);  // Bail if not
 
         // Handle INT_MIN / -1
-        gen.Mov(w0, 0x80000000);  // Set lo to INT_MIN
+        gen.Mov(w2, 0x80000000);  // Set lo to INT_MIN
         gen.Mov(w3, 0);           // Set hi to 0
         gen.B(&end);
     }
@@ -362,7 +360,7 @@ void DynaRecCPU::recDIV() {
         gen.L(divisionByZero);      // Here starts our division by 0 handler
 
         gen.Mov(w3, w0);  // Set hi to $rs
-        gen.Lsr(w2, w2, 31);
+        gen.Lsr(w2, w0, 31);
         gen.Sub(w5, w2, 1);
         gen.Add(w2, w2, w5);  // Set lo to 1 or -1 depending on the sign of $rs
     }
