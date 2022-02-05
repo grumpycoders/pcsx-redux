@@ -135,12 +135,10 @@ void DynaRecCPU::recBEQ() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.Mov(w0, m_regs[_Rs_].val);
-        gen.Cmp(m_regs[_Rt_].allocatedReg, w0);
+        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         alloc_rt_rs();
         gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -244,12 +242,10 @@ void DynaRecCPU::recBNE() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.Mov(w0, m_regs[_Rs_].val);
-        gen.Cmp(m_regs[_Rt_].allocatedReg, w0);
+        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         alloc_rt_rs();
         gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -313,8 +309,7 @@ void DynaRecCPU::recDIV() {
             if (m_regs[_Rs_].val == 0x80000000 && m_regs[_Rt_].val == 0xffffffff) {
                 gen.Mov(w0, 0x80000000);
                 gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
-                gen.Mov(w0, 0);
-                gen.Str(w0, MemOperand(contextPointer, HI_OFFSET));
+                gen.Str(wzr, MemOperand(contextPointer, HI_OFFSET));
             } else {
                 gen.Mov(w0, (int32_t)m_regs[_Rs_].val / (int32_t)m_regs[_Rt_].val);
                 gen.Mov(w1, (int32_t)m_regs[_Rs_].val % (int32_t)m_regs[_Rt_].val);
@@ -327,7 +322,6 @@ void DynaRecCPU::recDIV() {
         allocateReg(_Rs_);
         gen.Mov(w0, m_regs[_Rs_].allocatedReg);
         gen.Mov(w1, m_regs[_Rt_].val);  // Divisor in w1
-
     } else {  // non-constant divisor
         if (m_regs[_Rs_].isConst()) {
             allocateReg(_Rt_);
@@ -910,13 +904,11 @@ void DynaRecCPU::recNOR() {
         markConst(_Rd_, ~(m_regs[_Rs_].val | m_regs[_Rt_].val));
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-        gen.Mov(w0, m_regs[_Rs_].val);
-        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
         gen.Mvn(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-        gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, w0);
+        gen.Orr(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
         gen.Mvn(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg);
     } else {
         alloc_rt_rs_wb_rd();
@@ -1191,13 +1183,11 @@ void DynaRecCPU::recSLT() {
         markConst(_Rd_, (int32_t)m_regs[_Rs_].val < (int32_t)m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-        gen.Mov(w0, m_regs[_Rs_].val);
-        gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
-        gen.Cset(m_regs[_Rd_].allocatedReg, lt);
+        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.Cset(m_regs[_Rd_].allocatedReg, gt);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-        gen.Mov(w0, m_regs[_Rs_].val);
-        gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
         gen.Cset(m_regs[_Rd_].allocatedReg, lt);
     } else {
         alloc_rt_rs_wb_rd();
@@ -1214,8 +1204,7 @@ void DynaRecCPU::recSLTI() {
         markConst(_Rt_, (int32_t)m_regs[_Rs_].val < _Imm_);
     } else {
         alloc_rs_wb_rt();
-        gen.Mov(w0, _Imm_);
-        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
         gen.Cset(m_regs[_Rt_].allocatedReg, lt);
     }
 }
@@ -1228,8 +1217,7 @@ void DynaRecCPU::recSLTIU() {
         markConst(_Rt_, m_regs[_Rs_].val < (uint32_t)_Imm_);
     } else {
         alloc_rs_wb_rt();
-        gen.Mov(w0, _Imm_);
-        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, _Imm_);
         gen.Cset(m_regs[_Rt_].allocatedReg, cc);
     }
 }
@@ -1242,18 +1230,16 @@ void DynaRecCPU::recSLTU() {
         markConst(_Rd_, m_regs[_Rs_].val < m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-        gen.Mov(w0, m_regs[_Rs_].val);
-        gen.Cmp(w0, m_regs[_Rt_].allocatedReg);
-        gen.Cset(m_regs[_Rd_].allocatedReg, cc);
+        gen.Cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.Cset(m_regs[_Rd_].allocatedReg, hi);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-        gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Cmp(m_regs[_Rs_].allocatedReg, w0);
-        gen.Cset(m_regs[_Rd_].allocatedReg, cc);
+        gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.Cset(m_regs[_Rd_].allocatedReg, lo);
     } else {
         alloc_rt_rs_wb_rd();
         gen.Cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        gen.Cset(m_regs[_Rd_].allocatedReg, cc);
+        gen.Cset(m_regs[_Rd_].allocatedReg, lo);
     }
 }
 
@@ -1276,21 +1262,12 @@ void DynaRecCPU::recSRAV() {
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
         markConst(_Rd_, (int32_t)m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
     } else if (m_regs[_Rs_].isConst()) {
-        if (_Rt_ == _Rd_) {
-            allocateReg(_Rd_);
-            m_regs[_Rd_].setWriteback(true);
-            gen.Mov(w0, m_regs[_Rs_].val & 0x1F);
-            gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, w0);
-        } else {
-            alloc_rt_wb_rd();
-            gen.Mov(w0, m_regs[_Rs_].val & 0x1F);
-            gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
-        }
+        alloc_rt_wb_rd();
+        gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val & 0x1F);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
         gen.Mov(w0, m_regs[_Rt_].val);
         gen.Asr(m_regs[_Rd_].allocatedReg, w0, m_regs[_Rs_].allocatedReg);
-
     } else {
         alloc_rt_rs_wb_rd();
         gen.Asr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -1347,8 +1324,7 @@ void DynaRecCPU::recSUBU() {
         gen.reverseSub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-        gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, w0);
+        gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         alloc_rt_rs_wb_rd();
         gen.Sub(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
@@ -1576,12 +1552,10 @@ void DynaRecCPU::recXOR() {
         markConst(_Rd_, m_regs[_Rs_].val ^ m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         alloc_rt_wb_rd();
-        gen.Mov(w0, m_regs[_Rs_].val);
-        gen.Eor(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+        gen.Eor(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-        gen.Mov(w0, m_regs[_Rt_].val);
-        gen.Eor(m_regs[_Rd_].allocatedReg, w0, m_regs[_Rs_].allocatedReg);
+        gen.Eor(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         alloc_rt_rs_wb_rd();
         gen.Eor(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -1598,19 +1572,14 @@ void DynaRecCPU::recXORI() {
         } else {
             allocateReg(_Rt_);
             m_regs[_Rt_].setWriteback(true);
-            gen.Mov(w0, _ImmU_);
-            gen.Eor(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
+            gen.Eor(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _ImmU_);
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
             markConst(_Rt_, m_regs[_Rs_].val ^ _ImmU_);
         } else {
             alloc_rs_wb_rt();
-            gen.Mov(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
-            if (_ImmU_) {
-                gen.Mov(w0, _ImmU_);
-                gen.Eor(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, w0);
-            }
+            gen.Eor(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg, _ImmU_);
         }
     }
 }
