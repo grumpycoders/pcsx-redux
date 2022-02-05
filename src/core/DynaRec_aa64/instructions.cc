@@ -403,7 +403,6 @@ void DynaRecCPU::recDIVU() {
         allocateReg(_Rs_);
         gen.Mov(w0, m_regs[_Rs_].allocatedReg);
         gen.Mov(w1, m_regs[_Rt_].val);  // Divisor in w1
-
     } else {  // non-constant divisor
         if (m_regs[_Rs_].isConst()) {
             allocateReg(_Rt_);
@@ -419,8 +418,6 @@ void DynaRecCPU::recDIVU() {
         gen.Cmp(w1, 0);                          // Check if divisor is 0
         gen.beq(divisionByZero);                 // Jump to divisionByZero label if so
     }
-    // TODO: This may be able to be optimized with a proper AND depending
-    gen.Mov(w3, 0);            // Set top 32 bits of dividend to 0
     gen.Udiv(w2, w0, w1);      // Unsigned division by divisor
     gen.Msub(w3, w2, w1, w0);  // Get remainder by msub
 
