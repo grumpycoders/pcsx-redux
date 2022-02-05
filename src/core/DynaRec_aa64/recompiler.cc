@@ -193,7 +193,7 @@ void DynaRecCPU::emitDispatcher() {
     loadThisPointer(arg1.X());  // Poll events
     call(recBranchTestWrapper);
     gen.Ldrb(w0, MemOperand(runningPointer));  // Check if PCSX::g_system->running is true
-    gen.Tbz(w0, 0, &done);                     // If it's not, return
+    gen.Cbz(w0, &done);                        // If it's not, return
     emitBlockLookup();                         // Otherwise, look up next block
 
     gen.align();
