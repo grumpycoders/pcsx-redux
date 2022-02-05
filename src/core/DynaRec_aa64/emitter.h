@@ -90,13 +90,11 @@ class Emitter : public MacroAssembler {
     // Returns a signed integer that shows how many bytes of free space are left in the code buffer
     int64_t getRemainingSize() { return (int64_t)codeCacheSize - (int64_t)getSize(); }
 
-    // TODO: Possibly remove this and replace with regular Add
     // Adds "value" to "source" and stores the result in dest
     // Uses add if the value is non-zero, or mov otherwise
     void moveAndAdd(Register dest, Register source, uint32_t value) {
         if (value != 0) {
-            Mov(w5, value);
-            Add(dest, source, w5);
+            Add(dest, source, value);
         } else {
             Mov(dest, source);
         }
@@ -116,8 +114,7 @@ class Emitter : public MacroAssembler {
                 Uxth(dest, source);
                 break;
             default:
-                Mov(w0, value);
-                And(dest, source, w0);
+                And(dest, source, value);
                 break;
         }
     }
@@ -125,16 +122,14 @@ class Emitter : public MacroAssembler {
     // Logical OR dest by value (Skip the OR if value == 0)
     void orImm(Register dest, uint32_t value) {
         if (value != 0) {
-            Mov(w0, value);
-            Orr(dest, dest, w0);
+            Orr(dest, dest, value);
         }
     }
 
     // Logical OR source by value (
     void orImm(Register dest, Register source, uint32_t value) {
         if (value != 0) {
-            Mov(w0, value);
-            Orr(dest, source, w0);
+            Orr(dest, source, value);
         } else if (!dest.Is(source)) {
             Mov(dest, source);
         }
