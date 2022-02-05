@@ -379,8 +379,6 @@ void DynaRecCPU::handleLinking() {
             // We can get away with only checking the low 32 bits of the block pointer
             gen.Mov(x0, (uintptr_t)nextBlockPointer);
             gen.Ldr(x0, MemOperand(x0));
-            // Extract lower 32 bits and zero extend the rest
-            gen.Ubfx(x0, x0, 0, 32);
             // Move value to compare against into w1
             gen.Mov(w1, 0xcccccccc);
             gen.Cmp(w0, w1);
