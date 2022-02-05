@@ -197,7 +197,21 @@ void DynaRecCPU::recCFC2() { throw std::runtime_error("[Unimplemented] CFC2 inst
 
 void DynaRecCPU::recLWC2() { throw std::runtime_error("[Unimplemented] LWC2 instruction"); }
 
-void DynaRecCPU::recSWC2() { throw std::runtime_error("[Unimplemented] SWC2 instruction"); }
+void DynaRecCPU::recSWC2() {
+    gen.Mov(arg1, _Rt_);
+    call(MFC2Wrapper);  // Fetch the COP2 data reg in w0
+
+    // Address in arg1
+    if (m_regs[_Rs_].isConst()) {
+        gen.Mov(arg1, m_regs[_Rs_].val + _Imm_);
+    } else {
+        allocateReg(_Rs_);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
+    }
+
+    gen.Mov(arg2, w0);  // Value to write in arg2
+    call(psxMemWrite32Wrapper);
+}
 
 #define GTE_FALLBACK(name)                                                                          \
     static void name##Wrapper(uint32_t instruction) { PCSX::g_emulator->m_gte->name(instruction); } \
