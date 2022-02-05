@@ -233,7 +233,7 @@ void DynaRecCPU::emitDispatcher() {
     loadThisPointer(arg1.X());  // Throw recompiler error
     call(recErrorWrapper);
     gen.B(&done);  // Exit
-    gen.ready(); // Ready code buffer before emulator jumps into dispatcher for the first time
+    gen.ready();   // Ready code buffer before emulator jumps into dispatcher for the first time
 }
 
 // Compile a block, write address of compiled code to *callback
@@ -251,11 +251,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
 
-    //    if (align) {
-    //        gen.align();  // Align next block
-    //    }
-
-//    gen.align();  // Always align for now since we are not linking blocks
+    if (align) {
+        gen.align();  // Align next block
+    }
 
     if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
         flushCache();
@@ -293,12 +291,6 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         m_psxRegs.code = *p;  // Actually read the instruction
         m_pc += 4;            // Increment recompiler PC
         count++;              // Increment instruction count
-//        emitLog();
-        if (m_psxRegs.code >> 26 == 0) {
-            printf("recompiling instruction at m_recSPC[0x%x]\n", m_psxRegs.code & 0x3F);
-        } else {
-            printf("recompiling instruction at m_recBSC[0x%x]\n", m_psxRegs.code >> 26);
-        }
 
         const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)();                                   // Jump into the handler to recompile it
@@ -335,7 +327,6 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     __builtin___clear_cache(gen.getCode<char*>(), gen.getCode<char*>() + allocSize);
     // Finalize code buffer
     gen.ready();
-    gen.dumpBuffer();
 
     return pointer;
 }
