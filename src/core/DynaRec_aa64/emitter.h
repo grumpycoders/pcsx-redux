@@ -135,8 +135,8 @@ class Emitter : public MacroAssembler {
     // Logical OR source by value (
     void orImm(Register dest, Register source, uint32_t value) {
         if (value != 0) {
-            Mov(w4, value);
-            Orr(dest, source, w4);
+            Mov(w0, value);
+            Orr(dest, source, w0);
         } else if (!dest.Is(source)) {
             Mov(dest, source);
         }
