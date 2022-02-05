@@ -115,7 +115,79 @@ void DynaRecCPU::recCTC2() {
     }
 }
 
-void DynaRecCPU::recMTC2() { throw std::runtime_error("[Unimplemented] MTC2 instruction"); }
+void DynaRecCPU::recMTC2() {
+    switch (_Rd_) {
+        case 15:
+            gen.Ldr(x0, MemOperand(contextPointer, COP2_DATA_OFFSET(13))); // SXY0 = SXY1 and SXY1 = SXY2
+            gen.Str(x0, MemOperand(contextPointer, COP2_DATA_OFFSET(12)));
+
+            // SXY2 = val
+            if (m_regs[_Rt_].isConst()) {
+                gen.Mov(w1,  m_regs[_Rt_].val);
+                gen.Str(w1, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
+            } else {
+                allocateReg(_Rt_);
+                gen.Str(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
+            }
+            break;
+
+        case 28:                           // IRGB
+            if (m_regs[_Rt_].isConst()) {  // Calculate IR1/IR2/IR3 values and write them back
+                const auto value = m_regs[_Rt_].val;
+
+                const auto IR1 = (value & 0x1f) << 7;
+                const auto IR2 = (value & 0x3e0) << 2;
+                const auto IR3 = (value & 0x7c00) >> 3;
+                gen.Mov(w1, IR1);
+                gen.Mov(w2, IR2);
+                gen.Mov(w3, IR3);
+                gen.Str(w1, MemOperand(contextPointer, COP2_DATA_OFFSET(9)));
+                gen.Str(w2, MemOperand(contextPointer, COP2_DATA_OFFSET(10)));
+                gen.Str(w3, MemOperand(contextPointer, COP2_DATA_OFFSET(11)));
+            } else {
+                allocateReg(_Rt_);
+                gen.And(w0, m_regs[_Rt_].allocatedReg, 0x1f); // Calculate IR1
+                gen.Lsl(w0, w0, 7);
+                gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(9)));
+                gen.Lsl(w0, m_regs[_Rt_].allocatedReg, 2); // Calculate IR2
+                gen.And(w0, w0, 0xf80); // The above LSL shifted w0 by 2 first, so we adjust the mask
+                gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(10)));
+                gen.Lsr(w0, m_regs[_Rt_].allocatedReg, 3); // Calculate IR3
+                gen.And(w0, w0, 0xf80);
+                gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(11)));
+            }
+
+            break;
+
+        case 30:
+            if (m_regs[_Rt_].isConst()) {
+                const auto result = PCSX::GTE::countLeadingBits(m_regs[_Rt_].val);
+                gen.Mov(w0, result);
+                gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(31))); // Set LZCR
+            } else {
+                allocateReg(_Rt_);
+
+                gen.Mov(w0, m_regs[_Rt_].allocatedReg); // w0 = value to count leading bits of
+                gen.Asr(w1, w0, 31);                    // value = ~value if the msb is set
+                gen.Eor(w0, w0, w1);
+
+                gen.Clz(w0, w0);                        // Count leading Zeros
+                gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(31))); // Write result to LZCR
+            }
+            break;
+
+        case 31:
+            return;
+    }
+
+    if (m_regs[_Rt_].isConst()) {
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
+    } else {
+        allocateReg(_Rt_);
+        gen.Str(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
+    }
+}
 
 static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg); }
 
