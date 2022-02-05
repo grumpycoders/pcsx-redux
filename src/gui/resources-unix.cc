@@ -19,6 +19,7 @@
 
 #ifndef _WIN32
 
+#include "core/system.h"
 #include "gui/resources.h"
 #include "support/file.h"
 
