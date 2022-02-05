@@ -146,7 +146,6 @@ class Emitter : public MacroAssembler {
     // Optimizes the value == 0 case, thrases w0 but not FLAGs
     void reverseSub(Register dest, Register source, uint32_t value) {
         if (value == 0) {
-            ;
             Neg(dest, source);
         } else {
             Mov(w0, value);
