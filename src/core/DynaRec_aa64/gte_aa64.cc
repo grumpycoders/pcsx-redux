@@ -66,7 +66,10 @@ void DynaRecCPU::recSWC2() { throw std::runtime_error("[Unimplemented] SWC2 inst
 #define GTE_FALLBACK(name)                                                                          \
     static void name##Wrapper(uint32_t instruction) { PCSX::g_emulator->m_gte->name(instruction); } \
                                                                                                     \
-    void DynaRecCPU::rec##name() { throw std::runtime_error("[Unimplemented] Unimplemented GTE fallback"); }
+    void DynaRecCPU::rec##name() {                                                                  \
+        gen.Mov(arg1, m_psxRegs.code);                                                              \
+        call(name##Wrapper);                                                                        \
+    }
 
 GTE_FALLBACK(AVSZ3);
 GTE_FALLBACK(AVSZ4);
