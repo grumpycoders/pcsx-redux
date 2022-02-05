@@ -69,7 +69,7 @@ void DynaRecCPU::recCTC2() {
                     if ((value & 0x7f87e000) != 0) {
                         value |= 0x80000000;
                     }
-                    gen.Mov(w0, value);
+                gen.Mov(w0, value);
                 gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(31)));
                 break;
             }
@@ -191,11 +191,105 @@ void DynaRecCPU::recMTC2() {
 
 static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg); }
 
-void DynaRecCPU::recMFC2() { throw std::runtime_error("[Unimplemented] MFC2 instruction"); }
+void DynaRecCPU::recMFC2() {
+    if (_Rt_) {
+        allocateRegWithoutLoad(_Rt_);
+        m_regs[_Rt_].setWriteback(true);
+    }
 
-void DynaRecCPU::recCFC2() { throw std::runtime_error("[Unimplemented] CFC2 instruction"); }
+    switch (_Rd_) {
+        case 1:
+        case 3:
+        case 5:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+            if (_Rt_) {
+                gen.Ldrsh(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
+            }
+            break;
 
-void DynaRecCPU::recLWC2() { throw std::runtime_error("[Unimplemented] LWC2 instruction"); }
+        case 7:
+        case 16:
+        case 17:
+        case 18:
+        case 19:
+            if (_Rt_) {
+                gen.Ldrh(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
+            }
+            break;
+
+        case 15:  // Return SXY2 from SXYP
+            if (_Rt_) {
+                gen.Ldr(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
+            }
+            break;
+
+        case 28:
+        case 29:  // Fallback for IRGB/ORGB
+            gen.Mov(arg1, _Rd_);
+            call(MFC2Wrapper); // result in w0
+
+            if (_Rt_) {
+                allocateRegWithoutLoad(_Rt_);  // Reallocate the reg in case the call thrashed it
+                m_regs[_Rt_].setWriteback(true);
+                gen.Mov(m_regs[_Rt_].allocatedReg, w0);
+            }
+            break;
+
+        default:
+            if (_Rt_) {
+                gen.Ldr(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
+            }
+            break;
+    }
+}
+
+void DynaRecCPU::recCFC2() {
+    if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
+        allocateRegWithoutLoad(_Rt_);
+        m_regs[_Rt_].setWriteback(true);
+        gen.Ldr(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
+    }
+}
+
+void DynaRecCPU::recLWC2() {
+    if (m_regs[_Rs_].isConst()) {  // Store address in arg1
+        gen.Mov(arg1, m_regs[_Rs_].val + _Imm_);
+    } else {
+        allocateReg(_Rs_);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
+    }
+
+    call(psxMemRead32Wrapper);
+    switch (_Rt_) {
+        case 15:
+        case 30:
+            fmt::print("Unimplemented LWC2 to GTE data register {}\n", _Rt_);
+            abort();
+            break;
+
+        case 28:  // IRGB
+
+            gen.And(w1, w0, 0x1f);  // Calculate IR1
+            gen.Lsl(w1, w1, 7);
+            gen.Str(w1, MemOperand(contextPointer, COP2_DATA_OFFSET(9)));
+            gen.Lsl(w1, w0, 2); // Calculate IR2
+            gen.And(w1, w1, 0xf80);          // The above w0 shifted left by 2 first, so we adjust the mask
+            gen.Str(w1, MemOperand(contextPointer, COP2_DATA_OFFSET(10)));
+
+            gen.Lsr(w1, w0, 3); // Calculate IR3
+            gen.And(w1, w1, 0xf80);
+            gen.Str(w1, MemOperand(contextPointer, COP2_DATA_OFFSET(11)));
+            break;
+    }
+
+    if (_Rt_ != 31) {
+        gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rt_)));
+    }
+}
 
 void DynaRecCPU::recSWC2() {
     gen.Mov(arg1, _Rt_);
@@ -220,6 +314,8 @@ void DynaRecCPU::recSWC2() {
         gen.Mov(arg1, m_psxRegs.code);                                                              \
         call(name##Wrapper);                                                                        \
     }
+
+// TODO: AVSZ Instructions
 
 GTE_FALLBACK(AVSZ3);
 GTE_FALLBACK(AVSZ4);
