@@ -343,10 +343,8 @@ inline void InterpretedCPU::doBranch(uint32_t target, bool fromLink) {
  * Format:  OP rt, rs, immediate                          *
  *********************************************************/
 void InterpretedCPU::psxADDI(uint32_t code) {
-    if (!_Rt_) return;
-
-    auto rs = _rRs_;
-    auto imm = _Imm_;
+    const auto rs = _rRs_;
+    const auto imm = _Imm_;
     uint32_t res = rs + imm;
 
     if (_Rt_ == 29) {
@@ -369,9 +367,12 @@ void InterpretedCPU::psxADDI(uint32_t code) {
         }
     }
 
-    maybeCancelDelayedLoad(_Rt_);
-    _rRt_ = res;
-}  // Rt = Rs + Im      (Exception on Integer Overflow)
+    if (_Rt_ != 0) {
+        maybeCancelDelayedLoad(_Rt_);
+        _rRt_ = res;
+    }
+}
+
 void InterpretedCPU::psxADDIU(uint32_t code) {
     if (!_Rt_) return;
     maybeCancelDelayedLoad(_Rt_);
@@ -437,10 +438,8 @@ void InterpretedCPU::psxSLTIU(uint32_t code) {
  * Format:  OP rd, rs, rt                                 *
  *********************************************************/
 void InterpretedCPU::psxADD(uint32_t code) {
-    if (!_Rd_) return;
-
-    auto rs = _rRs_;
-    auto rt = _rRt_;
+    const auto rs = _rRs_;
+    const auto rt = _rRt_;
     uint32_t res = rs + rt;
     if (_Rd_ == 29) {
         if ((_Rs_ == 29) || (_Rt_ == 29)) {
@@ -462,13 +461,16 @@ void InterpretedCPU::psxADD(uint32_t code) {
         }
     }
 
-    maybeCancelDelayedLoad(_Rd_);
-    _rRd_ = res;
-}  // Rd = Rs + Rt              (Exception on Integer Overflow)
+    if (_Rd_ != 0) {
+        maybeCancelDelayedLoad(_Rd_);
+        _rRd_ = res;
+    }
+}
+
 void InterpretedCPU::psxADDU(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t res = _u32(_rRs_) + _u32(_rRt_);
+    uint32_t res = _rRs_ + _rRt_;
     if (_Rd_ == 29) {
         if ((_Rs_ == 29) || (_Rt_ == 29)) {
             PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
@@ -479,10 +481,8 @@ void InterpretedCPU::psxADDU(uint32_t code) {
     _rRd_ = res;
 }  // Rd = Rs + Rt
 void InterpretedCPU::psxSUB(uint32_t code) {
-    if (!_Rd_) return;
-
-    auto rs = _rRs_;
-    auto rt = _rRt_;
+    const auto rs = _rRs_;
+    const auto rt = _rRt_;
     uint32_t res = rs - rt;
     if (_Rd_ == 29) {
         if (_Rs_ == 29) {
@@ -503,13 +503,16 @@ void InterpretedCPU::psxSUB(uint32_t code) {
             return;
         }
     }
-    maybeCancelDelayedLoad(_Rd_);
-    _rRd_ = res;
+
+    if (_Rd_ != 0) {
+        maybeCancelDelayedLoad(_Rd_);
+        _rRd_ = res;
+    }
 }  // Rd = Rs - Rt              (Exception on Integer Overflow)
 void InterpretedCPU::psxSUBU(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t res = _u32(_rRs_) - _u32(_rRt_);
+    uint32_t res = _rRs_ - _rRt_;
     if (_Rd_ == 29) {
         if (_Rs_ == 29) {
             PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
