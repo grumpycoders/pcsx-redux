@@ -92,7 +92,6 @@ void DynaRecCPU::recCTC2() {
             case 27:
             case 29:
             case 30:
-                // Could probably use a regular Mov then Strsh here
                 gen.Sxth(w0, m_regs[_Rt_].allocatedReg); // Sign extend value from 16 to 32 bits
                 gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
                 break;
