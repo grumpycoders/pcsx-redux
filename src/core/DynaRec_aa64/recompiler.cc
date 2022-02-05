@@ -142,22 +142,16 @@ void DynaRecCPU::flushCache() {
 
 void DynaRecCPU::emitBlockLookup() {
     gen.Ldr(w4, MemOperand(contextPointer, PC_OFFSET));  // w4 = pc
-    gen.And(w3, w4, 0xfffc);                             // w3 = index into the recompiler LUT page, multiplied by 4
-    gen.Lsr(w4, w4, 16);                                 // w4 = pc >> 16
+    // w3 = index into the recompiler LUT page. Calculated like ((pc >> 2) & 0x3fff)
+    gen.Ubfx(w3, w4, 2, 14);
+    gen.Lsr(w4, w4, 16);  // w4 = pc >> 16
 
     // Load base pointer to recompiler LUT page in x0
     gen.Mov(x0, (uintptr_t)m_recompilerLUT);
     gen.Ldr(x0, MemOperand(x0, x4, LSL, 3));
 
     // Load pointer to block in x5 and jump to it
-    gen.Lsl(x6, x3, 1);
-    gen.Ldr(x5, MemOperand(x0, x6));
-    /* TODO: gen.Ldr(x5, MemOperand(x0, x3, LSL, 1)); is broken,
-     * it emits as 'ldr x5, x0, x3, lsl, 3' causing block lookup
-     * to jump into uncompiled blocks. We need to keep x3 intact
-     * so we use x6 to store x3 << 1 here
-     */
-    // gen.Ldr(x5, MemOperand(x0, x3, LSL, 1));
+    gen.Ldr(x5, MemOperand(x0, x3, LSL, 3));
     gen.Br(x5);
 }
 
@@ -215,13 +209,13 @@ void DynaRecCPU::emitDispatcher() {
 
     // Code for when the block to be executed needs to be compiled.
     // x0 = Base pointer to the page of m_recompilerLUT we're executing from
-    // x3 = Index into the page, multiplied by 4
-    // Doing x0 + (x3 << 1) gets us the pointer to where the block callback should be stored
+    // x3 = Index into the page
+    // Doing x0 + (x3 << 3) gets us the pointer to where the block callback should be stored
     gen.align();
     m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
-    // Do arg2 = x0 + (x3 << 1). Now arg2 points to the address we'll store the block callback to.
-    gen.Add(arg2.X(), x0, Operand(x3, LSL, 1));
+    // Do arg2 = x0 + (x3 << 3). Now arg2 points to the address we'll store the block callback to.
+    gen.Add(arg2.X(), x0, Operand(x3, LSL, 3));
     loadThisPointer(arg1.X());
     call(recRecompileWrapper);
     gen.Br(x0);  // Jump to compiled block
@@ -323,7 +317,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     __builtin___clear_cache(reinterpret_cast<char*>(blockStart), gen.getCurr<char*>());
     gen.ready();
 
-    // The block might have been invalidated by handleLinking, so re-read the pointer from *callback 
+    // The block might have been invalidated by handleLinking, so re-read the pointer from *callback
     return *callback;
 }
 
