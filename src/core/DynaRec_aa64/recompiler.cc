@@ -260,10 +260,8 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     }
 
     // TODO: Add profiler stuff here
-
-    const auto pointer = gen.getCurr<DynarecCallback>();  // Pointer to emitted code
-
-    *callback = pointer;
+    const auto blockStart = gen.getCurr<DynarecCallback>();
+    *callback = blockStart;
     handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.
 
     auto shouldContinue = [&]() {
@@ -310,11 +308,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         m_linkedPC = std::nullopt;
     }
 
-    // Block Cycles
-    gen.Ldr(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Fetch block cycle count from memory
-    gen.Mov(w1, count * PCSX::Emulator::BIAS);
-    gen.Add(w0, w0, w1);                                    // Add block cycles;
-    gen.Str(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Store block cycles back to memory
+    gen.Ldr(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Fetch cycle count from memory
+    gen.Add(w0, w0, count * PCSX::Emulator::BIAS);          // Add block cycles
+    gen.Str(w0, MemOperand(contextPointer, CYCLE_OFFSET));  // Store cycles back to memory
 
     // Link block else return to dispatcher
     if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
@@ -323,12 +319,12 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         jmp((void*)m_returnFromBlock);
     }
 
-    // Clear aarch64 CPU cache due to coherency issues causing illegal instruction errors
-    __builtin___clear_cache(gen.getCode<char*>(), gen.getCode<char*>() + allocSize);
-    // Finalize code buffer
+    // Clear stale instruction cache contents.
+    __builtin___clear_cache(reinterpret_cast<char*>(blockStart), gen.getCurr<char*>());
     gen.ready();
 
-    return pointer;
+    // The block might have been invalidated by handleLinking, so re-read the pointer from *callback 
+    return *callback;
 }
 
 // Checks if the block being compiled is one of the kernel call vectors
@@ -392,8 +388,6 @@ void DynaRecCPU::handleLinking() {
         } else {  // If it has already been compiled, link by jumping to the compiled code
             gen.Mov(x0, (uintptr_t)nextBlockPointer);
             gen.Ldr(x0, MemOperand(x0));
-            // Extract lower 32 bits and zero extend the rest
-            gen.Ubfx(x0, x0, 0, 32);
             // Move value to compare against into w1
             gen.Mov(w1, (uint32_t)(uintptr_t)*nextBlockPointer);
             gen.Cmp(w0, w1);
