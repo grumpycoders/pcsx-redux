@@ -144,6 +144,7 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
         }
     }
 
+    if (copy) ImGui::LogFinish();
     if (m_scrollToBottom) ImGui::SetScrollHereY(1.0f);
     m_scrollToBottom = m_follow;
     ImGui::EndChild();

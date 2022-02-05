@@ -94,8 +94,6 @@ struct VRAMLoad_t {
     uint16_t *ImagePtr;
 };
 
-/////////////////////////////////////////////////////////////////////////////
-
 struct PSXPoint_t {
     int32_t x;
     int32_t y;
@@ -113,13 +111,9 @@ struct PSXRect_t {
     int16_t y1;
 };
 
-/////////////////////////////////////////////////////////////////////////////
-
 struct TWin_t {
     PSXRect_t Position;
 };
-
-/////////////////////////////////////////////////////////////////////////////
 
 struct PSXDisplay_t {
     PSXPoint_t DisplayModeNew;
@@ -139,9 +133,7 @@ struct PSXDisplay_t {
     PSXRect_t Range;
 };
 
-/////////////////////////////////////////////////////////////////////////////
-
-// draw.c
+// draw.cc
 
 namespace PCSX {
 class GUI;
@@ -154,7 +146,7 @@ extern int iFastFwd;
 extern PSXPoint_t ptCursorPoint[];
 extern uint16_t usCursorActive;
 
-// prim.c
+// prim.cc
 
 extern uint32_t dwCfgFixes;
 extern uint32_t dwActFixes;
@@ -162,7 +154,7 @@ extern uint32_t dwEmuFixes;
 extern int iUseFixes;
 extern bool bDoVSyncUpdate;
 
-// gpu.c
+// gpu.cc
 extern VRAMLoad_t VRAMWrite;
 extern VRAMLoad_t VRAMRead;
 extern DATAREGISTERMODES DataWriteMode;
@@ -174,8 +166,6 @@ extern char szMenuBuf[];
 extern char szDebugText[];
 extern int16_t sDispWidths[];
 extern bool bDebugText;
-// extern unsigned int   iMaxDMACommandCounter;
-// extern uint32_t  dwDMAChainStop;
 extern PSXDisplay_t PSXDisplay;
 extern PSXDisplay_t PreviousPSXDisplay;
 extern bool bSkipNextFrame;
@@ -197,16 +187,10 @@ extern uint32_t ulStatusControl[];
 extern int iRumbleVal;
 extern int iRumbleTime;
 
-// menu.c
-// extern uint32_t dwCoreFlags;
-// extern HFONT hGFont;
-extern int iMPos;
-extern bool bTransparent;
-
-// cfg.c
+// cfg.cc
 extern char *pConfigFile;
 
-// zn.c
+// zn.cc
 extern uint32_t dwGPUVersion;
 extern int iGPUHeight;
 extern int iGPUHeightMask;

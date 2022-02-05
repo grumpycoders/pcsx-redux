@@ -194,6 +194,7 @@
     <ClCompile Include="..\..\src\gui\widgets\log.cc" />
     <ClCompile Include="..\..\src\gui\widgets\luaeditor.cc" />
     <ClCompile Include="..\..\src\gui\widgets\luainspector.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\memcard_manager.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\shader-editor.cc" />
     <ClCompile Include="..\..\src\gui\widgets\source.cc" />
@@ -218,6 +219,7 @@
     <ClInclude Include="..\..\src\gui\widgets\log.h" />
     <ClInclude Include="..\..\src\gui\widgets\luaeditor.h" />
     <ClInclude Include="..\..\src\gui\widgets\luainspector.h" />
+    <ClInclude Include="..\..\src\gui\widgets\memcard_manager.h" />
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />
     <ClInclude Include="..\..\src\gui\widgets\shader-editor.h" />
     <ClInclude Include="..\..\src\gui\widgets\source.h" />
