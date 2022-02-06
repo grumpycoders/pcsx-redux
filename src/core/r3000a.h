@@ -20,6 +20,7 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -97,6 +98,9 @@ typedef union {
     uint32_t r[34]; /* Lo, Hi in r[32] and r[33] */
     PAIR p[34];
 } psxGPRRegs;
+
+// Make sure no packing is inserted anywhere
+static_assert(sizeof(psxGPRRegs) == 34 * sizeof(uint32_t));
 
 typedef union {
     struct {
