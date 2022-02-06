@@ -858,7 +858,6 @@ void DynaRecCPU::recMULT() {
     gen.Str(x0, MemOperand(contextPointer, LO_OFFSET));
 }
 
-// TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
 void DynaRecCPU::recMULTU() {
     if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
         gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET));  // Set both LO and HI to 0 in a single 64-bit write
@@ -1162,8 +1161,8 @@ void DynaRecCPU::recSLLV() {
         }
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-        gen.Mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
-        gen.Lsl(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Lsl(m_regs[_Rd_].allocatedReg, w0, m_regs[_Rs_].allocatedReg);
     } else {
         alloc_rt_rs_wb_rd();
         gen.Lsl(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -1298,8 +1297,8 @@ void DynaRecCPU::recSRLV() {
         }
     } else if (m_regs[_Rt_].isConst()) {
         alloc_rs_wb_rd();
-        gen.Mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
-        gen.Lsr(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.Mov(w0, m_regs[_Rt_].val);
+        gen.Lsr(m_regs[_Rd_].allocatedReg, w0, m_regs[_Rs_].allocatedReg);
     } else {
         alloc_rt_rs_wb_rd();
         gen.Lsr(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
