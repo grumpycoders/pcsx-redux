@@ -53,7 +53,9 @@ DstTP ClockCast(const SrcTP tp) {
 }
 
 namespace Events {
-struct SettingsLoaded {};
+struct SettingsLoaded {
+    bool safe = false;
+};
 struct Quitting {};
 struct LogMessage {
     LogClass logClass;

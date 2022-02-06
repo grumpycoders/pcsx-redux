@@ -24,8 +24,8 @@
 
 #include <filesystem>
 
-#include "core/psxemulator.h"
 #include "support/slice.h"
+#include "support/ssize_t.h"
 
 namespace PCSX {
 
