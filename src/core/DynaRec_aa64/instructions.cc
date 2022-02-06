@@ -821,7 +821,7 @@ void DynaRecCPU::recMTLO() {
         gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, LO_OFFSET));
     }
 }
-// TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
+
 void DynaRecCPU::recMULT() {
     if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
         gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET));  // Set both LO and HI to 0 in a single 64-bit write
@@ -831,29 +831,24 @@ void DynaRecCPU::recMULT() {
     if (m_regs[_Rs_].isConst()) {
         if (m_regs[_Rt_].isConst()) {
             const uint64_t result = (int64_t)(int32_t)m_regs[_Rt_].val * (int64_t)(int32_t)m_regs[_Rs_].val;
-            gen.Mov(w0, (uint32_t)result);
-            gen.Mov(w1, (uint32_t)(result >> 32));
-            gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
-            gen.Str(w1, MemOperand(contextPointer, HI_OFFSET));
+            gen.Mov(x0, result);
+            gen.Str(x0, MemOperand(contextPointer, LO_OFFSET));
         } else {
             allocateReg(_Rt_);
-            gen.Sxtw(x0, m_regs[_Rt_].allocatedReg);
-            gen.Mov(x1, (int64_t)(int32_t)m_regs[_Rs_].val);
-            gen.Mul(x0, x0, x1);
+            gen.Mov(w1, m_regs[_Rs_].val);
+            gen.Smull(x0, w1, m_regs[_Rt_].allocatedReg);
         }
     } else {
         if (m_regs[_Rt_].isConst()) {
             allocateReg(_Rs_);
-            gen.Sxtw(x0, m_regs[_Rs_].allocatedReg);
-            gen.Mov(x1, (int64_t)(int32_t)m_regs[_Rt_].val);
-            gen.Mul(x0, x0, x1);
+            gen.Mov(w1, m_regs[_Rt_].val);
+            gen.Smull(x0, w1, m_regs[_Rs_].allocatedReg);
         } else {
             alloc_rt_rs();
-            gen.Sxtw(x0, m_regs[_Rs_].allocatedReg);
-            gen.Sxtw(x1, m_regs[_Rt_].allocatedReg);
-            gen.Mul(x0, x0, x1);
+            gen.Smull(x0, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
         }
     }
+
     // Write 64-bit result to lo and hi at the same time
     gen.Str(x0, MemOperand(contextPointer, LO_OFFSET));
 }
