@@ -97,13 +97,11 @@ void DynaRecCPU::recCTC2() {
                 break;
 
             case 31:  // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
-                gen.And(w1, m_regs[_Rt_].allocatedReg, 0x7f87e000);
-                gen.Mov(w0, 0x80000000);
-                gen.Sub(w0, w1, 0x80000000);
-                gen.Mov(w2, 0x7f87e000);
-                gen.Tst(m_regs[_Rt_].allocatedReg, w2);
-                // Change order here and condition to possibly eliminate an unneeded mov
-                gen.Csel(w0, w1, w0, eq);
+                gen.And(w1, m_regs[_Rt_].allocatedReg, 0x7fffe000);
+                gen.And(w0, m_regs[_Rt_].allocatedReg, 0x7ffff000);
+                gen.Orr(w2, w0, 0x80000000);
+                gen.Ands(w1, w1, 0xff87ffff);
+                gen.Csel(w0, w2, w0, ne);
                 gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(31)));
                 break;
 
@@ -313,8 +311,6 @@ void DynaRecCPU::recSWC2() {
         gen.Mov(arg1, m_psxRegs.code);                                                              \
         call(name##Wrapper);                                                                        \
     }
-
-// TODO: AVSZ Instructions
 
 GTE_FALLBACK(AVSZ3);
 GTE_FALLBACK(AVSZ4);
