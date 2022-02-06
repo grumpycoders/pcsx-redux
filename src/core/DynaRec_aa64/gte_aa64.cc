@@ -153,7 +153,6 @@ void DynaRecCPU::recMTC2() {
                 gen.And(w0, w0, 0xf80);
                 gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(11)));
             }
-
             break;
 
         case 30:
@@ -269,7 +268,6 @@ void DynaRecCPU::recLWC2() {
             break;
 
         case 28:  // IRGB
-
             gen.And(w1, w0, 0x1f);  // Calculate IR1
             gen.Lsl(w1, w1, 7);
             gen.Str(w1, MemOperand(contextPointer, COP2_DATA_OFFSET(9)));
@@ -291,7 +289,8 @@ void DynaRecCPU::recLWC2() {
 void DynaRecCPU::recSWC2() {
     gen.Mov(arg1, _Rt_);
     call(MFC2Wrapper);  // Fetch the COP2 data reg in w0
-
+    gen.Mov(arg2, w0);  // Value to write in arg2
+    
     // Address in arg1
     if (m_regs[_Rs_].isConst()) {
         gen.Mov(arg1, m_regs[_Rs_].val + _Imm_);
@@ -300,7 +299,6 @@ void DynaRecCPU::recSWC2() {
         gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
     }
 
-    gen.Mov(arg2, w0);  // Value to write in arg2
     call(psxMemWrite32Wrapper);
 }
 
