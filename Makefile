@@ -114,6 +114,11 @@ ifeq ($(UNAME_M),aarch64)
 	CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
 	CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
+ifeq ($(UNAME_M),arm64)
+    SRCS += $(VIXL_SRCS)
+	CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+	CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+endif
 SUPPORT_SRCS := $(call rwildcard,src/support/,*.cc)
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
