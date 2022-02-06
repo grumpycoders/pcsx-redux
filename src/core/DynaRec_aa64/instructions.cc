@@ -286,18 +286,17 @@ void DynaRecCPU::recDIV() {
         if (m_regs[_Rt_].val == 0) {  // Handle case where divisor is 0
             if (m_regs[_Rs_].isConst()) {
                 gen.Mov(w0, m_regs[_Rs_].val & 0x80000000 ? 1 : -1);  // LO = 1 or -1 depending on the sign of $rs
-                gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
-                gen.Mov(w0, m_regs[_Rs_].val);
-                gen.Str(w0, MemOperand(contextPointer, HI_OFFSET));  // HI = $rs
+                gen.Mov(w1, m_regs[_Rs_].val); // HI = $rs
+                gen.Stp(w0, w1, MemOperand(contextPointer, HI_OFFSET));
             }
 
             else {
                 allocateReg(_Rs_);
-                gen.Str(m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, HI_OFFSET));  // Set hi to $rs
                 gen.Lsr(w0, m_regs[_Rs_].allocatedReg, 31);
                 gen.Sub(w1, w0, 1);
                 gen.Add(w0, w0, w1);
-                gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));  // Set lo to 1 or -1 depending on the sign of $rs
+                // Set lo to 1 or -1 depending on the sign of $rs, set hi to $rs
+                gen.Stp(w0, m_regs[_Rs_].allocatedReg, MemOperand(contextPointer, LO_OFFSET));
             }
 
             return;
@@ -308,13 +307,11 @@ void DynaRecCPU::recDIV() {
         if (m_regs[_Rs_].isConst()) {
             if (m_regs[_Rs_].val == 0x80000000 && m_regs[_Rt_].val == 0xffffffff) {
                 gen.Mov(w0, 0x80000000);
-                gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
-                gen.Str(wzr, MemOperand(contextPointer, HI_OFFSET));
+                gen.Stp(w0, wzr, MemOperand(contextPointer, LO_OFFSET));
             } else {
                 gen.Mov(w0, (int32_t)m_regs[_Rs_].val / (int32_t)m_regs[_Rt_].val);
                 gen.Mov(w1, (int32_t)m_regs[_Rs_].val % (int32_t)m_regs[_Rt_].val);
-                gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
-                gen.Str(w1, MemOperand(contextPointer, HI_OFFSET));
+                gen.Stp(w0, w1, MemOperand(contextPointer, LO_OFFSET));
             }
             return;
         }
@@ -366,9 +363,7 @@ void DynaRecCPU::recDIV() {
     }
 
     gen.L(end);
-
-    gen.Str(w2, MemOperand(contextPointer, LO_OFFSET));  // Lo = quotient
-    gen.Str(w3, MemOperand(contextPointer, HI_OFFSET));  // Hi = remainder
+    gen.Stp(w2, w3, MemOperand(contextPointer, LO_OFFSET));  // Lo = quotient, Hi = remainder
 }
 
 void DynaRecCPU::recDIVU() {
@@ -395,8 +390,7 @@ void DynaRecCPU::recDIVU() {
         if (m_regs[_Rs_].isConst()) {
             gen.Mov(w0, m_regs[_Rs_].val / m_regs[_Rt_].val);
             gen.Mov(w1, m_regs[_Rs_].val % m_regs[_Rt_].val);
-            gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
-            gen.Str(w1, MemOperand(contextPointer, HI_OFFSET));
+            gen.Stp(w0, w1, MemOperand(contextPointer, LO_OFFSET));
             return;
         }
 
@@ -430,8 +424,7 @@ void DynaRecCPU::recDIVU() {
 
         gen.L(end);
     }
-    gen.Str(w2, MemOperand(contextPointer, LO_OFFSET));  // Lo = quotient = w2
-    gen.Str(w3, MemOperand(contextPointer, HI_OFFSET));  // Hi = remainder = w3
+    gen.Stp(w2, w3, MemOperand(contextPointer, LO_OFFSET));  // Lo = quotient, Hi = remainder
 }
 
 void DynaRecCPU::recJ() {
