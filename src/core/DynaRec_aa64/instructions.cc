@@ -860,29 +860,28 @@ void DynaRecCPU::recMULTU() {
     }
 
     if (m_regs[_Rs_].isConst()) {
-        gen.Mov(w0, m_regs[_Rs_].val);
-
         if (m_regs[_Rt_].isConst()) {
-            gen.Mov(w1, m_regs[_Rt_].val);
-            gen.Mul(x0, x0, x1);
+            const uint64_t result = (uint64_t)m_regs[_Rt_].val * (uint64_t)m_regs[_Rs_].val;
+            gen.Mov(x0, result);
+            gen.Str(x0, MemOperand(contextPointer, LO_OFFSET));
         } else {
             allocateReg(_Rt_);
-            gen.Mul(x0, x0, m_regs[_Rt_].allocatedReg.X());
+            gen.Mov(w1, m_regs[_Rs_].val);
+            gen.Umull(x0, w1, m_regs[_Rt_].allocatedReg);
         }
     } else {
         if (m_regs[_Rt_].isConst()) {
             allocateReg(_Rs_);
-            gen.Mov(w0, m_regs[_Rt_].val);
-            gen.Mul(x0, x0, m_regs[_Rs_].allocatedReg.X());
+            gen.Mov(w1, m_regs[_Rt_].val);
+            gen.Umull(x0, w1, m_regs[_Rs_].allocatedReg);
         } else {
             alloc_rt_rs();
-            gen.Mov(w0, m_regs[_Rs_].allocatedReg);
-            gen.Mul(x0, x0, m_regs[_Rt_].allocatedReg.X());
+            gen.Umull(x0, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
         }
     }
-    gen.Lsr(x1, x0, 32);
-    gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
-    gen.Str(w1, MemOperand(contextPointer, HI_OFFSET));
+
+    // Write 64-bit result to lo and hi at the same time
+    gen.Str(x0, MemOperand(contextPointer, LO_OFFSET));
 }
 
 void DynaRecCPU::recNOR() {
