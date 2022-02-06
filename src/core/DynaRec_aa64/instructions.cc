@@ -765,7 +765,7 @@ void DynaRecCPU::recMTC0() {
 }
 
 // Checks if a write to SR/CAUSE forcibly triggered an interrupt
-// loadSR: Shows if SR is already in eax or if it should be loaded from memory
+// loadSR: Shows if SR is already in w4 or if it should be loaded from memory
 template <bool loadSR>
 void DynaRecCPU::testSoftwareInterrupt() {
     Label label;
@@ -838,14 +838,14 @@ void DynaRecCPU::recMULT() {
         } else {
             allocateReg(_Rt_);
             gen.Sxtw(x0, m_regs[_Rt_].allocatedReg);
-            gen.Mov(w1, m_regs[_Rs_].val);
+            gen.Mov(x1, (int64_t)(int32_t)m_regs[_Rs_].val);
             gen.Mul(x0, x0, x1);
         }
     } else {
         if (m_regs[_Rt_].isConst()) {
             allocateReg(_Rs_);
             gen.Sxtw(x0, m_regs[_Rs_].allocatedReg);
-            gen.Mov(w1, m_regs[_Rt_].val);
+            gen.Mov(x1, (int64_t)(int32_t)m_regs[_Rt_].val);
             gen.Mul(x0, x0, x1);
         } else {
             alloc_rt_rs();
@@ -998,12 +998,13 @@ void DynaRecCPU::recREGIMM() {
     gen.Cmp(m_regs[_Rs_].allocatedReg, 0);
     gen.Mov(w0, target);    // w0 = addr if jump taken
     gen.Mov(w1, m_pc + 4);  // w1 = addr if jump not taken
-    // TODO: Verify Csel below is using proper conditions for signed/unsigned
+    
     if (isBGEZ) {
-        gen.Csel(w0, w0, w1, pl);  // if $rs >= 0 unsigned compare, move the jump addr into eax
+        gen.Csel(w0, w0, w1, ge);  // if $rs >= 0, move the jump addr into w0
     } else {
-        gen.Csel(w0, w0, w1, mi);  // if $rs < 0 signed compare, move the jump addr into eax
+        gen.Csel(w0, w0, w1, lt);  // if $rs < 0, move the jump addr into w0
     }
+
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
     if (link) {
         maybeCancelDelayedLoad(31);
@@ -1012,12 +1013,12 @@ void DynaRecCPU::recREGIMM() {
 }
 
 void DynaRecCPU::recRFE() {
-    gen.Ldr(w0, MemOperand(contextPointer, COP0_OFFSET(12)));  // w0 = COP0 status register
-    gen.And(w1, w0, 0x3c);                                     // mask out the rest of the SR value
-    gen.And(w0, w0, ~0xF);                                     // Clear bottom 4 bits of w0
-    gen.Orr(w0, w0, Operand(w1, LSR, 2));                      // Shift bits [5:2] of SR two places to the right
+    gen.Ldr(w4, MemOperand(contextPointer, COP0_OFFSET(12)));  // w0 = COP0 status register
+    gen.And(w1, w4, 0x3c);                                     // mask out the rest of the SR value
+    gen.And(w4, w4, ~0xF);                                     // Clear bottom 4 bits of w4
+    gen.Orr(w4, w4, Operand(w1, LSR, 2));                      // Shift bits [5:2] of SR two places to the right
                                                                // & merge the shifted bits into w0
-    gen.Str(w0, MemOperand(contextPointer, COP0_OFFSET(12)));  // Write w0 back to SR
+    gen.Str(w4, MemOperand(contextPointer, COP0_OFFSET(12)));  // Write w4 back to SR
     testSoftwareInterrupt<false>();
 }
 
