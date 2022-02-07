@@ -159,7 +159,7 @@ void DynaRecCPU::recMTC2() {
             if (m_regs[_Rt_].isConst()) {
                 const auto result = PCSX::GTE::countLeadingBits(m_regs[_Rt_].val);
                 gen.Mov(w0, result);
-                gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(31))); // Set LZCR
+                gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(31))); // Set LZCR
             } else {
                 allocateReg(_Rt_);
 
