@@ -163,11 +163,9 @@ void DynaRecCPU::recMTC2() {
             } else {
                 allocateReg(_Rt_);
 
-                gen.Mov(w0, m_regs[_Rt_].allocatedReg); // w0 = value to count leading bits of
-                gen.Asr(w1, w0, 31);                    // value = ~value if the msb is set
-                gen.Eor(w0, w0, w1);
-
-                gen.Clz(w0, w0);                        // Count leading Zeros
+                // value = ~value if the msb is set, then store value in w0
+                gen.Eor(w0, m_regs[_Rt_].allocatedReg, Operand(m_regs[_Rt_].allocatedReg, ASR, 31));
+                gen.Clz(w0, w0); // Count leading Zeros
                 gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(31))); // Write result to LZCR
             }
             break;
