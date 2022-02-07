@@ -191,7 +191,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
   public:
-    DynaRecCPU() : R3000Acpu("AA64 DynaRec") {}
+    DynaRecCPU() : R3000Acpu("Dynarec (arm64)") {}
     virtual bool Implemented() final { return true; }
     virtual bool Init() final;
     virtual void Reset() final;
