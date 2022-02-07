@@ -54,10 +54,10 @@ PCSX::SPU::MiniAudio::MiniAudio(PCSX::SPU::SettingsType& settings)
             throw std::runtime_error("Unable to stop NULL audio device");
         };
     });
-    m_listener.listen<Events::SettingsLoaded>([this](const auto& event) { init(); });
+    m_listener.listen<Events::SettingsLoaded>([this](const auto& event) { init(event.safe); });
 }
 
-void PCSX::SPU::MiniAudio::init() {
+void PCSX::SPU::MiniAudio::init(bool safe) {
     // First, initialize NULL device
     ma_backend nullContext = ma_backend_null;
     if (ma_context_init(&nullContext, 1, NULL, &m_contextNull) != MA_SUCCESS) {
@@ -84,20 +84,26 @@ void PCSX::SPU::MiniAudio::init() {
     // Then probe for actual device, and initialize it
     ma_backend backends[ma_backend_null + 1];
     unsigned count = 0;
-    bool found = false;
-    for (unsigned i = 0; i <= ma_backend_null; i++) {
-        ma_backend b = ma_backend(i);
-        if (!ma_is_backend_enabled(b)) continue;
-        backends[count++] = b;
-        if (ma_get_backend_name(b) == m_settings.get<Backend>().value) {
-            found = true;
-            count = 1;
-            backends[0] = b;
-            break;
+    if (safe) {
+        backends[0] = ma_backend_null;
+        count = 1;
+        m_settings.get<Backend>().value = ma_get_backend_name(ma_backend_null);
+    } else {
+        bool found = false;
+        for (unsigned i = 0; i <= ma_backend_null; i++) {
+            ma_backend b = ma_backend(i);
+            if (!ma_is_backend_enabled(b)) continue;
+            backends[count++] = b;
+            if (ma_get_backend_name(b) == m_settings.get<Backend>().value) {
+                found = true;
+                count = 1;
+                backends[0] = b;
+                break;
+            }
         }
-    }
-    if (!found) {
-        m_settings.get<Backend>().reset();
+        if (!found) {
+            m_settings.get<Backend>().reset();
+        }
     }
     if (ma_context_init(backends, count, NULL, &m_context) != MA_SUCCESS) {
         throw std::runtime_error("Error initializing miniaudio context");
