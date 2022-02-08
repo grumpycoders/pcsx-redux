@@ -1380,7 +1380,7 @@ void DynaRecCPU::recSWL() {
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
         call(psxMemRead32Wrapper);
-        gen.andImm(w0, w0, mask);  // Mask read value and store in w2
+        gen.andImm(w0, w0, mask);  // Mask read value
 
         allocateReg(_Rt_);  // Allocate $rt
         // Value to write back to memory in $arg2
