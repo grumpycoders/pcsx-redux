@@ -62,10 +62,12 @@ bool DynaRecCPU::Init() {
         m_recompilerLUT[page + 0xBFC0] = pointer;
     }
 
-    if (!gen.setRWX()) {
-        PCSX::g_system->message("[Dynarec] Failed to allocate executable memory.\nTry disabling the Dynarec CPU.");
+    // Set s_codeCache as R/W to emit dispatcher
+    if (!gen.setRW()) {
+        PCSX::g_system->message("[Dynarec] Failed to set Read/Write permissions on code buffer memory.\nTry disabling the Dynarec CPU.");
         return false;
     }
+
     emitDispatcher();  // Emit our assembly dispatcher
     uncompileAll();    // Mark all blocks as uncompiled
 
@@ -84,7 +86,14 @@ bool DynaRecCPU::Init() {
     */
 
     m_regs[0].markConst(0);  // $zero is always zero
-    return true;
+    // Set s_codeCache as R/X before jumping into disaptcher
+    // Check here to see if subsequent mprotect calls might fail - TESTING
+    if (!gen.setRX()) {
+         PCSX::g_system->message("[Dynarec] Failed to set Read/Execute permissions on code buffer memory.\nTry disabling the Dynarec CPU.");
+         return false;
+    }
+
+     return true;
 }
 
 void DynaRecCPU::Reset() {
@@ -245,6 +254,8 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
 
+    gen.setRW();    // Set s_codeCache as R/W before emitting code
+
     if (align) {
         gen.align();  // Align next block
     }
@@ -316,6 +327,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     // Clear stale instruction cache contents.
     __builtin___clear_cache(reinterpret_cast<char*>(blockStart), gen.getCurr<char*>());
     gen.ready();
+    gen.setRX(); // Set s_codeCache as R/X before returning to dispatcher
 
     // The block might have been invalidated by handleLinking, so re-read the pointer from *callback
     return *callback;

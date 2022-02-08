@@ -54,10 +54,19 @@ class Emitter : public MacroAssembler {
 
     void ready() { FinalizeCode(); }
 
-    // TODO: VIXL methods only allow for RW or RE; This will need to be handled manually for M1 Mac regardless
+    // TODO: Do we keep this around or just use the proper method
     bool setRWX() {
         return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE | PROT_EXEC) != -1;
     }
+    // TODO: The below methods may need additional flags for other platforms, check.
+    bool setRW() {
+        return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE) != -1;
+    }
+
+    bool setRX() {
+        return mprotect(s_codeCache, allocSize, PROT_READ | PROT_EXEC) != -1;
+    }
+
     void align() { GetBuffer()->Align(); }
 
 #define MAKE_CONDITIONAL_BRANCH(properName, alias)      \
