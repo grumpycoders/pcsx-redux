@@ -60,8 +60,6 @@ static void psxMemWrite16Wrapper(uint32_t address, uint16_t value) {
 static void psxMemWrite32Wrapper(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_psxMem->psxMemWrite32(address, value);
 }
-// Used to emit print statements in jitted code for debugging
-static void log_instruction(uint32_t pc) { printf("Emulating instruction @ %08X\n", pc); }
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 
@@ -219,12 +217,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     virtual const size_t getBufferSize() final { return gen.getSize(); }
 
   private:
-    // Emit log of current instruction in jitted code for debugging
-    void emitLog() {
-        gen.Mov(arg1, m_pc);
-        call(log_instruction);
-    }
-
     // Calculate the number of instructions between the current PC and the branch target
     // Returns a negative number for backwards jumps
     int64_t getPCOffset(const void* current, const void* target) {

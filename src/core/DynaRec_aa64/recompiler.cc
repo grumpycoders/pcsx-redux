@@ -170,8 +170,7 @@ void DynaRecCPU::emitBlockLookup() {
 }
 
 void DynaRecCPU::emitDispatcher() {
-    vixl::aarch64::Label done;
-
+    Label done;
     gen.align();
     m_dispatcher = gen.getCurr<DynarecCallback>();
 
@@ -418,7 +417,7 @@ void DynaRecCPU::handleLinking() {
 }
 
 void DynaRecCPU::handleFastboot() {
-    vixl::aarch64::Label noFastBoot;
+    Label noFastBoot;
 
     gen.Mov(x0, (uintptr_t)&m_shellStarted);  // Check if shell has already been reached
     gen.Ldrb(w0, MemOperand(x0));
