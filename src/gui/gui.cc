@@ -311,7 +311,8 @@ end)(jit.status()))
         auto& emuSettings = PCSX::g_emulator->settings;
         auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
         json j;
-        if (cfg.is_open() && !m_args.get<bool>("safe")) {
+        bool safeMode = m_args.get<bool>("safe").value_or(false);
+        if (cfg.is_open() && !safeMode) {
             try {
                 cfg >> j;
             } catch (...) {
@@ -375,7 +376,7 @@ end)(jit.status()))
 
         g_system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
 
-        g_system->m_eventBus->signal(Events::SettingsLoaded{});
+        g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
 
         std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
         if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);

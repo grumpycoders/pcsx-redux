@@ -118,7 +118,7 @@ class MiniAudio {
     SettingsType& m_settings;
     void callback(ma_device* device, float* output, ma_uint32 frameCount);
     void callbackNull(ma_device* device, float* output, ma_uint32 frameCount);
-    void init();
+    void init(bool safe = false);
     void uninit();
 
     ma_context m_context;

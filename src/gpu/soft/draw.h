@@ -28,17 +28,7 @@
 
 #include <stdint.h>
 
-void DoBufferSwap(void);
-void DoClearScreenBuffer(void);
-void DoClearFrontBuffer(void);
-uint32_t ulInitDisplay(void);
-void CloseDisplay(void);
-void CreatePic(unsigned char* pMem);
-void DestroyPic(void);
-void DisplayPic(void);
-void ShowGpuPic(void);
-void ShowTextGpuPic(void);
-
-#ifdef _WIN32
-// void MoveScanLineArea(HWND hwnd);
-#endif
+void DoBufferSwap();
+void DoClearScreenBuffer();
+void DoClearFrontBuffer();
+uint32_t ulInitDisplay();
