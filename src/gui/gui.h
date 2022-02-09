@@ -200,7 +200,6 @@ class GUI final {
     ImVec4 m_backgroundColor = ImColor(114, 144, 154);
     ImVec2 m_renderSize = ImVec2(1, 1);
 
-    float m_renderRatio = 3.0f / 4.0f;
     bool &m_fullscreen = {settings.get<Fullscreen>().value};
 
     // GUI

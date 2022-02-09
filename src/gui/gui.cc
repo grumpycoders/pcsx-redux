@@ -466,6 +466,8 @@ end)(jit.status()))
     m_biosEditor.title = []() { return _("BIOS"); };
     m_biosEditor.show = false;
 
+    m_offscreenShaderEditor.init();
+    m_outputShaderEditor.init();
     m_offscreenShaderEditor.compile(this);
     m_outputShaderEditor.compile(this);
 
@@ -647,6 +649,7 @@ void PCSX::GUI::flip() {
 }
 
 void PCSX::GUI::endFrame() {
+    constexpr float renderRatio = 3.0f / 4.0f;
     auto& io = ImGui::GetIO();
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -656,7 +659,7 @@ void PCSX::GUI::endFrame() {
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
     m_renderSize = ImVec2(w, h);
-    normalizeDimensions(m_renderSize, m_renderRatio);
+    normalizeDimensions(m_renderSize, renderRatio);
 
     bool changed = false;
 
@@ -689,7 +692,7 @@ void PCSX::GUI::endFrame() {
                 _("Output"), &outputShown,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
-            normalizeDimensions(textureSize, m_renderRatio);
+            normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
             m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
         }
