@@ -99,6 +99,7 @@ class GUI final {
     void update(bool vsync = false);
     void flip();
     void bindVRAMTexture();
+    GLuint getVRAMTexture() { return m_VRAMTexture; }
     void setViewport();
     void setFullscreen(bool);
     bool addLog(LogClass logClass, const std::string &msg) {
@@ -189,7 +190,7 @@ class GUI final {
     int &m_glfwPosY = settings.get<WindowPosY>().value;
     int &m_glfwSizeX = settings.get<WindowSizeX>().value;
     int &m_glfwSizeY = settings.get<WindowSizeY>().value;
-    unsigned int m_VRAMTexture = 0;
+    GLuint m_VRAMTexture = 0;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};

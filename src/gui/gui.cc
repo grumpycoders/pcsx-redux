@@ -638,8 +638,6 @@ void PCSX::GUI::flip() {
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
-    glViewport(0, 0, m_renderSize.x, m_renderSize.y);
-
     glClearColor(0, 0, 0, 0);
     glClearDepthf(0.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

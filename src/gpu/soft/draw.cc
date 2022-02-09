@@ -193,11 +193,13 @@ void ShowGunCursor(unsigned char *surf) {
 static GLuint vramTexture = 0;
 
 void DoBufferSwap() {
+    GLuint textureID = m_gui->getVRAMTexture();
     m_gui->setViewport();
-    m_gui->bindVRAMTexture();
+    glBindTexture(GL_TEXTURE_2D, textureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
 
     if (PSXDisplay.RGB24) {
+        textureID = vramTexture;
         glBindTexture(GL_TEXTURE_2D, vramTexture);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, psxVuw);
     }
@@ -214,13 +216,8 @@ void DoBufferSwap() {
     float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
     float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
 
-    GLint textureID;
-
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &textureID);
     m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {1024.0f, 512.0f}, {startX, startY}, {width, height},
                                           m_gui->getRenderSize());
-
-    glBindTexture(GL_TEXTURE_2D, 0);
     m_gui->flip();
 }
 
