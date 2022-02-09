@@ -144,9 +144,9 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
 
             // We have to suffix the action button names with ##number because Imgui
             // can't handle multiple buttons with the same name well
-            auto buttonName = fmt::format(_("Format##{}"), i);
+            auto buttonName = fmt::format(_("Erase##{}"), i);
             if (ImGui::SmallButton(buttonName.c_str())) {
-                g_emulator->m_sio->FormatMcdBlock(m_selectedCard, i);
+                g_emulator->m_sio->EraseMcdBlock(m_selectedCard, i);
             }
             ImGui::SameLine();
 
@@ -268,7 +268,7 @@ void PCSX::Widgets::MemcardManager::performAction() {
     switch (m_pendingAction.type) {
         case Actions::Move:
             std::memcpy(dest, source, PCSX::SIO::MCD_BLOCK_SIZE);                  // Copy source to dest
-            PCSX::g_emulator->m_sio->FormatMcdBlock(m_selectedCard, sourceBlock);  // Format source
+            PCSX::g_emulator->m_sio->EraseMcdBlock(m_selectedCard, sourceBlock);  // Format source
             break;
 
         case Actions::Copy: {

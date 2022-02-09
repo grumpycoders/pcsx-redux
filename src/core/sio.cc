@@ -837,7 +837,7 @@ char *PCSX::SIO::GetMcdData(int mcd) {
 // Format a memory card block by clearing it with 0s
 // mcd: The memory card we want to use (1 or 2)
 // block: A block from 1 to 15 inclusive
-void PCSX::SIO::FormatMcdBlock(int mcd, int block) {
+void PCSX::SIO::EraseMcdBlock(int mcd, int block) {
     char *data = GetMcdData(mcd);
 
     // Set the block data to 0

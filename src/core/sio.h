@@ -145,7 +145,7 @@ class SIO {
     } McdBlock;
 
     void GetMcdBlockInfo(int mcd, int block, McdBlock *info);
-    void FormatMcdBlock(int mcd, int block);
+    void EraseMcdBlock(int mcd, int block);
     char *GetMcdData(int mcd);
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
