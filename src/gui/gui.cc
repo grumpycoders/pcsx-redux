@@ -112,6 +112,10 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
     s_this->magicOpen(paths[0]);
 }
 
+static void resize_callback(GLFWwindow* window, int width, int height) {
+    s_this->m_setupScreenSize = true;
+}
+
 static void ShowHelpMarker(const char* desc) {
     ImGui::SameLine();
     ImGui::TextDisabled("(?)");
@@ -271,6 +275,7 @@ end)(jit.status()))
 
     s_this = this;
     glfwSetDropCallback(m_window, drop_callback);
+    glfwSetWindowSizeCallback(m_window, resize_callback);
 
     Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
         int x, y, comp;
@@ -511,7 +516,7 @@ end)(jit.status()))
     });
 
     startFrame();
-    m_currentTexture = 1;
+    m_currentTexture ^= 1;
     flip();
 }
 
@@ -549,6 +554,26 @@ void PCSX::GUI::startFrame() {
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
+
+    if (m_setupScreenSize) {
+        constexpr float renderRatio = 3.0f / 4.0f;
+        int w, h;
+
+        glfwGetFramebufferSize(m_window, &w, &h);
+        m_framebufferSize = ImVec2(w, h);
+        m_renderSize = ImVec2(w, h);
+        normalizeDimensions(m_renderSize, renderRatio);
+
+        // Reset texture and framebuffer storage
+        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[0]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[1]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
+        m_setupScreenSize = false;
+    }
 
     auto& io = ImGui::GetIO();
 
@@ -624,12 +649,10 @@ void PCSX::GUI::flip() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
     GLuint texture = m_offscreenTextures[m_currentTexture];
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
@@ -650,16 +673,14 @@ void PCSX::GUI::flip() {
 
 void PCSX::GUI::endFrame() {
     constexpr float renderRatio = 3.0f / 4.0f;
+    const int w = m_framebufferSize.x;
+    const int h = m_framebufferSize.y;
+
     auto& io = ImGui::GetIO();
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     auto& emuSettings = PCSX::g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
-
-    int w, h;
-    glfwGetFramebufferSize(m_window, &w, &h);
-    m_renderSize = ImVec2(w, h);
-    normalizeDimensions(m_renderSize, renderRatio);
 
     bool changed = false;
 
