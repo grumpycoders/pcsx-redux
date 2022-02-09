@@ -111,9 +111,9 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
         ImGui::EndCombo();
     }
 
-    static constexpr ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
-                                             ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
-                                             ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
+    static constexpr ImGuiTableFlags flags =
+        ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
+        ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_SizingStretchProp;
     PCSX::SIO::McdBlock block;  // The current memory card block we're looking into
 
     if (ImGui::BeginTable("Memory card information", 6, flags)) {
