@@ -410,14 +410,13 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 symbol->name = name;
                 auto section = ret->sections.find(sectionIndex);
                 if (section == ret->sections.end()) {
-                    fmt::print("Section {} not found for.\n", sectionIndex);
+                    fmt::print("Section {} not found for {}.\n", sectionIndex, name);
                     return nullptr;
                 }
 
-                // A PSYQ section may have an alignment of 8, but each var within the section seems to always be aligned to 4.
-                // So the section alignment appears to apply to the section as a whole rather than the invidual entries within it.
-                const auto bssAlignment = 4;
-                auto align = bssAlignment - 1;
+                // Each entry is aligned to the size of the type after testing the output of mixed .bss and sbss with psyq GCC 2.7.2
+                // this works the same way as modern GCC.
+                auto align = symbol->size - 1;
                 section->uninitializedOffset += align;
                 section->uninitializedOffset &= ~align;
                 symbol->offset = section->uninitializedOffset;
