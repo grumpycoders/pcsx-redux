@@ -29,6 +29,8 @@
 #include "support/slice.h"
 #include "support/windowswrapper.h"
 
+#define SHF_MIPS_GPREL 0x10000000
+
 #define vprint(...) \
     if (verbose) fmt::print(__VA_ARGS__)
 
@@ -400,8 +402,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 uint16_t sectionIndex = file->read<uint16_t>();
                 uint32_t size = file->read<uint32_t>();
                 std::string name = readPsyqString(file);
-                vprint("Uninitialized: id {}, section {}, size {:08x}, name {}\n", symbolIndex, sectionIndex, size,
-                       name);
+               
                 Symbol* symbol = new Symbol();
                 symbol->symbolType = Symbol::Type::UNINITIALIZED;
                 symbol->sectionIndex = sectionIndex;
@@ -409,13 +410,22 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 symbol->name = name;
                 auto section = ret->sections.find(sectionIndex);
                 if (section == ret->sections.end()) {
-                    fmt::print("Section {} not found.\n", sectionIndex);
+                    fmt::print("Section {} not found for.\n", sectionIndex);
                     return nullptr;
                 }
-                auto align = section->alignment - 1;
+
+                // A PSYQ section may have an alignment of 8, but each var within the section seems to always be aligned to 4.
+                // So the section alignment appears to apply to the section as a whole rather than the invidual entries within it.
+                const auto bssAlignment = 4;
+                auto align = bssAlignment - 1;
                 section->uninitializedOffset += align;
                 section->uninitializedOffset &= ~align;
                 symbol->offset = section->uninitializedOffset;
+
+                vprint("Uninitialized: id {}, section {}, offset {:08x}, size {:08x}, name {}\n", symbolIndex,
+                       sectionIndex, symbol->offset, size,
+                       name);
+
                 section->uninitializedOffset += size;
                 ret->symbols.insert(symbolIndex, symbol);
                 break;
@@ -829,8 +839,9 @@ bool PsyqLnkFile::Section::generateElfSection(PsyqLnkFile* psyq, ELFIO::elfio& w
     if (getFullSize() == 0) return true;
     fmt::print("    :: Generating section {}\n", name);
     static const std::map<std::string, ELFIO::Elf_Xword> flagsMap = {
-        {".text", SHF_ALLOC | SHF_EXECINSTR}, {".rdata", SHF_ALLOC},           {".data", SHF_ALLOC | SHF_WRITE},
-        {".sdata", SHF_ALLOC | SHF_WRITE},    {".bss", SHF_ALLOC | SHF_WRITE}, {".sbss", SHF_ALLOC | SHF_WRITE},
+        {".text", SHF_ALLOC | SHF_EXECINSTR}, {".rdata", SHF_ALLOC},
+        {".data", SHF_ALLOC | SHF_WRITE},     {".sdata", SHF_ALLOC | SHF_WRITE | SHF_MIPS_GPREL},
+        {".bss", SHF_ALLOC | SHF_WRITE},      {".sbss", SHF_ALLOC | SHF_WRITE | SHF_MIPS_GPREL},
     };
     auto flags = flagsMap.find(name);
     if (flags == flagsMap.end()) {
