@@ -112,10 +112,6 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
     s_this->magicOpen(paths[0]);
 }
 
-static void resize_callback(GLFWwindow* window, int width, int height) {
-    s_this->m_setupScreenSize = true;
-}
-
 static void ShowHelpMarker(const char* desc) {
     ImGui::SameLine();
     ImGui::TextDisabled("(?)");
@@ -275,7 +271,7 @@ end)(jit.status()))
 
     s_this = this;
     glfwSetDropCallback(m_window, drop_callback);
-    glfwSetWindowSizeCallback(m_window, resize_callback);
+    glfwSetWindowSizeCallback(m_window, [](GLFWwindow*, int, int) { s_this->m_setupScreenSize = true; });
 
     Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
         int x, y, comp;
@@ -561,6 +557,9 @@ void PCSX::GUI::startFrame() {
         int w, h;
 
         glfwGetFramebufferSize(m_window, &w, &h);
+        // Make width/height be 1 at minimum
+        w = std::max<int>(w, 1);
+        h = std::max<int>(h, 1);
         m_framebufferSize = ImVec2(w, h);
         m_renderSize = ImVec2(w, h);
         normalizeDimensions(m_renderSize, renderRatio);
