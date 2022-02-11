@@ -416,7 +416,11 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
 
                 // Each entry is aligned to the size of the type after testing the output of mixed .bss and sbss with psyq GCC 2.7.2
                 // this works the same way as modern GCC.
-                auto align = symbol->size - 1;
+                auto sizeToUse = symbol->size;
+                if (sizeToUse > section->alignment) {
+                    sizeToUse = section->alignment;
+                }
+                auto align = sizeToUse - 1;
                 section->uninitializedOffset += align;
                 section->uninitializedOffset &= ~align;
                 symbol->offset = section->uninitializedOffset;
