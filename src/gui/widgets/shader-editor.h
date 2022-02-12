@@ -52,6 +52,7 @@ class ShaderEditor {
     }
 
     void setDefaults();
+    void init();
     void reset(GUI*);
 
     bool draw(GUI*, const char* title);

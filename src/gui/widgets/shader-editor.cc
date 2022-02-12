@@ -162,6 +162,11 @@ void PCSX::Widgets::ShaderEditor::setDefaults() {
     m_luaEditor.setText(c_defaultLuaInvoker);
 }
 
+void PCSX::Widgets::ShaderEditor::init() {
+    glGenVertexArrays(1, &m_vao);
+    glGenBuffers(1, &m_vbo);
+}
+
 std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
                                                            const std::vector<std::string_view> &mandatoryAttributes) {
     GLint status = 0;
@@ -698,13 +703,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
         return;
     }
 
-    if (m_vao == 0) {
-        glGenVertexArrays(1, &m_vao);
-        glGenBuffers(1, &m_vbo);
-    }
-
     glBindVertexArray(m_vao);
-
     glUseProgram(m_shaderProgram);
     struct VertexData {
         float positions[3];
@@ -874,8 +873,4 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     }
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glUseProgram(0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
