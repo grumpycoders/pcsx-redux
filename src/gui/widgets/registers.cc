@@ -94,11 +94,11 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             auto sxy0 = registers->CP2D.n.sxy0;
             ImGui::Text("sxy0: {%i, %i}", sxy0.x, sxy0.y);
             auto sxy1 = registers->CP2D.n.sxy1;
-            ImGui::Text("sxy0: {%i, %i}", sxy1.x, sxy1.y);
+            ImGui::Text("sxy1: {%i, %i}", sxy1.x, sxy1.y);
             auto sxy2 = registers->CP2D.n.sxy2;
-            ImGui::Text("sxy0: {%i, %i}", sxy2.x, sxy2.y);
+            ImGui::Text("sxy2: {%i, %i}", sxy2.x, sxy2.y);
             auto sxyp = registers->CP2D.n.sxyp;
-            ImGui::Text("sxy0: {%i, %i}", sxyp.x, sxyp.y);
+            ImGui::Text("sxyp: {%i, %i}", sxyp.x, sxyp.y);
             auto sz0 = registers->CP2D.n.sz0;
             ImGui::Text("sz0 : {%i, %i}", sz0.z, sz0.unused);
             auto sz1 = registers->CP2D.n.sz1;
