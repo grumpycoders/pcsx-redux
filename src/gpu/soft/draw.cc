@@ -104,7 +104,6 @@
 #include "GL/gl3w.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
-#include "gpu/soft/menu.h"
 #include "gpu/soft/prim.h"
 #include "gui/gui.h"
 
@@ -193,11 +192,13 @@ void ShowGunCursor(unsigned char *surf) {
 static GLuint vramTexture = 0;
 
 void DoBufferSwap() {
+    GLuint textureID = m_gui->getVRAMTexture();
     m_gui->setViewport();
-    m_gui->bindVRAMTexture();
+    glBindTexture(GL_TEXTURE_2D, textureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
 
     if (PSXDisplay.RGB24) {
+        textureID = vramTexture;
         glBindTexture(GL_TEXTURE_2D, vramTexture);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, psxVuw);
     }
@@ -214,73 +215,14 @@ void DoBufferSwap() {
     float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
     float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
 
-    GLint textureID;
-
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &textureID);
     m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {1024.0f, 512.0f}, {startX, startY}, {width, height},
                                           m_gui->getRenderSize());
-
-    glBindTexture(GL_TEXTURE_2D, 0);
     m_gui->flip();
 }
 
-////////////////////////////////////////////////////////////////////////
-// MAIN DIRECT DRAW INIT
-////////////////////////////////////////////////////////////////////////
-
-int DXinitialize() {
-    //    InitMenu();  // menu init
-
-    return 0;
-}
-
-////////////////////////////////////////////////////////////////////////
-// clean up DX stuff
-////////////////////////////////////////////////////////////////////////
-
-void DXcleanup()  // DX CLEANUP
-{
-    //    CloseMenu();  // bye display lists
-}
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-
 uint32_t ulInitDisplay(void) {
-    DXinitialize();  // init direct draw (not D3D... oh, well)
     glGenTextures(1, &vramTexture);
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
     return 1;
 }
-
-////////////////////////////////////////////////////////////////////////
-
-void CloseDisplay(void) {
-    DXcleanup();  // cleanup dx
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void CreatePic(unsigned char *pMem) {}
-
-///////////////////////////////////////////////////////////////////////////////////////
-
-void DestroyPic(void) {}
-
-///////////////////////////////////////////////////////////////////////////////////////
-
-void DisplayPic(void) {}
-
-///////////////////////////////////////////////////////////////////////////////////////
-
-void ShowGpuPic(void) {}
-
-////////////////////////////////////////////////////////////////////////
-
-void ShowTextGpuPic(void)  // CREATE TEXT SCREEN PIC
-{                          // gets an Text and paints
-}
-
-////////////////////////////////////////////////////////////////////////

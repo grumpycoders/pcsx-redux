@@ -187,11 +187,8 @@ void PCSX::Counters::psxRcntUpdate() {
     if (cycle - m_rcnts[3].cycleStart >= m_rcnts[3].cycle) {
         psxRcntReset(3);
 
-        PCSX::g_emulator->m_gpu->hSync(m_hSyncCount);
-
-        m_spuSyncCount++;
         m_hSyncCount++;
-
+        m_spuSyncCount++;
         // Update spu.
         if (m_spuSyncCount >= SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
             m_spuSyncCount = 0;
@@ -206,23 +203,18 @@ void PCSX::Counters::psxRcntUpdate() {
         }
 #endif
 
-        // VSync irq.
+        // Trigger VBlank IRQ when VBlank starts
         if (m_hSyncCount == VBlankStart[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
-            PCSX::g_emulator->m_gpu->vBlank(1);
-
-            // For the best times. :D
-            // setIrq( 0x01 );
-        }
-
-        // Update lace. (calculated at psxHsyncCalculate() on init/defreeze)
-        if (m_hSyncCount >= m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
-            m_hSyncCount = 0;
-
-            PCSX::g_emulator->m_gpu->vBlank(0);
+            PCSX::g_emulator->m_gpu->vBlank();
             setIrq(0x01);
-
+            
+            // Update lace. (calculated at psxHsyncCalculate() on init/defreeze)
             PCSX::g_emulator->m_gpu->updateLace();
             PCSX::g_emulator->vsync();
+        }
+
+        if (m_hSyncCount >= m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
+            m_hSyncCount = 0;   
         }
     }
 }

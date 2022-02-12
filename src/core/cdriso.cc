@@ -363,7 +363,7 @@ static int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AV
         stream_index = ret;
         st = fmt_ctx->streams[stream_index];
 
-        AVCodec *dec = avcodec_find_decoder(st->codecpar->codec_id);
+        const AVCodec *dec = avcodec_find_decoder(st->codecpar->codec_id);
         if (!dec) {
             PCSX::g_system->printf(_("Failed to find %s codec\n"), av_get_media_type_string(type));
             return AVERROR(EINVAL);
@@ -391,7 +391,7 @@ static int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AV
 static int decode_compressed_cdda_track(char *buf, char *src_filename, int *size) {
     AVFormatContext *fmt_ctx = NULL;
     AVCodecContext *audio_dec_ctx = NULL;
-    AVCodec *audio_codec = NULL;
+    const AVCodec *audio_codec = NULL;
     AVStream *audio_stream = NULL;
     int audio_stream_idx = -1;
     AVFrame *frame = NULL;

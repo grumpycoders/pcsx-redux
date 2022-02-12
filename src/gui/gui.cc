@@ -272,6 +272,7 @@ end)(jit.status()))
 
     s_this = this;
     glfwSetDropCallback(m_window, drop_callback);
+    glfwSetWindowSizeCallback(m_window, [](GLFWwindow*, int, int) { s_this->m_setupScreenSize = true; });
 
     Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
         int x, y, comp;
@@ -307,7 +308,8 @@ end)(jit.status()))
         auto& emuSettings = PCSX::g_emulator->settings;
         auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
         json j;
-        if (cfg.is_open() && !m_args.get<bool>("safe")) {
+        bool safeMode = m_args.get<bool>("safe").value_or(false);
+        if (cfg.is_open() && !safeMode) {
             try {
                 cfg >> j;
             } catch (...) {
@@ -371,7 +373,7 @@ end)(jit.status()))
 
         g_system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
 
-        g_system->m_eventBus->signal(Events::SettingsLoaded{});
+        g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
 
         std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
         if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
@@ -467,6 +469,8 @@ end)(jit.status()))
     m_biosEditor.title = []() { return _("BIOS"); };
     m_biosEditor.show = false;
 
+    m_offscreenShaderEditor.init();
+    m_outputShaderEditor.init();
     m_offscreenShaderEditor.compile(this);
     m_outputShaderEditor.compile(this);
 
@@ -510,7 +514,7 @@ end)(jit.status()))
     });
 
     startFrame();
-    m_currentTexture = 1;
+    m_currentTexture ^= 1;
     flip();
 }
 
@@ -548,6 +552,29 @@ void PCSX::GUI::startFrame() {
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
+
+    if (m_setupScreenSize) {
+        constexpr float renderRatio = 3.0f / 4.0f;
+        int w, h;
+
+        glfwGetFramebufferSize(m_window, &w, &h);
+        // Make width/height be 1 at minimum
+        w = std::max<int>(w, 1);
+        h = std::max<int>(h, 1);
+        m_framebufferSize = ImVec2(w, h);
+        m_renderSize = ImVec2(w, h);
+        normalizeDimensions(m_renderSize, renderRatio);
+
+        // Reset texture and framebuffer storage
+        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[0]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[1]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
+        m_setupScreenSize = false;
+    }
 
     auto& io = ImGui::GetIO();
 
@@ -623,12 +650,10 @@ void PCSX::GUI::flip() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
     GLuint texture = m_offscreenTextures[m_currentTexture];
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
@@ -639,8 +664,6 @@ void PCSX::GUI::flip() {
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
-    glViewport(0, 0, m_renderSize.x, m_renderSize.y);
-
     glClearColor(0, 0, 0, 0);
     glClearDepthf(0.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -650,16 +673,15 @@ void PCSX::GUI::flip() {
 }
 
 void PCSX::GUI::endFrame() {
+    constexpr float renderRatio = 3.0f / 4.0f;
+    const int w = m_framebufferSize.x;
+    const int h = m_framebufferSize.y;
+
     auto& io = ImGui::GetIO();
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     auto& emuSettings = PCSX::g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
-
-    int w, h;
-    glfwGetFramebufferSize(m_window, &w, &h);
-    m_renderSize = ImVec2(w, h);
-    normalizeDimensions(m_renderSize, m_renderRatio);
 
     bool changed = false;
 
@@ -692,7 +714,7 @@ void PCSX::GUI::endFrame() {
                 _("Output"), &outputShown,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
-            normalizeDimensions(textureSize, m_renderRatio);
+            normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
             m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
         }

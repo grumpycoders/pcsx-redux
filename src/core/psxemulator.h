@@ -46,13 +46,7 @@
 
 #ifndef MAXPATHLEN
 #ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
+#include "support/windowswrapper.h"
 #endif
 #ifdef MAX_PATH
 #define MAXPATHLEN MAX_PATH
@@ -221,7 +215,6 @@ class Emulator {
 
     // It is safe if these overflow
     uint32_t m_rewind_counter = 0;
-    uint8_t m_vblank_count_hideafter = 0;
 
     // Used for overclocking
     // Make the timing events trigger faster as we are currently assuming everything

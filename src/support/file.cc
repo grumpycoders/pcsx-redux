@@ -20,6 +20,8 @@
 #include "support/file.h"
 
 #include <algorithm>
+#include <assert.h>
+#include "support/windowswrapper.h"
 
 const uint8_t PCSX::File::m_internalBuffer = 0;
 

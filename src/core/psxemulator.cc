@@ -122,12 +122,6 @@ void PCSX::Emulator::vsync() {
     g_system->update(true);
     m_cheats->ApplyCheats();
 
-    if (m_vblank_count_hideafter) {
-        if (!(--m_vblank_count_hideafter)) {
-            PCSX::g_emulator->m_gpu->showScreenPic(NULL);
-        }
-    }
-
     if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
         // CreateRewindState();
     }
