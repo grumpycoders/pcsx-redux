@@ -46,14 +46,23 @@ public:
         UnknownInitialValue
     };
 
+    enum class ScanAlignment : uint8_t {
+        OneByte = 1,
+        TwoBytes = 2,
+        FourBytes = 4
+    };
+
     struct AddressValuePair {
         uint32_t address = 0;
-        uint8_t scanned_value = 0;
+        int scannedValue = 0;
     };
 
 private:
-    ScanType m_scantype = ScanType::ExactValue;
-    std::vector<AddressValuePair> m_address_value_pairs;
+    static int getMemValue(uint32_t absoluteAddress, const uint8_t* memData, uint32_t memSize, uint32_t memBase, uint8_t stride);
+
+    ScanType m_scanType = ScanType::ExactValue;
+    ScanAlignment m_scanAlignment = ScanAlignment::OneByte;
+    std::vector<AddressValuePair> m_AddressValuePairs;
     bool m_hex = false;
     int m_value = 0;
     bool m_showMemoryEditor = false;

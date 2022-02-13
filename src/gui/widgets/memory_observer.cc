@@ -21,7 +21,6 @@
 
 #include <magic_enum/include/magic_enum.hpp>
 
-#include "imgui.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/system.h"
@@ -32,97 +31,120 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
         return;
     }
 
-    uint8_t* mem_data = g_emulator->m_psxMem->g_psxM;
-    uint32_t mem_size = 8 * 1024 * 1024;
-    uint32_t mem_base = 0x80000000;
+    uint8_t* memData = g_emulator->m_psxMem->g_psxM;
+    uint32_t memSize = 8 * 1024 * 1024;
+    uint32_t memBase = 0x80000000;
+    const auto stride = static_cast<uint8_t>(m_scanAlignment);
 
-    if (m_address_value_pairs.empty() && ImGui::Button("First scan")) {
+    if (m_AddressValuePairs.empty() && ImGui::Button("First scan")) {
 
-        for (uint32_t i = 0; i < mem_size; ++i) {
-            const uint8_t mem_value = mem_data[i];
-            const auto search_value = static_cast<uint8_t>(m_value);
-            switch (m_scantype) {
-                case ScanType::ExactValue:
-                    if (mem_value == search_value) {
-                        m_address_value_pairs.push_back({mem_base + i, mem_value});
-                    }
-                    break;
-                case ScanType::BiggerThan:
-                    if (mem_value < search_value) {
-                        m_address_value_pairs.push_back({mem_base + i, mem_value});
-                    }
-                    break;
-                case ScanType::SmallerThan:
-                    if (mem_value > search_value) {
-                        m_address_value_pairs.push_back({mem_base + i, mem_value});
-                    }
-                    break;
-                case ScanType::Changed:
-                case ScanType::Unchanged:
-                case ScanType::Increased:
-                case ScanType::Decreased:
-                    break;
-                case ScanType::UnknownInitialValue:
-                    m_address_value_pairs.push_back({mem_base + i, mem_value});
-                    break;
-                default: ;
+        int memValue = 0;
+
+        for (uint32_t i = 0; i < memSize; ++i) {
+            if (i != 0 && i % stride == 0) {
+                switch (m_scanType) {
+                    case ScanType::ExactValue:
+                        if (memValue == m_value) {
+                            m_AddressValuePairs.push_back({memBase + i - stride, memValue});
+                        }
+                        break;
+                    case ScanType::BiggerThan:
+                        if (memValue < m_value) {
+                            m_AddressValuePairs.push_back({memBase + i - stride, memValue});
+                        }
+                        break;
+                    case ScanType::SmallerThan:
+                        if (memValue > m_value) {
+                            m_AddressValuePairs.push_back({memBase + i - stride, memValue});
+                        }
+                        break;
+                    case ScanType::Changed:
+                    case ScanType::Unchanged:
+                    case ScanType::Increased:
+                    case ScanType::Decreased:
+                        break;
+                    case ScanType::UnknownInitialValue:
+                        m_AddressValuePairs.push_back({memBase + i - stride, memValue});
+                        break;
+                }
+
+                memValue = 0;
             }
+
+            const uint8_t currentByte = memData[i];
+            const uint8_t leftShift = 8 * (stride - 1 - i % stride);
+            const uint32_t mask = 0xffffffff ^ (0xff << leftShift);
+            const int byteToWrite = currentByte << leftShift;
+            memValue = (memValue & mask) | byteToWrite;
         }
     }
 
-    if (!m_address_value_pairs.empty() && ImGui::Button("Next scan")) {
-        auto doesnt_match_criterion = [this, mem_data, mem_size, mem_base](const AddressValuePair& address_value_pair) {
-            const uint32_t address = address_value_pair.address;
-            const uint32_t index = address - mem_base;
-            assert(index < mem_size);
-            const uint8_t mem_value = mem_data[index];
+    if (!m_AddressValuePairs.empty() && ImGui::Button("Next scan")) {
+        auto doesntMatchCriterion = [this, memData, memSize, memBase, stride](
+            const AddressValuePair& addressValuePair) {
+            const uint32_t address = addressValuePair.address;
+            const int memValue = getMemValue(address, memData, memSize, memBase, stride);
 
-            switch (m_scantype) {
+            switch (m_scanType) {
                 case ScanType::ExactValue:
-                    return mem_value != m_value;
+                    return memValue != m_value;
                 case ScanType::BiggerThan:
-                    return mem_value <= m_value;
+                    return memValue <= m_value;
                 case ScanType::SmallerThan:
-                    return mem_value >= m_value;
+                    return memValue >= m_value;
                 case ScanType::Changed:
-                    return mem_value == address_value_pair.scanned_value;
+                    return memValue == addressValuePair.scannedValue;
                 case ScanType::Unchanged:
-                    return mem_value != address_value_pair.scanned_value;
+                    return memValue != addressValuePair.scannedValue;
                 case ScanType::Increased:
-                    return mem_value <= address_value_pair.scanned_value;
+                    return memValue <= addressValuePair.scannedValue;
                 case ScanType::Decreased:
-                    return mem_value >= address_value_pair.scanned_value;
+                    return memValue >= addressValuePair.scannedValue;
                 case ScanType::UnknownInitialValue:
-                    break;
-                default:
                     return true;
             }
 
             return true;
         };
 
-        std::erase_if(m_address_value_pairs, doesnt_match_criterion);
+        std::erase_if(m_AddressValuePairs, doesntMatchCriterion);
 
-        for (auto& address_value_pair : m_address_value_pairs) {
-            address_value_pair.scanned_value = mem_data[address_value_pair.address - mem_base];
+        for (auto& addressValuePair : m_AddressValuePairs) {
+            addressValuePair.scannedValue = getMemValue(addressValuePair.address, memData, memSize, memBase, stride);
         }
     }
 
-    if (!m_address_value_pairs.empty() && ImGui::Button("New scan")) {
-        m_address_value_pairs.clear();
+    if (!m_AddressValuePairs.empty() && ImGui::Button("New scan")) {
+        m_AddressValuePairs.clear();
+        m_scanType = ScanType::ExactValue;
     }
 
     ImGui::Checkbox("Hex", &m_hex);
     ImGui::InputInt("Value", &m_value, 1, 100,
                     m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal);
 
-    const auto current_scantype = magic_enum::enum_name(m_scantype);
-    if (ImGui::BeginCombo(_("Scan type"), current_scantype.data())) {
-        for (auto v : magic_enum::enum_values<ScanType>()) {
-            bool selected = (v == m_scantype);
+    const auto currentScanAlignment = magic_enum::enum_name(m_scanAlignment);
+    if (ImGui::BeginCombo(_("Scan alignment"), currentScanAlignment.data())) {
+        for (auto v : magic_enum::enum_values<ScanAlignment>()) {
+            bool selected = (v == m_scanAlignment);
             auto name = magic_enum::enum_name(v);
             if (ImGui::Selectable(name.data(), selected)) {
-                m_scantype = v;
+                m_scanAlignment = v;
+            }
+            if (selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    const auto currentScanType = magic_enum::enum_name(m_scanType);
+    if (ImGui::BeginCombo(_("Scan type"), currentScanType.data())) {
+        for (auto v : magic_enum::enum_values<ScanType>()) {
+            bool selected = (v == m_scanType);
+            auto name = magic_enum::enum_name(v);
+            if (ImGui::Selectable(name.data(), selected)) {
+                m_scanType = v;
             }
             if (selected) {
                 ImGui::SetItemDefaultFocus();
@@ -144,25 +166,25 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
         ImGui::TableHeadersRow();
 
         ImGuiListClipper clipper;
-        clipper.Begin(m_address_value_pairs.size());
+        clipper.Begin(m_AddressValuePairs.size());
         while (clipper.Step()) {
             for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
-                const auto& address_value_pair = m_address_value_pairs[row];
-                const uint32_t current_address = address_value_pair.address;
+                const auto& addressValuePair = m_AddressValuePairs[row];
+                const uint32_t currentAddress = addressValuePair.address;
 
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%x", current_address);
+                ImGui::Text("%x", currentAddress);
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%i", mem_data[current_address - mem_base]);
+                ImGui::Text("%i", getMemValue(currentAddress, memData, memSize, memBase, stride));
                 ImGui::TableSetColumnIndex(2);
-                ImGui::Text("%i", address_value_pair.scanned_value);
+                ImGui::Text("%i", addressValuePair.scannedValue);
                 ImGui::TableSetColumnIndex(3);
                 auto buttonName = fmt::format(_("Show in memory editor##{}"), row);
                 if (ImGui::Button(buttonName.c_str())) {
                     m_showMemoryEditor = true;
-                    const uint32_t editor_address = current_address - mem_base;
-                    m_memoryEditor.GotoAddrAndHighlight(editor_address, editor_address + 1);
+                    const uint32_t editorAddress = currentAddress - memBase;
+                    m_memoryEditor.GotoAddrAndHighlight(editorAddress, editorAddress + stride);
                 }
             }
         }
@@ -170,11 +192,26 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
     }
 
     if (m_showMemoryEditor) {
-        m_memoryEditor.DrawWindow(_("Memory Viewer"), mem_data, mem_size, mem_base);
+        m_memoryEditor.DrawWindow(_("Memory Viewer"), memData, memSize, memBase);
     }
 }
 
 PCSX::Widgets::MemoryObserver::MemoryObserver() {
     m_memoryEditor.OptShowDataPreview = true;
     m_memoryEditor.OptUpperCaseHex = false;
+}
+
+int PCSX::Widgets::MemoryObserver::getMemValue(uint32_t absoluteAddress, const uint8_t* memData, uint32_t memSize,
+                                               uint32_t memBase, uint8_t stride) {
+    int memValue = 0;
+    const uint32_t relativeAddress = absoluteAddress - memBase;
+    assert(relativeAddress < memSize);
+    for (uint32_t i = relativeAddress; i < relativeAddress + stride; ++i) {
+        const uint8_t currentByte = memData[i];
+        const uint8_t leftShift = 8 * (stride - 1 - i % stride);
+        const uint32_t mask = 0xffffffff ^ (0xff << leftShift);
+        const int byteToWrite = currentByte << leftShift;
+        memValue = (memValue & mask) | byteToWrite;
+    }
+    return memValue;
 }
