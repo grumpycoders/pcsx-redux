@@ -33,8 +33,6 @@ public:
     void draw(const char* title);
     bool m_show = false;
 
-    MemoryObserver();
-
     enum class ScanType {
         ExactValue,
         BiggerThan,
@@ -65,9 +63,6 @@ private:
     std::vector<AddressValuePair> m_AddressValuePairs;
     bool m_hex = false;
     int m_value = 0;
-    bool m_showMemoryEditor = false;
-
-    MemoryEditor m_memoryEditor;
 };
 
 }

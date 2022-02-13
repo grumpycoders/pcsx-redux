@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -31,9 +31,9 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
         return;
     }
 
-    uint8_t* memData = g_emulator->m_psxMem->g_psxM;
-    uint32_t memSize = 8 * 1024 * 1024;
-    uint32_t memBase = 0x80000000;
+    const uint8_t* memData = g_emulator->m_psxMem->g_psxM;
+    const uint32_t memSize = 1024 * 1024 * (g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
+    const uint32_t memBase = 0x80000000;
     const auto stride = static_cast<uint8_t>(m_scanAlignment);
 
     if (m_AddressValuePairs.empty() && ImGui::Button("First scan")) {
@@ -49,12 +49,12 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                         }
                         break;
                     case ScanType::BiggerThan:
-                        if (memValue < m_value) {
+                        if (memValue > m_value) {
                             m_AddressValuePairs.push_back({memBase + i - stride, memValue});
                         }
                         break;
                     case ScanType::SmallerThan:
-                        if (memValue > m_value) {
+                        if (memValue < m_value) {
                             m_AddressValuePairs.push_back({memBase + i - stride, memValue});
                         }
                         break;
@@ -158,8 +158,6 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
         ImGui::EndCombo();
     }
 
-    ImGui::Checkbox(_("Show memory contents"), &m_showMemoryEditor);
-
     static constexpr ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
                                              ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
                                              ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
@@ -169,6 +167,8 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
         ImGui::TableSetupColumn("Scanned value");
         ImGui::TableSetupColumn("Access");
         ImGui::TableHeadersRow();
+
+        const auto valueDisplayFormat = m_hex ? "%x" : "%i";
 
         ImGuiListClipper clipper;
         clipper.Begin(m_AddressValuePairs.size());
@@ -181,29 +181,19 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%x", currentAddress);
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%i", getMemValue(currentAddress, memData, memSize, memBase, stride));
+                ImGui::Text(valueDisplayFormat, getMemValue(currentAddress, memData, memSize, memBase, stride));
                 ImGui::TableSetColumnIndex(2);
-                ImGui::Text("%i", addressValuePair.scannedValue);
+                ImGui::Text(valueDisplayFormat, addressValuePair.scannedValue);
                 ImGui::TableSetColumnIndex(3);
                 auto buttonName = fmt::format(_("Show in memory editor##{}"), row);
                 if (ImGui::Button(buttonName.c_str())) {
-                    m_showMemoryEditor = true;
                     const uint32_t editorAddress = currentAddress - memBase;
-                    m_memoryEditor.GotoAddrAndHighlight(editorAddress, editorAddress + stride);
+                    g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, stride});
                 }
             }
         }
         ImGui::EndTable();
     }
-
-    if (m_showMemoryEditor) {
-        m_memoryEditor.DrawWindow(_("Memory Viewer"), memData, memSize, memBase);
-    }
-}
-
-PCSX::Widgets::MemoryObserver::MemoryObserver() {
-    m_memoryEditor.OptShowDataPreview = true;
-    m_memoryEditor.OptUpperCaseHex = false;
 }
 
 int PCSX::Widgets::MemoryObserver::getMemValue(uint32_t absoluteAddress, const uint8_t* memData, uint32_t memSize,
