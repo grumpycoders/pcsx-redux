@@ -109,8 +109,13 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
         std::erase_if(m_AddressValuePairs, doesntMatchCriterion);
 
-        for (auto& addressValuePair : m_AddressValuePairs) {
-            addressValuePair.scannedValue = getMemValue(addressValuePair.address, memData, memSize, memBase, stride);
+        if (m_AddressValuePairs.empty()) {
+            m_scanType = ScanType::ExactValue;
+        } else {
+            for (auto& addressValuePair : m_AddressValuePairs) {
+                addressValuePair.scannedValue =
+                    getMemValue(addressValuePair.address, memData, memSize, memBase, stride);
+            }
         }
     }
 
