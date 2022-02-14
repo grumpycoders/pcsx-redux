@@ -19,7 +19,10 @@
 
 #pragma once
 
+#include <string>
+
 #include "GL/gl3w.h"
+#include "clip/clip.h"
 #include "core/sio.h"
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
@@ -62,8 +65,11 @@ class MemcardManager {
         char textInput[3] = "";
     } m_pendingAction;
 
-    void drawIcon(int blockNumber, const PCSX::SIO::McdBlock& block);
-    void exportPNG(int blockNumber, const PCSX::SIO::McdBlock& block);
+    clip::image getIconRGBA8888(int blockNumber, const SIO::McdBlock& block);
+
+    void drawIcon(int blockNumber, const SIO::McdBlock& block);
+    void exportPNG(int blockNumber, const SIO::McdBlock& block);
+    void copyToClipboard(int blockNumber, const SIO::McdBlock& block);
     void getPocketstationIcon(uint32_t* pixels, int blockNumber);
     void performAction();
 };

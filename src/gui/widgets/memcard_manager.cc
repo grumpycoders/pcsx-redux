@@ -178,6 +178,12 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
             if (ImGui::SmallButton(buttonName.c_str())) {
                 exportPNG(i, block);
             }
+            ImGui::SameLine();
+
+            buttonName = fmt::format(_("Copy icon##{}"), i);
+            if (ImGui::SmallButton(buttonName.c_str())) {
+                copyToClipboard(i, block);
+            }
         }
         ImGui::EndTable();
     }
@@ -267,7 +273,7 @@ void PCSX::Widgets::MemcardManager::performAction() {
 
     switch (m_pendingAction.type) {
         case Actions::Move:
-            std::memcpy(dest, source, PCSX::SIO::MCD_BLOCK_SIZE);                  // Copy source to dest
+            std::memcpy(dest, source, PCSX::SIO::MCD_BLOCK_SIZE);                 // Copy source to dest
             PCSX::g_emulator->m_sio->EraseMcdBlock(m_selectedCard, sourceBlock);  // Format source
             break;
 
@@ -327,29 +333,58 @@ void PCSX::Widgets::MemcardManager::getPocketstationIcon(uint32_t* pixels, int b
     }
 }
 
-void PCSX::Widgets::MemcardManager::exportPNG(int blockNumber, const PCSX::SIO::McdBlock& block) {
-    const auto filename = fmt::format("icon{}.png", blockNumber);
-
+clip::image PCSX::Widgets::MemcardManager::getIconRGBA8888(int blockNumber, const SIO::McdBlock& block) {
+    clip::image_spec spec;
+    spec.bits_per_pixel = 32;
+    spec.red_mask = 0xff;
+    spec.green_mask = 0xff00;
+    spec.blue_mask = 0xff0000;
+    spec.alpha_mask = 0xff000000;
+    spec.red_shift = 0;
+    spec.green_shift = 8;
+    spec.blue_shift = 16;
+    spec.alpha_shift = 24;
     if (m_drawPocketstationIcons) {
-        uint32_t pixels[32 * 32];
-        getPocketstationIcon(pixels, blockNumber);
-
-        stbi_write_png(filename.c_str(), 32, 32, 4, pixels, 128);  // Stride = 32 pixels, 4 bytes each, so 128
+        spec.width = 32;
+        spec.height = 32;
+        spec.bytes_per_row = spec.width * 4;
+        clip::image ret(spec);
+        getPocketstationIcon(reinterpret_cast<uint32_t*>(ret.data()), blockNumber);
+        return ret;
     } else {  // PSX memcard icons - currently always dumps the 1st frame of the icon
         const auto toColor8 = [](uint8_t color5) {
             int color8 = (color5 << 3) | (color5 >> 2);
             return color8;
         };
 
-        uint32_t pixels[16 * 16];
-        for (auto i = 0; i < 16 * 16; i++) {       // Convert pixels from RGB555 to RGBA8888 to give to stbi_write_png
+        spec.width = 16;
+        spec.height = 16;
+        spec.bytes_per_row = spec.width * 4;
+        clip::image ret(spec);
+        uint32_t* pixels = reinterpret_cast<uint32_t*>(ret.data());
+        for (auto i = 0; i < 16 * 16; i++) {       // Convert pixels from RGB555 to RGBA8888
             const uint16_t pixel = block.Icon[i];  // Pixel in RGB555
-            const int red = toColor8(pixel & 0x1F);
-            const int green = toColor8((pixel >> 5) & 0x1F);
-            const int blue = toColor8((pixel >> 10) & 0x1F);
+            const int red = toColor8(pixel & 0x1f);
+            const int green = toColor8((pixel >> 5) & 0x1f);
+            const int blue = toColor8((pixel >> 10) & 0x1f);
 
             pixels[i] = 0xff000000 | (blue << 16) | (green << 8) | red;
         }
-        stbi_write_png(filename.c_str(), 16, 16, 4, pixels, 64);
+        return ret;
     }
+}
+
+void PCSX::Widgets::MemcardManager::exportPNG(int blockNumber, const SIO::McdBlock& block) {
+    const auto filename = fmt::format("icon{}.png", blockNumber);
+    const auto pixels = getIconRGBA8888(blockNumber, block);
+    if (pixels.spec().width == 32) {
+        stbi_write_png(filename.c_str(), 32, 32, 4, pixels.data(), 128);
+    } else {
+        stbi_write_png(filename.c_str(), 16, 16, 4, pixels.data(), 64);
+    }
+}
+
+void PCSX::Widgets::MemcardManager::copyToClipboard(int blockNumber, const SIO::McdBlock& block) {
+    const auto pixels = getIconRGBA8888(blockNumber, block);
+    clip::set_image(pixels);
 }
