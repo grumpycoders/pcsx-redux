@@ -25,9 +25,6 @@
 #include "core/system.h"
 #include "fmt/format.h"
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb/stb_image_write.h"
-
 PCSX::Widgets::MemcardManager::MemcardManager() {
     m_memoryEditor.OptShowDataPreview = true;
     m_memoryEditor.OptUpperCaseHex = false;
@@ -323,7 +320,7 @@ void PCSX::Widgets::MemcardManager::getPocketstationIcon(uint32_t* pixels, int b
 
         for (auto pixel = 0; pixel < 32; pixel++) {
             if ((line & 1) != 0) {
-                pixels[index++] = 0xff;  // Black
+                pixels[index++] = 0xff000000;  // Black
             } else {
                 pixels[index++] = 0xffffffff;  // White
             }
@@ -377,11 +374,7 @@ clip::image PCSX::Widgets::MemcardManager::getIconRGBA8888(int blockNumber, cons
 void PCSX::Widgets::MemcardManager::exportPNG(int blockNumber, const SIO::McdBlock& block) {
     const auto filename = fmt::format("icon{}.png", blockNumber);
     const auto pixels = getIconRGBA8888(blockNumber, block);
-    if (pixels.spec().width == 32) {
-        stbi_write_png(filename.c_str(), 32, 32, 4, pixels.data(), 128);
-    } else {
-        stbi_write_png(filename.c_str(), 16, 16, 4, pixels.data(), 64);
-    }
+    pixels.export_to_png(filename);
 }
 
 void PCSX::Widgets::MemcardManager::copyToClipboard(int blockNumber, const SIO::McdBlock& block) {

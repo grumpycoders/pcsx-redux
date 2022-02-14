@@ -144,7 +144,22 @@ namespace clip {
     const image_spec& spec() const { return m_spec; }
 
     bool is_valid() const { return m_data != nullptr; }
+    bool is_bgra8888() const {
+      return m_spec.red_mask == 0xff0000 &&
+          m_spec.green_mask == 0xff00 &&
+          m_spec.blue_mask == 0xff &&
+          m_spec.alpha_mask == 0xff000000;
+    }
+    bool is_rgba8888() const {
+        return m_spec.red_mask == 0xff &&
+            m_spec.green_mask == 0xff00 &&
+            m_spec.blue_mask == 0xff0000 &&
+            m_spec.alpha_mask == 0xff000000;
+    }
     void reset();
+    bool export_to_png(const std::string &filename) const;
+    image to_rgba8888() const;
+    image to_bgra8888() const;
 
   private:
     void copy_image(const image& image);
