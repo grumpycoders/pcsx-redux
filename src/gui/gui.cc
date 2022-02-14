@@ -911,6 +911,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     m_biosEditor.MenuItem();
                     ImGui::EndMenu();
                 }
+                ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
                 ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                 ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
                 ImGui::MenuItem(_("Kernel Calls"), nullptr, &m_kernelLog.m_show);
@@ -1105,6 +1106,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
+    }
+
+    if (m_memoryObserver.m_show) {
+        m_memoryObserver.draw(_("Memory Observer"));
     }
 
     changed |= about();
