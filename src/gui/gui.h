@@ -50,6 +50,7 @@
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/eventbus.h"
 #include "support/settings.h"
+#include "widgets/memory_observer.h"
 
 #if defined(__APPLE__)
 #define GL_SHADER_VERSION "#version 410\n"
@@ -99,6 +100,7 @@ class GUI final {
     void update(bool vsync = false);
     void flip();
     void bindVRAMTexture();
+    GLuint getVRAMTexture() { return m_VRAMTexture; }
     void setViewport();
     void setFullscreen(bool);
     bool addLog(LogClass logClass, const std::string &msg) {
@@ -189,17 +191,17 @@ class GUI final {
     int &m_glfwPosY = settings.get<WindowPosY>().value;
     int &m_glfwSizeX = settings.get<WindowSizeX>().value;
     int &m_glfwSizeY = settings.get<WindowSizeY>().value;
-    unsigned int m_VRAMTexture = 0;
+    GLuint m_VRAMTexture = 0;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
     unsigned int m_offscreenDepthBuffer = 0;
-    int m_currentTexture = -1;
+    int m_currentTexture = 0;
 
     ImVec4 m_backgroundColor = ImColor(114, 144, 154);
+    ImVec2 m_framebufferSize = ImVec2(1, 1); // Size of GLFW window framebuffer
     ImVec2 m_renderSize = ImVec2(1, 1);
 
-    float m_renderRatio = 3.0f / 4.0f;
     bool &m_fullscreen = {settings.get<Fullscreen>().value};
 
     // GUI
@@ -246,6 +248,7 @@ class GUI final {
     MemoryEditorWrapper m_scratchPadEditor;
     MemoryEditorWrapper m_hwrEditor;
     MemoryEditorWrapper m_biosEditor;
+    Widgets::MemoryObserver m_memoryObserver;
     Widgets::MemcardManager m_memcardManager;
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly;
@@ -310,6 +313,7 @@ class GUI final {
     Widgets::ShaderEditor m_outputShaderEditor = {"output"};
 
   public:
+    bool m_setupScreenSize = true;
     Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
     ImFont *getMono() { return m_monoFont ? m_monoFont : ImGui::GetIO().Fonts[0].Fonts[0]; }
 
