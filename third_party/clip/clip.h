@@ -6,9 +6,12 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include <cassert>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace clip {
 
@@ -157,7 +160,9 @@ namespace clip {
             m_spec.alpha_mask == 0xff000000;
     }
     void reset();
+    bool import_from_png(const uint8_t * data, size_t size);
     bool export_to_png(const std::string &filename) const;
+    bool export_to_png(std::vector<uint8_t> &output) const;
     image to_rgba8888() const;
     image to_bgra8888() const;
 

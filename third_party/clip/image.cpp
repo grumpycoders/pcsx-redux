@@ -1,3 +1,4 @@
+
 // Clip Library
 // Copyright (c) 2015-2018 David Capello
 //
@@ -10,7 +11,18 @@
 #include <vector>
 
 #include "clip.h"
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_STATIC
+#define STBI_ASSERT(x) assert(x)
+#define STBI_NO_HDR
+#define STBI_NO_LINEAR
+#define STBI_NO_STDIO
+#define STBI_ONLY_PNG
+#include "stb/stb_image.h"
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_STATIC
+#define STBIW_WINDOWS_UTF8
 #include "stb/stb_image_write.h"
 
 namespace clip {
@@ -89,7 +101,63 @@ void image::move_image(image&& image) {
 
 bool image::export_to_png(const std::string& filename) const {
   if (!is_rgba8888()) return to_rgba8888().export_to_png(filename);
-  return stbi_write_png(filename.c_str(), m_spec.width, m_spec.height, m_spec.bits_per_pixel / 8, data(), m_spec.bytes_per_row);
+  return stbi_write_png(
+    filename.c_str(),
+    m_spec.width,
+    m_spec.height,
+    m_spec.bits_per_pixel / 8,
+    data(),
+    m_spec.bytes_per_row);
+}
+
+bool image::export_to_png(std::vector<uint8_t> &output) const {
+  if (!is_rgba8888()) return to_rgba8888().export_to_png(output);
+  return stbi_write_png_to_func(
+    [](void *context, void *data_, int size) {
+      uint8_t * data = reinterpret_cast<uint8_t*>(data_);
+      std::vector<uint8_t> *output = reinterpret_cast<std::vector<uint8_t>*>(context);
+      output->insert(output->end(), data, data + size);
+    },
+    &output,
+    m_spec.width,
+    m_spec.height,
+    m_spec.bits_per_pixel / 8,
+    data(),
+    m_spec.bytes_per_row);
+}
+
+bool image::import_from_png(const uint8_t *data, size_t size) {
+  int w, h, bpp;
+  stbi_uc *pixels = stbi_load_from_memory(data, size, &w, &h, &bpp, 4);
+  if (!pixels) return false;
+  if (bpp != 4) {
+    stbi_image_free(pixels);
+    return false;
+  }
+
+  reset();
+
+  m_spec.width = w;
+  m_spec.height = h;
+  m_spec.bits_per_pixel = 32;
+  m_spec.bytes_per_row = w * 4;
+  m_spec.red_mask = 0xff;
+  m_spec.green_mask = 0xff00;
+  m_spec.blue_mask = 0xff0000;
+  m_spec.alpha_mask = 0xff000000;
+  m_spec.red_shift = 0;
+  m_spec.green_shift = 8;
+  m_spec.blue_shift = 16;
+  m_spec.alpha_shift = 24;
+
+  m_own_data = true;
+  m_data = new char[m_spec.bytes_per_row*m_spec.height];
+  std::copy(pixels,
+            pixels+m_spec.bytes_per_row*m_spec.height,
+            m_data);
+
+  stbi_image_free(pixels);
+  return true;
 }
 
 image image::to_bgra8888() const {
@@ -107,7 +175,7 @@ image image::to_bgra8888() const {
   newspec.alpha_shift = 24;
   newspec.width = spec.width;
   newspec.height = spec.height;
-  newspec.bytes_per_row = newspec.width * newspec.height * 4;
+  newspec.bytes_per_row = newspec.width * 4;
   image ret(newspec);
   uint32_t* dst = reinterpret_cast<uint32_t*>(ret.data());
   uint32_t* src = (uint32_t*)data();
@@ -151,7 +219,7 @@ image image::to_rgba8888() const {
   newspec.alpha_shift = 24;
   newspec.width = spec.width;
   newspec.height = spec.height;
-  newspec.bytes_per_row = newspec.width * newspec.height * 4;
+  newspec.bytes_per_row = newspec.width * 4;
   image ret(newspec);
   uint32_t* dst = reinterpret_cast<uint32_t*>(ret.data());
   uint32_t* src = (uint32_t*)data();

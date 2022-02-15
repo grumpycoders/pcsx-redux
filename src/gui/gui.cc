@@ -18,13 +18,6 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_STATIC
-#define STBI_ASSERT(x) assert(x)
-#define STBI_NO_HDR
-#define STBI_NO_LINEAR
-#define STBI_NO_STDIO
-#define STBI_ONLY_PNG
 #include "gui/gui.h"
 
 #include <GL/gl3w.h>
@@ -37,6 +30,7 @@
 #include <type_traits>
 #include <unordered_set>
 
+#include "clip/clip.h"
 #include "core/binloader.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
@@ -63,7 +57,6 @@
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
-#include "stb/stb_image.h"
 #include "tracy/Tracy.hpp"
 #include "zstr.hpp"
 
@@ -274,20 +267,15 @@ end)(jit.status()))
     glfwSetWindowSizeCallback(m_window, [](GLFWwindow*, int, int) { s_this->m_setupScreenSize = true; });
 
     Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
-        int x, y, comp;
-        stbi_uc* img;
-        img = stbi_load_from_memory(data, size, &x, &y, &comp, 4);
-        if (!img) return;
-        if (comp != 4) {
-            stbi_image_free(img);
-            return;
-        }
+        clip::image img;
+        if (!img.import_from_png(data, size)) return;
+        int x = img.spec().width;
+        int y = img.spec().height;
         GLFWimage image;
         image.width = x;
         image.height = y;
-        image.pixels = img;
+        image.pixels = reinterpret_cast<unsigned char*>(img.data());
         glfwSetWindowIcon(m_window, 1, &image);
-        stbi_image_free(img);
     });
 
     result = gl3wInit();
