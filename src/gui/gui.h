@@ -50,6 +50,7 @@
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/eventbus.h"
 #include "support/settings.h"
+#include "widgets/memory_observer.h"
 
 #if defined(__APPLE__)
 #define GL_SHADER_VERSION "#version 410\n"
@@ -247,6 +248,7 @@ class GUI final {
     MemoryEditorWrapper m_scratchPadEditor;
     MemoryEditorWrapper m_hwrEditor;
     MemoryEditorWrapper m_biosEditor;
+    Widgets::MemoryObserver m_memoryObserver;
     Widgets::MemcardManager m_memcardManager;
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly;
