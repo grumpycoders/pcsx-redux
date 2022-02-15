@@ -981,8 +981,6 @@ void PCSX::SPU::impl::RemoveStreams(void) {
 bool PCSX::SPU::impl::open() {
     if (bSPUIsOpen) return true;  // security for some stupid main emus
 
-    settings.get<Streaming>() = true;  // just small setup
-    settings.get<Volume>() = 3;
     iReverbOff = -1;
     spuIrq = 0;
     spuAddr = 0xffffffff;
@@ -992,7 +990,6 @@ bool PCSX::SPU::impl::open() {
     pMixIrq = 0;
     wipeChannels();
     pSpuIrq = 0;
-    settings.get<SPUIRQWait>() = true;
 
     //    ReadConfig();  // read user stuff
 
