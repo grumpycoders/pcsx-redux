@@ -58,9 +58,9 @@ private:
 //////////////////////////////////////////////////////////////////////
 // Encode the image as PNG format
 
-bool write_png_on_stream(const image& image,
+bool write_png_on_stream(const image& img,
                          IStream* stream) {
-  const image_spec& spec = image.spec();
+  const image_spec& spec = img.spec();
 
   comptr<IWICBitmapEncoder> encoder;
   HRESULT hr = CoCreateInstance(CLSID_WICPngEncoder,
@@ -95,31 +95,14 @@ bool write_png_on_stream(const image& image,
     return false;
 
   std::vector<uint32_t> buf;
-  uint8_t* ptr = (uint8_t*)image.data();
+  uint8_t* ptr = (uint8_t*)img.data();
   int bytes_per_row = spec.bytes_per_row;
+  image converted;
 
   // Convert to GUID_WICPixelFormat32bppBGRA if needed
-  if (spec.red_mask != 0xff0000 ||
-      spec.green_mask != 0xff00 ||
-      spec.blue_mask != 0xff ||
-      spec.alpha_mask != 0xff000000) {
-    buf.resize(spec.width * spec.height);
-    uint32_t* dst = (uint32_t*)&buf[0];
-    uint32_t* src = (uint32_t*)image.data();
-    for (int y=0; y<spec.height; ++y) {
-      auto src_line_start = src;
-      for (int x=0; x<spec.width; ++x) {
-        uint32_t c = *src;
-        *dst = ((((c & spec.red_mask  ) >> spec.red_shift  ) << 16) |
-                (((c & spec.green_mask) >> spec.green_shift) <<  8) |
-                (((c & spec.blue_mask ) >> spec.blue_shift )      ) |
-                (((c & spec.alpha_mask) >> spec.alpha_shift) << 24));
-        ++dst;
-        ++src;
-      }
-      src = (uint32_t*)(((uint8_t*)src_line_start) + spec.bytes_per_row);
-    }
-    ptr = (uint8_t*)&buf[0];
+  if (!img.is_bgra8888()) {
+    converted = img.to_bgra8888();
+    ptr = (uint8_t*)img.data();
     bytes_per_row = 4 * spec.width;
   }
 

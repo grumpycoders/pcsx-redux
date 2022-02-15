@@ -105,6 +105,9 @@ image image::to_bgra8888() const {
   newspec.green_shift = 8;
   newspec.blue_shift = 16;
   newspec.alpha_shift = 24;
+  newspec.width = spec.width;
+  newspec.height = spec.height;
+  newspec.bytes_per_row = newspec.width * newspec.height * 4;
   image ret(newspec);
   uint32_t* dst = reinterpret_cast<uint32_t*>(ret.data());
   uint32_t* src = (uint32_t*)data();
@@ -146,6 +149,9 @@ image image::to_rgba8888() const {
   newspec.green_shift = 8;
   newspec.blue_shift = 16;
   newspec.alpha_shift = 24;
+  newspec.width = spec.width;
+  newspec.height = spec.height;
+  newspec.bytes_per_row = newspec.width * newspec.height * 4;
   image ret(newspec);
   uint32_t* dst = reinterpret_cast<uint32_t*>(ret.data());
   uint32_t* src = (uint32_t*)data();
