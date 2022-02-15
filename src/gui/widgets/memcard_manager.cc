@@ -94,7 +94,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
 
     ImGui::SliderInt("Icon size", &m_iconSize, 16, 512);
     ImGui::SameLine();
-    if (ImGui::Checkbox("Draw Pockestation icons", &m_drawPocketstationIcons)) {
+    if (ImGui::Checkbox("Draw Pocketstation icons", &m_drawPocketstationIcons)) {
         glDeleteTextures(15, m_iconTextures);  // Recreate our textures to fit our new format
         initTextures();
     }
