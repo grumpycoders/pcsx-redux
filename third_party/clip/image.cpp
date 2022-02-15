@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 
+#include <bitset>
 #include <vector>
 
 #include "clip.h"
@@ -107,14 +108,23 @@ image image::to_bgra8888() const {
   image ret(newspec);
   uint32_t* dst = reinterpret_cast<uint32_t*>(ret.data());
   uint32_t* src = (uint32_t*)data();
+  const auto conv = [](uint32_t in, std::bitset<32> mask, uint32_t shift) -> uint8_t {
+    if (mask.count() == 0) return 0xff;
+    uint8_t r = (in & mask.to_ulong()) >> shift;
+    if (mask.count() == 8) return r;
+    double t = static_cast<double>(r);
+    t /= (1 << mask.count()) - 1;
+    t *= 255;
+    return static_cast<uint8_t>(t);
+  };
   for (int y=0; y<spec.height; ++y) {
     auto src_line_start = src;
     for (int x=0; x<spec.width; ++x) {
       uint32_t c = *src;
-      *dst = ((((c & spec.red_mask  ) >> spec.red_shift  ) << 16) |
-              (((c & spec.green_mask) >> spec.green_shift) <<  8) |
-              (((c & spec.blue_mask ) >> spec.blue_shift )      ) |
-              (((c & spec.alpha_mask) >> spec.alpha_shift) << 24));
+      *dst = (conv(c, spec.red_mask,   spec.red_shift  ) << 16) |
+             (conv(c, spec.green_mask, spec.green_shift) <<  8) |
+             (conv(c, spec.blue_mask,  spec.blue_shift )      ) |
+             (conv(c, spec.alpha_mask, spec.alpha_shift) << 24);
       ++dst;
       ++src;
     }
@@ -139,14 +149,23 @@ image image::to_rgba8888() const {
   image ret(newspec);
   uint32_t* dst = reinterpret_cast<uint32_t*>(ret.data());
   uint32_t* src = (uint32_t*)data();
+  const auto conv = [](uint32_t in, std::bitset<32> mask, uint32_t shift) -> uint8_t {
+    if (mask.count() == 0) return 0xff;
+    uint8_t r = (in & mask.to_ulong()) >> shift;
+    if (mask.count() == 8) return r;
+    double t = static_cast<double>(r);
+    t /= (1 << mask.count()) - 1;
+    t *= 255;
+    return static_cast<uint8_t>(t);
+  };
   for (int y=0; y<spec.height; ++y) {
     auto src_line_start = src;
     for (int x=0; x<spec.width; ++x) {
       uint32_t c = *src;
-      *dst = ((((c & spec.red_mask  ) >> spec.red_shift  )) |
-              (((c & spec.green_mask) >> spec.green_shift) <<  8) |
-              (((c & spec.blue_mask ) >> spec.blue_shift ) << 16) |
-              (((c & spec.alpha_mask) >> spec.alpha_shift) << 24));
+      *dst = (conv(c, spec.red_mask,   spec.red_shift  )      ) |
+             (conv(c, spec.green_mask, spec.green_shift) <<  8) |
+             (conv(c, spec.blue_mask,  spec.blue_shift ) << 16) |
+             (conv(c, spec.alpha_mask, spec.alpha_shift) << 24);
       ++dst;
       ++src;
     }
