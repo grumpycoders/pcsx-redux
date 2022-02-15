@@ -2,8 +2,8 @@
 
 ## Acknowledgements
 
-Thank you for considering contributing to PCSX-Redux. The aim of the project is to
-be a useful debugging and reverse engineering tool, but any sort of help is greatly
+Thank you for considering contributing to PCSX-Redux. The main aim of the project is to
+be a useful development, debugging, and reverse engineering tool, but any sort of help is greatly
 appreciated. There are various areas of the project that can be improved, and lots
 of work is still required. Feel free to open a discussion if there's anything
 you'd like to talk about.
