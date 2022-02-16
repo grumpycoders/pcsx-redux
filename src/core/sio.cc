@@ -742,42 +742,43 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
         *sstr++ = b;
 
         // Convert ASCII characters to half-width
-        if (c >= 0x8281 && c <= 0x829A)
+        if (c >= 0x8281 && c <= 0x829a) {
             c = (c - 0x8281) + 'a';
-        else if (c >= 0x824F && c <= 0x827A)
-            c = (c - 0x824F) + '0';
-        else if (c == 0x8140)
+        } else if (c >= 0x824f && c <= 0x827a) {
+            c = (c - 0x824f) + '0';
+        } else if (c == 0x8140) {
             c = ' ';
-        else if (c == 0x8143)
+        } else if (c == 0x8143) {
             c = ',';
-        else if (c == 0x8144)
+        } else if (c == 0x8144) {
             c = '.';
-        else if (c == 0x8146)
+        } else if (c == 0x8146) {
             c = ':';
-        else if (c == 0x8147)
+        } else if (c == 0x8147) {
             c = ';';
-        else if (c == 0x8148)
+        } else if (c == 0x8148) {
             c = '?';
-        else if (c == 0x8149)
+        } else if (c == 0x8149) {
             c = '!';
-        else if (c == 0x815E)
+        } else if (c == 0x815e) {
             c = '/';
-        else if (c == 0x8168)
+        } else if (c == 0x8168) {
             c = '"';
-        else if (c == 0x8169)
+        } else if (c == 0x8169) {
             c = '(';
-        else if (c == 0x816A)
+        } else if (c == 0x816a) {
             c = ')';
-        else if (c == 0x816D)
+        } else if (c == 0x816d) {
             c = '[';
-        else if (c == 0x816E)
+        } else if (c == 0x816e) {
             c = ']';
-        else if (c == 0x817C)
+        } else if (c == 0x817c) {
             c = '-';
-        else
-            c = ' ';
+        } else {
+            c = '?';
+        }
 
-        str[i] = c;
+        *str++ = c;
     }
 
     trim(str);
@@ -814,6 +815,7 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     // Check if the block is marked as free in the directory frame and adjust the name/filename if so
     if (Info->Flags == 0xa0) {
         std::strcpy(Info->Title, "Free Block");
+        std::strcpy(Info->sTitle, "Free Block");
         std::strcpy(Info->Name, "Empty File");
         Info->Filesize = 0;
     }
