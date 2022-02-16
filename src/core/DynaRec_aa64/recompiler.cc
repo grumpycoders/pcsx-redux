@@ -61,13 +61,14 @@ bool DynaRecCPU::Init() {
         m_recompilerLUT[page + 0x9FC0] = pointer;
         m_recompilerLUT[page + 0xBFC0] = pointer;
     }
-
-    // Set s_codeCache as R/W to emit dispatcher
-    if (!gen.setRW()) {
-        PCSX::g_system->message("[Dynarec] Failed to set Read/Write permissions on code buffer memory.\nTry disabling the Dynarec CPU.");
+// TODO: Add windows to ifdef
+#if defined(__linux__)
+    // Set s_codeCache as RWX
+    if (!gen.setRWX()) {
+        PCSX::g_system->message("[Dynarec] Failed to allocate executable memory.\nTry disabling the Dynarec CPU.");
         return false;
     }
-
+#endif
     emitDispatcher();  // Emit our assembly dispatcher
     uncompileAll();    // Mark all blocks as uncompiled
 
@@ -86,13 +87,16 @@ bool DynaRecCPU::Init() {
     */
 
     m_regs[0].markConst(0);  // $zero is always zero
-    // Set s_codeCache as R/X before jumping into disaptcher
-    // Check here to see if subsequent mprotect calls might fail - TESTING
-    if (!gen.setRX()) {
-         PCSX::g_system->message("[Dynarec] Failed to set Read/Execute permissions on code buffer memory.\nTry disabling the Dynarec CPU.");
-         return false;
-    }
 
+#if defined(__APPLE__)
+    // Check to make sure code buffer memory was allocated
+    if (gen.getCode<void*>() == nullptr) {
+        PCSX::g_system->message("[Dynarec] Failed to allocate memory for DynaRec.\nTry disabling the Dynarec CPU.");
+        return false;
+    }
+    // Set s_codeCache as R/X before jumping into dispatcher
+    gen.setRX();
+#endif
      return true;
 }
 
@@ -253,7 +257,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
 
+#if defined(__APPLE__)
     gen.setRW();    // Set s_codeCache as R/W before emitting code
+#endif
 
     if (align) {
         gen.align();  // Align next block
@@ -326,8 +332,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     // Clear stale instruction cache contents.
     __builtin___clear_cache(reinterpret_cast<char*>(blockStart), gen.getCurr<char*>());
     gen.ready();
+#if defined(__APPLE__)
     gen.setRX(); // Set s_codeCache as R/X before returning to dispatcher
-
+#endif
     // The block might have been invalidated by handleLinking, so re-read the pointer from *callback
     return *callback;
 }
