@@ -24,6 +24,8 @@
 
 #include "core/system.h"
 #include "fmt/format.h"
+#include "gui/gui.h"
+#include "support/sjis_conv.h"
 
 PCSX::Widgets::MemcardManager::MemcardManager() {
     m_memoryEditor.OptShowDataPreview = true;
@@ -47,7 +49,7 @@ void PCSX::Widgets::MemcardManager::initTextures() {
     }
 }
 
-bool PCSX::Widgets::MemcardManager::draw(const char* title) {
+bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     bool changed = false;
     Actions action = Actions::None;
     int selectedBlock;
@@ -132,9 +134,14 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
             drawIcon(i, block);
 
             ImGui::TableSetColumnIndex(2);
-            ImGui::Text(block.Title);
+            if (gui->hasJapanese()) {
+                auto uTitle = Sjis::toUtf8(block.sTitle);
+                ImGui::TextUnformatted(uTitle.c_str());
+            } else {
+                ImGui::TextUnformatted(block.Title);
+            }
             ImGui::TableSetColumnIndex(3);
-            ImGui::Text(block.ID);
+            ImGui::TextUnformatted(block.ID);
             ImGui::TableSetColumnIndex(4);
             ImGui::Text("%s (%dKB)", block.Name, block.Filesize / 1024);
             ImGui::TableSetColumnIndex(5);

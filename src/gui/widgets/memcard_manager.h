@@ -28,11 +28,13 @@
 #include "imgui_memory_editor/imgui_memory_editor.h"
 
 namespace PCSX {
+
+class GUI;
 namespace Widgets {
 
 class MemcardManager {
   public:
-    bool draw(const char* title);
+    bool draw(GUI* gui, const char* title);
     bool m_show = false;
     // The framecount from 0 to 59 inclusive. We need it to know which frame of multi-animation
     // icons to display.

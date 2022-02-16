@@ -577,6 +577,9 @@ void PCSX::GUI::startFrame() {
         for (auto e : g_system->getLocaleExtra()) {
             loadFont(e.first, settings.get<MainFontSize>().value, io, e.second, true);
         }
+        // try loading the japanese font for memory card manager
+        m_hasJapanese = loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MainFontSize>().value, io,
+                                 reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true);
         m_monoFont = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value, io, nullptr);
         io.Fonts->Build();
         io.FontDefault = m_mainFont;
@@ -1076,7 +1079,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_memcardManager.m_show) {
-        changed |= m_memcardManager.draw(_("Memory Card Manager"));
+        changed |= m_memcardManager.draw(this, _("Memory Card Manager"));
     }
 
     if (m_registers.m_show) {

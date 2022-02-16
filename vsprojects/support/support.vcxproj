@@ -213,8 +213,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\support\file.cc" />
+    <ClCompile Include="..\..\src\support\sjis_conv.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\mips\common\util\sjis-table.h" />
     <ClInclude Include="..\..\src\support\circular.h" />
     <ClInclude Include="..\..\src\support\djbhash.h" />
     <ClInclude Include="..\..\src\support\eventbus.h" />
@@ -223,6 +225,7 @@
     <ClInclude Include="..\..\src\support\list.h" />
     <ClInclude Include="..\..\src\support\protobuf.h" />
     <ClInclude Include="..\..\src\support\settings.h" />
+    <ClInclude Include="..\..\src\support\sjis_conv.h" />
     <ClInclude Include="..\..\src\support\slice.h" />
     <ClInclude Include="..\..\src\support\tree.h" />
     <ClInclude Include="..\..\third_party\interval_tree.h" />

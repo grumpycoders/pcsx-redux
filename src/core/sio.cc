@@ -19,9 +19,10 @@
 
 #include "core/sio.h"
 
-#include <algorithm> 
-#include <stdexcept>
 #include <sys/stat.h>
+
+#include <algorithm>
+#include <stdexcept>
 
 #include "core/misc.h"
 #include "core/pad.h"
@@ -394,7 +395,7 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
         m_wasMcd2Inserted = false;
     }
 
-    FILE* f = fopen(fname, "rb");
+    FILE *f = fopen(fname, "rb");
     if (f == nullptr) {
         PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), fname);
         CreateMcd(str);
@@ -404,8 +405,7 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
 
             if (stat(fname, &buf) != -1) {
                 // Check if the file is a VGS memory card, skip the header if it is
-                if (buf.st_size == MCD_SIZE + 64)
-                    fseek(f, 64, SEEK_SET);
+                if (buf.st_size == MCD_SIZE + 64) fseek(f, 64, SEEK_SET);
                 // Check if the file is a Dexdrive memory card, skip the header if it is
                 else if (buf.st_size == MCD_SIZE + 3904)
                     fseek(f, 3904, SEEK_SET);
@@ -439,7 +439,7 @@ void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
 
 void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    FILE* f = fopen(fname, "r+b");
+    FILE *f = fopen(fname, "r+b");
 
     if (f != nullptr) {
         struct stat buf;
@@ -725,7 +725,7 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     std::memset(Info, 0, sizeof(McdBlock));
 
     char *data = GetMcdData(mcd);
-    char *ptr = data + block * MCD_BLOCK_SIZE + 2;
+    uint8_t *ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 2;
     char *str = Info->Title;
     char *sstr = Info->sTitle;
     Info->IconCount = std::max(1, *ptr & 0x3);
@@ -734,9 +734,12 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     int x = 0;
 
     for (int i = 0; i < 48; i++) {
-        uint16_t c = (*ptr) << 8;
-        c |= *(ptr + 1);
+        uint16_t a = *ptr++;
+        uint16_t b = *ptr++;
+        uint16_t c = (a << 8) | b;
         if (!c) break;
+        *sstr++ = a;
+        *sstr++ = b;
 
         // Convert ASCII characters to half-width
         if (c >= 0x8281 && c <= 0x829A)
@@ -771,28 +774,23 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
             c = ']';
         else if (c == 0x817C)
             c = '-';
-        else {
-            str[i] = ' ';
-            sstr[x++] = *ptr++;
-            sstr[x++] = *ptr++;
-            continue;
-        }
+        else
+            c = ' ';
 
-        str[i] = sstr[x++] = c;
-        ptr += 2;
+        str[i] = c;
     }
 
     trim(str);
     trim(sstr);
 
     // Read CLUT
-    ptr = data + block * MCD_BLOCK_SIZE + 0x60;
+    ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 0x60;
     std::memcpy(clut, ptr, 16 * sizeof(uint16_t));
 
     // Icons can have 1 to 3 frames of animation
     for (int i = 0; i < Info->IconCount; i++) {
         uint16_t *icon = &Info->Icon[i * 16 * 16];
-        ptr = data + block * MCD_BLOCK_SIZE + 128 + 128 * i;  // icon data
+        ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 128 + 128 * i;  // icon data
 
         // Fetch each pixel, store it in the icon array in ABBBBBGGGGGRRRRR with the alpha bit set to 1
         for (x = 0; x < 16 * 16; x++) {
@@ -803,12 +801,11 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
         }
     }
 
-    
     // Parse directory frame info
     const auto directoryFrame = (uint8_t *)data + block * MCD_SECT_SIZE;
     Info->Flags = directoryFrame[0];
-    std::strncpy(Info->ID, (const char*) &directoryFrame[0xa], 12);
-    std::strncpy(Info->Name, (const char*) &directoryFrame[0x16], 16);
+    std::strncpy(Info->ID, (const char *)&directoryFrame[0xa], 12);
+    std::strncpy(Info->Name, (const char *)&directoryFrame[0x16], 16);
 
     const uint32_t fileSize =
         directoryFrame[0x4] | (directoryFrame[0x5] << 8) | (directoryFrame[0x6] << 16) | (directoryFrame[0x7] << 24);
@@ -846,11 +843,11 @@ void PCSX::SIO::EraseMcdBlock(int mcd, int block) {
 
     // Fix up the corresponding directory frame in block 0.
     const auto frame = (uint8_t *)data + block * MCD_SECT_SIZE;
-    frame[0] = 0xa0;  // Code for a freshly formatted block
-    for (auto i = 1; i < 0x7f; i++) { // Zero the rest of the frame
+    frame[0] = 0xa0;                   // Code for a freshly formatted block
+    for (auto i = 1; i < 0x7f; i++) {  // Zero the rest of the frame
         frame[i] = 0;
     }
-    frame[0x7f] = 0xa0; // xor checksum of frame
+    frame[0x7f] = 0xa0;  // xor checksum of frame
 }
 // Back up the entire memory card to a file
 // mcd: The memory card to back up (1 or 2)
