@@ -20,6 +20,7 @@
 #pragma once
 #include "core/r3000a.h"
 #ifdef DYNAREC_AA64
+#include "support/windowswrapper.h"
 #include <sys/mman.h>  // For mmap/mprotect
 
 #include "vixl/src/aarch64/macro-assembler-aarch64.h"
@@ -63,10 +64,11 @@ class Emitter : public MacroAssembler {
     void ready() { FinalizeCode(); }
 
     bool setRWX() {
-#if defined(__linux__)
-        return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE | PROT_EXEC) != -1;
-#else // Windows stuff
-
+#if defined(_WIN32)
+    DWORD oldProtect; // Unused, but VirtualProtect wants somewhere to store it anyways.
+    return VirtualProtect(s_codeCache, allocSize, PAGE_EXECUTE_READWRITE, &oldProtect) != 0;
+#elif !defined(__APPLE__)
+    return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE | PROT_EXEC) != -1;
 #endif
     }
 

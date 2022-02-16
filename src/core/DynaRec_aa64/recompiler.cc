@@ -61,10 +61,9 @@ bool DynaRecCPU::Init() {
         m_recompilerLUT[page + 0x9FC0] = pointer;
         m_recompilerLUT[page + 0xBFC0] = pointer;
     }
-// TODO: Add windows to ifdef
-#if defined(__linux__)
-    // Set s_codeCache as RWX
-    if (!gen.setRWX()) {
+
+#if !defined(__APPLE__)
+    if (!gen.setRWX()) { // Mark code cache as readable/writeable/executable
         PCSX::g_system->message("[Dynarec] Failed to allocate executable memory.\nTry disabling the Dynarec CPU.");
         return false;
     }
@@ -91,11 +90,10 @@ bool DynaRecCPU::Init() {
 #if defined(__APPLE__)
     // Check to make sure code buffer memory was allocated
     if (gen.getCode<void*>() == nullptr) {
-        PCSX::g_system->message("[Dynarec] Failed to allocate memory for DynaRec.\nTry disabling the Dynarec CPU.");
+        PCSX::g_system->message("[Dynarec] Failed to allocate memory for Dynarec.\nTry disabling the Dynarec CPU.");
         return false;
     }
-    // Set s_codeCache as R/X before jumping into dispatcher
-    gen.setRX();
+    gen.setRX(); // Mark code cache as readable/executable before jumping into dispatcher
 #endif
      return true;
 }
@@ -258,7 +256,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     int count = 0;  // How many instructions have we compiled?
 
 #if defined(__APPLE__)
-    gen.setRW();    // Set s_codeCache as R/W before emitting code
+    gen.setRW();    // Mark code cache as readable/writeable before emitting code
 #endif
 
     if (align) {
@@ -333,7 +331,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     __builtin___clear_cache(reinterpret_cast<char*>(blockStart), gen.getCurr<char*>());
     gen.ready();
 #if defined(__APPLE__)
-    gen.setRX(); // Set s_codeCache as R/X before returning to dispatcher
+    gen.setRX(); // Mark code cache as readable/executable before returning to dispatcher
 #endif
     // The block might have been invalidated by handleLinking, so re-read the pointer from *callback
     return *callback;
