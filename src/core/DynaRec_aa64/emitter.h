@@ -36,8 +36,16 @@ alignas(4096) static uint8_t s_codeCache[allocSize];
 
 class Emitter : public MacroAssembler {
   public:
-    Emitter() : MacroAssembler(s_codeCache, allocSize) {}
+#ifdef __APPLE__
+    Emitter() : MacroAssembler(reinterpret_cast<uint8_t*>(makeBuffer()), allocSize) {}
 
+    static void* makeBuffer() {
+        void *ptr = mmap(s_codeCache, allocSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+        return (ptr == MAP_FAILED) ? nullptr : ptr;
+    }
+#else
+    Emitter() : MacroAssembler(s_codeCache, allocSize) {}
+#endif
     void L(Label& l) { bind(&l); }
 
     template <typename T = void*>
@@ -54,17 +62,20 @@ class Emitter : public MacroAssembler {
 
     void ready() { FinalizeCode(); }
 
-    // TODO: Do we keep this around or just use the proper method
     bool setRWX() {
+#if defined(__linux__)
         return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE | PROT_EXEC) != -1;
-    }
-    // TODO: The below methods may need additional flags for other platforms, check.
-    bool setRW() {
-        return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE) != -1;
+#else // Windows stuff
+
+#endif
     }
 
-    bool setRX() {
-        return mprotect(s_codeCache, allocSize, PROT_READ | PROT_EXEC) != -1;
+    void setRW() {
+        GetBuffer()->SetWritable();
+    }
+
+    void setRX() {
+        GetBuffer()->SetExecutable();
     }
 
     void align() { GetBuffer()->Align(); }
