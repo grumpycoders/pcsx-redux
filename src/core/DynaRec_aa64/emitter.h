@@ -21,8 +21,10 @@
 #include "core/r3000a.h"
 #ifdef DYNAREC_AA64
 #include "support/windowswrapper.h"
-#include <sys/mman.h>  // For mmap/mprotect
 
+#ifndef _WIN32
+#include <sys/mman.h>  // For mmap/mprotect
+#endif
 #include "vixl/src/aarch64/macro-assembler-aarch64.h"
 
 using namespace vixl::aarch64;
