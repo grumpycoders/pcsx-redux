@@ -49,7 +49,7 @@ class MemcardManager {
     int m_selectedBlock;
     bool m_showMemoryEditor = false;
     bool m_drawPocketstationIcons = false;
-    uint8_t* m_currentCardData = (uint8_t*)g_emulator->m_sio->GetMcdData(m_selectedCard);
+    uint8_t* m_currentCardData = (uint8_t*)g_emulator->m_sio->getMcdData(m_selectedCard);
 
     GLuint m_iconTextures[15];
     MemoryEditor m_memoryEditor;

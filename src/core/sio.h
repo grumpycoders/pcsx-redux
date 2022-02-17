@@ -133,20 +133,44 @@ class SIO {
     void CreateMcd(const PCSX::u8string mcd);
     void ConvertMcd(const PCSX::u8string mcd, const char *data);
 
-    typedef struct {
-        char Title[48 + 1];       // Title in ASCII
-        char sTitle[48 * 2 + 1];  // Title in Shift-JIS
-        char ID[12 + 1];
-        char Name[16 + 1];
-        uint32_t Filesize;
-        uint32_t IconCount;
-        uint16_t Icon[16 * 16 * 3];
-        uint8_t Flags;
-    } McdBlock;
+    struct McdBlock {
+        McdBlock() { reset(); }
+        int number;
+        std::string titleAscii;
+        std::string titleSjis;
+        std::string titleUtf8;
+        std::string id;
+        std::string name;
+        uint32_t fileSize;
+        uint32_t iconCount;
+        uint16_t icon[16 * 16 * 3];
+        uint32_t allocState;
+        int16_t nextBlock;
+        void reset() {
+            number = 0;
+            titleAscii.clear();
+            titleSjis.clear();
+            titleUtf8.clear();
+            id.clear();
+            name.clear();
+            fileSize = 0;
+            iconCount = 0;
+            memset(icon, 0, sizeof(icon));
+            allocState = 0;
+            nextBlock = -1;
+        }
+        bool isErased() const { return (allocState & 0xa0) == 0xa0; }
+        bool isChained() const { return (allocState & ~1) == 0x52; }
+    };
 
-    void GetMcdBlockInfo(int mcd, int block, McdBlock *info);
-    void EraseMcdBlock(int mcd, int block);
-    char *GetMcdData(int mcd);
+    void getMcdBlockInfo(int mcd, int block, McdBlock &info);
+    void eraseMcdBlock(int mcd, const McdBlock &block);
+    void eraseMcdBlock(int mcd, int block) {
+        McdBlock info;
+        getMcdBlockInfo(mcd, block, info);
+        eraseMcdBlock(mcd, block);
+    }
+    char *getMcdData(int mcd);
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
 

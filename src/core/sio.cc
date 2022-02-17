@@ -26,6 +26,7 @@
 
 #include "core/misc.h"
 #include "core/pad.h"
+#include "support/sjis_conv.h"
 
 // clk cycle byte
 // 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
@@ -719,29 +720,37 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
     }
 }
 
-void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
+void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
+    if (block < 1 || block > 15) {
+        throw std::runtime_error(_("Wrong block number"));
+    }
+
     uint16_t clut[16];
 
-    std::memset(Info, 0, sizeof(McdBlock));
+    info.reset();
+    info.number = block;
 
-    char *data = GetMcdData(mcd);
+    char *data = getMcdData(mcd);
     uint8_t *ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 2;
-    char *str = Info->Title;
-    char *sstr = Info->sTitle;
-    Info->IconCount = std::max(1, *ptr & 0x3);
+    auto &ta = info.titleAscii;
+    auto &ts = info.titleSjis;
+    info.iconCount = std::max(1, *ptr & 0x3);
 
     ptr += 2;
     int x = 0;
 
     for (int i = 0; i < 48; i++) {
-        uint16_t a = *ptr++;
-        uint16_t b = *ptr++;
-        uint16_t c = (a << 8) | b;
-        if (!c) break;
-        *sstr++ = a;
-        *sstr++ = b;
+        uint8_t b = *ptr++;
+        ts += b;
+        uint16_t c = b;
+        if (b & 0x80) {
+            c << 8;
+            b = *ptr++;
+            ts += b;
+            c |= b;
+        }
 
-        // Convert ASCII characters to half-width
+        // Poor man's SJIS to ASCII conversion
         if (c >= 0x8281 && c <= 0x829a) {
             c = (c - 0x8281) + 'a';
         } else if (c >= 0x824f && c <= 0x827a) {
@@ -774,23 +783,22 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
             c = ']';
         } else if (c == 0x817c) {
             c = '-';
-        } else {
+        } else if (c > 0x7e) {
             c = '?';
         }
 
-        *str++ = c;
+        ta += c;
     }
 
-    trim(str);
-    trim(sstr);
+    info.titleUtf8 = Sjis::toUtf8(ts);
 
     // Read CLUT
     ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 0x60;
     std::memcpy(clut, ptr, 16 * sizeof(uint16_t));
 
     // Icons can have 1 to 3 frames of animation
-    for (int i = 0; i < Info->IconCount; i++) {
-        uint16_t *icon = &Info->Icon[i * 16 * 16];
+    for (int i = 0; i < info.iconCount; i++) {
+        uint16_t *icon = &info.icon[i * 16 * 16];
         ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 128 + 128 * i;  // icon data
 
         // Fetch each pixel, store it in the icon array in ABBBBBGGGGGRRRRR with the alpha bit set to 1
@@ -804,24 +812,43 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
 
     // Parse directory frame info
     const auto directoryFrame = (uint8_t *)data + block * MCD_SECT_SIZE;
-    Info->Flags = directoryFrame[0];
-    std::strncpy(Info->ID, (const char *)&directoryFrame[0xa], 12);
-    std::strncpy(Info->Name, (const char *)&directoryFrame[0x16], 16);
+    uint32_t allocState = 0;
+    allocState |= directoryFrame[0];
+    allocState |= directoryFrame[1] << 8;
+    allocState |= directoryFrame[2] << 16;
+    allocState |= directoryFrame[3] << 24;
+    info.allocState = allocState;
 
-    const uint32_t fileSize =
-        directoryFrame[0x4] | (directoryFrame[0x5] << 8) | (directoryFrame[0x6] << 16) | (directoryFrame[0x7] << 24);
-    Info->Filesize = fileSize;
+    char tmp[17];
+    memset(tmp, 0, sizeof(tmp));
+    std::strncpy(tmp, (const char *)&directoryFrame[0xa], 12);
+    info.id = tmp;
+    memset(tmp, 0, sizeof(tmp));
+    std::strncpy(tmp, (const char *)&directoryFrame[0x16], 16);
+    info.name = tmp;
+
+    uint32_t fileSize = 0;
+    fileSize |= directoryFrame[4];
+    fileSize |= directoryFrame[5] << 8;
+    fileSize |= directoryFrame[6] << 16;
+    fileSize |= directoryFrame[7] << 24;
+    info.fileSize = fileSize;
+
+    uint16_t nextBlock = 0;
+    nextBlock |= directoryFrame[8];
+    nextBlock |= directoryFrame[9] << 8;
+    info.nextBlock = nextBlock;
 
     // Check if the block is marked as free in the directory frame and adjust the name/filename if so
-    if (Info->Flags == 0xa0) {
-        std::strcpy(Info->Title, "Free Block");
-        std::strcpy(Info->sTitle, "Free Block");
-        std::strcpy(Info->Name, "Empty File");
-        Info->Filesize = 0;
+    if (info.isErased()) {
+        info.reset();
+        info.titleAscii = "Free Block";
+        info.titleSjis = "Free Block";
+        info.titleUtf8 = "Free Block";
     }
 }
 
-char *PCSX::SIO::GetMcdData(int mcd) {
+char *PCSX::SIO::getMcdData(int mcd) {
     switch (mcd) {
         case 1:
             return g_mcd1Data;
@@ -833,36 +860,44 @@ char *PCSX::SIO::GetMcdData(int mcd) {
     }
 }
 
-// Format a memory card block by clearing it with 0s
+// Erase a memory card block by clearing it with 0s
 // mcd: The memory card we want to use (1 or 2)
-// block: A block from 1 to 15 inclusive
-void PCSX::SIO::EraseMcdBlock(int mcd, int block) {
-    char *data = GetMcdData(mcd);
+void PCSX::SIO::eraseMcdBlock(int mcd, const McdBlock &block) {
+    char *data = getMcdData(mcd);
 
     // Set the block data to 0
-    const size_t offset = block * MCD_BLOCK_SIZE;
+    const size_t offset = block.number * MCD_BLOCK_SIZE;
     std::memset(data + offset, 0, MCD_BLOCK_SIZE);
 
     // Fix up the corresponding directory frame in block 0.
-    const auto frame = (uint8_t *)data + block * MCD_SECT_SIZE;
+    const auto frame = (uint8_t *)data + block.number * MCD_SECT_SIZE;
     frame[0] = 0xa0;                   // Code for a freshly formatted block
     for (auto i = 1; i < 0x7f; i++) {  // Zero the rest of the frame
         frame[i] = 0;
     }
     frame[0x7f] = 0xa0;  // xor checksum of frame
+
+    if (block.isErased()) return;
+    auto nextBlock = block.nextBlock;
+    if ((nextBlock >= 1) && (nextBlock <= 15)) {
+        McdBlock next;
+        getMcdBlockInfo(mcd, nextBlock, next);
+        eraseMcdBlock(mcd, next);
+    }
 }
+
 // Back up the entire memory card to a file
 // mcd: The memory card to back up (1 or 2)
 void PCSX::SIO::SaveMcd(int mcd) {
-    const auto data = GetMcdData(mcd);
+    const auto data = getMcdData(mcd);
     switch (mcd) {
         case 1: {
-            const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string();
+            const auto path = g_emulator->settings.get<Emulator::SettingMcd1>().string();
             SaveMcd(path, data, 0, MCD_SIZE);
             break;
         }
         case 2: {
-            const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string();
+            const auto path = g_emulator->settings.get<Emulator::SettingMcd2>().string();
             SaveMcd(path, data, 0, MCD_SIZE);
             break;
         }
