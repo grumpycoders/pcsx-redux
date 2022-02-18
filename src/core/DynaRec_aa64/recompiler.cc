@@ -68,6 +68,9 @@ bool DynaRecCPU::Init() {
         return false;
     }
 #endif
+#if defined(__APPLE__)
+    gen.setRW(); // M1 wants buffer marked as readable/writable with mprotect before emitting code
+#endif
     emitDispatcher();  // Emit our assembly dispatcher
     uncompileAll();    // Mark all blocks as uncompiled
 
