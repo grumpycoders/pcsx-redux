@@ -54,6 +54,43 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         return false;
     }
 
+    const bool undoDisabled = m_undo.size() == 0;
+    if (undoDisabled) ImGui::BeginDisabled();
+    bool isLatest = m_undo.size() == m_undoIndex;
+    const bool wasLatest = isLatest;
+    if (ImGui::SliderInt(_("Undo"), &m_undoIndex, 0, m_undo.size(), "")) {
+        isLatest = m_undo.size() == m_undoIndex;
+        const auto dataCard1 = g_emulator->m_sio->getMcdData(1);
+        const auto dataCard2 = g_emulator->m_sio->getMcdData(2);
+        if (isLatest) {
+            std::memcpy(dataCard1, m_latest.get(), SIO::MCD_SIZE);
+            std::memcpy(dataCard2, m_latest.get() + SIO::MCD_SIZE, SIO::MCD_SIZE);
+        } else {
+            if (wasLatest) {
+                std::unique_ptr<uint8_t[]> latest(new uint8_t[SIO::MCD_SIZE * 2]);
+                std::memcpy(latest.get(), dataCard1, SIO::MCD_SIZE);
+                std::memcpy(latest.get() + SIO::MCD_SIZE, dataCard2, SIO::MCD_SIZE);
+                m_latest.swap(latest);
+            }
+            std::memcpy(dataCard1, m_undo[m_undoIndex].second.get(), SIO::MCD_SIZE);
+            std::memcpy(dataCard2, m_undo[m_undoIndex].second.get() + SIO::MCD_SIZE, SIO::MCD_SIZE);
+        }
+        g_emulator->m_sio->saveMcd(1);
+        g_emulator->m_sio->saveMcd(2);
+    }
+    ImGui::TextUnformatted(_("Undo version: "));
+    ImGui::SameLine();
+    if (isLatest) {
+        ImGui::TextUnformatted(_("Latest"));
+    } else {
+        ImGui::TextUnformatted(m_undo[m_undoIndex].first.c_str());
+    }
+    if (undoDisabled) ImGui::EndDisabled();
+    if (ImGui::Button(_("Clear Undo buffer"))) {
+        m_undo.clear();
+        m_undoIndex = 0;
+    }
+
     // Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
     if (ImGui::Checkbox(_("Memory Card 1 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
@@ -125,15 +162,29 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                 // can't handle multiple buttons with the same name well
                 auto buttonName = fmt::format(_("Erase##{}"), i);
                 if (ImGui::SmallButton(buttonName.c_str())) {
+                    auto latest = getLatest();
                     g_emulator->m_sio->eraseMcdFile(block);
+                    saveUndoBuffer(std::move(latest),
+                                   fmt::format(_("Erased file {}({}) off card {}"), block.number,
+                                               gui->hasJapanese() ? block.titleUtf8 : block.titleAscii, block.mcd));
+                    g_emulator->m_sio->saveMcd(card);
                 }
                 ImGui::SameLine();
 
                 buttonName = fmt::format(_("Copy##{}"), i);
                 if (otherFreeSpace >= size) {
                     if (ImGui::SmallButton(buttonName.c_str())) {
+                        auto latest = getLatest();
                         bool success = g_emulator->m_sio->copyMcdFile(block);
-                        if (!success) gui->addNotification("Error while copying save file");
+                        if (!success) {
+                            gui->addNotification("Error while copying save file");
+                        } else {
+                            saveUndoBuffer(
+                                std::move(latest),
+                                fmt::format(_("Copied file {}({}) from card {} to card {}"), block.number,
+                                            gui->hasJapanese() ? block.titleUtf8 : block.titleAscii, card, othercard));
+                            g_emulator->m_sio->saveMcd(othercard);
+                        }
                     }
                 } else {
                     ImGui::BeginDisabled();
@@ -145,11 +196,18 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                 buttonName = fmt::format(_("Move##{}"), i);
                 if (otherFreeSpace >= size) {
                     if (ImGui::SmallButton(buttonName.c_str())) {
+                        auto latest = getLatest();
                         bool success = g_emulator->m_sio->copyMcdFile(block);
                         if (!success) {
                             gui->addNotification("Error while copying save file");
                         } else {
                             g_emulator->m_sio->eraseMcdFile(block);
+                            saveUndoBuffer(
+                                std::move(latest),
+                                fmt::format(_("Moved file {}({}) from card {} to card {}"), block.number,
+                                            gui->hasJapanese() ? block.titleUtf8 : block.titleAscii, card, othercard));
+                            g_emulator->m_sio->saveMcd(1);
+                            g_emulator->m_sio->saveMcd(2);
                         }
                     }
                 } else {
@@ -294,4 +352,9 @@ void PCSX::Widgets::MemcardManager::exportPNG(const SIO::McdBlock& block) {
 void PCSX::Widgets::MemcardManager::copyToClipboard(const SIO::McdBlock& block) {
     const auto pixels = getIconRGBA8888(block);
     clip::set_image(pixels);
+}
+
+void PCSX::Widgets::MemcardManager::saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action) {
+    m_undo.resize(m_undoIndex++);
+    m_undo.push_back({action, std::move(tosave)});
 }

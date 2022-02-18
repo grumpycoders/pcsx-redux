@@ -19,7 +19,11 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "GL/gl3w.h"
 #include "clip/clip.h"
@@ -44,10 +48,10 @@ class MemcardManager {
 
   private:
     int m_iconSize = 32;  // The width and length of the icon images
-    int m_selectedBlock;
     bool m_drawPocketstationIcons = false;
+    std::vector<std::pair<std::string, std::unique_ptr<uint8_t[]>>> m_undo;
 
-    GLuint m_iconTextures[15];
+    GLuint m_iconTextures[15] = {0};
 
     clip::image getIconRGBA8888(const SIO::McdBlock& block);
 
@@ -55,6 +59,19 @@ class MemcardManager {
     void exportPNG(const SIO::McdBlock& block);
     void copyToClipboard(const SIO::McdBlock& block);
     void getPocketstationIcon(uint32_t* pixels, const SIO::McdBlock& block);
+
+    void saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action);
+
+    std::unique_ptr<uint8_t[]> getLatest() {
+        std::unique_ptr<uint8_t[]> data(new uint8_t[SIO::MCD_SIZE * 2]);
+        std::memcpy(data.get(), g_emulator->m_sio->getMcdData(1), SIO::MCD_SIZE);
+        std::memcpy(data.get() + SIO::MCD_SIZE, g_emulator->m_sio->getMcdData(2), SIO::MCD_SIZE);
+
+        return data;
+    }
+
+    int m_undoIndex = 0;
+    std::unique_ptr<uint8_t[]> m_latest;
 };
 
 }  // namespace Widgets

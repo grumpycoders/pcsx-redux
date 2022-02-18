@@ -128,8 +128,8 @@ class SIO {
 
     void LoadMcd(int mcd, const PCSX::u8string str);
     void LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);
-    void SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
-    void SaveMcd(int mcd);
+    void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+    void saveMcd(int mcd);
     void CreateMcd(const PCSX::u8string mcd);
     void ConvertMcd(const PCSX::u8string mcd, const char *data);
 

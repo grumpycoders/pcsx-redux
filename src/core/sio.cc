@@ -313,14 +313,14 @@ uint8_t PCSX::SIO::sioRead8() {
                         case 0x0002:
                             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
                                 memcpy(g_mcd1Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
-                                SaveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
+                                saveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
                                         g_mcd1Data, (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                             }
                             break;
                         case 0x2002:
                             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
                                 memcpy(g_mcd2Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
-                                SaveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str(),
+                                saveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str(),
                                         g_mcd2Data, (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                             }
                             break;
@@ -439,7 +439,7 @@ void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
     LoadMcd(2, mcd2);
 }
 
-void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
+void PCSX::SIO::saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     FILE *f = fopen(fname, "r+b");
 
@@ -966,17 +966,17 @@ bool PCSX::SIO::copyMcdFile(McdBlock block) {
 
 // Back up the entire memory card to a file
 // mcd: The memory card to back up (1 or 2)
-void PCSX::SIO::SaveMcd(int mcd) {
+void PCSX::SIO::saveMcd(int mcd) {
     const auto data = getMcdData(mcd);
     switch (mcd) {
         case 1: {
             const auto path = g_emulator->settings.get<Emulator::SettingMcd1>().string();
-            SaveMcd(path, data, 0, MCD_SIZE);
+            saveMcd(path, data, 0, MCD_SIZE);
             break;
         }
         case 2: {
             const auto path = g_emulator->settings.get<Emulator::SettingMcd2>().string();
-            SaveMcd(path, data, 0, MCD_SIZE);
+            saveMcd(path, data, 0, MCD_SIZE);
             break;
         }
     }
