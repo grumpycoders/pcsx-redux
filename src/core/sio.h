@@ -135,6 +135,7 @@ class SIO {
 
     struct McdBlock {
         McdBlock() { reset(); }
+        int mcd;
         int number;
         std::string titleAscii;
         std::string titleSjis;
@@ -147,6 +148,7 @@ class SIO {
         uint32_t allocState;
         int16_t nextBlock;
         void reset() {
+            mcd = 0;
             number = 0;
             titleAscii.clear();
             titleSjis.clear();
@@ -164,13 +166,24 @@ class SIO {
     };
 
     void getMcdBlockInfo(int mcd, int block, McdBlock &info);
-    void eraseMcdBlock(int mcd, const McdBlock &block);
-    void eraseMcdBlock(int mcd, int block) {
+    void eraseMcdFile(const McdBlock &block);
+    void eraseMcdFile(int mcd, int block) {
         McdBlock info;
         getMcdBlockInfo(mcd, block, info);
-        eraseMcdBlock(mcd, block);
+        eraseMcdFile(info);
     }
+    static constexpr int otherMcd(int mcd) {
+        if ((mcd != 1) && (mcd != 2)) throw std::runtime_error("Bad memory card number");
+        if (mcd == 1) return 2;
+        return 1;
+    }
+    static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
+    unsigned getFreeSpace(int mcd);
+    unsigned getFileBlockCount(McdBlock block);
+    int findFirstFree(int mcd);
+    bool copyMcdFile(McdBlock block);
     char *getMcdData(int mcd);
+    char *getMcdData(const McdBlock &block) { return getMcdData(block.mcd); }
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
 
