@@ -60,7 +60,7 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     },
     {
         "Nihongo",
-        {"jp.po", {{MAKEU8("NotoSansCJKjp-Regular.otf"), c_japaneseRanges}}, nullptr},
+        {"jp.po", {}, nullptr},
     },
     {
         "Malti",

@@ -18,13 +18,6 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_STATIC
-#define STBI_ASSERT(x) assert(x)
-#define STBI_NO_HDR
-#define STBI_NO_LINEAR
-#define STBI_NO_STDIO
-#define STBI_ONLY_PNG
 #include "gui/gui.h"
 
 #include <GL/gl3w.h>
@@ -37,6 +30,7 @@
 #include <type_traits>
 #include <unordered_set>
 
+#include "clip/clip.h"
 #include "core/binloader.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
@@ -63,7 +57,6 @@
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
-#include "stb/stb_image.h"
 #include "tracy/Tracy.hpp"
 #include "zstr.hpp"
 
@@ -274,20 +267,15 @@ end)(jit.status()))
     glfwSetWindowSizeCallback(m_window, [](GLFWwindow*, int, int) { s_this->m_setupScreenSize = true; });
 
     Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
-        int x, y, comp;
-        stbi_uc* img;
-        img = stbi_load_from_memory(data, size, &x, &y, &comp, 4);
-        if (!img) return;
-        if (comp != 4) {
-            stbi_image_free(img);
-            return;
-        }
+        clip::image img;
+        if (!img.import_from_png(data, size)) return;
+        int x = img.spec().width;
+        int y = img.spec().height;
         GLFWimage image;
         image.width = x;
         image.height = y;
-        image.pixels = img;
+        image.pixels = reinterpret_cast<unsigned char*>(img.data());
         glfwSetWindowIcon(m_window, 1, &image);
-        stbi_image_free(img);
     });
 
     result = gl3wInit();
@@ -589,6 +577,9 @@ void PCSX::GUI::startFrame() {
         for (auto e : g_system->getLocaleExtra()) {
             loadFont(e.first, settings.get<MainFontSize>().value, io, e.second, true);
         }
+        // try loading the japanese font for memory card manager
+        m_hasJapanese = loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MainFontSize>().value, io,
+                                 reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true);
         m_monoFont = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value, io, nullptr);
         io.Fonts->Build();
         io.FontDefault = m_mainFont;
@@ -1088,7 +1079,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_memcardManager.m_show) {
-        changed |= m_memcardManager.draw(_("Memory Card Manager"));
+        changed |= m_memcardManager.draw(this, _("Memory Card Manager"));
     }
 
     if (m_registers.m_show) {
