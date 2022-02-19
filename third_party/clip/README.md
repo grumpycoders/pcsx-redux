@@ -6,7 +6,6 @@ Modified in 2022 for PCSX-Redux by Nicolas "Pixel" Noble
 Modifications:
 - Removed the libpng dependency, added a dependency on stb image writer.
 - Added png import / export to the `image` class.
-- Added an OpenGL texture allocator / importer / exporter to the `image` class.
 - Some minor cleanup.
 
 Original code at https://github.com/dacap/clip
