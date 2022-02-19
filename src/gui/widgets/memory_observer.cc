@@ -46,7 +46,6 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             const auto stride = static_cast<uint8_t>(m_scanAlignment);
 
             if (m_addressValuePairs.empty() && ImGui::Button("First scan")) {
-
                 int memValue = 0;
 
                 for (uint32_t i = 0; i < memSize; ++i) {
@@ -89,8 +88,8 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             }
 
             if (!m_addressValuePairs.empty() && ImGui::Button("Next scan")) {
-                auto doesntMatchCriterion = [this, memData, memSize, memBase, stride](
-                    const AddressValuePair& addressValuePair) {
+                auto doesntMatchCriterion = [this, memData, memSize, memBase,
+                                             stride](const AddressValuePair& addressValuePair) {
                     const uint32_t address = addressValuePair.address;
                     const int memValue = getMemValue(address, memData, memSize, memBase, stride);
 

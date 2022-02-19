@@ -21,11 +21,10 @@
 
 #include <stdint.h>
 
+#include <array>
 #include <vector>
 
 #include "imgui.h"
-
-#include <array>
 #include "immintrin.h"
 
 namespace PCSX {
@@ -33,11 +32,11 @@ namespace PCSX {
 namespace Widgets {
 
 class MemoryObserver {
-public:
+  public:
     void draw(const char* title);
     bool m_show = false;
 
-private:
+  private:
     static int getMemValue(uint32_t absoluteAddress, const uint8_t* memData, uint32_t memSize, uint32_t memBase,
                            uint8_t stride);
 
@@ -56,11 +55,7 @@ private:
         UnknownInitialValue
     };
 
-    enum class ScanAlignment : uint8_t {
-        OneByte = 1,
-        TwoBytes = 2,
-        FourBytes = 4
-    };
+    enum class ScanAlignment : uint8_t { OneByte = 1, TwoBytes = 2, FourBytes = 4 };
 
     struct AddressValuePair {
         uint32_t address = 0;
@@ -89,44 +84,29 @@ private:
 
         switch (mask) {
             case 0: {
-                const auto firstShuffleMask = _mm256_set_epi8(
-                    3, 2, 1, 0, 7, 6, 5, 4,
-                    2, 1, 0, 7, 6, 5, 4, 3,
-                    1, 0, 7, 6, 5, 4, 3, 2,
-                    0, 7, 6, 5, 4, 3, 2, 1
-                    );
+                const auto firstShuffleMask = _mm256_set_epi8(3, 2, 1, 0, 7, 6, 5, 4, 2, 1, 0, 7, 6, 5, 4, 3, 1, 0, 7,
+                                                              6, 5, 4, 3, 2, 0, 7, 6, 5, 4, 3, 2, 1);
                 const auto firstShuffle = _mm256_shuffle_epi8(twoCopies, firstShuffleMask);
                 return _mm256_cmpeq_epi8(twoCopies, firstShuffle);
             }
             case 1: {
-                const auto secondShuffleMask = _mm256_set_epi8(
-                    7, 6, 5, 4, 3, 2, 1, 0,
-                    6, 5, 4, 3, 2, 1, 0, 7,
-                    5, 4, 3, 2, 1, 0, 7, 6,
-                    4, 3, 2, 1, 0, 7, 6, 5
-                    );
+                const auto secondShuffleMask = _mm256_set_epi8(7, 6, 5, 4, 3, 2, 1, 0, 6, 5, 4, 3, 2, 1, 0, 7, 5, 4, 3,
+                                                               2, 1, 0, 7, 6, 4, 3, 2, 1, 0, 7, 6, 5);
                 const auto secondShuffle = _mm256_shuffle_epi8(twoCopies, secondShuffleMask);
                 return _mm256_cmpeq_epi8(twoCopies, secondShuffle);
             }
             case 2: {
                 assert(bufferSize == 16);
-                const auto thirdShuffleMask = _mm256_set_epi8(
-                    11, 10, 9, 8, 7, 6, 5, 4,
-                    10, 9, 8, 7, 6, 5, 4, 3,
-                    9, 8, 7, 6, 5, 4, 3, 2,
-                    8, 7, 6, 5, 4, 3, 2, 1
-                    );
+                const auto thirdShuffleMask = _mm256_set_epi8(11, 10, 9, 8, 7, 6, 5, 4, 10, 9, 8, 7, 6, 5, 4, 3, 9, 8,
+                                                              7, 6, 5, 4, 3, 2, 8, 7, 6, 5, 4, 3, 2, 1);
                 const auto thirdShuffle = _mm256_shuffle_epi8(twoCopies, thirdShuffleMask);
                 return _mm256_cmpeq_epi8(twoCopies, thirdShuffle);
             }
             case 3: {
                 assert(bufferSize == 16);
-                const auto fourthShuffleMask = _mm256_set_epi8(
-                    15, 14, 13, 12, 11, 10, 9, 8,
-                    14, 13, 12, 11, 10, 9, 8, 7,
-                    13, 12, 11, 10, 9, 8, 7, 6,
-                    12, 11, 10, 9, 8, 7, 6, 5
-                    );
+                const auto fourthShuffleMask =
+                    _mm256_set_epi8(15, 14, 13, 12, 11, 10, 9, 8, 14, 13, 12, 11, 10, 9, 8, 7, 13, 12, 11, 10, 9, 8, 7,
+                                    6, 12, 11, 10, 9, 8, 7, 6, 5);
                 const auto fourthShuffle = _mm256_shuffle_epi8(twoCopies, fourthShuffleMask);
                 return _mm256_cmpeq_epi8(twoCopies, fourthShuffle);
             }
@@ -139,15 +119,13 @@ private:
     void avx2_populateAddressList(const uint8_t* memData, uint32_t memBase, uint32_t memSize) {
         static_assert(bufferSize == 8 || bufferSize == 16);
 
-        alignas (32) auto buffer = std::array<uint8_t, bufferSize>{};
-        alignas (32) auto extendedBuffer = std::array<uint8_t, 32>{};
+        alignas(32) auto buffer = std::array<uint8_t, bufferSize>{};
+        alignas(32) auto extendedBuffer = std::array<uint8_t, 32>{};
 
         const auto sequenceSize = m_sequenceSize;
         std::copy_n(m_sequence, sequenceSize, buffer.data());
-        auto patternShuffleResults = std::vector<__m256i>{
-            avx2_getShuffleResultsFor(buffer, extendedBuffer, 0),
-            avx2_getShuffleResultsFor(buffer, extendedBuffer, 1)
-        };
+        auto patternShuffleResults = std::vector<__m256i>{avx2_getShuffleResultsFor(buffer, extendedBuffer, 0),
+                                                          avx2_getShuffleResultsFor(buffer, extendedBuffer, 1)};
         if constexpr (bufferSize == 16) {
             patternShuffleResults.push_back(avx2_getShuffleResultsFor(buffer, extendedBuffer, 2));
             patternShuffleResults.push_back(avx2_getShuffleResultsFor(buffer, extendedBuffer, 3));
@@ -160,8 +138,8 @@ private:
 
             bool bAllEqual = true;
             for (auto j = 0u; j < patternShuffleResults.size(); ++j) {
-                bAllEqual = all_equal(_mm256_cmpeq_epi8(patternShuffleResults[j],
-                                                        avx2_getShuffleResultsFor(buffer, extendedBuffer, j)));
+                bAllEqual = all_equal(
+                    _mm256_cmpeq_epi8(patternShuffleResults[j], avx2_getShuffleResultsFor(buffer, extendedBuffer, j)));
                 if (!bAllEqual) {
                     break;
                 }
@@ -184,6 +162,6 @@ private:
     std::vector<uint32_t> m_addresses;
 };
 
-}
+}  // namespace Widgets
 
-}
+}  // namespace PCSX
