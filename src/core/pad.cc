@@ -528,7 +528,8 @@ bool PCSX::Pads::Pad::configure() {
 
     if (ImGui::BeginCombo(_("Gamepad"), preview)) {
         for (int i = 0; i < gamepadsNames.size(); i++) {
-            if (ImGui::Selectable(gamepadsNames[i])) {
+            const auto gamepadName = fmt::format("{}##{}", gamepadsNames[i], i);
+            if (ImGui::Selectable(gamepadName.c_str())) {
                 changed = true;
                 id = i;
             }
