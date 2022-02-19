@@ -86,35 +86,35 @@ class MemoryObserver {
         for (auto j = 0u; j < (32 / bufferSize); ++j) {
             std::ranges::copy(buffer, extendedBuffer.begin() + j * bufferSize);
         }
-        const auto twoCopies = _mm256_loadu_epi8(extendedBuffer.data());
+        const auto copies = _mm256_loadu_epi8(extendedBuffer.data());
 
         switch (mask) {
             case 0: {
                 const auto firstShuffleMask = _mm256_set_epi8(3, 2, 1, 0, 7, 6, 5, 4, 2, 1, 0, 7, 6, 5, 4, 3, 1, 0, 7,
                                                               6, 5, 4, 3, 2, 0, 7, 6, 5, 4, 3, 2, 1);
-                const auto firstShuffle = _mm256_shuffle_epi8(twoCopies, firstShuffleMask);
-                return _mm256_cmpeq_epi8(twoCopies, firstShuffle);
+                const auto firstShuffle = _mm256_shuffle_epi8(copies, firstShuffleMask);
+                return _mm256_cmpeq_epi8(copies, firstShuffle);
             }
             case 1: {
                 const auto secondShuffleMask = _mm256_set_epi8(7, 6, 5, 4, 3, 2, 1, 0, 6, 5, 4, 3, 2, 1, 0, 7, 5, 4, 3,
                                                                2, 1, 0, 7, 6, 4, 3, 2, 1, 0, 7, 6, 5);
-                const auto secondShuffle = _mm256_shuffle_epi8(twoCopies, secondShuffleMask);
-                return _mm256_cmpeq_epi8(twoCopies, secondShuffle);
+                const auto secondShuffle = _mm256_shuffle_epi8(copies, secondShuffleMask);
+                return _mm256_cmpeq_epi8(copies, secondShuffle);
             }
             case 2: {
                 assert(bufferSize == 16);
                 const auto thirdShuffleMask = _mm256_set_epi8(11, 10, 9, 8, 7, 6, 5, 4, 10, 9, 8, 7, 6, 5, 4, 3, 9, 8,
                                                               7, 6, 5, 4, 3, 2, 8, 7, 6, 5, 4, 3, 2, 1);
-                const auto thirdShuffle = _mm256_shuffle_epi8(twoCopies, thirdShuffleMask);
-                return _mm256_cmpeq_epi8(twoCopies, thirdShuffle);
+                const auto thirdShuffle = _mm256_shuffle_epi8(copies, thirdShuffleMask);
+                return _mm256_cmpeq_epi8(copies, thirdShuffle);
             }
             case 3: {
                 assert(bufferSize == 16);
                 const auto fourthShuffleMask =
                     _mm256_set_epi8(15, 14, 13, 12, 11, 10, 9, 8, 14, 13, 12, 11, 10, 9, 8, 7, 13, 12, 11, 10, 9, 8, 7,
                                     6, 12, 11, 10, 9, 8, 7, 6, 5);
-                const auto fourthShuffle = _mm256_shuffle_epi8(twoCopies, fourthShuffleMask);
-                return _mm256_cmpeq_epi8(twoCopies, fourthShuffle);
+                const auto fourthShuffle = _mm256_shuffle_epi8(copies, fourthShuffleMask);
+                return _mm256_cmpeq_epi8(copies, fourthShuffle);
             }
             default:
                 return _mm256_setzero_si256();
@@ -138,8 +138,7 @@ class MemoryObserver {
         }
 
         m_addresses.clear();
-        const auto step = m_step;
-        for (auto i = 0u; i + sequenceSize < memSize; i += step) {
+        for (auto i = 0u; i + sequenceSize < memSize; i += m_step) {
             std::copy_n(memData + i, sequenceSize, buffer.data());
 
             bool bAllEqual = true;
