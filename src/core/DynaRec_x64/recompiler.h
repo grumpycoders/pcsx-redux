@@ -316,12 +316,13 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void endProfiling();
     void dumpProfileData();
 
-    void maybeCancelDelayedLoad(uint32_t index) {
+    void maybeCancelDelayedLoad(int index) {
         const unsigned other = m_currentDelayedLoad ^ 1;
         if (m_delayedLoadInfo[other].index == index) {
             m_delayedLoadInfo[other].active = false;
         }
     }
+    bool needToEmulateLoadDelay(int index);
 
     // Instruction definitions
     void recUnknown();

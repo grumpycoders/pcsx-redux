@@ -281,6 +281,17 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
 
     *callback = pointer;
     handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.
+    if (m_psxRegs.CP0.n.Status & (1 << 16)) { // If the cache isolation bit is set, this means we're in the FlushCache function
+        Label loop; // Temporarily HLE it by manually deleting all blocks when FlushCache is called.
+        gen.mov(rax, (uintptr_t)m_uncompiledBlock);
+        gen.mov(rdx, (uintptr_t)m_ramBlocks);
+        gen.mov(ecx, m_ramSize / 4);
+        gen.L(loop);
+        gen.mov(qword[rdx], rax);
+        gen.add(rdx, 8);
+        gen.dec(ecx);
+        gen.jnz(loop);
+    }
 
     auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
@@ -305,6 +316,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         }
 
         m_psxRegs.code = *p;  // Actually read the instruction
+        if (m_psxRegs.code == 0x25084003) PCSX::g_system->printf("move $at, $k0 @ %08X\n", m_pc);
         m_pc += 4;            // Increment recompiler PC
         count++;              // Increment instruction count
 
@@ -433,5 +445,88 @@ void DynaRecCPU::handleFastboot() {
     gen.jmp((void*)m_returnFromBlock);
 
     gen.L(noFastBoot);
+}
+
+// Peek at the next instruction to see if it has a read dependency on register "index"
+// If it does, we need to emulate the load delay
+bool DynaRecCPU::needToEmulateLoadDelay(int index) {
+    // HACK: We currently don't emulate load delay slots in branch delays slots properly
+    // PS1 software should more or less never use this, however we should impl this correctly sometime
+    if (m_stopCompiling) return false;
+
+    const auto p = (uint32_t*)PSXM(m_pc);
+    if (p == nullptr) {  // Can't prefetch next instruction, will error
+        return false;
+    }
+    if (index == 0) { // Loads to $zero go to the void, so don't bother emulating it as a delayed load
+        return false;
+    }
+
+    const uint32_t instruction = *p;
+    const auto rt = (instruction >> 16) & 0x1f;
+    const auto rs = (instruction >> 21) & 0x1f;
+    const auto opcode = instruction >> 26;
+    enum : uint8_t { NoDep, DepIfRs, DepIfRt, DepIfRsOrRt };
+
+    // TODO: Handle LWL/LWR/SWL/SWR delay slots properly
+    static constexpr uint8_t mainDependencyList[64] = {
+        NoDep,   DepIfRs, NoDep,   NoDep,   DepIfRsOrRt, DepIfRsOrRt, DepIfRs, DepIfRs,  // 0x0-0x7
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, DepIfRs,     DepIfRs,     DepIfRs, NoDep,    // 0x8-0xF
+        NoDep,   NoDep,   NoDep,   NoDep,   NoDep,       NoDep,       NoDep,   NoDep,    // 0x10-0x17
+        NoDep,   NoDep,   NoDep,   NoDep,   NoDep,       NoDep,       NoDep,   NoDep,    // 0x18-0x1F
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, DepIfRs,     DepIfRs,     DepIfRs, NoDep,    // 0x20-0x27
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, NoDep,       NoDep,       DepIfRs, NoDep,    // 0x28-0x2F
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, NoDep,       NoDep,       NoDep,   NoDep,    // 0x30-0x37
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, NoDep,       NoDep,       NoDep,   NoDep,    // 0x38-0x3F
+    };
+
+    static constexpr uint8_t specialDependencyList[64] = {
+        DepIfRsOrRt, NoDep,       DepIfRt,     DepIfRt,
+        DepIfRsOrRt, NoDep,       DepIfRsOrRt, DepIfRsOrRt,  // 0x0-0x7
+        NoDep,       NoDep,       NoDep,       NoDep,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x8-0xF
+        NoDep,       DepIfRs,     NoDep,       DepIfRs,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x10-0x17
+        NoDep,       NoDep,       NoDep,       NoDep,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x18-0x1F
+        DepIfRsOrRt, DepIfRsOrRt, DepIfRsOrRt, DepIfRsOrRt,
+        DepIfRsOrRt, DepIfRsOrRt, DepIfRsOrRt, DepIfRsOrRt,  // 0x20-0x27
+        NoDep,       NoDep,       DepIfRsOrRt, DepIfRsOrRt,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x28-0x2F
+        NoDep,       NoDep,       NoDep,       NoDep,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x30-0x37
+        NoDep,       NoDep,       NoDep,       NoDep,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x38-0x3F
+    };
+
+    uint8_t dependencyType = NoDep;
+    switch (opcode) {
+        case 0:  // Special instructions
+            dependencyType = specialDependencyList[instruction & 0x3F];
+            break;
+        case 0x10: {  // COP0 instructions also need special handling
+            // We need to emulate the delay if the rs field is 4, ie the instruction is MTC0, and "index" is the
+            return rs == 4 && rt == index;
+        } break;
+        case 0x12:  // COP2 instructions too
+            // We need to emulate the delay if the rs field is 4 or 6, ie the instruction is CTC0 or CTC2, and "index"
+            // is the
+            return (rs == 4 || rs == 6) && rt == index;
+            break;
+        default:
+            dependencyType = mainDependencyList[opcode];
+            break;
+    }
+
+    switch (dependencyType) {
+        case NoDep:
+            return false;
+        case DepIfRs:
+            return index == rs;
+        case DepIfRt:
+            return index == rt;
+        case DepIfRsOrRt:
+            return index == rs || index == rt;
+    }
 }
 #endif  // DYNAREC_X86_64
