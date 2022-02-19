@@ -802,7 +802,7 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem(_("Soft Reset"), "F8")) {
                     g_system->softReset();
                 }
-                if (ImGui::MenuItem(_("Hard Reset"), "shift-F8")) {
+                if (ImGui::MenuItem(_("Hard Reset"), "Shift+F8")) {
                     g_system->hardReset();
                 }
                 ImGui::EndMenu();
