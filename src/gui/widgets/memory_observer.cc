@@ -19,13 +19,22 @@
 
 #include "gui/widgets/memory_observer.h"
 
+#ifdef MEMORY_OBSERVER_X86
 #include <xbyak_util.h>
+#endif
 
 #include <magic_enum/include/magic_enum.hpp>
 
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/system.h"
+
+PCSX::Widgets::MemoryObserver::MemoryObserver() {
+#ifdef MEMORY_OBSERVER_X86
+    const auto cpu = Xbyak::util::Cpu();
+    m_useSIMD = cpu.has(Xbyak::util::Cpu::tAVX2);
+#endif
+}
 
 void PCSX::Widgets::MemoryObserver::draw(const char* title) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -204,10 +213,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
         }
 
         if (ImGui::BeginTabItem(_("Pattern search"))) {
-            const auto cpu = Xbyak::util::Cpu();
-            const bool bHasAvx2 = cpu.has(Xbyak::util::Cpu::tAVX2);
-
-            if (bHasAvx2) {
+            if (m_useSIMD) {
                 ImGui::Text(_("Sequence size: "));
                 ImGui::SameLine();
                 ImGui::RadioButton(_("8 bytes (fast)"), &m_sequenceSize, 8);
@@ -222,10 +228,10 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             ImGui::InputInt(_("Step"), &m_step);
 
             if (ImGui::Button(_("Search"))) {
-                if (bHasAvx2 && m_sequenceSize == 8) {
-                    avx2_populateAddressList<8>(memData, memBase, memSize);
-                } else if (bHasAvx2 && m_sequenceSize == 16) {
-                    avx2_populateAddressList<16>(memData, memBase, memSize);
+                if (m_useSIMD && m_sequenceSize == 8) {
+                    simd_populateAddressList<8>(memData, memBase, memSize);
+                } else if (m_useSIMD && m_sequenceSize == 16) {
+                    simd_populateAddressList<16>(memData, memBase, memSize);
                 } else {
                     populateAddressList(memData, memBase, memSize);
                 }
@@ -282,6 +288,7 @@ int PCSX::Widgets::MemoryObserver::getMemValue(uint32_t absoluteAddress, const u
     return memValue;
 }
 
+#ifdef MEMORY_OBSERVER_X86
 bool PCSX::Widgets::MemoryObserver::all_equal(__m256i input) {
     const auto lane0 = _mm256_castsi256_si128(input);
     const auto tmp = _mm_shuffle_epi8(lane0, _mm_setzero_si128());
@@ -290,6 +297,7 @@ bool PCSX::Widgets::MemoryObserver::all_equal(__m256i input) {
 
     return (static_cast<uint32_t>(_mm256_movemask_epi8(eq)) == 0xffffffff);
 }
+#endif // MEMORY_OBSERVER_X86
 
 std::vector<uint8_t> PCSX::Widgets::MemoryObserver::getShuffleResultsFor(const std::vector<uint8_t>& buffer) {
     const size_t bufferSize = buffer.size();

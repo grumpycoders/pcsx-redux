@@ -22,10 +22,14 @@
 #include <stdint.h>
 
 #include <array>
+#include <stdexcept>
 #include <vector>
 
 #include "imgui.h"
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64) || defined(_M_AMD64)
+#define MEMORY_OBSERVER_X86 // Do not include immintrin/xbyak or use avx intrinsics unless we're compiling for x86
 #include "immintrin.h"
+#endif
 
 namespace PCSX {
 
@@ -35,6 +39,7 @@ class MemoryObserver {
   public:
     void draw(const char* title);
     bool m_show = false;
+    MemoryObserver();
 
   private:
     static int getMemValue(uint32_t absoluteAddress, const uint8_t* memData, uint32_t memSize, uint32_t memBase,
@@ -66,12 +71,14 @@ class MemoryObserver {
     ScanAlignment m_scanAlignment = ScanAlignment::OneByte;
     std::vector<AddressValuePair> m_addressValuePairs;
     bool m_hex = false;
+    bool m_useSIMD = false;
     int m_value = 0;
 
     /**
      * Pattern search.
      */
 
+    #ifdef MEMORY_OBSERVER_X86
     template <int bufferSize>
     static __m256i avx2_getShuffleResultsFor(const std::array<uint8_t, bufferSize>& buffer,
                                              std::array<uint8_t, 32>& extendedBuffer, int mask) {
@@ -116,7 +123,7 @@ class MemoryObserver {
     }
 
     template <int bufferSize>
-    void avx2_populateAddressList(const uint8_t* memData, uint32_t memBase, uint32_t memSize) {
+    void simd_populateAddressList(const uint8_t* memData, uint32_t memBase, uint32_t memSize) {
         static_assert(bufferSize == 8 || bufferSize == 16);
 
         alignas(32) auto buffer = std::array<uint8_t, bufferSize>{};
@@ -150,8 +157,14 @@ class MemoryObserver {
             }
         }
     }
-
     static bool all_equal(__m256i input);
+    #else
+    template <int bufferSize>
+    void simd_populateAddressList(const uint8_t* memData, uint32_t memBase, uint32_t memSize) {
+        throw std::runtime_error("SIMD pattern searching is not supported on this platform! This shouldn't have been called!");
+    }
+    #endif // MEMORY_OBSERVER_X86
+
     static std::vector<uint8_t> getShuffleResultsFor(const std::vector<uint8_t>& buffer);
     static bool matchesPattern(const std::vector<uint8_t>& buffer, const std::vector<uint8_t>& patternShuffleResults);
     void populateAddressList(const uint8_t* memData, uint32_t memBase, uint32_t memSize);
