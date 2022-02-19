@@ -746,7 +746,7 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
         ts += b;
         uint16_t c = b;
         if (b & 0x80) {
-            c << 8;
+            c <<= 8;
             b = *ptr++;
             ts += b;
             c |= b;
