@@ -19,15 +19,14 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <array>
+#include <cstdint>
 #include <stdexcept>
 #include <vector>
 
 #include "imgui.h"
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64) || defined(_M_AMD64)
-#define MEMORY_OBSERVER_X86 // Do not include immintrin/xbyak or use avx intrinsics unless we're compiling for x86
+#define MEMORY_OBSERVER_X86  // Do not include immintrin/xbyak or use avx intrinsics unless we're compiling for x86
 #include "immintrin.h"
 #endif
 
@@ -78,7 +77,7 @@ class MemoryObserver {
      * Pattern search.
      */
 
-    #ifdef MEMORY_OBSERVER_X86
+#ifdef MEMORY_OBSERVER_X86
     template <int bufferSize>
     static __m256i avx2_getShuffleResultsFor(const std::array<uint8_t, bufferSize>& buffer,
                                              std::array<uint8_t, 32>& extendedBuffer, int mask) {
@@ -158,12 +157,12 @@ class MemoryObserver {
         }
     }
     static bool all_equal(__m256i input);
-    #else
+#else
     template <int bufferSize>
     void simd_populateAddressList(const uint8_t* memData, uint32_t memBase, uint32_t memSize) {
-        throw std::runtime_error("SIMD pattern searching is not supported on this platform! This shouldn't have been called!");
+        throw std::runtime_error("SIMD pattern searching is not supported on this platform!");
     }
-    #endif // MEMORY_OBSERVER_X86
+#endif  // MEMORY_OBSERVER_X86
 
     static std::vector<uint8_t> getShuffleResultsFor(const std::vector<uint8_t>& buffer);
     static bool matchesPattern(const std::vector<uint8_t>& buffer, const std::vector<uint8_t>& patternShuffleResults);
