@@ -290,6 +290,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
+    m_currentDelayedLoad = 0;
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_pcWrittenBack = false;
@@ -341,10 +342,23 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         if (m_stopCompiling) {
             return false;
         }
-        if (count >= MAX_BLOCK_SIZE) {  // TODO: Check delay slots here
+        if (count >= MAX_BLOCK_SIZE && !m_delayedLoadInfo[0].active && !m_delayedLoadInfo[1].active) {
             return false;
         }
         return true;
+    };
+
+    auto processDelayedLoad = [&]() {
+        m_currentDelayedLoad ^= 1;
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        if (delayedLoad.active) {
+            delayedLoad.active = false;
+            const unsigned index = delayedLoad.index;
+            const auto delayedValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+            allocateRegWithoutLoad(index);
+            m_regs[index].setWriteback(true);
+            gen.mov(m_regs[index].allocatedReg, dword[contextPointer + delayedValueOffset]);
+        }
     };
 
     while (shouldContinue()) {
@@ -357,13 +371,16 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         }
 
         m_psxRegs.code = *p;  // Actually read the instruction
-        if (m_psxRegs.code == 0x25084003) PCSX::g_system->printf("move $at, $k0 @ %08X\n", m_pc);
         m_pc += 4;            // Increment recompiler PC
         count++;              // Increment instruction count
 
         const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)();                                   // Jump into the handler to recompile it
+        processDelayedLoad();
     }
+
+    // Flush delayed loads at branches. This is hacky and not accurate to hardware, but games should not abuse this often.
+    processDelayedLoad();
 
     flushRegs();
     if (!m_pcWrittenBack) {

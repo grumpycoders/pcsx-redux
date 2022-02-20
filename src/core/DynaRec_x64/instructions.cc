@@ -684,8 +684,54 @@ void DynaRecCPU::recMULTU() {
 }
 
 template <int size, bool signExtend>
+void DynaRecCPU::recompileLoadWithDelay() {
+    if (m_regs[_Rs_].isConst()) {
+        gen.mov(arg1, m_regs[_Rs_].val + _Imm_);
+    } else {
+        allocateReg(_Rs_);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
+    }
+
+    switch (size) {
+        case 8:
+            call(psxMemRead8Wrapper);
+            break;
+        case 16:
+            call(psxMemRead16Wrapper);
+            break;
+        case 32:
+            call(psxMemRead32Wrapper);
+            break;
+        default:
+            PCSX::g_system->message("Invalid size for memory load in dynarec. Instruction %08x\n", m_psxRegs.code);
+            break;
+    }
+
+    if (_Rt_) {
+        PCSX::g_system->printf("Need delayed load @ %08X\nJIT buffer index: %08X\n", m_pc, gen.getSize());
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.index = _Rt_;
+        delayedLoad.active = true;
+        const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+
+        switch (size) {
+            case 8:
+                signExtend ? gen.movsx(eax, al) : gen.movzx(eax, al);
+                break;
+            case 16:
+                signExtend ? gen.movsx(eax, ax) : gen.movzx(eax, ax);
+                break;
+        }
+        gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+    }
+}
+
+template <int size, bool signExtend>
 void DynaRecCPU::recompileLoad() {
-    if (needToEmulateLoadDelay(_Rt_)) PCSX::g_system->message("Need to emulate load delay. PC: %08X\n", m_pc);
+    if (needToEmulateLoadDelay(_Rt_)) {
+        recompileLoadWithDelay<size, signExtend>();
+        return;
+    }
 
     if (m_regs[_Rs_].isConst()) {  // Store the address in first argument register
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;

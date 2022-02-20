@@ -445,6 +445,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     template <int size, bool signExtend>
     void recompileLoad();
+    template <int size, bool signExtend>
+    void recompileLoadWithDelay();
 
     const recompilationFunc m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00

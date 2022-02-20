@@ -198,6 +198,8 @@ void DynaRecCPU::recMFC2() {
     if (_Rt_) {
         allocateRegWithoutLoad(_Rt_);
         maybeCancelDelayedLoad(_Rt_);
+        if (needToEmulateLoadDelay(_Rt_)) PCSX::g_system->message("Tekken moment @ %08X\n", m_pc);
+        if (m_stopCompiling) PCSX::g_system->message("Tekken moment 2 @ %08X\n", m_pc);
         m_regs[_Rt_].setWriteback(true);
     }
 
