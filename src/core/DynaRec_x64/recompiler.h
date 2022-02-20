@@ -81,6 +81,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_returnFromBlock;  // Pointer to the code that will be executed when returning from a block
     DynarecCallback m_uncompiledBlock;  // Pointer to the code that will be executed when jumping to an uncompiled block
     DynarecCallback m_invalidBlock;     // Pointer to the code that will be executed the PC is invalid
+    DynarecCallback m_invalidateBlocks; // Pointer to the code that will invalidate all RAM code blocks
 
     Emitter gen;
     uint32_t m_pc;  // Recompiler PC
@@ -179,6 +180,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         for (auto i = 0; i < size; i++) {
             *pointer++ = m_uncompiledBlock;
         }
+    }
+
+    virtual void invalidateCache() final {
+        memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
+        memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
+        m_invalidateBlocks();
     }
 
     virtual void SetPGXPMode(uint32_t pgxpMode) final {

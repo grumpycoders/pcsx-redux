@@ -154,9 +154,9 @@ void DynaRecCPU::emitBlockLookup() {
     const auto lutOffset = (size_t)m_recompilerLUT - (size_t)this;
 
     gen.mov(ecx, dword[contextPointer + PC_OFFSET]);  // ecx = pc
-    gen.mov(edx, ecx);      // edx = pc
-    gen.shr(ecx, 16);       // ecx = pc >> 16
-    gen.and_(edx, 0xfffc);  // edx = index into the recompiler LUT page, multiplied by 4
+    gen.mov(edx, ecx);                                // edx = pc
+    gen.shr(ecx, 16);                                 // ecx = pc >> 16
+    gen.and_(edx, 0xfffc);                            // edx = index into the recompiler LUT page, multiplied by 4
 
     // Load base pointer to recompiler LUT page in rax
     // Using a single mov if possible
@@ -191,7 +191,7 @@ void DynaRecCPU::emitDispatcher() {
         gen.sub(rsp, 32);
     }
 
-    emitBlockLookup(); // Look up block
+    emitBlockLookup();  // Look up block
 
     // Code to be executed after each block
     // Blocks will jmp to here
@@ -241,6 +241,47 @@ void DynaRecCPU::emitDispatcher() {
     loadThisPointer(arg1.cvt64());  // Throw recompiler error
     gen.callFunc(recErrorWrapper);
     gen.jmp(done);  // Exit
+
+    // Code that will invalidate all RAM blocks when FlushCache is called
+    gen.align(16);
+    m_invalidateBlocks = gen.getCurr<DynarecCallback>();
+
+    const uint32_t blockCount = m_ramSize / 4;  // Each 4 bytes correspond to 1 block
+    gen.mov(rax, (uintptr_t)m_ramBlocks);       // rax = pointer to the blocks we'll be invalidating
+    gen.xor_(edx, edx);  // edx = iteration counter
+    Label l;
+
+    if (gen.hasAVX) { // AVX version
+        gen.vmovdqa(ymm0, yword[rip + l]);  // Broadcast the pointer in ymm0 four times over
+        Label loop;
+        gen.L(loop);                     // Memset loop
+        for (auto i = 0; i < 16; i++) {  // Unroll 16 iterations of the loop
+            gen.vmovdqu(yword[rax + rdx * 8 + i * 32], ymm0);
+        }
+        gen.add(edx, 16 * 4);  // We cleared 64 blocks in total
+        gen.cmp(edx, blockCount);
+        gen.jb(loop);
+        gen.vzeroupper(); // Exit AVX context
+        gen.ret();
+    } else { // SSE version
+        // Store the pointer in xmm0 twice over, so we can write it twice in 1 128-bit write
+        gen.movdqa(xmm0, xword[rip + l]);
+        Label loop;
+        gen.L(loop);                     // Memset loop
+        for (auto i = 0; i < 16; i++) {  // Unroll 16 iterations of the loop
+            gen.movdqu(xword[rax + rdx * 8 + i * 16], xmm0);
+        }
+        gen.add(edx, 16 * 2);  // We cleared 32 blocks in total
+        gen.cmp(edx, blockCount);
+        gen.jb(loop);
+        gen.ret();
+    }
+    
+    gen.align(32);
+    gen.L(l);
+    for (int i = 0; i < 4; i++) {
+        gen.dq((uintptr_t)m_uncompiledBlock);
+    }
 }
 
 // Compile a block, write address of compiled code to *callback
@@ -407,7 +448,7 @@ void DynaRecCPU::handleLinking() {
             }
 
             const auto pointer = gen.getCurr<uint8_t*>();
-            gen.jne((void*)m_returnFromBlock);    // Return if the block addr changed
+            gen.jne((void*)m_returnFromBlock);           // Return if the block addr changed
             recompile(nextBlockPointer, nextPC, false);  // Fallthrough to next block
 
             *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
