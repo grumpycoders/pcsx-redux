@@ -197,6 +197,7 @@ static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg)
 void DynaRecCPU::recMFC2() {
     if (_Rt_) {
         allocateRegWithoutLoad(_Rt_);
+        maybeCancelDelayedLoad(_Rt_);
         m_regs[_Rt_].setWriteback(true);
     }
 

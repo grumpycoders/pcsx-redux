@@ -685,7 +685,7 @@ void DynaRecCPU::recMULTU() {
 
 template <int size, bool signExtend>
 void DynaRecCPU::recompileLoad() {
-    if (needToEmulateLoadDelay(_Rt_)) PCSX::g_system->printf("Boooo. PC: %08X\n", m_pc);
+    if (needToEmulateLoadDelay(_Rt_)) PCSX::g_system->message("Need to emulate load delay. PC: %08X\n", m_pc);
 
     if (m_regs[_Rs_].isConst()) {  // Store the address in first argument register
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
