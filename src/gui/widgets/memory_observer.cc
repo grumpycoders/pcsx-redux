@@ -289,13 +289,16 @@ int PCSX::Widgets::MemoryObserver::getMemValue(uint32_t absoluteAddress, const u
 }
 
 #ifdef MEMORY_OBSERVER_X86
-bool PCSX::Widgets::MemoryObserver::all_equal(__m256i input) {
-    const auto lane0 = _mm256_castsi256_si128(input);
-    const auto tmp = _mm_shuffle_epi8(lane0, _mm_setzero_si128());
-    const auto populated_0th_byte = _mm256_set_m128i(tmp, tmp);
-    const auto eq = _mm256_cmpeq_epi8(input, populated_0th_byte);
+// Check if all bytes in a 256-bit vector are equal
+// Broadcasts byte 0 of the vector to 256 bits, then xors the result with the starting vector
+// If the resulting vector is 0, then all bytes in the 256-bit vector are equal
+bool PCSX::Widgets::MemoryObserver::all_equal(__m256i vec) {
+    const __m128i vec128 = _mm256_castsi256_si128(vec);
+    const __m256i broadcasted = _mm256_broadcastb_epi8(vec128);
+    const __m256i res = _mm256_xor_epi32(vec, broadcasted);
 
-    return (static_cast<uint32_t>(_mm256_movemask_epi8(eq)) == 0xffffffff);
+    // Check if the vector after xoring is 0
+    return _mm256_testz_si256(res, res) != 0;
 }
 #endif // MEMORY_OBSERVER_X86
 
