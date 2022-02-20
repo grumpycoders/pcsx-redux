@@ -227,7 +227,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
             ImGui::InputInt(_("Step"), &m_step);
 
-            if (ImGui::Button(_("Search"))) {
+            if (m_step >= 1 && ImGui::Button(_("Search"))) {
                 if (m_useSIMD && m_sequenceSize == 8) {
                     simd_populateAddressList<8>(memData, memBase, memSize);
                 } else if (m_useSIMD && m_sequenceSize == 16) {
@@ -304,11 +304,9 @@ bool PCSX::Widgets::MemoryObserver::all_equal(__m256i vec) {
 
 std::vector<uint8_t> PCSX::Widgets::MemoryObserver::getShuffleResultsFor(const std::vector<uint8_t>& buffer) {
     const size_t bufferSize = buffer.size();
-
     auto results = std::vector<uint8_t>(bufferSize * bufferSize);
 
     auto shuffledBuffer = buffer;
-
     for (auto i = 0u; i < bufferSize; ++i) {
         std::shift_left(shuffledBuffer.begin(), shuffledBuffer.end(), 1);
 
@@ -325,7 +323,6 @@ bool PCSX::Widgets::MemoryObserver::matchesPattern(const std::vector<uint8_t>& b
     const size_t bufferSize = buffer.size();
 
     auto shuffledBuffer = buffer;
-
     for (auto i = 0u; i < bufferSize; ++i) {
         std::shift_left(shuffledBuffer.begin(), shuffledBuffer.end(), 1);
 
@@ -345,8 +342,7 @@ void PCSX::Widgets::MemoryObserver::populateAddressList(const uint8_t* memData, 
     const auto patternShuffleResults = getShuffleResultsFor(buffer);
 
     m_addresses.clear();
-    const auto step = m_step;
-    for (auto i = 0; i + sequenceSize < memSize; i += step) {
+    for (auto i = 0; i + sequenceSize < memSize; i += m_step) {
         std::copy_n(memData + i, sequenceSize, buffer.data());
 
         if (matchesPattern(buffer, patternShuffleResults)) {
