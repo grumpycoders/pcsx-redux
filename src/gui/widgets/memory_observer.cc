@@ -292,10 +292,10 @@ int PCSX::Widgets::MemoryObserver::getMemValue(uint32_t absoluteAddress, const u
 // Check if all bytes in a 256-bit vector are equal
 // Broadcasts byte 0 of the vector to 256 bits, then xors the result with the starting vector
 // If the resulting vector is 0, then all bytes in the 256-bit vector are equal
-bool PCSX::Widgets::MemoryObserver::all_equal(__m256i vec) {
+AVX2_FUNC bool PCSX::Widgets::MemoryObserver::all_equal(__m256i vec) {
     const __m128i vec128 = _mm256_castsi256_si128(vec);
     const __m256i broadcasted = _mm256_broadcastb_epi8(vec128);
-    const __m256i res = _mm256_xor_epi32(vec, broadcasted);
+    const __m256i res = _mm256_xor_si256(vec, broadcasted);
 
     // Check if the vector after xoring is 0
     return _mm256_testz_si256(res, res) != 0;
