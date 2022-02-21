@@ -189,6 +189,7 @@ class PosixFile : public File {
     virtual ssize_t rTell() final override { return m_ptrR; }
     virtual ssize_t wSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t wTell() final override { return m_ptrW; }
+    virtual size_t size();
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t write(const void* dest, size_t size) final override;
     virtual bool eof() final override { return feof(m_handle); }
