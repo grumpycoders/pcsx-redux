@@ -31,7 +31,6 @@
 #include "support/file.h"
 #include "support/hashtable.h"
 
-
 #if defined(__i386__) || defined(_M_IX86)
 #define DYNAREC_X86_32
 #elif defined(__x86_64) || defined(_M_AMD64)
@@ -532,9 +531,10 @@ Formula One 2001
 
     struct PCdrvFile;
     typedef Intrusive::HashTable<uint32_t, PCdrvFile> PCdrvFiles;
-    struct PCdrvFile : public File, public PCdrvFiles::Node {
-        PCdrvFile(const std::filesystem::path &filename) : File(filename, File::READWRITE) {}
-        PCdrvFile(const std::filesystem::path &filename, File::Create) : File(filename, File::CREATE) {}
+    struct PCdrvFile : public PosixFile, public PCdrvFiles::Node {
+        PCdrvFile(const std::filesystem::path &filename) : PosixFile(filename, FileOps::READWRITE) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Truncate) : PosixFile(filename, FileOps::TRUNCATE) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Create) : PosixFile(filename, FileOps::CREATE) {}
         virtual ~PCdrvFile() = default;
         std::string m_relativeFilename;
     };
@@ -549,7 +549,7 @@ Formula One 2001
         }
     }
     void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);
-    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, File::Create);
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, FileOps::Create);
 };
 
 class Cpus {

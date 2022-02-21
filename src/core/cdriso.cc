@@ -506,15 +506,14 @@ int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
 
     if (tri->decoded_buffer == NULL) {
         PCSX::g_system->message(_("Could not allocate memory to decode CDDA TRACK: %s\n"), tri->filepath);
-        tri->handle->close();  // encoded file handle not needed anymore
-        delete tri->handle;
-        tri->handle = new File(NULL, 1);  // change handle to decoded one
+        tri->handle->close();                 // encoded file handle not needed anymore
+        tri->handle.reset(new BufferFile());  // change handle to decoded one
         tri->cddatype = trackinfo::BIN;
         return 0;
     }
 
     tri->handle->close();  // encoded file handle not needed anymore
-    delete tri->handle;
+    tri->handle.reset();
 
     int ret;
     PCSX::g_system->printf(_("Decoding audio tr#%u (%s)..."), tracknumber, tri->filepath);
@@ -528,7 +527,7 @@ int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
             len = tri->len_decoded_buffer;  // we probably segfaulted already, oh well...
         }
 
-        tri->handle = new File(tri->decoded_buffer, len);  // change handle to decoded one
+        tri->handle.reset(new BufferFile(tri->decoded_buffer, len));  // change handle to decoded one
         PCSX::g_system->printf(_("OK\n"), tri->filepath);
     }
     tri->cddatype = trackinfo::BIN;
@@ -540,7 +539,7 @@ int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
 int PCSX::CDRiso::parsetoc(const char *isofileStr) {
     std::filesystem::path isofile = MAKEU8(isofileStr);
     std::filesystem::path tocname, filename;
-    File *fi;
+    std::unique_ptr<File> fi;
     char linebuf[256], tmp[256], name[256];
     char *token;
     char time[20], time2[20];
@@ -553,18 +552,18 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
     tocname = isofile;
     tocname.replace_extension("toc");
 
-    if ((fi = new File(tocname))->failed()) {
-        delete fi;
+    fi.reset(new PosixFile(tocname));
+    if (fi->failed()) {
         // try changing extension to .cue (to satisfy some stupid tutorials)
         tocname.replace_extension("cue");
-        if ((fi = new File(tocname))->failed()) {
-            delete fi;
+        fi.reset(new PosixFile(tocname));
+        if (fi->failed()) {
             // if filename is image.toc.bin, try removing .bin (for Brasero)
             tocname = isofile;
             tocname.replace_extension("");
             if (tocname.extension() == ".toc") {
-                if ((fi = new File(tocname))->failed()) {
-                    delete fi;
+                fi.reset(new PosixFile(tocname));
+                if (fi->failed()) {
                     return -1;
                 }
             }
@@ -620,7 +619,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
             } else {
                 sscanf(linebuf, "DATAFILE \"%[^\"]\" %8s", name, time);
                 tok2msf((char *)&time, (char *)&m_ti[m_numtracks].length);
-                m_ti[m_numtracks].handle = new File(filename / name);
+                m_ti[m_numtracks].handle.reset(new PosixFile(filename / name));
             }
         } else if (!strcmp(token, "FILE")) {
             sscanf(linebuf, "FILE \"%[^\"]\" #%d %8s %8s", name, &t, time, time2);
@@ -656,10 +655,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
             }
         }
     }
-    if (m_numtracks > 0) m_cdHandle = m_ti[1].handle->dup();
-
-    fi->close();
-    delete fi;
+    if (m_numtracks > 0) m_cdHandle.reset(m_ti[1].handle->dup());
 
     return 0;
 }
@@ -669,7 +665,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
 int PCSX::CDRiso::parsecue(const char *isofileString) {
     std::filesystem::path isofile = MAKEU8(isofileString);
     std::filesystem::path cuename, filepath;
-    File *fi;
+    std::unique_ptr<File> fi;
     char *token;
     char time[20];
     char *tmp;
@@ -683,8 +679,8 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
     cuename = isofile;
     cuename.replace_extension("cue");
 
-    if ((fi = new File(cuename))->failed()) {
-        delete fi;
+    fi.reset(new PosixFile(cuename));
+    if (fi->failed()) {
         return -1;
     }
 
@@ -695,8 +691,6 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
         if (!strncmp(linebuf, "CD_ROM_XA", 9)) {
             // Don't proceed further, as this is actually a .toc file rather
             // than a .cue file.
-            fi->close();
-            delete fi;
             return parsetoc(isofileString);
         }
         fi->seek(0, SEEK_SET);
@@ -788,10 +782,9 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
             if (t != 1) sscanf(linebuf, " FILE %255s", tmpb);
 
             // absolute path?
-            m_ti[m_numtracks + 1].handle = new File(tmpb);
+            m_ti[m_numtracks + 1].handle.reset(new PosixFile(tmpb));
             if (m_ti[m_numtracks + 1].handle->failed()) {
-                delete m_ti[m_numtracks + 1].handle;
-                m_ti[m_numtracks + 1].handle = new File(filepath / tmpb);
+                m_ti[m_numtracks + 1].handle.reset(new PosixFile(filepath / tmpb));
             }
 
             strcpy(m_ti[m_numtracks + 1].filepath,
@@ -806,8 +799,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
             file_len = 0;
             if (m_ti[m_numtracks + 1].handle->failed()) {
                 PCSX::g_system->message(_("\ncould not open: %s\n"), m_ti[m_numtracks + 1].handle->filename().string());
-                delete m_ti[m_numtracks + 1].handle;
-                m_ti[m_numtracks + 1].handle = nullptr;
+                m_ti[m_numtracks + 1].handle.reset();
                 continue;
             }
 
@@ -817,15 +809,10 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 
             if (m_numtracks == 0 && (isofile.extension() == ".cue")) {
                 // user selected .cue as image file, use its data track instead
-                m_cdHandle->close();
-                delete m_cdHandle;
-                m_cdHandle = m_ti[m_numtracks + 1].handle->dup();
+                m_cdHandle.reset(m_ti[m_numtracks + 1].handle->dup());
             }
         }
     }
-
-    fi->close();
-    delete fi;
 
     return 0;
 }
@@ -834,7 +821,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parseccd(const char *isofileString) {
     std::filesystem::path ccdname, isofile = MAKEU8(isofileString);
-    File *fi;
+    std::unique_ptr<File> fi;
     char linebuf[256];
     unsigned int t;
 
@@ -844,8 +831,8 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
     ccdname = isofile;
     ccdname.replace_extension("ccd");
 
-    if ((fi = new File(ccdname))->failed()) {
-        delete fi;
+    fi.reset(new PosixFile(ccdname));
+    if (fi->failed()) {
         return -1;
     }
 
@@ -870,9 +857,6 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
         }
     }
 
-    fi->close();
-    delete fi;
-
     // Fill out the last track's end based on size
     if (m_numtracks >= 1) {
         m_cdHandle->seek(0, SEEK_END);
@@ -887,7 +871,7 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parsemds(const char *isofileString) {
     std::filesystem::path mdsname, isofile = MAKEU8(isofileString);
-    File *fi;
+    std::unique_ptr<File> fi;
     unsigned int offset, extra_offset, l, i;
     unsigned short s;
 
@@ -897,8 +881,8 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
     mdsname = isofile;
     isofile.replace_extension("mds");
 
-    if ((fi = new File(mdsname))->failed()) {
-        delete fi;
+    fi.reset(new PosixFile(mdsname));
+    if (fi->failed()) {
         return -1;
     }
 
@@ -909,8 +893,6 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
     i = SWAP_LE32(i);
     if (i != 0x4944454D) {
         // not an valid mds file
-        fi->close();
-        delete fi;
         return -1;
     }
 
@@ -979,9 +961,6 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
 
         offset += 0x50;
     }
-
-    fi->close();
-    delete fi;
 
     return 0;
 }
@@ -1246,20 +1225,19 @@ int PCSX::CDRiso::opensubfile(const char *isoname) {
         strcpy(subname + strlen(subname) - 4, ".sub");
     }
 
-    m_subHandle = new File(subname);
+    m_subHandle.reset(new PosixFile(subname));
     if (!m_subHandle->failed()) {
         return 0;
     }
-    delete m_subHandle;
+    m_subHandle.reset();
 
     if (strlen(subname) >= 8) {
         strcpy(subname + strlen(subname) - 8, ".sub");
     }
 
-    m_subHandle = new File(subname);
+    m_subHandle.reset(new PosixFile(subname));
     if (m_subHandle->failed()) {
-        delete m_subHandle;
-        m_subHandle = NULL;
+        m_subHandle.reset();
         return -1;
     }
 
@@ -1267,7 +1245,7 @@ int PCSX::CDRiso::opensubfile(const char *isoname) {
 }
 
 int PCSX::CDRiso::LoadSBI(const char *filename) {
-    File *sbihandle;
+    std::unique_ptr<File> sbihandle;
     char buffer[16], sbifile[MAXPATHLEN];
 
     if (filename == NULL) {
@@ -1295,9 +1273,8 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
         filename = sbifile;
     }
 
-    sbihandle = new File(filename);
+    sbihandle.reset(new PosixFile(filename));
     if (sbihandle->failed()) {
-        delete sbihandle;
         return -1;
     }
 
@@ -1310,9 +1287,6 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
         sbihandle->read(sbitime[sbicount++], 3);
         sbihandle->read(buffer, 11);
     }
-
-    sbihandle->close();
-    delete sbihandle;
 
     PCSX::g_system->printf(_("Loaded SBI file: %s.\n"), filename);
 
@@ -1346,12 +1320,12 @@ int PCSX::CDRiso::opensbifile(const char *isoname) {
     return LoadSBI(sbiname);
 }
 
-ssize_t PCSX::CDRiso::cdread_normal(File *f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_normal(std::unique_ptr<File> &f, unsigned int base, void *dest, int sector) {
     f->seek(base + sector * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_SET);
     return f->read(dest, PCSX::CDRom::CD_FRAMESIZE_RAW);
 }
 
-ssize_t PCSX::CDRiso::cdread_sub_mixed(File *f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_sub_mixed(std::unique_ptr<File> &f, unsigned int base, void *dest, int sector) {
     int ret;
 
     f->seek(base + sector * (PCSX::CDRom::CD_FRAMESIZE_RAW + PCSX::CDRom::SUB_FRAMESIZE), SEEK_SET);
@@ -1391,7 +1365,7 @@ static int uncompress2_internal(void *out, unsigned long *out_size, void *in, un
     return ret == 1 ? 0 : ret;
 }
 
-ssize_t PCSX::CDRiso::cdread_compressed(File *f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_compressed(std::unique_ptr<File> &f, unsigned int base, void *dest, int sector) {
     unsigned long cdbuffer_size, cdbuffer_size_expect;
     unsigned int start_byte, size;
     int is_compressed;
@@ -1454,7 +1428,7 @@ finish:
     return PCSX::CDRom::CD_FRAMESIZE_RAW;
 }
 
-ssize_t PCSX::CDRiso::cdread_2048(File *f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_2048(std::unique_ptr<File> &f, unsigned int base, void *dest, int sector) {
     int ret;
 
     f->seek(base + sector * 2048, SEEK_SET);
@@ -1469,7 +1443,7 @@ ssize_t PCSX::CDRiso::cdread_2048(File *f, unsigned int base, void *dest, int se
 }
 
 /* Adapted from ecm.c:unecmify() (C) Neill Corlett */
-ssize_t PCSX::CDRiso::cdread_ecm_decode(File *f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_ecm_decode(std::unique_ptr<File> &f, unsigned int base, void *dest, int sector) {
     uint32_t output_edc = 0, b = 0, writebytecount = 0, num;
     uint32_t sectorcount = 0;
     int8_t type = 0;  // mode type 0 (META) or 1, 2 or 3 for CDROM type
@@ -1638,7 +1612,6 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(File *f, unsigned int base, void *dest, 
     }
 
     if (m_decoded_ecm_sectors) {
-        m_decoded_ecm->flush();
         m_decoded_ecm->seek(-1 * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_CUR);
         num = m_decoded_ecm->read(sector_buffer, PCSX::CDRom::CD_FRAMESIZE_RAW);
         m_decoded_ecm_sectors = std::max(m_decoded_ecm_sectors, sectorcount);
@@ -1660,7 +1633,7 @@ error_out:
     return -1;
 }
 
-int PCSX::CDRiso::handleecm(const char *isoname, File *cdh, int32_t *accurate_length) {
+int PCSX::CDRiso::handleecm(const char *isoname, std::unique_ptr<File> &cdh, int32_t *accurate_length) {
     // Rewind to start and check ECM header and filename suffix validity
     cdh->seek(0, SEEK_SET);
     if ((cdh->getc() == 'E') && (cdh->getc() == 'C') && (cdh->getc() == 'M') && (cdh->getc() == 0x00) &&
@@ -1851,8 +1824,8 @@ int handlearchive(const char *isoname, int32_t *accurate_length) {
     return ret;
 }
 #else
-int PCSX::CDRiso::aropen(FILE *fparchive, const char *_fn) { return -1; }
-int PCSX::CDRiso::cdread_archive(FILE *f, unsigned int base, void *dest, int sector) { return -1; }
+int PCSX::CDRiso::aropen(std::unique_ptr<File> &fparchive, const char *_fn) { return -1; }
+int PCSX::CDRiso::cdread_archive(std::unique_ptr<File> &f, unsigned int base, void *dest, int sector) { return -1; }
 int PCSX::CDRiso::handlearchive(const char *isoname, int32_t *accurate_length) { return -1; }
 #endif
 
@@ -1866,25 +1839,25 @@ uint8_t *PCSX::CDRiso::getBuffer() {
 
 void PCSX::CDRiso::PrintTracks() {
     for (int i = 1; i <= m_numtracks; i++) {
-        PCSX::g_system->printf(
-            _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
-            (m_ti[i].type == trackinfo::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
-            m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0], m_ti[i].length[1],
-            m_ti[i].length[2]);
+        PCSX::g_system->printf(_("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
+                               (m_ti[i].type == trackinfo::DATA        ? "DATA"
+                                : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA"
+                                                                       : "CDDA"),
+                               m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0],
+                               m_ti[i].length[1], m_ti[i].length[2]);
     }
 }
 
 // This function is invoked by the front-end when opening an ISO
 // file for playback
 bool PCSX::CDRiso::open(void) {
-    if (m_cdHandle != NULL) {
+    if (m_cdHandle) {
         return true;  // it's already open
     }
 
-    m_cdHandle = new File(m_isoPath);
+    m_cdHandle.reset(new PosixFile(m_isoPath));
     if (m_cdHandle->failed()) {
-        delete m_cdHandle;
-        m_cdHandle = NULL;
+        m_cdHandle.reset();
         return false;
     }
 
@@ -1968,37 +1941,26 @@ bool PCSX::CDRiso::open(void) {
 
     // make sure we have another handle open for cdda
     if (m_numtracks > 1 && m_ti[1].handle == NULL) {
-        m_ti[1].handle = new File(m_isoPath);
+        m_ti[1].handle.reset(new PosixFile(m_isoPath));
     }
 
     return true;
 }
 
 void PCSX::CDRiso::close() {
-    if (m_cdHandle != NULL) {
-        m_cdHandle->close();
-        delete m_cdHandle;
-        m_cdHandle = NULL;
-        // cdimage_buffer = NULL;
-    }
-    if (m_subHandle != NULL) {
-        m_subHandle->close();
-        delete m_subHandle;
-        m_subHandle = NULL;
-    }
+    m_cdHandle.reset();
+    m_subHandle.reset();
 
-    if (m_compr_img != NULL) {
+    if (m_compr_img) {
         free(m_compr_img->index_table);
         free(m_compr_img);
-        m_compr_img = NULL;
+        m_compr_img = nullptr;
     }
 
     for (int i = 1; i <= m_numtracks; i++) {
-        if (m_ti[i].handle != NULL) {
-            m_ti[i].handle->close();
-            delete m_ti[i].handle;
-            m_ti[i].handle = NULL;
-            if (m_ti[i].decoded_buffer != NULL) {
+        if (m_ti[i].handle) {
+            m_ti[i].handle.reset();
+            if (m_ti[i].decoded_buffer) {
                 free(m_ti[i].decoded_buffer);
             }
             m_ti[i].cddatype = trackinfo::NONE;
@@ -2018,14 +1980,12 @@ void PCSX::CDRiso::shutdown() {
 
     // ECM LUT
     free(m_ecm_savetable);
-    m_ecm_savetable = NULL;
+    m_ecm_savetable = nullptr;
 
-    if (m_decoded_ecm != NULL) {
-        m_decoded_ecm->close();
-        delete m_decoded_ecm;
+    if (m_decoded_ecm) {
+        m_decoded_ecm.reset();
         free(m_decoded_ecm_buffer);
-        m_decoded_ecm_buffer = NULL;
-        m_decoded_ecm = NULL;
+        m_decoded_ecm_buffer = nullptr;
     }
     m_ecm_file_detected = false;
 

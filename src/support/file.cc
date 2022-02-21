@@ -20,52 +20,128 @@
 #include "support/file.h"
 
 #include <algorithm>
-#include <assert.h>
+#include <future>
+
 #include "support/windowswrapper.h"
 
-const uint8_t PCSX::File::m_internalBuffer = 0;
+uint8_t PCSX::BufferFile::m_internalBuffer = 0;
 
-void PCSX::File::close() {
-    if (m_handle) fclose(m_handle);
-    m_handle = nullptr;
+PCSX::BufferFile::BufferFile(void *data, size_t size) : File(false) {
+    m_data = reinterpret_cast<uint8_t *>(data);
+    m_size = size;
 }
 
-ssize_t PCSX::File::seek(ssize_t pos, int wheel) {
-    if (m_handle) return fseek(m_handle, pos, wheel);
-    if (!m_data) return -1;
+PCSX::BufferFile::BufferFile(void *data, size_t size, FileOps::ReadWrite) : File(true) {
+    m_data = reinterpret_cast<uint8_t *>(malloc(size));
+    if (m_data == nullptr) throw std::runtime_error("Out of memory");
+    memcpy(m_data, data, size);
+    m_size = size;
+    m_owned = true;
+}
+
+PCSX::BufferFile::BufferFile(void *data, size_t size, Acquire) : File(true) {
+    m_data = reinterpret_cast<uint8_t *>(data);
+    m_size = size;
+    m_owned = true;
+}
+
+PCSX::BufferFile::BufferFile() : File(false) {
+    m_data = &m_internalBuffer;
+    m_size = 1;
+}
+
+PCSX::BufferFile::BufferFile(FileOps::ReadWrite) : File(true) {
+    m_data = nullptr;
+    m_size = 0;
+}
+
+void PCSX::BufferFile::closeInternal() {
+    if (m_owned) free(m_data);
+    m_data = nullptr;
+    m_size = 0;
+    m_ptrR = 0;
+    m_ptrW = 0;
+}
+
+ssize_t PCSX::BufferFile::rSeek(ssize_t pos, int wheel) {
     switch (wheel) {
         case SEEK_SET:
-            m_ptr = pos;
+            m_ptrR = pos;
             break;
         case SEEK_END:
-            m_ptr = m_size - pos;
+            m_ptrR = m_size - pos;
             break;
         case SEEK_CUR:
-            m_ptr += pos;
+            m_ptrR += pos;
             break;
     }
-    m_ptr = std::max(std::min(m_ptr, m_size), (ssize_t)0);
-    return 0;
+    m_ptrR = std::max(std::min(m_ptrR, m_size), size_t(0));
+    return m_ptrR;
 }
 
-ssize_t PCSX::File::tell() {
-    if (m_handle) return ftell(m_handle);
-    if (m_data) return m_ptr;
-    return -1;
-}
-
-void PCSX::File::flush() {
-    if (m_handle) fflush(m_handle);
-}
-
-PCSX::File::File(void *data, ssize_t size) {
-    if (data) {
-        m_data = static_cast<uint8_t *>(data);
-    } else {
-        assert(size == 1);
-        m_data = &m_internalBuffer;
+ssize_t PCSX::BufferFile::wSeek(ssize_t pos, int wheel) {
+    switch (wheel) {
+        case SEEK_SET:
+            m_ptrW = pos;
+            break;
+        case SEEK_END:
+            m_ptrW = m_size - pos;
+            break;
+        case SEEK_CUR:
+            m_ptrW += pos;
+            break;
     }
-    m_size = size;
+    m_ptrW = std::max(m_ptrW, size_t(0));
+    return m_ptrW;
+}
+
+ssize_t PCSX::BufferFile::read(void *dest, size_t size) {
+    size = std::min(m_size - m_ptrR, size);
+    if (size == 0) return -1;
+    memcpy(dest, m_data + m_ptrR, size);
+    m_ptrR += size;
+    return size;
+}
+
+ssize_t PCSX::BufferFile::write(const void *src, size_t size) {
+    if (!m_writable) return -1;
+    size_t newSize = m_ptrW + size;
+    if (newSize > m_size) {
+        static_assert((sizeof(newSize) == 4) || (sizeof(newSize) == 8));
+        newSize--;
+        newSize |= newSize >> 1;
+        newSize |= newSize >> 2;
+        newSize |= newSize >> 4;
+        newSize |= newSize >> 8;
+        newSize |= newSize >> 16;
+        if (sizeof(newSize) == 8) newSize |= newSize >> 32;
+        newSize++;
+        // TODO: maybe cap the power-of-two increase..?
+        m_data = reinterpret_cast<uint8_t *>(realloc(m_data, newSize));
+        if (m_data == nullptr) throw std::runtime_error("Out of memory");
+    }
+
+    memcpy(m_data + m_ptrW, src, size);
+    m_ptrW += size;
+    m_size += size;
+    return size;
+}
+
+bool PCSX::BufferFile::eof() { return m_size == m_ptrR; }
+
+PCSX::File *PCSX::BufferFile::dup() {
+    if (!m_owned) {
+        return new BufferFile(m_data, m_size);
+    } else {
+        return new BufferFile(m_data, m_size, FileOps::READWRITE);
+    }
+}
+
+void PCSX::PosixFile::closeInternal() {
+    if (m_handle) {
+        fclose(m_handle);
+        m_handle = nullptr;
+    }
 }
 
 #if defined(_WIN32) && defined(UNICODE)
@@ -79,90 +155,87 @@ static FILE *openwrapper(const char *filename, const wchar_t *mode) {
     return ret;
 }
 
-PCSX::File::File(const char *filename) : m_filename(filename) { m_handle = openwrapper(filename, L"rb"); }
-
-PCSX::File::File(const char *filename, Create) : m_filename(filename) {
-    m_writable = true;
-    m_handle = openwrapper(filename, L"wb");
+PCSX::PosixFile::PosixFile(const char *filename) : File(false), m_filename(filename) {
+    m_handle = openwrapper(filename, L"rb");
 }
 
-PCSX::File::File(const char *filename, ReadWrite) : m_filename(filename) {
-    m_writable = true;
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::Create) : File(true), m_filename(filename) {
+    m_handle = openwrapper(filename, L"ab+");
+}
+
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::Truncate) : File(true), m_filename(filename) {
+    m_handle = openwrapper(filename, L"wb+");
+}
+
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::ReadWrite) : File(true), m_filename(filename) {
     m_handle = openwrapper(filename, L"rb+");
 }
-#else
-PCSX::File::File(const char *filename) : m_filename(filename) { m_handle = fopen(filename, "rb"); }
-PCSX::File::File(const char *filename, Create) : m_filename(filename) {
-    m_writable = true;
-    m_handle = fopen(filename, "wb");
+#else  // !Windows || !UNICODE
+PCSX::PosixFile::PosixFile(const char *filename) : File(false), m_filename(filename) {
+    m_handle = fopen(filename, "rb");
 }
-PCSX::File::File(const char *filename, ReadWrite) : m_filename(filename) {
-    m_writable = true;
+PCSX::PosixFile::PosixFile(const char *filename, Create) : File(true), m_filename(filename) {
+    m_handle = fopen(filename, "ab+");
+}
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::Truncate) : File(true), m_filename(filename) {
+    m_handle = fopen(filename, "wb+");
+}
+PCSX::PosixFile::PosixFile(const char *filename, ReadWrite) : File(true), m_filename(filename) {
     m_handle = fopen(filename, "rb+");
 }
 #endif
 
-char *PCSX::File::gets(char *s, int size) {
-    if (m_handle) return fgets(s, size, m_handle);
-    if (!m_data) return nullptr;
-    if (m_size == m_ptr) return nullptr;
-    int c;
-    char *ptr = s;
-    if (!size) return nullptr;
-    size--;
-    while (true) {
-        if (!size) {
-            *ptr = 0;
-            return s;
-        }
-        c = getc();
-        if ((c == 0) || (c == -1)) {
-            *ptr = 0;
-            return s;
-        }
-        *ptr++ = c;
-        size--;
+ssize_t PCSX::PosixFile::rSeek(ssize_t pos, int wheel) {
+    if (failed()) throw std::runtime_error("Invalid file handle");
+    ssize_t ret;
+    switch (wheel) {
+        case SEEK_SET:
+        case SEEK_END:
+            ret = fseek(m_handle, pos, wheel);
+            break;
+        case SEEK_CUR:
+            ret = fseek(m_handle, pos + m_ptrR, wheel);
+            break;
     }
+    if (ret < 0) throw std::runtime_error("Error seeking file...");
+    m_ptrR = ftell(m_handle);
+    return m_ptrR;
 }
 
-std::string PCSX::File::gets() {
-    int c;
-    std::string ret;
-    while (true) {
-        c = getc();
-        if ((c == 0) || (c == -1)) {
-            return ret;
-        }
-        ret += c;
+ssize_t PCSX::PosixFile::wSeek(ssize_t pos, int wheel) {
+    if (failed()) throw std::runtime_error("Invalid file handle");
+    ssize_t ret;
+    switch (wheel) {
+        case SEEK_SET:
+        case SEEK_END:
+            ret = fseek(m_handle, pos, wheel);
+            break;
+        case SEEK_CUR:
+            ret = fseek(m_handle, pos + m_ptrW, wheel);
+            break;
     }
+    if (ret < 0) throw std::runtime_error("Error seeking file...");
+    m_ptrW = ftell(m_handle);
+    return m_ptrW;
 }
 
-ssize_t PCSX::File::read(void *dest, ssize_t size) {
-    if (m_handle) return fread(dest, 1, size, m_handle);
-    if (!m_data) return -1;
-    size = std::min(m_size - m_ptr, size);
-    if (size == 0) return -1;
-    memcpy(dest, m_data + m_ptr, size);
-    m_ptr += size;
-    return size;
+ssize_t PCSX::PosixFile::read(void *dest, size_t size) {
+    if (failed()) throw std::runtime_error("Invalid file handle");
+    if (feof(m_handle)) return -1;
+    ssize_t ret = fseek(m_handle, m_ptrR, SEEK_SET);
+    if (ret < 0) throw std::runtime_error("Error seeking file...");
+    ret = fread(dest, 1, size, m_handle);
+    if (ret < 0) throw std::runtime_error("Error reading file...");
+    m_ptrR += ret;
+    return ret;
 }
 
-ssize_t PCSX::File::write(const void *dest, size_t size) {
-    if (m_handle) return fwrite(dest, 1, size, m_handle);
-    return -1;
-}
-
-int PCSX::File::getc() {
-    if (m_handle) return fgetc(m_handle);
-    if (!m_data) return -1;
-    if (m_size == m_ptr) return -1;
-    return m_data[m_ptr++];
-}
-
-bool PCSX::File::failed() { return !m_handle && !m_data; }
-
-bool PCSX::File::eof() {
-    if (m_handle) return feof(m_handle);
-    if (!m_data) return true;
-    return m_size == m_ptr;
+ssize_t PCSX::PosixFile::write(const void *src, size_t size) {
+    if (failed()) throw std::runtime_error("Invalid file handle");
+    ssize_t ret = fseek(m_handle, m_ptrW, SEEK_SET);
+    if (ret < 0) throw std::runtime_error("Error seeking file...");
+    ret = fwrite(src, 1, size, m_handle);
+    if (ret < 0) throw std::runtime_error("Error writing file...");
+    m_ptrW += ret;
+    return ret;
 }
