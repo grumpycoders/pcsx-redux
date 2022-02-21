@@ -20,7 +20,6 @@
 #include "support/file.h"
 
 #include <algorithm>
-#include <future>
 
 #include "support/windowswrapper.h"
 
