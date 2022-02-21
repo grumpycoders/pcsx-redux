@@ -693,7 +693,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
             // than a .cue file.
             return parsetoc(isofileString);
         }
-        fi->seek(0, SEEK_SET);
+        fi->rSeek(0, SEEK_SET);
     }
 
     // build a path for files referenced in .cue
@@ -804,8 +804,8 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
             }
 
             // File length, compressed audio length will be calculated in AUDIO tag
-            m_ti[m_numtracks + 1].handle->seek(0, SEEK_END);
-            file_len = m_ti[m_numtracks + 1].handle->tell() / PCSX::CDRom::CD_FRAMESIZE_RAW;
+            m_ti[m_numtracks + 1].handle->rSeek(0, SEEK_END);
+            file_len = m_ti[m_numtracks + 1].handle->rTell() / PCSX::CDRom::CD_FRAMESIZE_RAW;
 
             if (m_numtracks == 0 && (isofile.extension() == ".cue")) {
                 // user selected .cue as image file, use its data track instead
@@ -859,8 +859,8 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
 
     // Fill out the last track's end based on size
     if (m_numtracks >= 1) {
-        m_cdHandle->seek(0, SEEK_END);
-        t = m_cdHandle->tell() / PCSX::CDRom::CD_FRAMESIZE_RAW - msf2sec(m_ti[m_numtracks].start) + 2 * 75;
+        m_cdHandle->rSeek(0, SEEK_END);
+        t = m_cdHandle->rTell() / PCSX::CDRom::CD_FRAMESIZE_RAW - msf2sec(m_ti[m_numtracks].start) + 2 * 75;
         sec2msf(t, m_ti[m_numtracks].length);
     }
 
@@ -897,25 +897,25 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
     }
 
     // get offset to session block
-    fi->seek(0x50, SEEK_SET);
+    fi->rSeek(0x50, SEEK_SET);
     fi->read(&offset, sizeof(unsigned int));
     offset = SWAP_LE32(offset);
 
     // get total number of tracks
     offset += 14;
-    fi->seek(offset, SEEK_SET);
+    fi->rSeek(offset, SEEK_SET);
     fi->read(&s, sizeof(unsigned short));
     s = SWAP_LE16(s);
     m_numtracks = s;
 
     // get offset to track blocks
-    fi->seek(4, SEEK_CUR);
+    fi->rSeek(4, SEEK_CUR);
     fi->read(&offset, sizeof(unsigned int));
     offset = SWAP_LE32(offset);
 
     // skip lead-in data
     while (1) {
-        fi->seek(offset + 4, SEEK_SET);
+        fi->rSeek(offset + 4, SEEK_SET);
         if (fi->getc() < 0xA0) {
             break;
         }
@@ -923,16 +923,16 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
     }
 
     // check if the image contains mixed subchannel data
-    fi->seek(offset + 1, SEEK_SET);
+    fi->rSeek(offset + 1, SEEK_SET);
     m_subChanMixed = m_subChanRaw = (fi->getc() ? true : false);
 
     // read track data
     for (i = 1; i <= m_numtracks; i++) {
-        fi->seek(offset, SEEK_SET);
+        fi->rSeek(offset, SEEK_SET);
 
         // get the track type
         m_ti[i].type = ((fi->getc() == 0xA9) ? trackinfo::CDDA : trackinfo::DATA);
-        fi->seek(8, SEEK_CUR);
+        fi->rSeek(8, SEEK_CUR);
 
         // get the track starting point
         m_ti[i].start[0] = fi->getc();
@@ -943,13 +943,13 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
         extra_offset = SWAP_LE32(extra_offset);
 
         // get track start offset (in .mdf)
-        fi->seek(offset + 0x28, SEEK_SET);
+        fi->rSeek(offset + 0x28, SEEK_SET);
         fi->read(&l, sizeof(unsigned int));
         l = SWAP_LE32(l);
         m_ti[i].start_offset = l;
 
         // get pregap
-        fi->seek(extra_offset, SEEK_SET);
+        fi->rSeek(extra_offset, SEEK_SET);
         fi->read(&l, sizeof(unsigned int));
         l = SWAP_LE32(l);
         if (l != 0 && i > 1) m_pregapOffset = msf2sec(m_ti[i].start);
@@ -993,7 +993,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     if (strlen(isofile) >= 4) ext = isofile + strlen(isofile) - 4;
     if (ext == NULL || (strcmp(ext, ".pbp") != 0 && strcmp(ext, ".PBP") != 0)) return -1;
 
-    m_cdHandle->seek(0, SEEK_SET);
+    m_cdHandle->rSeek(0, SEEK_SET);
 
     m_numtracks = 0;
 
@@ -1003,7 +1003,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
         goto fail_io;
     }
 
-    ret = m_cdHandle->seek(pbp_hdr.psar_offs, SEEK_SET);
+    ret = m_cdHandle->rSeek(pbp_hdr.psar_offs, SEEK_SET);
     if (ret != 0) {
         PCSX::g_system->printf("failed to seek to %x\n", pbp_hdr.psar_offs);
         goto fail_io;
@@ -1014,7 +1014,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     psar_sig[10] = 0;
     if (strcmp(psar_sig, "PSTITLEIMG") == 0) {
         // multidisk image?
-        ret = m_cdHandle->seek(pbp_hdr.psar_offs + 0x200, SEEK_SET);
+        ret = m_cdHandle->rSeek(pbp_hdr.psar_offs + 0x200, SEEK_SET);
         if (ret != 0) {
             PCSX::g_system->printf("failed to seek to %x\n", pbp_hdr.psar_offs + 0x200);
             goto fail_io;
@@ -1038,7 +1038,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
 
         psisoimg_offs += offsettab[m_cdrIsoMultidiskSelect];
 
-        ret = m_cdHandle->seek(psisoimg_offs, SEEK_SET);
+        ret = m_cdHandle->rSeek(psisoimg_offs, SEEK_SET);
         if (ret != 0) {
             PCSX::g_system->printf("failed to seek to %x\n", psisoimg_offs);
             goto fail_io;
@@ -1054,14 +1054,14 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     }
 
     // seek to TOC
-    ret = m_cdHandle->seek(psisoimg_offs + 0x800, SEEK_SET);
+    ret = m_cdHandle->rSeek(psisoimg_offs + 0x800, SEEK_SET);
     if (ret != 0) {
         PCSX::g_system->printf("failed to seek to %x\n", psisoimg_offs + 0x800);
         goto fail_io;
     }
 
     // first 3 entries are special
-    m_cdHandle->seek(sizeof(toc_entry), SEEK_CUR);
+    m_cdHandle->rSeek(sizeof(toc_entry), SEEK_CUR);
     m_cdHandle->read(&toc_entry, sizeof(toc_entry));
     m_numtracks = PCSX::CDRom::btoi(toc_entry.index1[0]);
 
@@ -1090,7 +1090,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     sec2msf(t, m_ti[m_numtracks].length);
 
     // seek to ISO index
-    ret = m_cdHandle->seek(psisoimg_offs + 0x4000, SEEK_SET);
+    ret = m_cdHandle->rSeek(psisoimg_offs + 0x4000, SEEK_SET);
     if (ret != 0) {
         PCSX::g_system->printf("failed to seek to ISO index\n");
         goto fail_io;
@@ -1152,7 +1152,7 @@ int PCSX::CDRiso::handlecbin(const char *isofile) {
     if (strlen(isofile) >= 5) ext = isofile + strlen(isofile) - 5;
     if (ext == NULL || (strcasecmp(ext + 1, ".cbn") != 0 && strcasecmp(ext, ".cbin") != 0)) return -1;
 
-    m_cdHandle->seek(0, SEEK_SET);
+    m_cdHandle->rSeek(0, SEEK_SET);
 
     ret = m_cdHandle->read(&ciso_hdr, sizeof(ciso_hdr));
     if (ret != sizeof(ciso_hdr)) {
@@ -1165,7 +1165,7 @@ int PCSX::CDRiso::handlecbin(const char *isofile) {
         return -1;
     }
     if (ciso_hdr.header_size != 0 && ciso_hdr.header_size != sizeof(ciso_hdr)) {
-        ret = m_cdHandle->seek(ciso_hdr.header_size, SEEK_SET);
+        ret = m_cdHandle->rSeek(ciso_hdr.header_size, SEEK_SET);
         if (ret != 0) {
             PCSX::g_system->printf("failed to seek to %x\n", ciso_hdr.header_size);
             return -1;
@@ -1321,14 +1321,14 @@ int PCSX::CDRiso::opensbifile(const char *isoname) {
 }
 
 ssize_t PCSX::CDRiso::cdread_normal(std::unique_ptr<File> &f, unsigned int base, void *dest, int sector) {
-    f->seek(base + sector * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_SET);
+    f->rSeek(base + sector * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_SET);
     return f->read(dest, PCSX::CDRom::CD_FRAMESIZE_RAW);
 }
 
 ssize_t PCSX::CDRiso::cdread_sub_mixed(std::unique_ptr<File> &f, unsigned int base, void *dest, int sector) {
     int ret;
 
-    f->seek(base + sector * (PCSX::CDRom::CD_FRAMESIZE_RAW + PCSX::CDRom::SUB_FRAMESIZE), SEEK_SET);
+    f->rSeek(base + sector * (PCSX::CDRom::CD_FRAMESIZE_RAW + PCSX::CDRom::SUB_FRAMESIZE), SEEK_SET);
     ret = f->read(dest, PCSX::CDRom::CD_FRAMESIZE_RAW);
     f->read(m_subbuffer, PCSX::CDRom::SUB_FRAMESIZE);
 
@@ -1387,7 +1387,7 @@ ssize_t PCSX::CDRiso::cdread_compressed(std::unique_ptr<File> &f, unsigned int b
     }
 
     start_byte = m_compr_img->index_table[block] & 0x7fffffff;
-    if (m_cdHandle->seek(start_byte, SEEK_SET) != 0) {
+    if (m_cdHandle->rSeek(start_byte, SEEK_SET) != 0) {
         PCSX::g_system->printf("seek error for block %d at %x: ", block, start_byte);
         perror(NULL);
         return -1;
@@ -1431,7 +1431,7 @@ finish:
 ssize_t PCSX::CDRiso::cdread_2048(std::unique_ptr<File> &f, unsigned int base, void *dest, int sector) {
     int ret;
 
-    f->seek(base + sector * 2048, SEEK_SET);
+    f->rSeek(base + sector * 2048, SEEK_SET);
     ret = f->read((char *)dest + 12 * 2, 2048);
 
     // not really necessary, fake mode 2 header
@@ -1486,8 +1486,8 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(std::unique_ptr<File> &f, unsigned int b
 
     writebytecount = pos->sector * PCSX::CDRom::CD_FRAMESIZE_RAW;
     sectorcount = pos->sector;
-    if (m_decoded_ecm_sectors) m_decoded_ecm->seek(writebytecount, SEEK_SET);  // rewind to last pos
-    f->seek(/*base+*/ pos->filepos, SEEK_SET);
+    if (m_decoded_ecm_sectors) m_decoded_ecm->rSeek(writebytecount, SEEK_SET);  // rewind to last pos
+    f->rSeek(/*base+*/ pos->filepos, SEEK_SET);
     while (sector >= sectorcount) {  // decode ecm file until we are past wanted sector
         int c = f->getc();
         int bits = 5;
@@ -1536,7 +1536,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(std::unique_ptr<File> &f, unsigned int b
                     }
                     writebytecount += b;
                     if (!processsectors) {
-                        f->seek(b, SEEK_CUR);
+                        f->rSeek(b, SEEK_CUR);
                         break;
                     }  // seek only
                     if (f->read(sector_buffer, b) != b) {
@@ -1569,7 +1569,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(std::unique_ptr<File> &f, unsigned int b
                     b = 1;
                     writebytecount += ECM_SECTOR_SIZE[type];
                     if (!processsectors) {
-                        f->seek(0x804, SEEK_CUR);
+                        f->rSeek(0x804, SEEK_CUR);
                         break;
                     }  // seek only
                     if (f->read(sector_buffer + 0x014, 0x804) != 0x804) {
@@ -1586,7 +1586,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(std::unique_ptr<File> &f, unsigned int b
                     b = 1;
                     writebytecount += ECM_SECTOR_SIZE[type];
                     if (!processsectors) {
-                        f->seek(0x918, SEEK_CUR);
+                        f->rSeek(0x918, SEEK_CUR);
                         break;
                     }  // seek only
                     if (f->read(sector_buffer + 0x014, 0x918) != 0x918) {
@@ -1604,7 +1604,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(std::unique_ptr<File> &f, unsigned int b
             num -= b;
         }
         if (type && sectorcount > 0 && m_ecm_savetable[sectorcount].filepos <= ECM_HEADER_SIZE) {
-            m_ecm_savetable[sectorcount].filepos = f->tell() /*-base*/;
+            m_ecm_savetable[sectorcount].filepos = f->rTell() /*-base*/;
             m_ecm_savetable[sectorcount].sector = sectorcount;
             // printf("Marked %i at pos %i\n", m_ecm_savetable[sectorcount].sector,
             // m_ecm_savetable[sectorcount].filepos);
@@ -1612,7 +1612,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(std::unique_ptr<File> &f, unsigned int b
     }
 
     if (m_decoded_ecm_sectors) {
-        m_decoded_ecm->seek(-1 * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_CUR);
+        m_decoded_ecm->rSeek(-1 * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_CUR);
         num = m_decoded_ecm->read(sector_buffer, PCSX::CDRom::CD_FRAMESIZE_RAW);
         m_decoded_ecm_sectors = std::max(m_decoded_ecm_sectors, sectorcount);
     } else {
@@ -1629,13 +1629,13 @@ error:
 error_out:
     // memset(dest, 0x0, PCSX::CDRomCD_FRAMESIZE_RAW);
     PCSX::g_system->printf("Error decoding ECM image: WantedSector %i Type %i Base %i Sectors %i(%i) Pos %i(%li)\n",
-                           sector, type, base, sectorcount, pos->sector, writebytecount, f->tell());
+                           sector, type, base, sectorcount, pos->sector, writebytecount, f->rTell());
     return -1;
 }
 
 int PCSX::CDRiso::handleecm(const char *isoname, std::unique_ptr<File> &cdh, int32_t *accurate_length) {
     // Rewind to start and check ECM header and filename suffix validity
-    cdh->seek(0, SEEK_SET);
+    cdh->rSeek(0, SEEK_SET);
     if ((cdh->getc() == 'E') && (cdh->getc() == 'C') && (cdh->getc() == 'M') && (cdh->getc() == 0x00) &&
         (strncmp((isoname + strlen(isoname) - 5), ".ecm", 4))) {
         // Function used to read CD normally
@@ -1905,17 +1905,17 @@ bool PCSX::CDRiso::open(void) {
 
     if (!m_ecm_file_detected) {
         // guess whether it is mode1/2048
-        m_cdHandle->seek(0, SEEK_END);
-        if (m_cdHandle->tell() % 2048 == 0) {
+        m_cdHandle->rSeek(0, SEEK_END);
+        if (m_cdHandle->rTell() % 2048 == 0) {
             unsigned int modeTest = 0;
-            m_cdHandle->seek(0, SEEK_SET);
+            m_cdHandle->rSeek(0, SEEK_SET);
             m_cdHandle->read(&modeTest, 4);
             if (SWAP_LE32(modeTest) != 0xffffff00) {
                 PCSX::g_system->printf("[2048]");
                 m_isMode1ISO = true;
             }
         }
-        m_cdHandle->seek(0, SEEK_SET);
+        m_cdHandle->rSeek(0, SEEK_SET);
     }
 
     if (m_numtracks == 0) {
@@ -2083,7 +2083,7 @@ bool PCSX::CDRiso::readTrack(uint8_t *time) {
     if (ret < 0) return false;
 
     if (m_subHandle != NULL) {
-        m_subHandle->seek(sector * PCSX::CDRom::SUB_FRAMESIZE, SEEK_SET);
+        m_subHandle->rSeek(sector * PCSX::CDRom::SUB_FRAMESIZE, SEEK_SET);
         m_subHandle->read(m_subbuffer, PCSX::CDRom::SUB_FRAMESIZE);
 
         if (m_subChanRaw) DecodeRawSubData();
