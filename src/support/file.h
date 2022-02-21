@@ -196,7 +196,7 @@ class PosixFile : public File {
         return m_writable ? new PosixFile(m_filename, FileOps::READWRITE) : new PosixFile(m_filename);
     }
     virtual bool failed() final override { return m_handle == nullptr; }
-    std::filesystem::path filename() { return m_filename; }
+    std::filesystem::path filename() final override { return m_filename; }
     virtual int getc() final override {
         int r = fgetc(m_handle);
         if (r >= 0) m_ptrR++;
