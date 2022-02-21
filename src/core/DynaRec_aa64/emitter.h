@@ -43,13 +43,13 @@ class Emitter : public MacroAssembler {
     Emitter() : MacroAssembler(reinterpret_cast<uint8_t*>(makeBuffer()), allocSize) {}
 
     static void* makeBuffer() {
-        void *ptr = mmap(s_codeCache, allocSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+        void *ptr = mmap(s_codeCache, allocSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         return (ptr == MAP_FAILED) ? nullptr : ptr;
     }
 #else
     Emitter() : MacroAssembler(s_codeCache, allocSize) {}
 #endif
-    void L(Label& l) { bind(&l); }
+    void L(Label& l) { Bind(&l); }
 
     template <typename T = void*>
     T getCurr() {
