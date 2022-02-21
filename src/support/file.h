@@ -192,13 +192,17 @@ class PosixFile : public File {
     virtual size_t size();
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t write(const void* dest, size_t size) final override;
-    virtual bool eof() final override { return feof(m_handle); }
+    virtual bool eof() final override {
+        if (failed()) throw std::runtime_error("Invalid file");
+        return feof(m_handle);
+    }
     virtual File* dup() final override {
         return m_writable ? new PosixFile(m_filename, FileOps::READWRITE) : new PosixFile(m_filename);
     }
     virtual bool failed() final override { return m_handle == nullptr; }
     std::filesystem::path filename() final override { return m_filename; }
     virtual int getc() final override {
+        if (failed()) throw std::runtime_error("Invalid file");
         int r = fgetc(m_handle);
         if (r >= 0) m_ptrR++;
         return r;

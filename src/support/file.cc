@@ -186,7 +186,7 @@ PCSX::PosixFile::PosixFile(const char *filename, ReadWrite) : File(true), m_file
 #endif
 
 ssize_t PCSX::PosixFile::rSeek(ssize_t pos, int wheel) {
-    if (failed()) throw std::runtime_error("Invalid file handle");
+    if (failed()) throw std::runtime_error("Invalid file");
     ssize_t ret = 0;
     switch (wheel) {
         case SEEK_SET:
@@ -203,7 +203,7 @@ ssize_t PCSX::PosixFile::rSeek(ssize_t pos, int wheel) {
 }
 
 ssize_t PCSX::PosixFile::wSeek(ssize_t pos, int wheel) {
-    if (failed()) throw std::runtime_error("Invalid file handle");
+    if (failed()) throw std::runtime_error("Invalid file");
     ssize_t ret = 0;
     switch (wheel) {
         case SEEK_SET:
@@ -220,14 +220,14 @@ ssize_t PCSX::PosixFile::wSeek(ssize_t pos, int wheel) {
 }
 
 size_t PCSX::PosixFile::size() {
-    if (!m_handle) throw std::runtime_error("Can't get size of unopened file");
+    if (failed()) throw std::runtime_error("Invalid file");
     ssize_t ret = fseek(m_handle, 0, SEEK_SET);
     if (ret < 0) throw std::runtime_error("Can't seek file...");
     return ftell(m_handle);
 }
 
 ssize_t PCSX::PosixFile::read(void *dest, size_t size) {
-    if (failed()) throw std::runtime_error("Invalid file handle");
+    if (failed()) throw std::runtime_error("Invalid file");
     if (feof(m_handle)) return -1;
     ssize_t ret = fseek(m_handle, m_ptrR, SEEK_SET);
     if (ret < 0) throw std::runtime_error("Error seeking file...");
@@ -238,7 +238,7 @@ ssize_t PCSX::PosixFile::read(void *dest, size_t size) {
 }
 
 ssize_t PCSX::PosixFile::write(const void *src, size_t size) {
-    if (failed()) throw std::runtime_error("Invalid file handle");
+    if (failed()) throw std::runtime_error("Invalid file");
     ssize_t ret = fseek(m_handle, m_ptrW, SEEK_SET);
     if (ret < 0) throw std::runtime_error("Error seeking file...");
     ret = fwrite(src, 1, size, m_handle);
