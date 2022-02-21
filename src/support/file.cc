@@ -53,10 +53,12 @@ PCSX::BufferFile::BufferFile() : File(false) {
 PCSX::BufferFile::BufferFile(FileOps::ReadWrite) : File(true) {
     m_data = nullptr;
     m_size = 0;
+    m_owned = true;
 }
 
 void PCSX::BufferFile::closeInternal() {
     if (m_owned) free(m_data);
+    m_owned = true;
     m_data = nullptr;
     m_size = 0;
     m_ptrR = 0;
