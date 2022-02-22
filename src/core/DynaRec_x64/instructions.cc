@@ -684,7 +684,7 @@ void DynaRecCPU::recMULTU() {
 }
 
 template <int size, bool signExtend>
-void DynaRecCPU::recompileLoadWithDelay() {
+void DynaRecCPU::recompileLoadWithDelay(LoadDelayDependencyType type) {
     if (m_regs[_Rs_].isConst()) {
         gen.mov(arg1, m_regs[_Rs_].val + _Imm_);
     } else {
@@ -709,10 +709,7 @@ void DynaRecCPU::recompileLoadWithDelay() {
 
     if (_Rt_) {
         PCSX::g_system->printf("Need delayed load @ %08X\nJIT buffer index: %08X\n", m_pc, gen.getSize());
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        delayedLoad.index = _Rt_;
-        delayedLoad.active = true;
-        const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+        m_delayedLoadInfo[m_currentDelayedLoad].active = true;
 
         switch (size) {
             case 8:
@@ -722,14 +719,28 @@ void DynaRecCPU::recompileLoadWithDelay() {
                 signExtend ? gen.movsx(eax, ax) : gen.movzx(eax, ax);
                 break;
         }
-        gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+
+        if (type == LoadDelayDependencyType::DependencyAcrossBlocks) {
+            const auto delayedLoadValueOffset = (uintptr_t)&runtime_load_delay.value - (uintptr_t)this;
+            const auto isActiveOffset = (uintptr_t)&runtime_load_delay.active - (uintptr_t)this;
+            const auto indexOffset = (uintptr_t)&runtime_load_delay.index - (uintptr_t)this;
+            gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+            gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 1);
+            gen.mov(dword[contextPointer + indexOffset], _Rt_);
+        } else {
+            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+            delayedLoad.index = _Rt_;
+            gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+        }
     }
 }
 
 template <int size, bool signExtend>
 void DynaRecCPU::recompileLoad() {
-    if (needToEmulateLoadDelay(_Rt_)) {
-        recompileLoadWithDelay<size, signExtend>();
+    const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
+    if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
+        recompileLoadWithDelay<size, signExtend>(loadDelayDependency);
         return;
     }
 

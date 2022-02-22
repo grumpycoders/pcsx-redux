@@ -196,10 +196,30 @@ static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg)
 
 void DynaRecCPU::recMFC2() {
     if (_Rt_) {
+        const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
+        if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
+            if (_Rd_ != 17) {
+                PCSX::g_system->message("Implement mean GTE behaviour for regs other than SZ1\n");
+            }
+            else {
+                gen.movzx(eax, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
+                if (loadDelayDependency == LoadDelayDependencyType::DependencyAcrossBlocks) {
+                    const auto delayedLoadValueOffset = (uintptr_t)&runtime_load_delay.value - (uintptr_t)this;
+                    const auto isActiveOffset = (uintptr_t)&runtime_load_delay.active - (uintptr_t)this;
+                    const auto indexOffset = (uintptr_t)&runtime_load_delay.index - (uintptr_t)this;
+                    gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+                    gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 1);
+                    gen.mov(dword[contextPointer + indexOffset], _Rt_);
+                } else {
+                    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+                    const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+                    delayedLoad.index = _Rt_;
+                    gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+                }
+            }
+            return;
+        }
         allocateRegWithoutLoad(_Rt_);
-        maybeCancelDelayedLoad(_Rt_);
-        if (needToEmulateLoadDelay(_Rt_)) PCSX::g_system->message("Tekken moment @ %08X\n", m_pc);
-        if (m_stopCompiling) PCSX::g_system->message("Tekken moment 2 @ %08X\n", m_pc);
         m_regs[_Rt_].setWriteback(true);
     }
 

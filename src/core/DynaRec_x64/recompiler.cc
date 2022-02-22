@@ -83,6 +83,8 @@ bool DynaRecCPU::Init() {
     }
 
     m_regs[0].markConst(0);  // $zero is always zero
+    m_currentDelayedLoad = 0;
+    runtime_load_delay.active = false;
     return true;
 }
 
@@ -290,11 +292,10 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
-    m_currentDelayedLoad = 0;
-    m_delayedLoadInfo[0].active = false;
-    m_delayedLoadInfo[1].active = false;
     m_pcWrittenBack = false;
     m_linkedPC = std::nullopt;
+    m_delayedLoadInfo[0].active = false;
+    m_delayedLoadInfo[1].active = false;
     m_pc = pc & ~3;
 
     const auto startingPC = m_pc;
@@ -335,7 +336,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         gen.jnz(loop);
     }
 
-    auto shouldContinue = [&]() {
+    const auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
             return true;
         }
@@ -348,20 +349,22 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         return true;
     };
 
-    auto processDelayedLoad = [&]() {
+    const auto processDelayedLoad = [&]() {
         m_currentDelayedLoad ^= 1;
         auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+
         if (delayedLoad.active) {
             delayedLoad.active = false;
             const unsigned index = delayedLoad.index;
             const auto delayedValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+            const auto delayedLoadActiveOffset = (uintptr_t)&delayedLoad.active - (uintptr_t)this;
             allocateRegWithoutLoad(index);
             m_regs[index].setWriteback(true);
             gen.mov(m_regs[index].allocatedReg, dword[contextPointer + delayedValueOffset]);
         }
     };
 
-    while (shouldContinue()) {
+    const auto compileInstruction = [&]() {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
@@ -376,11 +379,37 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
 
         const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)();                                   // Jump into the handler to recompile it
+    };
+
+    const auto resolveInitialLoadDelay = [&]() {
+        Label noDelayedLoad;
+        const auto& delay = runtime_load_delay;
+        const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
+        const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
+        const auto valueOffset = (uintptr_t)&delay.value - (uintptr_t)this;
+        const auto registerArrayOffset = (uintptr_t)&m_psxRegs.GPR.r[0] - (uintptr_t)this;
+
+        gen.cmp(Xbyak::util::byte[contextPointer + isActiveOffset], 0); // Check if there's an active delay
+        gen.je(noDelayedLoad);
+
+        gen.mov(ecx, dword[contextPointer + indexOffset]); // Index of the register that needs to be loaded to
+        gen.mov(edx, dword[contextPointer + valueOffset]); // Value of the register that needs to be loaded to
+        gen.mov(dword[contextPointer + rcx * 4 + registerArrayOffset], edx); // Write the value
+        gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 0); // Load is no longer active
+
+        gen.L(noDelayedLoad);
+    };
+
+    // For the first instruction in the block: Check if there's a pending load as well
+    compileInstruction();
+    flushRegs();
+    resolveInitialLoadDelay();
+    processDelayedLoad();
+
+    while (shouldContinue()) {
+        compileInstruction();
         processDelayedLoad();
     }
-
-    // Flush delayed loads at branches. This is hacky and not accurate to hardware, but games should not abuse this often.
-    processDelayedLoad();
 
     flushRegs();
     if (!m_pcWrittenBack) {
@@ -507,17 +536,16 @@ void DynaRecCPU::handleFastboot() {
 
 // Peek at the next instruction to see if it has a read dependency on register "index"
 // If it does, we need to emulate the load delay
-bool DynaRecCPU::needToEmulateLoadDelay(int index) {
-    // HACK: We currently don't emulate load delay slots in branch delays slots properly
-    // PS1 software should more or less never use this, however we should impl this correctly sometime
-    if (m_stopCompiling) return false;
+DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int index) {
+    // Always emulate load delays when there's a load in a branch delay slot
+    if (m_stopCompiling && index != 0) return LoadDelayDependencyType::DependencyAcrossBlocks;
 
     const auto p = (uint32_t*)PSXM(m_pc);
     if (p == nullptr) {  // Can't prefetch next instruction, will error
-        return false;
+        return LoadDelayDependencyType::NoDependency;
     }
     if (index == 0) { // Loads to $zero go to the void, so don't bother emulating it as a delayed load
-        return false;
+        return LoadDelayDependencyType::NoDependency;
     }
 
     const uint32_t instruction = *p;
@@ -564,12 +592,13 @@ bool DynaRecCPU::needToEmulateLoadDelay(int index) {
             break;
         case 0x10: {  // COP0 instructions also need special handling
             // We need to emulate the delay if the rs field is 4, ie the instruction is MTC0, and "index" is the
-            return rs == 4 && rt == index;
+            return (rs == 4 && rt == index) ? LoadDelayDependencyType::DependencyInsideBlock : LoadDelayDependencyType::NoDependency;
         } break;
         case 0x12:  // COP2 instructions too
             // We need to emulate the delay if the rs field is 4 or 6, ie the instruction is CTC0 or CTC2, and "index"
             // is the
-            return (rs == 4 || rs == 6) && rt == index;
+            return ((rs == 4 || rs == 6) && rt == index) ? LoadDelayDependencyType::DependencyInsideBlock
+                                                         : LoadDelayDependencyType::NoDependency;
             break;
         default:
             dependencyType = mainDependencyList[opcode];
@@ -578,13 +607,15 @@ bool DynaRecCPU::needToEmulateLoadDelay(int index) {
 
     switch (dependencyType) {
         case NoDep:
-            return false;
+            return LoadDelayDependencyType::NoDependency;
         case DepIfRs:
-            return index == rs;
+            return (index == rs) ? LoadDelayDependencyType::DependencyInsideBlock : LoadDelayDependencyType::NoDependency;
         case DepIfRt:
-            return index == rt;
+            return (index == rt) ? LoadDelayDependencyType::DependencyInsideBlock
+                                 : LoadDelayDependencyType::NoDependency;
         case DepIfRsOrRt:
-            return index == rs || index == rt;
+            return (index == rs || index == rt) ? LoadDelayDependencyType::DependencyInsideBlock
+                                                : LoadDelayDependencyType::NoDependency;
     }
 }
 #endif  // DYNAREC_X86_64

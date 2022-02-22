@@ -89,10 +89,18 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     bool m_stopCompiling;  // Should we stop compiling code?
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
     uint32_t m_ramSize;    // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
+
+    struct {
+        bool active;
+        int index;
+        uint32_t value;
+    } runtime_load_delay;
+
     const int MAX_BLOCK_SIZE = 50;
 
     enum class RegState { Unknown, Constant };
     enum class LoadingMode { DoNotLoad, Load };
+    enum class LoadDelayDependencyType { NoDependency, DependencyInsideBlock, DependencyAcrossBlocks };
 
     struct Register {
         uint32_t val = 0;                    // The register's cached value used for constant propagation
@@ -329,7 +337,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             m_delayedLoadInfo[other].active = false;
         }
     }
-    bool needToEmulateLoadDelay(int index);
+    LoadDelayDependencyType getLoadDelayDependencyType(int index);
 
     // Instruction definitions
     void recUnknown();
@@ -446,7 +454,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     template <int size, bool signExtend>
     void recompileLoad();
     template <int size, bool signExtend>
-    void recompileLoadWithDelay();
+    void recompileLoadWithDelay(LoadDelayDependencyType dependencyType);
 
     const recompilationFunc m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00
