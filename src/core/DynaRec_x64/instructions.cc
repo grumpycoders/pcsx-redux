@@ -801,8 +801,18 @@ void DynaRecCPU::recLHU() { recompileLoad<16, false>(); }
 void DynaRecCPU::recLW() { recompileLoad<32, true>(); }
 
 void DynaRecCPU::recLWL() {
-    if (!_Rt_) {
-        error();
+    if (_Rt_ == 0) { // If $rt == 0, just execute the read in case it has side-effects, then return
+        if (m_regs[_Rs_].isConst()) {
+            const uint32_t address = m_regs[_Rs_].val + _Imm_;
+            gen.mov(arg1, address & ~3); // Aligned address in arg1
+        } else {
+            allocateReg(_Rs_);                                       // Allocate address reg
+            gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+            gen.and_(arg1, ~3);                                      // Force align it
+        }
+
+        call(psxMemRead32Wrapper);  // Read from the aligned address
+        return;
     }
 
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
@@ -883,8 +893,18 @@ void DynaRecCPU::recLWL() {
 }
 
 void DynaRecCPU::recLWR() {
-    if (!_Rt_) {
-        error();
+    if (_Rt_ == 0) {  // If $rt == 0, just execute the read in case it has side-effects, then return
+        if (m_regs[_Rs_].isConst()) {
+            const uint32_t address = m_regs[_Rs_].val + _Imm_;
+            gen.mov(arg1, address & ~3);  // Aligned address in arg1
+        } else {
+            allocateReg(_Rs_);                                       // Allocate address reg
+            gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+            gen.and_(arg1, ~3);                                      // Force align it
+        }
+
+        call(psxMemRead32Wrapper);  // Read from the aligned address
+        return;
     }
 
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
