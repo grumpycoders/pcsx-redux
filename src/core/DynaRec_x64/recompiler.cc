@@ -226,13 +226,10 @@ void DynaRecCPU::emitDispatcher() {
     gen.ret();                // Return
 
     // Code for when the block to be executed needs to be compiled.
-    // rax = Base pointer to the page of m_recompilerLUT we're executing from
-    // rdx = Index into the page, multiplied by 4
     gen.align(16);
     m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.cvt64());
-    gen.lea(arg2.cvt64(), qword[rax + rdx * 2]);  // Pointer to callback
     gen.callFunc(recRecompileWrapper);            // Call recompilation function. Returns pointer to emitted code
     gen.jmp(rax);
 
@@ -307,7 +304,7 @@ void DynaRecCPU::emitDispatcher() {
 
 // Compile a block, write address of compiled code to *callback
 // Returns the address of the compiled block
-DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bool align) {
+DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
@@ -319,6 +316,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
 
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
+    DynarecCallback* callback = getBlockPointer(m_pc);  // Pointer to where we'll store the addr of the emitted code
 
     if (align) {
         gen.align(16);  // Align next block
@@ -334,26 +332,14 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         gen.mov(contextPointer, (uintptr_t)this);
     }
 
-    const auto pointer = gen.getCurr<DynarecCallback>();  // Pointer to emitted code
+    *callback = gen.getCurr<DynarecCallback>();  // Pointer to emitted code
     if constexpr (ENABLE_PROFILER) {
         if (startProfiling(m_pc)) {  // Uncompile all blocks if the profiler data overflower
             uncompileAll();
         }
     }
 
-    *callback = pointer;
     handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.
-    if (m_psxRegs.CP0.n.Status & (1 << 16)) { // If the cache isolation bit is set, this means we're in the FlushCache function
-        Label loop; // Temporarily HLE it by manually deleting all blocks when FlushCache is called.
-        gen.mov(rax, (uintptr_t)m_uncompiledBlock);
-        gen.mov(rdx, (uintptr_t)m_ramBlocks);
-        gen.mov(ecx, m_ramSize / 4);
-        gen.L(loop);
-        gen.mov(qword[rdx], rax);
-        gen.add(rdx, 8);
-        gen.dec(ecx);
-        gen.jnz(loop);
-    }
 
     const auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
@@ -444,7 +430,10 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     } else {
         gen.jmp((void*)m_returnFromBlock);
     }
-    return pointer;
+
+    // Block linking might have invalidated this block, so don't cache the pointer to the invalidated block.
+    // Instead, read the callback address again
+    return *callback;
 }
 
 void DynaRecCPU::recSpecial() {
@@ -506,7 +495,7 @@ void DynaRecCPU::handleLinking() {
 
             const auto pointer = gen.getCurr<uint8_t*>();
             gen.jne((void*)m_returnFromBlock);           // Return if the block addr changed
-            recompile(nextBlockPointer, nextPC, false);  // Fallthrough to next block
+            recompile(nextPC, false);  // Fallthrough to next block
 
             *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
         } else {  // If it has already been compiled, link by jumping to the compiled code
