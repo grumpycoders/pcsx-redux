@@ -176,8 +176,12 @@ void DynaRecCPU::emitDispatcher() {
     m_dispatcher = gen.getCurr<DynarecCallback>();
 
     gen.Str(x30, MemOperand(sp, -16, PreIndex));  // Backup link register
+    gen.Str(runningPointer,
+            MemOperand(sp, -16, PreIndex));  // Save runningPointer register in stack
     gen.Str(contextPointer,
-            MemOperand(sp, -16, PreIndex));    // Save context pointer register in stack (also align stack pointer)
+            MemOperand(sp, -16, PreIndex));    // Save contextPointer register in stack (also align stack pointer)
+
+    gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());  // Move runningPtr to runningPointer register
     gen.Mov(contextPointer, (uintptr_t)this);  // Load context pointer
 
     // Back up all our allocateable volatile regs
@@ -185,12 +189,8 @@ void DynaRecCPU::emitDispatcher() {
     for (auto i = 0; i < ALLOCATEABLE_NON_VOLATILE_COUNT; i += 2) {
         const auto reg = allocateableNonVolatiles[i];
         const auto reg2 = allocateableNonVolatiles[i + 1];
-        gen.Stp(reg.X(), reg2.X(), MemOperand(sp, -16, PreIndex));
+        gen.Stp(reg2.X(), reg.X(), MemOperand(sp, -16, PreIndex));
     }
-
-    gen.Str(runningPointer,
-            MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));  // Store runningPointer Register in host reg cache
-    gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());  // Move runningPtr to runningPointer register
 
     emitBlockLookup();  // Look up block
 
@@ -215,9 +215,9 @@ void DynaRecCPU::emitDispatcher() {
         const auto reg2 = allocateableNonVolatiles[i - 1];
         gen.Ldp(reg.X(), reg2.X(), MemOperand(sp, 16, PostIndex));
     }
-    gen.Ldr(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));
 
-    gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex));
+    gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex)); // Restore contextPointer register from stack
+    gen.Ldr(runningPointer, MemOperand(sp, 16, PostIndex));  // Restore runningPointer register from stack
     gen.Ldr(x30, MemOperand(sp, 16, PostIndex));  // Restore link register before returning
     gen.Ret();
 
