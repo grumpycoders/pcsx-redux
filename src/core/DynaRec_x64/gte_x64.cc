@@ -111,7 +111,7 @@ void DynaRecCPU::recCTC2() {
 
 void DynaRecCPU::recMTC2() {
     switch (_Rd_) {
-        case 15:
+        case 15: // SXYP
             gen.mov(rax, qword[contextPointer + COP2_DATA_OFFSET(13)]);  // SXY0 = SXY1 and SXY1 = SXY2
             gen.mov(qword[contextPointer + COP2_DATA_OFFSET(12)], rax);
 
@@ -122,7 +122,7 @@ void DynaRecCPU::recMTC2() {
                 allocateReg(_Rt_);
                 gen.mov(dword[contextPointer + COP2_DATA_OFFSET(14)], m_regs[_Rt_].allocatedReg);
             }
-            break;
+            return;
 
         case 28:                           // IRGB
             if (m_regs[_Rt_].isConst()) {  // Calculate IR1/IR2/IR3 values and write them back
@@ -292,11 +292,11 @@ void DynaRecCPU::recLWC2() {
 
     call(psxMemRead32Wrapper);
     switch (_Rt_) {
-        case 15:
-        case 30:
-            fmt::print("Unimplemented LWC2 to GTE data register {}\n", _Rt_);
-            abort();
-            break;
+        case 15:                                                         // SXYP
+            gen.mov(rcx, qword[contextPointer + COP2_DATA_OFFSET(13)]);  // SXY0 = SXY1 and SXY1 = SXY2
+            gen.mov(qword[contextPointer + COP2_DATA_OFFSET(12)], rcx);
+            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(14)], eax);  // SXY2 = val
+            return;
 
         case 28:  // IRGB
             gen.mov(ecx, eax);
@@ -313,6 +313,23 @@ void DynaRecCPU::recLWC2() {
             gen.shr(ecx, 3);
             gen.and_(ecx, 0xf80);
             gen.mov(dword[contextPointer + COP2_DATA_OFFSET(11)], ecx);
+            break;
+
+        case 30:
+            gen.mov(edx, eax);  // value = ~value if the msb is set
+            gen.sar(edx, 31);
+            gen.xor_(eax, edx);
+
+            if (gen.hasLZCNT) {  // Count leading zeroes (Return 32 if the input is zero)
+                gen.lzcnt(eax, eax);
+            } else {                // If our CPU doesn't have LZCNT
+                gen.bsr(eax, eax);  // eax = 31 - CLZ(value)
+                gen.mov(edx, 63);   // Set eax to 63 if the input was 0
+                gen.cmovz(eax, edx);
+                gen.xor_(eax, 31);  // Subtract the value from 31
+            }
+
+            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(31)], eax);  // Write result to LZCR
             break;
     }
 
