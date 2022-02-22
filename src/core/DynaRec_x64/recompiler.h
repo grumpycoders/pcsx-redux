@@ -82,6 +82,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_uncompiledBlock;  // Pointer to the code that will be executed when jumping to an uncompiled block
     DynarecCallback m_invalidBlock;     // Pointer to the code that will be executed the PC is invalid
     DynarecCallback m_invalidateBlocks; // Pointer to the code that will invalidate all RAM code blocks
+    DynarecCallback m_loadDelayHandler; // Pointer to the code that will handle load delays at the start of a block
 
     Emitter gen;
     uint32_t m_pc;  // Recompiler PC

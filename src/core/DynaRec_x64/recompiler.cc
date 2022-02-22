@@ -251,10 +251,10 @@ void DynaRecCPU::emitDispatcher() {
     const uint32_t blockCount = m_ramSize / 4;  // Each 4 bytes correspond to 1 block
     gen.mov(rax, (uintptr_t)m_ramBlocks);       // rax = pointer to the blocks we'll be invalidating
     gen.xor_(edx, edx);  // edx = iteration counter
-    Label l;
+    Label literalPool;
 
     if (gen.hasAVX) { // AVX version
-        gen.vmovdqa(ymm0, yword[rip + l]);  // Broadcast the pointer in ymm0 four times over
+        gen.vmovdqa(ymm0, yword[rip + literalPool]);  // Broadcast the pointer in ymm0 four times over
         Label loop;
         gen.L(loop);                     // Memset loop
         for (auto i = 0; i < 16; i++) {  // Unroll 16 iterations of the loop
@@ -267,7 +267,7 @@ void DynaRecCPU::emitDispatcher() {
         gen.ret();
     } else { // SSE version
         // Store the pointer in xmm0 twice over, so we can write it twice in 1 128-bit write
-        gen.movdqa(xmm0, xword[rip + l]);
+        gen.movdqa(xmm0, xword[rip + literalPool]);
         Label loop;
         gen.L(loop);                     // Memset loop
         for (auto i = 0; i < 16; i++) {  // Unroll 16 iterations of the loop
@@ -279,8 +279,27 @@ void DynaRecCPU::emitDispatcher() {
         gen.ret();
     }
     
+    // Code for handling load delays at the beginning of a block
+    {
+        gen.align(16);
+        const auto& delay = runtime_load_delay;
+        const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
+        const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
+        const auto valueOffset = (uintptr_t)&delay.value - (uintptr_t)this;
+        const auto registerArrayOffset = (uintptr_t)&m_psxRegs.GPR.r[0] - (uintptr_t)this;
+        
+        m_loadDelayHandler = gen.getCurr<DynarecCallback>();
+        gen.mov(ecx, dword[contextPointer + indexOffset]);  // Index of the register that needs to be loaded to
+        gen.mov(edx, dword[contextPointer + valueOffset]);  // Value of the register that needs to be loaded to
+        gen.mov(dword[contextPointer + rcx * 4 + registerArrayOffset], edx);  // Write the value
+        gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 0);       // Load is no longer active
+        gen.ret();
+    }
+
+    // Literal pool containing the pointer to our uncompiled block handler four times.
+    // Used for our SSE/AVX code for block invalidaton
     gen.align(32);
-    gen.L(l);
+    gen.L(literalPool);
     for (int i = 0; i < 4; i++) {
         gen.dq((uintptr_t)m_uncompiledBlock);
     }
@@ -385,18 +404,10 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         Label noDelayedLoad;
         const auto& delay = runtime_load_delay;
         const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
-        const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
-        const auto valueOffset = (uintptr_t)&delay.value - (uintptr_t)this;
-        const auto registerArrayOffset = (uintptr_t)&m_psxRegs.GPR.r[0] - (uintptr_t)this;
 
         gen.cmp(Xbyak::util::byte[contextPointer + isActiveOffset], 0); // Check if there's an active delay
         gen.je(noDelayedLoad);
-
-        gen.mov(ecx, dword[contextPointer + indexOffset]); // Index of the register that needs to be loaded to
-        gen.mov(edx, dword[contextPointer + valueOffset]); // Value of the register that needs to be loaded to
-        gen.mov(dword[contextPointer + rcx * 4 + registerArrayOffset], edx); // Write the value
-        gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 0); // Load is no longer active
-
+        gen.call((void*)m_loadDelayHandler);
         gen.L(noDelayedLoad);
     };
 
