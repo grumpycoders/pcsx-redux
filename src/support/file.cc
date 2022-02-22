@@ -175,13 +175,13 @@ PCSX::PosixFile::PosixFile(const char *filename, FileOps::ReadWrite) : File(true
 PCSX::PosixFile::PosixFile(const char *filename) : File(false), m_filename(filename) {
     m_handle = fopen(filename, "rb");
 }
-PCSX::PosixFile::PosixFile(const char *filename, Create) : File(true), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::Create) : File(true), m_filename(filename) {
     m_handle = fopen(filename, "ab+");
 }
 PCSX::PosixFile::PosixFile(const char *filename, FileOps::Truncate) : File(true), m_filename(filename) {
     m_handle = fopen(filename, "wb+");
 }
-PCSX::PosixFile::PosixFile(const char *filename, ReadWrite) : File(true), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::ReadWrite) : File(true), m_filename(filename) {
     m_handle = fopen(filename, "rb+");
 }
 #endif
