@@ -373,12 +373,8 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
-        const auto p = (uint32_t*)PSXM(m_pc);  // Fetch instruction
-        if (p == nullptr) {                    // Error if it can't be fetched
-            return m_invalidBlock;
-        }
-
-        m_psxRegs.code = *p;  // Actually read the instruction
+        // Fetch instruction. We make sure this function is called with a valid PC, otherwise it will crash
+        m_psxRegs.code = *(uint32_t*)PSXM(m_pc);
         m_pc += 4;            // Increment recompiler PC
         count++;              // Increment instruction count
 
@@ -391,7 +387,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
         const auto& delay = runtime_load_delay;
         const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
 
-        gen.cmp(Xbyak::util::byte[contextPointer + isActiveOffset], 0); // Check if there's an active delay
+        gen.cmp(Xbyak::util::byte[contextPointer + isActiveOffset], 0);  // Check if there's an active delay
         gen.je(noDelayedLoad);
         gen.call((void*)m_loadDelayHandler);
         gen.L(noDelayedLoad);
@@ -404,6 +400,10 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
     processDelayedLoad();
 
     while (shouldContinue()) {
+        // Throw error if the PC is not pointing to a valid code address
+        if (PSXM(m_pc) == nullptr) {
+            return m_invalidBlock;
+        }
         compileInstruction();
         processDelayedLoad();
     }
