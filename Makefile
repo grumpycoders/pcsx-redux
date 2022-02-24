@@ -211,6 +211,9 @@ clean:
 gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
 	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc
 
+gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
+	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest_main.cc
+
 gitclean:
 	git clean -f -d -x
 	git submodule foreach --recursive git clean -f -d -x
@@ -225,8 +228,8 @@ regen-i18n:
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 
-pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o
-	$(LD) -o pcsx-redux-tests $(NONMAIN_OBJECTS) gtest-all.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include third_party/googletest/googletest/src/gtest_main.cc $(LDFLAGS)
+pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o gtest_main.o
+	$(LD) -o pcsx-redux-tests gtest_main.o $(NONMAIN_OBJECTS) gtest-all.o $(foreach t,$(TESTS),$(t).o) $(LDFLAGS)
 
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests
