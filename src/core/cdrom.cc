@@ -1287,7 +1287,6 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         m_cmd = rt;
-        m_OCUP = 0;
 
         if (rt > cdCmdEnumCount) {
             CDROM_IO_LOG("CD1 write: %x (CdlUnknown)", rt);
