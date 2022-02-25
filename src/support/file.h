@@ -23,7 +23,6 @@
 #include <stdio.h>
 
 #include <filesystem>
-#include <functional>
 
 #include "support/slice.h"
 #include "support/ssize_t.h"
