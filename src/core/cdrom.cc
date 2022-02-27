@@ -235,6 +235,11 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         if (m_transferIndex >= bufSize) m_transferIndex -= bufSize;
+
+        if (m_transferIndex == 0) {
+            m_ctrl &= ~0x40;
+            m_read = 0;
+        }
     }
 
     // FIXME: do this in SPU instead
@@ -1138,7 +1143,7 @@ class CDRomImpl : public PCSX::CDRom {
             return;
         }
 
-        m_OCUP = 1;
+        m_ctrl |= 0x40;
         SetResultSize(1);
         m_statP |= STATUS_READ | STATUS_ROTATING;
         m_statP &= ~STATUS_SEEK;
@@ -1241,12 +1246,6 @@ class CDRomImpl : public PCSX::CDRom {
             m_ctrl |= 0x20;
         } else {
             m_ctrl &= ~0x20;
-        }
-
-        if (m_OCUP) {
-            m_ctrl |= 0x40;
-        } else {
-            m_ctrl &= ~0x40;
         }
 
         m_ctrl |= 0x18;
@@ -1359,7 +1358,7 @@ class CDRomImpl : public PCSX::CDRom {
         unsigned char ret;
 
         if (m_read == 0) {
-            m_OCUP = 0;
+            m_ctrl &= ~0x40;
             ret = 0;
         } else {
             ret = m_transfer[m_transferIndex];
