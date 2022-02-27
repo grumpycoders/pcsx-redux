@@ -32,7 +32,8 @@ enum class LogClass : unsigned {
     MIPS,           // only the things coming from MIPS code
     UI,             // messages from the UI specifically
     SIO0,           // pad and memory card information
-    SIO1,           // uart information
+    SIO1,           // uart/sio1 information
+    SIO1SERVER,     // uart/sio1 server information
     GTE,            // gte information
     CDROM,          // low level cdrom information
     CDROM_IO,       // high level cdrom information (iso file access)
