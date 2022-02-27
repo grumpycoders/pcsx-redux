@@ -35,7 +35,7 @@ namespace PCSX {
 
 namespace {
 
-bool loadCPE(File* file) {
+bool loadCPE(IO<File> file) {
     file->rSeek(0, SEEK_SET);
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1455043) return false;
@@ -109,7 +109,7 @@ bool loadCPE(File* file) {
     return true;
 }
 
-bool loadPSEXE(File* file) {
+bool loadPSEXE(IO<File> file) {
     file->rSeek(0, SEEK_SET);
     uint64_t magic = file->read<uint64_t>();
     if (magic != 0x45584520582d5350) return false;
@@ -148,7 +148,7 @@ bool loadPSEXE(File* file) {
     return true;
 }
 
-bool loadPSF(File* file, bool seenRefresh = false, unsigned depth = 0) {
+bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
     if (depth >= 10) return false;
     file->rSeek(0, SEEK_SET);
     uint32_t magic = file->read<uint32_t>();
@@ -157,8 +157,8 @@ bool loadPSF(File* file, bool seenRefresh = false, unsigned depth = 0) {
     uint32_t N = file->read<uint32_t>();
     uint32_t C = file->read<uint32_t>();
     file->rSeek(R, SEEK_CUR);
-    uint8_t* buffer = (uint8_t*)malloc(N);
-    file->read(buffer, N);
+    IO<File> zpsexe(new SubFile(file, file->rTell(), N));
+    file->rSeek(N, SEEK_CUR);
     char tagtag[6];
     file->read(tagtag, 5);
     tagtag[5] = 0;
@@ -199,11 +199,13 @@ bool loadPSF(File* file, bool seenRefresh = false, unsigned depth = 0) {
 
     if (pairs.find("_lib") != pairs.end()) {
         std::filesystem::path subFilePath(file->filename());
-        PosixFile subFile(subFilePath.parent_path() / pairs["_lib"]);
-        if (!subFile.failed()) loadPSF(&subFile, seenRefresh, depth++);
+        IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs["_lib"]));
+        if (!subFile->failed()) loadPSF(subFile, seenRefresh, depth++);
     }
 
     {
+        uint8_t* buffer = (uint8_t*)malloc(N);
+        zpsexe->read(buffer, N);
         static constexpr unsigned TWOM = 2 * 1024 * 1024;
         uint8_t* psexe = (uint8_t*)malloc(TWOM);  // and no fucks were given today.
         z_stream infstream;
@@ -220,12 +222,12 @@ bool loadPSF(File* file, bool seenRefresh = false, unsigned depth = 0) {
         inflateEnd(&infstream);
 
         if (res == Z_STREAM_END) {
-            BufferFile z(psexe, TWOM);
-            loadPSEXE(&z);
+            IO<File> z(new BufferFile(psexe, TWOM));
+            loadPSEXE(z);
         }
         free(psexe);
+        free(buffer);
     }
-    free(buffer);
 
     unsigned libNum = 2;
 
@@ -233,8 +235,8 @@ bool loadPSF(File* file, bool seenRefresh = false, unsigned depth = 0) {
         std::string libName = fmt::format("_lib{}", libNum++);
         if (pairs.find(libName) == pairs.end()) break;
         std::filesystem::path subFilePath(file->filename());
-        PosixFile subFile(subFilePath.parent_path() / pairs[libName]);
-        if (!subFile.failed()) loadPSF(&subFile, seenRefresh, depth++);
+        IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs[libName]));
+        if (!subFile->failed()) loadPSF(subFile, seenRefresh, depth++);
     }
 
     return true;
@@ -245,14 +247,14 @@ bool loadPSF(File* file, bool seenRefresh = false, unsigned depth = 0) {
 }  // namespace PCSX
 
 bool PCSX::BinaryLoader::load(const std::filesystem::path& filename) {
-    PosixFile ny(filename.parent_path() / "libps.exe");
-    if (!ny.failed()) loadPSEXE(&ny);
+    IO<File> ny(new PosixFile(filename.parent_path() / "libps.exe"));
+    if (!ny->failed()) loadPSEXE(ny);
 
-    PosixFile file(filename);
+    IO<File> file(new PosixFile(filename));
 
-    if (file.failed()) return false;
-    if (loadCPE(&file)) return true;
-    if (loadPSEXE(&file)) return true;
-    if (loadPSF(&file)) return true;
+    if (file->failed()) return false;
+    if (loadCPE(file)) return true;
+    if (loadPSEXE(file)) return true;
+    if (loadPSF(file)) return true;
     return false;
 }

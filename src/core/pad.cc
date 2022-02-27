@@ -70,7 +70,7 @@ void PCSX::Pads::init() {
     scanGamepads();
     g_system->findResource(
         [](const std::filesystem::path& filename) -> bool {
-            std::unique_ptr<File> database(new PosixFile(filename));
+            IO<File> database(new PosixFile(filename));
             if (database->failed()) {
                 return false;
             }

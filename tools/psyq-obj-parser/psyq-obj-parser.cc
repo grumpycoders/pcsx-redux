@@ -110,8 +110,8 @@ struct PsyqLnkFile {
     struct Expression;
 
     /* The main parser entry point; will return nullptr on error */
-    static std::unique_ptr<PsyqLnkFile> parse(std::unique_ptr<PCSX::File>& file, bool verbose);
-    static std::string readPsyqString(std::unique_ptr<PCSX::File>& file) { return file->readString(file->byte()); }
+    static std::unique_ptr<PsyqLnkFile> parse(PCSX::IO<PCSX::File> file, bool verbose);
+    static std::string readPsyqString(PCSX::IO<PCSX::File> file) { return file->readString(file->byte()); }
 
     /* Our list of sections and symbols will be keyed by their id from the LNK file */
     typedef PCSX::Intrusive::HashTable<uint16_t, Section> SectionHashTable;
@@ -181,7 +181,7 @@ struct PsyqLnkFile {
         uint32_t value;
         uint16_t symbolIndex;
         uint16_t sectionIndex;
-        static std::unique_ptr<Expression> parse(std::unique_ptr<PCSX::File>& file, bool verbose, int level = 0);
+        static std::unique_ptr<Expression> parse(PCSX::IO<PCSX::File> file, bool verbose, int level = 0);
         void display(PsyqLnkFile* lnk, bool top = false);
     };
 
@@ -217,7 +217,7 @@ struct PsyqLnkFile {
 };
 
 /* The psyq LNK parser code */
-std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(std::unique_ptr<PCSX::File>& file, bool verbose) {
+std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool verbose) {
     std::unique_ptr<PsyqLnkFile> ret = std::make_unique<PsyqLnkFile>();
     vprint(":: Reading signature.\n");
     std::string signature = file->readString(3);
@@ -533,7 +533,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(std::unique_ptr<PCSX::File>& fil
     return nullptr;
 }
 
-std::unique_ptr<PsyqLnkFile::Expression> PsyqLnkFile::Expression::parse(std::unique_ptr<PCSX::File>& file, bool verbose,
+std::unique_ptr<PsyqLnkFile::Expression> PsyqLnkFile::Expression::parse(PCSX::IO<PCSX::File> file, bool verbose,
                                                                         int level) {
     std::unique_ptr<PsyqLnkFile::Expression> ret = std::make_unique<PsyqLnkFile::Expression>();
     uint8_t exprOp = file->read<uint8_t>();
@@ -1161,7 +1161,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
     int ret = 0;
 
     for (auto& input : inputs) {
-        std::unique_ptr<PCSX::File> file(new PCSX::PosixFile(input));
+        PCSX::IO<PCSX::File> file(new PCSX::PosixFile(input));
         if (file->failed()) {
             fmt::print("Unable to open file: {}\n", input);
             ret = -1;

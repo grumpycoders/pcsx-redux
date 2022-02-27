@@ -89,7 +89,7 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
     }
 
     auto& input = inputs[0];
-    std::unique_ptr<PCSX::File> file(new PCSX::PosixFile(input));
+    PCSX::IO<PCSX::File> file(new PCSX::PosixFile(input));
     if (file->failed()) {
         fmt::print("Unable to open file: {}\n", input);
         return -1;

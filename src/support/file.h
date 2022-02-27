@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <compare>
 #include <filesystem>
 
 #include "support/slice.h"
@@ -37,8 +38,12 @@ enum ReadWrite { READWRITE };
 
 class File {
   public:
-    virtual ~File() {}
-    virtual void close() = 0;
+    virtual ~File() {
+        if (m_refCount.load() != 0) {
+            throw std::runtime_error("File object used without IO<> wrapper despite being in one");
+        }
+    }
+    virtual void close() {}
     virtual ssize_t rSeek(ssize_t pos, int wheel) { throw std::runtime_error("Can't seek for reading"); }
     virtual ssize_t rTell() { throw std::runtime_error("Can't seek for reading"); }
     virtual ssize_t wSeek(ssize_t pos, int wheel) { throw std::runtime_error("Can't seek for writing"); }
@@ -46,16 +51,22 @@ class File {
     virtual size_t size() { throw std::runtime_error("Unable to determine file size"); }
     virtual ssize_t read(void* dest, size_t size) { throw std::runtime_error("File is not readable"); }
     virtual ssize_t write(const void* src, size_t size) { throw std::runtime_error("File is not writable"); }
-    virtual ssize_t readat(void* dest, size_t size, size_t ptr) {
+    virtual ssize_t readAt(void* dest, size_t size, size_t ptr) {
+        auto old = rTell();
         rSeek(ptr, SEEK_SET);
-        return read(dest, size);
+        auto ret = read(dest, size);
+        rSeek(old, SEEK_SET);
+        return ret;
     }
     virtual ssize_t writeAt(const void* src, size_t size, size_t ptr) {
+        auto old = wTell();
         wSeek(ptr, SEEK_SET);
-        return write(src, size);
+        auto ret = write(src, size);
+        wSeek(old, SEEK_SET);
+        return ret;
     }
     virtual bool eof() { throw std::runtime_error("File has no way to determine eof"); }
-    virtual std::filesystem::path filename() = 0;
+    virtual std::filesystem::path filename() { return ""; }
     virtual File* dup() { throw std::runtime_error("Cannot duplicate file"); };
     virtual bool failed() { return false; }
     virtual int getc() {
@@ -137,6 +148,83 @@ class File {
   protected:
     File(bool writable) : m_writable(writable) {}
     const bool m_writable;
+
+  private:
+    void addRef() { ++m_refCount; }
+    void delRef() {
+        if (--m_refCount == 0) {
+            close();
+            delete this;
+        }
+    }
+    friend class IOBase;
+    template <class T>
+    friend class IO;
+
+    std::atomic<unsigned> m_refCount = 0;
+};
+
+class IOBase {
+  public:
+    void setFile(File* f) {
+        if (m_file) m_file->delRef();
+        m_file = f;
+        if (f) f->addRef();
+    }
+    void reset() {
+        if (m_file) m_file->delRef();
+        m_file = nullptr;
+    }
+    auto operator<=>(const IOBase&) const = default;
+    operator bool() const { return !!m_file; }
+
+  protected:
+    IOBase() {}
+    IOBase(File* f) : m_file(f) {
+        if (f) f->addRef();
+    }
+    ~IOBase() { reset(); }
+    File* m_file = nullptr;
+};
+
+template <class T>
+class IO : public IOBase {
+  public:
+    IO() {}
+    IO(T* f) : IOBase(f) {}
+    IO(const IO<T>& io) : IOBase(io.m_file) {}
+    IO(IO<T>&& io) {
+        m_file = io.m_file;
+        io.m_file = nullptr;
+    }
+    template <class U>
+    IO(const IO<U>& io) : IOBase(io.m_file) {}
+    template <class U>
+    IO(IO<U>&& io) {
+        m_file = io.m_file;
+        io.m_file = nullptr;
+    }
+    template <class U>
+    bool isA() {
+        return !!dynamic_cast<U*>(m_file);
+    }
+    template <class U>
+    IO<U> asA() {
+        IO<U> h(dynamic_cast<U*>(m_file));
+        return h;
+    }
+    IO<T>& operator=(const IO<T>& io) {
+        if (m_file) m_file->delRef();
+        setFile(io.m_file);
+        return *this;
+    }
+    T* operator->() {
+        if (!m_file) std::runtime_error("nullptr in operator->");
+        T* r = dynamic_cast<T*>(m_file);
+        if (!r) std::runtime_error("operator-> used with incompatible type - shouldn't happen");
+        return r;
+    }
+    bool isNull() { return dynamic_cast<T*>(m_file); }
 };
 
 class BufferFile : public File {
@@ -157,9 +245,8 @@ class BufferFile : public File {
     BufferFile();
     // Makes an empty read-write buffer.
     BufferFile(FileOps::ReadWrite);
-    virtual ~BufferFile() { closeInternal(); }
 
-    virtual void close() final override { closeInternal(); }
+    virtual void close() final override;
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
     virtual ssize_t wSeek(ssize_t pos, int wheel) final override;
@@ -169,21 +256,20 @@ class BufferFile : public File {
     virtual ssize_t write(const void* dest, size_t size) final override;
     virtual bool eof() final override;
     virtual File* dup() final override;
-    virtual std::filesystem::path filename() final override { return ""; }
 
   private:
-    void closeInternal();
     static uint8_t m_internalBuffer;
     size_t m_ptrR = 0;
     size_t m_ptrW = 0;
     size_t m_size = 0;
+    size_t m_allocSize = 0;
     uint8_t* m_data = nullptr;
     bool m_owned = false;
 };
 
 class PosixFile : public File {
   public:
-    virtual void close() final override { closeInternal(); }
+    virtual void close() final override;
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
     virtual ssize_t wSeek(ssize_t pos, int wheel) final override;
@@ -199,7 +285,7 @@ class PosixFile : public File {
         return m_writable ? new PosixFile(m_filename, FileOps::READWRITE) : new PosixFile(m_filename);
     }
     virtual bool failed() final override { return m_handle == nullptr; }
-    std::filesystem::path filename() final override { return m_filename; }
+    virtual std::filesystem::path filename() final override { return m_filename; }
     virtual int getc() final override {
         if (failed()) throw std::runtime_error("Invalid file");
         int r = fgetc(m_handle);
@@ -236,14 +322,30 @@ class PosixFile : public File {
     PosixFile(const char* filename, FileOps::Create);
     PosixFile(const char* filename, FileOps::ReadWrite);
 
-    ~PosixFile() { closeInternal(); }
-
   private:
-    void closeInternal();
     const std::filesystem::path m_filename;
     FILE* m_handle = nullptr;
     size_t m_ptrR = 0;
     size_t m_ptrW = 0;
+};
+
+class SubFile : public File {
+  public:
+    SubFile(IO<File> file, size_t start, size_t size) : File(false), m_file(file), m_start(start), m_size(size) {}
+    virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
+    virtual ssize_t rTell() final override { return m_ptrR; }
+    virtual size_t size() final override { return m_size; }
+    virtual ssize_t read(void* dest, size_t size) final override;
+    virtual ssize_t readAt(void* dest, size_t size, size_t ptr) final override;
+    virtual bool eof() final override { return m_ptrR == m_size; }
+    virtual File* dup() final override { return new SubFile(m_file, m_start, m_size); }
+    virtual bool failed() final override { return m_file->failed(); }
+
+  private:
+    IO<File> m_file;
+    size_t m_ptrR = 0;
+    const size_t m_start = 0;
+    const size_t m_size = 0;
 };
 
 }  // namespace PCSX
