@@ -89,13 +89,16 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     bool m_stopCompiling;  // Should we stop compiling code?
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
+    bool m_firstInstruction;
     uint32_t m_ramSize;    // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
 
+    // Used to hold info when we've got a load delay between the end of a block and the start of another
+    // For example, when there's an lw instruction in the delay slot of a branch
     struct {
         bool active;
         int index;
         uint32_t value;
-    } runtime_load_delay;
+    } m_runtimeLoadDelay;
 
     const int MAX_BLOCK_SIZE = 50;
 
@@ -333,6 +336,18 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void dumpProfileData();
 
     void maybeCancelDelayedLoad(int index) {
+        if (m_firstInstruction) {
+            const auto& delay = m_runtimeLoadDelay;
+            const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
+            const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
+
+            Label(noDelayedLoad);
+            gen.cmp(Xbyak::util::dword[contextPointer + indexOffset], index);  // Check if there's an active delay
+            gen.jne(noDelayedLoad);
+            gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 0);
+            gen.L(noDelayedLoad);
+        }
+
         const unsigned other = m_currentDelayedLoad ^ 1;
         if (m_delayedLoadInfo[other].index == index) {
             m_delayedLoadInfo[other].active = false;
@@ -438,6 +453,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     template <bool isAVSZ4>
     void recAVSZ();
+    void loadGTEDataRegister(Reg32 dest, int index);
 
     template <bool readSR>
     void testSoftwareInterrupt();

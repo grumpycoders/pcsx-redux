@@ -111,7 +111,7 @@ void DynaRecCPU::recCTC2() {
 
 void DynaRecCPU::recMTC2() {
     switch (_Rd_) {
-        case 15: // SXYP
+        case 15:                                                         // SXYP
             gen.mov(rax, qword[contextPointer + COP2_DATA_OFFSET(13)]);  // SXY0 = SXY1 and SXY1 = SXY2
             gen.mov(qword[contextPointer + COP2_DATA_OFFSET(12)], rax);
 
@@ -194,36 +194,9 @@ void DynaRecCPU::recMTC2() {
 
 static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg); }
 
-void DynaRecCPU::recMFC2() {
-    if (_Rt_) {
-        const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
-        if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
-            if (_Rd_ != 17) {
-                PCSX::g_system->message("Implement mean GTE behaviour for regs other than SZ1\n");
-            }
-            else {
-                gen.movzx(eax, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
-                if (loadDelayDependency == LoadDelayDependencyType::DependencyAcrossBlocks) {
-                    const auto delayedLoadValueOffset = (uintptr_t)&runtime_load_delay.value - (uintptr_t)this;
-                    const auto isActiveOffset = (uintptr_t)&runtime_load_delay.active - (uintptr_t)this;
-                    const auto indexOffset = (uintptr_t)&runtime_load_delay.index - (uintptr_t)this;
-                    gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
-                    gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 1);
-                    gen.mov(dword[contextPointer + indexOffset], _Rt_);
-                } else {
-                    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-                    const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
-                    delayedLoad.index = _Rt_;
-                    gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
-                }
-            }
-            return;
-        }
-        allocateRegWithoutLoad(_Rt_);
-        m_regs[_Rt_].setWriteback(true);
-    }
-
-    switch (_Rd_) {
+// Note: For IRGB/ORGB this will generate a call instruction. Only use if you do not care about a call happening
+void DynaRecCPU::loadGTEDataRegister(Reg32 dest, int index) {
+    switch (index) {
         case 1:
         case 3:
         case 5:
@@ -231,9 +204,7 @@ void DynaRecCPU::recMFC2() {
         case 9:
         case 10:
         case 11:
-            if (_Rt_) {
-                gen.movsx(m_regs[_Rt_].allocatedReg, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
-            }
+            gen.movsx(dest, word[contextPointer + COP2_DATA_OFFSET(index)]);
             break;
 
         case 7:
@@ -241,39 +212,94 @@ void DynaRecCPU::recMFC2() {
         case 17:
         case 18:
         case 19:
-            if (_Rt_) {
-                gen.movzx(m_regs[_Rt_].allocatedReg, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
-            }
+            gen.movzx(dest, word[contextPointer + COP2_DATA_OFFSET(index)]);
             break;
 
         case 15:  // Return SXY2 from SXYP
-            if (_Rt_) {
-                gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_DATA_OFFSET(14)]);
-            }
+            gen.mov(dest, dword[contextPointer + COP2_DATA_OFFSET(14)]);
             break;
 
         case 28:
         case 29:  // Fallback for IRGB/ORGB
-            gen.mov(arg1, _Rd_);
+            gen.mov(arg1, index);
             call(MFC2Wrapper);
-
-            if (_Rt_) {
-                allocateRegWithoutLoad(_Rt_);  // Reallocate the reg in case the call thrashed it
-                m_regs[_Rt_].setWriteback(true);
-                gen.mov(m_regs[_Rt_].allocatedReg, eax);
-            }
+            gen.mov(dest, eax);
             break;
 
         default:
-            if (_Rt_) {
-                gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
-            }
+            gen.mov(dest, dword[contextPointer + COP2_DATA_OFFSET(index)]);
+            break;
+    }
+}
+
+void DynaRecCPU::recMFC2() {
+    if (!_Rt_) return;
+
+    const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
+    if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
+        loadGTEDataRegister(eax, _Rd_);
+
+        if (loadDelayDependency == LoadDelayDependencyType::DependencyAcrossBlocks) {
+            const auto delayedLoadValueOffset = (uintptr_t)&m_runtimeLoadDelay.value - (uintptr_t)this;
+            const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+            const auto indexOffset = (uintptr_t)&m_runtimeLoadDelay.index - (uintptr_t)this;
+            gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+            gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 1);
+            gen.mov(dword[contextPointer + indexOffset], _Rt_);
+        } else {
+            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+            delayedLoad.index = _Rt_;
+            gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+        }
+        return;
+    }
+
+    // If we won't emulate the load delay, make sure to cancel any pending loads that might trample the value
+    maybeCancelDelayedLoad(_Rt_);
+    allocateRegWithoutLoad(_Rt_);
+    m_regs[_Rt_].setWriteback(true);
+
+    switch (_Rd_) {
+        // Fallback for IRGB/ORGB. Can't use loadGTEDataRegister for these because the call might unallocate $rt
+        case 28:
+        case 29:
+            gen.mov(arg1, _Rd_);
+            call(MFC2Wrapper);
+
+            allocateRegWithoutLoad(_Rt_);  // Reallocate the reg in case the call thrashed it
+            m_regs[_Rt_].setWriteback(true);
+            gen.mov(m_regs[_Rt_].allocatedReg, eax);
+            break;
+
+        default:
+            loadGTEDataRegister(m_regs[_Rt_].allocatedReg, _Rd_);
             break;
     }
 }
 
 void DynaRecCPU::recCFC2() {
-    if (_Rt_) {
+    if (!_Rt_) return;
+
+    const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
+    if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
+        gen.mov(eax, dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)]);
+
+        if (loadDelayDependency == LoadDelayDependencyType::DependencyAcrossBlocks) {
+            const auto delayedLoadValueOffset = (uintptr_t)&m_runtimeLoadDelay.value - (uintptr_t)this;
+            const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+            const auto indexOffset = (uintptr_t)&m_runtimeLoadDelay.index - (uintptr_t)this;
+            gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+            gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 1);
+            gen.mov(dword[contextPointer + indexOffset], _Rt_);
+        } else {
+            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+            delayedLoad.index = _Rt_;
+            gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+        }
+    } else {
+        // If we won't emulate the load delay, make sure to cancel any pending loads that might trample the value
         maybeCancelDelayedLoad(_Rt_);
         allocateRegWithoutLoad(_Rt_);
         m_regs[_Rt_].setWriteback(true);
@@ -339,8 +365,7 @@ void DynaRecCPU::recLWC2() {
 }
 
 void DynaRecCPU::recSWC2() {
-    gen.moveImm(arg1, _Rt_);
-    call(MFC2Wrapper);  // Fetch the COP2 data reg in eax
+    loadGTEDataRegister(arg2, _Rt_);  // Load the register we'll write to memory in arg2
 
     // Address in arg1
     if (m_regs[_Rs_].isConst()) {
@@ -350,7 +375,6 @@ void DynaRecCPU::recSWC2() {
         gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
     }
 
-    gen.mov(arg2, eax);  // Value to write in arg2
     call(psxMemWrite32Wrapper);
 }
 

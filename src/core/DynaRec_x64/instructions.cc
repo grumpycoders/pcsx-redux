@@ -702,9 +702,6 @@ void DynaRecCPU::recompileLoadWithDelay(LoadDelayDependencyType type) {
         case 32:
             call(psxMemRead32Wrapper);
             break;
-        default:
-            PCSX::g_system->message("Invalid size for memory load in dynarec. Instruction %08x\n", m_psxRegs.code);
-            break;
     }
 
     if (_Rt_) {
@@ -721,9 +718,9 @@ void DynaRecCPU::recompileLoadWithDelay(LoadDelayDependencyType type) {
         }
 
         if (type == LoadDelayDependencyType::DependencyAcrossBlocks) {
-            const auto delayedLoadValueOffset = (uintptr_t)&runtime_load_delay.value - (uintptr_t)this;
-            const auto isActiveOffset = (uintptr_t)&runtime_load_delay.active - (uintptr_t)this;
-            const auto indexOffset = (uintptr_t)&runtime_load_delay.index - (uintptr_t)this;
+            const auto delayedLoadValueOffset = (uintptr_t)&m_runtimeLoadDelay.value - (uintptr_t)this;
+            const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+            const auto indexOffset = (uintptr_t)&m_runtimeLoadDelay.index - (uintptr_t)this;
             gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
             gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 1);
             gen.mov(dword[contextPointer + indexOffset], _Rt_);
@@ -738,11 +735,16 @@ void DynaRecCPU::recompileLoadWithDelay(LoadDelayDependencyType type) {
 
 template <int size, bool signExtend>
 void DynaRecCPU::recompileLoad() {
+    static_assert(size == 8 || size == 16 || size == 32);
+
     const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
     if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
         recompileLoadWithDelay<size, signExtend>(loadDelayDependency);
         return;
     }
+
+    // If we won't emulate the load delay, make sure to cancel any pending loads that might trample the value
+    maybeCancelDelayedLoad(_Rt_);
 
     if (m_regs[_Rs_].isConst()) {  // Store the address in first argument register
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
@@ -770,9 +772,6 @@ void DynaRecCPU::recompileLoad() {
             break;
         case 32:
             call(psxMemRead32Wrapper);
-            break;
-        default:
-            PCSX::g_system->message("Invalid size for memory load in dynarec. Instruction %08x\n", m_psxRegs.code);
             break;
     }
 

@@ -84,7 +84,7 @@ bool DynaRecCPU::Init() {
 
     m_regs[0].markConst(0);  // $zero is always zero
     m_currentDelayedLoad = 0;
-    runtime_load_delay.active = false;
+    m_runtimeLoadDelay.active = false;
     return true;
 }
 
@@ -279,7 +279,7 @@ void DynaRecCPU::emitDispatcher() {
     // Code for handling load delays at the beginning of a block
     {
         gen.align(16);
-        const auto& delay = runtime_load_delay;
+        const auto& delay = m_runtimeLoadDelay;
         const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
         const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
         const auto valueOffset = (uintptr_t)&delay.value - (uintptr_t)this;
@@ -313,6 +313,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_pc = pc & ~3;
+    m_firstInstruction = true;
 
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
@@ -384,7 +385,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
 
     const auto resolveInitialLoadDelay = [&]() {
         Label noDelayedLoad;
-        const auto& delay = runtime_load_delay;
+        const auto& delay = m_runtimeLoadDelay;
         const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
 
         gen.cmp(Xbyak::util::byte[contextPointer + isActiveOffset], 0);  // Check if there's an active delay
@@ -398,6 +399,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
     flushRegs();
     resolveInitialLoadDelay();
     processDelayedLoad();
+    m_firstInstruction = false;
 
     while (shouldContinue()) {
         // Throw error if the PC is not pointing to a valid code address
