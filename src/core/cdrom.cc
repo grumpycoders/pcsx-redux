@@ -236,8 +236,9 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (m_transferIndex >= bufSize) m_transferIndex -= bufSize;
 
+        // FIFO empty
         if (m_transferIndex == 0) {
-            m_ctrl &= ~0x40;
+            m_ctrl &= ~0x40; // Clear DRQSTS, 0=Empty
             m_read = 0;
         }
     }
@@ -1143,7 +1144,6 @@ class CDRomImpl : public PCSX::CDRom {
             return;
         }
 
-        m_ctrl |= 0x40;
         SetResultSize(1);
         m_statP |= STATUS_READ | STATUS_ROTATING;
         m_statP &= ~STATUS_SEEK;
@@ -1166,6 +1166,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         memcpy(m_transfer, buf, DATA_SIZE);
         m_ppf.CheckPPFCache(m_transfer, m_prev[0], m_prev[1], m_prev[2]);
+        m_ctrl |= 0x40; // Clear DRQSTS, 1=NOT Empty
 
         CDROM_LOG("readInterrupt() Log: cdr.m_transfer %x:%x:%x\n", m_transfer[0], m_transfer[1], m_transfer[2]);
 
