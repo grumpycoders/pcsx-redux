@@ -230,7 +230,7 @@ void DynaRecCPU::emitDispatcher() {
     m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.cvt64());
-    gen.callFunc(recRecompileWrapper);            // Call recompilation function. Returns pointer to emitted code
+    gen.callFunc(recRecompileWrapper);  // Call recompilation function. Returns pointer to emitted code
     gen.jmp(rax);
 
     // Code for when the block we've jumped to is invalid. Throws an error and exits
@@ -247,10 +247,10 @@ void DynaRecCPU::emitDispatcher() {
 
     const uint32_t blockCount = m_ramSize / 4;  // Each 4 bytes correspond to 1 block
     gen.mov(rax, (uintptr_t)m_ramBlocks);       // rax = pointer to the blocks we'll be invalidating
-    gen.xor_(edx, edx);  // edx = iteration counter
+    gen.xor_(edx, edx);                         // edx = iteration counter
     Label literalPool;
 
-    if (gen.hasAVX) { // AVX version
+    if (gen.hasAVX) {                                 // AVX version
         gen.vmovdqa(ymm0, yword[rip + literalPool]);  // Broadcast the pointer in ymm0 four times over
         Label loop;
         gen.L(loop);                     // Memset loop
@@ -260,9 +260,9 @@ void DynaRecCPU::emitDispatcher() {
         gen.add(edx, 16 * 4);  // We cleared 64 blocks in total
         gen.cmp(edx, blockCount);
         gen.jb(loop);
-        gen.vzeroupper(); // Exit AVX context
+        gen.vzeroupper();  // Exit AVX context
         gen.ret();
-    } else { // SSE version
+    } else {  // SSE version
         // Store the pointer in xmm0 twice over, so we can write it twice in 1 128-bit write
         gen.movdqa(xmm0, xword[rip + literalPool]);
         Label loop;
@@ -275,7 +275,7 @@ void DynaRecCPU::emitDispatcher() {
         gen.jb(loop);
         gen.ret();
     }
-    
+
     // Code for handling load delays at the beginning of a block
     {
         gen.align(16);
@@ -284,7 +284,7 @@ void DynaRecCPU::emitDispatcher() {
         const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
         const auto valueOffset = (uintptr_t)&delay.value - (uintptr_t)this;
         const auto registerArrayOffset = (uintptr_t)&m_psxRegs.GPR.r[0] - (uintptr_t)this;
-        
+
         m_loadDelayHandler = gen.getCurr<DynarecCallback>();
         gen.mov(ecx, dword[contextPointer + indexOffset]);  // Index of the register that needs to be loaded to
         gen.mov(edx, dword[contextPointer + valueOffset]);  // Value of the register that needs to be loaded to
@@ -316,7 +316,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
     m_firstInstruction = true;
 
     const auto startingPC = m_pc;
-    int count = 0;  // How many instructions have we compiled?
+    int count = 0;                                      // How many instructions have we compiled?
     DynarecCallback* callback = getBlockPointer(m_pc);  // Pointer to where we'll store the addr of the emitted code
 
     if (align) {
@@ -376,8 +376,8 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
 
         // Fetch instruction. We make sure this function is called with a valid PC, otherwise it will crash
         m_psxRegs.code = *(uint32_t*)PSXM(m_pc);
-        m_pc += 4;            // Increment recompiler PC
-        count++;              // Increment instruction count
+        m_pc += 4;  // Increment recompiler PC
+        count++;    // Increment instruction count
 
         const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)();                                   // Jump into the handler to recompile it
@@ -385,6 +385,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
 
     const auto resolveInitialLoadDelay = [&]() {
         flushRegs();
+
         Label noDelayedLoad;
         const auto& delay = m_runtimeLoadDelay;
         const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
@@ -496,8 +497,8 @@ void DynaRecCPU::handleLinking() {
             }
 
             const auto pointer = gen.getCurr<uint8_t*>();
-            gen.jne((void*)m_returnFromBlock);           // Return if the block addr changed
-            recompile(nextPC, false);  // Fallthrough to next block
+            gen.jne((void*)m_returnFromBlock);  // Return if the block addr changed
+            recompile(nextPC, false);           // Fallthrough to next block
 
             *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
         } else {  // If it has already been compiled, link by jumping to the compiled code
@@ -546,7 +547,7 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
     if (p == nullptr) {  // Can't prefetch next instruction, will error
         return LoadDelayDependencyType::NoDependency;
     }
-    if (index == 0) { // Loads to $zero go to the void, so don't bother emulating it as a delayed load
+    if (index == 0) {  // Loads to $zero go to the void, so don't bother emulating it as a delayed load
         return LoadDelayDependencyType::NoDependency;
     }
 
@@ -593,15 +594,17 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
             dependencyType = specialDependencyList[instruction & 0x3F];
             break;
         case 0x10: {  // COP0 instructions also need special handling
-            // We need to emulate the delay if the rs field is 4, ie the instruction is MTC0, and "index" is the
-            return (rs == 4 && rt == index) ? LoadDelayDependencyType::DependencyInsideBlock : LoadDelayDependencyType::NoDependency;
+            // We need to emulate the delay if the rs field is 4, ie the instruction is MTC0, and "index" is the source
+            return (rs == 4 && rt == index) ? LoadDelayDependencyType::DependencyInsideBlock
+                                            : LoadDelayDependencyType::NoDependency;
         } break;
-        case 0x12:  // COP2 instructions too
-            // We need to emulate the delay if the rs field is 4 or 6, ie the instruction is CTC0 or CTC2, and "index"
-            // is the
-            return ((rs == 4 || rs == 6) && rt == index) ? LoadDelayDependencyType::DependencyInsideBlock
-                                                         : LoadDelayDependencyType::NoDependency;
+        case 0x12: {  // COP2 instructions too
+            // Check if the instruction is MFC2 or CFC2 with the source being $rt
+            const bool isMove = (instruction & 0x3F) == 0 && (rs == 4 || rs == 6);
+            return (isMove && rt == index) ? LoadDelayDependencyType::DependencyInsideBlock
+                                           : LoadDelayDependencyType::NoDependency;
             break;
+        }
         default:
             dependencyType = mainDependencyList[opcode];
             break;
@@ -611,7 +614,8 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
         case NoDep:
             return LoadDelayDependencyType::NoDependency;
         case DepIfRs:
-            return (index == rs) ? LoadDelayDependencyType::DependencyInsideBlock : LoadDelayDependencyType::NoDependency;
+            return (index == rs) ? LoadDelayDependencyType::DependencyInsideBlock
+                                 : LoadDelayDependencyType::NoDependency;
         case DepIfRt:
             return (index == rt) ? LoadDelayDependencyType::DependencyInsideBlock
                                  : LoadDelayDependencyType::NoDependency;
