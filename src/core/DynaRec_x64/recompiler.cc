@@ -384,6 +384,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
     };
 
     const auto resolveInitialLoadDelay = [&]() {
+        flushRegs();
         Label noDelayedLoad;
         const auto& delay = m_runtimeLoadDelay;
         const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
@@ -396,7 +397,6 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
 
     // For the first instruction in the block: Check if there's a pending load as well
     compileInstruction();
-    flushRegs();
     resolveInitialLoadDelay();
     processDelayedLoad();
     m_firstInstruction = false;

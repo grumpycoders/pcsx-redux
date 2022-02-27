@@ -705,7 +705,6 @@ void DynaRecCPU::recompileLoadWithDelay(LoadDelayDependencyType type) {
     }
 
     if (_Rt_) {
-        PCSX::g_system->printf("Need delayed load @ %08X\nJIT buffer index: %08X\n", m_pc, gen.getSize());
         m_delayedLoadInfo[m_currentDelayedLoad].active = true;
 
         switch (size) {
