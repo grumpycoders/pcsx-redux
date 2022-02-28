@@ -18,8 +18,11 @@
  ***************************************************************************/
 
 #include "gui/widgets/dynarec_disassembly.h"
-
+#if defined __WIN32__
+#include <capstone/capstone.h>
+#else
 #include <capstone.h>
+#endif
 
 #include <cinttypes>
 #include <fstream>
