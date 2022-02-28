@@ -1544,7 +1544,6 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     void reset() final {
-        m_OCUP = 0;
         m_reg1Mode = 0;
         m_cmdProcess = 0;
         m_ctrl = 0;
