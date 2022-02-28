@@ -928,7 +928,7 @@ int PCSX::SIO::findFirstFree(int mcd) {
 bool PCSX::SIO::copyMcdFile(McdBlock block) {
     auto other = otherMcd(block);
     if (getFreeSpace(other) < getFileBlockCount(block)) return false;
-    const auto const data = getMcdData(block);
+    const auto data = getMcdData(block);
     const auto otherData = getMcdData(other);
 
     std::bitset<16> walked;
