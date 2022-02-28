@@ -148,7 +148,7 @@ typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuffer, SIOStatusReg, SIOModeReg
     SIO;
 typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 7> SIOField;
 
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("ocup"), 1> CDOCUP;
+// skip id 1
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("reg1_mode"), 2> CDReg1Mode;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("reg2"), 3> CDReg2;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("cmd_process"), 4> CDCmdProcess;
@@ -207,7 +207,7 @@ typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("track_changed"), 56> CDTr
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("location_changed"), 57> CDLocationChanged;
 
 typedef Protobuf::Message<
-    TYPESTRING("CDRom"), CDOCUP, CDReg1Mode, CDReg2, CDCmdProcess, CDCtrl, CDStat, CDStatP, CDTransfer, CDTransferIndex,
+    TYPESTRING("CDRom"), CDReg1Mode, CDReg2, CDCmdProcess, CDCtrl, CDStat, CDStatP, CDTransfer, CDTransferIndex,
     CDPrev, CDParam, CDResult, CDParamC, CDParamP, CDResultC, CDResultP, CDResultReady, CDCmd, CDRead, CDSetLocPending,
     CDReading, CDResultTN, CDResultTD, CDSetSectorPlay, CDSetSectorEnd, CDSetSector, CDTrack, CDPlay, CDMuted,
     CDCurTrack, CDMode, CDFile, CDChannel, CDSuceeded, CDFirstSector, CDIRQ, CDIrqRepeated, CDECycle, CDSeeked,
