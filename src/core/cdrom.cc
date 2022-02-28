@@ -476,7 +476,6 @@ class CDRomImpl : public PCSX::CDRom {
 
             StopCdda();
         } else if (m_mode & MODE_REPORT) {
-            m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
             m_result[0] = m_statP;
             m_result[1] = m_subq.track;
             m_result[2] = m_subq.index;
@@ -546,11 +545,12 @@ class CDRomImpl : public PCSX::CDRom {
             m_trackChanged = true;
         }
 
+        m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
         if (!m_irq && !m_stat && (m_mode & (MODE_AUTOPAUSE | MODE_REPORT))) cdrPlayInterrupt_Autopause();
 
         if (!m_play) return;
 
-        if (!m_muted && (m_mode & (MODE_REPORT))) {
+        if (!m_muted) {
             attenuate((int16_t *)m_transfer, CD_FRAMESIZE_RAW / 4, 1);
             PCSX::g_emulator->m_spu->playCDDAchannel((short *)m_transfer, CD_FRAMESIZE_RAW);
         }
