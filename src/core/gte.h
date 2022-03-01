@@ -119,7 +119,6 @@ class GTE {
     int32_t A2(/*int44*/ int64_t a);
     int32_t A3(/*int44*/ int64_t a);
     int64_t F(int64_t a);
-    int docop2(uint32_t op);
 
     uint32_t MFC2_internal(int reg);
     void MTC2_internal(uint32_t value, int reg);
