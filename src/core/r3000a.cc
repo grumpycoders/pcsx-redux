@@ -349,7 +349,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
         // GTE instruction. To deal with this, we do not fire IRQs if the next instruction is a GTE instruction
         // https://psx-spx.consoledev.net/cpuspecifications/#interrupts-vs-gte-commands
         const auto next = *(uint32_t*)PSXM(m_psxRegs.pc);
-        if ((((next) >> 24) & 0xfe) == 0x4a) {
+        if (((next >> 24) & 0xfe) == 0x4a) {
             return;
         }
 
