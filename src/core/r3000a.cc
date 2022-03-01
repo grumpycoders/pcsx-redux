@@ -348,9 +348,12 @@ void PCSX::R3000Acpu::psxBranchTest() {
         // But EPC still ends up pointing to the GTE instruction. In this case, the BIOS will add 4 to EPC to skip the
         // GTE instruction. To deal with this, we do not fire IRQs if the next instruction is a GTE instruction
         // https://psx-spx.consoledev.net/cpuspecifications/#interrupts-vs-gte-commands
-        const auto next = *(uint32_t*)PSXM(m_psxRegs.pc);
-        if (((next >> 24) & 0xfe) == 0x4a) {
-            return;
+        const auto pointer = (uint32_t*)PSXM(m_psxRegs.pc);
+        if (pointer != nullptr) {
+            const auto next = *pointer; // Fetch next instruction
+            if (((next >> 24) & 0xfe) == 0x4a) { // Return if it's a GTE instruction
+                return;
+            }
         }
 
         PSXIRQ_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
