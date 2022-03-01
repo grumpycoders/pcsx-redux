@@ -25,12 +25,12 @@
 
 uint8_t PCSX::BufferFile::m_internalBuffer = 0;
 
-PCSX::BufferFile::BufferFile(void *data, size_t size) : File(false) {
+PCSX::BufferFile::BufferFile(void *data, size_t size) : File(RO_SEEKABLE) {
     m_data = reinterpret_cast<uint8_t *>(data);
     m_size = size;
 }
 
-PCSX::BufferFile::BufferFile(void *data, size_t size, FileOps::ReadWrite) : File(true) {
+PCSX::BufferFile::BufferFile(void *data, size_t size, FileOps::ReadWrite) : File(RW_SEEKABLE) {
     m_data = reinterpret_cast<uint8_t *>(malloc(size));
     if (m_data == nullptr) throw std::runtime_error("Out of memory");
     memcpy(m_data, data, size);
@@ -38,18 +38,18 @@ PCSX::BufferFile::BufferFile(void *data, size_t size, FileOps::ReadWrite) : File
     m_owned = true;
 }
 
-PCSX::BufferFile::BufferFile(void *data, size_t size, Acquire) : File(true) {
+PCSX::BufferFile::BufferFile(void *data, size_t size, Acquire) : File(RW_SEEKABLE) {
     m_data = reinterpret_cast<uint8_t *>(data);
     m_size = m_allocSize = size;
     m_owned = true;
 }
 
-PCSX::BufferFile::BufferFile() : File(false) {
+PCSX::BufferFile::BufferFile() : File(RO_SEEKABLE) {
     m_data = &m_internalBuffer;
     m_size = 1;
 }
 
-PCSX::BufferFile::BufferFile(FileOps::ReadWrite) : File(true) {
+PCSX::BufferFile::BufferFile(FileOps::ReadWrite) : File(RW_SEEKABLE) {
     m_data = nullptr;
     m_owned = true;
 }
@@ -104,7 +104,7 @@ ssize_t PCSX::BufferFile::read(void *dest, size_t size) {
 }
 
 ssize_t PCSX::BufferFile::write(const void *src, size_t size) {
-    if (!m_writable) return -1;
+    if (!writable()) return -1;
     size_t newSize = m_ptrW + size;
     if (newSize > m_size) {
         m_size = newSize;
@@ -158,32 +158,32 @@ static FILE *openwrapper(const char *filename, const wchar_t *mode) {
     return ret;
 }
 
-PCSX::PosixFile::PosixFile(const char *filename) : File(false), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename) : File(RO_SEEKABLE), m_filename(filename) {
     m_handle = openwrapper(filename, L"rb");
 }
 
-PCSX::PosixFile::PosixFile(const char *filename, FileOps::Create) : File(true), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::Create) : File(RW_SEEKABLE), m_filename(filename) {
     m_handle = openwrapper(filename, L"ab+");
 }
 
-PCSX::PosixFile::PosixFile(const char *filename, FileOps::Truncate) : File(true), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::Truncate) : File(RW_SEEKABLE), m_filename(filename) {
     m_handle = openwrapper(filename, L"wb+");
 }
 
-PCSX::PosixFile::PosixFile(const char *filename, FileOps::ReadWrite) : File(true), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABLE), m_filename(filename) {
     m_handle = openwrapper(filename, L"rb+");
 }
 #else  // !Windows || !UNICODE
-PCSX::PosixFile::PosixFile(const char *filename) : File(false), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename) : File(RO_SEEKABLE), m_filename(filename) {
     m_handle = fopen(filename, "rb");
 }
-PCSX::PosixFile::PosixFile(const char *filename, FileOps::Create) : File(true), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::Create) : File(RW_SEEKABLE), m_filename(filename) {
     m_handle = fopen(filename, "ab+");
 }
-PCSX::PosixFile::PosixFile(const char *filename, FileOps::Truncate) : File(true), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::Truncate) : File(RW_SEEKABLE), m_filename(filename) {
     m_handle = fopen(filename, "wb+");
 }
-PCSX::PosixFile::PosixFile(const char *filename, FileOps::ReadWrite) : File(true), m_filename(filename) {
+PCSX::PosixFile::PosixFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABLE), m_filename(filename) {
     m_handle = fopen(filename, "rb+");
 }
 #endif

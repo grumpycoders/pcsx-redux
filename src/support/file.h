@@ -21,9 +21,11 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <zlib.h>
 
 #include <compare>
 #include <filesystem>
+#include <type_traits>
 
 #include "support/slice.h"
 #include "support/ssize_t.h"
@@ -36,8 +38,14 @@ enum Create { CREATE };
 enum ReadWrite { READWRITE };
 }  // namespace FileOps
 
+class File;
+
+template <class T>
+concept FileDerived = std::is_base_of<File, T>::value;
+
 class File {
   public:
+    enum FileType { RO_STREAM, RW_STREAM, RO_SEEKABLE, RW_SEEKABLE };
     virtual ~File() {
         if (m_refCount.load() != 0) {
             throw std::runtime_error("File object used without IO<> wrapper despite being in one");
@@ -79,7 +87,8 @@ class File {
     File& operator=(const File&) = delete;
     File& operator=(File&&) = delete;
 
-    bool writable() { return m_writable; }
+    bool writable() { return (m_filetype == RW_STREAM) || (m_filetype == RW_SEEKABLE); }
+    bool seekable() { return (m_filetype == RO_SEEKABLE) || (m_filetype == RW_SEEKABLE); }
 
     char* gets(char* s, size_t size) {
         if (!size) return nullptr;
@@ -146,8 +155,8 @@ class File {
     }
 
   protected:
-    File(bool writable) : m_writable(writable) {}
-    const bool m_writable;
+    File(FileType filetype) : m_filetype(filetype) {}
+    const FileType m_filetype;
 
   private:
     void addRef() { ++m_refCount; }
@@ -158,7 +167,7 @@ class File {
         }
     }
     friend class IOBase;
-    template <class T>
+    template <FileDerived T>
     friend class IO;
 
     std::atomic<unsigned> m_refCount = 0;
@@ -187,7 +196,7 @@ class IOBase {
     File* m_file = nullptr;
 };
 
-template <class T>
+template <FileDerived T>
 class IO : public IOBase {
   public:
     IO() {}
@@ -282,7 +291,7 @@ class PosixFile : public File {
         return feof(m_handle);
     }
     virtual File* dup() final override {
-        return m_writable ? new PosixFile(m_filename, FileOps::READWRITE) : new PosixFile(m_filename);
+        return writable() ? new PosixFile(m_filename, FileOps::READWRITE) : new PosixFile(m_filename);
     }
     virtual bool failed() final override { return m_handle == nullptr; }
     virtual std::filesystem::path filename() final override { return m_filename; }
@@ -331,7 +340,8 @@ class PosixFile : public File {
 
 class SubFile : public File {
   public:
-    SubFile(IO<File> file, size_t start, size_t size) : File(false), m_file(file), m_start(start), m_size(size) {}
+    SubFile(IO<File> file, size_t start, size_t size)
+        : File(file->seekable() ? RO_SEEKABLE : RO_STREAM), m_file(file), m_start(start), m_size(size) {}
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
     virtual size_t size() final override { return m_size; }

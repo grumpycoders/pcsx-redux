@@ -20,7 +20,6 @@
 #include "core/binloader.h"
 
 #include <stdint.h>
-#include <zlib.h>
 
 #include <filesystem>
 #include <string>
@@ -30,6 +29,7 @@
 #include "core/r3000a.h"
 #include "fmt/format.h"
 #include "support/file.h"
+#include "support/zfile.h"
 
 namespace PCSX {
 
@@ -203,31 +203,8 @@ bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
         if (!subFile->failed()) loadPSF(subFile, seenRefresh, depth++);
     }
 
-    {
-        uint8_t* buffer = (uint8_t*)malloc(N);
-        zpsexe->read(buffer, N);
-        static constexpr unsigned TWOM = 2 * 1024 * 1024;
-        uint8_t* psexe = (uint8_t*)malloc(TWOM);  // and no fucks were given today.
-        z_stream infstream;
-        infstream.zalloc = Z_NULL;
-        infstream.zfree = Z_NULL;
-        infstream.opaque = Z_NULL;
-        infstream.avail_in = N;
-        infstream.next_in = buffer;
-        infstream.avail_out = TWOM;
-        infstream.next_out = psexe;
-
-        inflateInit(&infstream);
-        auto res = inflate(&infstream, Z_FINISH);
-        inflateEnd(&infstream);
-
-        if (res == Z_STREAM_END) {
-            IO<File> z(new BufferFile(psexe, TWOM));
-            loadPSEXE(z);
-        }
-        free(psexe);
-        free(buffer);
-    }
+    IO<File> psexe(new ZReader(zpsexe));
+    loadPSEXE(psexe);
 
     unsigned libNum = 2;
 

@@ -21,15 +21,16 @@
 
 void PCSX::UvFile::close() { free(m_cache); }
 
-PCSX::UvFile::UvFile(const char *filename) : File(false), m_filename(filename) { /*m_handle = fopen(filename, "rb");*/
+PCSX::UvFile::UvFile(const char *filename)
+    : File(RO_SEEKABLE), m_filename(filename) { /*m_handle = fopen(filename, "rb");*/
 }
-PCSX::UvFile::UvFile(const char *filename, FileOps::Create) : File(true), m_filename(filename) {
+PCSX::UvFile::UvFile(const char *filename, FileOps::Create) : File(RW_SEEKABLE), m_filename(filename) {
     /*m_handle = fopen(filename, "ab+");*/
 }
-PCSX::UvFile::UvFile(const char *filename, FileOps::Truncate) : File(true), m_filename(filename) {
+PCSX::UvFile::UvFile(const char *filename, FileOps::Truncate) : File(RW_SEEKABLE), m_filename(filename) {
     /*m_handle = fopen(filename, "wb+");*/
 }
-PCSX::UvFile::UvFile(const char *filename, FileOps::ReadWrite) : File(true), m_filename(filename) {
+PCSX::UvFile::UvFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABLE), m_filename(filename) {
     /*m_handle = fopen(filename, "rb+");*/
 }
 
@@ -79,7 +80,7 @@ ssize_t PCSX::UvFile::read(void *dest, size_t size) {
 }
 
 ssize_t PCSX::UvFile::write(const void *src, size_t size) {
-    if (!m_writable) return -1;
+    if (!writable()) return -1;
     if (m_cache) {
         while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
             ;

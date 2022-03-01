@@ -38,7 +38,7 @@ class UvFile : public File {
     virtual bool eof() final override;
     virtual std::filesystem::path filename() final override { return m_filename; }
     virtual File* dup() final override {
-        return m_writable ? new UvFile(m_filename, FileOps::READWRITE) : new UvFile(m_filename);
+        return writable() ? new UvFile(m_filename, FileOps::READWRITE) : new UvFile(m_filename);
     }
 
     // Open the file in read-only mode.
