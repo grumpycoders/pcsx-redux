@@ -230,6 +230,7 @@ void DynaRecCPU::emitDispatcher() {
     m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.cvt64());
+    gen.xor_(arg2, arg2);               // Do not fully emulate load delays at first
     gen.callFunc(recRecompileWrapper);  // Call recompilation function. Returns pointer to emitted code
     gen.jmp(rax);
 
@@ -300,11 +301,19 @@ void DynaRecCPU::emitDispatcher() {
     for (int i = 0; i < 4; i++) {
         gen.dq((uintptr_t)m_uncompiledBlock);
     }
+
+    // Code to recompile the current block with full load delay emulation if necessary
+    gen.align(16);
+    m_needFullLoadDelays = gen.getCurr<DynarecCallback>();
+    loadThisPointer(arg1.cvt64());
+    gen.mov(arg2, 1);                   // Fully emulate load delays
+    gen.callFunc(recRecompileWrapper);  // Call recompilation function. Returns pointer to emitted code
+    gen.jmp(rax);
 }
 
 // Compile a block, write address of compiled code to *callback
 // Returns the address of the compiled block
-DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
+DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, bool align) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
@@ -314,6 +323,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
     m_delayedLoadInfo[1].active = false;
     m_pc = pc & ~3;
     m_firstInstruction = true;
+    m_fullLoadDelayEmulation = fullLoadDelayEmulation;
 
     const auto startingPC = m_pc;
     int count = 0;                                      // How many instructions have we compiled?
@@ -340,6 +350,14 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
         }
     }
 
+    if (!m_fullLoadDelayEmulation) {
+        const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+
+        // Check if there's a pending load at the start of the block. If so we need to
+        // Recompile the block with full load delay support
+        gen.cmp(Xbyak::util::byte[contextPointer + isActiveOffset], 0);
+        gen.jne((void*)m_needFullLoadDelays);
+    }
     handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.
 
     const auto shouldContinue = [&]() {
@@ -384,6 +402,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool align) {
     };
 
     const auto resolveInitialLoadDelay = [&]() {
+        if (!m_fullLoadDelayEmulation) return;
         flushRegs();
 
         Label noDelayedLoad;

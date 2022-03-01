@@ -83,6 +83,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_invalidBlock;     // Pointer to the code that will be executed the PC is invalid
     DynarecCallback m_invalidateBlocks; // Pointer to the code that will invalidate all RAM code blocks
     DynarecCallback m_loadDelayHandler; // Pointer to the code that will handle load delays at the start of a block
+    // Pointer to the code that will be executed when a block needs to be recompiled with full load delay support
+    DynarecCallback m_needFullLoadDelays;
 
     Emitter gen;
     uint32_t m_pc;  // Recompiler PC
@@ -90,6 +92,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     bool m_stopCompiling;  // Should we stop compiling code?
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
     bool m_firstInstruction;
+    bool m_fullLoadDelayEmulation;
     uint32_t m_ramSize;    // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
 
     // Used to hold info when we've got a load delay between the end of a block and the start of another
@@ -299,8 +302,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
 
     static void signalShellReached(DynaRecCPU* that);
-    static DynarecCallback recRecompileWrapper(DynaRecCPU* that) {
-        return that->recompile(that->m_psxRegs.pc);
+    static DynarecCallback recRecompileWrapper(DynaRecCPU* that, bool fullLoadDelayEmulation) {
+        return that->recompile(that->m_psxRegs.pc, fullLoadDelayEmulation);
     }
 
     void inlineClear(uint32_t address) {
@@ -320,7 +323,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
-    DynarecCallback recompile(uint32_t pc, bool align = true);
+    DynarecCallback recompile(uint32_t pc, bool fullLoadDelayEmulation, bool align = true);
     void error();
     void flushCache();
     void handleLinking();
@@ -336,7 +339,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void dumpProfileData();
 
     void maybeCancelDelayedLoad(int index) {
-        if (m_firstInstruction) {
+        if (m_fullLoadDelayEmulation && m_firstInstruction) {
             const auto& delay = m_runtimeLoadDelay;
             const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
             const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
