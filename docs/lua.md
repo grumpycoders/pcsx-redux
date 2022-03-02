@@ -225,7 +225,7 @@ This example will showcase using the BreakPoints and Assembly UI, as well as usi
 
 Crash Bandicoot 1 has several modes of execution. These modes tell the game what to do, such as which level to load into, or to load back into the map. These modes are passed to the main game loop routine as an argument. Due to this, manually manipulating memory at the right time with the correct value to can be tricky to ensure the desired result.
 
-The game modes are listed here - https://github.com/wurlyfox/crashutils/blob/da21a40a3e8928762eb58b551a54a6e6f8ed73e9/doc/crash/disasm_guide.txt#L131
+The game modes are [listed here](https://github.com/wurlyfox/crashutils/blob/da21a40a3e8928762eb58b551a54a6e6f8ed73e9/doc/crash/disasm_guide.txt#L131).
 
 In Crash 1, there is a level that was included in the game but cut from the final level selection due to difficulty, 'Stormy Ascent'. This level can be accessed only by manipulating the game mode value that is passed to the main game routine. There is a gameshark code that points us to the memory location and value that needs to be written in order to set the game mode to the Story Ascent level.
 
