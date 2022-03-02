@@ -189,7 +189,7 @@ You can see this code in action [in this demo video](https://youtu.be/WeHXTLDy5r
 
 ### Crash Bandicoot
 
-Using exactly the same as above, we can repeat the same sort of cheats for Crash Bandicoot, using the following Lua code:
+Using exactly the same as above, we can repeat the same sort of cheats for Crash Bandicoot. Note that when the CPU is being emulated, the `DrawImguiFrame` function will be called at least when the emulation is issuing a vsync event. This means that cheat codes that regularly write to memory during vsync can be applied naturally.
 
 ```lua
 local function crash_Checkbox(mem, address, name, value, original)
