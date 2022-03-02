@@ -197,7 +197,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         }
     }
 
-    virtual void invalidateCache() final {
+    virtual void invalidateCache() override final {
         memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
         memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
         m_invalidateBlocks();
