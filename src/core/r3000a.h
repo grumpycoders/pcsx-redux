@@ -476,7 +476,7 @@ Formula One 2001
   updated with new code (affects in-game racing)
 */
 
-    inline void invalidateCache() {
+    virtual void invalidateCache() {
         memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
         memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
     }
