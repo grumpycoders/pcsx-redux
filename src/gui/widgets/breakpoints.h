@@ -36,7 +36,7 @@ class Breakpoints {
     bool m_filterW1 = true;
     bool m_filterW2 = true;
     bool m_filterW4 = true;
-    char m_bpAddressString[20];
+    char m_bpAddressString[20] = "";
     int m_breakpointType = 0;
     int m_breakpointWidth = 1;
 };
