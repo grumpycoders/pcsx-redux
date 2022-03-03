@@ -193,16 +193,16 @@ Using exactly the same as above, we can repeat the same sort of cheats for Crash
 
 ```lua
 local function crash_Checkbox(mem, address, name, value, original)
-    address = bit.band(address, 0x1fffff)
-    local pointer = mem + address
-    pointer = ffi.cast('uint32_t*', pointer)
-    local changed
-    local check
-    local tempvalue = pointer[0]
-    if tempvalue == original then check = false end
-    if tempvalue == value then check = true else check = false end
-    changed, check = imgui.Checkbox(name, check)
-    if check then pointer[0] = value else pointer[0] = original end
+  address = bit.band(address, 0x1fffff)
+  local pointer = mem + address
+  pointer = ffi.cast('uint32_t*', pointer)
+  local changed
+  local check
+  local tempvalue = pointer[0]
+  if tempvalue == original then check = false end
+  if tempvalue == value then check = true else check = false end
+  changed, check = imgui.Checkbox(name, check)
+  if check then pointer[0] = value else pointer[0] = original end
 end
 
 function DrawImguiFrame()
