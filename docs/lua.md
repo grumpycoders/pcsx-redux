@@ -235,7 +235,7 @@ The issue is that GameShark uses a hook to achieve setting this value at the cor
 
 Setting the breakpoint can be done through the Breakpoint UI or in the Lua console. There is a link to a video at the bottom of the article showing the entire procedure.
 
-Breakpoints can alternatively be set through the Lua console. In PCSX-Redux top menu, click Debug -> Show Lua Console
+Breakpoints can alternatively be set through the Lua console. In PCSX-Redux top menu, click Debug → Show Lua Console
 
 We are going to add a breakpoint to pause execution when memory address 0x8001db0 is read. This will show where the main game loop is located in memory.
 
@@ -247,7 +247,7 @@ bp = PCSX.addBreakpoint(0x80011db0, 'Read', 1, 'Find main loop')
 
 You should see where the breakpoint was added in the Lua console, as well as in the Breakpoints UI. Note that we need to assign the result of the function to a variable to avoid garbage collection.
 
-Now open Debug -> Show Assembly
+Now open Debug → Show Assembly
 
 Start the emulator with Crash Bandicoot 1 SCUS94900
 
@@ -263,9 +263,9 @@ In the Lua console, paste the following and hit enter.
 bp = PCSX.addBreakpoint(0x80042068, 'Exec', 4, 'Stormy Ascent', function() PCSX.getMemPtr()[0x11db0] = 0x22 end)
 ```
 
-We can now disable/remove our Read breakpoint using the Breakpoints UI, and restart the game. Emulation -> Hard Reset
+We can now disable/remove our Read breakpoint using the Breakpoints UI, and restart the game. Emulation → Hard Reset
 
-If the Emulator status shows Idle, click Emulation -> Start
+If the Emulator status shows Idle, click Emulation → Start
 
 Once the game starts, instead of loading into the main menu, you should load directly into the Stormy Ascent level.
 
