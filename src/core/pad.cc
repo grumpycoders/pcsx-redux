@@ -33,27 +33,7 @@
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
 
-enum {
-    // MOUSE SCPH-1030
-    PSE_PAD_TYPE_MOUSE = 1,
-    // NEGCON - 16 button analog controller SLPH-00001
-    PSE_PAD_TYPE_NEGCON = 2,
-    // GUN CONTROLLER - gun controller SLPH-00014 from Konami
-    PSE_PAD_TYPE_GUN = 3,
-    // STANDARD PAD SCPH-1080, SCPH-1150
-    PSE_PAD_TYPE_STANDARD = 4,
-    // ANALOG JOYSTICK SCPH-1110
-    PSE_PAD_TYPE_ANALOGJOY = 5,
-    // GUNCON - gun controller SLPH-00034 from Namco
-    PSE_PAD_TYPE_GUNCON = 6,
-    // ANALOG CONTROLLER SCPH-1150
-    PSE_PAD_TYPE_ANALOGPAD = 7,
-};
-
-struct PadDataS {
-    // controler type - fill it withe predefined values above
-    uint8_t controllerType;
-
+struct PadData {
     // status of buttons - every controller fills this field
     uint16_t buttonStatus;
 
@@ -252,16 +232,16 @@ uint16_t PCSX::Pads::Pad::getButtons() {
     return result;
 }
 
-void PCSX::Pads::Pad::readPort(PadDataS* data) {
-    memset(data, 0, sizeof(PadDataS));
-    data->buttonStatus = getButtons();
+void PCSX::Pads::Pad::readPort(PadData& data) {
+    memset(&data, 0, sizeof(PadData));
+    data.buttonStatus = getButtons();
 }
 
 uint8_t PCSX::Pads::startPoll(Port port) {
-    PadDataS padd;
+    PadData padd;
     int index = port == Port1 ? 0 : 1;
-    m_pads[index].readPort(&padd);
-    return m_pads[index].startPoll(&padd);
+    m_pads[index].readPort(padd);
+    return m_pads[index].startPoll(padd);
 }
 
 uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
@@ -271,7 +251,7 @@ uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
 
 uint8_t PCSX::Pads::Pad::poll(uint8_t value) { return m_bufc > m_bufcount ? 0xff : m_buf[m_bufc++]; }
 
-uint8_t PCSX::Pads::Pad::startPoll(PadDataS* pad) {
+uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
     m_bufc = 0;
 
     if (!m_settings.get<SettingConnected>()) {
@@ -279,56 +259,56 @@ uint8_t PCSX::Pads::Pad::startPoll(PadDataS* pad) {
         return 0xff;
     }
 
-    switch (pad->controllerType) {
-        case PSE_PAD_TYPE_MOUSE:
-            m_mousepar[3] = pad->buttonStatus & 0xff;
-            m_mousepar[4] = pad->buttonStatus >> 8;
-            m_mousepar[5] = pad->moveX;
-            m_mousepar[6] = pad->moveY;
+    switch (m_type) {
+        case PadType::Mouse:
+            m_mousepar[3] = pad.buttonStatus & 0xff;
+            m_mousepar[4] = pad.buttonStatus >> 8;
+            m_mousepar[5] = pad.moveX;
+            m_mousepar[6] = pad.moveY;
 
             memcpy(m_buf, m_mousepar, 7);
             m_bufcount = 6;
             break;
-        case PSE_PAD_TYPE_NEGCON:  // npc101/npc104(slph00001/slph00069)
+        case PadType::Negcon:  // npc101/npc104(slph00001/slph00069)
             m_analogpar[1] = 0x23;
-            m_analogpar[3] = pad->buttonStatus & 0xff;
-            m_analogpar[4] = pad->buttonStatus >> 8;
-            m_analogpar[5] = pad->rightJoyX;
-            m_analogpar[6] = pad->rightJoyY;
-            m_analogpar[7] = pad->leftJoyX;
-            m_analogpar[8] = pad->leftJoyY;
+            m_analogpar[3] = pad.buttonStatus & 0xff;
+            m_analogpar[4] = pad.buttonStatus >> 8;
+            m_analogpar[5] = pad.rightJoyX;
+            m_analogpar[6] = pad.rightJoyY;
+            m_analogpar[7] = pad.leftJoyX;
+            m_analogpar[8] = pad.leftJoyY;
 
             memcpy(m_buf, m_analogpar, 9);
             m_bufcount = 8;
             break;
-        case PSE_PAD_TYPE_ANALOGPAD:  // scph1150
+        case PadType::AnalogPad:  // scph1150
             m_analogpar[1] = 0x73;
-            m_analogpar[3] = pad->buttonStatus & 0xff;
-            m_analogpar[4] = pad->buttonStatus >> 8;
-            m_analogpar[5] = pad->rightJoyX;
-            m_analogpar[6] = pad->rightJoyY;
-            m_analogpar[7] = pad->leftJoyX;
-            m_analogpar[8] = pad->leftJoyY;
+            m_analogpar[3] = pad.buttonStatus & 0xff;
+            m_analogpar[4] = pad.buttonStatus >> 8;
+            m_analogpar[5] = pad.rightJoyX;
+            m_analogpar[6] = pad.rightJoyY;
+            m_analogpar[7] = pad.leftJoyX;
+            m_analogpar[8] = pad.leftJoyY;
 
             memcpy(m_buf, m_analogpar, 9);
             m_bufcount = 8;
             break;
-        case PSE_PAD_TYPE_ANALOGJOY:  // scph1110
+        case PadType::AnalogJoy:  // scph1110
             m_analogpar[1] = 0x53;
-            m_analogpar[3] = pad->buttonStatus & 0xff;
-            m_analogpar[4] = pad->buttonStatus >> 8;
-            m_analogpar[5] = pad->rightJoyX;
-            m_analogpar[6] = pad->rightJoyY;
-            m_analogpar[7] = pad->leftJoyX;
-            m_analogpar[8] = pad->leftJoyY;
+            m_analogpar[3] = pad.buttonStatus & 0xff;
+            m_analogpar[4] = pad.buttonStatus >> 8;
+            m_analogpar[5] = pad.rightJoyX;
+            m_analogpar[6] = pad.rightJoyY;
+            m_analogpar[7] = pad.leftJoyX;
+            m_analogpar[8] = pad.leftJoyY;
 
             memcpy(m_buf, m_analogpar, 9);
             m_bufcount = 8;
             break;
-        case PSE_PAD_TYPE_STANDARD:
+        case PadType::Standard:
         default:
-            m_stdpar[3] = pad->buttonStatus & 0xff;
-            m_stdpar[4] = pad->buttonStatus >> 8;
+            m_stdpar[3] = pad.buttonStatus & 0xff;
+            m_stdpar[4] = pad.buttonStatus >> 8;
 
             memcpy(m_buf, m_stdpar, 5);
             m_bufcount = 4;

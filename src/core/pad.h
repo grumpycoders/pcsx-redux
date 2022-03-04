@@ -27,7 +27,7 @@
 #include "imgui.h"
 #include "json.hpp"
 
-struct PadDataS;
+struct PadData;
 using json = nlohmann::json;
 
 namespace PCSX {
@@ -35,6 +35,15 @@ class Pads {
   public:
     enum Port { Port1, Port2 };
     enum class InputType { Auto, Controller, Keyboard };
+    enum class PadType {
+        Standard = 0,
+        Negcon,
+        Mouse,
+        Gun,
+        AnalogJoy,
+        Guncon,
+        AnalogPad
+    };
 
     Pads();
     void init();
@@ -106,8 +115,8 @@ class Pads {
         PadSettings;
 
     struct Pad {
-        void readPort(PadDataS *pad);
-        uint8_t startPoll(PadDataS *pad);
+        void readPort(PadData& pad);
+        uint8_t startPoll(const PadData& pad);
         uint8_t poll(uint8_t);
         uint16_t getButtons();
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
@@ -123,6 +132,7 @@ class Pads {
 
         int m_scancodes[16];
         int m_padMapping[16];
+        PadType m_type = PadType::Standard;
 
         int m_padID = 0;
         int m_buttonToWait = -1;
