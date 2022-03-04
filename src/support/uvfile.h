@@ -19,14 +19,24 @@
 
 #pragma once
 
-#include <atomic>
+#include <uv.h>
 
+#include <atomic>
+#include <future>
+#include <string>
+#include <thread>
+#include <variant>
+
+#include "concurrentqueue/concurrentqueue.h"
 #include "support/file.h"
 
 namespace PCSX {
 
 class UvFile : public File {
   public:
+    static void startThread();
+    static void stopThread();
+
     virtual void close() final override;
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
@@ -74,9 +84,84 @@ class UvFile : public File {
     size_t m_ptrW = 0;
     size_t m_size = 0;
     uint8_t* m_cache = nullptr;
-    int m_handle = 0;
+    uv_file m_handle = uv_file();
+
+    static std::pair<uv_file, size_t> openwrapper(const char* filename, int flags);
 
     std::atomic<float> m_cacheProgress = 0.0;
+
+    // This isn't really safe, but it's not meant to.
+    static bool s_threadRunning;
+    static std::thread s_uvThread;
+    static uv_async_t s_kicker;
+
+    struct StopRequest {
+        StopRequest() {}
+        StopRequest(const StopRequest&) = delete;
+        StopRequest(StopRequest&&) = default;
+        StopRequest& operator=(const StopRequest&) = delete;
+        StopRequest& operator=(StopRequest&&) = default;
+        std::promise<void> barrier;
+    };
+    struct OpenRequest {
+        OpenRequest() {}
+        OpenRequest(const OpenRequest&) = delete;
+        OpenRequest(OpenRequest&&) = default;
+        OpenRequest& operator=(const OpenRequest&) = delete;
+        OpenRequest& operator=(OpenRequest&&) = default;
+        std::string fname;
+        int flags;
+        std::promise<std::pair<uv_file, size_t>> ret;
+    };
+    struct CloseRequest {
+        CloseRequest() {}
+        CloseRequest(const CloseRequest&) = delete;
+        CloseRequest(CloseRequest&&) = default;
+        CloseRequest& operator=(const CloseRequest&) = delete;
+        CloseRequest& operator=(CloseRequest&&) = default;
+        uv_file file;
+    };
+    struct ReadRequest {
+        ReadRequest() {}
+        ReadRequest(const ReadRequest&) = delete;
+        ReadRequest(ReadRequest&&) = default;
+        ReadRequest& operator=(const ReadRequest&) = delete;
+        ReadRequest& operator=(ReadRequest&&) = default;
+        uv_file file;
+        void* dest;
+        size_t size;
+        size_t offset;
+        std::promise<size_t> ret;
+    };
+    struct CacheRequest {
+        CacheRequest() {}
+        CacheRequest(const CacheRequest&) = delete;
+        CacheRequest(CacheRequest&&) = default;
+        CacheRequest& operator=(const CacheRequest&) = delete;
+        CacheRequest& operator=(CacheRequest&&) = default;
+    };
+    struct WriteRequest {
+        WriteRequest() {}
+        WriteRequest(const WriteRequest&) = delete;
+        WriteRequest(WriteRequest&&) = default;
+        WriteRequest& operator=(const WriteRequest&) = delete;
+        WriteRequest& operator=(WriteRequest&&) = default;
+    };
+    typedef std::variant<StopRequest, OpenRequest, CloseRequest, ReadRequest, WriteRequest> UvRequest;
+    static moodycamel::ConcurrentQueue<UvRequest> s_queue;
+
+    struct OpenInfo {
+        OpenInfo(decltype(OpenRequest::ret)&& ret_) : ret(std::move(ret_)) {}
+        uv_fs_t req;
+        uv_file file;
+        decltype(OpenRequest::ret) ret;
+    };
+    struct ReadInfo {
+        ReadInfo(decltype(ReadRequest::ret)&& ret_) : ret(std::move(ret_)) {}
+        uv_fs_t req;
+        uv_buf_t buf;
+        decltype(ReadRequest::ret) ret;
+    };
 };
 
 }  // namespace PCSX

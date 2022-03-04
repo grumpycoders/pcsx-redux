@@ -19,19 +19,122 @@
 
 #include "support/uvfile.h"
 
-void PCSX::UvFile::close() { free(m_cache); }
+#include <exception>
 
-PCSX::UvFile::UvFile(const char *filename)
-    : File(RO_SEEKABLE), m_filename(filename) { /*m_handle = fopen(filename, "rb");*/
+std::thread PCSX::UvFile::s_uvThread;
+bool PCSX::UvFile::s_threadRunning = false;
+uv_async_t PCSX::UvFile::s_kicker;
+moodycamel::ConcurrentQueue<PCSX::UvFile::UvRequest> PCSX::UvFile::s_queue;
+
+void PCSX::UvFile::startThread() {
+    if (s_threadRunning) throw std::runtime_error("UV thread already running");
+    s_threadRunning = true;
+    s_uvThread = std::thread([]() -> void {
+        uv_loop_t loop;
+        uv_loop_init(&loop);
+        uv_async_init(&loop, &s_kicker, [](uv_async_t *async) {
+            UvRequest req;
+            while (s_queue.try_dequeue(req)) {
+                std::visit(
+                    [async](auto &req) -> void {
+                        using T = std::decay<decltype(req)>::type;
+                        if constexpr (std::is_same<T, StopRequest>::value) {
+                            uv_unref(reinterpret_cast<uv_handle_t *>(async));
+                            req.barrier.set_value();
+                        } else if constexpr (std::is_same<T, OpenRequest>::value) {
+                            auto *info = new OpenInfo(std::move(req.ret));
+                            info->req.data = info;
+                            uv_fs_open(async->loop, &info->req, req.fname.c_str(), req.flags, 0644, [](uv_fs_t *req) {
+                                OpenInfo *info = reinterpret_cast<OpenInfo *>(req->data);
+                                uv_file file = req->result;
+                                if (file < 0) {
+                                    info->ret.set_value({file, 0});
+                                    uv_fs_req_cleanup(req);
+                                    delete info;
+                                    return;
+                                }
+                                info->file = file;
+                                auto loop = req->loop;
+                                uv_fs_req_cleanup(req);
+                                req->data = info;
+                                uv_fs_fstat(loop, req, info->file, [](uv_fs_t *req) {
+                                    OpenInfo *info = reinterpret_cast<OpenInfo *>(req->data);
+                                    info->ret.set_value({info->file, req->statbuf.st_size});
+                                    uv_fs_req_cleanup(req);
+                                    delete info;
+                                });
+                            });
+                        } else if constexpr (std::is_same<T, CloseRequest>::value) {
+                            auto *info = new uv_fs_t();
+                            uv_fs_close(async->loop, info, req.file, [](uv_fs_t *req) {
+                                uv_fs_req_cleanup(req);
+                                delete req;
+                            });
+                        } else if constexpr (std::is_same<T, ReadRequest>::value) {
+                            auto *info = new ReadInfo(std::move(req.ret));
+                            info->buf.base = reinterpret_cast<decltype(info->buf.base)>(req.dest);
+                            info->buf.len = req.size;
+                            uv_fs_read(async->loop, &info->req, req.file, &info->buf, 1, req.offset, [](uv_fs_t *req) {
+                                ReadInfo *info = reinterpret_cast<ReadInfo *>(req->data);
+                                info->ret.set_value(req->result);
+                                uv_fs_req_cleanup(req);
+                                delete info;
+                            });
+                        } else if constexpr (std::is_same<T, CacheRequest>::value) {
+                        } else if constexpr (std::is_same<T, WriteRequest>::value) {
+                        }
+                    },
+                    req);
+            }
+        });
+        uv_run(&loop, UV_RUN_DEFAULT);
+    });
+}
+
+void PCSX::UvFile::stopThread() {
+    if (!s_threadRunning) throw std::runtime_error("UV thread isn't running");
+    StopRequest req;
+    auto res = req.barrier.get_future();
+    s_queue.enqueue(std::move(req));
+    res.wait();
+    s_uvThread.join();
+}
+
+void PCSX::UvFile::close() {
+    free(m_cache);
+    CloseRequest req;
+    req.file = m_handle;
+    s_queue.enqueue(std::move(req));
+}
+
+std::pair<uv_file, size_t> PCSX::UvFile::openwrapper(const char *filename, int flags) {
+    OpenRequest req;
+    req.flags = flags;
+    req.fname = filename;
+    auto ret = req.ret.get_future();
+    s_queue.enqueue(std::move(req));
+    return ret.get();
+}
+
+PCSX::UvFile::UvFile(const char *filename) : File(RO_SEEKABLE), m_filename(filename) {
+    auto ret = openwrapper(filename, UV_FS_O_RDONLY);
+    m_handle = ret.first;
+    m_size = ret.second;
 }
 PCSX::UvFile::UvFile(const char *filename, FileOps::Create) : File(RW_SEEKABLE), m_filename(filename) {
-    /*m_handle = fopen(filename, "ab+");*/
+    auto ret = openwrapper(filename, UV_FS_O_RDWR | UV_FS_O_CREAT);
+    m_handle = ret.first;
+    m_size = ret.second;
 }
 PCSX::UvFile::UvFile(const char *filename, FileOps::Truncate) : File(RW_SEEKABLE), m_filename(filename) {
-    /*m_handle = fopen(filename, "wb+");*/
+    auto ret = openwrapper(filename, UV_FS_O_RDWR | UV_FS_O_CREAT | UV_FS_O_TRUNC);
+    m_handle = ret.first;
+    m_size = ret.second;
 }
 PCSX::UvFile::UvFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABLE), m_filename(filename) {
-    /*m_handle = fopen(filename, "rb+");*/
+    auto ret = openwrapper(filename, UV_FS_O_RDWR);
+    m_handle = ret.first;
+    m_size = ret.second;
 }
 
 ssize_t PCSX::UvFile::rSeek(ssize_t pos, int wheel) {
@@ -74,8 +177,15 @@ ssize_t PCSX::UvFile::read(void *dest, size_t size) {
         m_ptrR += size;
         return size;
     }
-    // schedule read
-    // wait
+    ReadRequest req;
+    auto ret = req.ret.get_future();
+    req.dest = dest;
+    req.file = m_handle;
+    req.offset = m_ptrR;
+    req.size = size;
+    s_queue.enqueue(std::move(req));
+    size = ret.get();
+    if (size > 0) m_ptrR += size;
     return size;
 }
 
