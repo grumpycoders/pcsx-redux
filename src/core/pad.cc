@@ -30,6 +30,7 @@
 
 #include "core/system.h"
 #include "fmt/format.h"
+#include "gui/gui.h"
 #include "imgui.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
@@ -338,7 +339,7 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
     return m_buf[m_bufc++];
 }
 
-bool PCSX::Pads::configure() {
+bool PCSX::Pads::configure(PCSX::GUI* gui) {
     if (!m_showCfg) {
         return false;
     }
@@ -360,6 +361,10 @@ bool PCSX::Pads::configure() {
         init();
     }
 
+    if (ImGui::Checkbox(_("Use raw input for mouse"), &m_useRawMouseMotion)) {
+        m_useRawMouseMotion ? gui->enableRawMouseMotion() : gui->disableRawMouseMotion();
+    }
+
     if (ImGui::BeginCombo(_("Pad"), c_padNames[m_selectedPadForConfig]())) {
         for (unsigned i = 0; i < 2; i++) {
             if (ImGui::Selectable(c_padNames[i](), m_selectedPadForConfig == i)) {
@@ -376,9 +381,7 @@ bool PCSX::Pads::configure() {
     }
 
     changed |= m_pads[m_selectedPadForConfig].configure();
-
     ImGui::End();
-
     return changed;
 }
 

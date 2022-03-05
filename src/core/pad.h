@@ -31,6 +31,9 @@ struct PadData;
 using json = nlohmann::json;
 
 namespace PCSX {
+
+class GUI;
+
 class Pads {
   public:
     enum Port { Port1, Port2 };
@@ -47,14 +50,15 @@ class Pads {
     Pads();
     void init();
     void shutdown() {}
-    uint8_t startPoll(Port);
-    uint8_t poll(uint8_t, Port);
+    uint8_t startPoll(Port port);
+    uint8_t poll(uint8_t value, Port port);
 
     json getCfg();
     void setCfg(const json &j);
     void setDefaults();
-    bool configure();
+    bool configure(GUI* gui);
     bool m_showCfg = false;
+    bool m_useRawMouseMotion = false;
 
     void scanGamepads();
 
@@ -119,7 +123,7 @@ class Pads {
     struct Pad {
         void readPort(PadData& pad);
         uint8_t startPoll(const PadData& pad);
-        uint8_t poll(uint8_t);
+        uint8_t poll(uint8_t value);
         void getButtons(PadData& pad);
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
 
@@ -152,18 +156,6 @@ class Pads {
 
     Pad m_pads[2];
     unsigned m_selectedPadForConfig = 0;
-
-#if 0
-
-    void mapScancodes();           // load keyboard bindings
-    void configButton(int index);  // pick the button to config
-
-  public:
-    static bool configuringButton;     // are we configuring a button in the GUI?
-    static int configuredButtonIndex;  // Which button are we configuring in the GUI?
-    static bool save;                  // do we need to save?
-
-#endif
 };
 
 }  // namespace PCSX

@@ -183,6 +183,8 @@ class GUI final {
     }
 
     const ImVec2 &getRenderSize() { return m_renderSize; }
+    void enableRawMouseMotion();
+    void disableRawMouseMotion();
 
   private:
     GLFWwindow *m_window = nullptr;

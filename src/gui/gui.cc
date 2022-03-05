@@ -598,7 +598,13 @@ void PCSX::GUI::startFrame() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
 
     // Check hotkeys (TODO: Make configurable)
-    if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) m_showMenu = !m_showMenu;
+    if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) {
+        m_showMenu = !m_showMenu;
+        if (g_emulator->m_pads->m_useRawMouseMotion) {
+            g_emulator->m_pads->m_useRawMouseMotion = false;
+            disableRawMouseMotion();
+        }
+    }
     if (io.KeyAlt && ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
 
     if (ImGui::IsKeyPressed(GLFW_KEY_F1)) {  // Save to quick-save slot
@@ -1129,7 +1135,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     PCSX::g_emulator->m_spu->debug();
     changed |= PCSX::g_emulator->m_spu->configure();
     changed |= PCSX::g_emulator->m_gpu->configure();
-    changed |= PCSX::g_emulator->m_pads->configure();
+    changed |= PCSX::g_emulator->m_pads->configure(this);
     changed |= configure();
 
     if (m_showUiCfg) {
@@ -1714,3 +1720,10 @@ void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
     delete[] buff;
     SaveStates::load(os.str());
 };
+
+void PCSX::GUI::enableRawMouseMotion() {
+    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+}
+
+void PCSX::GUI::disableRawMouseMotion() { glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); }
