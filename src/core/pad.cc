@@ -446,13 +446,27 @@ bool PCSX::Pads::Pad::configure() {
     bool changed = false;
     changed |= ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value);
 
-    auto& type = m_settings.get<SettingInputType>().value;
+    {
+        const char* currentType = c_controllerTypes[static_cast<int>(m_type)]();
+        if (ImGui::BeginCombo(_("Controller Type"), currentType)) {
+            for (int i = 0; i < 2; i++) {
+                if (ImGui::Selectable(c_controllerTypes[i]())) {
+                    changed = true;
+                    m_type = static_cast<PadType>(i);
+                    m_settings.get<SettingDeviceType>().value = m_type;
+                }
+            }
+            ImGui::EndCombo();
+        }
+    }
 
-    if (ImGui::BeginCombo(_("Device type"), c_inputDevices[magic_enum::enum_integer<InputType>(type)]())) {
+    auto& inputDevice = m_settings.get<SettingInputType>().value;
+
+    if (ImGui::BeginCombo(_("Device type"), c_inputDevices[magic_enum::enum_integer<InputType>(inputDevice)]())) {
         for (auto i : magic_enum::enum_values<InputType>()) {
-            if (ImGui::Selectable(c_inputDevices[magic_enum::enum_integer<InputType>(i)](), i == type)) {
+            if (ImGui::Selectable(c_inputDevices[magic_enum::enum_integer<InputType>(i)](), i == inputDevice)) {
                 changed = true;
-                type = i;
+                inputDevice = i;
             }
         }
 
@@ -539,20 +553,6 @@ bool PCSX::Pads::Pad::configure() {
         }
 
         ImGui::EndCombo();
-    }
-
-    {
-        const char* currentType = c_controllerTypes[static_cast<int>(m_type)]();
-        if (ImGui::BeginCombo(_("Controller Type"), currentType)) {
-            for (int i = 0; i < 2; i++) {
-                if (ImGui::Selectable(c_controllerTypes[i]())) {
-                    changed = true;
-                    m_type = static_cast<PadType>(i);
-                    m_settings.get<SettingDeviceType>().value = m_type;
-                }
-            }
-            ImGui::EndCombo();
-        }
     }
 
     if (m_changed) {
