@@ -286,7 +286,7 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
             const int leftClick = ImGui::IsMouseClicked(ImGuiMouseButton_Left) ? 0 : 1;
             const int rightClick = ImGui::IsMouseClicked(ImGuiMouseButton_Right) ? 0 : 1;
             const auto& io = ImGui::GetIO();
-            constexpr float scale = .5f;
+            const float scale = m_settings.get<SettingMouseSensitivity>();
 
             const float deltaX = io.MouseDelta.x * scale;
             const float deltaY = io.MouseDelta.y * scale;
@@ -435,10 +435,10 @@ bool PCSX::Pads::Pad::configure() {
         []() { return _("R2"); }
     };
     static std::function<const char*()> const c_dpadDirections[] = {
-      []() { return _("Up"); },
-      []() { return _("Right"); },
-      []() { return _("Down"); },
-      []() { return _("Left"); },
+        []() { return _("Up"); },
+        []() { return _("Right"); },
+        []() { return _("Down"); },
+        []() { return _("Left"); }
     };
     static std::function<const char*()> const c_controllerTypes[] = {
         []() { return _("Digital"); },
@@ -478,6 +478,7 @@ bool PCSX::Pads::Pad::configure() {
 
         ImGui::EndCombo();
     }
+    changed |= ImGui::SliderFloat("Mouse sensitivity", &m_settings.get<SettingMouseSensitivity>().value, 0.01, 10.f);
 
     ImGui::Text(_("Keyboard mapping"));
     if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame)) {

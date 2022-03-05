@@ -105,6 +105,7 @@ class Pads {
     typedef Setting<int, TYPESTRING("ID")> SettingControllerID;
 
     typedef Setting<bool, TYPESTRING("Connected")> SettingConnected;
+    typedef Setting<float, TYPESTRING("MouseSensitivity"), 0.5f> SettingMouseSensitivity;
 
     typedef Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
                      Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
@@ -112,7 +113,7 @@ class Pads {
                      Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross,
                      Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle, Controller_PadSelect,
                      Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadR1, Controller_PadR2,
-                     SettingInputType, SettingDeviceType, SettingControllerID, SettingConnected>
+                     SettingInputType, SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivity>
         PadSettings;
 
     struct Pad {
