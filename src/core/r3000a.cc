@@ -81,7 +81,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
             auto& regs = m_psxRegs.GPR.n;
             switch (code) {
                 case 0x101: {  // PCinit
-                    m_pcdrvFiles.destroyAll();
+                    closeAllPCdevFiles();
                     regs.v0 = 0;
                     regs.v1 = 0;
                     m_psxRegs.pc += 4;
@@ -105,6 +105,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     if (file->failed()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        file->close();
                         delete &*file;
                     } else {
                         regs.v0 = 0;
@@ -131,6 +132,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     if (file->failed()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        file->close();
                         delete &*file;
                     } else {
                         regs.v0 = 0;
@@ -147,6 +149,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     } else {
                         regs.v0 = 0;
                         regs.v1 = 0;
+                        file->close();
                         delete &*file;
                     }
                     m_psxRegs.pc += 4;

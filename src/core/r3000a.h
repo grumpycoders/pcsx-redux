@@ -257,7 +257,7 @@ struct psxRegisters {
 
 class R3000Acpu {
   public:
-    virtual ~R3000Acpu() { m_pcdrvFiles.destroyAll(); }
+    virtual ~R3000Acpu() { closeAllPCdevFiles(); }
     virtual bool Init() { return false; }
     virtual void Execute() = 0; /* executes up to a debug break */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
@@ -543,7 +543,10 @@ Formula One 2001
     uint16_t m_pcdrvIndex = 0;
 
   public:
-    void closeAllPCdevFiles() { m_pcdrvFiles.destroyAll(); }
+    void closeAllPCdevFiles() {
+        for (auto &f : m_pcdrvFiles) f.close();
+        m_pcdrvFiles.destroyAll();
+    }
     void listAllPCdevFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
             walker(iter->getKey(), iter->m_relativeFilename, iter->writable());
