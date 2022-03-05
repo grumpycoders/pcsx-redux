@@ -343,7 +343,7 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
     }
 }
 
-void PCSX::Memory::psxMemWrite8(uint32_t mem, uint8_t value) {
+void PCSX::Memory::psxMemWrite8(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
 
@@ -368,7 +368,7 @@ void PCSX::Memory::psxMemWrite8(uint32_t mem, uint8_t value) {
     }
 }
 
-void PCSX::Memory::psxMemWrite16(uint32_t mem, uint16_t value) {
+void PCSX::Memory::psxMemWrite16(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
 
