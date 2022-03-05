@@ -32,6 +32,7 @@
 #include "gui/gui.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
+#include "support/uvfile.h"
 #include "tracy/Tracy.hpp"
 
 static PCSX::GUI *s_gui;
@@ -146,6 +147,7 @@ using json = nlohmann::json;
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     const CommandLine::args args(argc, argv);
+    PCSX::UvFile::UvFileThread uvThread;
 
 #if defined(_WIN32) || defined(_WIN64)
     if (args.get<bool>("stdout")) {

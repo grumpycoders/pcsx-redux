@@ -206,18 +206,20 @@ class IO : public IOBase {
         m_file = io.m_file;
         io.m_file = nullptr;
     }
-    template <class U>
+    template <FileDerived U>
+    friend class IO;
+    template <FileDerived U>
     IO(const IO<U>& io) : IOBase(io.m_file) {}
-    template <class U>
+    template <FileDerived U>
     IO(IO<U>&& io) {
         m_file = io.m_file;
         io.m_file = nullptr;
     }
-    template <class U>
+    template <FileDerived U>
     bool isA() {
         return !!dynamic_cast<U*>(m_file);
     }
-    template <class U>
+    template <FileDerived U>
     IO<U> asA() {
         IO<U> h(dynamic_cast<U*>(m_file));
         return h;
@@ -228,9 +230,9 @@ class IO : public IOBase {
         return *this;
     }
     T* operator->() {
-        if (!m_file) std::runtime_error("nullptr in operator->");
+        if (!m_file) throw std::runtime_error("nullptr in operator->");
         T* r = dynamic_cast<T*>(m_file);
-        if (!r) std::runtime_error("operator-> used with incompatible type - shouldn't happen");
+        if (!r) throw std::runtime_error("operator-> used with incompatible type - shouldn't happen");
         return r;
     }
     bool isNull() { return dynamic_cast<T*>(m_file); }
