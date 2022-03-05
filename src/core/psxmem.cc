@@ -343,7 +343,7 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
     }
 }
 
-void PCSX::Memory::psxMemWrite8(uint32_t mem, uint8_t value) {
+void PCSX::Memory::psxMemWrite8(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
 
@@ -368,7 +368,7 @@ void PCSX::Memory::psxMemWrite8(uint32_t mem, uint8_t value) {
     }
 }
 
-void PCSX::Memory::psxMemWrite16(uint32_t mem, uint16_t value) {
+void PCSX::Memory::psxMemWrite16(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
 
@@ -496,14 +496,16 @@ const void *PCSX::Memory::psxMemPointerRead(uint32_t address) {
     }
 }
 
-const void *PCSX::Memory::psxMemPointerWrite(uint32_t address) {
+const void *PCSX::Memory::psxMemPointerWrite(uint32_t address, int size) {
     const auto page = address >> 16;
 
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400)
             return &g_psxH[address & 0x3FF];
         else {
-            switch (address) {  // IO regs that are safe to write to directly
+            switch (address) {
+                // IO regs that are safe to write to directly. For some of these,
+                // Writing a 8-bit/16-bit value actually writes the entire 32-bit reg, so they're not safe to write directly
                 case 0x1f801080:
                 case 0x1f801084:
                 case 0x1f801090:
@@ -520,7 +522,7 @@ const void *PCSX::Memory::psxMemPointerWrite(uint32_t address) {
                 case 0x1f8010e4:
                 case 0x1f801074:
                 case 0x1f8010f0:
-                    return &g_psxH[address & 0xffff];
+                    return size == 32 ? &g_psxH[address & 0xffff] : nullptr;
 
                 default:
                     return nullptr;
