@@ -38,8 +38,8 @@ class Pads {
     enum class PadType {
         Digital = 0,
         Analog,
-        Negcon,
         Mouse,
+        Negcon,
         Gun,
         Guncon
     };

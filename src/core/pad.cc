@@ -38,13 +38,8 @@ struct PadData {
     // status of buttons - every controller fills this field
     uint16_t buttonStatus;
 
-    // for analog pad fill those next 4 bytes
-    // values are analog in range 0-255 where 127 is center position
+    // Analog stick values in range (0 - 255) where 128 = center
     uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
-
-    // for mouse fill those next 2 bytes
-    // values are in range -128 - 127
-    uint8_t moveX, moveY;
 };
 
 void PCSX::Pads::init() {
@@ -241,7 +236,7 @@ void PCSX::Pads::Pad::getButtons(PadData& pad) {
             }
         }
     } else {
-        // Normalize an axis from(-1, 1) to(0, 255) with 128 = center 
+        // Normalize an axis from (-1, 1) to (0, 255) with 128 = center 
         const auto axisToUint8 = [](float axis) {
             constexpr float scale = 1.3;
             const float scaledValue = std::clamp<float>(axis * scale, -1.0f, 1.0f);
@@ -287,15 +282,26 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
     }
 
     switch (m_type) {
-        case PadType::Mouse:
-            m_mousepar[3] = pad.buttonStatus & 0xff;
-            m_mousepar[4] = pad.buttonStatus >> 8;
-            m_mousepar[5] = pad.moveX;
-            m_mousepar[6] = pad.moveY;
+        case PadType::Mouse: {
+            const int leftClick = ImGui::IsMouseClicked(ImGuiMouseButton_Left) ? 0 : 1;
+            const int rightClick = ImGui::IsMouseClicked(ImGuiMouseButton_Right) ? 0 : 1;
+            const auto& io = ImGui::GetIO();
+            constexpr float scale = .5f;
+
+            const float deltaX = io.MouseDelta.x * scale;
+            const float deltaY = io.MouseDelta.y * scale;
+
+            // The top 4 bits are always set to 1, the low 2 bits seem to always be set to 0.
+            // Left/right click are inverted in the response byte, ie 0 = pressed
+            m_mousepar[4] = 0xf0 | (leftClick << 3) | (rightClick << 2);
+            m_mousepar[5] = (int8_t)std::clamp<float>(deltaX, -128.f, 127.f);
+            m_mousepar[6] = (int8_t)std::clamp<float>(deltaY, -128.f, 127.f);
 
             memcpy(m_buf, m_mousepar, 7);
             m_bufcount = 6;
             break;
+        }
+
         case PadType::Negcon:  // npc101/npc104(slph00001/slph00069)
             m_analogpar[1] = 0x23;
             m_analogpar[3] = pad.buttonStatus & 0xff;
@@ -437,8 +443,8 @@ bool PCSX::Pads::Pad::configure() {
     static std::function<const char*()> const c_controllerTypes[] = {
         []() { return _("Digital"); },
         []() { return _("Analog"); },
+        []() { return _("Mouse"); },
         []() { return _("Negcon (Unimplemented)"); },
-        []() { return _("Mouse (Unimplemented)"); },
         []() { return _("Gun (Unimplemented)"); },
         []() { return _("Guncon (Unimplemented"); }
     };
@@ -449,7 +455,7 @@ bool PCSX::Pads::Pad::configure() {
     {
         const char* currentType = c_controllerTypes[static_cast<int>(m_type)]();
         if (ImGui::BeginCombo(_("Controller Type"), currentType)) {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 3; i++) {
                 if (ImGui::Selectable(c_controllerTypes[i]())) {
                     changed = true;
                     m_type = static_cast<PadType>(i);
