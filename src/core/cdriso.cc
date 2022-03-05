@@ -506,7 +506,7 @@ int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
 
     if (tri->decoded_buffer == NULL) {
         PCSX::g_system->message(_("Could not allocate memory to decode CDDA TRACK: %s\n"), tri->filepath);
-        tri->handle->close();                 // encoded file handle not needed anymore
+        tri->handle->close();                   // encoded file handle not needed anymore
         tri->handle.setFile(new BufferFile());  // change handle to decoded one
         tri->cddatype = trackinfo::BIN;
         return 0;
@@ -539,7 +539,7 @@ int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
 int PCSX::CDRiso::parsetoc(const char *isofileStr) {
     std::filesystem::path isofile = MAKEU8(isofileStr);
     std::filesystem::path tocname, filename;
-    IO<UvFile> fi;
+    IO<File> fi;
     char linebuf[256], tmp[256], name[256];
     char *token;
     char time[20], time2[20];
@@ -553,16 +553,25 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
     tocname.replace_extension("toc");
 
     fi.setFile(new UvFile(tocname));
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+        fi.asA<UvFile>()->startCaching();
+    }
     if (fi->failed()) {
         // try changing extension to .cue (to satisfy some stupid tutorials)
         tocname.replace_extension("cue");
         fi.setFile(new UvFile(tocname));
+        if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+            fi.asA<UvFile>()->startCaching();
+        }
         if (fi->failed()) {
             // if filename is image.toc.bin, try removing .bin (for Brasero)
             tocname = isofile;
             tocname.replace_extension("");
             if (tocname.extension() == ".toc") {
                 fi.setFile(new UvFile(tocname));
+                if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+                    fi.asA<UvFile>()->startCaching();
+                }
                 if (fi->failed()) {
                     return -1;
                 }
@@ -620,6 +629,9 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
                 sscanf(linebuf, "DATAFILE \"%[^\"]\" %8s", name, time);
                 tok2msf((char *)&time, (char *)&m_ti[m_numtracks].length);
                 m_ti[m_numtracks].handle.setFile(new UvFile(filename / name));
+                if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+                    m_ti[m_numtracks].handle.asA<UvFile>()->startCaching();
+                }
             }
         } else if (!strcmp(token, "FILE")) {
             sscanf(linebuf, "FILE \"%[^\"]\" #%d %8s %8s", name, &t, time, time2);
@@ -655,7 +667,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
             }
         }
     }
-    if (m_numtracks > 0) m_cdHandle.setFile(m_ti[1].handle->dup());
+    if (m_numtracks > 0) m_cdHandle.setFile(new SubFile(m_ti[1].handle, 0, m_ti[1].handle->size()));
 
     return 0;
 }
@@ -665,7 +677,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
 int PCSX::CDRiso::parsecue(const char *isofileString) {
     std::filesystem::path isofile = MAKEU8(isofileString);
     std::filesystem::path cuename, filepath;
-    IO<UvFile> fi;
+    IO<File> fi;
     char *token;
     char time[20];
     char *tmp;
@@ -680,6 +692,9 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
     cuename.replace_extension("cue");
 
     fi.setFile(new UvFile(cuename));
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+        fi.asA<UvFile>()->startCaching();
+    }
     if (fi->failed()) {
         return -1;
     }
@@ -783,8 +798,14 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 
             // absolute path?
             m_ti[m_numtracks + 1].handle.setFile(new UvFile(tmpb));
+            if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+                m_ti[m_numtracks + 1].handle.asA<UvFile>()->startCaching();
+            }
             if (m_ti[m_numtracks + 1].handle->failed()) {
                 m_ti[m_numtracks + 1].handle.setFile(new UvFile(filepath / tmpb));
+                if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+                    m_ti[m_numtracks + 1].handle.asA<UvFile>()->startCaching();
+                }
             }
 
             strcpy(m_ti[m_numtracks + 1].filepath,
@@ -809,7 +830,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 
             if (m_numtracks == 0 && (isofile.extension() == ".cue")) {
                 // user selected .cue as image file, use its data track instead
-                m_cdHandle.setFile(m_ti[m_numtracks + 1].handle->dup());
+                m_cdHandle.setFile(new SubFile(m_ti[m_numtracks + 1].handle, 0, m_ti[m_numtracks + 1].handle->size()));
             }
         }
     }
@@ -821,7 +842,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parseccd(const char *isofileString) {
     std::filesystem::path ccdname, isofile = MAKEU8(isofileString);
-    IO<UvFile> fi;
+    IO<File> fi;
     char linebuf[256];
     unsigned int t;
 
@@ -832,6 +853,9 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
     ccdname.replace_extension("ccd");
 
     fi.setFile(new UvFile(ccdname));
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+        fi.asA<UvFile>()->startCaching();
+    }
     if (fi->failed()) {
         return -1;
     }
@@ -871,7 +895,7 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parsemds(const char *isofileString) {
     std::filesystem::path mdsname, isofile = MAKEU8(isofileString);
-    IO<UvFile> fi;
+    IO<File> fi;
     unsigned int offset, extra_offset, l, i;
     unsigned short s;
 
@@ -882,6 +906,9 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
     isofile.replace_extension("mds");
 
     fi.setFile(new UvFile(mdsname));
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+        fi.asA<UvFile>()->startCaching();
+    }
     if (fi->failed()) {
         return -1;
     }
@@ -1226,6 +1253,9 @@ int PCSX::CDRiso::opensubfile(const char *isoname) {
     }
 
     m_subHandle.setFile(new UvFile(subname));
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+        m_subHandle.asA<UvFile>()->startCaching();
+    }
     if (!m_subHandle->failed()) {
         return 0;
     }
@@ -1236,6 +1266,9 @@ int PCSX::CDRiso::opensubfile(const char *isoname) {
     }
 
     m_subHandle.setFile(new UvFile(subname));
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+        m_subHandle.asA<UvFile>()->startCaching();
+    }
     if (m_subHandle->failed()) {
         m_subHandle.reset();
         return -1;
@@ -1245,7 +1278,7 @@ int PCSX::CDRiso::opensubfile(const char *isoname) {
 }
 
 int PCSX::CDRiso::LoadSBI(const char *filename) {
-    IO<UvFile> sbihandle;
+    IO<File> sbihandle;
     char buffer[16], sbifile[MAXPATHLEN];
 
     if (filename == NULL) {
@@ -1274,6 +1307,9 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
     }
 
     sbihandle.setFile(new UvFile(filename));
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+        sbihandle.asA<UvFile>()->startCaching();
+    }
     if (sbihandle->failed()) {
         return -1;
     }
@@ -1320,12 +1356,12 @@ int PCSX::CDRiso::opensbifile(const char *isoname) {
     return LoadSBI(sbiname);
 }
 
-ssize_t PCSX::CDRiso::cdread_normal(IO<UvFile> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_normal(IO<File> f, unsigned int base, void *dest, int sector) {
     f->rSeek(base + sector * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_SET);
     return f->read(dest, PCSX::CDRom::CD_FRAMESIZE_RAW);
 }
 
-ssize_t PCSX::CDRiso::cdread_sub_mixed(IO<UvFile>f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_sub_mixed(IO<File> f, unsigned int base, void *dest, int sector) {
     int ret;
 
     f->rSeek(base + sector * (PCSX::CDRom::CD_FRAMESIZE_RAW + PCSX::CDRom::SUB_FRAMESIZE), SEEK_SET);
@@ -1365,7 +1401,7 @@ static int uncompress2_internal(void *out, unsigned long *out_size, void *in, un
     return ret == 1 ? 0 : ret;
 }
 
-ssize_t PCSX::CDRiso::cdread_compressed(IO<UvFile> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_compressed(IO<File> f, unsigned int base, void *dest, int sector) {
     unsigned long cdbuffer_size, cdbuffer_size_expect;
     unsigned int start_byte, size;
     int is_compressed;
@@ -1428,7 +1464,7 @@ finish:
     return PCSX::CDRom::CD_FRAMESIZE_RAW;
 }
 
-ssize_t PCSX::CDRiso::cdread_2048(IO<UvFile> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_2048(IO<File> f, unsigned int base, void *dest, int sector) {
     int ret;
 
     f->rSeek(base + sector * 2048, SEEK_SET);
@@ -1443,7 +1479,7 @@ ssize_t PCSX::CDRiso::cdread_2048(IO<UvFile> f, unsigned int base, void *dest, i
 }
 
 /* Adapted from ecm.c:unecmify() (C) Neill Corlett */
-ssize_t PCSX::CDRiso::cdread_ecm_decode(IO<UvFile> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_ecm_decode(IO<File> f, unsigned int base, void *dest, int sector) {
     uint32_t output_edc = 0, b = 0, writebytecount = 0, num;
     uint32_t sectorcount = 0;
     int8_t type = 0;  // mode type 0 (META) or 1, 2 or 3 for CDROM type
@@ -1633,7 +1669,7 @@ error_out:
     return -1;
 }
 
-int PCSX::CDRiso::handleecm(const char *isoname, IO<UvFile> cdh, int32_t *accurate_length) {
+int PCSX::CDRiso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate_length) {
     // Rewind to start and check ECM header and filename suffix validity
     cdh->rSeek(0, SEEK_SET);
     if ((cdh->getc() == 'E') && (cdh->getc() == 'C') && (cdh->getc() == 'M') && (cdh->getc() == 0x00) &&
@@ -1824,8 +1860,8 @@ int handlearchive(const char *isoname, int32_t *accurate_length) {
     return ret;
 }
 #else
-int PCSX::CDRiso::aropen(IO<UvFile> fparchive, const char *_fn) { return -1; }
-int PCSX::CDRiso::cdread_archive(IO<UvFile> f, unsigned int base, void *dest, int sector) { return -1; }
+int PCSX::CDRiso::aropen(IO<File> fparchive, const char *_fn) { return -1; }
+int PCSX::CDRiso::cdread_archive(IO<File> f, unsigned int base, void *dest, int sector) { return -1; }
 int PCSX::CDRiso::handlearchive(const char *isoname, int32_t *accurate_length) { return -1; }
 #endif
 
@@ -1856,6 +1892,9 @@ bool PCSX::CDRiso::open(void) {
     }
 
     m_cdHandle.setFile(new UvFile(m_isoPath));
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+        m_cdHandle.asA<UvFile>()->startCaching();
+    }
     if (m_cdHandle->failed()) {
         m_cdHandle.reset();
         return false;
@@ -1942,6 +1981,9 @@ bool PCSX::CDRiso::open(void) {
     // make sure we have another handle open for cdda
     if (m_numtracks > 1 && !m_ti[1].handle) {
         m_ti[1].handle.setFile(new UvFile(m_isoPath));
+        if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+            m_ti[1].handle.asA<UvFile>()->startCaching();
+        }
     }
 
     return true;

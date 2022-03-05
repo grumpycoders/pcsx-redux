@@ -947,6 +947,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             if (ImGui::BeginMenu(_("Help"))) {
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::Separator();
+                ImGui::MenuItem(_("Show opened UvFile handles"), nullptr, &m_showHandles);
+                ImGui::Separator();
                 ImGui::MenuItem(_("About"), nullptr, &m_showAbout);
                 ImGui::EndMenu();
             }
@@ -1166,6 +1168,32 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         ImGui::End();
     }
 
+    if (m_showHandles) {
+        if (ImGui::Begin(_("UvFiles"), &m_showHandles)) {
+            if (ImGui::BeginTable("UvFiles", 2)) {
+                ImGui::TableSetupColumn(_("Caching"));
+                ImGui::TableSetupColumn(_("Filename"));
+                ImGui::TableHeadersRow();
+                UvFile::iterateOverAllFiles([](UvFile* f) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    if (f->cached()) {
+                        ImGui::ProgressBar(f->cacheProgress());
+                    } else {
+                        std::string label = fmt::format("Cache##{}", reinterpret_cast<void*>(f));
+                        if (ImGui::Button(label.c_str())) {
+                            f->startCaching();
+                        }
+                    }
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextUnformatted(f->filename().string().c_str());
+                });
+                ImGui::EndTable();
+            }
+        }
+        ImGui::End();
+    }
+
     auto& L = g_emulator->m_lua;
     L->getfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     if (!L->isnil()) {
@@ -1249,6 +1277,7 @@ bool PCSX::GUI::configure() {
         scale /= 100.0f;
         changed |= ImGui::SliderFloat(_("Speed Scaler"), &scale, 0.1f, 10.0f);
         settings.get<Emulator::SettingScaler>() = scale * 100.0f;
+        changed |= ImGui::Checkbox(_("Preload ISO files"), &settings.get<Emulator::SettingFullCaching>().value);
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);

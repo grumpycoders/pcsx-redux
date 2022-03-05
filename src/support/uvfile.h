@@ -29,10 +29,14 @@
 
 #include "concurrentqueue/concurrentqueue.h"
 #include "support/file.h"
+#include "support/list.h"
 
 namespace PCSX {
 
-class UvFile : public File {
+class UvFile;
+typedef Intrusive::List<UvFile> UvFilesListType;
+
+class UvFile : public File, public UvFilesListType::Node {
   public:
     struct UvFileThread {
         UvFileThread() { PCSX::UvFile::startThread(); }
@@ -85,8 +89,13 @@ class UvFile : public File {
     UvFile(const char* filename, FileOps::ReadWrite);
 
     void startCaching();
+    bool cached() { return m_cache; }
     float cacheProgress() { return m_cacheProgress.load(std::memory_order_relaxed); }
     void waitCache() { m_cacheBarrier.get_future().get(); }
+
+    static void iterateOverAllFiles(std::function<void(UvFile*)> walker) {
+        for (auto& f : s_allFiles) walker(&f);
+    }
 
   private:
     const std::filesystem::path m_filename;
@@ -101,7 +110,7 @@ class UvFile : public File {
     void readCacheChunk(uv_loop_t* loop);
     void readCacheChunkResult();
 
-    static std::pair<uv_file, size_t> openwrapper(const char* filename, int flags);
+    void openwrapper(const char* filename, int flags);
 
     std::atomic<float> m_cacheProgress = 0.0;
     std::promise<void> m_cacheBarrier;
@@ -119,6 +128,8 @@ class UvFile : public File {
         s_queue.enqueue(std::move(req));
         uv_async_send(&s_kicker);
     }
+
+    static UvFilesListType s_allFiles;
 };
 
 }  // namespace PCSX

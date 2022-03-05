@@ -25,6 +25,7 @@ std::thread PCSX::UvFile::s_uvThread;
 bool PCSX::UvFile::s_threadRunning = false;
 uv_async_t PCSX::UvFile::s_kicker;
 moodycamel::ConcurrentQueue<PCSX::UvFile::UvRequest> PCSX::UvFile::s_queue;
+PCSX::UvFilesListType PCSX::UvFile::s_allFiles;
 
 void PCSX::UvFile::startThread() {
     if (s_threadRunning) throw std::runtime_error("UV thread already running");
@@ -64,7 +65,8 @@ void PCSX::UvFile::close() {
     });
 }
 
-std::pair<uv_file, size_t> PCSX::UvFile::openwrapper(const char *filename, int flags) {
+void PCSX::UvFile::openwrapper(const char *filename, int flags) {
+    s_allFiles.push_back(this);
     struct Info {
         std::promise<uv_file> handle;
         std::promise<size_t> size;
@@ -102,28 +104,21 @@ std::pair<uv_file, size_t> PCSX::UvFile::openwrapper(const char *filename, int f
         if (handle >= 0) size = info.size.get_future().get();
     } catch (...) {
     }
-    return {handle, size};
+    m_handle = handle;
+    m_size = size;
 }
 
 PCSX::UvFile::UvFile(const char *filename) : File(RO_SEEKABLE), m_filename(filename) {
-    auto ret = openwrapper(filename, UV_FS_O_RDONLY);
-    m_handle = ret.first;
-    m_size = ret.second;
+    openwrapper(filename, UV_FS_O_RDONLY);
 }
 PCSX::UvFile::UvFile(const char *filename, FileOps::Create) : File(RW_SEEKABLE), m_filename(filename) {
-    auto ret = openwrapper(filename, UV_FS_O_RDWR | UV_FS_O_CREAT);
-    m_handle = ret.first;
-    m_size = ret.second;
+    openwrapper(filename, UV_FS_O_RDWR | UV_FS_O_CREAT);
 }
 PCSX::UvFile::UvFile(const char *filename, FileOps::Truncate) : File(RW_SEEKABLE), m_filename(filename) {
-    auto ret = openwrapper(filename, UV_FS_O_RDWR | UV_FS_O_CREAT | UV_FS_O_TRUNC);
-    m_handle = ret.first;
-    m_size = ret.second;
+    openwrapper(filename, UV_FS_O_RDWR | UV_FS_O_CREAT | UV_FS_O_TRUNC);
 }
 PCSX::UvFile::UvFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABLE), m_filename(filename) {
-    auto ret = openwrapper(filename, UV_FS_O_RDWR);
-    m_handle = ret.first;
-    m_size = ret.second;
+    openwrapper(filename, UV_FS_O_RDWR);
 }
 
 ssize_t PCSX::UvFile::rSeek(ssize_t pos, int wheel) {
@@ -266,6 +261,8 @@ void PCSX::UvFile::readCacheChunkResult() {
 }
 
 void PCSX::UvFile::startCaching() {
+    if (m_cache) throw std::runtime_error("File is already cached");
+    if (failed()) return;
     m_cache = reinterpret_cast<uint8_t *>(malloc(m_size));
     request([this](auto loop) { readCacheChunk(loop); });
 }
