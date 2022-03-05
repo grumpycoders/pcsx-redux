@@ -67,8 +67,8 @@ class HW {
     uint8_t psxHwRead8(uint32_t add);
     uint16_t psxHwRead16(uint32_t add);
     uint32_t psxHwRead32(uint32_t add);
-    void psxHwWrite8(uint32_t add, uint8_t value);
-    void psxHwWrite16(uint32_t add, uint16_t value);
+    void psxHwWrite8(uint32_t add, uint32_t rawvalue);
+    void psxHwWrite16(uint32_t add, uint32_t rawvalue);
     void psxHwWrite32(uint32_t add, uint32_t value);
     int psxHwFreeze(gzFile f, int Mode);
 
