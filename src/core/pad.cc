@@ -284,8 +284,8 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
 
     switch (m_type) {
         case PadType::Mouse: {
-            const int leftClick = ImGui::IsMouseClicked(ImGuiMouseButton_Left) ? 0 : 1;
-            const int rightClick = ImGui::IsMouseClicked(ImGuiMouseButton_Right) ? 0 : 1;
+            const int leftClick = ImGui::IsMouseDown(ImGuiMouseButton_Left) ? 0 : 1;
+            const int rightClick = ImGui::IsMouseDown(ImGuiMouseButton_Right) ? 0 : 1;
             const auto& io = ImGui::GetIO();
             const float scale = m_settings.get<SettingMouseSensitivity>();
 
