@@ -25,6 +25,7 @@
 #include <GLFW/glfw3.h>
 #include <memory.h>
 
+#include <algorithm>
 #include <cmath>
 
 #include "core/system.h"
@@ -148,8 +149,13 @@ bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* st
 
 static constexpr float π(float fraction = 1.0f) { return fraction * M_PI; }
 
-uint16_t PCSX::Pads::Pad::getButtons() {
-    if (!m_settings.get<SettingConnected>()) return 0xffff;
+void PCSX::Pads::Pad::getButtons(PadData& pad) {
+    if (!m_settings.get<SettingConnected>()) {
+        pad.buttonStatus = 0xffff;
+        pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
+        return;
+    }
+
     GLFWgamepadstate state;
     int hasPad = GLFW_FALSE;
     const auto& inputType = m_settings.get<SettingInputType>();
@@ -162,7 +168,9 @@ uint16_t PCSX::Pads::Pad::getButtons() {
     };
 
     if (inputType == InputType::Keyboard) {
-        return getKeyboardButtons();
+        pad.buttonStatus = getKeyboardButtons();
+        pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
+        return;
     }
 
     if (m_padID >= 0) {
@@ -179,9 +187,13 @@ uint16_t PCSX::Pads::Pad::getButtons() {
 
     if (!hasPad) {
         if (inputType == InputType::Auto) {
-            return getKeyboardButtons();
+            pad.buttonStatus = getKeyboardButtons();
+        } else {
+            pad.buttonStatus = 0xffff;
         }
-        return 0xffff;
+
+        pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
+        return;
     }
 
     bool buttons[16];
@@ -225,16 +237,28 @@ uint16_t PCSX::Pads::Pad::getButtons() {
                 buttons[6] = true;
             }
         }
+
+        // Normalize an axis from (-1, 1) to (0, 255) with 127 = center
+        const auto axisToUint8 = [](float axis) {
+            constexpr float scale = 1.3;
+            const float scaledValue = std::clamp<float>(axis * scale, -1.0f, 1.0f);
+            return (uint8_t)(std::clamp<float>(std::round(((scaledValue + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
+        };
+
+        pad.leftJoyX = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]);
+        pad.leftJoyY = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
+        pad.rightJoyX = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]);
+        pad.rightJoyY = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]);
     }
     uint16_t result = 0;
     for (unsigned i = 0; i < 16; i++) result |= !buttons[i] << i;
 
-    return result;
+    pad.buttonStatus = result;
 }
 
 void PCSX::Pads::Pad::readPort(PadData& data) {
     memset(&data, 0, sizeof(PadData));
-    data.buttonStatus = getButtons();
+    getButtons(data);
 }
 
 uint8_t PCSX::Pads::startPoll(Port port) {
@@ -281,20 +305,9 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
             memcpy(m_buf, m_analogpar, 9);
             m_bufcount = 8;
             break;
+        case PadType::AnalogJoy:  // scph1110
         case PadType::AnalogPad:  // scph1150
             m_analogpar[1] = 0x73;
-            m_analogpar[3] = pad.buttonStatus & 0xff;
-            m_analogpar[4] = pad.buttonStatus >> 8;
-            m_analogpar[5] = pad.rightJoyX;
-            m_analogpar[6] = pad.rightJoyY;
-            m_analogpar[7] = pad.leftJoyX;
-            m_analogpar[8] = pad.leftJoyY;
-
-            memcpy(m_buf, m_analogpar, 9);
-            m_bufcount = 8;
-            break;
-        case PadType::AnalogJoy:  // scph1110
-            m_analogpar[1] = 0x53;
             m_analogpar[3] = pad.buttonStatus & 0xff;
             m_analogpar[4] = pad.buttonStatus >> 8;
             m_analogpar[5] = pad.rightJoyX;

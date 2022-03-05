@@ -118,7 +118,7 @@ class Pads {
         void readPort(PadData& pad);
         uint8_t startPoll(const PadData& pad);
         uint8_t poll(uint8_t);
-        uint16_t getButtons();
+        void getButtons(PadData& pad);
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
 
         json getCfg();
@@ -132,7 +132,7 @@ class Pads {
 
         int m_scancodes[16];
         int m_padMapping[16];
-        PadType m_type = PadType::Standard;
+        PadType m_type = PadType::AnalogJoy;
 
         int m_padID = 0;
         int m_buttonToWait = -1;
