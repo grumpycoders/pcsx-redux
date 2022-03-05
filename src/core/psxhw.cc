@@ -555,8 +555,8 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint32_t rawvalue) {
             } else {
                 psxHu16ref(add) = SWAP_LEu16(value);
                 PSXHW_LOG("*Unknown 16bit write at address %x value %x\n", add, value);
-                return;
             }
+            return;
     }
     if (addressInRegisterSpace(add)) {
         psxHu32ref(add) = SWAP_LEu32(rawvalue);
