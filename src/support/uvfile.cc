@@ -47,6 +47,7 @@ void PCSX::UvFile::stopThread() {
     if (!s_threadRunning) throw std::runtime_error("UV thread isn't running");
     request([](auto loop) { uv_unref(reinterpret_cast<uv_handle_t *>(&s_kicker)); });
     s_uvThread.join();
+    s_threadRunning = false;
 }
 
 void PCSX::UvFile::close() {
