@@ -91,6 +91,7 @@ void PCSX::Pads::scanGamepads() {
 
 void PCSX::Pads::Pad::map() {
     m_padID = g_emulator->m_pads->m_gamepadsMap[m_settings.get<SettingControllerID>()];
+    m_type = m_settings.get<SettingDeviceType>();
     // invalid buttons
     m_scancodes[1] = 255;
     m_scancodes[2] = 255;
@@ -200,7 +201,9 @@ void PCSX::Pads::Pad::getButtons(PadData& pad) {
     for (unsigned i = 0; i < 16; i++) {
         buttons[i] = isControllerButtonPressed(i, &state);
     }
-    {
+
+    // For digital gamepads, make the PS1 dpad controllable with our gamepad's left analog stick
+    if (m_type == PadType::Digital) {
         float x = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
         float y = -state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y];
         float ds = x * x + y * y;
@@ -237,19 +240,19 @@ void PCSX::Pads::Pad::getButtons(PadData& pad) {
                 buttons[6] = true;
             }
         }
-
-        // Normalize an axis from (-1, 1) to (0, 255) with 127 = center
+    } else {
+        // Normalize an axis from(-1, 1) to(0, 255) with 128 = center 
         const auto axisToUint8 = [](float axis) {
             constexpr float scale = 1.3;
             const float scaledValue = std::clamp<float>(axis * scale, -1.0f, 1.0f);
             return (uint8_t)(std::clamp<float>(std::round(((scaledValue + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
         };
-
         pad.leftJoyX = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]);
         pad.leftJoyY = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
         pad.rightJoyX = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]);
         pad.rightJoyY = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]);
     }
+
     uint16_t result = 0;
     for (unsigned i = 0; i < 16; i++) result |= !buttons[i] << i;
 
@@ -305,8 +308,7 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
             memcpy(m_buf, m_analogpar, 9);
             m_bufcount = 8;
             break;
-        case PadType::AnalogJoy:  // scph1110
-        case PadType::AnalogPad:  // scph1150
+        case PadType::Analog:  // scph1110, scph1150
             m_analogpar[1] = 0x73;
             m_analogpar[3] = pad.buttonStatus & 0xff;
             m_analogpar[4] = pad.buttonStatus >> 8;
@@ -318,7 +320,7 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
             memcpy(m_buf, m_analogpar, 9);
             m_bufcount = 8;
             break;
-        case PadType::Standard:
+        case PadType::Digital:
         default:
             m_stdpar[3] = pad.buttonStatus & 0xff;
             m_stdpar[4] = pad.buttonStatus >> 8;
@@ -418,19 +420,27 @@ bool PCSX::Pads::Pad::configure() {
     static std::function<const char*()> const c_inputDevices[] = {
         []() { return _("Auto"); },
         []() { return _("Controller"); },
-        []() { return _("Keyboard"); },
+        []() { return _("Keyboard"); }
     };
     static std::function<const char*()> const c_buttonNames[] = {
         []() { return _("Cross"); },  []() { return _("Square"); }, []() { return _("Triangle"); },
         []() { return _("Circle"); }, []() { return _("Select"); }, []() { return _("Start"); },
         []() { return _("L1"); },     []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); },
+        []() { return _("R2"); }
     };
     static std::function<const char*()> const c_dpadDirections[] = {
-        []() { return _("Up"); },
-        []() { return _("Right"); },
-        []() { return _("Down"); },
-        []() { return _("Left"); },
+      []() { return _("Up"); },
+      []() { return _("Right"); },
+      []() { return _("Down"); },
+      []() { return _("Left"); },
+    };
+    static std::function<const char*()> const c_controllerTypes[] = {
+        []() { return _("Digital"); },
+        []() { return _("Analog"); },
+        []() { return _("Negcon (Unimplemented)"); },
+        []() { return _("Mouse (Unimplemented)"); },
+        []() { return _("Gun (Unimplemented)"); },
+        []() { return _("Guncon (Unimplemented"); }
     };
 
     bool changed = false;
@@ -529,6 +539,20 @@ bool PCSX::Pads::Pad::configure() {
         }
 
         ImGui::EndCombo();
+    }
+
+    {
+        const char* currentType = c_controllerTypes[static_cast<int>(m_type)]();
+        if (ImGui::BeginCombo(_("Controller Type"), currentType)) {
+            for (int i = 0; i < 2; i++) {
+                if (ImGui::Selectable(c_controllerTypes[i]())) {
+                    changed = true;
+                    m_type = static_cast<PadType>(i);
+                    m_settings.get<SettingDeviceType>().value = m_type;
+                }
+            }
+            ImGui::EndCombo();
+        }
     }
 
     if (m_changed) {
