@@ -72,7 +72,6 @@ class CDRom {
 
   protected:
     // savestate stuff starts here
-    uint8_t m_OCUP;
     uint8_t m_reg1Mode;
     uint8_t m_reg2;
     uint8_t m_cmdProcess;

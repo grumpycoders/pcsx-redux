@@ -163,6 +163,7 @@ typedef union {
 
 enum {
     PSXINT_SIO = 0,
+    PSXINT_SIO1,
     PSXINT_CDR,
     PSXINT_CDREAD,
     PSXINT_GPUDMA,
@@ -307,7 +308,7 @@ class R3000Acpu {
     }
 
     psxRegisters m_psxRegs;
-    float m_interruptScales[14] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+    float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
     virtual void Reset() {
@@ -474,7 +475,7 @@ Formula One 2001
   updated with new code (affects in-game racing)
 */
 
-    inline void invalidateCache() {
+    virtual void invalidateCache() {
         memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
         memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
     }

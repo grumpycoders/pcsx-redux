@@ -27,7 +27,7 @@
 #include "imgui.h"
 #include "json.hpp"
 
-struct PadDataS;
+struct PadData;
 using json = nlohmann::json;
 
 namespace PCSX {
@@ -35,6 +35,14 @@ class Pads {
   public:
     enum Port { Port1, Port2 };
     enum class InputType { Auto, Controller, Keyboard };
+    enum class PadType {
+        Digital = 0,
+        Analog,
+        Negcon,
+        Mouse,
+        Gun,
+        Guncon
+    };
 
     Pads();
     void init();
@@ -92,6 +100,8 @@ class Pads {
     typedef Setting<int, TYPESTRING("Controller_PadR2"), GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER> Controller_PadR2;
 
     typedef Setting<InputType, TYPESTRING("PadType"), InputType::Auto> SettingInputType;
+    // These typestrings are kind of odd, but it's best not to change so as not to break old config files
+    typedef Setting<PadType, TYPESTRING("DeviceType"), PadType::Digital> SettingDeviceType;
     typedef Setting<int, TYPESTRING("ID")> SettingControllerID;
 
     typedef Setting<bool, TYPESTRING("Connected")> SettingConnected;
@@ -102,14 +112,14 @@ class Pads {
                      Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross,
                      Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle, Controller_PadSelect,
                      Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadR1, Controller_PadR2,
-                     SettingInputType, SettingControllerID, SettingConnected>
+                     SettingInputType, SettingDeviceType, SettingControllerID, SettingConnected>
         PadSettings;
 
     struct Pad {
-        void readPort(PadDataS *pad);
-        uint8_t startPoll(PadDataS *pad);
+        void readPort(PadData& pad);
+        uint8_t startPoll(const PadData& pad);
         uint8_t poll(uint8_t);
-        uint16_t getButtons();
+        void getButtons(PadData& pad);
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
 
         json getCfg();
@@ -123,6 +133,7 @@ class Pads {
 
         int m_scancodes[16];
         int m_padMapping[16];
+        PadType m_type;
 
         int m_padID = 0;
         int m_buttonToWait = -1;

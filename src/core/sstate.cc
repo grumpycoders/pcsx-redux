@@ -97,7 +97,6 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             SIOWasMCD2Inserted { g_emulator->m_sio->m_wasMcd2Inserted },
         },
         CDRom {
-            CDOCUP { g_emulator->m_cdrom->m_OCUP },
             CDReg1Mode { g_emulator->m_cdrom->m_reg1Mode },
             CDReg2 { g_emulator->m_cdrom->m_reg2 },
             CDCmdProcess { g_emulator->m_cdrom->m_cmdProcess },

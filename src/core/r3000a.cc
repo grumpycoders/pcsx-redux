@@ -330,6 +330,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
         };
 
         checkAndUpdate(PSXINT_SIO, []() { g_emulator->m_sio->interrupt(); });
+        checkAndUpdate(PSXINT_SIO1, []() { g_emulator->m_sio1->interrupt(); });
         checkAndUpdate(PSXINT_CDR, []() { g_emulator->m_cdrom->interrupt(); });
         checkAndUpdate(PSXINT_CDREAD, []() { g_emulator->m_cdrom->readInterrupt(); });
         checkAndUpdate(PSXINT_GPUDMA, []() { GPU::gpuInterrupt(); });
@@ -344,6 +345,19 @@ void PCSX::R3000Acpu::psxBranchTest() {
         m_psxRegs.lowestTarget = lowestTarget;
     }
     if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_psxRegs.CP0.n.Status & 0x401) == 0x401)) {
+        // If the next instruction is a GTE instruction sans LWC2/SWC2, there's a hardware bug where the instruction
+        // gets executed
+        // But EPC still ends up pointing to the GTE instruction. In this case, the BIOS will add 4 to EPC to skip the
+        // GTE instruction. To deal with this, we do not fire IRQs if the next instruction is a GTE instruction
+        // https://psx-spx.consoledev.net/cpuspecifications/#interrupts-vs-gte-commands
+        const auto pointer = (uint32_t*)PSXM(m_psxRegs.pc);
+        if (pointer != nullptr) {
+            const auto next = *pointer; // Fetch next instruction
+            if (((next >> 24) & 0xfe) == 0x4a) { // Return if it's a GTE instruction
+                return;
+            }
+        }
+
         PSXIRQ_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
         psxException(0x400, 0);
     }

@@ -309,6 +309,11 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
         std::snprintf(label, sizeof(label), "0x%4.4x($%s)##%08x", offset, s_disRNameGPR[reg], m_currentAddr);
     }
     uint32_t addr = m_registers->GPR.r[reg] + offset;
+
+    std::string longLabel;
+    auto symbols = findSymbol(addr);
+    if (symbols.size() != 0) longLabel = *symbols.begin() + " ; ";
+
     ImGui::TextUnformatted(" ");
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
@@ -319,13 +324,13 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
         switch (size) {
             case 1:
-                ImGui::Text("[%8.8x] = %2.2x", addr, mem8(addr));
+                ImGui::Text("%s[%8.8x] = %2.2x", longLabel.c_str(), addr, mem8(addr));
                 break;
             case 2:
-                ImGui::Text("[%8.8x] = %4.4x", addr, mem16(addr));
+                ImGui::Text("%s[%8.8x] = %4.4x", longLabel.c_str(), addr, mem16(addr));
                 break;
             case 4:
-                ImGui::Text("[%8.8x] = %8.8x", addr, mem32(addr));
+                ImGui::Text("%s[%8.8x] = %8.8x", longLabel.c_str(), addr, mem32(addr));
                 break;
         }
         ImGui::PopTextWrapPos();
@@ -412,9 +417,9 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
             if (ImGui::MenuItem(_("Resume"), "F5", nullptr, !g_system->running())) g_system->resume();
             ImGui::Separator();
             if (ImGui::MenuItem(_("Step In"), "F11", nullptr, !g_system->running())) g_emulator->m_debug->stepIn();
-            if (ImGui::MenuItem(_("Step Over"), "F10", nullptr, !g_system->running()))
-                g_emulator->m_debug->stepOver();
-            if (ImGui::MenuItem(_("Step Out"), "Shift+F11", nullptr, !g_system->running())) g_emulator->m_debug->stepOut();
+            if (ImGui::MenuItem(_("Step Over"), "F10", nullptr, !g_system->running())) g_emulator->m_debug->stepOver();
+            if (ImGui::MenuItem(_("Step Out"), "Shift+F11", nullptr, !g_system->running()))
+                g_emulator->m_debug->stepOut();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu(_("Options"))) {

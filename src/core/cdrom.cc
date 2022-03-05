@@ -69,6 +69,8 @@ class CDRomImpl : public PCSX::CDRom {
         CdlReadToc = 30,
     };
 
+    static const size_t cdCmdEnumCount = magic_enum::enum_count<Commands>();
+
     static const inline uint8_t Test04[] = {0};
     static const inline uint8_t Test05[] = {0};
     static const inline uint8_t Test20[] = {0x98, 0x06, 0x10, 0xC3};
@@ -84,6 +86,16 @@ class CDRomImpl : public PCSX::CDRom {
         Acknowledge = 3,
         DataEnd = 4,
         DiskError = 5,
+    };
+
+    /* m_ctrl */
+    enum {
+        BUSYSTS = 1 << 7,  // 0x80 Command/parameter transmission busy  (1=Busy)
+        DRQSTS = 1 << 6,   // 0x40 Data fifo empty                      (0=Empty)
+        RSLRRDY = 1 << 5,  // 0x20 Response fifo empty                  (0=Empty)
+        PRMWRDY = 1 << 4,  // 0x10 Parameter fifo full                  (0=Full)
+        PRMEMPT = 1 << 3,  // 0x08 Parameter fifo empty                 (1=Empty)
+        ADPBUSY = 1 << 2   // 0x04 XA-ADPCM fifo empty                  (0=Empty)
     };
 
     /* Modes flags */
@@ -233,6 +245,12 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         if (m_transferIndex >= bufSize) m_transferIndex -= bufSize;
+
+        // FIFO empty
+        if (m_transferIndex == 0) {
+            m_ctrl &= ~DRQSTS; // Data fifo empty
+            m_read = 0;
+        }
     }
 
     // FIXME: do this in SPU instead
@@ -458,7 +476,6 @@ class CDRomImpl : public PCSX::CDRom {
 
             StopCdda();
         } else if (m_mode & MODE_REPORT) {
-            m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
             m_result[0] = m_statP;
             m_result[1] = m_subq.track;
             m_result[2] = m_subq.index;
@@ -528,11 +545,12 @@ class CDRomImpl : public PCSX::CDRom {
             m_trackChanged = true;
         }
 
+        m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
         if (!m_irq && !m_stat && (m_mode & (MODE_AUTOPAUSE | MODE_REPORT))) cdrPlayInterrupt_Autopause();
 
         if (!m_play) return;
 
-        if (!m_muted && (m_mode & (MODE_REPORT))) {
+        if (!m_muted) {
             attenuate((int16_t *)m_transfer, CD_FRAMESIZE_RAW / 4, 1);
             PCSX::g_emulator->m_spu->playCDDAchannel((short *)m_transfer, CD_FRAMESIZE_RAW);
         }
@@ -571,7 +589,7 @@ class CDRomImpl : public PCSX::CDRom {
             return;
         }
 
-        m_ctrl &= ~0x80;
+        m_ctrl &= ~BUSYSTS; // Command/parameter transmission not busy
 
         // default response
         SetResultSize(1);
@@ -764,7 +782,7 @@ class CDRomImpl : public PCSX::CDRom {
                     scheduleCDPlayIRQ((m_mode & MODE_SPEED) ? cdReadTime / 2 : cdReadTime);
                 }
                 AddIrqQueue(CdlPause + 0x100, delay);
-                m_ctrl |= 0x80;
+                m_ctrl |= BUSYSTS; // Command/parameter transmission busy
                 break;
 
             case CdlPause + 0x100:
@@ -915,6 +933,15 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlID + 0x100:
                 SetResultSize(8);
+
+                 if (!m_iso.isActive()) {
+                    m_result[0] = 0x08;
+                    m_result[1] = 0x40;
+                    memset((char *)&m_result[2], 0, 6);
+                    m_stat = DiskError;
+                    break;
+                }
+
                 m_result[0] = m_statP;
                 m_result[1] = 0;
                 m_result[2] = 0;
@@ -1127,7 +1154,6 @@ class CDRomImpl : public PCSX::CDRom {
             return;
         }
 
-        m_OCUP = 1;
         SetResultSize(1);
         m_statP |= STATUS_READ | STATUS_ROTATING;
         m_statP &= ~STATUS_SEEK;
@@ -1150,6 +1176,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         memcpy(m_transfer, buf, DATA_SIZE);
         m_ppf.CheckPPFCache(m_transfer, m_prev[0], m_prev[1], m_prev[2]);
+        m_ctrl |= DRQSTS; // Data fifo not empty
 
         CDROM_LOG("readInterrupt() Log: cdr.m_transfer %x:%x:%x\n", m_transfer[0], m_transfer[1], m_transfer[2]);
 
@@ -1227,16 +1254,12 @@ class CDRomImpl : public PCSX::CDRom {
 
     uint8_t read0(void) final {
         if (m_resultReady) {
-            m_ctrl |= 0x20;
+            m_ctrl |= RSLRRDY; // Response fifo not empty
         } else {
-            m_ctrl &= ~0x20;
+            m_ctrl &= ~RSLRRDY; // Response fifo empty
         }
 
-        if (m_OCUP) m_ctrl |= 0x40;
-        //  else
-        //      m_ctrl &= ~0x40;
-
-        m_ctrl |= 0x18;
+        m_ctrl |= (PRMEMPT | PRMWRDY); // Parameter fifo empty, parameter not fifo full
 
         CDROM_IO_LOG("cdr r0: %02x\n", m_ctrl);
         return psxHu8(0x1800) = m_ctrl;
@@ -1274,9 +1297,13 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         m_cmd = rt;
-        m_OCUP = 0;
 
-        CDROM_IO_LOG("CD1 write: %x (%s)", rt, magic_enum::enum_names<Commands>()[rt]);
+        if (rt > cdCmdEnumCount) {
+            CDROM_IO_LOG("CD1 write: %x (CdlUnknown)", rt);
+        } else {
+            CDROM_IO_LOG("CD1 write: %x (%s)", rt, magic_enum::enum_names<Commands>()[rt]);
+        }
+   
         if (m_paramC) {
             CDROM_IO_LOG(" Param[%d] = {", m_paramC);
             for (i = 0; i < m_paramC; i++) CDROM_IO_LOG(" %x,", m_param[i]);
@@ -1286,7 +1313,7 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         m_resultReady = 0;
-        m_ctrl |= 0x80;
+        m_ctrl |= BUSYSTS; // Command/parameter transmission busy
         // m_stat = NoIntr;
         AddIrqQueue(m_cmd, 0x800);
 
@@ -1342,6 +1369,7 @@ class CDRomImpl : public PCSX::CDRom {
         unsigned char ret;
 
         if (m_read == 0) {
+            m_ctrl &= ~DRQSTS; // Data fifo empty
             ret = 0;
         } else {
             ret = m_transfer[m_transferIndex];
@@ -1516,7 +1544,6 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     void reset() final {
-        m_OCUP = 0;
         m_reg1Mode = 0;
         m_cmdProcess = 0;
         m_ctrl = 0;
@@ -1658,8 +1685,13 @@ class CDRomImpl : public PCSX::CDRom {
                                     m_param[0]);
                 break;
             default:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: %s\n", delayedString,
-                                    magic_enum::enum_names<Commands>()[command & 0xff]);
+                if ((command & 0xff) > cdCmdEnumCount) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: CdlUnknown(0x%02X)\n", delayedString,
+                                        command & 0xff);
+                } else {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: %s\n", delayedString,
+                                        magic_enum::enum_names<Commands>()[command & 0xff]);
+                }
                 break;
         }
     }

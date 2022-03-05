@@ -684,7 +684,67 @@ void DynaRecCPU::recMULTU() {
 }
 
 template <int size, bool signExtend>
+void DynaRecCPU::recompileLoadWithDelay(LoadDelayDependencyType type) {
+    if (m_regs[_Rs_].isConst()) {
+        gen.mov(arg1, m_regs[_Rs_].val + _Imm_);
+    } else {
+        allocateReg(_Rs_);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
+    }
+
+    switch (size) {
+        case 8:
+            call(psxMemRead8Wrapper);
+            break;
+        case 16:
+            call(psxMemRead16Wrapper);
+            break;
+        case 32:
+            call(psxMemRead32Wrapper);
+            break;
+    }
+
+    if (_Rt_) {
+        m_delayedLoadInfo[m_currentDelayedLoad].active = true;
+
+        switch (size) {
+            case 8:
+                signExtend ? gen.movsx(eax, al) : gen.movzx(eax, al);
+                break;
+            case 16:
+                signExtend ? gen.movsx(eax, ax) : gen.movzx(eax, ax);
+                break;
+        }
+
+        if (type == LoadDelayDependencyType::DependencyAcrossBlocks) {
+            const auto delayedLoadValueOffset = (uintptr_t)&m_runtimeLoadDelay.value - (uintptr_t)this;
+            const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+            const auto indexOffset = (uintptr_t)&m_runtimeLoadDelay.index - (uintptr_t)this;
+            gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+            gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 1);
+            gen.mov(dword[contextPointer + indexOffset], _Rt_);
+        } else {
+            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+            delayedLoad.index = _Rt_;
+            gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
+        }
+    }
+}
+
+template <int size, bool signExtend>
 void DynaRecCPU::recompileLoad() {
+    static_assert(size == 8 || size == 16 || size == 32);
+
+    const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
+    if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
+        recompileLoadWithDelay<size, signExtend>(loadDelayDependency);
+        return;
+    }
+
+    // If we won't emulate the load delay, make sure to cancel any pending loads that might trample the value
+    maybeCancelDelayedLoad(_Rt_);
+
     if (m_regs[_Rs_].isConst()) {  // Store the address in first argument register
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerRead(addr);
@@ -711,9 +771,6 @@ void DynaRecCPU::recompileLoad() {
             break;
         case 32:
             call(psxMemRead32Wrapper);
-            break;
-        default:
-            PCSX::g_system->message("Invalid size for memory load in dynarec. Instruction %08x\n", m_psxRegs.code);
             break;
     }
 
@@ -742,8 +799,18 @@ void DynaRecCPU::recLHU() { recompileLoad<16, false>(); }
 void DynaRecCPU::recLW() { recompileLoad<32, true>(); }
 
 void DynaRecCPU::recLWL() {
-    if (!_Rt_) {
-        error();
+    if (_Rt_ == 0) { // If $rt == 0, just execute the read in case it has side-effects, then return
+        if (m_regs[_Rs_].isConst()) {
+            const uint32_t address = m_regs[_Rs_].val + _Imm_;
+            gen.mov(arg1, address & ~3); // Aligned address in arg1
+        } else {
+            allocateReg(_Rs_);                                       // Allocate address reg
+            gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+            gen.and_(arg1, ~3);                                      // Force align it
+        }
+
+        call(psxMemRead32Wrapper);  // Read from the aligned address
+        return;
     }
 
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
@@ -824,8 +891,18 @@ void DynaRecCPU::recLWL() {
 }
 
 void DynaRecCPU::recLWR() {
-    if (!_Rt_) {
-        error();
+    if (_Rt_ == 0) {  // If $rt == 0, just execute the read in case it has side-effects, then return
+        if (m_regs[_Rs_].isConst()) {
+            const uint32_t address = m_regs[_Rs_].val + _Imm_;
+            gen.mov(arg1, address & ~3);  // Aligned address in arg1
+        } else {
+            allocateReg(_Rs_);                                       // Allocate address reg
+            gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+            gen.and_(arg1, ~3);                                      // Force align it
+        }
+
+        call(psxMemRead32Wrapper);  // Read from the aligned address
+        return;
     }
 
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
