@@ -30,7 +30,7 @@ void PCSX::Resources::loadIcon(std::function<void(const uint8_t*, uint32_t)> pro
 
     g_system->findResource(
         [&ico](const std::filesystem::path& filename) {
-            ico.reset(new PosixFile(filename));
+            ico.setFile(new PosixFile(filename));
             return !ico->failed();
         },
         "pcsx-redux.ico", "resources", "resources");

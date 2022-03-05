@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <zlib.h>
 
+#include <atomic>
 #include <compare>
 #include <filesystem>
 #include <type_traits>
