@@ -41,17 +41,17 @@ static constexpr bool between(uint32_t val, uint32_t beg, uint32_t end) {
 }
 
 static constexpr bool addressInRegisterSpace(uint32_t address) {
-    uint32_t _add = address & 0x1fffffff;
+    uint32_t masked_addr = address & 0x1fffffff;
 
-    return (between(_add, 0x1f801000, 0x1f801023) ||               // MEMCTRL
-            between(_add, 0x1f801060, 0x1f801063) ||               // RAM_SIZE
-            between(_add, 0x1f801070, 0x1f801077) ||               // IRQCTRL
-            between(_add & 0xffffff0f, 0x1f801000, 0x1f801003) ||  // DMAx.ADDR
-            between(_add & 0xffffff0f, 0x1f801008, 0x1f80100f) ||  // DMAx.CTRL/MIRR
-            between(_add, 0x1f8010f0, 0x1f8010f7) ||               // DMA.DPCR/DICR
-            between(_add, 0x1f801100, 0x1f80110b) ||               // Timer 0
-            between(_add, 0x1f801110, 0x1f80111b) ||               // Timer 1
-            between(_add, 0x1f801120, 0x1f80112b));                // Timer 2
+    return (between(masked_addr, 0x1f801000, 0x1f801023) ||               // MEMCTRL
+            between(masked_addr, 0x1f801060, 0x1f801063) ||               // RAM_SIZE
+            between(masked_addr, 0x1f801070, 0x1f801077) ||               // IRQCTRL
+            between(masked_addr & 0xffffff0f, 0x1f801000, 0x1f801003) ||  // DMAx.ADDR
+            between(masked_addr & 0xffffff0f, 0x1f801008, 0x1f80100f) ||  // DMAx.CTRL/MIRR
+            between(masked_addr, 0x1f8010f0, 0x1f8010f7) ||               // DMA.DPCR/DICR
+            between(masked_addr, 0x1f801100, 0x1f80110b) ||               // Timer 0
+            between(masked_addr, 0x1f801110, 0x1f80111b) ||               // Timer 1
+            between(masked_addr, 0x1f801120, 0x1f80112b));                // Timer 2
 }
 
 void PCSX::HW::psxHwReset() {
