@@ -56,7 +56,7 @@ class Pads {
     json getCfg();
     void setCfg(const json &j);
     void setDefaults();
-    bool configure(GUI* gui);
+    bool configure(GUI *gui);
     bool m_showCfg = false;
 
     void scanGamepads();
@@ -109,22 +109,23 @@ class Pads {
 
     typedef Setting<bool, TYPESTRING("Connected")> SettingConnected;
     // Default sensitivity = 5/10 = 0.5
-    typedef SettingFloat<TYPESTRING("MouseSensitivity"), 5, 10> SettingMouseSensitivity;
+    typedef SettingFloat<TYPESTRING("MouseSensitivityX"), 5, 10> SettingMouseSensitivityX;
+    typedef SettingFloat<TYPESTRING("MouseSensitivityY"), 5, 10> SettingMouseSensitivityY;
 
-    typedef Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
-                     Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
-                     Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2, Keyboard_PadR1, Keyboard_PadR2,
-                     Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross,
-                     Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle, Controller_PadSelect,
-                     Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadR1, Controller_PadR2,
-                     SettingInputType, SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivity>
+    typedef Settings<
+        Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross, Keyboard_PadTriangle,
+        Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect, Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2,
+        Keyboard_PadR1, Keyboard_PadR2, Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft,
+        Controller_PadCross, Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle, Controller_PadSelect,
+        Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadR1, Controller_PadR2, SettingInputType,
+        SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
         PadSettings;
 
     struct Pad {
-        void readPort(PadData& pad);
-        uint8_t startPoll(const PadData& pad);
+        void readPort(PadData &pad);
+        uint8_t startPoll(const PadData &pad);
         uint8_t poll(uint8_t value);
-        void getButtons(PadData& pad);
+        void getButtons(PadData &pad);
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
 
         json getCfg();

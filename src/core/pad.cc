@@ -237,7 +237,7 @@ void PCSX::Pads::Pad::getButtons(PadData& pad) {
             }
         }
     } else {
-        // Normalize an axis from (-1, 1) to (0, 255) with 128 = center 
+        // Normalize an axis from (-1, 1) to (0, 255) with 128 = center
         const auto axisToUint8 = [](float axis) {
             constexpr float scale = 1.3;
             const float scaledValue = std::clamp<float>(axis * scale, -1.0f, 1.0f);
@@ -287,10 +287,11 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
             const int leftClick = ImGui::IsMouseDown(ImGuiMouseButton_Left) ? 0 : 1;
             const int rightClick = ImGui::IsMouseDown(ImGuiMouseButton_Right) ? 0 : 1;
             const auto& io = ImGui::GetIO();
-            const float scale = m_settings.get<SettingMouseSensitivity>();
+            const float scaleX = m_settings.get<SettingMouseSensitivityX>();
+            const float scaleY = m_settings.get<SettingMouseSensitivityY>();
 
-            const float deltaX = io.MouseDelta.x * scale;
-            const float deltaY = io.MouseDelta.y * scale;
+            const float deltaX = io.MouseDelta.x * scaleX;
+            const float deltaY = io.MouseDelta.y * scaleY;
 
             // The top 4 bits are always set to 1, the low 2 bits seem to always be set to 0.
             // Left/right click are inverted in the response byte, ie 0 = pressed
@@ -479,7 +480,8 @@ bool PCSX::Pads::Pad::configure() {
 
         ImGui::EndCombo();
     }
-    changed |= ImGui::SliderFloat("Mouse sensitivity", &m_settings.get<SettingMouseSensitivity>().value, 0.01, 10.f);
+    changed |= ImGui::SliderFloat("Mouse sensitivity X", &m_settings.get<SettingMouseSensitivityX>().value, 0.f, 10.f);
+    changed |= ImGui::SliderFloat("Mouse sensitivity Y", &m_settings.get<SettingMouseSensitivityY>().value, 0.f, 10.f);
 
     ImGui::Text(_("Keyboard mapping"));
     if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame)) {
