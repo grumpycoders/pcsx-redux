@@ -361,9 +361,8 @@ bool PCSX::Pads::configure(PCSX::GUI* gui) {
         init();
     }
 
-    if (ImGui::Checkbox(_("Use raw input for mouse"), &m_useRawMouseMotion)) {
-        m_useRawMouseMotion ? gui->enableRawMouseMotion() : gui->disableRawMouseMotion();
-    }
+    bool changed = false;
+    changed |= ImGui::Checkbox(_("Use raw input for mouse"), &gui->isRawMouseMotionEnabled());
 
     if (ImGui::BeginCombo(_("Pad"), c_padNames[m_selectedPadForConfig]())) {
         for (unsigned i = 0; i < 2; i++) {
@@ -374,7 +373,6 @@ bool PCSX::Pads::configure(PCSX::GUI* gui) {
         ImGui::EndCombo();
     }
 
-    bool changed = false;
     if (ImGui::Button(_("Set defaults"))) {
         changed = true;
         m_pads[m_selectedPadForConfig].setDefaults(m_selectedPadForConfig == 0);

@@ -58,7 +58,6 @@ class Pads {
     void setDefaults();
     bool configure(GUI* gui);
     bool m_showCfg = false;
-    bool m_useRawMouseMotion = false;
 
     void scanGamepads();
 

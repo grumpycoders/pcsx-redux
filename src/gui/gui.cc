@@ -41,8 +41,8 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sstate.h"
 #include "core/sio1-server.h"
+#include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"
 #include "gpu/soft/externals.h"
@@ -96,6 +96,18 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
         glfwSetWindowMonitor(m_window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, GLFW_DONT_CARE);
     } else {
         glfwSetWindowMonitor(m_window, nullptr, m_glfwPosX, m_glfwPosY, m_glfwSizeX, m_glfwSizeY, GLFW_DONT_CARE);
+    }
+}
+
+void PCSX::GUI::setRawMouseMotion(bool value) {
+    isRawMouseMotionEnabled() = value;
+    if (value) {
+        if (glfwRawMouseMotionSupported()) {
+            glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        }
+    } else {
+        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }
 
@@ -233,9 +245,14 @@ end)(jit.status()))
     }
 
     m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
-    m_listener.listen<Events::ExecutionFlow::Pause>(
-        [this](const auto& event) { glfwSwapInterval(m_idleSwapInterval); });
-    m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) { glfwSwapInterval(0); });
+    m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
+        glfwSwapInterval(m_idleSwapInterval);
+        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    });
+    m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
+        glfwSwapInterval(0);
+        setRawMouseMotion(isRawMouseMotionEnabled());
+    });
 
     auto monitor = glfwGetPrimaryMonitor();
 
@@ -600,12 +617,13 @@ void PCSX::GUI::startFrame() {
     // Check hotkeys (TODO: Make configurable)
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) {
         m_showMenu = !m_showMenu;
-        if (g_emulator->m_pads->m_useRawMouseMotion) {
-            g_emulator->m_pads->m_useRawMouseMotion = false;
-            disableRawMouseMotion();
+    }
+    if (io.KeyAlt) {
+        if (ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
+        if (io.KeyCtrl) {
+            setRawMouseMotion(!isRawMouseMotionEnabled());
         }
     }
-    if (io.KeyAlt && ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
 
     if (ImGui::IsKeyPressed(GLFW_KEY_F1)) {  // Save to quick-save slot
         zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
@@ -1720,10 +1738,3 @@ void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
     delete[] buff;
     SaveStates::load(os.str());
 };
-
-void PCSX::GUI::enableRawMouseMotion() {
-    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-}
-
-void PCSX::GUI::disableRawMouseMotion() { glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); }
