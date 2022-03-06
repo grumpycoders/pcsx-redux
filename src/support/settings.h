@@ -19,8 +19,9 @@
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
 
 #include <codecvt>
 #include <filesystem>
@@ -117,6 +118,32 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     }
     void reset() { value = defaultValue::data(); }
     type value = defaultValue::data();
+};
+
+template <typename name, int defaultValue, int divisor>
+class SettingFloat;
+template <char... C, int defaultValue, int divisor>
+class SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
+    using json = nlohmann::json;
+    static_assert(divisor != 0, "Can't have a SettingFloat with a divisor of 0");
+
+  public:
+    typedef irqus::typestring<C...> name;
+    typedef float type;
+
+  private:
+    using myself = SettingFloat<name, defaultValue, divisor>;
+
+  public:
+    operator type() const { return value; }
+    myself &operator=(const float &v) {
+        value = v;
+        return *this;
+    }
+    json serialize() const { return value; }
+    void deserialize(const json &j) { value = j; }
+    void reset() { value = (float)defaultValue / (float)divisor; }
+    float value = (float)defaultValue / (float)divisor;
 };
 
 template <typename name, typename nestedSettings>

@@ -109,7 +109,8 @@ class Pads {
     typedef Setting<int, TYPESTRING("ID")> SettingControllerID;
 
     typedef Setting<bool, TYPESTRING("Connected")> SettingConnected;
-    typedef Setting<float, TYPESTRING("MouseSensitivity"), 0.5f> SettingMouseSensitivity;
+    // Default sensitivity = 5/10 = 0.5
+    typedef SettingFloat<TYPESTRING("MouseSensitivity"), 5, 10> SettingMouseSensitivity;
 
     typedef Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
                      Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
