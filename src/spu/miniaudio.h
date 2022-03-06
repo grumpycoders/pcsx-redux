@@ -54,6 +54,7 @@ class MiniAudio {
         int16_t L = 0, R = 0;
     };
     MiniAudio(SettingsType& settings);
+    ~MiniAudio() { uninit(); }
     ma_uint32 getFrameCount() { return m_frameCount.load(); }
     void reinit() {
         uninit();

@@ -994,7 +994,7 @@ void InterpretedCPU::psxLWR(uint32_t code) {
     */
 }
 
-void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, (uint8_t)_rRt_); }
+void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, _rRt_); }
 void InterpretedCPU::psxSH(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
             .get<PCSX::Emulator::DebugSettings::Debug>()) {
@@ -1007,7 +1007,7 @@ void InterpretedCPU::psxSH(uint32_t code) {
             return;
         }
     }
-    PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, (uint16_t)_rRt_);
+    PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, _rRt_);
 }
 
 void InterpretedCPU::psxSW(uint32_t code) {

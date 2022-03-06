@@ -36,6 +36,24 @@
 
 static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
 
+static constexpr bool between(uint32_t val, uint32_t beg, uint32_t end) {
+    return (beg > end) ? false : (val >= beg && val <= end - 3);
+}
+
+static constexpr bool addressInRegisterSpace(uint32_t address) {
+    uint32_t masked_addr = address & 0x1fffffff;
+
+    return (between(masked_addr, 0x1f801000, 0x1f801023) ||               // MEMCTRL
+            between(masked_addr, 0x1f801060, 0x1f801063) ||               // RAM_SIZE
+            between(masked_addr, 0x1f801070, 0x1f801077) ||               // IRQCTRL
+            between(masked_addr & 0xffffff0f, 0x1f801000, 0x1f801003) ||  // DMAx.ADDR
+            between(masked_addr & 0xffffff0f, 0x1f801008, 0x1f80100f) ||  // DMAx.CTRL/MIRR
+            between(masked_addr, 0x1f8010f0, 0x1f8010f7) ||               // DMA.DPCR/DICR
+            between(masked_addr, 0x1f801100, 0x1f80110b) ||               // Timer 0
+            between(masked_addr, 0x1f801110, 0x1f80111b) ||               // Timer 1
+            between(masked_addr, 0x1f801120, 0x1f80112b));                // Timer 2
+}
+
 void PCSX::HW::psxHwReset() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>()) setIrq(0x200);
 
@@ -356,7 +374,9 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
     return hard;
 }
 
-void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
+void PCSX::HW::psxHwWrite8(uint32_t add, uint32_t rawvalue) {
+    uint8_t value = (uint8_t)rawvalue;
+
     switch (add & 0x1fffffff) {
         case 0x1f801040:
             PCSX::g_emulator->m_sio->write8(value);
@@ -407,15 +427,27 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
             break;
 
         default:
-            psxHu8ref(add) = value;
-            PSXHW_LOG("*Unknown 8bit write at address %x value %x\n", add, value);
+            if (addressInRegisterSpace(add)) {
+                psxHu32ref(add) = rawvalue;
+                PSXHW_LOG("*Unknown 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
+            } else {
+                psxHu8ref(add) = value;
+                PSXHW_LOG("*Unknown 8bit write at address %x value %x\n", add, value);
+            }
             return;
     }
-    psxHu8ref(add) = value;
-    PSXHW_LOG("*Known 8bit write at address %x value %x\n", add, value);
+    if (addressInRegisterSpace(add)) {
+        psxHu32ref(add) = value;
+        PSXHW_LOG("*Known 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
+    } else {
+        psxHu8ref(add) = value;
+        PSXHW_LOG("*Known 8bit write at address %x value %x\n", add, value);
+    }
 }
 
-void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
+void PCSX::HW::psxHwWrite16(uint32_t add, uint32_t rawvalue) {
+    uint16_t value = (uint16_t)rawvalue;
+
     switch (add & 0x1fffffff) {
         case 0x1f801040:
             PCSX::g_emulator->m_sio->write8((unsigned char)value);
@@ -459,15 +491,14 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
             SIO1_LOG("SIO1.BAUD write16 %x, %x\n", add & 0xf, value);
             break;
         case 0x1f801070:
-            PSXHW_LOG("IREG 16bit write %x\n", value);
+            PSXHW_LOG("IREG 16bit(actually 32bit) write %x\n", rawvalue);
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>())
                 psxHu16ref(0x1070) |= SWAP_LEu16(0x200);
-            psxHu16ref(0x1070) &= SWAP_LEu16(value);
+            psxHu32ref(0x1070) &= SWAP_LEu32(rawvalue);
             return;
 
         case 0x1f801074:
             PSXHW_LOG("IMASK 16bit write %x\n", value);
-            psxHu16ref(0x1074) = SWAP_LEu16(value);
             break;
 
         case 0x1f801100:
@@ -518,12 +549,22 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
                 break;
             }
 
-            psxHu16ref(add) = SWAP_LEu16(value);
-            PSXHW_LOG("*Unknown 16bit write at address %x value %x\n", add, value);
+            if (addressInRegisterSpace(add)) {
+                psxHu32ref(add) = SWAP_LEu32(rawvalue);
+                PSXHW_LOG("*Unknown 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
+            } else {
+                psxHu16ref(add) = SWAP_LEu16(value);
+                PSXHW_LOG("*Unknown 16bit write at address %x value %x\n", add, value);
+            }
             return;
     }
-    psxHu16ref(add) = SWAP_LEu16(value);
-    PSXHW_LOG("*Known 16bit write at address %x value %x\n", add, value);
+    if (addressInRegisterSpace(add)) {
+        psxHu32ref(add) = SWAP_LEu32(rawvalue);
+        PSXHW_LOG("*Known 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
+    } else {
+        psxHu16ref(add) = SWAP_LEu16(value);
+        PSXHW_LOG("*Known 16bit write at address %x value %x\n", add, value);
+    }
 }
 
 inline void PCSX::HW::psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr) {
