@@ -29,8 +29,10 @@ PCSX::UvFilesListType PCSX::UvFile::s_allFiles;
 
 void PCSX::UvFile::startThread() {
     if (s_threadRunning) throw std::runtime_error("UV thread already running");
+    std::promise<void> barrier;
+    auto f = barrier.get_future();
     s_threadRunning = true;
-    s_uvThread = std::thread([]() -> void {
+    s_uvThread = std::thread([barrier = std::move(barrier)]() mutable {
         uv_loop_t loop;
         uv_loop_init(&loop);
         uv_async_init(&loop, &s_kicker, [](uv_async_t *async) {
@@ -39,13 +41,15 @@ void PCSX::UvFile::startThread() {
                 req(async->loop);
             }
         });
+        barrier.set_value();
         uv_run(&loop, UV_RUN_DEFAULT);
     });
+    f.wait();
 }
 
 void PCSX::UvFile::stopThread() {
     if (!s_threadRunning) throw std::runtime_error("UV thread isn't running");
-    request([](auto loop) { uv_unref(reinterpret_cast<uv_handle_t *>(&s_kicker)); });
+    request([](auto loop) { uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {}); });
     s_uvThread.join();
     s_threadRunning = false;
 }
