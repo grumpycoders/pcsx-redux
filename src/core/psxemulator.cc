@@ -62,6 +62,10 @@ PCSX::Emulator::Emulator()
       m_pads(new PCSX::Pads()),
       m_lua(new PCSX::Lua()),
       m_callStacks(new PCSX::CallStacks) {
+    uv_loop_init(&m_loop);
+}
+
+void PCSX::Emulator::setLua() {
     m_lua->open_base();
     m_lua->open_bit();
     m_lua->open_debug();
@@ -72,7 +76,6 @@ PCSX::Emulator::Emulator()
     m_lua->open_string();
     m_lua->open_table();
     LuaFFI::open_zlib(m_lua.get());
-    uv_loop_init(&m_loop);
     luv_set_loop(m_lua->getState(), &m_loop);
     m_lua->push("luv");
     luaopen_luv(m_lua->getState());

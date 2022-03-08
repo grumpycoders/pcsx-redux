@@ -230,6 +230,8 @@ class Emulator {
     void vsync();
     void EmuSetPGXPMode(uint32_t pgxpMode);
 
+    void setLua();
+
     PcsxConfig& config() { return m_config; }
 
     std::unique_ptr<CallStacks> m_callStacks;

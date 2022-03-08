@@ -71,7 +71,7 @@ class SystemImpl final : public PCSX::System {
 
     virtual void luaMessage(const std::string &s, bool error) final override {
         s_gui->addLuaLog(s, error);
-        if (m_args.get<bool>("lua_stdout", false)) {
+        if ((error && m_inStartup) || m_args.get<bool>("lua_stdout", false)) {
             if (error) {
                 fprintf(stderr, "%s\n", s.c_str());
             } else {
@@ -138,6 +138,7 @@ class SystemImpl final : public PCSX::System {
 
     bool m_enableStdout = false;
     const CommandLine::args &m_args;
+    bool m_inStartup = true;
 };
 
 using json = nlohmann::json;
@@ -180,6 +181,8 @@ int pcsxMain(int argc, char **argv) {
     const auto &logfile = logfileArg.empty() ? logfileSet : logfileArg;
     if (!logfile.empty()) system->useLogfile(logfile);
 
+    emulator->setLua();
+    s_gui->setLua();
     emulator->m_cdrom->m_iso.init();
     emulator->m_gpu->init();
     emulator->m_spu->init();
@@ -200,11 +203,11 @@ int pcsxMain(int argc, char **argv) {
             emulator->m_lua->load(luaexec.data(), "cmdline", false);
             emulator->m_lua->pcall();
         } catch (std::exception &e) {
-            if (args.get<bool>("lua_stdout", false)) {
-                fprintf(stderr, "%s\n", e.what());
-            }
+            fprintf(stderr, "%s\n", e.what());
         }
     }
+
+    system->m_inStartup = false;
 
     while (!system->quitting()) {
         if (system->running()) {

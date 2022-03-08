@@ -20,12 +20,13 @@
 #include "lua/luafile.h"
 
 #include "lua/luawrapper.h"
-#include "support/file.h"
+#include "support/uvfile.h"
 
 namespace {
 
-struct LuaBreakpoint {
-    PCSX::IO<PCSX::File> wrapper;
+struct LuaFile {
+    LuaFile(PCSX::IO<PCSX::File> file) : file(file) {}
+    PCSX::IO<PCSX::File> file;
 };
 
 enum FileOps {
@@ -34,6 +35,38 @@ enum FileOps {
     CREATE,
     READWRITE,
 };
+
+void deleteFile(LuaFile* wrapper) { delete wrapper; }
+
+LuaFile* openFile(const char* filename, FileOps type) {
+    switch (type) {
+        case READ:
+            return new LuaFile(new PCSX::UvFile(filename));
+        case TRUNCATE:
+            return new LuaFile(new PCSX::UvFile(filename, PCSX::FileOps::TRUNCATE));
+        case CREATE:
+            return new LuaFile(new PCSX::UvFile(filename, PCSX::FileOps::CREATE));
+        case READWRITE:
+            return new LuaFile(new PCSX::UvFile(filename, PCSX::FileOps::READWRITE));
+    }
+}
+void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
+
+uint32_t readFileRawPtr(LuaFile* wrapper, void* dst, uint32_t size) { return wrapper->file->read(dst, size); }
+uint32_t readFileBuffer(LuaFile* wrapper, void* buffer) {
+    uint32_t* pSize = reinterpret_cast<uint32_t*>(buffer);
+    uint8_t* data = reinterpret_cast<uint8_t*>(pSize + 1);
+    return *pSize = wrapper->file->read(data, *pSize);
+}
+
+uint32_t writeFileRawPtr(LuaFile* wrapper, const const uint8_t* data, uint32_t size) {
+    return wrapper->file->write(data, size);
+}
+uint32_t writeFileBuffer(LuaFile* wrapper, const void* buffer) {
+    const uint32_t* pSize = reinterpret_cast<const uint32_t*>(buffer);
+    const uint8_t* data = reinterpret_cast<const uint8_t*>(pSize + 1);
+    return wrapper->file->write(data, *pSize);
+}
 
 }  // namespace
 
@@ -56,8 +89,18 @@ static void registerAllSymbols(PCSX::Lua* L) {
         L->copy(-2);
         L->settable(LUA_REGISTRYINDEX);
     }
-    L->push("SUPPORTFILE");
+    L->push("SUPPORT_FILE");
     L->newtable();
+
+    REGISTER(L, deleteFile);
+
+    REGISTER(L, openFile);
+    REGISTER(L, closeFile);
+
+    REGISTER(L, readFileRawPtr);
+    REGISTER(L, readFileBuffer);
+    REGISTER(L, writeFileRawPtr);
+    REGISTER(L, writeFileBuffer);
     L->settable();
     L->pop();
 }

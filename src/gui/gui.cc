@@ -184,10 +184,28 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
     }
 }
 
+void PCSX::GUI::setLua() {
+    g_emulator->m_lua->load(R"(
+print("PCSX-Redux Lua Console")
+print(jit.version)
+print((function(status, ...)
+  local ret = "JIT: " .. (status and "ON" or "OFF")
+  for i, v in ipairs({...}) do
+    ret = ret .. " " .. v
+  end
+  return ret
+end)(jit.status()))
+)",
+                            "gui startup");
+    LoadImguiBindings(g_emulator->m_lua->getState());
+    LuaFFI::open_gl(g_emulator->m_lua.get());
+    m_offscreenShaderEditor.compile(this);
+    m_outputShaderEditor.compile(this);
+}
+
 void PCSX::GUI::init() {
     int result;
 
-    LoadImguiBindings(g_emulator->m_lua->getState());
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
@@ -213,18 +231,6 @@ void PCSX::GUI::init() {
             }
         }
     });
-    g_emulator->m_lua->load(R"(
-print("PCSX-Redux Lua Console")
-print(jit.version)
-print((function(status, ...)
-  local ret = "JIT: " .. (status and "ON" or "OFF")
-  for i, v in ipairs({...}) do
-    ret = ret .. " " .. v
-  end
-  return ret
-end)(jit.status()))
-)",
-                            "gui startup");
 
     glfwSetErrorCallback(
         [](int error, const char* description) { fprintf(stderr, "Glfw Error %d: %s\n", error, description); });
@@ -283,8 +289,6 @@ end)(jit.status()))
     if (result) {
         throw std::runtime_error("Unable to initialize OpenGL layer. Check OpenGL drivers.");
     }
-
-    LuaFFI::open_gl(g_emulator->m_lua.get());
 
     // Setup ImGui binding
     IMGUI_CHECKVERSION();
@@ -459,8 +463,6 @@ end)(jit.status()))
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
-    m_offscreenShaderEditor.compile(this);
-    m_outputShaderEditor.compile(this);
 
     m_listener.listen<Events::GUI::JumpToMemory>([this](auto& event) {
         const uint32_t base = (event.address >> 20) & 0xffc;

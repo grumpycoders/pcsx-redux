@@ -96,6 +96,7 @@ class GUI final {
         s_gui = nullptr;
     }
     void init();
+    void setLua();
     void close();
     void update(bool vsync = false);
     void flip();
