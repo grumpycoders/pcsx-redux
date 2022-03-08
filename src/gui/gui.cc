@@ -41,8 +41,8 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sstate.h"
 #include "core/sio1-server.h"
+#include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"
 #include "gpu/soft/externals.h"
@@ -177,10 +177,10 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
         fmt::format("Got OpenGL callback from \"{}\", type \"{}\", severity {}: {}", sourceToString[source],
                     typeToString[type], severityToString[severity], message);
     if (m_onlyLogGLErrors) {
-        m_glErrors.push_back(fullmessage);
+        m_glErrors.push_back(std::move(fullmessage));
     } else {
-        g_system->log(LogClass::UI, fullmessage);
-        if (type == GL_DEBUG_TYPE_ERROR) throw std::runtime_error(fullmessage);
+        g_system->log(LogClass::UI, std::move(fullmessage));
+        if (type == GL_DEBUG_TYPE_ERROR) throw std::runtime_error("Got an OpenGL error");
     }
 }
 
@@ -948,7 +948,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             if (ImGui::BeginMenu(_("Help"))) {
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::Separator();
-                ImGui::MenuItem(_("Show opened UvFile handles"), nullptr, &m_showHandles);
+                ImGui::MenuItem(_("Show UvFile information"), nullptr, &m_showHandles);
                 ImGui::Separator();
                 ImGui::MenuItem(_("About"), nullptr, &m_showAbout);
                 ImGui::EndMenu();
@@ -1171,6 +1171,11 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_showHandles) {
         if (ImGui::Begin(_("UvFiles"), &m_showHandles)) {
+            std::string rate;
+            byteRateToString(UvFile::getReadRate(), rate);
+            ImGui::Text(_("Read rate: %s"), rate.c_str());
+            byteRateToString(UvFile::getWriteRate(), rate);
+            ImGui::Text(_("Write rate: %s"), rate.c_str());
             if (ImGui::BeginTable("UvFiles", 2)) {
                 ImGui::TableSetupColumn(_("Caching"));
                 ImGui::TableSetupColumn(_("Filename"));
@@ -1420,7 +1425,7 @@ The debugger might be required in some cases.)"));
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::SIO1Server>()) {
                 g_emulator->m_sio1Server->startServer(&g_emulator->m_loop,
-                                                     debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
+                                                      debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
             } else {
                 g_emulator->m_sio1Server->stopServer();
             }
@@ -1538,8 +1543,22 @@ debugging features may not work)");
 void PCSX::GUI::interruptsScaler() {
     if (!m_showInterruptsScaler) return;
     static const char* names[] = {
-        "SIO", "SIO1"  "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",      "GPU Busy",
-        "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek", "CDR Play"};
+        "SIO",
+        "SIO1"
+        "CDR",
+        "CDR Read",
+        "GPU DMA",
+        "MDEC Out DMA",
+        "SPU DMA",
+        "GPU Busy",
+        "MDEC In DMA",
+        "GPU OTC DMA",
+        "CDR DMA",
+        "SPU",
+        "CDR Decoded Buffer",
+        "CDR Lid Seek",
+        "CDR Play",
+    };
     if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
         if (ImGui::Button(_("Reset all"))) {
             for (auto& scale : g_emulator->m_psxCpu->m_interruptScales) {
@@ -1743,3 +1762,15 @@ void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
     delete[] buff;
     SaveStates::load(os.str());
 };
+
+void PCSX::GUI::byteRateToString(float rate, std::string& str) {
+    if (rate >= 1000000000) {
+        str = fmt::format("{:.2f} GB/s", rate / 1000000000);
+    } else if (rate >= 1000000) {
+        str = fmt::format("{:.2f} MB/s", rate / 1000000);
+    } else if (rate >= 1000) {
+        str = fmt::format("{:.2f} KB/s", rate / 1000);
+    } else {
+        str = fmt::format("{:.2f} B/s", rate);
+    }
+}

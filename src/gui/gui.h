@@ -314,6 +314,8 @@ class GUI final {
     bool m_reloadFonts = true;
     Widgets::ShaderEditor m_outputShaderEditor = {"output"};
 
+    static void byteRateToString(float rate, std::string &out);
+
   public:
     bool hasJapanese() { return m_hasJapanese; }
     bool m_setupScreenSize = true;

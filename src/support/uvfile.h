@@ -54,6 +54,10 @@ class UvFile : public File, public UvFilesListType::Node {
     virtual size_t size() final override { return m_size; }
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t write(const void* dest, size_t size) final override;
+    virtual void write(Slice&& slice) final override;
+    virtual ssize_t readAt(void* dest, size_t size, size_t ptr) final override;
+    virtual ssize_t writeAt(const void* src, size_t size, size_t ptr) final override;
+    virtual void writeAt(Slice&& slice, size_t ptr) final override;
     virtual bool failed() final override { return m_handle < 0; }
     virtual bool eof() final override;
     virtual std::filesystem::path filename() final override { return m_filename; }
@@ -97,6 +101,13 @@ class UvFile : public File, public UvFilesListType::Node {
         for (auto& f : s_allFiles) walker(&f);
     }
 
+    static float getReadRate() {
+        return 1000.0f * float(s_dataReadLastTick.load(std::memory_order_relaxed)) / float(c_tick);
+    }
+    static float getWriteRate() {
+        return 1000.0f * float(s_dataWrittenLastTick.load(std::memory_order_relaxed)) / float(c_tick);
+    }
+
   private:
     const std::filesystem::path m_filename;
     size_t m_ptrR = 0;
@@ -120,6 +131,14 @@ class UvFile : public File, public UvFilesListType::Node {
     static bool s_threadRunning;
     static std::thread s_uvThread;
     static uv_async_t s_kicker;
+    static uv_timer_t s_timer;
+    static size_t s_dataReadTotal;
+    static size_t s_dataWrittenTotal;
+    static size_t s_dataReadSinceLastTick;
+    static size_t s_dataWrittenSinceLastTick;
+    static std::atomic<size_t> s_dataReadLastTick;
+    static std::atomic<size_t> s_dataWrittenLastTick;
+    static constexpr uint64_t c_tick = 500;
 
     typedef std::function<void(uv_loop_t*)> UvRequest;
     static moodycamel::ConcurrentQueue<UvRequest> s_queue;

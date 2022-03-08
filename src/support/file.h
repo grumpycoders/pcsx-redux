@@ -60,6 +60,7 @@ class File {
     virtual size_t size() { throw std::runtime_error("Unable to determine file size"); }
     virtual ssize_t read(void* dest, size_t size) { throw std::runtime_error("File is not readable"); }
     virtual ssize_t write(const void* src, size_t size) { throw std::runtime_error("File is not writable"); }
+    virtual void write(Slice&& slice) { write(slice.data(), slice.size()); }
     virtual ssize_t readAt(void* dest, size_t size, size_t ptr) {
         auto old = rTell();
         rSeek(ptr, SEEK_SET);
@@ -73,6 +74,12 @@ class File {
         auto ret = write(src, size);
         wSeek(old, SEEK_SET);
         return ret;
+    }
+    virtual void writeAt(Slice&& slice, size_t ptr) {
+        auto old = wTell();
+        wSeek(ptr, SEEK_SET);
+        write(slice.data(), slice.size());
+        wSeek(old, SEEK_SET);
     }
     virtual bool eof() { throw std::runtime_error("File has no way to determine eof"); }
     virtual std::filesystem::path filename() { return ""; }

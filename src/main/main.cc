@@ -38,38 +38,38 @@
 static PCSX::GUI *s_gui;
 
 class SystemImpl final : public PCSX::System {
-    virtual void biosPutc(int c) final {
+    virtual void biosPutc(int c) final override {
         if (c == '\r') return;
         m_putcharBuffer += std::string(1, c);
         if (c == '\n') {
-            log(PCSX::LogClass::MIPS, m_putcharBuffer);
-            m_putcharBuffer.clear();
+            log(PCSX::LogClass::MIPS, std::move(m_putcharBuffer));
+            m_putcharBuffer.clear();  // I don't think this is necessary after the std::move...?
         }
     }
-    virtual void message(const std::string &s) final {
+    virtual void message(std::string &&s) final override {
+        s_gui->addNotification(s.c_str());
         if (s_gui->addLog(PCSX::LogClass::UI, s)) {
-            if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
             if (m_enableStdout) ::printf("%s", s.c_str());
             m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
+            if (m_logfile) m_logfile->write(std::move(s));
         }
-        s_gui->addNotification(s.c_str());
     }
 
-    virtual void log(PCSX::LogClass logClass, const std::string &s) final {
+    virtual void log(PCSX::LogClass logClass, std::string &&s) final override {
         if (!s_gui->addLog(logClass, s)) return;
-        if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
         if (m_enableStdout) ::printf("%s", s.c_str());
         m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
+        if (m_logfile) m_logfile->write(std::move(s));
     }
 
-    virtual void printf(const std::string &s) final {
+    virtual void printf(std::string &&s) final override {
         if (!s_gui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
-        if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
         if (m_enableStdout) ::printf("%s", s.c_str());
         m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
+        if (m_logfile) m_logfile->write(std::move(s));
     }
 
-    virtual void luaMessage(const std::string &s, bool error) final {
+    virtual void luaMessage(const std::string &s, bool error) final override {
         s_gui->addLuaLog(s, error);
         if (m_args.get<bool>("lua_stdout", false)) {
             if (error) {
@@ -80,18 +80,18 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    virtual void update(bool vsync = false) final {
+    virtual void update(bool vsync = false) final override {
         // called on vblank to update states
         s_gui->update(vsync);
     }
 
-    virtual void softReset() final {
+    virtual void softReset() final override {
         // debugger or UI is requesting a reset
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{});
         PCSX::g_emulator->m_psxCpu->psxReset();
     }
 
-    virtual void hardReset() final {
+    virtual void hardReset() final override {
         // debugger or UI is requesting a reset
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
         PCSX::g_emulator->EmuReset();
@@ -103,16 +103,16 @@ class SystemImpl final : public PCSX::System {
                         PCSX::g_emulator->m_gpu->getVRAM());
     }
 
-    virtual void close() final {
+    virtual void close() final override {
         // emulator is requesting a shutdown of the emulation
     }
 
-    virtual void purgeAllEvents() final {
+    virtual void purgeAllEvents() final override {
         uv_stop(&PCSX::g_emulator->m_loop);
         uv_run(&PCSX::g_emulator->m_loop, UV_RUN_DEFAULT);
     }
 
-    virtual void testQuit(int code) final {
+    virtual void testQuit(int code) final override {
         if (m_args.get<bool>("testmode")) {
             quit(code);
         } else {
@@ -121,21 +121,19 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    virtual const CommandLine::args &getArgs() final { return m_args; }
+    virtual const CommandLine::args &getArgs() final override { return m_args; }
 
     std::string m_putcharBuffer;
-    FILE *m_logfile = nullptr;
+    PCSX::IO<PCSX::UvFile> m_logfile;
 
   public:
     void setBinDir(std::filesystem::path path) { m_binDir = path; }
 
     explicit SystemImpl(const CommandLine::args &args) : m_args(args) {}
-    ~SystemImpl() {
-        if (m_logfile) fclose(m_logfile);
-    }
+    ~SystemImpl() {}
 
     void useLogfile(const PCSX::u8string &filename) {
-        m_logfile = fopen(reinterpret_cast<const char *>(filename.c_str()), "w");
+        m_logfile.setFile(new PCSX::UvFile(filename, PCSX::FileOps::TRUNCATE));
     }
 
     bool m_enableStdout = false;

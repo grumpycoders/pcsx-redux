@@ -24,6 +24,13 @@
 std::thread PCSX::UvFile::s_uvThread;
 bool PCSX::UvFile::s_threadRunning = false;
 uv_async_t PCSX::UvFile::s_kicker;
+uv_timer_t PCSX::UvFile::s_timer;
+size_t PCSX::UvFile::s_dataReadTotal;
+size_t PCSX::UvFile::s_dataWrittenTotal;
+size_t PCSX::UvFile::s_dataReadSinceLastTick;
+size_t PCSX::UvFile::s_dataWrittenSinceLastTick;
+std::atomic<size_t> PCSX::UvFile::s_dataReadLastTick;
+std::atomic<size_t> PCSX::UvFile::s_dataWrittenLastTick;
 moodycamel::ConcurrentQueue<PCSX::UvFile::UvRequest> PCSX::UvFile::s_queue;
 PCSX::UvFilesListType PCSX::UvFile::s_allFiles;
 
@@ -32,15 +39,31 @@ void PCSX::UvFile::startThread() {
     std::promise<void> barrier;
     auto f = barrier.get_future();
     s_threadRunning = true;
-    s_uvThread = std::thread([barrier = std::move(barrier)]() mutable {
+    s_uvThread = std::thread([barrier = std::move(barrier)]() mutable -> void {
         uv_loop_t loop;
         uv_loop_init(&loop);
+        s_dataReadTotal = 0;
+        s_dataWrittenTotal = 0;
+        s_dataReadSinceLastTick = 0;
+        s_dataWrittenSinceLastTick = 0;
+        s_dataReadLastTick = 0;
+        s_dataWrittenLastTick = 0;
         uv_async_init(&loop, &s_kicker, [](uv_async_t *async) {
             UvRequest req;
             while (s_queue.try_dequeue(req)) {
                 req(async->loop);
             }
         });
+        uv_timer_init(&loop, &s_timer);
+        uv_timer_start(
+            &s_timer,
+            [](uv_timer_t *timer) {
+                s_dataReadLastTick.store(s_dataReadTotal - s_dataReadSinceLastTick, std::memory_order_relaxed);
+                s_dataWrittenLastTick.store(s_dataWrittenTotal - s_dataWrittenSinceLastTick, std::memory_order_relaxed);
+                s_dataReadSinceLastTick = s_dataReadTotal;
+                s_dataWrittenSinceLastTick = s_dataWrittenTotal;
+            },
+            c_tick, c_tick);
         barrier.set_value();
         uv_run(&loop, UV_RUN_DEFAULT);
     });
@@ -49,7 +72,10 @@ void PCSX::UvFile::startThread() {
 
 void PCSX::UvFile::stopThread() {
     if (!s_threadRunning) throw std::runtime_error("UV thread isn't running");
-    request([](auto loop) { uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {}); });
+    request([](auto loop) {
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {});
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_timer), [](auto handle) {});
+    });
     s_uvThread.join();
     s_threadRunning = false;
 }
@@ -181,6 +207,7 @@ ssize_t PCSX::UvFile::read(void *dest, size_t size) {
             ssize_t ret = req->result;
             uv_fs_req_cleanup(req);
             info->res.set_value(ret);
+            if (ret >= 0) s_dataReadTotal += ret;
         });
         if (ret != 0) {
             info.res.set_exception(std::make_exception_ptr(std::runtime_error("uv_fs_read failed")));
@@ -218,8 +245,10 @@ ssize_t PCSX::UvFile::write(const void *src, size_t size) {
     info->buf.base = reinterpret_cast<decltype(info->buf.base)>(malloc(size));
     memcpy(info->buf.base, src, size);
     info->buf.len = size;
-    request([info, handle = m_handle, offset = m_ptrR](auto loop) {
+    request([info, handle = m_handle, offset = m_ptrW](auto loop) {
         uv_fs_write(loop, &info->req, handle, &info->buf, 1, offset, [](uv_fs_t *req) {
+            ssize_t ret = req->result;
+            if (ret >= 0) s_dataWrittenTotal += ret;
             auto info = reinterpret_cast<Info *>(req->data);
             uv_fs_req_cleanup(req);
             free(info->buf.base);
@@ -228,6 +257,151 @@ ssize_t PCSX::UvFile::write(const void *src, size_t size) {
     });
     m_ptrW += size;
     return size;
+}
+
+void PCSX::UvFile::write(Slice &&slice) {
+    if (!writable()) return;
+    if (m_cache) {
+        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
+            ;
+        size_t newSize = m_ptrW + slice.size();
+        if (newSize > m_size) {
+            m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
+            if (m_cache == nullptr) throw std::runtime_error("Out of memory");
+            m_size = newSize;
+        }
+
+        memcpy(m_cache + m_ptrW, slice.data(), slice.size());
+    }
+    struct Info {
+        uv_buf_t buf;
+        uv_fs_t req;
+        Slice slice;
+    };
+    auto size = slice.size();
+    auto info = new Info();
+    info->req.data = info;
+    info->buf.len = size;
+    info->slice = std::move(slice);
+    request([info, handle = m_handle, offset = m_ptrW](auto loop) {
+        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
+        uv_fs_write(loop, &info->req, handle, &info->buf, 1, offset, [](uv_fs_t *req) {
+            ssize_t ret = req->result;
+            if (ret >= 0) s_dataWrittenTotal += ret;
+            auto info = reinterpret_cast<Info *>(req->data);
+            uv_fs_req_cleanup(req);
+            delete info;
+        });
+    });
+    m_ptrW += size;
+}
+
+ssize_t PCSX::UvFile::readAt(void *dest, size_t size, size_t ptr) {
+    size = std::min(m_size - ptr, size);
+    if (size == 0) return -1;
+    if (m_cacheProgress.load(std::memory_order_relaxed) == 1.0) {
+        memcpy(dest, m_cache + ptr, size);
+        return size;
+    }
+    struct Info {
+        std::promise<ssize_t> res;
+        uv_buf_t buf;
+        uv_fs_t req;
+    };
+    Info info;
+    info.req.data = &info;
+    info.buf.base = reinterpret_cast<decltype(info.buf.base)>(dest);
+    info.buf.len = size;
+    request([&info, handle = m_handle, offset = ptr](auto loop) {
+        int ret = uv_fs_read(loop, &info.req, handle, &info.buf, 1, offset, [](uv_fs_t *req) {
+            auto info = reinterpret_cast<Info *>(req->data);
+            ssize_t ret = req->result;
+            uv_fs_req_cleanup(req);
+            info->res.set_value(ret);
+            if (ret >= 0) s_dataReadTotal += ret;
+        });
+        if (ret != 0) {
+            info.res.set_exception(std::make_exception_ptr(std::runtime_error("uv_fs_read failed")));
+        }
+    });
+    size = -1;
+    try {
+        size = info.res.get_future().get();
+    } catch (...) {
+    }
+    return size;
+}
+
+ssize_t PCSX::UvFile::writeAt(const void *src, size_t size, size_t ptr) {
+    if (!writable()) return -1;
+    if (m_cache) {
+        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
+            ;
+        size_t newSize = ptr + size;
+        if (newSize > m_size) {
+            m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
+            if (m_cache == nullptr) throw std::runtime_error("Out of memory");
+            m_size = newSize;
+        }
+
+        memcpy(m_cache + ptr, src, size);
+    }
+    struct Info {
+        uv_buf_t buf;
+        uv_fs_t req;
+    };
+    auto info = new Info();
+    info->req.data = info;
+    info->buf.base = reinterpret_cast<decltype(info->buf.base)>(malloc(size));
+    memcpy(info->buf.base, src, size);
+    info->buf.len = size;
+    request([info, handle = m_handle, offset = ptr](auto loop) {
+        uv_fs_write(loop, &info->req, handle, &info->buf, 1, offset, [](uv_fs_t *req) {
+            ssize_t ret = req->result;
+            if (ret >= 0) s_dataWrittenTotal += ret;
+            auto info = reinterpret_cast<Info *>(req->data);
+            uv_fs_req_cleanup(req);
+            free(info->buf.base);
+            delete info;
+        });
+    });
+    return size;
+}
+
+void PCSX::UvFile::writeAt(Slice &&slice, size_t ptr) {
+    if (!writable()) return;
+    if (m_cache) {
+        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
+            ;
+        size_t newSize = ptr + slice.size();
+        if (newSize > m_size) {
+            m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
+            if (m_cache == nullptr) throw std::runtime_error("Out of memory");
+            m_size = newSize;
+        }
+
+        memcpy(m_cache + ptr, slice.data(), slice.size());
+    }
+    struct Info {
+        uv_buf_t buf;
+        uv_fs_t req;
+        Slice slice;
+    };
+    auto size = slice.size();
+    auto info = new Info();
+    info->req.data = info;
+    info->buf.len = size;
+    info->slice = std::move(slice);
+    request([info, handle = m_handle, offset = ptr](auto loop) {
+        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
+        uv_fs_write(loop, &info->req, handle, &info->buf, 1, offset, [](uv_fs_t *req) {
+            ssize_t ret = req->result;
+            if (ret >= 0) s_dataWrittenTotal += ret;
+            auto info = reinterpret_cast<Info *>(req->data);
+            uv_fs_req_cleanup(req);
+            delete info;
+        });
+    });
 }
 
 bool PCSX::UvFile::eof() { return m_size == m_ptrR; }
@@ -257,6 +431,8 @@ void PCSX::UvFile::readCacheChunkResult() {
     uv_fs_req_cleanup(&m_cacheReq);
 
     if (res < 0) throw std::runtime_error("uv_fs_read failed while caching");
+
+    s_dataReadTotal += res;
 
     m_cachePtr += res;
     if (m_cachePtr < m_size) {

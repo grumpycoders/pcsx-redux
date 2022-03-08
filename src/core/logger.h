@@ -52,14 +52,14 @@ enum class LogClass : unsigned {
 template <LogClass logClass, bool enabled>
 struct Logger {
     template <typename... Args>
-    static void Log(const char *format, const Args &... args) {
+    static void Log(const char *format, const Args &...args) {
         if (!enabled) return;
         std::string s = fmt::sprintf(format, args...);
-        g_system->log(logClass, s);
+        g_system->log(logClass, std::move(s));
     }
-    static void Log(const std::string &s) {
+    static void Log(std::string &&s) {
         if (!enabled) return;
-        g_system->log(logClass, s);
+        g_system->log(logClass, std::move(s));
     }
     static constexpr bool c_enabled = enabled;
     static constexpr LogClass c_logClass = logClass;
