@@ -31,10 +31,11 @@
 #include "core/pcsxlua.h"
 #include "core/ppf.h"
 #include "core/r3000a.h"
-#include "core/sio1.h"
 #include "core/sio1-server.h"
+#include "core/sio1.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
+#include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "lua/zlibffi.h"
 extern "C" {
@@ -77,6 +78,7 @@ PCSX::Emulator::Emulator()
     luaopen_luv(m_lua->getState());
     m_lua->settable(LUA_GLOBALSINDEX);
     LuaFFI::open_pcsx(m_lua.get());
+    LuaFFI::open_file(m_lua.get());
 }
 
 PCSX::Emulator::~Emulator() {
