@@ -121,14 +121,19 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - memory cards
 - memory card manager
 - XBox controller support
+- digital and analog controller emulation, Playstation Mouse emulation
+- Lua scripting
+- SPU debugger
+- in-app shader editor and built-in crt-lottes shader
+- customizable UI
 - save states
-- save state slots
 
 ### What still requires some work?
 - GLSL GPU
 - proper SPU multithreaded code
 - better customization
 - more generic dynarec
+- hook more emulator functions to Lua
 - ...
 
 [![Redux definition](https://pbs.twimg.com/media/ENJhNwGWwAEbrGb?format=jpg)](https://twitter.com/MerriamWebster/status/1212357808026341376)

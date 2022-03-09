@@ -30,6 +30,7 @@
 
 #include "core/system.h"
 #include "fmt/format.h"
+#include "gui/gui.h"
 #include "imgui.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
@@ -38,13 +39,8 @@ struct PadData {
     // status of buttons - every controller fills this field
     uint16_t buttonStatus;
 
-    // for analog pad fill those next 4 bytes
-    // values are analog in range 0-255 where 127 is center position
+    // Analog stick values in range (0 - 255) where 128 = center
     uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
-
-    // for mouse fill those next 2 bytes
-    // values are in range -128 - 127
-    uint8_t moveX, moveY;
 };
 
 void PCSX::Pads::init() {
@@ -241,7 +237,7 @@ void PCSX::Pads::Pad::getButtons(PadData& pad) {
             }
         }
     } else {
-        // Normalize an axis from(-1, 1) to(0, 255) with 128 = center 
+        // Normalize an axis from (-1, 1) to (0, 255) with 128 = center
         const auto axisToUint8 = [](float axis) {
             constexpr float scale = 1.3;
             const float scaledValue = std::clamp<float>(axis * scale, -1.0f, 1.0f);
@@ -287,15 +283,27 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
     }
 
     switch (m_type) {
-        case PadType::Mouse:
-            m_mousepar[3] = pad.buttonStatus & 0xff;
-            m_mousepar[4] = pad.buttonStatus >> 8;
-            m_mousepar[5] = pad.moveX;
-            m_mousepar[6] = pad.moveY;
+        case PadType::Mouse: {
+            const int leftClick = ImGui::IsMouseDown(ImGuiMouseButton_Left) ? 0 : 1;
+            const int rightClick = ImGui::IsMouseDown(ImGuiMouseButton_Right) ? 0 : 1;
+            const auto& io = ImGui::GetIO();
+            const float scaleX = m_settings.get<SettingMouseSensitivityX>();
+            const float scaleY = m_settings.get<SettingMouseSensitivityY>();
+
+            const float deltaX = io.MouseDelta.x * scaleX;
+            const float deltaY = io.MouseDelta.y * scaleY;
+
+            // The top 4 bits are always set to 1, the low 2 bits seem to always be set to 0.
+            // Left/right click are inverted in the response byte, ie 0 = pressed
+            m_mousepar[4] = 0xf0 | (leftClick << 3) | (rightClick << 2);
+            m_mousepar[5] = (int8_t)std::clamp<float>(deltaX, -128.f, 127.f);
+            m_mousepar[6] = (int8_t)std::clamp<float>(deltaY, -128.f, 127.f);
 
             memcpy(m_buf, m_mousepar, 7);
             m_bufcount = 6;
             break;
+        }
+
         case PadType::Negcon:  // npc101/npc104(slph00001/slph00069)
             m_analogpar[1] = 0x23;
             m_analogpar[3] = pad.buttonStatus & 0xff;
@@ -332,7 +340,7 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
     return m_buf[m_bufc++];
 }
 
-bool PCSX::Pads::configure() {
+bool PCSX::Pads::configure(PCSX::GUI* gui) {
     if (!m_showCfg) {
         return false;
     }
@@ -354,6 +362,9 @@ bool PCSX::Pads::configure() {
         init();
     }
 
+    bool changed = false;
+    changed |= ImGui::Checkbox(_("Use raw input for mouse"), &gui->isRawMouseMotionEnabled());
+
     if (ImGui::BeginCombo(_("Pad"), c_padNames[m_selectedPadForConfig]())) {
         for (unsigned i = 0; i < 2; i++) {
             if (ImGui::Selectable(c_padNames[i](), m_selectedPadForConfig == i)) {
@@ -363,16 +374,13 @@ bool PCSX::Pads::configure() {
         ImGui::EndCombo();
     }
 
-    bool changed = false;
     if (ImGui::Button(_("Set defaults"))) {
         changed = true;
         m_pads[m_selectedPadForConfig].setDefaults(m_selectedPadForConfig == 0);
     }
 
     changed |= m_pads[m_selectedPadForConfig].configure();
-
     ImGui::End();
-
     return changed;
 }
 
@@ -429,16 +437,16 @@ bool PCSX::Pads::Pad::configure() {
         []() { return _("R2"); }
     };
     static std::function<const char*()> const c_dpadDirections[] = {
-      []() { return _("Up"); },
-      []() { return _("Right"); },
-      []() { return _("Down"); },
-      []() { return _("Left"); },
+        []() { return _("Up"); },
+        []() { return _("Right"); },
+        []() { return _("Down"); },
+        []() { return _("Left"); }
     };
     static std::function<const char*()> const c_controllerTypes[] = {
         []() { return _("Digital"); },
         []() { return _("Analog"); },
+        []() { return _("Mouse"); },
         []() { return _("Negcon (Unimplemented)"); },
-        []() { return _("Mouse (Unimplemented)"); },
         []() { return _("Gun (Unimplemented)"); },
         []() { return _("Guncon (Unimplemented"); }
     };
@@ -449,7 +457,7 @@ bool PCSX::Pads::Pad::configure() {
     {
         const char* currentType = c_controllerTypes[static_cast<int>(m_type)]();
         if (ImGui::BeginCombo(_("Controller Type"), currentType)) {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 3; i++) {
                 if (ImGui::Selectable(c_controllerTypes[i]())) {
                     changed = true;
                     m_type = static_cast<PadType>(i);
@@ -472,6 +480,8 @@ bool PCSX::Pads::Pad::configure() {
 
         ImGui::EndCombo();
     }
+    changed |= ImGui::SliderFloat("Mouse sensitivity X", &m_settings.get<SettingMouseSensitivityX>().value, 0.f, 10.f);
+    changed |= ImGui::SliderFloat("Mouse sensitivity Y", &m_settings.get<SettingMouseSensitivityY>().value, 0.f, 10.f);
 
     ImGui::Text(_("Keyboard mapping"));
     if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame)) {

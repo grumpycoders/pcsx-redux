@@ -102,7 +102,8 @@ class GUI final {
     void bindVRAMTexture();
     GLuint getVRAMTexture() { return m_VRAMTexture; }
     void setViewport();
-    void setFullscreen(bool);
+    void setFullscreen(bool fullscreen);
+    void setRawMouseMotion(bool value);
     bool addLog(LogClass logClass, const std::string &msg) {
         return m_log.addLog(magic_enum::enum_integer(logClass), msg);
     }
@@ -220,8 +221,10 @@ class GUI final {
     typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
     typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
+    typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize, GUITheme>
+             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize, GUITheme,
+             EnableRawMouseMotion>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -335,7 +338,8 @@ class GUI final {
         PCSX::u8string filename;
         bool pauseAfterLoad = true;
     } m_exeToLoad;
-
+    
+    bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
     void useMainFont() { ImGui::PushFont(m_mainFont); }
     void useMonoFont() { ImGui::PushFont(m_monoFont); }
 };

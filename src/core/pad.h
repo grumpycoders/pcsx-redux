@@ -31,6 +31,9 @@ struct PadData;
 using json = nlohmann::json;
 
 namespace PCSX {
+
+class GUI;
+
 class Pads {
   public:
     enum Port { Port1, Port2 };
@@ -38,8 +41,8 @@ class Pads {
     enum class PadType {
         Digital = 0,
         Analog,
-        Negcon,
         Mouse,
+        Negcon,
         Gun,
         Guncon
     };
@@ -47,13 +50,13 @@ class Pads {
     Pads();
     void init();
     void shutdown() {}
-    uint8_t startPoll(Port);
-    uint8_t poll(uint8_t, Port);
+    uint8_t startPoll(Port port);
+    uint8_t poll(uint8_t value, Port port);
 
     json getCfg();
     void setCfg(const json &j);
     void setDefaults();
-    bool configure();
+    bool configure(GUI *gui);
     bool m_showCfg = false;
 
     void scanGamepads();
@@ -105,21 +108,24 @@ class Pads {
     typedef Setting<int, TYPESTRING("ID")> SettingControllerID;
 
     typedef Setting<bool, TYPESTRING("Connected")> SettingConnected;
+    // Default sensitivity = 5/10 = 0.5
+    typedef SettingFloat<TYPESTRING("MouseSensitivityX"), 5, 10> SettingMouseSensitivityX;
+    typedef SettingFloat<TYPESTRING("MouseSensitivityY"), 5, 10> SettingMouseSensitivityY;
 
-    typedef Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
-                     Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
-                     Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2, Keyboard_PadR1, Keyboard_PadR2,
-                     Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross,
-                     Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle, Controller_PadSelect,
-                     Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadR1, Controller_PadR2,
-                     SettingInputType, SettingDeviceType, SettingControllerID, SettingConnected>
+    typedef Settings<
+        Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross, Keyboard_PadTriangle,
+        Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect, Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2,
+        Keyboard_PadR1, Keyboard_PadR2, Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft,
+        Controller_PadCross, Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle, Controller_PadSelect,
+        Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadR1, Controller_PadR2, SettingInputType,
+        SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
         PadSettings;
 
     struct Pad {
-        void readPort(PadData& pad);
-        uint8_t startPoll(const PadData& pad);
-        uint8_t poll(uint8_t);
-        void getButtons(PadData& pad);
+        void readPort(PadData &pad);
+        uint8_t startPoll(const PadData &pad);
+        uint8_t poll(uint8_t value);
+        void getButtons(PadData &pad);
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
 
         json getCfg();
@@ -151,18 +157,6 @@ class Pads {
 
     Pad m_pads[2];
     unsigned m_selectedPadForConfig = 0;
-
-#if 0
-
-    void mapScancodes();           // load keyboard bindings
-    void configButton(int index);  // pick the button to config
-
-  public:
-    static bool configuringButton;     // are we configuring a button in the GUI?
-    static int configuredButtonIndex;  // Which button are we configuring in the GUI?
-    static bool save;                  // do we need to save?
-
-#endif
 };
 
 }  // namespace PCSX
