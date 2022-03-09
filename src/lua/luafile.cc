@@ -36,6 +36,25 @@ enum FileOps {
     READWRITE,
 };
 
+enum SeekWheel {
+    WHEEL_SEEK_SET,
+    WHEEL_SEEK_CUR,
+    WHEEL_SEEK_END,
+};
+
+int wheelConv(enum SeekWheel w) {
+    switch (w) {
+        case WHEEL_SEEK_SET:
+            return SEEK_SET;
+        case WHEEL_SEEK_CUR:
+            return SEEK_CUR;
+        case WHEEL_SEEK_END:
+            return SEEK_END;
+    }
+
+    return -1;
+}
+
 void deleteFile(LuaFile* wrapper) { delete wrapper; }
 
 LuaFile* openFile(const char* filename, FileOps type) {
@@ -67,6 +86,42 @@ uint32_t writeFileBuffer(LuaFile* wrapper, const void* buffer) {
     const uint8_t* data = reinterpret_cast<const uint8_t*>(pSize + 1);
     return wrapper->file->write(data, *pSize);
 }
+
+int32_t rSeek(LuaFile* wrapper, int32_t pos, enum SeekWheel wheel) {
+    return wrapper->file->rSeek(pos, wheelConv(wheel));
+}
+int32_t rTell(LuaFile* wrapper) { return wrapper->file->rTell(); }
+int32_t wSeek(LuaFile* wrapper, int32_t pos, enum SeekWheel wheel) {
+    return wrapper->file->wSeek(pos, wheelConv(wheel));
+}
+int32_t wTell(LuaFile* wrapper) { return wrapper->file->wTell(); }
+
+uint32_t getFileSize(LuaFile* wrapper) { return wrapper->file->size(); }
+
+uint32_t readFileAtRawPtr(LuaFile* wrapper, void* dst, uint32_t size, uint32_t pos) {
+    return wrapper->file->readAt(dst, size, pos);
+}
+uint32_t readFileAtBuffer(LuaFile* wrapper, void* buffer, uint32_t pos) {
+    uint32_t* pSize = reinterpret_cast<uint32_t*>(buffer);
+    uint8_t* data = reinterpret_cast<uint8_t*>(pSize + 1);
+    return *pSize = wrapper->file->readAt(data, *pSize, pos);
+}
+
+uint32_t writeFileAtRawPtr(LuaFile* wrapper, const const uint8_t* data, uint32_t size, uint32_t pos) {
+    return wrapper->file->writeAt(data, size, pos);
+}
+uint32_t writeFileAtBuffer(LuaFile* wrapper, const void* buffer, uint32_t pos) {
+    const uint32_t* pSize = reinterpret_cast<const uint32_t*>(buffer);
+    const uint8_t* data = reinterpret_cast<const uint8_t*>(pSize + 1);
+    return wrapper->file->writeAt(data, *pSize, pos);
+}
+
+bool isFileSeekable(LuaFile* wrapper) { return wrapper->file->seekable(); }
+bool isFileWritable(LuaFile* wrapper) { return wrapper->file->writable(); }
+bool isFileEOF(LuaFile* wrapper) { return wrapper->file->eof(); }
+bool isFileFailed(LuaFile* wrapper) { return wrapper->file->failed(); }
+
+LuaFile* dupFile(LuaFile* wrapper) { return new LuaFile(wrapper->file->dup()); }
 
 }  // namespace
 
@@ -101,6 +156,27 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, readFileBuffer);
     REGISTER(L, writeFileRawPtr);
     REGISTER(L, writeFileBuffer);
+
+    REGISTER(L, rSeek);
+    REGISTER(L, rTell);
+    REGISTER(L, wSeek);
+    REGISTER(L, wTell);
+
+    REGISTER(L, getFileSize);
+
+    REGISTER(L, readFileAtRawPtr);
+    REGISTER(L, readFileAtBuffer);
+
+    REGISTER(L, writeFileAtRawPtr);
+    REGISTER(L, writeFileAtBuffer);
+
+    REGISTER(L, isFileSeekable);
+    REGISTER(L, isFileWritable);
+    REGISTER(L, isFileEOF);
+    REGISTER(L, isFileFailed);
+
+    REGISTER(L, dupFile);
+
     L->settable();
     L->pop();
 }

@@ -81,7 +81,7 @@ class File {
         write(slice.data(), slice.size());
         wSeek(old, SEEK_SET);
     }
-    virtual bool eof() { throw std::runtime_error("File has no way to determine eof"); }
+    virtual bool eof() { return rTell() == size(); }
     virtual std::filesystem::path filename() { return ""; }
     virtual File* dup() { throw std::runtime_error("Cannot duplicate file"); };
     virtual bool failed() { return false; }
