@@ -81,7 +81,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
             auto& regs = m_psxRegs.GPR.n;
             switch (code) {
                 case 0x101: {  // PCinit
-                    m_pcdrvFiles.destroyAll();
+                    closeAllPCdevFiles();
                     regs.v0 = 0;
                     regs.v1 = 0;
                     m_psxRegs.pc += 4;
@@ -100,11 +100,12 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     do {
                         file = m_pcdrvFiles.find(++m_pcdrvIndex);
                     } while (file != m_pcdrvFiles.end());
-                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename, File::CREATE));
+                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename, FileOps::TRUNCATE));
                     file->m_relativeFilename = filename;
                     if (file->failed()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        file->close();
                         delete &*file;
                     } else {
                         regs.v0 = 0;
@@ -131,6 +132,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     if (file->failed()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        file->close();
                         delete &*file;
                     } else {
                         regs.v0 = 0;
@@ -147,6 +149,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     } else {
                         regs.v0 = 0;
                         regs.v1 = 0;
+                        file->close();
                         delete &*file;
                     }
                     m_psxRegs.pc += 4;
@@ -209,10 +212,10 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                             m_psxRegs.pc += 4;
                             return;
                     }
-                    auto ret = file->seek(regs.a2, wheel);
+                    auto ret = file->writable() ? file->wSeek(regs.a2, wheel) : file->rSeek(regs.a2, wheel);
                     if (ret == 0) {
                         regs.v0 = 0;
-                        regs.v1 = file->tell();
+                        regs.v1 = file->writable() ? file->wTell() : file->rTell();
                     } else {
                         regs.v0 = -1;
                         regs.v1 = ret;
@@ -263,11 +266,13 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
     m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename));
 }
 
-void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd, File::Create) {
+void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd, FileOps::Create) {
     auto& emuSettings = g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-    m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename, File::CREATE));
+    auto f = new PCdrvFile(basepath / filename, FileOps::CREATE);
+    f->wSeek(0, SEEK_END);
+    m_pcdrvFiles.insert(fd, f);
 }
 
 void PCSX::R3000Acpu::psxBranchTest() {

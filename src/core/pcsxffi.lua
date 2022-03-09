@@ -33,16 +33,17 @@ typedef struct {
 } psxRegisters;
 
 enum BreakpointType { Exec, Read, Write };
+typedef struct { uint8_t opaque[?]; } Breakpoint;
 
 uint8_t* getMemPtr();
 uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
-void* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)());
-void enableBreakpoint(void*);
-void disableBreakpoint(void*);
-bool breakpointEnabled(void*);
-void removeBreakpoint(void*);
+Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)());
+void enableBreakpoint(Breakpoint*);
+void disableBreakpoint(Breakpoint*);
+bool breakpointEnabled(Breakpoint*);
+void removeBreakpoint(Breakpoint*);
 void pauseEmulator();
 void resumeEmulator();
 void softResetEmulator();

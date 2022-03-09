@@ -189,17 +189,35 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
         fmt::format("Got OpenGL callback from \"{}\", type \"{}\", severity {}: {}", sourceToString[source],
                     typeToString[type], severityToString[severity], message);
     if (m_onlyLogGLErrors) {
-        m_glErrors.push_back(fullmessage);
+        m_glErrors.push_back(std::move(fullmessage));
     } else {
-        g_system->log(LogClass::UI, fullmessage);
-        if (type == GL_DEBUG_TYPE_ERROR) throw std::runtime_error(fullmessage);
+        g_system->log(LogClass::UI, std::move(fullmessage));
+        if (type == GL_DEBUG_TYPE_ERROR) throw std::runtime_error("Got an OpenGL error");
     }
+}
+
+void PCSX::GUI::setLua() {
+    g_emulator->m_lua->load(R"(
+print("PCSX-Redux Lua Console")
+print(jit.version)
+print((function(status, ...)
+  local ret = "JIT: " .. (status and "ON" or "OFF")
+  for i, v in ipairs({...}) do
+    ret = ret .. " " .. v
+  end
+  return ret
+end)(jit.status()))
+)",
+                            "gui startup");
+    LoadImguiBindings(g_emulator->m_lua->getState());
+    LuaFFI::open_gl(g_emulator->m_lua.get());
+    m_offscreenShaderEditor.compile(this);
+    m_outputShaderEditor.compile(this);
 }
 
 void PCSX::GUI::init() {
     int result;
 
-    LoadImguiBindings(g_emulator->m_lua->getState());
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
@@ -225,18 +243,6 @@ void PCSX::GUI::init() {
             }
         }
     });
-    g_emulator->m_lua->load(R"(
-print("PCSX-Redux Lua Console")
-print(jit.version)
-print((function(status, ...)
-  local ret = "JIT: " .. (status and "ON" or "OFF")
-  for i, v in ipairs({...}) do
-    ret = ret .. " " .. v
-  end
-  return ret
-end)(jit.status()))
-)",
-                            "gui startup");
 
     glfwSetErrorCallback(
         [](int error, const char* description) { fprintf(stderr, "Glfw Error %d: %s\n", error, description); });
@@ -300,8 +306,6 @@ end)(jit.status()))
     if (result) {
         throw std::runtime_error("Unable to initialize OpenGL layer. Check OpenGL drivers.");
     }
-
-    LuaFFI::open_gl(g_emulator->m_lua.get());
 
     // Setup ImGui binding
     IMGUI_CHECKVERSION();
@@ -476,8 +480,6 @@ end)(jit.status()))
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
-    m_offscreenShaderEditor.compile(this);
-    m_outputShaderEditor.compile(this);
 
     m_listener.listen<Events::GUI::JumpToMemory>([this](auto& event) {
         const uint32_t base = (event.address >> 20) & 0xffc;
@@ -972,6 +974,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             if (ImGui::BeginMenu(_("Help"))) {
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::Separator();
+                ImGui::MenuItem(_("Show UvFile information"), nullptr, &m_showHandles);
+                ImGui::Separator();
                 ImGui::MenuItem(_("About"), nullptr, &m_showAbout);
                 ImGui::EndMenu();
             }
@@ -1191,6 +1195,37 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         ImGui::End();
     }
 
+    if (m_showHandles) {
+        if (ImGui::Begin(_("UvFiles"), &m_showHandles)) {
+            std::string rate;
+            byteRateToString(UvFile::getReadRate(), rate);
+            ImGui::Text(_("Read rate: %s"), rate.c_str());
+            byteRateToString(UvFile::getWriteRate(), rate);
+            ImGui::Text(_("Write rate: %s"), rate.c_str());
+            if (ImGui::BeginTable("UvFiles", 2)) {
+                ImGui::TableSetupColumn(_("Caching"));
+                ImGui::TableSetupColumn(_("Filename"));
+                ImGui::TableHeadersRow();
+                UvFile::iterateOverAllFiles([](UvFile* f) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    if (f->cached()) {
+                        ImGui::ProgressBar(f->cacheProgress());
+                    } else {
+                        std::string label = fmt::format("Cache##{}", reinterpret_cast<void*>(f));
+                        if (ImGui::Button(label.c_str())) {
+                            f->startCaching();
+                        }
+                    }
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextUnformatted(f->filename().string().c_str());
+                });
+                ImGui::EndTable();
+            }
+        }
+        ImGui::End();
+    }
+
     auto& L = g_emulator->m_lua;
     L->getfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     if (!L->isnil()) {
@@ -1274,6 +1309,7 @@ bool PCSX::GUI::configure() {
         scale /= 100.0f;
         changed |= ImGui::SliderFloat(_("Speed Scaler"), &scale, 0.1f, 10.0f);
         settings.get<Emulator::SettingScaler>() = scale * 100.0f;
+        changed |= ImGui::Checkbox(_("Preload ISO files"), &settings.get<Emulator::SettingFullCaching>().value);
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
@@ -1415,7 +1451,7 @@ The debugger might be required in some cases.)"));
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::SIO1Server>()) {
                 g_emulator->m_sio1Server->startServer(&g_emulator->m_loop,
-                                                     debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
+                                                      debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
             } else {
                 g_emulator->m_sio1Server->stopServer();
             }
@@ -1533,8 +1569,22 @@ debugging features may not work)");
 void PCSX::GUI::interruptsScaler() {
     if (!m_showInterruptsScaler) return;
     static const char* names[] = {
-        "SIO", "SIO1"  "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",      "GPU Busy",
-        "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek", "CDR Play"};
+        "SIO",
+        "SIO1"
+        "CDR",
+        "CDR Read",
+        "GPU DMA",
+        "MDEC Out DMA",
+        "SPU DMA",
+        "GPU Busy",
+        "MDEC In DMA",
+        "GPU OTC DMA",
+        "CDR DMA",
+        "SPU",
+        "CDR Decoded Buffer",
+        "CDR Lid Seek",
+        "CDR Play",
+    };
     if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
         if (ImGui::Button(_("Reset all"))) {
             for (auto& scale : g_emulator->m_psxCpu->m_interruptScales) {
@@ -1738,3 +1788,15 @@ void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
     delete[] buff;
     SaveStates::load(os.str());
 };
+
+void PCSX::GUI::byteRateToString(float rate, std::string& str) {
+    if (rate >= 1000000000) {
+        str = fmt::format("{:.2f} GB/s", rate / 1000000000);
+    } else if (rate >= 1000000) {
+        str = fmt::format("{:.2f} MB/s", rate / 1000000);
+    } else if (rate >= 1000) {
+        str = fmt::format("{:.2f} KB/s", rate / 1000);
+    } else {
+        str = fmt::format("{:.2f} B/s", rate);
+    }
+}

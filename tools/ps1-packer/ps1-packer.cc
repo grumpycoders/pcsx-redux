@@ -17,9 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <assert.h>
 #include <memory.h>
 #include <stdint.h>
-#include <assert.h>
+
 #include <vector>
 
 #include "flags.h"
@@ -88,13 +89,12 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
     }
 
     auto& input = inputs[0];
-    PCSX::File* file = new PCSX::File(input);
+    PCSX::IO<PCSX::File> file(new PCSX::PosixFile(input));
     if (file->failed()) {
         fmt::print("Unable to open file: {}\n", input);
         return -1;
     }
 
-    file->seek(0, SEEK_SET);
     uint64_t magic = file->read<uint64_t>();
     if (magic != PSEXE) {
         fmt::print("File {} isn't a valid ps-exe\n", input);
@@ -115,13 +115,12 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
     uint32_t sp = file->read<uint32_t>();
     sp += file->read<uint32_t>();
     if (sp == 0) sp = 0x801fff00;
-    file->seek(2048, SEEK_SET);
+    file->rSeek(2048, SEEK_SET);
 
     std::vector<uint8_t> dataIn;
     dataIn.resize(size);
     file->read(dataIn.data(), dataIn.size());
-    delete file;
-    file = nullptr;
+    file.reset();
     while ((dataIn.size() & 3) != 0) dataIn.push_back(0);
 
     std::vector<uint8_t> dataOut;

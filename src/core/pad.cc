@@ -47,14 +47,12 @@ void PCSX::Pads::init() {
     scanGamepads();
     g_system->findResource(
         [](const std::filesystem::path& filename) -> bool {
-            std::unique_ptr<File> database(new File(filename));
+            IO<File> database(new PosixFile(filename));
             if (database->failed()) {
                 return false;
             }
 
-            database->seek(0, SEEK_END);
-            size_t dbsize = database->tell();
-            database->seek(0, SEEK_SET);
+            size_t dbsize = database->size();
             auto dbStr = database->readString(dbsize);
 
             int ret = glfwUpdateGamepadMappings(dbStr.c_str());

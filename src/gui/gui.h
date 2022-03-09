@@ -96,6 +96,7 @@ class GUI final {
         s_gui = nullptr;
     }
     void init();
+    void setLua();
     void close();
     void update(bool vsync = false);
     void flip();
@@ -231,6 +232,7 @@ class GUI final {
     int &m_idleSwapInterval = {settings.get<IdleSwapInterval>().value};
     bool m_showThemes = false;
     bool m_showDemo = false;
+    bool m_showHandles = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
@@ -315,6 +317,8 @@ class GUI final {
 
     bool m_reloadFonts = true;
     Widgets::ShaderEditor m_outputShaderEditor = {"output"};
+
+    static void byteRateToString(float rate, std::string &out);
 
   public:
     bool hasJapanese() { return m_hasJapanese; }
