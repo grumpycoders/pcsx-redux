@@ -27,6 +27,9 @@
     <ClCompile Include="..\..\src\lua\luafile.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\lua\extra.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\lua\luawrapper.h">
@@ -39,6 +42,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\lua\luafile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\lua\extra.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -72,6 +78,12 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="..\..\src\lua\zlibffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\pprint.lua\pprint.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\ffi-reflect\reflect.lua">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

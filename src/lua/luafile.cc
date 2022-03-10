@@ -185,9 +185,9 @@ static void registerAllSymbols(PCSX::Lua* L) {
 
 void PCSX::LuaFFI::open_file(Lua* L) {
     static int lualoader = 1;
-    static const char* pcsxFFI = (
+    static const char* fileFFI = (
 #include "lua/fileffi.lua"
     );
     registerAllSymbols(L);
-    L->load(pcsxFFI, "internal:lua/fileffi.lua");
+    L->load(fileFFI, "internal:lua/fileffi.lua");
 }
