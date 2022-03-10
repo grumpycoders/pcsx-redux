@@ -68,6 +68,8 @@ LuaFile* openFile(const char* filename, FileOps type) {
         case READWRITE:
             return new LuaFile(new PCSX::UvFile(filename, PCSX::FileOps::READWRITE));
     }
+
+    return nullptr;
 }
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
 
@@ -78,7 +80,7 @@ uint32_t readFileBuffer(LuaFile* wrapper, void* buffer) {
     return *pSize = wrapper->file->read(data, *pSize);
 }
 
-uint32_t writeFileRawPtr(LuaFile* wrapper, const const uint8_t* data, uint32_t size) {
+uint32_t writeFileRawPtr(LuaFile* wrapper, const uint8_t* data, uint32_t size) {
     return wrapper->file->write(data, size);
 }
 uint32_t writeFileBuffer(LuaFile* wrapper, const void* buffer) {
@@ -107,7 +109,7 @@ uint32_t readFileAtBuffer(LuaFile* wrapper, void* buffer, uint32_t pos) {
     return *pSize = wrapper->file->readAt(data, *pSize, pos);
 }
 
-uint32_t writeFileAtRawPtr(LuaFile* wrapper, const const uint8_t* data, uint32_t size, uint32_t pos) {
+uint32_t writeFileAtRawPtr(LuaFile* wrapper, const uint8_t* data, uint32_t size, uint32_t pos) {
     return wrapper->file->writeAt(data, size, pos);
 }
 uint32_t writeFileAtBuffer(LuaFile* wrapper, const void* buffer, uint32_t pos) {
