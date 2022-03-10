@@ -35,6 +35,7 @@
 #include "core/sio1.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
+#include "lua/extra.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "lua/zlibffi.h"
@@ -82,6 +83,7 @@ void PCSX::Emulator::setLua() {
     m_lua->settable(LUA_GLOBALSINDEX);
     LuaFFI::open_pcsx(m_lua.get());
     LuaFFI::open_file(m_lua.get());
+    LuaFFI::open_extra(m_lua.get());
 }
 
 PCSX::Emulator::~Emulator() {
