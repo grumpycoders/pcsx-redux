@@ -110,7 +110,7 @@ class File {
             int c = getc();
             if ((c == 0) || (c == -1) || (c == '\n') || (c == '\r')) {
                 *ptr = 0;
-                return s == ptr ? nullptr : s;
+                return (s == ptr) && (c == -1) ? nullptr : s;
             }
             *ptr++ = c;
             size--;
