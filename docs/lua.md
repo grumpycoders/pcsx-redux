@@ -31,6 +31,12 @@ For network access and interaction, PCSX-Redux uses libuv internally, and this i
 ### Zlib
 The Zlib C-API is exposed through [FFI bindings](https://github.com/luapower/zlib).
 
+### FFI-Reflect
+The [FFI-Reflect](https://github.com/corsix/ffi-reflect) library is loaded globally as the `reflect` symbol. It's able to generate reflection objects for the LuaJIT FFI module.
+
+### PPrint
+The [PPrint](https://github.com/jagt/pprint.lua) library is loaded globally as the `pprint` symbol. It's a more powerful `print` function than the one provided by Lua, and can be used to print tables in a more readable way.
+
 ### PCSX-Redux
 
 #### ImGui interaction
