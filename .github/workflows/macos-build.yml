@@ -20,13 +20,20 @@ jobs:
       run: sudo apt-get update
     - name: Install dependencies
       run: sudo apt-get install -y g++-mipsel-linux-gnu
-    - name: Build OpenBIOS
-      run: make -C src/mips/openbios -j2
-    - name: Upload results for MacOS build job
+    - name: Build tests & OpenBIOS
+      run: |
+        make -C src/mips/tests -j 2 PCSX_TESTS=true
+        make -C src/mips/openbios -j 2 clean all
+    - name: Upload OpenBIOS for MacOS build job
       uses: actions/upload-artifact@v2
       with:
         name: OpenBIOS
         path: src/mips/openbios/openbios.bin
+    - name: Upload tests for MacOS build job
+      uses: actions/upload-artifact@v2
+      with:
+        name: Tests
+        path: src/mips/tests/**/*.ps-exe
 
   macos-build-and-test:
     runs-on: macOS-latest
@@ -42,12 +49,20 @@ jobs:
       run: git submodule update --init --recursive
     - name: Build pcsx-redux
       run: make -j2
-    - name: Build pcsx-redux
+    - name: Build pcsx-redux-tests
       run: make -j2 pcsx-redux-tests
     - name: Download OpenBIOS build
       uses: actions/download-artifact@v2
       with:
         name: OpenBIOS
+    - name: Download tests
+      uses: actions/download-artifact@v2
+      with:
+        name: Tests
+    - name: Install xquartz for xvfb
+      run: brew install xquartz
+    - name: Run tests
+      run: /opt/X11/bin/Xvfb :99 -ac -nolisten unix && DISPLAY=:99 ./pcsx-redux-tests
     - name: Bundle
       run: ./.github/scripts/create-app.sh
     - name: Create BUILD environment
