@@ -606,8 +606,9 @@ void PCSX::GdbClient::processCommand() {
                 auto bp = g_emulator->m_debug->addBreakpoint(addr, type, 4, _("GDB client"));
                 m_breakpoints.push_back(bp);
             } else {
+                addr &= ~0xe0000000;
                 auto& tree = g_emulator->m_debug->getTree();
-                auto bp = tree.find(addr & ~0xe0000000, Debug::BreakpointTreeType::INTERVAL_SEARCH);
+                auto bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
                 while (bp != tree.end()) {
                     if (bp->type() == type &&
                         !bp->Debug::BreakpointUserListType::Node::isLinked()) {
