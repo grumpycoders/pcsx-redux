@@ -52,23 +52,45 @@ LuaFile* dupFile(LuaFile*);
 ]]
 
 local C = ffi.load 'SUPPORT_FILE'
-local LuaBuffer = ffi.typeof('LuaBuffer')
 
 local function fileGarbageCollect(file)
     C.deleteFile(file._wrapper)
 end
 
 local fileMeta = { __gc = fileGarbageCollect }
+local bufferMeta = {
+    __tostring = function(buffer)
+        return ffi.string(buffer.data, buffer.size)
+    end,
+    __index = function(buffer, index)
+        if type(index) == 'number' and index >= 0 and index < buffer.size then
+            return buffer.data[index]
+        end
+        error('Unknown index `' .. index .. '` for LuaBuffer')
+    end,
+    __newindex = function(buffer, index, value)
+        if type(index) == 'number' and index >= 0 and index < buffer.size then
+            buffer.data[index] = value
+        end
+        error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
+    end,
+}
+local function validateBuffer(buffer)
+    local actualSize = ffi.sizeof(buffer) - 4
+    if actualSize < buffer.size then error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' .. actualSize) end
+    return buffer
+end
+local LuaBuffer = ffi.metatype('LuaBuffer', bufferMeta)
 
 local function read(self, ptr, size)
     if type(ptr) == 'number' and size == nil then
         size = ptr
-        local buf = LuaBuffer(size)
-        buf.size = size
+        local buf = Support.NewLuaBuffer(size)
         size = C.readFileBuffer(self._wrapper, buf)
-        return ffi.string(buf.data, size)
+        buf.size = size
+        return validateBuffer(buf)
     elseif type(ptr) == 'cdata' and size == nil and ffi.typeof(ptr) == LuaBuffer then
-        return C.readFileBuffer(self._wrapper, ptr)
+        return C.readFileBuffer(self._wrapper, validateBuffer(ptr))
     else
         return C.readFileRawPtr(self._wrapper, ptr, size)
     end
@@ -78,12 +100,12 @@ local function readAt(self, ptr, size, pos)
     if type(ptr) == 'number' and type(size) == 'number' and pos == nil then
         ptr = size
         size = ptr
-        local buf = LuaBuffer(size)
-        buf.size = size
+        local buf = Support.NewLuaBuffer(size)
         size = C.readFileAtBuffer(self._wrapper, buf, pos)
-        return ffi.string(buf.data, size)
+        buf.size = size
+        return validateBuffer(buf)
     elseif type(ptr) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(ptr) == LuaBuffer then
-        return C.readFileAtBuffer(self._wrapper, ptr, size)
+        return C.readFileAtBuffer(self._wrapper, validateBuffer(ptr), size)
     else
         return C.readFileAtRawPtr(self._wrapper, ptr, size, pos)
     end
@@ -93,7 +115,7 @@ local function write(self, data, size)
     if type(data) == 'string' and size == nil then
         return C.writeRawPtr(self._wrapper, data, string.len(data))
     elseif type(data) == 'cdata' and size == nil and ffi.typeof(data) == LuaBuffer then
-        return C.writeBuffer(self._wrapper, data)
+        return C.writeBuffer(self._wrapper, validateBuffer(data))
     else
         return C.writeRawPtr(self._wrapper, data, size)
     end
@@ -103,7 +125,7 @@ local function writeAt(self, data, size, pos)
     if type(data) == 'string' and type(size) == 'number' and pos == nil then
         return C.writeAtRawPtr(self._wrapper, data, string.len(data), size)
     elseif type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == LuaBuffer then
-        return C.writeAtBuffer(self._wrapper, data, pos)
+        return C.writeAtBuffer(self._wrapper, validateBuffer(data), pos)
     else
         return C.writeAtRawPtr(self._wrapper, data, size, pos)
     end
@@ -119,7 +141,8 @@ local function wSeek(self, pos, wheel)
     return C.wSeek(self._wrapper, pos, wheel)
 end
 
-local function readNum(self, ctype, size, pos)
+local function readNum(self, ctype, pos)
+    local size = ffi.sizeof(ctype)
     local buf = ctype()
     if pos == nil then
         C.readFileRawPtr(self._wrapper, ffi.cast('void*', buf), size)
@@ -138,7 +161,8 @@ local function readNum(self, ctype, size, pos)
     return buf[0]
 end
 
-local function writeNum(self, num, ctype, size, pos)
+local function writeNum(self, num, ctype, pos)
+    local size = ffi.sizeof(ctype)
     local buf = ctype()
     buf[0] = num
     if (ffi.abi('be')) and size ~= 1 then
@@ -182,30 +206,30 @@ local function createFileWrapper(wrapper)
         eof = function(self) return C.isFileEOF(self._wrapper) end,
         failed = function(self) return C.isFileFailed(self._wrapper) end,
         dup = function(self) return createFileWrapper(C.dupFile(self._wrapper)) end,
-        readU8 = function(self) return readNum(self, uint8_t, 1) end,
-        readU16 = function(self) return readNum(self, uint16_t, 2) end,
-        readU32 = function(self) return readNum(self, uint32_t, 4) end,
-        readI8 = function(self) return readNum(self, int8_t, 1) end,
-        readI16 = function(self) return readNum(self, int16_t, 2) end,
-        readI32 = function(self) return readNum(self, int32_t, 4) end,
-        readU8At = function(self, pos) return readNum(self, uint8_t, 1, pos) end,
-        readU16At = function(self, pos) return readNum(self, uint16_t, 2, pos) end,
-        readU32At = function(self, pos) return readNum(self, uint32_t, 4, pos) end,
-        readI8At = function(self, pos) return readNum(self, int8_t, 1, pos) end,
-        readI16At = function(self, pos) return readNum(self, int16_t, 2, pos) end,
-        readI32At = function(self, pos) return readNum(self, int32_t, 4, pos) end,
-        writeU8 = function(self, num) writeNum(self, num, uint8_t, 1) end,
-        writeU16 = function(self, num) writeNum(self, num, uint16_t, 2) end,
-        writeU32 = function(self, num) writeNum(self, num, uint32_t, 4) end,
-        writeI8 = function(self, num) writeNum(self, num, int8_t, 1) end,
-        writeI16 = function(self, num) writeNum(self, num, int16_t, 2) end,
-        writeI32 = function(self, num) writeNum(self, num, int32_t, 4) end,
-        writeU8At = function(self, num, pos) writeNum(self, num, uint8_t, 1, pos) end,
-        writeU16At = function(self, num, pos) writeNum(self, num, uint16_t, 2, pos) end,
-        writeU32At = function(self, num, pos) writeNum(self, num, uint32_t, 4, pos) end,
-        writeI8At = function(self, num, pos) writeNum(self, num, int8_t, 1, pos) end,
-        writeI16At = function(self, num, pos) writeNum(self, num, int16_t, 2, pos) end,
-        writeI32At = function(self, num, pos) writeNum(self, num, int32_t, 4, pos) end,
+        readU8 = function(self) return readNum(self, uint8_t) end,
+        readU16 = function(self) return readNum(self, uint16_t) end,
+        readU32 = function(self) return readNum(self, uint32_t) end,
+        readI8 = function(self) return readNum(self, int8_t) end,
+        readI16 = function(self) return readNum(self, int16_t) end,
+        readI32 = function(self) return readNum(self, int32_t) end,
+        readU8At = function(self, pos) return readNum(self, uint8_t, pos) end,
+        readU16At = function(self, pos) return readNum(self, uint16_t, pos) end,
+        readU32At = function(self, pos) return readNum(self, uint32_t, pos) end,
+        readI8At = function(self, pos) return readNum(self, int8_t, pos) end,
+        readI16At = function(self, pos) return readNum(self, int16_t, pos) end,
+        readI32At = function(self, pos) return readNum(self, int32_t, pos) end,
+        writeU8 = function(self, num) writeNum(self, num, uint8_t) end,
+        writeU16 = function(self, num) writeNum(self, num, uint16_t) end,
+        writeU32 = function(self, num) writeNum(self, num, uint32_t) end,
+        writeI8 = function(self, num) writeNum(self, num, int8_t) end,
+        writeI16 = function(self, num) writeNum(self, num, int16_t) end,
+        writeI32 = function(self, num) writeNum(self, num, int32_t) end,
+        writeU8At = function(self, num, pos) writeNum(self, num, uint8_t, pos) end,
+        writeU16At = function(self, num, pos) writeNum(self, num, uint16_t, pos) end,
+        writeU32At = function(self, num, pos) writeNum(self, num, uint32_t, pos) end,
+        writeI8At = function(self, num, pos) writeNum(self, num, int8_t, pos) end,
+        writeI16At = function(self, num, pos) writeNum(self, num, int16_t, pos) end,
+        writeI32At = function(self, num, pos) writeNum(self, num, int32_t, pos) end,
     }
     setmetatable(file, fileMeta)
     return file
@@ -217,6 +241,12 @@ local function open(filename, t)
 end
 
 if (type(Support) ~= 'table') then Support = {} end
+
+Support.NewLuaBuffer = function(size)
+    local buf = LuaBuffer(size)
+    buf.size = size
+    return buf
+end
 
 Support.File = {
     open = open,

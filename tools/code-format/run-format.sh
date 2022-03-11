@@ -9,12 +9,16 @@ function clean() {
 
 function format() {
   f="$1"
-  clang-format --style=file "$f" > "$f.2"
+  if [ "${f##*.}" != "lua" ]; then
+    clang-format --style=file "$f" > "$f.2"
+  else
+    lua-format "$f" --config=/lua-format.config > "$f.2"
+  fi
   mv "$f.2" "$f"
   sed "s/ *$//" -i "$f"
 }
 
-find repository/src -name *.c -or -name *.cc -or -name *.h -or -name *.hh | while read f ; do
+find repository/src -name *.c -or -name *.cc -or -name *.h -or -name *.hh -or -name *.lua | while read f ; do
   echo "$f"
   clean "$f"
   format "$f"
