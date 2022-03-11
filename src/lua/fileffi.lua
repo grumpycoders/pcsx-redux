@@ -22,31 +22,33 @@ void deleteFile(LuaFile* wrapper);
 
 LuaFile* openFile(const char* filename, enum FileOps t);
 
-LuaFile* bufferFileReadOnly(void* data, uint32_t size);
-LuaFile* bufferFile(void* data, uint32_t size);
-LuaFile* bufferFileAcquire(void* data, uint32_t size);
+LuaFile* bufferFileReadOnly(void* data, uint64_t size);
+LuaFile* bufferFile(void* data, uint64_t size);
+LuaFile* bufferFileAcquire(void* data, uint64_t size);
 LuaFile* bufferFileEmpty();
+
+LuaFile* subFile(LuaFile*, uint64_t start, int64_t size);
 
 void closeFile(LuaFile* wrapper);
 
-uint32_t readFileRawPtr(LuaFile* wrapper, void* dst, uint32_t size);
-uint32_t readFileBuffer(LuaFile* wrapper, LuaBuffer* buffer);
+uint64_t readFileRawPtr(LuaFile* wrapper, void* dst, uint64_t size);
+uint64_t readFileBuffer(LuaFile* wrapper, LuaBuffer* buffer);
 
-uint32_t writeFileRawPtr(LuaFile* wrapper, const const uint8_t* data, uint32_t size);
-uint32_t writeFileBuffer(LuaFile* wrapper, const LuaBuffer* buffer);
+uint64_t writeFileRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size);
+uint64_t writeFileBuffer(LuaFile* wrapper, const LuaBuffer* buffer);
 
-int32_t rSeek(LuaFile* wrapper, int32_t pos, enum SeekWheel wheel);
-int32_t rTell(LuaFile* wrapper);
-int32_t wSeek(LuaFile* wrapper, int32_t pos, enum SeekWheel wheel);
-int32_t wTell(LuaFile* wrapper);
+int64_t rSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel);
+int64_t rTell(LuaFile* wrapper);
+int64_t wSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel);
+int64_t wTell(LuaFile* wrapper);
 
-uint32_t getFileSize(LuaFile*);
+uint64_t getFileSize(LuaFile*);
 
-uint32_t readFileAtRawPtr(LuaFile* wrapper, void* dst, uint32_t size, uint32_t pos);
-uint32_t readFileAtBuffer(LuaFile* wrapper, LuaBuffer* buffer, uint32_t pos);
+uint64_t readFileAtRawPtr(LuaFile* wrapper, void* dst, uint64_t size, uint64_t pos);
+uint64_t readFileAtBuffer(LuaFile* wrapper, LuaBuffer* buffer, uint64_t pos);
 
-uint32_t writeFileAtRawPtr(LuaFile* wrapper, const const uint8_t* data, uint32_t size, uint32_t pos);
-uint32_t writeFileAtBuffer(LuaFile* wrapper, const LuaBuffer* buffer, uint32_t pos);
+uint64_t writeFileAtRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size, uint64_t pos);
+uint64_t writeFileAtBuffer(LuaFile* wrapper, const LuaBuffer* buffer, uint64_t pos);
 
 bool isFileSeekable(LuaFile*);
 bool isFileWritable(LuaFile*);
@@ -82,7 +84,7 @@ local bufferMeta = {
     end,
 }
 local function validateBuffer(buffer)
-    local actualSize = ffi.sizeof(buffer) - 4
+    local actualSize = ffi.sizeof(buffer) - 8
     if actualSize < buffer.size then error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' .. actualSize) end
     return buffer
 end
@@ -190,9 +192,11 @@ end
 local uint8_t = ffi.typeof('uint8_t[1]');
 local uint16_t = ffi.typeof('uint16_t[1]');
 local uint32_t = ffi.typeof('uint32_t[1]');
+local uint64_t = ffi.typeof('uint64_t[1]');
 local int8_t = ffi.typeof('int8_t[1]');
 local int16_t = ffi.typeof('int16_t[1]');
 local int32_t = ffi.typeof('int32_t[1]');
+local int64_t = ffi.typeof('int64_t[1]');
 
 local function createFileWrapper(wrapper)
     local file = {
@@ -212,30 +216,39 @@ local function createFileWrapper(wrapper)
         eof = function(self) return C.isFileEOF(self._wrapper) end,
         failed = function(self) return C.isFileFailed(self._wrapper) end,
         dup = function(self) return createFileWrapper(C.dupFile(self._wrapper)) end,
+        subFile = function(self, start, size) return createFileWrapper(C.subFile(self._wrapper, start, size or -1)) end,
         readU8 = function(self) return readNum(self, uint8_t) end,
         readU16 = function(self) return readNum(self, uint16_t) end,
         readU32 = function(self) return readNum(self, uint32_t) end,
+        readU64 = function(self) return readNum(self, uint64_t) end,
         readI8 = function(self) return readNum(self, int8_t) end,
         readI16 = function(self) return readNum(self, int16_t) end,
         readI32 = function(self) return readNum(self, int32_t) end,
+        readI64 = function(self) return readNum(self, int64_t) end,
         readU8At = function(self, pos) return readNum(self, uint8_t, pos) end,
         readU16At = function(self, pos) return readNum(self, uint16_t, pos) end,
         readU32At = function(self, pos) return readNum(self, uint32_t, pos) end,
+        readU64At = function(self, pos) return readNum(self, uint64_t, pos) end,
         readI8At = function(self, pos) return readNum(self, int8_t, pos) end,
         readI16At = function(self, pos) return readNum(self, int16_t, pos) end,
         readI32At = function(self, pos) return readNum(self, int32_t, pos) end,
+        readI64At = function(self, pos) return readNum(self, int64_t, pos) end,
         writeU8 = function(self, num) writeNum(self, num, uint8_t) end,
         writeU16 = function(self, num) writeNum(self, num, uint16_t) end,
         writeU32 = function(self, num) writeNum(self, num, uint32_t) end,
+        writeU64 = function(self, num) writeNum(self, num, uint64_t) end,
         writeI8 = function(self, num) writeNum(self, num, int8_t) end,
         writeI16 = function(self, num) writeNum(self, num, int16_t) end,
         writeI32 = function(self, num) writeNum(self, num, int32_t) end,
+        writeI64 = function(self, num) writeNum(self, num, int64_t) end,
         writeU8At = function(self, num, pos) writeNum(self, num, uint8_t, pos) end,
         writeU16At = function(self, num, pos) writeNum(self, num, uint16_t, pos) end,
         writeU32At = function(self, num, pos) writeNum(self, num, uint32_t, pos) end,
+        writeU64At = function(self, num, pos) writeNum(self, num, uint64_t, pos) end,
         writeI8At = function(self, num, pos) writeNum(self, num, int8_t, pos) end,
         writeI16At = function(self, num, pos) writeNum(self, num, int16_t, pos) end,
         writeI32At = function(self, num, pos) writeNum(self, num, int32_t, pos) end,
+        writeI64At = function(self, num, pos) writeNum(self, num, int64_t, pos) end,
     }
     setmetatable(file, fileMeta)
     return file

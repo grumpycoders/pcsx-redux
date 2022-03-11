@@ -72,57 +72,60 @@ LuaFile* openFile(const char* filename, FileOps type) {
     return nullptr;
 }
 
-LuaFile* bufferFileReadOnly(void* data, uint32_t size) { return new LuaFile(new PCSX::BufferFile(data, size)); }
-LuaFile* bufferFile(void* data, uint32_t size) {
+LuaFile* bufferFileReadOnly(void* data, uint64_t size) { return new LuaFile(new PCSX::BufferFile(data, size)); }
+LuaFile* bufferFile(void* data, uint64_t size) {
     return new LuaFile(new PCSX::BufferFile(data, size, PCSX::FileOps::READWRITE));
 }
-LuaFile* bufferFileAcquire(void* data, uint32_t size) {
+LuaFile* bufferFileAcquire(void* data, uint64_t size) {
     return new LuaFile(new PCSX::BufferFile(data, size, PCSX::BufferFile::ACQUIRE));
 }
 LuaFile* bufferFileEmpty() { return new LuaFile(new PCSX::BufferFile(PCSX::FileOps::READWRITE)); }
+LuaFile* subFile(LuaFile* wrapper, uint64_t start, int64_t size) {
+    return new LuaFile(new PCSX::SubFile(wrapper->file, start, size));
+}
 
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
 
-uint32_t readFileRawPtr(LuaFile* wrapper, void* dst, uint32_t size) { return wrapper->file->read(dst, size); }
-uint32_t readFileBuffer(LuaFile* wrapper, void* buffer) {
+uint64_t readFileRawPtr(LuaFile* wrapper, void* dst, uint64_t size) { return wrapper->file->read(dst, size); }
+uint64_t readFileBuffer(LuaFile* wrapper, void* buffer) {
     uint32_t* pSize = reinterpret_cast<uint32_t*>(buffer);
     uint8_t* data = reinterpret_cast<uint8_t*>(pSize + 1);
     return *pSize = wrapper->file->read(data, *pSize);
 }
 
-uint32_t writeFileRawPtr(LuaFile* wrapper, const uint8_t* data, uint32_t size) {
+uint64_t writeFileRawPtr(LuaFile* wrapper, const uint8_t* data, uint64_t size) {
     return wrapper->file->write(data, size);
 }
-uint32_t writeFileBuffer(LuaFile* wrapper, const void* buffer) {
+uint64_t writeFileBuffer(LuaFile* wrapper, const void* buffer) {
     const uint32_t* pSize = reinterpret_cast<const uint32_t*>(buffer);
     const uint8_t* data = reinterpret_cast<const uint8_t*>(pSize + 1);
     return wrapper->file->write(data, *pSize);
 }
 
-int32_t rSeek(LuaFile* wrapper, int32_t pos, enum SeekWheel wheel) {
+int64_t rSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel) {
     return wrapper->file->rSeek(pos, wheelConv(wheel));
 }
-int32_t rTell(LuaFile* wrapper) { return wrapper->file->rTell(); }
-int32_t wSeek(LuaFile* wrapper, int32_t pos, enum SeekWheel wheel) {
+int64_t rTell(LuaFile* wrapper) { return wrapper->file->rTell(); }
+int64_t wSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel) {
     return wrapper->file->wSeek(pos, wheelConv(wheel));
 }
-int32_t wTell(LuaFile* wrapper) { return wrapper->file->wTell(); }
+int64_t wTell(LuaFile* wrapper) { return wrapper->file->wTell(); }
 
-uint32_t getFileSize(LuaFile* wrapper) { return wrapper->file->size(); }
+uint64_t getFileSize(LuaFile* wrapper) { return wrapper->file->size(); }
 
-uint32_t readFileAtRawPtr(LuaFile* wrapper, void* dst, uint32_t size, uint32_t pos) {
+uint64_t readFileAtRawPtr(LuaFile* wrapper, void* dst, uint64_t size, uint64_t pos) {
     return wrapper->file->readAt(dst, size, pos);
 }
-uint32_t readFileAtBuffer(LuaFile* wrapper, void* buffer, uint32_t pos) {
+uint64_t readFileAtBuffer(LuaFile* wrapper, void* buffer, uint64_t pos) {
     uint32_t* pSize = reinterpret_cast<uint32_t*>(buffer);
     uint8_t* data = reinterpret_cast<uint8_t*>(pSize + 1);
     return *pSize = wrapper->file->readAt(data, *pSize, pos);
 }
 
-uint32_t writeFileAtRawPtr(LuaFile* wrapper, const uint8_t* data, uint32_t size, uint32_t pos) {
+uint64_t writeFileAtRawPtr(LuaFile* wrapper, const uint8_t* data, uint64_t size, uint64_t pos) {
     return wrapper->file->writeAt(data, size, pos);
 }
-uint32_t writeFileAtBuffer(LuaFile* wrapper, const void* buffer, uint32_t pos) {
+uint64_t writeFileAtBuffer(LuaFile* wrapper, const void* buffer, uint64_t pos) {
     const uint32_t* pSize = reinterpret_cast<const uint32_t*>(buffer);
     const uint8_t* data = reinterpret_cast<const uint8_t*>(pSize + 1);
     return wrapper->file->writeAt(data, *pSize, pos);
@@ -162,6 +165,12 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, deleteFile);
 
     REGISTER(L, openFile);
+    REGISTER(L, bufferFileReadOnly);
+    REGISTER(L, bufferFile);
+    REGISTER(L, bufferFileAcquire);
+    REGISTER(L, bufferFileEmpty);
+    REGISTER(L, subFile);
+
     REGISTER(L, closeFile);
 
     REGISTER(L, readFileRawPtr);

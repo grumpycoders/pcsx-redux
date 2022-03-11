@@ -350,8 +350,11 @@ class PosixFile : public File {
 
 class SubFile : public File {
   public:
-    SubFile(IO<File> file, size_t start, size_t size)
-        : File(file->seekable() ? RO_SEEKABLE : RO_STREAM), m_file(file), m_start(start), m_size(size) {}
+    SubFile(IO<File> file, size_t start, ssize_t size = -1)
+        : File(file->seekable() ? RO_SEEKABLE : RO_STREAM),
+          m_file(file),
+          m_start(start),
+          m_size(size < 0 ? file->size() - start : size) {}
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
     virtual size_t size() final override { return m_size; }
