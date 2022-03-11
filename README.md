@@ -22,6 +22,8 @@ This is yet another fork of the Playstation Emulator, PCSX. While the work here 
  - Improve the debugging experience.
  - Improve the rendering experience.
 
+Please consult [the documentation pages](https://pcsx-redux.consoledev.net) for more information. 
+
 ## Where?
 |Download page|
 |--------|
