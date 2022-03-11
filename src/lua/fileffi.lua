@@ -21,6 +21,12 @@ enum SeekWheel {
 void deleteFile(LuaFile* wrapper);
 
 LuaFile* openFile(const char* filename, enum FileOps t);
+
+LuaFile* bufferFileReadOnly(void* data, uint32_t size);
+LuaFile* bufferFile(void* data, uint32_t size);
+LuaFile* bufferFileAcquire(void* data, uint32_t size);
+LuaFile* bufferFileEmpty();
+
 void closeFile(LuaFile* wrapper);
 
 uint32_t readFileRawPtr(LuaFile* wrapper, void* dst, uint32_t size);
@@ -216,10 +222,28 @@ local function open(filename, t)
     return createFileWrapper(C.openFile(filename, t))
 end
 
+local function buffer(ptr, size, type)
+    local f
+    if ptr == nil and size == nil and type == nil then
+        f = C.bufferFileEmpty()
+    elseif type == nil or type == 'READWRITE' then
+        f = C.bufferFile(ptr, size)
+    elseif type == 'READ' then
+        f = C.bufferFileReadOnly(ptr, size)
+    elseif type == 'ACQUIRE' then
+        f = C.bufferFileAcquire(ptr, size)
+    end
+
+    if f == nil then error('Invalid parameters to Support.File.buffer') end
+
+    return createFileWrapper(f)
+end
+
 if (type(Support) ~= 'table') then Support = {} end
 
 Support.File = {
     open = open,
+    buffer = buffer,
     _createFileWrapper = createFileWrapper,
 }
 

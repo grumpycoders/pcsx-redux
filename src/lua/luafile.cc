@@ -71,6 +71,16 @@ LuaFile* openFile(const char* filename, FileOps type) {
 
     return nullptr;
 }
+
+LuaFile* bufferFileReadOnly(void* data, uint32_t size) { return new LuaFile(new PCSX::BufferFile(data, size)); }
+LuaFile* bufferFile(void* data, uint32_t size) {
+    return new LuaFile(new PCSX::BufferFile(data, size, PCSX::FileOps::READWRITE));
+}
+LuaFile* bufferFileAcquire(void* data, uint32_t size) {
+    return new LuaFile(new PCSX::BufferFile(data, size, PCSX::BufferFile::ACQUIRE));
+}
+LuaFile* bufferFileEmpty() { return new LuaFile(new PCSX::BufferFile(PCSX::FileOps::READWRITE)); }
+
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
 
 uint32_t readFileRawPtr(LuaFile* wrapper, void* dst, uint32_t size) { return wrapper->file->read(dst, size); }
