@@ -154,6 +154,14 @@ class SIO1 {
             return r;
         }
 
+        uint32_t getBytesRemaining() {
+            Slice& slice = m_sliceQueue.front();
+            
+            if (m_sliceQueue.empty()) return 0;
+
+            return slice.size() - m_cursor;
+        }
+
         std::queue<Slice> m_sliceQueue;
         uint32_t m_cursor = 0;
     };
