@@ -19,8 +19,6 @@
 
 #include "core/psxemulator.h"
 
-#include <curl/curl.h>
-
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/cheat.h"
@@ -66,7 +64,6 @@ PCSX::Emulator::Emulator()
       m_lua(new PCSX::Lua()),
       m_callStacks(new PCSX::CallStacks) {
     uv_loop_init(&m_loop);
-    curl_global_init(CURL_GLOBAL_ALL);
 }
 
 void PCSX::Emulator::setLua() {
@@ -91,7 +88,6 @@ void PCSX::Emulator::setLua() {
 
 PCSX::Emulator::~Emulator() {
     // TODO: move Lua and uv_loop to g_system.
-    curl_global_cleanup();
     m_lua->close();
     uv_loop_close(&g_emulator->m_loop);
 }
