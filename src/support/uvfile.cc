@@ -44,10 +44,13 @@ uv_async_t PCSX::UvFile::s_kicker;
 uv_timer_t PCSX::UvFile::s_timer;
 size_t PCSX::UvFile::s_dataReadTotal;
 size_t PCSX::UvFile::s_dataWrittenTotal;
+size_t PCSX::UvFile::s_dataDownloadTotal;
 size_t PCSX::UvFile::s_dataReadSinceLastTick;
 size_t PCSX::UvFile::s_dataWrittenSinceLastTick;
+size_t PCSX::UvFile::s_dataDownloadSinceLastTick;
 std::atomic<size_t> PCSX::UvFile::s_dataReadLastTick;
 std::atomic<size_t> PCSX::UvFile::s_dataWrittenLastTick;
+std::atomic<size_t> PCSX::UvFile::s_dataDownloadLastTick;
 moodycamel::ConcurrentQueue<PCSX::UvFile::UvRequest> PCSX::UvFile::s_queue;
 PCSX::UvFilesListType PCSX::UvFile::s_allFiles;
 uv_loop_t PCSX::UvFile::s_uvLoop;
@@ -70,10 +73,13 @@ void PCSX::UvFile::startThread() {
         curl_multi_setopt(s_curlMulti, CURLMOPT_TIMERFUNCTION, curlTimerFunction);
         s_dataReadTotal = 0;
         s_dataWrittenTotal = 0;
+        s_dataDownloadTotal = 0;
         s_dataReadSinceLastTick = 0;
         s_dataWrittenSinceLastTick = 0;
+        s_dataDownloadSinceLastTick = 0;
         s_dataReadLastTick = 0;
         s_dataWrittenLastTick = 0;
+        s_dataDownloadLastTick = 0;
         uv_async_init(&s_uvLoop, &s_kicker, [](uv_async_t *async) {
             UvRequest req;
             while (s_queue.try_dequeue(req)) {
@@ -86,8 +92,11 @@ void PCSX::UvFile::startThread() {
             [](uv_timer_t *timer) {
                 s_dataReadLastTick.store(s_dataReadTotal - s_dataReadSinceLastTick, std::memory_order_relaxed);
                 s_dataWrittenLastTick.store(s_dataWrittenTotal - s_dataWrittenSinceLastTick, std::memory_order_relaxed);
+                s_dataDownloadLastTick.store(s_dataDownloadTotal - s_dataDownloadSinceLastTick,
+                                             std::memory_order_relaxed);
                 s_dataReadSinceLastTick = s_dataReadTotal;
                 s_dataWrittenSinceLastTick = s_dataWrittenTotal;
+                s_dataDownloadSinceLastTick = s_dataDownloadTotal;
             },
             c_tick, c_tick);
         barrier.set_value();
@@ -170,12 +179,16 @@ void PCSX::UvFile::stopThread() {
 }
 
 void PCSX::UvFile::close() {
-    if (m_cache && (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)) {
+    if (m_download && (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)) {
+        m_cancelDownload.store(true, std::memory_order_relaxed);
+        m_cacheBarrier.get_future().wait();
+    } else if (m_cache && (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)) {
         request([this](auto loop) { m_cachePtr = m_size; });
         m_cacheBarrier.get_future().wait();
     }
     free(m_cache);
     m_cache = nullptr;
+    if (m_handle < 0) return;
     request([handle = m_handle](auto loop) {
         auto req = new uv_fs_t();
         uv_fs_close(loop, req, handle, [](uv_fs_t *req) {
@@ -242,29 +255,74 @@ PCSX::UvFile::UvFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABL
     openwrapper(filename, UV_FS_O_RDWR);
 }
 
-PCSX::UvFile::UvFile(std::string_view url, std::function<void(UvFile *, std::string_view)> callbackDone, DownloadUrl)
-    : File(RO_SEEKABLE), m_filename(url), m_download(true), m_downloadCallback(callbackDone), m_failed(false) {
+PCSX::UvFile::UvFile(std::string_view url, std::function<void(UvFile *)> callbackDone, uv_loop_t *otherLoop,
+                     DownloadUrl)
+    : File(RO_SEEKABLE),
+      m_filename(url),
+      m_download(true),
+      m_downloadCallback(callbackDone),
+      m_otherLoop(otherLoop),
+      m_failed(false) {
+    s_allFiles.push_back(this);
     std::string urlCopy(url);
+    if (otherLoop && callbackDone) {
+        uv_async_init(otherLoop, &m_cbAsync, [](uv_async_t *handle) -> void {
+            UvFile *self = reinterpret_cast<UvFile *>(handle->data);
+            uv_close(reinterpret_cast<uv_handle_t *>(handle), [](uv_handle_t *) {});
+            self->m_downloadCallback(self);
+        });
+        m_cbAsync.data = this;
+    }
     request([url = std::move(urlCopy), this](auto loop) {
         m_curlHandle = curl_easy_init();
         curl_easy_setopt(m_curlHandle, CURLOPT_URL, url.data());
+        curl_easy_setopt(m_curlHandle, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(m_curlHandle, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(m_curlHandle, CURLOPT_PRIVATE, this);
         curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, this);
         curl_easy_setopt(m_curlHandle, CURLOPT_XFERINFODATA, this);
-        curl_easy_setopt(m_curlHandle, CURLOPT_WRITEFUNCTION, curlWriteFunction);
-        curl_easy_setopt(m_curlHandle, CURLOPT_XFERINFOFUNCTION, curlXferInfoFunction);
+        curl_easy_setopt(m_curlHandle, CURLOPT_WRITEFUNCTION, curlWriteFunctionTrampoline);
+        curl_easy_setopt(m_curlHandle, CURLOPT_XFERINFOFUNCTION, curlXferInfoFunctionTrampoline);
         curl_multi_add_handle(s_curlMulti, m_curlHandle);
     });
 }
 
-size_t PCSX::UvFile::curlWriteFunction(char *ptr, size_t size, size_t nmemb, void *userdata) {
-    printf("Foo");
-    return size * nmemb;
+size_t PCSX::UvFile::curlWriteFunctionTrampoline(char *ptr, size_t size, size_t nmemb, void *userdata) {
+    UvFile *file = reinterpret_cast<UvFile *>(userdata);
+    return file->curlWriteFunction(ptr, size * nmemb);
 }
 
-int PCSX::UvFile::curlXferInfoFunction(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal,
-                                       curl_off_t ulnow) {
-    printf("Foo");
+int PCSX::UvFile::curlXferInfoFunctionTrampoline(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
+                                                 curl_off_t ultotal, curl_off_t ulnow) {
+    UvFile *file = reinterpret_cast<UvFile *>(clientp);
+    return file->curlXferInfoFunction(dltotal, dlnow, ultotal, ulnow);
+}
+
+size_t PCSX::UvFile::curlWriteFunction(char *ptr, size_t size) {
+    s_dataDownloadTotal += size;
+    if (size == 0) return 0;
+    if (m_cancelDownload.load(std::memory_order_relaxed)) return 0;
+    size_t endPtr = m_ptrW + size;
+    if (endPtr > m_size) {
+        m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, endPtr));
+        m_size = endPtr;
+    }
+    memcpy(m_cache + m_ptrW, ptr, size);
+    m_ptrW = endPtr;
+    float progress = float(m_ptrW) / float(m_size);
+    m_cacheProgress.store(std::min(progress, 0.99f));
+    return size;
+}
+
+int PCSX::UvFile::curlXferInfoFunction(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow) {
+    if (m_cancelDownload.load(std::memory_order_relaxed)) return -1;
+    if (dltotal == 0) return 0;
+    if (dltotal > m_size) {
+        m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, dltotal));
+        m_size = dltotal;
+    }
+    float progress = float(dlnow) / float(dltotal);
+    m_cacheProgress.store(std::min(progress, 0.99f));
     return 0;
 }
 
@@ -287,14 +345,12 @@ void PCSX::UvFile::processCurlMultiInfo() {
 }
 
 void PCSX::UvFile::downloadDone(CURLMsg *message) {
-    if (m_downloadCallback) {
-        char *done_url;
-        curl_easy_getinfo(m_curlHandle, CURLINFO_EFFECTIVE_URL, &done_url);
-        m_downloadCallback(this, done_url);
-    }
+    if (m_downloadCallback && m_otherLoop) uv_async_send(&m_cbAsync);
     curl_multi_remove_handle(s_curlMulti, m_curlHandle);
     curl_easy_cleanup(m_curlHandle);
     m_curlHandle = nullptr;
+    m_cacheProgress.store(1.0f, std::memory_order_relaxed);
+    m_cacheBarrier.set_value();
 }
 
 ssize_t PCSX::UvFile::rSeek(ssize_t pos, int wheel) {
@@ -332,7 +388,17 @@ ssize_t PCSX::UvFile::wSeek(ssize_t pos, int wheel) {
 ssize_t PCSX::UvFile::read(void *dest, size_t size) {
     size = std::min(m_size - m_ptrR, size);
     if (size == 0) return -1;
-    if (m_cacheProgress.load(std::memory_order_relaxed) == 1.0) {
+
+    float progress = m_cacheProgress.load(std::memory_order_relaxed);
+
+    if (progress != 1.0f) {
+        if (m_download) {
+            m_cacheBarrier.get_future().wait();
+            progress = 1.0f;
+        }
+    }
+
+    if (progress == 1.0f) {
         memcpy(dest, m_cache + m_ptrR, size);
         m_ptrR += size;
         return size;

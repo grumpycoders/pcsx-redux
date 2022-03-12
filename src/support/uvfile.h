@@ -64,7 +64,7 @@ class UvFile : public File, public UvFilesListType::Node {
     virtual bool eof() final override;
     virtual std::filesystem::path filename() final override { return m_filename; }
     virtual File* dup() final override {
-        return m_download   ? new UvFile(m_filename.string(), nullptr, DOWNLOAD_URL)
+        return m_download   ? new UvFile(m_filename.string(), DOWNLOAD_URL)
                : writable() ? new UvFile(m_filename, FileOps::READWRITE)
                             : new UvFile(m_filename);
     }
@@ -79,7 +79,8 @@ class UvFile : public File, public UvFilesListType::Node {
     UvFile(const std::filesystem::path& filename, FileOps::ReadWrite)
         : UvFile(filename.u8string(), FileOps::READWRITE) {}
     // Download a URL
-    UvFile(std::string_view url, std::function<void(UvFile*, std::string_view)> completed, DownloadUrl);
+    UvFile(std::string_view url, DownloadUrl) : UvFile(url, nullptr, nullptr, DOWNLOAD_URL) {}
+    UvFile(std::string_view url, std::function<void(UvFile*)> completed, uv_loop_t* other, DownloadUrl);
 #if defined(__cpp_lib_char8_t)
     UvFile(const std::u8string& filename) : UvFile(reinterpret_cast<const char*>(filename.c_str())) {}
     UvFile(const std::u8string& filename, FileOps::Truncate)
@@ -113,11 +114,17 @@ class UvFile : public File, public UvFilesListType::Node {
     static float getWriteRate() {
         return 1000.0f * float(s_dataWrittenLastTick.load(std::memory_order_relaxed)) / float(c_tick);
     }
+    static float getDownloadRate() {
+        return 1000.0f * float(s_dataDownloadLastTick.load(std::memory_order_relaxed)) / float(c_tick);
+    }
 
   private:
     bool m_failed = true;
     bool m_download = false;
-    std::function<void(UvFile*, std::string_view)> m_downloadCallback = nullptr;
+    std::atomic<bool> m_cancelDownload = false;
+    std::function<void(UvFile*)> m_downloadCallback = nullptr;
+    uv_loop_t* m_otherLoop = nullptr;
+    uv_async_t m_cbAsync;
     const std::filesystem::path m_filename;
     size_t m_ptrR = 0;
     size_t m_ptrW = 0;
@@ -138,9 +145,11 @@ class UvFile : public File, public UvFilesListType::Node {
     void downloadDone(CURLMsg* message);
     static int curlSocketFunction(CURL* easy, curl_socket_t s, int action, void* userp, void* socketp);
     static int curlTimerFunction(CURLM* multi, long timeout_ms, void* userp);
-    static size_t curlWriteFunction(char* ptr, size_t size, size_t nmemb, void* userdata);
-    static int curlXferInfoFunction(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal,
-                                    curl_off_t ulnow);
+    static size_t curlWriteFunctionTrampoline(char* ptr, size_t size, size_t nmemb, void* userdata);
+    size_t curlWriteFunction(char* ptr, size_t size);
+    static int curlXferInfoFunctionTrampoline(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal,
+                                              curl_off_t ulnow);
+    int curlXferInfoFunction(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
 
     void openwrapper(const char* filename, int flags);
 
@@ -155,10 +164,13 @@ class UvFile : public File, public UvFilesListType::Node {
     static uv_timer_t s_timer;
     static size_t s_dataReadTotal;
     static size_t s_dataWrittenTotal;
+    static size_t s_dataDownloadTotal;
     static size_t s_dataReadSinceLastTick;
     static size_t s_dataWrittenSinceLastTick;
+    static size_t s_dataDownloadSinceLastTick;
     static std::atomic<size_t> s_dataReadLastTick;
     static std::atomic<size_t> s_dataWrittenLastTick;
+    static std::atomic<size_t> s_dataDownloadLastTick;
     static constexpr uint64_t c_tick = 500;
 
     typedef std::function<void(uv_loop_t*)> UvRequest;
