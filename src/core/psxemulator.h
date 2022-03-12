@@ -183,12 +183,13 @@ class Emulator {
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     typedef Setting<int, TYPESTRING("Dither"), 2> SettingDither;
     typedef Setting<bool, TYPESTRING("ReportGLErrors"), false> SettingGLErrorReporting;
+    typedef Setting<bool, TYPESTRING("FullCaching"), false> SettingFullCaching;
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingFastBoot, SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
              SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither,
-             SettingGLErrorReporting>
+             SettingGLErrorReporting, SettingFullCaching>
         settings;
     class PcsxConfig {
       public:
@@ -228,6 +229,8 @@ class Emulator {
     void EmuShutdown();
     void vsync();
     void EmuSetPGXPMode(uint32_t pgxpMode);
+
+    void setLua();
 
     PcsxConfig& config() { return m_config; }
 

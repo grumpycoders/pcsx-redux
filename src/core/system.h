@@ -100,25 +100,25 @@ class System {
 
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &... args) {
+    void printf(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
-        printf(s);
+        printf(std::move(s));
     }
-    virtual void printf(const std::string &) = 0;
+    virtual void printf(std::string &&) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &... args) {
+    void log(LogClass logClass, const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
-        log(logClass, s);
+        log(logClass, std::move(s));
     }
-    virtual void log(LogClass, const std::string &) = 0;
+    virtual void log(LogClass, std::string &&) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &... args) {
+    void message(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
-        message(s);
+        message(std::move(s));
     }
-    virtual void message(const std::string &) = 0;
+    virtual void message(std::string &&) = 0;
     // For the Lua output
     virtual void luaMessage(const std::string &, bool error) = 0;
     // Called periodically; if vsync = true, this while the emulated hardware vsyncs

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2021 PCSX-Redux authors                                 *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,42 +17,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef _WIN32
+#include "lua/extra.h"
 
-#include "core/system.h"
-#include "gui/resources.h"
-#include "support/file.h"
+#include "lua/luawrapper.h"
 
-void PCSX::Resources::loadIcon(std::function<void(const uint8_t*, uint32_t)> process) {
-    std::filesystem::path fname = "pcsx-redux.ico";
-    std::filesystem::path dir = "resources";
-    IO<File> ico;
-
-    g_system->findResource(
-        [&ico](const std::filesystem::path& filename) {
-            ico.setFile(new PosixFile(filename));
-            return !ico->failed();
-        },
-        "pcsx-redux.ico", "resources", "resources");
-
-    if (ico->failed()) return;
-    if (ico->read<uint16_t>() != 0) return;
-    if (ico->read<uint16_t>() != 1) return;
-    uint16_t count = ico->read<uint16_t>();
-    struct {
-        uint32_t size, offset;
-    } info[count];
-    for (unsigned i = 0; i < count; i++) {
-        ico->read<uint32_t>();
-        ico->read<uint32_t>();
-        info[i].size = ico->read<uint32_t>();
-        info[i].offset = ico->read<uint32_t>();
-    }
-    for (unsigned i = 0; i < count; i++) {
-        ico->rSeek(info[i].offset, SEEK_SET);
-        auto slice = ico->read(info[i].size);
-        process(reinterpret_cast<const uint8_t*>(slice.data()), slice.size());
-    }
+void PCSX::LuaFFI::open_extra(Lua* L) {
+    static int lualoader = 1;
+    static const char* pprint = (
+#include "pprint.lua/pprint.lua"
+    );
+    static const char* reflectFFI = (
+#include "ffi-reflect/reflect.lua"
+    );
+    L->load(pprint, "internal:pprinter.lua/pprint.lua");
+    L->load(reflectFFI, "internal:ffi-reflect/reflect.lua");
 }
-
-#endif

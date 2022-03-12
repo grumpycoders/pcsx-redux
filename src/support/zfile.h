@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2021 PCSX-Redux authors                                 *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,42 +17,38 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef _WIN32
+#pragma once
 
-#include "core/system.h"
-#include "gui/resources.h"
+#include <zlib.h>
+
 #include "support/file.h"
 
-void PCSX::Resources::loadIcon(std::function<void(const uint8_t*, uint32_t)> process) {
-    std::filesystem::path fname = "pcsx-redux.ico";
-    std::filesystem::path dir = "resources";
-    IO<File> ico;
+namespace PCSX {
 
-    g_system->findResource(
-        [&ico](const std::filesystem::path& filename) {
-            ico.setFile(new PosixFile(filename));
-            return !ico->failed();
-        },
-        "pcsx-redux.ico", "resources", "resources");
-
-    if (ico->failed()) return;
-    if (ico->read<uint16_t>() != 0) return;
-    if (ico->read<uint16_t>() != 1) return;
-    uint16_t count = ico->read<uint16_t>();
-    struct {
-        uint32_t size, offset;
-    } info[count];
-    for (unsigned i = 0; i < count; i++) {
-        ico->read<uint32_t>();
-        ico->read<uint32_t>();
-        info[i].size = ico->read<uint32_t>();
-        info[i].offset = ico->read<uint32_t>();
+class ZReader : public File {
+  public:
+    ZReader(IO<File> file) : File(RO_SEEKABLE), m_file(file) {
+        m_infstream.zalloc = Z_NULL;
+        m_infstream.zfree = Z_NULL;
+        m_infstream.opaque = Z_NULL;
+        m_infstream.avail_in = 0;
+        auto res = inflateInit(&m_infstream);
+        if (res != Z_OK) throw std::runtime_error("inflateInit didn't work");
     }
-    for (unsigned i = 0; i < count; i++) {
-        ico->rSeek(info[i].offset, SEEK_SET);
-        auto slice = ico->read(info[i].size);
-        process(reinterpret_cast<const uint8_t*>(slice.data()), slice.size());
-    }
-}
+    virtual void close() final override { inflateEnd(&m_infstream); }
+    virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
+    virtual ssize_t rTell() final override { return m_filePtr; }
+    virtual ssize_t read(void* dest, size_t size) final override;
+    virtual bool eof() final override { return m_hitEOF; }
+    virtual File* dup() final override { return new ZReader(m_file); };
+    virtual bool failed() final override { return m_file->failed(); }
 
-#endif
+  private:
+    IO<File> m_file;
+    z_stream m_infstream;
+    ssize_t m_filePtr = 0;
+    bool m_hitEOF = false;
+    uint8_t m_inBuffer[1024];
+};
+
+}  // namespace PCSX

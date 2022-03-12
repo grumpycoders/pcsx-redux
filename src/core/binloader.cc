@@ -20,7 +20,6 @@
 #include "core/binloader.h"
 
 #include <stdint.h>
-#include <zlib.h>
 
 #include <filesystem>
 #include <string>
@@ -30,69 +29,70 @@
 #include "core/r3000a.h"
 #include "fmt/format.h"
 #include "support/file.h"
+#include "support/zfile.h"
 
 namespace PCSX {
 
 namespace {
 
-bool loadCPE(File& file) {
-    file.seek(0, SEEK_SET);
-    uint32_t magic = file.read<uint32_t>();
+bool loadCPE(IO<File> file) {
+    file->rSeek(0, SEEK_SET);
+    uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1455043) return false;
     auto& regs = g_emulator->m_psxCpu->m_psxRegs;
-    file.read<uint16_t>();
+    file->read<uint16_t>();
 
     uint8_t opcode;
 
-    while ((opcode = file.byte())) {
+    while ((opcode = file->byte())) {
         uint16_t reg;
         uint32_t value;
         bool setRegister = false;
 
         switch (opcode) {
             case 1: {  // load
-                uint32_t addr = file.read<uint32_t>();
-                uint32_t size = file.read<uint32_t>();
+                uint32_t addr = file->read<uint32_t>();
+                uint32_t size = file->read<uint32_t>();
                 uint8_t* ptr = PSXM(addr);
-                file.read(ptr, size);
+                file->read(ptr, size);
                 break;
             }
             case 2: {
-                file.read<uint32_t>();
+                file->read<uint32_t>();
                 break;
             }
             case 3: {
-                reg = file.read<uint16_t>();
-                value = file.read<uint32_t>();
+                reg = file->read<uint16_t>();
+                value = file->read<uint32_t>();
                 setRegister = true;
                 break;
             }
             case 4: {
-                reg = file.read<uint16_t>();
-                value = file.read<uint16_t>();
+                reg = file->read<uint16_t>();
+                value = file->read<uint16_t>();
                 setRegister = true;
                 break;
             }
             case 5: {
-                reg = file.read<uint16_t>();
-                value = file.read<uint8_t>();
+                reg = file->read<uint16_t>();
+                value = file->read<uint8_t>();
                 setRegister = true;
                 break;
             }
             case 6: {
-                reg = file.read<uint16_t>();
-                value = file.read<uint16_t>();
-                uint32_t remainder = file.read<uint8_t>();
+                reg = file->read<uint16_t>();
+                value = file->read<uint16_t>();
+                uint32_t remainder = file->read<uint8_t>();
                 value |= remainder << 16;
                 setRegister = true;
                 break;
             }
             case 7: {
-                file.read<uint32_t>();
+                file->read<uint32_t>();
                 break;
             }
             case 8: {
-                file.byte();
+                file->byte();
                 break;
             }
         }
@@ -109,31 +109,31 @@ bool loadCPE(File& file) {
     return true;
 }
 
-bool loadPSEXE(File& file) {
-    file.seek(0, SEEK_SET);
-    uint64_t magic = file.read<uint64_t>();
+bool loadPSEXE(IO<File> file) {
+    file->rSeek(0, SEEK_SET);
+    uint64_t magic = file->read<uint64_t>();
     if (magic != 0x45584520582d5350) return false;
 
     auto& regs = g_emulator->m_psxCpu->m_psxRegs;
 
-    file.read<uint32_t>();
-    file.read<uint32_t>();
+    file->read<uint32_t>();
+    file->read<uint32_t>();
 
-    regs.pc = file.read<uint32_t>();
-    file.read<uint32_t>();
-    uint32_t addr = file.read<uint32_t>();
-    uint32_t size = file.read<uint32_t>();
+    regs.pc = file->read<uint32_t>();
+    file->read<uint32_t>();
+    uint32_t addr = file->read<uint32_t>();
+    uint32_t size = file->read<uint32_t>();
     uint8_t* ptr = PSXM(addr);
-    file.read<uint32_t>();
-    file.read<uint32_t>();
-    file.read<uint32_t>();
-    file.read<uint32_t>();
-    regs.GPR.n.sp = file.read<uint32_t>();
+    file->read<uint32_t>();
+    file->read<uint32_t>();
+    file->read<uint32_t>();
+    file->read<uint32_t>();
+    regs.GPR.n.sp = file->read<uint32_t>();
     if (regs.GPR.n.sp == 0) regs.GPR.n.sp = 0x801fff00;
-    file.seek(0x71, SEEK_SET);
-    uint8_t region = file.byte();
-    file.seek(2048, SEEK_SET);
-    file.read(ptr, size);
+    file->rSeek(0x71, SEEK_SET);
+    uint8_t region = file->byte();
+    file->rSeek(2048, SEEK_SET);
+    file->read(ptr, size);
     if (g_emulator->settings.get<Emulator::SettingAutoVideo>()) {  // autodetect system (pal or ntsc)
         switch (region) {
             case 'A':
@@ -148,32 +148,29 @@ bool loadPSEXE(File& file) {
     return true;
 }
 
-bool loadPSF(File& file, bool seenRefresh = false, unsigned depth = 0) {
+bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
     if (depth >= 10) return false;
-    file.seek(0, SEEK_SET);
-    uint32_t magic = file.read<uint32_t>();
+    file->rSeek(0, SEEK_SET);
+    uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1465350) return false;
-    uint32_t R = file.read<uint32_t>();
-    uint32_t N = file.read<uint32_t>();
-    uint32_t C = file.read<uint32_t>();
-    file.seek(R, SEEK_CUR);
-    uint8_t* buffer = (uint8_t*)malloc(N);
-    file.read(buffer, N);
+    uint32_t R = file->read<uint32_t>();
+    uint32_t N = file->read<uint32_t>();
+    uint32_t C = file->read<uint32_t>();
+    file->rSeek(R, SEEK_CUR);
+    IO<File> zpsexe(new SubFile(file, file->rTell(), N));
+    file->rSeek(N, SEEK_CUR);
     char tagtag[6];
-    file.read(tagtag, 5);
+    file->read(tagtag, 5);
     tagtag[5] = 0;
 
     std::map<std::string, std::string> pairs;
 
     if (strcmp(tagtag, "[TAG]") == 0) {
         char* tags;
-        auto current = file.tell();
-        file.seek(0, SEEK_END);
-        size_t tagsSize = file.tell() - current;
-        file.seek(current, SEEK_SET);
+        size_t tagsSize = file->size() - file->rTell();
         tags = (char*)malloc(tagsSize + 1);
 
-        file.read(tags, tagsSize);
+        file->read(tags, tagsSize);
         tags[tagsSize] = 0;
         char* cr;
 
@@ -201,43 +198,22 @@ bool loadPSF(File& file, bool seenRefresh = false, unsigned depth = 0) {
     }
 
     if (pairs.find("_lib") != pairs.end()) {
-        std::filesystem::path subFilePath(file.filename());
-        File subFile(subFilePath.parent_path() / pairs["_lib"]);
-        if (!subFile.failed()) loadPSF(subFile, seenRefresh, depth++);
+        std::filesystem::path subFilePath(file->filename());
+        IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs["_lib"]));
+        if (!subFile->failed()) loadPSF(subFile, seenRefresh, depth++);
     }
 
-    {
-        static constexpr unsigned TWOM = 2 * 1024 * 1024;
-        uint8_t* psexe = (uint8_t*)malloc(TWOM);  // and no fucks were given today.
-        z_stream infstream;
-        infstream.zalloc = Z_NULL;
-        infstream.zfree = Z_NULL;
-        infstream.opaque = Z_NULL;
-        infstream.avail_in = N;
-        infstream.next_in = buffer;
-        infstream.avail_out = TWOM;
-        infstream.next_out = psexe;
-
-        inflateInit(&infstream);
-        auto res = inflate(&infstream, Z_FINISH);
-        inflateEnd(&infstream);
-
-        if (res == Z_STREAM_END) {
-            File z(psexe, TWOM);
-            loadPSEXE(z);
-        }
-        free(psexe);
-    }
-    free(buffer);
+    IO<File> psexe(new ZReader(zpsexe));
+    loadPSEXE(psexe);
 
     unsigned libNum = 2;
 
     while (true) {
         std::string libName = fmt::format("_lib{}", libNum++);
         if (pairs.find(libName) == pairs.end()) break;
-        std::filesystem::path subFilePath(file.filename());
-        File subFile(subFilePath.parent_path() / pairs[libName]);
-        if (!subFile.failed()) loadPSF(subFile, seenRefresh, depth++);
+        std::filesystem::path subFilePath(file->filename());
+        IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs[libName]));
+        if (!subFile->failed()) loadPSF(subFile, seenRefresh, depth++);
     }
 
     return true;
@@ -248,12 +224,12 @@ bool loadPSF(File& file, bool seenRefresh = false, unsigned depth = 0) {
 }  // namespace PCSX
 
 bool PCSX::BinaryLoader::load(const std::filesystem::path& filename) {
-    File ny(filename.parent_path() / "libps.exe");
-    if (!ny.failed()) loadPSEXE(ny);
+    IO<File> ny(new PosixFile(filename.parent_path() / "libps.exe"));
+    if (!ny->failed()) loadPSEXE(ny);
 
-    File file(filename);
+    IO<File> file(new PosixFile(filename));
 
-    if (file.failed()) return false;
+    if (file->failed()) return false;
     if (loadCPE(file)) return true;
     if (loadPSEXE(file)) return true;
     if (loadPSF(file)) return true;

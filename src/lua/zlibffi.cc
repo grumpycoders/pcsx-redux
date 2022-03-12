@@ -137,8 +137,8 @@ static void registerAllSymbols(PCSX::Lua* L) {
 void PCSX::LuaFFI::open_zlib(Lua* L) {
     static int lualoader = 1;
     static const char* zlibFFI = (
-#include "lua/zlibffi.lua"
+#include "third_party/zlibffi/zlibffi.lua"
     );
     registerAllSymbols(L);
-    L->load(zlibFFI, "internal:lua/zlibffi.lua");
+    L->load(zlibFFI, "internal:third_party/zlibffi/zlibffi.lua");
 }
