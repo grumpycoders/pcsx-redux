@@ -43,6 +43,17 @@ struct PadData {
     uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
 };
 
+enum class PadCommands : uint8_t {
+    Read = 0x42,
+    SetConfigMode = 0x43,
+    SetAnalogMode = 0x44,
+    GetAnalogMode = 0x45,
+    Unknown46 = 0x46,
+    Unknown47 = 0x47,
+    Unknown4C = 0x4C,
+    UnlockRumble = 0x4D
+};
+
 void PCSX::Pads::init() {
     scanGamepads();
     g_system->findResource(
@@ -270,13 +281,112 @@ uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
     return m_pads[index].poll(value);
 }
 
-uint8_t PCSX::Pads::Pad::poll(uint8_t value) { return m_bufc > m_bufcount ? 0xff : m_buf[m_bufc++]; }
+uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
+    if (m_currentByte == 0) {
+        m_cmd = value;
+        m_currentByte = 1;
+        const auto command = static_cast<PadCommands>(value);
 
-uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
-    m_bufc = 0;
+        if (command == PadCommands::Read) {
+            PadData pad;
+            return startPoll(pad, false);
+        } else if (command == PadCommands::SetConfigMode) {
+            static const uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
+            std::memcpy(m_buf, reply, 8);
+            m_bufferLen = 7;
+            return 0xf3;
+        } else if (command == PadCommands::GetAnalogMode && m_configMode) {
+            static uint8_t reply[] = {0xff, 0x5a, 0x01, 0x02, 0, 0x02, 0x01, 0x00};
+
+            reply[4] = m_analogMode ? 1 : 0;
+            m_bufferLen = 7;
+            std::memcpy(m_buf, reply, 8);
+            return 0xf3;
+        } else if (command == PadCommands::UnlockRumble && m_configMode) {
+            static uint8_t reply[] = {0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+            m_bufferLen = 7;
+            std::memcpy(m_buf, reply, 8);
+            return 0xf3;
+        } else if (command == PadCommands::SetAnalogMode && m_configMode) {
+            static uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+            m_bufferLen = 7;
+            std::memcpy(m_buf, reply, 8);
+            return 0xf3;
+        } else if (command == PadCommands::Unknown46 && m_configMode) {
+            static uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x01, 0x02, 0x00, 0x0a};
+
+            m_bufferLen = 7;
+            std::memcpy(m_buf, reply, 8);
+            return 0xf3;
+        } else if (command == PadCommands::Unknown47 && m_configMode) {
+            static uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00};
+
+            m_bufferLen = 7;
+            std::memcpy(m_buf, reply, 8);
+            return 0xf3;
+        } else if (command == PadCommands::Unknown4C && m_configMode) {
+            static uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+            m_bufferLen = 7;
+            std::memcpy(m_buf, reply, 8);
+            return 0xf3;
+        } else {
+            a:
+            m_bufferLen = 7;
+            PCSX::g_system->printf("Unknown command: %02X\n", value);
+        }
+    } else if (m_currentByte > m_bufferLen) {
+        return 0xff;
+    } else if (m_currentByte == 2) {
+        switch (static_cast<PadCommands>(m_cmd)) { 
+            case PadCommands::SetConfigMode:
+                m_configMode = value == 1;
+                break;
+            case PadCommands::SetAnalogMode:
+                if (m_configMode) {
+                    m_analogMode = value == 1;
+                }
+                break;
+            case PadCommands::Unknown46:
+                if (value == 0) {
+                    m_buf[4] = 0x01;
+                    m_buf[5] = 0x02;
+                    m_buf[6] = 0x00;
+                    m_buf[7] = 0x0A;
+                } else if (value == 1) {
+                    m_buf[4] = 0x01;
+                    m_buf[5] = 0x01;
+                    m_buf[6] = 0x01;
+                    m_buf[7] = 0x14;
+                }
+                break;
+            case PadCommands::Unknown47:
+                if (value != 0) {
+                    abort();
+                }
+                break;
+            case PadCommands::Unknown4C:
+                if (value == 0) {
+                    m_buf[5] = 0x04;
+                } else if (value == 1) {
+                    m_buf[5] = 0x07;
+                }
+                break;
+        }
+    }
+
+    return m_buf[m_currentByte++];
+}
+
+uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad, bool a) {
+    if (a) {
+        m_currentByte = 0;
+    }
     if (!m_settings.get<SettingConnected>()) {
-        m_bufcount = 0;
+        m_bufferLen = 0;
         return 0xff;
     }
 
@@ -293,49 +403,53 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad) {
 
             // The top 4 bits are always set to 1, the low 2 bits seem to always be set to 0.
             // Left/right click are inverted in the response byte, ie 0 = pressed
-            m_mousepar[4] = 0xf0 | (leftClick << 3) | (rightClick << 2);
-            m_mousepar[5] = (int8_t)std::clamp<float>(deltaX, -128.f, 127.f);
-            m_mousepar[6] = (int8_t)std::clamp<float>(deltaY, -128.f, 127.f);
+            m_mousepar[3] = 0xf0 | (leftClick << 3) | (rightClick << 2);
+            m_mousepar[4] = (int8_t)std::clamp<float>(deltaX, -128.f, 127.f);
+            m_mousepar[5] = (int8_t)std::clamp<float>(deltaY, -128.f, 127.f);
 
-            memcpy(m_buf, m_mousepar, 7);
-            m_bufcount = 6;
+            memcpy(m_buf, m_mousepar, 6);
+            m_bufferLen = 5;
+            return 0x12;
             break;
         }
 
         case PadType::Negcon:  // npc101/npc104(slph00001/slph00069)
-            m_analogpar[1] = 0x23;
-            m_analogpar[3] = pad.buttonStatus & 0xff;
-            m_analogpar[4] = pad.buttonStatus >> 8;
-            m_analogpar[5] = pad.rightJoyX;
-            m_analogpar[6] = pad.rightJoyY;
-            m_analogpar[7] = pad.leftJoyX;
-            m_analogpar[8] = pad.leftJoyY;
+            m_analogpar[0] = 0x23;
+            m_analogpar[2] = pad.buttonStatus & 0xff;
+            m_analogpar[3] = pad.buttonStatus >> 8;
+            m_analogpar[4] = pad.rightJoyX;
+            m_analogpar[5] = pad.rightJoyY;
+            m_analogpar[6] = pad.leftJoyX;
+            m_analogpar[7] = pad.leftJoyY;
 
-            memcpy(m_buf, m_analogpar, 9);
-            m_bufcount = 8;
+            memcpy(m_buf, m_analogpar, 8);
+            m_bufferLen = 7;
+            return 0x23;
             break;
         case PadType::Analog:  // scph1110, scph1150
-            m_analogpar[1] = 0x73;
-            m_analogpar[3] = pad.buttonStatus & 0xff;
-            m_analogpar[4] = pad.buttonStatus >> 8;
-            m_analogpar[5] = pad.rightJoyX;
-            m_analogpar[6] = pad.rightJoyY;
-            m_analogpar[7] = pad.leftJoyX;
-            m_analogpar[8] = pad.leftJoyY;
+            if (m_analogMode || m_configMode) {
+                m_analogpar[0] = 0x73;
+                m_analogpar[2] = pad.buttonStatus & 0xff;
+                m_analogpar[3] = pad.buttonStatus >> 8;
+                m_analogpar[4] = pad.rightJoyX;
+                m_analogpar[5] = pad.rightJoyY;
+                m_analogpar[6] = pad.leftJoyX;
+                m_analogpar[7] = pad.leftJoyY;
 
-            memcpy(m_buf, m_analogpar, 9);
-            m_bufcount = 8;
-            break;
+                memcpy(m_buf, m_analogpar, 8);
+                m_bufferLen = 7;
+                return 0x73;
+            }
+            // Intentional fallthrough if not in analog mode
         case PadType::Digital:
         default:
-            m_stdpar[3] = pad.buttonStatus & 0xff;
-            m_stdpar[4] = pad.buttonStatus >> 8;
+            m_stdpar[2] = pad.buttonStatus & 0xff;
+            m_stdpar[3] = pad.buttonStatus >> 8;
 
-            memcpy(m_buf, m_stdpar, 5);
-            m_bufcount = 4;
+            memcpy(m_buf, m_stdpar, 4);
+            m_bufferLen = 3;
+            return 0x41;
     }
-
-    return m_buf[m_bufc++];
 }
 
 bool PCSX::Pads::configure(PCSX::GUI* gui) {

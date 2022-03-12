@@ -123,7 +123,7 @@ class Pads {
 
     struct Pad {
         void readPort(PadData &pad);
-        uint8_t startPoll(const PadData &pad);
+        uint8_t startPoll(const PadData &pad, bool a = true);
         uint8_t poll(uint8_t value);
         void getButtons(PadData &pad);
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
@@ -145,14 +145,18 @@ class Pads {
         int m_buttonToWait = -1;
         bool m_changed = false;
 
+        bool m_configMode = false;
+        bool m_analogMode = false;
+
         PadSettings m_settings;
 
         uint8_t m_buf[256];
-        int m_bufcount, m_bufc;
+        int m_bufferLen, m_currentByte;
+        uint8_t m_cmd;
 
-        uint8_t m_stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-        uint8_t m_mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
-        uint8_t m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_stdpar[8] = {0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_mousepar[6] = {0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_analogpar[8] = {0x73, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     };
 
     Pad m_pads[2];

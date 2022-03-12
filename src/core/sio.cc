@@ -35,6 +35,8 @@
 #define SIO_CYCLES (m_baudReg * 8)
 
 void PCSX::SIO::writePad(uint8_t value) {
+    PCSX::g_system->printf("Received pad byte: %02X\n", value);
+
     switch (m_padState) {
         case PAD_STATE_READ_TYPE:
             scheduleInterrupt(SIO_CYCLES);
@@ -71,21 +73,6 @@ void PCSX::SIO::writePad(uint8_t value) {
                     m_maxBufferIndex = 2 + 32;
                 } else {
                     m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
-                }
-
-                // Digital / Dual Shock Controller
-                if (m_buffer[m_bufferIndex] == 0x41) {
-                    switch (value) {
-                        // enter config mode
-                        case 0x43:
-                            m_buffer[1] = 0x43;
-                            break;
-
-                        // get status
-                        case 0x45:
-                            m_buffer[1] = 0xf3;
-                            break;
-                    }
                 }
 
                 // NegCon - Wipeout 3
@@ -215,11 +202,11 @@ void PCSX::SIO::writeMcd(uint8_t value) {
 
 void PCSX::SIO::write8(uint8_t value) {
     SIO0_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
-    if (m_padState) {
+    if (m_padState != PAD_STATE_IDLE) {
         writePad(value);
         return;
     }
-    if (m_mcdState) {
+    if (m_mcdState != MCD_STATE_IDLE) {
         writeMcd(value);
         return;
     }
