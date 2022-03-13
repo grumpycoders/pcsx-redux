@@ -277,11 +277,14 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
         if (command == PadCommands::Read) {
             return read();
         } else if (command == PadCommands::SetConfigMode) {
-            static const uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-            std::memcpy(m_buf, reply, 8);
-            m_bufferLen = 7;
-            return 0xf3;
+            if (m_configMode) { // The config mode version of this command does not reply with pad data
+                static const uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+                std::memcpy(m_buf, reply, 8);
+                m_bufferLen = 7;
+                return 0xf3;
+            } else {
+                return read();
+            }
         } else if (command == PadCommands::GetAnalogMode && m_configMode) {
             static uint8_t reply[] = {0xff, 0x5a, 0x01, 0x02, 0, 0x02, 0x01, 0x00};
 
@@ -320,8 +323,9 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
             std::memcpy(m_buf, reply, 8);
             return 0xf3;
         } else {
-            m_bufferLen = 7;
+            m_bufferLen = 0;
             PCSX::g_system->printf("Unknown command: %02X\n", value);
+            return 0xff;
         }
     } else if (m_currentByte > m_bufferLen) {
         return 0xff;
