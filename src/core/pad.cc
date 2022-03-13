@@ -35,17 +35,6 @@
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
 
-enum class PadCommands : uint8_t {
-    Read = 0x42,
-    SetConfigMode = 0x43,
-    SetAnalogMode = 0x44,
-    GetAnalogMode = 0x45,
-    Unknown46 = 0x46,
-    Unknown47 = 0x47,
-    Unknown4C = 0x4C,
-    UnlockRumble = 0x4D
-};
-
 void PCSX::Pads::init() {
     scanGamepads();
     g_system->findResource(
@@ -270,77 +259,30 @@ uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
 
 uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
     if (m_currentByte == 0) {
-        m_cmd = value;
+        m_cmd = static_cast<PadCommands>(value);
         m_currentByte = 1;
-        const auto command = static_cast<PadCommands>(value);
 
-        if (command == PadCommands::Read) {
+        if (m_cmd == PadCommands::Read) {
             return read();
-        } else if (command == PadCommands::SetConfigMode) {
-            if (m_configMode) { // The config mode version of this command does not reply with pad data
-                static const uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-                std::memcpy(m_buf, reply, 8);
-                m_bufferLen = 7;
-                return 0xf3;
-            } else {
-                return read();
-            }
-        } else if (command == PadCommands::GetAnalogMode && m_configMode) {
-            static uint8_t reply[] = {0xff, 0x5a, 0x01, 0x02, 0, 0x02, 0x01, 0x00};
-
-            reply[4] = m_analogMode ? 1 : 0;
-            m_bufferLen = 7;
-            std::memcpy(m_buf, reply, 8);
-            return 0xf3;
-        } else if (command == PadCommands::UnlockRumble && m_configMode) {
-            static uint8_t reply[] = {0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-            m_bufferLen = 7;
-            std::memcpy(m_buf, reply, 8);
-            return 0xf3;
-        } else if (command == PadCommands::SetAnalogMode && m_configMode) {
-            static uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-            m_bufferLen = 7;
-            std::memcpy(m_buf, reply, 8);
-            return 0xf3;
-        } else if (command == PadCommands::Unknown46 && m_configMode) {
-            static uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x01, 0x02, 0x00, 0x0a};
-
-            m_bufferLen = 7;
-            std::memcpy(m_buf, reply, 8);
-            return 0xf3;
-        } else if (command == PadCommands::Unknown47 && m_configMode) {
-            static uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00};
-
-            m_bufferLen = 7;
-            std::memcpy(m_buf, reply, 8);
-            return 0xf3;
-        } else if (command == PadCommands::Unknown4C && m_configMode) {
-            static uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-            m_bufferLen = 7;
-            std::memcpy(m_buf, reply, 8);
-            return 0xf3;
+        } else if (m_type == PadType::Analog) {
+            return doDualshockCommand();
         } else {
             m_bufferLen = 0;
+            m_cmd = PadCommands::Idle;
             PCSX::g_system->printf("Unknown command: %02X\n", value);
             return 0xff;
         }
-    } else if (m_currentByte > m_bufferLen) {
+    } else if (m_currentByte >= m_bufferLen) {
         return 0xff;
-    } else if (m_currentByte == 2) {
-        switch (static_cast<PadCommands>(m_cmd)) { 
+    } else if (m_currentByte == 2 && m_type == PadType::Analog) {
+        switch (m_cmd) { 
             case PadCommands::SetConfigMode:
                 m_configMode = value == 1;
                 break;
             case PadCommands::SetAnalogMode:
-                if (m_configMode) {
-                    m_analogMode = value == 1;
-                }
+                m_analogMode = value == 1;
                 break;
             case PadCommands::Unknown46:
-                if (!m_configMode) abort();
                 if (value == 0) {
                     m_buf[4] = 0x01;
                     m_buf[5] = 0x02;
@@ -354,13 +296,11 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
                 }
                 break;
             case PadCommands::Unknown47:
-                if (!m_configMode) abort();
                 if (value != 0) {
                     abort();
                 }
                 break;
             case PadCommands::Unknown4C:
-                if (!m_configMode) abort();
                 if (value == 0) {
                     m_buf[5] = 0x04;
                 } else if (value == 1) {
@@ -371,6 +311,61 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
     }
 
     return m_buf[m_currentByte++];
+}
+
+uint8_t PCSX::Pads::Pad::doDualshockCommand() {
+    if (m_cmd == PadCommands::SetConfigMode) {
+        if (m_configMode) {  // The config mode version of this command does not reply with pad data
+            static const uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            std::memcpy(m_buf, reply, 8);
+            m_bufferLen = 8;
+            return 0xf3;
+        } else {
+            return read();
+        }
+    } else if (m_cmd == PadCommands::GetAnalogMode && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x01, 0x02, 0, 0x02, 0x01, 0x00};
+
+        reply[4] = m_analogMode ? 1 : 0;
+        m_bufferLen = 8;
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == PadCommands::UnlockRumble && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+        m_bufferLen = 8;
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == PadCommands::SetAnalogMode && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+        m_bufferLen = 8;
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == PadCommands::Unknown46 && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x01, 0x02, 0x00, 0x0a};
+
+        m_bufferLen = 8;
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == PadCommands::Unknown47 && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00};
+
+        m_bufferLen = 8;
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == PadCommands::Unknown4C && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+        m_bufferLen = 8;
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else {
+        m_cmd = PadCommands::Idle;
+        m_bufferLen = 0;
+        PCSX::g_system->printf("Unknown command: %02X\n", static_cast<uint8_t>(m_cmd));
+        return 0xff;
+    }
 }
 
 uint8_t PCSX::Pads::Pad::startPoll() { 
@@ -403,7 +398,7 @@ uint8_t PCSX::Pads::Pad::read() {
             m_mousepar[5] = (int8_t)std::clamp<float>(deltaY, -128.f, 127.f);
 
             memcpy(m_buf, m_mousepar, 6);
-            m_bufferLen = 5;
+            m_bufferLen = 6;
             return 0x12;
             break;
         }
@@ -418,7 +413,7 @@ uint8_t PCSX::Pads::Pad::read() {
             m_analogpar[7] = pad.leftJoyY;
 
             memcpy(m_buf, m_analogpar, 8);
-            m_bufferLen = 7;
+            m_bufferLen = 8;
             return 0x23;
             break;
         case PadType::Analog:  // scph1110, scph1150
@@ -432,18 +427,18 @@ uint8_t PCSX::Pads::Pad::read() {
                 m_analogpar[7] = pad.leftJoyY;
 
                 memcpy(m_buf, m_analogpar, 8);
-                m_bufferLen = 7;
+                m_bufferLen = 8;
                 PCSX::g_system->printf("Done made it\n");
                 return m_configMode ? 0xf3 : 0x73;
             }
-            // Intentional fallthrough if not in analog mode
+            [[fallthrough]];
         case PadType::Digital:
         default:
             m_stdpar[2] = pad.buttonStatus & 0xff;
             m_stdpar[3] = pad.buttonStatus >> 8;
 
             memcpy(m_buf, m_stdpar, 4);
-            m_bufferLen = 3;
+            m_bufferLen = 4;
             return 0x41;
     }
 }

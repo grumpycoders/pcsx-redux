@@ -35,8 +35,6 @@
 #define SIO_CYCLES (m_baudReg * 8)
 
 void PCSX::SIO::writePad(uint8_t value) {
-    PCSX::g_system->printf("Received pad byte: %02X\n", value);
-
     switch (m_padState) {
         case PAD_STATE_READ_TYPE:
             scheduleInterrupt(SIO_CYCLES);
@@ -74,47 +72,12 @@ void PCSX::SIO::writePad(uint8_t value) {
                 } else {
                     m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
                 }
-
-                // Digital / Dual Shock Controller
-                if (m_buffer[m_bufferIndex] == 0x41) {
-                    switch (value) {
-                        // enter config mode
-                        case 0x43:
-                            m_buffer[1] = 0x43;
-                            break;
-
-                        // get status
-                        case 0x45:
-                            m_buffer[1] = 0xf3;
-                            break;
-                    }
-                }
-
-                // NegCon - Wipeout 3
-                if (m_buffer[m_bufferIndex] == 0x23) {
-                    switch (value) {
-                        // enter config mode
-                        case 0x43:
-                            m_buffer[1] = 0x79;
-                            break;
-
-                        // get status
-                        case 0x45:
-                            m_buffer[1] = 0xf3;
-                            break;
-                    }
-                }
             } else {
                 m_padState = PAD_STATE_IDLE;
             }
             return;
         case PAD_STATE_READ_DATA:
             m_bufferIndex++;
-            /*          if (m_buffer[1] == 0x45) {
-                                            m_buffer[m_bufferIndex] = 0;
-                                            scheduleInterrupt(SIO_CYCLES);
-                                            return;
-                                    }*/
             switch (m_ctrlReg & 0x2002) {
                 case 0x0002:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port1);

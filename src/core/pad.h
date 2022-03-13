@@ -129,10 +129,23 @@ class Pads {
         uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
     };
 
+    enum class PadCommands : uint8_t {
+        Idle = 0x00,
+        Read = 0x42,
+        SetConfigMode = 0x43,
+        SetAnalogMode = 0x44,
+        GetAnalogMode = 0x45,
+        Unknown46 = 0x46,
+        Unknown47 = 0x47,
+        Unknown4C = 0x4C,
+        UnlockRumble = 0x4D
+    };
+
     struct Pad {
         uint8_t startPoll();
         uint8_t read();
         uint8_t poll(uint8_t value);
+        uint8_t doDualshockCommand();
         void getButtons();
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
 
@@ -161,7 +174,7 @@ class Pads {
 
         uint8_t m_buf[256];
         int m_bufferLen, m_currentByte;
-        uint8_t m_cmd;
+        PadCommands m_cmd = PadCommands::Idle;
 
         uint8_t m_stdpar[8] = {0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         uint8_t m_mousepar[6] = {0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
