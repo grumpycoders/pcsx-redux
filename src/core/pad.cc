@@ -267,9 +267,9 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
         } else if (m_type == PadType::Analog) {
             return doDualshockCommand();
         } else {
-            m_bufferLen = 0;
+            PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
             m_cmd = PadCommands::Idle;
-            PCSX::g_system->printf("Unknown command: %02X\n", value);
+            m_bufferLen = 0;
             return 0xff;
         }
     } else if (m_currentByte >= m_bufferLen) {
@@ -361,9 +361,9 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand() {
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else {
+        PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), static_cast<uint8_t>(m_cmd));
         m_cmd = PadCommands::Idle;
         m_bufferLen = 0;
-        PCSX::g_system->printf("Unknown command: %02X\n", static_cast<uint8_t>(m_cmd));
         return 0xff;
     }
 }
@@ -428,7 +428,6 @@ uint8_t PCSX::Pads::Pad::read() {
 
                 memcpy(m_buf, m_analogpar, 8);
                 m_bufferLen = 8;
-                PCSX::g_system->printf("Done made it\n");
                 return m_configMode ? 0xf3 : 0x73;
             }
             [[fallthrough]];
