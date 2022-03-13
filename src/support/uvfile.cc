@@ -255,24 +255,12 @@ PCSX::UvFile::UvFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABL
     openwrapper(filename, UV_FS_O_RDWR);
 }
 
-PCSX::UvFile::UvFile(std::string_view url, std::function<void(UvFile *)> callbackDone, uv_loop_t *otherLoop,
+PCSX::UvFile::UvFile(std::string_view url, std::function<void(UvFile *)> &&callbackDone, uv_loop_t *otherLoop,
                      DownloadUrl)
-    : File(RO_SEEKABLE),
-      m_filename(url),
-      m_download(true),
-      m_downloadCallback(callbackDone),
-      m_otherLoop(otherLoop),
-      m_failed(false) {
+    : File(RO_SEEKABLE), m_filename(url), m_download(true), m_failed(false) {
     s_allFiles.push_back(this);
     std::string urlCopy(url);
-    if (otherLoop && callbackDone) {
-        uv_async_init(otherLoop, &m_cbAsync, [](uv_async_t *handle) -> void {
-            UvFile *self = reinterpret_cast<UvFile *>(handle->data);
-            uv_close(reinterpret_cast<uv_handle_t *>(handle), [](uv_handle_t *) {});
-            self->m_downloadCallback(self);
-        });
-        m_cbAsync.data = this;
-    }
+    cacheCallbackSetup(std::move(callbackDone), otherLoop);
     request([url = std::move(urlCopy), this](auto loop) {
         m_curlHandle = curl_easy_init();
         curl_easy_setopt(m_curlHandle, CURLOPT_URL, url.data());
@@ -357,7 +345,9 @@ void PCSX::UvFile::downloadDone(CURLMsg *message) {
     curl_easy_cleanup(m_curlHandle);
     m_curlHandle = nullptr;
     m_cacheProgress.store(1.0f, std::memory_order_release);
-    if (m_downloadCallback && m_otherLoop) uv_async_send(&m_cbAsync);
+    if (m_cachingDoneCB) {
+        uv_async_send(&m_cbAsync);
+    }
     m_cacheBarrier.set_value();
 }
 
@@ -637,6 +627,9 @@ bool PCSX::UvFile::eof() { return m_size == m_ptrR; }
 void PCSX::UvFile::readCacheChunk(uv_loop_t *loop) {
     if (m_cachePtr >= m_size) {
         m_cacheProgress.store(1.0f, std::memory_order_release);
+        if (m_cachingDoneCB) {
+            uv_async_send(&m_cbAsync);
+        }
         m_cacheBarrier.set_value();
         return;
     }
@@ -669,9 +662,23 @@ void PCSX::UvFile::readCacheChunkResult() {
     readCacheChunk(loop);
 }
 
-void PCSX::UvFile::startCaching() {
-    if (m_cache) throw std::runtime_error("File is already cached");
+void PCSX::UvFile::startCaching(std::function<void(UvFile *)> &&completed, uv_loop_t *loop) {
+    if (m_cache || m_download) throw std::runtime_error("File is already cached");
+    cacheCallbackSetup(std::move(completed), loop);
     if (failed()) return;
     m_cache = reinterpret_cast<uint8_t *>(malloc(m_size));
     request([this](auto loop) { readCacheChunk(loop); });
+}
+
+void PCSX::UvFile::cacheCallbackSetup(std::function<void(UvFile *)> &&callbackDone, uv_loop_t *otherLoop) {
+    if (otherLoop && callbackDone) {
+        m_cachingDoneCB = std::move(callbackDone);
+        uv_async_init(otherLoop, &m_cbAsync, [](uv_async_t *handle) -> void {
+            UvFile *self = reinterpret_cast<UvFile *>(handle->data);
+            uv_close(reinterpret_cast<uv_handle_t *>(handle), [](uv_handle_t *) {});
+            self->m_cachingDoneCB(self);
+        });
+        m_cbAsync.data = this;
+        if (failed()) uv_async_send(&m_cbAsync);
+    }
 }

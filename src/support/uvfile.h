@@ -80,7 +80,7 @@ class UvFile : public File, public UvFilesListType::Node {
         : UvFile(filename.u8string(), FileOps::READWRITE) {}
     // Download a URL
     UvFile(std::string_view url, DownloadUrl) : UvFile(url, nullptr, nullptr, DOWNLOAD_URL) {}
-    UvFile(std::string_view url, std::function<void(UvFile*)> completed, uv_loop_t* other, DownloadUrl);
+    UvFile(std::string_view url, std::function<void(UvFile*)>&& completed, uv_loop_t* other, DownloadUrl);
 #if defined(__cpp_lib_char8_t)
     UvFile(const std::u8string& filename) : UvFile(reinterpret_cast<const char*>(filename.c_str())) {}
     UvFile(const std::u8string& filename, FileOps::Truncate)
@@ -99,7 +99,8 @@ class UvFile : public File, public UvFilesListType::Node {
     UvFile(const char* filename, FileOps::Create);
     UvFile(const char* filename, FileOps::ReadWrite);
 
-    void startCaching();
+    void startCaching() { startCaching(nullptr, nullptr); }
+    void startCaching(std::function<void(UvFile*)>&& completed, uv_loop_t* loop);
     bool cached() { return m_cache; }
     float cacheProgress() { return m_cacheProgress.load(std::memory_order_relaxed); }
     void waitCache() { m_cacheBarrier.get_future().get(); }
@@ -122,8 +123,7 @@ class UvFile : public File, public UvFilesListType::Node {
     bool m_failed = true;
     bool m_download = false;
     std::atomic<bool> m_cancelDownload = false;
-    std::function<void(UvFile*)> m_downloadCallback = nullptr;
-    uv_loop_t* m_otherLoop = nullptr;
+    std::function<void(UvFile*)> m_cachingDoneCB = nullptr;
     uv_async_t m_cbAsync;
     const std::filesystem::path m_filename;
     size_t m_ptrR = 0;
@@ -152,6 +152,8 @@ class UvFile : public File, public UvFilesListType::Node {
     int curlXferInfoFunction(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
 
     void openwrapper(const char* filename, int flags);
+
+    void cacheCallbackSetup(std::function<void(UvFile*)>&& callbackDone, uv_loop_t* otherLoop);
 
     std::atomic<float> m_cacheProgress = 0.0;
     std::promise<void> m_cacheBarrier;
