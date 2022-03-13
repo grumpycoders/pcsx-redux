@@ -121,11 +121,19 @@ class Pads {
         SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
         PadSettings;
 
+    struct PadData {
+        // status of buttons - every controller fills this field
+        uint16_t buttonStatus;
+
+        // Analog stick values in range (0 - 255) where 128 = center
+        uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
+    };
+
     struct Pad {
-        void readPort(PadData &pad);
-        uint8_t startPoll(const PadData &pad, bool a = true);
+        uint8_t startPoll();
+        uint8_t read();
         uint8_t poll(uint8_t value);
-        void getButtons(PadData &pad);
+        void getButtons();
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
 
         json getCfg();
@@ -140,6 +148,7 @@ class Pads {
         int m_scancodes[16];
         int m_padMapping[16];
         PadType m_type;
+        PadData m_data;
 
         int m_padID = 0;
         int m_buttonToWait = -1;

@@ -35,14 +35,6 @@
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
 
-struct PadData {
-    // status of buttons - every controller fills this field
-    uint16_t buttonStatus;
-
-    // Analog stick values in range (0 - 255) where 128 = center
-    uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
-};
-
 enum class PadCommands : uint8_t {
     Read = 0x42,
     SetConfigMode = 0x43,
@@ -155,7 +147,8 @@ bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* st
 
 static constexpr float π(float fraction = 1.0f) { return fraction * M_PI; }
 
-void PCSX::Pads::Pad::getButtons(PadData& pad) {
+void PCSX::Pads::Pad::getButtons() {
+    PadData& pad = m_data;
     if (!m_settings.get<SettingConnected>()) {
         pad.buttonStatus = 0xffff;
         pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
@@ -264,16 +257,10 @@ void PCSX::Pads::Pad::getButtons(PadData& pad) {
     pad.buttonStatus = result;
 }
 
-void PCSX::Pads::Pad::readPort(PadData& data) {
-    memset(&data, 0, sizeof(PadData));
-    getButtons(data);
-}
-
 uint8_t PCSX::Pads::startPoll(Port port) {
-    PadData padd;
     int index = port == Port1 ? 0 : 1;
-    m_pads[index].readPort(padd);
-    return m_pads[index].startPoll(padd);
+    m_pads[index].getButtons();
+    return m_pads[index].startPoll();
 }
 
 uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
@@ -288,8 +275,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
         const auto command = static_cast<PadCommands>(value);
 
         if (command == PadCommands::Read) {
-            PadData pad;
-            return startPoll(pad, false);
+            return read();
         } else if (command == PadCommands::SetConfigMode) {
             static const uint8_t reply[] = {0xff, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
@@ -334,7 +320,6 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
             std::memcpy(m_buf, reply, 8);
             return 0xf3;
         } else {
-            a:
             m_bufferLen = 7;
             PCSX::g_system->printf("Unknown command: %02X\n", value);
         }
@@ -351,6 +336,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
                 }
                 break;
             case PadCommands::Unknown46:
+                if (!m_configMode) abort();
                 if (value == 0) {
                     m_buf[4] = 0x01;
                     m_buf[5] = 0x02;
@@ -364,11 +350,13 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
                 }
                 break;
             case PadCommands::Unknown47:
+                if (!m_configMode) abort();
                 if (value != 0) {
                     abort();
                 }
                 break;
             case PadCommands::Unknown4C:
+                if (!m_configMode) abort();
                 if (value == 0) {
                     m_buf[5] = 0x04;
                 } else if (value == 1) {
@@ -381,10 +369,13 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
     return m_buf[m_currentByte++];
 }
 
-uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad, bool a) {
-    if (a) {
-        m_currentByte = 0;
-    }
+uint8_t PCSX::Pads::Pad::startPoll() { 
+    m_currentByte = 0;
+    return 0xff;
+}
+
+uint8_t PCSX::Pads::Pad::read() {
+    const PadData& pad = m_data;
     if (!m_settings.get<SettingConnected>()) {
         m_bufferLen = 0;
         return 0xff;
@@ -438,7 +429,8 @@ uint8_t PCSX::Pads::Pad::startPoll(const PadData& pad, bool a) {
 
                 memcpy(m_buf, m_analogpar, 8);
                 m_bufferLen = 7;
-                return 0x73;
+                PCSX::g_system->printf("Done made it\n");
+                return m_configMode ? 0xf3 : 0x73;
             }
             // Intentional fallthrough if not in analog mode
         case PadType::Digital:
@@ -456,7 +448,7 @@ bool PCSX::Pads::configure(PCSX::GUI* gui) {
     if (!m_showCfg) {
         return false;
     }
-
+        
     ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(_("Pad configuration"), &m_showCfg)) {

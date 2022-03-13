@@ -75,6 +75,21 @@ void PCSX::SIO::writePad(uint8_t value) {
                     m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
                 }
 
+                // Digital / Dual Shock Controller
+                if (m_buffer[m_bufferIndex] == 0x41) {
+                    switch (value) {
+                        // enter config mode
+                        case 0x43:
+                            m_buffer[1] = 0x43;
+                            break;
+
+                        // get status
+                        case 0x45:
+                            m_buffer[1] = 0xf3;
+                            break;
+                    }
+                }
+
                 // NegCon - Wipeout 3
                 if (m_buffer[m_bufferIndex] == 0x23) {
                     switch (value) {
