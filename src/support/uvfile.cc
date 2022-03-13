@@ -179,10 +179,10 @@ void PCSX::UvFile::stopThread() {
 }
 
 void PCSX::UvFile::close() {
-    if (m_download && (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)) {
-        m_cancelDownload.store(true, std::memory_order_relaxed);
+    if (m_download && (m_cacheProgress.load(std::memory_order_acquire) != 1.0)) {
+        m_cancelDownload.store(true, std::memory_order_release);
         m_cacheBarrier.get_future().wait();
-    } else if (m_cache && (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)) {
+    } else if (m_cache && (m_cacheProgress.load(std::memory_order_acquire) != 1.0)) {
         request([this](auto loop) { m_cachePtr = m_size; });
         m_cacheBarrier.get_future().wait();
     }
@@ -278,6 +278,7 @@ PCSX::UvFile::UvFile(std::string_view url, std::function<void(UvFile *)> callbac
         curl_easy_setopt(m_curlHandle, CURLOPT_URL, url.data());
         curl_easy_setopt(m_curlHandle, CURLOPT_NOPROGRESS, 0L);
         curl_easy_setopt(m_curlHandle, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(m_curlHandle, CURLOPT_FAILONERROR, 1L);
         curl_easy_setopt(m_curlHandle, CURLOPT_PRIVATE, this);
         curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, this);
         curl_easy_setopt(m_curlHandle, CURLOPT_XFERINFODATA, this);
@@ -301,21 +302,27 @@ int PCSX::UvFile::curlXferInfoFunctionTrampoline(void *clientp, curl_off_t dltot
 size_t PCSX::UvFile::curlWriteFunction(char *ptr, size_t size) {
     s_dataDownloadTotal += size;
     if (size == 0) return 0;
-    if (m_cancelDownload.load(std::memory_order_relaxed)) return 0;
-    size_t endPtr = m_ptrW + size;
+    if (m_cancelDownload.load(std::memory_order_acquire)) {
+        m_failed = true;
+        return 0;
+    }
+    size_t endPtr = m_cachePtr + size;
     if (endPtr > m_size) {
         m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, endPtr));
         m_size = endPtr;
     }
-    memcpy(m_cache + m_ptrW, ptr, size);
-    m_ptrW = endPtr;
-    float progress = float(m_ptrW) / float(m_size);
+    memcpy(m_cache + m_cachePtr, ptr, size);
+    m_cachePtr = endPtr;
+    float progress = float(m_cachePtr) / float(m_size);
     m_cacheProgress.store(std::min(progress, 0.99f));
     return size;
 }
 
 int PCSX::UvFile::curlXferInfoFunction(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow) {
-    if (m_cancelDownload.load(std::memory_order_relaxed)) return -1;
+    if (m_cancelDownload.load(std::memory_order_acquire)) {
+        m_failed = true;
+        return -1;
+    }
     if (dltotal == 0) return 0;
     if (dltotal > m_size) {
         m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, dltotal));
@@ -345,11 +352,12 @@ void PCSX::UvFile::processCurlMultiInfo() {
 }
 
 void PCSX::UvFile::downloadDone(CURLMsg *message) {
-    if (m_downloadCallback && m_otherLoop) uv_async_send(&m_cbAsync);
+    if (message->data.result != CURLE_OK) m_failed = true;
     curl_multi_remove_handle(s_curlMulti, m_curlHandle);
     curl_easy_cleanup(m_curlHandle);
     m_curlHandle = nullptr;
-    m_cacheProgress.store(1.0f, std::memory_order_relaxed);
+    m_cacheProgress.store(1.0f, std::memory_order_release);
+    if (m_downloadCallback && m_otherLoop) uv_async_send(&m_cbAsync);
     m_cacheBarrier.set_value();
 }
 
@@ -510,7 +518,16 @@ void PCSX::UvFile::write(Slice &&slice) {
 ssize_t PCSX::UvFile::readAt(void *dest, size_t size, size_t ptr) {
     size = std::min(m_size - ptr, size);
     if (size == 0) return -1;
-    if (m_cacheProgress.load(std::memory_order_relaxed) == 1.0) {
+    float progress = m_cacheProgress.load(std::memory_order_acquire);
+
+    if (progress != 1.0f) {
+        if (m_download) {
+            m_cacheBarrier.get_future().wait();
+            progress = 1.0f;
+        }
+    }
+
+    if (progress == 1.0f) {
         memcpy(dest, m_cache + ptr, size);
         return size;
     }
@@ -546,7 +563,7 @@ ssize_t PCSX::UvFile::readAt(void *dest, size_t size, size_t ptr) {
 ssize_t PCSX::UvFile::writeAt(const void *src, size_t size, size_t ptr) {
     if (!writable()) return -1;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
+        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0)
             ;
         size_t newSize = ptr + size;
         if (newSize > m_size) {
@@ -582,7 +599,7 @@ ssize_t PCSX::UvFile::writeAt(const void *src, size_t size, size_t ptr) {
 void PCSX::UvFile::writeAt(Slice &&slice, size_t ptr) {
     if (!writable()) return;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
+        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0)
             ;
         size_t newSize = ptr + slice.size();
         if (newSize > m_size) {
@@ -619,7 +636,7 @@ bool PCSX::UvFile::eof() { return m_size == m_ptrR; }
 
 void PCSX::UvFile::readCacheChunk(uv_loop_t *loop) {
     if (m_cachePtr >= m_size) {
-        m_cacheProgress.store(1.0f);
+        m_cacheProgress.store(1.0f, std::memory_order_release);
         m_cacheBarrier.set_value();
         return;
     }
@@ -647,7 +664,7 @@ void PCSX::UvFile::readCacheChunkResult() {
 
     m_cachePtr += res;
     if (m_cachePtr < m_size) {
-        m_cacheProgress.store(float(m_cachePtr) / float(m_size));
+        m_cacheProgress.store(float(m_cachePtr) / float(m_size), std::memory_order_release);
     }
     readCacheChunk(loop);
 }
