@@ -151,8 +151,8 @@ void PCSX::Pads::Pad::getButtons() {
     auto getKeyboardButtons = [this]() -> uint16_t {
         const bool* keys = ImGui::GetIO().KeysDown;
         uint16_t result = 0;
-        for (unsigned i = 0; i < 16; i++) result |= !(keys[m_scancodes[i]]) << i;
-        return result;
+        for (unsigned i = 0; i < 16; i++) result |= (keys[m_scancodes[i]]) << i;
+        return result ^ 0xffff; // Controls are inverted, so 0 = pressed
     };
 
     if (inputType == InputType::Keyboard) {
@@ -241,9 +241,9 @@ void PCSX::Pads::Pad::getButtons() {
     }
 
     uint16_t result = 0;
-    for (unsigned i = 0; i < 16; i++) result |= !buttons[i] << i;
+    for (unsigned i = 0; i < 16; i++) result |= buttons[i] << i;
 
-    pad.buttonStatus = result;
+    pad.buttonStatus = result ^ 0xffff; // Controls are inverted, so 0 = pressed
 }
 
 uint8_t PCSX::Pads::startPoll(Port port) {
