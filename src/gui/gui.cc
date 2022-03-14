@@ -1202,6 +1202,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             ImGui::Text(_("Read rate: %s"), rate.c_str());
             byteRateToString(UvFile::getWriteRate(), rate);
             ImGui::Text(_("Write rate: %s"), rate.c_str());
+            byteRateToString(UvFile::getDownloadRate(), rate);
+            ImGui::Text(_("Download rate: %s"), rate.c_str());
             if (ImGui::BeginTable("UvFiles", 2)) {
                 ImGui::TableSetupColumn(_("Caching"));
                 ImGui::TableSetupColumn(_("Filename"));
@@ -1209,7 +1211,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 UvFile::iterateOverAllFiles([](UvFile* f) {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
-                    if (f->cached()) {
+                    if (f->caching()) {
                         ImGui::ProgressBar(f->cacheProgress());
                     } else {
                         std::string label = fmt::format("Cache##{}", reinterpret_cast<void*>(f));

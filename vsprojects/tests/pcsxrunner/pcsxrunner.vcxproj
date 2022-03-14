@@ -246,6 +246,9 @@
     <ProjectReference Include="..\..\imgui_lua_bindings\imgui_lua_bindings.vcxproj">
       <Project>{a2833ccc-1df0-4679-8b6d-4ab8cbb66e3a}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\libcurl\libcurl.vcxproj">
+      <Project>{25c13988-a8a8-4bfa-962f-0833020e4ee4}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\libelfin\libelfin.vcxproj">
       <Project>{65df2840-29d7-46fc-868d-201cf2b651e0}</Project>
     </ProjectReference>

@@ -69,7 +69,7 @@ If you're only interested in compiling psx code, you can simply clone the pcsx-r
  - Debian derivatives ( for full emulator compilation ):
 
 ```bash
-sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
+sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
 ```
 
  - Arch derivatives :
@@ -83,7 +83,7 @@ paru -S pcsx-redux-git
 Alternatively, the following steps describe how to install dependencies and compile manually:
 
 ```bash
-sudo pacman -S capstone clang git make pkg-config ffmpeg libuv zlib glfw-x11 curl xorg-server-xvfb
+sudo pacman -S capstone clang git make pkg-config curl ffmpeg libuv zlib glfw-x11 curl xorg-server-xvfb
 ```
 The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
 

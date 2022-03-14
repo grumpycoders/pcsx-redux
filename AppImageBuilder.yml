@@ -40,6 +40,7 @@ AppDir:
     - libmount1:amd64
     - libpcre3:amd64
     - libuuid1:amd64
+    - openssl
     - zlib1g:amd64
   files:
     include:
@@ -53,16 +54,21 @@ AppDir:
     - /lib/x86_64-linux-gnu/libXfixes.so.3
     - /lib/x86_64-linux-gnu/libXrender.so.1
     - /lib/x86_64-linux-gnu/libaom.so.0
+    - /lib/x86_64-linux-gnu/libasn1.so.8
     - /lib/x86_64-linux-gnu/libavcodec.so.58
     - /lib/x86_64-linux-gnu/libavformat.so.58
     - /lib/x86_64-linux-gnu/libavutil.so.56
     - /lib/x86_64-linux-gnu/libbluray.so.2
+    - /lib/x86_64-linux-gnu/libbrotlicommon.so.1
+    - /lib/x86_64-linux-gnu/libbrotlidec.so.1
     - /lib/x86_64-linux-gnu/libbsd.so.0
     - /lib/x86_64-linux-gnu/libcairo-gobject.so.2
     - /lib/x86_64-linux-gnu/libcairo.so.2
     - /lib/x86_64-linux-gnu/libcapstone.so.3
     - /lib/x86_64-linux-gnu/libchromaprint.so.1
     - /lib/x86_64-linux-gnu/libcodec2.so.0.9
+    - /lib/x86_64-linux-gnu/libcrypto.so.1.1
+    - /lib/x86_64-linux-gnu/libcurl.so.4
     - /lib/x86_64-linux-gnu/libdatrie.so.1
     - /lib/x86_64-linux-gnu/libffi.so.7
     - /lib/x86_64-linux-gnu/libfontconfig.so.1
@@ -81,18 +87,27 @@ AppDir:
     - /lib/x86_64-linux-gnu/libgomp.so.1
     - /lib/x86_64-linux-gnu/libgraphite2.so.3
     - /lib/x86_64-linux-gnu/libgsm.so.1
+    - /lib/x86_64-linux-gnu/libgssapi.so.3
     - /lib/x86_64-linux-gnu/libgssapi_krb5.so.2
     - /lib/x86_64-linux-gnu/libharfbuzz.so.0
+    - /lib/x86_64-linux-gnu/libhcrypto.so.4
+    - /lib/x86_64-linux-gnu/libheimbase.so.1
+    - /lib/x86_64-linux-gnu/libheimntlm.so.0
     - /lib/x86_64-linux-gnu/libhogweed.so.5
+    - /lib/x86_64-linux-gnu/libhx509.so.5
     - /lib/x86_64-linux-gnu/libicudata.so.66
     - /lib/x86_64-linux-gnu/libicuuc.so.66
     - /lib/x86_64-linux-gnu/libidn2.so.0
     - /lib/x86_64-linux-gnu/libk5crypto.so.3
+    - /lib/x86_64-linux-gnu/libkrb5.so.26
     - /lib/x86_64-linux-gnu/libkrb5.so.3
     - /lib/x86_64-linux-gnu/libkrb5support.so.0
+    - /lib/x86_64-linux-gnu/liblber-2.4.so.2
+    - /lib/x86_64-linux-gnu/libldap_r-2.4.so.2
     - /lib/x86_64-linux-gnu/libmp3lame.so.0
     - /lib/x86_64-linux-gnu/libmpg123.so.0
     - /lib/x86_64-linux-gnu/libnettle.so.7
+    - /lib/x86_64-linux-gnu/libnghttp2.so.14
     - /lib/x86_64-linux-gnu/libnuma.so.1
     - /lib/x86_64-linux-gnu/libogg.so.0
     - /lib/x86_64-linux-gnu/libopenjp2.so.7
@@ -105,12 +120,19 @@ AppDir:
     - /lib/x86_64-linux-gnu/libpcre2-8.so.0
     - /lib/x86_64-linux-gnu/libpixman-1.so.0
     - /lib/x86_64-linux-gnu/libpng16.so.16
+    - /lib/x86_64-linux-gnu/libpsl.so.5
+    - /lib/x86_64-linux-gnu/libroken.so.18
     - /lib/x86_64-linux-gnu/librsvg-2.so.2
+    - /lib/x86_64-linux-gnu/librtmp.so.1
+    - /lib/x86_64-linux-gnu/libsasl2.so.2
     - /lib/x86_64-linux-gnu/libshine.so.3
     - /lib/x86_64-linux-gnu/libsnappy.so.1
     - /lib/x86_64-linux-gnu/libsoxr.so.0
     - /lib/x86_64-linux-gnu/libspeex.so.1
+    - /lib/x86_64-linux-gnu/libsqlite3.so.0
     - /lib/x86_64-linux-gnu/libssh-gcrypt.so.4
+    - /lib/x86_64-linux-gnu/libssh.so.4
+    - /lib/x86_64-linux-gnu/libssl.so.1.1
     - /lib/x86_64-linux-gnu/libstdc++.so.6
     - /lib/x86_64-linux-gnu/libswresample.so.3
     - /lib/x86_64-linux-gnu/libtasn1.so.6
@@ -131,6 +153,7 @@ AppDir:
     - /lib/x86_64-linux-gnu/libwavpack.so.1
     - /lib/x86_64-linux-gnu/libwebp.so.6
     - /lib/x86_64-linux-gnu/libwebpmux.so.3
+    - /lib/x86_64-linux-gnu/libwind.so.0
     - /lib/x86_64-linux-gnu/libx264.so.155
     - /lib/x86_64-linux-gnu/libx265.so.179
     - /lib/x86_64-linux-gnu/libxml2.so.2
