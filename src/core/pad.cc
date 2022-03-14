@@ -567,7 +567,10 @@ bool PCSX::Pads::Pad::configure() {
     };
 
     bool changed = false;
-    changed |= ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value);
+    if (ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value)) {
+        changed = true;
+        reset(); // Reset pad state when unplugging/replugging pad
+    }
 
     {
         const char* currentType = c_controllerTypes[static_cast<int>(m_type)]();
@@ -577,6 +580,7 @@ bool PCSX::Pads::Pad::configure() {
                     changed = true;
                     m_type = static_cast<PadType>(i);
                     m_settings.get<SettingDeviceType>().value = m_type;
+                    reset(); // Reset pad state when changing pad type
                 }
             }
             ImGui::EndCombo();
