@@ -75,6 +75,19 @@ void PCSX::Pads::scanGamepads() {
     }
 }
 
+void PCSX::Pads::reset() {
+    m_pads[0].reset();
+    m_pads[1].reset();
+}
+
+void PCSX::Pads::Pad::reset() {
+    m_analogMode = false;
+    m_configMode = false;
+    m_cmd = PadCommands::Idle;
+    m_bufferLen = 0;
+    m_currentByte = 0;
+}
+
 void PCSX::Pads::Pad::map() {
     m_padID = g_emulator->m_pads->m_gamepadsMap[m_settings.get<SettingControllerID>()];
     m_type = m_settings.get<SettingDeviceType>();
@@ -247,13 +260,13 @@ void PCSX::Pads::Pad::getButtons() {
 }
 
 uint8_t PCSX::Pads::startPoll(Port port) {
-    int index = port == Port1 ? 0 : 1;
+    int index = static_cast<int>(port);
     m_pads[index].getButtons();
     return m_pads[index].startPoll();
 }
 
 uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
-    int index = port == Port1 ? 0 : 1;
+    int index = static_cast<int>(port);
     return m_pads[index].poll(value);
 }
 

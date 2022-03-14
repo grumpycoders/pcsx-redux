@@ -36,7 +36,7 @@ class GUI;
 
 class Pads {
   public:
-    enum Port { Port1, Port2 };
+    enum class Port { Port1 = 0, Port2 };
     enum class InputType { Auto, Controller, Keyboard };
     enum class PadType {
         Digital = 0,
@@ -60,6 +60,7 @@ class Pads {
     bool m_showCfg = false;
 
     void scanGamepads();
+    void reset();
 
   private:
     EventBus::Listener m_listener;
@@ -153,6 +154,7 @@ class Pads {
         void setCfg(const json &j);
         void setDefaults(bool firstController);
         void map();
+        void reset();
 
         bool configure();
         void keyboardEvent(const Events::Keyboard &);
@@ -173,7 +175,7 @@ class Pads {
         PadSettings m_settings;
 
         uint8_t m_buf[256];
-        int m_bufferLen, m_currentByte;
+        int m_bufferLen = 0, m_currentByte = 0;
         PadCommands m_cmd = PadCommands::Idle;
 
         uint8_t m_stdpar[8] = {0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
