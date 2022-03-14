@@ -74,6 +74,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "capstone_static", "capstone
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "clip", "clip\clip.vcxproj", "{A057157E-7638-474A-9D02-91483F20B301}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcurl", "libcurl\libcurl.vcxproj", "{25C13988-A8A8-4BFA-962F-0833020E4EE4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -407,6 +409,18 @@ Global
 		{A057157E-7638-474A-9D02-91483F20B301}.ReleaseWithTracy|x64.Build.0 = Release|x64
 		{A057157E-7638-474A-9D02-91483F20B301}.ReleaseWithTracy|x86.ActiveCfg = Release|Win32
 		{A057157E-7638-474A-9D02-91483F20B301}.ReleaseWithTracy|x86.Build.0 = Release|Win32
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.Debug|x64.ActiveCfg = Debug|x64
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.Debug|x64.Build.0 = Debug|x64
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.Debug|x86.ActiveCfg = Debug|Win32
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.Debug|x86.Build.0 = Debug|Win32
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.Release|x64.ActiveCfg = Release|x64
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.Release|x64.Build.0 = Release|x64
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.Release|x86.ActiveCfg = Release|Win32
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.Release|x86.Build.0 = Release|Win32
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.ReleaseWithTracy|x64.Build.0 = Release|x64
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.ReleaseWithTracy|x86.ActiveCfg = Release|Win32
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4}.ReleaseWithTracy|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -440,9 +454,10 @@ Global
 		{B7A81195-7ADC-4DE0-9A1A-9C3E0ACC7FF6} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{5B01D900-2359-44CA-9914-6B0C6AFB7BE7} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{A057157E-7638-474A-9D02-91483F20B301} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
+		{25C13988-A8A8-4BFA-962F-0833020E4EE4} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
+		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 	EndGlobalSection
 EndGlobal

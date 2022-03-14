@@ -10,6 +10,7 @@ enum FileOps {
     TRUNCATE,
     CREATE,
     READWRITE,
+    DOWNLOAD_URL,
 };
 
 enum SeekWheel {
@@ -54,6 +55,10 @@ bool isFileSeekable(LuaFile*);
 bool isFileWritable(LuaFile*);
 bool isFileEOF(LuaFile*);
 bool isFileFailed(LuaFile*);
+bool isFileCacheable(LuaFile*);
+bool isFileCaching(LuaFile*);
+float fileCacheProgress(LuaFile*);
+void startFileCaching(LuaFile*);
 
 LuaFile* dupFile(LuaFile*);
 
@@ -215,6 +220,10 @@ local function createFileWrapper(wrapper)
         writable = function(self) return C.isFileWritable(self._wrapper) end,
         eof = function(self) return C.isFileEOF(self._wrapper) end,
         failed = function(self) return C.isFileFailed(self._wrapper) end,
+        cacheable = function(self) return C.isFileCacheable(self._wrapper) end,
+        caching = function(self) return C.isFileCaching(self._wrapper) end,
+        cacheProgress = function(self) return C.fileCacheProgress(self._wrapper) end,
+        startCaching = function(self) return C.startFileCaching(self._wrapper) end,
         dup = function(self) return createFileWrapper(C.dupFile(self._wrapper)) end,
         subFile = function(self, start, size) return createFileWrapper(C.subFile(self._wrapper, start, size or -1)) end,
         readU8 = function(self) return readNum(self, uint8_t) end,

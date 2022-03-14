@@ -24,6 +24,7 @@ RUN apt install -y libavcodec-dev
 RUN apt install -y libavformat-dev
 RUN apt install -y libavutil-dev
 RUN apt install -y libcapstone-dev
+RUN apt install -y libcurl4-openssl-dev
 RUN apt install -y libfreetype-dev
 RUN apt install -y libglfw3-dev
 RUN apt install -y libswresample-dev
