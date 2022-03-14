@@ -310,7 +310,10 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
                 break;
             case PadCommands::Unknown47:
                 if (value != 0) {
-                    abort();
+                    m_buf[4] = 0;
+                    m_buf[5] = 0;
+                    m_buf[6] = 0;
+                    m_buf[7] = 0;
                 }
                 break;
             case PadCommands::Unknown4C:
@@ -327,11 +330,12 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
 }
 
 uint8_t PCSX::Pads::Pad::doDualshockCommand() {
+    m_bufferLen = 8;
+
     if (m_cmd == PadCommands::SetConfigMode) {
         if (m_configMode) {  // The config mode version of this command does not reply with pad data
             static const uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
             std::memcpy(m_buf, reply, 8);
-            m_bufferLen = 8;
             return 0xf3;
         } else {
             return read();
@@ -340,37 +344,31 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand() {
         static uint8_t reply[] = {0x00, 0x5a, 0x01, 0x02, 0, 0x02, 0x01, 0x00};
 
         reply[4] = m_analogMode ? 1 : 0;
-        m_bufferLen = 8;
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else if (m_cmd == PadCommands::UnlockRumble && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-        m_bufferLen = 8;
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else if (m_cmd == PadCommands::SetAnalogMode && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-        m_bufferLen = 8;
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else if (m_cmd == PadCommands::Unknown46 && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x01, 0x02, 0x00, 0x0a};
 
-        m_bufferLen = 8;
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else if (m_cmd == PadCommands::Unknown47 && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00};
 
-        m_bufferLen = 8;
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else if (m_cmd == PadCommands::Unknown4C && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-        m_bufferLen = 8;
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else {
