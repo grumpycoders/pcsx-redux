@@ -1211,7 +1211,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 UvFile::iterateOverAllFiles([](UvFile* f) {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
-                    if (f->cached()) {
+                    if (f->caching()) {
                         ImGui::ProgressBar(f->cacheProgress());
                     } else {
                         std::string label = fmt::format("Cache##{}", reinterpret_cast<void*>(f));

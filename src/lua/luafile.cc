@@ -34,6 +34,7 @@ enum FileOps {
     TRUNCATE,
     CREATE,
     READWRITE,
+    DOWNLOAD_URL,
 };
 
 enum SeekWheel {
@@ -67,6 +68,8 @@ LuaFile* openFile(const char* filename, FileOps type) {
             return new LuaFile(new PCSX::UvFile(filename, PCSX::FileOps::CREATE));
         case READWRITE:
             return new LuaFile(new PCSX::UvFile(filename, PCSX::FileOps::READWRITE));
+        case DOWNLOAD_URL:
+            return new LuaFile(new PCSX::UvFile(filename, PCSX::UvFile::DOWNLOAD_URL));
     }
 
     return nullptr;
@@ -135,6 +138,21 @@ bool isFileSeekable(LuaFile* wrapper) { return wrapper->file->seekable(); }
 bool isFileWritable(LuaFile* wrapper) { return wrapper->file->writable(); }
 bool isFileEOF(LuaFile* wrapper) { return wrapper->file->eof(); }
 bool isFileFailed(LuaFile* wrapper) { return wrapper->file->failed(); }
+bool isFileCacheable(LuaFile* wrapper) { return wrapper->file.isA<PCSX::UvFile>(); }
+bool isFileCaching(LuaFile* wrapper) {
+    PCSX::IO<PCSX::UvFile> file = wrapper->file.asA<PCSX::UvFile>();
+    if (file) return file->caching();
+    return false;
+}
+float fileCacheProgress(LuaFile* wrapper) {
+    PCSX::IO<PCSX::UvFile> file = wrapper->file.asA<PCSX::UvFile>();
+    if (file) return file->cacheProgress();
+    return 0.0f;
+}
+void startFileCaching(LuaFile* wrapper) {
+    PCSX::IO<PCSX::UvFile> file = wrapper->file.asA<PCSX::UvFile>();
+    if (file) return file->startCaching();
+}
 
 LuaFile* dupFile(LuaFile* wrapper) { return new LuaFile(wrapper->file->dup()); }
 
@@ -195,6 +213,10 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, isFileWritable);
     REGISTER(L, isFileEOF);
     REGISTER(L, isFileFailed);
+    REGISTER(L, isFileCacheable);
+    REGISTER(L, isFileCaching);
+    REGISTER(L, fileCacheProgress);
+    REGISTER(L, startFileCaching);
 
     REGISTER(L, dupFile);
 

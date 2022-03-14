@@ -101,7 +101,7 @@ class UvFile : public File, public UvFilesListType::Node {
 
     void startCaching() { startCaching(nullptr, nullptr); }
     void startCaching(std::function<void(UvFile*)>&& completed, uv_loop_t* loop);
-    bool cached() { return m_cache; }
+    bool caching() { return m_cache; }
     float cacheProgress() { return m_cacheProgress.load(std::memory_order_relaxed); }
     void waitCache() { m_cacheBarrier.get_future().get(); }
 
