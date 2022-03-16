@@ -123,7 +123,6 @@
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
@@ -227,7 +226,7 @@
       <Project>{71772007-5110-418d-be9c-fb102b6eaabf}</Project>
     </ProjectReference>
     <ProjectReference Include="..\support\support.vcxproj">
-      <Project>{70340ff5-b49d-453f-a4f0-75efb08e0df0}</Project>
+      <Project>{0e621321-093c-4d60-bd8b-027fdc2b0f63}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
