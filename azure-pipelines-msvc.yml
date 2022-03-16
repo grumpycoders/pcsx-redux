@@ -6,7 +6,7 @@ pool:
 
 variables:
   solution: 'vsprojects/pcsx-redux.sln'
-  buildConfiguration: 'ReleaseWithClangCL'
+  buildConfiguration: 'Release'
 
 steps:
 - checkout: self
@@ -53,7 +53,7 @@ steps:
 - task: VSBuild@1
   inputs:
     solution: '$(solution)'
-    platform: 'x86'
+    platform: 'x64'
     maximumCpuCount: false
     configuration: '$(buildConfiguration)'
 
@@ -61,15 +61,15 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      Rename-Item -Path "vsprojects/ReleaseWithClangCL/pcsx-redux.exe" -NewName "pcsx-redux.main"
-      Rename-Item -Path "vsprojects/ReleaseWithClangCL/pcsx-wrapper.exe" -NewName "pcsx-redux.exe"
+      Rename-Item -Path "vsprojects/x64/Release/pcsx-redux.exe" -NewName "pcsx-redux.main"
+      Rename-Item -Path "vsprojects/x64/Release/pcsx-wrapper.exe" -NewName "pcsx-redux.exe"
 
 - task: CopyFiles@2
   inputs:
     Contents: |
-      vsprojects/ReleaseWithClangCL/pcsx-redux.main
-      vsprojects/ReleaseWithClangCL/pcsx-redux.exe
-      vsprojects/ReleaseWithClangCL/*.dll
+      vsprojects/x64/Release/pcsx-redux.main
+      vsprojects/x64/Release/pcsx-redux.exe
+      vsprojects/x64/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
 - task: VSTest@2
@@ -86,9 +86,3 @@ steps:
     searchFolder: '$(System.DefaultWorkingDirectory)'
     pathtoCustomTestAdapters: 'GoogleTestAdapter'
     codeCoverageEnabled: True
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
