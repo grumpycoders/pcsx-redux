@@ -557,6 +557,18 @@ void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 void PCSX::GUI::startFrame() {
     ZoneScoped;
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
+    auto& L = g_emulator->m_lua;
+    L->getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
+    if (!L->isnil()) {
+        try {
+            L->pcall();
+        } catch (...) {
+        }
+        L->push();
+        L->setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
+    } else {
+        L->pop();
+    }
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
 
