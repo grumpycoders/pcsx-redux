@@ -6,7 +6,7 @@ pool:
 
 variables:
   solution: 'vsprojects/pcsx-redux.sln'
-  buildConfiguration: 'ReleaseWithClangCL'
+  buildConfiguration: 'Release'
 
 steps:
 - checkout: self
@@ -61,15 +61,15 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      Rename-Item -Path "vsprojects/ReleaseWithClangCL/pcsx-redux.exe" -NewName "pcsx-redux.main"
-      Rename-Item -Path "vsprojects/ReleaseWithClangCL/pcsx-wrapper.exe" -NewName "pcsx-redux.exe"
+      Rename-Item -Path "vsprojects/Release/pcsx-redux.exe" -NewName "pcsx-redux.main"
+      Rename-Item -Path "vsprojects/Release/pcsx-wrapper.exe" -NewName "pcsx-redux.exe"
 
 - task: CopyFiles@2
   inputs:
     Contents: |
-      vsprojects/ReleaseWithClangCL/pcsx-redux.main
-      vsprojects/ReleaseWithClangCL/pcsx-redux.exe
-      vsprojects/ReleaseWithClangCL/*.dll
+      vsprojects/Release/pcsx-redux.main
+      vsprojects/Release/pcsx-redux.exe
+      vsprojects/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
 - task: VSTest@2
