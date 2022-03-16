@@ -83,7 +83,7 @@ void PCSX::Pads::reset() {
 void PCSX::Pads::Pad::reset() {
     m_analogMode = false;
     m_configMode = false;
-    m_cmd = PadCommands::Idle;
+    m_cmd = magic_enum::enum_integer(PadCommands::Idle);
     m_bufferLen = 0;
     m_currentByte = 0;
 }
@@ -260,28 +260,28 @@ void PCSX::Pads::Pad::getButtons() {
 }
 
 uint8_t PCSX::Pads::startPoll(Port port) {
-    int index = static_cast<int>(port);
+    int index = magic_enum::enum_integer(port);
     m_pads[index].getButtons();
     return m_pads[index].startPoll();
 }
 
 uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
-    int index = static_cast<int>(port);
+    int index = magic_enum::enum_integer(port);
     return m_pads[index].poll(value);
 }
 
 uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
     if (m_currentByte == 0) {
-        m_cmd = static_cast<PadCommands>(value);
+        m_cmd = value;
         m_currentByte = 1;
 
-        if (m_cmd == PadCommands::Read) {
+        if (m_cmd == magic_enum::enum_integer(PadCommands::Read)) {
             return read();
         } else if (m_type == PadType::Analog) {
             return doDualshockCommand();
         } else {
             PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
-            m_cmd = PadCommands::Idle;
+            m_cmd = magic_enum::enum_integer(PadCommands::Idle);
             m_bufferLen = 0;
             return 0xff;
         }
@@ -289,13 +289,13 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
         return 0xff;
     } else if (m_currentByte == 2 && m_type == PadType::Analog) {
         switch (m_cmd) { 
-            case PadCommands::SetConfigMode:
+            case magic_enum::enum_integer(PadCommands::SetConfigMode):
                 m_configMode = value == 1;
                 break;
-            case PadCommands::SetAnalogMode:
+            case magic_enum::enum_integer(PadCommands::SetAnalogMode):
                 m_analogMode = value == 1;
                 break;
-            case PadCommands::Unknown46:
+            case magic_enum::enum_integer(PadCommands::Unknown46):
                 if (value == 0) {
                     m_buf[4] = 0x01;
                     m_buf[5] = 0x02;
@@ -308,7 +308,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
                     m_buf[7] = 0x14;
                 }
                 break;
-            case PadCommands::Unknown47:
+            case magic_enum::enum_integer(PadCommands::Unknown47):
                 if (value != 0) {
                     m_buf[4] = 0;
                     m_buf[5] = 0;
@@ -316,7 +316,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
                     m_buf[7] = 0;
                 }
                 break;
-            case PadCommands::Unknown4C:
+            case magic_enum::enum_integer(PadCommands::Unknown4C):
                 if (value == 0) {
                     m_buf[5] = 0x04;
                 } else if (value == 1) {
@@ -332,7 +332,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
 uint8_t PCSX::Pads::Pad::doDualshockCommand() {
     m_bufferLen = 8;
 
-    if (m_cmd == PadCommands::SetConfigMode) {
+    if (m_cmd == magic_enum::enum_integer(PadCommands::SetConfigMode)) {
         if (m_configMode) {  // The config mode version of this command does not reply with pad data
             static const uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
             std::memcpy(m_buf, reply, 8);
@@ -340,40 +340,40 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand() {
         } else {
             return read();
         }
-    } else if (m_cmd == PadCommands::GetAnalogMode && m_configMode) {
-        static uint8_t reply[] = {0x00, 0x5a, 0x01, 0x02, 0, 0x02, 0x01, 0x00};
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::GetAnalogMode) && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x01, 0x02, 0x00, 0x02, 0x01, 0x00};
 
         reply[4] = m_analogMode ? 1 : 0;
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
-    } else if (m_cmd == PadCommands::UnlockRumble && m_configMode) {
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::UnlockRumble) && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
-    } else if (m_cmd == PadCommands::SetAnalogMode && m_configMode) {
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::SetAnalogMode) && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
-    } else if (m_cmd == PadCommands::Unknown46 && m_configMode) {
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::Unknown46) && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x01, 0x02, 0x00, 0x0a};
 
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
-    } else if (m_cmd == PadCommands::Unknown47 && m_configMode) {
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::Unknown47) && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00};
 
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
-    } else if (m_cmd == PadCommands::Unknown4C && m_configMode) {
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::Unknown4C) && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else {
         PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), static_cast<uint8_t>(m_cmd));
-        m_cmd = PadCommands::Idle;
+        m_cmd = magic_enum::enum_integer(PadCommands::Idle);
         m_bufferLen = 0;
         return 0xff;
     }

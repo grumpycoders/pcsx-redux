@@ -176,7 +176,7 @@ class Pads {
 
         uint8_t m_buf[256];
         int m_bufferLen = 0, m_currentByte = 0;
-        PadCommands m_cmd = PadCommands::Idle;
+        uint8_t m_cmd = magic_enum::enum_integer(PadCommands::Idle);
 
         uint8_t m_stdpar[8] = {0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         uint8_t m_mousepar[6] = {0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
