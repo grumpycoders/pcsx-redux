@@ -1309,7 +1309,7 @@ bool PCSX::GUI::configure() {
         }
         float scale = settings.get<Emulator::SettingScaler>();
         scale /= 100.0f;
-        changed |= ImGui::SliderFloat(_("Speed Scaler"), &scale, 0.1f, 10.0f);
+        changed |= ImGui::SliderFloat(_("Speed Scaler"), &scale, 0.1f, 25.0f);
         settings.get<Emulator::SettingScaler>() = scale * 100.0f;
         changed |= ImGui::Checkbox(_("Preload ISO files"), &settings.get<Emulator::SettingFullCaching>().value);
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
