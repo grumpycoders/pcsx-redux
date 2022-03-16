@@ -51,6 +51,7 @@ steps:
     FlattenFolders: true
 
 - task: VSBuild@1
+  retryCountOnTaskFailure: 4
   inputs:
     solution: '$(solution)'
     platform: 'x64'
