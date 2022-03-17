@@ -84,8 +84,10 @@ class Pads {
     typedef Setting<int, TYPESTRING("Keyboard_PadSstart"), GLFW_KEY_ENTER> Keyboard_PadStart;
     typedef Setting<int, TYPESTRING("Keyboard_PadL1"), GLFW_KEY_Q> Keyboard_PadL1;
     typedef Setting<int, TYPESTRING("Keyboard_PadL2"), GLFW_KEY_A> Keyboard_PadL2;
+    typedef Setting<int, TYPESTRING("Keyboard_PadL3"), GLFW_KEY_W> Keyboard_PadL3;
     typedef Setting<int, TYPESTRING("Keyboard_PadR1"), GLFW_KEY_R> Keyboard_PadR1;
     typedef Setting<int, TYPESTRING("Keyboard_PadR2"), GLFW_KEY_F> Keyboard_PadR2;
+    typedef Setting<int, TYPESTRING("Keyboard_PadR3"), GLFW_KEY_T> Keyboard_PadR3;
 
     // Pad controller bindings
     typedef Setting<int, TYPESTRING("Controller_PadUp"), GLFW_GAMEPAD_BUTTON_DPAD_UP> Controller_PadUp;
@@ -100,8 +102,10 @@ class Pads {
     typedef Setting<int, TYPESTRING("Controller_PadSstart"), GLFW_GAMEPAD_BUTTON_START> Controller_PadStart;
     typedef Setting<int, TYPESTRING("Controller_PadL1"), GLFW_GAMEPAD_BUTTON_LEFT_BUMPER> Controller_PadL1;
     typedef Setting<int, TYPESTRING("Controller_PadL2"), GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER> Controller_PadL2;
+    typedef Setting<int, TYPESTRING("Controller_PadL3"), GLFW_GAMEPAD_BUTTON_LEFT_THUMB> Controller_PadL3;
     typedef Setting<int, TYPESTRING("Controller_PadR1"), GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER> Controller_PadR1;
     typedef Setting<int, TYPESTRING("Controller_PadR2"), GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER> Controller_PadR2;
+    typedef Setting<int, TYPESTRING("Controller_PadR3"), GLFW_GAMEPAD_BUTTON_RIGHT_THUMB> Controller_PadR3;
 
     typedef Setting<InputType, TYPESTRING("PadType"), InputType::Auto> SettingInputType;
     // These typestrings are kind of odd, but it's best not to change so as not to break old config files
@@ -113,13 +117,14 @@ class Pads {
     typedef SettingFloat<TYPESTRING("MouseSensitivityX"), 5, 10> SettingMouseSensitivityX;
     typedef SettingFloat<TYPESTRING("MouseSensitivityY"), 5, 10> SettingMouseSensitivityY;
 
-    typedef Settings<
-        Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross, Keyboard_PadTriangle,
-        Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect, Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2,
-        Keyboard_PadR1, Keyboard_PadR2, Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft,
-        Controller_PadCross, Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle, Controller_PadSelect,
-        Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadR1, Controller_PadR2, SettingInputType,
-        SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
+    typedef Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
+                     Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
+                     Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2, Keyboard_PadL3, Keyboard_PadR1, Keyboard_PadR2,
+                     Keyboard_PadR3, Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft,
+                     Controller_PadCross, Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle,
+                     Controller_PadSelect, Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadL3,
+                     Controller_PadR1, Controller_PadR2, Controller_PadR3, SettingInputType, SettingDeviceType,
+                     SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
         PadSettings;
 
     struct PadData {
