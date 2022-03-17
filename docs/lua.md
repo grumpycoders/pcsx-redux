@@ -68,6 +68,7 @@ Note that the function may be called pretty frequently, so it's important to kee
 While the io API isn't exposed, there's a more powerful API that's more tightly integrated with the rest of the PCSX-Redux File handling code. It's an abstraction class that allows seamless manipulation of various objects using a common API.
 
 The File objects have different properties depending on how they are created and their intention. But generally speaking, the following rules apply:
+
 - Files are reference counted. They will be deleted when the reference count reaches zero. The Lua garbage collector will only decrease the reference count.
 - Whenever possible, writes are deferred to an asynchronous thread, making writes return basically instantly. This speed up comes at the trade off of data integrity, which means writes aren't guaranteed to be flushed to the disk yet when the function returns. Data will always have integrity internally within PCSX-Redux however.
 - Some File objects can be cached. When caching, reads and writes will be done transparently, and the cache will be used instead of the actual file. This will make reads return basically instantly too.
@@ -165,6 +166,7 @@ Support.File.buffer([size])
 ```
 
 The `open` function will function on filesystem and network URLs, while the `buffer` function will generate a memory-only File object that's fully readable, writable, and seekable. The `type` argument of the `open` function will determine what happens exactly. It's a string that can have the following values:
+
 - `READ`: Opens the file for reading only. Will fail if the file does not exist. This is the default type.
 - `TRUNCATE`: Opens the file for reading and writing. If the file does not exist, it will be created. If it does exist, it will be truncated to 0 size.
 - `CREATE`: Opens the file for reading and writing. If the file does not exist, it will be created. If it does exist, it will be left untouched.
