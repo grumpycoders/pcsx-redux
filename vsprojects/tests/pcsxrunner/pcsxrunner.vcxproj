@@ -17,12 +17,20 @@
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithClangCL|Win32">
+      <Configuration>ReleaseWithClangCL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithClangCL|x64">
+      <Configuration>ReleaseWithClangCL</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -74,6 +82,20 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCl</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCl</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -105,11 +127,20 @@
     <Import Project="..\..\common.props" />
     <Import Project="..\..\tracy.props" />
   </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
+    <Import Project="..\..\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
+    <Import Project="..\..\common.props" />
+  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">
@@ -119,6 +150,9 @@
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">
@@ -138,6 +172,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -201,6 +252,23 @@
       <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -233,6 +301,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\freetype\freetype.vcxproj">
       <Project>{9176a2af-8586-4d37-b4aa-21e2460709bf}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\gtest\gtest.vcxproj">
+      <Project>{432d6160-7127-4005-bfa6-7c301c0cf3d3}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\gui\gui.vcxproj">
       <Project>{6ec7fdf3-1418-40bd-8584-1eea34ac3e3e}</Project>
@@ -271,7 +342,7 @@
       <Project>{bf968fd3-ef46-45af-b74e-46a41a96276f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\support\support.vcxproj">
-      <Project>{70340ff5-b49d-453f-a4f0-75efb08e0df0}</Project>
+      <Project>{0e621321-093c-4d60-bd8b-027fdc2b0f63}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\tracy\tracy.vcxproj">
       <Project>{95de2266-7ce9-44bd-9e7b-dca2b9586d01}</Project>
@@ -301,7 +372,6 @@
     <Import Project="..\..\packages\luajit.native.2.1.0-beta3b\build\native\luajit.native.targets" Condition="Exists('..\..\packages\luajit.native.2.1.0-beta3b\build\native\luajit.native.targets')" />
     <Import Project="..\..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets" Condition="Exists('..\..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets')" />
     <Import Project="..\..\packages\glfw.3.3.5\build\native\glfw.targets" Condition="Exists('..\..\packages\glfw.3.3.5\build\native\glfw.targets')" />
-    <Import Project="..\..\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.5\build\native\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.targets" Condition="Exists('..\..\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.5\build\native\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -310,6 +380,5 @@
     <Error Condition="!Exists('..\..\packages\luajit.native.2.1.0-beta3b\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\luajit.native.2.1.0-beta3b\build\native\luajit.native.targets'))" />
     <Error Condition="!Exists('..\..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets'))" />
     <Error Condition="!Exists('..\..\packages\glfw.3.3.5\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\glfw.3.3.5\build\native\glfw.targets'))" />
-    <Error Condition="!Exists('..\..\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.5\build\native\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.5\build\native\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.targets'))" />
   </Target>
 </Project>

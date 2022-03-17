@@ -22,6 +22,7 @@ enum SeekWheel {
 void deleteFile(LuaFile* wrapper);
 
 LuaFile* openFile(const char* filename, enum FileOps t);
+LuaFile* openFileWithCallback(const char* url, void (*callback)());
 
 LuaFile* bufferFileReadOnly(void* data, uint64_t size);
 LuaFile* bufferFile(void* data, uint64_t size);
@@ -59,6 +60,7 @@ bool isFileCacheable(LuaFile*);
 bool isFileCaching(LuaFile*);
 float fileCacheProgress(LuaFile*);
 void startFileCaching(LuaFile*);
+bool startFileCachingWithCallback(LuaFile* wrapper, void (*callback)());
 
 LuaFile* dupFile(LuaFile*);
 
@@ -75,9 +77,21 @@ local bufferMeta = {
     __tostring = function(buffer)
         return ffi.string(buffer.data, buffer.size)
     end,
+    __len = function(buffer)
+        return buffer.size
+    end,
     __index = function(buffer, index)
         if type(index) == 'number' and index >= 0 and index < buffer.size then
             return buffer.data[index]
+        elseif index == 'maxsize' then
+            return function(buffer) return ffi.sizeof(buffer) - 4 end
+        elseif index == 'resize' then
+            return function(buffer, size)
+                if size > buffer.maxsize() then
+                    error('buffer size too large')
+                end
+                buffer.size = size
+            end
         end
         error('Unknown index `' .. index .. '` for LuaBuffer')
     end,
@@ -89,8 +103,7 @@ local bufferMeta = {
     end,
 }
 local function validateBuffer(buffer)
-    local actualSize = ffi.sizeof(buffer) - 8
-    if actualSize < buffer.size then error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' .. actualSize) end
+    if buffer:maxsize() < buffer.size then error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' .. buffer:maxsize()) end
     return buffer
 end
 local LuaBuffer = ffi.metatype('LuaBuffer', bufferMeta)
@@ -125,23 +138,23 @@ local function readAt(self, ptr, size, pos)
 end
 
 local function write(self, data, size)
-    if type(data) == 'string' and size == nil then
-        return C.writeRawPtr(self._wrapper, data, string.len(data))
-    elseif type(data) == 'cdata' and size == nil and ffi.typeof(data) == LuaBuffer then
-        return C.writeBuffer(self._wrapper, validateBuffer(data))
-    else
-        return C.writeRawPtr(self._wrapper, data, size)
+    if type(data) == 'cdata' and size == nil and ffi.typeof(data) == LuaBuffer then
+        return C.writeFileBuffer(self._wrapper, validateBuffer(data))
+    elseif type(size) == 'number' then
+        return C.writeFileRawPtr(self._wrapper, data, size)
     end
+    if type(data) ~= 'string' then data = tostring(data) end
+    return C.writeFileRawPtr(self._wrapper, data, string.len(data))
 end
 
 local function writeAt(self, data, size, pos)
-    if type(data) == 'string' and type(size) == 'number' and pos == nil then
-        return C.writeAtRawPtr(self._wrapper, data, string.len(data), size)
-    elseif type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == LuaBuffer then
-        return C.writeAtBuffer(self._wrapper, validateBuffer(data), pos)
-    else
-        return C.writeAtRawPtr(self._wrapper, data, size, pos)
+    if type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == LuaBuffer then
+        return C.writeFileAtBuffer(self._wrapper, validateBuffer(data), size)
+    elseif type(size) == 'number' and type(pos) == 'number' then
+        return C.writeFileAtRawPtr(self._wrapper, data, size, pos)
     end
+    if type(data) ~= 'string' then data = tostring(data) end
+    return C.writeFileAtRawPtr(self._wrapper, data, string.len(data), size)
 end
 
 local function rSeek(self, pos, wheel)
@@ -194,6 +207,26 @@ local function writeNum(self, num, ctype, pos)
     end
 end
 
+local function startCachingAndWait(self)
+    local captures = {}
+    captures.current = coroutine.running()
+    if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
+    captures.callback = function()
+        local oldCleanup = AfterPollingCleanup
+        AfterPollingCleanup = function()
+            if oldCleanup then oldCleanup() end
+            captures.callback:free()
+            coroutine.resume(captures.current)
+        end
+    end
+    captures.callback = ffi.cast('void (*)()', captures.callback)
+    if C.startFileCachingWithCallback(self._wrapper, captures.callback) then
+        coroutine.yield()
+    else
+        captures.callback:free()
+    end
+end
+
 local uint8_t = ffi.typeof('uint8_t[1]');
 local uint16_t = ffi.typeof('uint16_t[1]');
 local uint32_t = ffi.typeof('uint32_t[1]');
@@ -206,7 +239,7 @@ local int64_t = ffi.typeof('int64_t[1]');
 local function createFileWrapper(wrapper)
     local file = {
         _wrapper = wrapper,
-        close = function(self) C.close(self._wrapper) end,
+        close = function(self) C.closeFile(self._wrapper) end,
         read = read,
         readAt = readAt,
         write = write,
@@ -224,8 +257,9 @@ local function createFileWrapper(wrapper)
         caching = function(self) return C.isFileCaching(self._wrapper) end,
         cacheProgress = function(self) return C.fileCacheProgress(self._wrapper) end,
         startCaching = function(self) return C.startFileCaching(self._wrapper) end,
+        startCachingAndWait = startCachingAndWait,
         dup = function(self) return createFileWrapper(C.dupFile(self._wrapper)) end,
-        subFile = function(self, start, size) return createFileWrapper(C.subFile(self._wrapper, start, size or -1)) end,
+        subFile = function(self, start, size) return createFileWrapper(C.subFile(self._wrapper, start or 0, size or -1)) end,
         readU8 = function(self) return readNum(self, uint8_t) end,
         readU16 = function(self) return readNum(self, uint16_t) end,
         readU32 = function(self) return readNum(self, uint32_t) end,
@@ -265,7 +299,25 @@ end
 
 local function open(filename, t)
     if (t == nil) then t = 'READ' end
-    return createFileWrapper(C.openFile(filename, t))
+    if (t == 'DOWNLOAD_URL_AND_WAIT') then
+        local captures = {}
+        captures.current = coroutine.running()
+        if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
+        captures.callback = function()
+            local oldCleanup = AfterPollingCleanup
+            AfterPollingCleanup = function()
+                if oldCleanup then oldCleanup() end
+                captures.callback:free()
+                coroutine.resume(captures.current)
+            end
+        end
+        captures.callback = ffi.cast('void (*)()', captures.callback)
+        local ret = createFileWrapper(C.openFileAndWait(filename, captures.callback))
+        coroutine.yield()
+        return ret
+    else
+        return createFileWrapper(C.openFile(filename, t))
+    end
 end
 
 local function buffer(ptr, size, type)

@@ -9,12 +9,20 @@
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithClangCL|Win32">
+      <Configuration>ReleaseWithClangCL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithClangCL|x64">
+      <Configuration>ReleaseWithClangCL</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -52,7 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\support\support.vcxproj">
-      <Project>{70340ff5-b49d-453f-a4f0-75efb08e0df0}</Project>
+      <Project>{0e621321-093c-4d60-bd8b-027fdc2b0f63}</Project>
     </ProjectReference>
     <ProjectReference Include="..\memoryleakdetector\memoryleakdetector.vcxproj">
       <Project>{dd5acb0a-e326-4ea9-b5a8-c23d66c27650}</Project>
