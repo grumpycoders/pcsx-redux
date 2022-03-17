@@ -85,7 +85,7 @@ local bufferMeta = {
             return buffer.data[index]
         elseif index == 'maxsize' then
             return function(buffer) return ffi.sizeof(buffer) - 4 end
-        elseif index == 'expand' then
+        elseif index == 'resize' then
             return function(buffer, size)
                 if size > buffer.maxsize() then
                     error('buffer size too large')
