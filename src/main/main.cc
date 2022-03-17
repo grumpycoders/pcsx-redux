@@ -94,7 +94,7 @@ class SystemImpl final : public PCSX::System {
     virtual void hardReset() final override {
         // debugger or UI is requesting a reset
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
-        PCSX::g_emulator->EmuReset();
+        PCSX::g_emulator->reset();
 
         // Upon hard-reset, clear the VRAM texture displayed by the VRAM viewers as well
         s_gui->setViewport();
@@ -190,8 +190,8 @@ int pcsxMain(int argc, char **argv) {
     emulator->m_gpu->open(s_gui);
     emulator->m_spu->open();
 
-    emulator->EmuInit();
-    emulator->EmuReset();
+    emulator->init();
+    emulator->reset();
 
     if (args.get<bool>("run", false)) system->start();
     s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
