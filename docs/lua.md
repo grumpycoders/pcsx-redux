@@ -1,6 +1,6 @@
 # Lua API
 
-PCSX-Redux features a Lua API that's available through either a direct Lua console, or a Lua editor, both available through the Debug menu.
+PCSX-Redux features a Lua API that's available through either a direct Lua console, or a Lua editor, both available through the Debug menu. The Lua VM runs on the main thread, the same one as the UI and the emulated MIPS CPU. As a result, care must be taken to not stall for too long, or the UI will become unresponsive. Using coroutines to handle long-running tasks is recommended, yielding periodically to let the UI perform some work too. The UI is probably going to run at 60FPS or so, which gives a ballpark of 15ms per frame.
 
 ## Lua engine
 The Lua engine that's being used is LuaJIT 2.1.0-beta3. The [Lua 5.1 user manual](https://www.lua.org/manual/5.1/) and [LuaJIT user manual](https://luajit.org/extensions.html) are recommended reads. In particular, the bindings heavily make use of LuaJIT's FFI capabilities, which allows for direct memory access within the emulator's process. This means there is little protection against dramatic crashes the LuaJIT FFI engine can cause into the emulator's process, and the user must pay extra attention while manipulating FFI objects. Despite that, the code tries as much as possible to sandbox what the Lua code does, and will prevent crashes on any recoverable exception, including OpenGL and ImGui exceptions.
@@ -41,6 +41,136 @@ The [PPrint](https://github.com/jagt/pprint.lua) library is loaded globally as t
 
 #### ImGui interaction
 PCSX-Redux will periodically try to call the Lua function `DrawImguiFrame` to allow the Lua code to draw some widgets on screen. The function will be called exactly once per actual UI frame draw, which, when the emulator is running, will correspond to the emulated GPU's vsync. If the function throws an exception however, it will be disabled until recompiled with new code.
+
+#### Events Engine interaction
+Every time the events are polled, PCSX-Redux will try to call the function `AfterPollingCleanup`. This is mainly because LuaJIT C callbacks can't resume coroutines as the Lua context isn't properly picked up there, so callbacks can schedule resuming coroutines the following way:
+
+```lua
+    local captures = {}
+    captures.current = coroutine.running()
+    captures.callback = function()
+        local oldCleanup = AfterPollingCleanup
+        AfterPollingCleanup = function()
+            if oldCleanup then oldCleanup() end
+            captures.callback:free()
+            coroutine.resume(captures.current)
+        end
+    end
+    captures.callback = ffi.cast('void (*)()', captures.callback)
+    -- use the C callback somewhere...
+```
+
+The `AfterPollingCleanup` function will be called exactly once, then deleted. The callback will be called from the main thread, so it's safe to resume coroutines from there.
+
+Note that the function may be called pretty frequently, so it's important to keep it fast.
+
+#### File API
+While the io API isn't exposed, there's a more powerful API that's more tightly integrated with the rest of the PCSX-Redux File handling code. It's an abstraction class that allows seamless manipulation of various objects using a common API.
+
+The File objects have different properties depending on how they are created and their intention. But generally speaking, the following rules apply:
+- Files are reference counted. They will be deleted when the reference count reaches zero. The Lua garbage collector will only decrease the reference count.
+- Whenever possible, writes are deferred to an asynchronous thread, making writes return basically instantly. This speed up comes at the trade off of data integrity, which means writes aren't guaranteed to be flushed to the disk yet when the function returns. Data will always have integrity internally within PCSX-Redux however.
+- Some File objects can be cached. When caching, reads and writes will be done transparently, and the cache will be used instead of the actual file. This will make reads return basically instantly too.
+- The Read and Write APIs can haul LuaBuffer objects. These are Lua objects that can be used to read and write data to the file. You can construct one using the `Support.NewLuaBuffer(size)` function. They can be cast to strings, and can be used as a table for reading and writing bytes off of it, in a 0-based fashion. The length operator will return the size of the buffer. The methods `:maxsize()` and `:expand(size)` are available.
+- If the file isn't closed when the file object is destroyed, it'll be closed then, but letting the garbage collector do the closing is not recommended. This is because the garbage collector will only run when the memory pressure is high enough, and the file handle will be held for a long time.
+- When using streamed functions, unlike POSIX files handles, there's two distinct seeking pointers: one for reading and one for writing.
+
+All File objects have the following API attached to them as methods:
+
+Closes and frees any associated resources. Better to call this manually than letting the garbage collector do it:
+```lua
+:close()
+```
+
+Reads from the File object and advances the read pointer accordingly. The return value depends on the variant used.
+```lua
+:read(size)      -- returns a LuaBuffer
+:read(ptr, size) -- returns the number of bytes read, ptr has to be a cdata of pointer type
+:read(buffer)    -- returns the number of bytes read, and adjusts the buffer's size
+```
+
+Reads from the File object at the specified position. No pointers are modified. The return value depends on the variant used, just like the non-At variants above.
+```lua
+:readAt(size, ptr)
+:readAt(ptr, size, pos)
+:readAt(buffer, pos)
+```
+
+Writes to the File object. The non-At variants will advances the write pointer accordingly. The At variants will not modify the write pointer, and simply write at the requested location. Returns the number of bytes written. The `string` variants will in fact take any object that can be transformed to a string using `tostring()`.
+```lua
+:write(string)
+:write(buffer)
+:write(ptr, size)
+:writeAt(string, pos)
+:writeAt(buffer, pos)
+:writeAt(ptr, size, pos)
+```
+
+These manipulate the read and write pointers. All of them return their corresponding pointer. The `wheel` argument can be of the values `'SEEK_SET'`, `'SEEK_CUR'`, and `'SEEK_END'`, and will default to `'SEEK_SET'`.
+```lua
+:rSeek(pos[, wheel])
+:rTell()
+:wSeek(pos[, wheel])
+:wTell()
+```
+
+These will query the corresponding File object.
+```lua
+:size()      -- Returns the size in bytes, if possible. If the file is not seekable, will throw an error.
+:seekable()  -- Returns true if the file is seekable.
+:writable()  -- Returns true if the file is writable.
+:eof()       -- Returns true if the read pointer is at the end of file.
+:failed()    -- Returns true if the file failed in some ways. The File object is defunct if this is true.
+:cacheable() -- Returns true if the file is cacheable.
+:caching()   -- Returns true if caching is in progress or completed.
+:cacheProgress() -- Returns a value between 0 and 1 indicating the progress of the caching operation.
+```
+
+If applicable, this will start caching the corresponding file in memory.
+```lua
+:startCaching()
+```
+
+Same as above, but will suspend the current coroutine until the caching is done. Cannot be used with the main thread.
+```lua
+:startCachingAndWait()
+```
+
+Duplicates the File object. This will re-open the file, and possibly duplicate all ressources associated with it.
+```lua
+:dup()
+```
+
+Creates a read-only view of the file starting at the specified position, spanning the specified length. The view will be a new File object, and will be a view of the same underlying file. The default values of start and length are 0 and -1 respectively, which will effectively create a view of the entire file. The view may have less features than the underlying file, but will always be seekable, and keep its seeking position independent of the underlying file. The view will hold a reference to the underlying file.
+```lua
+:subFile([start[, length]])
+```
+
+In addition to the above methods, the File API has these helpers, that'll read or write binary values off their corresponding stream position for the non-At variants, or at the indicated position for the At variants. All the values will be read or store in Little Endian, regardless of the host's endianness.
+```lua
+:readU8(), :readU16(), :readU32(), :readU64(),
+:readI8(), :readI16(), :readI32(), :readI64(),
+:readU8At(pos), :readU16At(pos), :readU32At(pos), :readU64At(pos),
+:readI8At(pos), :readI16At(pos), :readI32At(pos), :readI64At(pos),
+:writeU8(val), :writeU16(val), :writeU32(val), :writeU64(val),
+:writeI8(val), :writeI16(val), :writeI32(val), :writeI64(val),
+:writeU8At(val, pos), :writeU16At(val, pos), :writeU32At(val, pos), :writeU64At(val, pos),
+:writeI8At(val, pos), :writeI16At(val, pos), :writeI32At(val, pos), :writeI64At(val, pos),
+```
+
+The Lua VM can create File objects in two different ways:
+```lua
+Support.File.open(filename[, type])
+Support.File.buffer([size])
+```
+
+The `open` function will function on filesystem and network URLs, while the `buffer` function will generate a memory-only File object that's fully readable, writable, and seekable. The `type` argument of the `open` function will determine what happens exactly. It's a string that can have the following values:
+- `READ`: Opens the file for reading only. Will fail if the file does not exist. This is the default type.
+- `TRUNCATE`: Opens the file for reading and writing. If the file does not exist, it will be created. If it does exist, it will be truncated to 0 size.
+- `CREATE`: Opens the file for reading and writing. If the file does not exist, it will be created. If it does exist, it will be left untouched.
+- `READWRITE`: Opens the file for reading and writing. Will fail if the file does not exist.
+- `DOWNLOAD_URL`: Opens the file for reading only. Will immediately start downloading the file from the network. The [curl](http://curl.se/libcurl) is the backend for this feature, and its [url schemes](https://everything.curl.dev/cmdline/urls) are supported. The progress of the download can be monitored with the `:cacheProgress()` method.
+- `DOWNLOAD_URL_AND_WAIT`: As above, but suspends the current coroutine until the download is done. Cannot be used with the main thread.
 
 #### Memory and registers
 The Lua code can access the emulated memory and registers directly through some FFI bindings:
