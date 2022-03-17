@@ -94,10 +94,10 @@ void PCSX::Pads::Pad::map() {
 
     // L3/R3 are only avalable on analog controllers
     if (m_type == PadType::Analog) {
-        m_scancodes[1] = m_settings.get<Keyboard_PadL3>();
-        m_scancodes[2] = m_settings.get<Keyboard_PadR3>();
-        m_padMapping[1] = m_settings.get<Controller_PadL3>();
-        m_padMapping[2] = m_settings.get<Controller_PadR3>();
+        m_scancodes[1] = m_settings.get<Keyboard_PadL3>(); // L3
+        m_scancodes[2] = m_settings.get<Keyboard_PadR3>(); // R3
+        m_padMapping[1] = m_settings.get<Controller_PadL3>(); // L3
+        m_padMapping[2] = m_settings.get<Controller_PadR3>(); // R3
     } else {
         m_scancodes[1] = 255;
         m_scancodes[2] = 255;
@@ -642,7 +642,7 @@ bool PCSX::Pads::Pad::configure() {
             ImGui::Text(c_dpadDirections[i]());
             ImGui::TableSetColumnIndex(0);
             bool hasToPop = false;
-            const auto absI = i + 10;
+            const auto absI = i + 12;
             if (m_buttonToWait == absI) {
                 const ImVec4 highlight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
                 ImGui::PushStyleColor(ImGuiCol_Button, highlight);
