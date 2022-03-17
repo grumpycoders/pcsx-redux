@@ -75,6 +75,11 @@ LuaFile* openFile(const char* filename, FileOps type) {
     return nullptr;
 }
 
+LuaFile* openFileWithCallback(const char* url, void (*callback)()) {
+    return new LuaFile(new PCSX::UvFile(
+        url, [callback](PCSX::UvFile* f) { callback(); }, &PCSX::g_emulator->m_loop, PCSX::UvFile::DOWNLOAD_URL));
+}
+
 LuaFile* bufferFileReadOnly(void* data, uint64_t size) { return new LuaFile(new PCSX::BufferFile(data, size)); }
 LuaFile* bufferFile(void* data, uint64_t size) {
     return new LuaFile(new PCSX::BufferFile(data, size, PCSX::FileOps::READWRITE));
@@ -151,7 +156,16 @@ float fileCacheProgress(LuaFile* wrapper) {
 }
 void startFileCaching(LuaFile* wrapper) {
     PCSX::IO<PCSX::UvFile> file = wrapper->file.asA<PCSX::UvFile>();
-    if (file) return file->startCaching();
+    if (file) file->startCaching();
+}
+bool startFileCachingWithCallback(LuaFile* wrapper, void (*callback)()) {
+    PCSX::IO<PCSX::UvFile> file = wrapper->file.asA<PCSX::UvFile>();
+    if (file) {
+        file->startCaching([callback](PCSX::UvFile* f) { callback(); }, &PCSX::g_emulator->m_loop);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 LuaFile* dupFile(LuaFile* wrapper) { return new LuaFile(wrapper->file->dup()); }
@@ -183,6 +197,7 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, deleteFile);
 
     REGISTER(L, openFile);
+    REGISTER(L, openFileWithCallback);
     REGISTER(L, bufferFileReadOnly);
     REGISTER(L, bufferFile);
     REGISTER(L, bufferFileAcquire);
@@ -217,6 +232,7 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, isFileCaching);
     REGISTER(L, fileCacheProgress);
     REGISTER(L, startFileCaching);
+    REGISTER(L, startFileCachingWithCallback);
 
     REGISTER(L, dupFile);
 
