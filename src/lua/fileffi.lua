@@ -138,23 +138,23 @@ local function readAt(self, ptr, size, pos)
 end
 
 local function write(self, data, size)
-    if type(data) == 'string' and size == nil then
-        return C.writeRawPtr(self._wrapper, data, string.len(data))
-    elseif type(data) == 'cdata' and size == nil and ffi.typeof(data) == LuaBuffer then
-        return C.writeBuffer(self._wrapper, validateBuffer(data))
-    else
-        return C.writeRawPtr(self._wrapper, data, size)
+    if type(data) == 'cdata' and size == nil and ffi.typeof(data) == LuaBuffer then
+        return C.writeFileBuffer(self._wrapper, validateBuffer(data))
+    elseif type(size) == 'number' then
+        return C.writeFileRawPtr(self._wrapper, data, size)
     end
+    if type(data) ~= 'string' then data = tostring(data) end
+    return C.writeFileRawPtr(self._wrapper, data, string.len(data))
 end
 
 local function writeAt(self, data, size, pos)
-    if type(data) == 'string' and type(size) == 'number' and pos == nil then
-        return C.writeAtRawPtr(self._wrapper, data, string.len(data), size)
-    elseif type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == LuaBuffer then
-        return C.writeAtBuffer(self._wrapper, validateBuffer(data), pos)
-    else
-        return C.writeAtRawPtr(self._wrapper, data, size, pos)
+    if type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == LuaBuffer then
+        return C.writeFileAtBuffer(self._wrapper, validateBuffer(data), size)
+    elseif type(size) == 'number' and type(pos) == 'number' then
+        return C.writeFileAtRawPtr(self._wrapper, data, size, pos)
     end
+    if type(data) ~= 'string' then data = tostring(data) end
+    return C.writeFileAtRawPtr(self._wrapper, data, string.len(data), size)
 end
 
 local function rSeek(self, pos, wheel)
