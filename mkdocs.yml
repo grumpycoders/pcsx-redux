@@ -38,6 +38,9 @@ markdown_extensions:
       linenums: true
   - pymdownx.superfences
   - pymdownx.inlinehilite
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
 
 extra_css:
     - css/extra.css
