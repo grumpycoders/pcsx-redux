@@ -174,14 +174,6 @@ class CDRiso {
     // redump.org SBI files
     uint8_t sbitime[256][3], sbicount;
 
-    uint32_t get32lsb(const uint8_t* src);
-    void put32lsb(uint8_t* dest, uint32_t value);
-    void eccedc_init();
-    uint32_t edc_compute(uint32_t edc, const uint8_t* src, size_t size);
-    void ecc_writepq(const uint8_t* address, const uint8_t* data, size_t major_count, size_t minor_count,
-                     size_t major_mult, size_t minor_inc, uint8_t* ecc);
-    void ecc_writesector(const uint8_t* address, const uint8_t* data, uint8_t* ecc);
-    void reconstruct_sector(uint8_t* sector, int8_t type);
     // get a sector from a msf-array
     static unsigned int msf2sec(const uint8_t* msf) { return ((msf[0] * 60 + msf[1]) * 75) + msf[2]; }
     static void sec2msf(unsigned int s, uint8_t* msf) {
@@ -206,7 +198,7 @@ class CDRiso {
     ssize_t cdread_sub_mixed(IO<File> f, unsigned int base, void* dest, int sector);
     ssize_t cdread_compressed(IO<File> f, unsigned int base, void* dest, int sector);
     ssize_t cdread_2048(IO<File> f, unsigned int base, void* dest, int sector);
-    ssize_t cdread_ecm_decode(IO<File> f, unsigned int base, void* dest, int sector);
+    ssize_t ecmDecode(IO<File> f, unsigned int base, void* dest, int sector);
     int handleecm(const char* isoname, IO<File> cdh, int32_t* accurate_length);
     void PrintTracks();
     void UnloadSBI();

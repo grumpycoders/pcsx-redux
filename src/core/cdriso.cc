@@ -32,6 +32,7 @@
 
 #include "core/cdriso.h"
 #include "core/cdrom.h"
+#include "core/iec-60908b-math.h"
 #include "core/ppf.h"
 #include "core/psxemulator.h"
 
@@ -87,173 +88,6 @@ extern "C" {
 // EDC:   Error Detection Code
 // ECC:   Error Correction Code
 //
-
-////////////////////////////////////////////////////////////////////////////////
-
-uint32_t PCSX::CDRiso::get32lsb(const uint8_t *src) {
-    return (((uint32_t)(src[0])) << 0) | (((uint32_t)(src[1])) << 8) | (((uint32_t)(src[2])) << 16) |
-           (((uint32_t)(src[3])) << 24);
-}
-
-void PCSX::CDRiso::put32lsb(uint8_t *dest, uint32_t value) {
-    dest[0] = (uint8_t)(value);
-    dest[1] = (uint8_t)(value >> 8);
-    dest[2] = (uint8_t)(value >> 16);
-    dest[3] = (uint8_t)(value >> 24);
-}
-
-void PCSX::CDRiso::eccedc_init() {
-    size_t i;
-    for (i = 0; i < 256; i++) {
-        uint32_t edc = i;
-        size_t j = (i << 1) ^ (i & 0x80 ? 0x11d : 0);
-        m_ecc_f_lut[i] = j;
-        m_ecc_b_lut[i ^ j] = i;
-        for (j = 0; j < 8; j++) {
-            edc = (edc >> 1) ^ (edc & 1 ? 0xd8018001 : 0);
-        }
-        m_edc_lut[i] = edc;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Compute EDC for a block
-//
-uint32_t PCSX::CDRiso::edc_compute(uint32_t edc, const uint8_t *src, size_t size) {
-    for (; size; size--) {
-        edc = (edc >> 8) ^ m_edc_lut[(edc ^ (*src++)) & 0xFF];
-    }
-    return edc;
-}
-
-//
-// Write ECC block (either P or Q)
-//
-void PCSX::CDRiso::ecc_writepq(const uint8_t *address, const uint8_t *data, size_t major_count, size_t minor_count,
-                               size_t major_mult, size_t minor_inc, uint8_t *ecc) {
-    size_t size = major_count * minor_count;
-    size_t major;
-    for (major = 0; major < major_count; major++) {
-        size_t index = (major >> 1) * major_mult + (major & 1);
-        uint8_t ecc_a = 0;
-        uint8_t ecc_b = 0;
-        size_t minor;
-        for (minor = 0; minor < minor_count; minor++) {
-            uint8_t temp;
-            if (index < 4) {
-                temp = address[index];
-            } else {
-                temp = data[index - 4];
-            }
-            index += minor_inc;
-            if (index >= size) {
-                index -= size;
-            }
-            ecc_a ^= temp;
-            ecc_b ^= temp;
-            ecc_a = m_ecc_f_lut[ecc_a];
-        }
-        ecc_a = m_ecc_b_lut[m_ecc_f_lut[ecc_a] ^ ecc_b];
-        ecc[major] = (ecc_a);
-        ecc[major + major_count] = (ecc_a ^ ecc_b);
-    }
-}
-
-//
-// Write ECC P and Q codes for a sector
-//
-void PCSX::CDRiso::ecc_writesector(const uint8_t *address, const uint8_t *data, uint8_t *ecc) {
-    ecc_writepq(address, data, 86, 24, 2, 86, ecc);          // P
-    ecc_writepq(address, data, 52, 43, 86, 88, ecc + 0xAC);  // Q
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Reconstruct a sector based on type. Must point to a full 2352-bytes sector.
-//
-void PCSX::CDRiso::reconstruct_sector(uint8_t *sector, int8_t type) {
-    //
-    // Sync
-    //
-    sector[0x000] = 0x00;
-    sector[0x001] = 0xFF;
-    sector[0x002] = 0xFF;
-    sector[0x003] = 0xFF;
-    sector[0x004] = 0xFF;
-    sector[0x005] = 0xFF;
-    sector[0x006] = 0xFF;
-    sector[0x007] = 0xFF;
-    sector[0x008] = 0xFF;
-    sector[0x009] = 0xFF;
-    sector[0x00A] = 0xFF;
-    sector[0x00B] = 0x00;
-
-    switch (type) {
-        case 1:
-            //
-            // Mode
-            //
-            sector[0x00F] = 0x01;
-            //
-            // Reserved
-            //
-            sector[0x814] = 0x00;
-            sector[0x815] = 0x00;
-            sector[0x816] = 0x00;
-            sector[0x817] = 0x00;
-            sector[0x818] = 0x00;
-            sector[0x819] = 0x00;
-            sector[0x81A] = 0x00;
-            sector[0x81B] = 0x00;
-            break;
-        case 2:
-        case 3:
-            //
-            // Mode
-            //
-            sector[0x00F] = 0x02;
-            //
-            // Flags
-            //
-            sector[0x010] = sector[0x014];
-            sector[0x011] = sector[0x015];
-            sector[0x012] = sector[0x016];
-            sector[0x013] = sector[0x017];
-            break;
-    }
-
-    //
-    // Compute EDC
-    //
-    switch (type) {
-        case 1:
-            put32lsb(sector + 0x810, edc_compute(0, sector, 0x810));
-            break;
-        case 2:
-            put32lsb(sector + 0x818, edc_compute(0, sector + 0x10, 0x808));
-            break;
-        case 3:
-            put32lsb(sector + 0x92C, edc_compute(0, sector + 0x10, 0x91C));
-            break;
-    }
-
-    //
-    // Compute ECC
-    //
-    switch (type) {
-        case 1:
-            ecc_writesector(sector + 0xC, sector + 0x10, sector + 0x81C);
-            break;
-        case 2:
-            ecc_writesector(ZEROADDRESS, sector + 0x10, sector + 0x81C);
-            break;
-    }
-
-    //
-    // Done
-    //
-}
 
 // divide a string of xx:yy:zz into m, s, f
 void PCSX::CDRiso::tok2msf(char *time, char *msf) {
@@ -1472,13 +1306,13 @@ ssize_t PCSX::CDRiso::cdread_2048(IO<File> f, unsigned int base, void *dest, int
 }
 
 /* Adapted from ecm.c:unecmify() (C) Neill Corlett */
-ssize_t PCSX::CDRiso::cdread_ecm_decode(IO<File> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::ecmDecode(IO<File> f, unsigned int base, void *dest, int sector) {
     uint32_t output_edc = 0, b = 0, writebytecount = 0, num;
     uint32_t sectorcount = 0;
     int8_t type = 0;  // mode type 0 (META) or 1, 2 or 3 for CDROM type
     uint8_t sector_buffer[PCSX::CDRom::CD_FRAMESIZE_RAW];
-    bool processsectors =
-        (bool)m_decoded_ecm_sectors;          // this flag tells if to decode all sectors or just skip to wanted sector
+    // this flag tells if to decode all sectors or just skip to wanted sector
+    bool processsectors = (bool)m_decoded_ecm_sectors;
     ECMFILELUT *pos = &(m_ecm_savetable[0]);  // points always to beginning of ECM DATA
 
     // If not pointing to ECM file but CDDA file or some other track
@@ -1512,6 +1346,72 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(IO<File> f, unsigned int base, void *des
         // if suitable sector was not found from LUT use last sector if less than wanted sector
         if (pos->filepos <= ECM_HEADER_SIZE && sector > m_prevsector) pos = &(m_ecm_savetable[m_prevsector]);
     }
+
+    auto reconstructSector = [](uint8_t *sector, int8_t type) {
+        auto ref32 = [sector](uint32_t offset) -> uint32_t & { return *reinterpret_cast<uint32_t *>(sector + offset); };
+        // Sync
+        sector[0x000] = 0x00;
+        sector[0x001] = 0xff;
+        sector[0x002] = 0xff;
+        sector[0x003] = 0xff;
+        sector[0x004] = 0xff;
+        sector[0x005] = 0xff;
+        sector[0x006] = 0xff;
+        sector[0x007] = 0xff;
+        sector[0x008] = 0xff;
+        sector[0x009] = 0xff;
+        sector[0x00a] = 0xff;
+        sector[0x00b] = 0x00;
+
+        switch (type) {
+            case 1:
+                // Mode
+                sector[0x00f] = 0x01;
+                // Empty
+                sector[0x814] = 0x00;
+                sector[0x815] = 0x00;
+                sector[0x816] = 0x00;
+                sector[0x817] = 0x00;
+                sector[0x818] = 0x00;
+                sector[0x819] = 0x00;
+                sector[0x81a] = 0x00;
+                sector[0x81b] = 0x00;
+                break;
+            case 2:
+            case 3:
+                // Mode
+                sector[0x00f] = 0x02;
+                // Subheaders
+                sector[0x010] = sector[0x014];
+                sector[0x011] = sector[0x015];
+                sector[0x012] = sector[0x016];
+                sector[0x013] = sector[0x017];
+                break;
+        }
+
+        // Compute EDC
+        switch (type) {
+            case 1:
+                ref32(0x810) = SWAP_LE32(IEC60908b::computeEDC(0, sector, 0x810));
+                break;
+            case 2:
+                ref32(0x818) = SWAP_LE32(IEC60908b::computeEDC(0, sector + 0x10, 0x808));
+                break;
+            case 3:
+                ref32(0x92c) = SWAP_LE32(IEC60908b::computeEDC(0, sector + 0x10, 0x91c));
+                break;
+        }
+
+        // Compute ECC
+        switch (type) {
+            case 1:
+                IEC60908b::computeECC(sector + 0xc, sector + 0x10, sector + 0x81c);
+                break;
+            case 2:
+                IEC60908b::computeECC(ZEROADDRESS, sector + 0x10, sector + 0x81c);
+                break;
+        }
+    };
 
     writebytecount = pos->sector * PCSX::CDRom::CD_FRAMESIZE_RAW;
     sectorcount = pos->sector;
@@ -1587,7 +1487,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(IO<File> f, unsigned int base, void *des
                         goto error_in;
                     }
                     if (!processsectors) break;  // seek only
-                    reconstruct_sector(sector_buffer, type);
+                    reconstructSector(sector_buffer, type);
                     // output_edc = edc_compute(output_edc, sector_buffer, ECM_SECTOR_SIZE[type]);
                     if (m_decoded_ecm_sectors &&
                         m_decoded_ecm->write(sector_buffer, ECM_SECTOR_SIZE[type]) != ECM_SECTOR_SIZE[type]) {
@@ -1604,7 +1504,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(IO<File> f, unsigned int base, void *des
                     if (f->read(sector_buffer + 0x014, 0x804) != 0x804) {
                         goto error_in;
                     }
-                    reconstruct_sector(sector_buffer, type);
+                    reconstructSector(sector_buffer, type);
                     // output_edc = edc_compute(output_edc, sector_buffer + 0x10, ECM_SECTOR_SIZE[type]);
                     if (m_decoded_ecm_sectors &&
                         m_decoded_ecm->write(sector_buffer + 0x10, ECM_SECTOR_SIZE[type]) != ECM_SECTOR_SIZE[type]) {
@@ -1621,7 +1521,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(IO<File> f, unsigned int base, void *des
                     if (f->read(sector_buffer + 0x014, 0x918) != 0x918) {
                         goto error_in;
                     }
-                    reconstruct_sector(sector_buffer, type);
+                    reconstructSector(sector_buffer, type);
                     // output_edc = edc_compute(output_edc, sector_buffer + 0x10, ECM_SECTOR_SIZE[type]);
                     if (m_decoded_ecm_sectors &&
                         m_decoded_ecm->write(sector_buffer + 0x10, ECM_SECTOR_SIZE[type]) != ECM_SECTOR_SIZE[type]) {
@@ -1672,7 +1572,7 @@ int PCSX::CDRiso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate
         m_cdimg_read_func_o = &CDRiso::cdread_normal;
 
         // Function used to decode ECM data
-        m_cdimg_read_func = &CDRiso::cdread_ecm_decode;
+        m_cdimg_read_func = &CDRiso::ecmDecode;
 
         // Last accessed sector
         m_prevsector = 0;
@@ -1685,9 +1585,6 @@ int PCSX::CDRiso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate
 
         PCSX::g_system->printf(_("\nDetected ECM file with proper header and filename suffix.\n"));
 
-        // Init ECC/EDC tables
-        eccedc_init();
-
         // Reserve maximum known sector ammount for LUT (80MIN CD)
         m_len_ecm_savetable = 75 * 80 * 60;  // 2*(accurate_length/PCSX::CDRomCD_FRAMESIZE_RAW);
 
@@ -1697,8 +1594,8 @@ int PCSX::CDRiso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate
 
         if (accurate_length || m_decoded_ecm_sectors) {
             uint8_t tbuf1[PCSX::CDRom::CD_FRAMESIZE_RAW];
-            m_len_ecm_savetable = 0;  // indicates to cdread_ecm_decode that no lut has been built yet
-            cdread_ecm_decode(cdh, 0U, tbuf1, INT_MAX);  // builds LUT completely
+            m_len_ecm_savetable = 0;             // indicates to cdread_ecm_decode that no lut has been built yet
+            ecmDecode(cdh, 0U, tbuf1, INT_MAX);  // builds LUT completely
             if (accurate_length) *accurate_length = m_len_ecm_savetable;
         }
 
@@ -1721,11 +1618,12 @@ uint8_t *PCSX::CDRiso::getBuffer() {
 
 void PCSX::CDRiso::PrintTracks() {
     for (int i = 1; i <= m_numtracks; i++) {
-        PCSX::g_system->printf(
-            _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
-            (m_ti[i].type == trackinfo::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
-            m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0], m_ti[i].length[1],
-            m_ti[i].length[2]);
+        PCSX::g_system->printf(_("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
+                               (m_ti[i].type == trackinfo::DATA        ? "DATA"
+                                : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA"
+                                                                       : "CDDA"),
+                               m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0],
+                               m_ti[i].length[1], m_ti[i].length[2]);
     }
 }
 

@@ -254,6 +254,7 @@
     <ClCompile Include="..\..\src\core\gdb-server.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />
     <ClCompile Include="..\..\src\core\gte.cc" />
+    <ClCompile Include="..\..\src\core\iec-60908b-math.cc" />
     <ClCompile Include="..\..\src\core\kernel.cc" />
     <ClCompile Include="..\..\src\core\kernellog.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
@@ -300,6 +301,7 @@
     <ClInclude Include="..\..\src\core\gdb-server.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
+    <ClInclude Include="..\..\src\core\iec-60908b-math.h" />
     <ClInclude Include="..\..\src\core\kernel.h" />
     <ClInclude Include="..\..\src\core\logger.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
