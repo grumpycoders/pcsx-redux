@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #ifdef _WIN32
-#include "windowswrapper.h"
+#include "support/windowswrapper.h"
 #define strcasecmp _stricmp
 #else
 #include <limits.h>
