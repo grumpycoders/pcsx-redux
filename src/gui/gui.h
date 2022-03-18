@@ -342,7 +342,7 @@ class GUI final {
         PCSX::u8string filename;
         bool pauseAfterLoad = true;
     } m_exeToLoad;
-    
+
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
     void useMainFont() { ImGui::PushFont(m_mainFont); }
     void useMonoFont() { ImGui::PushFont(m_monoFont); }

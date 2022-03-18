@@ -503,7 +503,8 @@ const void *PCSX::Memory::psxMemPointerWrite(uint32_t address, int size) {
         else {
             switch (address) {
                 // IO regs that are safe to write to directly. For some of these,
-                // Writing a 8-bit/16-bit value actually writes the entire 32-bit reg, so they're not safe to write directly
+                // Writing a 8-bit/16-bit value actually writes the entire 32-bit reg, so they're not safe to write
+                // directly
                 case 0x1f801080:
                 case 0x1f801084:
                 case 0x1f801090:

@@ -2864,14 +2864,14 @@ const func_t DynaRecCPU::m_recSPC[64] = {
 };
 
 const func_t DynaRecCPU::m_recREG[32] = {
-    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 00
-    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 04
-    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 08
-    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 0c
-    &DynaRecCPU::recBLTZAL, &DynaRecCPU::recBGEZAL, &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 10
-    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 14
-    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ, // 18
-    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ  // 1c
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ,  // 00
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ,  // 04
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ,  // 08
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ,  // 0c
+    &DynaRecCPU::recBLTZAL, &DynaRecCPU::recBGEZAL, &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ,  // 10
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ,  // 14
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ,  // 18
+    &DynaRecCPU::recBLTZ,   &DynaRecCPU::recBGEZ,   &DynaRecCPU::recBLTZ, &DynaRecCPU::recBGEZ   // 1c
 };
 
 const func_t DynaRecCPU::m_recCP0[32] = {

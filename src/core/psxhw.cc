@@ -79,17 +79,17 @@ uint8_t PCSX::HW::psxHwRead8(uint32_t add) {
         case 0x1f801054:  // stat register
             hard = PCSX::g_emulator->m_sio1->readStat8();
             // Log command below is overly spammy
-            //SIO1_LOG("SIO1.STAT read8 %x; ret = %x\n", add & 0xf, hard);
+            // SIO1_LOG("SIO1.STAT read8 %x; ret = %x\n", add & 0xf, hard);
             break;
         case 0x1f801058:  // mode register
             hard = PCSX::g_emulator->m_sio1->readMode8();
             SIO1_LOG("SIO1.MODE read8 %x; ret = %x\n", add & 0xf, hard);
             break;
-        case 0x1f80105a: // control register
+        case 0x1f80105a:  // control register
             hard = PCSX::g_emulator->m_sio1->readCtrl8();
             SIO1_LOG("SIO1.CTRL read8 %x; ret = %x\n", add & 0xf, hard);
             break;
-        case 0x1f80105e: // baudrate register
+        case 0x1f80105e:  // baudrate register
             hard = PCSX::g_emulator->m_sio1->readBaud8();
             SIO1_LOG("SIO1.BAUD read8 %x; ret = %x\n", add & 0xf, hard);
             break;
@@ -168,7 +168,7 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
         case 0x1f801054:  // stat register
             hard = PCSX::g_emulator->m_sio1->readStat16();
             // Log command below is overly spammy
-            //SIO1_LOG("SIO1.STAT read16 %x; ret = %x\n", add & 0xf, hard);
+            // SIO1_LOG("SIO1.STAT read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f801058:  // mode register
             hard = PCSX::g_emulator->m_sio1->readMode16();
@@ -182,14 +182,14 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
             hard = PCSX::g_emulator->m_sio1->readBaud16();
             SIO1_LOG("SIO1.BAUD read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
-        /* Fixes Armored Core misdetecting the Link cable being detected.
-         * We want to turn that thing off and force it to do local multiplayer instead.
-         * Thanks Sony for the fix, they fixed it in their PS Classic fork.
-         */
-        /* Stat's value set in SIO1/m_sio1, Armored Core local multiplayer is working.
-        case 0x1f801054:
-            return 0x80;
-        */
+            /* Fixes Armored Core misdetecting the Link cable being detected.
+             * We want to turn that thing off and force it to do local multiplayer instead.
+             * Thanks Sony for the fix, they fixed it in their PS Classic fork.
+             */
+            /* Stat's value set in SIO1/m_sio1, Armored Core local multiplayer is working.
+            case 0x1f801054:
+                return 0x80;
+            */
 
         case 0x1f801100:
             hard = PCSX::g_emulator->m_psxCounters->psxRcntRcount(0);
@@ -270,7 +270,7 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
         case 0x1f801054:  // stat register
             hard = PCSX::g_emulator->m_sio1->readStat32();
             // Log command below is overly spammy
-            //SIO1_LOG("SIO1.STAT read32 ;ret = %x\n", hard);
+            // SIO1_LOG("SIO1.STAT read32 ;ret = %x\n", hard);
             return hard;
         case 0x1f801060:
             PSXHW_LOG("RAM size read %x\n", psxHu32(0x1060));
@@ -381,11 +381,11 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint32_t rawvalue) {
         case 0x1f801040:
             PCSX::g_emulator->m_sio->write8(value);
             break;
-        case 0x1f801050:    // rx/tx data register
+        case 0x1f801050:  // rx/tx data register
             PCSX::g_emulator->m_sio1->writeData8(value);
             SIO1_LOG("SIO1.DATA write8 %x; ret = %x\n", add & 0xf, value);
             break;
-        case 0x1f801054:    // stat register
+        case 0x1f801054:  // stat register
             PCSX::g_emulator->m_sio1->writeStat8(value);
             SIO1_LOG("SIO1.STAT write8 %x; ret = %x\n", add & 0xf, value);
             break;
@@ -470,23 +470,23 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint32_t rawvalue) {
             PCSX::g_emulator->m_sio->writeBaud16(value);
             SIO0_LOG("sio write16 %x, %x\n", add & 0xf, value);
             break;
-        case 0x1f801050: // rx/tx data register
+        case 0x1f801050:  // rx/tx data register
             PCSX::g_emulator->m_sio1->writeData16(value);
             SIO1_LOG("SIO1.DATA write16 %x, %x\n", add & 0xf, value);
             break;
-        case 0x1f801054: // stat register
+        case 0x1f801054:  // stat register
             PCSX::g_emulator->m_sio1->writeStat16(value);
             SIO1_LOG("SIO1.STAT write16 %x, %x\n", add & 0xf, value);
             break;
-        case 0x1f801058: // mode register
+        case 0x1f801058:  // mode register
             PCSX::g_emulator->m_sio1->writeMode16(value);
             SIO1_LOG("SIO1.MODE write16 %x, %x\n", add & 0xf, value);
             break;
-        case 0x1f80105a: // control register
+        case 0x1f80105a:  // control register
             PCSX::g_emulator->m_sio1->writeCtrl16(value);
             SIO1_LOG("SIO1.CTRL write16 %x, %x\n", add & 0xf, value);
             break;
-        case 0x1f80105e: // baudrate register
+        case 0x1f80105e:  // baudrate register
             PCSX::g_emulator->m_sio1->writeBaud16(value);
             SIO1_LOG("SIO1.BAUD write16 %x, %x\n", add & 0xf, value);
             break;
