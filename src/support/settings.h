@@ -20,10 +20,9 @@
 #pragma once
 
 #include <cassert>
+#include <codecvt>
 #include <cstddef>
 #include <cstdint>
-
-#include <codecvt>
 #include <filesystem>
 #include <functional>
 #include <string>
