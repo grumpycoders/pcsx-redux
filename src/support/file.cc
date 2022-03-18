@@ -224,7 +224,7 @@ ssize_t PCSX::PosixFile::wSeek(ssize_t pos, int wheel) {
 
 size_t PCSX::PosixFile::size() {
     if (failed()) throw std::runtime_error("Invalid file");
-    ssize_t ret = fseek(m_handle, 0, SEEK_SET);
+    ssize_t ret = fseek(m_handle, 0, SEEK_END);
     if (ret < 0) throw std::runtime_error("Can't seek file...");
     return ftell(m_handle);
 }
