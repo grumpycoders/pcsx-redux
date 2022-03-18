@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <charconv>
 #include <string_view>
 
 #include "core/misc.h"
