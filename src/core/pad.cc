@@ -165,7 +165,7 @@ void PCSX::Pads::Pad::getButtons() {
         const bool* keys = ImGui::GetIO().KeysDown;
         uint16_t result = 0;
         for (unsigned i = 0; i < 16; i++) result |= (keys[m_scancodes[i]]) << i;
-        return result ^ 0xffff; // Controls are inverted, so 0 = pressed
+        return result ^ 0xffff;  // Controls are inverted, so 0 = pressed
     };
 
     if (inputType == InputType::Keyboard) {
@@ -256,7 +256,7 @@ void PCSX::Pads::Pad::getButtons() {
     uint16_t result = 0;
     for (unsigned i = 0; i < 16; i++) result |= buttons[i] << i;
 
-    pad.buttonStatus = result ^ 0xffff; // Controls are inverted, so 0 = pressed
+    pad.buttonStatus = result ^ 0xffff;  // Controls are inverted, so 0 = pressed
 }
 
 uint8_t PCSX::Pads::startPoll(Port port) {
@@ -288,7 +288,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
     } else if (m_currentByte >= m_bufferLen) {
         return 0xff;
     } else if (m_currentByte == 2 && m_type == PadType::Analog) {
-        switch (m_cmd) { 
+        switch (m_cmd) {
             case magic_enum::enum_integer(PadCommands::SetConfigMode):
                 m_configMode = value == 1;
                 break;
@@ -379,7 +379,7 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand() {
     }
 }
 
-uint8_t PCSX::Pads::Pad::startPoll() { 
+uint8_t PCSX::Pads::Pad::startPoll() {
     m_currentByte = 0;
     return 0xff;
 }
@@ -457,7 +457,7 @@ bool PCSX::Pads::configure(PCSX::GUI* gui) {
     if (!m_showCfg) {
         return false;
     }
-        
+
     ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(_("Pad configuration"), &m_showCfg)) {
@@ -539,35 +539,25 @@ void PCSX::Pads::Pad::keyboardEvent(const Events::Keyboard& event) {
 
 bool PCSX::Pads::Pad::configure() {
     static std::function<const char*()> const c_inputDevices[] = {
-        []() { return _("Auto"); },
-        []() { return _("Controller"); },
-        []() { return _("Keyboard"); }
-    };
+        []() { return _("Auto"); }, []() { return _("Controller"); }, []() { return _("Keyboard"); }};
     static std::function<const char*()> const c_buttonNames[] = {
         []() { return _("Cross"); },  []() { return _("Square"); }, []() { return _("Triangle"); },
         []() { return _("Circle"); }, []() { return _("Select"); }, []() { return _("Start"); },
         []() { return _("L1"); },     []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); }
-    };
+        []() { return _("R2"); }};
     static std::function<const char*()> const c_dpadDirections[] = {
-        []() { return _("Up"); },
-        []() { return _("Right"); },
-        []() { return _("Down"); },
-        []() { return _("Left"); }
-    };
-    static std::function<const char*()> const c_controllerTypes[] = {
-        []() { return _("Digital"); },
-        []() { return _("Analog"); },
-        []() { return _("Mouse"); },
-        []() { return _("Negcon (Unimplemented)"); },
-        []() { return _("Gun (Unimplemented)"); },
-        []() { return _("Guncon (Unimplemented"); }
-    };
+        []() { return _("Up"); }, []() { return _("Right"); }, []() { return _("Down"); }, []() { return _("Left"); }};
+    static std::function<const char*()> const c_controllerTypes[] = {[]() { return _("Digital"); },
+                                                                     []() { return _("Analog"); },
+                                                                     []() { return _("Mouse"); },
+                                                                     []() { return _("Negcon (Unimplemented)"); },
+                                                                     []() { return _("Gun (Unimplemented)"); },
+                                                                     []() { return _("Guncon (Unimplemented"); }};
 
     bool changed = false;
     if (ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value)) {
         changed = true;
-        reset(); // Reset pad state when unplugging/replugging pad
+        reset();  // Reset pad state when unplugging/replugging pad
     }
 
     {
@@ -578,7 +568,7 @@ bool PCSX::Pads::Pad::configure() {
                     changed = true;
                     m_type = static_cast<PadType>(i);
                     m_settings.get<SettingDeviceType>().value = m_type;
-                    reset(); // Reset pad state when changing pad type
+                    reset();  // Reset pad state when changing pad type
                 }
             }
             ImGui::EndCombo();

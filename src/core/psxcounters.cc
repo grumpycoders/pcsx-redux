@@ -207,14 +207,14 @@ void PCSX::Counters::psxRcntUpdate() {
         if (m_hSyncCount == VBlankStart[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
             PCSX::g_emulator->m_gpu->vBlank();
             setIrq(0x01);
-            
+
             // Update lace. (calculated at psxHsyncCalculate() on init/defreeze)
             PCSX::g_emulator->m_gpu->updateLace();
             PCSX::g_emulator->vsync();
         }
 
         if (m_hSyncCount >= m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
-            m_hSyncCount = 0;   
+            m_hSyncCount = 0;
         }
     }
 }

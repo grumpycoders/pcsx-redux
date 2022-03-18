@@ -610,8 +610,7 @@ void PCSX::GdbClient::processCommand() {
                 auto& tree = g_emulator->m_debug->getTree();
                 auto bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
                 while (bp != tree.end()) {
-                    if (bp->type() == type &&
-                        !bp->Debug::BreakpointUserListType::Node::isLinked()) {
+                    if (bp->type() == type && !bp->Debug::BreakpointUserListType::Node::isLinked()) {
                         bp++;
                     } else {
                         g_emulator->m_debug->removeBreakpoint(&*bp);

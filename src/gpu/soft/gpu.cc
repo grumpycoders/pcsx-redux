@@ -403,9 +403,7 @@ int32_t PCSX::SoftGPU::impl::open(GUI *gui) {
 // time to leave...
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::close() {
-    return 0;
-}
+int32_t PCSX::SoftGPU::impl::close() { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // I shot the sheriff

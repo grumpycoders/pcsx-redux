@@ -1,5 +1,4 @@
---lualoader, R"EOF(--
-
+-- lualoader, R"EOF(--
 ffi.cdef [[
 
 typedef struct { char opaque[?]; } LuaFile;
@@ -68,18 +67,12 @@ LuaFile* dupFile(LuaFile*);
 
 local C = ffi.load 'SUPPORT_FILE'
 
-local function fileGarbageCollect(file)
-    C.deleteFile(file._wrapper)
-end
+local function fileGarbageCollect(file) C.deleteFile(file._wrapper) end
 
 local fileMeta = { __gc = fileGarbageCollect }
 local bufferMeta = {
-    __tostring = function(buffer)
-        return ffi.string(buffer.data, buffer.size)
-    end,
-    __len = function(buffer)
-        return buffer.size
-    end,
+    __tostring = function(buffer) return ffi.string(buffer.data, buffer.size) end,
+    __len = function(buffer) return buffer.size end,
     __index = function(buffer, index)
         if type(index) == 'number' and index >= 0 and index < buffer.size then
             return buffer.data[index]
@@ -87,23 +80,22 @@ local bufferMeta = {
             return function(buffer) return ffi.sizeof(buffer) - 4 end
         elseif index == 'resize' then
             return function(buffer, size)
-                if size > buffer.maxsize() then
-                    error('buffer size too large')
-                end
+                if size > buffer.maxsize() then error('buffer size too large') end
                 buffer.size = size
             end
         end
         error('Unknown index `' .. index .. '` for LuaBuffer')
     end,
     __newindex = function(buffer, index, value)
-        if type(index) == 'number' and index >= 0 and index < buffer.size then
-            buffer.data[index] = value
-        end
+        if type(index) == 'number' and index >= 0 and index < buffer.size then buffer.data[index] = value end
         error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
     end,
 }
 local function validateBuffer(buffer)
-    if buffer:maxsize() < buffer.size then error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' .. buffer:maxsize()) end
+    if buffer:maxsize() < buffer.size then
+        error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' ..
+                  buffer:maxsize())
+    end
     return buffer
 end
 local LuaBuffer = ffi.metatype('LuaBuffer', bufferMeta)
@@ -179,9 +171,7 @@ local function readNum(self, ctype, pos)
         local n = ctype()
         local s = ffi.cast('uint8_t*', buf)
         local d = ffi.cast('uint8_t*', n)
-        for i = 0, size - 1, 1 do
-            d[i] = s[size - i - 1]
-        end
+        for i = 0, size - 1, 1 do d[i] = s[size - i - 1] end
         buf = n
     end
     return buf[0]
@@ -195,9 +185,7 @@ local function writeNum(self, num, ctype, pos)
         local n = ctype()
         local s = ffi.cast('uint8_t*', buf)
         local d = ffi.cast('uint8_t*', n)
-        for i = 0, size - 1, 1 do
-            d[i] = s[size - i - 1]
-        end
+        for i = 0, size - 1, 1 do d[i] = s[size - i - 1] end
         buf = n
     end
     if pos == nil then
@@ -259,7 +247,9 @@ local function createFileWrapper(wrapper)
         startCaching = function(self) return C.startFileCaching(self._wrapper) end,
         startCachingAndWait = startCachingAndWait,
         dup = function(self) return createFileWrapper(C.dupFile(self._wrapper)) end,
-        subFile = function(self, start, size) return createFileWrapper(C.subFile(self._wrapper, start or 0, size or -1)) end,
+        subFile = function(self, start, size)
+            return createFileWrapper(C.subFile(self._wrapper, start or 0, size or -1))
+        end,
         readU8 = function(self) return readNum(self, uint8_t) end,
         readU16 = function(self) return readNum(self, uint16_t) end,
         readU32 = function(self) return readNum(self, uint32_t) end,
@@ -345,10 +335,6 @@ Support.NewLuaBuffer = function(size)
     return buf
 end
 
-Support.File = {
-    open = open,
-    buffer = buffer,
-    _createFileWrapper = createFileWrapper,
-}
+Support.File = { open = open, buffer = buffer, _createFileWrapper = createFileWrapper }
 
 -- )EOF"
