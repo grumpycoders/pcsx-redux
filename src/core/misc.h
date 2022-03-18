@@ -62,15 +62,30 @@ namespace PCSX {
 
 namespace Misc {
 
-static inline std::vector<std::string> split(const std::string &str, const std::string &delim, bool keepEmpty = false) {
+static inline std::vector<std::string> split(const std::string &str, const std::string_view delims,
+                                             bool keepEmpty = false) {
     std::vector<std::string> tokens;
     size_t prev = 0, pos = 0;
     do {
-        pos = str.find(delim, prev);
+        pos = str.find(delims, prev);
         if (pos == std::string::npos) pos = str.length();
         std::string token = str.substr(prev, pos - prev);
+        if (keepEmpty || !token.empty()) tokens.emplace_back(std::move(token));
+        prev = pos + delims.length();
+    } while (pos < str.length() && prev <= str.length());
+    return tokens;
+}
+
+static inline std::vector<std::string_view> split(std::string_view str, std::string_view delims,
+                                                  bool keepEmpty = false) {
+    std::vector<std::string_view> tokens;
+    size_t prev = 0, pos = 0;
+    do {
+        pos = str.find(delims, prev);
+        if (pos == std::string::npos) pos = str.length();
+        std::string_view token = str.substr(prev, pos - prev);
         if (keepEmpty || !token.empty()) tokens.push_back(token);
-        prev = pos + delim.length();
+        prev = pos + delims.length();
     } while (pos < str.length() && prev <= str.length());
     return tokens;
 }

@@ -89,32 +89,6 @@ extern "C" {
 // ECC:   Error Correction Code
 //
 
-// divide a string of xx:yy:zz into m, s, f
-void PCSX::CDRiso::tok2msf(char *time, char *msf) {
-    char *token;
-
-    token = strtok(time, ":");
-    if (token) {
-        msf[0] = atoi(token);
-    } else {
-        msf[0] = 0;
-    }
-
-    token = strtok(NULL, ":");
-    if (token) {
-        msf[1] = atoi(token);
-    } else {
-        msf[1] = 0;
-    }
-
-    token = strtok(NULL, ":");
-    if (token) {
-        msf[2] = atoi(token);
-    } else {
-        msf[2] = 0;
-    }
-}
-
 PCSX::CDRiso::trackinfo::cddatype_t PCSX::CDRiso::get_cdda_type(const char *str) {
     const size_t lenstr = strlen(str);
     if (strncmp((str + lenstr - 3), "bin", 3) == 0) {
@@ -434,7 +408,8 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
 
             if (!strncmp(token, "MODE2_RAW", 9)) {
                 m_ti[m_numtracks].type = trackinfo::DATA;
-                sec2msf(2 * 75, m_ti[m_numtracks].start);  // assume data track on 0:2:0
+                // assume data track on 0:2:0
+                m_ti[m_numtracks].start = IEC60908b::MSF(0, 2, 0);
 
                 // check if this image contains mixed subchannel data
                 token = strtok(NULL, " ");
@@ -451,11 +426,11 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
                 sscanf(linebuf, "DATAFILE \"%[^\"]\" #%d %8s", name, &t, time2);
                 m_ti[m_numtracks].start_offset = t;
                 t = t / sector_size + sector_offs;
-                sec2msf(t, (uint8_t *)&m_ti[m_numtracks].start);
-                tok2msf((char *)&time2, (char *)&m_ti[m_numtracks].length);
+                m_ti[m_numtracks].start = IEC60908b::MSF(t);
+                m_ti[m_numtracks].length = IEC60908b::MSF(time2);
             } else {
                 sscanf(linebuf, "DATAFILE \"%[^\"]\" %8s", name, time);
-                tok2msf((char *)&time, (char *)&m_ti[m_numtracks].length);
+                m_ti[m_numtracks].length = IEC60908b::MSF(time);
                 m_ti[m_numtracks].handle.setFile(new UvFile(filename / name));
                 if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
                     m_ti[m_numtracks].handle.asA<UvFile>()->startCaching();
@@ -463,12 +438,12 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
             }
         } else if (!strcmp(token, "FILE")) {
             sscanf(linebuf, "FILE \"%[^\"]\" #%d %8s %8s", name, &t, time, time2);
-            tok2msf((char *)&time, (char *)&m_ti[m_numtracks].start);
-            t += msf2sec(m_ti[m_numtracks].start) * sector_size;
+            m_ti[m_numtracks].start = IEC60908b::MSF(time);
+            t += m_ti[m_numtracks].start.toLBA() * sector_size;
             m_ti[m_numtracks].start_offset = t;
             t = t / sector_size + sector_offs;
-            sec2msf(t, (uint8_t *)&m_ti[m_numtracks].start);
-            tok2msf((char *)&time2, (char *)&m_ti[m_numtracks].length);
+            m_ti[m_numtracks].start = IEC60908b::MSF(t);
+            m_ti[m_numtracks].length = IEC60908b::MSF(time2);
         } else if (!strcmp(token, "ZERO") || !strcmp(token, "SILENCE")) {
             // skip unneeded optional fields
             while (token != NULL) {
@@ -476,22 +451,20 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
                 if (strchr(token, ':') != NULL) break;
             }
             if (token != NULL) {
-                tok2msf(token, tmp);
-                current_zero_gap = msf2sec(reinterpret_cast<uint8_t *>(tmp));
+                current_zero_gap = IEC60908b::MSF(token).toLBA();
             }
             if (m_numtracks > 1) {
                 t = m_ti[m_numtracks - 1].start_offset;
                 t /= sector_size;
-                m_pregapOffset = t + msf2sec(m_ti[m_numtracks - 1].length);
+                m_pregapOffset = t + m_ti[m_numtracks - 1].length.toLBA();
             }
         } else if (!strcmp(token, "START")) {
             token = strtok(NULL, " ");
             if (token != NULL && strchr(token, ':')) {
-                tok2msf(token, tmp);
-                t = msf2sec(reinterpret_cast<uint8_t *>(tmp));
+                t = IEC60908b::MSF(token).toLBA();
                 m_ti[m_numtracks].start_offset += (t - current_zero_gap) * sector_size;
-                t = msf2sec(m_ti[m_numtracks].start) + t;
-                sec2msf(t, (uint8_t *)&m_ti[m_numtracks].start);
+                t += m_ti[m_numtracks].start.toLBA();
+                m_ti[m_numtracks].start = IEC60908b::MSF(t);
             }
         }
     }
@@ -595,28 +568,27 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
         } else if (!strcmp(token, "INDEX")) {
             if (sscanf(linebuf, " INDEX %02d %8s", &t, time) != 2)
                 PCSX::g_system->printf(".cue: failed to parse INDEX\n");
-            tok2msf(time, (char *)&m_ti[m_numtracks].start);
+            m_ti[m_numtracks].start = IEC60908b::MSF(time);
 
-            t = msf2sec(m_ti[m_numtracks].start);
+            t = m_ti[m_numtracks].start.toLBA();
             m_ti[m_numtracks].start_offset = t * sector_size;
             t += sector_offs;
-            sec2msf(t, m_ti[m_numtracks].start);
+            m_ti[m_numtracks].start = IEC60908b::MSF(t);
 
             // default track length to file length
             t = file_len - m_ti[m_numtracks].start_offset / sector_size;
-            sec2msf(t, m_ti[m_numtracks].length);
+            m_ti[m_numtracks].length = IEC60908b::MSF(t);
 
             if (m_numtracks > 1 && !m_ti[m_numtracks].handle) {
                 // this track uses the same file as the last,
                 // start of this track is last track's end
-                t = msf2sec(m_ti[m_numtracks].start) - msf2sec(m_ti[m_numtracks - 1].start);
-                sec2msf(t, m_ti[m_numtracks - 1].length);
+                t = m_ti[m_numtracks].start.toLBA() - m_ti[m_numtracks - 1].start.toLBA();
+                m_ti[m_numtracks - 1].length = IEC60908b::MSF(t);
             }
             if (m_numtracks > 1 && m_pregapOffset == -1) m_pregapOffset = m_ti[m_numtracks].start_offset / sector_size;
         } else if (!strcmp(token, "PREGAP")) {
             if (sscanf(linebuf, " PREGAP %8s", time) == 1) {
-                tok2msf(time, dummy);
-                sector_offs += msf2sec(reinterpret_cast<uint8_t *>(dummy));
+                sector_offs += IEC60908b::MSF(time).toLBA();
             }
             m_pregapOffset = -1;  // mark to fill track start_offset
         } else if (!strcmp(token, "FILE")) {
@@ -697,13 +669,13 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
             m_ti[m_numtracks].type = ((t == 0) ? trackinfo::CDDA : trackinfo::DATA);
         } else if (!strncmp(linebuf, "INDEX 1=", 8)) {
             sscanf(linebuf, "INDEX 1=%d", &t);
-            sec2msf(t + 2 * 75, m_ti[m_numtracks].start);
+            m_ti[m_numtracks].start = IEC60908b::MSF(t + 150);
             m_ti[m_numtracks].start_offset = t * 2352;
 
             // If we've already seen another track, this is its end
             if (m_numtracks > 1) {
-                t = msf2sec(m_ti[m_numtracks].start) - msf2sec(m_ti[m_numtracks - 1].start);
-                sec2msf(t, m_ti[m_numtracks - 1].length);
+                t = m_ti[m_numtracks].start.toLBA() - m_ti[m_numtracks - 1].start.toLBA();
+                m_ti[m_numtracks - 1].length = IEC60908b::MSF(t);
             }
         }
     }
@@ -711,8 +683,8 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
     // Fill out the last track's end based on size
     if (m_numtracks >= 1) {
         m_cdHandle->rSeek(0, SEEK_END);
-        t = m_cdHandle->rTell() / PCSX::CDRom::CD_FRAMESIZE_RAW - msf2sec(m_ti[m_numtracks].start) + 2 * 75;
-        sec2msf(t, m_ti[m_numtracks].length);
+        t = m_cdHandle->rTell() / PCSX::CDRom::CD_FRAMESIZE_RAW - m_ti[m_numtracks].start.toLBA() + 150;
+        m_ti[m_numtracks].length = IEC60908b::MSF(t);
     }
 
     return 0;
@@ -736,43 +708,35 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         fi.asA<UvFile>()->startCaching();
     }
-    if (fi->failed()) {
-        return -1;
-    }
+    if (fi->failed()) return -1;
 
     memset(&m_ti, 0, sizeof(m_ti));
 
     // check if it's a valid mds file
-    fi->read(&i, sizeof(unsigned int));
-    i = SWAP_LE32(i);
-    if (i != 0x4944454D) {
+    i = fi->read<uint32_t>();
+    if (i != 0x4944454d) {
         // not an valid mds file
         return -1;
     }
 
     // get offset to session block
     fi->rSeek(0x50, SEEK_SET);
-    fi->read(&offset, sizeof(unsigned int));
-    offset = SWAP_LE32(offset);
+    offset = fi->read<uint32_t>();
 
     // get total number of tracks
     offset += 14;
     fi->rSeek(offset, SEEK_SET);
-    fi->read(&s, sizeof(unsigned short));
-    s = SWAP_LE16(s);
+    s = fi->read<uint16_t>();
     m_numtracks = s;
 
     // get offset to track blocks
     fi->rSeek(4, SEEK_CUR);
-    fi->read(&offset, sizeof(unsigned int));
-    offset = SWAP_LE32(offset);
+    offset = fi->read<uint32_t>();
 
     // skip lead-in data
     while (1) {
         fi->rSeek(offset + 4, SEEK_SET);
-        if (fi->getc() < 0xA0) {
-            break;
-        }
+        if (fi->getc() < 0xa0) break;
         offset += 0x50;
     }
 
@@ -789,29 +753,25 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
         fi->rSeek(8, SEEK_CUR);
 
         // get the track starting point
-        m_ti[i].start[0] = fi->getc();
-        m_ti[i].start[1] = fi->getc();
-        m_ti[i].start[2] = fi->getc();
+        m_ti[i].start.m = fi->getc();
+        m_ti[i].start.s = fi->getc();
+        m_ti[i].start.f = fi->getc();
 
-        fi->read(&extra_offset, sizeof(unsigned int));
-        extra_offset = SWAP_LE32(extra_offset);
+        extra_offset = fi->read<uint32_t>();
 
         // get track start offset (in .mdf)
         fi->rSeek(offset + 0x28, SEEK_SET);
-        fi->read(&l, sizeof(unsigned int));
-        l = SWAP_LE32(l);
+        l = fi->read<uint32_t>();
         m_ti[i].start_offset = l;
 
         // get pregap
         fi->rSeek(extra_offset, SEEK_SET);
-        fi->read(&l, sizeof(unsigned int));
-        l = SWAP_LE32(l);
-        if (l != 0 && i > 1) m_pregapOffset = msf2sec(m_ti[i].start);
+        l = fi->read<uint32_t>();
+        if (l != 0 && i > 1) m_pregapOffset = m_ti[i].start.toLBA();
 
         // get the track length
-        fi->read(&l, sizeof(unsigned int));
-        l = SWAP_LE32(l);
-        sec2msf(l, m_ti[i].length);
+        l = fi->read<uint32_t>();
+        m_ti[i].length = IEC60908b::MSF(l);
 
         offset += 0x50;
     }
@@ -931,17 +891,17 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
         m_ti[i].start_offset = PCSX::CDRom::btoi(toc_entry.index0[0]) * 60 * 75 +
                                PCSX::CDRom::btoi(toc_entry.index0[1]) * 75 + PCSX::CDRom::btoi(toc_entry.index0[2]);
         m_ti[i].start_offset *= 2352;
-        m_ti[i].start[0] = PCSX::CDRom::btoi(toc_entry.index1[0]);
-        m_ti[i].start[1] = PCSX::CDRom::btoi(toc_entry.index1[1]);
-        m_ti[i].start[2] = PCSX::CDRom::btoi(toc_entry.index1[2]);
+        m_ti[i].start.m = PCSX::CDRom::btoi(toc_entry.index1[0]);
+        m_ti[i].start.s = PCSX::CDRom::btoi(toc_entry.index1[1]);
+        m_ti[i].start.f = PCSX::CDRom::btoi(toc_entry.index1[2]);
 
         if (i > 1) {
-            t = msf2sec(m_ti[i].start) - msf2sec(m_ti[i - 1].start);
-            sec2msf(t, m_ti[i - 1].length);
+            t = m_ti[i].start.toLBA() - m_ti[i - 1].start.toLBA();
+            m_ti[i - 1].length = IEC60908b::MSF(t);
         }
     }
     t = cd_length - m_ti[m_numtracks].start_offset / 2352;
-    sec2msf(t, m_ti[m_numtracks].length);
+    m_ti[m_numtracks].length = IEC60908b::MSF(t);
 
     // seek to ISO index
     ret = m_cdHandle->rSeek(psisoimg_offs + 0x4000, SEEK_SET);
@@ -1299,7 +1259,10 @@ ssize_t PCSX::CDRiso::cdread_2048(IO<File> f, unsigned int base, void *dest, int
 
     // not really necessary, fake mode 2 header
     memset(m_cdbuffer, 0, 12 * 2);
-    sec2msf(sector + 2 * 75, (uint8_t *)&m_cdbuffer[12]);
+    IEC60908b::MSF tmp(sector + 150);
+    m_cdbuffer[12 + 0] = tmp.m;
+    m_cdbuffer[12 + 1] = tmp.s;
+    m_cdbuffer[12 + 2] = tmp.f;
     m_cdbuffer[12 + 3] = 1;
 
     return ret;
@@ -1622,8 +1585,8 @@ void PCSX::CDRiso::PrintTracks() {
                                (m_ti[i].type == trackinfo::DATA        ? "DATA"
                                 : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA"
                                                                        : "CDDA"),
-                               m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0],
-                               m_ti[i].length[1], m_ti[i].length[2]);
+                               m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s,
+                               m_ti[i].length.f);
     }
 }
 
@@ -1703,9 +1666,7 @@ bool PCSX::CDRiso::open(void) {
         // We got no track information, just an iso file, so let's fill in very basic data
         m_numtracks = 1;
         m_ti[1].type = trackinfo::DATA;
-        m_ti[1].start[0] = 0;
-        m_ti[1].start[1] = 2;
-        m_ti[1].start[2] = 0;
+        m_ti[1].start = IEC60908b::MSF(0, 2, 0);
     }
 
     PCSX::g_system->printf(".\n");
@@ -1796,16 +1757,15 @@ bool PCSX::CDRiso::getTN(uint8_t *buffer) {
 bool PCSX::CDRiso::getTD(uint8_t track, uint8_t *buffer) {
     if (track == 0) {
         unsigned int sect;
-        unsigned char time[3];
-        sect = msf2sec(m_ti[m_numtracks].start) + msf2sec(m_ti[m_numtracks].length);
-        sec2msf(sect, (uint8_t *)time);
-        buffer[2] = time[0];
-        buffer[1] = time[1];
-        buffer[0] = time[2];
+        sect = m_ti[m_numtracks].start.toLBA() + m_ti[m_numtracks].length.toLBA();
+        IEC60908b::MSF time(sect);
+        buffer[2] = time.m;
+        buffer[1] = time.s;
+        buffer[0] = time.f;
     } else if (m_numtracks > 0 && track <= m_numtracks) {
-        buffer[2] = m_ti[track].start[0];
-        buffer[1] = m_ti[track].start[1];
-        buffer[0] = m_ti[track].start[2];
+        buffer[2] = m_ti[track].start.m;
+        buffer[1] = m_ti[track].start.s;
+        buffer[0] = m_ti[track].start.f;
     } else {
         buffer[2] = 0;
         buffer[1] = 2;
@@ -1896,22 +1856,22 @@ bool PCSX::CDRiso::getStatus(CdrStat *stat) {
 
     // relative -> absolute time
     sect = m_cddaCurPos;
-    sec2msf(sect, (uint8_t *)stat->Time);
+    stat->Time = IEC60908b::MSF(sect);
 
     return true;
 }
 
 // read CDDA sector into buffer
 bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, unsigned char *buffer) {
-    unsigned char msf[3] = {m, s, f};
+    IEC60908b::MSF msf(m, s, f);
     unsigned int file, track, track_start = 0;
     int ret;
 
-    m_cddaCurPos = msf2sec(msf);
+    m_cddaCurPos = msf.toLBA();
 
     // find current track index
     for (track = m_numtracks;; track--) {
-        track_start = msf2sec(m_ti[track].start);
+        track_start = m_ti[track].start.toLBA();
         if (track_start <= m_cddaCurPos) break;
         if (track == 1) break;
     }

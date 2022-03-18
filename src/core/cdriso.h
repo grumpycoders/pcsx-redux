@@ -23,6 +23,7 @@
 
 #include <filesystem>
 
+#include "core/iec-60908b-math.h"
 #include "core/psxemulator.h"
 #include "support/uvfile.h"
 
@@ -31,7 +32,7 @@ namespace PCSX {
 struct CdrStat {
     uint32_t Type;
     uint32_t Status;
-    unsigned char Time[3];
+    IEC60908b::MSF Time;
 };
 
 struct SubQ {
@@ -144,20 +145,12 @@ class CDRiso {
     ECMFILELUT* m_ecm_savetable = NULL;
 
     static inline const size_t ECM_SECTOR_SIZE[4] = {1, 2352, 2336, 2336};
-    ////////////////////////////////////////////////////////////////////////////////
-    //
-    // LUTs used for computing ECC/EDC
-    //
-    uint8_t m_ecc_f_lut[256];
-    uint8_t m_ecc_b_lut[256];
-    uint32_t m_edc_lut[256];
-
     static inline const uint8_t ZEROADDRESS[4] = {0, 0, 0, 0};
 
     struct trackinfo {
         enum track_type_t { CLOSED = 0, DATA = 1, CDDA = 2 } type = CLOSED;
-        uint8_t start[3] = {0, 0, 0};                                      // MSF-format
-        uint8_t length[3] = {0, 0, 0};                                     // MSF-format
+        IEC60908b::MSF start;
+        IEC60908b::MSF length;
         IO<File> handle = nullptr;                                         // for multi-track images CDDA
         enum cddatype_t { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;  // BIN, WAV, MP3, APE
         char* decoded_buffer = nullptr;
@@ -174,16 +167,6 @@ class CDRiso {
     // redump.org SBI files
     uint8_t sbitime[256][3], sbicount;
 
-    // get a sector from a msf-array
-    static unsigned int msf2sec(const uint8_t* msf) { return ((msf[0] * 60 + msf[1]) * 75) + msf[2]; }
-    static void sec2msf(unsigned int s, uint8_t* msf) {
-        msf[0] = s / 75 / 60;
-        s = s - msf[0] * 75 * 60;
-        msf[1] = s / 75;
-        s = s - msf[1] * 75;
-        msf[2] = s;
-    }
-    static void tok2msf(char* time, char* msf);
     trackinfo::cddatype_t get_cdda_type(const char* str);
     void DecodeRawSubData();
     int do_decode_cdda(struct trackinfo* tri, uint32_t tracknumber);
