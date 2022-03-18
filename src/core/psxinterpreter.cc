@@ -815,18 +815,14 @@ void InterpretedCPU::psxJAL(uint32_t code) {
  * Format:  OP rs, rd                                     *
  *********************************************************/
 void InterpretedCPU::psxJR(uint32_t code) {
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        // if in debug mode, check for unaligned jump
-        if (_rRs_ & 3) {  // if the jump is unaligned, throw an exception and ret
-            m_psxRegs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU,
-                                _("Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"), _rRs_,
-                                m_psxRegs.pc);
-            m_psxRegs.CP0.n.BadVAddr = _rRs_;
-            psxException(Exception::LoadAddressError, m_inDelaySlot);
-            return;
-        }
+    // if the jump is unaligned, throw an exception and return
+    if (_rRs_ & 3) {
+        m_psxRegs.pc -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"),
+                            _rRs_, m_psxRegs.pc);
+        m_psxRegs.CP0.n.BadVAddr = _rRs_;
+        psxException(Exception::LoadAddressError, m_inDelaySlot);
+        return;
     }
 
     doBranch(_rRs_ & ~3, false);  // the "& ~3" word-aligns the jump address
@@ -843,19 +839,16 @@ void InterpretedCPU::psxJALR(uint32_t code) {
         }
     }
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        // if in debug mode, check for unaligned jump
-        if (temp & 3) {  // if the address is unaligned, throw an exception and return
-            // TODO: is Rd modified in this case?
-            m_psxRegs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU,
-                                _("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp,
-                                m_psxRegs.pc);
-            m_psxRegs.CP0.n.BadVAddr = temp;
-            psxException(Exception::LoadAddressError, m_inDelaySlot);
-            return;
-        }
+    // if the address is unaligned, throw an exception and return
+    if (temp & 3) {
+        // TODO: is Rd modified in this case?
+        m_psxRegs.pc -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU,
+                            _("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp,
+                            m_psxRegs.pc);
+        m_psxRegs.CP0.n.BadVAddr = temp;
+        psxException(Exception::LoadAddressError, m_inDelaySlot);
+        return;
     }
 
     doBranch(temp & ~3, true);  // the "& ~3" force aligns the address
@@ -888,16 +881,12 @@ void InterpretedCPU::psxLBU(uint32_t code) {
 
 void InterpretedCPU::psxLH(uint32_t code) {
     // load delay = 1 latency
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        if (_oB_ & 1) {
-            m_psxRegs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LH from 0x%08x\n"), _oB_,
-                                m_psxRegs.pc);
-            m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exception::LoadAddressError, m_inDelaySlot);
-            return;
-        }
+    if (_oB_ & 1) {
+        m_psxRegs.pc -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LH from 0x%08x\n"), _oB_, m_psxRegs.pc);
+        m_psxRegs.CP0.n.BadVAddr = _oB_;
+        psxException(Exception::LoadAddressError, m_inDelaySlot);
+        return;
     }
 
     if (_Rt_) {
@@ -909,16 +898,13 @@ void InterpretedCPU::psxLH(uint32_t code) {
 
 void InterpretedCPU::psxLHU(uint32_t code) {
     // load delay = 1 latency
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        if (_oB_ & 1) {
-            m_psxRegs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LHU from 0x%08x\n"), _oB_,
-                                m_psxRegs.pc);
-            m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exception::LoadAddressError, m_inDelaySlot);
-            return;
-        }
+    if (_oB_ & 1) {
+        m_psxRegs.pc -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LHU from 0x%08x\n"), _oB_,
+                            m_psxRegs.pc);
+        m_psxRegs.CP0.n.BadVAddr = _oB_;
+        psxException(Exception::LoadAddressError, m_inDelaySlot);
+        return;
     }
 
     if (_Rt_) {
@@ -930,16 +916,12 @@ void InterpretedCPU::psxLHU(uint32_t code) {
 
 void InterpretedCPU::psxLW(uint32_t code) {
     // load delay = 1 latency
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        if (_oB_ & 3) {
-            m_psxRegs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LW from 0x%08x\n"), _oB_,
-                                m_psxRegs.pc);
-            m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exception::LoadAddressError, m_inDelaySlot);
-            return;
-        }
+    if (_oB_ & 3) {
+        m_psxRegs.pc -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LW from 0x%08x\n"), _oB_, m_psxRegs.pc);
+        m_psxRegs.CP0.n.BadVAddr = _oB_;
+        psxException(Exception::LoadAddressError, m_inDelaySlot);
+        return;
     }
 
     uint32_t val = PCSX::g_emulator->m_psxMem->psxMemRead32(_oB_);
@@ -996,31 +978,23 @@ void InterpretedCPU::psxLWR(uint32_t code) {
 
 void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, _rRt_); }
 void InterpretedCPU::psxSH(uint32_t code) {
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        if (_oB_ & 1) {
-            m_psxRegs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SH from 0x%08x\n"), _oB_,
-                                m_psxRegs.pc);
-            m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exception::StoreAddressError, m_inDelaySlot);
-            return;
-        }
+    if (_oB_ & 1) {
+        m_psxRegs.pc -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SH from 0x%08x\n"), _oB_, m_psxRegs.pc);
+        m_psxRegs.CP0.n.BadVAddr = _oB_;
+        psxException(Exception::StoreAddressError, m_inDelaySlot);
+        return;
     }
     PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, _rRt_);
 }
 
 void InterpretedCPU::psxSW(uint32_t code) {
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        if (_oB_ & 3) {
-            m_psxRegs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SW from 0x%08x\n"), _oB_,
-                                m_psxRegs.pc);
-            m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exception::StoreAddressError, m_inDelaySlot);
-            return;
-        }
+    if (_oB_ & 3) {
+        m_psxRegs.pc -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SW from 0x%08x\n"), _oB_, m_psxRegs.pc);
+        m_psxRegs.CP0.n.BadVAddr = _oB_;
+        psxException(Exception::StoreAddressError, m_inDelaySlot);
+        return;
     }
     if ((_Rt_ == 31) && (_Rs_ == 29)) {
         PCSX::g_emulator->m_callStacks->storeRA(_oB_, _rRt_);
