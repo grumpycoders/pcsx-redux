@@ -1,6 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 PCSX-df Team                                       *
- *   Copyright (C) 2009 Wei Mingzhi                                        *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -49,7 +48,7 @@ struct SubQ {
 
 class CDRiso {
   public:
-    bool isLidOpened() { return m_cdOpenCaseTime < 0 || m_cdOpenCaseTime > (int64_t)time(NULL); }
+    bool isLidOpened() { return m_cdOpenCaseTime < 0 || m_cdOpenCaseTime > (int64_t)time(nullptr); }
     void setCdOpenCaseTime(int64_t time) { m_cdOpenCaseTime = time; }
     void init();
     void shutdown();
@@ -121,7 +120,6 @@ class CDRiso {
     }* m_compr_img = NULL;
 
     read_func_t m_cdimg_read_func = NULL;
-    read_func_t m_cdimg_read_func_archive = NULL;
     static const unsigned ECM_HEADER_SIZE = 4;
 
     uint32_t m_len_decoded_ecm_buffer = 0;  // same as decoded ECM file length or 2x size
@@ -211,9 +209,6 @@ class CDRiso {
     ssize_t cdread_ecm_decode(IO<File> f, unsigned int base, void* dest, int sector);
     int handleecm(const char* isoname, IO<File> cdh, int32_t* accurate_length);
     void PrintTracks();
-    int aropen(IO<File> fparchive, const char* _fn);
-    int cdread_archive(IO<File> f, unsigned int base, void* dest, int sector);
-    int handlearchive(const char* isoname, int32_t* accurate_length);
     void UnloadSBI();
     int opensbifile(const char* isoname);
 };

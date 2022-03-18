@@ -818,7 +818,7 @@ void PCSX::GUI::endFrame() {
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime((int64_t)time(NULL) + 2);
+                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime((int64_t)time(nullptr) + 2);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 ImGui::Separator();

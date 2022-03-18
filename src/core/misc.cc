@@ -301,7 +301,7 @@ bool CheckCdrom() {
             PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
     }
 
-    PCSX::g_emulator->m_cdrom->m_ppf.BuildPPFCache();
+    PCSX::g_emulator->m_cdrom->m_ppf.load();
     PCSX::g_emulator->m_cdrom->m_iso.LoadSBI(NULL);
 
     return true;
