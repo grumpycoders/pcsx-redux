@@ -388,7 +388,7 @@ void PCSX::GUI::init() {
         if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
         isoToOpen = m_args.get<std::string>("loadiso", "");
         if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
-
+        PCSX::g_emulator->m_cdrom->check();
         auto argPCdrv = m_args.get<bool>("pcdrv");
         auto argPCdrvBase = m_args.get<std::string>("pcdrvbase");
         if (argPCdrv.has_value()) {
@@ -760,7 +760,7 @@ void PCSX::GUI::endFrame() {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open ISO"));
                 if (ImGui::MenuItem(_("Close ISO"))) {
                     PCSX::g_emulator->m_cdrom->m_iso.close();
-                    CheckCdrom();
+                    PCSX::g_emulator->m_cdrom->check();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
                     showOpenBinaryDialog = true;
@@ -810,15 +810,15 @@ void PCSX::GUI::endFrame() {
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(-1);
+                    PCSX::g_emulator->m_cdrom->setLidOpenTime(-1);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 if (ImGui::MenuItem(_("Close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(0);
+                    PCSX::g_emulator->m_cdrom->setLidOpenTime(0);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime((int64_t)time(nullptr) + 2);
+                    PCSX::g_emulator->m_cdrom->setLidOpenTime((int64_t)time(nullptr) + 2);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 ImGui::Separator();
@@ -1025,6 +1025,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         if (!fileToOpen.empty()) {
             PCSX::g_emulator->m_cdrom->m_iso.close();
             PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+            PCSX::g_emulator->m_cdrom->check();
         }
     }
 
@@ -1363,22 +1364,6 @@ with development binaries and games.)"));
                     changed = true;
                     type = PCSX::Emulator::PSX_TYPE_PAL;
                     autodetect = false;
-                }
-                ImGui::EndCombo();
-            }
-        }
-
-        {
-            const char* labels[] = {_("Disabled"), _("Little Endian"), _("Big Endian")};
-            auto& cdda = settings.get<Emulator::SettingCDDA>().value;
-            if (ImGui::BeginCombo(_("CDDA"), labels[cdda])) {
-                int counter = 0;
-                for (auto& label : labels) {
-                    if (ImGui::Selectable(label, cdda == counter)) {
-                        changed = true;
-                        cdda = decltype(cdda)(counter);
-                    }
-                    counter++;
                 }
                 ImGui::EndCombo();
             }
@@ -1761,6 +1746,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
         g_system->softReset();
     } else {
         PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(pathStr);
+        PCSX::g_emulator->m_cdrom->check();
     }
 
     free(extension);

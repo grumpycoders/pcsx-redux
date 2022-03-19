@@ -80,7 +80,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 
             sector_size = 0;
             if (strstr(linebuf, "AUDIO") != NULL) {
-                m_ti[m_numtracks].type = trackinfo::CDDA;
+                m_ti[m_numtracks].type = TrackType::CDDA;
                 sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
                 // Check if extension is mp3, etc, for compressed audio formats
                 if (m_multifile &&
@@ -101,14 +101,14 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
             } else if (sscanf(linebuf, " TRACK %u MODE%u/%u", &t, &mode, &sector_size) == 3) {
                 int32_t accurate_len;
                 // TODO: if 2048 frame length -> recalculate file_len?
-                m_ti[m_numtracks].type = trackinfo::DATA;
+                m_ti[m_numtracks].type = TrackType::DATA;
                 // detect if ECM or compressed & get accurate length
                 if (handleecm(m_ti[m_numtracks].filepath, m_cdHandle, &accurate_len) == 0) {
                     file_len = accurate_len;
                 }
             } else {
                 PCSX::g_system->printf(".cue: failed to parse TRACK\n");
-                m_ti[m_numtracks].type = m_numtracks == 1 ? trackinfo::DATA : trackinfo::CDDA;
+                m_ti[m_numtracks].type = m_numtracks == 1 ? TrackType::DATA : TrackType::CDDA;
             }
             if (sector_size == 0)  // TODO m_isMode1ISO?
                 sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;

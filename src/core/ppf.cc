@@ -73,9 +73,9 @@ void PCSX::PPF::FreePPFCache() {
     s_ppfCache = NULL;
 }
 
-void PCSX::PPF::CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f) {
+void PCSX::PPF::CheckPPFCache(uint8_t *pB, IEC60908b::MSF msf) {
     PPF_CACHE *pcstart, *pcend, *pcpos;
-    int addr = PCSX::CDRom::MSF2SECT(PCSX::CDRom::btoi(m), PCSX::CDRom::btoi(s), PCSX::CDRom::btoi(f)), pos, anz, start;
+    int addr = msf.toLBA(), pos, anz, start;
 
     if (s_ppfCache == NULL) return;
 

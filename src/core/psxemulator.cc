@@ -118,8 +118,6 @@ void PCSX::Emulator::shutdown() {
     m_cheats->ClearAllCheats();
     m_cheats->FreeCheatSearchResults();
     m_cheats->FreeCheatSearchMem();
-
-    m_cdrom->m_ppf.FreePPFCache();
     m_psxMem->psxMemShutdown();
     m_psxCpu->psxShutdown();
 

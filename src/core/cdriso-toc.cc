@@ -91,7 +91,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
             m_numtracks++;
 
             if (!strncmp(token, "MODE2_RAW", 9)) {
-                m_ti[m_numtracks].type = trackinfo::DATA;
+                m_ti[m_numtracks].type = TrackType::DATA;
                 // assume data track on 0:2:0
                 m_ti[m_numtracks].start = IEC60908b::MSF(0, 2, 0);
 
@@ -103,10 +103,10 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
                     if (!strncmp(token, "RW_RAW", 6)) m_subChanRaw = true;
                 }
             } else if (!strncmp(token, "AUDIO", 5)) {
-                m_ti[m_numtracks].type = trackinfo::CDDA;
+                m_ti[m_numtracks].type = TrackType::CDDA;
             }
         } else if (!strcmp(token, "DATAFILE")) {
-            if (m_ti[m_numtracks].type == trackinfo::CDDA) {
+            if (m_ti[m_numtracks].type == TrackType::CDDA) {
                 sscanf(linebuf, "DATAFILE \"%[^\"]\" #%d %8s", name, &t, time2);
                 m_ti[m_numtracks].start_offset = t;
                 t = t / sector_size + sector_offs;

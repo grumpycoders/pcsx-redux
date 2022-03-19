@@ -78,7 +78,7 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
         fi->rSeek(offset, SEEK_SET);
 
         // get the track type
-        m_ti[i].type = ((fi->getc() == 0xA9) ? trackinfo::CDDA : trackinfo::DATA);
+        m_ti[i].type = ((fi->getc() == 0xa9) ? TrackType::CDDA : TrackType::DATA);
         fi->rSeek(8, SEEK_CUR);
 
         // get the track starting point

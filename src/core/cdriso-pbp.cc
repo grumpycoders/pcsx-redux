@@ -118,23 +118,23 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     // first 3 entries are special
     m_cdHandle->rSeek(sizeof(toc_entry), SEEK_CUR);
     m_cdHandle->read(&toc_entry, sizeof(toc_entry));
-    m_numtracks = PCSX::CDRom::btoi(toc_entry.index1[0]);
+    m_numtracks = IEC60908b::btoi(toc_entry.index1[0]);
 
     m_cdHandle->read(&toc_entry, sizeof(toc_entry));
-    cd_length = PCSX::CDRom::btoi(toc_entry.index1[0]) * 60 * 75 + PCSX::CDRom::btoi(toc_entry.index1[1]) * 75 +
-                PCSX::CDRom::btoi(toc_entry.index1[2]);
+    cd_length = IEC60908b::btoi(toc_entry.index1[0]) * 60 * 75 + IEC60908b::btoi(toc_entry.index1[1]) * 75 +
+                IEC60908b::btoi(toc_entry.index1[2]);
 
     for (i = 1; i <= m_numtracks; i++) {
         m_cdHandle->read(&toc_entry, sizeof(toc_entry));
 
-        m_ti[i].type = (toc_entry.type == 1) ? trackinfo::CDDA : trackinfo::DATA;
+        m_ti[i].type = (toc_entry.type == 1) ? TrackType::CDDA : TrackType::DATA;
 
-        m_ti[i].start_offset = PCSX::CDRom::btoi(toc_entry.index0[0]) * 60 * 75 +
-                               PCSX::CDRom::btoi(toc_entry.index0[1]) * 75 + PCSX::CDRom::btoi(toc_entry.index0[2]);
+        m_ti[i].start_offset = IEC60908b::btoi(toc_entry.index0[0]) * 60 * 75 +
+                               IEC60908b::btoi(toc_entry.index0[1]) * 75 + IEC60908b::btoi(toc_entry.index0[2]);
         m_ti[i].start_offset *= 2352;
-        m_ti[i].start.m = PCSX::CDRom::btoi(toc_entry.index1[0]);
-        m_ti[i].start.s = PCSX::CDRom::btoi(toc_entry.index1[1]);
-        m_ti[i].start.f = PCSX::CDRom::btoi(toc_entry.index1[2]);
+        m_ti[i].start.m = IEC60908b::btoi(toc_entry.index1[0]);
+        m_ti[i].start.s = IEC60908b::btoi(toc_entry.index1[1]);
+        m_ti[i].start.f = IEC60908b::btoi(toc_entry.index1[2]);
 
         if (i > 1) {
             t = m_ti[i].start.toLBA() - m_ti[i - 1].start.toLBA();

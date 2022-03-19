@@ -24,16 +24,11 @@
 #include <filesystem>
 
 #include "core/iec-60908b-math.h"
+#include "core/ppf.h"
 #include "core/psxemulator.h"
 #include "support/uvfile.h"
 
 namespace PCSX {
-
-struct CdrStat {
-    uint32_t Type;
-    uint32_t Status;
-    IEC60908b::MSF Time;
-};
 
 struct SubQ {
     char res0[12];
@@ -49,28 +44,26 @@ struct SubQ {
 
 class CDRiso {
   public:
-    bool isLidOpened() { return m_cdOpenCaseTime < 0 || m_cdOpenCaseTime > (int64_t)time(nullptr); }
-    void setCdOpenCaseTime(int64_t time) { m_cdOpenCaseTime = time; }
+    enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
+    TrackType getTrackType(unsigned track) { return m_ti[track].type; }
     void init();
     void shutdown();
     void setIsoPath(const std::filesystem::path& path) {
         close();
         m_isoPath = path;
         open();
-        CheckCdrom();
     }
     const std::filesystem::path& getIsoPath() { return m_isoPath; }
     bool open();
     void close();
-    bool getTN(uint8_t* buffer);
-    bool getTD(uint8_t track, uint8_t* buffer);
-    bool readTrack(uint8_t* time);
+    uint8_t getTN() { return std::min(m_numtracks, 1); }
+    IEC60908b::MSF getTD(uint8_t track);
+    bool readTrack(const IEC60908b::MSF time);
     uint8_t* getBuffer();
     void play(uint8_t* time);
     void stop();
     uint8_t* getBufferSub();
-    bool getStatus(CdrStat* stat);
-    bool readCDDA(unsigned char m, unsigned char s, unsigned char f, unsigned char* buffer);
+    bool readCDDA(IEC60908b::MSF msf, unsigned char* buffer);
 
     bool isActive();
 
@@ -80,13 +73,12 @@ class CDRiso {
     int LoadSBI(const char* filename);
     bool CheckSBI(const uint8_t* time);
 
-    int get_compressed_cdda_track_length(const char *filepath);
+    int get_compressed_cdda_track_length(const char* filepath);
 
   private:
     std::filesystem::path m_isoPath;
     typedef ssize_t (CDRiso::*read_func_t)(IO<File> f, unsigned int base, void* dest, int sector);
 
-    int64_t m_cdOpenCaseTime = 0;
     bool m_useCompressed = false;
 
     IO<File> m_cdHandle;
@@ -102,7 +94,6 @@ class CDRiso {
     uint8_t m_cdbuffer[2352];
     uint8_t m_subbuffer[96];
 
-    bool m_playing = false;
     bool m_cddaBigEndian = false;
     uint32_t m_cddaCurPos = 0;
     /* Frame offset into CD image where pregap data would be found if it was there.
@@ -150,7 +141,7 @@ class CDRiso {
     static inline const uint8_t ZEROADDRESS[4] = {0, 0, 0, 0};
 
     struct trackinfo {
-        enum track_type_t { CLOSED = 0, DATA = 1, CDDA = 2 } type = CLOSED;
+        TrackType type = TrackType::CLOSED;
         IEC60908b::MSF start;
         IEC60908b::MSF length;
         IO<File> handle = nullptr;                                         // for multi-track images CDDA
@@ -161,13 +152,14 @@ class CDRiso {
         uint32_t start_offset = 0;  // byte offset from start of above file
     };
 
-    static const unsigned MAXTRACKS = 100; /* How many tracks can a CD hold? */
+    static constexpr unsigned MAXTRACKS = 100; /* How many tracks can a CD hold? */
 
     int m_numtracks = 0;
     struct trackinfo m_ti[MAXTRACKS];
 
     // redump.org SBI files
     uint8_t sbitime[256][3], sbicount;
+    PPF m_ppf;
 
     trackinfo::cddatype_t get_cdda_type(const char* str);
     void DecodeRawSubData();

@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <charconv>
+#include <compare>
 #include <string_view>
 
 #include "core/misc.h"
@@ -29,6 +30,9 @@
 namespace PCSX {
 
 namespace IEC60908b {
+
+static inline constexpr uint8_t btoi(uint8_t b) { return ((b / 16) * 10) + (b % 16); }
+static inline constexpr uint8_t itob(uint8_t i) { return ((i / 10) * 16) + (i % 10); }
 
 struct MSF {
     MSF() : m(0), s(0), f(0) {}
@@ -55,8 +59,50 @@ struct MSF {
         s = conv(1);
         f = conv(2);
     }
-    uint32_t toLBA() { return (m * 60 + s) * 75 + f; }
-    uint8_t m, s, f;
+    auto operator<=>(const MSF &other) const {
+        if (m != other.m) return m <=> other.m;
+        if (s != other.s) return s <=> other.s;
+        return f <=> other.f;
+    }
+    bool operator==(const MSF &other) const { return m == other.m && s == other.s && f == other.f; }
+    MSF &operator++() {
+        f++;
+        if (f >= 75) {
+            f = 0;
+            s++;
+            if (s >= 60) {
+                s = 0;
+                m++;
+            }
+        }
+        return *this;
+    }
+    MSF operator++(int) {
+        MSF tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+    uint32_t toLBA() const { return (m * 60 + s) * 75 + f; }
+    void toBCD(uint8_t *dst) const {
+        dst[0] = itob(m);
+        dst[1] = itob(s);
+        dst[2] = itob(f);
+    }
+    void fromBCD(const uint8_t *src) {
+        m = btoi(src[0]);
+        s = btoi(src[1]);
+        f = btoi(src[2]);
+    }
+    void reset() { m = s = f = 0; }
+    union {
+        struct {
+            uint8_t m;
+            uint8_t s;
+            uint8_t f;
+            uint8_t pad;
+        };
+        uint8_t data[4];
+    };
 };
 
 // Write ECC P and Q codes for a sector
@@ -66,3 +112,16 @@ uint32_t computeEDC(uint32_t edc, const uint8_t *src, size_t size);
 
 }  // namespace IEC60908b
 }  // namespace PCSX
+
+template <>
+struct fmt::formatter<PCSX::IEC60908b::MSF> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(PCSX::IEC60908b::MSF const &msf, FormatContext &ctx) {
+        return fmt::format_to(ctx.out(), "{0}:{1}:{2}", msf.m, msf.s, msf.f);
+    }
+};

@@ -49,7 +49,7 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
             m_numtracks++;
         } else if (!strncmp(linebuf, "MODE=", 5)) {
             sscanf(linebuf, "MODE=%d", &t);
-            m_ti[m_numtracks].type = ((t == 0) ? trackinfo::CDDA : trackinfo::DATA);
+            m_ti[m_numtracks].type = ((t == 0) ? TrackType::CDDA : TrackType::DATA);
         } else if (!strncmp(linebuf, "INDEX 1=", 8)) {
             sscanf(linebuf, "INDEX 1=%d", &t);
             m_ti[m_numtracks].start = IEC60908b::MSF(t + 150);

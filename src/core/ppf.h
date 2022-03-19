@@ -21,13 +21,15 @@
 
 #include <stdint.h>
 
+#include "core/iec-60908b-math.h"
+
 namespace PCSX {
 
 class PPF {
   public:
     void load();
     void FreePPFCache();
-    void CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f);
+    void CheckPPFCache(uint8_t *pB, IEC60908b::MSF);
 
   private:
     struct PPF_DATA {

@@ -150,17 +150,6 @@ class CDRomImpl : public PCSX::CDRom {
 
     struct PCSX::CdrStat cdr_stat;
 
-    static constexpr unsigned int msf2sec(const uint8_t *msf) { return ((msf[0] * 60 + msf[1]) * 75) + msf[2]; }
-    static constexpr void sec2msf(unsigned int s, uint8_t *msf) {
-        msf[0] = s / 75 / 60;
-        s = s - msf[0] * 75 * 60;
-        msf[1] = s / 75;
-        s = s - msf[1] * 75;
-        msf[2] = s;
-    }
-    // for that weird psemu API..
-    static constexpr unsigned int fsm2sec(const uint8_t *msf) { return ((msf[2] * 60 + msf[1]) * 75) + msf[0]; }
-
     static const uint32_t H_SPUirqAddr = 0x1f801da4;
     static const uint32_t H_SPUaddr = 0x1f801da6;
     static const uint32_t H_SPUctrl = 0x1f801daa;
@@ -206,9 +195,8 @@ class CDRomImpl : public PCSX::CDRom {
 
     inline void StopCdda() {
         if (m_play) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
-                m_iso.stop();
-            }
+            m_cddaPlaying = false;
+
             m_statP &= ~STATUS_PLAY;
             m_play = false;
             m_fastForward = 0;
@@ -283,6 +271,26 @@ class CDRomImpl : public PCSX::CDRom {
         scheduleDecodeBufferIRQ(PCSX::g_emulator->m_psxClockSpeed / 44100 * 0x100);
     }
 
+    void getStatus(PCSX::CdrStat *stat) {
+        uint32_t sect;
+
+        if (isLidOpened()) {
+            stat->Status = 0x10;
+        } else {
+            stat->Status = 0;
+        }
+        if (m_cddaPlaying) {
+            stat->Type = 0x02;
+            stat->Status |= 0x80;
+        } else {
+            // BIOS - boot ID (CD type)
+            stat->Type = magic_enum::enum_integer(m_iso.getTrackType(1));
+        }
+
+        // relative -> absolute time
+        stat->Time = m_setSectorPlay;
+    }
+
     // timing used in this function was taken from tests on real hardware
     // (yes it's slow, but you probably don't want to modify it)
     void lidSeekInterrupt() final {
@@ -291,7 +299,7 @@ class CDRomImpl : public PCSX::CDRom {
             case DRIVESTATE_STANDBY:
                 m_statP &= ~STATUS_SEEK;
 
-                if (!m_iso.getStatus(&cdr_stat)) return;
+                getStatus(&cdr_stat);
 
                 if (cdr_stat.Status & STATUS_SHELLOPEN) {
                     StopCdda();
@@ -301,7 +309,7 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case DRIVESTATE_LID_OPEN:
-                if (!m_iso.getStatus(&cdr_stat)) cdr_stat.Status &= ~STATUS_SHELLOPEN;
+                getStatus(&cdr_stat);
 
                 // 02, 12, 10
                 if (!(m_statP & STATUS_SHELLOPEN)) {
@@ -318,7 +326,7 @@ class CDRomImpl : public PCSX::CDRom {
                     m_statP &= ~STATUS_ROTATING;
                 } else if (!(cdr_stat.Status & STATUS_SHELLOPEN)) {
                     // closed now
-                    CheckCdrom();
+                    check();
 
                     // m_statP STATUS_SHELLOPEN is "sticky"
                     // and is only cleared by CdlGetStat
@@ -350,39 +358,35 @@ class CDRomImpl : public PCSX::CDRom {
         }
     }
 
-    void Find_CurTrack(const uint8_t *time) {
+    void Find_CurTrack(const MSF time) {
         int current, sect;
 
-        current = msf2sec(time);
+        current = time.toLBA();
 
-        for (m_curTrack = 1; m_curTrack < m_resultTN[1]; m_curTrack++) {
-            m_iso.getTD(m_curTrack + 1, m_resultTD);
-            sect = fsm2sec(m_resultTD);
-            if (sect - current >= 150) break;
+        for (m_curTrack = 1; m_curTrack < m_iso.getTN(); m_curTrack++) {
+            if (m_iso.getTD(m_curTrack + 1).toLBA() - current >= 150) break;
         }
         CDROM_LOG("Find_CurTrack *** %02d %02d\n", m_curTrack, current);
     }
 
-    void generate_subq(const uint8_t *time) {
-        unsigned char start[3], next[3];
+    void generate_subq(const MSF time) {
         unsigned int this_s, start_s, next_s, pregap;
         int relative_s;
 
-        m_iso.getTD(m_curTrack, start);
-        if (m_curTrack + 1 <= m_resultTN[1]) {
+        MSF start = m_iso.getTD(m_curTrack);
+        MSF next;
+        if (m_curTrack + 1 <= m_iso.getTN()) {
             pregap = 150;
-            m_iso.getTD(m_curTrack + 1, next);
+            next = m_iso.getTD(m_curTrack + 1);
         } else {
             // last track - cd size
             pregap = 0;
-            next[0] = m_setSectorEnd[2];
-            next[1] = m_setSectorEnd[1];
-            next[2] = m_setSectorEnd[0];
+            next = m_setSectorEnd;
         }
 
-        this_s = msf2sec(time);
-        start_s = fsm2sec(start);
-        next_s = fsm2sec(next);
+        this_s = time.toLBA();
+        start_s = start.toLBA();
+        next_s = next.toLBA();
 
         m_trackChanged = false;
 
@@ -399,32 +403,21 @@ class CDRomImpl : public PCSX::CDRom {
             m_subq.index = 0;
             relative_s = -relative_s;
         }
-        sec2msf(relative_s, m_subq.relative);
-
-        m_subq.track = itob(m_curTrack);
-        m_subq.relative[0] = itob(m_subq.relative[0]);
-        m_subq.relative[1] = itob(m_subq.relative[1]);
-        m_subq.relative[2] = itob(m_subq.relative[2]);
-        m_subq.absolute[0] = itob(time[0]);
-        m_subq.absolute[1] = itob(time[1]);
-        m_subq.absolute[2] = itob(time[2]);
+        m_subq.track = PCSX::IEC60908b::itob(m_curTrack);
+        MSF(relative_s).toBCD(m_subq.relative);
+        time.toBCD(m_subq.absolute);
     }
 
-    void ReadTrack(const uint8_t *time) {
-        unsigned char tmp[3];
+    void readTrack(MSF time) {
         struct PCSX::SubQ *subq;
         uint16_t crc;
 
-        tmp[0] = itob(time[0]);
-        tmp[1] = itob(time[1]);
-        tmp[2] = itob(time[2]);
+        if (m_prev == time) return;
 
-        if (memcmp(m_prev, tmp, 3) == 0) return;
+        CDROM_LOG("ReadTrack *** %02i:%02i:%02i\n", time.m, time.s, time.f);
 
-        CDROM_LOG("ReadTrack *** %02x:%02x:%02x\n", tmp[0], tmp[1], tmp[2]);
-
-        m_suceeded = m_iso.readTrack(tmp);
-        memcpy(m_prev, tmp, 3);
+        m_suceeded = m_iso.readTrack(time);
+        m_prev = time;
 
         subq = (struct PCSX::SubQ *)m_iso.getBufferSub();
         if (subq != NULL && m_curTrack == 1) {
@@ -435,7 +428,7 @@ class CDRomImpl : public PCSX::CDRom {
                 memcpy(m_subq.relative, subq->TrackRelativeAddress, 3);
                 memcpy(m_subq.absolute, subq->AbsoluteAddress, 3);
             } else {
-                CDROM_IO_LOG("subq bad crc @%02x:%02x:%02x\n", tmp[0], tmp[1], tmp[2]);
+                CDROM_IO_LOG("subq bad crc @%02i:%02i:%02i\n", time.m, time.s, time.f);
             }
         } else {
             generate_subq(time);
@@ -528,23 +521,23 @@ class CDRomImpl : public PCSX::CDRom {
             }
 
             if (m_setlocPending) {
-                memcpy(m_setSectorPlay, m_setSector, 4);
+                m_setSectorPlay = m_setSector;
                 m_setlocPending = 0;
                 m_locationChanged = true;
             }
             Find_CurTrack(m_setSectorPlay);
-            ReadTrack(m_setSectorPlay);
+            readTrack(m_setSectorPlay);
             m_trackChanged = false;
         }
 
         if (!m_play) return;
-        CDROM_LOG("CDDA - %d:%d:%d\n", m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2]);
-        if (memcmp(m_setSectorPlay, m_setSectorEnd, 3) == 0) {
+        CDROM_LOG("CDDA - %02d:%02d:%02d\n", m_setSectorPlay.m, m_setSectorPlay.s, m_setSectorPlay.f);
+        if (m_setSectorPlay == m_setSectorEnd) {
             StopCdda();
             m_trackChanged = true;
         }
 
-        m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
+        m_iso.readCDDA(m_setSectorPlay, m_transfer);
         if (!m_irq && !m_stat && (m_mode & (MODE_AUTOPAUSE | MODE_REPORT))) cdrPlayInterrupt_Autopause();
 
         if (!m_play) return;
@@ -554,15 +547,7 @@ class CDRomImpl : public PCSX::CDRom {
             PCSX::g_emulator->m_spu->playCDDAchannel((short *)m_transfer, CD_FRAMESIZE_RAW);
         }
 
-        m_setSectorPlay[2]++;
-        if (m_setSectorPlay[2] == 75) {
-            m_setSectorPlay[2] = 0;
-            m_setSectorPlay[1]++;
-            if (m_setSectorPlay[1] == 60) {
-                m_setSectorPlay[1] = 0;
-                m_setSectorPlay[0]++;
-            }
-        }
+        m_setSectorPlay++;
 
         if (m_locationChanged) {
             scheduleCDPlayIRQ(cdReadTime * 30);
@@ -627,7 +612,7 @@ class CDRomImpl : public PCSX::CDRom {
                     m_seeked = SEEK_DONE;
                 }
                 if (m_setlocPending) {
-                    memcpy(m_setSectorPlay, m_setSector, 4);
+                    m_setSectorPlay = m_setSector;
                     m_setlocPending = 0;
                     m_locationChanged = true;
                 }
@@ -636,19 +621,12 @@ class CDRomImpl : public PCSX::CDRom {
                 // - Pause player, hit Track 01/02/../xx (Setloc issued!!)
 
                 if (m_paramC == 0 || m_param[0] == 0) {
-                    CDROM_LOG("PLAY Resume @ %d:%d:%d\n", m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2]);
+                    CDROM_LOG("PLAY Resume @ %d:%d:%d\n", m_setSectorPlay.m, m_setSectorPlay.s, m_setSectorPlay.f);
                 } else {
-                    int track = btoi(m_param[0]);
-
-                    if (track <= m_resultTN[1]) m_curTrack = track;
-
+                    int track = PCSX::IEC60908b::btoi(m_param[0]);
+                    if (track <= m_iso.getTN()) m_curTrack = track;
                     CDROM_LOG("PLAY track %d\n", m_curTrack);
-
-                    if (m_iso.getTD((uint8_t)m_curTrack, m_resultTD)) {
-                        m_setSectorPlay[0] = m_resultTD[2];
-                        m_setSectorPlay[1] = m_resultTD[1];
-                        m_setSectorPlay[2] = m_resultTD[0];
-                    }
+                    m_setSectorPlay = m_iso.getTD(m_curTrack);
                 }
 
                 /*
@@ -662,12 +640,10 @@ class CDRomImpl : public PCSX::CDRom {
                 - plays tracks without retry play
                 */
                 Find_CurTrack(m_setSectorPlay);
-                ReadTrack(m_setSectorPlay);
+                readTrack(m_setSectorPlay);
                 m_trackChanged = false;
 
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
-                    m_iso.play(m_setSectorPlay);
-                }
+                m_cddaPlaying = true;
 
                 // Vib Ribbon: gameplay checks flag
                 m_statP &= ~STATUS_SEEK;
@@ -728,11 +704,7 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlStop:
                 if (m_play) {
                     // grab time for current track
-                    m_iso.getTD((uint8_t)(m_curTrack), m_resultTD);
-
-                    m_setSectorPlay[0] = m_resultTD[2];
-                    m_setSectorPlay[1] = m_resultTD[1];
-                    m_setSectorPlay[2] = m_resultTD[0];
+                    m_setSectorPlay = m_iso.getTD(m_curTrack);
                 }
 
                 StopCdda();
@@ -855,33 +827,32 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case CdlGetTN:
-                SetResultSize(3);
-                if (!m_iso.getTN(m_resultTN)) {
+                if (!m_iso.isActive()) {
                     m_stat = DiskError;
                     m_result[0] |= STATUS_ERROR;
                 } else {
+                    SetResultSize(3);
                     m_stat = Acknowledge;
-                    m_result[1] = itob(m_resultTN[0]);
-                    m_result[2] = itob(m_resultTN[1]);
+                    m_result[1] = 1;
+                    m_result[2] = PCSX::IEC60908b::itob(m_iso.getTN());
                 }
                 break;
 
-            case CdlGetTD:
-                m_track = btoi(m_param[0]);
-                SetResultSize(4);
-                if (!m_iso.getTD(m_track, m_resultTD)) {
+            case CdlGetTD: {
+                if (!m_iso.isActive()) {
                     m_stat = DiskError;
                     m_result[0] |= STATUS_ERROR;
                 } else {
+                    m_track = PCSX::IEC60908b::btoi(m_param[0]);
+                    SetResultSize(4);
                     m_stat = Acknowledge;
+                    MSF td = m_iso.getTD(m_track);
                     m_result[0] = m_statP;
-                    m_result[1] = itob(m_resultTD[2]);
-                    m_result[2] = itob(m_resultTD[1]);
-                    /* According to Nocash's documentation, the function doesn't care about ff.
-                     * This can be seen also in Mednafen's implementation. */
-                    // m_result[3] = itob(m_resultTD[0]);
+                    m_result[1] = td.m;
+                    m_result[2] = td.s;
                 }
                 break;
+            }
 
             case CdlSeekL:
             case CdlSeekP:
@@ -947,11 +918,12 @@ class CDRomImpl : public PCSX::CDRom {
                 m_result[3] = 0;
 
                 // 0x10 - audio | 0x40 - disk missing | 0x80 - unlicensed
-                if (!m_iso.getStatus(&cdr_stat) || cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
+                getStatus(&cdr_stat);
+                if (cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
                     m_result[1] = 0xc0;
                 } else {
                     if (cdr_stat.Type == 2) m_result[1] |= 0x10;
-                    if (PCSX::g_emulator->m_cdromId[0] == '\0') m_result[1] |= 0x80;
+                    //                    if (PCSX::g_emulator->m_cdromId[0] == '\0') m_result[1] |= 0x80;
                 }
                 m_result[0] |= (m_result[1] >> 4) & 0x08;
 
@@ -989,7 +961,7 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlReadN:
             case CdlReadS:
                 if (m_setlocPending) {
-                    memcpy(m_setSectorPlay, m_setSector, 4);
+                    m_setSectorPlay = m_setSector;
                     m_setlocPending = 0;
                     m_locationChanged = true;
                 }
@@ -1005,7 +977,7 @@ class CDRomImpl : public PCSX::CDRom {
 
                 // Fighting Force 2 - update m_subq time immediately
                 // - fixes new game
-                ReadTrack(m_setSectorPlay);
+                readTrack(m_setSectorPlay);
 
                 // Crusaders of Might and Magic - update getlocl now
                 // - fixes cutscene speech
@@ -1159,7 +1131,7 @@ class CDRomImpl : public PCSX::CDRom {
         m_result[0] = m_statP;
         m_seeked = SEEK_DONE;
 
-        ReadTrack(m_setSectorPlay);
+        readTrack(m_setSectorPlay);
 
         buf = m_iso.getBuffer();
         if (buf == NULL) m_suceeded = false;
@@ -1174,7 +1146,7 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         memcpy(m_transfer, buf, DATA_SIZE);
-        m_ppf.CheckPPFCache(m_transfer, m_prev[0], m_prev[1], m_prev[2]);
+        // m_ppf.CheckPPFCache(m_transfer, m_prev[0], m_prev[1], m_prev[2]);
         m_ctrl |= DRQSTS;  // Data fifo not empty
 
         CDROM_LOG("readInterrupt() Log: cdr.m_transfer %x:%x:%x\n", m_transfer[0], m_transfer[1], m_transfer[2]);
@@ -1204,16 +1176,7 @@ class CDRomImpl : public PCSX::CDRom {
             }
         }
 
-        m_setSectorPlay[2]++;
-        if (m_setSectorPlay[2] == 75) {
-            m_setSectorPlay[2] = 0;
-            m_setSectorPlay[1]++;
-            if (m_setSectorPlay[1] == 60) {
-                m_setSectorPlay[1] = 0;
-                m_setSectorPlay[0]++;
-            }
-        }
-
+        m_setSectorPlay++;
         m_read = 0;
         m_readRescheduled = 0;
 
@@ -1237,7 +1200,7 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         // update for CdlGetlocP
-        ReadTrack(m_setSectorPlay);
+        readTrack(m_setSectorPlay);
     }
 
     /*
@@ -1282,7 +1245,7 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     void write1(uint8_t rt) final {
-        uint8_t set_loc[3];
+        MSF set_loc;
         int i;
         CDROM_IO_LOG("cdr w1: %02x\n", rt);
         switch (m_ctrl & 3) {
@@ -1318,20 +1281,19 @@ class CDRomImpl : public PCSX::CDRom {
 
         switch (m_cmd) {
             case CdlSetloc:
-                CDROM_LOG("CDROM setloc command (%02X, %02X, %02X)\n", m_param[0], m_param[1], m_param[2]);
+                CDROM_LOG("CDROM setloc command (%02x, %02x, %02x)\n", m_param[0], m_param[1], m_param[2]);
                 // MM must be BCD, SS must be BCD and <0x60, FF must be BCD and <0x75
-                if (((m_param[0] & 0x0F) > 0x09) || (m_param[0] > 0x99) || ((m_param[1] & 0x0F) > 0x09) ||
-                    (m_param[1] >= 0x60) || ((m_param[2] & 0x0F) > 0x09) || (m_param[2] >= 0x75)) {
-                    CDROM_LOG("Invalid/out of range seek to %02X:%02X:%02X\n", m_param[0], m_param[1], m_param[2]);
+                if (((m_param[0] & 0x0f) > 0x09) || (m_param[0] > 0x99) || ((m_param[1] & 0x0f) > 0x09) ||
+                    (m_param[1] >= 0x60) || ((m_param[2] & 0x0f) > 0x09) || (m_param[2] >= 0x75)) {
+                    CDROM_LOG("Invalid/out of range seek to %02x:%02x:%02x\n", m_param[0], m_param[1], m_param[2]);
                 } else {
-                    for (i = 0; i < 3; i++) set_loc[i] = btoi(m_param[i]);
+                    set_loc.fromBCD(m_param);
 
-                    i = msf2sec(m_setSectorPlay);
-                    i = abs(i - (int)msf2sec(set_loc));
+                    i = m_setSectorPlay.toLBA();
+                    i = abs(i - int(set_loc.toLBA()));
                     if (i > 16) m_seeked = SEEK_PENDING;
 
-                    memcpy(m_setSector, set_loc, 3);
-                    m_setSector[3] = 0;
+                    m_setSector = set_loc;
                     m_setlocPending = 1;
                 }
                 break;
@@ -1535,11 +1497,7 @@ class CDRomImpl : public PCSX::CDRom {
     void getCdInfo(void) {
         uint8_t tmp;
 
-        m_iso.getTN(m_resultTN);
-        m_iso.getTD(0, m_setSectorEnd);
-        tmp = m_setSectorEnd[0];
-        m_setSectorEnd[0] = m_setSectorEnd[2];
-        m_setSectorEnd[2] = tmp;
+        m_setSectorEnd = m_iso.getTD(0);
     }
 
     void reset() final {
@@ -1548,8 +1506,7 @@ class CDRomImpl : public PCSX::CDRom {
         m_ctrl = 0;
 
         memset(m_transfer, 0, sizeof(m_transfer));
-
-        memset(m_prev, 0, sizeof(m_prev));
+        m_prev.reset();
         memset(m_param, 0, sizeof(m_param));
         memset(m_result, 0, sizeof(m_result));
 
@@ -1564,11 +1521,9 @@ class CDRomImpl : public PCSX::CDRom {
         m_locationChanged = false;
         m_reading = 0;
 
-        memset(m_resultTN, 0, sizeof(m_resultTN));
-        memset(m_resultTD, 0, sizeof(m_resultTD));
-        memset(m_setSectorPlay, 0, sizeof(m_setSectorPlay));
-        memset(m_setSectorEnd, 0, sizeof(m_setSectorEnd));
-        memset(m_setSector, 0, sizeof(m_setSector));
+        m_setSectorPlay.reset();
+        m_setSectorEnd.reset();
+        m_setSector.reset();
         m_track = 0;
         m_play = false;
         m_muted = false;
@@ -1624,28 +1579,17 @@ class CDRomImpl : public PCSX::CDRom {
         getCdInfo();
 
         // read right sub data
-        uint8_t tmpp[3];
-        memcpy(tmpp, m_prev, 3);
-        m_prev[0]++;
-        ReadTrack(tmpp);
+        MSF tmp = m_prev;
+        readTrack(++tmp);
 
         if (m_play) {
             Find_CurTrack(m_setSectorPlay);
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
-                m_iso.play(m_setSectorPlay);
-            }
+            m_cddaPlaying = true;
         }
     }
 
     int freeze(gzFile f, int Mode) final {
-        uint8_t tmpp[3];
-
-        if (Mode == 0 &&
-            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
-            m_iso.stop();
-        }
-
-        // gzfreeze(&m_cdr, sizeof(m_cdr));
+        if (Mode == 0) m_cddaPlaying = false;
 
         if (Mode == 1) m_paramP = m_paramC;
 
@@ -1653,15 +1597,12 @@ class CDRomImpl : public PCSX::CDRom {
             getCdInfo();
 
             // read right sub data
-            memcpy(tmpp, m_prev, 3);
-            m_prev[0]++;
-            ReadTrack(tmpp);
+            MSF tmp = m_prev;
+            readTrack(++tmp);
 
             if (m_play) {
                 Find_CurTrack(m_setSectorPlay);
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
-                    m_iso.play(m_setSectorPlay);
-                }
+                m_cddaPlaying = true;
             }
         }
 

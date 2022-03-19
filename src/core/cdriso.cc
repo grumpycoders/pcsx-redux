@@ -17,9 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/cdriso.h"
+
 #include <zlib.h>
 
-#include "core/cdriso.h"
 #include "core/cdrom.h"
 #include "core/iec-60908b-math.h"
 
@@ -249,12 +250,10 @@ uint8_t *PCSX::CDRiso::getBuffer() {
 
 void PCSX::CDRiso::printTracks() {
     for (int i = 1; i <= m_numtracks; i++) {
-        PCSX::g_system->printf(_("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
-                               (m_ti[i].type == trackinfo::DATA        ? "DATA"
-                                : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA"
-                                                                       : "CDDA"),
-                               m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s,
-                               m_ti[i].length.f);
+        PCSX::g_system->printf(
+            _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
+            (m_ti[i].type == TrackType::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
+            m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s, m_ti[i].length.f);
     }
 }
 
@@ -330,7 +329,7 @@ bool PCSX::CDRiso::open(void) {
     if (m_numtracks == 0) {
         // We got no track information, just an iso file, so let's fill in very basic data
         m_numtracks = 1;
-        m_ti[1].type = trackinfo::DATA;
+        m_ti[1].type = TrackType::DATA;
         m_ti[1].start = IEC60908b::MSF(0, 2, 0);
     }
 
@@ -375,7 +374,7 @@ void PCSX::CDRiso::close() {
         }
     }
     m_numtracks = 0;
-    m_ti[1].type = trackinfo::CLOSED;
+    m_ti[1].type = TrackType::CLOSED;
 
     memset(m_cdbuffer, 0, sizeof(m_cdbuffer));
     m_useCompressed = false;
@@ -398,46 +397,15 @@ void PCSX::CDRiso::shutdown() {
     m_ecm_file_detected = false;
 }
 
-// return Starting and Ending Track
-// buffer:
-//  byte 0 - start track
-//  byte 1 - end track
-bool PCSX::CDRiso::getTN(uint8_t *buffer) {
-    buffer[0] = 1;
-
-    if (m_numtracks > 0) {
-        buffer[1] = m_numtracks;
-    } else {
-        buffer[1] = 1;
-    }
-
-    return true;
-}
-
-// return Track Time
-// buffer:
-//  byte 0 - frame
-//  byte 1 - second
-//  byte 2 - minute
-bool PCSX::CDRiso::getTD(uint8_t track, uint8_t *buffer) {
+PCSX::IEC60908b::MSF PCSX::CDRiso::getTD(uint8_t track) {
     if (track == 0) {
         unsigned int sect;
         sect = m_ti[m_numtracks].start.toLBA() + m_ti[m_numtracks].length.toLBA();
-        IEC60908b::MSF time(sect);
-        buffer[2] = time.m;
-        buffer[1] = time.s;
-        buffer[0] = time.f;
+        return IEC60908b::MSF(sect);
     } else if (m_numtracks > 0 && track <= m_numtracks) {
-        buffer[2] = m_ti[track].start.m;
-        buffer[1] = m_ti[track].start.s;
-        buffer[0] = m_ti[track].start.f;
-    } else {
-        buffer[2] = 0;
-        buffer[1] = 2;
-        buffer[0] = 0;
+        return m_ti[track].start;
     }
-
-    return true;
+    return IEC60908b::MSF(0, 2, 0);
 }
 
 // decode 'raw' subchannel data ripped by cdrdao
@@ -455,10 +423,8 @@ void PCSX::CDRiso::DecodeRawSubData() {
 }
 
 // read track
-// time: byte 0 - minute; byte 1 - second; byte 2 - frame
-// uses bcd format
-bool PCSX::CDRiso::readTrack(uint8_t *time) {
-    int sector = CDRom::MSF2SECT(CDRom::btoi(time[0]), CDRom::btoi(time[1]), CDRom::btoi(time[2]));
+bool PCSX::CDRiso::readTrack(const IEC60908b::MSF time) {
+    int sector = time.toLBA();
     long ret;
 
     if (!m_cdHandle || m_cdHandle->failed()) {
@@ -486,14 +452,6 @@ bool PCSX::CDRiso::readTrack(uint8_t *time) {
     return true;
 }
 
-// plays cdda audio
-// sector: byte 0 - minute; byte 1 - second; byte 2 - frame
-// does NOT uses bcd format
-void PCSX::CDRiso::play(uint8_t *time) { m_playing = true; }
-
-// stops cdda audio
-void PCSX::CDRiso::stop(void) { m_playing = false; }
-
 // gets subchannel data
 uint8_t *PCSX::CDRiso::getBufferSub() {
     if ((m_subHandle || m_subChanMixed) && !m_subChanMissing) {
@@ -503,32 +461,8 @@ uint8_t *PCSX::CDRiso::getBufferSub() {
     return nullptr;
 }
 
-bool PCSX::CDRiso::getStatus(CdrStat *stat) {
-    uint32_t sect;
-
-    if (isLidOpened()) {
-        stat->Status = 0x10;
-    } else {
-        stat->Status = 0;
-    }
-    if (m_playing) {
-        stat->Type = 0x02;
-        stat->Status |= 0x80;
-    } else {
-        // BIOS - boot ID (CD type)
-        stat->Type = m_ti[1].type;
-    }
-
-    // relative -> absolute time
-    sect = m_cddaCurPos;
-    stat->Time = IEC60908b::MSF(sect);
-
-    return true;
-}
-
 // read CDDA sector into buffer
-bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, unsigned char *buffer) {
-    IEC60908b::MSF msf(m, s, f);
+bool PCSX::CDRiso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
     unsigned int file, track, track_start = 0;
     int ret;
 
@@ -541,9 +475,8 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
         if (track == 1) break;
     }
 
-    // data tracks play silent (or CDDA set to silent)
-    if (m_ti[track].type != trackinfo::CDDA ||
-        PCSX::g_emulator->settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_DISABLED) {
+    // data tracks play silent
+    if (m_ti[track].type != TrackType::CDDA) {
         memset(buffer, 0, PCSX::CDRom::CD_FRAMESIZE_RAW);
         return true;
     }
@@ -551,8 +484,9 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
     file = 1;
     if (m_multifile) {
         // find the file that contains this track
-        for (file = track; file > 1; file--)
+        for (file = track; file > 1; file--) {
             if (m_ti[file].handle) break;
+        }
     }
 
     /* Need to decode audio track first if compressed still (lazy) */
@@ -566,7 +500,7 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
         return false;
     }
 
-    if (PCSX::g_emulator->settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_ENABLED_BE || m_cddaBigEndian) {
+    if (m_cddaBigEndian) {
         unsigned char tmp;
 
         for (int i = 0; i < PCSX::CDRom::CD_FRAMESIZE_RAW / 2; i++) {
