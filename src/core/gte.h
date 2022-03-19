@@ -110,14 +110,37 @@ class GTE {
     }
 
   private:
+    class int44 {
+      public:
+        int44(int64_t value)
+            : m_value(value), m_positive_overflow(value > 0x7ffffffffff), m_negative_overflow(value < -0x80000000000) {}
+
+        int44(int64_t value, bool positive_overflow, bool negative_overflow)
+            : m_value(value), m_positive_overflow(positive_overflow), m_negative_overflow(negative_overflow) {}
+
+        int44 operator+(int64_t rhs) {
+            int64_t value = ((m_value + rhs) << 20) >> 20;
+            return int44(value, m_positive_overflow || (value < 0 && m_value >= 0 && rhs >= 0),
+                         m_negative_overflow || (value >= 0 && m_value < 0 && rhs < 0));
+        }
+
+        bool positiveOverflow() { return m_positive_overflow; }
+        bool negativeOverflow() { return m_negative_overflow; }
+        int64_t value() { return m_value; }
+      private:
+        int64_t m_value;
+        bool m_positive_overflow;
+        bool m_negative_overflow;
+    };
+
     int s_sf;
     int64_t s_mac0;
     int64_t s_mac3;
 
-    int32_t BOUNDS(/*int44*/ int64_t value, int max_flag, int min_flag);
-    int32_t A1(/*int44*/ int64_t a);
-    int32_t A2(/*int44*/ int64_t a);
-    int32_t A3(/*int44*/ int64_t a);
+    int32_t BOUNDS(int44 value, int max_flag, int min_flag);
+    int32_t A1(int44 a);
+    int32_t A2(int44 a);
+    int32_t A3(int44 a);
     int64_t F(int64_t a);
 
     uint32_t MFC2_internal(int reg);

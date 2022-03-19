@@ -378,12 +378,11 @@ static inline int64_t gte_shift(int64_t a, int sf) {
     return a;
 }
 
-int32_t PCSX::GTE::BOUNDS(/*int44*/ int64_t value, int max_flag, int min_flag) {
-    if (value /*.positive_overflow()*/ > S64(0x7ffffffffff)) FLAG |= max_flag;
+int32_t PCSX::GTE::BOUNDS(int44 value, int max_flag, int min_flag) {
+    if (value.positiveOverflow()) FLAG |= max_flag;
+    if (value.negativeOverflow()) FLAG |= min_flag;
 
-    if (value /*.negative_overflow()*/ < S64(-0x80000000000)) FLAG |= min_flag;
-
-    return gte_shift(value /*.value()*/, s_sf);
+    return gte_shift(value.value(), s_sf);
 }
 
 static uint32_t gte_divide(uint16_t numerator, uint16_t denominator) {
@@ -420,10 +419,10 @@ static uint32_t gte_divide(uint16_t numerator, uint16_t denominator) {
 
 /* Setting bits 12 & 19-22 in FLAG does not set bit 31 */
 
-int32_t PCSX::GTE::A1(/*int44*/ int64_t a) { return BOUNDS(a, (1 << 31) | (1 << 30), (1 << 31) | (1 << 27)); }
-int32_t PCSX::GTE::A2(/*int44*/ int64_t a) { return BOUNDS(a, (1 << 31) | (1 << 29), (1 << 31) | (1 << 26)); }
-int32_t PCSX::GTE::A3(/*int44*/ int64_t a) {
-    s_mac3 = a;
+int32_t PCSX::GTE::A1(int44 a) { return BOUNDS(a, (1 << 31) | (1 << 30), (1 << 31) | (1 << 27)); }
+int32_t PCSX::GTE::A2(int44 a) { return BOUNDS(a, (1 << 31) | (1 << 29), (1 << 31) | (1 << 26)); }
+int32_t PCSX::GTE::A3(int44 a) {
+    s_mac3 = a.value();
     return BOUNDS(a, (1 << 31) | (1 << 28), (1 << 31) | (1 << 25));
 }
 static int32_t Lm_B1(int32_t a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 31) | (1 << 24)); }
@@ -538,9 +537,9 @@ void PCSX::GTE::RTPS(uint32_t op) {
     s_sf = GTE_SF(gteop(op));
     FLAG = 0;
 
-    MAC1 = A1(/*int44*/ (int64_t)((int64_t)TRX << 12) + (R11 * VX0) + (R12 * VY0) + (R13 * VZ0));
-    MAC2 = A2(/*int44*/ (int64_t)((int64_t)TRY << 12) + (R21 * VX0) + (R22 * VY0) + (R23 * VZ0));
-    MAC3 = A3(/*int44*/ (int64_t)((int64_t)TRZ << 12) + (R31 * VX0) + (R32 * VY0) + (R33 * VZ0));
+    MAC1 = A1(int44((int64_t)TRX << 12) + (R11 * VX0) + (R12 * VY0) + (R13 * VZ0));
+    MAC2 = A2(int44((int64_t)TRY << 12) + (R21 * VX0) + (R22 * VY0) + (R23 * VZ0));
+    MAC3 = A3(int44((int64_t)TRZ << 12) + (R31 * VX0) + (R32 * VY0) + (R33 * VZ0));
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
@@ -653,11 +652,11 @@ void PCSX::GTE::MVMVA(uint32_t op) {
             break;
 
         default:
-            MAC1 = A1(/*int44*/ (int64_t)((int64_t)CV1(cv) << 12) + (MX11(mx) * VX(v)) + (MX12(mx) * VY(v)) +
+            MAC1 = A1(int44((int64_t)CV1(cv) << 12) + (MX11(mx) * VX(v)) + (MX12(mx) * VY(v)) +
                       (MX13(mx) * VZ(v)));
-            MAC2 = A2(/*int44*/ (int64_t)((int64_t)CV2(cv) << 12) + (MX21(mx) * VX(v)) + (MX22(mx) * VY(v)) +
+            MAC2 = A2(int44((int64_t)CV2(cv) << 12) + (MX21(mx) * VX(v)) + (MX22(mx) * VY(v)) +
                       (MX23(mx) * VZ(v)));
-            MAC3 = A3(/*int44*/ (int64_t)((int64_t)CV3(cv) << 12) + (MX31(mx) * VX(v)) + (MX32(mx) * VY(v)) +
+            MAC3 = A3(int44((int64_t)CV3(cv) << 12) + (MX31(mx) * VX(v)) + (MX32(mx) * VY(v)) +
                       (MX33(mx) * VZ(v)));
             break;
     }
@@ -680,9 +679,9 @@ void PCSX::GTE::NCDS(uint32_t op) {
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3(MAC3, lm);
-    MAC1 = A1(/*int44*/ (int64_t)((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
-    MAC2 = A2(/*int44*/ (int64_t)((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
-    MAC3 = A3(/*int44*/ (int64_t)((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
+    MAC1 = A1(int44((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
+    MAC2 = A2(int44((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
+    MAC3 = A3(int44((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3(MAC3, lm);
@@ -707,9 +706,9 @@ void PCSX::GTE::CDP(uint32_t op) {
     s_sf = GTE_SF(gteop(op));
     FLAG = 0;
 
-    MAC1 = A1(/*int44*/ (int64_t)((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
-    MAC2 = A2(/*int44*/ (int64_t)((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
-    MAC3 = A3(/*int44*/ (int64_t)((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
+    MAC1 = A1(int44((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
+    MAC2 = A2(int44((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
+    MAC3 = A3(int44((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3(MAC3, lm);
@@ -741,9 +740,9 @@ void PCSX::GTE::NCDT(uint32_t op) {
         IR1 = Lm_B1(MAC1, lm);
         IR2 = Lm_B2(MAC2, lm);
         IR3 = Lm_B3(MAC3, lm);
-        MAC1 = A1(/*int44*/ (int64_t)((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
-        MAC2 = A2(/*int44*/ (int64_t)((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
-        MAC3 = A3(/*int44*/ (int64_t)((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
+        MAC1 = A1(int44((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
+        MAC2 = A2(int44((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
+        MAC3 = A3(int44((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
         IR1 = Lm_B1(MAC1, lm);
         IR2 = Lm_B2(MAC2, lm);
         IR3 = Lm_B3(MAC3, lm);
@@ -775,9 +774,9 @@ void PCSX::GTE::NCCS(uint32_t op) {
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3(MAC3, lm);
-    MAC1 = A1(/*int44*/ (int64_t)((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
-    MAC2 = A2(/*int44*/ (int64_t)((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
-    MAC3 = A3(/*int44*/ (int64_t)((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
+    MAC1 = A1(int44((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
+    MAC2 = A2(int44((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
+    MAC3 = A3(int44((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3(MAC3, lm);
@@ -803,9 +802,9 @@ void PCSX::GTE::CC(uint32_t op) {
     FLAG = 0;
 
     GTE_LOG("%08x GTE: CC|", op);
-    MAC1 = A1(/*int44*/ (int64_t)(((int64_t)RBK) << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
-    MAC2 = A2(/*int44*/ (int64_t)(((int64_t)GBK) << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
-    MAC3 = A3(/*int44*/ (int64_t)(((int64_t)BBK) << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
+    MAC1 = A1(int44(((int64_t)RBK) << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
+    MAC2 = A2(int44(((int64_t)GBK) << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
+    MAC3 = A3(int44(((int64_t)BBK) << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3(MAC3, lm);
@@ -836,9 +835,9 @@ void PCSX::GTE::NCS(uint32_t op) {
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3(MAC3, lm);
-    MAC1 = A1(/*int44*/ (int64_t)((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
-    MAC2 = A2(/*int44*/ (int64_t)((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
-    MAC3 = A3(/*int44*/ (int64_t)((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
+    MAC1 = A1(int44((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
+    MAC2 = A2(int44((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
+    MAC3 = A3(int44((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3)); 
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3(MAC3, lm);
@@ -864,9 +863,9 @@ void PCSX::GTE::NCT(uint32_t op) {
         IR1 = Lm_B1(MAC1, lm);
         IR2 = Lm_B2(MAC2, lm);
         IR3 = Lm_B3(MAC3, lm);
-        MAC1 = A1(/*int44*/ (int64_t)((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
-        MAC2 = A2(/*int44*/ (int64_t)((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
-        MAC3 = A3(/*int44*/ (int64_t)((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
+        MAC1 = A1(int44((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
+        MAC2 = A2(int44((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
+        MAC3 = A3(int44((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
         IR1 = Lm_B1(MAC1, lm);
         IR2 = Lm_B2(MAC2, lm);
         IR3 = Lm_B3(MAC3, lm);
@@ -963,9 +962,9 @@ void PCSX::GTE::RTPT(uint32_t op) {
     FLAG = 0;
 
     for (int v = 0; v < 3; v++) {
-        MAC1 = A1(/*int44*/ (int64_t)((int64_t)TRX << 12) + (R11 * VX(v)) + (R12 * VY(v)) + (R13 * VZ(v)));
-        MAC2 = A2(/*int44*/ (int64_t)((int64_t)TRY << 12) + (R21 * VX(v)) + (R22 * VY(v)) + (R23 * VZ(v)));
-        MAC3 = A3(/*int44*/ (int64_t)((int64_t)TRZ << 12) + (R31 * VX(v)) + (R32 * VY(v)) + (R33 * VZ(v)));
+        MAC1 = A1(int44((int64_t)TRX << 12) + (R11 * VX(v)) + (R12 * VY(v)) + (R13 * VZ(v)));
+        MAC2 = A2(int44((int64_t)TRY << 12) + (R21 * VX(v)) + (R22 * VY(v)) + (R23 * VZ(v)));
+        MAC3 = A3(int44((int64_t)TRZ << 12) + (R31 * VX(v)) + (R32 * VY(v)) + (R33 * VZ(v)));
         IR1 = Lm_B1(MAC1, lm);
         IR2 = Lm_B2(MAC2, lm);
         IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
@@ -1045,9 +1044,9 @@ void PCSX::GTE::NCCT(uint32_t op) {
         IR1 = Lm_B1(MAC1, lm);
         IR2 = Lm_B2(MAC2, lm);
         IR3 = Lm_B3(MAC3, lm);
-        MAC1 = A1(/*int44*/ (int64_t)((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
-        MAC2 = A2(/*int44*/ (int64_t)((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
-        MAC3 = A3(/*int44*/ (int64_t)((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
+        MAC1 = A1(int44((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
+        MAC2 = A2(int44((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
+        MAC3 = A3(int44((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
         IR1 = Lm_B1(MAC1, lm);
         IR2 = Lm_B2(MAC2, lm);
         IR3 = Lm_B3(MAC3, lm);
