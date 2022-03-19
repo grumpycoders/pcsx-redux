@@ -424,7 +424,7 @@ void PCSX::CDRiso::DecodeRawSubData() {
 
 // read track
 bool PCSX::CDRiso::readTrack(const IEC60908b::MSF time) {
-    int sector = time.toLBA();
+    int sector = time.toLBA() - 150;
     long ret;
 
     if (!m_cdHandle || m_cdHandle->failed()) {

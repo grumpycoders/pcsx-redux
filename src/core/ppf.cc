@@ -75,7 +75,7 @@ void PCSX::PPF::FreePPFCache() {
 
 void PCSX::PPF::CheckPPFCache(uint8_t *pB, IEC60908b::MSF msf) {
     PPF_CACHE *pcstart, *pcend, *pcpos;
-    int addr = msf.toLBA(), pos, anz, start;
+    int addr = msf.toLBA() - 150, pos, anz, start;
 
     if (s_ppfCache == NULL) return;
 
