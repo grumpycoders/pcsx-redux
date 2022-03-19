@@ -66,7 +66,6 @@ class CDRom {
     virtual void write2(uint8_t rt) = 0;
     virtual void write3(uint8_t rt) = 0;
     virtual void load() = 0;
-    virtual int freeze(gzFile f, int Mode) = 0;
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
 
@@ -90,7 +89,6 @@ class CDRom {
     uint8_t m_result[16];
 
     uint8_t m_paramC;
-    uint8_t m_paramP;
     uint8_t m_resultC;
     uint8_t m_resultP;
     uint8_t m_resultReady;
@@ -109,8 +107,6 @@ class CDRom {
     int m_mode, m_file, m_channel;
     bool m_suceeded;
     int m_firstSector;
-
-    bool m_cddaPlaying = false;
 
   public:
     // this belongs in the SPU, not here.

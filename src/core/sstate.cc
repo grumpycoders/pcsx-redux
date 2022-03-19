@@ -109,7 +109,6 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CDParam { g_emulator->m_cdrom->m_param },
             CDResult { g_emulator->m_cdrom->m_result },
             CDParamC { g_emulator->m_cdrom->m_paramC },
-            CDParamP { g_emulator->m_cdrom->m_paramP },
             CDResultC { g_emulator->m_cdrom->m_resultC },
             CDResultP { g_emulator->m_cdrom->m_resultP },
             CDResultReady { g_emulator->m_cdrom->m_resultReady },

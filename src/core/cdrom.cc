@@ -195,8 +195,6 @@ class CDRomImpl : public PCSX::CDRom {
 
     inline void StopCdda() {
         if (m_play) {
-            m_cddaPlaying = false;
-
             m_statP &= ~STATUS_PLAY;
             m_play = false;
             m_fastForward = 0;
@@ -247,7 +245,7 @@ class CDRomImpl : public PCSX::CDRom {
 #endif
 
         // check dbuf IRQ still active
-        if (m_play == 0) return;
+        if (!m_play) return;
         if ((PCSX::g_emulator->m_spu->readRegister(H_SPUctrl) & 0x40) == 0) return;
         if ((PCSX::g_emulator->m_spu->readRegister(H_SPUirqAddr) * 8) >= 0x800) return;
 
@@ -279,7 +277,7 @@ class CDRomImpl : public PCSX::CDRom {
         } else {
             stat->Status = 0;
         }
-        if (m_cddaPlaying) {
+        if (m_play) {
             stat->Type = 0x02;
             stat->Status |= 0x80;
         } else {
@@ -642,8 +640,6 @@ class CDRomImpl : public PCSX::CDRom {
                 Find_CurTrack(m_setSectorPlay);
                 readTrack(m_setSectorPlay);
                 m_trackChanged = false;
-
-                m_cddaPlaying = true;
 
                 // Vib Ribbon: gameplay checks flag
                 m_statP &= ~STATUS_SEEK;
@@ -1511,7 +1507,6 @@ class CDRomImpl : public PCSX::CDRom {
         memset(m_result, 0, sizeof(m_result));
 
         m_paramC = 0;
-        m_paramP = 0;
         m_resultC = 0;
         m_resultP = 0;
         m_resultReady = 0;
@@ -1584,29 +1579,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (m_play) {
             Find_CurTrack(m_setSectorPlay);
-            m_cddaPlaying = true;
         }
-    }
-
-    int freeze(gzFile f, int Mode) final {
-        if (Mode == 0) m_cddaPlaying = false;
-
-        if (Mode == 1) m_paramP = m_paramC;
-
-        if (Mode == 0) {
-            getCdInfo();
-
-            // read right sub data
-            MSF tmp = m_prev;
-            readTrack(++tmp);
-
-            if (m_play) {
-                Find_CurTrack(m_setSectorPlay);
-                m_cddaPlaying = true;
-            }
-        }
-
-        return 0;
     }
 
     void lidInterrupt() final {
