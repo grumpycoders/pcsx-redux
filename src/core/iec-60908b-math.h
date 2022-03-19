@@ -33,14 +33,14 @@ namespace IEC60908b {
 struct MSF {
     MSF() : m(0), s(0), f(0) {}
     MSF(uint8_t m, uint8_t s, uint8_t f) : m(m), s(s), f(f) {}
-    MSF(uint32_t lba) {
+    explicit MSF(uint32_t lba) {
         m = lba / 75 / 60;
         lba = lba - m * 75 * 60;
         s = lba / 75;
         lba = lba - s * 75;
         f = lba;
     }
-    MSF(std::string_view msf) {
+    explicit MSF(std::string_view msf) {
         m = s = f = 0;
         auto tokens = Misc::split(msf, ":");
         auto conv = [&tokens](int index) -> uint8_t {

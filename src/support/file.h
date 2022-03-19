@@ -137,6 +137,14 @@ class File {
         return slice;
     }
 
+    Slice readAt(ssize_t size, ssize_t pos) {
+        void* data = malloc(size);
+        readAt(data, size, pos);
+        Slice slice;
+        slice.acquire(data, size);
+        return slice;
+    }
+
     std::string readString(size_t size) {
         std::string r;
         r.reserve(size);
@@ -156,9 +164,25 @@ class File {
         return ret;
     }
 
+    template <class T>
+    T readAt(size_t pos) {
+        T ret = 0;
+        for (int i = 0; i < sizeof(T); i++) {
+            T b = byteAt(pos++);
+            ret |= (b << (i * 8));
+        }
+        return ret;
+    }
+
     uint8_t byte() {
         uint8_t r;
         read(&r, 1);
+        return r;
+    }
+
+    uint8_t byteAt(size_t pos) {
+        uint8_t r;
+        readAt(&r, 1, pos);
         return r;
     }
 

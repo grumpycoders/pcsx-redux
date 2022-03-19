@@ -134,9 +134,8 @@ static void eccWritePQ(const uint8_t *address, const uint8_t *data, size_t major
                 temp = data[index - 4];
             }
             index += minor_inc;
-            if (index >= size) {
-                index -= size;
-            }
+            if (index >= size) index -= size;
+
             ecc_a ^= temp;
             ecc_b ^= temp;
             ecc_a = c_ecc_f_lut[ecc_a];
@@ -154,7 +153,7 @@ void PCSX::IEC60908b::computeECC(const uint8_t *address, const uint8_t *data, ui
 
 uint32_t PCSX::IEC60908b::computeEDC(uint32_t edc, const uint8_t *src, size_t size) {
     for (; size; size--) {
-        edc = (edc >> 8) ^ c_edc_lut[(edc ^ (*src++)) & 0xff];
+        edc = (edc >> 8) ^ c_edc_lut[(edc ^ *src++) & 0xff];
     }
     return edc;
 }

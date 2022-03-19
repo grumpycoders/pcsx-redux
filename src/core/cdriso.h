@@ -80,6 +80,8 @@ class CDRiso {
     int LoadSBI(const char* filename);
     bool CheckSBI(const uint8_t* time);
 
+    int get_compressed_cdda_track_length(const char *filepath);
+
   private:
     std::filesystem::path m_isoPath;
     typedef ssize_t (CDRiso::*read_func_t)(IO<File> f, unsigned int base, void* dest, int sector);
@@ -183,7 +185,7 @@ class CDRiso {
     ssize_t cdread_2048(IO<File> f, unsigned int base, void* dest, int sector);
     ssize_t ecmDecode(IO<File> f, unsigned int base, void* dest, int sector);
     int handleecm(const char* isoname, IO<File> cdh, int32_t* accurate_length);
-    void PrintTracks();
+    void printTracks();
     void UnloadSBI();
     int opensbifile(const char* isoname);
 };
