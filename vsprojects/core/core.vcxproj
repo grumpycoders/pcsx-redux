@@ -237,6 +237,15 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\core\binloader.cc" />
     <ClCompile Include="..\..\src\core\callstacks.cc" />
+    <ClCompile Include="..\..\src\core\cdriso-cbin.cc" />
+    <ClCompile Include="..\..\src\core\cdriso-ccd.cc" />
+    <ClCompile Include="..\..\src\core\cdriso-cue.cc" />
+    <ClCompile Include="..\..\src\core\cdriso-ecm.cc" />
+    <ClCompile Include="..\..\src\core\cdriso-ffmpeg.cc" />
+    <ClCompile Include="..\..\src\core\cdriso-mds.cc" />
+    <ClCompile Include="..\..\src\core\cdriso-pbp.cc" />
+    <ClCompile Include="..\..\src\core\cdriso-sbi.cc" />
+    <ClCompile Include="..\..\src\core\cdriso-toc.cc" />
     <ClCompile Include="..\..\src\core\cdriso.cc" />
     <ClCompile Include="..\..\src\core\cdrom.cc" />
     <ClCompile Include="..\..\src\core\cheat.cc" />
