@@ -22,6 +22,7 @@
 
 #if defined(DYNAREC_X86_64)
 #include <array>
+#include <cassert>
 #include <fstream>
 #include <optional>
 #include <stdexcept>
@@ -295,6 +296,35 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
                     break;
             }
         }
+    }
+
+    // Emit a call to a class member function, passing "thisObject" (+ an adjustment if necessary)
+    // As the function's "this" pointer. Only works with classes with single, non-virtual inheritance
+    // Hence the static asserts. Those are all we need though, thankfully.
+    template <typename T>
+    void emitMemberFunctionCall(T func, void* thisObject) {
+        void* functionPtr;
+        uintptr_t thisPtr = reinterpret_cast<uintptr_t>(thisObject);
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+        static_assert(sizeof(T) == 8, "[x64 JIT] Invalid size for member function pointer");
+        std::memcpy(&functionPtr, &func, sizeof(T));
+#else
+        static_assert(sizeof(T) == 16, "[x64 JIT] Invalid size for member function pointer");
+        uintptr_t arr[2];
+        std::memcpy(arr, &func, sizeof(T));
+        functionPtr = reinterpret_cast<void*>(arr[0]);  // First 8 bytes correspond to the actual pointer to the function
+        thisPtr += arr[1];     // Next 8 bytes correspond to the "this" pointer adjustment
+#endif
+
+        // Load this pointer to arg1
+        if (thisPtr == reinterpret_cast<uintptr_t>(this)) {
+            loadThisPointer(arg1.cvt64());
+        } else {
+            loadAddress(arg1.cvt64(), reinterpret_cast<void*>(thisPtr));
+        }
+
+        gen.call(functionPtr);
     }
 
     static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->psxException(e, bd); }

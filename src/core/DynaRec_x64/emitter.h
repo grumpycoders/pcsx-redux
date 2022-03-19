@@ -182,33 +182,41 @@ struct Emitter final : public CodeGenerator {
         }
     }
 
-    // Like callFunc, except it checks whether the function can be called with a relative call
-    // If it can't, it loads a pointer to the function in rax, then uses call rax
-    // We don't really need it because we've guaranteed all calls can be relative, but it's
-    // Nice to have
-    template <typename T>
-    void callFuncSafe(T& func) {
+    void jmpSafe(void* func) {
         const size_t distance = (size_t)func - (size_t)getCurr();
 
         if (Xbyak::inner::IsInInt32(distance)) {
-            callFunc(func);
+            jmp(func);
+        } else {
+            mov(rax, (uint64_t)func);
+            jmp(rax);
+        }
+    }
+
+    void callSafe(void* func) {
+        const size_t distance = (size_t)func - (size_t)getCurr();
+
+        if (Xbyak::inner::IsInInt32(distance)) {
+            call(func);
         } else {
             mov(rax, (uint64_t)func);
             call(rax);
         }
     }
 
+    // Like callFunc, except it checks whether the function can be called with a relative call
+    // If it can't, it loads a pointer to the function in rax, then uses call rax
+    // We don't really need it because we've guaranteed all calls can be relative, but it's
+    // Nice to have
+    template <typename T>
+    void callFuncSafe(T& func) {
+        callSafe(&func);
+    }
+
     // Similar to callFuncSafe, except it does a jmp instead
     template <typename T>
     void jmpFuncSafe(T& func) {
-        const size_t distance = (size_t)func - (size_t)getCurr();
-
-        if (Xbyak::inner::IsInInt32(distance)) {
-            jmpFunc(func);
-        } else {
-            mov(rax, (uint64_t)func);
-            jmp(rax);
-        }
+        jmpSafe(&func);
     }
 
     // Returns a signed integer that shows how many bytes of free space are left in the code buffer
