@@ -22,7 +22,7 @@
 #include <zlib.h>
 
 #include "core/cdrom.h"
-#include "core/iec-60908b-math.h"
+#include "core/iec-60908b.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 //

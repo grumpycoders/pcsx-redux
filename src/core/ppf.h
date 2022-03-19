@@ -21,7 +21,7 @@
 
 #include <stdint.h>
 
-#include "core/iec-60908b-math.h"
+#include "core/iec-60908b.h"
 
 namespace PCSX {
 

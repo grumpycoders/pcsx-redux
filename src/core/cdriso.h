@@ -23,7 +23,7 @@
 
 #include <filesystem>
 
-#include "core/iec-60908b-math.h"
+#include "core/iec-60908b.h"
 #include "core/ppf.h"
 #include "core/psxemulator.h"
 #include "support/uvfile.h"

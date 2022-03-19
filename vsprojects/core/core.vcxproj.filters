@@ -139,7 +139,7 @@
     <ClCompile Include="..\..\src\core\DynaRec_x86\iR3000A.cc">
       <Filter>Source Files\Dynarec x86</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\iec-60908b-math.cc">
+    <ClCompile Include="..\..\src\core\iec-60908b.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\cdriso-cbin.cc">
@@ -303,7 +303,7 @@
     <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h">
       <Filter>Header Files\Dynarec x64</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\iec-60908b-math.h">
+    <ClInclude Include="..\..\src\core\iec-60908b.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
