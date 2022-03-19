@@ -355,8 +355,8 @@ void PCSX::R3000Acpu::psxBranchTest() {
         // https://psx-spx.consoledev.net/cpuspecifications/#interrupts-vs-gte-commands
         const auto pointer = (uint32_t*)PSXM(m_psxRegs.pc);
         if (pointer != nullptr) {
-            const auto next = *pointer; // Fetch next instruction
-            if (((next >> 24) & 0xfe) == 0x4a) { // Return if it's a GTE instruction
+            const auto next = *pointer;           // Fetch next instruction
+            if (((next >> 24) & 0xfe) == 0x4a) {  // Return if it's a GTE instruction
                 return;
             }
         }

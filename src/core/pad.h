@@ -38,14 +38,7 @@ class Pads {
   public:
     enum class Port { Port1 = 0, Port2 };
     enum class InputType { Auto, Controller, Keyboard };
-    enum class PadType {
-        Digital = 0,
-        Analog,
-        Mouse,
-        Negcon,
-        Gun,
-        Guncon
-    };
+    enum class PadType { Digital = 0, Analog, Mouse, Negcon, Gun, Guncon };
 
     Pads();
     void init();

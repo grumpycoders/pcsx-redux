@@ -1875,12 +1875,11 @@ uint8_t *PCSX::CDRiso::getBuffer() {
 
 void PCSX::CDRiso::PrintTracks() {
     for (int i = 1; i <= m_numtracks; i++) {
-        PCSX::g_system->printf(_("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
-                               (m_ti[i].type == trackinfo::DATA        ? "DATA"
-                                : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA"
-                                                                       : "CDDA"),
-                               m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0],
-                               m_ti[i].length[1], m_ti[i].length[2]);
+        PCSX::g_system->printf(
+            _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
+            (m_ti[i].type == trackinfo::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
+            m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0], m_ti[i].length[1],
+            m_ti[i].length[2]);
     }
 }
 
