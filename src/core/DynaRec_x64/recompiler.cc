@@ -477,21 +477,9 @@ void DynaRecCPU::handleKernelCall() {
     if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
         return;  // Mask out the segment, return if not a kernel call vector
 
-    switch (pc) {  // Handle the A0/B0/C0 vectors
-        case 0xA0:
-            loadThisPointer(arg1.cvt64());
-            call(interceptKernelCallWrapper<0xA0>);
-            break;
-
-        case 0xB0:
-            loadThisPointer(arg1.cvt64());
-            call(interceptKernelCallWrapper<0xB0>);
-            break;
-
-        case 0xC0:
-            loadThisPointer(arg1.cvt64());
-            call(interceptKernelCallWrapper<0xC0>);
-            break;
+    if (pc == 0xA0 || pc == 0xB0 || pc == 0xC0) {
+        gen.mov(arg2, m_pc);
+        emitMemberFunctionCall(&PCSX::R3000Acpu::InterceptBIOS<false>, this);
     }
 }
 

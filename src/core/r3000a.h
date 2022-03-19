@@ -375,6 +375,7 @@ class R3000Acpu {
     void logB0KernelCall(uint32_t call);
     void logC0KernelCall(uint32_t call);
 
+  public:
     template <bool checkPC = true>
     inline void InterceptBIOS(uint32_t currentPC) {
         const uint32_t pc = currentPC & 0x1fffff;
@@ -469,7 +470,6 @@ class R3000Acpu {
         }
     }
 
-  public:
     /*
 Formula One 2001
 - Use old CPU cache code when the RAM location is

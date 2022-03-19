@@ -327,6 +327,20 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         gen.call(functionPtr);
     }
 
+    template <typename T>
+    void callMemoryFunc(T func) {
+        void* object = PCSX::g_emulator->m_psxMem.get();
+        prepareForCall();
+        emitMemberFunctionCall(func, object);
+    }
+
+    template <typename T>
+    void callGTEFunc(T func) {
+        void* object = PCSX::g_emulator->m_gte.get();
+        prepareForCall();
+        emitMemberFunctionCall(func, object);
+    }
+
     static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->psxException(e, bd); }
     static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
     static void recBranchTestWrapper(DynaRecCPU* that) { that->psxBranchTest(); }
