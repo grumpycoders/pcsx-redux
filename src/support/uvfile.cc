@@ -255,7 +255,7 @@ PCSX::UvFile::UvFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABL
     openwrapper(filename, UV_FS_O_RDWR);
 }
 
-PCSX::UvFile::UvFile(std::string_view url, std::function<void(UvFile *)> &&callbackDone, uv_loop_t *otherLoop,
+PCSX::UvFile::UvFile(const std::string_view &url, std::function<void(UvFile *)> &&callbackDone, uv_loop_t *otherLoop,
                      DownloadUrl)
     : File(RO_SEEKABLE), m_filename(url), m_download(true), m_failed(false) {
     s_allFiles.push_back(this);

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,14 +19,19 @@
 
 #pragma once
 
+#include <algorithm>
+#include <cctype>
+#include <functional>
 #include <string>
+#include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace PCSX {
 
-namespace Misc {
+namespace StringsHelpers {
 
-static inline std::vector<std::string> split(const std::string &str, const std::string_view delims,
+static inline std::vector<std::string> split(const std::string &str, const std::string_view &delims,
                                              bool keepEmpty = false) {
     std::vector<std::string> tokens;
     size_t prev = 0, pos = 0;
@@ -40,7 +45,7 @@ static inline std::vector<std::string> split(const std::string &str, const std::
     return tokens;
 }
 
-static inline std::vector<std::string_view> split(std::string_view str, std::string_view delims,
+static inline std::vector<std::string_view> split(const std::string_view &str, const std::string_view &delims,
                                                   bool keepEmpty = false) {
     std::vector<std::string_view> tokens;
     size_t prev = 0, pos = 0;
@@ -48,14 +53,30 @@ static inline std::vector<std::string_view> split(std::string_view str, std::str
         pos = str.find(delims, prev);
         if (pos == std::string::npos) pos = str.length();
         std::string_view token = str.substr(prev, pos - prev);
-        if (keepEmpty || !token.empty()) tokens.push_back(token);
+        if (keepEmpty || !token.empty()) tokens.emplace_back(std::move(token));
         prev = pos + delims.length();
     } while (pos < str.length() && prev <= str.length());
     return tokens;
 }
 
-static inline bool startsWith(const std::string &s1, const std::string &s2) { return s1.rfind(s2, 0) == 0; }
+static inline bool startsWith(const std::string &s1, const std::string_view &s2) { return s1.rfind(s2, 0) == 0; }
+static inline bool startsWith(const std::string_view &s1, const std::string_view &s2) { return s1.rfind(s2, 0) == 0; }
 
-}  // namespace Misc
+static inline bool strcasecmp(const std::string_view &lhs, const std::string_view &rhs) {
+    return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
+                      [](const char x, const char y) -> bool { return std::tolower(x) == std::tolower(y); });
+}
+
+static inline std::string_view trim(std::string_view str, const std::string_view &totrim = " ") {
+    str.remove_prefix(std::min(str.find_first_not_of(totrim), str.size()));
+    str.remove_suffix(str.size() - (str.find_last_not_of(totrim) + 1));
+    return str;
+}
+
+static inline std::string_view trim(const std::string &str, const std::string_view &totrim = " ") {
+    return trim(std::string_view(str), totrim);
+}
+
+}  // namespace StringsHelpers
 
 }  // namespace PCSX

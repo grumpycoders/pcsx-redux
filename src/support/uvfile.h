@@ -64,8 +64,9 @@ class UvFile : public File, public UvFilesListType::Node {
     virtual bool eof() final override;
     virtual std::filesystem::path filename() final override { return m_filename; }
     virtual File* dup() final override {
-        return m_download ? new UvFile(m_filename.string(), DOWNLOAD_URL)
-                          : writable() ? new UvFile(m_filename, FileOps::READWRITE) : new UvFile(m_filename);
+        return m_download   ? new UvFile(m_filename.string(), DOWNLOAD_URL)
+               : writable() ? new UvFile(m_filename, FileOps::READWRITE)
+                            : new UvFile(m_filename);
     }
 
     // Open the file in read-only mode.
@@ -78,8 +79,8 @@ class UvFile : public File, public UvFilesListType::Node {
     UvFile(const std::filesystem::path& filename, FileOps::ReadWrite)
         : UvFile(filename.u8string(), FileOps::READWRITE) {}
     // Download a URL
-    UvFile(std::string_view url, DownloadUrl) : UvFile(url, nullptr, nullptr, DOWNLOAD_URL) {}
-    UvFile(std::string_view url, std::function<void(UvFile*)>&& completed, uv_loop_t* other, DownloadUrl);
+    UvFile(const std::string_view& url, DownloadUrl) : UvFile(url, nullptr, nullptr, DOWNLOAD_URL) {}
+    UvFile(const std::string_view& url, std::function<void(UvFile*)>&& completed, uv_loop_t* other, DownloadUrl);
 #if defined(__cpp_lib_char8_t)
     UvFile(const std::u8string& filename) : UvFile(reinterpret_cast<const char*>(filename.c_str())) {}
     UvFile(const std::u8string& filename, FileOps::Truncate)

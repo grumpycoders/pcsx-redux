@@ -19,11 +19,6 @@
 
 #include "cdrom/cdriso.h"
 
-#ifdef _WIN32
-#include "support/windowswrapper.h"
-#define strcasecmp _stricmp
-#endif
-
 int PCSX::CDRiso::handlecbin(const char *isofile) {
     struct {
         char magic[4];
@@ -40,7 +35,7 @@ int PCSX::CDRiso::handlecbin(const char *isofile) {
     size_t read_len = 0;
 
     if (strlen(isofile) >= 5) ext = isofile + strlen(isofile) - 5;
-    if (ext == NULL || (strcasecmp(ext + 1, ".cbn") != 0 && strcasecmp(ext, ".cbin") != 0)) return -1;
+    if (ext == NULL || (!StringsHelpers::strcasecmp(ext + 1, ".cbn") && !StringsHelpers::strcasecmp(ext, ".cbin") != 0)) return -1;
 
     m_cdHandle->rSeek(0, SEEK_SET);
 

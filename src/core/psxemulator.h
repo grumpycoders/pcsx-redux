@@ -62,7 +62,7 @@
 
 // Local includes from core - anything else from core is forbidden
 #include "core/logger.h"
-#include "core/misc.h"
+#include "support/strings-helpers.h"
 #include "core/system.h"
 
 #if defined(__linux__) || defined(__MACOSX__)

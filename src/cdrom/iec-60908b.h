@@ -25,7 +25,7 @@
 #include <compare>
 #include <string_view>
 
-#include "core/misc.h"
+#include "support/strings-helpers.h"
 #include "fmt/format.h"
 
 namespace PCSX {
@@ -74,9 +74,9 @@ struct MSF {
         lba = lba - s * 75;
         f = lba;
     }
-    explicit MSF(std::string_view msf) {
+    explicit MSF(const std::string_view &msf) {
         m = s = f = 0;
-        auto tokens = Misc::split(msf, ":");
+        auto tokens = StringsHelpers::split(msf, ":");
         auto conv = [&tokens](int index) -> uint8_t {
             if (index >= tokens.size()) return 0;
             auto &sv = tokens[index];

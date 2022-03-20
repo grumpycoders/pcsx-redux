@@ -25,7 +25,7 @@
 #include <bitset>
 #include <stdexcept>
 
-#include "core/misc.h"
+#include "support/strings-helpers.h"
 #include "core/pad.h"
 #include "support/sjis_conv.h"
 

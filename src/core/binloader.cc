@@ -173,7 +173,7 @@ bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
         file->read(tags.data(), tagsSize);
         char* cr;
 
-        auto lines = Misc::split(std::string_view(tags.data(), tags.size()), "\n\r");
+        auto lines = StringsHelpers::split(std::string_view(tags.data(), tags.size()), "\n\r");
 
         for (auto& line : lines) {
             auto e = line.find('=', 0);
