@@ -23,8 +23,8 @@
 
 #include "core/cdrom.h"
 
+#include "cdrom/ppf.h"
 #include "core/debug.h"
-#include "core/ppf.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
 #include "magic_enum/include/magic_enum.hpp"

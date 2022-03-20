@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "core/cdriso.h"
+#include "cdrom/cdriso.h"
 
 #ifdef _WIN32
 #include "support/windowswrapper.h"

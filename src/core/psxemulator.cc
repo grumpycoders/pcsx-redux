@@ -19,6 +19,7 @@
 
 #include "core/psxemulator.h"
 
+#include "cdrom/ppf.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/cheat.h"
@@ -29,7 +30,6 @@
 #include "core/mdec.h"
 #include "core/pad.h"
 #include "core/pcsxlua.h"
-#include "core/ppf.h"
 #include "core/r3000a.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"

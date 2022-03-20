@@ -17,11 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "core/cdriso.h"
+#include "cdrom/cdriso.h"
 
 #include <zlib.h>
 
-#include "core/iec-60908b.h"
+#include "cdrom/iec-60908b.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 //

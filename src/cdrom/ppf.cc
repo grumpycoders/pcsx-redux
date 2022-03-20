@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "core/ppf.h"
+#include "cdrom/ppf.h"
 
 #include "core/cdrom.h"
 #include "core/psxemulator.h"

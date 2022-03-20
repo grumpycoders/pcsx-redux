@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "core/cdriso.h"
+#include "cdrom/cdriso.h"
+#include "cdrom/iec-60908b.h"
 #include "core/decode_xa.h"
-#include "core/iec-60908b.h"
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
 #include "core/psxmem.h"
