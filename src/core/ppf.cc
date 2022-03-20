@@ -106,7 +106,7 @@ void PCSX::PPF::CheckPPFCache(uint8_t *pB, IEC60908b::MSF msf) {
     if (addr == pcpos->addr) {
         PPF_DATA *p = pcpos->pNext;
         while (p != NULL && p->addr == addr) {
-            pos = p->pos - (PCSX::CDRom::CD_FRAMESIZE_RAW - PCSX::CDRom::DATA_SIZE);
+            pos = p->pos - (PCSX::IEC60908b::FRAMESIZE_RAW - PCSX::IEC60908b::DATA_SIZE);
             anz = p->anz;
             if (pos < 0) {
                 start = -pos;
@@ -316,11 +316,11 @@ void PCSX::PPF::load() {
             throw("File read error.");
         }
 
-        ladr = pos / PCSX::CDRom::CD_FRAMESIZE_RAW;
-        off = pos % PCSX::CDRom::CD_FRAMESIZE_RAW;
+        ladr = pos / PCSX::IEC60908b::FRAMESIZE_RAW;
+        off = pos % PCSX::IEC60908b::FRAMESIZE_RAW;
 
-        if (off + anz > PCSX::CDRom::CD_FRAMESIZE_RAW) {
-            anx = off + anz - PCSX::CDRom::CD_FRAMESIZE_RAW;
+        if (off + anz > PCSX::IEC60908b::FRAMESIZE_RAW) {
+            anx = off + anz - PCSX::IEC60908b::FRAMESIZE_RAW;
             anz -= (unsigned char)anx;
             AddToPPF(ladr + 1, 0, anx, &ppfmem[anz]);
         }

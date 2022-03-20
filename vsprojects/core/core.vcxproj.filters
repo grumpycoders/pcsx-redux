@@ -46,9 +46,6 @@
     <ClCompile Include="..\..\src\core\mdec.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\misc.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\core\pad.cc">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -30,18 +30,6 @@
 
 namespace PCSX {
 
-struct SubQ {
-    char res0[12];
-    unsigned char ControlAndADR;
-    unsigned char TrackNumber;
-    unsigned char IndexNumber;
-    unsigned char TrackRelativeAddress[3];
-    unsigned char Filler;
-    unsigned char AbsoluteAddress[3];
-    unsigned char CRC[2];
-    char res1[72];
-};
-
 class CDRiso {
   public:
     enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
@@ -62,7 +50,7 @@ class CDRiso {
     uint8_t* getBuffer();
     void play(uint8_t* time);
     void stop();
-    uint8_t* getBufferSub();
+    const IEC60908b::Sub* getBufferSub();
     bool readCDDA(IEC60908b::MSF msf, unsigned char* buffer);
 
     bool isActive();
@@ -92,7 +80,7 @@ class CDRiso {
     bool m_isMode1ISO = false;  // TODO: use sector size/mode info from CUE also?
 
     uint8_t m_cdbuffer[2352];
-    uint8_t m_subbuffer[96];
+    IEC60908b::Sub m_subbuffer;
 
     bool m_cddaBigEndian = false;
     uint32_t m_cddaCurPos = 0;
@@ -162,7 +150,7 @@ class CDRiso {
     PPF m_ppf;
 
     trackinfo::cddatype_t get_cdda_type(const char* str);
-    void DecodeRawSubData();
+    void decodeRawSubData();
     int do_decode_cdda(struct trackinfo* tri, uint32_t tracknumber);
     int parsetoc(const char* isofile);
     int parsecue(const char* isofile);

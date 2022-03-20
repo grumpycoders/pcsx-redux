@@ -26,10 +26,40 @@
 #include <string_view>
 
 #include "core/misc.h"
+#include "fmt/format.h"
 
 namespace PCSX {
 
 namespace IEC60908b {
+
+static constexpr size_t FRAMESIZE_RAW = 2352;
+static constexpr size_t DATA_SIZE = FRAMESIZE_RAW - 12;
+static constexpr size_t SUB_FRAMESIZE = 96;
+
+union Sub {
+    uint8_t raw[96];
+    struct {
+        uint8_t P[12];
+        union {
+            struct {
+                uint8_t ControlAndADR;
+                uint8_t TrackNumber;
+                uint8_t IndexNumber;
+                uint8_t RelativeAddress[3];
+                uint8_t Zero;
+                uint8_t AbsoluteAddress[3];
+                uint8_t CRC[2];
+            };
+            uint8_t Q[12];
+        };
+        uint8_t R[12];
+        uint8_t S[12];
+        uint8_t T[12];
+        uint8_t U[12];
+        uint8_t V[12];
+        uint8_t W[12];
+    };
+};
 
 static inline constexpr uint8_t btoi(uint8_t b) { return ((b / 16) * 10) + (b % 16); }
 static inline constexpr uint8_t itob(uint8_t i) { return ((i / 10) * 16) + (i % 10); }
@@ -109,6 +139,9 @@ struct MSF {
 void computeECC(const uint8_t *address, const uint8_t *data, uint8_t *ecc);
 // Compute EDC for a block
 uint32_t computeEDC(uint32_t edc, const uint8_t *src, size_t size);
+
+// Compute the CRC-16 for the SubQ channel.
+uint16_t subqCRC(const uint8_t *d, int len = 10);
 
 }  // namespace IEC60908b
 }  // namespace PCSX

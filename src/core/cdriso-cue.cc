@@ -81,7 +81,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
             sector_size = 0;
             if (strstr(linebuf, "AUDIO") != NULL) {
                 m_ti[m_numtracks].type = TrackType::CDDA;
-                sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
+                sector_size = PCSX::IEC60908b::FRAMESIZE_RAW;
                 // Check if extension is mp3, etc, for compressed audio formats
                 if (m_multifile &&
                     (m_ti[m_numtracks].cddatype = get_cdda_type(m_ti[m_numtracks].filepath)) > trackinfo::BIN) {
@@ -90,12 +90,12 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 
                     // TODO: get frame length for compressed audio as well
                     m_ti[m_numtracks].len_decoded_buffer = 44100 * (16 / 8) * 2 * seconds;
-                    file_len = m_ti[m_numtracks].len_decoded_buffer / PCSX::CDRom::CD_FRAMESIZE_RAW;
+                    file_len = m_ti[m_numtracks].len_decoded_buffer / PCSX::IEC60908b::FRAMESIZE_RAW;
 
                     // Send to decoder if not lazy decoding
                     if (!lazy_decode) {
                         PCSX::g_system->printf("\n");
-                        file_len = do_decode_cdda(&(m_ti[m_numtracks]), m_numtracks) / PCSX::CDRom::CD_FRAMESIZE_RAW;
+                        file_len = do_decode_cdda(&(m_ti[m_numtracks]), m_numtracks) / PCSX::IEC60908b::FRAMESIZE_RAW;
                     }
                 }
             } else if (sscanf(linebuf, " TRACK %u MODE%u/%u", &t, &mode, &sector_size) == 3) {
@@ -111,7 +111,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
                 m_ti[m_numtracks].type = m_numtracks == 1 ? TrackType::DATA : TrackType::CDDA;
             }
             if (sector_size == 0)  // TODO m_isMode1ISO?
-                sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
+                sector_size = PCSX::IEC60908b::FRAMESIZE_RAW;
         } else if (!strcmp(token, "INDEX")) {
             if (sscanf(linebuf, " INDEX %02d %8s", &t, time) != 2)
                 PCSX::g_system->printf(".cue: failed to parse INDEX\n");
@@ -172,7 +172,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 
             // File length, compressed audio length will be calculated in AUDIO tag
             m_ti[m_numtracks + 1].handle->rSeek(0, SEEK_END);
-            file_len = m_ti[m_numtracks + 1].handle->rTell() / PCSX::CDRom::CD_FRAMESIZE_RAW;
+            file_len = m_ti[m_numtracks + 1].handle->rTell() / PCSX::IEC60908b::FRAMESIZE_RAW;
 
             if (m_numtracks == 0 && (isofile.extension() == ".cue")) {
                 // user selected .cue as image file, use its data track instead

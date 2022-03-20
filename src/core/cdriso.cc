@@ -21,7 +21,6 @@
 
 #include <zlib.h>
 
-#include "core/cdrom.h"
 #include "core/iec-60908b.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,18 +115,18 @@ int PCSX::CDRiso::opensubfile(const char *isoname) {
 }
 
 ssize_t PCSX::CDRiso::cdread_normal(IO<File> f, unsigned int base, void *dest, int sector) {
-    f->rSeek(base + sector * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_SET);
-    return f->read(dest, PCSX::CDRom::CD_FRAMESIZE_RAW);
+    f->rSeek(base + sector * PCSX::IEC60908b::FRAMESIZE_RAW, SEEK_SET);
+    return f->read(dest, PCSX::IEC60908b::FRAMESIZE_RAW);
 }
 
 ssize_t PCSX::CDRiso::cdread_sub_mixed(IO<File> f, unsigned int base, void *dest, int sector) {
     int ret;
 
-    f->rSeek(base + sector * (PCSX::CDRom::CD_FRAMESIZE_RAW + PCSX::CDRom::SUB_FRAMESIZE), SEEK_SET);
-    ret = f->read(dest, PCSX::CDRom::CD_FRAMESIZE_RAW);
-    f->read(m_subbuffer, PCSX::CDRom::SUB_FRAMESIZE);
+    f->rSeek(base + sector * (PCSX::IEC60908b::FRAMESIZE_RAW + PCSX::IEC60908b::SUB_FRAMESIZE), SEEK_SET);
+    ret = f->read(dest, PCSX::IEC60908b::FRAMESIZE_RAW);
+    f->read(m_subbuffer.raw, PCSX::IEC60908b::SUB_FRAMESIZE);
 
-    if (m_subChanRaw) DecodeRawSubData();
+    if (m_subChanRaw) decodeRawSubData();
 
     return ret;
 }
@@ -219,8 +218,8 @@ ssize_t PCSX::CDRiso::cdread_compressed(IO<File> f, unsigned int base, void *des
 
 finish:
     if (dest != m_cdbuffer)  // copy avoid HACK
-        memcpy(dest, m_compr_img->buff_raw[m_compr_img->sector_in_blk], PCSX::CDRom::CD_FRAMESIZE_RAW);
-    return PCSX::CDRom::CD_FRAMESIZE_RAW;
+        memcpy(dest, m_compr_img->buff_raw[m_compr_img->sector_in_blk], PCSX::IEC60908b::FRAMESIZE_RAW);
+    return PCSX::IEC60908b::FRAMESIZE_RAW;
 }
 
 ssize_t PCSX::CDRiso::cdread_2048(IO<File> f, unsigned int base, void *dest, int sector) {
@@ -250,10 +249,12 @@ uint8_t *PCSX::CDRiso::getBuffer() {
 
 void PCSX::CDRiso::printTracks() {
     for (int i = 1; i <= m_numtracks; i++) {
-        PCSX::g_system->printf(
-            _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
-            (m_ti[i].type == TrackType::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
-            m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s, m_ti[i].length.f);
+        PCSX::g_system->printf(_("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
+                               (m_ti[i].type == TrackType::DATA        ? "DATA"
+                                : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA"
+                                                                       : "CDDA"),
+                               m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s,
+                               m_ti[i].length.f);
     }
 }
 
@@ -408,18 +409,19 @@ PCSX::IEC60908b::MSF PCSX::CDRiso::getTD(uint8_t track) {
     return IEC60908b::MSF(0, 2, 0);
 }
 
-// decode 'raw' subchannel data ripped by cdrdao
-void PCSX::CDRiso::DecodeRawSubData() {
+// Decode 'raw' subchannel data from being packed bitwise.
+// Essentially is a bitwise matrix transposition.
+void PCSX::CDRiso::decodeRawSubData() {
     unsigned char subQData[12];
     memset(subQData, 0, sizeof(subQData));
 
     for (int i = 0; i < 8 * 12; i++) {
-        if (m_subbuffer[i] & (1 << 6)) {  // only subchannel Q is needed
+        if (m_subbuffer.raw[i] & (1 << 6)) {  // only subchannel Q is needed
             subQData[i >> 3] |= (1 << (7 - (i & 7)));
         }
     }
 
-    memcpy(&m_subbuffer[12], subQData, 12);
+    memcpy(&m_subbuffer.Q, subQData, 12);
 }
 
 // read track
@@ -443,19 +445,19 @@ bool PCSX::CDRiso::readTrack(const IEC60908b::MSF time) {
     if (ret < 0) return false;
 
     if (m_subHandle) {
-        m_subHandle->rSeek(sector * PCSX::CDRom::SUB_FRAMESIZE, SEEK_SET);
-        m_subHandle->read(m_subbuffer, PCSX::CDRom::SUB_FRAMESIZE);
+        m_subHandle->rSeek(sector * PCSX::IEC60908b::SUB_FRAMESIZE, SEEK_SET);
+        m_subHandle->read(m_subbuffer.raw, PCSX::IEC60908b::SUB_FRAMESIZE);
 
-        if (m_subChanRaw) DecodeRawSubData();
+        if (m_subChanRaw) decodeRawSubData();
     }
 
     return true;
 }
 
 // gets subchannel data
-uint8_t *PCSX::CDRiso::getBufferSub() {
+const PCSX::IEC60908b::Sub *PCSX::CDRiso::getBufferSub() {
     if ((m_subHandle || m_subChanMixed) && !m_subChanMissing) {
-        return m_subbuffer;
+        return &m_subbuffer;
     }
 
     return nullptr;
@@ -477,7 +479,7 @@ bool PCSX::CDRiso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
 
     // data tracks play silent
     if (m_ti[track].type != TrackType::CDDA) {
-        memset(buffer, 0, PCSX::CDRom::CD_FRAMESIZE_RAW);
+        memset(buffer, 0, PCSX::IEC60908b::FRAMESIZE_RAW);
         return true;
     }
 
@@ -495,15 +497,15 @@ bool PCSX::CDRiso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
     }
 
     ret = (*this.*m_cdimg_read_func)(m_ti[file].handle, m_ti[track].start_offset, buffer, m_cddaCurPos - track_start);
-    if (ret != PCSX::CDRom::CD_FRAMESIZE_RAW) {
-        memset(buffer, 0, PCSX::CDRom::CD_FRAMESIZE_RAW);
+    if (ret != PCSX::IEC60908b::FRAMESIZE_RAW) {
+        memset(buffer, 0, PCSX::IEC60908b::FRAMESIZE_RAW);
         return false;
     }
 
     if (m_cddaBigEndian) {
         unsigned char tmp;
 
-        for (int i = 0; i < PCSX::CDRom::CD_FRAMESIZE_RAW / 2; i++) {
+        for (int i = 0; i < PCSX::IEC60908b::FRAMESIZE_RAW / 2; i++) {
             tmp = buffer[i * 2];
             buffer[i * 2] = buffer[i * 2 + 1];
             buffer[i * 2 + 1] = tmp;

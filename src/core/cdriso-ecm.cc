@@ -25,7 +25,7 @@ ssize_t PCSX::CDRiso::ecmDecode(IO<File> f, unsigned int base, void *dest, int s
     uint32_t output_edc = 0, b = 0, writebytecount = 0, num;
     uint32_t sectorcount = 0;
     int8_t type = 0;  // mode type 0 (META) or 1, 2 or 3 for CDROM type
-    uint8_t sector_buffer[PCSX::CDRom::CD_FRAMESIZE_RAW];
+    uint8_t sector_buffer[PCSX::IEC60908b::FRAMESIZE_RAW];
     // this flag tells if to decode all sectors or just skip to wanted sector
     bool processsectors = (bool)m_decoded_ecm_sectors;
     ECMFILELUT *pos = &(m_ecm_savetable[0]);  // points always to beginning of ECM DATA
@@ -128,7 +128,7 @@ ssize_t PCSX::CDRiso::ecmDecode(IO<File> f, unsigned int base, void *dest, int s
         }
     };
 
-    writebytecount = pos->sector * PCSX::CDRom::CD_FRAMESIZE_RAW;
+    writebytecount = pos->sector * PCSX::IEC60908b::FRAMESIZE_RAW;
     sectorcount = pos->sector;
     if (m_decoded_ecm_sectors) m_decoded_ecm->rSeek(writebytecount, SEEK_SET);  // rewind to last pos
     f->rSeek(/*base+*/ pos->filepos, SEEK_SET);
@@ -157,7 +157,7 @@ ssize_t PCSX::CDRiso::ecmDecode(IO<File> f, unsigned int base, void *dest, int s
         if (num == 0xFFFFFFFF) {
             // End indicator
             m_len_decoded_ecm_buffer = writebytecount;
-            m_len_ecm_savetable = m_len_decoded_ecm_buffer / PCSX::CDRom::CD_FRAMESIZE_RAW;
+            m_len_ecm_savetable = m_len_decoded_ecm_buffer / PCSX::IEC60908b::FRAMESIZE_RAW;
             break;
         }
         num++;
@@ -244,7 +244,7 @@ ssize_t PCSX::CDRiso::ecmDecode(IO<File> f, unsigned int base, void *dest, int s
                     }
                     break;
             }
-            sectorcount = ((writebytecount / PCSX::CDRom::CD_FRAMESIZE_RAW) - 0);
+            sectorcount = ((writebytecount / PCSX::IEC60908b::FRAMESIZE_RAW) - 0);
             num -= b;
         }
         if (type && sectorcount > 0 && m_ecm_savetable[sectorcount].filepos <= ECM_HEADER_SIZE) {
@@ -256,14 +256,14 @@ ssize_t PCSX::CDRiso::ecmDecode(IO<File> f, unsigned int base, void *dest, int s
     }
 
     if (m_decoded_ecm_sectors) {
-        m_decoded_ecm->rSeek(-1 * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_CUR);
-        num = m_decoded_ecm->read(sector_buffer, PCSX::CDRom::CD_FRAMESIZE_RAW);
+        m_decoded_ecm->rSeek(-1 * PCSX::IEC60908b::FRAMESIZE_RAW, SEEK_CUR);
+        num = m_decoded_ecm->read(sector_buffer, PCSX::IEC60908b::FRAMESIZE_RAW);
         m_decoded_ecm_sectors = std::max(m_decoded_ecm_sectors, sectorcount);
     } else {
-        num = PCSX::CDRom::CD_FRAMESIZE_RAW;
+        num = PCSX::IEC60908b::FRAMESIZE_RAW;
     }
 
-    memcpy(dest, sector_buffer, PCSX::CDRom::CD_FRAMESIZE_RAW);
+    memcpy(dest, sector_buffer, PCSX::IEC60908b::FRAMESIZE_RAW);
     m_prevsector = sectorcount;
     // printf("OK: Frame decoded %i %i\n", sectorcount-1, writebytecount);
     return num;
@@ -308,7 +308,7 @@ int PCSX::CDRiso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate
         m_ecm_savetable[0].filepos = ECM_HEADER_SIZE;
 
         if (accurate_length || m_decoded_ecm_sectors) {
-            uint8_t tbuf1[PCSX::CDRom::CD_FRAMESIZE_RAW];
+            uint8_t tbuf1[PCSX::IEC60908b::FRAMESIZE_RAW];
             m_len_ecm_savetable = 0;             // indicates to cdread_ecm_decode that no lut has been built yet
             ecmDecode(cdh, 0U, tbuf1, INT_MAX);  // builds LUT completely
             if (accurate_length) *accurate_length = m_len_ecm_savetable;

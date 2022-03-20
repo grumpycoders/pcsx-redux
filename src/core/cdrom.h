@@ -21,6 +21,7 @@
 
 #include "core/cdriso.h"
 #include "core/decode_xa.h"
+#include "core/iec-60908b.h"
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
 #include "core/psxmem.h"
@@ -42,10 +43,6 @@ class CDRom {
     bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }
     void setLidOpenTime(int64_t time) { m_lidOpenTime = time; }
     void check() {}
-
-    static const ssize_t CD_FRAMESIZE_RAW = 2352;
-    static const ssize_t DATA_SIZE = CD_FRAMESIZE_RAW - 12;
-    static const ssize_t SUB_FRAMESIZE = 96;
 
     virtual void reset() = 0;
     virtual void attenuate(int16_t* buf, int samples, int stereo) = 0;
@@ -81,7 +78,7 @@ class CDRom {
 
     uint8_t m_statP;
 
-    uint8_t m_transfer[CD_FRAMESIZE_RAW];
+    uint8_t m_transfer[PCSX::IEC60908b::FRAMESIZE_RAW];
     unsigned int m_transferIndex;
 
     MSF m_prev;

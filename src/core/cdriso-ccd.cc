@@ -66,7 +66,7 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
     // Fill out the last track's end based on size
     if (m_numtracks >= 1) {
         m_cdHandle->rSeek(0, SEEK_END);
-        t = m_cdHandle->rTell() / PCSX::CDRom::CD_FRAMESIZE_RAW - m_ti[m_numtracks].start.toLBA() + 150;
+        t = m_cdHandle->rTell() / PCSX::IEC60908b::FRAMESIZE_RAW - m_ti[m_numtracks].start.toLBA() + 150;
         m_ti[m_numtracks].length = IEC60908b::MSF(t);
     }
 

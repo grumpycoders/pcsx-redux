@@ -407,9 +407,6 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     void readTrack(MSF time) {
-        struct PCSX::SubQ *subq;
-        uint16_t crc;
-
         if (m_prev == time) return;
 
         CDROM_LOG("ReadTrack *** %02i:%02i:%02i\n", time.m, time.s, time.f);
@@ -417,14 +414,17 @@ class CDRomImpl : public PCSX::CDRom {
         m_suceeded = m_iso.readTrack(time);
         m_prev = time;
 
-        subq = (struct PCSX::SubQ *)m_iso.getBufferSub();
-        if (subq != NULL && m_curTrack == 1) {
-            crc = calcCrc((uint8_t *)subq + 12, 10);
-            if (crc == (((uint16_t)subq->CRC[0] << 8) | subq->CRC[1])) {
-                m_subq.track = subq->TrackNumber;
-                m_subq.index = subq->IndexNumber;
-                memcpy(m_subq.relative, subq->TrackRelativeAddress, 3);
-                memcpy(m_subq.absolute, subq->AbsoluteAddress, 3);
+        const PCSX::IEC60908b::Sub *sub = m_iso.getBufferSub();
+        if (sub && m_curTrack == 1) {
+            uint16_t calcCRC = PCSX::IEC60908b::subqCRC(sub->Q);
+            uint16_t actualCRC = sub->CRC[0];
+            actualCRC <<= 8;
+            actualCRC |= sub->CRC[1];
+            if (calcCRC == actualCRC) {
+                m_subq.track = sub->TrackNumber;
+                m_subq.index = sub->IndexNumber;
+                memcpy(m_subq.relative, sub->RelativeAddress, 3);
+                memcpy(m_subq.absolute, sub->AbsoluteAddress, 3);
             } else {
                 CDROM_IO_LOG("subq bad crc @%02i:%02i:%02i\n", time.m, time.s, time.f);
             }
@@ -541,8 +541,8 @@ class CDRomImpl : public PCSX::CDRom {
         if (!m_play) return;
 
         if (!m_muted) {
-            attenuate((int16_t *)m_transfer, CD_FRAMESIZE_RAW / 4, 1);
-            PCSX::g_emulator->m_spu->playCDDAchannel((short *)m_transfer, CD_FRAMESIZE_RAW);
+            attenuate((int16_t *)m_transfer, PCSX::IEC60908b::FRAMESIZE_RAW / 4, 1);
+            PCSX::g_emulator->m_spu->playCDDAchannel((short *)m_transfer, PCSX::IEC60908b::FRAMESIZE_RAW);
         }
 
         m_setSectorPlay++;
@@ -1134,14 +1134,14 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (!m_suceeded) {
             CDROM_LOG("readInterrupt() Log: err\n");
-            memset(m_transfer, 0, DATA_SIZE);
+            memset(m_transfer, 0, PCSX::IEC60908b::DATA_SIZE);
             m_stat = DiskError;
             m_result[0] |= STATUS_ERROR;
             scheduleCDReadIRQ((m_mode & 0x80) ? (cdReadTime / 2) : cdReadTime);
             return;
         }
 
-        memcpy(m_transfer, buf, DATA_SIZE);
+        memcpy(m_transfer, buf, PCSX::IEC60908b::DATA_SIZE);
         // m_ppf.CheckPPFCache(m_transfer, m_prev[0], m_prev[1], m_prev[2]);
         m_ctrl |= DRQSTS;  // Data fifo not empty
 

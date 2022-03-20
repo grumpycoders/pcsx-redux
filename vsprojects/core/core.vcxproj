@@ -267,7 +267,6 @@
     <ClCompile Include="..\..\src\core\kernel.cc" />
     <ClCompile Include="..\..\src\core\kernellog.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
-    <ClCompile Include="..\..\src\core\misc.cc" />
     <ClCompile Include="..\..\src\core\pad.cc" />
     <ClCompile Include="..\..\src\core\pcsxlua.cc" />
     <ClCompile Include="..\..\src\core\pgxp_cpu.cc" />

@@ -71,7 +71,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
     memset(&m_ti, 0, sizeof(m_ti));
     m_cddaBigEndian = true;  // cdrdao uses big-endian for CD Audio
 
-    sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
+    sector_size = PCSX::IEC60908b::FRAMESIZE_RAW;
     sector_offs = 2 * 75;
 
     // parse the .toc file
@@ -98,7 +98,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
                 // check if this image contains mixed subchannel data
                 token = strtok(NULL, " ");
                 if (token != NULL && !strncmp(token, "RW", 2)) {
-                    sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW + PCSX::CDRom::SUB_FRAMESIZE;
+                    sector_size = PCSX::IEC60908b::FRAMESIZE_RAW + PCSX::IEC60908b::SUB_FRAMESIZE;
                     m_subChanMixed = true;
                     if (!strncmp(token, "RW_RAW", 6)) m_subChanRaw = true;
                 }
