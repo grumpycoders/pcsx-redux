@@ -262,7 +262,7 @@ bool PCSX::SaveStates::load(const std::string& data) {
         std::string filename = file.get<PCdrvFilename>().value;
         bool create = file.get<PCdrvCreate>().value;
         if (create) {
-            g_emulator->m_psxCpu->restorePCdrvFile(filename, fd, File::CREATE);
+            g_emulator->m_psxCpu->restorePCdrvFile(filename, fd, FileOps::CREATE);
         } else {
             g_emulator->m_psxCpu->restorePCdrvFile(filename, fd);
         }

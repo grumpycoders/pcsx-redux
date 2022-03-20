@@ -7,7 +7,7 @@ UNAME_M := $(shell uname -m)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
-PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib
+PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
 
 LOCALES := fr
 

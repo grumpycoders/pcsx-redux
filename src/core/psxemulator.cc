@@ -31,10 +31,12 @@
 #include "core/pcsxlua.h"
 #include "core/ppf.h"
 #include "core/r3000a.h"
-#include "core/sio1.h"
 #include "core/sio1-server.h"
+#include "core/sio1.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
+#include "lua/extra.h"
+#include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "lua/zlibffi.h"
 extern "C" {
@@ -61,6 +63,10 @@ PCSX::Emulator::Emulator()
       m_pads(new PCSX::Pads()),
       m_lua(new PCSX::Lua()),
       m_callStacks(new PCSX::CallStacks) {
+    uv_loop_init(&m_loop);
+}
+
+void PCSX::Emulator::setLua() {
     m_lua->open_base();
     m_lua->open_bit();
     m_lua->open_debug();
@@ -71,12 +77,13 @@ PCSX::Emulator::Emulator()
     m_lua->open_string();
     m_lua->open_table();
     LuaFFI::open_zlib(m_lua.get());
-    uv_loop_init(&m_loop);
     luv_set_loop(m_lua->getState(), &m_loop);
     m_lua->push("luv");
     luaopen_luv(m_lua->getState());
     m_lua->settable(LUA_GLOBALSINDEX);
     LuaFFI::open_pcsx(m_lua.get());
+    LuaFFI::open_file(m_lua.get());
+    LuaFFI::open_extra(m_lua.get());
 }
 
 PCSX::Emulator::~Emulator() {

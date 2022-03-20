@@ -134,14 +134,13 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
     // Load BIOS
     auto &biosPath = g_emulator->settings.get<PCSX::Emulator::SettingBios>().value;
-    std::unique_ptr<File> f(new File(biosPath.string()));
+    IO<File> f(new PosixFile(biosPath.string()));
     if (f->failed()) {
         PCSX::g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath.string());
 
         g_system->findResource(
             [&f](const std::filesystem::path &filename) {
-                std::unique_ptr<File> newFile(new File(filename));
-                f.swap(newFile);
+                f.setFile(new PosixFile(filename));
                 return !f->failed();
             },
             "openbios.bin", "resources", std::filesystem::path("src") / "mips" / "openbios");
@@ -183,7 +182,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         auto loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
         auto lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
         bool failed = false;
-        std::unique_ptr<File> f(new File(filename));
+        IO<File> f(new PosixFile(filename));
 
         if (f->failed()) {
             PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename.string());
@@ -192,8 +191,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
         ssize_t fsize;
         if (!failed) {
-            f->seek(0, SEEK_END);
-            fsize = f->tell();
+            fsize = f->size();
 
             if (foffset < 0) {
                 // negative offset means from end of file
@@ -210,7 +208,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
             }
         }
         if (!failed) {
-            f->seek(foffset, SEEK_SET);
+            f->rSeek(foffset, SEEK_SET);
 
             fsize = fsize - foffset;
 

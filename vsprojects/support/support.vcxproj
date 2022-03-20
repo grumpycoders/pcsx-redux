@@ -214,6 +214,8 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\support\file.cc" />
     <ClCompile Include="..\..\src\support\sjis_conv.cc" />
+    <ClCompile Include="..\..\src\support\uvfile.cc" />
+    <ClCompile Include="..\..\src\support\zfile.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\mips\common\util\sjis-table.h" />
@@ -228,6 +230,8 @@
     <ClInclude Include="..\..\src\support\sjis_conv.h" />
     <ClInclude Include="..\..\src\support\slice.h" />
     <ClInclude Include="..\..\src\support\tree.h" />
+    <ClInclude Include="..\..\src\support\uvfile.h" />
+    <ClInclude Include="..\..\src\support\zfile.h" />
     <ClInclude Include="..\..\third_party\interval_tree.h" />
     <ClInclude Include="..\..\third_party\json.hpp" />
     <ClInclude Include="..\..\third_party\typestring.hh" />

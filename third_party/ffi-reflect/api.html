@@ -1,0 +1,285 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title>LuaJIT FFI reflection library</title>
+  <link href='default.css' rel='stylesheet' type='text/css'>
+</head>
+<body>
+
+<h1>LuaJIT FFI reflection library</h1>
+<p><strong>Version: beta 2 (2013-07-06)</strong></p>
+<p>This is a beta release of an experimental and unofficial library. Feedback appreciated (to <a href="mailto:lua@corsix.org">lua@corsix.org</a>, or the LuaJIT mailing list).</p>
+<hr/><h2><tt>refct = reflect.typeof(ct)</tt></h2>
+<tt>reflect.typeof</tt> returns a so-called <tt>refct</tt> object, which describes the type passed in to
+  the function. To understand this object, one needs to appreciate LuaJIT's C type model. A
+  <tt>refct</tt> object is one of 13 different kinds of type. For example, one of those
+  kinds is <tt>"int"</tt>, which covers all primitive integral types, and another is <tt>"ptr"</tt>, which
+  covers all pointer types. Perhaps unusually, every field within a structure is also considered
+  to be a type, as is every argument within a function type, and every value within an enumerated
+  type. While this may look odd, it results in a nice uniform API for type reflection. Note that
+  typedefs are resolved by the parser, and are therefore not visible when reflected.
+<br/><br/>
+  All <tt>refct</tt> objects have a <tt>what</tt> field, which is a string denoting the kind of type. Other fields
+  will also be present on a <tt>refct</tt> object, but these vary according to the kind.
+<br/>
+<h2><tt>mt = reflect.getmetatable(ctype)</tt></h2>
+<tt>reflect.getmetatable</tt> performs the inverse of <tt>ffi.metatype</tt> - given a <tt>ctype</tt>, it returns
+  the corresponding metatable that was passed to <tt>ffi.metatype</tt>.
+<div class="example"><strong>Example:</strong><pre>reflect.getmetatable(ffi.metatype("struct {}", t)) == t</pre></div></div>
+<hr/>
+<div id="w_void" class="kind"><h2><tt>"void"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_size">size</a>, <a href="#f_alignment">alignment</a>, <a href="#f_const">const</a>, <a href="#f_volatile">volatile</a>.</p>
+The primitive empty type, optionally with a <tt>const</tt> and/or <tt>volatile</tt> qualifier.
+The actual type is therefore determined by the <tt>const</tt> and <tt>volatile</tt> fields.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("void").what == "void"
+reflect.typeof("const void").what == "void"</pre></div></div>
+<div id="w_int" class="kind"><h2><tt>"int"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_size">size</a>, <a href="#f_alignment">alignment</a>, <a href="#f_const">const</a>, <a href="#f_volatile">volatile</a>, <a href="#f_bool">bool</a>, <a href="#f_unsigned">unsigned</a>, <a href="#f_long">long</a>.</p>
+A primitive integral type, such as <tt>bool</tt> or <tt>[const] [volatile] [u]int(8|16|32|64)_t</tt>.
+The in-memory type is determined by the <tt>size</tt> and <tt>unsigned</tt> fields, and the final
+quantified type determined also by the <tt>bool</tt>, <tt>const</tt>, and <tt>volatile</tt> fields.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("long").what == "int"
+reflect.typeof("volatile unsigned __int64").what == "int"</pre></div></div>
+<div id="w_float" class="kind"><h2><tt>"float"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_size">size</a>, <a href="#f_alignment">alignment</a>, <a href="#f_const">const</a>, <a href="#f_volatile">volatile</a>.</p>
+A primitive floating point type, either <tt>[const] [volatile] float</tt> or <tt>[const] [volatile] double</tt>.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("double").what == "float"
+reflect.typeof("const float").what == "float"</pre></div></div>
+<div id="w_enum" class="kind"><h2><tt>"enum"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_name">name</a>, <a href="#f_size">size</a>, <a href="#f_alignment">alignment</a>, <a href="#f_type">type</a>.</p>
+<p class="methods"><strong>Methods:</strong> <a href="#m_values">values</a>, <a href="#m_value">value</a>.</p>
+An enumerated type.
+<div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "enum E{X,Y};"<br/>reflect.typeof("enum E").what == "enum"</pre></div></div>
+<div id="w_constant" class="kind"><h2><tt>"constant"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_name">name</a>, <a href="#f_type">type</a>, <a href="#f_value">value</a>.</p>
+A particular value within an enumerated type.
+<div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "enum Bool{False,True};"<br/>reflect.typeof("enum Bool"):value("False").what == "constant"</pre></div></div>
+<div id="w_ptr" class="kind"><h2><tt>"ptr"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_size">size</a>, <a href="#f_alignment">alignment</a>, <a href="#f_const">const</a>, <a href="#f_volatile">volatile</a>, <a href="#f_element_type">element_type</a>.</p>
+A pointer type (note that this includes function pointers). The type being pointed to
+is given by the <tt>element_type</tt> attribute.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("char*").what == "ptr"
+reflect.typeof("int(*)(void)").what == "ptr"</pre></div></div>
+<div id="w_ref" class="kind"><h2><tt>"ref"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_size">size</a>, <a href="#f_alignment">alignment</a>, <a href="#f_const">const</a>, <a href="#f_volatile">volatile</a>, <a href="#f_element_type">element_type</a>.</p>
+A reference type. The type being referenced is given by the <tt>element_type</tt> attribute.
+<div class="example"><strong>Example:</strong><pre>reflect.typeof("char&amp;").what == "ref"</pre></div></div>
+<div id="w_array" class="kind"><h2><tt>"array"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_size">size</a>, <a href="#f_alignment">alignment</a>, <a href="#f_const">const</a>, <a href="#f_volatile">volatile</a>, <a href="#f_element_type">element_type</a>, <a href="#f_vla">vla</a>, <a href="#f_vector">vector</a>, <a href="#f_complex">complex</a>.</p>
+An array type. The type of each element is given by the <tt>element_type</tt> attribute. The
+number of elements is not directly available; instead the <tt>size</tt> attribute needs to be
+divided by <tt>element_type.size</tt>.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("char[16]").what == "array"
+reflect.typeof("int[?]").what == "array"</pre></div></div>
+<div id="w_struct" class="kind"><h2><tt>"struct"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_name">name</a>, <a href="#f_size">size</a>, <a href="#f_alignment">alignment</a>, <a href="#f_const">const</a>, <a href="#f_volatile">volatile</a>, <a href="#f_vla">vla</a>, <a href="#f_transparent">transparent</a>.</p>
+<p class="methods"><strong>Methods:</strong> <a href="#m_members">members</a>, <a href="#m_member">member</a>.</p>
+A structure aggregate type. The members of the structure can be enumerated through the <tt>members</tt> method, or indexed through the <tt>member</tt> method.
+<div class="example"><strong>Example:</strong><pre>reflect.typeof("struct{int x; int y;}").what == "struct"</pre></div></div>
+<div id="w_union" class="kind"><h2><tt>"union"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_name">name</a>, <a href="#f_size">size</a>, <a href="#f_alignment">alignment</a>, <a href="#f_const">const</a>, <a href="#f_volatile">volatile</a>, <a href="#f_transparent">transparent</a>.</p>
+<p class="methods"><strong>Methods:</strong> <a href="#m_members">members</a>, <a href="#m_member">member</a>.</p>
+A union aggregate type. The members of the union can be enumerated through the <tt>members</tt> method, or indexed through the <tt>member</tt> method.
+<div class="example"><strong>Example:</strong><pre>reflect.typeof("union{int x; int y;}").what == "union"</pre></div></div>
+<div id="w_func" class="kind"><h2><tt>"func"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_name">name</a>, <a href="#f_sym_name">sym_name</a>, <a href="#f_return_type">return_type</a>, <a href="#f_nargs">nargs</a>, <a href="#f_vararg">vararg</a>, <a href="#f_sse_reg_params">sse_reg_params</a>, <a href="#f_convention">convention</a>.</p>
+<p class="methods"><strong>Methods:</strong> <a href="#m_arguments">arguments</a>, <a href="#m_argument">argument</a>.</p>
+A function aggregate type. Note that function pointers will be of the <tt>"ptr"</tt> kind, with
+a <tt>"func"</tt> kind as the <tt>element_type</tt>. The return type is available as the <tt>return_type</tt> attribute,
+while argument types can be enumerated through the <tt>arguments</tt> method, or indexed through
+the <tt>argument</tt> method. The number of arguments is determined from the <tt>nargs</tt> and <tt>vararg</tt> attributes.
+<div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "int strcmp(const char*, const char*);"<br/>reflect.typeof(ffi.C.strcmp).what == "func"</pre></div><div class="example"><strong>Example:</strong><pre>reflect.typeof("int(*)(void)").element_type.what == "func"</pre></div></div>
+<div id="w_field" class="kind"><h2><tt>"field"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_name">name</a>, <a href="#f_offset">offset</a>, <a href="#f_type">type</a>.</p>
+An instance of a type within a structure or union, or an occurance of a type as an argument to a function.
+<div class="example"><strong>Example:</strong><pre>reflect.typeof("struct{int x;}"):member("x").what == "field"</pre></div><div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "int strcmp(const char*, const char*);"<br/>reflect.typeof(ffi.C.strcmp):argument(2).what == "field"</pre></div></div>
+<div id="w_bitfield" class="kind"><h2><tt>"bitfield"</tt> kind (<tt>refct.what</tt>)</h2>
+<p class="fields"><strong>Possible attributes:</strong> <a href="#f_name">name</a>, <a href="#f_size">size</a>, <a href="#f_offset">offset</a>, <a href="#f_type">type</a>.</p>
+An instance of a type within a structure or union, which has an offset and/or size which is not a whole
+number of bytes.
+<div class="example"><strong>Example:</strong><pre>reflect.typeof("struct{int x:2;}"):member("x").what == "bitfield"</pre></div></div>
+<hr/>
+<div id="f_name" class="field"><h2><tt>refct.name</tt> attribute <span class="typ">(string or nil)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_struct">struct</a>, <a href="#w_union">union</a>, <a href="#w_enum">enum</a>, <a href="#w_func">func</a>, <a href="#w_field">field</a>, <a href="#w_bitfield">bitfield</a>, <a href="#w_constant">constant</a>.</p>
+The type's given name, or <tt>nil</tt> if the type has no name.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("struct{int x; int y;}"):member(2).name == "y"
+reflect.typeof("struct{int x; int y;}").name == nil</pre></div><div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef 'int sc(const char*, const char*) __asm__("strcmp");'<br/>reflect.typeof(ffi.C.sc).name == "sc"</pre></div></div>
+<div id="f_sym_name" class="field"><h2><tt>refct.sym_name</tt> attribute <span class="typ">(string or nil)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_func">func</a>.</p>
+The function's symbolic name, if different to its given name.
+<div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef 'int sc(const char*, const char*) __asm__("strcmp");'<br/>reflect.typeof(ffi.C.sc).sym_name == "strcmp"</pre></div><div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "int strcmp(const char*, const char*);"<br/>reflect.typeof(ffi.C.strcmp).sym_name == nil</pre></div></div>
+<div id="f_size" class="field"><h2><tt>refct.size</tt> attribute <span class="typ">(number or string)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_int">int</a>, <a href="#w_float">float</a>, <a href="#w_struct">struct</a>, <a href="#w_union">union</a>, <a href="#w_ptr">ptr</a>, <a href="#w_ref">ref</a>, <a href="#w_array">array</a>, <a href="#w_void">void</a>, <a href="#w_enum">enum</a>, <a href="#w_bitfield">bitfield</a>.</p>
+The size of the type, in bytes. For most things this will be a strictly positive
+integer, although that is not always the case:
+<ul><li>For empty structures and unions, <tt>size</tt> will be zero.</li>
+<li>For types which are essentially <tt>void</tt>, <tt>size</tt> will be the string <tt>"none"</tt>.</li>
+<li>For bitfields, <tt>size</tt> can have a fractional part, which will be a multiple of 1/8.</li>
+<li>For structures which terminate with a VLA, this will be the size of the fixed part of the structure.</li>
+<li>For arrays, <tt>size</tt> will be the element size multiplied by the number of elements, or the string <tt>"none"</tt> if the number of elements is not known or not fixed.</li></ul>
+
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("__int32").size == 4
+reflect.typeof("__int32[2]").size == 8
+reflect.typeof("__int32[]").size == "none"
+reflect.typeof("__int32[?]").size == "none"
+reflect.typeof("struct{__int32 count; __int32 data[?];}").size == 4
+reflect.typeof("struct{}").size == 0
+reflect.typeof("void").size == "none"
+reflect.typeof("struct{int f:5;}"):member("f").size == 5 / 8</pre></div></div>
+<div id="f_offset" class="field"><h2><tt>refct.offset</tt> attribute <span class="typ">(number)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_field">field</a>, <a href="#w_bitfield">bitfield</a>.</p>
+For structure and union members, the number of bytes between the start of the containing type and the (bit)field. For a normal field, this will be a non-negative integer. For bitfields, this can
+have a fractional part which is a multiple of 1/8.
+<br/><br/>
+For function arguments, the zero-based index of the argument.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("struct{__int32 x; __int32 y; __int32 z;}"):member("z").offset == 8
+reflect.typeof("struct{int x : 3; int y : 4; int z : 5;}"):member("z").offset == 7 / 8
+reflect.typeof("int(*)(int x, int y)").element_type:argument("y").offset == 1</pre></div></div>
+<div id="f_alignment" class="field"><h2><tt>refct.alignment</tt> attribute <span class="typ">(integer)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_int">int</a>, <a href="#w_float">float</a>, <a href="#w_struct">struct</a>, <a href="#w_union">union</a>, <a href="#w_ptr">ptr</a>, <a href="#w_ref">ref</a>, <a href="#w_array">array</a>, <a href="#w_void">void</a>, <a href="#w_enum">enum</a>.</p>
+The minimum alignment required by the type, in bytes. Unless explicitly overridden by an
+alignment qualifier, this will be the value calculated by LuaJIT's C parser. In any case, this
+will be a power of two.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("struct{__int32 a; __int32 b;}").alignment == 4
+reflect.typeof("__declspec(align(16)) int").alignment == 16</pre></div></div>
+<div id="f_const" class="field"><h2><tt>refct.const</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_int">int</a>, <a href="#w_float">float</a>, <a href="#w_struct">struct</a>, <a href="#w_union">union</a>, <a href="#w_ptr">ptr</a>, <a href="#w_ref">ref</a>, <a href="#w_array">array</a>, <a href="#w_void">void</a>.</p>
+If true, this type was declared with the <tt>const</tt> qualifier. Be aware that for pointer types, this
+refers to the <tt>const</tt>-ness of the pointer itself, and not the <tt>const</tt>-ness of the thing being pointed to.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("int").const == nil
+reflect.typeof("const int").const == true
+reflect.typeof("const char*").const == nil
+reflect.typeof("const char*").element_type.const == true
+reflect.typeof("char* const").const == true</pre></div></div>
+<div id="f_volatile" class="field"><h2><tt>refct.volatile</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_int">int</a>, <a href="#w_float">float</a>, <a href="#w_struct">struct</a>, <a href="#w_union">union</a>, <a href="#w_ptr">ptr</a>, <a href="#w_ref">ref</a>, <a href="#w_array">array</a>, <a href="#w_void">void</a>.</p>
+If true, this type was declared with the <tt>volatile</tt> qualifier. Note that this has no
+meaning to the JIT compiler. Be aware that for pointer types, this
+refers to the volatility of the pointer itself, and not the volatility of the thing being pointed to.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("int").volatile == nil
+reflect.typeof("volatile int").volatile == true</pre></div></div>
+<div id="f_element_type" class="field"><h2><tt>refct.element_type</tt> attribute <span class="typ">(refct)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_ptr">ptr</a>, <a href="#w_ref">ref</a>, <a href="#w_array">array</a>.</p>
+The type being pointed to (albeit implicitly in the case of a reference).
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("char*").element_type.size == 1
+reflect.typeof("char&amp;").element_type.size == 1
+reflect.typeof("char[32]").element_type.size == 1</pre></div></div>
+<div id="f_type" class="field"><h2><tt>refct.type</tt> attribute <span class="typ">(refct)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_enum">enum</a>, <a href="#w_field">field</a>, <a href="#w_bitfield">bitfield</a>, <a href="#w_constant">constant</a>.</p>
+For (bit)fields, the type of the field.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("struct{float x; unsigned y;}"):member("y").type.unsigned == true
+reflect.typeof("int(*)(uint64_t)").element_type:argument(1).type.size == 8</pre></div></div>
+<div id="f_return_type" class="field"><h2><tt>refct.return_type</tt> attribute <span class="typ">(refct)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_func">func</a>.</p>
+The return type of the function.
+<div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "int strcmp(const char*, const char*);"<br/>reflect.typeof(ffi.C.strcmp).return_type.what == "int"</pre></div><div class="example"><strong>Example:</strong><pre>reflect.typeof("void*(*)(void)").element_type.return_type.what == "ptr"</pre></div></div>
+<div id="f_bool" class="field"><h2><tt>refct.bool</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_int">int</a>.</p>
+If true, reading from this type will give a Lua boolean rather than a Lua number.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("bool").bool == true
+reflect.typeof("int").bool == nil
+reflect.typeof("_Bool int").bool == true</pre></div></div>
+<div id="f_unsigned" class="field"><h2><tt>refct.unsigned</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_int">int</a>.</p>
+If true, this type denotes an unsigned integer. Otherwise, it denotes a signed integer.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("int32_t").unsigned == nil
+reflect.typeof("uint32_t").unsigned == true</pre></div></div>
+<div id="f_long" class="field"><h2><tt>refct.long</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_int">int</a>.</p>
+If true, this type was declared with the <tt>long</tt> qualifier. If calculating the size of
+the type, then use the <tt>size</tt> field rather than this field.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("long int").long == true
+reflect.typeof("short int").long == nil</pre></div></div>
+<div id="f_vla" class="field"><h2><tt>refct.vla</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_struct">struct</a>, <a href="#w_array">array</a>.</p>
+If true, this type has a variable length. Otherwise, this type has a fixed length.
+<div class="example"><strong>Examples:</strong><pre>reflect.typeof("int[?]").vla == true
+reflect.typeof("int[2]").vla == nil
+reflect.typeof("int[]").vla == nil
+reflect.typeof("struct{int num; int data[?];}").vla == true
+reflect.typeof("struct{int num; int data[];}").vla == nil</pre></div></div>
+<div id="f_transparent" class="field"><h2><tt>refct.transparent</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_struct">struct</a>, <a href="#w_union">union</a>.</p>
+If true, this type is an anonymous inner type. Such types have no name, and when using the
+FFI normally, their fields are accessed as fields of the containing type.
+<div class="example"><strong>Example:</strong><pre class="multiline">for refct in reflect.typeof [[<br/>  struct {<br/>    int a;<br/>    union { int b; int c; };<br/>    struct { int d; int e; };<br/>    int f;<br/>  }<br/>]]:members() do print(refct.transparent) end --&gt; nil, true, true, nil</pre></div></div>
+<div id="f_vector" class="field"><h2><tt>refct.vector</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_array">array</a>.</p>
+
+</div>
+<div id="f_complex" class="field"><h2><tt>refct.complex</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_array">array</a>.</p>
+
+</div>
+<div id="f_nargs" class="field"><h2><tt>refct.nargs</tt> attribute <span class="typ">(integer)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_func">func</a>.</p>
+The number of fixed arguments accepted by the function. If the <tt>vararg</tt> field is true, then
+additional arguments are accepted.
+<div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "int strcmp(const char*, const char*);"<br/>reflect.typeof(ffi.C.strcmp).nargs == 2</pre></div><div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "int printf(const char*, ...);"<br/>reflect.typeof(ffi.C.printf).nargs == 1</pre></div></div>
+<div id="f_vararg" class="field"><h2><tt>refct.vararg</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_func">func</a>.</p>
+If true, the function accepts a variable number of arguments (i.e. the argument list declaration was
+terminated with <tt>...</tt>).
+<div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "int strcmp(const char*, const char*);"<br/>reflect.typeof(ffi.C.strcmp).vararg == nil</pre></div><div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "int printf(const char*, ...);"<br/>reflect.typeof(ffi.C.printf).vararg == true</pre></div></div>
+<div id="f_sse_reg_params" class="field"><h2><tt>refct.sse_reg_params</tt> attribute <span class="typ">(<tt>true</tt> or <tt>nil</tt>)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_func">func</a>.</p>
+
+</div>
+<div id="f_convention" class="field"><h2><tt>refct.convention</tt> attribute <span class="typ">(string)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_func">func</a>.</p>
+The calling convention that the function was declared with, which will be one
+of: <tt>"cdecl"</tt> (the default), <tt>"thiscall"</tt>, <tt>"fastcall"</tt>, <tt>"stdcall"</tt>. Note that
+on Windows, LuaJIT will automatically change <tt>__cdecl</tt> to <tt>__stdcall</tt> after the
+first call to the function (if appropriate).
+<div class="example"><strong>Example:</strong><pre>reflect.typeof("int(__stdcall *)(int)").element_type.convention == "stdcall"</pre></div><div class="example"><strong>Example:</strong><pre class="multiline">if not ffi.abi "win" then return "Windows-only example" end<br/>ffi.cdef "void* LoadLibraryA(const char*)"<br/>print(reflect.typeof(ffi.C.LoadLibraryA).convention) --&gt; cdecl<br/>ffi.C.LoadLibraryA("kernel32")<br/>print(reflect.typeof(ffi.C.LoadLibraryA).convention) --&gt; stdcall</pre></div></div>
+<div id="f_value" class="field"><h2><tt>refct.value</tt> attribute <span class="typ">(integer)</span></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_constant">constant</a>.</p>
+
+</div>
+<hr/>
+<div id="m_members" class="method"><h2><tt>refct iterator = refct:members()</tt></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_struct">struct</a>, <a href="#w_union">union</a>.</p>
+Returns an iterator triple which can be used in a for-in statement to enumerate
+the constituent members of the structure / union, in the order that they were
+defined. Each such member will be a <tt>refct</tt> of kind <tt>"field"</tt>, <tt>"bitfield"</tt>,
+<tt>"struct"</tt>, or <tt>"union"</tt>. The former two kinds will occur most of the time, with
+the latter two only occurring for unnamed (transparent) structures and unions.
+If enumerating the fields of a stucture or union, then you need to recursively
+enumerate these transparent members.
+<div class="example"><strong>Example:</strong><pre>for refct in reflect.typeof("struct{int x; int y;}"):members() do print(refct.name) end --&gt; x, y</pre></div><div class="example"><strong>Example:</strong><pre class="multiline">for refct in reflect.typeof[[<br/>  struct {<br/>    int a;<br/>    union {<br/>    	int b;<br/>    	int c;<br/>    };<br/>    int d : 2;<br/>    struct {<br/>      int e;<br/>      int f;<br/>    };<br/>  }<br/>]]:members() do print(refct.what) end --&gt; field, union, bitfield, struct</pre></div></div>
+<div id="m_member" class="method"><h2><tt>refct = refct:member(name_or_index)</tt></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_struct">struct</a>, <a href="#w_union">union</a>.</p>
+Like <tt>members()</tt>, but returns the first member whose <tt>name</tt> matches the given parameter, or the member given
+by the 1-based index, or <tt>nil</tt> if nothing matches. Note that this method takes time linear in the number
+of members.
+</div>
+<div id="m_arguments" class="method"><h2><tt>refct iterator = refct:arguments()</tt></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_func">func</a>.</p>
+Returns an iterator triple which can be used in a for-in statement to enumerate
+the arguments of the function, from left to right. Each such argument will be a <tt>refct</tt> of kind <tt>"field"</tt>,
+having a <tt>type</tt> attribute, zero-based <tt>offset</tt> attribute, and optionally a <tt>name</tt> attribute.
+<div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "int strcmp(const char*, const char*);"<br/>for refct in reflect.typeof(ffi.C.strcmp):arguments() do print(refct.type.what) end --&gt; ptr, ptr</pre></div><div class="example"><strong>Example:</strong><pre>for refct in reflect.typeof"int(*)(int x, int y)".element_type:arguments() do print(refct.name) end --&gt; x, y</pre></div></div>
+<div id="m_argument" class="method"><h2><tt>refct = refct:argument(name_or_index)</tt></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_func">func</a>.</p>
+Like <tt>arguments()</tt>, but returns the first argument whose <tt>name</tt> matches the given parameter, or the argument given by the 1-based index, or <tt>nil</tt> if nothing matches. Note that this method takes time linear in the number
+of arguments.
+</div>
+<div id="m_values" class="method"><h2><tt>refct iterator = refct:values()</tt></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_enum">enum</a>.</p>
+Returns an iterator triple which can be used in a for-in statement to enumerate
+the values which make up an enumerated type. Each such value will be a <tt>refct</tt> of kind <tt>"constant"</tt>,
+having <tt>name</tt> and <tt>value</tt> attributes.
+<div class="example"><strong>Example:</strong><pre class="multiline">ffi.cdef "enum EV{EV_A = 1, EV_B = 10, EV_C = 100};"<br/>for refct in reflect.typeof("enum EV"):values() do print(refct.name) end --&gt; EV_A, EV_B, EV_C</pre></div></div>
+<div id="m_value" class="method"><h2><tt>refct = refct:value(name_or_index)</tt></h2>
+<p class="kinds"><strong>Applies to:</strong> <a href="#w_enum">enum</a>.</p>
+Like <tt>values()</tt>, but returns the value whose <tt>name</tt> matches the given parameter, or the value given by the 1-based index, or <tt>nil</tt> if nothing matches. Note that this method takes time linear in the number
+of values.
+</div>
+<hr/>
+<h2>Kind / attribute quick index</h2>
+<table class="qi wf_index"><tr class="r0"><th/><th><a href="#w_void">void</a></th><th><a href="#w_int">int</a></th><th><a href="#w_float">float</a></th><th><a href="#w_enum">enum</a></th><th><a href="#w_constant">constant</a></th><th><a href="#w_ptr">ptr</a></th><th><a href="#w_ref">ref</a></th><th><a href="#w_array">array</a></th><th><a href="#w_struct">struct</a></th><th><a href="#w_union">union</a></th><th><a href="#w_func">func</a></th><th><a href="#w_field">field</a></th><th><a href="#w_bitfield">bitfield</a></th></tr><tr class="r1"><th><a href="#f_name">name</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td></tr><tr class="r2"><th><a href="#f_sym_name">sym_name</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#f_size">size</a></th><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td></tr><tr class="r2"><th><a href="#f_offset">offset</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td></tr><tr class="r1"><th><a href="#f_alignment">alignment</a></th><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#f_const">const</a></th><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#f_volatile">volatile</a></th><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#f_element_type">element_type</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#f_type">type</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td></tr><tr class="r2"><th><a href="#f_return_type">return_type</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#f_bool">bool</a></th><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#f_unsigned">unsigned</a></th><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#f_long">long</a></th><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#f_vla">vla</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#f_transparent">transparent</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#f_vector">vector</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#f_complex">complex</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#f_nargs">nargs</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#f_vararg">vararg</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#f_sse_reg_params">sse_reg_params</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#f_convention">convention</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#f_value">value</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr></table>
+<h2>Kind / method quick index</h2>
+<table class="qi wm_index"><tr class="r0"><th/><th><a href="#w_void">void</a></th><th><a href="#w_int">int</a></th><th><a href="#w_float">float</a></th><th><a href="#w_enum">enum</a></th><th><a href="#w_constant">constant</a></th><th><a href="#w_ptr">ptr</a></th><th><a href="#w_ref">ref</a></th><th><a href="#w_array">array</a></th><th><a href="#w_struct">struct</a></th><th><a href="#w_union">union</a></th><th><a href="#w_func">func</a></th><th><a href="#w_field">field</a></th><th><a href="#w_bitfield">bitfield</a></th></tr><tr class="r1"><th><a href="#m_members">members</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#m_member">member</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#m_arguments">arguments</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#m_argument">argument</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r1"><th><a href="#m_values">values</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr><tr class="r2"><th><a href="#m_value">value</a></th><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="y">x</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td><td class="n">&nbsp;</td></tr></table>
+</body></html>

@@ -22,6 +22,8 @@ This is yet another fork of the Playstation Emulator, PCSX. While the work here 
  - Improve the debugging experience.
  - Improve the rendering experience.
 
+Please consult [the documentation pages](https://pcsx-redux.consoledev.net) for more information. 
+
 ## Where?
 |Download page|
 |--------|
@@ -67,7 +69,7 @@ If you're only interested in compiling psx code, you can simply clone the pcsx-r
  - Debian derivatives ( for full emulator compilation ):
 
 ```bash
-sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
+sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
 ```
 
  - Arch derivatives :
@@ -121,14 +123,19 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - memory cards
 - memory card manager
 - XBox controller support
+- digital and analog controller emulation, Playstation Mouse emulation
+- Lua scripting
+- SPU debugger
+- in-app shader editor and built-in crt-lottes shader
+- customizable UI
 - save states
-- save state slots
 
 ### What still requires some work?
 - GLSL GPU
 - proper SPU multithreaded code
 - better customization
 - more generic dynarec
+- hook more emulator functions to Lua
 - ...
 
 [![Redux definition](https://pbs.twimg.com/media/ENJhNwGWwAEbrGb?format=jpg)](https://twitter.com/MerriamWebster/status/1212357808026341376)

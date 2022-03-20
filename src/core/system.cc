@@ -69,7 +69,7 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
 };
 
 bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::path& path) {
-    std::unique_ptr<File> in(new File(path));
+    IO<File> in(new PosixFile(path));
     int c;
     std::string currentString = "";
     std::string token = "";

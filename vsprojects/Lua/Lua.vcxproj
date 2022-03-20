@@ -27,16 +27,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\lua\extra.cc" />
     <ClCompile Include="..\..\src\lua\glffi.cc" />
+    <ClCompile Include="..\..\src\lua\luafile.cc" />
     <ClCompile Include="..\..\src\lua\luawrapper.cc" />
     <ClCompile Include="..\..\src\lua\zlibffi.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\lua\extra.h" />
     <ClInclude Include="..\..\src\lua\glffi.h" />
+    <ClInclude Include="..\..\src\lua\luafile.h" />
     <ClInclude Include="..\..\src\lua\luawrapper.h" />
     <ClInclude Include="..\..\src\lua\zlibffi.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\lua\fileffi.lua" />
     <None Include="..\..\src\lua\glffi-def1.lua" />
     <None Include="..\..\src\lua\glffi-def2.lua" />
     <None Include="..\..\src\lua\glffi-def3.lua" />
@@ -46,6 +51,8 @@
     <None Include="..\..\src\lua\glffi-enum3.lua" />
     <None Include="..\..\src\lua\glffi-typedefs.lua" />
     <None Include="..\..\src\lua\zlibffi.lua" />
+    <None Include="..\..\third_party\ffi-reflect\reflect.lua" />
+    <None Include="..\..\third_party\pprint.lua\pprint.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
