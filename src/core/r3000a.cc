@@ -301,8 +301,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
 
     const uint32_t cycle = m_psxRegs.cycle;
 
-    if ((cycle - PCSX::g_emulator->m_psxCounters->m_psxNextsCounter) >=
-        PCSX::g_emulator->m_psxCounters->m_psxNextCounter)
+    if (cycle >= PCSX::g_emulator->m_psxCounters->m_psxNextCounter)
         PCSX::g_emulator->m_psxCounters->psxRcntUpdate();
 
     if (m_psxRegs.spuInterrupt.exchange(false)) PCSX::g_emulator->m_spu->interrupt();

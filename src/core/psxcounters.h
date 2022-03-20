@@ -93,8 +93,7 @@ class Counters {
     /******************************************************************************/
 
   public:
-    uint32_t m_psxNextCounter, m_psxNextsCounter;
-
+    uint32_t m_psxNextCounter;
     void psxRcntInit();
     void psxRcntUpdate();
 

@@ -236,8 +236,7 @@ typedef Protobuf::RepeatedField<Rcnt, 4, TYPESTRING("rcnts"), 1> Rcnts;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("hsync_count"), 2> HSyncCount;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("spu_sync_count"), 3> SPUSyncCount;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("psx_next_counter"), 4> PSXNextCounter;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("psx_nexts_counter"), 5> PSXNextsCounter;
-typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, SPUSyncCount, PSXNextCounter, PSXNextsCounter>
+typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, SPUSyncCount, PSXNextCounter>
     Counters;
 typedef Protobuf::MessageField<Counters, TYPESTRING("counters"), 10> CountersField;
 

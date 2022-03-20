@@ -174,8 +174,8 @@ std::string PCSX::SaveStates::save() {
     SaveState state = constructSaveState();
     SaveStateWrapper wrapper(state);
 
-    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v2";
-    state.get<SaveStateInfoField>().get<Version>().value = 2;
+    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v3";
+    state.get<SaveStateInfoField>().get<Version>().value = 3;
 
     g_emulator->m_gpu->save(state.get<GPUField>());
     g_emulator->m_spu->save(state.get<SPUField>());
@@ -222,7 +222,7 @@ bool PCSX::SaveStates::load(const std::string& data) {
         return false;
     }
 
-    if (state.get<SaveStateInfoField>().get<Version>().value != 2) {
+    if (state.get<SaveStateInfoField>().get<Version>().value != 3) {
         return false;
     }
 
