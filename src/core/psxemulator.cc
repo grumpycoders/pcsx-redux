@@ -92,16 +92,16 @@ PCSX::Emulator::~Emulator() {
     uv_loop_close(&g_emulator->m_loop);
 }
 
-int PCSX::Emulator::EmuInit() {
+int PCSX::Emulator::init() {
     assert(g_system);
     if (m_psxMem->psxMemInit() == -1) return -1;
     int ret = PCSX::R3000Acpu::psxInit();
-    EmuSetPGXPMode(m_config.PGXP_Mode);
+    setPGXPMode(m_config.PGXP_Mode);
     m_pads->init();
     return ret;
 }
 
-void PCSX::Emulator::EmuReset() {
+void PCSX::Emulator::reset() {
     m_cheats->FreeCheatSearchResults();
     m_cheats->FreeCheatSearchMem();
     m_psxMem->psxMemReset();
@@ -110,10 +110,11 @@ void PCSX::Emulator::EmuReset() {
     m_gpu->clearVRAM();
     m_pads->shutdown();
     m_pads->init();
+    m_pads->reset();
     m_sio1->sio1Reset();
 }
 
-void PCSX::Emulator::EmuShutdown() {
+void PCSX::Emulator::shutdown() {
     m_cheats->ClearAllCheats();
     m_cheats->FreeCheatSearchResults();
     m_cheats->FreeCheatSearchMem();
@@ -134,6 +135,6 @@ void PCSX::Emulator::vsync() {
     }
 }
 
-void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { m_psxCpu->psxSetPGXPMode(pgxpMode); }
+void PCSX::Emulator::setPGXPMode(uint32_t pgxpMode) { m_psxCpu->psxSetPGXPMode(pgxpMode); }
 
 PCSX::Emulator* PCSX::g_emulator;

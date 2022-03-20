@@ -20,10 +20,9 @@
 #pragma once
 
 #include <cassert>
+#include <codecvt>
 #include <cstddef>
 #include <cstdint>
-
-#include <codecvt>
 #include <filesystem>
 #include <functional>
 #include <string>
@@ -253,7 +252,7 @@ class Settings : private std::tuple<settings...> {
 
 }  // namespace PCSX
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #define TYPESTRING_MAX_CONST_CHAR 63
 
 #define TYPESTRING_MIN(a, b) (a) < (b) ? (a) : (b)

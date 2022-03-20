@@ -224,11 +224,11 @@ class Emulator {
     uint32_t m_psxClockSpeed = 33868800 /* 33.8688 MHz */;
     enum { BIAS = 2 };
 
-    int EmuInit();
-    void EmuReset();
-    void EmuShutdown();
+    int init();
+    void reset();
+    void shutdown();
     void vsync();
-    void EmuSetPGXPMode(uint32_t pgxpMode);
+    void setPGXPMode(uint32_t pgxpMode);
 
     void setLua();
 

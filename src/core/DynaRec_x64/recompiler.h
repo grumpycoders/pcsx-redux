@@ -82,8 +82,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_returnFromBlock;  // Pointer to the code that will be executed when returning from a block
     DynarecCallback m_uncompiledBlock;  // Pointer to the code that will be executed when jumping to an uncompiled block
     DynarecCallback m_invalidBlock;     // Pointer to the code that will be executed the PC is invalid
-    DynarecCallback m_invalidateBlocks; // Pointer to the code that will invalidate all RAM code blocks
-    DynarecCallback m_loadDelayHandler; // Pointer to the code that will handle load delays at the start of a block
+    DynarecCallback m_invalidateBlocks;  // Pointer to the code that will invalidate all RAM code blocks
+    DynarecCallback m_loadDelayHandler;  // Pointer to the code that will handle load delays at the start of a block
     // Pointer to the code that will be executed when a block needs to be recompiled with full load delay support
     DynarecCallback m_needFullLoadDelays;
 
@@ -94,7 +94,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
     bool m_firstInstruction;
     bool m_fullLoadDelayEmulation;
-    uint32_t m_ramSize;    // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
+    uint32_t m_ramSize;  // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
 
     // Used to hold info when we've got a load delay between the end of a block and the start of another
     // For example, when there's an lw instruction in the delay slot of a branch
@@ -185,7 +185,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         (*m_dispatcher)();  // Jump to assembly dispatcher
     }
     // For the GUI dynarec disassembly widget
-    virtual const uint8_t *getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
+    virtual const uint8_t* getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
     virtual const size_t getBufferSize() final { return gen.getSize(); }
 
     // TODO: Make it less slow and bad

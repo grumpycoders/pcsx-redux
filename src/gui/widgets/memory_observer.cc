@@ -300,7 +300,7 @@ AVX2_FUNC bool PCSX::Widgets::MemoryObserver::all_equal(__m256i vec) {
     // Check if the vector after xoring is 0
     return _mm256_testz_si256(res, res) != 0;
 }
-#endif // MEMORY_OBSERVER_X86
+#endif  // MEMORY_OBSERVER_X86
 
 std::vector<uint8_t> PCSX::Widgets::MemoryObserver::getShuffleResultsFor(const std::vector<uint8_t>& buffer) {
     const size_t bufferSize = buffer.size();

@@ -27,9 +27,7 @@ void PCSX::SIO1::interrupt() {
 }
 
 uint8_t PCSX::SIO1::readData8() {
-    uint8_t ret;
-
-    ret = m_slices.getByte();
+    const uint8_t ret = m_slices.getByte();
     updateStat();
     psxHu8(0x1050) = ret;
 

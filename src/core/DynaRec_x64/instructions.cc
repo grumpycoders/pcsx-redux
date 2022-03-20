@@ -799,10 +799,10 @@ void DynaRecCPU::recLHU() { recompileLoad<16, false>(); }
 void DynaRecCPU::recLW() { recompileLoad<32, true>(); }
 
 void DynaRecCPU::recLWL() {
-    if (_Rt_ == 0) { // If $rt == 0, just execute the read in case it has side-effects, then return
+    if (_Rt_ == 0) {  // If $rt == 0, just execute the read in case it has side-effects, then return
         if (m_regs[_Rs_].isConst()) {
             const uint32_t address = m_regs[_Rs_].val + _Imm_;
-            gen.mov(arg1, address & ~3); // Aligned address in arg1
+            gen.mov(arg1, address & ~3);  // Aligned address in arg1
         } else {
             allocateReg(_Rs_);                                       // Allocate address reg
             gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);  // Address in arg1

@@ -36,16 +36,9 @@ class GUI;
 
 class Pads {
   public:
-    enum Port { Port1, Port2 };
+    enum class Port { Port1 = 0, Port2 };
     enum class InputType { Auto, Controller, Keyboard };
-    enum class PadType {
-        Digital = 0,
-        Analog,
-        Mouse,
-        Negcon,
-        Gun,
-        Guncon
-    };
+    enum class PadType { Digital = 0, Analog, Mouse, Negcon, Gun, Guncon };
 
     Pads();
     void init();
@@ -60,6 +53,7 @@ class Pads {
     bool m_showCfg = false;
 
     void scanGamepads();
+    void reset();
 
   private:
     EventBus::Listener m_listener;
@@ -121,17 +115,39 @@ class Pads {
         SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
         PadSettings;
 
+    struct PadData {
+        // status of buttons - every controller fills this field
+        uint16_t buttonStatus;
+
+        // Analog stick values in range (0 - 255) where 128 = center
+        uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
+    };
+
+    enum class PadCommands : uint8_t {
+        Idle = 0x00,
+        Read = 0x42,
+        SetConfigMode = 0x43,
+        SetAnalogMode = 0x44,
+        GetAnalogMode = 0x45,
+        Unknown46 = 0x46,
+        Unknown47 = 0x47,
+        Unknown4C = 0x4C,
+        UnlockRumble = 0x4D
+    };
+
     struct Pad {
-        void readPort(PadData &pad);
-        uint8_t startPoll(const PadData &pad);
+        uint8_t startPoll();
+        uint8_t read();
         uint8_t poll(uint8_t value);
-        void getButtons(PadData &pad);
+        uint8_t doDualshockCommand();
+        void getButtons();
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
 
         json getCfg();
         void setCfg(const json &j);
         void setDefaults(bool firstController);
         void map();
+        void reset();
 
         bool configure();
         void keyboardEvent(const Events::Keyboard &);
@@ -140,19 +156,24 @@ class Pads {
         int m_scancodes[16];
         int m_padMapping[16];
         PadType m_type;
+        PadData m_data;
 
         int m_padID = 0;
         int m_buttonToWait = -1;
         bool m_changed = false;
 
+        bool m_configMode = false;
+        bool m_analogMode = false;
+
         PadSettings m_settings;
 
         uint8_t m_buf[256];
-        int m_bufcount, m_bufc;
+        int m_bufferLen = 0, m_currentByte = 0;
+        uint8_t m_cmd = magic_enum::enum_integer(PadCommands::Idle);
 
-        uint8_t m_stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-        uint8_t m_mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
-        uint8_t m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_stdpar[8] = {0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_mousepar[6] = {0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_analogpar[8] = {0x73, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     };
 
     Pad m_pads[2];
