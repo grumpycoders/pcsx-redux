@@ -273,12 +273,12 @@ uint8_t PCSX::Pads::startPoll(Port port) {
     return m_pads[index].startPoll();
 }
 
-uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
+std::optional<uint8_t> PCSX::Pads::poll(uint8_t value, Port port) {
     int index = magic_enum::enum_integer(port);
     return m_pads[index].poll(value);
 }
 
-uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
+std::optional<uint8_t> PCSX::Pads::Pad::poll(uint8_t value) {
     if (m_currentByte == 0) {
         m_cmd = value;
         m_currentByte = 1;
@@ -291,7 +291,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
             PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
             m_cmd = magic_enum::enum_integer(PadCommands::Idle);
             m_bufferLen = 0;
-            return 0xff;
+            return nullopt_t;
         }
     } else if (m_currentByte >= m_bufferLen) {
         return 0xff;

@@ -22,6 +22,8 @@
 #include <GLFW/glfw3.h>
 #include <stdint.h>
 
+#include <optional>
+
 #include "core/psxemulator.h"
 #include "core/system.h"
 #include "imgui.h"
@@ -44,7 +46,7 @@ class Pads {
     void init();
     void shutdown() {}
     uint8_t startPoll(Port port);
-    uint8_t poll(uint8_t value, Port port);
+    std::optional<uint8_t> poll(uint8_t value, Port port);
 
     json getCfg();
     void setCfg(const json &j);
@@ -143,7 +145,7 @@ class Pads {
     struct Pad {
         uint8_t startPoll();
         uint8_t read();
-        uint8_t poll(uint8_t value);
+        std::optional<uint8_t> poll(uint8_t value);
         uint8_t doDualshockCommand();
         void getButtons();
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);

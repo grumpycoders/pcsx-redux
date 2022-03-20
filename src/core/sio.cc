@@ -36,21 +36,23 @@
 
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
-        case PAD_STATE_READ_TYPE:
+        case PAD_STATE_READ_TYPE: {
+            std::optional<uint8_t> ret;
             scheduleInterrupt(SIO_CYCLES);
 
-            if (value & 0x40) {
-                m_padState = PAD_STATE_READ_DATA;
-                m_bufferIndex = 1;
-                switch (m_ctrlReg & 0x2002) {
-                    case 0x0002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1);
-                        break;
-                    case 0x2002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2);
-                        break;
-                }
+            m_padState = PAD_STATE_READ_DATA;
+            m_bufferIndex = 1;
+            switch (m_ctrlReg & 0x2002) {
+                case 0x0002:
+                    ret = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1);
+                    break;
+                case 0x2002:
+                    ret = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2);
+                    break;
+            }
 
+            if (ret.has_value()) {
+                m_buffer[m_bufferIndex] = ret.value();
                 if (!(m_buffer[m_bufferIndex] & 0x0f)) {
                     m_maxBufferIndex = 2 + 32;
                 } else {
@@ -59,7 +61,9 @@ void PCSX::SIO::writePad(uint8_t value) {
             } else {
                 m_padState = PAD_STATE_IDLE;
             }
+
             return;
+        }
         case PAD_STATE_READ_DATA:
             m_bufferIndex++;
             switch (m_ctrlReg & 0x2002) {
