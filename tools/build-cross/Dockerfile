@@ -1,4 +1,4 @@
-# Dockerfile for grumpycoders/pcsx-redux-build
+# Dockerfile for grumpycoders/pcsx-redux-build-cross
 
 FROM debian:bullseye-slim
 

@@ -19,5 +19,5 @@ set REL=%UPP%!REL:%MAT%=!
 if "!REL!" EQU "!ROOT!" (set REL=) ELSE (set "REL=!REL:\=/!")
 set REL=/!REL!
 
-docker build -t aarch64cross .\tools\build-cross
-docker run --rm --env-file "%ROOT%/env.list" -i -w"/project%REL%" -v "%ROOT%:/project" aarch64cross make --makefile=Makefile-cross-aa64 %*
+docker pull grumpycoders/pcsx-redux-build-cross:latest
+docker run --rm --env-file "%ROOT%/cross-env.list" -i -w"/project%REL%" -v "%ROOT%:/project" grumpycoders/pcsx-redux-build-cross make %*
