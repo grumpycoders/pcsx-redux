@@ -267,10 +267,7 @@ void PCSX::Memory::psxMemShutdown() {
 uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
     char *p;
     uint32_t t;
-
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
-    }
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
 
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
@@ -292,10 +289,7 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
 uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
     char *p;
     uint32_t t;
-
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
-    }
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
 
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
@@ -317,10 +311,7 @@ uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
 uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
     char *p;
     uint32_t t;
-
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
-    }
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
 
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
@@ -344,10 +335,7 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
 void PCSX::Memory::psxMemWrite8(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
-
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
-    }
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
 
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
@@ -369,10 +357,7 @@ void PCSX::Memory::psxMemWrite8(uint32_t mem, uint32_t value) {
 void PCSX::Memory::psxMemWrite16(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
-
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
-    }
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
 
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
@@ -394,12 +379,8 @@ void PCSX::Memory::psxMemWrite16(uint32_t mem, uint32_t value) {
 void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
 
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
-    }
-
-    //  if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) PCSX::g_system->printf("t2fix!!\n");
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
         if ((mem & 0xffff) < 0x400)
