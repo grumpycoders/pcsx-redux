@@ -94,10 +94,10 @@ void PCSX::Pads::Pad::map() {
 
     // L3/R3 are only avalable on analog controllers
     if (m_type == PadType::Analog) {
-        m_scancodes[1] = m_settings.get<Keyboard_PadL3>(); // L3
-        m_scancodes[2] = m_settings.get<Keyboard_PadR3>(); // R3
-        m_padMapping[1] = m_settings.get<Controller_PadL3>(); // L3
-        m_padMapping[2] = m_settings.get<Controller_PadR3>(); // R3
+        m_scancodes[1] = m_settings.get<Keyboard_PadL3>();     // L3
+        m_scancodes[2] = m_settings.get<Keyboard_PadR3>();     // R3
+        m_padMapping[1] = m_settings.get<Controller_PadL3>();  // L3
+        m_padMapping[2] = m_settings.get<Controller_PadR3>();  // R3
     } else {
         m_scancodes[1] = 255;
         m_scancodes[2] = 255;
@@ -552,8 +552,7 @@ bool PCSX::Pads::Pad::configure() {
         []() { return _("Cross"); },  []() { return _("Square"); }, []() { return _("Triangle"); },
         []() { return _("Circle"); }, []() { return _("Select"); }, []() { return _("Start"); },
         []() { return _("L1"); },     []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); },     []() { return _("L3"); },     []() { return _("R3"); }
-    };
+        []() { return _("R2"); },     []() { return _("L3"); },     []() { return _("R3"); }};
     static std::function<const char*()> const c_dpadDirections[] = {
         []() { return _("Up"); }, []() { return _("Right"); }, []() { return _("Down"); }, []() { return _("Left"); }};
     static std::function<const char*()> const c_controllerTypes[] = {[]() { return _("Digital"); },
@@ -577,7 +576,7 @@ bool PCSX::Pads::Pad::configure() {
                     changed = true;
                     m_type = static_cast<PadType>(i);
                     m_settings.get<SettingDeviceType>().value = m_type;
-                    reset(); // Reset pad state when changing pad type
+                    reset();  // Reset pad state when changing pad type
                     map();
                 }
             }
