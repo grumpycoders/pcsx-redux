@@ -94,7 +94,6 @@ int PCSX::Memory::psxMemInit() {
     memcpy(g_psxMemWLUT + 0xa000, g_psxMemWLUT, 0x80 * sizeof(void *));
 
     g_psxMemWLUT[0x1f00] = (uint8_t *)g_psxP;
-    g_psxMemWLUT[0x1f80] = (uint8_t *)g_psxH;
 
     return 0;
 }
@@ -328,96 +327,89 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t address) {
     }
 }
 
-void PCSX::Memory::psxMemWrite8(uint32_t mem, uint32_t value) {
-    char *p;
-    uint32_t t;
+void PCSX::Memory::psxMemWrite8(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
+    const uint32_t page = address >> 16;
+    const auto pointer = (uint8_t *)g_psxMemWLUT[page];
 
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            psxHu8(mem) = value;
-        else
-            PCSX::g_emulator->m_hw->psxHwWrite8(mem, value);
+    if (pointer != nullptr) {
+        const uint32_t offset = address & 0xffff;
+        *(pointer + offset) = static_cast<uint8_t>(value);
+        PCSX::g_emulator->m_psxCpu->Clear((address & (~3)), 1);
     } else {
-        p = (char *)(g_psxMemWLUT[t]);
-        if (p != NULL) {
-            *(uint8_t *)(p + (mem & 0xffff)) = value;
-            PCSX::g_emulator->m_psxCpu->Clear((mem & (~3)), 1);
+        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+            if ((address & 0xffff) < 0x400)
+                psxHu8(address) = value;
+            else
+                PCSX::g_emulator->m_hw->psxHwWrite8(address, value);
         } else {
-            PSXMEM_LOG("err sb %8.8lx\n", mem);
+            PSXMEM_LOG("err sb %8.8lx\n", address);
         }
     }
 }
 
-void PCSX::Memory::psxMemWrite16(uint32_t mem, uint32_t value) {
-    char *p;
-    uint32_t t;
+void PCSX::Memory::psxMemWrite16(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
+    const uint32_t page = address >> 16;
+    const auto pointer = (uint8_t *)g_psxMemWLUT[page];
 
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            psxHu16ref(mem) = SWAP_LEu16(value);
-        else
-            PCSX::g_emulator->m_hw->psxHwWrite16(mem, value);
+    if (pointer != nullptr) {
+        const uint32_t offset = address & 0xffff;
+        *(uint16_t*)(pointer + offset) = SWAP_LEu16(static_cast<uint16_t>(value));
+        PCSX::g_emulator->m_psxCpu->Clear((address & (~3)), 1);
     } else {
-        p = (char *)(g_psxMemWLUT[t]);
-        if (p != NULL) {
-            *(uint16_t *)(p + (mem & 0xffff)) = SWAP_LEu16(value);
-            PCSX::g_emulator->m_psxCpu->Clear((mem & (~3)), 1);
+        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+            if ((address & 0xffff) < 0x400)
+                psxHu16ref(address) = SWAP_LEu16(value);
+            else
+                PCSX::g_emulator->m_hw->psxHwWrite16(address, value);
         } else {
-            PSXMEM_LOG("err sh %8.8lx\n", mem);
+            PSXMEM_LOG("err sh %8.8lx\n", address);
         }
     }
 }
 
-void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
-    char *p;
-    uint32_t t;
+void PCSX::Memory::psxMemWrite32(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
+    const uint32_t page = address >> 16;
+    const auto pointer = (uint8_t *)g_psxMemWLUT[page];
 
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            psxHu32ref(mem) = SWAP_LEu32(value);
-        else
-            PCSX::g_emulator->m_hw->psxHwWrite32(mem, value);
+    if (pointer != nullptr) {
+        const uint32_t offset = address & 0xffff;
+        *(uint32_t *)(pointer + offset) = SWAP_LEu32(value);
+        PCSX::g_emulator->m_psxCpu->Clear((address & (~3)), 1);
     } else {
-        p = (char *)(g_psxMemWLUT[t]);
-        if (p != NULL) {
-            *(uint32_t *)(p + (mem & 0xffff)) = SWAP_LEu32(value);
-            PCSX::g_emulator->m_psxCpu->Clear(mem, 1);
+        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+            if ((address & 0xffff) < 0x400)
+                psxHu32ref(address) = SWAP_LEu32(value);
+            else
+                PCSX::g_emulator->m_hw->psxHwWrite32(address, value);
+        } else if (address != 0xfffe0130) {
+            if (!m_writeok) PCSX::g_emulator->m_psxCpu->Clear(address, 1);
+
+            if (m_writeok) {
+                PSXMEM_LOG("err sw %8.8lx\n", address);
+            }
         } else {
-            if (mem != 0xfffe0130) {
-                if (!m_writeok) PCSX::g_emulator->m_psxCpu->Clear(mem, 1);
+            // a0-44: used for cache flushing
+            switch (value) {
+                case 0x800:
+                case 0x804:
+                    if (m_writeok == 0) break;
+                    m_writeok = 0;
+                    setLuts();
 
-                if (m_writeok) {
-                    PSXMEM_LOG("err sw %8.8lx\n", mem);
-                }
-            } else {
-                int i;
-
-                // a0-44: used for cache flushing
-                switch (value) {
-                    case 0x800:
-                    case 0x804:
-                        if (m_writeok == 0) break;
-                        m_writeok = 0;
-                        setLuts();
-
-                        PCSX::g_emulator->m_psxCpu->invalidateCache();
-                        break;
-                    case 0x00:
-                    case 0x1e988:
-                        if (m_writeok == 1) break;
-                        m_writeok = 1;
-                        setLuts();
-                        break;
-                    default:
-                        PSXMEM_LOG("unk %8.8lx = %x\n", mem, value);
-                        break;
-                }
+                    PCSX::g_emulator->m_psxCpu->invalidateCache();
+                    break;
+                case 0x00:
+                case 0x1e988:
+                    if (m_writeok == 1) break;
+                    m_writeok = 1;
+                    setLuts();
+                    break;
+                default:
+                    PSXMEM_LOG("unk %8.8lx = %x\n", address, value);
+                    break;
             }
         }
     }
