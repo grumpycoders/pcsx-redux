@@ -34,17 +34,17 @@ namespace PCSX {
 class CDRiso {
   public:
     CDRiso();
-    ~CDRiso();
-    enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
-    TrackType getTrackType(unsigned track) { return m_ti[track].type; }
-    void setIsoPath(const std::filesystem::path& path) {
-        close();
+    CDRiso(const std::filesystem::path& path) : CDRiso() {
         m_isoPath = path;
         open();
     }
+    ~CDRiso() {
+        close();
+        inflateEnd(&m_zstr);
+    }
+    enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
+    TrackType getTrackType(unsigned track) { return m_ti[track].type; }
     const std::filesystem::path& getIsoPath() { return m_isoPath; }
-    bool open();
-    void close();
     uint8_t getTN() { return std::min(m_numtracks, 1); }
     IEC60908b::MSF getTD(uint8_t track);
     bool readTrack(const IEC60908b::MSF time);
@@ -62,6 +62,9 @@ class CDRiso {
     bool CheckSBI(const uint8_t* time);
 
   private:
+    bool open();
+    void close();
+
     std::filesystem::path m_isoPath;
     typedef ssize_t (CDRiso::*read_func_t)(IO<File> f, unsigned int base, void* dest, int sector);
 

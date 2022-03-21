@@ -218,7 +218,7 @@ int pcsxMain(int argc, char **argv) {
 
     emulator->m_spu->close();
     emulator->m_gpu->close();
-    emulator->m_cdrom->m_iso.close();
+    emulator->m_cdrom->m_iso.reset();
 
     emulator->m_psxCpu->psxShutdown();
     emulator->m_spu->shutdown();

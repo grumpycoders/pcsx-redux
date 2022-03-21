@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "cdrom/cdriso.h"
 #include "cdrom/iec-60908b.h"
 #include "core/decode_xa.h"
@@ -38,6 +40,7 @@ struct CdrStat {
 class CDRom {
   public:
     using MSF = PCSX::IEC60908b::MSF;
+    CDRom() : m_iso(new CDRiso()) {}
     virtual ~CDRom() {}
     static CDRom* factory();
     bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }
@@ -66,7 +69,7 @@ class CDRom {
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
 
-    CDRiso m_iso;
+    std::shared_ptr<CDRiso> m_iso;
 
   protected:
     // savestate stuff starts here

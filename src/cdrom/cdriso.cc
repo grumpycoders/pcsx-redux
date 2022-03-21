@@ -75,11 +75,6 @@ PCSX::CDRiso::CDRiso() {
     if (ret != Z_OK) throw("Unable to initialize zlib context");
 }
 
-PCSX::CDRiso::~CDRiso() {
-    inflateEnd(&m_zstr);
-    close();
-}
-
 // this function tries to get the .sub file of the given .img
 bool PCSX::CDRiso::opensubfile(const char *isoname) {
     char subname[MAXPATHLEN];

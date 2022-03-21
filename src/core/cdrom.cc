@@ -281,7 +281,7 @@ class CDRomImpl : public PCSX::CDRom {
             stat->Status |= 0x80;
         } else {
             // BIOS - boot ID (CD type)
-            stat->Type = magic_enum::enum_integer(m_iso.getTrackType(1));
+            stat->Type = magic_enum::enum_integer(m_iso->getTrackType(1));
         }
 
         // relative -> absolute time
@@ -360,8 +360,8 @@ class CDRomImpl : public PCSX::CDRom {
 
         current = time.toLBA();
 
-        for (m_curTrack = 1; m_curTrack < m_iso.getTN(); m_curTrack++) {
-            if (m_iso.getTD(m_curTrack + 1).toLBA() - current >= 150) break;
+        for (m_curTrack = 1; m_curTrack < m_iso->getTN(); m_curTrack++) {
+            if (m_iso->getTD(m_curTrack + 1).toLBA() - current >= 150) break;
         }
         CDROM_LOG("Find_CurTrack *** %02d %02d\n", m_curTrack, current);
     }
@@ -370,11 +370,11 @@ class CDRomImpl : public PCSX::CDRom {
         unsigned int this_s, start_s, next_s, pregap;
         int relative_s;
 
-        MSF start = m_iso.getTD(m_curTrack);
+        MSF start = m_iso->getTD(m_curTrack);
         MSF next;
-        if (m_curTrack + 1 <= m_iso.getTN()) {
+        if (m_curTrack + 1 <= m_iso->getTN()) {
             pregap = 150;
-            next = m_iso.getTD(m_curTrack + 1);
+            next = m_iso->getTD(m_curTrack + 1);
         } else {
             // last track - cd size
             pregap = 0;
@@ -410,10 +410,10 @@ class CDRomImpl : public PCSX::CDRom {
 
         CDROM_LOG("ReadTrack *** %02i:%02i:%02i\n", time.m, time.s, time.f);
 
-        m_suceeded = m_iso.readTrack(time);
+        m_suceeded = m_iso->readTrack(time);
         m_prev = time;
 
-        const PCSX::IEC60908b::Sub *sub = m_iso.getBufferSub();
+        const PCSX::IEC60908b::Sub *sub = m_iso->getBufferSub();
         if (sub && m_curTrack == 1) {
             uint16_t calcCRC = PCSX::IEC60908b::subqCRC(sub->Q);
             uint16_t actualCRC = sub->CRC[0];
@@ -534,7 +534,7 @@ class CDRomImpl : public PCSX::CDRom {
             m_trackChanged = true;
         }
 
-        m_iso.readCDDA(m_setSectorPlay, m_transfer);
+        m_iso->readCDDA(m_setSectorPlay, m_transfer);
         if (!m_irq && !m_stat && (m_mode & (MODE_AUTOPAUSE | MODE_REPORT))) cdrPlayInterrupt_Autopause();
 
         if (!m_play) return;
@@ -621,9 +621,9 @@ class CDRomImpl : public PCSX::CDRom {
                     CDROM_LOG("PLAY Resume @ %d:%d:%d\n", m_setSectorPlay.m, m_setSectorPlay.s, m_setSectorPlay.f);
                 } else {
                     int track = PCSX::IEC60908b::btoi(m_param[0]);
-                    if (track <= m_iso.getTN()) m_curTrack = track;
+                    if (track <= m_iso->getTN()) m_curTrack = track;
                     CDROM_LOG("PLAY track %d\n", m_curTrack);
-                    m_setSectorPlay = m_iso.getTD(m_curTrack);
+                    m_setSectorPlay = m_iso->getTD(m_curTrack);
                 }
 
                 /*
@@ -699,7 +699,7 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlStop:
                 if (m_play) {
                     // grab time for current track
-                    m_setSectorPlay = m_iso.getTD(m_curTrack);
+                    m_setSectorPlay = m_iso->getTD(m_curTrack);
                 }
 
                 StopCdda();
@@ -806,7 +806,7 @@ class CDRomImpl : public PCSX::CDRom {
                 SetResultSize(8);
                 memcpy(&m_result, &m_subq, 8);
 
-                if (!m_play && m_iso.CheckSBI(m_result + 5)) memset(m_result + 2, 0, 6);
+                if (!m_play && m_iso->CheckSBI(m_result + 5)) memset(m_result + 2, 0, 6);
                 if (!m_play && !m_reading) m_result[1] = 0;  // HACK?
                 break;
 
@@ -822,26 +822,26 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case CdlGetTN:
-                if (!m_iso.isActive()) {
+                if (!m_iso->isActive()) {
                     m_stat = DiskError;
                     m_result[0] |= STATUS_ERROR;
                 } else {
                     SetResultSize(3);
                     m_stat = Acknowledge;
                     m_result[1] = 1;
-                    m_result[2] = PCSX::IEC60908b::itob(m_iso.getTN());
+                    m_result[2] = PCSX::IEC60908b::itob(m_iso->getTN());
                 }
                 break;
 
             case CdlGetTD: {
-                if (!m_iso.isActive()) {
+                if (!m_iso->isActive()) {
                     m_stat = DiskError;
                     m_result[0] |= STATUS_ERROR;
                 } else {
                     m_track = PCSX::IEC60908b::btoi(m_param[0]);
                     SetResultSize(4);
                     m_stat = Acknowledge;
-                    MSF td = m_iso.getTD(m_track);
+                    MSF td = m_iso->getTD(m_track);
                     m_result[0] = m_statP;
                     m_result[1] = td.m;
                     m_result[2] = td.s;
@@ -899,7 +899,7 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlID + 0x100:
                 SetResultSize(8);
 
-                if (!m_iso.isActive()) {
+                if (!m_iso->isActive()) {
                     m_result[0] = 0x08;
                     m_result[1] = 0x40;
                     memset((char *)&m_result[2], 0, 6);
@@ -977,7 +977,7 @@ class CDRomImpl : public PCSX::CDRom {
                 // Crusaders of Might and Magic - update getlocl now
                 // - fixes cutscene speech
                 {
-                    uint8_t *buf = m_iso.getBuffer();
+                    uint8_t *buf = m_iso->getBuffer();
                     if (buf != NULL) memcpy(m_transfer, buf, 8);
                 }
 
@@ -1128,7 +1128,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         readTrack(m_setSectorPlay);
 
-        buf = m_iso.getBuffer();
+        buf = m_iso->getBuffer();
         if (buf == NULL) m_suceeded = false;
 
         if (!m_suceeded) {
@@ -1491,7 +1491,7 @@ class CDRomImpl : public PCSX::CDRom {
     void getCdInfo(void) {
         uint8_t tmp;
 
-        m_setSectorEnd = m_iso.getTD(0);
+        m_setSectorEnd = m_iso->getTD(0);
     }
 
     void reset() final {
