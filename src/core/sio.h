@@ -21,6 +21,7 @@
 
 #include <string>
 
+#include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -86,12 +87,8 @@ class SIO {
     uint8_t m_mcdAddrHigh, m_mcdAddrLow;
     bool m_wasMcd1Inserted = false;
     bool m_wasMcd2Inserted = false;
-    uint32_t m_padState;
-    enum {
-        PAD_STATE_IDLE = 0,
-        PAD_STATE_READ_TYPE = 1,
-        PAD_STATE_READ_DATA = 2,
-    };
+    uint32_t m_padState = PAD_STATE_IDLE;
+
     inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO, eCycle);
 #if 0
