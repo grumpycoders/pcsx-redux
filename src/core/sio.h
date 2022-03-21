@@ -21,7 +21,6 @@
 
 #include <string>
 
-#include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -87,7 +86,7 @@ class SIO {
     uint8_t m_mcdAddrHigh, m_mcdAddrLow;
     bool m_wasMcd1Inserted = false;
     bool m_wasMcd2Inserted = false;
-    uint32_t m_padState = PAD_STATE_IDLE;
+    uint32_t m_padState;
 
     inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO, eCycle);
@@ -101,6 +100,7 @@ class SIO {
     void writeMcd(uint8_t value);
 
   public:
+    SIO();
     static const size_t MCD_SECT_SIZE = 8 * 16;
     static const size_t MCD_BLOCK_SIZE = 8192;
     static const size_t MCD_SIZE = 1024 * MCD_SECT_SIZE;
@@ -120,8 +120,8 @@ class SIO {
     uint16_t readBaud16();
 
     void netError();
-
     void interrupt();
+    void reset();
 
     void LoadMcd(int mcd, const PCSX::u8string str);
     void LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);

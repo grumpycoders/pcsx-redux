@@ -26,12 +26,26 @@
 #include <stdexcept>
 
 #include "core/misc.h"
+#include "core/pad.h"
 #include "support/sjis_conv.h"
 
 // clk cycle byte
 // 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
 // TODO: add SioModePrescaler
 #define SIO_CYCLES (m_baudReg * 8)
+
+PCSX::SIO::SIO() { reset(); }
+
+void PCSX::SIO::reset() {
+    m_padState = PAD_STATE_IDLE;
+    m_statusReg = TX_RDY | TX_EMPTY;
+    m_modeReg = 0;
+    m_ctrlReg = 0;
+    m_baudReg = 0;
+    m_bufferIndex = 0;
+    m_mcdState = MCD_STATE_IDLE;
+    m_mcdReadWriteState = MCD_READWRITE_STATE_IDLE;
+}
 
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {

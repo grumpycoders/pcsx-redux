@@ -111,6 +111,7 @@ void PCSX::Emulator::reset() {
     m_pads->shutdown();
     m_pads->init();
     m_pads->reset();
+    m_sio->reset();
     m_sio1->sio1Reset();
 }
 
