@@ -292,11 +292,13 @@
     <ClCompile Include="..\..\src\cdrom\cdriso-toc.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso.cc" />
     <ClCompile Include="..\..\src\cdrom\iec-60908b.cc" />
+    <ClCompile Include="..\..\src\cdrom\iso9660-reader.cc" />
     <ClCompile Include="..\..\src\cdrom\ppf.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\cdrom\cdriso.h" />
     <ClInclude Include="..\..\src\cdrom\iec-60908b.h" />
+    <ClInclude Include="..\..\src\cdrom\iso9660-reader.h" />
     <ClInclude Include="..\..\src\cdrom\ppf.h" />
   </ItemGroup>
   <ItemGroup>

@@ -282,6 +282,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\mips\common\util\sjis-table.h" />
+    <ClInclude Include="..\..\src\support\binstruct.h" />
     <ClInclude Include="..\..\src\support\circular.h" />
     <ClInclude Include="..\..\src\support\djbhash.h" />
     <ClInclude Include="..\..\src\support\eventbus.h" />

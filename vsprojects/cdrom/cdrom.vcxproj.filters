@@ -51,6 +51,9 @@
     <ClCompile Include="..\..\src\cdrom\ppf.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\cdrom\iso9660-reader.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\cdrom\cdriso.h">
@@ -60,6 +63,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\cdrom\ppf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\cdrom\iso9660-reader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
