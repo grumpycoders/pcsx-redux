@@ -27,7 +27,7 @@ namespace PCSX {
 
 class PPF {
   public:
-    void load();
+    bool load();
     void FreePPFCache();
     void CheckPPFCache(uint8_t *pB, IEC60908b::MSF);
 

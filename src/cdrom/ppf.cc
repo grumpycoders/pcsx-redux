@@ -169,7 +169,7 @@ void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem
     }
 }
 
-void PCSX::PPF::load() {
+bool PCSX::PPF::load() {
     FILE *ppffile;
     char buffer[12];
     char method, undo = 0, blockcheck = 0;
@@ -182,7 +182,7 @@ void PCSX::PPF::load() {
 
     FreePPFCache();
 
-    if (PCSX::g_emulator->m_cdromId[0] == '\0') return;
+    if (PCSX::g_emulator->m_cdromId[0] == '\0') return false;
 
     // Generate filename in the format of SLUS_123.45
     buffer[0] = toupper(PCSX::g_emulator->m_cdromId[0]);
@@ -201,7 +201,7 @@ void PCSX::PPF::load() {
     sprintf(szPPF, "%s/%s", PCSX::g_emulator->settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
 
     ppffile = fopen(szPPF, "rb");
-    if (ppffile == NULL) return;
+    if (ppffile == NULL) return false;
 
     memset(buffer, 0, 5);
     if (fread(buffer, 3, 1, ppffile) != 1) {
@@ -211,7 +211,7 @@ void PCSX::PPF::load() {
     if (strcmp(buffer, "PPF") != 0) {
         PCSX::g_system->printf(_("Invalid PPF patch: %s.\n"), szPPF);
         fclose(ppffile);
-        return;
+        return false;
     }
 
     fseek(ppffile, 5, SEEK_SET);
@@ -294,7 +294,7 @@ void PCSX::PPF::load() {
         default:
             fclose(ppffile);
             PCSX::g_system->printf(_("Unsupported PPF version (%d).\n"), method + 1);
-            return;
+            return false;
     }
 
     // now do the data reading
@@ -341,4 +341,5 @@ void PCSX::PPF::load() {
     FillPPFCache();  // build address array
 
     PCSX::g_system->printf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
+    return true;
 }

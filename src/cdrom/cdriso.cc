@@ -19,8 +19,6 @@
 
 #include "cdrom/cdriso.h"
 
-#include <zlib.h>
-
 #include "cdrom/iec-60908b.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -67,6 +65,21 @@
 // ECC:   Error Correction Code
 //
 
+PCSX::CDRiso::CDRiso() {
+    m_zstr.next_in = Z_NULL;
+    m_zstr.avail_in = 0;
+    m_zstr.zalloc = Z_NULL;
+    m_zstr.zfree = Z_NULL;
+    m_zstr.opaque = Z_NULL;
+    auto ret = inflateInit2(&m_zstr, -15);
+    if (ret != Z_OK) throw("Unable to initialize zlib context");
+}
+
+PCSX::CDRiso::~CDRiso() {
+    inflateEnd(&m_zstr);
+    close();
+}
+
 // this function tries to get the .sub file of the given .img
 bool PCSX::CDRiso::opensubfile(const char *isoname) {
     char subname[MAXPATHLEN];
@@ -109,39 +122,30 @@ ssize_t PCSX::CDRiso::cdread_normal(IO<File> f, unsigned int base, void *dest, i
 ssize_t PCSX::CDRiso::cdread_sub_mixed(IO<File> f, unsigned int base, void *dest, int sector) {
     int ret;
 
-    ret = f->readAt(dest, IEC60908b::FRAMESIZE_RAW, base + sector * (IEC60908b::FRAMESIZE_RAW + IEC60908b::SUB_FRAMESIZE));
-    f->readAt(m_subbuffer.raw, IEC60908b::SUB_FRAMESIZE, base + sector * (IEC60908b::FRAMESIZE_RAW + IEC60908b::SUB_FRAMESIZE) + IEC60908b::FRAMESIZE_RAW);
+    ret = f->readAt(dest, IEC60908b::FRAMESIZE_RAW,
+                    base + sector * (IEC60908b::FRAMESIZE_RAW + IEC60908b::SUB_FRAMESIZE));
+    f->readAt(m_subbuffer.raw, IEC60908b::SUB_FRAMESIZE,
+              base + sector * (IEC60908b::FRAMESIZE_RAW + IEC60908b::SUB_FRAMESIZE) + IEC60908b::FRAMESIZE_RAW);
 
     if (m_subChanRaw) decodeRawSubData();
 
     return ret;
 }
 
-static int uncompress2_internal(void *out, unsigned long *out_size, void *in, unsigned long in_size) {
-    static z_stream z;
+static int uncompress2_internal(void *out, unsigned long *out_size, void *in, unsigned long in_size, z_stream *z) {
     int ret = 0;
 
-    if (z.zalloc == NULL) {
-        // XXX: one-time leak here..
-        z.next_in = Z_NULL;
-        z.avail_in = 0;
-        z.zalloc = Z_NULL;
-        z.zfree = Z_NULL;
-        z.opaque = Z_NULL;
-        ret = inflateInit2(&z, -15);
-    } else
-        ret = inflateReset(&z);
+    ret = inflateReset(z);
     if (ret != Z_OK) return ret;
 
-    z.next_in = reinterpret_cast<Bytef *>(in);
-    z.avail_in = in_size;
-    z.next_out = reinterpret_cast<Bytef *>(out);
-    z.avail_out = *out_size;
+    z->next_in = reinterpret_cast<Bytef *>(in);
+    z->avail_in = in_size;
+    z->next_out = reinterpret_cast<Bytef *>(out);
+    z->avail_out = *out_size;
 
-    ret = inflate(&z, Z_NO_FLUSH);
-    // inflateEnd(&z);
+    ret = inflate(z, Z_NO_FLUSH);
 
-    *out_size -= z.avail_out;
+    *out_size -= z->avail_out;
     return ret == 1 ? 0 : ret;
 }
 
@@ -189,7 +193,8 @@ ssize_t PCSX::CDRiso::cdread_compressed(IO<File> f, unsigned int base, void *des
     if (is_compressed) {
         cdbuffer_size_expect = sizeof(m_compr_img->buff_raw[0]) << m_compr_img->block_shift;
         cdbuffer_size = cdbuffer_size_expect;
-        ret = uncompress2_internal(m_compr_img->buff_raw[0], &cdbuffer_size, m_compr_img->buff_compressed, size);
+        ret =
+            uncompress2_internal(m_compr_img->buff_raw[0], &cdbuffer_size, m_compr_img->buff_compressed, size, &m_zstr);
         if (ret != 0) {
             PCSX::g_system->printf("uncompress failed with %d for block %d, sector %d\n", ret, block, sector);
             return -1;
@@ -338,6 +343,8 @@ bool PCSX::CDRiso::open(void) {
 
     PCSX::g_system->printf(".\n");
 
+    m_ppf.load();
+
     printTracks();
 
     if (m_subChanMixed && (m_cdimg_read_func == &CDRiso::cdread_normal)) {
@@ -391,6 +398,8 @@ void PCSX::CDRiso::close() {
         m_decoded_ecm_buffer = nullptr;
     }
     m_ecm_file_detected = false;
+
+    m_ppf.FreePPFCache();
 }
 
 PCSX::IEC60908b::MSF PCSX::CDRiso::getTD(uint8_t track) {

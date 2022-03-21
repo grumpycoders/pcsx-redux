@@ -20,6 +20,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <zlib.h>
 
 #include <filesystem>
 
@@ -32,6 +33,8 @@ namespace PCSX {
 
 class CDRiso {
   public:
+    CDRiso();
+    ~CDRiso();
     enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
     TrackType getTrackType(unsigned track) { return m_ti[track].type; }
     void setIsoPath(const std::filesystem::path& path) {
@@ -63,6 +66,7 @@ class CDRiso {
     typedef ssize_t (CDRiso::*read_func_t)(IO<File> f, unsigned int base, void* dest, int sector);
 
     bool m_useCompressed = false;
+    z_stream m_zstr;
 
     IO<File> m_cdHandle;
     IO<File> m_subHandle;
