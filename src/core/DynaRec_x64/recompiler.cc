@@ -630,5 +630,9 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
             return (index == rs || index == rt) ? LoadDelayDependencyType::DependencyInsideBlock
                                                 : LoadDelayDependencyType::NoDependency;
     }
+
+    // Unreachable, but returning nothing would technically be UB.
+    abort();
+    return LoadDelayDependencyType::NoDependency;
 }
 #endif  // DYNAREC_X86_64
