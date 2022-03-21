@@ -19,7 +19,7 @@
 
 #include "cdrom/cdriso.h"
 
-int PCSX::CDRiso::LoadSBI(const char *filename) {
+bool PCSX::CDRiso::LoadSBI(const char *filename) {
     IO<File> sbihandle;
     char buffer[16], sbifile[MAXPATHLEN];
 
@@ -52,9 +52,7 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         sbihandle.asA<UvFile>()->startCaching();
     }
-    if (sbihandle->failed()) {
-        return -1;
-    }
+    if (sbihandle->failed()) return false;
 
     // init
     sbicount = 0;
@@ -68,7 +66,7 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
 
     PCSX::g_system->printf(_("Loaded SBI file: %s.\n"), filename);
 
-    return 0;
+    return true;
 }
 
 bool PCSX::CDRiso::CheckSBI(const uint8_t *time) {
@@ -84,7 +82,7 @@ bool PCSX::CDRiso::CheckSBI(const uint8_t *time) {
 
 void PCSX::CDRiso::UnloadSBI() { sbicount = 0; }
 
-int PCSX::CDRiso::opensbifile(const char *isoname) {
+bool PCSX::CDRiso::opensbifile(const char *isoname) {
     char sbiname[MAXPATHLEN];
 
     strncpy(sbiname, isoname, sizeof(sbiname));
@@ -92,7 +90,7 @@ int PCSX::CDRiso::opensbifile(const char *isoname) {
     if (strlen(sbiname) >= 4) {
         strcpy(sbiname + strlen(sbiname) - 4, ".sbi");
     } else {
-        return -1;
+        return false;
     }
 
     return LoadSBI(sbiname);

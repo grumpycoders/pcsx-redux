@@ -20,6 +20,8 @@
 #include "cdrom/cdriso.h"
 #include "core/cdrom.h"
 
+static constexpr unsigned ECM_HEADER_SIZE = 4;
+
 /* Adapted from ecm.c:unecmify() (C) Neill Corlett */
 ssize_t PCSX::CDRiso::ecmDecode(IO<File> f, unsigned int base, void *dest, int sector) {
     uint32_t output_edc = 0, b = 0, writebytecount = 0, num;
@@ -277,7 +279,7 @@ error_out:
     return -1;
 }
 
-int PCSX::CDRiso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate_length) {
+bool PCSX::CDRiso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate_length) {
     // Rewind to start and check ECM header and filename suffix validity
     cdh->rSeek(0, SEEK_SET);
     if ((cdh->getc() == 'E') && (cdh->getc() == 'C') && (cdh->getc() == 'M') && (cdh->getc() == 0x00) &&
@@ -318,7 +320,7 @@ int PCSX::CDRiso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate
 
         m_ecm_file_detected = true;
 
-        return 0;
+        return true;
     }
-    return -1;
+    return false;
 }

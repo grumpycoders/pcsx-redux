@@ -22,7 +22,17 @@
 
 // this function tries to get the .cue file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
-int PCSX::CDRiso::parsecue(const char *isofileString) {
+bool PCSX::CDRiso::parsecue(const char *isofileString) {
+    auto get_cdda_type = [](const char *str) {
+        const size_t lenstr = strlen(str);
+        if (strncmp((str + lenstr - 3), "bin", 3) == 0) {
+            return trackinfo::BIN;
+        } else {
+            return trackinfo::CCDDA;
+        }
+        return trackinfo::BIN;  // no valid extension or no support; assume bin
+    };
+
     std::filesystem::path isofile = MAKEU8(isofileString);
     std::filesystem::path cuename, filepath;
     IO<File> fi;
@@ -43,9 +53,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         fi.asA<UvFile>()->startCaching();
     }
-    if (fi->failed()) {
-        return -1;
-    }
+    if (fi->failed()) return false;
 
     // Some stupid tutorials wrongly tell users to use cdrdao to rip a
     // "bin/cue" image, which is in fact a "bin/toc" image. So let's check
@@ -71,9 +79,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
         strncpy(dummy, linebuf, sizeof(linebuf));
         token = strtok(dummy, " ");
 
-        if (token == NULL) {
-            continue;
-        }
+        if (token == NULL) continue;
 
         if (!strcmp(token, "TRACK")) {
             m_numtracks++;
@@ -181,5 +187,5 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
         }
     }
 
-    return 0;
+    return true;
 }

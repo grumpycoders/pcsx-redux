@@ -67,18 +67,8 @@
 // ECC:   Error Correction Code
 //
 
-PCSX::CDRiso::trackinfo::cddatype_t PCSX::CDRiso::get_cdda_type(const char *str) {
-    const size_t lenstr = strlen(str);
-    if (strncmp((str + lenstr - 3), "bin", 3) == 0) {
-        return trackinfo::BIN;
-    } else {
-        return trackinfo::CCDDA;
-    }
-    return trackinfo::BIN;  // no valid extension or no support; assume bin
-}
-
 // this function tries to get the .sub file of the given .img
-int PCSX::CDRiso::opensubfile(const char *isoname) {
+bool PCSX::CDRiso::opensubfile(const char *isoname) {
     char subname[MAXPATHLEN];
 
     // copy name of the iso and change extension from .img to .sub
@@ -93,9 +83,7 @@ int PCSX::CDRiso::opensubfile(const char *isoname) {
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         m_subHandle.asA<UvFile>()->startCaching();
     }
-    if (!m_subHandle->failed()) {
-        return 0;
-    }
+    if (!m_subHandle->failed()) return true;
     m_subHandle.reset();
 
     if (strlen(subname) >= 8) {
@@ -108,23 +96,21 @@ int PCSX::CDRiso::opensubfile(const char *isoname) {
     }
     if (m_subHandle->failed()) {
         m_subHandle.reset();
-        return -1;
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
 ssize_t PCSX::CDRiso::cdread_normal(IO<File> f, unsigned int base, void *dest, int sector) {
-    f->rSeek(base + sector * PCSX::IEC60908b::FRAMESIZE_RAW, SEEK_SET);
-    return f->read(dest, PCSX::IEC60908b::FRAMESIZE_RAW);
+    return f->readAt(dest, IEC60908b::FRAMESIZE_RAW, base + sector * IEC60908b::FRAMESIZE_RAW);
 }
 
 ssize_t PCSX::CDRiso::cdread_sub_mixed(IO<File> f, unsigned int base, void *dest, int sector) {
     int ret;
 
-    f->rSeek(base + sector * (PCSX::IEC60908b::FRAMESIZE_RAW + PCSX::IEC60908b::SUB_FRAMESIZE), SEEK_SET);
-    ret = f->read(dest, PCSX::IEC60908b::FRAMESIZE_RAW);
-    f->read(m_subbuffer.raw, PCSX::IEC60908b::SUB_FRAMESIZE);
+    ret = f->readAt(dest, IEC60908b::FRAMESIZE_RAW, base + sector * (IEC60908b::FRAMESIZE_RAW + IEC60908b::SUB_FRAMESIZE));
+    f->readAt(m_subbuffer.raw, IEC60908b::SUB_FRAMESIZE, base + sector * (IEC60908b::FRAMESIZE_RAW + IEC60908b::SUB_FRAMESIZE) + IEC60908b::FRAMESIZE_RAW);
 
     if (m_subChanRaw) decodeRawSubData();
 
@@ -218,23 +204,40 @@ ssize_t PCSX::CDRiso::cdread_compressed(IO<File> f, unsigned int base, void *des
 
 finish:
     if (dest != m_cdbuffer)  // copy avoid HACK
-        memcpy(dest, m_compr_img->buff_raw[m_compr_img->sector_in_blk], PCSX::IEC60908b::FRAMESIZE_RAW);
-    return PCSX::IEC60908b::FRAMESIZE_RAW;
+        memcpy(dest, m_compr_img->buff_raw[m_compr_img->sector_in_blk], IEC60908b::FRAMESIZE_RAW);
+    return IEC60908b::FRAMESIZE_RAW;
 }
 
-ssize_t PCSX::CDRiso::cdread_2048(IO<File> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRiso::cdread_2048(IO<File> f, unsigned int base, void *dest_, int sector) {
+    uint8_t *dest = reinterpret_cast<uint8_t *>(dest_);
     int ret;
 
-    f->rSeek(base + sector * 2048, SEEK_SET);
-    ret = f->read((char *)dest + 12 * 2, 2048);
+    ret = f->readAt(dest + 12 * 2, 2048, base + sector * 2048);
 
-    // not really necessary, fake mode 2 header
-    memset(m_cdbuffer, 0, 12 * 2);
-    IEC60908b::MSF tmp(sector + 150);
-    m_cdbuffer[12 + 0] = tmp.m;
-    m_cdbuffer[12 + 1] = tmp.s;
-    m_cdbuffer[12 + 2] = tmp.f;
-    m_cdbuffer[12 + 3] = 1;
+    dest[0] = 0x00;
+    dest[1] = 0xff;
+    dest[2] = 0xff;
+    dest[3] = 0xff;
+    dest[4] = 0xff;
+    dest[5] = 0xff;
+    dest[6] = 0xff;
+    dest[7] = 0xff;
+    dest[8] = 0xff;
+    dest[9] = 0xff;
+    dest[10] = 0xff;
+    dest[11] = 0x00;
+    IEC60908b::MSF(sector + 150).toBCD(dest + 12);
+    m_cdbuffer[15] = 1;
+    auto ref32 = [sector](uint32_t offset) -> uint32_t & { return *reinterpret_cast<uint32_t *>(sector + offset); };
+    uint32_t edc = IEC60908b::computeEDC(0, dest, 0x810);
+    dest[0x810] = edc & 0xff;
+    edc >>= 8;
+    dest[0x811] = edc & 0xff;
+    edc >>= 8;
+    dest[0x812] = edc & 0xff;
+    edc >>= 8;
+    dest[0x813] = edc & 0xff;
+    IEC60908b::computeECC(dest + 0xc, dest + 0x10, dest + 0x81c);
 
     return ret;
 }
@@ -261,9 +264,8 @@ void PCSX::CDRiso::printTracks() {
 // This function is invoked by the front-end when opening an ISO
 // file for playback
 bool PCSX::CDRiso::open(void) {
-    if (m_cdHandle) {
-        return true;  // it's already open
-    }
+    // is it already open?
+    if (m_cdHandle) return true;
 
     m_cdHandle.setFile(new UvFile(m_isoPath));
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
@@ -286,32 +288,32 @@ bool PCSX::CDRiso::open(void) {
     m_useCompressed = false;
     m_cdimg_read_func = &CDRiso::cdread_normal;
 
-    if (parsecue(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
+    if (parsecue(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[+cue]");
-    } else if (parsetoc(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
+    } else if (parsetoc(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[+toc]");
-    } else if (parseccd(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
+    } else if (parseccd(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[+ccd]");
-    } else if (parsemds(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
+    } else if (parsemds(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[+mds]");
     }
     // TODO Is it possible that cue/ccd+ecm? otherwise use else if below to supressn extra checks
-    if (handlepbp(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
+    if (handlepbp(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[pbp]");
         m_useCompressed = true;
         m_cdimg_read_func = &CDRiso::cdread_compressed;
-    } else if (handlecbin(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
+    } else if (handlecbin(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[cbin]");
         m_useCompressed = true;
         m_cdimg_read_func = &CDRiso::cdread_compressed;
-    } else if ((handleecm(reinterpret_cast<const char *>(m_isoPath.string().c_str()), m_cdHandle, NULL) == 0)) {
+    } else if ((handleecm(reinterpret_cast<const char *>(m_isoPath.string().c_str()), m_cdHandle, NULL))) {
         PCSX::g_system->printf("[+ecm]");
     }
 
-    if (!m_subChanMixed && opensubfile(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
+    if (!m_subChanMixed && opensubfile(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[+sub]");
     }
-    if (opensbifile(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
+    if (opensbifile(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[+sbi]");
     }
 
@@ -379,13 +381,6 @@ void PCSX::CDRiso::close() {
 
     memset(m_cdbuffer, 0, sizeof(m_cdbuffer));
     m_useCompressed = false;
-}
-
-void PCSX::CDRiso::init() {}
-
-void PCSX::CDRiso::shutdown() {
-    close();
-
     // ECM LUT
     free(m_ecm_savetable);
     m_ecm_savetable = nullptr;
@@ -445,11 +440,13 @@ bool PCSX::CDRiso::readTrack(const IEC60908b::MSF time) {
     if (ret < 0) return false;
 
     if (m_subHandle) {
-        m_subHandle->rSeek(sector * PCSX::IEC60908b::SUB_FRAMESIZE, SEEK_SET);
-        m_subHandle->read(m_subbuffer.raw, PCSX::IEC60908b::SUB_FRAMESIZE);
+        m_subHandle->rSeek(sector * IEC60908b::SUB_FRAMESIZE, SEEK_SET);
+        m_subHandle->read(m_subbuffer.raw, IEC60908b::SUB_FRAMESIZE);
 
         if (m_subChanRaw) decodeRawSubData();
     }
+
+    m_ppf.CheckPPFCache(m_cdbuffer, time);
 
     return true;
 }
@@ -479,7 +476,7 @@ bool PCSX::CDRiso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
 
     // data tracks play silent
     if (m_ti[track].type != TrackType::CDDA) {
-        memset(buffer, 0, PCSX::IEC60908b::FRAMESIZE_RAW);
+        memset(buffer, 0, IEC60908b::FRAMESIZE_RAW);
         return true;
     }
 
@@ -497,15 +494,15 @@ bool PCSX::CDRiso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
     }
 
     ret = (*this.*m_cdimg_read_func)(m_ti[file].handle, m_ti[track].start_offset, buffer, m_cddaCurPos - track_start);
-    if (ret != PCSX::IEC60908b::FRAMESIZE_RAW) {
-        memset(buffer, 0, PCSX::IEC60908b::FRAMESIZE_RAW);
+    if (ret != IEC60908b::FRAMESIZE_RAW) {
+        memset(buffer, 0, IEC60908b::FRAMESIZE_RAW);
         return false;
     }
 
     if (m_cddaBigEndian) {
         unsigned char tmp;
 
-        for (int i = 0; i < PCSX::IEC60908b::FRAMESIZE_RAW / 2; i++) {
+        for (int i = 0; i < IEC60908b::FRAMESIZE_RAW / 2; i++) {
             tmp = buffer[i * 2];
             buffer[i * 2] = buffer[i * 2 + 1];
             buffer[i * 2 + 1] = tmp;

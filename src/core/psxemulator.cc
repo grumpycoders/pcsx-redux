@@ -19,7 +19,6 @@
 
 #include "core/psxemulator.h"
 
-#include "cdrom/ppf.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/cheat.h"

@@ -19,7 +19,7 @@
 
 #include "cdrom/cdriso.h"
 
-int PCSX::CDRiso::handlecbin(const char *isofile) {
+bool PCSX::CDRiso::handlecbin(const char *isofile) {
     struct {
         char magic[4];
         unsigned int header_size;
@@ -35,25 +35,26 @@ int PCSX::CDRiso::handlecbin(const char *isofile) {
     size_t read_len = 0;
 
     if (strlen(isofile) >= 5) ext = isofile + strlen(isofile) - 5;
-    if (ext == NULL || (!StringsHelpers::strcasecmp(ext + 1, ".cbn") && !StringsHelpers::strcasecmp(ext, ".cbin") != 0)) return -1;
+    if (ext == NULL || (!StringsHelpers::strcasecmp(ext + 1, ".cbn") && !StringsHelpers::strcasecmp(ext, ".cbin") != 0))
+        return false;
 
     m_cdHandle->rSeek(0, SEEK_SET);
 
     ret = m_cdHandle->read(&ciso_hdr, sizeof(ciso_hdr));
     if (ret != sizeof(ciso_hdr)) {
         PCSX::g_system->printf("failed to read ciso header\n");
-        return -1;
+        return false;
     }
 
     if (strncmp(ciso_hdr.magic, "CISO", 4) != 0 || ciso_hdr.total_bytes <= 0 || ciso_hdr.block_size <= 0) {
         PCSX::g_system->printf("bad ciso header\n");
-        return -1;
+        return false;
     }
     if (ciso_hdr.header_size != 0 && ciso_hdr.header_size != sizeof(ciso_hdr)) {
         ret = m_cdHandle->rSeek(ciso_hdr.header_size, SEEK_SET);
         if (ret != 0) {
             PCSX::g_system->printf("failed to seek to %x\n", ciso_hdr.header_size);
-            return -1;
+            return false;
         }
     }
 
@@ -85,7 +86,7 @@ int PCSX::CDRiso::handlecbin(const char *isofile) {
         PCSX::g_system->printf("warning: ciso img too large, expect problems\n");
     }
 
-    return 0;
+    return true;
 
 fail_index:
     free(m_compr_img->index_table);
@@ -95,5 +96,5 @@ fail_io:
         free(m_compr_img);
         m_compr_img = NULL;
     }
-    return -1;
+    return false;
 }

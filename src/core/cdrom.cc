@@ -23,7 +23,6 @@
 
 #include "core/cdrom.h"
 
-#include "cdrom/ppf.h"
 #include "core/debug.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
@@ -1142,7 +1141,6 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         memcpy(m_transfer, buf, PCSX::IEC60908b::DATA_SIZE);
-        // m_ppf.CheckPPFCache(m_transfer, m_prev[0], m_prev[1], m_prev[2]);
         m_ctrl |= DRQSTS;  // Data fifo not empty
 
         CDROM_LOG("readInterrupt() Log: cdr.m_transfer %x:%x:%x\n", m_transfer[0], m_transfer[1], m_transfer[2]);

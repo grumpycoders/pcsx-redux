@@ -20,7 +20,7 @@
 #include "cdrom/cdriso.h"
 #include "core/cdrom.h"
 
-int PCSX::CDRiso::handlepbp(const char *isofile) {
+bool PCSX::CDRiso::handlepbp(const char *isofile) {
     struct {
         unsigned int sig;
         unsigned int dontcare[8];
@@ -46,7 +46,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     int i, ret;
 
     if (strlen(isofile) >= 4) ext = isofile + strlen(isofile) - 4;
-    if (ext == NULL || (strcmp(ext, ".pbp") != 0 && strcmp(ext, ".PBP") != 0)) return -1;
+    if (ext == NULL || (strcmp(ext, ".pbp") != 0 && strcmp(ext, ".PBP") != 0)) return false;
 
     m_cdHandle->rSeek(0, SEEK_SET);
 
@@ -176,7 +176,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     }
     m_compr_img->index_table[i] = cdimg_base + index_entry.offset + index_entry.size;
 
-    return 0;
+    return true;
 
 fail_index:
     free(m_compr_img->index_table);
@@ -186,5 +186,5 @@ fail_io:
         free(m_compr_img);
         m_compr_img = NULL;
     }
-    return -1;
+    return false;
 }

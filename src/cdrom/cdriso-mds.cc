@@ -21,7 +21,7 @@
 
 // this function tries to get the .mds file of the given .mdf
 // the necessary data is put into the ti (trackinformation)-array
-int PCSX::CDRiso::parsemds(const char *isofileString) {
+bool PCSX::CDRiso::parsemds(const char *isofileString) {
     std::filesystem::path mdsname, isofile = MAKEU8(isofileString);
     IO<File> fi;
     unsigned int offset, extra_offset, l, i;
@@ -37,7 +37,7 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         fi.asA<UvFile>()->startCaching();
     }
-    if (fi->failed()) return -1;
+    if (fi->failed()) return false;
 
     memset(&m_ti, 0, sizeof(m_ti));
 
@@ -105,5 +105,5 @@ int PCSX::CDRiso::parsemds(const char *isofileString) {
         offset += 0x50;
     }
 
-    return 0;
+    return true;
 }

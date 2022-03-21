@@ -22,7 +22,7 @@
 
 // this function tries to get the .ccd file of the given .img
 // the necessary data is put into the ti (trackinformation)-array
-int PCSX::CDRiso::parseccd(const char *isofileString) {
+bool PCSX::CDRiso::parseccd(const char *isofileString) {
     std::filesystem::path ccdname, isofile = MAKEU8(isofileString);
     IO<File> fi;
     char linebuf[256];
@@ -38,9 +38,7 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         fi.asA<UvFile>()->startCaching();
     }
-    if (fi->failed()) {
-        return -1;
-    }
+    if (fi->failed()) return false;
 
     memset(&m_ti, 0, sizeof(m_ti));
 
@@ -70,5 +68,5 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
         m_ti[m_numtracks].length = IEC60908b::MSF(t);
     }
 
-    return 0;
+    return true;
 }

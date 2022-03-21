@@ -22,7 +22,7 @@
 
 // this function tries to get the .toc file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
-int PCSX::CDRiso::parsetoc(const char *isofileStr) {
+bool PCSX::CDRiso::parsetoc(const char *isofileStr) {
     std::filesystem::path isofile = MAKEU8(isofileStr);
     std::filesystem::path tocname, filename;
     IO<File> fi;
@@ -58,11 +58,11 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
                 if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
                     fi.asA<UvFile>()->startCaching();
                 }
-                if (fi->failed()) {
-                    return -1;
-                }
+                if (fi->failed()) return false;
+
+            } else {
+                return false;
             }
-            return -1;
         }
     }
 
@@ -154,5 +154,5 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
     }
     if (m_numtracks > 0) m_cdHandle.setFile(new SubFile(m_ti[1].handle, 0, m_ti[1].handle->size()));
 
-    return 0;
+    return true;
 }

@@ -183,7 +183,6 @@ int pcsxMain(int argc, char **argv) {
 
     emulator->setLua();
     s_gui->setLua();
-    emulator->m_cdrom->m_iso.init();
     emulator->m_gpu->init();
     emulator->m_spu->init();
 
@@ -224,7 +223,6 @@ int pcsxMain(int argc, char **argv) {
     emulator->m_psxCpu->psxShutdown();
     emulator->m_spu->shutdown();
     emulator->m_gpu->shutdown();
-    emulator->m_cdrom->m_iso.shutdown();
     s_gui->close();
     delete s_gui;
 
