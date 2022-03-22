@@ -34,40 +34,49 @@
 // TODO: add SioModePrescaler
 #define SIO_CYCLES (m_baudReg * 8)
 
+PCSX::SIO::SIO() { reset(); }
+
+void PCSX::SIO::reset() {
+    m_padState = PAD_STATE_IDLE;
+    m_statusReg = TX_RDY | TX_EMPTY;
+    m_modeReg = 0;
+    m_ctrlReg = 0;
+    m_baudReg = 0;
+    m_bufferIndex = 0;
+    m_mcdState = MCD_STATE_IDLE;
+    m_mcdReadWriteState = MCD_READWRITE_STATE_IDLE;
+}
+
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
-        case PAD_STATE_READ_TYPE:
+        case PAD_STATE_READ_COMMAND:
             scheduleInterrupt(SIO_CYCLES);
 
-            if (value & 0x40) {
-                m_padState = PAD_STATE_READ_DATA;
-                m_bufferIndex = 1;
-                switch (m_ctrlReg & 0x2002) {
-                    case 0x0002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1);
-                        break;
-                    case 0x2002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2);
-                        break;
-                }
+            m_padState = PAD_STATE_READ_DATA;
+            m_bufferIndex = 1;
+            switch (m_ctrlReg & 0x2002) {
+                case 0x0002:
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
+                    break;
+                case 0x2002:
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
+                    break;
+            }
 
-                if (!(m_buffer[m_bufferIndex] & 0x0f)) {
-                    m_maxBufferIndex = 2 + 32;
-                } else {
-                    m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
-                }
+            if (!(m_buffer[m_bufferIndex] & 0x0f)) {
+                m_maxBufferIndex = 2 + 32;
             } else {
-                m_padState = PAD_STATE_IDLE;
+                m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
             }
             return;
         case PAD_STATE_READ_DATA:
             m_bufferIndex++;
             switch (m_ctrlReg & 0x2002) {
                 case 0x0002:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1);
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
                     break;
                 case 0x2002:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2);
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
                     break;
             }
 
@@ -187,7 +196,7 @@ void PCSX::SIO::write8(uint8_t value) {
 
             m_maxBufferIndex = 2;
             m_bufferIndex = 0;
-            m_padState = PAD_STATE_READ_TYPE;
+            m_padState = PAD_STATE_READ_COMMAND;
             scheduleInterrupt(SIO_CYCLES);
             return;
         case 0x81:  // start memcard

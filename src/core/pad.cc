@@ -17,12 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#define GLFW_INCLUDE_NONE
 #define _USE_MATH_DEFINES
 #include "core/pad.h"
 
-#include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
 #include <memory.h>
 
 #include <algorithm>
@@ -273,12 +270,12 @@ uint8_t PCSX::Pads::startPoll(Port port) {
     return m_pads[index].startPoll();
 }
 
-uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
+uint8_t PCSX::Pads::poll(uint8_t value, Port port, uint32_t& padState) {
     int index = magic_enum::enum_integer(port);
-    return m_pads[index].poll(value);
+    return m_pads[index].poll(value, padState);
 }
 
-uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
+uint8_t PCSX::Pads::Pad::poll(uint8_t value, uint32_t& padState) {
     if (m_currentByte == 0) {
         m_cmd = value;
         m_currentByte = 1;
@@ -286,11 +283,12 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
         if (m_cmd == magic_enum::enum_integer(PadCommands::Read)) {
             return read();
         } else if (m_type == PadType::Analog) {
-            return doDualshockCommand();
+            return doDualshockCommand(padState);
         } else {
             PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
             m_cmd = magic_enum::enum_integer(PadCommands::Idle);
             m_bufferLen = 0;
+            padState = PAD_STATE_IDLE;  // Tell the SIO class we're in an invalid state
             return 0xff;
         }
     } else if (m_currentByte >= m_bufferLen) {
@@ -337,7 +335,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
     return m_buf[m_currentByte++];
 }
 
-uint8_t PCSX::Pads::Pad::doDualshockCommand() {
+uint8_t PCSX::Pads::Pad::doDualshockCommand(uint32_t& padState) {
     m_bufferLen = 8;
 
     if (m_cmd == magic_enum::enum_integer(PadCommands::SetConfigMode)) {
@@ -383,6 +381,7 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand() {
         PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), static_cast<uint8_t>(m_cmd));
         m_cmd = magic_enum::enum_integer(PadCommands::Idle);
         m_bufferLen = 0;
+        padState = PAD_STATE_IDLE;  // Tell the SIO class we're in an invalid state
         return 0xff;
     }
 }

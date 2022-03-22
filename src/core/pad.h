@@ -19,8 +19,10 @@
 
 #pragma once
 
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include <stdint.h>
+
+#include <cstdint>
 
 #include "core/psxemulator.h"
 #include "core/system.h"
@@ -34,6 +36,12 @@ namespace PCSX {
 
 class GUI;
 
+enum {
+    PAD_STATE_IDLE = 0,
+    PAD_STATE_READ_COMMAND = 1,
+    PAD_STATE_READ_DATA = 2,
+};
+
 class Pads {
   public:
     enum class Port { Port1 = 0, Port2 };
@@ -44,7 +52,7 @@ class Pads {
     void init();
     void shutdown() {}
     uint8_t startPoll(Port port);
-    uint8_t poll(uint8_t value, Port port);
+    uint8_t poll(uint8_t value, Port port, uint32_t &padState);
 
     json getCfg();
     void setCfg(const json &j);
@@ -143,8 +151,8 @@ class Pads {
     struct Pad {
         uint8_t startPoll();
         uint8_t read();
-        uint8_t poll(uint8_t value);
-        uint8_t doDualshockCommand();
+        uint8_t poll(uint8_t value, uint32_t &padState);
+        uint8_t doDualshockCommand(uint32_t &padState);
         void getButtons();
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
 
