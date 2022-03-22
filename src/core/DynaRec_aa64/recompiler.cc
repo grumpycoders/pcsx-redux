@@ -270,7 +270,6 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         flushCache();
     }
 
-    // TODO: Add profiler stuff here
     const auto blockStart = gen.getCurr<DynarecCallback>();
     *callback = blockStart;
     handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.

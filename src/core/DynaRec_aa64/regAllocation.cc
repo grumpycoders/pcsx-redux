@@ -80,7 +80,6 @@ void DynaRecCPU::prepareForCall() {
             if (m_hostRegs[i].mappedReg) {  // Unallocate and spill to guest regs as appropriate
                 const auto previous = m_hostRegs[i].mappedReg.value();  // Get previously allocated register
                 if (m_regs[previous].writeback) {                       // Spill to guest reg if writeback is enabled
-                    // TODO: Possibly optimize with Store pair
                     gen.Str(allocateableRegisters[i], MemOperand(contextPointer, GPR_OFFSET(previous)));
                     m_regs[previous].writeback = false;
                 }
@@ -104,7 +103,6 @@ void DynaRecCPU::spillRegisterCache() {
             const auto previous = m_hostRegs[i].mappedReg.value();  // Get the reg it's allocated to
 
             if (m_regs[previous].writeback) {  // Spill to guest register if writeback is enabled and disable writeback
-                // TODO: Possibly optimize with Store pair
                 gen.Str(allocateableRegisters[i], MemOperand(contextPointer, GPR_OFFSET(previous)));
                 m_regs[previous].writeback = false;
             }

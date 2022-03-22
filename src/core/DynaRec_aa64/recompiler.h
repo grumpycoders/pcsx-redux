@@ -17,7 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-// TODO: Profiler will need to be added at some point
 
 #pragma once
 #include "core/r3000a.h"
@@ -227,7 +226,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void loadThisPointer(Register reg) { gen.Mov(reg, contextPointer); }
 
     // Loads a value into dest from the given pointer.
-    // TODO: This may need to use contextPointer + distance instead
     template <int size, bool signExtend>
     void load(Register dest, const void* pointer) {
         //        const auto distance = (intptr_t)pointer - (intptr_t)this;
@@ -246,9 +244,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     // Stores a value of "size" bits from "source" to the given pointer
-    /* TODO: value must be moved into register first before it can be stored unlike x64 with can use mov to write to
-     * memory */
-    // TODO: This may need to use contextPointer + distance instead
     template <int size, typename T>
     void store(T source, const void* pointer) {
         gen.Mov(x4, (uintptr_t)pointer);

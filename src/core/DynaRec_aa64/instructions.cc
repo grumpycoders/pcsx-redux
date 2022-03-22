@@ -666,7 +666,6 @@ void DynaRecCPU::recMFLO() {
     gen.Ldr(m_regs[_Rd_].allocatedReg, MemOperand(contextPointer, LO_OFFSET));
 }
 
-// TODO: Constant propagation for MFLO/HI, read the result from register if possible instead of reading memory again
 void DynaRecCPU::recMFHI() {
     BAILZERO(_Rd_);
 
