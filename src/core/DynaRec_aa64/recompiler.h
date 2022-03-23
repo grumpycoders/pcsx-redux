@@ -89,8 +89,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     enum class RegState { Unknown, Constant };
     enum class LoadingMode { DoNotLoad, Load };
-    // Renamed temporarily to mRegister since it collides with Register in vixl::aarch64 namespace
-    struct mRegister {
+    // Renamed temporarily to Reg since it collides with Register in vixl::aarch64 namespace
+    struct Reg {
         uint32_t val = 0;                    // The register's cached value used for constant propagation
         RegState state = RegState::Unknown;  // Is this register's value a constant, or an unknown value?
 
@@ -115,9 +115,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     };
 
     inline void markConst(int index, uint32_t value) {
-        m_regs[index].markConst(value);
-        if (m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg == index) {
-            m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg =
+        m_gprs[index].markConst(value);
+        if (m_hostRegs[m_gprs[index].allocatedRegIndex].mappedReg == index) {
+            m_hostRegs[m_gprs[index].allocatedRegIndex].mappedReg =
                 std::nullopt;  // Unmap the register on the host reg side too
         }
     }
@@ -126,7 +126,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         std::optional<int> mappedReg = std::nullopt;  // The register this is allocated to, if any
     };
 
-    mRegister m_regs[32];
+    Reg m_gprs[32];
     std::array<HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
     std::optional<uint32_t> m_linkedPC = std::nullopt;
 

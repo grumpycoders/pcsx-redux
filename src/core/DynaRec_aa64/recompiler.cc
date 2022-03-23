@@ -88,7 +88,7 @@ bool DynaRecCPU::Init() {
     }
     */
 
-    m_regs[0].markConst(0);  // $zero is always zero
+    m_gprs[0].markConst(0);  // $zero is always zero
 
 #if defined(__APPLE__)
     // Check to make sure code buffer memory was allocated

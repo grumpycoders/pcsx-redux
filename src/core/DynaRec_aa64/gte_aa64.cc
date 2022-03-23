@@ -50,7 +50,7 @@ void DynaRecCPU::recGTEMove() {
 }
 
 void DynaRecCPU::recCTC2() {
-    if (m_regs[_Rt_].isConst()) {
+    if (m_gprs[_Rt_].isConst()) {
         switch (_Rd_) {
             case 4:  // These registers are signed 16-bit values. Reading from them returns their value sign-extended to
                      // 32 bits
@@ -60,12 +60,12 @@ void DynaRecCPU::recCTC2() {
             case 27:
             case 29:
             case 30:
-                gen.Mov(w0, (uint32_t)(int16_t)m_regs[_Rt_].val);
+                gen.Mov(w0, (uint32_t)(int16_t)m_gprs[_Rt_].val);
                 gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
                 break;
 
             case 31: {  // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
-                    uint32_t value = m_regs[_Rt_].val & 0x7ffff000;
+                    uint32_t value = m_gprs[_Rt_].val & 0x7ffff000;
                     if ((value & 0x7f87e000) != 0) {
                         value |= 0x80000000;
                     }
@@ -75,7 +75,7 @@ void DynaRecCPU::recCTC2() {
             }
 
             default:
-                gen.Mov(w0, m_regs[_Rt_].val);
+                gen.Mov(w0, m_gprs[_Rt_].val);
                 gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
                 break;
         }
@@ -92,13 +92,13 @@ void DynaRecCPU::recCTC2() {
             case 27:
             case 29:
             case 30:
-                gen.Sxth(w0, m_regs[_Rt_].allocatedReg); // Sign extend value from 16 to 32 bits
+                gen.Sxth(w0, m_gprs[_Rt_].allocatedReg); // Sign extend value from 16 to 32 bits
                 gen.Str(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
                 break;
 
             case 31:  // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
-                gen.And(w1, m_regs[_Rt_].allocatedReg, 0x7fffe000);
-                gen.And(w0, m_regs[_Rt_].allocatedReg, 0x7ffff000);
+                gen.And(w1, m_gprs[_Rt_].allocatedReg, 0x7fffe000);
+                gen.And(w0, m_gprs[_Rt_].allocatedReg, 0x7ffff000);
                 gen.Orr(w2, w0, 0x80000000);
                 gen.Ands(w1, w1, 0xff87ffff);
                 gen.Csel(w0, w2, w0, ne);
@@ -106,7 +106,7 @@ void DynaRecCPU::recCTC2() {
                 break;
 
             default:
-                gen.Str(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
+                gen.Str(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
                 break;
         }
     }
@@ -119,18 +119,18 @@ void DynaRecCPU::recMTC2() {
             gen.Str(x0, MemOperand(contextPointer, COP2_DATA_OFFSET(12)));
 
             // SXY2 = val
-            if (m_regs[_Rt_].isConst()) {
-                gen.Mov(w1,  m_regs[_Rt_].val);
+            if (m_gprs[_Rt_].isConst()) {
+                gen.Mov(w1, m_gprs[_Rt_].val);
                 gen.Str(w1, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
             } else {
                 allocateReg(_Rt_);
-                gen.Str(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
+                gen.Str(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
             }
             break;
 
         case 28:                           // IRGB
-            if (m_regs[_Rt_].isConst()) {  // Calculate IR1/IR2/IR3 values and write them back
-                const auto value = m_regs[_Rt_].val;
+            if (m_gprs[_Rt_].isConst()) {  // Calculate IR1/IR2/IR3 values and write them back
+                const auto value = m_gprs[_Rt_].val;
 
                 const auto IR1 = (value & 0x1f) << 7;
                 const auto IR2 = (value & 0x3e0) << 2;
@@ -143,28 +143,28 @@ void DynaRecCPU::recMTC2() {
                 gen.Str(w3, MemOperand(contextPointer, COP2_DATA_OFFSET(11)));
             } else {
                 allocateReg(_Rt_);
-                gen.And(w0, m_regs[_Rt_].allocatedReg, 0x1f); // Calculate IR1
+                gen.And(w0, m_gprs[_Rt_].allocatedReg, 0x1f); // Calculate IR1
                 gen.Lsl(w0, w0, 7);
                 gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(9)));
-                gen.Lsl(w0, m_regs[_Rt_].allocatedReg, 2); // Calculate IR2
+                gen.Lsl(w0, m_gprs[_Rt_].allocatedReg, 2); // Calculate IR2
                 gen.And(w0, w0, 0xf80); // The above LSL shifted w0 by 2 first, so we adjust the mask
                 gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(10)));
-                gen.Lsr(w0, m_regs[_Rt_].allocatedReg, 3); // Calculate IR3
+                gen.Lsr(w0, m_gprs[_Rt_].allocatedReg, 3); // Calculate IR3
                 gen.And(w0, w0, 0xf80);
                 gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(11)));
             }
             break;
 
         case 30:
-            if (m_regs[_Rt_].isConst()) {
-                const auto result = PCSX::GTE::countLeadingBits(m_regs[_Rt_].val);
+            if (m_gprs[_Rt_].isConst()) {
+                const auto result = PCSX::GTE::countLeadingBits(m_gprs[_Rt_].val);
                 gen.Mov(w0, result);
                 gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(31))); // Set LZCR
             } else {
                 allocateReg(_Rt_);
 
                 // value = ~value if the msb is set, then store value in w0
-                gen.Eor(w0, m_regs[_Rt_].allocatedReg, Operand(m_regs[_Rt_].allocatedReg, ASR, 31));
+                gen.Eor(w0, m_gprs[_Rt_].allocatedReg, Operand(m_gprs[_Rt_].allocatedReg, ASR, 31));
                 gen.Clz(w0, w0); // Count leading Zeros
                 gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(31))); // Write result to LZCR
             }
@@ -174,12 +174,12 @@ void DynaRecCPU::recMTC2() {
             return;
     }
 
-    if (m_regs[_Rt_].isConst()) {
-        gen.Mov(w0, m_regs[_Rt_].val);
+    if (m_gprs[_Rt_].isConst()) {
+        gen.Mov(w0, m_gprs[_Rt_].val);
         gen.Str(w0, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
     } else {
         allocateReg(_Rt_);
-        gen.Str(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
+        gen.Str(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
     }
 }
 
@@ -188,7 +188,7 @@ static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg)
 void DynaRecCPU::recMFC2() {
     if (_Rt_) {
         allocateRegWithoutLoad(_Rt_);
-        m_regs[_Rt_].setWriteback(true);
+        m_gprs[_Rt_].setWriteback(true);
     }
 
     switch (_Rd_) {
@@ -200,7 +200,7 @@ void DynaRecCPU::recMFC2() {
         case 10:
         case 11:
             if (_Rt_) {
-                gen.Ldrsh(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
+                gen.Ldrsh(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
             }
             break;
 
@@ -210,13 +210,13 @@ void DynaRecCPU::recMFC2() {
         case 18:
         case 19:
             if (_Rt_) {
-                gen.Ldrh(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
+                gen.Ldrh(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
             }
             break;
 
         case 15:  // Return SXY2 from SXYP
             if (_Rt_) {
-                gen.Ldr(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
+                gen.Ldr(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
             }
             break;
 
@@ -227,14 +227,14 @@ void DynaRecCPU::recMFC2() {
 
             if (_Rt_) {
                 allocateRegWithoutLoad(_Rt_);  // Reallocate the reg in case the call thrashed it
-                m_regs[_Rt_].setWriteback(true);
-                gen.Mov(m_regs[_Rt_].allocatedReg, w0);
+                m_gprs[_Rt_].setWriteback(true);
+                gen.Mov(m_gprs[_Rt_].allocatedReg, w0);
             }
             break;
 
         default:
             if (_Rt_) {
-                gen.Ldr(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
+                gen.Ldr(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
             }
             break;
     }
@@ -244,17 +244,17 @@ void DynaRecCPU::recCFC2() {
     if (_Rt_) {
         maybeCancelDelayedLoad(_Rt_);
         allocateRegWithoutLoad(_Rt_);
-        m_regs[_Rt_].setWriteback(true);
-        gen.Ldr(m_regs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
+        m_gprs[_Rt_].setWriteback(true);
+        gen.Ldr(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
     }
 }
 
 void DynaRecCPU::recLWC2() {
-    if (m_regs[_Rs_].isConst()) {  // Store address in arg1
-        gen.Mov(arg1, m_regs[_Rs_].val + _Imm_);
+    if (m_gprs[_Rs_].isConst()) {  // Store address in arg1
+        gen.Mov(arg1, m_gprs[_Rs_].val + _Imm_);
     } else {
         allocateReg(_Rs_);
-        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);
     }
 
     call(psxMemRead32Wrapper);
@@ -290,11 +290,11 @@ void DynaRecCPU::recSWC2() {
     gen.Mov(arg2, w0);  // Value to write in arg2
     
     // Address in arg1
-    if (m_regs[_Rs_].isConst()) {
-        gen.Mov(arg1, m_regs[_Rs_].val + _Imm_);
+    if (m_gprs[_Rs_].isConst()) {
+        gen.Mov(arg1, m_gprs[_Rs_].val + _Imm_);
     } else {
         allocateReg(_Rs_);
-        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);
     }
 
     call(psxMemWrite32Wrapper);
