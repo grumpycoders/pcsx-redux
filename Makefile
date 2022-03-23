@@ -217,6 +217,7 @@ gitclean:
 
 define msgmerge
 msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
+
 endef
 
 regen-i18n:
