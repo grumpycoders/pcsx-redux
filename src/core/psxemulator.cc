@@ -45,8 +45,8 @@ extern "C" {
 #include "spu/interface.h"
 
 PCSX::Emulator::Emulator()
-    : m_psxMem(new PCSX::Memory()),
-      m_psxCounters(new PCSX::Counters()),
+    : m_mem(new PCSX::Memory()),
+      m_counters(new PCSX::Counters()),
       m_gte(new PCSX::GTE()),
       m_sio(new PCSX::SIO()),
       m_cdrom(PCSX::CDRom::factory()),
@@ -94,7 +94,7 @@ PCSX::Emulator::~Emulator() {
 
 int PCSX::Emulator::init() {
     assert(g_system);
-    if (m_psxMem->psxMemInit() == -1) return -1;
+    if (m_mem->init() == -1) return -1;
     int ret = PCSX::R3000Acpu::psxInit();
     setPGXPMode(m_config.PGXP_Mode);
     m_pads->init();
@@ -104,9 +104,9 @@ int PCSX::Emulator::init() {
 void PCSX::Emulator::reset() {
     m_cheats->FreeCheatSearchResults();
     m_cheats->FreeCheatSearchMem();
-    m_psxMem->psxMemReset();
+    m_mem->reset();
     m_spu->resetCaptureBuffer();
-    m_psxCpu->psxReset();
+    m_cpu->psxReset();
     m_gpu->clearVRAM();
     m_pads->shutdown();
     m_pads->init();
@@ -121,8 +121,8 @@ void PCSX::Emulator::shutdown() {
     m_cheats->FreeCheatSearchMem();
 
     m_cdrom->m_ppf.FreePPFCache();
-    m_psxMem->psxMemShutdown();
-    m_psxCpu->psxShutdown();
+    m_mem->shutdown();
+    m_cpu->psxShutdown();
 
     m_pads->shutdown();
 }
@@ -136,6 +136,6 @@ void PCSX::Emulator::vsync() {
     }
 }
 
-void PCSX::Emulator::setPGXPMode(uint32_t pgxpMode) { m_psxCpu->psxSetPGXPMode(pgxpMode); }
+void PCSX::Emulator::setPGXPMode(uint32_t pgxpMode) { m_cpu->psxSetPGXPMode(pgxpMode); }
 
 PCSX::Emulator* PCSX::g_emulator;

@@ -287,7 +287,7 @@ void PCSX::Widgets::Assembly::Sa(uint8_t value) {
     ImGui::PopStyleColor();
 }
 uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
-    uint8_t* lut = m_memory->g_psxMemRLUT[addr >> 16];
+    uint8_t* lut = m_memory->g_readLUT[addr >> 16];
     if (lut) {
         return lut + (addr & 0xffff);
     } else {
@@ -487,7 +487,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     ImGui::SameLine();
     DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOut(); });
     ImGui::SameLine();
-    ImGui::Text(_("In ISR: %s"), g_emulator->m_psxCpu->m_inISR ? "yes" : "no");
+    ImGui::Text(_("In ISR: %s"), g_emulator->m_cpu->m_inISR ? "yes" : "no");
 
     gui->useMonoFont();
 
@@ -922,7 +922,7 @@ void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
         m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
     }
 
-    for (auto& elf : g_emulator->m_psxMem->getElves()) {
+    for (auto& elf : g_emulator->m_mem->getElves()) {
         auto& symbols = elf.getSymbols();
         for (auto& symbol : symbols) {
             m_symbolsCache.insert(std::pair(symbol.second, symbol.first));

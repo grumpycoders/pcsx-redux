@@ -63,22 +63,22 @@ namespace PCSX {
 
 class HW {
   public:
-    void psxHwReset();
-    uint8_t psxHwRead8(uint32_t add);
-    uint16_t psxHwRead16(uint32_t add);
-    uint32_t psxHwRead32(uint32_t add);
-    void psxHwWrite8(uint32_t add, uint32_t rawvalue);
-    void psxHwWrite16(uint32_t add, uint32_t rawvalue);
-    void psxHwWrite32(uint32_t add, uint32_t value);
+    void reset();
+    uint8_t read8(uint32_t add);
+    uint16_t read16(uint32_t add);
+    uint32_t read32(uint32_t add);
+    void write8(uint32_t add, uint32_t rawvalue);
+    void write16(uint32_t add, uint32_t rawvalue);
+    void write32(uint32_t add, uint32_t value);
     int psxHwFreeze(gzFile f, int Mode);
 
   private:
     bool s_dmaGpuListHackEn = false;
 
-    void psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
-    void psxDma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
-    void psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
-    void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    void dma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    void dma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    void dma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    void dma3(uint32_t madr, uint32_t bcr, uint32_t chcr);
 };
 
 }  // namespace PCSX

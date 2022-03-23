@@ -41,7 +41,7 @@ inline void PCSX::Counters::psxRcntWcountInternal(uint32_t index, uint32_t value
         value &= 0xffff;
     }
 
-    m_rcnts[index].cycleStart = PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle;
+    m_rcnts[index].cycleStart = PCSX::g_emulator->m_cpu->m_regs.cycle;
     m_rcnts[index].cycleStart -= value * m_rcnts[index].rate;
 
     // TODO: <=.
@@ -58,7 +58,7 @@ inline void PCSX::Counters::psxRcntWcountInternal(uint32_t index, uint32_t value
 inline uint32_t PCSX::Counters::psxRcntRcountInternal(uint32_t index) {
     uint32_t count;
 
-    count = PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle;
+    count = PCSX::g_emulator->m_cpu->m_regs.cycle;
     count -= m_rcnts[index].cycleStart;
     count /= m_rcnts[index].rate;
 
@@ -74,7 +74,7 @@ void PCSX::Counters::psxRcntSet() {
     int32_t countToUpdate;
     uint32_t i;
 
-    m_psxNextsCounter = PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle;
+    m_psxNextsCounter = PCSX::g_emulator->m_cpu->m_regs.cycle;
     m_psxNextCounter = 0x7fffffff;
 
     for (i = 0; i < CounterQuantity; ++i) {
@@ -98,7 +98,7 @@ void PCSX::Counters::psxRcntReset(uint32_t index) {
 
     if (m_rcnts[index].counterState == CountToTarget) {
         if (m_rcnts[index].mode & RcCountToTarget) {
-            count = PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle;
+            count = PCSX::g_emulator->m_cpu->m_regs.cycle;
             count -= m_rcnts[index].cycleStart;
             count /= m_rcnts[index].rate;
             count -= m_rcnts[index].target;
@@ -118,7 +118,7 @@ void PCSX::Counters::psxRcntReset(uint32_t index) {
 
         m_rcnts[index].mode |= RcCountEqTarget;
     } else if (m_rcnts[index].counterState == CountToOverflow) {
-        count = PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle;
+        count = PCSX::g_emulator->m_cpu->m_regs.cycle;
         count -= m_rcnts[index].cycleStart;
         count /= m_rcnts[index].rate;
         count -= 0xffff;
@@ -142,10 +142,10 @@ void PCSX::Counters::psxRcntReset(uint32_t index) {
 }
 
 void PCSX::Counters::psxRcntUpdate() {
-    const uint32_t cycle = PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle;
+    const uint32_t cycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
 
     {
-        uint32_t prev = g_emulator->m_psxCpu->m_psxRegs.previousCycles;
+        uint32_t prev = g_emulator->m_cpu->m_regs.previousCycles;
         uint64_t diff;
         if (cycle > prev) {
             diff = cycle - prev;
@@ -161,7 +161,7 @@ void PCSX::Counters::psxRcntUpdate() {
         uint32_t newFrames = g_emulator->m_spu->getCurrentFrames();
         int32_t framesDiff = target - newFrames;
         if (framesDiff > 0) {
-            g_emulator->m_psxCpu->m_psxRegs.previousCycles = cycle;
+            g_emulator->m_cpu->m_regs.previousCycles = cycle;
             g_emulator->m_spu->waitForGoal(target);
             m_audioFrames = target;
         } else if (framesDiff < -2000000000) {
@@ -318,8 +318,8 @@ uint32_t PCSX::Counters::psxRcntRcount(uint32_t index) {
         uint32_t count1 = count;
         count /= PCSX::Emulator::BIAS;
         verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast,
-                   (PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle - cylast));
-        cylast = PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle;
+                   (PCSX::g_emulator->m_cpu->m_regs.cycle - cylast));
+        cylast = PCSX::g_emulator->m_cpu->m_regs.cycle;
         clast = count;
     }
 
@@ -328,7 +328,7 @@ uint32_t PCSX::Counters::psxRcntRcount(uint32_t index) {
     return count;
 }
 
-uint32_t PCSX::Counters::psxRcntRmode(uint32_t index) {
+uint32_t PCSX::Counters::readMode(uint32_t index) {
     uint16_t mode;
 
     psxRcntUpdate();
@@ -361,7 +361,7 @@ void PCSX::Counters::psxHsyncCalculate() {
     }
 }
 
-void PCSX::Counters::psxRcntInit() {
+void PCSX::Counters::init() {
     int32_t i;
 
     psxHsyncCalculate();

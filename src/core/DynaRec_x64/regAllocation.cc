@@ -30,10 +30,10 @@
 template <DynaRecCPU::LoadingMode mode>
 void DynaRecCPU::reserveReg(int index) {
     const auto regToAllocate = allocateableRegisters[m_allocatedRegisters];  // Fetch the next host reg to be allocated
-    m_regs[index].allocatedReg = regToAllocate;
-    m_regs[index].markUnknown();     // Mark the register's value as unknown if it were previously const propagated
-    m_regs[index].allocated = true;  // Mark register as allocated
-    m_regs[index].allocatedRegIndex = m_allocatedRegisters;
+    m_gprs[index].allocatedReg = regToAllocate;
+    m_gprs[index].markUnknown();     // Mark the register's value as unknown if it were previously const propagated
+    m_gprs[index].allocated = true;  // Mark register as allocated
+    m_gprs[index].allocatedRegIndex = m_allocatedRegisters;
 
     // For certain instructions like loads, we don't want to load the reg because it'll get instantly overwritten
     if constexpr (mode == LoadingMode::Load) {
@@ -46,16 +46,16 @@ void DynaRecCPU::reserveReg(int index) {
 // Flush constants and allocated registers to host regs at the end of a block
 void DynaRecCPU::flushRegs() {
     for (auto i = 1; i < 32; i++) {
-        if (m_regs[i].isConst()) {  // If const: Write the value directly, mark as unknown
-            gen.mov(dword[contextPointer + GPR_OFFSET(i)], m_regs[i].val);
-            m_regs[i].markUnknown();
+        if (m_gprs[i].isConst()) {  // If const: Write the value directly, mark as unknown
+            gen.mov(dword[contextPointer + GPR_OFFSET(i)], m_gprs[i].val);
+            m_gprs[i].markUnknown();
         }
 
-        else if (m_regs[i].isAllocated()) {  // If it's been allocated to a register, unallocate
-            m_regs[i].allocated = false;
-            if (m_regs[i].writeback) {  // And if writeback was specified, write the value back
-                gen.mov(dword[contextPointer + GPR_OFFSET(i)], m_regs[i].allocatedReg);
-                m_regs[i].writeback = false;  // And turn writeback off
+        else if (m_gprs[i].isAllocated()) {  // If it's been allocated to a register, unallocate
+            m_gprs[i].allocated = false;
+            if (m_gprs[i].writeback) {  // And if writeback was specified, write the value back
+                gen.mov(dword[contextPointer + GPR_OFFSET(i)], m_gprs[i].allocatedReg);
+                m_gprs[i].writeback = false;  // And turn writeback off
             }
         }
     }
@@ -73,12 +73,12 @@ void DynaRecCPU::prepareForCall() {
         for (auto i = ALLOCATEABLE_NON_VOLATILE_COUNT; i < m_allocatedRegisters; i++) {  // iterate volatile regs
             if (m_hostRegs[i].mappedReg) {  // Unallocate and spill to guest regs as appropriate
                 const auto previous = m_hostRegs[i].mappedReg.value();  // Get previously allocated register
-                if (m_regs[previous].writeback) {                       // Spill to guest reg if writeback is enabled
+                if (m_gprs[previous].writeback) {                       // Spill to guest reg if writeback is enabled
                     gen.mov(dword[contextPointer + GPR_OFFSET(previous)], allocateableRegisters[i]);
-                    m_regs[previous].writeback = false;
+                    m_gprs[previous].writeback = false;
                 }
 
-                m_regs[previous].allocated = false;  // Unallocate it
+                m_gprs[previous].allocated = false;  // Unallocate it
                 m_hostRegs[i].mappedReg = std::nullopt;
             }
         }
@@ -96,13 +96,13 @@ void DynaRecCPU::spillRegisterCache() {
         if (m_hostRegs[i].mappedReg) {  // Check if the register is still allocated to a guest register
             const auto previous = m_hostRegs[i].mappedReg.value();  // Get the reg it's allocated to
 
-            if (m_regs[previous].writeback) {  // Spill to guest register if writeback is enabled and disable writeback
+            if (m_gprs[previous].writeback) {  // Spill to guest register if writeback is enabled and disable writeback
                 gen.mov(dword[contextPointer + GPR_OFFSET(previous)], allocateableRegisters[i]);
-                m_regs[previous].writeback = false;
+                m_gprs[previous].writeback = false;
             }
 
             m_hostRegs[i].mappedReg = std::nullopt;  // Unallocate it
-            m_regs[previous].allocated = false;
+            m_gprs[previous].allocated = false;
         }
     }
 
@@ -110,7 +110,7 @@ void DynaRecCPU::spillRegisterCache() {
 }
 
 void DynaRecCPU::allocateReg(int reg) {
-    if (!m_regs[reg].isAllocated()) {
+    if (!m_gprs[reg].isAllocated()) {
         if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
             spillRegisterCache();
         }
@@ -119,7 +119,7 @@ void DynaRecCPU::allocateReg(int reg) {
 }
 
 void DynaRecCPU::allocateRegWithoutLoad(int reg) {
-    if (!m_regs[reg].isAllocated()) {
+    if (!m_gprs[reg].isAllocated()) {
         if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
             spillRegisterCache();
         }
@@ -144,7 +144,7 @@ start:
 
     for (int i = 0; i < T; i++) {
         const auto reg = regsWithoutWb[i];
-        if (!m_regs[reg].allocated && (regsToLoad & (1 << reg)) == 0) {
+        if (!m_gprs[reg].allocated && (regsToLoad & (1 << reg)) == 0) {
             regsToLoad |= 1 << reg;
             regsToAllocateCount++;
         }
@@ -152,7 +152,7 @@ start:
 
     for (int i = 0; i < U; i++) {
         const auto reg = regsWithWb[i];
-        if (!m_regs[reg].allocated && (regsToWriteback & (1 << reg)) == 0 && (regsToLoad & (1 << reg)) == 0) {
+        if (!m_gprs[reg].allocated && (regsToWriteback & (1 << reg)) == 0 && (regsToLoad & (1 << reg)) == 0) {
             regsToWriteback |= 1 << reg;
             regsToAllocateCount++;
         }
@@ -168,7 +168,7 @@ start:
         // Check which registers we need to load
         for (int i = 0; i < T; i++) {
             const auto reg = regsWithoutWb[i];
-            if ((regsToLoad & (1 << reg)) != 0 && !m_regs[reg].allocated) {
+            if ((regsToLoad & (1 << reg)) != 0 && !m_gprs[reg].allocated) {
                 reserveReg<LoadingMode::Load>(reg);
             }
         }
@@ -177,10 +177,10 @@ start:
     // Specify writeback for whatever regs we need to
     for (int i = 0; i < U; i++) {
         const auto reg = regsWithWb[i];
-        if (!m_regs[reg].allocated) {
+        if (!m_gprs[reg].allocated) {
             reserveReg<LoadingMode::DoNotLoad>(reg);
         }
-        m_regs[reg].writeback = true;
+        m_gprs[reg].writeback = true;
     }
 }
 

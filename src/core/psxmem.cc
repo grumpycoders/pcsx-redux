@@ -60,47 +60,47 @@ static const std::map<uint32_t, std::string_view> s_knownBioses = {
     {0xfb4afc11, "SCPH-5000 (2)"},
 };
 
-int PCSX::Memory::psxMemInit() {
-    g_psxMemRLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
-    g_psxMemWLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
+int PCSX::Memory::init() {
+    g_readLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
+    g_writeLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
 
     g_psxM = (uint8_t *)calloc(0x00800000, 1);
     g_psxP = (uint8_t *)calloc(0x00010000, 1);
     g_psxH = (uint8_t *)calloc(0x00010000, 1);
     g_psxR = (uint8_t *)calloc(0x00080000, 1);
 
-    if (g_psxMemRLUT == NULL || g_psxMemWLUT == NULL || g_psxM == NULL || g_psxP == NULL || g_psxH == NULL) {
+    if (g_readLUT == NULL || g_writeLUT == NULL || g_psxM == NULL || g_psxP == NULL || g_psxH == NULL) {
         PCSX::g_system->message("%s", _("Error allocating memory!"));
         return -1;
     }
 
     // MemR
-    for (int i = 0; i < 0x80; i++) g_psxMemRLUT[i + 0x0000] = (uint8_t *)&g_psxM[(i & 0x1f) << 16];
+    for (int i = 0; i < 0x80; i++) g_readLUT[i + 0x0000] = (uint8_t *)&g_psxM[(i & 0x1f) << 16];
 
-    memcpy(g_psxMemRLUT + 0x8000, g_psxMemRLUT, 0x80 * sizeof(void *));
-    memcpy(g_psxMemRLUT + 0xa000, g_psxMemRLUT, 0x80 * sizeof(void *));
+    memcpy(g_readLUT + 0x8000, g_readLUT, 0x80 * sizeof(void *));
+    memcpy(g_readLUT + 0xa000, g_readLUT, 0x80 * sizeof(void *));
 
-    g_psxMemRLUT[0x1f00] = (uint8_t *)g_psxP;
-    g_psxMemRLUT[0x1f80] = (uint8_t *)g_psxH;
+    g_readLUT[0x1f00] = (uint8_t *)g_psxP;
+    g_readLUT[0x1f80] = (uint8_t *)g_psxH;
 
-    for (int i = 0; i < 0x08; i++) g_psxMemRLUT[i + 0x1fc0] = (uint8_t *)&g_psxR[i << 16];
+    for (int i = 0; i < 0x08; i++) g_readLUT[i + 0x1fc0] = (uint8_t *)&g_psxR[i << 16];
 
-    memcpy(g_psxMemRLUT + 0x9fc0, g_psxMemRLUT + 0x1fc0, 0x08 * sizeof(void *));
-    memcpy(g_psxMemRLUT + 0xbfc0, g_psxMemRLUT + 0x1fc0, 0x08 * sizeof(void *));
+    memcpy(g_readLUT + 0x9fc0, g_readLUT + 0x1fc0, 0x08 * sizeof(void *));
+    memcpy(g_readLUT + 0xbfc0, g_readLUT + 0x1fc0, 0x08 * sizeof(void *));
 
     // MemW
-    for (int i = 0; i < 0x80; i++) g_psxMemWLUT[i + 0x0000] = (uint8_t *)&g_psxM[(i & 0x1f) << 16];
+    for (int i = 0; i < 0x80; i++) g_writeLUT[i + 0x0000] = (uint8_t *)&g_psxM[(i & 0x1f) << 16];
 
-    memcpy(g_psxMemWLUT + 0x8000, g_psxMemWLUT, 0x80 * sizeof(void *));
-    memcpy(g_psxMemWLUT + 0xa000, g_psxMemWLUT, 0x80 * sizeof(void *));
+    memcpy(g_writeLUT + 0x8000, g_writeLUT, 0x80 * sizeof(void *));
+    memcpy(g_writeLUT + 0xa000, g_writeLUT, 0x80 * sizeof(void *));
 
-    g_psxMemWLUT[0x1f00] = (uint8_t *)g_psxP;
-    g_psxMemWLUT[0x1f80] = (uint8_t *)g_psxH;
+    g_writeLUT[0x1f00] = (uint8_t *)g_psxP;
+    g_writeLUT[0x1f80] = (uint8_t *)g_psxH;
 
     return 0;
 }
 
-void PCSX::Memory::psxMemReset() {
+void PCSX::Memory::reset() {
     const uint32_t bios_size = 0x00080000;
     memset(g_psxM, 0, 0x00800000);
     memset(g_psxP, 0, 0x00010000);
@@ -254,22 +254,22 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
     }
 }
 
-void PCSX::Memory::psxMemShutdown() {
+void PCSX::Memory::shutdown() {
     free(g_psxM);
     free(g_psxP);
     free(g_psxH);
     free(g_psxR);
 
-    free(g_psxMemRLUT);
-    free(g_psxMemWLUT);
+    free(g_readLUT);
+    free(g_writeLUT);
 }
 
-uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
+uint8_t PCSX::Memory::read8(uint32_t mem) {
     char *p;
     uint32_t t;
 
     if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
+        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
     }
 
     t = mem >> 16;
@@ -277,9 +277,9 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
         if ((mem & 0xffff) < 0x400)
             return psxHu8(mem);
         else
-            return PCSX::g_emulator->m_hw->psxHwRead8(mem);
+            return PCSX::g_emulator->m_hw->read8(mem);
     } else {
-        p = (char *)(g_psxMemRLUT[t]);
+        p = (char *)(g_readLUT[t]);
         if (p != NULL) {
             return *(uint8_t *)(p + (mem & 0xffff));
         } else {
@@ -289,12 +289,12 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
     }
 }
 
-uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
+uint16_t PCSX::Memory::read16(uint32_t mem) {
     char *p;
     uint32_t t;
 
     if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
+        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
     }
 
     t = mem >> 16;
@@ -302,9 +302,9 @@ uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
         if ((mem & 0xffff) < 0x400)
             return psxHu16(mem);
         else
-            return PCSX::g_emulator->m_hw->psxHwRead16(mem);
+            return PCSX::g_emulator->m_hw->read16(mem);
     } else {
-        p = (char *)(g_psxMemRLUT[t]);
+        p = (char *)(g_readLUT[t]);
         if (p != NULL) {
             return SWAP_LEu16(*(uint16_t *)(p + (mem & 0xffff)));
         } else {
@@ -314,12 +314,12 @@ uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
     }
 }
 
-uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
+uint32_t PCSX::Memory::read32(uint32_t mem) {
     char *p;
     uint32_t t;
 
     if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
+        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
     }
 
     t = mem >> 16;
@@ -327,9 +327,9 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
         if ((mem & 0xffff) < 0x400)
             return psxHu32(mem);
         else
-            return PCSX::g_emulator->m_hw->psxHwRead32(mem);
+            return PCSX::g_emulator->m_hw->read32(mem);
     } else {
-        p = (char *)(g_psxMemRLUT[t]);
+        p = (char *)(g_readLUT[t]);
         if (p != NULL) {
             return SWAP_LEu32(*(uint32_t *)(p + (mem & 0xffff)));
         } else {
@@ -341,12 +341,12 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
     }
 }
 
-void PCSX::Memory::psxMemWrite8(uint32_t mem, uint32_t value) {
+void PCSX::Memory::write8(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
 
     if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
+        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
     }
 
     t = mem >> 16;
@@ -354,24 +354,24 @@ void PCSX::Memory::psxMemWrite8(uint32_t mem, uint32_t value) {
         if ((mem & 0xffff) < 0x400)
             psxHu8(mem) = value;
         else
-            PCSX::g_emulator->m_hw->psxHwWrite8(mem, value);
+            PCSX::g_emulator->m_hw->write8(mem, value);
     } else {
-        p = (char *)(g_psxMemWLUT[t]);
+        p = (char *)(g_writeLUT[t]);
         if (p != NULL) {
             *(uint8_t *)(p + (mem & 0xffff)) = value;
-            PCSX::g_emulator->m_psxCpu->Clear((mem & (~3)), 1);
+            PCSX::g_emulator->m_cpu->Clear((mem & (~3)), 1);
         } else {
             PSXMEM_LOG("err sb %8.8lx\n", mem);
         }
     }
 }
 
-void PCSX::Memory::psxMemWrite16(uint32_t mem, uint32_t value) {
+void PCSX::Memory::write16(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
 
     if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
+        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
     }
 
     t = mem >> 16;
@@ -379,24 +379,24 @@ void PCSX::Memory::psxMemWrite16(uint32_t mem, uint32_t value) {
         if ((mem & 0xffff) < 0x400)
             psxHu16ref(mem) = SWAP_LEu16(value);
         else
-            PCSX::g_emulator->m_hw->psxHwWrite16(mem, value);
+            PCSX::g_emulator->m_hw->write16(mem, value);
     } else {
-        p = (char *)(g_psxMemWLUT[t]);
+        p = (char *)(g_writeLUT[t]);
         if (p != NULL) {
             *(uint16_t *)(p + (mem & 0xffff)) = SWAP_LEu16(value);
-            PCSX::g_emulator->m_psxCpu->Clear((mem & (~3)), 1);
+            PCSX::g_emulator->m_cpu->Clear((mem & (~3)), 1);
         } else {
             PSXMEM_LOG("err sh %8.8lx\n", mem);
         }
     }
 }
 
-void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
+void PCSX::Memory::write32(uint32_t mem, uint32_t value) {
     char *p;
     uint32_t t;
 
     if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle += 1;
+        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
     }
 
     //  if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) PCSX::g_system->printf("t2fix!!\n");
@@ -405,15 +405,15 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
         if ((mem & 0xffff) < 0x400)
             psxHu32ref(mem) = SWAP_LEu32(value);
         else
-            PCSX::g_emulator->m_hw->psxHwWrite32(mem, value);
+            PCSX::g_emulator->m_hw->write32(mem, value);
     } else {
-        p = (char *)(g_psxMemWLUT[t]);
+        p = (char *)(g_writeLUT[t]);
         if (p != NULL) {
             *(uint32_t *)(p + (mem & 0xffff)) = SWAP_LEu32(value);
-            PCSX::g_emulator->m_psxCpu->Clear(mem, 1);
+            PCSX::g_emulator->m_cpu->Clear(mem, 1);
         } else {
             if (mem != 0xfffe0130) {
-                if (!m_writeok) PCSX::g_emulator->m_psxCpu->Clear(mem, 1);
+                if (!m_writeok) PCSX::g_emulator->m_cpu->Clear(mem, 1);
 
                 if (m_writeok) {
                     PSXMEM_LOG("err sw %8.8lx\n", mem);
@@ -429,7 +429,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
                         m_writeok = 0;
                         setLuts();
 
-                        PCSX::g_emulator->m_psxCpu->invalidateCache();
+                        PCSX::g_emulator->m_cpu->invalidateCache();
                         break;
                     case 0x00:
                     case 0x1e988:
@@ -446,7 +446,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
     }
 }
 
-const void *PCSX::Memory::psxMemPointerRead(uint32_t address) {
+const void *PCSX::Memory::pointerRead(uint32_t address) {
     const auto page = address >> 16;
 
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
@@ -486,7 +486,7 @@ const void *PCSX::Memory::psxMemPointerRead(uint32_t address) {
             }
         }
     } else {
-        const auto pointer = (char *)(g_psxMemRLUT[page]);
+        const auto pointer = (char *)(g_readLUT[page]);
         if (pointer != nullptr) {
             return (void *)(pointer + (address & 0xffff));
         }
@@ -494,7 +494,7 @@ const void *PCSX::Memory::psxMemPointerRead(uint32_t address) {
     }
 }
 
-const void *PCSX::Memory::psxMemPointerWrite(uint32_t address, int size) {
+const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
     const auto page = address >> 16;
 
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
@@ -528,7 +528,7 @@ const void *PCSX::Memory::psxMemPointerWrite(uint32_t address, int size) {
             }
         }
     } else {
-        const auto pointer = (char *)(g_psxMemWLUT[page]);
+        const auto pointer = (char *)(g_writeLUT[page]);
         if (pointer != nullptr) {
             return (void *)(pointer + (address & 0xffff));
         }
@@ -540,13 +540,13 @@ void PCSX::Memory::setLuts() {
     if (m_writeok) {
         int max = (g_psxH[0x1061] & 0x1) ? 0x80 : 0x20;
         if (!g_emulator->settings.get<Emulator::Setting8MB>()) max = 0x20;
-        for (int i = 0; i < 0x80; i++) g_psxMemWLUT[i + 0x0000] = (uint8_t *)&g_psxM[(i & (max - 1)) << 16];
-        memcpy(g_psxMemWLUT + 0x8000, g_psxMemWLUT, 0x80 * sizeof(void *));
-        memcpy(g_psxMemWLUT + 0xa000, g_psxMemWLUT, 0x80 * sizeof(void *));
+        for (int i = 0; i < 0x80; i++) g_writeLUT[i + 0x0000] = (uint8_t *)&g_psxM[(i & (max - 1)) << 16];
+        memcpy(g_writeLUT + 0x8000, g_writeLUT, 0x80 * sizeof(void *));
+        memcpy(g_writeLUT + 0xa000, g_writeLUT, 0x80 * sizeof(void *));
     } else {
-        memset(g_psxMemWLUT + 0x0000, 0, 0x80 * sizeof(void *));
-        memset(g_psxMemWLUT + 0x8000, 0, 0x80 * sizeof(void *));
-        memset(g_psxMemWLUT + 0xa000, 0, 0x80 * sizeof(void *));
+        memset(g_writeLUT + 0x0000, 0, 0x80 * sizeof(void *));
+        memset(g_writeLUT + 0x8000, 0, 0x80 * sizeof(void *));
+        memset(g_writeLUT + 0xa000, 0, 0x80 * sizeof(void *));
     }
 }
 

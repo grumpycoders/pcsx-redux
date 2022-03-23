@@ -54,23 +54,23 @@ static constexpr bool addressInRegisterSpace(uint32_t address) {
             between(masked_addr, 0x1f801120, 0x1f80112b));                // Timer 2
 }
 
-void PCSX::HW::psxHwReset() {
+void PCSX::HW::reset() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>()) setIrq(0x200);
 
-    memset(PCSX::g_emulator->m_psxMem->g_psxH, 0, 0x10000);
+    memset(PCSX::g_emulator->m_mem->g_psxH, 0, 0x10000);
 
-    PCSX::g_emulator->m_mdec->mdecInit();  // initialize mdec decoder
+    PCSX::g_emulator->m_mdec->init();  // initialize mdec decoder
     PCSX::g_emulator->m_cdrom->reset();
-    PCSX::g_emulator->m_psxCounters->psxRcntInit();
+    PCSX::g_emulator->m_counters->init();
     PCSX::g_emulator->m_spu->resetCaptureBuffer();
 }
 
-uint8_t PCSX::HW::psxHwRead8(uint32_t add) {
-    unsigned char hard;
+uint8_t PCSX::HW::read8(uint32_t add) {
+    uint8_t hard;
 
     switch (add & 0x1fffffff) {
         case 0x1f801040:
-            hard = PCSX::g_emulator->m_sio->sioRead8();
+            hard = PCSX::g_emulator->m_sio->read8();
             break;
         case 0x1f801050:  // rx/tx data register
             hard = PCSX::g_emulator->m_sio1->readData8();
@@ -130,8 +130,8 @@ uint8_t PCSX::HW::psxHwRead8(uint32_t add) {
     return hard;
 }
 
-uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
-    unsigned short hard;
+uint16_t PCSX::HW::read16(uint32_t add) {
+    uint16_t hard;
 
     switch (add & 0x1fffffff) {
         case 0x1f801070:
@@ -141,8 +141,8 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
             PSXHW_LOG("IMASK 16bit read %x\n", psxHu16(0x1074));
             return psxHu16(0x1074);
         case 0x1f801040:
-            hard = PCSX::g_emulator->m_sio->sioRead8();
-            hard |= PCSX::g_emulator->m_sio->sioRead8() << 8;
+            hard = PCSX::g_emulator->m_sio->read8();
+            hard |= PCSX::g_emulator->m_sio->read8() << 8;
             SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f801044:
@@ -192,39 +192,39 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
             */
 
         case 0x1f801100:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRcount(0);
+            hard = PCSX::g_emulator->m_counters->psxRcntRcount(0);
             PSXHW_LOG("T0 count read16: %x\n", hard);
             return hard;
         case 0x1f801104:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRmode(0);
+            hard = PCSX::g_emulator->m_counters->readMode(0);
             PSXHW_LOG("T0 mode read16: %x\n", hard);
             return hard;
         case 0x1f801108:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRtarget(0);
+            hard = PCSX::g_emulator->m_counters->psxRcntRtarget(0);
             PSXHW_LOG("T0 target read16: %x\n", hard);
             return hard;
         case 0x1f801110:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRcount(1);
+            hard = PCSX::g_emulator->m_counters->psxRcntRcount(1);
             PSXHW_LOG("T1 count read16: %x\n", hard);
             return hard;
         case 0x1f801114:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRmode(1);
+            hard = PCSX::g_emulator->m_counters->readMode(1);
             PSXHW_LOG("T1 mode read16: %x\n", hard);
             return hard;
         case 0x1f801118:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRtarget(1);
+            hard = PCSX::g_emulator->m_counters->psxRcntRtarget(1);
             PSXHW_LOG("T1 target read16: %x\n", hard);
             return hard;
         case 0x1f801120:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRcount(2);
+            hard = PCSX::g_emulator->m_counters->psxRcntRcount(2);
             PSXHW_LOG("T2 count read16: %x\n", hard);
             return hard;
         case 0x1f801124:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRmode(2);
+            hard = PCSX::g_emulator->m_counters->readMode(2);
             PSXHW_LOG("T2 mode read16: %x\n", hard);
             return hard;
         case 0x1f801128:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRtarget(2);
+            hard = PCSX::g_emulator->m_counters->psxRcntRtarget(2);
             PSXHW_LOG("T2 target read16: %x\n", hard);
             return hard;
 
@@ -252,15 +252,15 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
     return hard;
 }
 
-uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
+uint32_t PCSX::HW::read32(uint32_t add) {
     uint32_t hard;
 
     switch (add & 0x1fffffff) {
         case 0x1f801040:
-            hard = PCSX::g_emulator->m_sio->sioRead8();
-            hard |= PCSX::g_emulator->m_sio->sioRead8() << 8;
-            hard |= PCSX::g_emulator->m_sio->sioRead8() << 16;
-            hard |= PCSX::g_emulator->m_sio->sioRead8() << 24;
+            hard = PCSX::g_emulator->m_sio->read8();
+            hard |= PCSX::g_emulator->m_sio->read8() << 8;
+            hard |= PCSX::g_emulator->m_sio->read8() << 16;
+            hard |= PCSX::g_emulator->m_sio->read8() << 24;
             SIO0_LOG("sio read32 ;ret = %x\n", hard);
             return hard;
         case 0x1f801050:  // rx/tx data register
@@ -291,10 +291,10 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
             return hard;
 
         case 0x1f801820:
-            hard = PCSX::g_emulator->m_mdec->mdecRead0();
+            hard = PCSX::g_emulator->m_mdec->read0();
             break;
         case 0x1f801824:
-            hard = PCSX::g_emulator->m_mdec->mdecRead1();
+            hard = PCSX::g_emulator->m_mdec->read1();
             break;
         case 0x1f8010a0:
             PSXHW_LOG("DMA2 MADR 32bit read %x\n", psxHu32(0x10a0));
@@ -322,39 +322,39 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
             return SWAP_LEu32(HW_DMA_ICR);  // DMA interrupt register (enable/ack)
         // time for rootcounters :)
         case 0x1f801100:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRcount(0);
+            hard = PCSX::g_emulator->m_counters->psxRcntRcount(0);
             PSXHW_LOG("T0 count read32: %x\n", hard);
             return hard;
         case 0x1f801104:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRmode(0);
+            hard = PCSX::g_emulator->m_counters->readMode(0);
             PSXHW_LOG("T0 mode read32: %x\n", hard);
             return hard;
         case 0x1f801108:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRtarget(0);
+            hard = PCSX::g_emulator->m_counters->psxRcntRtarget(0);
             PSXHW_LOG("T0 target read32: %x\n", hard);
             return hard;
         case 0x1f801110:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRcount(1);
+            hard = PCSX::g_emulator->m_counters->psxRcntRcount(1);
             PSXHW_LOG("T1 count read32: %x\n", hard);
             return hard;
         case 0x1f801114:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRmode(1);
+            hard = PCSX::g_emulator->m_counters->readMode(1);
             PSXHW_LOG("T1 mode read32: %x\n", hard);
             return hard;
         case 0x1f801118:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRtarget(1);
+            hard = PCSX::g_emulator->m_counters->psxRcntRtarget(1);
             PSXHW_LOG("T1 target read32: %x\n", hard);
             return hard;
         case 0x1f801120:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRcount(2);
+            hard = PCSX::g_emulator->m_counters->psxRcntRcount(2);
             PSXHW_LOG("T2 count read32: %x\n", hard);
             return hard;
         case 0x1f801124:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRmode(2);
+            hard = PCSX::g_emulator->m_counters->readMode(2);
             PSXHW_LOG("T2 mode read32: %x\n", hard);
             return hard;
         case 0x1f801128:
-            hard = PCSX::g_emulator->m_psxCounters->psxRcntRtarget(2);
+            hard = PCSX::g_emulator->m_counters->psxRcntRtarget(2);
             PSXHW_LOG("T2 target read32: %x\n", hard);
             return hard;
         case 0x1f801014:
@@ -374,7 +374,7 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
     return hard;
 }
 
-void PCSX::HW::psxHwWrite8(uint32_t add, uint32_t rawvalue) {
+void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
     uint8_t value = (uint8_t)rawvalue;
 
     switch (add & 0x1fffffff) {
@@ -445,13 +445,13 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint32_t rawvalue) {
     }
 }
 
-void PCSX::HW::psxHwWrite16(uint32_t add, uint32_t rawvalue) {
+void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
     uint16_t value = (uint16_t)rawvalue;
 
     switch (add & 0x1fffffff) {
         case 0x1f801040:
-            PCSX::g_emulator->m_sio->write8((unsigned char)value);
-            PCSX::g_emulator->m_sio->write8((unsigned char)(value >> 8));
+            PCSX::g_emulator->m_sio->write8((uint8_t)value);
+            PCSX::g_emulator->m_sio->write8((uint8_t)(value >> 8));
             SIO0_LOG("sio write16 %x, %x\n", add & 0xf, value);
             break;
         case 0x1f801044:
@@ -503,41 +503,41 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint32_t rawvalue) {
 
         case 0x1f801100:
             PSXHW_LOG("COUNTER 0 COUNT 16bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWcount(0, value);
+            PCSX::g_emulator->m_counters->psxRcntWcount(0, value);
             break;
         case 0x1f801104:
             PSXHW_LOG("COUNTER 0 MODE 16bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWmode(0, value);
+            PCSX::g_emulator->m_counters->psxRcntWmode(0, value);
             break;
         case 0x1f801108:
             PSXHW_LOG("COUNTER 0 TARGET 16bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWtarget(0, value);
+            PCSX::g_emulator->m_counters->psxRcntWtarget(0, value);
             break;
 
         case 0x1f801110:
             PSXHW_LOG("COUNTER 1 COUNT 16bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWcount(1, value);
+            PCSX::g_emulator->m_counters->psxRcntWcount(1, value);
             break;
         case 0x1f801114:
             PSXHW_LOG("COUNTER 1 MODE 16bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWmode(1, value);
+            PCSX::g_emulator->m_counters->psxRcntWmode(1, value);
             break;
         case 0x1f801118:
             PSXHW_LOG("COUNTER 1 TARGET 16bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWtarget(1, value);
+            PCSX::g_emulator->m_counters->psxRcntWtarget(1, value);
             break;
 
         case 0x1f801120:
             PSXHW_LOG("COUNTER 2 COUNT 16bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWcount(2, value);
+            PCSX::g_emulator->m_counters->psxRcntWcount(2, value);
             break;
         case 0x1f801124:
             PSXHW_LOG("COUNTER 2 MODE 16bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWmode(2, value);
+            PCSX::g_emulator->m_counters->psxRcntWmode(2, value);
             break;
         case 0x1f801128:
             PSXHW_LOG("COUNTER 2 TARGET 16bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWtarget(2, value);
+            PCSX::g_emulator->m_counters->psxRcntWtarget(2, value);
             break;
         case 0x1f802082:
             PCSX::g_system->testQuit((int16_t)value);
@@ -567,21 +567,21 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint32_t rawvalue) {
     }
 }
 
-inline void PCSX::HW::psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+inline void PCSX::HW::dma0(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PSXDMA_LOG("*** DMA0 MDEC *** %x addr = %x size = %x\n", chcr, madr, bcr);
-    PCSX::g_emulator->m_mdec->psxDma0(madr, bcr, chcr);
+    PCSX::g_emulator->m_mdec->dma0(madr, bcr, chcr);
 }
 
-inline void PCSX::HW::psxDma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+inline void PCSX::HW::dma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PSXDMA_LOG("*** DMA1 MDEC *** %x addr = %x size = %x\n", chcr, madr, bcr);
-    PCSX::g_emulator->m_mdec->psxDma1(madr, bcr, chcr);
+    PCSX::g_emulator->m_mdec->dma1(madr, bcr, chcr);
 }
 
-inline void PCSX::HW::psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+inline void PCSX::HW::dma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PCSX::g_emulator->m_gpu->dma(madr, bcr, chcr);
 }
 
-inline void PCSX::HW::psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+inline void PCSX::HW::dma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PSXDMA_LOG("*** DMA3 CDROM *** %x addr = %x size = %x\n", chcr, madr, bcr);
     PCSX::g_emulator->m_cdrom->dma(madr, bcr, chcr);
 }
@@ -594,17 +594,17 @@ inline void PCSX::HW::psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
             uint32_t madr = SWAP_LEu32(HW_DMA##n##_MADR);                    \
             uint32_t bcr = SWAP_LEu32(HW_DMA##n##_BCR);                      \
             uint32_t chcr = value;                                           \
-            psxDma##n(madr, bcr, chcr);                                      \
+            dma##n(madr, bcr, chcr);                                         \
         }                                                                    \
     }
 
-void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
+void PCSX::HW::write32(uint32_t add, uint32_t value) {
     switch (add & 0x1fffffff) {
         case 0x1f801040:
-            PCSX::g_emulator->m_sio->write8((unsigned char)value);
-            PCSX::g_emulator->m_sio->write8((unsigned char)((value & 0xff) >> 8));
-            PCSX::g_emulator->m_sio->write8((unsigned char)((value & 0xff) >> 16));
-            PCSX::g_emulator->m_sio->write8((unsigned char)((value & 0xff) >> 24));
+            PCSX::g_emulator->m_sio->write8((uint8_t)value);
+            PCSX::g_emulator->m_sio->write8((uint8_t)((value & 0xff) >> 8));
+            PCSX::g_emulator->m_sio->write8((uint8_t)((value & 0xff) >> 16));
+            PCSX::g_emulator->m_sio->write8((uint8_t)((value & 0xff) >> 24));
             SIO0_LOG("sio write32 %x\n", value);
             break;
         case 0x1f801050:
@@ -618,7 +618,7 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
         case 0x1f801060:
             PSXHW_LOG("RAM size write %x\n", value);
             psxHu32ref(add) = SWAP_LEu32(value);
-            g_emulator->m_psxMem->setLuts();
+            g_emulator->m_mem->setLuts();
             break;  // Ram size
         case 0x1f801070:
             PSXHW_LOG("IREG 32bit write %x\n", value);
@@ -670,7 +670,7 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
              * Maybe it is ready when some signal comes in or within given delay?
              */
             if (s_dmaGpuListHackEn && value == 0x00000401 && HW_DMA2_BCR == 0x0) {
-                psxDma2(SWAP_LEu32(HW_DMA2_MADR), SWAP_LEu32(HW_DMA2_BCR), SWAP_LEu32(value));
+                dma2(SWAP_LEu32(HW_DMA2_MADR), SWAP_LEu32(HW_DMA2_BCR), SWAP_LEu32(value));
                 break;
             }
             DmaExec(2);  // DMA2 chcr (GPU DMA)
@@ -752,46 +752,46 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
             break;
 
         case 0x1f801820:
-            PCSX::g_emulator->m_mdec->mdecWrite0(value);
+            PCSX::g_emulator->m_mdec->write0(value);
             break;
         case 0x1f801824:
-            PCSX::g_emulator->m_mdec->mdecWrite1(value);
+            PCSX::g_emulator->m_mdec->write1(value);
             break;
         case 0x1f801100:
             PSXHW_LOG("COUNTER 0 COUNT 32bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWcount(0, value & 0xffff);
+            PCSX::g_emulator->m_counters->psxRcntWcount(0, value & 0xffff);
             break;
         case 0x1f801104:
             PSXHW_LOG("COUNTER 0 MODE 32bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWmode(0, value);
+            PCSX::g_emulator->m_counters->psxRcntWmode(0, value);
             break;
         case 0x1f801108:
             PSXHW_LOG("COUNTER 0 TARGET 32bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWtarget(0, value & 0xffff);
+            PCSX::g_emulator->m_counters->psxRcntWtarget(0, value & 0xffff);
             break;  //  HW_DMA_ICR&= SWAP_LE32((~value)&0xff000000);
         case 0x1f801110:
             PSXHW_LOG("COUNTER 1 COUNT 32bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWcount(1, value & 0xffff);
+            PCSX::g_emulator->m_counters->psxRcntWcount(1, value & 0xffff);
             break;
         case 0x1f801114:
             PSXHW_LOG("COUNTER 1 MODE 32bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWmode(1, value);
+            PCSX::g_emulator->m_counters->psxRcntWmode(1, value);
             break;
         case 0x1f801118:
             PSXHW_LOG("COUNTER 1 TARGET 32bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWtarget(1, value & 0xffff);
+            PCSX::g_emulator->m_counters->psxRcntWtarget(1, value & 0xffff);
             break;
         case 0x1f801120:
             PSXHW_LOG("COUNTER 2 COUNT 32bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWcount(2, value & 0xffff);
+            PCSX::g_emulator->m_counters->psxRcntWcount(2, value & 0xffff);
             break;
         case 0x1f801124:
             PSXHW_LOG("COUNTER 2 MODE 32bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWmode(2, value);
+            PCSX::g_emulator->m_counters->psxRcntWmode(2, value);
             break;
         case 0x1f801128:
             PSXHW_LOG("COUNTER 2 TARGET 32bit write %x\n", value);
-            PCSX::g_emulator->m_psxCounters->psxRcntWtarget(2, value & 0xffff);
+            PCSX::g_emulator->m_counters->psxRcntWtarget(2, value & 0xffff);
             break;
         case 0x1f802084:
             g_system->message("%s", PSXM(value));

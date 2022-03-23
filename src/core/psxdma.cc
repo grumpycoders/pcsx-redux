@@ -34,7 +34,7 @@ void spuInterrupt() {
     DMA_INTERRUPT(4);
 }
 
-void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
+void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
     uint16_t *ptr;
     uint32_t size;
 
@@ -73,7 +73,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
                     .get<PCSX::Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkDMAwrite(4, madr, size * 2);
             }
-            PCSX::g_emulator->m_psxCpu->Clear(madr, size * 2);
+            PCSX::g_emulator->m_cpu->Clear(madr, size * 2);
 
 #if 1
             scheduleSPUDMAIRQ((bcr >> 16) * (bcr & 0xffff) / 2);
@@ -92,7 +92,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
     DMA_INTERRUPT(4);
 }
 
-void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     uint32_t size;
     uint32_t *mem = (uint32_t *)PSXM(madr);
 

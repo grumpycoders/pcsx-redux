@@ -109,7 +109,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // BA blocks * BS words (word = 32-bits)
             size = (bcr >> 16) * (bcr & 0xffff);
             readDataMem(ptr, size);
-            g_emulator->m_psxCpu->Clear(madr, size);
+            g_emulator->m_cpu->Clear(madr, size);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 g_emulator->m_debug->checkDMAwrite(2, madr, size * 4);
             }
@@ -152,7 +152,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             PSXDMA_LOG("*** DMA 2 - GPU dma chain *** %8.8lx addr = %lx size = %lx\n", chcr, madr, bcr);
 
             size = gpuDmaChainSize(madr);
-            dmaChain((uint32_t *)PCSX::g_emulator->m_psxMem->g_psxM, madr & 0x1fffff);
+            dmaChain((uint32_t *)PCSX::g_emulator->m_mem->g_psxM, madr & 0x1fffff);
 
             // Tekken 3 = use 1.0 only (not 1.5x)
 

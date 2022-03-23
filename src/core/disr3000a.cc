@@ -86,7 +86,7 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 namespace {
 struct StringDisasm : public PCSX::Disasm {
     uint8_t *ptr(uint32_t addr) {
-        uint8_t *lut = PCSX::g_emulator->m_psxMem->g_psxMemRLUT[addr >> 16];
+        uint8_t *lut = PCSX::g_emulator->m_mem->g_readLUT[addr >> 16];
         if (lut) {
             return lut + (addr & 0xffff);
         } else {
@@ -122,7 +122,7 @@ struct StringDisasm : public PCSX::Disasm {
         append("$");
         append(s_disRNameGPR[reg]);
         if (m_withValues) {
-            append("(%08x)", PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[reg]);
+            append("(%08x)", PCSX::g_emulator->m_cpu->m_regs.GPR.r[reg]);
         }
     }
     virtual void CP0(uint8_t reg) final {
@@ -130,7 +130,7 @@ struct StringDisasm : public PCSX::Disasm {
         append("$");
         append(s_disRNameCP0[reg]);
         if (m_withValues) {
-            append("(%08x)", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[reg]);
+            append("(%08x)", PCSX::g_emulator->m_cpu->m_regs.CP0.r[reg]);
         }
     }
     virtual void CP2D(uint8_t reg) final {
@@ -138,7 +138,7 @@ struct StringDisasm : public PCSX::Disasm {
         append("$");
         append(s_disRNameCP2D[reg]);
         if (m_withValues) {
-            append("(%08x)", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[reg]);
+            append("(%08x)", PCSX::g_emulator->m_cpu->m_regs.CP2D.r[reg]);
         }
     }
     virtual void CP2C(uint8_t reg) final {
@@ -146,21 +146,21 @@ struct StringDisasm : public PCSX::Disasm {
         append("$");
         append(s_disRNameCP2C[reg]);
         if (m_withValues) {
-            append("(%08x)", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.r[reg]);
+            append("(%08x)", PCSX::g_emulator->m_cpu->m_regs.CP2C.r[reg]);
         }
     }
     virtual void HI() final {
         comma();
         append("$hi");
         if (m_withValues) {
-            append("(%08x)", PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi);
+            append("(%08x)", PCSX::g_emulator->m_cpu->m_regs.GPR.n.hi);
         }
     }
     virtual void LO() final {
         comma();
         append("$lo");
         if (m_withValues) {
-            append("(%08x)", PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo);
+            append("(%08x)", PCSX::g_emulator->m_cpu->m_regs.GPR.n.lo);
         }
     }
     virtual void Imm(uint16_t value) final {
@@ -187,7 +187,7 @@ struct StringDisasm : public PCSX::Disasm {
             append("0x%4.4x(%s)", offset, s_disRNameGPR[reg]);
         }
         if (m_withValues) {
-            uint32_t addr = PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[reg] + offset;
+            uint32_t addr = PCSX::g_emulator->m_cpu->m_regs.GPR.r[reg] + offset;
             switch (size) {
                 case 1:
                     append("([%8.8x] = %2.2x)", addr, mem8(addr));

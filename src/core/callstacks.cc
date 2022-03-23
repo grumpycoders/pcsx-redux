@@ -27,7 +27,7 @@
 #if 0
 template <typename... Args>
 static void debugLog(const char* format, const Args&... args) {
-    PCSX::g_system->log(PCSX::LogClass::SYSTEM, "%08x: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc);
+    PCSX::g_system->log(PCSX::LogClass::SYSTEM, "%08x: ", PCSX::g_emulator->m_cpu->m_regs.pc);
     PCSX::g_system->log(PCSX::LogClass::SYSTEM, format, args...);
 }
 #else
@@ -36,7 +36,7 @@ static void debugLog(const char* format, const Args&... args) {
 
 template <typename... Args>
 static void normalLog(const char* format, const Args&... args) {
-    PCSX::g_system->log(PCSX::LogClass::SYSTEM, "%08x: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc);
+    PCSX::g_system->log(PCSX::LogClass::SYSTEM, "%08x: ", PCSX::g_emulator->m_cpu->m_regs.pc);
     PCSX::g_system->log(PCSX::LogClass::SYSTEM, format, args...);
 }
 

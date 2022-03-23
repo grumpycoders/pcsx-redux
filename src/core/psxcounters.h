@@ -95,7 +95,7 @@ class Counters {
   public:
     uint32_t m_psxNextCounter, m_psxNextsCounter;
 
-    void psxRcntInit();
+    void init();
     void psxRcntUpdate();
 
     void psxRcntWcount(uint32_t index, uint32_t value);
@@ -103,7 +103,7 @@ class Counters {
     void psxRcntWtarget(uint32_t index, uint32_t value);
 
     uint32_t psxRcntRcount(uint32_t index);
-    uint32_t psxRcntRmode(uint32_t index);
+    uint32_t readMode(uint32_t index);
     uint32_t psxRcntRtarget(uint32_t index);
 
     void save(PCSX::SaveStates::Counters &counters);
