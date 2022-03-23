@@ -58,6 +58,10 @@ class Slice {
         moveFrom(std::move(other));
         return *this;
     }
+    Slice &operator+=(const Slice &other) {
+        concatenate(other);
+        return *this;
+    }
     void concatenate(const Slice &other) {
         auto newSize = size() + other.size();
         if (std::holds_alternative<Owned>(m_data)) {
@@ -65,6 +69,11 @@ class Slice {
             data.ptr = realloc(data.ptr, newSize);
             memcpy(((uint8_t *)data.ptr) + size(), other.data(), other.size());
             data.size += other.size();
+        } else if (std::holds_alternative<std::string>(m_data)) {
+            auto &data = std::get<std::string>(m_data);
+            auto oldSize = data.size();
+            data.resize(newSize);
+            memcpy(((uint8_t *)data.data()) + oldSize, other.data(), other.size());
         } else {
             uint8_t *newData = (uint8_t *)malloc(newSize);
             memcpy(newData, data(), size());

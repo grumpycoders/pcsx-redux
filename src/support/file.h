@@ -24,6 +24,7 @@
 #include <zlib.h>
 
 #include <atomic>
+#include <bit>
 #include <compare>
 #include <filesystem>
 #include <type_traits>
@@ -156,22 +157,58 @@ class File {
 
     template <class T>
     T read() {
-        T ret = 0;
-        for (int i = 0; i < sizeof(T); i++) {
-            T b = byte();
-            ret |= (b << (i * 8));
+        if constexpr (std::endian::native == std::endian::big) {
+            T ret = T(0);
+            for (int i = 0; i < sizeof(T); i++) {
+                T b = byte();
+                ret |= (b << (i * 8));
+            }
+            return ret;
+        } else {
+            T ret = T(0);
+            read(&ret, sizeof(T));
+            return ret;
         }
-        return ret;
     }
 
     template <class T>
     T readAt(size_t pos) {
-        T ret = 0;
-        for (int i = 0; i < sizeof(T); i++) {
-            T b = byteAt(pos++);
-            ret |= (b << (i * 8));
+        if constexpr (std::endian::native == std::endian::big) {
+            T ret = 0;
+            for (int i = 0; i < sizeof(T); i++) {
+                T b = byteAt(pos++);
+                ret |= (b << (i * 8));
+            }
+            return ret;
+        } else {
+            T ret = T(0);
+            readAt(&ret, sizeof(T), pos);
+            return ret;
         }
-        return ret;
+    }
+
+    template <class T>
+    void write(T val) {
+        if constexpr (std::endian::native == std::endian::big) {
+            for (int i = 0; i < sizeof(T); i++) {
+                write(&val, 1);
+                val >>= 8;
+            }
+        } else {
+            write(&val, sizeof(T));
+        }
+    }
+
+    template <class T>
+    void writeAt(T val, size_t pos) {
+        if constexpr (std::endian::native == std::endian::big) {
+            for (int i = 0; i < sizeof(T); i++) {
+                writeAt(&val, 1, pos++);
+                val >>= 8;
+            }
+        } else {
+            write(&val, sizeof(T), pos);
+        }
     }
 
     uint8_t byte() {
