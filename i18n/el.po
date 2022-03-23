@@ -7,6 +7,9 @@ msgstr ""
 "Last-Translator: Γιωργος Πονηρης <gponiris2004@gmail.com>, 2021\n"
 "Language-Team: Greek (https://www.transifex.com/grumpycoders/teams/99251/el/)\n"
 "Language: el\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/core/psxmem.cc:123
