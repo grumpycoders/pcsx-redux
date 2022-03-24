@@ -1334,7 +1334,7 @@ bool PCSX::GUI::configure() {
             }
         }
 
-        ShowHelpMarker(_(R"(Activates the dynamic-recompiler CPU core.
+        ShowHelpMarker(_(R"(Activates the dynamic recompiler CPU core.
 It is significantly faster than the interpreted CPU,
 however it doesn't play nicely with the debugger.
 Changing this setting requires a reboot to take effect.
