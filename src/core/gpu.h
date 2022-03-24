@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "core/psxemulator.h"
 #include "core/sstate.h"
 
@@ -44,10 +46,10 @@ class GPU {
     uint32_t gpuDmaChainSize(uint32_t addr);
 
   public:
-    virtual int32_t init() = 0;
-    virtual int32_t shutdown() = 0;
-    virtual int32_t open(GUI *) = 0;
-    virtual int32_t close() = 0;
+    virtual int init() = 0;
+    virtual int shutdown() = 0;
+    virtual int open(GUI *) = 0;
+    virtual int close() = 0;
     virtual uint32_t readData() = 0;
     virtual void startDump() = 0;
     virtual void stopDump() = 0;
@@ -80,6 +82,9 @@ class GPU {
     virtual void setDither(int setting) {}
     virtual uint8_t *getVRAM() { return nullptr; }
     virtual void clearVRAM() {}
+
+    static std::unique_ptr<GPU> getSoft();
+    static std::unique_ptr<GPU> getOpenGL();
 };
 
 }  // namespace PCSX

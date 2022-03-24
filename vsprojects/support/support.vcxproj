@@ -288,6 +288,7 @@
     <ClInclude Include="..\..\src\support\file.h" />
     <ClInclude Include="..\..\src\support\hashtable.h" />
     <ClInclude Include="..\..\src\support\list.h" />
+    <ClInclude Include="..\..\src\support\opengl.h" />
     <ClInclude Include="..\..\src\support\protobuf.h" />
     <ClInclude Include="..\..\src\support\settings.h" />
     <ClInclude Include="..\..\src\support\sjis_conv.h" />

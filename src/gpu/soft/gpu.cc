@@ -409,6 +409,10 @@ int32_t PCSX::SoftGPU::impl::shutdown() {
     return 0;  // nothing to do
 }
 
+std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() {
+    return std::unique_ptr<PCSX::GPU>(new PCSX::SoftGPU::impl());
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Update display (swap buffers)
 ////////////////////////////////////////////////////////////////////////

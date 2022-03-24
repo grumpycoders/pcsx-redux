@@ -49,6 +49,9 @@
     <ClCompile Include="..\..\src\core\misc.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc">
+      <Filter>Source Files\OpenGL GPU</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\pad.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -161,6 +164,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\r3000a.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h">
+      <Filter>Header Files\OpenGL GPU</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\psxmem.h">
       <Filter>Header Files</Filter>
@@ -295,6 +301,12 @@
     </Filter>
     <Filter Include="Source Files\Dynarec x86">
       <UniqueIdentifier>{625a927c-9a94-4054-9b76-56b4ad33beff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\OpenGL GPU">
+      <UniqueIdentifier>{ff1c4051-5879-4e5a-be30-4741c2e9f3b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OpenGL GPU">
+      <UniqueIdentifier>{c1cbc4a4-2ced-4f1f-8d11-e62682d7f4da}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

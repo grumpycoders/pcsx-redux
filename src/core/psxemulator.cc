@@ -52,7 +52,6 @@ PCSX::Emulator::Emulator()
       m_cdrom(PCSX::CDRom::factory()),
       m_cheats(new PCSX::Cheats()),
       m_mdec(new PCSX::MDEC()),
-      m_gpu(new PCSX::SoftGPU::impl()),
       m_gdbServer(new PCSX::GdbServer()),
       m_webServer(new PCSX::WebServer()),
       m_sio1(new PCSX::SIO1()),
@@ -64,6 +63,12 @@ PCSX::Emulator::Emulator()
       m_lua(new PCSX::Lua()),
       m_callStacks(new PCSX::CallStacks) {
     uv_loop_init(&m_loop);
+
+    if (settings.get<SettingHardwareRenderer>()) {
+        m_gpu = PCSX::GPU::getOpenGL();
+    } else {
+        m_gpu = PCSX::GPU::getSoft();
+    }
 }
 
 void PCSX::Emulator::setLua() {
