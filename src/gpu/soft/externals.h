@@ -192,6 +192,3 @@ constexpr uint32_t dwGPUVersion = 0;
 constexpr int iGPUHeight = 512;
 constexpr int iGPUHeightMask = 511;
 constexpr int iTileCheat = 0;
-
-// cfg.cc
-extern char *pConfigFile;
