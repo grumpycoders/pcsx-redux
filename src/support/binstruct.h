@@ -24,6 +24,7 @@
 #include <bit>
 #include <string>
 #include <tuple>
+#include <type_traits>
 
 #include "support/file.h"
 #include "support/slice.h"
@@ -141,7 +142,7 @@ struct NString {
     static std::string_view get(const Slice &slice, size_t offset) {
         const uint8_t *buffer = slice.data<uint8_t>();
         uint8_t N = buffer[offset];
-        return {reinterpret_cast<const char*>(buffer) + 1, N};
+        return {reinterpret_cast<const char *>(buffer) + 1, N};
     }
     static void set(Slice &slice, size_t offset, std::string_view val) {
         auto size = std::min(val.size(), std::string_view::size_type(255));
@@ -154,12 +155,50 @@ struct NString {
     static constexpr bool fixedSize() { return false; }
 };
 
+template <size_t S>
+struct CString {
+    static constexpr char const typeName[] = "CString";
+    typedef std::string_view type;
+    static void deserialize(IO<File> file, Slice &slice) {
+        std::string t(S, '\0');
+        file->read(t.data(), S);
+        Slice addend(std::move(t));
+        slice += addend;
+    }
+    static void serialize(IO<File> file, const Slice &slice, size_t offset) {
+        const uint8_t *buffer = slice.data<uint8_t>();
+        file->write(buffer + offset, S);
+    }
+    static std::string_view get(const Slice &slice, size_t offset) {
+        const uint8_t *buffer = slice.data<uint8_t>();
+        return {reinterpret_cast<const char *>(buffer), S};
+    }
+    static void set(Slice &slice, size_t offset, std::string_view val) {
+        uint8_t *buffer = slice.data<uint8_t>();
+        memcpy(buffer + offset, val.data(), std::min(val.size(), S));
+        if (val.size() < S) {
+            memset(buffer + offset + val.size(), 0, S - val.size());
+        }
+    }
+    static constexpr size_t size() { return S; }
+    static constexpr bool fixedSize() { return true; }
+};
+
 template <typename FieldType, typename name>
 struct Field;
 template <typename FieldType, char... C>
 struct Field<FieldType, irqus::typestring<C...>> : public FieldType {
     using type = typename FieldType::type;
     Field() {}
+    typedef irqus::typestring<C...> fieldName;
+};
+
+template <typename StructType, typename name>
+struct StructField;
+template <typename StructType, char... C>
+struct StructField<StructType, irqus::typestring<C...>> : public StructType {
+    using type = typename StructType::type;
+    StructField() {}
     typedef irqus::typestring<C...> fieldName;
 };
 
@@ -185,14 +224,32 @@ class Struct<irqus::typestring<C...>, fields...> : private std::tuple<fields...>
         deserialize<0, fields...>(file);
     }
     template <class T>
-    T::type get() const {
+    typename T::type get() const {
         static_assert(hasFieldType<T>());
         size_t offset = offsetOf<T>();
         if (m_data.size() <= offset) throw std::runtime_error("Internal slice not big enough");
         return T::get(m_data, offset);
     }
+    static constexpr bool fixedSize() { return fixedSize<0, fields...>(); }
+    static constexpr size_t size() { return size<0, fields...>(); }
 
   private:
+    template <size_t index>
+    static constexpr bool fixedSize() {
+        return true;
+    }
+    template <size_t index, typename FieldType, typename... nestedFields>
+    static constexpr bool fixedSize() {
+        return FieldType::fixedSize() && fixedSize<index + 1, nestedFields...>();
+    }
+    template <size_t index>
+    static constexpr size_t size() {
+        return 0;
+    }
+    template <size_t index, typename FieldType, typename... nestedFields>
+    static constexpr size_t size() {
+        return FieldType::size() + size<index + 1, nestedFields...>();
+    }
     template <size_t index>
     void deserialize(IO<File> file) {}
     template <size_t index, typename FieldType, typename... nestedFields>

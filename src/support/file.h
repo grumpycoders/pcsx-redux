@@ -46,17 +46,21 @@ template <class T>
 concept FileDerived = std::is_base_of<File, T>::value;
 
 class File {
-#ifdef __cpp_lib_byteswap
+#if defined(__cpp_lib_byteswap) && !defined(_WIN32)
     using byte_swap = std::byte_swap;
 #else
     template <typename T>
-    static T byte_swap(T val) {
+    static constexpr T byte_swap(T val) {
         static_assert(std::is_integral<T>::value);
-        T ret = 0;
-        for (size_t i = 0; i < sizeof(T); i++) {
-            ret |= static_cast<T>(static_cast<uint8_t>(val >> (i * 8)) << ((sizeof(T) - i - 1) * 8));
+        if constexpr (sizeof(T) == 1) {
+            return val;
+        } else {
+            T ret = 0;
+            for (size_t i = 0; i < sizeof(T); i++) {
+                ret |= static_cast<T>(static_cast<uint8_t>(val >> (i * 8)) << ((sizeof(T) - i - 1) * 8));
+            }
+            return ret;
         }
-        return ret;
     }
 #endif
   public:
