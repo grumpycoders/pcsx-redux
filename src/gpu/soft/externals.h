@@ -44,9 +44,7 @@
 
 #pragma once
 
-#include <stdint.h>
-
-/////////////////////////////////////////////////////////////////////////////
+#include <cstdint>
 
 #define INFO_TW 0
 #define INFO_DRAWSTART 1
@@ -188,13 +186,12 @@ extern uint32_t lGPUInfoVals[];
 extern uint32_t ulStatusControl[];
 extern int iRumbleVal;
 extern int iRumbleTime;
+extern int GlobalTextIL;
+
+constexpr uint32_t dwGPUVersion = 0;
+constexpr int iGPUHeight = 512;
+constexpr int iGPUHeightMask = 511;
+constexpr int iTileCheat = 0;
 
 // cfg.cc
 extern char *pConfigFile;
-
-// zn.cc
-extern uint32_t dwGPUVersion;
-extern int iGPUHeight;
-extern int iGPUHeightMask;
-extern int GlobalTextIL;
-extern int iTileCheat;

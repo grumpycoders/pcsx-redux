@@ -113,19 +113,14 @@
 
 #define NOMINMAX
 
-#include <stdint.h>
-
 #include <algorithm>
+#include <cstdint>
 
 #ifdef _WIN32
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "resource.h"
-
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #endif
 
 #include "core/debug.h"
@@ -163,6 +158,7 @@ uint16_t *psxVuw_eom;
 int16_t *psxVsw;
 uint32_t *psxVul;
 int32_t *psxVsl;
+int GlobalTextIL = 0;
 
 ////////////////////////////////////////////////////////////////////////
 // GPU globals
