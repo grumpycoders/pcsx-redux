@@ -46,6 +46,19 @@ template <class T>
 concept FileDerived = std::is_base_of<File, T>::value;
 
 class File {
+#ifdef __cpp_lib_byteswap
+    using byte_swap = std::byte_swap;
+#else
+    template <typename T>
+    static T byte_swap(T val) {
+        static_assert(std::is_integral<T>::value);
+        T ret = 0;
+        for (size_t i = 0; i < sizeof(T); i++) {
+            ret |= static_cast<T>(static_cast<uint8_t>(val >> (i * 8)) << ((sizeof(T) - i - 1) * 8));
+        }
+        return ret;
+    }
+#endif
   public:
     enum FileType { RO_STREAM, RW_STREAM, RO_SEEKABLE, RW_SEEKABLE };
     virtual ~File() {
@@ -155,60 +168,40 @@ class File {
         return r;
     }
 
-    template <class T>
+    template <class T, std::endian endianess = std::endian::little>
     T read() {
-        if constexpr (std::endian::native == std::endian::big) {
-            T ret = T(0);
-            for (int i = 0; i < sizeof(T); i++) {
-                T b = byte();
-                ret |= (b << (i * 8));
-            }
-            return ret;
-        } else {
-            T ret = T(0);
-            read(&ret, sizeof(T));
-            return ret;
+        T ret = T(0);
+        read(&ret, sizeof(T));
+        if constexpr (endianess != std::endian::native) {
+            ret = byte_swap(ret);
         }
+        return ret;
     }
 
-    template <class T>
+    template <class T, std::endian endianess = std::endian::little>
     T readAt(size_t pos) {
-        if constexpr (std::endian::native == std::endian::big) {
-            T ret = 0;
-            for (int i = 0; i < sizeof(T); i++) {
-                T b = byteAt(pos++);
-                ret |= (b << (i * 8));
-            }
-            return ret;
-        } else {
-            T ret = T(0);
-            readAt(&ret, sizeof(T), pos);
-            return ret;
+        T ret = T(0);
+        readAt(&ret, sizeof(T), pos);
+        if constexpr (endianess != std::endian::native) {
+            ret = byte_swap(ret);
         }
+        return ret;
     }
 
-    template <class T>
+    template <class T, std::endian endianess = std::endian::little>
     void write(T val) {
-        if constexpr (std::endian::native == std::endian::big) {
-            for (int i = 0; i < sizeof(T); i++) {
-                write(&val, 1);
-                val >>= 8;
-            }
-        } else {
-            write(&val, sizeof(T));
+        if constexpr (endianess != std::endian::native) {
+            val = byte_swap(val);
         }
+        write(&val, sizeof(T));
     }
 
-    template <class T>
+    template <class T, std::endian endianess = std::endian::little>
     void writeAt(T val, size_t pos) {
-        if constexpr (std::endian::native == std::endian::big) {
-            for (int i = 0; i < sizeof(T); i++) {
-                writeAt(&val, 1, pos++);
-                val >>= 8;
-            }
-        } else {
-            write(&val, sizeof(T), pos);
+        if constexpr (endianess != std::endian::native) {
+            val = byte_swap(val);
         }
+        writeAt(&val, sizeof(T), pos);
     }
 
     uint8_t byte() {
