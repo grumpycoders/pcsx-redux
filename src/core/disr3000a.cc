@@ -86,7 +86,7 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 namespace {
 struct StringDisasm : public PCSX::Disasm {
     uint8_t *ptr(uint32_t addr) {
-        uint8_t *lut = PCSX::g_emulator->m_mem->g_readLUT[addr >> 16];
+        uint8_t *lut = PCSX::g_emulator->m_mem->m_readLUT[addr >> 16];
         if (lut) {
             return lut + (addr & 0xffff);
         } else {

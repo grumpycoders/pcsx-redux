@@ -57,7 +57,7 @@ static constexpr bool addressInRegisterSpace(uint32_t address) {
 void PCSX::HW::reset() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>()) setIrq(0x200);
 
-    memset(PCSX::g_emulator->m_mem->g_psxH, 0, 0x10000);
+    memset(PCSX::g_emulator->m_mem->m_psxH, 0, 0x10000);
 
     PCSX::g_emulator->m_mdec->init();  // initialize mdec decoder
     PCSX::g_emulator->m_cdrom->reset();

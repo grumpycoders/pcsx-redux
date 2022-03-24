@@ -39,10 +39,10 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         },
         Thumbnail {},
         Memory {
-            RAM { g_emulator->m_mem->g_psxM },
-            ROM { g_emulator->m_mem->g_psxR },
-            Parallel { g_emulator->m_mem->g_psxP },
-            HardwareMemory { g_emulator->m_mem->g_psxH },
+            RAM { g_emulator->m_mem->m_psxM },
+            ROM { g_emulator->m_mem->m_psxR },
+            Parallel { g_emulator->m_mem->m_psxP },
+            HardwareMemory { g_emulator->m_mem->m_psxH },
         },
         Registers {
             GPR { g_emulator->m_cpu->m_regs.GPR.r },

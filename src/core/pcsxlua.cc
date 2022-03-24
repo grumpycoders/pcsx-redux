@@ -32,9 +32,9 @@ struct LuaBreakpoint {
 };
 
 void setBreakpoint() {}
-void* getMemPtr() { return PCSX::g_emulator->m_mem->g_psxM; }
-void* getRomPtr() { return PCSX::g_emulator->m_mem->g_psxR; }
-void* getScratchPtr() { return PCSX::g_emulator->m_mem->g_psxH; }
+void* getMemPtr() { return PCSX::g_emulator->m_mem->m_psxM; }
+void* getRomPtr() { return PCSX::g_emulator->m_mem->m_psxR; }
+void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_psxH; }
 void* getRegisters() { return &PCSX::g_emulator->m_cpu->m_regs; }
 LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type, unsigned width, const char* cause,
                              bool (*invoker)()) {

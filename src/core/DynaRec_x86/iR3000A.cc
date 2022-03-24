@@ -1518,12 +1518,12 @@ void DynaRecCPU::recLB() {
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            gen.movsx(edi, Xbyak::util::byte[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]]);
+            gen.movsx(edi, Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            gen.movsx(edi, Xbyak::util::byte[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]]);
+            gen.movsx(edi, Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]]);
             return;
         }
     }
@@ -1555,12 +1555,12 @@ void DynaRecCPU::recLBU() {
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            gen.movzx(edi, Xbyak::util::byte[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]]);
+            gen.movzx(edi, Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            gen.movzx(edi, Xbyak::util::byte[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]]);
+            gen.movzx(edi, Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]]);
             return;
         }
     }
@@ -1592,12 +1592,12 @@ void DynaRecCPU::recLH() {
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            gen.movsx(edi, word[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]]);
+            gen.movsx(edi, word[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            gen.movsx(edi, word[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]]);
+            gen.movsx(edi, word[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]]);
             return;
         }
     }
@@ -1629,12 +1629,12 @@ void DynaRecCPU::recLHU() {
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            gen.movzx(edi, word[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]]);
+            gen.movzx(edi, word[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            gen.movzx(edi, word[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]]);
+            gen.movzx(edi, word[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]]);
             return;
         }
         if (t == 0x1f80) {
@@ -1707,12 +1707,12 @@ void DynaRecCPU::recLW() {
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            gen.mov(edi, dword[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]]);
+            gen.mov(edi, dword[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            gen.mov(edi, dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]]);
+            gen.mov(edi, dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]]);
             return;
         }
         if (t == 0x1f80) {
@@ -1743,7 +1743,7 @@ void DynaRecCPU::recLW() {
                 case 0x1f8010f0:
                 case 0x1f8010f4:
                     if (!_Rt_) return;
-                    gen.mov(edi, dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xffff]]);
+                    gen.mov(edi, dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xffff]]);
                     return;
 
                 case 0x1f801810:
@@ -1790,11 +1790,11 @@ void DynaRecCPU::recLWL() {
         };
 
         if ((t & 0x1fe0) == 0) {
-            iLWLk(addr & 3, (uint32_t)&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1ffffc]);
+            iLWLk(addr & 3, (uint32_t)&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1ffffc]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
-            iLWLk(addr & 3, (uint32_t)&PCSX::g_emulator->m_mem->g_psxH[addr & 0xffc]);
+            iLWLk(addr & 3, (uint32_t)&PCSX::g_emulator->m_mem->m_psxH[addr & 0xffc]);
             return;
         }
         gen.mov(eax, m_iRegs[_Rs_].k + _Imm_);
@@ -1849,11 +1849,11 @@ void DynaRecCPU::recLWR() {
         };
 
         if ((t & 0x1fe0) == 0) {
-            iLWRk(addr & 3, (uint32_t)&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1ffffc]);
+            iLWRk(addr & 3, (uint32_t)&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1ffffc]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
-            iLWRk(addr & 3, (uint32_t)&PCSX::g_emulator->m_mem->g_psxH[addr & 0xffc]);
+            iLWRk(addr & 3, (uint32_t)&PCSX::g_emulator->m_mem->m_psxH[addr & 0xffc]);
             return;
         }
         gen.mov(eax, m_iRegs[_Rs_].k + _Imm_);
@@ -1893,11 +1893,11 @@ void DynaRecCPU::recSB() {
 
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
             if (IsConst(_Rt_)) {
-                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]],
+                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]],
                         (uint8_t)m_iRegs[_Rt_].k);
             } else {
                 gen.mov(al, Xbyak::util::byte[&m_regs.GPR.r[_Rt_]]);
-                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]], al);
+                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]], al);
             }
 
             gen.push(dword, 1);
@@ -1910,10 +1910,10 @@ void DynaRecCPU::recSB() {
 
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (IsConst(_Rt_)) {
-                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]], (uint8_t)m_iRegs[_Rt_].k);
+                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]], (uint8_t)m_iRegs[_Rt_].k);
             } else {
                 gen.mov(al, Xbyak::util::byte[&m_regs.GPR.r[_Rt_]]);
-                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]], al);
+                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]], al);
             }
             return;
         }
@@ -1939,10 +1939,10 @@ void DynaRecCPU::recSH() {
 
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
             if (IsConst(_Rt_)) {
-                gen.mov(word[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]], (uint16_t)m_iRegs[_Rt_].k);
+                gen.mov(word[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]], (uint16_t)m_iRegs[_Rt_].k);
             } else {
                 gen.mov(ax, word[&m_regs.GPR.r[_Rt_]]);
-                gen.mov(word[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]], ax);
+                gen.mov(word[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]], ax);
             }
 
             gen.push(dword, 1);
@@ -1955,10 +1955,10 @@ void DynaRecCPU::recSH() {
 
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (IsConst(_Rt_)) {
-                gen.mov(word[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]], (uint16_t)m_iRegs[_Rt_].k);
+                gen.mov(word[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]], (uint16_t)m_iRegs[_Rt_].k);
             } else {
                 gen.mov(ax, word[&m_regs.GPR.r[_Rt_]]);
-                gen.mov(word[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]], ax);
+                gen.mov(word[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]], ax);
             }
             return;
         }
@@ -1997,10 +1997,10 @@ void DynaRecCPU::recSW() {
 
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
             if (IsConst(_Rt_)) {
-                gen.mov(dword[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]], m_iRegs[_Rt_].k);
+                gen.mov(dword[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]], m_iRegs[_Rt_].k);
             } else {
                 gen.mov(eax, dword[&m_regs.GPR.r[_Rt_]]);
-                gen.mov(dword[&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1fffff]], eax);
+                gen.mov(dword[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]], eax);
             }
 
             gen.push(dword, 1);
@@ -2013,10 +2013,10 @@ void DynaRecCPU::recSW() {
 
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (IsConst(_Rt_)) {
-                gen.mov(dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]], m_iRegs[_Rt_].k);
+                gen.mov(dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]], m_iRegs[_Rt_].k);
             } else {
                 gen.mov(eax, dword[&m_regs.GPR.r[_Rt_]]);
-                gen.mov(dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xfff]], eax);
+                gen.mov(dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xfff]], eax);
             }
             return;
         }
@@ -2039,10 +2039,10 @@ void DynaRecCPU::recSW() {
                 case 0x1f801074:
                 case 0x1f8010f0:
                     if (IsConst(_Rt_)) {
-                        gen.mov(dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xffff]], m_iRegs[_Rt_].k);
+                        gen.mov(dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xffff]], m_iRegs[_Rt_].k);
                     } else {
                         gen.mov(eax, dword[&m_regs.GPR.r[_Rt_]]);
-                        gen.mov(dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xffff]], eax);
+                        gen.mov(dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xffff]], eax);
                     }
                     return;
 
@@ -2101,16 +2101,16 @@ void DynaRecCPU::recSWL() {
 
 #if 0
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
-            gen.MOV32MtoR(eax, (uint32_t)&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1ffffc]);
+            gen.MOV32MtoR(eax, (uint32_t)&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1ffffc]);
             iSWLk(addr & 3);
-            gen.MOV32RtoM((uint32_t)&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1ffffc], eax);
+            gen.MOV32RtoM((uint32_t)&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1ffffc], eax);
             return;
         }
 #endif
         if (t == 0x1f80 && addr < 0x1f801000) {
-            gen.mov(eax, dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xffc]]);
+            gen.mov(eax, dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xffc]]);
             iSWLk(addr & 3);
-            gen.mov(dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xffc]], eax);
+            gen.mov(dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xffc]], eax);
             return;
         }
     }
@@ -2176,16 +2176,16 @@ void DynaRecCPU::recSWR() {
 
 #if 0
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
-            gen.MOV32MtoR(eax, (uint32_t)&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1ffffc]);
+            gen.MOV32MtoR(eax, (uint32_t)&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1ffffc]);
             iSWRk(addr & 3);
-            gen.MOV32RtoM((uint32_t)&PCSX::g_emulator->m_mem->g_psxM[addr & 0x1ffffc], eax);
+            gen.MOV32RtoM((uint32_t)&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1ffffc], eax);
             return;
         }
 #endif
         if (t == 0x1f80 && addr < 0x1f801000) {
-            gen.mov(eax, dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xffc]]);
+            gen.mov(eax, dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xffc]]);
             iSWRk(addr & 3);
-            gen.mov(dword[&PCSX::g_emulator->m_mem->g_psxH[addr & 0xffc]], eax);
+            gen.mov(dword[&PCSX::g_emulator->m_mem->m_psxH[addr & 0xffc]], eax);
             return;
         }
     }

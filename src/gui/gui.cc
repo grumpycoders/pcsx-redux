@@ -1075,7 +1075,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_luaEditor.draw(_("Lua Editor"), this);
     }
     if (m_events.m_show) {
-        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->g_psxM), _("Kernel events"));
+        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_psxM), _("Kernel events"));
     }
     if (m_kernelLog.m_show) {
         changed |= m_kernelLog.draw(g_emulator->m_cpu.get(), _("Kernel Calls"));
@@ -1090,32 +1090,32 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             if (editor.show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(PCSX::g_emulator->m_mem->g_psxM, 8 * 1024 * 1024, 0x80000000);
+                editor.draw(PCSX::g_emulator->m_mem->m_psxM, 8 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
         if (m_parallelPortEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(PCSX::g_emulator->m_mem->g_psxP, 64 * 1024, 0x1f000000);
+            m_parallelPortEditor.draw(PCSX::g_emulator->m_mem->m_psxP, 64 * 1024, 0x1f000000);
         }
         counter++;
         if (m_scratchPadEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(PCSX::g_emulator->m_mem->g_psxH, 1024, 0x1f800000);
+            m_scratchPadEditor.draw(PCSX::g_emulator->m_mem->m_psxH, 1024, 0x1f800000);
         }
         counter++;
         if (m_hwrEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(PCSX::g_emulator->m_mem->g_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(PCSX::g_emulator->m_mem->m_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(PCSX::g_emulator->m_mem->g_psxR, 512 * 1024, 0xbfc00000);
+            m_biosEditor.draw(PCSX::g_emulator->m_mem->m_psxR, 512 * 1024, 0xbfc00000);
         }
     }
 

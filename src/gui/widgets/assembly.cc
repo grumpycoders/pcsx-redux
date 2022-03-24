@@ -287,7 +287,7 @@ void PCSX::Widgets::Assembly::Sa(uint8_t value) {
     ImGui::PopStyleColor();
 }
 uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
-    uint8_t* lut = m_memory->g_readLUT[addr >> 16];
+    uint8_t* lut = m_memory->m_readLUT[addr >> 16];
     if (lut) {
         return lut + (addr & 0xffff);
     } else {
@@ -524,25 +524,25 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
             const char* section = "UNK";
             if (addr < 0x00800000) {
                 section = "RAM";
-                code = *reinterpret_cast<uint32_t*>(m_memory->g_psxM + addr);
+                code = *reinterpret_cast<uint32_t*>(m_memory->m_psxM + addr);
                 if (addr <= 0x007ffff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->g_psxM + addr + 4);
+                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_psxM + addr + 4);
                 }
                 base = m_ramBase;
             } else if (addr < 0x00810000) {
                 section = "PAR";
                 addr -= 0x00800000;
-                code = *reinterpret_cast<uint32_t*>(m_memory->g_psxP + addr);
+                code = *reinterpret_cast<uint32_t*>(m_memory->m_psxP + addr);
                 if (addr <= 0x0000fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->g_psxP + addr + 4);
+                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_psxP + addr + 4);
                 }
                 base = 0x1f000000;
             } else if (addr < 0x00890000) {
                 section = "ROM";
                 addr -= 0x00810000;
-                code = *reinterpret_cast<uint32_t*>(m_memory->g_psxR + addr);
+                code = *reinterpret_cast<uint32_t*>(m_memory->m_psxR + addr);
                 if (addr <= 0x0007fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->g_psxR + addr + 4);
+                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_psxR + addr + 4);
                 }
                 base = 0xbfc00000;
             }

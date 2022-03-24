@@ -892,7 +892,7 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
         }
         case 0x08: {
             int id =
-                Kernel::Events::getFirstFreeEvent(reinterpret_cast<const uint32_t *>(g_emulator->m_mem->g_psxM));
+                Kernel::Events::getFirstFreeEvent(reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM));
             g_system->log(LogClass::KERNEL, "%s, %s, %s, 0x%08x) --> 0x%08x",
                           Kernel::Events::Event::resolveClass(n.a0).c_str(),
                           Kernel::Events::Event::resolveSpec(n.a1).c_str(),
@@ -900,27 +900,27 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x09: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0a: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0b: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0c: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0d: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
