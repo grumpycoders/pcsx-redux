@@ -59,7 +59,7 @@ void PCSX::HW::reset() {
 
     memset(PCSX::g_emulator->m_mem->m_psxH, 0, 0x10000);
 
-    PCSX::g_emulator->m_mdec->init();  // initialize mdec decoder
+    PCSX::g_emulator->m_mdec->init();
     PCSX::g_emulator->m_cdrom->reset();
     PCSX::g_emulator->m_counters->init();
     PCSX::g_emulator->m_spu->resetCaptureBuffer();

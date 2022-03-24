@@ -54,24 +54,8 @@ class Memory {
     uint8_t **m_writeLUT = NULL;
     uint8_t **m_readLUT = NULL;
 
-    /*  Playstation Memory Map (from Playstation doc by Joshua Walker)
-    0x0000_0000-0x0000_ffff     Kernel (64K)
-    0x0001_0000-0x001f_ffff     User Memory (1.9 Meg)
-
-    0x1f00_0000-0x1f00_ffff     Parallel Port (64K)
-
-    0x1f80_0000-0x1f80_03ff     Scratch Pad (1024 bytes)
-
-    0x1f80_1000-0x1f80_2fff     Hardware Registers (8K)
-
-    0x1fc0_0000-0x1fc7_ffff     BIOS (512K)
-
-    0x8000_0000-0x801f_ffff     Kernel and User Memory Mirror (2 Meg) Cached
-    0x9fc0_0000-0x9fc7_ffff     BIOS Mirror (512K) Cached
-
-    0xa000_0000-0xa01f_ffff     Kernel and User Memory Mirror (2 Meg) Uncached
-    0xbfc0_0000-0xbfc7_ffff     BIOS Mirror (512K) Uncached
-    */
+    // Memory map:
+    // https://psx-spx.consoledev.net/memorymap/
 
   public:
 #define psxMs8(mem) PCSX::g_emulator->m_mem->m_psxM[(mem)&0x7fffff]
