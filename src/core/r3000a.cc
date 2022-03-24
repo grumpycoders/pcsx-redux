@@ -303,7 +303,7 @@ void PCSX::R3000Acpu::branchTest() {
 
     if ((cycle - PCSX::g_emulator->m_counters->m_psxNextsCounter) >=
         PCSX::g_emulator->m_counters->m_psxNextCounter)
-        PCSX::g_emulator->m_counters->psxRcntUpdate();
+        PCSX::g_emulator->m_counters->update();
 
     if (m_regs.spuInterrupt.exchange(false)) PCSX::g_emulator->m_spu->interrupt();
 

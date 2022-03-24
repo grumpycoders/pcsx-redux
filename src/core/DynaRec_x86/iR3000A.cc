@@ -53,9 +53,9 @@ uint32_t read32Wrapper(uint32_t mem) { return PCSX::g_emulator->m_mem->read32(me
 void write8Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator->m_mem->write8(mem, value); }
 void write16Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator->m_mem->write16(mem, value); }
 void write32Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator->m_mem->write32(mem, value); }
-uint32_t psxRcntRcountWrapper(uint32_t index) { return PCSX::g_emulator->m_counters->psxRcntRcount(index); }
+uint32_t readCounterWrapper(uint32_t index) { return PCSX::g_emulator->m_counters->readCounter(index); }
 uint32_t readModeWrapper(uint32_t index) { return PCSX::g_emulator->m_counters->readMode(index); }
-uint32_t psxRcntRtargetWrapper(uint32_t index) { return PCSX::g_emulator->m_counters->psxRcntRtarget(index); }
+uint32_t readTargetWrapper(uint32_t index) { return PCSX::g_emulator->m_counters->readTarget(index); }
 
 uint32_t GPU_readDataWrapper() { return PCSX::g_emulator->m_gpu->readData(); }
 uint32_t GPU_readStatusWrapper() { return PCSX::g_emulator->m_gpu->readStatus(); }
@@ -1652,7 +1652,7 @@ void DynaRecCPU::recLHU() {
                 case 0x1f801120:
                     if (!_Rt_) return;
                     gen.push(dword, (addr >> 4) & 0x3);
-                    gen.call(psxRcntRcountWrapper);
+                    gen.call(readCounterWrapper);
                     gen.movzx(edi, ax);
                     gen.add(esp, 4);
                     return;
@@ -1672,7 +1672,7 @@ void DynaRecCPU::recLHU() {
                 case 0x1f801128:
                     if (!_Rt_) return;
                     gen.push(dword, (addr >> 4) & 0x3);
-                    gen.call(psxRcntRtargetWrapper);
+                    gen.call(readTargetWrapper);
                     gen.movzx(edi, ax);
                     gen.add(esp, 4);
                     return;
