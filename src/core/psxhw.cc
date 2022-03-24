@@ -814,5 +814,3 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
     psxHu32ref(add) = SWAP_LEu32(value);
     PSXHW_LOG("*Known 32bit write at address %x value %x\n", add, value);
 }
-
-int PCSX::HW::psxHwFreeze(gzFile f, int Mode) { return 0; }

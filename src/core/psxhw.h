@@ -70,7 +70,6 @@ class HW {
     void write8(uint32_t add, uint32_t rawvalue);
     void write16(uint32_t add, uint32_t rawvalue);
     void write32(uint32_t add, uint32_t value);
-    int psxHwFreeze(gzFile f, int Mode);
 
   private:
     bool s_dmaGpuListHackEn = false;

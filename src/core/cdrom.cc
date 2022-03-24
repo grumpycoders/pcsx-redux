@@ -1638,37 +1638,6 @@ class CDRomImpl : public PCSX::CDRom {
         }
     }
 
-    int freeze(gzFile f, int Mode) final {
-        uint8_t tmpp[3];
-
-        if (Mode == 0 &&
-            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
-            m_iso.stop();
-        }
-
-        // gzfreeze(&m_cdr, sizeof(m_cdr));
-
-        if (Mode == 1) m_paramP = m_paramC;
-
-        if (Mode == 0) {
-            getCdInfo();
-
-            // read right sub data
-            memcpy(tmpp, m_prev, 3);
-            m_prev[0]++;
-            ReadTrack(tmpp);
-
-            if (m_play) {
-                Find_CurTrack(m_setSectorPlay);
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
-                    m_iso.play(m_setSectorPlay);
-                }
-            }
-        }
-
-        return 0;
-    }
-
     void lidInterrupt() final {
         getCdInfo();
         StopCdda();
