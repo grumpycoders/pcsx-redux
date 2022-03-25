@@ -310,12 +310,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         delayedLoad.index = _Rt_;
     }
 
-#define CP2_FUNC(f)                                                                                           \
+#define CP2_FUNC(f)                                                                                     \
     static void gte##f##Wrapper() { PCSX::g_emulator->m_gte->f(PCSX::g_emulator->m_cpu->m_regs.code); } \
-    void rec##f() {                                                                                           \
-        iFlushRegs();                                                                                         \
+    void rec##f() {                                                                                     \
+        iFlushRegs();                                                                                   \
         gen.mov(dword[&m_regs.code], (uint32_t)m_regs.code);                                            \
-        gen.call(gte##f##Wrapper);                                                                            \
+        gen.call(gte##f##Wrapper);                                                                      \
     }
 
     CP2_FUNC(MTC2);
@@ -369,7 +369,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
 #define PGXP_REC_FUNC(pu, op)                 \
     void pgxpRec##op() {                      \
-        gen.push(dword, m_regs.code);      \
+        gen.push(dword, m_regs.code);         \
         PGXP_DBG_OP_E(op)                     \
         gen.call(PGXP_REC_FUNC_OP(pu, op, )); \
         gen.add(esp, 4);                      \
@@ -379,7 +379,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 #define PGXP_REC_FUNC_1(pu, op, reg1)          \
     void pgxpRec##op() {                       \
         reg1;                                  \
-        gen.push(dword, m_regs.code);       \
+        gen.push(dword, m_regs.code);          \
         PGXP_DBG_OP_E(op)                      \
         gen.call(PGXP_REC_FUNC_OP(pu, op, 1)); \
         gen.add(esp, 8);                       \
@@ -397,7 +397,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         rec##op();                                                    \
         reg3;                                                         \
         reg4;                                                         \
-        gen.push(dword, m_regs.code);                              \
+        gen.push(dword, m_regs.code);                                 \
         PGXP_DBG_OP_E(op)                                             \
         gen.call(PGXP_REC_FUNC_OP(pu, op, nReg));                     \
         gen.add(esp, (4 * nReg) + 4);                                 \
@@ -407,31 +407,31 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void pgxpRec##op() {                       \
         reg1;                                  \
         reg2;                                  \
-        gen.push(dword, m_regs.code);       \
+        gen.push(dword, m_regs.code);          \
         PGXP_DBG_OP_E(op)                      \
         gen.call(PGXP_REC_FUNC_OP(pu, op, 2)); \
         gen.add(esp, 12);                      \
         rec##op();                             \
     }
 
-#define PGXP_REC_FUNC_ADDR_1(pu, op, reg1)               \
-    void pgxpRec##op() {                                 \
-        if (IsConst(_Rs_)) {                             \
-            gen.mov(eax, m_iRegs[_Rs_].k + _Imm_);       \
-        } else {                                         \
+#define PGXP_REC_FUNC_ADDR_1(pu, op, reg1)            \
+    void pgxpRec##op() {                              \
+        if (IsConst(_Rs_)) {                          \
+            gen.mov(eax, m_iRegs[_Rs_].k + _Imm_);    \
+        } else {                                      \
             gen.mov(eax, dword[&m_regs.GPR.r[_Rs_]]); \
-            if (_Imm_) {                                 \
-                gen.add(eax, _Imm_);                     \
-            }                                            \
-        }                                                \
-        gen.mov(dword[&m_tempAddr], eax);                \
-        rec##op();                                       \
-        gen.push(dword[&m_tempAddr]);                    \
-        reg1;                                            \
+            if (_Imm_) {                              \
+                gen.add(eax, _Imm_);                  \
+            }                                         \
+        }                                             \
+        gen.mov(dword[&m_tempAddr], eax);             \
+        rec##op();                                    \
+        gen.push(dword[&m_tempAddr]);                 \
+        reg1;                                         \
         gen.push(dword, m_regs.code);                 \
-        PGXP_DBG_OP_E(op)                                \
-        gen.call(PGXP_REC_FUNC_OP(pu, op, 2));           \
-        gen.add(esp, 12);                                \
+        PGXP_DBG_OP_E(op)                             \
+        gen.call(PGXP_REC_FUNC_OP(pu, op, 2));        \
+        gen.add(esp, 12);                             \
     }
 
 #define CPU_REG_NC(idx) gen.mov(eax, dword[&m_regs.GPR.r[idx]])
@@ -457,7 +457,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         rec##op();                                   \
         gen.push(dword[&m_tempReg1]);                \
         reg2;                                        \
-        gen.push(dword, m_regs.code);             \
+        gen.push(dword, m_regs.code);                \
         PGXP_DBG_OP_E(op)                            \
         gen.call(PGXP_REC_FUNC_OP(pu, op, 2));       \
         gen.add(esp, 12);                            \
@@ -477,7 +477,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         gen.push(dword[&m_tempReg1]);                      \
         gen.push(dword[&m_tempReg2]);                      \
         reg3;                                              \
-        gen.push(dword, m_regs.code);                   \
+        gen.push(dword, m_regs.code);                      \
         PGXP_DBG_OP_E(op)                                  \
         gen.call(PGXP_REC_FUNC_OP(pu, op, 3));             \
         gen.add(esp, 16);                                  \
@@ -498,7 +498,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         gen.push(dword[&m_tempReg2]);                            \
         reg3;                                                    \
         reg4;                                                    \
-        gen.push(dword, m_regs.code);                         \
+        gen.push(dword, m_regs.code);                            \
         PGXP_DBG_OP_E(op)                                        \
         gen.call(PGXP_REC_FUNC_OP(pu, op, 4));                   \
         gen.add(esp, 20);                                        \
@@ -629,36 +629,36 @@ void DynaRecCPU::iPushReg(unsigned reg) {
     }
 }
 
-#define REC_FUNC(f)                                                \
-    void psx##f();                                                 \
-    void rec##f() {                                                \
-        iFlushRegs();                                              \
+#define REC_FUNC(f)                                          \
+    void psx##f();                                           \
+    void rec##f() {                                          \
+        iFlushRegs();                                        \
         gen.mov(dword[&m_regs.code], (uint32_t)m_regs.code); \
-        gen.mov(dword[&m_regs.pc], (uint32_t)m_pc);             \
-        gen.call(psx##f);                                          \
-        /*  branch = 2; */                                         \
+        gen.mov(dword[&m_regs.pc], (uint32_t)m_pc);          \
+        gen.call(psx##f);                                    \
+        /*  branch = 2; */                                   \
     }
 
-#define REC_SYS(f)                                                 \
-    void psx##f();                                                 \
-    void rec##f() {                                                \
-        iFlushRegs();                                              \
+#define REC_SYS(f)                                           \
+    void psx##f();                                           \
+    void rec##f() {                                          \
+        iFlushRegs();                                        \
         gen.mov(dword[&m_regs.code], (uint32_t)m_regs.code); \
-        gen.mov(dword[&m_regs.pc], (uint32_t)m_pc);             \
-        gen.call(psx##f);                                          \
-        branch = 2;                                                \
-        iRet();                                                    \
+        gen.mov(dword[&m_regs.pc], (uint32_t)m_pc);          \
+        gen.call(psx##f);                                    \
+        branch = 2;                                          \
+        iRet();                                              \
     }
 
-#define REC_BRANCH(f)                                              \
-    void psx##f();                                                 \
-    void rec##f() {                                                \
-        iFlushRegs();                                              \
+#define REC_BRANCH(f)                                        \
+    void psx##f();                                           \
+    void rec##f() {                                          \
+        iFlushRegs();                                        \
         gen.mov(dword[&m_regs.code], (uint32_t)m_regs.code); \
-        gen.mov(dword[&m_regs.pc], (uint32_t)m_pc);             \
-        gen.call(psx##f);                                          \
-        branch = 2;                                                \
-        iRet();                                                    \
+        gen.mov(dword[&m_regs.pc], (uint32_t)m_pc);          \
+        gen.call(psx##f);                                    \
+        branch = 2;                                          \
+        iRet();                                              \
     }
 
 bool DynaRecCPU::Init() {
@@ -1893,8 +1893,7 @@ void DynaRecCPU::recSB() {
 
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
             if (IsConst(_Rt_)) {
-                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]],
-                        (uint8_t)m_iRegs[_Rt_].k);
+                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]], (uint8_t)m_iRegs[_Rt_].k);
             } else {
                 gen.mov(al, Xbyak::util::byte[&m_regs.GPR.r[_Rt_]]);
                 gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_mem->m_psxM[addr & 0x1fffff]], al);
@@ -2399,10 +2398,10 @@ void DynaRecCPU::recException(Exception e) {
     gen.push(static_cast<std::underlying_type<Exception>::type>(e) << 2);  // Push exception code parameter
     gen.push(reinterpret_cast<uintptr_t>(this));                           // Push pointer to this object
     gen.mov(dword[&m_regs.pc],
-            m_pc - 4);              // Store address of current instruction in PC for the exception wrapper to use
+            m_pc - 4);           // Store address of current instruction in PC for the exception wrapper to use
     gen.call(exceptionWrapper);  // Call the exception wrapper function
-    gen.mov(ebp, eax);              // Move the new PC to EBP.
-    gen.add(esp, 12);               // Fix up stack
+    gen.mov(ebp, eax);           // Move the new PC to EBP.
+    gen.add(esp, 12);            // Fix up stack
 
     m_pcInEBP = true;          // The PC after the exception is now in EBP
     m_stopRecompile = true;    // Stop compilation (without a delay slot, as exceptions have none)
@@ -2477,10 +2476,10 @@ void DynaRecCPU::recBLTZ() {
     m_pcInEBP = true;
     m_stopRecompile = true;
 
-    gen.mov(eax, target);                       // eax = addr if jump taken
-    gen.mov(ebp, m_pc + 4);                     // ebp = addr if jump not taken
+    gen.mov(eax, target);                    // eax = addr if jump taken
+    gen.mov(ebp, m_pc + 4);                  // ebp = addr if jump not taken
     gen.cmp(dword[&m_regs.GPR.r[_Rs_]], 0);  // check if rs < 0 (signed)
-    gen.cmovl(ebp, eax);                        // if so, move the jump addr into ebp
+    gen.cmovl(ebp, eax);                     // if so, move the jump addr into ebp
 }
 
 void DynaRecCPU::recBGTZ() {
@@ -2502,10 +2501,10 @@ void DynaRecCPU::recBGTZ() {
     m_pcInEBP = true;
     m_stopRecompile = true;
 
-    gen.mov(eax, target);                       // eax = addr if jump taken
-    gen.mov(ebp, m_pc + 4);                     // ebp = addr if jump not taken
+    gen.mov(eax, target);                    // eax = addr if jump taken
+    gen.mov(ebp, m_pc + 4);                  // ebp = addr if jump not taken
     gen.cmp(dword[&m_regs.GPR.r[_Rs_]], 0);  // check if rs > 0 (signed)
-    gen.cmovg(ebp, eax);                        // if so, move the jump addr into ebp
+    gen.cmovg(ebp, eax);                     // if so, move the jump addr into ebp
 }
 
 void DynaRecCPU::recBLTZAL() {
@@ -2536,10 +2535,10 @@ void DynaRecCPU::recBLTZAL() {
     m_pcInEBP = true;
     m_stopRecompile = true;
 
-    gen.mov(eax, target);                       // eax = addr if jump taken
-    gen.mov(ebp, m_pc + 4);                     // ebp = addr if jump not taken
+    gen.mov(eax, target);                    // eax = addr if jump taken
+    gen.mov(ebp, m_pc + 4);                  // ebp = addr if jump not taken
     gen.cmp(dword[&m_regs.GPR.r[_Rs_]], 0);  // check if rs < 0 (signed)
-    gen.cmovl(ebp, eax);                        // if so, move the jump addr into ebp
+    gen.cmovl(ebp, eax);                     // if so, move the jump addr into ebp
 }
 
 void DynaRecCPU::recBGEZAL() {
@@ -2571,10 +2570,10 @@ void DynaRecCPU::recBGEZAL() {
     m_pcInEBP = true;
     m_stopRecompile = true;
 
-    gen.mov(eax, target);                       // eax = addr if jump taken
-    gen.mov(ebp, m_pc + 4);                     // ebp = addr if jump not taken
+    gen.mov(eax, target);                    // eax = addr if jump taken
+    gen.mov(ebp, m_pc + 4);                  // ebp = addr if jump not taken
     gen.cmp(dword[&m_regs.GPR.r[_Rs_]], 0);  // check if rs >= 0 (signed)
-    gen.cmovge(ebp, eax);                       // if so, move the jump addr into ebp
+    gen.cmovge(ebp, eax);                    // if so, move the jump addr into ebp
 }
 
 void DynaRecCPU::recJ() {
@@ -2712,10 +2711,10 @@ void DynaRecCPU::recBLEZ() {
     m_pcInEBP = true;
     m_stopRecompile = true;
 
-    gen.mov(eax, target);                       // eax = addr if jump taken
-    gen.mov(ebp, m_pc + 4);                     // ebp = addr if jump not taken
+    gen.mov(eax, target);                    // eax = addr if jump taken
+    gen.mov(ebp, m_pc + 4);                  // ebp = addr if jump not taken
     gen.cmp(dword[&m_regs.GPR.r[_Rs_]], 0);  // check if rs < 0 (signed)
-    gen.cmovle(ebp, eax);                       // if so, move the jump addr into ebp
+    gen.cmovle(ebp, eax);                    // if so, move the jump addr into ebp
 }
 
 void DynaRecCPU::recBGEZ() {
@@ -2737,10 +2736,10 @@ void DynaRecCPU::recBGEZ() {
     m_pcInEBP = true;
     m_stopRecompile = true;
 
-    gen.mov(eax, target);                       // eax = addr if jump taken
-    gen.mov(ebp, m_pc + 4);                     // ebp = addr if jump not taken
+    gen.mov(eax, target);                    // eax = addr if jump taken
+    gen.mov(ebp, m_pc + 4);                  // ebp = addr if jump not taken
     gen.cmp(dword[&m_regs.GPR.r[_Rs_]], 0);  // check if rs < 0 (signed)
-    gen.cmovge(ebp, eax);                       // if so, move the jump addr into ebp
+    gen.cmovge(ebp, eax);                    // if so, move the jump addr into ebp
 }
 
 void DynaRecCPU::recMFC0() {
@@ -2782,10 +2781,10 @@ void DynaRecCPU::testSWInt() {
     gen.push(edx);  // Push exception code parameter (This gets masked in exception) TODO: Mask here to be safe?
     gen.push(reinterpret_cast<uintptr_t>(this));  // Push pointer to this object
     gen.mov(dword[&m_regs.pc],
-            m_pc - 4);              // Store address of current instruction in PC for the exception wrapper to use
+            m_pc - 4);           // Store address of current instruction in PC for the exception wrapper to use
     gen.call(exceptionWrapper);  // Call the exception wrapper function
-    gen.mov(ebp, eax);              // Move the new PC to EBP.
-    gen.add(esp, 12);               // Fix up stack
+    gen.mov(ebp, eax);           // Move the new PC to EBP.
+    gen.add(esp, 12);            // Fix up stack
 
     gen.L(label);
 }

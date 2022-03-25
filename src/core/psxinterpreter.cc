@@ -454,8 +454,7 @@ void InterpretedCPU::psxADD(uint32_t code) {
         bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                   // if an overflow occurs, throw an exception
             m_regs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADD instruction from 0x%08x!\n"),
-                                m_regs.pc);
+            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADD instruction from 0x%08x!\n"), m_regs.pc);
             exception(Exception::ArithmeticOverflow, m_inDelaySlot);
             return;
         }
@@ -497,8 +496,7 @@ void InterpretedCPU::psxSUB(uint32_t code) {
         bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                    // if an overflow occurs, throw an exception
             m_regs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in SUB instruction from 0x%08x!\n"),
-                                m_regs.pc);
+            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in SUB instruction from 0x%08x!\n"), m_regs.pc);
             exception(Exception::ArithmeticOverflow, m_inDelaySlot);
             return;
         }
@@ -632,13 +630,13 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
     }
 #define RepZBranchLinki32(op)                                    \
     {                                                            \
-        uint32_t ra = m_regs.pc + 4;                          \
+        uint32_t ra = m_regs.pc + 4;                             \
         if ((int32_t)_rRs_ op 0) {                               \
-            uint32_t sp = m_regs.GPR.n.sp;                    \
+            uint32_t sp = m_regs.GPR.n.sp;                       \
             doBranch(_BranchTarget_, true);                      \
             PCSX::g_emulator->m_callStacks->potentialRA(ra, sp); \
         }                                                        \
-        m_regs.GPR.r[31] = ra;                                \
+        m_regs.GPR.r[31] = ra;                                   \
         maybeCancelDelayedLoad(31);                              \
     }
 
@@ -1383,8 +1381,7 @@ PGXP_INT_FUNC_2_1(CPU, SLTU, !_Rd_, 3, m_regs.GPR.r[_Rd_], m_regs.GPR.r[_Rs_], m
 
 // Hi/Lo = Rs op Rt
 PGXP_INT_FUNC_2_2(CPU, MULT, 0, 4, m_regs.GPR.n.hi, m_regs.GPR.n.lo, m_regs.GPR.r[_Rs_], m_regs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_2(CPU, MULTU, 0, 4, m_regs.GPR.n.hi, m_regs.GPR.n.lo, m_regs.GPR.r[_Rs_],
-                  m_regs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_2(CPU, MULTU, 0, 4, m_regs.GPR.n.hi, m_regs.GPR.n.lo, m_regs.GPR.r[_Rs_], m_regs.GPR.r[_Rt_])
 PGXP_INT_FUNC_2_2(CPU, DIV, 0, 4, m_regs.GPR.n.hi, m_regs.GPR.n.lo, m_regs.GPR.r[_Rs_], m_regs.GPR.r[_Rt_])
 PGXP_INT_FUNC_2_2(CPU, DIVU, 0, 4, m_regs.GPR.n.hi, m_regs.GPR.n.lo, m_regs.GPR.r[_Rs_], m_regs.GPR.r[_Rt_])
 

@@ -26,7 +26,7 @@
 
 void DynaRecCPU::recCOP2() {
     const auto func = m_recGTE[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)();                                    // Jump into the handler to recompile it
+    (*this.*func)();                                 // Jump into the handler to recompile it
 }
 
 void DynaRecCPU::recGTEMove() {
@@ -453,7 +453,7 @@ void DynaRecCPU::recAVSZ4() { recAVSZ<true>(); }
     static void name##Wrapper(uint32_t instruction) { PCSX::g_emulator->m_gte->name(instruction); } \
                                                                                                     \
     void DynaRecCPU::rec##name() {                                                                  \
-        gen.mov(arg1, m_regs.code);                                                              \
+        gen.mov(arg1, m_regs.code);                                                                 \
         call(name##Wrapper);                                                                        \
     }
 

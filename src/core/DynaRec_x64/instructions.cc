@@ -852,7 +852,7 @@ void DynaRecCPU::recLWL() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                               // Read from the aligned address, result in eax
+        call(read32Wrapper);                                     // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
@@ -872,7 +872,7 @@ void DynaRecCPU::recLWL() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                               // Read from the aligned address, result in eax
+        call(read32Wrapper);                                     // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
@@ -944,7 +944,7 @@ void DynaRecCPU::recLWR() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                               // Read from the aligned address, result in eax
+        call(read32Wrapper);                                     // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
@@ -964,7 +964,7 @@ void DynaRecCPU::recLWR() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                               // Read from the aligned address, result in eax
+        call(read32Wrapper);                                     // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
@@ -1162,12 +1162,12 @@ void DynaRecCPU::recSWL() {
         gen.mov(arg2, m_gprs[_Rt_].allocatedReg);                // Move rt to arg2
         gen.shr(arg2, shift);                                    // Shift rt value
         gen.or_(arg2, eax);                                      // Or with read value
-        call(write32Wrapper);                              // Write back
+        call(write32Wrapper);                                    // Write back
     } else if (m_gprs[_Rt_].isConst()) {                         // Only previous rt value is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                               // Read from the aligned address, result in eax
+        call(read32Wrapper);                                     // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1201,7 +1201,7 @@ void DynaRecCPU::recSWL() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                               // Read from the aligned address, result in eax
+        call(read32Wrapper);                                     // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
@@ -1268,12 +1268,12 @@ void DynaRecCPU::recSWR() {
         gen.mov(arg2, m_gprs[_Rt_].allocatedReg);                // Move rt to arg2
         gen.shlImm(arg2, shift);                                 // Shift rt value
         gen.or_(arg2, eax);                                      // Or with read value
-        call(write32Wrapper);                              // Write back
+        call(write32Wrapper);                                    // Write back
     } else if (m_gprs[_Rt_].isConst()) {                         // Only previous rt value is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                               // Read from the aligned address, result in eax
+        call(read32Wrapper);                                     // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1307,7 +1307,7 @@ void DynaRecCPU::recSWR() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                               // Read from the aligned address, result in eax
+        call(read32Wrapper);                                     // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
@@ -1433,7 +1433,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     loadThisPointer(arg1.cvt64());
     gen.moveImm(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4);  // PC for exception handler to use
-    call(exceptionWrapper);                             // Call the exception wrapper function
+    call(exceptionWrapper);                                // Call the exception wrapper function
 
     gen.L(label);
 }
