@@ -39,44 +39,44 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         },
         Thumbnail {},
         Memory {
-            RAM { g_emulator->m_psxMem->g_psxM },
-            ROM { g_emulator->m_psxMem->g_psxR },
-            Parallel { g_emulator->m_psxMem->g_psxP },
-            HardwareMemory { g_emulator->m_psxMem->g_psxH },
+            RAM { g_emulator->m_mem->m_psxM },
+            ROM { g_emulator->m_mem->m_psxR },
+            Parallel { g_emulator->m_mem->m_psxP },
+            HardwareMemory { g_emulator->m_mem->m_psxH },
         },
         Registers {
-            GPR { g_emulator->m_psxCpu->m_psxRegs.GPR.r },
-            CP0 { g_emulator->m_psxCpu->m_psxRegs.CP0.r },
-            CP2D { g_emulator->m_psxCpu->m_psxRegs.CP2D.r },
-            CP2C { g_emulator->m_psxCpu->m_psxRegs.CP2C.r },
-            PC { g_emulator->m_psxCpu->m_psxRegs.pc },
-            Code { g_emulator->m_psxCpu->m_psxRegs.code },
-            Cycle { g_emulator->m_psxCpu->m_psxRegs.cycle },
-            Interrupt { g_emulator->m_psxCpu->m_psxRegs.interrupt },
-            ICacheAddr { g_emulator->m_psxCpu->m_psxRegs.ICache_Addr },
-            ICacheCode { g_emulator->m_psxCpu->m_psxRegs.ICache_Code },
-            NextIsDelaySlot { g_emulator->m_psxCpu->m_nextIsDelaySlot },
+            GPR { g_emulator->m_cpu->m_regs.GPR.r },
+            CP0 { g_emulator->m_cpu->m_regs.CP0.r },
+            CP2D { g_emulator->m_cpu->m_regs.CP2D.r },
+            CP2C { g_emulator->m_cpu->m_regs.CP2C.r },
+            PC { g_emulator->m_cpu->m_regs.pc },
+            Code { g_emulator->m_cpu->m_regs.code },
+            Cycle { g_emulator->m_cpu->m_regs.cycle },
+            Interrupt { g_emulator->m_cpu->m_regs.interrupt },
+            ICacheAddr { g_emulator->m_cpu->m_regs.ICache_Addr },
+            ICacheCode { g_emulator->m_cpu->m_regs.ICache_Code },
+            NextIsDelaySlot { g_emulator->m_cpu->m_nextIsDelaySlot },
             DelaySlotInfo1 {
-                DelaySlotIndex { g_emulator->m_psxCpu->m_delayedLoadInfo[0].index },
-                DelaySlotValue { g_emulator->m_psxCpu->m_delayedLoadInfo[0].value },
-                DelaySlotMask { g_emulator->m_psxCpu->m_delayedLoadInfo[0].mask },
-                DelaySlotPcValue { g_emulator->m_psxCpu->m_delayedLoadInfo[0].pcValue },
-                DelaySlotActive { g_emulator->m_psxCpu->m_delayedLoadInfo[0].active },
-                DelaySlotPcActive { g_emulator->m_psxCpu->m_delayedLoadInfo[0].pcActive },
-                DelaySlotFromLink { g_emulator->m_psxCpu->m_delayedLoadInfo[0].fromLink }
+                DelaySlotIndex { g_emulator->m_cpu->m_delayedLoadInfo[0].index },
+                DelaySlotValue { g_emulator->m_cpu->m_delayedLoadInfo[0].value },
+                DelaySlotMask { g_emulator->m_cpu->m_delayedLoadInfo[0].mask },
+                DelaySlotPcValue { g_emulator->m_cpu->m_delayedLoadInfo[0].pcValue },
+                DelaySlotActive { g_emulator->m_cpu->m_delayedLoadInfo[0].active },
+                DelaySlotPcActive { g_emulator->m_cpu->m_delayedLoadInfo[0].pcActive },
+                DelaySlotFromLink { g_emulator->m_cpu->m_delayedLoadInfo[0].fromLink }
             },
             DelaySlotInfo2 {
-                DelaySlotIndex { g_emulator->m_psxCpu->m_delayedLoadInfo[1].index },
-                DelaySlotValue { g_emulator->m_psxCpu->m_delayedLoadInfo[1].value },
-                DelaySlotMask { g_emulator->m_psxCpu->m_delayedLoadInfo[1].mask },
-                DelaySlotPcValue { g_emulator->m_psxCpu->m_delayedLoadInfo[1].pcValue },
-                DelaySlotActive { g_emulator->m_psxCpu->m_delayedLoadInfo[1].active },
-                DelaySlotPcActive { g_emulator->m_psxCpu->m_delayedLoadInfo[1].pcActive },
-                DelaySlotFromLink { g_emulator->m_psxCpu->m_delayedLoadInfo[1].fromLink }
+                DelaySlotIndex { g_emulator->m_cpu->m_delayedLoadInfo[1].index },
+                DelaySlotValue { g_emulator->m_cpu->m_delayedLoadInfo[1].value },
+                DelaySlotMask { g_emulator->m_cpu->m_delayedLoadInfo[1].mask },
+                DelaySlotPcValue { g_emulator->m_cpu->m_delayedLoadInfo[1].pcValue },
+                DelaySlotActive { g_emulator->m_cpu->m_delayedLoadInfo[1].active },
+                DelaySlotPcActive { g_emulator->m_cpu->m_delayedLoadInfo[1].pcActive },
+                DelaySlotFromLink { g_emulator->m_cpu->m_delayedLoadInfo[1].fromLink }
             },
-            CurrentDelayedLoad { g_emulator->m_psxCpu->m_currentDelayedLoad },
-            IntTargetsField { g_emulator->m_psxCpu->m_psxRegs.intTargets },
-            InISR { g_emulator->m_psxCpu->m_inISR },
+            CurrentDelayedLoad { g_emulator->m_cpu->m_currentDelayedLoad },
+            IntTargetsField { g_emulator->m_cpu->m_regs.intTargets },
+            InISR { g_emulator->m_cpu->m_inISR },
         },
         GPU {},
         SPU {},
@@ -180,10 +180,10 @@ std::string PCSX::SaveStates::save() {
     g_emulator->m_gpu->save(state.get<GPUField>());
     g_emulator->m_spu->save(state.get<SPUField>());
 
-    g_emulator->m_psxCounters->save(state.get<CountersField>());
+    g_emulator->m_counters->save(state.get<CountersField>());
     g_emulator->m_mdec->save(state.get<MDECField>());
 
-    g_emulator->m_psxCpu->listAllPCdevFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
+    g_emulator->m_cpu->listAllPCdevFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
         state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
     });
 
@@ -227,18 +227,18 @@ bool PCSX::SaveStates::load(const std::string& data) {
     }
 
     SaveStateWrapper wrapper(state);
-    PCSX::g_emulator->m_psxCpu->Reset();
+    PCSX::g_emulator->m_cpu->Reset();
     state.commit();
-    g_emulator->m_psxCpu->m_psxRegs.lowestTarget = g_emulator->m_psxCpu->m_psxRegs.cycle;
-    g_emulator->m_psxCpu->m_psxRegs.previousCycles = g_emulator->m_psxCpu->m_psxRegs.cycle;
+    g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
+    g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
     // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits
     // So we just force-align it here, since it's never meant to be misaligned
-    g_emulator->m_psxCpu->m_psxRegs.pc &= ~3;
+    g_emulator->m_cpu->m_regs.pc &= ~3;
     g_emulator->m_gpu->load(state.get<GPUField>());
     g_emulator->m_spu->load(state.get<SPUField>());
     g_emulator->m_cdrom->load();
 
-    g_emulator->m_psxCounters->load(state.get<CountersField>());
+    g_emulator->m_counters->load(state.get<CountersField>());
     g_emulator->m_mdec->load(state.get<MDECField>());
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
@@ -256,15 +256,15 @@ bool PCSX::SaveStates::load(const std::string& data) {
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
     g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
 
-    g_emulator->m_psxCpu->closeAllPCdevFiles();
+    g_emulator->m_cpu->closeAllPCdevFiles();
     for (auto& file : state.get<PCdrvFilesField>().value) {
         uint16_t fd = file.get<PCdrvFD>().value;
         std::string filename = file.get<PCdrvFilename>().value;
         bool create = file.get<PCdrvCreate>().value;
         if (create) {
-            g_emulator->m_psxCpu->restorePCdrvFile(filename, fd, FileOps::CREATE);
+            g_emulator->m_cpu->restorePCdrvFile(filename, fd, FileOps::CREATE);
         } else {
-            g_emulator->m_psxCpu->restorePCdrvFile(filename, fd);
+            g_emulator->m_cpu->restorePCdrvFile(filename, fd);
         }
     }
     g_emulator->m_callStacks->deserialize(&wrapper);

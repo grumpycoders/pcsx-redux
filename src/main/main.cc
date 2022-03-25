@@ -88,7 +88,7 @@ class SystemImpl final : public PCSX::System {
     virtual void softReset() final override {
         // debugger or UI is requesting a reset
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{});
-        PCSX::g_emulator->m_psxCpu->psxReset();
+        PCSX::g_emulator->m_cpu->psxReset();
     }
 
     virtual void hardReset() final override {
@@ -211,7 +211,7 @@ int pcsxMain(int argc, char **argv) {
 
     while (!system->quitting()) {
         if (system->running()) {
-            emulator->m_psxCpu->Execute();
+            emulator->m_cpu->Execute();
         } else {
             s_gui->update();
         }
@@ -221,7 +221,7 @@ int pcsxMain(int argc, char **argv) {
     emulator->m_gpu->close();
     emulator->m_cdrom->m_iso.close();
 
-    emulator->m_psxCpu->psxShutdown();
+    emulator->m_cpu->psxShutdown();
     emulator->m_spu->shutdown();
     emulator->m_gpu->shutdown();
     emulator->m_cdrom->m_iso.shutdown();

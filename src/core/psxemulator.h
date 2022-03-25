@@ -237,7 +237,7 @@ class Emulator {
     std::unique_ptr<CallStacks> m_callStacks;
     std::unique_ptr<CDRom> m_cdrom;
     std::unique_ptr<Cheats> m_cheats;
-    std::unique_ptr<Counters> m_psxCounters;
+    std::unique_ptr<Counters> m_counters;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<GPU> m_gpu;
@@ -245,9 +245,9 @@ class Emulator {
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<Lua> m_lua;
     std::unique_ptr<MDEC> m_mdec;
-    std::unique_ptr<Memory> m_psxMem;
+    std::unique_ptr<Memory> m_mem;
     std::unique_ptr<Pads> m_pads;
-    std::unique_ptr<R3000Acpu> m_psxCpu;
+    std::unique_ptr<R3000Acpu> m_cpu;
     std::unique_ptr<SIO> m_sio;
     std::unique_ptr<SIO1> m_sio1;
     std::unique_ptr<SIO1Server> m_sio1Server;
