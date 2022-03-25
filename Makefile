@@ -8,7 +8,7 @@ CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo fals
 
 PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
 
-LOCALES := fr
+LOCALES := el fr
 
 ifeq ($(wildcard third_party/imgui/imgui.h),)
 HAS_SUBMODULES = false
@@ -217,6 +217,7 @@ gitclean:
 
 define msgmerge
 msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
+
 endef
 
 regen-i18n:

@@ -152,7 +152,7 @@ msgstr ""
 msgid "Always enable SPU IRQ"
 msgstr "Toujours activer l'IRQ du SPU"
 
-#: src/core/pad.cc:551
+#: src/core/pad.cc:558
 msgid "Analog"
 msgstr ""
 
@@ -198,7 +198,7 @@ msgstr ""
 msgid "Authors"
 msgstr ""
 
-#: src/core/pad.cc:542
+#: src/core/pad.cc:549
 msgid "Auto"
 msgstr ""
 
@@ -371,7 +371,7 @@ msgstr "Cheats chargés à partir de : %s\n"
 msgid "Cheats saved to: %s\n"
 msgstr "Cheats sauvegardés sur : %s\n"
 
-#: src/core/pad.cc:545
+#: src/core/pad.cc:552
 msgid "Circle"
 msgstr ""
 
@@ -403,7 +403,7 @@ msgstr "Colonnes"
 msgid "Combined pseudo-instructions"
 msgstr "Pseudo-instructions combinées"
 
-#: src/core/pad.cc:595
+#: src/core/pad.cc:603
 msgid "Computer button mapping"
 msgstr ""
 
@@ -421,21 +421,21 @@ msgstr "Configuration"
 msgid "Configure shader"
 msgstr "Configuration"
 
-#: src/core/pad.cc:558
+#: src/core/pad.cc:565
 #, fuzzy
 msgid "Connected"
 msgstr "Connexion coupée !\n"
 
 #. ClosePlugins();
-#: src/core/sio.cc:333
+#: src/core/sio.cc:326
 msgid "Connection closed!\n"
 msgstr "Connexion coupée !\n"
 
-#: src/core/pad.cc:542
+#: src/core/pad.cc:549
 msgid "Controller"
 msgstr ""
 
-#: src/core/pad.cc:565
+#: src/core/pad.cc:572
 msgid "Controller Type"
 msgstr ""
 
@@ -546,7 +546,7 @@ msgstr "Could not allocate resample context"
 msgid "Could not open source file %s\n"
 msgstr "Impossible d'ouvrir le fichier source %s\n"
 
-#: src/core/pad.cc:544
+#: src/core/pad.cc:551
 msgid "Cross"
 msgstr ""
 
@@ -587,11 +587,11 @@ msgstr "Delay slot notch"
 msgid "Device"
 msgstr ""
 
-#: src/core/pad.cc:580
+#: src/core/pad.cc:588
 msgid "Device type"
 msgstr ""
 
-#: src/core/pad.cc:550
+#: src/core/pad.cc:557
 msgid "Digital"
 msgstr ""
 
@@ -629,7 +629,7 @@ msgstr "Display arrows for jumps. This might crowd the display a bit too much."
 msgid "Displayed"
 msgstr ""
 
-#: src/core/pad.cc:549
+#: src/core/pad.cc:556
 msgid "Down"
 msgstr ""
 
@@ -902,11 +902,11 @@ msgstr "GPU"
 msgid "GUI"
 msgstr "GPU"
 
-#: src/core/pad.cc:663
+#: src/core/pad.cc:671
 msgid "Gamepad"
 msgstr ""
 
-#: src/core/pad.cc:596
+#: src/core/pad.cc:604
 msgid "Gamepad button"
 msgstr ""
 
@@ -914,11 +914,11 @@ msgstr ""
 msgid "Gaussian interpolation - good quality"
 msgstr "Interpolation gaussienne - bonne qualité"
 
-#: src/core/pad.cc:554
+#: src/core/pad.cc:561
 msgid "Gun (Unimplemented)"
 msgstr ""
 
-#: src/core/pad.cc:555
+#: src/core/pad.cc:562
 msgid "Guncon (Unimplemented"
 msgstr ""
 
@@ -1011,39 +1011,39 @@ msgstr ""
 msgid "Kernel events"
 msgstr "Journal des événements"
 
-#: src/core/pad.cc:542
+#: src/core/pad.cc:549
 msgid "Keyboard"
 msgstr ""
 
-#: src/core/pad.cc:513
+#: src/core/pad.cc:520
 msgid "Keyboard Backspace"
 msgstr ""
 
-#: src/core/pad.cc:509
+#: src/core/pad.cc:516
 msgid "Keyboard Down"
 msgstr ""
 
-#: src/core/pad.cc:515
+#: src/core/pad.cc:522
 msgid "Keyboard Enter"
 msgstr ""
 
-#: src/core/pad.cc:511
+#: src/core/pad.cc:518
 msgid "Keyboard Left"
 msgstr ""
 
-#: src/core/pad.cc:507
+#: src/core/pad.cc:514
 msgid "Keyboard Right"
 msgstr ""
 
-#: src/core/pad.cc:517
+#: src/core/pad.cc:524
 msgid "Keyboard Space"
 msgstr ""
 
-#: src/core/pad.cc:505
+#: src/core/pad.cc:512
 msgid "Keyboard Up"
 msgstr ""
 
-#: src/core/pad.cc:593
+#: src/core/pad.cc:601
 msgid "Keyboard mapping"
 msgstr ""
 
@@ -1052,19 +1052,23 @@ msgstr ""
 msgid "Known BIOS detected: %s (%08x)\n"
 msgstr ""
 
-#: src/core/pad.cc:546
+#: src/core/pad.cc:553
 msgid "L1"
 msgstr ""
 
-#: src/core/pad.cc:546
+#: src/core/pad.cc:553
 msgid "L2"
+msgstr ""
+
+#: src/core/pad.cc:554
+msgid "L3"
 msgstr ""
 
 #: src/gui/widgets/memcard_manager.cc:84
 msgid "Latest"
 msgstr ""
 
-#: src/core/pad.cc:549
+#: src/core/pad.cc:556
 msgid "Left"
 msgstr ""
 
@@ -1131,7 +1135,7 @@ msgstr "Patch PPF %d.0 chargé : %s.\n"
 msgid "Loaded SBI file: %s.\n"
 msgstr "Fichier SBI chargé : %s.\n"
 
-#: src/core/sio.cc:388
+#: src/core/sio.cc:381
 #, c-format
 msgid "Loading memory card %s\n"
 msgstr "Chargement de la carte mémoire %s\n"
@@ -1265,7 +1269,7 @@ msgstr "Editeurs de Mémoire"
 msgid "Memory Observer"
 msgstr ""
 
-#: src/core/sio.cc:385
+#: src/core/sio.cc:378
 #, c-format
 msgid "Memory card %s failed to load!\n"
 msgstr "Impossible de charger la carte mémoire %s !\n"
@@ -1297,7 +1301,7 @@ msgid ""
 "at the cost of extra power required."
 msgstr ""
 
-#: src/core/pad.cc:552
+#: src/core/pad.cc:559
 msgid "Mouse"
 msgstr ""
 
@@ -1322,11 +1326,11 @@ msgstr ""
 msgid "Muted"
 msgstr "Muet"
 
-#: src/core/pad.cc:553
+#: src/core/pad.cc:560
 msgid "Negcon (Unimplemented)"
 msgstr ""
 
-#: src/core/pad.cc:646
+#: src/core/pad.cc:654
 msgid "No gamepad selected or connected"
 msgstr ""
 
@@ -1438,19 +1442,19 @@ msgstr ""
 msgid "PCSX-Redux booting\n"
 msgstr "Démarrage de PCSX-Redux\n"
 
-#: src/core/pad.cc:481
+#: src/core/pad.cc:488
 msgid "Pad"
 msgstr ""
 
-#: src/core/pad.cc:469
+#: src/core/pad.cc:476
 msgid "Pad 1"
 msgstr ""
 
-#: src/core/pad.cc:470
+#: src/core/pad.cc:477
 msgid "Pad 2"
 msgstr ""
 
-#: src/core/pad.cc:463
+#: src/core/pad.cc:470
 #, fuzzy
 msgid "Pad configuration"
 msgstr "Configuration du SPU"
@@ -1497,12 +1501,16 @@ msgstr ""
 msgid "Quit"
 msgstr "Quitter"
 
-#: src/core/pad.cc:546
+#: src/core/pad.cc:553
 msgid "R1"
 msgstr ""
 
-#: src/core/pad.cc:547
+#: src/core/pad.cc:554
 msgid "R2"
+msgstr ""
+
+#: src/core/pad.cc:554
+msgid "R3"
 msgstr ""
 
 #: src/gui/widgets/assembly.cc:809
@@ -1569,7 +1577,7 @@ msgstr "Enlever##"
 msgid "Renderer"
 msgstr "carte graphique"
 
-#: src/core/pad.cc:473
+#: src/core/pad.cc:480
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr ""
 
@@ -1593,7 +1601,7 @@ msgstr "Reprendre"
 msgid "Reverb"
 msgstr "Réverbération"
 
-#: src/core/pad.cc:549
+#: src/core/pad.cc:556
 msgid "Right"
 msgstr ""
 
@@ -1625,7 +1633,7 @@ msgstr ""
 msgid "Save state slots"
 msgstr ""
 
-#: src/core/sio.cc:426
+#: src/core/sio.cc:419
 #, c-format
 msgid "Saving memory card %s\n"
 msgstr "Sauvegarde de la carte mémoire %s\n"
@@ -1647,7 +1655,7 @@ msgstr "Scratch Pad"
 msgid "Search"
 msgstr ""
 
-#: src/core/pad.cc:545
+#: src/core/pad.cc:552
 #, fuzzy
 msgid "Select"
 msgstr "Sélection du BIOS"
@@ -1677,7 +1685,7 @@ msgstr ""
 msgid "Set Breakpoint here"
 msgstr "Placer un Breakpoint ici"
 
-#: src/core/pad.cc:490
+#: src/core/pad.cc:497
 msgid "Set defaults"
 msgstr ""
 
@@ -1864,11 +1872,11 @@ msgstr ""
 msgid "Speed Scaler"
 msgstr ""
 
-#: src/core/pad.cc:544
+#: src/core/pad.cc:551
 msgid "Square"
 msgstr ""
 
-#: src/core/pad.cc:545 src/gui/gui.cc:835
+#: src/core/pad.cc:552 src/gui/gui.cc:835
 msgid "Start"
 msgstr "Démarrer"
 
@@ -1939,7 +1947,7 @@ msgid ""
 "the gdb server system itself."
 msgstr ""
 
-#: src/core/sio.cc:367
+#: src/core/sio.cc:360
 #, c-format
 msgid "The memory card %s doesn't exist - creating it\n"
 msgstr "La carte mémoire %s n'existe pas - création en cours\n"
@@ -1993,7 +2001,7 @@ msgstr ""
 msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
 msgstr "Piste %.2d (%s) - Commence à %.2d:%.2d:%.2d, Durée %.2d:%.2d:%.2d\n"
 
-#: src/core/pad.cc:544
+#: src/core/pad.cc:551
 msgid "Triangle"
 msgstr ""
 
@@ -2058,12 +2066,12 @@ msgstr ""
 msgid "Unknown bios loaded (%08x)\n"
 msgstr ""
 
-#: src/core/pad.cc:283 src/core/pad.cc:375
+#: src/core/pad.cc:288 src/core/pad.cc:381
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr ""
 
-#: src/core/pad.cc:522
+#: src/core/pad.cc:529
 msgid "Unknown keyboard key {}"
 msgstr ""
 
@@ -2072,7 +2080,7 @@ msgstr ""
 msgid "Unsupported PPF version (%d).\n"
 msgstr "Version du PPF non-supportée (%d).\n"
 
-#: src/core/pad.cc:549
+#: src/core/pad.cc:556
 msgid "Up"
 msgstr ""
 
@@ -2080,7 +2088,7 @@ msgstr ""
 msgid "Use Null Sync"
 msgstr ""
 
-#: src/core/pad.cc:479
+#: src/core/pad.cc:486
 msgid "Use raw input for mouse"
 msgstr ""
 
@@ -2191,7 +2199,7 @@ msgstr ""
 msgid "Write rate: %s"
 msgstr "Erreur lors de l'ouverture du fichier : %s.\n"
 
-#: src/core/sio.cc:691
+#: src/core/sio.cc:684
 msgid "Wrong block number"
 msgstr ""
 
