@@ -201,7 +201,7 @@ void DynaRecCPU::emitDispatcher() {
     m_returnFromBlock = gen.getCurr<DynarecCallback>();
 
     // Poll events
-    emitMemberFunctionCall(&PCSX::R3000Acpu::psxBranchTest, this);
+    emitMemberFunctionCall(&PCSX::R3000Acpu::branchTest, this);
     gen.test(Xbyak::util::byte[runningPointer], 1);  // Check if PCSX::g_system->running is true
     gen.jz(done);                                    // If it's not, return
     emitBlockLookup();                               // Otherwise, look up next block
