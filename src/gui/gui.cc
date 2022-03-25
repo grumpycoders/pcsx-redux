@@ -367,8 +367,6 @@ void PCSX::GUI::init() {
             emuSettings.get<Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
         }
 
-        PCSX::g_emulator->m_gpu->setDither(emuSettings.get<Emulator::SettingDither>());
-
         auto argPath1 = m_args.get<std::string>("memcard1");
         auto argPath2 = m_args.get<std::string>("memcard2");
         if (argPath1.has_value()) emuSettings.get<Emulator::SettingMcd1>().value = argPath1.value();
@@ -1344,6 +1342,7 @@ this setting may not have any effect for you.)"));
         ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
+        changed |= ImGui::Checkbox(_("OpenGL GPU"), &settings.get<Emulator::SettingHardwareRenderer>().value);
 
         {
             static const char* types[] = {"Auto", "NTSC", "PAL"};

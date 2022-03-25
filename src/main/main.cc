@@ -184,13 +184,12 @@ int pcsxMain(int argc, char **argv) {
     emulator->setLua();
     s_gui->setLua();
     emulator->m_cdrom->m_iso.init();
-    emulator->m_gpu->init();
     emulator->m_spu->init();
-
-    emulator->m_gpu->open(s_gui);
     emulator->m_spu->open();
 
     emulator->init();
+    emulator->m_gpu->init();
+    emulator->m_gpu->open(s_gui);
     emulator->reset();
 
     if (args.get<bool>("run", false)) system->start();

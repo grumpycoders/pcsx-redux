@@ -63,12 +63,6 @@ PCSX::Emulator::Emulator()
       m_lua(new PCSX::Lua()),
       m_callStacks(new PCSX::CallStacks) {
     uv_loop_init(&m_loop);
-
-    if (settings.get<SettingHardwareRenderer>()) {
-        m_gpu = PCSX::GPU::getOpenGL();
-    } else {
-        m_gpu = PCSX::GPU::getSoft();
-    }
 }
 
 void PCSX::Emulator::setLua() {
@@ -101,6 +95,14 @@ int PCSX::Emulator::init() {
     assert(g_system);
     if (m_mem->init() == -1) return -1;
     int ret = PCSX::R3000Acpu::psxInit();
+
+    if (settings.get<SettingHardwareRenderer>()) {
+        m_gpu = PCSX::GPU::getOpenGL();
+    } else {
+        m_gpu = PCSX::GPU::getSoft();
+    }
+    m_gpu->setDither(settings.get<Emulator::SettingDither>());
+
     setPGXPMode(m_config.PGXP_Mode);
     m_pads->init();
     return ret;
