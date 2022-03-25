@@ -183,13 +183,14 @@ void PCSX::Counters::update() {
         reset(3);
 
         m_hSyncCount++;
-        m_spuSyncCount++;
-        // Update spu.
-        if (m_spuSyncCount >= SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
-            m_spuSyncCount = 0;
 
-            PCSX::g_emulator->m_spu->async(
-                SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] * m_rcnts[3].target);
+        // Update spu.
+        if (--m_spuSyncCountdown >= 0) {
+            // Scanlines until next sync
+            const auto scanlines = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
+            m_spuSyncCountdown = scanlines;
+
+            PCSX::g_emulator->m_spu->async(scanlines * m_rcnts[3].target);
         }
 
 #ifdef ENABLE_SIO1API
@@ -365,7 +366,7 @@ void PCSX::Counters::init() {
     }
 
     m_hSyncCount = 0;
-    m_spuSyncCount = 0;
+    m_spuSyncCountdown = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
     m_audioFrames = PCSX::g_emulator->m_spu->getCurrentFrames();
     set();
 }
@@ -382,7 +383,7 @@ void PCSX::Counters::save(PCSX::SaveStates::Counters &counters) {
         counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value = m_rcnts[i].cycleStart;
     }
     counters.get<SaveStates::HSyncCount>().value = m_hSyncCount;
-    counters.get<SaveStates::SPUSyncCount>().value = m_spuSyncCount;
+    counters.get<SaveStates::SPUSyncCountdown>().value = m_spuSyncCountdown;
     counters.get<SaveStates::PSXNextCounter>().value = m_psxNextCounter;
 }
 
@@ -398,7 +399,7 @@ void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
         m_rcnts[i].cycleStart = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value;
     }
     m_hSyncCount = counters.get<SaveStates::HSyncCount>().value;
-    m_spuSyncCount = counters.get<SaveStates::SPUSyncCount>().value;
+    m_spuSyncCountdown = counters.get<SaveStates::SPUSyncCountdown>().value;
     m_psxNextCounter = counters.get<SaveStates::PSXNextCounter>().value;
 
     calculateHsync();
