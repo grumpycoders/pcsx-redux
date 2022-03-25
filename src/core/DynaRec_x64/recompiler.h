@@ -52,15 +52,9 @@ static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
 }
 
 // For 8/16-bit writes, the entire value is put on the bus. This matters for certain IO registers
-static void write8Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_mem->write8(address, value);
-}
-static void write16Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_mem->write16(address, value);
-}
-static void write32Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_mem->write32(address, value);
-}
+static void write8Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write8(address, value); }
+static void write16Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write16(address, value); }
+static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 using namespace Xbyak;

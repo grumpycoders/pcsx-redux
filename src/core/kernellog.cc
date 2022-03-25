@@ -891,8 +891,7 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x08: {
-            int id =
-                Kernel::Events::getFirstFreeEvent(reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM));
+            int id = Kernel::Events::getFirstFreeEvent(reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM));
             g_system->log(LogClass::KERNEL, "%s, %s, %s, 0x%08x) --> 0x%08x",
                           Kernel::Events::Event::resolveClass(n.a0).c_str(),
                           Kernel::Events::Event::resolveSpec(n.a1).c_str(),

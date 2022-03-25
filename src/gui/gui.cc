@@ -1128,8 +1128,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), &m_dwarf,
-                        _("Assembly"));
+        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), &m_dwarf, _("Assembly"));
     }
 
     if (m_disassembly.m_show && PCSX::g_emulator->m_cpu->isDynarec()) {
