@@ -188,8 +188,8 @@ bool LoadCdromFile(const char *filename, EXE_HEADER *head) {
     addr = head->t_addr;
 
     // Cache clear/invalidate dynarec/int. Fixes startup of Casper/X-Files and possibly others.
-    PCSX::g_emulator->m_psxCpu->Clear(addr, size / 4);
-    PCSX::g_emulator->m_psxCpu->invalidateCache();
+    PCSX::g_emulator->m_cpu->Clear(addr, size / 4);
+    PCSX::g_emulator->m_cpu->invalidateCache();
 
     while (size) {
         incTime();

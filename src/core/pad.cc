@@ -17,12 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#define GLFW_INCLUDE_NONE
 #define _USE_MATH_DEFINES
 #include "core/pad.h"
 
-#include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
 #include <memory.h>
 
 #include <algorithm>
@@ -91,11 +88,19 @@ void PCSX::Pads::Pad::reset() {
 void PCSX::Pads::Pad::map() {
     m_padID = g_emulator->m_pads->m_gamepadsMap[m_settings.get<SettingControllerID>()];
     m_type = m_settings.get<SettingDeviceType>();
-    // invalid buttons
-    m_scancodes[1] = 255;
-    m_scancodes[2] = 255;
-    m_padMapping[1] = GLFW_GAMEPAD_BUTTON_INVALID;
-    m_padMapping[2] = GLFW_GAMEPAD_BUTTON_INVALID;
+
+    // L3/R3 are only avalable on analog controllers
+    if (m_type == PadType::Analog) {
+        m_scancodes[1] = m_settings.get<Keyboard_PadL3>();     // L3
+        m_scancodes[2] = m_settings.get<Keyboard_PadR3>();     // R3
+        m_padMapping[1] = m_settings.get<Controller_PadL3>();  // L3
+        m_padMapping[2] = m_settings.get<Controller_PadR3>();  // R3
+    } else {
+        m_scancodes[1] = 255;
+        m_scancodes[2] = 255;
+        m_padMapping[1] = GLFW_GAMEPAD_BUTTON_INVALID;
+        m_padMapping[2] = GLFW_GAMEPAD_BUTTON_INVALID;
+    }
 
     // keyboard mappings
     m_scancodes[0] = m_settings.get<Keyboard_PadSelect>();     // SELECT
@@ -265,12 +270,12 @@ uint8_t PCSX::Pads::startPoll(Port port) {
     return m_pads[index].startPoll();
 }
 
-uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
+uint8_t PCSX::Pads::poll(uint8_t value, Port port, uint32_t& padState) {
     int index = magic_enum::enum_integer(port);
-    return m_pads[index].poll(value);
+    return m_pads[index].poll(value, padState);
 }
 
-uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
+uint8_t PCSX::Pads::Pad::poll(uint8_t value, uint32_t& padState) {
     if (m_currentByte == 0) {
         m_cmd = value;
         m_currentByte = 1;
@@ -278,11 +283,12 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
         if (m_cmd == magic_enum::enum_integer(PadCommands::Read)) {
             return read();
         } else if (m_type == PadType::Analog) {
-            return doDualshockCommand();
+            return doDualshockCommand(padState);
         } else {
             PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
             m_cmd = magic_enum::enum_integer(PadCommands::Idle);
             m_bufferLen = 0;
+            padState = PAD_STATE_IDLE;  // Tell the SIO class we're in an invalid state
             return 0xff;
         }
     } else if (m_currentByte >= m_bufferLen) {
@@ -329,7 +335,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
     return m_buf[m_currentByte++];
 }
 
-uint8_t PCSX::Pads::Pad::doDualshockCommand() {
+uint8_t PCSX::Pads::Pad::doDualshockCommand(uint32_t& padState) {
     m_bufferLen = 8;
 
     if (m_cmd == magic_enum::enum_integer(PadCommands::SetConfigMode)) {
@@ -375,6 +381,7 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand() {
         PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), static_cast<uint8_t>(m_cmd));
         m_cmd = magic_enum::enum_integer(PadCommands::Idle);
         m_bufferLen = 0;
+        padState = PAD_STATE_IDLE;  // Tell the SIO class we're in an invalid state
         return 0xff;
     }
 }
@@ -544,7 +551,7 @@ bool PCSX::Pads::Pad::configure() {
         []() { return _("Cross"); },  []() { return _("Square"); }, []() { return _("Triangle"); },
         []() { return _("Circle"); }, []() { return _("Select"); }, []() { return _("Start"); },
         []() { return _("L1"); },     []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); }};
+        []() { return _("R2"); },     []() { return _("L3"); },     []() { return _("R3"); }};
     static std::function<const char*()> const c_dpadDirections[] = {
         []() { return _("Up"); }, []() { return _("Right"); }, []() { return _("Down"); }, []() { return _("Left"); }};
     static std::function<const char*()> const c_controllerTypes[] = {[]() { return _("Digital"); },
@@ -569,6 +576,7 @@ bool PCSX::Pads::Pad::configure() {
                     m_type = static_cast<PadType>(i);
                     m_settings.get<SettingDeviceType>().value = m_type;
                     reset();  // Reset pad state when changing pad type
+                    map();
                 }
             }
             ImGui::EndCombo();
@@ -595,7 +603,7 @@ bool PCSX::Pads::Pad::configure() {
         ImGui::TableSetupColumn(_("Computer button mapping"));
         ImGui::TableSetupColumn(_("Gamepad button"));
         ImGui::TableHeadersRow();
-        for (auto i = 0; i < 10; i++) {
+        for (auto i = 0; i < 12; i++) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(1);
             ImGui::Text(c_buttonNames[i]());
@@ -623,7 +631,7 @@ bool PCSX::Pads::Pad::configure() {
             ImGui::Text(c_dpadDirections[i]());
             ImGui::TableSetColumnIndex(0);
             bool hasToPop = false;
-            const auto absI = i + 10;
+            const auto absI = i + 12;
             if (m_buttonToWait == absI) {
                 const ImVec4 highlight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
                 ImGui::PushStyleColor(ImGuiCol_Button, highlight);
@@ -703,12 +711,16 @@ int& PCSX::Pads::Pad::getButtonFromGUIIndex(int buttonIndex) {
         case 9:
             return m_settings.get<Keyboard_PadR2>().value;
         case 10:
-            return m_settings.get<Keyboard_PadUp>().value;
+            return m_settings.get<Keyboard_PadL3>().value;
         case 11:
-            return m_settings.get<Keyboard_PadRight>().value;
+            return m_settings.get<Keyboard_PadR3>().value;
         case 12:
-            return m_settings.get<Keyboard_PadDown>().value;
+            return m_settings.get<Keyboard_PadUp>().value;
         case 13:
+            return m_settings.get<Keyboard_PadRight>().value;
+        case 14:
+            return m_settings.get<Keyboard_PadDown>().value;
+        case 15:
             return m_settings.get<Keyboard_PadLeft>().value;
         default:
             abort();

@@ -34,56 +34,49 @@
 // TODO: add SioModePrescaler
 #define SIO_CYCLES (m_baudReg * 8)
 
+PCSX::SIO::SIO() { reset(); }
+
+void PCSX::SIO::reset() {
+    m_padState = PAD_STATE_IDLE;
+    m_statusReg = TX_RDY | TX_EMPTY;
+    m_modeReg = 0;
+    m_ctrlReg = 0;
+    m_baudReg = 0;
+    m_bufferIndex = 0;
+    m_mcdState = MCD_STATE_IDLE;
+    m_mcdReadWriteState = MCD_READWRITE_STATE_IDLE;
+}
+
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
-        case PAD_STATE_READ_TYPE:
+        case PAD_STATE_READ_COMMAND:
             scheduleInterrupt(SIO_CYCLES);
-            /*
-            $41-4F
-            $41 = Find bits in poll respones
-            $42 = Polling command
-            $43 = Config mode (Dual shock?)
-            $44 = Digital / Analog (after $F3)
-            $45 = Get status info (Dual shock?)
 
-            ID:
-            $41 = Digital
-            $73 = Analogue Red LED
-            $53 = Analogue Green LED
+            m_padState = PAD_STATE_READ_DATA;
+            m_bufferIndex = 1;
+            switch (m_ctrlReg & 0x2002) {
+                case 0x0002:
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
+                    break;
+                case 0x2002:
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
+                    break;
+            }
 
-            $23 = NegCon
-            $12 = Mouse
-            */
-
-            if (value & 0x40) {
-                m_padState = PAD_STATE_READ_DATA;
-                m_bufferIndex = 1;
-                switch (m_ctrlReg & 0x2002) {
-                    case 0x0002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1);
-                        break;
-                    case 0x2002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2);
-                        break;
-                }
-
-                if (!(m_buffer[m_bufferIndex] & 0x0f)) {
-                    m_maxBufferIndex = 2 + 32;
-                } else {
-                    m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
-                }
+            if (!(m_buffer[m_bufferIndex] & 0x0f)) {
+                m_maxBufferIndex = 2 + 32;
             } else {
-                m_padState = PAD_STATE_IDLE;
+                m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
             }
             return;
         case PAD_STATE_READ_DATA:
             m_bufferIndex++;
             switch (m_ctrlReg & 0x2002) {
                 case 0x0002:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1);
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
                     break;
                 case 0x2002:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2);
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
                     break;
             }
 
@@ -203,7 +196,7 @@ void PCSX::SIO::write8(uint8_t value) {
 
             m_maxBufferIndex = 2;
             m_bufferIndex = 0;
-            m_padState = PAD_STATE_READ_TYPE;
+            m_padState = PAD_STATE_READ_COMMAND;
             scheduleInterrupt(SIO_CYCLES);
             return;
         case 0x81:  // start memcard
@@ -257,13 +250,13 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_mcdState = MCD_STATE_IDLE;
         m_bufferIndex = 0;
         m_statusReg = TX_RDY | TX_EMPTY;
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
+        PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
     }
 }
 
 void PCSX::SIO::writeBaud16(uint16_t value) { m_baudReg = value; }
 
-uint8_t PCSX::SIO::sioRead8() {
+uint8_t PCSX::SIO::read8() {
     uint8_t ret = 0;
 
     if ((m_statusReg & RX_RDY) /* && (m_ctrlReg & RX_PERM)*/) {
@@ -311,7 +304,7 @@ uint16_t PCSX::SIO::readStatus16() {
 
 #if 0
     // wait for IRQ first
-    if( PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt & (1 << PSXINT_SIO) )
+    if( PCSX::g_emulator->m_cpu->m_regs.interrupt & (1 << PSXINT_SIO) )
     {
         hard &= ~TX_RDY;
         hard &= ~RX_RDY;
@@ -337,7 +330,7 @@ void PCSX::SIO::netError() {
 }
 
 void PCSX::SIO::interrupt() {
-    SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
+    SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
     m_statusReg |= IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 

@@ -223,7 +223,7 @@ struct psxRegisters {
 #endif
 
 // R3000A Instruction Macros
-#define _PC_ PCSX::g_emulator->m_psxCpu->m_psxRegs.pc  // The next PC to be executed
+#define _PC_ PCSX::g_emulator->m_cpu->m_regs.pc  // The next PC to be executed
 
 #define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
 #define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
@@ -238,29 +238,29 @@ struct psxRegisters {
 #define _fImmU_(code) (code & 0xffff)  // zero-extended immediate
 #define _fImmLU_(code) (code << 16)    // LUI
 
-#define _Op_ _fOp_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Funct_ _fFunct_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Rd_ _fRd_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Rt_ _fRt_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Rs_ _fRs_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Sa_ _fSa_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Im_ _fIm_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Target_ _fTarget_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Op_ _fOp_(PCSX::g_emulator->m_cpu->m_regs.code)
+#define _Funct_ _fFunct_(PCSX::g_emulator->m_cpu->m_regs.code)
+#define _Rd_ _fRd_(PCSX::g_emulator->m_cpu->m_regs.code)
+#define _Rt_ _fRt_(PCSX::g_emulator->m_cpu->m_regs.code)
+#define _Rs_ _fRs_(PCSX::g_emulator->m_cpu->m_regs.code)
+#define _Sa_ _fSa_(PCSX::g_emulator->m_cpu->m_regs.code)
+#define _Im_ _fIm_(PCSX::g_emulator->m_cpu->m_regs.code)
+#define _Target_ _fTarget_(PCSX::g_emulator->m_cpu->m_regs.code)
 
-#define _Imm_ _fImm_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _ImmU_ _fImmU_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _ImmLU_ _fImmLU_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Imm_ _fImm_(PCSX::g_emulator->m_cpu->m_regs.code)
+#define _ImmU_ _fImmU_(PCSX::g_emulator->m_cpu->m_regs.code)
+#define _ImmLU_ _fImmLU_(PCSX::g_emulator->m_cpu->m_regs.code)
 
-#define _rRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]  // Rs register
-#define _rRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]  // Rt register
-#define _rRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]  // Rd register
+#define _rRs_ PCSX::g_emulator->m_cpu->m_regs.GPR.r[_Rs_]  // Rs register
+#define _rRt_ PCSX::g_emulator->m_cpu->m_regs.GPR.r[_Rt_]  // Rt register
+#define _rRd_ PCSX::g_emulator->m_cpu->m_regs.GPR.r[_Rd_]  // Rd register
 
-#define _c2dRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
-#define _c2dRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
-#define _c2dRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
+#define _c2dRs_ PCSX::g_emulator->m_cpu->m_regs.CP2D.r[_Rs_]  // Rs cop2 data register
+#define _c2dRt_ PCSX::g_emulator->m_cpu->m_regs.CP2D.r[_Rt_]  // Rt cop2 data register
+#define _c2dRd_ PCSX::g_emulator->m_cpu->m_regs.CP2D.r[_Rd_]  // Rd cop2 data register
 
-#define _rHi_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi  // The HI register
-#define _rLo_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register
+#define _rHi_ PCSX::g_emulator->m_cpu->m_regs.GPR.n.hi  // The HI register
+#define _rLo_ PCSX::g_emulator->m_cpu->m_regs.GPR.n.lo  // The LO register
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
@@ -298,33 +298,33 @@ class R3000Acpu {
         CoprocessorUnusable = 11,
         ArithmeticOverflow = 12,
     };
-    void psxException(Exception e, bool bd, bool cop0 = false) {
-        psxException(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
+    void exception(Exception e, bool bd, bool cop0 = false) {
+        exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
     }
-    void psxException(uint32_t code, bool bd, bool cop0 = false);
-    void psxBranchTest();
+    void exception(uint32_t code, bool bd, bool cop0 = false);
+    void branchTest();
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
         PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
-        const uint32_t cycle = m_psxRegs.cycle;
+        const uint32_t cycle = m_regs.cycle;
         uint32_t target = cycle + eCycle * m_interruptScales[interrupt];
-        m_psxRegs.interrupt |= (1 << interrupt);
-        m_psxRegs.intTargets[interrupt] = target;
-        int32_t lowest = m_psxRegs.lowestTarget - cycle;
+        m_regs.interrupt |= (1 << interrupt);
+        m_regs.intTargets[interrupt] = target;
+        int32_t lowest = m_regs.lowestTarget - cycle;
         int32_t maybeNewLowest = target - cycle;
-        if (maybeNewLowest < lowest) m_psxRegs.lowestTarget = target;
+        if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
     }
 
-    psxRegisters m_psxRegs;
+    psxRegisters m_regs;
     float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
                                    1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
     virtual void Reset() {
         invalidateCache();
-        m_psxRegs.interrupt = 0;
+        m_regs.interrupt = 0;
     }
     bool m_inISR = false;
     bool m_nextIsDelaySlot = false;
@@ -373,7 +373,7 @@ class R3000Acpu {
     static inline const uint32_t SWR_SHIFT[4] = {0, 8, 16, 24};
     inline bool hasToRun() {
         if (!m_shellStarted) {
-            uint32_t &pc = m_psxRegs.pc;
+            uint32_t &pc = m_regs.pc;
             if (pc == 0x80030000) {
                 m_shellStarted = true;
                 g_system->m_eventBus->signal(Events::ExecutionFlow::ShellReached{});
@@ -394,7 +394,7 @@ class R3000Acpu {
             if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
         }
 
-        const auto r = m_psxRegs.GPR.n;
+        const auto r = m_regs.GPR.n;
 
         // Intercepts write, puts, putc, and putchar.
         // The BIOS doesn't have the TTY output set up by default,
@@ -410,7 +410,7 @@ class R3000Acpu {
                     if (r.a0 != 1) break;
                     uint8_t *str = PSXM(r.a1);
                     uint32_t size = r.a2;
-                    m_psxRegs.GPR.n.v0 = size;
+                    m_regs.GPR.n.v0 = size;
                     while (size--) {
                         g_system->biosPutc(*str++);
                     }
@@ -439,7 +439,7 @@ class R3000Acpu {
                     if (r.a0 != 1) break;
                     uint8_t *str = PSXM(r.a1);
                     uint32_t size = r.a2;
-                    m_psxRegs.GPR.n.v0 = size;
+                    m_regs.GPR.n.v0 = size;
                     while (size--) {
                         g_system->biosPutc(*str++);
                     }
@@ -487,8 +487,8 @@ Formula One 2001
 */
 
     virtual void invalidateCache() {
-        memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
-        memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
+        memset(m_regs.ICache_Addr, 0xff, sizeof(m_regs.ICache_Addr));
+        memset(m_regs.ICache_Code, 0xff, sizeof(m_regs.ICache_Code));
     }
 
     inline uint32_t *Read_ICache(uint32_t pc) {
@@ -499,8 +499,8 @@ Formula One 2001
         pc_offset = pc & 0xffffff;
         pc_cache = pc & 0xfff;
 
-        IAddr = m_psxRegs.ICache_Addr;
-        ICode = m_psxRegs.ICache_Code;
+        IAddr = m_regs.ICache_Addr;
+        ICode = m_regs.ICache_Code;
 
         // cached - RAM
         if (pc_bank == 0x80 || pc_bank == 0x00) {

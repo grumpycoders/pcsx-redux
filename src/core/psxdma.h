@@ -26,23 +26,23 @@
 #include "core/r3000a.h"
 
 static inline void scheduleGPUDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_GPUDMA, eCycle);
+    PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_GPUDMA, eCycle);
 }
 
 static inline void scheduleSPUDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_SPUDMA, eCycle);
+    PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_SPUDMA, eCycle);
 }
 
 static inline void scheduleMDECOUTDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_MDECOUTDMA, eCycle);
+    PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_MDECOUTDMA, eCycle);
 }
 
 static inline void scheduleMDECINDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_MDECINDMA, eCycle);
+    PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_MDECINDMA, eCycle);
 }
 
 static inline void scheduleGPUOTCDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_GPUOTCDMA, eCycle);
+    PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_GPUOTCDMA, eCycle);
 }
 
 /*
@@ -50,8 +50,8 @@ DMA5 = N/A (PIO)
 */
 
 // void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
-void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr);
-void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr);
+void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr);
+void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr);
 void spuInterrupt();
 void gpuotcInterrupt();
 // void dmaInterrupt();

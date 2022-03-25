@@ -30,12 +30,12 @@ class Counters {
   private:
     /******************************************************************************/
     static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
-    uint32_t psxRcntRcountInternal(uint32_t index);
-    void psxRcntWcountInternal(uint32_t index, uint32_t value);
+    uint32_t readCounterInternal(uint32_t index);
+    void writeCounterInternal(uint32_t index, uint32_t value);
 
-    void psxRcntSet();
-    void psxRcntReset(uint32_t index);
-    void psxHsyncCalculate();
+    void set();
+    void reset(uint32_t index);
+    void calculateHsync();
 
     /******************************************************************************/
 
@@ -95,16 +95,16 @@ class Counters {
   public:
     uint32_t m_psxNextCounter, m_psxNextsCounter;
 
-    void psxRcntInit();
-    void psxRcntUpdate();
+    void init();
+    void update();
 
-    void psxRcntWcount(uint32_t index, uint32_t value);
-    void psxRcntWmode(uint32_t index, uint32_t value);
-    void psxRcntWtarget(uint32_t index, uint32_t value);
+    void writeCounter(uint32_t index, uint32_t value);
+    void writeMode(uint32_t index, uint32_t value);
+    void writeTarget(uint32_t index, uint32_t value);
 
-    uint32_t psxRcntRcount(uint32_t index);
-    uint32_t psxRcntRmode(uint32_t index);
-    uint32_t psxRcntRtarget(uint32_t index);
+    uint32_t readCounter(uint32_t index);
+    uint32_t readMode(uint32_t index);
+    uint32_t readTarget(uint32_t index);
 
     void save(PCSX::SaveStates::Counters &counters);
     void load(const PCSX::SaveStates::Counters &counters);

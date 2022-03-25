@@ -421,7 +421,7 @@ std::string PCSX::GdbClient::dumpValue(uint32_t value) {
 std::string PCSX::GdbClient::dumpOneRegister(int n) {
     // All registers are transferred as thirty-two bit quantities in the order:
     // 32 general-purpose; sr; lo; hi; bad; cause; pc;
-    auto& regs = g_emulator->m_psxCpu->m_psxRegs;
+    auto& regs = g_emulator->m_cpu->m_regs;
     uint32_t value = 0;
     if (n < 32) {
         value = regs.GPR.r[n];
@@ -447,7 +447,7 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
     // 32 general-purpose; sr; lo; hi; bad; cause; pc;
     value = ((value & 0xff000000) >> 24) | ((value & 0x00ff0000) >> 8) | ((value & 0x0000ff00) << 8) |
             ((value & 0x000000ff) << 24);
-    auto& regs = g_emulator->m_psxCpu->m_psxRegs;
+    auto& regs = g_emulator->m_cpu->m_regs;
     if (n < 32) {
         regs.GPR.r[n] = value;
     } else if (n == 32) {

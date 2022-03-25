@@ -87,13 +87,9 @@ class SIO {
     bool m_wasMcd1Inserted = false;
     bool m_wasMcd2Inserted = false;
     uint32_t m_padState;
-    enum {
-        PAD_STATE_IDLE = 0,
-        PAD_STATE_READ_TYPE = 1,
-        PAD_STATE_READ_DATA = 2,
-    };
+
     inline void scheduleInterrupt(uint32_t eCycle) {
-        g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO, eCycle);
+        g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
 #if 0
 // Breaks Twisted Metal 2 intro
         m_statusReg &= ~RX_RDY;
@@ -104,6 +100,7 @@ class SIO {
     void writeMcd(uint8_t value);
 
   public:
+    SIO();
     static const size_t MCD_SECT_SIZE = 8 * 16;
     static const size_t MCD_BLOCK_SIZE = 8192;
     static const size_t MCD_SIZE = 1024 * MCD_SECT_SIZE;
@@ -116,15 +113,15 @@ class SIO {
     void writeCtrl16(uint16_t value);
     void writeBaud16(uint16_t value);
 
-    uint8_t sioRead8();
+    uint8_t read8();
     uint16_t readStatus16();
     uint16_t readMode16();
     uint16_t readCtrl16();
     uint16_t readBaud16();
 
     void netError();
-
     void interrupt();
+    void reset();
 
     void LoadMcd(int mcd, const PCSX::u8string str);
     void LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);

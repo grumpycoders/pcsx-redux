@@ -170,37 +170,37 @@ class CDRomImpl : public PCSX::CDRom {
 
     // interrupt
     static inline void scheduleCDIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDR, eCycle);
+        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDR, eCycle);
     }
 
     // readInterrupt
     static inline void scheduleCDReadIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDREAD, eCycle);
+        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDREAD, eCycle);
     }
 
     // decodedBufferInterrupt
     static inline void scheduleDecodeBufferIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDRDBUF, eCycle);
+        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRDBUF, eCycle);
     }
 
     // lidSeekInterrupt
     static inline void scheduleCDLidIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDRLID, eCycle);
+        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRLID, eCycle);
     }
 
     // playInterrupt
     static inline void scheduleCDPlayIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDRPLAY, eCycle);
+        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRPLAY, eCycle);
     }
 
     static inline void scheduleCDDMAIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDRDMA, eCycle);
+        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRDMA, eCycle);
     }
 
     inline void StopReading() {
         if (m_reading) {
             m_reading = 0;
-            PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_CDREAD);
+            PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_CDREAD);
         }
         m_statP &= ~(STATUS_READ | STATUS_SEEK);
     }
@@ -598,7 +598,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (m_irqRepeated) {
             m_irqRepeated = 0;
-            if (m_eCycle > PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle) {
+            if (m_eCycle > PCSX::g_emulator->m_cpu->m_regs.cycle) {
                 scheduleCDIRQ(m_eCycle);
                 goto finish;
             }
@@ -1508,7 +1508,7 @@ class CDRomImpl : public PCSX::CDRom {
                         .get<PCSX::Emulator::DebugSettings::Debug>()) {
                     PCSX::g_emulator->m_debug->checkDMAwrite(3, madr, cdsize);
                 }
-                PCSX::g_emulator->m_psxCpu->Clear(madr, cdsize / 4);
+                PCSX::g_emulator->m_cpu->Clear(madr, cdsize / 4);
                 // burst vs normal
                 if (chcr == 0x11400100) {
                     scheduleCDDMAIRQ((cdsize / 4) / 4);
@@ -1636,37 +1636,6 @@ class CDRomImpl : public PCSX::CDRom {
                 m_iso.play(m_setSectorPlay);
             }
         }
-    }
-
-    int freeze(gzFile f, int Mode) final {
-        uint8_t tmpp[3];
-
-        if (Mode == 0 &&
-            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
-            m_iso.stop();
-        }
-
-        // gzfreeze(&m_cdr, sizeof(m_cdr));
-
-        if (Mode == 1) m_paramP = m_paramC;
-
-        if (Mode == 0) {
-            getCdInfo();
-
-            // read right sub data
-            memcpy(tmpp, m_prev, 3);
-            m_prev[0]++;
-            ReadTrack(tmpp);
-
-            if (m_play) {
-                Find_CurTrack(m_setSectorPlay);
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
-                    m_iso.play(m_setSectorPlay);
-                }
-            }
-        }
-
-        return 0;
     }
 
     void lidInterrupt() final {

@@ -39,63 +39,63 @@ int PCSX::R3000Acpu::psxInit() {
     const auto& args = g_system->getArgs();
 
     if (args.get<bool>("interpreter"))
-        g_emulator->m_psxCpu = Cpus::Interpreted();
+        g_emulator->m_cpu = Cpus::Interpreted();
     else if (args.get<bool>("dynarec"))
-        g_emulator->m_psxCpu = Cpus::DynaRec();
+        g_emulator->m_cpu = Cpus::DynaRec();
     else if (g_emulator->settings.get<Emulator::SettingDynarec>())
-        g_emulator->m_psxCpu = Cpus::DynaRec();
+        g_emulator->m_cpu = Cpus::DynaRec();
 
-    if (!g_emulator->m_psxCpu) g_emulator->m_psxCpu = Cpus::Interpreted();
+    if (!g_emulator->m_cpu) g_emulator->m_cpu = Cpus::Interpreted();
 
     PGXP_Init();
 
-    return g_emulator->m_psxCpu->Init();
+    return g_emulator->m_cpu->Init();
 }
 
 void PCSX::R3000Acpu::psxReset() {
     Reset();
 
-    memset(&m_psxRegs, 0, sizeof(m_psxRegs));
+    memset(&m_regs, 0, sizeof(m_regs));
     m_shellStarted = false;
 
-    m_psxRegs.pc = 0xbfc00000;  // Start in bootstrap
+    m_regs.pc = 0xbfc00000;  // Start in bootstrap
 
     g_emulator->m_debug->updatedPC(0xbfc00000);
 
-    m_psxRegs.CP0.r[12] = 0x10900000;  // COP0 enabled | BEV = 1 | TS = 1
-    m_psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
+    m_regs.CP0.r[12] = 0x10900000;  // COP0 enabled | BEV = 1 | TS = 1
+    m_regs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
 
-    PCSX::g_emulator->m_hw->psxHwReset();
+    PCSX::g_emulator->m_hw->reset();
 }
 
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
-void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
+void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
     auto& emuSettings = g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     unsigned ec = (code >> 2) & 0x1f;
     auto e = magic_enum::enum_cast<Exception>(ec);
     if (e.has_value()) {
         if (!cop0 && debugSettings.get<Emulator::DebugSettings::PCdrv>() && (e.value() == Exception::Break)) {
-            uint32_t code = (PSXMu32(m_psxRegs.pc) >> 6) & 0xfffff;
-            auto& regs = m_psxRegs.GPR.n;
+            uint32_t code = (PSXMu32(m_regs.pc) >> 6) & 0xfffff;
+            auto& regs = m_regs.GPR.n;
             switch (code) {
                 case 0x101: {  // PCinit
                     closeAllPCdevFiles();
                     regs.v0 = 0;
                     regs.v1 = 0;
-                    m_psxRegs.pc += 4;
+                    m_regs.pc += 4;
                     return;
                 }
                 case 0x102: {  // PCcreat
                     if (m_pcdrvFiles.size() > std::numeric_limits<decltype(m_pcdrvIndex)>::max()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_psxRegs.pc += 4;
+                        m_regs.pc += 4;
                         return;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-                    const char* filename = PSXS(m_psxRegs.GPR.n.a0);
+                    const char* filename = PSXS(m_regs.GPR.n.a0);
                     PCdrvFiles::iterator file;
                     do {
                         file = m_pcdrvFiles.find(++m_pcdrvIndex);
@@ -111,18 +111,18 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = 0;
                         regs.v1 = file->getKey();
                     }
-                    m_psxRegs.pc += 4;
+                    m_regs.pc += 4;
                     return;
                 }
                 case 0x103: {  // PCopen
                     if (m_pcdrvFiles.size() > std::numeric_limits<decltype(m_pcdrvIndex)>::max()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_psxRegs.pc += 4;
+                        m_regs.pc += 4;
                         return;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-                    const char* filename = PSXS(m_psxRegs.GPR.n.a0);
+                    const char* filename = PSXS(m_regs.GPR.n.a0);
                     PCdrvFiles::iterator file;
                     do {
                         file = m_pcdrvFiles.find(++m_pcdrvIndex);
@@ -138,11 +138,11 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = 0;
                         regs.v1 = file->getKey();
                     }
-                    m_psxRegs.pc += 4;
+                    m_regs.pc += 4;
                     return;
                 }
                 case 0x104: {  // PCclose
-                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    auto file = m_pcdrvFiles.find(m_regs.GPR.n.a0);
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
@@ -152,15 +152,15 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                         file->close();
                         delete &*file;
                     }
-                    m_psxRegs.pc += 4;
+                    m_regs.pc += 4;
                     return;
                 }
                 case 0x105: {  // PCread
-                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a1);
+                    auto file = m_pcdrvFiles.find(m_regs.GPR.n.a1);
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_psxRegs.pc += 4;
+                        m_regs.pc += 4;
                         return;
                     }
                     if ((regs.v1 = file->read(PSXM(regs.a3), regs.a2)) < 0) {
@@ -168,15 +168,15 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     } else {
                         regs.v0 = 0;
                     }
-                    m_psxRegs.pc += 4;
+                    m_regs.pc += 4;
                     return;
                 }
                 case 0x106: {  // PCwrite
-                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a1);
+                    auto file = m_pcdrvFiles.find(m_regs.GPR.n.a1);
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_psxRegs.pc += 4;
+                        m_regs.pc += 4;
                         return;
                     }
                     if ((regs.v1 = file->write(PSXM(regs.a3), regs.a2)) < 0) {
@@ -184,15 +184,15 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     } else {
                         regs.v0 = 0;
                     }
-                    m_psxRegs.pc += 4;
+                    m_regs.pc += 4;
                     return;
                 }
                 case 0x107: {  // PClseek
-                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    auto file = m_pcdrvFiles.find(m_regs.GPR.n.a0);
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_psxRegs.pc += 4;
+                        m_regs.pc += 4;
                         return;
                     }
                     int wheel;
@@ -209,7 +209,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                         default:
                             regs.v0 = -1;
                             regs.v1 = -1;
-                            m_psxRegs.pc += 4;
+                            m_regs.pc += 4;
                             return;
                     }
                     auto ret = file->writable() ? file->wSeek(regs.a2, wheel) : file->rSeek(regs.a2, wheel);
@@ -220,7 +220,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = ret;
                     }
-                    m_psxRegs.pc += 4;
+                    m_regs.pc += 4;
                     return;
                 }
                 default:
@@ -230,7 +230,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
         ec = 1 << ec;
         if (debugSettings.get<Emulator::DebugSettings::FirstChanceException>() & ec) {
             auto name = magic_enum::enum_name(e.value());
-            g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_psxRegs.pc).c_str());
+            g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_regs.pc).c_str());
             g_system->pause(true);
         }
     }
@@ -240,23 +240,23 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
     // Set the EPC & PC
     if (bd) {
         code |= 0x80000000;
-        m_psxRegs.CP0.n.EPC = (m_psxRegs.pc - 4);
+        m_regs.CP0.n.EPC = (m_regs.pc - 4);
     } else {
-        m_psxRegs.CP0.n.EPC = (m_psxRegs.pc);
+        m_regs.CP0.n.EPC = (m_regs.pc);
     }
 
-    if (m_psxRegs.CP0.n.Status & 0x400000) {
-        m_psxRegs.pc = 0xbfc00180;
+    if (m_regs.CP0.n.Status & 0x400000) {
+        m_regs.pc = 0xbfc00180;
     } else {
-        m_psxRegs.pc = 0x80000080;
+        m_regs.pc = 0x80000080;
     }
 
-    if (cop0) m_psxRegs.pc -= 0x40;
+    if (cop0) m_regs.pc -= 0x40;
 
     // Set the Cause
-    m_psxRegs.CP0.n.Cause = code;
+    m_regs.CP0.n.Cause = code;
     // Set the Status
-    m_psxRegs.CP0.n.Status = (m_psxRegs.CP0.n.Status & ~0x3f) | ((m_psxRegs.CP0.n.Status & 0xf) << 2);
+    m_regs.CP0.n.Status = (m_regs.CP0.n.Status & ~0x3f) | ((m_regs.CP0.n.Status & 0xf) << 2);
 }
 
 void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd) {
@@ -275,7 +275,7 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
     m_pcdrvFiles.insert(fd, f);
 }
 
-void PCSX::R3000Acpu::psxBranchTest() {
+void PCSX::R3000Acpu::branchTest() {
 #if 0
     if( SPU_async )
     {
@@ -285,35 +285,34 @@ void PCSX::R3000Acpu::psxBranchTest() {
         if( init == 0 ) {
             // 10 apu cycles
             // - Final Fantasy Tactics (distorted - dropped sound effects)
-            m_psxRegs.intCycle[PSXINT_SPUASYNC].cycle = g_emulator->m_psxClockSpeed / 44100 * 10;
+            m_regs.intCycle[PSXINT_SPUASYNC].cycle = g_emulator->m_psxClockSpeed / 44100 * 10;
 
             init = 1;
         }
 
-        elapsed = m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_SPUASYNC].sCycle;
-        if (elapsed >= m_psxRegs.intCycle[PSXINT_SPUASYNC].cycle) {
+        elapsed = m_regs.cycle - m_regs.intCycle[PSXINT_SPUASYNC].sCycle;
+        if (elapsed >= m_regs.intCycle[PSXINT_SPUASYNC].cycle) {
             SPU_async( elapsed );
 
-            m_psxRegs.intCycle[PSXINT_SPUASYNC].sCycle = m_psxRegs.cycle;
+            m_regs.intCycle[PSXINT_SPUASYNC].sCycle = m_regs.cycle;
         }
     }
 #endif
 
-    const uint32_t cycle = m_psxRegs.cycle;
+    const uint32_t cycle = m_regs.cycle;
 
-    if ((cycle - PCSX::g_emulator->m_psxCounters->m_psxNextsCounter) >=
-        PCSX::g_emulator->m_psxCounters->m_psxNextCounter)
-        PCSX::g_emulator->m_psxCounters->psxRcntUpdate();
+    if ((cycle - PCSX::g_emulator->m_counters->m_psxNextsCounter) >= PCSX::g_emulator->m_counters->m_psxNextCounter)
+        PCSX::g_emulator->m_counters->update();
 
-    if (m_psxRegs.spuInterrupt.exchange(false)) PCSX::g_emulator->m_spu->interrupt();
+    if (m_regs.spuInterrupt.exchange(false)) PCSX::g_emulator->m_spu->interrupt();
 
-    const uint32_t interrupts = m_psxRegs.interrupt;
+    const uint32_t interrupts = m_regs.interrupt;
 
     int32_t lowestDistance = std::numeric_limits<int32_t>::max();
     uint32_t lowestTarget = cycle;
-    uint32_t* targets = m_psxRegs.intTargets;
+    uint32_t* targets = m_regs.intTargets;
 
-    if ((interrupts != 0) && (((int32_t)(m_psxRegs.lowestTarget - cycle)) <= 0)) {
+    if ((interrupts != 0) && (((int32_t)(m_regs.lowestTarget - cycle)) <= 0)) {
         auto checkAndUpdate = [&lowestDistance, &lowestTarget, interrupts, cycle, targets, this](
                                   unsigned interrupt, std::function<void()> act) {
             uint32_t mask = 1 << interrupt;
@@ -326,7 +325,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
                     lowestTarget = target;
                 }
             } else {
-                m_psxRegs.interrupt &= ~mask;
+                m_regs.interrupt &= ~mask;
                 PSXIRQ_LOG("Triggering interrupt %08x\n", interrupt);
                 act();
             }
@@ -345,15 +344,15 @@ void PCSX::R3000Acpu::psxBranchTest() {
         checkAndUpdate(PSXINT_CDRPLAY, []() { g_emulator->m_cdrom->playInterrupt(); });
         checkAndUpdate(PSXINT_CDRDBUF, []() { g_emulator->m_cdrom->decodedBufferInterrupt(); });
         checkAndUpdate(PSXINT_CDRLID, []() { g_emulator->m_cdrom->lidSeekInterrupt(); });
-        m_psxRegs.lowestTarget = lowestTarget;
+        m_regs.lowestTarget = lowestTarget;
     }
-    if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_psxRegs.CP0.n.Status & 0x401) == 0x401)) {
+    if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_regs.CP0.n.Status & 0x401) == 0x401)) {
         // If the next instruction is a GTE instruction sans LWC2/SWC2, there's a hardware bug where the instruction
         // gets executed
         // But EPC still ends up pointing to the GTE instruction. In this case, the BIOS will add 4 to EPC to skip the
         // GTE instruction. To deal with this, we do not fire IRQs if the next instruction is a GTE instruction
         // https://psx-spx.consoledev.net/cpuspecifications/#interrupts-vs-gte-commands
-        const auto pointer = (uint32_t*)PSXM(m_psxRegs.pc);
+        const auto pointer = (uint32_t*)PSXM(m_regs.pc);
         if (pointer != nullptr) {
             const auto next = *pointer;           // Fetch next instruction
             if (((next >> 24) & 0xfe) == 0x4a) {  // Return if it's a GTE instruction
@@ -362,13 +361,13 @@ void PCSX::R3000Acpu::psxBranchTest() {
         }
 
         PSXIRQ_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
-        psxException(0x400, 0);
+        exception(0x400, 0);
     }
 }
 
 void PCSX::R3000Acpu::psxSetPGXPMode(uint32_t pgxpMode) {
     SetPGXPMode(pgxpMode);
-    // g_emulator->m_psxCpu->Reset();
+    // g_emulator->m_cpu->Reset();
 }
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::Interpreted() {

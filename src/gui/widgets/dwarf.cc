@@ -131,7 +131,7 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
     if (m_orderBy == BY_PC) ImGui::InputText("PC", &m_pc, ImGuiInputTextFlags_CharsHexadecimal);
 
     ImGui::BeginChild("tree");
-    auto& elves = g_emulator->m_psxMem->getElves();
+    auto& elves = g_emulator->m_mem->getElves();
     for (auto& e : elves) {
         switch (m_orderBy) {
             case BY_CU: {

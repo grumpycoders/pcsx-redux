@@ -207,7 +207,7 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
     }
     uint32_t bit = 1 << (call % 32);
     if (!flags || ((*flags & bit) == 0)) return;
-    auto &n = m_psxRegs.GPR.n;
+    auto &n = m_regs.GPR.n;
     const char *const name = Kernel::getA0name(call);
     if (name) g_system->log(LogClass::KERNEL, "KernelCall A0:%02X:%s(", call, name);
 
@@ -852,7 +852,7 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
     }
     uint32_t bit = 1 << (call % 32);
     if (!flags || ((*flags & bit) == 0)) return;
-    auto &n = m_psxRegs.GPR.n;
+    auto &n = m_regs.GPR.n;
     const char *const name = Kernel::getB0name(call);
     if (name) g_system->log(LogClass::KERNEL, "KernelCall B0:%02X:%s(", call, name);
 
@@ -891,8 +891,7 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x08: {
-            int id =
-                Kernel::Events::getFirstFreeEvent(reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM));
+            int id = Kernel::Events::getFirstFreeEvent(reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM));
             g_system->log(LogClass::KERNEL, "%s, %s, %s, 0x%08x) --> 0x%08x",
                           Kernel::Events::Event::resolveClass(n.a0).c_str(),
                           Kernel::Events::Event::resolveSpec(n.a1).c_str(),
@@ -900,27 +899,27 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x09: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0a: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0b: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0c: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0d: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM), n.a0};
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_psxM), n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
@@ -1174,7 +1173,7 @@ void PCSX::R3000Acpu::logC0KernelCall(uint32_t call) {
     }
     uint32_t bit = 1 << (call % 32);
     if (!flags || ((*flags & bit) == 0)) return;
-    auto &n = m_psxRegs.GPR.n;
+    auto &n = m_regs.GPR.n;
     switch (call) {
         case 0x00: {
             g_system->log(LogClass::KERNEL, "%i)", n.a0);
@@ -1270,7 +1269,7 @@ void PCSX::R3000Acpu::logC0KernelCall(uint32_t call) {
         }
         default: {
             g_system->log(LogClass::KERNEL, "KernelCall: unknown kernel call C0:%02X from 0x%08x\n", call,
-                          m_psxRegs.GPR.n.ra);
+                          m_regs.GPR.n.ra);
             break;
         }
     }
