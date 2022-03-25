@@ -204,16 +204,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
   private:
-    // Sets dest to "pointer", using base pointer relative addressing if possible
-    void loadAddress(Xbyak::Reg64 dest, void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)this;
-
-        if (Xbyak::inner::IsInInt32(distance)) {
-            gen.lea(dest, ptr[contextPointer + distance]);
-        } else {
-            gen.mov(dest, (uintptr_t)pointer);
-        }
-    }
+    // Sets dest to "pointer"
+    void loadAddress(Xbyak::Reg64 dest, void* pointer) { gen.mov(dest, (uintptr_t)pointer); }
 
     // Loads a value into dest from the given pointer.
     // Tries to use base pointer relative addressing, otherwise uses movabs
@@ -300,8 +292,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         static_assert(sizeof(T) == 16, "[x64 JIT] Invalid size for member function pointer");
         uintptr_t arr[2];
         std::memcpy(arr, &func, sizeof(T));
-        functionPtr = reinterpret_cast<void*>(arr[0]);  // First 8 bytes correspond to the actual pointer to the function
-        thisPtr += arr[1];     // Next 8 bytes correspond to the "this" pointer adjustment
+        // First 8 bytes correspond to the actual pointer to the function
+        functionPtr = reinterpret_cast<void*>(arr[0]);
+        // Next 8 bytes correspond to the "this" pointer adjustment
+        thisPtr += arr[1];
 #endif
 
         // Load this pointer to arg1
@@ -485,7 +479,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         gen.callFunc(func);
     }
 
-    // Load a pointer to the JIT object in "reg" using lea with the context pointer
+    // Load a pointer to the JIT object in "reg"
     void loadThisPointer(Xbyak::Reg64 reg) { gen.mov(reg, contextPointer); }
 
     template <int size, bool signExtend>
