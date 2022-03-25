@@ -81,7 +81,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
             auto& regs = m_psxRegs.GPR.n;
             switch (code) {
                 case 0x101: {  // PCinit
-                    m_pcdrvFiles.destroyAll();
+                    closeAllPCdevFiles();
                     regs.v0 = 0;
                     regs.v1 = 0;
                     m_psxRegs.pc += 4;
@@ -100,11 +100,12 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     do {
                         file = m_pcdrvFiles.find(++m_pcdrvIndex);
                     } while (file != m_pcdrvFiles.end());
-                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename, File::CREATE));
+                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename, FileOps::TRUNCATE));
                     file->m_relativeFilename = filename;
                     if (file->failed()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        file->close();
                         delete &*file;
                     } else {
                         regs.v0 = 0;
@@ -131,6 +132,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     if (file->failed()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        file->close();
                         delete &*file;
                     } else {
                         regs.v0 = 0;
@@ -147,6 +149,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                     } else {
                         regs.v0 = 0;
                         regs.v1 = 0;
+                        file->close();
                         delete &*file;
                     }
                     m_psxRegs.pc += 4;
@@ -209,10 +212,10 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
                             m_psxRegs.pc += 4;
                             return;
                     }
-                    auto ret = file->seek(regs.a2, wheel);
+                    auto ret = file->writable() ? file->wSeek(regs.a2, wheel) : file->rSeek(regs.a2, wheel);
                     if (ret == 0) {
                         regs.v0 = 0;
-                        regs.v1 = file->tell();
+                        regs.v1 = file->writable() ? file->wTell() : file->rTell();
                     } else {
                         regs.v0 = -1;
                         regs.v1 = ret;
@@ -263,11 +266,13 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
     m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename));
 }
 
-void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd, File::Create) {
+void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd, FileOps::Create) {
     auto& emuSettings = g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-    m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename, File::CREATE));
+    auto f = new PCdrvFile(basepath / filename, FileOps::CREATE);
+    f->wSeek(0, SEEK_END);
+    m_pcdrvFiles.insert(fd, f);
 }
 
 void PCSX::R3000Acpu::psxBranchTest() {
@@ -328,6 +333,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
         };
 
         checkAndUpdate(PSXINT_SIO, []() { g_emulator->m_sio->interrupt(); });
+        checkAndUpdate(PSXINT_SIO1, []() { g_emulator->m_sio1->interrupt(); });
         checkAndUpdate(PSXINT_CDR, []() { g_emulator->m_cdrom->interrupt(); });
         checkAndUpdate(PSXINT_CDREAD, []() { g_emulator->m_cdrom->readInterrupt(); });
         checkAndUpdate(PSXINT_GPUDMA, []() { GPU::gpuInterrupt(); });
@@ -342,6 +348,19 @@ void PCSX::R3000Acpu::psxBranchTest() {
         m_psxRegs.lowestTarget = lowestTarget;
     }
     if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_psxRegs.CP0.n.Status & 0x401) == 0x401)) {
+        // If the next instruction is a GTE instruction sans LWC2/SWC2, there's a hardware bug where the instruction
+        // gets executed
+        // But EPC still ends up pointing to the GTE instruction. In this case, the BIOS will add 4 to EPC to skip the
+        // GTE instruction. To deal with this, we do not fire IRQs if the next instruction is a GTE instruction
+        // https://psx-spx.consoledev.net/cpuspecifications/#interrupts-vs-gte-commands
+        const auto pointer = (uint32_t*)PSXM(m_psxRegs.pc);
+        if (pointer != nullptr) {
+            const auto next = *pointer;           // Fetch next instruction
+            if (((next >> 24) & 0xfe) == 0x4a) {  // Return if it's a GTE instruction
+                return;
+            }
+        }
+
         PSXIRQ_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
         psxException(0x400, 0);
     }

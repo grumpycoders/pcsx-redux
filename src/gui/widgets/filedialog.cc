@@ -143,10 +143,10 @@ bool PCSX::Widgets::FileDialog::draw() {
             }
             m_spaceInfo = std::filesystem::space(m_currentPath);
             for (auto& p : std::filesystem::directory_iterator(m_currentPath)) {
-                if (p.is_directory()) {
-                    m_directories.push_back(p.path().filename().u8string());
-                } else {
-                    try {
+                try {
+                    if (p.is_directory()) {
+                        m_directories.push_back(p.path().filename().u8string());
+                    } else {
                         auto lastWrite = std::filesystem::last_write_time(p);
                         auto lastWriteSystemClock = ClockCast<std::chrono::system_clock::time_point>(lastWrite);
                         std::time_t dateTime = std::chrono::system_clock::to_time_t(lastWriteSystemClock);
@@ -155,8 +155,8 @@ bool PCSX::Widgets::FileDialog::draw() {
                         formatted << std::put_time(converted, "%c");
                         m_files.push_back(
                             {p.path().filename().u8string(), std::filesystem::file_size(p), formatted.str(), dateTime});
-                    } catch (...) {
                     }
+                } catch (...) {
                 }
             }
             if (m_sorter.name != UNSORTED || m_sorter.size != UNSORTED || m_sorter.date != UNSORTED) {
@@ -173,9 +173,10 @@ bool PCSX::Widgets::FileDialog::draw() {
 
         if (ImGui::Button(_("Home"))) goHome = true;
         ImGui::SameLine();
+        auto s = ImGui::GetWindowDpiScale();
         ImGui::TextUnformatted(reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
         {
-            ImGui::BeginChild("Directories", ImVec2(250, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
+            ImGui::BeginChild("Directories", ImVec2(250 * s, 350 * s), true, ImGuiWindowFlags_HorizontalScrollbar);
             if (ImGui::TreeNode(_("Roots"))) {
                 for (auto& p : m_roots) {
                     if (ImGui::Selectable(reinterpret_cast<const char*>(p.label.c_str()), false, 0,
@@ -186,12 +187,12 @@ bool PCSX::Widgets::FileDialog::draw() {
                 ImGui::TreePop();
             }
             if (ImGui::TreeNodeEx(_("Directories"), ImGuiTreeNodeFlags_DefaultOpen)) {
-                if (ImGui::Selectable("..", false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+                if (ImGui::Selectable("..", false, 0, ImVec2(ImGui::GetWindowContentRegionWidth() * s, 0))) {
                     goUp = true;
                 }
                 for (auto& p : m_directories) {
                     if (ImGui::Selectable(reinterpret_cast<const char*>(p.c_str()), false, 0,
-                                          ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+                                          ImVec2(ImGui::GetWindowContentRegionWidth() * s, 0))) {
                         goDown = p;
                     }
                 }
@@ -202,7 +203,7 @@ bool PCSX::Widgets::FileDialog::draw() {
         ImGui::SameLine();
         {
             std::string header;
-            ImGui::BeginChild(_("Files"), ImVec2(500, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
+            ImGui::BeginChild(_("Files"), ImVec2(500 * s, 350 * s), true, ImGuiWindowFlags_HorizontalScrollbar);
             ImGui::Columns(3);
             switch (m_sorter.name) {
                 case UNSORTED:
@@ -333,7 +334,7 @@ bool PCSX::Widgets::FileDialog::draw() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, lolight);
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, lolight);
         }
-        if (ImGui::Button(_("OK"), ImVec2(120, 30)) && gotSelected) {
+        if (ImGui::Button(_("OK"), ImVec2(120 * s, 30 * s)) && gotSelected) {
             m_selected.clear();
             m_selected.push_back(selectedStr);
             ImGui::CloseCurrentPopup();
@@ -342,7 +343,7 @@ bool PCSX::Widgets::FileDialog::draw() {
         if (!gotSelected) ImGui::PopStyleColor(3);
         ImGui::SetItemDefaultFocus();
         ImGui::SameLine();
-        if (ImGui::Button(_("Cancel"), ImVec2(120, 30))) {
+        if (ImGui::Button(_("Cancel"), ImVec2(120 * s, 30 * s))) {
             ImGui::CloseCurrentPopup();
             done = true;
         }

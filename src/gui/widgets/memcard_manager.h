@@ -19,53 +19,59 @@
 
 #pragma once
 
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
 #include "GL/gl3w.h"
+#include "clip/clip.h"
 #include "core/sio.h"
 #include "imgui.h"
-#include "imgui_memory_editor/imgui_memory_editor.h"
 
 namespace PCSX {
+
+class GUI;
 namespace Widgets {
 
 class MemcardManager {
   public:
-    bool draw(const char* title);
+    bool draw(GUI* gui, const char* title);
     bool m_show = false;
     // The framecount from 0 to 59 inclusive. We need it to know which frame of multi-animation
     // icons to display.
     int m_frameCount = 0;
 
-    MemcardManager();
+    MemcardManager() {}
     void initTextures();
 
   private:
-    int m_selectedCard = 1;
     int m_iconSize = 32;  // The width and length of the icon images
-    int m_selectedBlock;
-    bool m_showMemoryEditor = false;
     bool m_drawPocketstationIcons = false;
-    uint8_t* m_currentCardData = (uint8_t*)g_emulator->m_sio->GetMcdData(m_selectedCard);
+    std::vector<std::pair<std::string, std::unique_ptr<uint8_t[]>>> m_undo;
 
-    GLuint m_iconTextures[15];
-    MemoryEditor m_memoryEditor;
+    GLuint m_iconTextures[15] = {0};
 
-    enum class Actions { None, Format, Move, Copy, Swap };
-    struct {
-        Actions type = Actions::None;
-        // The block from m_selectedCard we will use as our source
-        int sourceBlock;
-        // The memory card (1 or 2) our operation will target
-        int targetCard;
-        // Buffer to store the title for our action popups
-        std::string popupText = "";
-        // Buffer to store user-provided block numbers. Needs to store 2 digits + a null terminator, so 3 chars
-        char textInput[3] = "";
-    } m_pendingAction;
+    clip::image getIconRGBA8888(const SIO::McdBlock& block);
 
-    void drawIcon(int blockNumber, const PCSX::SIO::McdBlock& block);
-    void exportPNG(int blockNumber, const PCSX::SIO::McdBlock& block);
-    void getPocketstationIcon(uint32_t* pixels, int blockNumber);
-    void performAction();
+    void drawIcon(const SIO::McdBlock& block);
+    void exportPNG(const SIO::McdBlock& block);
+    void copyToClipboard(const SIO::McdBlock& block);
+    void getPocketstationIcon(uint32_t* pixels, const SIO::McdBlock& block);
+
+    void saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action);
+
+    std::unique_ptr<uint8_t[]> getLatest() {
+        std::unique_ptr<uint8_t[]> data(new uint8_t[SIO::MCD_SIZE * 2]);
+        std::memcpy(data.get(), g_emulator->m_sio->getMcdData(1), SIO::MCD_SIZE);
+        std::memcpy(data.get() + SIO::MCD_SIZE, g_emulator->m_sio->getMcdData(2), SIO::MCD_SIZE);
+
+        return data;
+    }
+
+    int m_undoIndex = 0;
+    std::unique_ptr<uint8_t[]> m_latest;
 };
 
 }  // namespace Widgets

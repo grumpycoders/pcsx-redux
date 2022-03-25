@@ -633,13 +633,13 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
 #define RepZBranchLinki32(op)                                    \
     {                                                            \
         uint32_t ra = m_psxRegs.pc + 4;                          \
-        m_psxRegs.GPR.r[31] = ra;                                \
-        maybeCancelDelayedLoad(31);                              \
         if ((int32_t)_rRs_ op 0) {                               \
             uint32_t sp = m_psxRegs.GPR.n.sp;                    \
             doBranch(_BranchTarget_, true);                      \
             PCSX::g_emulator->m_callStacks->potentialRA(ra, sp); \
         }                                                        \
+        m_psxRegs.GPR.r[31] = ra;                                \
+        maybeCancelDelayedLoad(31);                              \
     }
 
 void InterpretedCPU::psxBGEZ(uint32_t code) { RepZBranchi32(>=) }         // Branch if Rs >= 0
@@ -994,7 +994,7 @@ void InterpretedCPU::psxLWR(uint32_t code) {
     */
 }
 
-void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, (uint8_t)_rRt_); }
+void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, _rRt_); }
 void InterpretedCPU::psxSH(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
             .get<PCSX::Emulator::DebugSettings::Debug>()) {
@@ -1007,7 +1007,7 @@ void InterpretedCPU::psxSH(uint32_t code) {
             return;
         }
     }
-    PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, (uint16_t)_rRt_);
+    PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, _rRt_);
 }
 
 void InterpretedCPU::psxSW(uint32_t code) {
@@ -1197,14 +1197,14 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_psxSPC[64] = {
 // If the lowest bit of the rt field is 1 then the instruction is a BGEZ, otherwise it's a BLTZ.
 // If ((_Rt_ >> 4) & 0xF) == 0x8 then the instruction should link the return address to $ra, otherwise not.
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxREG[32] = {
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 00
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 04
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 08
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 0c
-    &InterpretedCPU::psxBLTZAL, &InterpretedCPU::psxBGEZAL, &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 10
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 14
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ, // 18
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ  // 1c
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ,  // 00
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ,  // 04
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ,  // 08
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ,  // 0c
+    &InterpretedCPU::psxBLTZAL, &InterpretedCPU::psxBGEZAL, &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ,  // 10
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ,  // 14
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ,  // 18
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxBLTZ, &InterpretedCPU::psxBGEZ   // 1c
 };
 
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxCP0[32] = {

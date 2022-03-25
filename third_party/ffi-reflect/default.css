@@ -1,0 +1,61 @@
+body {
+  background-color: #E6ECFF;
+  margin-left: 10%;
+  margin-right: 10%;
+}
+
+.qi {
+  border-collapse: collapse;
+  border-bottom: 1px #BFCFFF solid;
+}
+
+.qi td, .qi th {
+  border-left: 1px #BFCFFF solid;
+  border-right: 1px #BFCFFF solid;
+}
+
+.qi th {
+  padding-right: 0.2em;
+  padding-left: 0.2em;
+}
+.qi td {
+  text-align: center;
+}
+
+.qi .r0 th {
+  border-top: 1px #BFCFFF solid;
+  border-bottom: 1px #BFCFFF solid;
+}
+
+.qi .r1 {
+  background-color: #F0F4FF;
+}
+
+.qi .r1 th, .qi .r2 th {
+  text-align: right;
+  width: 8em;
+}
+
+p, pre {
+  margin: 0;
+  padding: 0;
+}
+
+h2 {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+div.example {
+  padding-top: 0.25em;
+}
+
+div:target h2 {
+  color: #808080;
+}
+
+.example pre {
+  background-color: #F0F4FF;
+  border: 1px #BFCFFF solid;
+  padding: 4px;
+}

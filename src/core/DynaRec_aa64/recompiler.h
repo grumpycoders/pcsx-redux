@@ -51,10 +51,10 @@ static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
-static void psxMemWrite8Wrapper(uint32_t address, uint8_t value) {
+static void psxMemWrite8Wrapper(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_psxMem->psxMemWrite8(address, value);
 }
-static void psxMemWrite16Wrapper(uint32_t address, uint16_t value) {
+static void psxMemWrite16Wrapper(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_psxMem->psxMemWrite16(address, value);
 }
 static void psxMemWrite32Wrapper(uint32_t address, uint32_t value) {

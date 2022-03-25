@@ -28,11 +28,11 @@
 #include "flags.h"
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
-#include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/callstacks.h"
 #include "gui/widgets/console.h"
 #include "gui/widgets/dwarf.h"
+#include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/kernellog.h"
@@ -96,13 +96,15 @@ class GUI final {
         s_gui = nullptr;
     }
     void init();
+    void setLua();
     void close();
     void update(bool vsync = false);
     void flip();
     void bindVRAMTexture();
     GLuint getVRAMTexture() { return m_VRAMTexture; }
     void setViewport();
-    void setFullscreen(bool);
+    void setFullscreen(bool fullscreen);
+    void setRawMouseMotion(bool value);
     bool addLog(LogClass logClass, const std::string &msg) {
         return m_log.addLog(magic_enum::enum_integer(logClass), msg);
     }
@@ -199,7 +201,7 @@ class GUI final {
     int m_currentTexture = 0;
 
     ImVec4 m_backgroundColor = ImColor(114, 144, 154);
-    ImVec2 m_framebufferSize = ImVec2(1, 1); // Size of GLFW window framebuffer
+    ImVec2 m_framebufferSize = ImVec2(1, 1);  // Size of GLFW window framebuffer
     ImVec2 m_renderSize = ImVec2(1, 1);
 
     bool &m_fullscreen = {settings.get<Fullscreen>().value};
@@ -220,14 +222,17 @@ class GUI final {
     typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
     typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
+    typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize, GUITheme>
+             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize, GUITheme,
+             EnableRawMouseMotion>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
     int &m_idleSwapInterval = {settings.get<IdleSwapInterval>().value};
     bool m_showThemes = false;
     bool m_showDemo = false;
+    bool m_showHandles = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
@@ -306,13 +311,17 @@ class GUI final {
 
     ImFont *m_mainFont;
     ImFont *m_monoFont;
+    bool m_hasJapanese = false;
 
     ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
 
     bool m_reloadFonts = true;
     Widgets::ShaderEditor m_outputShaderEditor = {"output"};
 
+    static void byteRateToString(float rate, std::string &out);
+
   public:
+    bool hasJapanese() { return m_hasJapanese; }
     bool m_setupScreenSize = true;
     Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
     ImFont *getMono() { return m_monoFont ? m_monoFont : ImGui::GetIO().Fonts[0].Fonts[0]; }
@@ -334,6 +343,7 @@ class GUI final {
         bool pauseAfterLoad = true;
     } m_exeToLoad;
 
+    bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
     void useMainFont() { ImGui::PushFont(m_mainFont); }
     void useMonoFont() { ImGui::PushFont(m_monoFont); }
 };

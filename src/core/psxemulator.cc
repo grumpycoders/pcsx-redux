@@ -31,8 +31,12 @@
 #include "core/pcsxlua.h"
 #include "core/ppf.h"
 #include "core/r3000a.h"
+#include "core/sio1-server.h"
+#include "core/sio1.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
+#include "lua/extra.h"
+#include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "lua/zlibffi.h"
 extern "C" {
@@ -51,12 +55,18 @@ PCSX::Emulator::Emulator()
       m_gpu(new PCSX::SoftGPU::impl()),
       m_gdbServer(new PCSX::GdbServer()),
       m_webServer(new PCSX::WebServer()),
+      m_sio1(new PCSX::SIO1()),
+      m_sio1Server(new PCSX::SIO1Server()),
       m_debug(new PCSX::Debug()),
       m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),
       m_pads(new PCSX::Pads()),
       m_lua(new PCSX::Lua()),
       m_callStacks(new PCSX::CallStacks) {
+    uv_loop_init(&m_loop);
+}
+
+void PCSX::Emulator::setLua() {
     m_lua->open_base();
     m_lua->open_bit();
     m_lua->open_debug();
@@ -67,12 +77,13 @@ PCSX::Emulator::Emulator()
     m_lua->open_string();
     m_lua->open_table();
     LuaFFI::open_zlib(m_lua.get());
-    uv_loop_init(&m_loop);
     luv_set_loop(m_lua->getState(), &m_loop);
     m_lua->push("luv");
     luaopen_luv(m_lua->getState());
     m_lua->settable(LUA_GLOBALSINDEX);
     LuaFFI::open_pcsx(m_lua.get());
+    LuaFFI::open_file(m_lua.get());
+    LuaFFI::open_extra(m_lua.get());
 }
 
 PCSX::Emulator::~Emulator() {
@@ -81,16 +92,16 @@ PCSX::Emulator::~Emulator() {
     uv_loop_close(&g_emulator->m_loop);
 }
 
-int PCSX::Emulator::EmuInit() {
+int PCSX::Emulator::init() {
     assert(g_system);
     if (m_psxMem->psxMemInit() == -1) return -1;
     int ret = PCSX::R3000Acpu::psxInit();
-    EmuSetPGXPMode(m_config.PGXP_Mode);
+    setPGXPMode(m_config.PGXP_Mode);
     m_pads->init();
     return ret;
 }
 
-void PCSX::Emulator::EmuReset() {
+void PCSX::Emulator::reset() {
     m_cheats->FreeCheatSearchResults();
     m_cheats->FreeCheatSearchMem();
     m_psxMem->psxMemReset();
@@ -99,9 +110,11 @@ void PCSX::Emulator::EmuReset() {
     m_gpu->clearVRAM();
     m_pads->shutdown();
     m_pads->init();
+    m_pads->reset();
+    m_sio1->sio1Reset();
 }
 
-void PCSX::Emulator::EmuShutdown() {
+void PCSX::Emulator::shutdown() {
     m_cheats->ClearAllCheats();
     m_cheats->FreeCheatSearchResults();
     m_cheats->FreeCheatSearchMem();
@@ -122,6 +135,6 @@ void PCSX::Emulator::vsync() {
     }
 }
 
-void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { m_psxCpu->psxSetPGXPMode(pgxpMode); }
+void PCSX::Emulator::setPGXPMode(uint32_t pgxpMode) { m_psxCpu->psxSetPGXPMode(pgxpMode); }
 
 PCSX::Emulator* PCSX::g_emulator;

@@ -128,25 +128,62 @@ class SIO {
 
     void LoadMcd(int mcd, const PCSX::u8string str);
     void LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);
-    void SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
-    void SaveMcd(int mcd);
+    void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+    void saveMcd(int mcd);
     void CreateMcd(const PCSX::u8string mcd);
     void ConvertMcd(const PCSX::u8string mcd, const char *data);
 
-    typedef struct {
-        char Title[48 + 1];       // Title in ASCII
-        char sTitle[48 * 2 + 1];  // Title in Shift-JIS
-        char ID[12 + 1];
-        char Name[16 + 1];
-        uint32_t Filesize;
-        uint32_t IconCount;
-        uint16_t Icon[16 * 16 * 3];
-        uint8_t Flags;
-    } McdBlock;
+    struct McdBlock {
+        McdBlock() { reset(); }
+        int mcd;
+        int number;
+        std::string titleAscii;
+        std::string titleSjis;
+        std::string titleUtf8;
+        std::string id;
+        std::string name;
+        uint32_t fileSize;
+        uint32_t iconCount;
+        uint16_t icon[16 * 16 * 3];
+        uint32_t allocState;
+        int16_t nextBlock;
+        void reset() {
+            mcd = 0;
+            number = 0;
+            titleAscii.clear();
+            titleSjis.clear();
+            titleUtf8.clear();
+            id.clear();
+            name.clear();
+            fileSize = 0;
+            iconCount = 0;
+            memset(icon, 0, sizeof(icon));
+            allocState = 0;
+            nextBlock = -1;
+        }
+        bool isErased() const { return (allocState & 0xa0) == 0xa0; }
+        bool isChained() const { return (allocState & ~1) == 0x52; }
+    };
 
-    void GetMcdBlockInfo(int mcd, int block, McdBlock *info);
-    void FormatMcdBlock(int mcd, int block);
-    char *GetMcdData(int mcd);
+    void getMcdBlockInfo(int mcd, int block, McdBlock &info);
+    void eraseMcdFile(const McdBlock &block);
+    void eraseMcdFile(int mcd, int block) {
+        McdBlock info;
+        getMcdBlockInfo(mcd, block, info);
+        eraseMcdFile(info);
+    }
+    static constexpr int otherMcd(int mcd) {
+        if ((mcd != 1) && (mcd != 2)) throw std::runtime_error("Bad memory card number");
+        if (mcd == 1) return 2;
+        return 1;
+    }
+    static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
+    unsigned getFreeSpace(int mcd);
+    unsigned getFileBlockCount(McdBlock block);
+    int findFirstFree(int mcd);
+    bool copyMcdFile(McdBlock block);
+    char *getMcdData(int mcd);
+    char *getMcdData(const McdBlock &block) { return getMcdData(block.mcd); }
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
 

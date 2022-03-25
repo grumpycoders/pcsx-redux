@@ -1,5 +1,4 @@
---lualoader, R"EOF(--
-
+-- lualoader, R"EOF(--
 ffi.cdef [[
 typedef union {
     struct {
@@ -33,16 +32,17 @@ typedef struct {
 } psxRegisters;
 
 enum BreakpointType { Exec, Read, Write };
+typedef struct { uint8_t opaque[?]; } Breakpoint;
 
 uint8_t* getMemPtr();
 uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
-void* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)());
-void enableBreakpoint(void*);
-void disableBreakpoint(void*);
-bool breakpointEnabled(void*);
-void removeBreakpoint(void*);
+Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)());
+void enableBreakpoint(Breakpoint*);
+void disableBreakpoint(Breakpoint*);
+bool breakpointEnabled(Breakpoint*);
+void removeBreakpoint(Breakpoint*);
 void pauseEmulator();
 void resumeEmulator();
 void softResetEmulator();
@@ -67,11 +67,7 @@ local function defaultInvoker()
     return true
 end
 
-local validBpTypes = {
-    Exec = true,
-    Read = true,
-    Write = true,
-}
+local validBpTypes = { Exec = true, Read = true, Write = true }
 
 local function addBreakpoint(address, bptype, width, cause, invoker)
     if type(address) ~= 'number' then error 'PCSX.addBreakpoint needs an address' end
@@ -87,12 +83,14 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
     if type(cause) ~= 'string' then error 'PCSX.addBreakpoint needs a cause that is a string' end
     local invokercb = defaultInvoker
     if invoker ~= nil then
-        if type(invoker) ~= 'function' then
-            error 'PCSX.addBreakpoint needs an invoker that is a function'
-        end
+        if type(invoker) ~= 'function' then error 'PCSX.addBreakpoint needs an invoker that is a function' end
         invokercb = function()
             local ret = invoker()
-            if ret == false then return false else return true end
+            if ret == false then
+                return false
+            else
+                return true
+            end
         end
     end
     local invokercb = ffi.cast('bool (*)()', invokercb)
@@ -111,9 +109,7 @@ end
 
 local function printLike(callback, ...)
     local s = ''
-    for i, v in ipairs({...}) do
-        s = s .. tostring(v) .. ' '
-    end
+    for i, v in ipairs({ ... }) do s = s .. tostring(v) .. ' ' end
     callback(s)
 end
 
@@ -140,10 +136,7 @@ PCSX = {
     softResetEmulator = function() C.softResetEmulator() end,
     hardResetEmulator = function() C.hardResetEmulator() end,
     log = function(...) printLike(C.luaLog, ...) end,
-    GUI = {
-        jumpToPC = jumpToPC,
-        jumpToMemory = jumpToMemory,
-    },
+    GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end

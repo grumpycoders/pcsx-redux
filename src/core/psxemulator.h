@@ -93,6 +93,8 @@ class SIO;
 class SPUInterface;
 class System;
 class WebServer;
+class SIO1;
+class SIO1Server;
 
 class Emulator;
 extern Emulator* g_emulator;
@@ -145,11 +147,13 @@ class Emulator {
         typedef Setting<uint32_t, TYPESTRING("KernelCallC0_00_1f"), 0xffffffff> KernelCallC0_00_1f;
         typedef Setting<bool, TYPESTRING("PCdrv"), false> PCdrv;
         typedef SettingPath<TYPESTRING("PCdrvBase")> PCdrvBase;
+        typedef Setting<bool, TYPESTRING("SIO1Server"), false> SIO1Server;
+        typedef Setting<int, TYPESTRING("SIO1ServerPort"), 6699> SIO1ServerPort;
         typedef Settings<Debug, Trace, KernelLog, FirstChanceException, SkipISR, LoggingCDROM, GdbServer, GdbManifest,
                          GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
                          KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f, KernelCallA0_80_9f,
                          KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f, KernelCallB0_40_5f,
-                         KernelCallC0_00_1f, PCdrv, PCdrvBase>
+                         KernelCallC0_00_1f, PCdrv, PCdrvBase, SIO1Server, SIO1ServerPort>
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
@@ -179,12 +183,13 @@ class Emulator {
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     typedef Setting<int, TYPESTRING("Dither"), 2> SettingDither;
     typedef Setting<bool, TYPESTRING("ReportGLErrors"), false> SettingGLErrorReporting;
+    typedef Setting<bool, TYPESTRING("FullCaching"), false> SettingFullCaching;
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingFastBoot, SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
              SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither,
-             SettingGLErrorReporting>
+             SettingGLErrorReporting, SettingFullCaching>
         settings;
     class PcsxConfig {
       public:
@@ -219,11 +224,13 @@ class Emulator {
     uint32_t m_psxClockSpeed = 33868800 /* 33.8688 MHz */;
     enum { BIAS = 2 };
 
-    int EmuInit();
-    void EmuReset();
-    void EmuShutdown();
+    int init();
+    void reset();
+    void shutdown();
     void vsync();
-    void EmuSetPGXPMode(uint32_t pgxpMode);
+    void setPGXPMode(uint32_t pgxpMode);
+
+    void setLua();
 
     PcsxConfig& config() { return m_config; }
 
@@ -242,6 +249,8 @@ class Emulator {
     std::unique_ptr<Pads> m_pads;
     std::unique_ptr<R3000Acpu> m_psxCpu;
     std::unique_ptr<SIO> m_sio;
+    std::unique_ptr<SIO1> m_sio1;
+    std::unique_ptr<SIO1Server> m_sio1Server;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
 

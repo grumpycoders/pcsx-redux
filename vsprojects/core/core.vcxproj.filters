@@ -1,31 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Source Files\ix86">
-      <UniqueIdentifier>{f3ac4441-f8d0-4cf2-8c18-a1a8df1e5c67}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\DynaRec_x64">
-      <UniqueIdentifier>{977d5853-19bd-442f-9d0e-1754e7a6ef04}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\DynaRec_x64">
-      <UniqueIdentifier>{c8d2bddb-ee57-46cc-947a-e63b4a02e604}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\src\core\ix86\iR3000A.cc">
-      <Filter>Source Files\ix86</Filter>
+    <ClCompile Include="..\..\src\core\binloader.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\callstacks.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\cdriso.cc">
       <Filter>Source Files</Filter>
@@ -45,16 +25,34 @@
     <ClCompile Include="..\..\src\core\disr3000a.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\elfloader.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\gdb-server.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\gpu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\gte.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\kernel.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\kernellog.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\mdec.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\misc.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\pad.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\pcsxlua.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\pgxp_cpu.cc">
@@ -72,215 +70,208 @@
     <ClCompile Include="..\..\src\core\pgxp_value.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\ppf.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\psxcounters.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\psxdma.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\psxhw.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\psxinterpreter.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\psxmem.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\r3000a.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\sio.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\spu.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\psxemulator.cc">
+    <ClCompile Include="..\..\src\core\web-server.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\system.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\pad.cc">
+    <ClCompile Include="..\..\src\core\stacktrace.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\sstate.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\elfloader.cc">
+    <ClCompile Include="..\..\src\core\spu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\stacktrace.cc">
+    <ClCompile Include="..\..\src\core\sio.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\gdb-server.cc">
+    <ClCompile Include="..\..\src\core\r3000a.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\binloader.cc">
+    <ClCompile Include="..\..\src\core\psxmem.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\web-server.cc">
+    <ClCompile Include="..\..\src\core\psxinterpreter.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\kernel.cc">
+    <ClCompile Include="..\..\src\core\psxhw.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\kernellog.cc">
+    <ClCompile Include="..\..\src\core\psxemulator.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc">
-      <Filter>Source Files\DynaRec_x64</Filter>
+    <ClCompile Include="..\..\src\core\psxdma.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_x64\profiler.cc">
-      <Filter>Source Files\DynaRec_x64</Filter>
+    <ClCompile Include="..\..\src\core\psxcounters.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc">
-      <Filter>Source Files\DynaRec_x64</Filter>
+    <ClCompile Include="..\..\src\core\ppf.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc">
-      <Filter>Source Files\DynaRec_x64</Filter>
+    <ClCompile Include="..\..\src\core\sio1.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_x64\symbols.cc">
-      <Filter>Source Files\DynaRec_x64</Filter>
+    <ClCompile Include="..\..\src\core\sio1-server.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\DynaRec_x64\gte_x64.cc">
-      <Filter>Source Files\DynaRec_x64</Filter>
-    <ClCompile Include="..\..\src\core\callstacks.cc">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Dynarec x64</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\pcsxlua.cc">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc">
+      <Filter>Source Files\Dynarec x64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\profiler.cc">
+      <Filter>Source Files\Dynarec x64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc">
+      <Filter>Source Files\Dynarec x64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc">
+      <Filter>Source Files\Dynarec x64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\symbols.cc">
+      <Filter>Source Files\Dynarec x64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x86\iR3000A.cc">
+      <Filter>Source Files\Dynarec x86</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\core\cdriso.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\cdrom.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\cheat.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\coff.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\debug.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\decode_xa.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\gpu.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\gte.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\mdec.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\misc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\pgxp_cpu.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\pgxp_debug.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\pgxp_gte.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\pgxp_mem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\pgxp_value.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\ppf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\psxcounters.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\psxdma.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\psxhw.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\psxmem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\r3000a.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\sio.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\spu.h">
+    <ClInclude Include="..\..\src\core\web-server.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\system.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\psxemulator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\logger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\disr3000a.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\pad.h">
+    <ClInclude Include="..\..\src\core\stacktrace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\sstate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\elfloader.h">
+    <ClInclude Include="..\..\src\core\spu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\stacktrace.h">
+    <ClInclude Include="..\..\src\core\sio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\gdb-server.h">
+    <ClInclude Include="..\..\src\core\r3000a.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\binloader.h">
+    <ClInclude Include="..\..\src\core\psxmem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\web-server.h">
+    <ClInclude Include="..\..\src\core\psxhw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\mips\common\util\encoder.hh">
+    <ClInclude Include="..\..\src\core\psxemulator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\psxdma.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\psxcounters.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\ppf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\pgxp_value.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\pgxp_mem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\pgxp_gte.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\pgxp_debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\pgxp_cpu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\pcsxlua.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\pad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\misc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\mdec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\kernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h">
-      <Filter>Header Files\DynaRec_x64</Filter>
+    <ClInclude Include="..\..\src\core\gte.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\DynaRec_x64\profiler.h">
-      <Filter>Header Files\DynaRec_x64</Filter>
+    <ClInclude Include="..\..\src\core\gpu.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h">
-      <Filter>Header Files\DynaRec_x64</Filter>
+    <ClInclude Include="..\..\src\core\gdb-server.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h">
-      <Filter>Header Files\DynaRec_x64</Filter>
+    <ClInclude Include="..\..\src\mips\common\util\encoder.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\elfloader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\disr3000a.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\decode_xa.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\coff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\cheat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\cdrom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\cdriso.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\callstacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\pcsxlua.h">
+    <ClInclude Include="..\..\src\core\binloader.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\sio1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\sio1-server.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h">
+      <Filter>Header Files\Dynarec x64</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\DynaRec_x64\profiler.h">
+      <Filter>Header Files\Dynarec x64</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h">
+      <Filter>Header Files\Dynarec x64</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h">
+      <Filter>Header Files\Dynarec x64</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -288,5 +279,22 @@
     <None Include="..\..\src\core\pcsxffi.lua">
       <Filter>Source Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{c2b051ec-2fdb-48e4-8b0d-95f67757eedd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{7d192058-e43c-43e7-bc94-cc55f71e4c32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dynarec x64">
+      <UniqueIdentifier>{9b31ee43-d5e5-4da5-8035-a05dde539a44}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Dynarec x64">
+      <UniqueIdentifier>{1c53aae3-715b-460f-b374-4632e424a19b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dynarec x86">
+      <UniqueIdentifier>{625a927c-9a94-4054-9b76-56b4ad33beff}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

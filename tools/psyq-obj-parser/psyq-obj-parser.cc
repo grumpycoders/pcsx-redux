@@ -17,9 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <assert.h>
+
 #include <list>
 #include <map>
-#include <assert.h>
 
 #include "elfio/elfio.hpp"
 #include "flags.h"
@@ -109,8 +110,8 @@ struct PsyqLnkFile {
     struct Expression;
 
     /* The main parser entry point; will return nullptr on error */
-    static std::unique_ptr<PsyqLnkFile> parse(PCSX::File* file, bool verbose);
-    static std::string readPsyqString(PCSX::File* file) { return file->readString(file->byte()); }
+    static std::unique_ptr<PsyqLnkFile> parse(PCSX::IO<PCSX::File> file, bool verbose);
+    static std::string readPsyqString(PCSX::IO<PCSX::File> file) { return file->readString(file->byte()); }
 
     /* Our list of sections and symbols will be keyed by their id from the LNK file */
     typedef PCSX::Intrusive::HashTable<uint16_t, Section> SectionHashTable;
@@ -180,7 +181,7 @@ struct PsyqLnkFile {
         uint32_t value;
         uint16_t symbolIndex;
         uint16_t sectionIndex;
-        static std::unique_ptr<Expression> parse(PCSX::File* file, bool verbose, int level = 0);
+        static std::unique_ptr<Expression> parse(PCSX::IO<PCSX::File> file, bool verbose, int level = 0);
         void display(PsyqLnkFile* lnk, bool top = false);
     };
 
@@ -216,7 +217,7 @@ struct PsyqLnkFile {
 };
 
 /* The psyq LNK parser code */
-std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) {
+std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool verbose) {
     std::unique_ptr<PsyqLnkFile> ret = std::make_unique<PsyqLnkFile>();
     vprint(":: Reading signature.\n");
     std::string signature = file->readString(3);
@@ -320,7 +321,8 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 vprint("offset {:04x}+{:08x}, expression: \n", offset, section->pointer);
                 std::unique_ptr<Expression> expression = Expression::parse(file, verbose);
                 if (!expression) return nullptr;
-                section->relocations.emplace_back(Relocation{PsyqRelocType(relocType), offset + section->pointer, std::move(expression)});
+                section->relocations.emplace_back(
+                    Relocation{PsyqRelocType(relocType), offset + section->pointer, std::move(expression)});
                 break;
             }
             case (uint8_t)PsyqOpcode::EXPORTED_SYMBOL: {
@@ -402,7 +404,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 uint16_t sectionIndex = file->read<uint16_t>();
                 uint32_t size = file->read<uint32_t>();
                 std::string name = readPsyqString(file);
-               
+
                 Symbol* symbol = new Symbol();
                 symbol->symbolType = Symbol::Type::UNINITIALIZED;
                 symbol->sectionIndex = sectionIndex;
@@ -414,8 +416,8 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                     return nullptr;
                 }
 
-                // Each entry is aligned to the size of the type after testing the output of mixed .bss and sbss with psyq GCC 2.7.2
-                // this works the same way as modern GCC.
+                // Each entry is aligned to the size of the type after testing the output of mixed .bss and sbss with
+                // psyq GCC 2.7.2 this works the same way as modern GCC.
                 auto sizeToUse = symbol->size;
                 if (sizeToUse > section->alignment) {
                     sizeToUse = section->alignment;
@@ -426,8 +428,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 symbol->offset = section->uninitializedOffset;
 
                 vprint("Uninitialized: id {}, section {}, offset {:08x}, size {:08x}, name {}\n", symbolIndex,
-                       sectionIndex, symbol->offset, size,
-                       name);
+                       sectionIndex, symbol->offset, size, name);
 
                 section->uninitializedOffset += size;
                 ret->symbols.insert(symbolIndex, symbol);
@@ -468,25 +469,26 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
             }
             case (uint8_t)PsyqOpcode::FUNCTION: {
                 uint16_t section = file->read<uint16_t>();
-				uint32_t offset = file->read<uint32_t>();
-				uint16_t _file = file->read<uint16_t>();
-				uint32_t startLine = file->read<uint32_t>();
-				uint16_t frameReg = file->read<uint16_t>();
-				uint32_t frameSize = file->read<uint32_t>();
-				uint16_t retnPcReg = file->read<uint16_t>();
-				uint32_t mask = file->read<uint32_t>();
-				uint32_t maskOffset = file->read<uint32_t>();
+                uint32_t offset = file->read<uint32_t>();
+                uint16_t _file = file->read<uint16_t>();
+                uint32_t startLine = file->read<uint32_t>();
+                uint16_t frameReg = file->read<uint16_t>();
+                uint32_t frameSize = file->read<uint32_t>();
+                uint16_t retnPcReg = file->read<uint16_t>();
+                uint32_t mask = file->read<uint32_t>();
+                uint32_t maskOffset = file->read<uint32_t>();
                 std::string name = readPsyqString(file);
-                vprint("FUNCTION: section {}, offset {}, _file {}, startLine {}, frameReg {}, frameSize {}, retnPcReg {}, mask {}, maskOffset {}, name {}\n",
-                        section, offset, _file, startLine, frameReg, frameSize, retnPcReg, mask, maskOffset, name);
+                vprint(
+                    "FUNCTION: section {}, offset {}, _file {}, startLine {}, frameReg {}, frameSize {}, retnPcReg {}, "
+                    "mask {}, maskOffset {}, name {}\n",
+                    section, offset, _file, startLine, frameReg, frameSize, retnPcReg, mask, maskOffset, name);
                 break;
             }
             case (uint8_t)PsyqOpcode::FUNCTION_END: {
                 uint16_t section = file->read<uint16_t>();
-				uint32_t offset = file->read<uint32_t>();
-				uint32_t endLine = file->read<uint32_t>();
-                vprint("FUNCTION_END: section {}, offset {}, endLine {}\n",
-                        section, offset, endLine);
+                uint32_t offset = file->read<uint32_t>();
+                uint32_t endLine = file->read<uint32_t>();
+                vprint("FUNCTION_END: section {}, offset {}, endLine {}\n", section, offset, endLine);
                 break;
             }
             case (uint8_t)PsyqOpcode::SECTION_DEF: {
@@ -496,8 +498,8 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 uint16_t type = file->read<uint16_t>();
                 uint32_t size = file->read<uint32_t>();
                 std::string name = readPsyqString(file);
-                vprint("SECTION_DEF: section {}, value {}, _class {}, type {}, size {}\n",
-                        section, value, _class, type, size);
+                vprint("SECTION_DEF: section {}, value {}, _class {}, type {}, size {}\n", section, value, _class, type,
+                       size);
                 break;
             }
             case (uint8_t)PsyqOpcode::SECTION_DEF2: {
@@ -516,7 +518,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 std::string tag = readPsyqString(file);
                 std::string name = readPsyqString(file);
                 vprint("SECTION_DEF2: section {}, value {}, _class {}, type {}, size {}, dims {}, tag {}, name {}\n",
-                        section, value, _class, type, size, dims, tag, name);
+                       section, value, _class, type, size, dims, tag, name);
                 break;
             }
             default: {
@@ -531,7 +533,8 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
     return nullptr;
 }
 
-std::unique_ptr<PsyqLnkFile::Expression> PsyqLnkFile::Expression::parse(PCSX::File* file, bool verbose, int level) {
+std::unique_ptr<PsyqLnkFile::Expression> PsyqLnkFile::Expression::parse(PCSX::IO<PCSX::File> file, bool verbose,
+                                                                        int level) {
     std::unique_ptr<PsyqLnkFile::Expression> ret = std::make_unique<PsyqLnkFile::Expression>();
     uint8_t exprOp = file->read<uint8_t>();
     ret->type = PsyqExprOpcode(exprOp);
@@ -831,10 +834,9 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
         elfSectionIndex = section->section->get_index();
         isText = section->isText();
     }
-    elfSym = syma.add_symbol(stra, name.c_str(), getOffset(psyq), size,
-                             symbolType == Type::LOCAL ? STB_LOCAL : STB_GLOBAL,
-                             isText ? STT_FUNC : STT_NOTYPE,
-                             0, elfSectionIndex);
+    elfSym =
+        syma.add_symbol(stra, name.c_str(), getOffset(psyq), size, symbolType == Type::LOCAL ? STB_LOCAL : STB_GLOBAL,
+                        isText ? STT_FUNC : STT_NOTYPE, 0, elfSectionIndex);
     return true;
 }
 
@@ -1159,7 +1161,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
     int ret = 0;
 
     for (auto& input : inputs) {
-        PCSX::File* file = new PCSX::File(input);
+        PCSX::IO<PCSX::File> file(new PCSX::PosixFile(input));
         if (file->failed()) {
             fmt::print("Unable to open file: {}\n", input);
             ret = -1;
@@ -1185,7 +1187,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
                 }
             }
         }
-        delete file;
+        file.reset();
     }
 
     return ret;

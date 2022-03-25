@@ -32,7 +32,8 @@ enum class LogClass : unsigned {
     MIPS,           // only the things coming from MIPS code
     UI,             // messages from the UI specifically
     SIO0,           // pad and memory card information
-    SIO1,           // uart information
+    SIO1,           // uart/sio1 information
+    SIO1SERVER,     // uart/sio1 server information
     GTE,            // gte information
     CDROM,          // low level cdrom information
     CDROM_IO,       // high level cdrom information (iso file access)
@@ -54,11 +55,11 @@ struct Logger {
     static void Log(const char *format, const Args &... args) {
         if (!enabled) return;
         std::string s = fmt::sprintf(format, args...);
-        g_system->log(logClass, s);
+        g_system->log(logClass, std::move(s));
     }
-    static void Log(const std::string &s) {
+    static void Log(std::string &&s) {
         if (!enabled) return;
-        g_system->log(logClass, s);
+        g_system->log(logClass, std::move(s));
     }
     static constexpr bool c_enabled = enabled;
     static constexpr LogClass c_logClass = logClass;

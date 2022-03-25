@@ -19,7 +19,6 @@
 
 #pragma once
 
-
 #ifdef _WIN32
 typedef intptr_t ssize_t;
 #endif

@@ -601,6 +601,24 @@ void PCSX::GdbClient::processCommand() {
             close();
             return;
         }
+        const auto bpActionExec = [action, this](uint32_t addr, Debug::BreakpointType type, unsigned width) -> void {
+            if (action == Action::ADD) {
+                auto bp = g_emulator->m_debug->addBreakpoint(addr, type, 4, _("GDB client"));
+                m_breakpoints.push_back(bp);
+            } else {
+                addr &= ~0xe0000000;
+                auto& tree = g_emulator->m_debug->getTree();
+                auto bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
+                while (bp != tree.end()) {
+                    if (bp->type() == type && !bp->Debug::BreakpointUserListType::Node::isLinked()) {
+                        bp++;
+                    } else {
+                        g_emulator->m_debug->removeBreakpoint(&*bp);
+                        bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
+                    }
+                }
+            }
+        };
         switch (type) {
             case 0:  // software breakpoint - meh, why?
             case 1:  // exec breakpoint
@@ -609,33 +627,22 @@ void PCSX::GdbClient::processCommand() {
                 //  3 = 16-bits microMIPS
                 //  4 = 32-bits MIPS
                 //  5 = 32-bits microMIPS
-                if (action == Action::ADD) {
-                    auto bp = g_emulator->m_debug->addBreakpoint(addr, Debug::BreakpointType::Exec, 4, _("GDB client"));
-                    m_breakpoints.push_back(bp);
-                } else {
-                    auto& tree = g_emulator->m_debug->getTree();
-                    auto bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
-                    while (bp != tree.end()) {
-                        if (bp->type() == Debug::BreakpointType::Exec &&
-                            !bp->Debug::BreakpointUserListType::Node::isLinked()) {
-                            bp++;
-                        } else {
-                            g_emulator->m_debug->removeBreakpoint(&*bp);
-                            bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
-                        }
-                    }
-                }
+                bpActionExec(addr, Debug::BreakpointType::Exec, 4);
                 write("OK");
                 break;
                 // kind = number of bytes
             case 2:  // write breakpoint
-                write("");
+                bpActionExec(addr, Debug::BreakpointType::Write, kind);
+                write("OK");
                 break;
             case 3:  // read breakpoint
-                write("");
+                bpActionExec(addr, Debug::BreakpointType::Read, kind);
+                write("OK");
                 break;
-            case 4:  // access breakpoint
-                write("");
+            case 4:  // access breakpoint, aka both read and write
+                bpActionExec(addr, Debug::BreakpointType::Read, kind);
+                bpActionExec(addr, Debug::BreakpointType::Write, kind);
+                write("OK");
                 break;
             default:
                 write("");

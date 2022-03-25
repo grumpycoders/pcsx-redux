@@ -83,6 +83,8 @@ bool DynaRecCPU::Init() {
     }
 
     m_regs[0].markConst(0);  // $zero is always zero
+    m_currentDelayedLoad = 0;
+    m_runtimeLoadDelay.active = false;
     return true;
 }
 
@@ -154,9 +156,9 @@ void DynaRecCPU::emitBlockLookup() {
     const auto lutOffset = (size_t)m_recompilerLUT - (size_t)this;
 
     gen.mov(ecx, dword[contextPointer + PC_OFFSET]);  // ecx = pc
-    gen.mov(edx, ecx);      // edx = pc
-    gen.shr(ecx, 16);       // ecx = pc >> 16
-    gen.and_(edx, 0xfffc);  // edx = index into the recompiler LUT page, multiplied by 4
+    gen.mov(edx, ecx);                                // edx = pc
+    gen.shr(ecx, 16);                                 // ecx = pc >> 16
+    gen.and_(edx, 0xfffc);                            // edx = index into the recompiler LUT page, multiplied by 4
 
     // Load base pointer to recompiler LUT page in rax
     // Using a single mov if possible
@@ -191,7 +193,7 @@ void DynaRecCPU::emitDispatcher() {
         gen.sub(rsp, 32);
     }
 
-    emitBlockLookup(); // Look up block
+    emitBlockLookup();  // Look up block
 
     // Code to be executed after each block
     // Blocks will jmp to here
@@ -224,14 +226,12 @@ void DynaRecCPU::emitDispatcher() {
     gen.ret();                // Return
 
     // Code for when the block to be executed needs to be compiled.
-    // rax = Base pointer to the page of m_recompilerLUT we're executing from
-    // rdx = Index into the page, multiplied by 4
     gen.align(16);
     m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.cvt64());
-    gen.lea(arg2.cvt64(), qword[rax + rdx * 2]);  // Pointer to callback
-    gen.callFunc(recRecompileWrapper);            // Call recompilation function. Returns pointer to emitted code
+    gen.xor_(arg2, arg2);               // Do not fully emulate load delays at first
+    gen.callFunc(recRecompileWrapper);  // Call recompilation function. Returns pointer to emitted code
     gen.jmp(rax);
 
     // Code for when the block we've jumped to is invalid. Throws an error and exits
@@ -241,22 +241,93 @@ void DynaRecCPU::emitDispatcher() {
     loadThisPointer(arg1.cvt64());  // Throw recompiler error
     gen.callFunc(recErrorWrapper);
     gen.jmp(done);  // Exit
+
+    // Code that will invalidate all RAM blocks when FlushCache is called
+    gen.align(16);
+    m_invalidateBlocks = gen.getCurr<DynarecCallback>();
+
+    const uint32_t blockCount = m_ramSize / 4;  // Each 4 bytes correspond to 1 block
+    gen.mov(rax, (uintptr_t)m_ramBlocks);       // rax = pointer to the blocks we'll be invalidating
+    gen.xor_(edx, edx);                         // edx = iteration counter
+    Label literalPool;
+
+    if (gen.hasAVX) {                                 // AVX version
+        gen.vmovdqa(ymm0, yword[rip + literalPool]);  // Broadcast the pointer in ymm0 four times over
+        Label loop;
+        gen.L(loop);                     // Memset loop
+        for (auto i = 0; i < 16; i++) {  // Unroll 16 iterations of the loop
+            gen.vmovdqu(yword[rax + rdx * 8 + i * 32], ymm0);
+        }
+        gen.add(edx, 16 * 4);  // We cleared 64 blocks in total
+        gen.cmp(edx, blockCount);
+        gen.jb(loop);
+        gen.vzeroupper();  // Exit AVX context
+        gen.ret();
+    } else {  // SSE version
+        // Store the pointer in xmm0 twice over, so we can write it twice in 1 128-bit write
+        gen.movdqa(xmm0, xword[rip + literalPool]);
+        Label loop;
+        gen.L(loop);                     // Memset loop
+        for (auto i = 0; i < 16; i++) {  // Unroll 16 iterations of the loop
+            gen.movdqu(xword[rax + rdx * 8 + i * 16], xmm0);
+        }
+        gen.add(edx, 16 * 2);  // We cleared 32 blocks in total
+        gen.cmp(edx, blockCount);
+        gen.jb(loop);
+        gen.ret();
+    }
+
+    // Code for handling load delays at the beginning of a block
+    {
+        gen.align(16);
+        const auto& delay = m_runtimeLoadDelay;
+        const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
+        const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
+        const auto valueOffset = (uintptr_t)&delay.value - (uintptr_t)this;
+        const auto registerArrayOffset = (uintptr_t)&m_psxRegs.GPR.r[0] - (uintptr_t)this;
+
+        m_loadDelayHandler = gen.getCurr<DynarecCallback>();
+        gen.mov(ecx, dword[contextPointer + indexOffset]);  // Index of the register that needs to be loaded to
+        gen.mov(edx, dword[contextPointer + valueOffset]);  // Value of the register that needs to be loaded to
+        gen.mov(dword[contextPointer + rcx * 4 + registerArrayOffset], edx);  // Write the value
+        gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 0);       // Load is no longer active
+        gen.ret();
+    }
+
+    // Literal pool containing the pointer to our uncompiled block handler four times.
+    // Used for our SSE/AVX code for block invalidaton
+    gen.align(32);
+    gen.L(literalPool);
+    for (int i = 0; i < 4; i++) {
+        gen.dq((uintptr_t)m_uncompiledBlock);
+    }
+
+    // Code to recompile the current block with full load delay emulation if necessary
+    gen.align(16);
+    m_needFullLoadDelays = gen.getCurr<DynarecCallback>();
+    loadThisPointer(arg1.cvt64());
+    gen.mov(arg2, 1);                   // Fully emulate load delays
+    gen.callFunc(recRecompileWrapper);  // Call recompilation function. Returns pointer to emitted code
+    gen.jmp(rax);
 }
 
 // Compile a block, write address of compiled code to *callback
 // Returns the address of the compiled block
-DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bool align) {
+DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, bool align) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
-    m_delayedLoadInfo[0].active = false;
-    m_delayedLoadInfo[1].active = false;
     m_pcWrittenBack = false;
     m_linkedPC = std::nullopt;
+    m_delayedLoadInfo[0].active = false;
+    m_delayedLoadInfo[1].active = false;
     m_pc = pc & ~3;
+    m_firstInstruction = true;
+    m_fullLoadDelayEmulation = fullLoadDelayEmulation;
 
     const auto startingPC = m_pc;
-    int count = 0;  // How many instructions have we compiled?
+    int count = 0;                                      // How many instructions have we compiled?
+    DynarecCallback* callback = getBlockPointer(m_pc);  // Pointer to where we'll store the addr of the emitted code
 
     if (align) {
         gen.align(16);  // Align next block
@@ -272,44 +343,91 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         gen.mov(contextPointer, (uintptr_t)this);
     }
 
-    const auto pointer = gen.getCurr<DynarecCallback>();  // Pointer to emitted code
+    *callback = gen.getCurr<DynarecCallback>();  // Pointer to emitted code
     if constexpr (ENABLE_PROFILER) {
         if (startProfiling(m_pc)) {  // Uncompile all blocks if the profiler data overflower
             uncompileAll();
         }
     }
 
-    *callback = pointer;
+    if (!m_fullLoadDelayEmulation) {
+        const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+
+        // Check if there's a pending load at the start of the block. If so we need to
+        // Recompile the block with full load delay support
+        gen.cmp(Xbyak::util::byte[contextPointer + isActiveOffset], 0);
+        gen.jne((void*)m_needFullLoadDelays);
+    }
     handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.
 
-    auto shouldContinue = [&]() {
+    const auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
             return true;
         }
         if (m_stopCompiling) {
             return false;
         }
-        if (count >= MAX_BLOCK_SIZE) {  // TODO: Check delay slots here
+        if (count >= MAX_BLOCK_SIZE && !m_delayedLoadInfo[0].active && !m_delayedLoadInfo[1].active) {
             return false;
         }
         return true;
     };
 
-    while (shouldContinue()) {
+    const auto processDelayedLoad = [&]() {
+        m_currentDelayedLoad ^= 1;
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+
+        if (delayedLoad.active) {
+            delayedLoad.active = false;
+            const unsigned index = delayedLoad.index;
+            const auto delayedValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+            const auto delayedLoadActiveOffset = (uintptr_t)&delayedLoad.active - (uintptr_t)this;
+            allocateRegWithoutLoad(index);
+            m_regs[index].setWriteback(true);
+            gen.mov(m_regs[index].allocatedReg, dword[contextPointer + delayedValueOffset]);
+        }
+    };
+
+    const auto compileInstruction = [&]() {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
-        const auto p = (uint32_t*)PSXM(m_pc);  // Fetch instruction
-        if (p == nullptr) {                    // Error if it can't be fetched
-            return m_invalidBlock;
-        }
-
-        m_psxRegs.code = *p;  // Actually read the instruction
-        m_pc += 4;            // Increment recompiler PC
-        count++;              // Increment instruction count
+        // Fetch instruction. We make sure this function is called with a valid PC, otherwise it will crash
+        m_psxRegs.code = *(uint32_t*)PSXM(m_pc);
+        m_pc += 4;  // Increment recompiler PC
+        count++;    // Increment instruction count
 
         const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)();                                   // Jump into the handler to recompile it
+    };
+
+    const auto resolveInitialLoadDelay = [&]() {
+        if (!m_fullLoadDelayEmulation) return;
+        flushRegs();
+
+        Label noDelayedLoad;
+        const auto& delay = m_runtimeLoadDelay;
+        const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
+
+        gen.cmp(Xbyak::util::byte[contextPointer + isActiveOffset], 0);  // Check if there's an active delay
+        gen.je(noDelayedLoad);
+        gen.call((void*)m_loadDelayHandler);
+        gen.L(noDelayedLoad);
+    };
+
+    // For the first instruction in the block: Check if there's a pending load as well
+    compileInstruction();
+    resolveInitialLoadDelay();
+    processDelayedLoad();
+    m_firstInstruction = false;
+
+    while (shouldContinue()) {
+        // Throw error if the PC is not pointing to a valid code address
+        if (PSXM(m_pc) == nullptr) {
+            return m_invalidBlock;
+        }
+        compileInstruction();
+        processDelayedLoad();
     }
 
     flushRegs();
@@ -334,7 +452,10 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     } else {
         gen.jmp((void*)m_returnFromBlock);
     }
-    return pointer;
+
+    // Block linking might have invalidated this block, so don't cache the pointer to the invalidated block.
+    // Instead, read the callback address again
+    return *callback;
 }
 
 void DynaRecCPU::recSpecial() {
@@ -395,8 +516,8 @@ void DynaRecCPU::handleLinking() {
             }
 
             const auto pointer = gen.getCurr<uint8_t*>();
-            gen.jne((void*)m_returnFromBlock);    // Return if the block addr changed
-            recompile(nextBlockPointer, nextPC, false);  // Fallthrough to next block
+            gen.jne((void*)m_returnFromBlock);  // Return if the block addr changed
+            recompile(nextPC, false);           // Fallthrough to next block
 
             *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
         } else {  // If it has already been compiled, link by jumping to the compiled code
@@ -433,5 +554,93 @@ void DynaRecCPU::handleFastboot() {
     gen.jmp((void*)m_returnFromBlock);
 
     gen.L(noFastBoot);
+}
+
+// Peek at the next instruction to see if it has a read dependency on register "index"
+// If it does, we need to emulate the load delay
+DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int index) {
+    // Always emulate load delays when there's a load in a branch delay slot
+    if (m_stopCompiling && index != 0) return LoadDelayDependencyType::DependencyAcrossBlocks;
+
+    const auto p = (uint32_t*)PSXM(m_pc);
+    if (p == nullptr) {  // Can't prefetch next instruction, will error
+        return LoadDelayDependencyType::NoDependency;
+    }
+    if (index == 0) {  // Loads to $zero go to the void, so don't bother emulating it as a delayed load
+        return LoadDelayDependencyType::NoDependency;
+    }
+
+    const uint32_t instruction = *p;
+    const auto rt = (instruction >> 16) & 0x1f;
+    const auto rs = (instruction >> 21) & 0x1f;
+    const auto opcode = instruction >> 26;
+    enum : uint8_t { NoDep, DepIfRs, DepIfRt, DepIfRsOrRt };
+
+    // TODO: Handle LWL/LWR/SWL/SWR delay slots properly
+    static constexpr uint8_t mainDependencyList[64] = {
+        NoDep,   DepIfRs, NoDep,   NoDep,   DepIfRsOrRt, DepIfRsOrRt, DepIfRs, DepIfRs,  // 0x0-0x7
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, DepIfRs,     DepIfRs,     DepIfRs, NoDep,    // 0x8-0xF
+        NoDep,   NoDep,   NoDep,   NoDep,   NoDep,       NoDep,       NoDep,   NoDep,    // 0x10-0x17
+        NoDep,   NoDep,   NoDep,   NoDep,   NoDep,       NoDep,       NoDep,   NoDep,    // 0x18-0x1F
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, DepIfRs,     DepIfRs,     DepIfRs, NoDep,    // 0x20-0x27
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, NoDep,       NoDep,       DepIfRs, NoDep,    // 0x28-0x2F
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, NoDep,       NoDep,       NoDep,   NoDep,    // 0x30-0x37
+        DepIfRs, DepIfRs, DepIfRs, DepIfRs, NoDep,       NoDep,       NoDep,   NoDep,    // 0x38-0x3F
+    };
+
+    static constexpr uint8_t specialDependencyList[64] = {
+        DepIfRsOrRt, NoDep,       DepIfRt,     DepIfRt,
+        DepIfRsOrRt, NoDep,       DepIfRsOrRt, DepIfRsOrRt,  // 0x0-0x7
+        NoDep,       NoDep,       NoDep,       NoDep,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x8-0xF
+        NoDep,       DepIfRs,     NoDep,       DepIfRs,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x10-0x17
+        NoDep,       NoDep,       NoDep,       NoDep,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x18-0x1F
+        DepIfRsOrRt, DepIfRsOrRt, DepIfRsOrRt, DepIfRsOrRt,
+        DepIfRsOrRt, DepIfRsOrRt, DepIfRsOrRt, DepIfRsOrRt,  // 0x20-0x27
+        NoDep,       NoDep,       DepIfRsOrRt, DepIfRsOrRt,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x28-0x2F
+        NoDep,       NoDep,       NoDep,       NoDep,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x30-0x37
+        NoDep,       NoDep,       NoDep,       NoDep,
+        NoDep,       NoDep,       NoDep,       NoDep,  // 0x38-0x3F
+    };
+
+    uint8_t dependencyType = NoDep;
+    switch (opcode) {
+        case 0:  // Special instructions
+            dependencyType = specialDependencyList[instruction & 0x3F];
+            break;
+        case 0x10: {  // COP0 instructions also need special handling
+            // We need to emulate the delay if the rs field is 4, ie the instruction is MTC0, and "index" is the source
+            return (rs == 4 && rt == index) ? LoadDelayDependencyType::DependencyInsideBlock
+                                            : LoadDelayDependencyType::NoDependency;
+        } break;
+        case 0x12: {  // COP2 instructions too
+            // Check if the instruction is MFC2 or CFC2 with the source being $rt
+            const bool isMove = (instruction & 0x3F) == 0 && (rs == 4 || rs == 6);
+            return (isMove && rt == index) ? LoadDelayDependencyType::DependencyInsideBlock
+                                           : LoadDelayDependencyType::NoDependency;
+            break;
+        }
+        default:
+            dependencyType = mainDependencyList[opcode];
+            break;
+    }
+
+    switch (dependencyType) {
+        case NoDep:
+            return LoadDelayDependencyType::NoDependency;
+        case DepIfRs:
+            return (index == rs) ? LoadDelayDependencyType::DependencyInsideBlock
+                                 : LoadDelayDependencyType::NoDependency;
+        case DepIfRt:
+            return (index == rt) ? LoadDelayDependencyType::DependencyInsideBlock
+                                 : LoadDelayDependencyType::NoDependency;
+        case DepIfRsOrRt:
+            return (index == rs || index == rt) ? LoadDelayDependencyType::DependencyInsideBlock
+                                                : LoadDelayDependencyType::NoDependency;
+    }
 }
 #endif  // DYNAREC_X86_64

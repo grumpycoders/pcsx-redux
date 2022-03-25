@@ -32,7 +32,6 @@
 #include "support/file.h"
 #include "support/hashtable.h"
 
-
 #if defined(__i386__) || defined(_M_IX86)
 #define DYNAREC_X86_32
 #elif defined(__x86_64) || defined(_M_AMD64)
@@ -174,6 +173,7 @@ typedef union {
 
 enum {
     PSXINT_SIO = 0,
+    PSXINT_SIO1,
     PSXINT_CDR,
     PSXINT_CDREAD,
     PSXINT_GPUDMA,
@@ -267,7 +267,7 @@ struct psxRegisters {
 
 class R3000Acpu {
   public:
-    virtual ~R3000Acpu() { m_pcdrvFiles.destroyAll(); }
+    virtual ~R3000Acpu() { closeAllPCdevFiles(); }
     virtual bool Init() { return false; }
     virtual void Execute() = 0; /* executes up to a debug break */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
@@ -318,7 +318,8 @@ class R3000Acpu {
     }
 
     psxRegisters m_psxRegs;
-    float m_interruptScales[14] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+    float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                   1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
     virtual void Reset() {
@@ -485,7 +486,7 @@ Formula One 2001
   updated with new code (affects in-game racing)
 */
 
-    inline void invalidateCache() {
+    virtual void invalidateCache() {
         memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
         memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
     }
@@ -542,9 +543,10 @@ Formula One 2001
 
     struct PCdrvFile;
     typedef Intrusive::HashTable<uint32_t, PCdrvFile> PCdrvFiles;
-    struct PCdrvFile : public File, public PCdrvFiles::Node {
-        PCdrvFile(const std::filesystem::path &filename) : File(filename, File::READWRITE) {}
-        PCdrvFile(const std::filesystem::path &filename, File::Create) : File(filename, File::CREATE) {}
+    struct PCdrvFile : public PosixFile, public PCdrvFiles::Node {
+        PCdrvFile(const std::filesystem::path &filename) : PosixFile(filename, FileOps::READWRITE) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Truncate) : PosixFile(filename, FileOps::TRUNCATE) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Create) : PosixFile(filename, FileOps::CREATE) {}
         virtual ~PCdrvFile() = default;
         std::string m_relativeFilename;
     };
@@ -552,14 +554,17 @@ Formula One 2001
     uint16_t m_pcdrvIndex = 0;
 
   public:
-    void closeAllPCdevFiles() { m_pcdrvFiles.destroyAll(); }
+    void closeAllPCdevFiles() {
+        for (auto &f : m_pcdrvFiles) f.close();
+        m_pcdrvFiles.destroyAll();
+    }
     void listAllPCdevFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
             walker(iter->getKey(), iter->m_relativeFilename, iter->writable());
         }
     }
     void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);
-    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, File::Create);
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, FileOps::Create);
 };
 
 class Cpus {

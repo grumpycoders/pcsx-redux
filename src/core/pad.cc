@@ -25,59 +25,26 @@
 #include <GLFW/glfw3.h>
 #include <memory.h>
 
+#include <algorithm>
 #include <cmath>
 
 #include "core/system.h"
 #include "fmt/format.h"
+#include "gui/gui.h"
 #include "imgui.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
-
-enum {
-    // MOUSE SCPH-1030
-    PSE_PAD_TYPE_MOUSE = 1,
-    // NEGCON - 16 button analog controller SLPH-00001
-    PSE_PAD_TYPE_NEGCON = 2,
-    // GUN CONTROLLER - gun controller SLPH-00014 from Konami
-    PSE_PAD_TYPE_GUN = 3,
-    // STANDARD PAD SCPH-1080, SCPH-1150
-    PSE_PAD_TYPE_STANDARD = 4,
-    // ANALOG JOYSTICK SCPH-1110
-    PSE_PAD_TYPE_ANALOGJOY = 5,
-    // GUNCON - gun controller SLPH-00034 from Namco
-    PSE_PAD_TYPE_GUNCON = 6,
-    // ANALOG CONTROLLER SCPH-1150
-    PSE_PAD_TYPE_ANALOGPAD = 7,
-};
-
-struct PadDataS {
-    // controler type - fill it withe predefined values above
-    uint8_t controllerType;
-
-    // status of buttons - every controller fills this field
-    uint16_t buttonStatus;
-
-    // for analog pad fill those next 4 bytes
-    // values are analog in range 0-255 where 127 is center position
-    uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
-
-    // for mouse fill those next 2 bytes
-    // values are in range -128 - 127
-    uint8_t moveX, moveY;
-};
 
 void PCSX::Pads::init() {
     scanGamepads();
     g_system->findResource(
         [](const std::filesystem::path& filename) -> bool {
-            std::unique_ptr<File> database(new File(filename));
+            IO<File> database(new PosixFile(filename));
             if (database->failed()) {
                 return false;
             }
 
-            database->seek(0, SEEK_END);
-            size_t dbsize = database->tell();
-            database->seek(0, SEEK_SET);
+            size_t dbsize = database->size();
             auto dbStr = database->readString(dbsize);
 
             int ret = glfwUpdateGamepadMappings(dbStr.c_str());
@@ -108,8 +75,22 @@ void PCSX::Pads::scanGamepads() {
     }
 }
 
+void PCSX::Pads::reset() {
+    m_pads[0].reset();
+    m_pads[1].reset();
+}
+
+void PCSX::Pads::Pad::reset() {
+    m_analogMode = false;
+    m_configMode = false;
+    m_cmd = magic_enum::enum_integer(PadCommands::Idle);
+    m_bufferLen = 0;
+    m_currentByte = 0;
+}
+
 void PCSX::Pads::Pad::map() {
     m_padID = g_emulator->m_pads->m_gamepadsMap[m_settings.get<SettingControllerID>()];
+    m_type = m_settings.get<SettingDeviceType>();
     // invalid buttons
     m_scancodes[1] = 255;
     m_scancodes[2] = 255;
@@ -168,8 +149,14 @@ bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* st
 
 static constexpr float π(float fraction = 1.0f) { return fraction * M_PI; }
 
-uint16_t PCSX::Pads::Pad::getButtons() {
-    if (!m_settings.get<SettingConnected>()) return 0xffff;
+void PCSX::Pads::Pad::getButtons() {
+    PadData& pad = m_data;
+    if (!m_settings.get<SettingConnected>()) {
+        pad.buttonStatus = 0xffff;
+        pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
+        return;
+    }
+
     GLFWgamepadstate state;
     int hasPad = GLFW_FALSE;
     const auto& inputType = m_settings.get<SettingInputType>();
@@ -177,12 +164,14 @@ uint16_t PCSX::Pads::Pad::getButtons() {
     auto getKeyboardButtons = [this]() -> uint16_t {
         const bool* keys = ImGui::GetIO().KeysDown;
         uint16_t result = 0;
-        for (unsigned i = 0; i < 16; i++) result |= !(keys[m_scancodes[i]]) << i;
-        return result;
+        for (unsigned i = 0; i < 16; i++) result |= (keys[m_scancodes[i]]) << i;
+        return result ^ 0xffff;  // Controls are inverted, so 0 = pressed
     };
 
     if (inputType == InputType::Keyboard) {
-        return getKeyboardButtons();
+        pad.buttonStatus = getKeyboardButtons();
+        pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
+        return;
     }
 
     if (m_padID >= 0) {
@@ -199,16 +188,22 @@ uint16_t PCSX::Pads::Pad::getButtons() {
 
     if (!hasPad) {
         if (inputType == InputType::Auto) {
-            return getKeyboardButtons();
+            pad.buttonStatus = getKeyboardButtons();
+        } else {
+            pad.buttonStatus = 0xffff;
         }
-        return 0xffff;
+
+        pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
+        return;
     }
 
     bool buttons[16];
     for (unsigned i = 0; i < 16; i++) {
         buttons[i] = isControllerButtonPressed(i, &state);
     }
-    {
+
+    // For digital gamepads, make the PS1 dpad controllable with our gamepad's left analog stick
+    if (m_type == PadType::Digital) {
         float x = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
         float y = -state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y];
         float ds = x * x + y * y;
@@ -245,99 +240,220 @@ uint16_t PCSX::Pads::Pad::getButtons() {
                 buttons[6] = true;
             }
         }
+    } else {
+        // Normalize an axis from (-1, 1) to (0, 255) with 128 = center
+        const auto axisToUint8 = [](float axis) {
+            constexpr float scale = 1.3;
+            const float scaledValue = std::clamp<float>(axis * scale, -1.0f, 1.0f);
+            return (uint8_t)(std::clamp<float>(std::round(((scaledValue + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
+        };
+        pad.leftJoyX = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]);
+        pad.leftJoyY = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
+        pad.rightJoyX = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]);
+        pad.rightJoyY = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]);
     }
+
     uint16_t result = 0;
-    for (unsigned i = 0; i < 16; i++) result |= !buttons[i] << i;
+    for (unsigned i = 0; i < 16; i++) result |= buttons[i] << i;
 
-    return result;
-}
-
-void PCSX::Pads::Pad::readPort(PadDataS* data) {
-    memset(data, 0, sizeof(PadDataS));
-    data->buttonStatus = getButtons();
+    pad.buttonStatus = result ^ 0xffff;  // Controls are inverted, so 0 = pressed
 }
 
 uint8_t PCSX::Pads::startPoll(Port port) {
-    PadDataS padd;
-    int index = port == Port1 ? 0 : 1;
-    m_pads[index].readPort(&padd);
-    return m_pads[index].startPoll(&padd);
+    int index = magic_enum::enum_integer(port);
+    m_pads[index].getButtons();
+    return m_pads[index].startPoll();
 }
 
 uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
-    int index = port == Port1 ? 0 : 1;
+    int index = magic_enum::enum_integer(port);
     return m_pads[index].poll(value);
 }
 
-uint8_t PCSX::Pads::Pad::poll(uint8_t value) { return m_bufc > m_bufcount ? 0xff : m_buf[m_bufc++]; }
+uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
+    if (m_currentByte == 0) {
+        m_cmd = value;
+        m_currentByte = 1;
 
-uint8_t PCSX::Pads::Pad::startPoll(PadDataS* pad) {
-    m_bufc = 0;
+        if (m_cmd == magic_enum::enum_integer(PadCommands::Read)) {
+            return read();
+        } else if (m_type == PadType::Analog) {
+            return doDualshockCommand();
+        } else {
+            PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
+            m_cmd = magic_enum::enum_integer(PadCommands::Idle);
+            m_bufferLen = 0;
+            return 0xff;
+        }
+    } else if (m_currentByte >= m_bufferLen) {
+        return 0xff;
+    } else if (m_currentByte == 2 && m_type == PadType::Analog) {
+        switch (m_cmd) {
+            case magic_enum::enum_integer(PadCommands::SetConfigMode):
+                m_configMode = value == 1;
+                break;
+            case magic_enum::enum_integer(PadCommands::SetAnalogMode):
+                m_analogMode = value == 1;
+                break;
+            case magic_enum::enum_integer(PadCommands::Unknown46):
+                if (value == 0) {
+                    m_buf[4] = 0x01;
+                    m_buf[5] = 0x02;
+                    m_buf[6] = 0x00;
+                    m_buf[7] = 0x0A;
+                } else if (value == 1) {
+                    m_buf[4] = 0x01;
+                    m_buf[5] = 0x01;
+                    m_buf[6] = 0x01;
+                    m_buf[7] = 0x14;
+                }
+                break;
+            case magic_enum::enum_integer(PadCommands::Unknown47):
+                if (value != 0) {
+                    m_buf[4] = 0;
+                    m_buf[5] = 0;
+                    m_buf[6] = 0;
+                    m_buf[7] = 0;
+                }
+                break;
+            case magic_enum::enum_integer(PadCommands::Unknown4C):
+                if (value == 0) {
+                    m_buf[5] = 0x04;
+                } else if (value == 1) {
+                    m_buf[5] = 0x07;
+                }
+                break;
+        }
+    }
 
+    return m_buf[m_currentByte++];
+}
+
+uint8_t PCSX::Pads::Pad::doDualshockCommand() {
+    m_bufferLen = 8;
+
+    if (m_cmd == magic_enum::enum_integer(PadCommands::SetConfigMode)) {
+        if (m_configMode) {  // The config mode version of this command does not reply with pad data
+            static const uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            std::memcpy(m_buf, reply, 8);
+            return 0xf3;
+        } else {
+            return read();
+        }
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::GetAnalogMode) && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x01, 0x02, 0x00, 0x02, 0x01, 0x00};
+
+        reply[4] = m_analogMode ? 1 : 0;
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::UnlockRumble) && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::SetAnalogMode) && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::Unknown46) && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x01, 0x02, 0x00, 0x0a};
+
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::Unknown47) && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00};
+
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else if (m_cmd == magic_enum::enum_integer(PadCommands::Unknown4C) && m_configMode) {
+        static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+        std::memcpy(m_buf, reply, 8);
+        return 0xf3;
+    } else {
+        PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), static_cast<uint8_t>(m_cmd));
+        m_cmd = magic_enum::enum_integer(PadCommands::Idle);
+        m_bufferLen = 0;
+        return 0xff;
+    }
+}
+
+uint8_t PCSX::Pads::Pad::startPoll() {
+    m_currentByte = 0;
+    return 0xff;
+}
+
+uint8_t PCSX::Pads::Pad::read() {
+    const PadData& pad = m_data;
     if (!m_settings.get<SettingConnected>()) {
-        m_bufcount = 0;
+        m_bufferLen = 0;
         return 0xff;
     }
 
-    switch (pad->controllerType) {
-        case PSE_PAD_TYPE_MOUSE:
-            m_mousepar[3] = pad->buttonStatus & 0xff;
-            m_mousepar[4] = pad->buttonStatus >> 8;
-            m_mousepar[5] = pad->moveX;
-            m_mousepar[6] = pad->moveY;
+    switch (m_type) {
+        case PadType::Mouse: {
+            const int leftClick = ImGui::IsMouseDown(ImGuiMouseButton_Left) ? 0 : 1;
+            const int rightClick = ImGui::IsMouseDown(ImGuiMouseButton_Right) ? 0 : 1;
+            const auto& io = ImGui::GetIO();
+            const float scaleX = m_settings.get<SettingMouseSensitivityX>();
+            const float scaleY = m_settings.get<SettingMouseSensitivityY>();
 
-            memcpy(m_buf, m_mousepar, 7);
-            m_bufcount = 6;
-            break;
-        case PSE_PAD_TYPE_NEGCON:  // npc101/npc104(slph00001/slph00069)
-            m_analogpar[1] = 0x23;
-            m_analogpar[3] = pad->buttonStatus & 0xff;
-            m_analogpar[4] = pad->buttonStatus >> 8;
-            m_analogpar[5] = pad->rightJoyX;
-            m_analogpar[6] = pad->rightJoyY;
-            m_analogpar[7] = pad->leftJoyX;
-            m_analogpar[8] = pad->leftJoyY;
+            const float deltaX = io.MouseDelta.x * scaleX;
+            const float deltaY = io.MouseDelta.y * scaleY;
 
-            memcpy(m_buf, m_analogpar, 9);
-            m_bufcount = 8;
-            break;
-        case PSE_PAD_TYPE_ANALOGPAD:  // scph1150
-            m_analogpar[1] = 0x73;
-            m_analogpar[3] = pad->buttonStatus & 0xff;
-            m_analogpar[4] = pad->buttonStatus >> 8;
-            m_analogpar[5] = pad->rightJoyX;
-            m_analogpar[6] = pad->rightJoyY;
-            m_analogpar[7] = pad->leftJoyX;
-            m_analogpar[8] = pad->leftJoyY;
+            // The top 4 bits are always set to 1, the low 2 bits seem to always be set to 0.
+            // Left/right click are inverted in the response byte, ie 0 = pressed
+            m_mousepar[3] = 0xf0 | (leftClick << 3) | (rightClick << 2);
+            m_mousepar[4] = (int8_t)std::clamp<float>(deltaX, -128.f, 127.f);
+            m_mousepar[5] = (int8_t)std::clamp<float>(deltaY, -128.f, 127.f);
 
-            memcpy(m_buf, m_analogpar, 9);
-            m_bufcount = 8;
+            memcpy(m_buf, m_mousepar, 6);
+            m_bufferLen = 6;
+            return 0x12;
             break;
-        case PSE_PAD_TYPE_ANALOGJOY:  // scph1110
-            m_analogpar[1] = 0x53;
-            m_analogpar[3] = pad->buttonStatus & 0xff;
-            m_analogpar[4] = pad->buttonStatus >> 8;
-            m_analogpar[5] = pad->rightJoyX;
-            m_analogpar[6] = pad->rightJoyY;
-            m_analogpar[7] = pad->leftJoyX;
-            m_analogpar[8] = pad->leftJoyY;
+        }
 
-            memcpy(m_buf, m_analogpar, 9);
-            m_bufcount = 8;
+        case PadType::Negcon:  // npc101/npc104(slph00001/slph00069)
+            m_analogpar[0] = 0x23;
+            m_analogpar[2] = pad.buttonStatus & 0xff;
+            m_analogpar[3] = pad.buttonStatus >> 8;
+            m_analogpar[4] = pad.rightJoyX;
+            m_analogpar[5] = pad.rightJoyY;
+            m_analogpar[6] = pad.leftJoyX;
+            m_analogpar[7] = pad.leftJoyY;
+
+            memcpy(m_buf, m_analogpar, 8);
+            m_bufferLen = 8;
+            return 0x23;
             break;
-        case PSE_PAD_TYPE_STANDARD:
+        case PadType::Analog:  // scph1110, scph1150
+            if (m_analogMode || m_configMode) {
+                m_analogpar[0] = 0x73;
+                m_analogpar[2] = pad.buttonStatus & 0xff;
+                m_analogpar[3] = pad.buttonStatus >> 8;
+                m_analogpar[4] = pad.rightJoyX;
+                m_analogpar[5] = pad.rightJoyY;
+                m_analogpar[6] = pad.leftJoyX;
+                m_analogpar[7] = pad.leftJoyY;
+
+                memcpy(m_buf, m_analogpar, 8);
+                m_bufferLen = 8;
+                return m_configMode ? 0xf3 : 0x73;
+            }
+            [[fallthrough]];
+        case PadType::Digital:
         default:
-            m_stdpar[3] = pad->buttonStatus & 0xff;
-            m_stdpar[4] = pad->buttonStatus >> 8;
+            m_stdpar[2] = pad.buttonStatus & 0xff;
+            m_stdpar[3] = pad.buttonStatus >> 8;
 
-            memcpy(m_buf, m_stdpar, 5);
-            m_bufcount = 4;
+            memcpy(m_buf, m_stdpar, 4);
+            m_bufferLen = 4;
+            return 0x41;
     }
-
-    return m_buf[m_bufc++];
 }
 
-bool PCSX::Pads::configure() {
+bool PCSX::Pads::configure(PCSX::GUI* gui) {
     if (!m_showCfg) {
         return false;
     }
@@ -359,6 +475,9 @@ bool PCSX::Pads::configure() {
         init();
     }
 
+    bool changed = false;
+    changed |= ImGui::Checkbox(_("Use raw input for mouse"), &gui->isRawMouseMotionEnabled());
+
     if (ImGui::BeginCombo(_("Pad"), c_padNames[m_selectedPadForConfig]())) {
         for (unsigned i = 0; i < 2; i++) {
             if (ImGui::Selectable(c_padNames[i](), m_selectedPadForConfig == i)) {
@@ -368,16 +487,13 @@ bool PCSX::Pads::configure() {
         ImGui::EndCombo();
     }
 
-    bool changed = false;
     if (ImGui::Button(_("Set defaults"))) {
         changed = true;
         m_pads[m_selectedPadForConfig].setDefaults(m_selectedPadForConfig == 0);
     }
 
     changed |= m_pads[m_selectedPadForConfig].configure();
-
     ImGui::End();
-
     return changed;
 }
 
@@ -423,38 +539,56 @@ void PCSX::Pads::Pad::keyboardEvent(const Events::Keyboard& event) {
 
 bool PCSX::Pads::Pad::configure() {
     static std::function<const char*()> const c_inputDevices[] = {
-        []() { return _("Auto"); },
-        []() { return _("Controller"); },
-        []() { return _("Keyboard"); },
-    };
+        []() { return _("Auto"); }, []() { return _("Controller"); }, []() { return _("Keyboard"); }};
     static std::function<const char*()> const c_buttonNames[] = {
         []() { return _("Cross"); },  []() { return _("Square"); }, []() { return _("Triangle"); },
         []() { return _("Circle"); }, []() { return _("Select"); }, []() { return _("Start"); },
         []() { return _("L1"); },     []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); },
-    };
+        []() { return _("R2"); }};
     static std::function<const char*()> const c_dpadDirections[] = {
-        []() { return _("Up"); },
-        []() { return _("Right"); },
-        []() { return _("Down"); },
-        []() { return _("Left"); },
-    };
+        []() { return _("Up"); }, []() { return _("Right"); }, []() { return _("Down"); }, []() { return _("Left"); }};
+    static std::function<const char*()> const c_controllerTypes[] = {[]() { return _("Digital"); },
+                                                                     []() { return _("Analog"); },
+                                                                     []() { return _("Mouse"); },
+                                                                     []() { return _("Negcon (Unimplemented)"); },
+                                                                     []() { return _("Gun (Unimplemented)"); },
+                                                                     []() { return _("Guncon (Unimplemented"); }};
 
     bool changed = false;
-    changed |= ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value);
+    if (ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value)) {
+        changed = true;
+        reset();  // Reset pad state when unplugging/replugging pad
+    }
 
-    auto& type = m_settings.get<SettingInputType>().value;
+    {
+        const char* currentType = c_controllerTypes[static_cast<int>(m_type)]();
+        if (ImGui::BeginCombo(_("Controller Type"), currentType)) {
+            for (int i = 0; i < 3; i++) {
+                if (ImGui::Selectable(c_controllerTypes[i]())) {
+                    changed = true;
+                    m_type = static_cast<PadType>(i);
+                    m_settings.get<SettingDeviceType>().value = m_type;
+                    reset();  // Reset pad state when changing pad type
+                }
+            }
+            ImGui::EndCombo();
+        }
+    }
 
-    if (ImGui::BeginCombo(_("Device type"), c_inputDevices[magic_enum::enum_integer<InputType>(type)]())) {
+    auto& inputDevice = m_settings.get<SettingInputType>().value;
+
+    if (ImGui::BeginCombo(_("Device type"), c_inputDevices[magic_enum::enum_integer<InputType>(inputDevice)]())) {
         for (auto i : magic_enum::enum_values<InputType>()) {
-            if (ImGui::Selectable(c_inputDevices[magic_enum::enum_integer<InputType>(i)](), i == type)) {
+            if (ImGui::Selectable(c_inputDevices[magic_enum::enum_integer<InputType>(i)](), i == inputDevice)) {
                 changed = true;
-                type = i;
+                inputDevice = i;
             }
         }
 
         ImGui::EndCombo();
     }
+    changed |= ImGui::SliderFloat("Mouse sensitivity X", &m_settings.get<SettingMouseSensitivityX>().value, 0.f, 10.f);
+    changed |= ImGui::SliderFloat("Mouse sensitivity Y", &m_settings.get<SettingMouseSensitivityY>().value, 0.f, 10.f);
 
     ImGui::Text(_("Keyboard mapping"));
     if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame)) {
@@ -483,6 +617,29 @@ bool PCSX::Pads::Pad::configure() {
                 ImGui::PopStyleColor(2);
             }
         }
+        for (auto i = 0; i < 4; i++) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text(c_dpadDirections[i]());
+            ImGui::TableSetColumnIndex(0);
+            bool hasToPop = false;
+            const auto absI = i + 10;
+            if (m_buttonToWait == absI) {
+                const ImVec4 highlight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+                ImGui::PushStyleColor(ImGuiCol_Button, highlight);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, highlight);
+                hasToPop = true;
+            }
+
+            // The name of the mapped key
+            const auto keyName = fmt::format("{}##{}", glfwKeyToString(getButtonFromGUIIndex(absI)), absI);
+            if (ImGui::Button(keyName.c_str(), ImVec2{-1, 0})) {
+                m_buttonToWait = absI;
+            }
+            if (hasToPop) {
+                ImGui::PopStyleColor(2);
+            }
+        }
         ImGui::EndTable();
     }
 
@@ -505,7 +662,8 @@ bool PCSX::Pads::Pad::configure() {
 
     if (ImGui::BeginCombo(_("Gamepad"), preview)) {
         for (int i = 0; i < gamepadsNames.size(); i++) {
-            if (ImGui::Selectable(gamepadsNames[i])) {
+            const auto gamepadName = fmt::format("{}##{}", gamepadsNames[i], i);
+            if (ImGui::Selectable(gamepadName.c_str())) {
                 changed = true;
                 id = i;
             }

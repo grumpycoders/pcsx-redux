@@ -363,7 +363,7 @@ void PCSX::Lua::load(const std::string& str, const std::string& name, bool docal
         throw std::runtime_error("Error loading lua string");
     }
 
-    if (docall) call();
+    if (docall) pcall();
 }
 
 void PCSX::Lua::displayStack(bool error) {

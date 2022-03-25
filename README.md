@@ -1,13 +1,15 @@
 ![Debugger screenshot](https://pcsx-redux.consoledev.net/images/debugger1.png)
 
 
-|Platform|Build status|
-|--------|------------|
-|Windows build|[![Build Status](https://dev.azure.com/grumpycoders/pcsx-redux/_apis/build/status/grumpycoders.pcsx-redux?branchName=main)](https://dev.azure.com/grumpycoders/pcsx-redux/_build/latest?definitionId=1&branchName=main)|
-|Linux build|[![Linux CI](https://github.com/grumpycoders/pcsx-redux/workflows/Linux%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22Linux+CI%22+branch%3Amain)|
-|MacOS build|[![MacOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22macOS+CI%22+branch%3Amain)|
+|Platform|Build status|Download|
+|--------|------------|--------|
+|Windows build|[![Build Status](https://dev.azure.com/grumpycoders/pcsx-redux/_apis/build/status/grumpycoders.pcsx-redux?branchName=main)](https://dev.azure.com/grumpycoders/pcsx-redux/_build/latest?definitionId=1&branchName=main)|[Windows Intel 64-bits](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-win64/distribution_groups/public)|
+|Linux build|[![Linux CI](https://github.com/grumpycoders/pcsx-redux/workflows/Linux%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22Linux+CI%22+branch%3Amain)|[Linux Intel 64-bits (AppImage)](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-linux64/distribution_groups/public)|
+|MacOS build|[![MacOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22macOS+CI%22+branch%3Amain)|[MacOS](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-macos/distribution_groups/public)|
 
-[![Discord](https://img.shields.io/discord/567975889879695361)](https://discord.gg/KG5uCqw)
+To discuss this emulator specifically, please join its Discord server: [![Discord](https://img.shields.io/discord/567975889879695361)](https://discord.gg/KG5uCqw)
+
+To discuss PlayStation1's development, hacking, and reverse engineering in general, please join the PSXDev Network Discord server: [![Discord](https://img.shields.io/discord/642647820683444236)](https://discord.gg/QByKPpH)
 
 # PCSX-Redux
 
@@ -19,6 +21,8 @@ This is yet another fork of the Playstation Emulator, PCSX. While the work here 
  - Write everything on top of OpenGL3+/ImGui for portability and readability.
  - Improve the debugging experience.
  - Improve the rendering experience.
+
+Please consult [the documentation pages](https://pcsx-redux.consoledev.net) for more information. 
 
 ## Where?
 |Download page|
@@ -65,7 +69,7 @@ If you're only interested in compiling psx code, you can simply clone the pcsx-r
  - Debian derivatives ( for full emulator compilation ):
 
 ```bash
-sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
+sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
 ```
 
  - Arch derivatives :
@@ -119,14 +123,19 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - memory cards
 - memory card manager
 - XBox controller support
+- digital and analog controller emulation, Playstation Mouse emulation
+- Lua scripting
+- SPU debugger
+- in-app shader editor and built-in crt-lottes shader
+- customizable UI
 - save states
-- save state slots
 
 ### What still requires some work?
 - GLSL GPU
 - proper SPU multithreaded code
 - better customization
 - more generic dynarec
+- hook more emulator functions to Lua
 - ...
 
 [![Redux definition](https://pbs.twimg.com/media/ENJhNwGWwAEbrGb?format=jpg)](https://twitter.com/MerriamWebster/status/1212357808026341376)

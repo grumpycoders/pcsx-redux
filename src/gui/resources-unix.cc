@@ -26,12 +26,11 @@
 void PCSX::Resources::loadIcon(std::function<void(const uint8_t*, uint32_t)> process) {
     std::filesystem::path fname = "pcsx-redux.ico";
     std::filesystem::path dir = "resources";
-    std::unique_ptr<File> ico;
+    IO<File> ico;
 
     g_system->findResource(
         [&ico](const std::filesystem::path& filename) {
-            std::unique_ptr<File> newFile(new File(filename));
-            ico.swap(newFile);
+            ico.setFile(new PosixFile(filename));
             return !ico->failed();
         },
         "pcsx-redux.ico", "resources", "resources");
@@ -50,7 +49,7 @@ void PCSX::Resources::loadIcon(std::function<void(const uint8_t*, uint32_t)> pro
         info[i].offset = ico->read<uint32_t>();
     }
     for (unsigned i = 0; i < count; i++) {
-        ico->seek(info[i].offset, SEEK_SET);
+        ico->rSeek(info[i].offset, SEEK_SET);
         auto slice = ico->read(info[i].size);
         process(reinterpret_cast<const uint8_t*>(slice.data()), slice.size());
     }
