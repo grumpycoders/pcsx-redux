@@ -821,7 +821,7 @@ void InterpretedCPU::psxJR(uint32_t code) {
         return;
     }
 
-    doBranch(_rRs_ & ~3, false);  // the "& ~3" word-aligns the jump address
+    doBranch(_rRs_, false);
 }
 
 void InterpretedCPU::psxJALR(uint32_t code) {
@@ -847,7 +847,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
         return;
     }
 
-    doBranch(temp & ~3, true);  // the "& ~3" force aligns the address
+    doBranch(temp, true);
 }
 
 /*********************************************************
