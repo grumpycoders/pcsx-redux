@@ -68,12 +68,9 @@ bool DynaRecCPU::Init() {
         return false;
     }
 #endif
-<<<<<<< HEAD
-=======
 #if defined(__APPLE__)
     gen.setRW(); // M1 wants buffer marked as readable/writable with mprotect before emitting code
 #endif
->>>>>>> bc55d477d9e9097e9b02e7eefe6e931e0782091a
     emitDispatcher();  // Emit our assembly dispatcher
     uncompileAll();    // Mark all blocks as uncompiled
 
@@ -178,17 +175,12 @@ void DynaRecCPU::emitDispatcher() {
     m_dispatcher = gen.getCurr<DynarecCallback>();
 
     gen.Str(x30, MemOperand(sp, -16, PreIndex));  // Backup link register
-<<<<<<< HEAD
-    gen.Str(contextPointer,
-            MemOperand(sp, -16, PreIndex));    // Save context pointer register in stack (also align stack pointer)
-=======
     gen.Str(runningPointer,
             MemOperand(sp, -16, PreIndex));  // Save runningPointer register in stack
     gen.Str(contextPointer,
             MemOperand(sp, -16, PreIndex));    // Save contextPointer register in stack (also align stack pointer)
 
     gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());  // Move runningPtr to runningPointer register
->>>>>>> bc55d477d9e9097e9b02e7eefe6e931e0782091a
     gen.Mov(contextPointer, (uintptr_t)this);  // Load context pointer
 
     // Back up all our allocateable volatile regs
@@ -196,19 +188,9 @@ void DynaRecCPU::emitDispatcher() {
     for (auto i = 0; i < ALLOCATEABLE_NON_VOLATILE_COUNT; i += 2) {
         const auto reg = allocateableNonVolatiles[i];
         const auto reg2 = allocateableNonVolatiles[i + 1];
-<<<<<<< HEAD
-        gen.Stp(reg.X(), reg2.X(), MemOperand(sp, -16, PreIndex));
-    }
-
-    gen.Str(runningPointer,
-            MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));  // Store runningPointer Register in host reg cache
-    gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());  // Move runningPtr to runningPointer register
-
-=======
         gen.Stp(reg2.X(), reg.X(), MemOperand(sp, -16, PreIndex));
     }
 
->>>>>>> bc55d477d9e9097e9b02e7eefe6e931e0782091a
     emitBlockLookup();  // Look up block
 
     // Code to be executed after each block.
@@ -232,15 +214,9 @@ void DynaRecCPU::emitDispatcher() {
         const auto reg2 = allocateableNonVolatiles[i - 1];
         gen.Ldp(reg.X(), reg2.X(), MemOperand(sp, 16, PostIndex));
     }
-<<<<<<< HEAD
-    gen.Ldr(runningPointer, MemOperand(contextPointer, HOST_REG_CACHE_OFFSET(0)));
-
-    gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex));
-=======
 
     gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex)); // Restore contextPointer register from stack
     gen.Ldr(runningPointer, MemOperand(sp, 16, PostIndex));  // Restore runningPointer register from stack
->>>>>>> bc55d477d9e9097e9b02e7eefe6e931e0782091a
     gen.Ldr(x30, MemOperand(sp, 16, PostIndex));  // Restore link register before returning
     gen.Ret();
 
