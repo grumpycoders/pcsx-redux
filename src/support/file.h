@@ -48,11 +48,14 @@ class File;
 template <class T>
 concept FileDerived = std::is_base_of<File, T>::value;
 
+template <class T>
+concept IntegralConcept = std::is_integral<T>::value;
+
 class File {
 #if defined(__cpp_lib_byteswap) && !defined(_WIN32)
     using byte_swap = std::byte_swap;
 #else
-    template <std::integral T>
+    template <IntegralConcept T>
     static constexpr T byte_swap(T val) {
         if constexpr (sizeof(T) == 1) {
             return val;
@@ -180,7 +183,7 @@ class File {
     void writeString(const std::string_view& str) { write(str.data(), str.size()); }
     void writeStringAt(const std::string_view& str, ssize_t pos) { writeAt(str.data(), str.size(), pos); }
 
-    template <std::integral T, std::endian endianess = std::endian::little>
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
     T read() {
         T ret = T(0);
         read(&ret, sizeof(T));
@@ -190,7 +193,7 @@ class File {
         return ret;
     }
 
-    template <std::integral T, std::endian endianess = std::endian::little>
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
     T readAt(size_t pos) {
         T ret = T(0);
         readAt(&ret, sizeof(T), pos);
@@ -200,7 +203,7 @@ class File {
         return ret;
     }
 
-    template <std::integral T, std::endian endianess = std::endian::little>
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
     void write(T val) {
         if constexpr (endianess != std::endian::native) {
             val = byte_swap(val);
@@ -208,7 +211,7 @@ class File {
         write(&val, sizeof(T));
     }
 
-    template <std::integral T, std::endian endianess = std::endian::little>
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
     void writeAt(T val, size_t pos) {
         if constexpr (endianess != std::endian::native) {
             val = byte_swap(val);
