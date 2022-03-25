@@ -20,4 +20,4 @@ if "!REL!" EQU "!ROOT!" (set REL=) ELSE (set "REL=!REL:\=/!")
 set REL=/!REL!
 
 docker pull grumpycoders/pcsx-redux-build-cross:latest
-docker run --rm --env-file "%ROOT%/cross-env.list" -i -w"/project%REL%" -v "%ROOT%:/project" grumpycoders/pcsx-redux-build-cross make %*
+docker run --rm --env-file "%ROOT%/cross-env.list" -i -w"/project%REL%" -v "%ROOT%:/project" grumpycoders/pcsx-redux-build-cross make CROSS=arm64 %*

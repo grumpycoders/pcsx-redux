@@ -1,6 +1,7 @@
 TARGET := pcsx-redux
 BUILD ?= Release
 DESTDIR ?= /usr/local
+CROSS ?= none
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -9,7 +10,7 @@ CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo fals
 
 PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
 
-LOCALES := fr
+LOCALES := el fr
 
 ifeq ($(wildcard third_party/imgui/imgui.h),)
 HAS_SUBMODULES = false
@@ -84,6 +85,11 @@ LDFLAGS_asan += -fsanitize=address
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
 LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
 
+ifeq ($(CROSS),arm64)
+    CPPFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
+    LDFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
+endif
+
 LD := $(CXX)
 
 SRCS := $(call rwildcard,src/,*.cc)
@@ -115,13 +121,18 @@ else
 endif
 ifeq ($(UNAME_M),aarch64)
     SRCS += $(VIXL_SRCS)
-	CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
-	CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+    CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+    CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
 ifeq ($(UNAME_M),arm64)
     SRCS += $(VIXL_SRCS)
-	CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
-	CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+    CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+    CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+endif
+ifeq ($(CROSS),arm64)
+    SRCS += $(VIXL_SRCS)
+    CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+    CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
 ifeq ($(UNAME_M),aarch64)
     SRCS += $(VIXL_SRCS)
@@ -199,8 +210,13 @@ appimage:
 	DESTDIR=AppDir/usr $(MAKE) $(MAKEOPTS) install
 	appimage-builder --skip-tests
 
+ifeq ($(CROSS),arm64)
+third_party/luajit/src/libluajit.a:
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=gcc-10 CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
+else
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
+endif
 
 $(TARGET): $(OBJECTS)
 	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
@@ -239,6 +255,7 @@ gitclean:
 
 define msgmerge
 msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
+
 endef
 
 regen-i18n:

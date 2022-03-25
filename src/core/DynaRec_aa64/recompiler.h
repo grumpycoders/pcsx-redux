@@ -17,7 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-// TODO: Profiler will need to be added at some point
 
 #pragma once
 #include "core/r3000a.h"
@@ -90,8 +89,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     enum class RegState { Unknown, Constant };
     enum class LoadingMode { DoNotLoad, Load };
-    // Renamed temporarily to mRegister since it collides with Register in vixl::aarch64 namespace
-    struct mRegister {
+    // Renamed temporarily to Reg since it collides with Register in vixl::aarch64 namespace
+    struct Reg {
         uint32_t val = 0;                    // The register's cached value used for constant propagation
         RegState state = RegState::Unknown;  // Is this register's value a constant, or an unknown value?
 
@@ -116,9 +115,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     };
 
     inline void markConst(int index, uint32_t value) {
-        m_regs[index].markConst(value);
-        if (m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg == index) {
-            m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg =
+        m_gprs[index].markConst(value);
+        if (m_hostRegs[m_gprs[index].allocatedRegIndex].mappedReg == index) {
+            m_hostRegs[m_gprs[index].allocatedRegIndex].mappedReg =
                 std::nullopt;  // Unmap the register on the host reg side too
         }
     }
@@ -127,7 +126,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         std::optional<int> mappedReg = std::nullopt;  // The register this is allocated to, if any
     };
 
-    mRegister m_regs[32];
+    Reg m_gprs[32];
     std::array<HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
     std::optional<uint32_t> m_linkedPC = std::nullopt;
 
@@ -227,7 +226,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void loadThisPointer(Register reg) { gen.Mov(reg, contextPointer); }
 
     // Loads a value into dest from the given pointer.
-    // TODO: This may need to use contextPointer + distance instead
     template <int size, bool signExtend>
     void load(Register dest, const void* pointer) {
         //        const auto distance = (intptr_t)pointer - (intptr_t)this;
@@ -246,9 +244,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     // Stores a value of "size" bits from "source" to the given pointer
-    /* TODO: value must be moved into register first before it can be stored unlike x64 with can use mov to write to
-     * memory */
-    // TODO: This may need to use contextPointer + distance instead
     template <int size, typename T>
     void store(T source, const void* pointer) {
         gen.Mov(x4, (uintptr_t)pointer);
