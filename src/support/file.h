@@ -26,7 +26,10 @@
 #include <atomic>
 #include <bit>
 #include <compare>
+#include <concepts>
 #include <filesystem>
+#include <string>
+#include <string_view>
 #include <type_traits>
 
 #include "support/slice.h"
@@ -49,9 +52,8 @@ class File {
 #if defined(__cpp_lib_byteswap) && !defined(_WIN32)
     using byte_swap = std::byte_swap;
 #else
-    template <typename T>
+    template <std::integral T>
     static constexpr T byte_swap(T val) {
-        static_assert(std::is_integral<T>::value);
         if constexpr (sizeof(T) == 1) {
             return val;
         } else {
@@ -164,15 +166,21 @@ class File {
     }
 
     std::string readString(size_t size) {
-        std::string r;
-        r.reserve(size);
-        for (size_t i = 0; i < size; i++) {
-            r += (char)byte();
-        }
+        std::string r(size, '\0');
+        read(r.data(), size);
         return r;
     }
 
-    template <class T, std::endian endianess = std::endian::little>
+    std::string readStringAt(size_t size, ssize_t pos) {
+        std::string r(size, '\0');
+        readAt(r.data(), size, pos);
+        return r;
+    }
+
+    void writeString(const std::string_view& str) { write(str.data(), str.size()); }
+    void writeStringAt(const std::string_view& str, ssize_t pos) { writeAt(str.data(), str.size(), pos); }
+
+    template <std::integral T, std::endian endianess = std::endian::little>
     T read() {
         T ret = T(0);
         read(&ret, sizeof(T));
@@ -182,7 +190,7 @@ class File {
         return ret;
     }
 
-    template <class T, std::endian endianess = std::endian::little>
+    template <std::integral T, std::endian endianess = std::endian::little>
     T readAt(size_t pos) {
         T ret = T(0);
         readAt(&ret, sizeof(T), pos);
@@ -192,7 +200,7 @@ class File {
         return ret;
     }
 
-    template <class T, std::endian endianess = std::endian::little>
+    template <std::integral T, std::endian endianess = std::endian::little>
     void write(T val) {
         if constexpr (endianess != std::endian::native) {
             val = byte_swap(val);
@@ -200,7 +208,7 @@ class File {
         write(&val, sizeof(T));
     }
 
-    template <class T, std::endian endianess = std::endian::little>
+    template <std::integral T, std::endian endianess = std::endian::little>
     void writeAt(T val, size_t pos) {
         if constexpr (endianess != std::endian::native) {
             val = byte_swap(val);

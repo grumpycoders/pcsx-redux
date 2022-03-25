@@ -140,9 +140,9 @@ struct NString {
         file->write(buffer + offset, N + 1);
     }
     static std::string_view get(const Slice &slice, size_t offset) {
-        const uint8_t *buffer = slice.data<uint8_t>();
-        uint8_t N = buffer[offset];
-        return {reinterpret_cast<const char *>(buffer) + 1, N};
+        const uint8_t *buffer = slice.data<uint8_t>() + offset;
+        uint8_t N = *buffer++;
+        return std::string_view(reinterpret_cast<const char *>(buffer), N);
     }
     static void set(Slice &slice, size_t offset, std::string_view val) {
         auto size = std::min(val.size(), std::string_view::size_type(255));
@@ -170,8 +170,8 @@ struct CString {
         file->write(buffer + offset, S);
     }
     static std::string_view get(const Slice &slice, size_t offset) {
-        const uint8_t *buffer = slice.data<uint8_t>();
-        return {reinterpret_cast<const char *>(buffer), S};
+        const uint8_t *buffer = slice.data<uint8_t>() + offset;
+        return std::string_view(reinterpret_cast<const char *>(buffer), S);
     }
     static void set(Slice &slice, size_t offset, std::string_view val) {
         uint8_t *buffer = slice.data<uint8_t>();
@@ -287,7 +287,6 @@ class Struct<irqus::typestring<C...>, fields...> : private std::tuple<fields...>
     }
     template <size_t index, typename FieldType, typename... nestedFields>
     static constexpr size_t offsetOf(size_t target) {
-        static_assert(FieldType::fixedSize());
         size_t ret = FieldType::size();
         if (index != target) ret += offsetOf<index + 1, nestedFields...>(target);
         return ret;
