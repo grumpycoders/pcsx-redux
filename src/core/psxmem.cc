@@ -277,7 +277,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
             else
                 return PCSX::g_emulator->m_hw->read8(address);
         } else {
-            PSXMEM_LOG("err lb %8.8lx\n", address);
+            PSXMEM_LOG("8-bit read from unknown address: %8.8lx\n", address);
             return 0xff;
         }
     }
@@ -298,7 +298,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
             else
                 return PCSX::g_emulator->m_hw->read16(address);
         } else {
-            PSXMEM_LOG("err lh %8.8lx\n", address);
+            PSXMEM_LOG("16-bit read from unknown address: %8.8lx\n", address);
             return 0xffff;
         }
     }
@@ -320,7 +320,7 @@ uint32_t PCSX::Memory::read32(uint32_t address) {
                 return PCSX::g_emulator->m_hw->read32(address);
         } else {
             if (m_writeok) {
-                PSXMEM_LOG("err lw %8.8lx\n", address);
+                PSXMEM_LOG("32-bit read from unknown address: %8.8lx\n", address);
             }
             return 0xffffffff;
         }
@@ -343,7 +343,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
             else
                 PCSX::g_emulator->m_hw->write8(address, value);
         } else {
-            PSXMEM_LOG("err sb %8.8lx\n", address);
+            PSXMEM_LOG("8-bit write to unknown address: %8.8lx\n", address);
         }
     }
 }
@@ -355,7 +355,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
 
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
-        *(uint16_t*)(pointer + offset) = SWAP_LEu16(static_cast<uint16_t>(value));
+        *(uint16_t *)(pointer + offset) = SWAP_LEu16(static_cast<uint16_t>(value));
         PCSX::g_emulator->m_cpu->Clear((address & (~3)), 1);
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
@@ -364,7 +364,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
             else
                 PCSX::g_emulator->m_hw->write16(address, value);
         } else {
-            PSXMEM_LOG("err sh %8.8lx\n", address);
+            PSXMEM_LOG("16-bit write to unknown address: %8.8lx\n", address);
         }
     }
 }
@@ -388,7 +388,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
             if (!m_writeok) PCSX::g_emulator->m_cpu->Clear(address, 1);
 
             if (m_writeok) {
-                PSXMEM_LOG("err sw %8.8lx\n", address);
+                PSXMEM_LOG("32-bit write to unknown address: %8.8lx\n", address);
             }
         } else {
             // a0-44: used for cache flushing
