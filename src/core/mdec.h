@@ -29,13 +29,13 @@ namespace PCSX {
 
 class MDEC {
   public:
-    void mdecInit();
-    void mdecWrite0(uint32_t data);
-    void mdecWrite1(uint32_t data);
-    uint32_t mdecRead0();
-    uint32_t mdecRead1();
-    void psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
-    void psxDma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    void init();
+    void write0(uint32_t data);
+    void write1(uint32_t data);
+    uint32_t read0();
+    uint32_t read1();
+    void dma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    void dma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void mdec0Interrupt();
     void mdec1Interrupt();
 

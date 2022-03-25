@@ -449,7 +449,7 @@ void PCSX::Cheats::FreeCheatSearchMem() {
 
 void PCSX::Cheats::CheatSearchBackupMemory() {
     if (g_prevM != NULL) {
-        memcpy(g_prevM, PCSX::g_emulator->m_psxMem->g_psxM, 0x200000);
+        memcpy(g_prevM, PCSX::g_emulator->m_mem->m_psxM, 0x200000);
     }
 }
 

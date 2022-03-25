@@ -157,8 +157,8 @@ size_t PCSX::Widgets::Disassembly::disassembleBuffer() {
     size_t count;
 
     // Get pointer to code buffer along with size of buffer
-    const uint8_t* buffer = PCSX::g_emulator->m_psxCpu->getBufferPtr();
-    const size_t bufferSize = PCSX::g_emulator->m_psxCpu->getBufferSize();
+    const uint8_t* buffer = PCSX::g_emulator->m_cpu->getBufferPtr();
+    const size_t bufferSize = PCSX::g_emulator->m_cpu->getBufferSize();
     // Check to ensure code buffer pointer is not null and size is not 0
     if (buffer == nullptr) {
         PCSX::g_system->printf("Disassembler Error: nullpointer to code buffer.\n");

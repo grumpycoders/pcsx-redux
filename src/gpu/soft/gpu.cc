@@ -113,24 +113,18 @@
 
 #define NOMINMAX
 
-#include <stdint.h>
-
 #include <algorithm>
+#include <cstdint>
 
 #ifdef _WIN32
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "resource.h"
-
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #endif
 
 #include "core/debug.h"
 #include "core/psxemulator.h"
-#include "gpu/soft/cfg.h"
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
@@ -163,6 +157,7 @@ uint16_t *psxVuw_eom;
 int16_t *psxVsw;
 uint32_t *psxVul;
 int32_t *psxVsl;
+int GlobalTextIL = 0;
 
 ////////////////////////////////////////////////////////////////////////
 // GPU globals
@@ -1281,19 +1276,6 @@ int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 
     return 0;
 }
-
-////////////////////////////////////////////////////////////////////////
-// Freeze
-////////////////////////////////////////////////////////////////////////
-
-typedef struct GPUFREEZETAG {
-    uint32_t ulFreezeVersion;                // should be always 1 for now (set by main emu)
-    uint32_t ulStatus;                       // current gpu status
-    uint32_t ulControl[256];                 // latest control register values
-    unsigned char psxVRam[1024 * 1024 * 2];  // current VRam image (full 2 MB for ZN)
-} GPUFreeze_t;
-
-////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::impl::save(SaveStates::GPU &gpu) {
     gpu.get<SaveStates::GPUStatus>().value = lGPUstatusRet;

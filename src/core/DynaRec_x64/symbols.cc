@@ -67,30 +67,30 @@ void DynaRecCPU::makeSymbols() {
     m_symbols += fmt::format("endsegs()\n");                            // Stop registering segments
 
     for (auto i = 0; i < 34; i++) {
-        REGISTER_VARIABLE(m_psxRegs.GPR.r[i], GPRs[i], 4);
+        REGISTER_VARIABLE(m_regs.GPR.r[i], GPRs[i], 4);
     }
 
     for (auto i = 0; i < 32; i++) {
-        REGISTER_VARIABLE(m_psxRegs.CP0.r[i], COP0_regs[i], 4);
-        REGISTER_VARIABLE(m_psxRegs.CP2D.r[i], COP2_dataRegs[i], 4);
-        REGISTER_VARIABLE(m_psxRegs.CP2C.r[i], COP2_controlRegs[i], 4);
+        REGISTER_VARIABLE(m_regs.CP0.r[i], COP0_regs[i], 4);
+        REGISTER_VARIABLE(m_regs.CP2D.r[i], COP2_dataRegs[i], 4);
+        REGISTER_VARIABLE(m_regs.CP2C.r[i], COP2_controlRegs[i], 4);
     }
 
-    REGISTER_VARIABLE(m_psxRegs.cycle, "m_cycles", 4);
-    REGISTER_VARIABLE(m_psxRegs.pc, "m_pc", 4);
+    REGISTER_VARIABLE(m_regs.cycle, "m_cycles", 4);
+    REGISTER_VARIABLE(m_regs.pc, "m_pc", 4);
 
     for (int i = 0; i < 16; i++) {  // Register host register cache
         REGISTER_VARIABLE(m_hostRegisterCache[i], fmt::format("cached_host_reg_{}", i), 8);
     }
 
-    REGISTER_FUNCTION(psxMemRead8Wrapper, "read8");
-    REGISTER_FUNCTION(psxMemRead16Wrapper, "read16");
-    REGISTER_FUNCTION(psxMemRead32Wrapper, "read32");
-    REGISTER_FUNCTION(psxMemWrite8Wrapper, "write8");
-    REGISTER_FUNCTION(psxMemWrite16Wrapper, "write16");
-    REGISTER_FUNCTION(psxMemWrite32Wrapper, "write32");
+    REGISTER_FUNCTION(read8Wrapper, "read8");
+    REGISTER_FUNCTION(read16Wrapper, "read16");
+    REGISTER_FUNCTION(read32Wrapper, "read32");
+    REGISTER_FUNCTION(write8Wrapper, "write8");
+    REGISTER_FUNCTION(write16Wrapper, "write16");
+    REGISTER_FUNCTION(write32Wrapper, "write32");
 
-    REGISTER_FUNCTION(psxExceptionWrapper, "fire_exception");
+    REGISTER_FUNCTION(exceptionWrapper, "fire_exception");
     REGISTER_FUNCTION(recClearWrapper, "recompiler_clear");
     REGISTER_FUNCTION(signalShellReached, "signal_shell_reached");
     REGISTER_FUNCTION(SPU_writeRegisterWrapper, "spu_write_register");

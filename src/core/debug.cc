@@ -72,7 +72,7 @@ bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
 void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint32_t newCode, bool linked) {
     const uint32_t basic = newCode >> 26;
     const bool isAnyLoadOrStore = (basic >= 0x20) && (basic < 0x3b);
-    const auto& regs = g_emulator->m_psxCpu->m_psxRegs;
+    const auto& regs = g_emulator->m_cpu->m_regs;
 
     checkBP(newPC, BreakpointType::Exec, 4);
     if (m_breakmp_e && !isMapMarked(newPC, MAP_EXEC)) {
@@ -148,7 +148,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
     }
 
     if (m_step == STEP_NONE) return;
-    if (!m_wasInISR && g_emulator->m_psxCpu->m_inISR) return;
+    if (!m_wasInISR && g_emulator->m_cpu->m_inISR) return;
 
     switch (m_step) {
         case STEP_IN: {
@@ -160,7 +160,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
                     uint32_t sp = regs.GPR.n.sp;
                     m_stepperHasBreakpoint = true;
                     addBreakpoint(oldPC + 4, BreakpointType::Exec, 4, _("Step Over"), [sp, this](const Breakpoint* bp) {
-                        if (sp != g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp) return true;
+                        if (sp != g_emulator->m_cpu->m_regs.GPR.n.sp) return true;
                         g_system->pause();
                         m_stepperHasBreakpoint = false;
                         return false;
@@ -178,12 +178,12 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
 
 void PCSX::Debug::startStepping() {
     if (PCSX::g_system->running()) return;
-    m_wasInISR = g_emulator->m_psxCpu->m_inISR;
+    m_wasInISR = g_emulator->m_cpu->m_inISR;
     g_system->resume();
 }
 
 bool PCSX::Debug::triggerBP(Breakpoint* bp, const char* cause) {
-    uint32_t pc = g_emulator->m_psxCpu->m_psxRegs.pc;
+    uint32_t pc = g_emulator->m_cpu->m_regs.pc;
     bool keepBP = true;
     std::string name;
     m_lastBP = nullptr;
@@ -201,20 +201,20 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, const char* cause) {
 }
 
 void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause) {
-    auto& cpu = g_emulator->m_psxCpu;
-    const auto& regs = cpu->m_psxRegs;
+    auto& cpu = g_emulator->m_cpu;
+    const auto& regs = cpu->m_regs;
     if ((regs.CP0.n.DCIC & 0xc0800000) == 0xc0800000) {
         if (type == BreakpointType::Exec && ((regs.CP0.n.DCIC & 0x01000000) == 0x01000000)) {
             if (((regs.CP0.n.BPC ^ address) & regs.CP0.n.BPCM) == 0) {
-                cpu->psxException(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
+                cpu->exception(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
             }
         } else if ((type == BreakpointType::Read) && ((regs.CP0.n.DCIC & 0x06000000) == 0x06000000)) {
             if (((regs.CP0.n.BDA ^ address) & regs.CP0.n.BDAM) == 0) {
-                cpu->psxException(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
+                cpu->exception(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
             }
         } else if ((type == BreakpointType::Write) && ((regs.CP0.n.DCIC & 0x0a000000) == 0x0a000000)) {
             if (((regs.CP0.n.BDA ^ address) & regs.CP0.n.BDAM) == 0) {
-                cpu->psxException(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
+                cpu->exception(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
             }
         }
     }
@@ -276,7 +276,7 @@ void PCSX::Debug::stepOut() {
     if (fp == 0) return;
 
     addBreakpoint(ra, BreakpointType::Exec, 4, _("Step Out"), [fp, this](const Breakpoint* bp) {
-        if (g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp != fp) return true;
+        if (g_emulator->m_cpu->m_regs.GPR.n.sp != fp) return true;
         g_system->pause();
         m_stepperHasBreakpoint = false;
         return false;

@@ -39,7 +39,7 @@ bool loadCPE(IO<File> file) {
     file->rSeek(0, SEEK_SET);
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1455043) return false;
-    auto& regs = g_emulator->m_psxCpu->m_psxRegs;
+    auto& regs = g_emulator->m_cpu->m_regs;
     file->read<uint16_t>();
 
     uint8_t opcode;
@@ -114,7 +114,7 @@ bool loadPSEXE(IO<File> file) {
     uint64_t magic = file->read<uint64_t>();
     if (magic != 0x45584520582d5350) return false;
 
-    auto& regs = g_emulator->m_psxCpu->m_psxRegs;
+    auto& regs = g_emulator->m_cpu->m_regs;
 
     file->read<uint32_t>();
     file->read<uint32_t>();
