@@ -21,11 +21,11 @@
 
 #if defined(DYNAREC_AA64)
 #include "core/gte.h"
-#define COP2_CONTROL_OFFSET(reg) ((uintptr_t)&m_psxRegs.CP2C.r[(reg)] - (uintptr_t)this)
-#define COP2_DATA_OFFSET(reg) ((uintptr_t)&m_psxRegs.CP2D.r[(reg)] - (uintptr_t)this)
+#define COP2_CONTROL_OFFSET(reg) ((uintptr_t)&m_regs.CP2C.r[(reg)] - (uintptr_t)this)
+#define COP2_DATA_OFFSET(reg) ((uintptr_t)&m_regs.CP2D.r[(reg)] - (uintptr_t)this)
 
 void DynaRecCPU::recCOP2() {
-    const auto func = m_recGTE[m_psxRegs.code & 0x3F];  // Look up the opcode in our decoding LUT
+    const auto func = m_recGTE[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
     (*this.*func)();                                    // Jump into the handler to recompile it
 }
 
@@ -257,7 +257,7 @@ void DynaRecCPU::recLWC2() {
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);
     }
 
-    call(psxMemRead32Wrapper);
+    call(read32Wrapper);
     switch (_Rt_) {
         case 15:
         case 30:
@@ -297,14 +297,14 @@ void DynaRecCPU::recSWC2() {
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);
     }
 
-    call(psxMemWrite32Wrapper);
+    call(write32Wrapper);
 }
 
 #define GTE_FALLBACK(name)                                                                          \
     static void name##Wrapper(uint32_t instruction) { PCSX::g_emulator->m_gte->name(instruction); } \
                                                                                                     \
     void DynaRecCPU::rec##name() {                                                                  \
-        gen.Mov(arg1, m_psxRegs.code);                                                              \
+        gen.Mov(arg1, m_regs.code);                                                                 \
         call(name##Wrapper);                                                                        \
     }
 

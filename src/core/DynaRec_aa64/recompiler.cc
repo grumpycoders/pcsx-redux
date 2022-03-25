@@ -296,11 +296,11 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
             return m_invalidBlock;
         }
 
-        m_psxRegs.code = *p;  // Actually read the instruction
+        m_regs.code = *p;  // Actually read the instruction
         m_pc += 4;            // Increment recompiler PC
         count++;              // Increment instruction count
 
-        const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
+        const auto func = m_recBSC[m_regs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)();                                   // Jump into the handler to recompile it
     }
 

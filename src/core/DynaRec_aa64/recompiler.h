@@ -35,29 +35,29 @@
 #include "tracy/Tracy.hpp"
 
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)this)
-#define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)this)
-#define COP0_OFFSET(x) ((uintptr_t)&m_psxRegs.CP0.r[(x)] - (uintptr_t)this)
-#define PC_OFFSET ((uintptr_t)&m_psxRegs.pc - (uintptr_t)this)
-#define LO_OFFSET ((uintptr_t)&m_psxRegs.GPR.n.lo - (uintptr_t)this)
-#define HI_OFFSET ((uintptr_t)&m_psxRegs.GPR.n.hi - (uintptr_t)this)
-#define CYCLE_OFFSET ((uintptr_t)&m_psxRegs.cycle - (uintptr_t)this)
+#define GPR_OFFSET(x) ((uintptr_t)&m_regs.GPR.r[(x)] - (uintptr_t)this)
+#define COP0_OFFSET(x) ((uintptr_t)&m_regs.CP0.r[(x)] - (uintptr_t)this)
+#define PC_OFFSET ((uintptr_t)&m_regs.pc - (uintptr_t)this)
+#define LO_OFFSET ((uintptr_t)&m_regs.GPR.n.lo - (uintptr_t)this)
+#define HI_OFFSET ((uintptr_t)&m_regs.GPR.n.hi - (uintptr_t)this)
+#define CYCLE_OFFSET ((uintptr_t)&m_regs.cycle - (uintptr_t)this)
 
-static uint8_t psxMemRead8Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead8(address); }
-static uint16_t psxMemRead16Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead16(address); }
-static uint32_t psxMemRead32Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead32(address); }
+static uint8_t read8Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read8(address); }
+static uint16_t read16Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read16(address); }
+static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
 
 static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
-static void psxMemWrite8Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_psxMem->psxMemWrite8(address, value);
+static void write8Wrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write8(address, value);
 }
-static void psxMemWrite16Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_psxMem->psxMemWrite16(address, value);
+static void write16Wrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write16(address, value);
 }
-static void psxMemWrite32Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_psxMem->psxMemWrite32(address, value);
+static void write32Wrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32(address, value);
 }
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
@@ -163,14 +163,14 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void uncompileAll();
 
     // Class Wrapper Functions
-    static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->psxException(e, bd); }
+    static void exceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->exception(e, bd); }
     static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
-    static void recBranchTestWrapper(DynaRecCPU* that) { that->psxBranchTest(); }
+    static void recBranchTestWrapper(DynaRecCPU* that) { that->branchTest(); }
     static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
 
     static void signalShellReached(DynaRecCPU* that);
     static DynarecCallback recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
-        return that->recompile(callback, that->m_psxRegs.pc);
+        return that->recompile(callback, that->m_regs.pc);
     }
 
     template <uint32_t pc>

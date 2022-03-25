@@ -25,11 +25,11 @@
     }
 
 void DynaRecCPU::recUnknown() {
-    PCSX::g_system->message("Unknown instruction for dynarec - address %08x, instruction %08x\n", m_pc, m_psxRegs.code);
+    PCSX::g_system->message("Unknown instruction for dynarec - address %08x, instruction %08x\n", m_pc, m_regs.code);
     recException(Exception::ReservedInstruction);
 }
 void DynaRecCPU::recSpecial() {
-    const auto func = m_recSPC[m_psxRegs.code & 0x3F];  // Look up the opcode in our decoding LUT
+    const auto func = m_recSPC[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
     (*this.*func)();                                    // Jump into the handler to recompile it
 }
 
@@ -474,7 +474,7 @@ void DynaRecCPU::recLUI() {
     BAILZERO(_Rt_);
 
     maybeCancelDelayedLoad(_Rt_);
-    markConst(_Rt_, m_psxRegs.code << 16);
+    markConst(_Rt_, m_regs.code << 16);
 }
 
 void DynaRecCPU::recLB() { recompileLoad<8, true>(); }
@@ -496,7 +496,7 @@ void DynaRecCPU::recLWL() {
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1
-        call(psxMemRead32Wrapper);      // Read value returned in w0
+        call(read32Wrapper);      // Read value returned in w0
 
         if (_Rt_) {
             allocateReg(_Rt_);  // Allocate $rt with writeback
@@ -512,7 +512,7 @@ void DynaRecCPU::recLWL() {
         const auto shift = LWL_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1
-        call(psxMemRead32Wrapper);      // Read value returned in w0
+        call(read32Wrapper);      // Read value returned in w0
 
         if (_Rt_) {
             allocateReg(_Rt_);  // Allocate $rt with writeback
@@ -527,7 +527,7 @@ void DynaRecCPU::recLWL() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
+        call(read32Wrapper);                               // Read from the aligned address, result in w0
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
@@ -547,7 +547,7 @@ void DynaRecCPU::recLWL() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
+        call(read32Wrapper);                               // Read from the aligned address, result in w0
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
@@ -578,7 +578,7 @@ void DynaRecCPU::recLWR() {
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
-        call(psxMemRead32Wrapper);      // Read value returned in w0
+        call(read32Wrapper);      // Read value returned in w0
 
         if (_Rt_) {
             allocateReg(_Rt_);  // Allocate $rt with writeback
@@ -594,7 +594,7 @@ void DynaRecCPU::recLWR() {
         const auto shift = LWR_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1
-        call(psxMemRead32Wrapper);      // Read value returned in w0
+        call(read32Wrapper);      // Read value returned in w0
 
         if (_Rt_) {
             allocateReg(_Rt_);  // Allocate $rt with writeback
@@ -609,7 +609,7 @@ void DynaRecCPU::recLWR() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
+        call(read32Wrapper);                               // Read from the aligned address, result in w0
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
@@ -629,7 +629,7 @@ void DynaRecCPU::recLWR() {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in eax
+        call(read32Wrapper);                               // Read from the aligned address, result in eax
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
@@ -680,7 +680,7 @@ template <int size, bool signExtend>
 void DynaRecCPU::recompileLoad() {
     if (m_gprs[_Rs_].isConst()) {  // Store the address in first argument register
         const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
-        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerRead(addr);
+        const auto pointer = PCSX::g_emulator->m_mem->pointerRead(addr);
 
         if (pointer != nullptr && (_Rt_) != 0) {
             allocateRegWithoutLoad(_Rt_);
@@ -697,16 +697,16 @@ void DynaRecCPU::recompileLoad() {
 
     switch (size) {
         case 8:
-            call(psxMemRead8Wrapper);
+            call(read8Wrapper);
             break;
         case 16:
-            call(psxMemRead16Wrapper);
+            call(read16Wrapper);
             break;
         case 32:
-            call(psxMemRead32Wrapper);
+            call(read32Wrapper);
             break;
         default:
-            PCSX::g_system->message("Invalid size for memory load in dynarec. Instruction %08x\n", m_psxRegs.code);
+            PCSX::g_system->message("Invalid size for memory load in dynarec. Instruction %08x\n", m_regs.code);
             break;
     }
 
@@ -789,7 +789,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     gen.Mov(arg3, (int32_t)m_inDelaySlot);               // Store whether we're in a delay slot in arg3
     gen.Mov(pc, m_pc - 4);                               // PC for exception handler to use
     gen.Str(pc, MemOperand(contextPointer, PC_OFFSET));  // Store the PC
-    call(psxExceptionWrapper);                           // Call the exception wrapper function
+    call(exceptionWrapper);                           // Call the exception wrapper function
 
     gen.L(label);  // Execution will jump here if interrupts not enabled
 }
@@ -938,8 +938,8 @@ void DynaRecCPU::recORI() {
 }
 
 void DynaRecCPU::recREGIMM() {
-    const bool isBGEZ = ((m_psxRegs.code >> 16) & 1) != 0;
-    const bool link = ((m_psxRegs.code >> 17) & 0xF) == 8;
+    const bool isBGEZ = ((m_regs.code >> 16) & 1) != 0;
+    const bool link = ((m_regs.code >> 17) & 0xF) == 8;
     const auto target = _Imm_ * 4 + m_pc;
 
     m_nextIsDelaySlot = true;
@@ -1011,7 +1011,7 @@ void DynaRecCPU::recRFE() {
 void DynaRecCPU::recSB() {
     if (m_gprs[_Rs_].isConst()) {
         const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
-        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr, 8);
+        const auto pointer = PCSX::g_emulator->m_mem->pointerWrite(addr, 8);
 
         if (pointer != nullptr) {
             if (m_gprs[_Rt_].isConst()) {
@@ -1032,7 +1032,7 @@ void DynaRecCPU::recSB() {
         }
 
         gen.Mov(arg1, addr);  // Address to write to in arg1 TODO: Optimize
-        call(psxMemWrite8Wrapper);
+        call(write8Wrapper);
     }
 
     else {
@@ -1045,14 +1045,14 @@ void DynaRecCPU::recSB() {
 
         allocateReg(_Rs_);
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address to write to in arg1   TODO: Optimize
-        call(psxMemWrite8Wrapper);
+        call(write8Wrapper);
     }
 }
 
 void DynaRecCPU::recSH() {
     if (m_gprs[_Rs_].isConst()) {
         const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
-        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr, 16);
+        const auto pointer = PCSX::g_emulator->m_mem->pointerWrite(addr, 16);
         if (pointer != nullptr) {
             if (m_gprs[_Rt_].isConst()) {
                 store<16>(m_gprs[_Rt_].val & 0xFFFF, pointer);
@@ -1065,7 +1065,7 @@ void DynaRecCPU::recSH() {
         }
 
         else if (addr == 0x1f801070) {  // I_STAT
-            gen.Mov(x0, (uint64_t)&PCSX::g_emulator->m_psxMem->g_psxH[0x1070]);
+            gen.Mov(x0, (uint64_t)&PCSX::g_emulator->m_mem->m_psxH[0x1070]);
             if (m_gprs[_Rt_].isConst()) {
                 gen.Ldrh(w1, MemOperand(x0));
                 gen.Mov(w2, m_gprs[_Rt_].val & 0xFFFF);
@@ -1102,7 +1102,7 @@ void DynaRecCPU::recSH() {
         }
 
         gen.Mov(arg1, addr);  // Address to write to in arg1   TODO: Optimize
-        call(psxMemWrite16Wrapper);
+        call(write16Wrapper);
     }
 
     else {
@@ -1115,14 +1115,14 @@ void DynaRecCPU::recSH() {
 
         allocateReg(_Rs_);
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address to write to in arg1   TODO: Optimize
-        call(psxMemWrite16Wrapper);
+        call(write16Wrapper);
     }
 }
 
 void DynaRecCPU::recSW() {
     if (m_gprs[_Rs_].isConst()) {
         const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
-        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr, 32);
+        const auto pointer = PCSX::g_emulator->m_mem->pointerWrite(addr, 32);
         if (pointer != nullptr) {
             if (m_gprs[_Rt_].isConst()) {
                 store<32>(m_gprs[_Rt_].val, pointer);
@@ -1142,7 +1142,7 @@ void DynaRecCPU::recSW() {
         }
 
         gen.Mov(arg1, addr);  // Address to write to in arg1   TODO: Optimize
-        call(psxMemWrite32Wrapper);
+        call(write32Wrapper);
     }
 
     else {
@@ -1155,7 +1155,7 @@ void DynaRecCPU::recSW() {
 
         allocateReg(_Rs_);
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address to write to in arg1   TODO: Optimize
-        call(psxMemWrite32Wrapper);
+        call(write32Wrapper);
     }
 }
 
@@ -1364,13 +1364,13 @@ void DynaRecCPU::recSWL() {
         const auto shift = SWL_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
-        call(psxMemRead32Wrapper);
+        call(read32Wrapper);
         gen.andImm(arg2, w0, mask);  // Mask read value
         gen.Mov(w2, m_gprs[_Rt_].val >> shift);
         gen.Orr(arg2, arg2, w2);  // Shift $rt and or with read value
 
         gen.Mov(arg1, alignedAddress);  // Address in arg2 again
-        call(psxMemWrite32Wrapper);
+        call(write32Wrapper);
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
@@ -1378,19 +1378,19 @@ void DynaRecCPU::recSWL() {
         const auto shift = SWL_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
-        call(psxMemRead32Wrapper);
+        call(read32Wrapper);
         gen.andImm(w0, w0, mask);  // Mask read value
 
         allocateReg(_Rt_);  // Allocate $rt
         // Value to write back to memory in $arg2
         gen.Orr(arg2, w0, Operand(m_gprs[_Rt_].allocatedReg, LSR, shift));
         gen.Mov(arg1, alignedAddress);                           // Aligned address in arg1 again
-        call(psxMemWrite32Wrapper);                              // Write back
+        call(write32Wrapper);                              // Write back
     } else if (m_gprs[_Rt_].isConst()) {                         // Only previous rt value is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
+        call(read32Wrapper);                               // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1407,12 +1407,12 @@ void DynaRecCPU::recSWL() {
         gen.And(x0, x0, Operand(x3, LSR, 32));      // Mask read value
         gen.Orr(arg2, arg2, w0);
         gen.Mov(arg1, w5);
-        call(psxMemWrite32Wrapper);
+        call(write32Wrapper);
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
+        call(read32Wrapper);                               // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
@@ -1429,7 +1429,7 @@ void DynaRecCPU::recSWL() {
         gen.And(x0, x0, Operand(x3, LSR, 32));         // Mask read value
         gen.Orr(arg2, arg2, w0);                       // arg2 = value to write to memory
         gen.Mov(arg1, w5);
-        call(psxMemWrite32Wrapper);
+        call(write32Wrapper);
     }
 }
 
@@ -1445,13 +1445,13 @@ void DynaRecCPU::recSWR() {
         const auto shift = SWR_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
-        call(psxMemRead32Wrapper);
+        call(read32Wrapper);
         gen.andImm(arg2, w0, mask);  // Mask read value
         gen.Mov(w2, m_gprs[_Rt_].val << shift);
         gen.Orr(arg2, arg2, w2);  // Shift $rt and or with read value
 
         gen.Mov(arg1, alignedAddress);  // Address in arg2 again
-        call(psxMemWrite32Wrapper);
+        call(write32Wrapper);
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
@@ -1459,19 +1459,19 @@ void DynaRecCPU::recSWR() {
         const auto shift = SWR_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
-        call(psxMemRead32Wrapper);
+        call(read32Wrapper);
         gen.andImm(w0, w0, mask);  // Mask read value
 
         allocateReg(_Rt_);                                       // Allocate $rt
         gen.Lsl(arg2, m_gprs[_Rt_].allocatedReg, shift);         // arg2 = shifted $rt
         gen.Orr(arg2, arg2, w0);                                 // Or with read value
         gen.Mov(arg1, alignedAddress);                           // Aligned address in arg1 again
-        call(psxMemWrite32Wrapper);                              // Write back
+        call(write32Wrapper);                              // Write back
     } else if (m_gprs[_Rt_].isConst()) {                         // Only previous rt value is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
+        call(read32Wrapper);                               // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1489,12 +1489,12 @@ void DynaRecCPU::recSWR() {
         gen.And(x0, x0, Operand(x3, LSR, 32));  // Mask read value
         gen.Orr(arg2, arg2, w0);
         gen.Mov(arg1, w5);
-        call(psxMemWrite32Wrapper);
+        call(write32Wrapper);
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(psxMemRead32Wrapper);                               // Read from the aligned address, result in w0
+        call(read32Wrapper);                               // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs();
@@ -1512,7 +1512,7 @@ void DynaRecCPU::recSWR() {
         gen.And(x0, x0, Operand(x3, LSR, 32));     // Mask read value
         gen.Orr(arg2, arg2, w0);                   // Or with read value
         gen.Mov(arg1, w5);
-        call(psxMemWrite32Wrapper);
+        call(write32Wrapper);
     }
 }
 
@@ -1568,7 +1568,7 @@ void DynaRecCPU::recException(Exception e) {
     gen.Mov(w3, m_pc - 4);
     gen.Str(w3, MemOperand(contextPointer, PC_OFFSET));  // PC for exception handler to use
 
-    call(psxExceptionWrapper);  // Call the exception wrapper
+    call(exceptionWrapper);  // Call the exception wrapper
 }
 
 void DynaRecCPU::recBREAK() {
