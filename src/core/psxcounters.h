@@ -28,16 +28,13 @@ namespace PCSX {
 
 class Counters {
   private:
-    /******************************************************************************/
     static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
-    uint32_t psxRcntRcountInternal(uint32_t index);
-    void psxRcntWcountInternal(uint32_t index, uint32_t value);
+    uint32_t readCounterInternal(uint32_t index);
+    void writeCounterInternal(uint32_t index, uint32_t value);
 
-    void psxRcntSet();
-    void psxRcntReset(uint32_t index);
-    void psxHsyncCalculate();
-
-    /******************************************************************************/
+    void set();
+    void reset(uint32_t index);
+    void calculateHsync();
 
     struct Rcnt {
         uint16_t mode, target;
@@ -80,8 +77,6 @@ class Counters {
 
     static const uint16_t JITTER_FLAGS = (Rc2OneEighthClock | RcIrqRegenerate | RcCountToTarget);
 
-    /******************************************************************************/
-
     Rcnt m_rcnts[CounterQuantity];
 
     uint32_t m_hSyncCount = 0;
@@ -89,21 +84,18 @@ class Counters {
     uint32_t m_audioFrames = 0;
 
     uint32_t m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL + 1];  // 2
-
-    /******************************************************************************/
-
   public:
     uint32_t m_psxNextCounter;
-    void psxRcntInit();
-    void psxRcntUpdate();
+    void init();
+    void update();
 
-    void psxRcntWcount(uint32_t index, uint32_t value);
-    void psxRcntWmode(uint32_t index, uint32_t value);
-    void psxRcntWtarget(uint32_t index, uint32_t value);
+    void writeCounter(uint32_t index, uint32_t value);
+    void writeMode(uint32_t index, uint32_t value);
+    void writeTarget(uint32_t index, uint32_t value);
 
-    uint32_t psxRcntRcount(uint32_t index);
-    uint32_t psxRcntRmode(uint32_t index);
-    uint32_t psxRcntRtarget(uint32_t index);
+    uint32_t readCounter(uint32_t index);
+    uint32_t readMode(uint32_t index);
+    uint32_t readTarget(uint32_t index);
 
     void save(PCSX::SaveStates::Counters &counters);
     void load(const PCSX::SaveStates::Counters &counters);

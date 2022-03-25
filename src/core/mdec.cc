@@ -367,20 +367,20 @@ void yuv2rgb24(int *blk, uint8_t *image) {
     }
 }
 
-void PCSX::MDEC::mdecInit(void) {
+void PCSX::MDEC::init(void) {
     memset(&mdec, 0, sizeof(mdec));
     memset(iq_y, 0, sizeof(iq_y));
     memset(iq_uv, 0, sizeof(iq_uv));
-    mdec.rl = (uint16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[0x100000];
+    mdec.rl = (uint16_t *)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
 }
 
 // command register
-void PCSX::MDEC::mdecWrite0(uint32_t data) { mdec.reg0 = data; }
+void PCSX::MDEC::write0(uint32_t data) { mdec.reg0 = data; }
 
-uint32_t PCSX::MDEC::mdecRead0(void) { return mdec.reg0; }
+uint32_t PCSX::MDEC::read0(void) { return mdec.reg0; }
 
 // status register
-void PCSX::MDEC::mdecWrite1(uint32_t data) {
+void PCSX::MDEC::write1(uint32_t data) {
     if (data & MDEC1_RESET) {  // mdec reset
         mdec.reg0 = 0;
         mdec.reg1 = 0;
@@ -389,12 +389,12 @@ void PCSX::MDEC::mdecWrite1(uint32_t data) {
     }
 }
 
-uint32_t PCSX::MDEC::mdecRead1(void) {
+uint32_t PCSX::MDEC::read1(void) {
     uint32_t v = mdec.reg1;
     return v;
 }
 
-void PCSX::MDEC::psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
+void PCSX::MDEC::dma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     int cmd = mdec.reg0;
     int size;
 
@@ -426,7 +426,7 @@ void PCSX::MDEC::psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
 
             /* process the pending dma1 */
             if (mdec.pending_dma1.adr) {
-                psxDma1(mdec.pending_dma1.adr, mdec.pending_dma1.bcr, mdec.pending_dma1.chcr);
+                dma1(mdec.pending_dma1.adr, mdec.pending_dma1.bcr, mdec.pending_dma1.chcr);
             }
             mdec.pending_dma1.adr = 0;
             return;
@@ -467,7 +467,7 @@ void PCSX::MDEC::mdec0Interrupt() {
 #define SIZE_OF_24B_BLOCK (16 * 16 * 3)
 #define SIZE_OF_16B_BLOCK (16 * 16 * 2)
 
-void PCSX::MDEC::psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
+void PCSX::MDEC::dma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     int blk[DSIZE2 * 6];
     uint8_t *image;
     int size;
@@ -601,7 +601,7 @@ void PCSX::MDEC::mdec1Interrupt() {
 }
 
 void PCSX::MDEC::save(PCSX::SaveStates::MDEC &mdecSave) {
-    uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[0x100000];
+    uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
     uint32_t v;
 
     mdecSave.get<SaveStates::MDECReg0>().value = mdec.reg0;
@@ -620,7 +620,7 @@ void PCSX::MDEC::save(PCSX::SaveStates::MDEC &mdecSave) {
 }
 
 void PCSX::MDEC::load(const PCSX::SaveStates::MDEC &mdecSave) {
-    uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[0x100000];
+    uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
     uint32_t v;
 
     mdec.reg0 = mdecSave.get<SaveStates::MDECReg0>().value;

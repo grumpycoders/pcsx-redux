@@ -89,7 +89,7 @@ class SIO {
     uint32_t m_padState;
 
     inline void scheduleInterrupt(uint32_t eCycle) {
-        g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO, eCycle);
+        g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
 #if 0
 // Breaks Twisted Metal 2 intro
         m_statusReg &= ~RX_RDY;
@@ -113,7 +113,7 @@ class SIO {
     void writeCtrl16(uint16_t value);
     void writeBaud16(uint16_t value);
 
-    uint8_t sioRead8();
+    uint8_t read8();
     uint16_t readStatus16();
     uint16_t readMode16();
     uint16_t readCtrl16();

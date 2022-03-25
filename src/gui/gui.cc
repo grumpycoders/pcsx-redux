@@ -920,7 +920,7 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
                 ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
-                if (PCSX::g_emulator->m_psxCpu->isDynarec()) {
+                if (PCSX::g_emulator->m_cpu->isDynarec()) {
                     ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, &m_disassembly.m_show);
                 } else {
                     ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, false, false);
@@ -993,7 +993,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             }
             ImGui::Separator();
             ImGui::Separator();
-            ImGui::Text(_("CPU: %s"), g_emulator->m_psxCpu->isDynarec() ? "DynaRec" : "Interpreted");
+            ImGui::Text(_("CPU: %s"), g_emulator->m_cpu->isDynarec() ? "DynaRec" : "Interpreted");
             ImGui::Separator();
             ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdromId);
             ImGui::Separator();
@@ -1075,10 +1075,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_luaEditor.draw(_("Lua Editor"), this);
     }
     if (m_events.m_show) {
-        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_psxMem->g_psxM), _("Kernel events"));
+        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_psxM), _("Kernel events"));
     }
     if (m_kernelLog.m_show) {
-        changed |= m_kernelLog.draw(g_emulator->m_psxCpu.get(), _("Kernel Calls"));
+        changed |= m_kernelLog.draw(g_emulator->m_cpu.get(), _("Kernel Calls"));
     }
     if (m_callstacks.m_show) {
         m_callstacks.draw(_("Callstacks"), this);
@@ -1090,32 +1090,32 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             if (editor.show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(PCSX::g_emulator->m_psxMem->g_psxM, 8 * 1024 * 1024, 0x80000000);
+                editor.draw(PCSX::g_emulator->m_mem->m_psxM, 8 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
         if (m_parallelPortEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(PCSX::g_emulator->m_psxMem->g_psxP, 64 * 1024, 0x1f000000);
+            m_parallelPortEditor.draw(PCSX::g_emulator->m_mem->m_psxP, 64 * 1024, 0x1f000000);
         }
         counter++;
         if (m_scratchPadEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH, 1024, 0x1f800000);
+            m_scratchPadEditor.draw(PCSX::g_emulator->m_mem->m_psxH, 1024, 0x1f800000);
         }
         counter++;
         if (m_hwrEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(PCSX::g_emulator->m_mem->m_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(PCSX::g_emulator->m_psxMem->g_psxR, 512 * 1024, 0xbfc00000);
+            m_biosEditor.draw(PCSX::g_emulator->m_mem->m_psxR, 512 * 1024, 0xbfc00000);
         }
     }
 
@@ -1124,15 +1124,15 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(this, &PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
+        m_registers.draw(this, &PCSX::g_emulator->m_cpu->m_regs, _("Registers"));
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(this, &PCSX::g_emulator->m_psxCpu->m_psxRegs, PCSX::g_emulator->m_psxMem.get(), &m_dwarf,
+        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), &m_dwarf,
                         _("Assembly"));
     }
 
-    if (m_disassembly.m_show && PCSX::g_emulator->m_psxCpu->isDynarec()) {
+    if (m_disassembly.m_show && PCSX::g_emulator->m_cpu->isDynarec()) {
         m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
 
@@ -1153,7 +1153,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     m_types.draw();
     if (m_source.m_show) {
-        m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc, this);
+        m_source.draw(_("Source"), g_emulator->m_cpu->m_regs.pc, this);
     }
 
     if (m_outputShaderEditor.draw(this, _("Output Video"))) {
@@ -1601,12 +1601,12 @@ void PCSX::GUI::interruptsScaler() {
     };
     if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
         if (ImGui::Button(_("Reset all"))) {
-            for (auto& scale : g_emulator->m_psxCpu->m_interruptScales) {
+            for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
                 scale = 1.0f;
             }
         }
         unsigned counter = 0;
-        for (auto& scale : g_emulator->m_psxCpu->m_interruptScales) {
+        for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
             ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
             counter++;
         }
@@ -1714,7 +1714,7 @@ void PCSX::GUI::update(bool vsync) {
 }
 
 void PCSX::GUI::shellReached() {
-    auto& regs = g_emulator->m_psxCpu->m_psxRegs;
+    auto& regs = g_emulator->m_cpu->m_regs;
     uint32_t oldPC = regs.pc;
     if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
 

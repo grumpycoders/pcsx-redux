@@ -250,13 +250,13 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_mcdState = MCD_STATE_IDLE;
         m_bufferIndex = 0;
         m_statusReg = TX_RDY | TX_EMPTY;
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
+        PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
     }
 }
 
 void PCSX::SIO::writeBaud16(uint16_t value) { m_baudReg = value; }
 
-uint8_t PCSX::SIO::sioRead8() {
+uint8_t PCSX::SIO::read8() {
     uint8_t ret = 0;
 
     if ((m_statusReg & RX_RDY) /* && (m_ctrlReg & RX_PERM)*/) {
@@ -304,7 +304,7 @@ uint16_t PCSX::SIO::readStatus16() {
 
 #if 0
     // wait for IRQ first
-    if( PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt & (1 << PSXINT_SIO) )
+    if( PCSX::g_emulator->m_cpu->m_regs.interrupt & (1 << PSXINT_SIO) )
     {
         hard &= ~TX_RDY;
         hard &= ~RX_RDY;
@@ -330,7 +330,7 @@ void PCSX::SIO::netError() {
 }
 
 void PCSX::SIO::interrupt() {
-    SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
+    SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
     m_statusReg |= IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 

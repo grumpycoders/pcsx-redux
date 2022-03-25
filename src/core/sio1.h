@@ -166,7 +166,7 @@ class SIO1 {
         uint32_t m_cursor = 0;
     };
 
-    inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
+    inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
 
     void updateStat();
 

@@ -82,7 +82,7 @@ bool DynaRecCPU::Init() {
         m_profiler.init();
     }
 
-    m_regs[0].markConst(0);  // $zero is always zero
+    m_gprs[0].markConst(0);  // $zero is always zero
     m_currentDelayedLoad = 0;
     m_runtimeLoadDelay.active = false;
     return true;
@@ -284,7 +284,7 @@ void DynaRecCPU::emitDispatcher() {
         const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
         const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
         const auto valueOffset = (uintptr_t)&delay.value - (uintptr_t)this;
-        const auto registerArrayOffset = (uintptr_t)&m_psxRegs.GPR.r[0] - (uintptr_t)this;
+        const auto registerArrayOffset = (uintptr_t)&m_regs.GPR.r[0] - (uintptr_t)this;
 
         m_loadDelayHandler = gen.getCurr<DynarecCallback>();
         gen.mov(ecx, dword[contextPointer + indexOffset]);  // Index of the register that needs to be loaded to
@@ -383,8 +383,8 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             const auto delayedValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
             const auto delayedLoadActiveOffset = (uintptr_t)&delayedLoad.active - (uintptr_t)this;
             allocateRegWithoutLoad(index);
-            m_regs[index].setWriteback(true);
-            gen.mov(m_regs[index].allocatedReg, dword[contextPointer + delayedValueOffset]);
+            m_gprs[index].setWriteback(true);
+            gen.mov(m_gprs[index].allocatedReg, dword[contextPointer + delayedValueOffset]);
         }
     };
 
@@ -393,11 +393,11 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         m_nextIsDelaySlot = false;
 
         // Fetch instruction. We make sure this function is called with a valid PC, otherwise it will crash
-        m_psxRegs.code = *(uint32_t*)PSXM(m_pc);
+        m_regs.code = *(uint32_t*)PSXM(m_pc);
         m_pc += 4;  // Increment recompiler PC
         count++;    // Increment instruction count
 
-        const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
+        const auto func = m_recBSC[m_regs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)();                                   // Jump into the handler to recompile it
     };
 
@@ -459,7 +459,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
 }
 
 void DynaRecCPU::recSpecial() {
-    const auto func = m_recSPC[m_psxRegs.code & 0x3F];  // Look up the opcode in our decoding LUT
+    const auto func = m_recSPC[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
     (*this.*func)();                                    // Jump into the handler to recompile it
 }
 

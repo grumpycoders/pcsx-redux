@@ -60,7 +60,6 @@ class CDRom {
     virtual void write2(uint8_t rt) = 0;
     virtual void write3(uint8_t rt) = 0;
     virtual void load() = 0;
-    virtual int freeze(gzFile f, int Mode) = 0;
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
 

@@ -43,7 +43,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
     }
 
     if (ImGui::BeginTabBar("SearchTabBar")) {
-        const uint8_t* memData = g_emulator->m_psxMem->g_psxM;
+        const uint8_t* memData = g_emulator->m_mem->m_psxM;
         const uint32_t memSize = 1024 * 1024 * (g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
         constexpr uint32_t memBase = 0x80000000;
 
