@@ -18,25 +18,27 @@
  ***************************************************************************/
 
 #include "support/binstruct.h"
-#include "support/file.h"
-#include "support/typestring-wrapper.h"
 
 #include "gtest/gtest.h"
+#include "support/file.h"
+#include "support/typestring-wrapper.h"
 
 using namespace PCSX;
 using namespace PCSX::BinStruct;
 
 typedef Field<UInt8, TYPESTRING("field1")> Field1;
-typedef Field<UInt32, TYPESTRING("field2")> Field2;
-typedef Field<CString<12>, TYPESTRING("astring")> Field3;
-typedef Field<NString, TYPESTRING("anotherstring")> Field4;
-typedef Struct<TYPESTRING("AStruct"), Field1, Field2, Field3, Field4> Struct1;
+typedef Field<BEUInt16, TYPESTRING("befield2")> Field2;
+typedef Field<UInt32, TYPESTRING("field3")> Field3;
+typedef Field<CString<12>, TYPESTRING("astring")> Field4;
+typedef Field<NString, TYPESTRING("anotherstring")> Field5;
+typedef Struct<TYPESTRING("AStruct"), Field1, Field2, Field3, Field4, Field5> Struct1;
 
-TEST(BinStruct, Deserialize) {
+TEST(BasicBinStruct, Deserialize) {
     Struct1 s1;
     IO<File> f(new BufferFile(FileOps::READWRITE));
 
     f->write<uint8_t>(42);
+    f->write<uint16_t>(0x1234);
     f->write<uint32_t>(28);
     f->writeString("Hello World!");
     f->write<uint8_t>(3);
@@ -45,7 +47,65 @@ TEST(BinStruct, Deserialize) {
     s1.deserialize(f);
 
     EXPECT_EQ(s1.get<Field1>(), 42);
-    EXPECT_EQ(s1.get<Field2>(), 28);
-    EXPECT_EQ(s1.get<Field3>(), "Hello World!");
-    EXPECT_EQ(s1.get<Field4>(), "Hi!");
+    EXPECT_EQ(s1.get<Field2>(), 0x3412);
+    EXPECT_EQ(s1.get<Field3>(), 28);
+    EXPECT_EQ(s1.get<Field4>(), "Hello World!");
+    EXPECT_EQ(s1.get<Field5>(), "Hi!");
+}
+
+TEST(BasicBinStruct, Serialize) {
+    Struct1 s1(Struct1::CREATE);
+    s1.set<Field1>(42);
+    s1.set<Field2>(0x3412);
+    s1.set<Field3>(28);
+    s1.set<Field4>("Hello World!");
+    s1.set<Field5>("Hi!");
+
+    IO<File> f(new BufferFile(FileOps::READWRITE));
+    s1.serialize(f);
+    EXPECT_EQ(f->read<uint8_t>(), 42);
+    EXPECT_EQ(f->read<uint16_t>(), 0x1234);
+    EXPECT_EQ(f->read<uint32_t>(), 28);
+    EXPECT_EQ(f->readString(12), "Hello World!");
+    EXPECT_EQ(f->read<uint8_t>(), 3);
+    EXPECT_EQ(f->readString(3), "Hi!");
+}
+
+TEST(BasicBinStruct, Inject) {
+    IO<File> f(new BufferFile(FileOps::READWRITE));
+
+    f->write<uint8_t>(42);
+    f->write<uint16_t, std::endian::big>(0x1234);
+    f->write<uint32_t>(28);
+    f->writeString("Hello World!");
+    f->write<uint8_t>(3);
+    f->writeString("Hi!");
+
+    auto slice = f->read(f->size());
+    Struct1 s1(std::move(slice));
+
+    EXPECT_EQ(s1.get<Field1>(), 42);
+    EXPECT_EQ(s1.get<Field2>(), 0x3412);
+    EXPECT_EQ(s1.get<Field3>(), 28);
+    EXPECT_EQ(s1.get<Field4>(), "Hello World!");
+    EXPECT_EQ(s1.get<Field5>(), "Hi!");
+}
+
+TEST(BasicBinStruct, InjectNoCopy) {
+    IO<File> f(new BufferFile(FileOps::READWRITE));
+
+    f->write<uint8_t>(42);
+    f->write<uint16_t, std::endian::big>(0x1234);
+    f->write<uint32_t>(28);
+    f->writeString("Hello World!");
+    f->write<uint8_t>(3);
+    f->writeString("Hi!");
+
+    Struct1 s1(std::move(f.asA<BufferFile>()->borrow()));
+
+    EXPECT_EQ(s1.get<Field1>(), 42);
+    EXPECT_EQ(s1.get<Field2>(), 0x3412);
+    EXPECT_EQ(s1.get<Field3>(), 28);
+    EXPECT_EQ(s1.get<Field4>(), "Hello World!");
+    EXPECT_EQ(s1.get<Field5>(), "Hi!");
 }

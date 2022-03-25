@@ -212,7 +212,9 @@ class Struct<irqus::typestring<C...>, fields...> : private std::tuple<fields...>
   public:
     static constexpr bool isStruct = true;
     using type = myself;
+    enum Create { CREATE };
     Struct() { verifyIntegrity(); }
+    Struct(Create) : m_data(std::move(std::string(size(), '\0'))) { verifyIntegrity(); }
     Struct(const Slice &slice) : m_data(slice) { verifyIntegrity(); }
     Struct(Slice &&slice) : m_data(slice) { verifyIntegrity(); }
     using name = irqus::typestring<C...>;
@@ -223,12 +225,20 @@ class Struct<irqus::typestring<C...>, fields...> : private std::tuple<fields...>
         m_data = std::string();
         deserialize<0, fields...>(file);
     }
+    void serialize(IO<File> file) const { serialize<0, fields...>(file); }
     template <class T>
     typename T::type get() const {
         static_assert(hasFieldType<T>());
         size_t offset = offsetOf<T>();
         if (m_data.size() <= offset) throw std::runtime_error("Internal slice not big enough");
         return T::get(m_data, offset);
+    }
+    template <class T>
+    void set(const typename T::type &val) {
+        static_assert(hasFieldType<T>());
+        size_t offset = offsetOf<T>();
+        if (m_data.size() <= offset) throw std::runtime_error("Internal slice not big enough");
+        T::set(m_data, offset, val);
     }
     static constexpr bool fixedSize() { return fixedSize<0, fields...>(); }
     static constexpr size_t size() { return size<0, fields...>(); }
@@ -256,6 +266,14 @@ class Struct<irqus::typestring<C...>, fields...> : private std::tuple<fields...>
     void deserialize(IO<File> file) {
         FieldType::deserialize(file, m_data);
         deserialize<index + 1, nestedFields...>(file);
+    }
+    template <size_t index>
+    void serialize(IO<File> file) const {}
+    template <size_t index, typename FieldType, typename... nestedFields>
+    void serialize(IO<File> file) const {
+        size_t offset = offsetOf<FieldType>();
+        FieldType::serialize(file, m_data, offset);
+        serialize<index + 1, nestedFields...>(file);
     }
     template <size_t index>
     static constexpr size_t countVariableFields() {

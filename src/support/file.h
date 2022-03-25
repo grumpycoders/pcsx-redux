@@ -342,6 +342,8 @@ class BufferFile : public File {
     virtual bool eof() final override;
     virtual File* dup() final override;
 
+    Slice borrow();
+
   private:
     static uint8_t m_internalBuffer;
     size_t m_ptrR = 0;
