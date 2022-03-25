@@ -44,23 +44,10 @@
 #define HI_OFFSET ((uintptr_t)&m_regs.GPR.n.hi - (uintptr_t)this)
 #define CYCLE_OFFSET ((uintptr_t)&m_regs.cycle - (uintptr_t)this)
 
-static uint8_t read8Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read8(address); }
-static uint16_t read16Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read16(address); }
 static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
-
+static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
 static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
-}
-
-// For 8/16-bit writes, the entire value is put on the bus. This matters for certain IO registers
-static void write8Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_mem->write8(address, value);
-}
-static void write16Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_mem->write16(address, value);
-}
-static void write32Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_mem->write32(address, value);
 }
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
@@ -342,26 +329,11 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     static void exceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->exception(e, bd); }
-    static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
-    static void recBranchTestWrapper(DynaRecCPU* that) { that->branchTest(); }
     static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
 
     static void signalShellReached(DynaRecCPU* that);
     static DynarecCallback recRecompileWrapper(DynaRecCPU* that, bool fullLoadDelayEmulation) {
         return that->recompile(that->m_regs.pc, fullLoadDelayEmulation);
-    }
-
-    void inlineClear(uint32_t address) {
-        if (isPcValid(address & ~3)) {
-            loadThisPointer(arg1.cvt64());
-            gen.mov(arg2, address & ~3);
-            call(recClearWrapper);
-        }
-    }
-
-    template <uint32_t pc>
-    static void interceptKernelCallWrapper(DynaRecCPU* that) {
-        that->InterceptBIOS<false>(pc);
     }
 
     // Check if we're executing from valid memory
