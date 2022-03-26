@@ -157,8 +157,6 @@ struct CString {
     void serialize(IO<File> f) const { f->write(value, S); }
     void deserialize(IO<File> f) { f->read(value, S); }
     void reset() { memset(value, 0, S); }
-
-  private:
     char value[S];
 };
 
