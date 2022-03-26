@@ -775,11 +775,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
 
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 6, &quadVertices[0], GL_STATIC_DRAW);
-
-    glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     int loc;
 
     loc = glGetAttribLocation(m_shaderProgram, "Position");
