@@ -27,7 +27,6 @@
 #include <type_traits>
 
 #include "support/file.h"
-#include "support/slice.h"
 #include "typestring.hh"
 
 namespace PCSX {
@@ -37,26 +36,20 @@ namespace BinStruct {
 template <typename wireType, std::endian endianess>
 struct BasicFieldType {
     typedef wireType type;
-    static void deserialize(IO<File> file, Slice &slice) {
-        type val = file->read<type, endianess>();
-        Slice addend;
-        addend.borrow(&val, sizeof(val));
-        slice += addend;
+
+  private:
+    using myself = BasicFieldType<type, endianess>;
+
+  public:
+    operator type() const { return value; }
+    myself &operator=(const type &v) {
+        value = v;
+        return *this;
     }
-    static void serialize(IO<File> file, const Slice &slice, size_t offset) {
-        const uint8_t *buffer = slice.data<uint8_t>();
-        file->write<type, endianess>(*reinterpret_cast<const type *>(buffer + offset));
-    }
-    static type get(const Slice &slice, size_t offset) {
-        const uint8_t *buffer = slice.data<uint8_t>();
-        return *reinterpret_cast<const type *>(buffer + offset);
-    }
-    static void set(Slice &slice, size_t offset, type val) {
-        uint8_t *buffer = slice.data<uint8_t>();
-        *reinterpret_cast<type *>(buffer + offset) = val;
-    }
-    static constexpr size_t size() { return sizeof(type); }
-    static constexpr bool fixedSize() { return true; }
+    void serialize(IO<File> f) const { f->write<type, endianess>(value); }
+    void deserialize(IO<File> f) { value = f->read<type, endianess>(); }
+    void reset() { value = type(); }
+    type value;
 };
 
 struct Int8 : public BasicFieldType<int8_t, std::endian::little> {
@@ -125,70 +118,54 @@ struct BEUInt64 : public BasicFieldType<uint64_t, std::endian::big> {
 
 struct NString {
     static constexpr char const typeName[] = "NString";
-    typedef std::string_view type;
-    static void deserialize(IO<File> file, Slice &slice) {
-        uint8_t N = file->byte();
-        std::string t(N + 1, '\0');
-        t[0] = N;
-        file->read(t.data() + 1, N);
-        Slice addend(std::move(t));
-        slice += addend;
+    operator std::string_view() const { return value; }
+    NString &operator=(const std::string_view &v) {
+        value = v;
+        return *this;
     }
-    static void serialize(IO<File> file, const Slice &slice, size_t offset) {
-        const uint8_t *buffer = slice.data<uint8_t>();
-        uint8_t N = buffer[offset];
-        file->write(buffer + offset, N + 1);
+    NString &operator=(const std::string &v) {
+        value = v;
+        return *this;
     }
-    static std::string_view get(const Slice &slice, size_t offset) {
-        const uint8_t *buffer = slice.data<uint8_t>() + offset;
-        uint8_t N = *buffer++;
-        return std::string_view(reinterpret_cast<const char *>(buffer), N);
+    NString &operator=(std::string &&v) {
+        value = std::move(v);
+        return *this;
     }
-    static void set(Slice &slice, size_t offset, std::string_view val) {
-        auto size = std::min(val.size(), std::string_view::size_type(255));
-        slice.resize(offset + size + 1);
-        uint8_t *buffer = slice.data<uint8_t>();
-        buffer[offset] = val.size();
-        memcpy(buffer + offset + 1, val.data(), size);
+    void serialize(IO<File> f) const {
+        f->write<uint8_t>(value.size());
+        f->write(value.data(), value.size());
     }
-    static constexpr size_t size() { return 1; }
-    static constexpr bool fixedSize() { return false; }
+    void deserialize(IO<File> f) {
+        auto N = f->read<uint8_t>();
+        value.resize(N);
+        f->read(value.data(), N);
+    }
+    void reset() { value.clear(); }
+    std::string value;
 };
 
 template <size_t S>
 struct CString {
     static constexpr char const typeName[] = "CString";
     typedef std::string_view type;
-    static void deserialize(IO<File> file, Slice &slice) {
-        std::string t(S, '\0');
-        file->read(t.data(), S);
-        Slice addend(std::move(t));
-        slice += addend;
+    operator type() const { return {value, S}; }
+    CString<S> operator=(const type &v) {
+        memcpy(value, v.data(), S);
+        return *this;
     }
-    static void serialize(IO<File> file, const Slice &slice, size_t offset) {
-        const uint8_t *buffer = slice.data<uint8_t>();
-        file->write(buffer + offset, S);
-    }
-    static std::string_view get(const Slice &slice, size_t offset) {
-        const uint8_t *buffer = slice.data<uint8_t>() + offset;
-        return std::string_view(reinterpret_cast<const char *>(buffer), S);
-    }
-    static void set(Slice &slice, size_t offset, std::string_view val) {
-        uint8_t *buffer = slice.data<uint8_t>();
-        memcpy(buffer + offset, val.data(), std::min(val.size(), S));
-        if (val.size() < S) {
-            memset(buffer + offset + val.size(), 0, S - val.size());
-        }
-    }
-    static constexpr size_t size() { return S; }
-    static constexpr bool fixedSize() { return true; }
+    void set(const type &v) { memcpy(value, v.data(), S); }
+    void serialize(IO<File> f) const { f->write(value, S); }
+    void deserialize(IO<File> f) { f->read(value, S); }
+    void reset() { memset(value, 0, S); }
+
+  private:
+    char value[S];
 };
 
 template <typename FieldType, typename name>
 struct Field;
 template <typename FieldType, char... C>
 struct Field<FieldType, irqus::typestring<C...>> : public FieldType {
-    using type = typename FieldType::type;
     Field() {}
     typedef irqus::typestring<C...> fieldName;
 };
@@ -197,7 +174,6 @@ template <typename StructType, typename name>
 struct StructField;
 template <typename StructType, char... C>
 struct StructField<StructType, irqus::typestring<C...>> : public StructType {
-    using type = typename StructType::type;
     StructField() {}
     typedef irqus::typestring<C...> fieldName;
 };
@@ -210,126 +186,41 @@ class Struct<irqus::typestring<C...>, fields...> : private std::tuple<fields...>
     using base = std::tuple<fields...>;
 
   public:
-    static constexpr bool isStruct = true;
-    using type = myself;
-    enum Create { CREATE };
-    Struct() { verifyIntegrity(); }
-    Struct(Create) : m_data(std::move(std::string(size(), '\0'))) { verifyIntegrity(); }
-    Struct(const Slice &slice) : m_data(slice) { verifyIntegrity(); }
-    Struct(Slice &&slice) : m_data(slice) { verifyIntegrity(); }
-    using name = irqus::typestring<C...>;
-    static constexpr char const typeName[sizeof...(C) + 1] = {C..., '\0'};
-    const Slice &getSlice() const { return m_data; }
-    Slice &&moveSlice() { return std::move(m_data); }
-    void deserialize(IO<File> file) {
-        m_data = std::string();
-        deserialize<0, fields...>(file);
+    template <typename field>
+    constexpr const field &get() const {
+        return std::get<field>(*this);
     }
-    void serialize(IO<File> file) const { serialize<0, fields...>(file); }
-    template <class T>
-    typename T::type get() const {
-        static_assert(hasFieldType<T>());
-        size_t offset = offsetOf<T>();
-        if (m_data.size() <= offset) throw std::runtime_error("Internal slice not big enough");
-        return T::get(m_data, offset);
+    template <typename field>
+    constexpr field &get() {
+        return std::get<field>(*this);
     }
-    template <class T>
-    void set(const typename T::type &val) {
-        static_assert(hasFieldType<T>());
-        size_t offset = offsetOf<T>();
-        if (m_data.size() <= offset) throw std::runtime_error("Internal slice not big enough");
-        T::set(m_data, offset, val);
-    }
-    static constexpr bool fixedSize() { return fixedSize<0, fields...>(); }
-    static constexpr size_t size() { return size<0, fields...>(); }
+    constexpr void reset() { reset<0, fields...>(); }
+    void serialize(IO<File> f) const { serialize<0, fields...>(f); }
+    void deserialize(IO<File> f) { deserialize<0, fields...>(f); }
 
   private:
     template <size_t index>
-    static constexpr bool fixedSize() {
-        return true;
-    }
+    constexpr void reset() {}
     template <size_t index, typename FieldType, typename... nestedFields>
-    static constexpr bool fixedSize() {
-        return FieldType::fixedSize() && fixedSize<index + 1, nestedFields...>();
+    constexpr void reset() {
+        FieldType &setting = std::get<index>(*this);
+        setting.reset();
+        reset<index + 1, nestedFields...>();
     }
     template <size_t index>
-    static constexpr size_t size() {
-        return 0;
-    }
+    void serialize(IO<File> f) const {}
     template <size_t index, typename FieldType, typename... nestedFields>
-    static constexpr size_t size() {
-        return FieldType::size() + size<index + 1, nestedFields...>();
+    void serialize(IO<File> f) const {
+        std::get<index>(*this).serialize(f);
+        serialize<index + 1, nestedFields...>(f);
     }
     template <size_t index>
-    void deserialize(IO<File> file) {}
+    void deserialize(IO<File> f) {}
     template <size_t index, typename FieldType, typename... nestedFields>
-    void deserialize(IO<File> file) {
-        FieldType::deserialize(file, m_data);
-        deserialize<index + 1, nestedFields...>(file);
+    void deserialize(IO<File> f) {
+        std::get<index>(*this).deserialize(f);
+        deserialize<index + 1, nestedFields...>(f);
     }
-    template <size_t index>
-    void serialize(IO<File> file) const {}
-    template <size_t index, typename FieldType, typename... nestedFields>
-    void serialize(IO<File> file) const {
-        size_t offset = offsetOf<FieldType>();
-        FieldType::serialize(file, m_data, offset);
-        serialize<index + 1, nestedFields...>(file);
-    }
-    template <size_t index>
-    static constexpr size_t countVariableFields() {
-        return 0;
-    }
-    template <size_t index, typename FieldType, typename... nestedFields>
-    static constexpr size_t countVariableFields() {
-        return (FieldType::fixedSize() ? 0 : 1) + countVariableFields<index + 1, nestedFields...>();
-    }
-    template <size_t index>
-    static constexpr size_t locateVariableField() {
-        return index;
-    }
-    template <size_t index, typename FieldType, typename... nestedFields>
-    static constexpr size_t locateVariableField() {
-        return FieldType::fixedSize() ? locateVariableField<index + 1, nestedFields...>() : index;
-    }
-    static constexpr void verifyIntegrity() {
-        static_assert(countVariableFields<0, fields...>() <= 1);
-        static_assert(locateVariableField<0, fields...>() >= (sizeof...(fields) - 1));
-    }
-    template <typename FieldTypeTest>
-    static constexpr bool hasFieldType() {
-        return std::disjunction<std::is_same<FieldTypeTest, fields>...>::value;
-    }
-    template <size_t index>
-    static constexpr size_t offsetOf(size_t target) {
-        return 0;
-    }
-    template <size_t index, typename FieldType, typename... nestedFields>
-    static constexpr size_t offsetOf(size_t target) {
-        size_t ret = FieldType::size();
-        if (index != target) ret += offsetOf<index + 1, nestedFields...>(target);
-        return ret;
-    }
-    template <typename T, size_t index>
-    static constexpr size_t offsetOf() {
-        return 0;
-    }
-    template <typename T, size_t index, typename FieldType, typename... nestedFields>
-    static constexpr size_t offsetOf() {
-        if constexpr (std::is_same<T, FieldType>::value) {
-            if constexpr (index == 0) {
-                return 0;
-            } else {
-                return offsetOf<0, fields...>(index - 1);
-            }
-        } else {
-            return offsetOf<T, index + 1, nestedFields...>();
-        }
-    }
-    template <typename T>
-    static constexpr size_t offsetOf() {
-        return offsetOf<T, 0, fields...>();
-    }
-    Slice m_data;
 };
 
 }  // namespace BinStruct

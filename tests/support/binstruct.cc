@@ -49,17 +49,17 @@ TEST(BasicBinStruct, Deserialize) {
     EXPECT_EQ(s1.get<Field1>(), 42);
     EXPECT_EQ(s1.get<Field2>(), 0x3412);
     EXPECT_EQ(s1.get<Field3>(), 28);
-    EXPECT_EQ(s1.get<Field4>(), "Hello World!");
-    EXPECT_EQ(s1.get<Field5>(), "Hi!");
+    EXPECT_EQ(std::string_view(s1.get<Field4>()), "Hello World!");
+    EXPECT_EQ(s1.get<Field5>().value, "Hi!");
 }
 
 TEST(BasicBinStruct, Serialize) {
-    Struct1 s1(Struct1::CREATE);
-    s1.set<Field1>(42);
-    s1.set<Field2>(0x3412);
-    s1.set<Field3>(28);
-    s1.set<Field4>("Hello World!");
-    s1.set<Field5>("Hi!");
+    Struct1 s1;
+    s1.get<Field1>().value = 42;
+    s1.get<Field2>().value = 0x3412;
+    s1.get<Field3>().value = 28;
+    s1.get<Field4>().set("Hello World!");
+    s1.get<Field5>().value = "Hi!";
 
     IO<File> f(new BufferFile(FileOps::READWRITE));
     s1.serialize(f);
@@ -69,45 +69,6 @@ TEST(BasicBinStruct, Serialize) {
     EXPECT_EQ(f->readString(12), "Hello World!");
     EXPECT_EQ(f->read<uint8_t>(), 3);
     EXPECT_EQ(f->readString(3), "Hi!");
-}
-
-TEST(BasicBinStruct, Inject) {
-    IO<File> f(new BufferFile(FileOps::READWRITE));
-
-    f->write<uint8_t>(42);
-    f->write<uint16_t, std::endian::big>(0x1234);
-    f->write<uint32_t>(28);
-    f->writeString("Hello World!");
-    f->write<uint8_t>(3);
-    f->writeString("Hi!");
-
-    auto slice = f->read(f->size());
-    Struct1 s1(std::move(slice));
-
-    EXPECT_EQ(s1.get<Field1>(), 42);
-    EXPECT_EQ(s1.get<Field2>(), 0x3412);
-    EXPECT_EQ(s1.get<Field3>(), 28);
-    EXPECT_EQ(s1.get<Field4>(), "Hello World!");
-    EXPECT_EQ(s1.get<Field5>(), "Hi!");
-}
-
-TEST(BasicBinStruct, InjectNoCopy) {
-    IO<File> f(new BufferFile(FileOps::READWRITE));
-
-    f->write<uint8_t>(42);
-    f->write<uint16_t, std::endian::big>(0x1234);
-    f->write<uint32_t>(28);
-    f->writeString("Hello World!");
-    f->write<uint8_t>(3);
-    f->writeString("Hi!");
-
-    Struct1 s1(f.asA<BufferFile>()->borrow());
-
-    EXPECT_EQ(s1.get<Field1>(), 42);
-    EXPECT_EQ(s1.get<Field2>(), 0x3412);
-    EXPECT_EQ(s1.get<Field3>(), 28);
-    EXPECT_EQ(s1.get<Field4>(), "Hello World!");
-    EXPECT_EQ(s1.get<Field5>(), "Hi!");
 }
 
 typedef Field<UInt32, TYPESTRING("superfield1")> SuperField1;
@@ -128,13 +89,13 @@ TEST(NestedBinStruct, Deserialize) {
     f->writeString("World!");
 
     s2.deserialize(f);
-    auto s1 = s2.get<SuperField3>();
+    auto& s1 = s2.get<SuperField3>();
 
     EXPECT_EQ(s2.get<SuperField1>(), 0x12345678);
-    EXPECT_EQ(s2.get<SuperField2>(), "1234567");
+    EXPECT_EQ(std::string_view(s2.get<SuperField2>()), "1234567");
     EXPECT_EQ(s1.get<Field1>(), 42);
     EXPECT_EQ(s1.get<Field2>(), 0x3412);
     EXPECT_EQ(s1.get<Field3>(), 28);
-    EXPECT_EQ(s1.get<Field4>(), "Hello World!");
-    EXPECT_EQ(s1.get<Field5>(), "Hi!");
+    EXPECT_EQ(std::string_view(s1.get<Field4>()), "Hello World!");
+    EXPECT_EQ(s1.get<Field5>().value, "Hi!");
 }
