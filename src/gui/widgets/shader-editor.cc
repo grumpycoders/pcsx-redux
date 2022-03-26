@@ -711,7 +711,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
         float color[4];
     };
 
-    VertexData quadVertices[6];
+    VertexData quadVertices[4];
 
     quadVertices[0].positions[0] = -1.0;
     quadVertices[0].positions[1] = -1.0;
@@ -733,48 +733,28 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     quadVertices[1].color[2] = 1.0;
     quadVertices[1].color[3] = 1.0;
 
-    quadVertices[2].positions[0] = 1.0;
+    quadVertices[2].positions[0] = -1.0;
     quadVertices[2].positions[1] = 1.0;
     quadVertices[2].positions[2] = 0.0;
-    quadVertices[2].textures[0] = srcLoc.x + srcSize.x;
+    quadVertices[2].textures[0] = srcLoc.x;
     quadVertices[2].textures[1] = srcLoc.y + srcSize.y;
     quadVertices[2].color[0] = 1.0;
     quadVertices[2].color[1] = 1.0;
     quadVertices[2].color[2] = 1.0;
     quadVertices[2].color[3] = 1.0;
 
-    quadVertices[3].positions[0] = -1.0;
-    quadVertices[3].positions[1] = -1.0;
+    quadVertices[3].positions[0] = 1.0;
+    quadVertices[3].positions[1] = 1.0;
     quadVertices[3].positions[2] = 0.0;
-    quadVertices[3].textures[0] = srcLoc.x;
-    quadVertices[3].textures[1] = srcLoc.y;
+    quadVertices[3].textures[0] = srcLoc.x + srcSize.x;
+    quadVertices[3].textures[1] = srcLoc.y + srcSize.y;
     quadVertices[3].color[0] = 1.0;
     quadVertices[3].color[1] = 1.0;
     quadVertices[3].color[2] = 1.0;
     quadVertices[3].color[3] = 1.0;
 
-    quadVertices[4].positions[0] = -1.0;
-    quadVertices[4].positions[1] = 1.0;
-    quadVertices[4].positions[2] = 0.0;
-    quadVertices[4].textures[0] = srcLoc.x;
-    quadVertices[4].textures[1] = srcLoc.y + srcSize.y;
-    quadVertices[4].color[0] = 1.0;
-    quadVertices[4].color[1] = 1.0;
-    quadVertices[4].color[2] = 1.0;
-    quadVertices[4].color[3] = 1.0;
-
-    quadVertices[5].positions[0] = 1.0;
-    quadVertices[5].positions[1] = 1.0;
-    quadVertices[5].positions[2] = 0.0;
-    quadVertices[5].textures[0] = srcLoc.x + srcSize.x;
-    quadVertices[5].textures[1] = srcLoc.y + srcSize.y;
-    quadVertices[5].color[0] = 1.0;
-    quadVertices[5].color[1] = 1.0;
-    quadVertices[5].color[2] = 1.0;
-    quadVertices[5].color[3] = 1.0;
-
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 6, &quadVertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 4, &quadVertices[0], GL_STATIC_DRAW);
     glDisable(GL_DEPTH_TEST);
     int loc;
 
@@ -868,5 +848,5 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
         }
     }
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
