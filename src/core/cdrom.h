@@ -139,9 +139,6 @@ class CDRom {
     bool m_trackChanged;
     // end savestate
     friend SaveStates::SaveState SaveStates::constructSaveState();
-
-  private:
-    void logCDROM(int command);
 };
 
 }  // namespace PCSX
