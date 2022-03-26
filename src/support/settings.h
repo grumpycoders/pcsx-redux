@@ -37,12 +37,10 @@
 namespace PCSX {
 
 template <typename type, typename name, type defaultValue = type()>
-class Setting;
+struct Setting;
 template <typename type, char... C, type defaultValue>
-class Setting<type, irqus::typestring<C...>, defaultValue> {
+struct Setting<type, irqus::typestring<C...>, defaultValue> {
     using json = nlohmann::json;
-
-  public:
     typedef irqus::typestring<C...> name;
 
   private:
@@ -61,12 +59,10 @@ class Setting<type, irqus::typestring<C...>, defaultValue> {
 };
 
 template <typename name, typename defaultValue = irqus::typestring<'\0'>>
-class SettingString;
+struct SettingString;
 template <char... C, char... D>
-class SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
+struct SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
     using json = nlohmann::json;
-
-  public:
     typedef irqus::typestring<C...> name;
     typedef irqus::typestring<D...> defaultValue;
     typedef std::string type;
@@ -88,12 +84,10 @@ class SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
 };
 
 template <typename name, typename defaultValue = irqus::typestring<'\0'>>
-class SettingPath;
+struct SettingPath;
 template <char... C, char... D>
-class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
+struct SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     using json = nlohmann::json;
-
-  public:
     typedef irqus::typestring<C...> name;
     typedef irqus::typestring<D...> defaultValue;
     typedef std::filesystem::path type;
@@ -121,13 +115,11 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
 };
 
 template <typename name, int defaultValue, int divisor>
-class SettingFloat;
+struct SettingFloat;
 template <char... C, int defaultValue, int divisor>
-class SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
+struct SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
     using json = nlohmann::json;
     static_assert(divisor != 0, "Can't have a SettingFloat with a divisor of 0");
-
-  public:
     typedef irqus::typestring<C...> name;
     typedef float type;
 
@@ -147,20 +139,17 @@ class SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
 };
 
 template <typename name, typename nestedSettings>
-class SettingNested;
+struct SettingNested;
 template <char... C, typename nestedSettings>
-class SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSettings {
-  public:
+struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSettings {
     typedef irqus::typestring<C...> name;
 };
 
 template <typename name, typename nestedSetting>
-class SettingArray;
+struct SettingArray;
 template <char... C, typename nestedSetting>
-class SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<nestedSetting> {
+struct SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<nestedSetting> {
     using json = nlohmann::json;
-
-  public:
     typedef irqus::typestring<C...> name;
     json serialize() const {
         auto ret = json::array();
@@ -184,10 +173,8 @@ class SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<
 };
 
 template <typename... settings>
-class Settings : private std::tuple<settings...> {
+struct Settings : private std::tuple<settings...> {
     using json = nlohmann::json;
-
-  public:
     template <typename setting>
     constexpr const setting &get() const {
         return std::get<setting>(*this);
@@ -203,20 +190,8 @@ class Settings : private std::tuple<settings...> {
         return ret;
     }
     constexpr void deserialize(const json &j) { deserialize<0, settings...>(j); }
-    void foreach (std::function<void(int, const char *)> iter) {
-        foreach
-            <0, settings...>(iter);
-    }
 
   private:
-    template <size_t index>
-    void foreach (std::function<void(int, const char *)> iter) {}
-    template <size_t index, typename settingType, typename... nestedSettings>
-    void foreach (std::function<void(int, const char *)> iter) {
-        iter(index, settingType::name);
-        foreach
-            <index + 1, nestedSettings...>(iter);
-    }
     template <size_t index>
     constexpr void reset() {}
     template <size_t index, typename settingType, typename... nestedSettings>
