@@ -101,8 +101,37 @@ TEST(BasicBinStruct, InjectNoCopy) {
     f->write<uint8_t>(3);
     f->writeString("Hi!");
 
-    Struct1 s1(std::move(f.asA<BufferFile>()->borrow()));
+    Struct1 s1(f.asA<BufferFile>()->borrow());
 
+    EXPECT_EQ(s1.get<Field1>(), 42);
+    EXPECT_EQ(s1.get<Field2>(), 0x3412);
+    EXPECT_EQ(s1.get<Field3>(), 28);
+    EXPECT_EQ(s1.get<Field4>(), "Hello World!");
+    EXPECT_EQ(s1.get<Field5>(), "Hi!");
+}
+
+typedef Field<UInt32, TYPESTRING("superfield1")> SuperField1;
+typedef Field<CString<7>, TYPESTRING("superfield2")> SuperField2;
+typedef StructField<Struct1, TYPESTRING("substruct")> SuperField3;
+typedef Struct<TYPESTRING("Struct2"), SuperField1, SuperField2, SuperField3> Struct2;
+
+TEST(NestedBinStruct, Deserialize) {
+    Struct2 s2;
+    IO<File> f(new BufferFile(FileOps::READWRITE));
+
+    f->write<uint32_t>(0x12345678);
+    f->writeString("1234567");
+    f->write<uint32_t>(42);
+    f->write<uint8_t>(3);
+    f->writeString("Hello");
+    f->write<uint8_t>(5);
+    f->writeString("World!");
+
+    s2.deserialize(f);
+    auto s1 = s2.get<SuperField3>();
+
+    EXPECT_EQ(s2.get<SuperField1>(), 0x12345678);
+    EXPECT_EQ(s2.get<SuperField2>(), "1234567");
     EXPECT_EQ(s1.get<Field1>(), 42);
     EXPECT_EQ(s1.get<Field2>(), 0x3412);
     EXPECT_EQ(s1.get<Field3>(), 28);
