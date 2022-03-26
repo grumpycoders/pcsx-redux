@@ -40,6 +40,7 @@ class OpenGL_GPU final : public GPU {
     virtual void writeDataMem(uint32_t *source, int size) final;
     virtual void writeStatus(uint32_t value) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
+    virtual void startFrame() final;
     virtual void updateLace() final;
     virtual bool configure() final;
 
@@ -50,7 +51,9 @@ class OpenGL_GPU final : public GPU {
 
     TransferMode m_readingMode;
     TransferMode m_writingMode;
+    
     OpenGL::Program m_untexturedTriangleProgram;
+    OpenGL::VertexArray m_vao;
 
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;

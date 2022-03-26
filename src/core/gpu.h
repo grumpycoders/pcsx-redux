@@ -59,6 +59,7 @@ class GPU {
     virtual void writeDataMem(uint32_t *pMem, int iSize) = 0;
     virtual void writeStatus(uint32_t gdata) = 0;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
+    virtual void startFrame() {}
     virtual void updateLace() = 0;
     virtual void save(SaveStates::GPU &gpu) = 0;
     virtual void load(const SaveStates::GPU &gpu) = 0;

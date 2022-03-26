@@ -34,22 +34,21 @@ int PCSX::OpenGL_GPU::init() {
     m_readingMode = TransferMode::CommandTransfer;
     m_writingMode = TransferMode::CommandTransfer;
 
+    m_vao.create();
+    m_vao.bind();
+
     static const char* vertexShaderUntextured =
         "#version 330 core\n"
         "layout (location = 0) in vec2 aPos;\n"
-        "layout (location = 1) in vec3 aColor;\n"
-        "out vec3 ourColor;\n"
         "void main() {\n"
         "   gl_Position = vec4(aPos.x, aPos.y, 1.0, 1.0);\n"
-        "ourColor = aColor;\n"
         "}";
 
     static const char* fragmentShaderUntextured =
         "#version 330 core\n"
         "out vec4 FragColor;\n"
-        "in vec3 ourColor;\n"
         "void main() {\n"
-        "    FragColor = vec4(ourColor, 1.0f);\n"
+        "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
         "}";
 
     OpenGL::Shader tmp1, tmp2;
@@ -110,7 +109,15 @@ bool PCSX::OpenGL_GPU::configure() {
     return false;
 }
 
-void PCSX::OpenGL_GPU::updateLace() { g_system->printf("TODO: updateLace\n"); }
+// Called at the start of a frame
+void PCSX::OpenGL_GPU::startFrame() {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+}
+
+// Called at the end of a frame
+void PCSX::OpenGL_GPU::updateLace() {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
 
 void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("TODO: save\n"); }
 

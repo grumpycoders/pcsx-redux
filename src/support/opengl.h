@@ -28,32 +28,25 @@
 namespace PCSX {
 namespace OpenGL {
 
-#define MAKE_WRAPPER(Object)                             \
-    struct Object {                                      \
-        GLuint m_handle = 0;                             \
-                                                         \
-        void create() {                                  \
-            if (m_handle == 0) {                         \
-                glGen##Object##s(1, &m_handle);          \
-            }                                            \
-        }                                                \
-        Object(bool shouldCreate = false) {              \
-            if (shouldCreate) {                          \
-                create();                                \
-            }                                            \
-        }                                                \
-                                                         \
-        ~Object() { glDelete##Object##s(1, &m_handle); } \
-        GLuint handle() { return m_handle; }             \
-        bool exists() { return m_handle != 0; }          \
-    };
+struct VertexArray {
+    GLuint m_handle = 0;
 
-MAKE_WRAPPER(Buffer);
-MAKE_WRAPPER(Framebuffer);
-MAKE_WRAPPER(Texture);
-MAKE_WRAPPER(VertexArray);
-MAKE_WRAPPER(Sampler);
-#undef MAKE_WRAPPER
+    void create() {
+        if (m_handle == 0) {
+            glGenVertexArrays(1, &m_handle);
+        }
+    }
+    VertexArray(bool shouldCreate = false) {
+        if (shouldCreate) {
+            create();
+        }
+    }
+
+    ~VertexArray() { glDeleteVertexArrays(1, &m_handle); }
+    GLuint handle() { return m_handle; }
+    bool exists() { return m_handle != 0; }
+    void bind() { glBindVertexArray(m_handle); }
+};
 
 struct Shader {
     GLuint m_handle = 0;
