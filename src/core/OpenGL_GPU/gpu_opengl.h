@@ -49,11 +49,16 @@ class OpenGL_GPU final : public GPU {
     int m_useDither = 0;
     int m_height = 512;
 
+    static constexpr int vramWidth = 1024;
+    static constexpr int vramHeight = 512;
+
     TransferMode m_readingMode;
     TransferMode m_writingMode;
     
     OpenGL::Program m_untexturedTriangleProgram;
     OpenGL::VertexArray m_vao;
+    OpenGL::Framebuffer m_fbo;
+    OpenGL::Texture m_vramTexture;
 
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;

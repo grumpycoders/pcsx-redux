@@ -19,6 +19,7 @@
 
 #include "gpu_opengl.h"
 
+#include <stdexcept>
 #include "core/system.h"
 #include "fmt/format.h"
 #include "tracy/Tracy.hpp"
@@ -35,7 +36,16 @@ int PCSX::OpenGL_GPU::init() {
     m_writingMode = TransferMode::CommandTransfer;
 
     m_vao.create();
+    m_fbo.create();
     m_vao.bind();
+    m_fbo.bind(OpenGL::DrawFramebuffer);
+
+    m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_vramTexture.handle(), 0);
+
+    if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        throw std::runtime_error("Non-complete framebuffer");
+    }
 
     static const char* vertexShaderUntextured =
         "#version 330 core\n"
@@ -51,9 +61,10 @@ int PCSX::OpenGL_GPU::init() {
         "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
         "}";
 
-    OpenGL::Shader tmp1, tmp2;
-    tmp1.create(fragmentShaderUntextured, GL_FRAGMENT_SHADER);
-    tmp2.create(fragmentShaderUntextured, GL_FRAGMENT_SHADER);
+    OpenGL::Shader frag(fragmentShaderUntextured, OpenGL::Fragment);
+    OpenGL::Shader vert(vertexShaderUntextured, OpenGL::Vertex);
+    m_untexturedTriangleProgram.create({frag, vert});
+
     return 0;
 }
 
@@ -112,6 +123,11 @@ bool PCSX::OpenGL_GPU::configure() {
 // Called at the start of a frame
 void PCSX::OpenGL_GPU::startFrame() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    m_vao.bind();
+    m_fbo.bind(OpenGL::DrawFramebuffer);
+    glViewport(0, 0, m_vramTexture.width(), m_vramTexture.height());
+
+    m_untexturedTriangleProgram.use();
 }
 
 // Called at the end of a frame

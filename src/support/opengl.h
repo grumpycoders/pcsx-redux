@@ -48,8 +48,68 @@ struct VertexArray {
     void bind() { glBindVertexArray(m_handle); }
 };
 
+enum FramebufferTypes {
+    DrawFramebuffer = GL_DRAW_FRAMEBUFFER,
+    ReadFramebuffer = GL_READ_FRAMEBUFFER,
+    DrawAndReadFramebuffer = GL_FRAMEBUFFER
+};
+
+struct Framebuffer {
+    GLuint m_handle = 0;
+
+    void create() {
+        if (m_handle == 0) {
+            glGenFramebuffers(1, &m_handle);
+        }
+    }
+    Framebuffer(bool shouldCreate = false) {
+        if (shouldCreate) {
+            create();
+        }
+    }
+
+    ~Framebuffer() { glDeleteFramebuffers(1, &m_handle); }
+    GLuint handle() { return m_handle; }
+    bool exists() { return m_handle != 0; }
+    void bind(GLenum target) { glBindFramebuffer(target, m_handle); }
+    void bind(FramebufferTypes target) { bind(static_cast<GLenum>(target)); }
+};
+
+struct Texture {
+    GLuint m_handle = 0;
+    int m_width, m_height;
+
+    void create(int width, int height, GLint internalFormat, GLenum format, GLenum type, const void* data = nullptr) {
+        m_width = width;
+        m_height = height;
+
+        glGenTextures(1, &m_handle);
+        bind();
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
+    }
+
+    ~Texture() { glDeleteTextures(1, &m_handle); }
+    GLuint handle() { return m_handle; }
+    bool exists() { return m_handle != 0; }
+    void bind() { glBindTexture(GL_TEXTURE_2D, m_handle); }
+    int width() { return m_width; }
+    int height() { return m_height; }
+};
+
+enum ShaderType {
+    Fragment = GL_FRAGMENT_SHADER,
+    Vertex = GL_VERTEX_SHADER,
+    Geometry = GL_GEOMETRY_SHADER,
+    Compute = GL_COMPUTE_SHADER,
+    TessControl = GL_TESS_CONTROL_SHADER,
+    TessEvaluation = GL_TESS_EVALUATION_SHADER
+};
+
 struct Shader {
     GLuint m_handle = 0;
+
+    Shader() {}
+    Shader(const std::string_view source, ShaderType type) { create(source, static_cast<GLenum>(type)); }
 
     // Returns whether compilation failed or not
     bool create(const std::string_view source, GLenum type) {
@@ -104,6 +164,7 @@ struct Program {
 
     GLuint handle() { return m_handle; }
     bool exists() { return m_handle != 0; }
+    void use() { glUseProgram(m_handle); }
 };
 
 }  // end namespace OpenGL
