@@ -447,6 +447,15 @@ void PCSX::GUI::init() {
     glGenTextures(2, m_offscreenTextures);
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
+
+    for (int i = 0; i < 2; i++) {
+        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    }
+
     m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
     m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
@@ -585,10 +594,12 @@ void PCSX::GUI::startFrame() {
         normalizeDimensions(m_renderSize, renderRatio);
 
         // Reset texture and framebuffer storage
-        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[0]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[1]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        for (int i = 0; i < 2; i++) {
+            glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        }
 
         glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
@@ -676,15 +687,11 @@ void PCSX::GUI::startFrame() {
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
 
 void PCSX::GUI::flip() {
+    const GLuint texture = m_offscreenTextures[m_currentTexture];
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
-    glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    GLuint texture = m_offscreenTextures[m_currentTexture];
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
 
