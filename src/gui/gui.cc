@@ -442,6 +442,7 @@ void PCSX::GUI::init() {
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
     g_system->m_eventBus->signal(Events::CreatedVRAMTexture{m_VRAMTexture});
 
+    glDisable(GL_CULL_FACE);
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
     glGenTextures(2, m_offscreenTextures);
@@ -699,12 +700,6 @@ void PCSX::GUI::flip() {
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-
-    glClearColor(0, 0, 0, 0);
-    glClearDepthf(0.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
 }
 
