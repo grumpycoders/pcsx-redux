@@ -1286,7 +1286,6 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     glfwSwapBuffers(m_window);
-    glFlush();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
