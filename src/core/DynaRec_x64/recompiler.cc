@@ -248,7 +248,7 @@ void DynaRecCPU::emitDispatcher() {
 
     const uint32_t blockCount = m_ramSize / 4;  // Each 4 bytes correspond to 1 block
     gen.mov(rax, (uintptr_t)m_ramBlocks);       // rax = pointer to the blocks we'll be invalidating
-    gen.mov(edx, blockCount);                   // edx = iteration counter
+    gen.xor_(edx, edx);                         // edx = iteration counter
     Label literalPool;
 
     if (gen.hasAVX) {                                 // AVX version
@@ -258,8 +258,9 @@ void DynaRecCPU::emitDispatcher() {
         for (auto i = 0; i < 16; i++) {  // Unroll 16 iterations of the loop
             gen.vmovdqu(yword[rax + rdx * 8 + i * 32], ymm0);
         }
-        gen.sub(edx, 16 * 4);  // We cleared 64 blocks in total
-        gen.jnz(loop);
+        gen.add(edx, 16 * 4);  // We cleared 64 blocks in total
+        gen.cmp(edx, blockCount);
+        gen.jb(loop);
         gen.vzeroupper();  // Exit AVX context
         gen.ret();
     } else {  // SSE version
@@ -270,8 +271,9 @@ void DynaRecCPU::emitDispatcher() {
         for (auto i = 0; i < 16; i++) {  // Unroll 16 iterations of the loop
             gen.movdqu(xword[rax + rdx * 8 + i * 16], xmm0);
         }
-        gen.sub(edx, 16 * 2);  // We cleared 32 blocks in total
-        gen.jnz(loop);
+        gen.add(edx, 16 * 2);  // We cleared 32 blocks in total
+        gen.cmp(edx, blockCount);
+        gen.jb(loop);
         gen.ret();
     }
 
@@ -399,7 +401,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         count++;    // Increment instruction count
 
         const auto func = m_recBSC[m_regs.code >> 26];  // Look up the opcode in our decoding LUT
-        (*this.*func)();                                // Jump into the handler to recompile it
+        (*this.*func)();                                   // Jump into the handler to recompile it
     };
 
     const auto resolveInitialLoadDelay = [&]() {
@@ -461,7 +463,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
 
 void DynaRecCPU::recSpecial() {
     const auto func = m_recSPC[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)();                                 // Jump into the handler to recompile it
+    (*this.*func)();                                    // Jump into the handler to recompile it
 }
 
 // Checks if the block being compiled is one of the kernel call vectors
