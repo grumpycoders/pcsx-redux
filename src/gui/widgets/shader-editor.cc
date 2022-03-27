@@ -169,6 +169,7 @@ void PCSX::Widgets::ShaderEditor::init() {
 
 std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
                                                            const std::vector<std::string_view> &mandatoryAttributes) {
+    m_setupVAO = true;
     GLint status = 0;
     GUI::ScopedOnlyLog scopedOnlyLog(gui);
 
@@ -756,26 +757,29 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 4, &quadVertices[0], GL_STATIC_DRAW);
     glDisable(GL_DEPTH_TEST);
-    int loc;
+    
+    if (m_setupVAO) {
+        m_setupVAO = false;
+        int loc = glGetAttribLocation(m_shaderProgram, "Position");
+        if (loc >= 0) {
+            glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                                  (void *)&((VertexData *)nullptr)->positions);
+            glEnableVertexAttribArray(loc);
+        }
 
-    loc = glGetAttribLocation(m_shaderProgram, "Position");
-    if (loc >= 0) {
-        glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData),
-                              (void *)&((VertexData *)nullptr)->positions);
-        glEnableVertexAttribArray(loc);
-    }
+        loc = glGetAttribLocation(m_shaderProgram, "UV");
+        if (loc >= 0) {
+            glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                                  (void *)&((VertexData *)nullptr)->textures);
+            glEnableVertexAttribArray(loc);
+        }
 
-    loc = glGetAttribLocation(m_shaderProgram, "UV");
-    if (loc >= 0) {
-        glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData),
-                              (void *)&((VertexData *)nullptr)->textures);
-        glEnableVertexAttribArray(loc);
-    }
-
-    loc = glGetAttribLocation(m_shaderProgram, "Color");
-    if (loc >= 0) {
-        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)&((VertexData *)nullptr)->color);
-        glEnableVertexAttribArray(loc);
+        loc = glGetAttribLocation(m_shaderProgram, "Color");
+        if (loc >= 0) {
+            glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                                  (void *)&((VertexData *)nullptr)->color);
+            glEnableVertexAttribArray(loc);
+        }
     }
 
     GLfloat currentProjection[4][4];

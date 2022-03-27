@@ -84,6 +84,7 @@ class ShaderEditor {
     bool m_autoreload = true;
     bool m_autosave = true;
     bool m_showAll = false;
+    bool m_setupVAO = true;
 
     static lua_Number s_index;
     const lua_Number m_index;
