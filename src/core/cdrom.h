@@ -45,7 +45,7 @@ class CDRom {
     static CDRom* factory();
     bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }
     void setLidOpenTime(int64_t time) { m_lidOpenTime = time; }
-    void check() {}
+    void check();
 
     virtual void reset() = 0;
     virtual void attenuate(int16_t* buf, int samples, int stereo) = 0;

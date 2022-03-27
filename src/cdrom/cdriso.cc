@@ -455,6 +455,23 @@ bool PCSX::CDRiso::readTrack(const IEC60908b::MSF time) {
     return true;
 }
 
+unsigned PCSX::CDRiso::readSectors(uint32_t lba, void *buffer_, unsigned count) {
+    unsigned actual = 0;
+    uint8_t * buffer = reinterpret_cast<uint8_t *>(buffer_);
+
+    if (m_cdHandle->failed()) {
+        return 0;
+    }
+
+    for (unsigned i = 0; i < count; i++) {
+        long ret = (*this.*m_cdimg_read_func)(m_cdHandle, 0, buffer + actual * IEC60908b::FRAMESIZE_RAW, lba++);
+        if (ret < 0) return actual;
+        actual++;
+    }
+
+    return actual;
+}
+
 // gets subchannel data
 const PCSX::IEC60908b::Sub *PCSX::CDRiso::getBufferSub() {
     if ((m_subHandle || m_subChanMixed) && !m_subChanMissing) {

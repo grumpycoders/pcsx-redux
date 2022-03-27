@@ -23,6 +23,7 @@
 
 #include "core/cdrom.h"
 
+#include "cdrom/iso9660-reader.h"
 #include "core/debug.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
@@ -1611,3 +1612,4 @@ class CDRomImpl : public PCSX::CDRom {
 }  // namespace
 
 PCSX::CDRom *PCSX::CDRom::factory() { return new CDRomImpl; }
+void PCSX::CDRom::check() { ISO9660Reader reader(m_iso); }

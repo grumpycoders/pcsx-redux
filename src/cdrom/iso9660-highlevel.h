@@ -20,46 +20,10 @@
 #pragma once
 
 #include <stdint.h>
-
-#include <memory>
-#include <string_view>
-
-#include "support/file.h"
-
 namespace PCSX {
 
-class CDRiso;
+namespace ISO9660 {
 
-class CDRIsoFile : public File {
-  public:
-    virtual ~CDRIsoFile() {}
-    enum class SectorMode {
-        GUESS,     // will try and guess the sector mode based on flags found in the first sector
-        RAW,       // 2352 bytes per sector
-        M1,        // 2048 bytes per sector
-        M2_RAW,    // 2336 bytes per sector, includes subheader; can't be guessed
-        M2_FORM1,  // 2048 bytes per sector
-        M2_FORM2,  // 2324 bytes per sector
-    };
-    static constexpr uint32_t c_sectorSizes[] = {2352, 2352, 2048, 2336, 2048, 2324};
-    CDRIsoFile(std::shared_ptr<CDRiso> iso, uint32_t lba, int32_t size = -1, SectorMode = SectorMode::GUESS);
-    virtual bool failed() final override { return m_failed; }
-    virtual ssize_t rSeek(ssize_t pos, int wheel);
-    virtual ssize_t rTell() { return m_ptrR; }
-    virtual size_t size() { return m_size; }
-    virtual ssize_t read(void* dest, size_t size);
-    virtual File* dup() { return new CDRIsoFile(m_iso, m_lba, m_size, m_mode); };
-
-  private:
-    std::shared_ptr<CDRiso> m_iso;
-    uint8_t m_cachedSector[2352];
-    int32_t m_cachedLBA = -1;
-    uint32_t m_lba;
-    uint32_t m_size;
-    SectorMode m_mode;
-    size_t m_ptrR = 0;
-
-    bool m_failed = false;
-};
+}  // namespace ISO9660
 
 }  // namespace PCSX
