@@ -183,9 +183,10 @@ void PCSX::Counters::update() {
         reset(3);
 
         m_hSyncCount++;
+        m_spuSyncCountdown--;
 
         // Update spu.
-        if (--m_spuSyncCountdown >= 0) {
+        if (m_spuSyncCountdown <= 0) {
             // Scanlines until next sync
             const auto scanlines = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
             m_spuSyncCountdown = scanlines;
