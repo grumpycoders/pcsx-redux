@@ -27,3 +27,4 @@ PlistBuddy ${APP}.app/Contents/Info.plist -c "add NSHighResolutionCapable bool t
 PlistBuddy ${APP}.app/Contents/version.plist -c "add ProjectName string ${APP}"
 dylibbundler -od -b -x ./PCSX-Redux.app/Contents/Resources/bin/pcsx-redux -d ./PCSX-Redux.app/Contents/Resources/lib/ -p @executable_path/../lib/
 cp pcsx-redux.icns ${APP}.app/Contents/Resources/
+xattr -r -d com.apple.quarantine ${APP}.app
