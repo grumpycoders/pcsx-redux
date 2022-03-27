@@ -20,6 +20,11 @@
 #pragma once
 
 #include <memory>
+#include <optional>
+#include <vector>
+
+#include "cdrom/file.h"
+#include "cdrom/iso9660-lowlevel.h"
 
 namespace PCSX {
 
@@ -29,10 +34,15 @@ class ISO9660Reader {
   public:
     ISO9660Reader(std::shared_ptr<CDRiso>);
     bool failed() { return m_failed; }
+    File* open(const std::string_view& filename);
 
   private:
     std::shared_ptr<CDRiso> m_iso;
     bool m_failed = false;
+
+    std::optional<ISO9660LowLevel::DirEntry> findEntry(const std::string_view& filename);
+    std::vector<ISO9660LowLevel::DirEntry> listAllEntriesFrom(const ISO9660LowLevel::DirEntry& entry);
+    ISO9660LowLevel::DirEntry m_root;
 };
 
 }  // namespace PCSX

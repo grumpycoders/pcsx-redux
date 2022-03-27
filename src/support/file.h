@@ -315,6 +315,12 @@ class IO : public IOBase {
     bool isNull() { return dynamic_cast<T*>(m_file); }
 };
 
+class FailedFile : public File {
+  public:
+    FailedFile() : File(RO_STREAM) {}
+    virtual bool failed() final override { return true; }
+};
+
 class BufferFile : public File {
   public:
     enum Acquire { ACQUIRE };

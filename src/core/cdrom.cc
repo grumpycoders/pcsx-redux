@@ -1612,4 +1612,15 @@ class CDRomImpl : public PCSX::CDRom {
 }  // namespace
 
 PCSX::CDRom *PCSX::CDRom::factory() { return new CDRomImpl; }
-void PCSX::CDRom::check() { ISO9660Reader reader(m_iso); }
+void PCSX::CDRom::check() {
+    ISO9660Reader reader(m_iso);
+    IO<File> systemcnf(reader.open("SYSTEM.CNF;1"));
+
+    if (systemcnf->failed()) return;
+
+    while (!systemcnf->eof()) {
+        std::string line = systemcnf->gets();
+        fmt::print("{}", line);
+    }
+}
+
