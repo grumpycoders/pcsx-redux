@@ -19,16 +19,33 @@
 
 #include "cdrom/iso9660-reader.h"
 
-#include "cdrom/iso9660-lowlevel.h"
 #include "cdrom/file.h"
+#include "cdrom/iso9660-lowlevel.h"
 
 PCSX::ISO9660Reader::ISO9660Reader(std::shared_ptr<CDRiso> iso) : m_iso(iso) {
-    IO<File> pvdFile(new CDRIsoFile(iso, 16, 2048));
-    if (pvdFile->failed()) {
-        m_failed = true;
-        return;
-    }
+    unsigned pvdSector = 16;
 
-    ISO9660LowLevel::PVD pvd;
-    pvd.deserialize(pvdFile);
-}
+    while (true) {
+        IO<File> pvdFile(new CDRIsoFile(iso, pvdSector++, 2048));
+        if (pvdFile->failed()) {
+            m_failed = true;
+            return;
+        }
+
+        uint8_t vd[7];
+        pvdFile->readAt(vd, 7, 0);
+        if ((vd[1] != 'C') || (vd[2] != 'D') || (vd[3] != '0') || (vd[4] != '0') || (vd[5] != '1') || (vd[6] != 1)) {
+            m_failed = true;
+            return;
+        }
+
+        if (vd[0] == 255) {
+            m_failed = true;
+            return;
+        }
+
+        if (vd[0] != 1) continue;
+
+        ISO9660LowLevel::PVD pvd;
+        pvd.deserialize(pvdFile);
+    }
