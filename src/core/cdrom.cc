@@ -1616,6 +1616,7 @@ void PCSX::CDRom::check() {
     m_cdromId.clear();
     m_cdromLabel.clear();
     ISO9660Reader reader(m_iso);
+    if (reader.failed()) return;
     IO<File> systemcnf(reader.open("SYSTEM.CNF;1"));
     std::string exename;
     m_cdromLabel = StringsHelpers::trim(reader.getLabel());
