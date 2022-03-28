@@ -21,13 +21,15 @@
 
 #include <stdint.h>
 
+#include <filesystem>
+
 #include "cdrom/iec-60908b.h"
 
 namespace PCSX {
 
 class PPF {
   public:
-    bool load();
+    bool load(std::filesystem::path iso);
     void FreePPFCache();
     void CheckPPFCache(uint8_t *pB, IEC60908b::MSF);
 

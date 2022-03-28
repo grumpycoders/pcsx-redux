@@ -29,6 +29,7 @@
 #include "core/psxemulator.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
+#include "support/strings-helpers.h"
 
 namespace {
 
@@ -919,7 +920,6 @@ class CDRomImpl : public PCSX::CDRom {
                     m_result[1] = 0xc0;
                 } else {
                     if (cdr_stat.Type == 2) m_result[1] |= 0x10;
-                    //                    if (PCSX::g_emulator->m_cdromId[0] == '\0') m_result[1] |= 0x80;
                 }
                 m_result[0] |= (m_result[1] >> 4) & 0x08;
 
@@ -1613,14 +1613,49 @@ class CDRomImpl : public PCSX::CDRom {
 
 PCSX::CDRom *PCSX::CDRom::factory() { return new CDRomImpl; }
 void PCSX::CDRom::check() {
+    m_cdromId.clear();
+    m_cdromLabel.clear();
     ISO9660Reader reader(m_iso);
     IO<File> systemcnf(reader.open("SYSTEM.CNF;1"));
+    std::string exename;
+    m_cdromLabel = StringsHelpers::trim(reader.getLabel());
 
-    if (systemcnf->failed()) return;
+    if (!systemcnf->failed()) {
+        while (!systemcnf->eof()) {
+            std::string lineStorage = systemcnf->gets();
+            auto line = StringsHelpers::trim(lineStorage);
+            if (!StringsHelpers::startsWith(line, "BOOT")) continue;
+            auto pathLoc = line.find("cdrom:");
+            if (pathLoc == std::string::npos) break;
+            auto paths = StringsHelpers::split(line.substr(pathLoc + 6), "/\\");
+            if (paths.empty()) break;
 
-    while (!systemcnf->eof()) {
-        std::string line = systemcnf->gets();
-        fmt::print("{}", line);
+            for (auto &path : paths) {
+                exename += path;
+                exename += '/';
+            }
+            exename.resize(exename.size() - 1);
+
+            auto filename = paths[paths.size() - 1];
+            // pattern is XXXX_YYY.ZZ;1
+            if ((filename.size() == 13) && (filename[4] == '_') && (filename[8] == '.') && (filename[11] == ';') &&
+                (filename[12] == '1')) {
+                m_cdromId = filename.substr(0, 4);
+                m_cdromId += filename.substr(5, 3);
+                m_cdromId += filename.substr(9, 2);
+            }
+
+            break;
+        }
+    } else {
+        IO<File> psxexe(reader.open("PSX.EXE;1"));
+        if (!psxexe->failed()) {
+            m_cdromId = "SLUS99999";
+            exename = "PSX.EXE;1";
+        }
     }
-}
 
+    g_system->printf(_("CD-ROM Label: %.32s\n"), m_cdromLabel);
+    g_system->printf(_("CD-ROM ID: %.9s\n"), m_cdromId);
+    g_system->printf(_("CD-ROM EXE Name: %.255s\n"), exename);
+}

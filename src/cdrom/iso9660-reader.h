@@ -35,6 +35,10 @@ class ISO9660Reader {
     ISO9660Reader(std::shared_ptr<CDRiso>);
     bool failed() { return m_failed; }
     File* open(const std::string_view& filename);
+    std::string_view getLabel() {
+        if (m_failed) return "";
+        return std::string_view(m_pvd.get<ISO9660LowLevel::PVD_VolumeIdent>());
+    }
 
   private:
     std::shared_ptr<CDRiso> m_iso;
@@ -42,7 +46,7 @@ class ISO9660Reader {
 
     std::optional<ISO9660LowLevel::DirEntry> findEntry(const std::string_view& filename);
     std::vector<ISO9660LowLevel::DirEntry> listAllEntriesFrom(const ISO9660LowLevel::DirEntry& entry);
-    ISO9660LowLevel::DirEntry m_root;
+    ISO9660LowLevel::PVD m_pvd;
 };
 
 }  // namespace PCSX

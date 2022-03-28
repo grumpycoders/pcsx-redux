@@ -23,31 +23,6 @@ bool PCSX::CDRiso::LoadSBI(const char *filename) {
     IO<File> sbihandle;
     char buffer[16], sbifile[MAXPATHLEN];
 
-    if (filename == NULL) {
-        if (PCSX::g_emulator->m_cdromId[0] == '\0') return -1;
-
-        // Generate filename in the format of SLUS_123.45.sbi
-        buffer[0] = toupper(PCSX::g_emulator->m_cdromId[0]);
-        buffer[1] = toupper(PCSX::g_emulator->m_cdromId[1]);
-        buffer[2] = toupper(PCSX::g_emulator->m_cdromId[2]);
-        buffer[3] = toupper(PCSX::g_emulator->m_cdromId[3]);
-        buffer[4] = '_';
-        buffer[5] = PCSX::g_emulator->m_cdromId[4];
-        buffer[6] = PCSX::g_emulator->m_cdromId[5];
-        buffer[7] = PCSX::g_emulator->m_cdromId[6];
-        buffer[8] = '.';
-        buffer[9] = PCSX::g_emulator->m_cdromId[7];
-        buffer[10] = PCSX::g_emulator->m_cdromId[8];
-        buffer[11] = '.';
-        buffer[12] = 's';
-        buffer[13] = 'b';
-        buffer[14] = 'i';
-        buffer[15] = '\0';
-
-        sprintf(sbifile, "%s%s", PCSX::g_emulator->settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
-        filename = sbifile;
-    }
-
     sbihandle.setFile(new UvFile(filename));
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         sbihandle.asA<UvFile>()->startCaching();

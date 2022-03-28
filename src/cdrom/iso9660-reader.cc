@@ -50,7 +50,7 @@ PCSX::ISO9660Reader::ISO9660Reader(std::shared_ptr<CDRiso> iso) : m_iso(iso) {
         ISO9660LowLevel::PVD pvd;
         pvd.deserialize(pvdFile);
 
-        m_root = pvd.get<ISO9660LowLevel::PVD_RootDir>();
+        m_pvd = pvd;
         break;
     }
 }
@@ -67,7 +67,7 @@ std::optional<PCSX::ISO9660LowLevel::DirEntry> PCSX::ISO9660Reader::findEntry(co
     if (m_failed) return {};
     auto parts = StringsHelpers::split(filename, "/");
 
-    ISO9660LowLevel::DirEntry current = m_root;
+    ISO9660LowLevel::DirEntry current = m_pvd.get<ISO9660LowLevel::PVD_RootDir>();
 
     for (auto &part : parts) {
         auto entries = listAllEntriesFrom(current);

@@ -169,7 +169,7 @@ void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem
     }
 }
 
-bool PCSX::PPF::load() {
+bool PCSX::PPF::load(std::filesystem::path iso) {
     FILE *ppffile;
     char buffer[12];
     char method, undo = 0, blockcheck = 0;
@@ -182,25 +182,8 @@ bool PCSX::PPF::load() {
 
     FreePPFCache();
 
-    if (PCSX::g_emulator->m_cdromId[0] == '\0') return false;
-
-    // Generate filename in the format of SLUS_123.45
-    buffer[0] = toupper(PCSX::g_emulator->m_cdromId[0]);
-    buffer[1] = toupper(PCSX::g_emulator->m_cdromId[1]);
-    buffer[2] = toupper(PCSX::g_emulator->m_cdromId[2]);
-    buffer[3] = toupper(PCSX::g_emulator->m_cdromId[3]);
-    buffer[4] = '_';
-    buffer[5] = PCSX::g_emulator->m_cdromId[4];
-    buffer[6] = PCSX::g_emulator->m_cdromId[5];
-    buffer[7] = PCSX::g_emulator->m_cdromId[6];
-    buffer[8] = '.';
-    buffer[9] = PCSX::g_emulator->m_cdromId[7];
-    buffer[10] = PCSX::g_emulator->m_cdromId[8];
-    buffer[11] = '\0';
-
-    sprintf(szPPF, "%s/%s", PCSX::g_emulator->settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
-
-    ppffile = fopen(szPPF, "rb");
+    iso.replace_extension("ppf");
+    ppffile = fopen(iso.string().c_str(), "rb");
     if (ppffile == NULL) return false;
 
     memset(buffer, 0, 5);

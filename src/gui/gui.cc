@@ -995,7 +995,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             ImGui::Separator();
             ImGui::Text(_("CPU: %s"), g_emulator->m_cpu->isDynarec() ? "DynaRec" : "Interpreted");
             ImGui::Separator();
-            ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdromId);
+            ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdrom->getCDRomID().c_str());
             ImGui::Separator();
             if (g_system->running()) {
                 ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
@@ -1752,11 +1752,11 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
 std::string PCSX::GUI::buildSaveStateFilename(int i) {
     // the ID of the game. Every savestate is marked with the ID of the game it's from.
-    const auto gameID = g_emulator->m_cdromId;
+    const auto gameID = g_emulator->m_cdrom->getCDRomID();
 
     // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
     // EXEs don't have proper IDs
-    if (gameID[0] != 0) {
+    if (!gameID.empty()) {
         // For games with an ID of SLUS00213 for example, this will generate a state named
         // SLUS00213.sstate
         return fmt::format("{}.sstate{}", gameID, i);

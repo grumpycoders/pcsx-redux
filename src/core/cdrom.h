@@ -20,6 +20,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "cdrom/cdriso.h"
 #include "cdrom/iec-60908b.h"
@@ -46,6 +47,9 @@ class CDRom {
     bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }
     void setLidOpenTime(int64_t time) { m_lidOpenTime = time; }
     void check();
+
+    const std::string& getCDRomID() { return m_cdromId; }
+    const std::string& getCDRomLabel() { return m_cdromLabel; }
 
     virtual void reset() = 0;
     virtual void attenuate(int16_t* buf, int samples, int stereo) = 0;
@@ -139,6 +143,10 @@ class CDRom {
     bool m_trackChanged;
     // end savestate
     friend SaveStates::SaveState SaveStates::constructSaveState();
+
+  private:
+    std::string m_cdromId;
+    std::string m_cdromLabel;
 };
 
 }  // namespace PCSX

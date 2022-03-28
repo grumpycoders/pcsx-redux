@@ -36,11 +36,11 @@ static inline std::vector<std::string> split(const std::string &str, const std::
     std::vector<std::string> tokens;
     size_t prev = 0, pos = 0;
     do {
-        pos = str.find(delims, prev);
+        pos = str.find_first_of(delims, prev);
         if (pos == std::string::npos) pos = str.length();
         std::string token = str.substr(prev, pos - prev);
         if (keepEmpty || !token.empty()) tokens.emplace_back(std::move(token));
-        prev = pos + delims.length();
+        prev = pos + 1;
     } while (pos < str.length() && prev <= str.length());
     return tokens;
 }
@@ -50,11 +50,11 @@ static inline std::vector<std::string_view> split(const std::string_view &str, c
     std::vector<std::string_view> tokens;
     size_t prev = 0, pos = 0;
     do {
-        pos = str.find(delims, prev);
+        pos = str.find_first_of(delims, prev);
         if (pos == std::string::npos) pos = str.length();
         std::string_view token = str.substr(prev, pos - prev);
         if (keepEmpty || !token.empty()) tokens.emplace_back(std::move(token));
-        prev = pos + delims.length();
+        prev = pos + 1;
     } while (pos < str.length() && prev <= str.length());
     return tokens;
 }

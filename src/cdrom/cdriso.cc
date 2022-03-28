@@ -338,7 +338,7 @@ bool PCSX::CDRiso::open(void) {
 
     PCSX::g_system->printf(".\n");
 
-    m_ppf.load();
+    m_ppf.load(m_isoPath);
 
     printTracks();
 

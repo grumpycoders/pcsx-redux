@@ -255,9 +255,6 @@ class Emulator {
 
     uv_loop_t m_loop;
 
-    char m_cdromId[10] = "";
-    char m_cdromLabel[33] = "";
-
   private:
     PcsxConfig m_config;
 };
