@@ -69,6 +69,16 @@ typedef BinStruct::Struct<TYPESTRING("DirEntry"), DirEntry_Length, DirEntry_ExtL
                           DirEntry_InterleaveGap, DirEntry_VolSeqNo, DirEntry_VolSeqNoBE, DirEntry_Filename>
     DirEntry;
 
+typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("GroupID")> DirEntry_XA_GroupID;
+typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("UserID")> DirEntry_XA_UserID;
+typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("Attribs")> DirEntry_XA_Attribs;
+typedef BinStruct::Field<BinStruct::CString<2>, TYPESTRING("Signature")> DirEntry_XA_Signature;
+typedef BinStruct::Field<BinStruct::UInt8, TYPESTRING("FileNum")> DirEntry_XA_FileNum;
+typedef BinStruct::Field<BinStruct::CString<5>, TYPESTRING("Reserved")> DirEntry_XA_Reserved;
+typedef BinStruct::Struct<TYPESTRING("DirEntry_XA"), DirEntry_XA_GroupID, DirEntry_XA_UserID, DirEntry_XA_Attribs,
+                          DirEntry_XA_Signature, DirEntry_XA_FileNum, DirEntry_XA_Reserved>
+    DirEntry_XA;
+
 typedef BinStruct::Field<BinStruct::UInt8, TYPESTRING("TypeCode")> PVD_TypeCode;
 typedef BinStruct::Field<BinStruct::CString<5>, TYPESTRING("StdIdent")> PVD_StdIdent;
 typedef BinStruct::Field<BinStruct::UInt8, TYPESTRING("Version")> PVD_Version;

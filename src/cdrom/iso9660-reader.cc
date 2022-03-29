@@ -59,33 +59,34 @@ PCSX::File *PCSX::ISO9660Reader::open(const std::string_view &filename) {
     auto entry = findEntry(filename);
     if (!entry.has_value()) return new FailedFile();
 
-    return new CDRIsoFile(m_iso, entry.value().get<ISO9660LowLevel::DirEntry_LBA>(),
-                          entry.value().get<ISO9660LowLevel::DirEntry_Size>());
+    return new CDRIsoFile(m_iso, entry.value().first.get<ISO9660LowLevel::DirEntry_LBA>(),
+                          entry.value().first.get<ISO9660LowLevel::DirEntry_Size>());
 }
 
-std::optional<PCSX::ISO9660LowLevel::DirEntry> PCSX::ISO9660Reader::findEntry(const std::string_view &filename) {
+std::optional<PCSX::ISO9660Reader::FullDirEntry> PCSX::ISO9660Reader::findEntry(const std::string_view &filename) {
     if (m_failed) return {};
     auto parts = StringsHelpers::split(filename, "/");
 
-    ISO9660LowLevel::DirEntry current = m_pvd.get<ISO9660LowLevel::PVD_RootDir>();
+    FullDirEntry current;
+    current.first = m_pvd.get<ISO9660LowLevel::PVD_RootDir>();
 
     for (auto &part : parts) {
-        auto entries = listAllEntriesFrom(current);
+        auto entries = listAllEntriesFrom(current.first);
         for (auto &entry : entries) {
-            const auto &entryFilename = entry.get<ISO9660LowLevel::DirEntry_Filename>().value;
+            const auto &entryFilename = entry.first.get<ISO9660LowLevel::DirEntry_Filename>().value;
             if (entryFilename == part) {
                 current = entry;
                 break;
             }
         }
 
-        if (current.get<ISO9660LowLevel::DirEntry_Filename>() != part) return {};
+        if (current.first.get<ISO9660LowLevel::DirEntry_Filename>() != part) return {};
     }
 
     return current;
 }
 
-std::vector<PCSX::ISO9660LowLevel::DirEntry> PCSX::ISO9660Reader::listAllEntriesFrom(
+std::vector<PCSX::ISO9660Reader::FullDirEntry> PCSX::ISO9660Reader::listAllEntriesFrom(
     const ISO9660LowLevel::DirEntry &dirEntry) {
     if (m_failed) return {};
     if ((dirEntry.get<ISO9660LowLevel::DirEntry_Flags>().value & 2) == 0) return {};
@@ -93,7 +94,7 @@ std::vector<PCSX::ISO9660LowLevel::DirEntry> PCSX::ISO9660Reader::listAllEntries
     IO<File> dir(new CDRIsoFile(m_iso, dirEntry.get<ISO9660LowLevel::DirEntry_LBA>(),
                                 dirEntry.get<ISO9660LowLevel::DirEntry_Size>()));
 
-    std::vector<ISO9660LowLevel::DirEntry> ret;
+    std::vector<FullDirEntry> ret;
     while (!dir->eof()) {
         uint8_t peek = dir->byte();
         if (peek == 0) continue;
@@ -104,9 +105,17 @@ std::vector<PCSX::ISO9660LowLevel::DirEntry> PCSX::ISO9660Reader::listAllEntries
         entry.deserialize(dir);
         auto len = entry.get<ISO9660LowLevel::DirEntry_Length>().value;
         auto extLen = entry.get<ISO9660LowLevel::DirEntry_ExtLength>().value;
+        auto N = entry.get<ISO9660LowLevel::DirEntry_Filename>().value.size();
+        ssize_t maybeXA = len + extLen - 33 - N;
+        if ((N & 1) == 0) {
+            dir->byte();
+            maybeXA--;
+        }
+        ISO9660LowLevel::DirEntry_XA entryXA;
+        if (maybeXA == 14) entryXA.deserialize(dir);
         dir->rSeek(ptr + len + extLen, SEEK_SET);
 
-        ret.push_back(entry);
+        ret.push_back({entry, entryXA});
     }
 
     return ret;

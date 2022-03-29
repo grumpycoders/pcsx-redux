@@ -43,9 +43,10 @@ class ISO9660Reader {
   private:
     std::shared_ptr<CDRiso> m_iso;
     bool m_failed = false;
+    typedef std::pair<ISO9660LowLevel::DirEntry, ISO9660LowLevel::DirEntry_XA> FullDirEntry;
 
-    std::optional<ISO9660LowLevel::DirEntry> findEntry(const std::string_view& filename);
-    std::vector<ISO9660LowLevel::DirEntry> listAllEntriesFrom(const ISO9660LowLevel::DirEntry& entry);
+    std::optional<FullDirEntry> findEntry(const std::string_view& filename);
+    std::vector<FullDirEntry> listAllEntriesFrom(const ISO9660LowLevel::DirEntry& entry);
     ISO9660LowLevel::PVD m_pvd;
 };
 
