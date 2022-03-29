@@ -109,7 +109,7 @@ bool PCSX::CDRiso::parsecue(const char *isofileString) {
                 // TODO: if 2048 frame length -> recalculate file_len?
                 m_ti[m_numtracks].type = TrackType::DATA;
                 // detect if ECM or compressed & get accurate length
-                if (handleecm(m_ti[m_numtracks].filepath, m_cdHandle, &accurate_len) == 0) {
+                if (handleecm(m_ti[m_numtracks].filepath, m_cdHandle, &accurate_len)) {
                     file_len = accurate_len;
                 }
             } else {
