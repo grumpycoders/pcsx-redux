@@ -155,7 +155,7 @@ class Slice {
         return static_cast<const T *>(ret);
     }
     template <typename T = void>
-    T *data() {
+    T *mutableData() {
         void *ret = nullptr;
         if (std::holds_alternative<std::string>(m_data)) {
             ret = std::get<std::string>(m_data).data();
