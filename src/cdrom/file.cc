@@ -24,7 +24,7 @@
 
 PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size, SectorMode mode)
     : File(RO_SEEKABLE), m_iso(iso), m_lba(lba) {
-    if (!iso->isActive()) {
+    if (iso->failed()) {
         m_failed = true;
         return;
     }

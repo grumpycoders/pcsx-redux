@@ -533,4 +533,4 @@ bool PCSX::CDRIso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
     return true;
 }
 
-bool PCSX::CDRIso::isActive() { return (m_cdHandle || m_ecm_savetable || m_decoded_ecm); }
+bool PCSX::CDRIso::failed() { return !m_cdHandle && !m_ecm_savetable && !m_decoded_ecm; }

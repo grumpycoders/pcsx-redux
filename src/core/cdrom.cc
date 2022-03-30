@@ -824,7 +824,7 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case CdlGetTN:
-                if (!m_iso->isActive()) {
+                if (m_iso->failed()) {
                     m_stat = DiskError;
                     m_result[0] |= STATUS_ERROR;
                 } else {
@@ -836,7 +836,7 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case CdlGetTD: {
-                if (!m_iso->isActive()) {
+                if (m_iso->failed()) {
                     m_stat = DiskError;
                     m_result[0] |= STATUS_ERROR;
                 } else {
@@ -901,7 +901,7 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlID + 0x100:
                 SetResultSize(8);
 
-                if (!m_iso->isActive()) {
+                if (m_iso->failed()) {
                     m_result[0] = 0x08;
                     m_result[1] = 0x40;
                     memset((char *)&m_result[2], 0, 6);
