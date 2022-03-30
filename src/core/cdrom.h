@@ -41,7 +41,7 @@ struct CdrStat {
 class CDRom {
   public:
     using MSF = PCSX::IEC60908b::MSF;
-    CDRom() : m_iso(new CDRiso()) {}
+    CDRom() : m_iso(new CDRIso()) {}
     virtual ~CDRom() {}
     static CDRom* factory();
     bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }
@@ -73,7 +73,7 @@ class CDRom {
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
 
-    std::shared_ptr<CDRiso> m_iso;
+    std::shared_ptr<CDRIso> m_iso;
 
   protected:
     // savestate stuff starts here

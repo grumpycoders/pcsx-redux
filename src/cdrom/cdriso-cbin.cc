@@ -19,7 +19,7 @@
 
 #include "cdrom/cdriso.h"
 
-bool PCSX::CDRiso::handlecbin(const char *isofile) {
+bool PCSX::CDRIso::handlecbin(const char *isofile) {
     struct {
         char magic[4];
         unsigned int header_size;

@@ -20,7 +20,7 @@
 #include "cdrom/cdriso.h"
 #include "core/cdrom.h"
 
-bool PCSX::CDRiso::handlepbp(const char *isofile) {
+bool PCSX::CDRIso::handlepbp(const char *isofile) {
     struct {
         unsigned int sig;
         unsigned int dontcare[8];

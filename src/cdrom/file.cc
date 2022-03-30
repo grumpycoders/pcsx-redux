@@ -22,7 +22,7 @@
 #include "cdrom/cdriso.h"
 #include "magic_enum/include/magic_enum.hpp"
 
-PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRiso> iso, uint32_t lba, int32_t size, SectorMode mode)
+PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size, SectorMode mode)
     : File(RO_SEEKABLE), m_iso(iso), m_lba(lba) {
     if (!iso->isActive()) {
         m_failed = true;

@@ -22,7 +22,7 @@
 
 // this function tries to get the .toc file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
-bool PCSX::CDRiso::parsetoc(const char *isofileStr) {
+bool PCSX::CDRIso::parsetoc(const char *isofileStr) {
     std::filesystem::path isofile = MAKEU8(isofileStr);
     std::filesystem::path tocname, filename;
     IO<File> fi;

@@ -65,7 +65,7 @@
 // ECC:   Error Correction Code
 //
 
-PCSX::CDRiso::CDRiso() {
+PCSX::CDRIso::CDRIso() {
     m_zstr.next_in = Z_NULL;
     m_zstr.avail_in = 0;
     m_zstr.zalloc = Z_NULL;
@@ -76,7 +76,7 @@ PCSX::CDRiso::CDRiso() {
 }
 
 // this function tries to get the .sub file of the given .img
-bool PCSX::CDRiso::opensubfile(const char *isoname) {
+bool PCSX::CDRIso::opensubfile(const char *isoname) {
     char subname[MAXPATHLEN];
 
     // copy name of the iso and change extension from .img to .sub
@@ -110,11 +110,11 @@ bool PCSX::CDRiso::opensubfile(const char *isoname) {
     return true;
 }
 
-ssize_t PCSX::CDRiso::cdread_normal(IO<File> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRIso::cdread_normal(IO<File> f, unsigned int base, void *dest, int sector) {
     return f->readAt(dest, IEC60908b::FRAMESIZE_RAW, base + sector * IEC60908b::FRAMESIZE_RAW);
 }
 
-ssize_t PCSX::CDRiso::cdread_sub_mixed(IO<File> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRIso::cdread_sub_mixed(IO<File> f, unsigned int base, void *dest, int sector) {
     int ret;
 
     ret = f->readAt(dest, IEC60908b::FRAMESIZE_RAW,
@@ -144,7 +144,7 @@ static int uncompress2_internal(void *out, unsigned long *out_size, void *in, un
     return ret == 1 ? 0 : ret;
 }
 
-ssize_t PCSX::CDRiso::cdread_compressed(IO<File> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRIso::cdread_compressed(IO<File> f, unsigned int base, void *dest, int sector) {
     unsigned long cdbuffer_size, cdbuffer_size_expect;
     unsigned int start_byte, size;
     int is_compressed;
@@ -208,7 +208,7 @@ finish:
     return IEC60908b::FRAMESIZE_RAW;
 }
 
-ssize_t PCSX::CDRiso::cdread_2048(IO<File> f, unsigned int base, void *dest_, int sector) {
+ssize_t PCSX::CDRIso::cdread_2048(IO<File> f, unsigned int base, void *dest_, int sector) {
     uint8_t *dest = reinterpret_cast<uint8_t *>(dest_);
     int ret;
 
@@ -242,7 +242,7 @@ ssize_t PCSX::CDRiso::cdread_2048(IO<File> f, unsigned int base, void *dest_, in
     return ret;
 }
 
-uint8_t *PCSX::CDRiso::getBuffer() {
+uint8_t *PCSX::CDRIso::getBuffer() {
     if (m_useCompressed) {
         return m_compr_img->buff_raw[m_compr_img->sector_in_blk] + 12;
     } else {
@@ -250,7 +250,7 @@ uint8_t *PCSX::CDRiso::getBuffer() {
     }
 }
 
-void PCSX::CDRiso::printTracks() {
+void PCSX::CDRIso::printTracks() {
     for (int i = 1; i <= m_numtracks; i++) {
         PCSX::g_system->printf(_("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
                                (m_ti[i].type == TrackType::DATA        ? "DATA"
@@ -263,7 +263,7 @@ void PCSX::CDRiso::printTracks() {
 
 // This function is invoked by the front-end when opening an ISO
 // file for playback
-bool PCSX::CDRiso::open(void) {
+bool PCSX::CDRIso::open(void) {
     // is it already open?
     if (m_cdHandle) return true;
 
@@ -286,7 +286,7 @@ bool PCSX::CDRiso::open(void) {
     m_multifile = false;
 
     m_useCompressed = false;
-    m_cdimg_read_func = &CDRiso::cdread_normal;
+    m_cdimg_read_func = &CDRIso::cdread_normal;
 
     if (parsecue(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[+cue]");
@@ -301,11 +301,11 @@ bool PCSX::CDRiso::open(void) {
     if (handlepbp(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[pbp]");
         m_useCompressed = true;
-        m_cdimg_read_func = &CDRiso::cdread_compressed;
+        m_cdimg_read_func = &CDRIso::cdread_compressed;
     } else if (handlecbin(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[cbin]");
         m_useCompressed = true;
-        m_cdimg_read_func = &CDRiso::cdread_compressed;
+        m_cdimg_read_func = &CDRIso::cdread_compressed;
     } else if ((handleecm(reinterpret_cast<const char *>(m_isoPath.string().c_str()), m_cdHandle, NULL))) {
         PCSX::g_system->printf("[+ecm]");
     }
@@ -342,10 +342,10 @@ bool PCSX::CDRiso::open(void) {
 
     printTracks();
 
-    if (m_subChanMixed && (m_cdimg_read_func == &CDRiso::cdread_normal)) {
-        m_cdimg_read_func = &CDRiso::cdread_sub_mixed;
-    } else if (m_isMode1ISO && (m_cdimg_read_func == &CDRiso::cdread_normal)) {
-        m_cdimg_read_func = &CDRiso::cdread_2048;
+    if (m_subChanMixed && (m_cdimg_read_func == &CDRIso::cdread_normal)) {
+        m_cdimg_read_func = &CDRIso::cdread_sub_mixed;
+    } else if (m_isMode1ISO && (m_cdimg_read_func == &CDRIso::cdread_normal)) {
+        m_cdimg_read_func = &CDRIso::cdread_2048;
     }
 
     // make sure we have another handle open for cdda
@@ -359,7 +359,7 @@ bool PCSX::CDRiso::open(void) {
     return true;
 }
 
-void PCSX::CDRiso::close() {
+void PCSX::CDRIso::close() {
     m_cdHandle.reset();
     m_subHandle.reset();
 
@@ -397,7 +397,7 @@ void PCSX::CDRiso::close() {
     m_ppf.FreePPFCache();
 }
 
-PCSX::IEC60908b::MSF PCSX::CDRiso::getTD(uint8_t track) {
+PCSX::IEC60908b::MSF PCSX::CDRIso::getTD(uint8_t track) {
     if (track == 0) {
         unsigned int sect;
         sect = m_ti[m_numtracks].start.toLBA() + m_ti[m_numtracks].length.toLBA();
@@ -410,7 +410,7 @@ PCSX::IEC60908b::MSF PCSX::CDRiso::getTD(uint8_t track) {
 
 // Decode 'raw' subchannel data from being packed bitwise.
 // Essentially is a bitwise matrix transposition.
-void PCSX::CDRiso::decodeRawSubData() {
+void PCSX::CDRIso::decodeRawSubData() {
     unsigned char subQData[12];
     memset(subQData, 0, sizeof(subQData));
 
@@ -424,7 +424,7 @@ void PCSX::CDRiso::decodeRawSubData() {
 }
 
 // read track
-bool PCSX::CDRiso::readTrack(const IEC60908b::MSF time) {
+bool PCSX::CDRIso::readTrack(const IEC60908b::MSF time) {
     int sector = time.toLBA() - 150;
     long ret;
 
@@ -455,7 +455,7 @@ bool PCSX::CDRiso::readTrack(const IEC60908b::MSF time) {
     return true;
 }
 
-unsigned PCSX::CDRiso::readSectors(uint32_t lba, void *buffer_, unsigned count) {
+unsigned PCSX::CDRIso::readSectors(uint32_t lba, void *buffer_, unsigned count) {
     unsigned actual = 0;
     uint8_t * buffer = reinterpret_cast<uint8_t *>(buffer_);
 
@@ -473,7 +473,7 @@ unsigned PCSX::CDRiso::readSectors(uint32_t lba, void *buffer_, unsigned count) 
 }
 
 // gets subchannel data
-const PCSX::IEC60908b::Sub *PCSX::CDRiso::getBufferSub() {
+const PCSX::IEC60908b::Sub *PCSX::CDRIso::getBufferSub() {
     if ((m_subHandle || m_subChanMixed) && !m_subChanMissing) {
         return &m_subbuffer;
     }
@@ -482,7 +482,7 @@ const PCSX::IEC60908b::Sub *PCSX::CDRiso::getBufferSub() {
 }
 
 // read CDDA sector into buffer
-bool PCSX::CDRiso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
+bool PCSX::CDRIso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
     unsigned int file, track, track_start = 0;
     int ret;
 
@@ -533,4 +533,4 @@ bool PCSX::CDRiso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
     return true;
 }
 
-bool PCSX::CDRiso::isActive() { return (m_cdHandle || m_ecm_savetable || m_decoded_ecm); }
+bool PCSX::CDRIso::isActive() { return (m_cdHandle || m_ecm_savetable || m_decoded_ecm); }

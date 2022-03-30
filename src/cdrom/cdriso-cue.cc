@@ -22,7 +22,7 @@
 
 // this function tries to get the .cue file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
-bool PCSX::CDRiso::parsecue(const char *isofileString) {
+bool PCSX::CDRIso::parsecue(const char *isofileString) {
     auto get_cdda_type = [](const char *str) {
         const size_t lenstr = strlen(str);
         if (strncmp((str + lenstr - 3), "bin", 3) == 0) {

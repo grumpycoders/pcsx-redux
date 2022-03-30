@@ -23,7 +23,7 @@
 static constexpr unsigned ECM_HEADER_SIZE = 4;
 
 /* Adapted from ecm.c:unecmify() (C) Neill Corlett */
-ssize_t PCSX::CDRiso::ecmDecode(IO<File> f, unsigned int base, void *dest, int sector) {
+ssize_t PCSX::CDRIso::ecmDecode(IO<File> f, unsigned int base, void *dest, int sector) {
     uint32_t output_edc = 0, b = 0, writebytecount = 0, num;
     uint32_t sectorcount = 0;
     int8_t type = 0;  // mode type 0 (META) or 1, 2 or 3 for CDROM type
@@ -279,17 +279,17 @@ error_out:
     return -1;
 }
 
-bool PCSX::CDRiso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate_length) {
+bool PCSX::CDRIso::handleecm(const char *isoname, IO<File> cdh, int32_t *accurate_length) {
     // Rewind to start and check ECM header and filename suffix validity
     cdh->rSeek(0, SEEK_SET);
     if ((cdh->getc() == 'E') && (cdh->getc() == 'C') && (cdh->getc() == 'M') && (cdh->getc() == 0x00) &&
         (strncmp((isoname + strlen(isoname) - 5), ".ecm", 4))) {
         // Function used to read CD normally
         // TODO: detect if 2048 and use it
-        m_cdimg_read_func_o = &CDRiso::cdread_normal;
+        m_cdimg_read_func_o = &CDRIso::cdread_normal;
 
         // Function used to decode ECM data
-        m_cdimg_read_func = &CDRiso::ecmDecode;
+        m_cdimg_read_func = &CDRIso::ecmDecode;
 
         // Last accessed sector
         m_prevsector = 0;

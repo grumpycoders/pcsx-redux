@@ -28,7 +28,7 @@ extern "C" {
 #include <libswresample/swresample.h>
 }
 
-int PCSX::CDRiso::get_compressed_cdda_track_length(const char *filepath) {
+int PCSX::CDRIso::get_compressed_cdda_track_length(const char *filepath) {
     int seconds = -1;
     av_log_set_level(AV_LOG_QUIET);
 
@@ -229,7 +229,7 @@ end:
 
 /* end of ffmpeg-only code */
 
-int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
+int PCSX::CDRIso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
     tri->decoded_buffer = (char *)malloc(tri->len_decoded_buffer);
     memset(tri->decoded_buffer, 0, tri->len_decoded_buffer - 1);
 

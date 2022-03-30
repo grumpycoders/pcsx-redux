@@ -28,11 +28,11 @@
 
 namespace PCSX {
 
-class CDRiso;
+class CDRIso;
 
 class ISO9660Reader {
   public:
-    ISO9660Reader(std::shared_ptr<CDRiso>);
+    ISO9660Reader(std::shared_ptr<CDRIso>);
     bool failed() { return m_failed; }
     File* open(const std::string_view& filename);
     std::string_view getLabel() {
@@ -41,7 +41,7 @@ class ISO9660Reader {
     }
 
   private:
-    std::shared_ptr<CDRiso> m_iso;
+    std::shared_ptr<CDRIso> m_iso;
     bool m_failed = false;
     typedef std::pair<ISO9660LowLevel::DirEntry, ISO9660LowLevel::DirEntry_XA> FullDirEntry;
 

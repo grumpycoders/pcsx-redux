@@ -22,7 +22,7 @@
 
 // this function tries to get the .ccd file of the given .img
 // the necessary data is put into the ti (trackinformation)-array
-bool PCSX::CDRiso::parseccd(const char *isofileString) {
+bool PCSX::CDRIso::parseccd(const char *isofileString) {
     std::filesystem::path ccdname, isofile = MAKEU8(isofileString);
     IO<File> fi;
     char linebuf[256];

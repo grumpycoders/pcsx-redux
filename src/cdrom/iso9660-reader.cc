@@ -23,7 +23,7 @@
 #include "cdrom/iso9660-lowlevel.h"
 #include "support/strings-helpers.h"
 
-PCSX::ISO9660Reader::ISO9660Reader(std::shared_ptr<CDRiso> iso) : m_iso(iso) {
+PCSX::ISO9660Reader::ISO9660Reader(std::shared_ptr<CDRIso> iso) : m_iso(iso) {
     unsigned pvdSector = 16;
 
     while (true) {

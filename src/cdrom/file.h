@@ -28,7 +28,7 @@
 
 namespace PCSX {
 
-class CDRiso;
+class CDRIso;
 
 class CDRIsoFile : public File {
   public:
@@ -42,7 +42,7 @@ class CDRIsoFile : public File {
         M2_FORM2,  // 2324 bytes per sector
     };
     static constexpr uint32_t c_sectorSizes[] = {2352, 2352, 2048, 2336, 2048, 2324};
-    CDRIsoFile(std::shared_ptr<CDRiso> iso, uint32_t lba, int32_t size = -1, SectorMode = SectorMode::GUESS);
+    CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size = -1, SectorMode = SectorMode::GUESS);
     virtual bool failed() final override { return m_failed; }
     virtual ssize_t rSeek(ssize_t pos, int wheel);
     virtual ssize_t rTell() { return m_ptrR; }
@@ -51,7 +51,7 @@ class CDRIsoFile : public File {
     virtual File* dup() { return new CDRIsoFile(m_iso, m_lba, m_size, m_mode); };
 
   private:
-    std::shared_ptr<CDRiso> m_iso;
+    std::shared_ptr<CDRIso> m_iso;
     uint8_t m_cachedSector[2352];
     int32_t m_cachedLBA = -1;
     uint32_t m_lba;

@@ -31,14 +31,14 @@
 
 namespace PCSX {
 
-class CDRiso {
+class CDRIso {
   public:
-    CDRiso();
-    CDRiso(const std::filesystem::path& path) : CDRiso() {
+    CDRIso();
+    CDRIso(const std::filesystem::path& path) : CDRIso() {
         m_isoPath = path;
         open();
     }
-    ~CDRiso() {
+    ~CDRIso() {
         close();
         inflateEnd(&m_zstr);
     }
@@ -67,7 +67,7 @@ class CDRiso {
     void close();
 
     std::filesystem::path m_isoPath;
-    typedef ssize_t (CDRiso::*read_func_t)(IO<File> f, unsigned int base, void* dest, int sector);
+    typedef ssize_t (CDRIso::*read_func_t)(IO<File> f, unsigned int base, void* dest, int sector);
 
     bool m_useCompressed = false;
     z_stream m_zstr;

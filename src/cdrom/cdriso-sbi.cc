@@ -19,7 +19,7 @@
 
 #include "cdrom/cdriso.h"
 
-bool PCSX::CDRiso::LoadSBI(const char *filename) {
+bool PCSX::CDRIso::LoadSBI(const char *filename) {
     IO<File> sbihandle;
     char buffer[16], sbifile[MAXPATHLEN];
 
@@ -44,7 +44,7 @@ bool PCSX::CDRiso::LoadSBI(const char *filename) {
     return true;
 }
 
-bool PCSX::CDRiso::CheckSBI(const uint8_t *time) {
+bool PCSX::CDRIso::CheckSBI(const uint8_t *time) {
     int lcv;
 
     // both BCD format
@@ -55,9 +55,9 @@ bool PCSX::CDRiso::CheckSBI(const uint8_t *time) {
     return false;
 }
 
-void PCSX::CDRiso::UnloadSBI() { sbicount = 0; }
+void PCSX::CDRIso::UnloadSBI() { sbicount = 0; }
 
-bool PCSX::CDRiso::opensbifile(const char *isoname) {
+bool PCSX::CDRIso::opensbifile(const char *isoname) {
     char sbiname[MAXPATHLEN];
 
     strncpy(sbiname, isoname, sizeof(sbiname));

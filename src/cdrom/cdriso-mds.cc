@@ -21,7 +21,7 @@
 
 // this function tries to get the .mds file of the given .mdf
 // the necessary data is put into the ti (trackinformation)-array
-bool PCSX::CDRiso::parsemds(const char *isofileString) {
+bool PCSX::CDRIso::parsemds(const char *isofileString) {
     std::filesystem::path mdsname, isofile = MAKEU8(isofileString);
     IO<File> fi;
     unsigned int offset, extra_offset, l, i;
