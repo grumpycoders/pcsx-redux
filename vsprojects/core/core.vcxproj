@@ -255,6 +255,7 @@
     <ClCompile Include="..\..\src\core\gte.cc" />
     <ClCompile Include="..\..\src\core\kernel.cc" />
     <ClCompile Include="..\..\src\core\kernellog.cc" />
+    <ClCompile Include="..\..\src\core\luaiso.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
     <ClCompile Include="..\..\src\core\pad.cc" />
     <ClCompile Include="..\..\src\core\pcsxlua.cc" />
@@ -298,6 +299,7 @@
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\kernel.h" />
     <ClInclude Include="..\..\src\core\logger.h" />
+    <ClInclude Include="..\..\src\core\luaiso.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
     <ClInclude Include="..\..\src\core\misc.h" />
     <ClInclude Include="..\..\src\core\pad.h" />
@@ -324,6 +326,7 @@
     <ClInclude Include="..\..\src\mips\common\util\encoder.hh" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\core\isoffi.lua" />
     <None Include="..\..\src\core\pcsxffi.lua" />
     <None Include="packages.config" />
   </ItemGroup>

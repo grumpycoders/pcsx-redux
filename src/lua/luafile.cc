@@ -37,25 +37,6 @@ enum FileOps {
     DOWNLOAD_URL,
 };
 
-enum SeekWheel {
-    WHEEL_SEEK_SET,
-    WHEEL_SEEK_CUR,
-    WHEEL_SEEK_END,
-};
-
-int wheelConv(enum SeekWheel w) {
-    switch (w) {
-        case WHEEL_SEEK_SET:
-            return SEEK_SET;
-        case WHEEL_SEEK_CUR:
-            return SEEK_CUR;
-        case WHEEL_SEEK_END:
-            return SEEK_END;
-    }
-
-    return -1;
-}
-
 void deleteFile(LuaFile* wrapper) { delete wrapper; }
 
 LuaFile* openFile(const char* filename, FileOps type) {
@@ -110,12 +91,12 @@ uint64_t writeFileBuffer(LuaFile* wrapper, const void* buffer) {
     return wrapper->file->write(data, *pSize);
 }
 
-int64_t rSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel) {
-    return wrapper->file->rSeek(pos, wheelConv(wheel));
+int64_t rSeek(LuaFile* wrapper, int64_t pos, PCSX::LuaFFI::SeekWheel wheel) {
+    return wrapper->file->rSeek(pos, PCSX::LuaFFI::wheelConv(wheel));
 }
 int64_t rTell(LuaFile* wrapper) { return wrapper->file->rTell(); }
-int64_t wSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel) {
-    return wrapper->file->wSeek(pos, wheelConv(wheel));
+int64_t wSeek(LuaFile* wrapper, int64_t pos, PCSX::LuaFFI::SeekWheel wheel) {
+    return wrapper->file->wSeek(pos, PCSX::LuaFFI::wheelConv(wheel));
 }
 int64_t wTell(LuaFile* wrapper) { return wrapper->file->wTell(); }
 

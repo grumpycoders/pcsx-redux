@@ -130,6 +130,9 @@
     <ClCompile Include="..\..\src\core\DynaRec_x86\iR3000A.cc">
       <Filter>Source Files\Dynarec x86</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\luaiso.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\web-server.h">
@@ -258,10 +261,16 @@
     <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h">
       <Filter>Header Files\Dynarec x64</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\luaiso.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="..\..\src\core\pcsxffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\core\isoffi.lua">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

@@ -1,4 +1,21 @@
 -- lualoader, R"EOF(--
+--   Copyright (C) 2022 PCSX-Redux authors
+--
+--   This program is free software; you can redistribute it and/or modify
+--   it under the terms of the GNU General Public License as published by
+--   the Free Software Foundation; either version 2 of the License, or
+--   (at your option) any later version.
+--
+--   This program is distributed in the hope that it will be useful,
+--   but WITHOUT ANY WARRANTY; without even the implied warranty of
+--   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--   GNU General Public License for more details.
+--
+--   You should have received a copy of the GNU General Public License
+--   along with this program; if not, write to the
+--   Free Software Foundation, Inc.,
+--   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 ffi.cdef [[
 
 typedef struct { char opaque[?]; } LuaFile;
@@ -68,8 +85,8 @@ LuaFile* dupFile(LuaFile*);
 local C = ffi.load 'SUPPORT_FILE'
 
 local function fileGarbageCollect(file) C.deleteFile(file._wrapper) end
-
 local fileMeta = { __gc = fileGarbageCollect }
+
 local bufferMeta = {
     __tostring = function(buffer) return ffi.string(buffer.data, buffer.size) end,
     __len = function(buffer) return buffer.size end,
@@ -91,6 +108,7 @@ local bufferMeta = {
         error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
     end,
 }
+
 local function validateBuffer(buffer)
     if buffer:maxsize() < buffer.size then
         error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' ..

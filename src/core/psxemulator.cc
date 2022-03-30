@@ -26,6 +26,7 @@
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gte.h"
+#include "core/luaiso.h"
 #include "core/mdec.h"
 #include "core/pad.h"
 #include "core/pcsxlua.h"
@@ -82,6 +83,7 @@ void PCSX::Emulator::setLua() {
     m_lua->settable(LUA_GLOBALSINDEX);
     LuaFFI::open_pcsx(m_lua.get());
     LuaFFI::open_file(m_lua.get());
+    LuaFFI::open_iso(m_lua.get());
     LuaFFI::open_extra(m_lua.get());
 }
 
