@@ -24,10 +24,7 @@
 
 namespace {
 
-struct LuaFile {
-    LuaFile(PCSX::IO<PCSX::File> file) : file(file) {}
-    PCSX::IO<PCSX::File> file;
-};
+using LuaFile = PCSX::LuaFFI::LuaFile;
 
 enum FileOps {
     READ,

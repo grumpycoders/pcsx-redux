@@ -21,6 +21,8 @@
 
 #include <stdio.h>
 
+#include "support/file.h"
+
 namespace PCSX {
 
 class Lua;
@@ -45,6 +47,11 @@ static constexpr inline int wheelConv(enum SeekWheel w) {
 
     return -1;
 }
+
+struct LuaFile {
+    LuaFile(IO<File> file) : file(file) {}
+    IO<File> file;
+};
 
 void open_file(Lua*);
 }  // namespace LuaFFI
