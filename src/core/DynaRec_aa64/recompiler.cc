@@ -78,16 +78,6 @@ bool DynaRecCPU::Init() {
         m_dummyBlocks[i] = m_invalidBlock;
     }
 
-    /*
-    if constexpr (ENABLE_SYMBOLS) {
-        makeSymbols();
-    }
-
-    if constexpr (ENABLE_PROFILER) {
-        m_profiler.init();
-    }
-    */
-
     m_gprs[0].markConst(0);  // $zero is always zero
 
 #if defined(__APPLE__)
