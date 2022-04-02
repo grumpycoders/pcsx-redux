@@ -993,7 +993,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             }
             ImGui::Separator();
             ImGui::Separator();
-            ImGui::Text(_("CPU: %s"), g_emulator->m_cpu->isDynarec() ? "DynaRec" : "Interpreted");
+            ImGui::Text(_("CPU: %s"), g_emulator->m_cpu->getName().c_str());
             ImGui::Separator();
             ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdromId);
             ImGui::Separator();
