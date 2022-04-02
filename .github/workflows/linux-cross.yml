@@ -1,0 +1,30 @@
+name: Linux CI cross
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  cross-arm64:
+    runs-on: ubuntu-latest
+    container:
+      image: grumpycoders/pcsx-redux-build-cross:latest
+      env:
+        CROSS: arm64
+        PKG_CONFIG_SYSROOT_DIR: /opt/cross/sysroot
+        PKG_CONFIG_PATH:
+        PKG_CONFIG_LIBDIR: /opt/cross/sysroot/usr/lib/aarch64-linux-gnu/pkgconfig
+        CC: aarch64-linux-gnu-gcc --sysroot=/opt/cross/sysroot
+        CXX: aarch64-linux-gnu-g++ --sysroot=/opt/cross/sysroot
+        TEST_RESULTS: /tmp/test-results
+    steps:
+      - uses: actions/checkout@v1
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch submodules
+        run: git submodule update --init --recursive
+      - run: |
+          make -j 2 all pcsx-redux-tests
