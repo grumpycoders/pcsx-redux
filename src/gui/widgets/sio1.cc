@@ -24,7 +24,7 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
-static struct registerDisplay {
+struct registerDisplay {
     const char* description;
     const char* notes;
 };
