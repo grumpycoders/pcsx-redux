@@ -223,7 +223,7 @@ void PCSX::Widgets::SIO1::DrawModeEditor(PCSX::sio1Registers* regs) {
                         register_set = (regs->mode >> row) & 1;
                         label = fmt::format(_("{}"), row);
 
-                        if (ImGui::Checkbox(label.c_str(), &register_set);) {
+                        if (ImGui::Checkbox(label.c_str(), &register_set)) {
                             if (register_set) {
                                 regs->mode |= (1 << row);
                             } else {
