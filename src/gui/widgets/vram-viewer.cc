@@ -353,55 +353,53 @@ void PCSX::Widgets::VRAMViewer::resetView() {
 }
 
 void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
-    if (m_show) {
-        auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
-        if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
-            if (!m_firstShown) {
-                resetView();
-                m_firstShown = true;
-            }
-            if (ImGui::BeginMenuBar()) {
-                if (ImGui::BeginMenu(_("File"))) {
-                    ImGui::EndMenu();
-                }
-                if (ImGui::BeginMenu(_("View"))) {
-                    if (ImGui::MenuItem(_("Reset view"))) resetView();
-                    if (!m_clutDestination) {
-                        ImGui::Separator();
-                        ImGui::SliderInt(_("24 bits shift"), &m_24shift, 0, 2);
-                        if (ImGui::MenuItem(_("View VRAM in 24 bits"), nullptr, m_vramMode == VRAM_24BITS)) {
-                            m_vramMode = VRAM_24BITS;
-                            modeChanged();
-                        }
-                        if (ImGui::MenuItem(_("View VRAM in 16 bits"), nullptr, m_vramMode == VRAM_16BITS)) {
-                            m_vramMode = VRAM_16BITS;
-                            modeChanged();
-                        }
-                        if (ImGui::MenuItem(_("View VRAM in 8 bits"), nullptr, m_vramMode == VRAM_8BITS)) {
-                            m_vramMode = VRAM_8BITS;
-                            modeChanged();
-                        }
-                        if (ImGui::MenuItem(_("View VRAM in 4 bits"), nullptr, m_vramMode == VRAM_4BITS)) {
-                            m_vramMode = VRAM_4BITS;
-                            modeChanged();
-                        }
-                    } else {
-                        ImGui::MenuItem(_("Select a CLUT"), nullptr, &m_selectingClut);
-                    }
-                    ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_alpha);
-                    ImGui::MenuItem(_("Enable greyscale"), nullptr, &m_greyscale);
-                    if (m_isMain) {
-                        ImGui::Separator();
-                        ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_editor.m_show);
-                    }
-                    ImGui::EndMenu();
-                }
-                ImGui::EndMenuBar();
-            }
-            drawVRAM(gui, VRAMTexture);
+    auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
+    if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
+        if (!m_firstShown) {
+            resetView();
+            m_firstShown = true;
         }
-        ImGui::End();
+        if (ImGui::BeginMenuBar()) {
+            if (ImGui::BeginMenu(_("File"))) {
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu(_("View"))) {
+                if (ImGui::MenuItem(_("Reset view"))) resetView();
+                if (!m_clutDestination) {
+                    ImGui::Separator();
+                    ImGui::SliderInt(_("24 bits shift"), &m_24shift, 0, 2);
+                    if (ImGui::MenuItem(_("View VRAM in 24 bits"), nullptr, m_vramMode == VRAM_24BITS)) {
+                        m_vramMode = VRAM_24BITS;
+                        modeChanged();
+                    }
+                    if (ImGui::MenuItem(_("View VRAM in 16 bits"), nullptr, m_vramMode == VRAM_16BITS)) {
+                        m_vramMode = VRAM_16BITS;
+                        modeChanged();
+                    }
+                    if (ImGui::MenuItem(_("View VRAM in 8 bits"), nullptr, m_vramMode == VRAM_8BITS)) {
+                        m_vramMode = VRAM_8BITS;
+                        modeChanged();
+                    }
+                    if (ImGui::MenuItem(_("View VRAM in 4 bits"), nullptr, m_vramMode == VRAM_4BITS)) {
+                        m_vramMode = VRAM_4BITS;
+                        modeChanged();
+                    }
+                } else {
+                    ImGui::MenuItem(_("Select a CLUT"), nullptr, &m_selectingClut);
+                }
+                ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_alpha);
+                ImGui::MenuItem(_("Enable greyscale"), nullptr, &m_greyscale);
+                if (m_isMain) {
+                    ImGui::Separator();
+                    ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_editor.m_show);
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+        drawVRAM(gui, VRAMTexture);
     }
+    ImGui::End();
 
     if (m_editor.m_show) {
         drawEditor(gui);

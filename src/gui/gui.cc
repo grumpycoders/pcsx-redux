@@ -259,9 +259,7 @@ void PCSX::GUI::init() {
         glfwSwapInterval(0);
         setRawMouseMotion(isRawMouseMotionEnabled());
     });
-
-    auto monitor = glfwGetPrimaryMonitor();
-
+ 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -1054,9 +1052,13 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-    m_mainVRAMviewer.draw(this, m_VRAMTexture);
-    m_clutVRAMviewer.draw(this, m_VRAMTexture);
-    for (auto& viewer : m_VRAMviewers) viewer.draw(this, m_VRAMTexture);
+    if (m_mainVRAMviewer.m_show) m_mainVRAMviewer.draw(this, m_VRAMTexture);
+    if (m_clutVRAMviewer.m_show) m_clutVRAMviewer.draw(this, m_VRAMTexture);
+    for (auto& viewer : m_VRAMviewers) {
+        if (viewer.m_show) {
+            viewer.draw(this, m_VRAMTexture);
+        }
+    }
 
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
