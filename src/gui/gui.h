@@ -42,6 +42,7 @@
 #include "gui/widgets/memcard_manager.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
+#include "gui/widgets/sio1.h"
 #include "gui/widgets/source.h"
 #include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
@@ -288,6 +289,8 @@ class GUI final {
     Widgets::KernelLog m_kernelLog;
 
     Widgets::CallStacks m_callstacks;
+
+    Widgets::SIO1 m_sio1;
 
     EventBus::Listener m_listener;
 

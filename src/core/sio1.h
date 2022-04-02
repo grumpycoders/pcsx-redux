@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <stdint.h>
 #include <string>
 
 #include "core/psxemulator.h"
@@ -27,10 +28,19 @@
 #include "core/sio1-server.h"
 #include "core/sstate.h"
 
-//#define SIO1_CYCLES (m_baudReg * 8)
+//#define SIO1_CYCLES (m_regs.baud * 8)
 #define SIO1_CYCLES (1)
 
 namespace PCSX {
+
+struct sio1Registers {
+    uint32_t data;
+    uint32_t status;
+    uint16_t mode;
+    uint16_t control;
+    uint16_t baud;
+};
+
 class SIO1 {
     /*
      * To-do:
@@ -48,28 +58,30 @@ class SIO1 {
   public:
     void interrupt();
 
-    void sio1Reset() {
+    void reset() {
         m_slices.discardSlices();
-        // uint32_t m_dataReg = 0;
-        m_statusReg = SR_TXRDY | SR_TXEMPTY | SR_DSR | SR_CTS;
-        m_modeReg = 0;
-        m_ctrlReg = 0;
-        // uint16_t m_miscReg = 0;
-        m_baudReg = 0;
+        fifo_rx.empty();
+        m_regs.data = 0;
+        m_regs.status = (SR_TXRDY | SR_TXRDY2 | SR_DSR | SR_CTS);
+        m_regs.mode = 0;
+        m_regs.control = 0;
+        m_regs.baud = 0;
+
+        PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
     }
 
-    uint8_t readBaud8() { return m_baudReg & 0xFF; }
-    uint16_t readBaud16() { return m_baudReg; }
+    uint8_t readBaud8() { return m_regs.baud & 0xFF; }
+    uint16_t readBaud16() { return m_regs.baud; }
 
-    uint8_t readCtrl8() { return m_ctrlReg & 0xFF; }
-    uint16_t readCtrl16() { return m_ctrlReg; }
+    uint8_t readCtrl8() { return m_regs.control & 0xFF; }
+    uint16_t readCtrl16() { return m_regs.control; }
 
     uint8_t readData8();
     uint16_t readData16() { return psxHu16(0x1050); }
     uint32_t readData32() { return psxHu32(0x1050); }
 
-    uint8_t readMode8() { return m_modeReg & 0xFF; }
-    uint16_t readMode16() { return m_modeReg; }
+    uint8_t readMode8() { return m_regs.mode & 0xFF; }
+    uint16_t readMode16() { return m_regs.mode; }
 
     uint8_t readStat8();
     uint16_t readStat16();
@@ -93,23 +105,25 @@ class SIO1 {
         writeData8((unsigned char)(v >> 24));
     }
 
-    void writeMode8(uint8_t v);
+    void writeMode8(uint8_t v) { writeMode16(v); };
     void writeMode16(uint16_t v);
 
-    void writeStat8(uint8_t v);
-    void writeStat16(uint16_t v);
+    void writeStat8(uint8_t v) { writeStat32(v); }
+    void writeStat16(uint16_t v) { writeStat32(v); }
     void writeStat32(uint32_t v);
 
     void receiveCallback();
 
     void pushSlice(Slice slice) { m_slices.pushSlice(slice); }
 
+    sio1Registers m_regs;
+
   private:
     enum {
         // Status Flags
         SR_TXRDY = 0x0001,
-        SR_RXRDY = 0x0002,    // RX_NOTEMPTY
-        SR_TXEMPTY = 0x0004,  // TX_RDY2
+        SR_RXRDY = 0x0002,   // RX_NOTEMPTY
+        SR_TXRDY2 = 0x0004,  // TX_RDY2
         SR_PARITYERR = 0x0008,
         SR_RXOVERRUN = 0x0010,
         SR_FRAMINGERR = 0x0020,
@@ -135,47 +149,83 @@ class SIO1 {
         CR_DSRIRQEN = 0x0400,
     };
 
+    enum {
+        // I_STAT
+        IRQ8_SIO = 0x100
+    };
+
+    template <size_t buffer_size, typename T>
+    class FIFO {
+      public:
+        ~FIFO() { empty(); }
+
+        void empty() {
+            while (!queue_.empty()) queue_.pop();
+        }
+        bool isEmpty() { return queue_.empty(); }
+        T pull() {
+            T ret = T();
+            if (!queue_.empty()) {
+                ret = queue_.front();
+                queue_.pop();
+            }
+
+            return ret;
+        }
+        void push(T data) {
+            if (queue_.size() >= buffer_size) {
+                queue_.back() = data;
+            } else {
+                queue_.push(data);
+            }
+        }
+
+        size_t bytesAvailable() { return queue_.size(); }
+
+      private:
+        std::queue<T> queue_;
+    };
+
     struct Slices {
         ~Slices() { discardSlices(); }
 
         void discardSlices() {
-            while (!m_sliceQueue.empty()) m_sliceQueue.pop();
+            while (!m_sliceQueueRX.empty()) m_sliceQueueRX.pop();
         }
-        void pushSlice(const Slice& slice) { m_sliceQueue.push(slice); }
+        void pushSlice(const Slice& slice) { m_sliceQueueRX.push(slice); }
 
         uint8_t getByte() {
-            if (m_sliceQueue.empty()) return 0xff;  // derp?
-            Slice& slice = m_sliceQueue.front();
+            if (m_sliceQueueRX.empty()) return 0xff;  // derp?
+            Slice& slice = m_sliceQueueRX.front();
             uint8_t r = slice.getByte(m_cursor);
             if (++m_cursor >= slice.size()) {
                 m_cursor = 0;
-                m_sliceQueue.pop();
+                m_sliceQueueRX.pop();
             }
             return r;
         }
 
         uint32_t getBytesRemaining() {
-            Slice& slice = m_sliceQueue.front();
+            Slice& slice = m_sliceQueueRX.front();
 
-            if (m_sliceQueue.empty()) return 0;
+            if (m_sliceQueueRX.empty()) return 0;
 
             return slice.size() - m_cursor;
         }
 
-        std::queue<Slice> m_sliceQueue;
+        std::queue<Slice> m_sliceQueueRX;
+
         uint32_t m_cursor = 0;
     };
 
     inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
 
+    void updateFIFO();
     void updateStat();
+    void transmitData();
+    bool isTransmitReady();
 
-    // uint32_t m_dataReg = 0;
-    uint32_t m_statusReg = SR_TXRDY | SR_TXEMPTY | SR_DSR | SR_CTS;
-    uint16_t m_modeReg = 0;
-    uint16_t m_ctrlReg = 0;
-    // uint16_t m_miscReg = 0;
-    uint16_t m_baudReg = 0;
     Slices m_slices;
+    FIFO<8, uint8_t> fifo_rx;
 };
 }  // namespace PCSX
