@@ -24,6 +24,7 @@
 
 PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size, SectorMode mode)
     : File(RO_SEEKABLE), m_iso(iso), m_lba(lba) {
+    uint8_t* sector = m_cachedSector;
     if (iso->failed()) {
         m_failed = true;
         return;
@@ -31,7 +32,6 @@ PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t 
     if (mode == SectorMode::GUESS) {
         mode = SectorMode::RAW;
         do {
-            uint8_t* sector = m_cachedSector;
             m_cachedLBA = lba;
             iso->readSectors(lba, sector, 1);
             static constexpr uint8_t syncPattern[] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -77,6 +77,21 @@ PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t 
         m_failed = true;
         return;
     }
+
+    size = 1;
+
+    while (true) {
+        if (m_cachedLBA != lba) {
+            m_cachedLBA = lba;
+            iso->readSectors(lba, sector, 1);
+        }
+        uint8_t* subheaders = sector + 16;
+        if (subheaders[2] & 0x81) break;
+        lba++;
+        size++;
+    }
+
+    m_size = size * c_sectorSizes[magic_enum::enum_integer(mode)];
 }
 
 ssize_t PCSX::CDRIsoFile::rSeek(ssize_t pos, int wheel) {

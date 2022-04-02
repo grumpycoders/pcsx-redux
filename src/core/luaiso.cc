@@ -22,6 +22,7 @@
 #include <memory>
 
 #include "cdrom/cdriso.h"
+#include "cdrom/file.h"
 #include "cdrom/iso9660-reader.h"
 #include "core/cdrom.h"
 #include "lua/luafile.h"
@@ -46,6 +47,9 @@ void deleteIsoReader(PCSX::ISO9660Reader* isoReader) { delete isoReader; }
 bool isReaderFailed(PCSX::ISO9660Reader* reader) { return reader->failed(); }
 PCSX::LuaFFI::LuaFile* readerOpen(PCSX::ISO9660Reader* reader, const char* path) {
     return new PCSX::LuaFFI::LuaFile(reader->open(path));
+}
+PCSX::LuaFFI::LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, PCSX::CDRIsoFile::SectorMode mode) {
+    return new PCSX::LuaFFI::LuaFile(new PCSX::CDRIsoFile(wrapper->iso, lba, size, mode));
 }
 
 }  // namespace
@@ -79,6 +83,7 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, deleteIsoReader);
     REGISTER(L, isReaderFailed);
     REGISTER(L, readerOpen);
+    REGISTER(L, fileisoOpen);
 
     L->settable();
     L->pop();

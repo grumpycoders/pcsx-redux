@@ -18,6 +18,15 @@
 
 ffi.cdef [[
 
+enum SectorMode {
+    GUESS,     // will try and guess the sector mode based on flags found in the first sector
+    RAW,       // 2352 bytes per sector
+    M1,        // 2048 bytes per sector
+    M2_RAW,    // 2336 bytes per sector, includes subheader; can't be guessed
+    M2_FORM1,  // 2048 bytes per sector
+    M2_FORM2,  // 2324 bytes per sector
+};
+
 typedef struct { char opaque[?]; } LuaIso;
 typedef struct { char opaque[?]; } IsoReader;
 
@@ -31,6 +40,7 @@ IsoReader* createIsoReader(LuaIso* wrapper);
 void deleteIsoReader(IsoReader* isoReader);
 bool isReaderFailed(IsoReader* reader);
 LuaFile* readerOpen(IsoReader* reader, const char* path);
+LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, enum SectorMode mode);
 
 ]]
 
@@ -58,6 +68,11 @@ local function createFileWrapper(wrapper)
         _wrapper = wrapper,
         failed = function(self) return C.isIsoFailed(self._wrapper) end,
         createReader = function(self) return createIsoReaderWrapper(C.createIsoReader(self._wrapper)) end,
+        open = function(self, lba, size, mode)
+            if size == nil then size = -1 end
+            if mode == nil then mode = 'GUESS' end
+            return Support.File._createFileWrapper(C.fileisoOpen(self._wrapper, lba, size, mode))
+        end,
     }
     setmetatable(iso, isoMeta)
     return iso
