@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2021 PCSX-Redux authors                                 *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,20 +17,19 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+
 #pragma once
 #include "core/r3000a.h"
 
-#if defined(DYNAREC_X86_64)
+#if defined(DYNAREC_AA64)
 #include <array>
 #include <fstream>
 #include <optional>
 #include <stdexcept>
 #include <string>
 
-#include "core/gpu.h"
 #include "emitter.h"
 #include "fmt/format.h"
-#include "profiler.h"
 #include "regAllocation.h"
 #include "spu/interface.h"
 #include "tracy/Tracy.hpp"
@@ -51,14 +50,17 @@ static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
-// For 8/16-bit writes, the entire value is put on the bus. This matters for certain IO registers
-static void write8Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write8(address, value); }
-static void write16Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write16(address, value); }
-static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
+static void write8Wrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write8(address, value);
+}
+static void write16Wrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write16(address, value);
+}
+static void write32Wrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32(address, value);
+}
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
-using namespace Xbyak;
-using namespace Xbyak::util;
 
 class DynaRecCPU final : public PCSX::R3000Acpu {
     using recompilationFunc = void (DynaRecCPU::*)();  // A function pointer to a dynarec member function
@@ -76,41 +78,25 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_returnFromBlock;  // Pointer to the code that will be executed when returning from a block
     DynarecCallback m_uncompiledBlock;  // Pointer to the code that will be executed when jumping to an uncompiled block
     DynarecCallback m_invalidBlock;     // Pointer to the code that will be executed the PC is invalid
-    DynarecCallback m_invalidateBlocks;  // Pointer to the code that will invalidate all RAM code blocks
-    DynarecCallback m_loadDelayHandler;  // Pointer to the code that will handle load delays at the start of a block
-    // Pointer to the code that will be executed when a block needs to be recompiled with full load delay support
-    DynarecCallback m_needFullLoadDelays;
 
+    uint32_t m_pc;
     Emitter gen;
-    uint32_t m_pc;  // Recompiler PC
 
     bool m_stopCompiling;  // Should we stop compiling code?
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
-    bool m_firstInstruction;
-    bool m_fullLoadDelayEmulation;
-    uint32_t m_ramSize;  // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
-
-    // Used to hold info when we've got a load delay between the end of a block and the start of another
-    // For example, when there's an lw instruction in the delay slot of a branch
-    struct {
-        bool active;
-        int index;
-        uint32_t value;
-    } m_runtimeLoadDelay;
-
+    uint32_t m_ramSize;    // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
     const int MAX_BLOCK_SIZE = 50;
 
     enum class RegState { Unknown, Constant };
     enum class LoadingMode { DoNotLoad, Load };
-    enum class LoadDelayDependencyType { NoDependency, DependencyInsideBlock, DependencyAcrossBlocks };
-
-    struct Register {
+    // Renamed temporarily to Reg since it collides with Register in vixl::aarch64 namespace
+    struct Reg {
         uint32_t val = 0;                    // The register's cached value used for constant propagation
         RegState state = RegState::Unknown;  // Is this register's value a constant, or an unknown value?
 
         bool allocated = false;  // Has this guest register been allocated to a host reg?
         bool writeback = false;  // Does this register need to be written back to memory at the end of the block?
-        Reg32 allocatedReg;      // If a host reg has been allocated to this register, which reg is it?
+        Register allocatedReg;   // If a host reg has been allocated to this register, which reg is it?
         int allocatedRegIndex = 0;
 
         inline bool isConst() { return state == RegState::Constant; }
@@ -140,7 +126,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         std::optional<int> mappedReg = std::nullopt;  // The register this is allocated to, if any
     };
 
-    Register m_gprs[32];
+    Reg m_gprs[32];
     std::array<HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
     std::optional<uint32_t> m_linkedPC = std::nullopt;
 
@@ -159,154 +145,32 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     void flushRegs();
     void spillRegisterCache();
+    void prepareForCall();
     unsigned int m_allocatedRegisters = 0;  // how many registers have been allocated in this block?
 
-    void prepareForCall();
+    // Check if we're executing from valid memory
+    inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
+
+    DynarecCallback* getBlockPointer(uint32_t pc);
+    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc, bool align = true);
+    void error();
+    void flushCache();
+    void handleLinking();
+    void handleFastboot();
     void handleKernelCall();
     void emitDispatcher();
+    void emitBlockLookup();
     void uncompileAll();
 
-  public:
-    DynaRecCPU() : R3000Acpu("Dynarec (x86-64)") {}
-
-    virtual bool Implemented() final { return true; }
-    virtual bool Init() final;
-    virtual void Reset() final;
-    virtual void Shutdown() final;
-    virtual bool isDynarec() final { return true; }
-    virtual void Execute() final {
-        ZoneScoped;         // Tell the Tracy profiler to do its thing
-        (*m_dispatcher)();  // Jump to assembly dispatcher
-    }
-    // For the GUI dynarec disassembly widget
-    virtual const uint8_t* getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
-    virtual const size_t getBufferSize() final { return gen.getSize(); }
-
-    // TODO: Make it less slow and bad
-    // Possibly clear blocks more aggressively
-    // Note: This relies on the behavior in psxmem.cc which calls Clear after force-aligning the address
-    virtual void Clear(uint32_t addr, uint32_t size) final {
-        auto pointer = getBlockPointer(addr);
-        for (auto i = 0; i < size; i++) {
-            *pointer++ = m_uncompiledBlock;
-        }
-    }
-
-    virtual void invalidateCache() override final {
-        memset(m_regs.ICache_Addr, 0xff, sizeof(m_regs.ICache_Addr));
-        memset(m_regs.ICache_Code, 0xff, sizeof(m_regs.ICache_Code));
-        m_invalidateBlocks();
-    }
-
-    virtual void SetPGXPMode(uint32_t pgxpMode) final {
-        if (pgxpMode != 0) {
-            throw std::runtime_error("PGXP not supported in x64 JIT");
-        }
-    }
-
-    void dumpBuffer() const {
-        std::ofstream file("DynarecOutput.dump", std::ios::binary);  // Make a file for our dump
-        file.write(gen.getCode<const char*>(), gen.getSize());       // Write the code buffer to the dump
-    }
-
-  private:
-    // Sets dest to "pointer", using base pointer relative addressing if possible
-    void loadAddress(Xbyak::Reg64 dest, void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)this;
-
-        if (Xbyak::inner::IsInInt32(distance)) {
-            gen.lea(dest, ptr[contextPointer + distance]);
-        } else {
-            gen.mov(dest, (uintptr_t)pointer);
-        }
-    }
-
-    // Loads a value into dest from the given pointer.
-    // Tries to use base pointer relative addressing, otherwise uses movabs
-    template <int size, bool signExtend>
-    void load(Xbyak::Reg32 dest, const void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)this;
-
-        if (Xbyak::inner::IsInInt32(distance)) {
-            switch (size) {
-                case 8:
-                    signExtend ? gen.movsx(dest, Xbyak::util::byte[contextPointer + distance])
-                               : gen.movzx(dest, Xbyak::util::byte[contextPointer + distance]);
-                    break;
-                case 16:
-                    signExtend ? gen.movsx(dest, word[contextPointer + distance])
-                               : gen.movzx(dest, word[contextPointer + distance]);
-                    break;
-                case 32:
-                    gen.mov(dest, dword[contextPointer + distance]);
-                    break;
-            }
-        } else {
-            gen.mov(rax, (uintptr_t)pointer);
-            switch (size) {
-                case 8:
-                    signExtend ? gen.movsx(dest, Xbyak::util::byte[rax]) : gen.movzx(dest, Xbyak::util::byte[rax]);
-                    break;
-                case 16:
-                    signExtend ? gen.movsx(dest, word[rax]) : gen.movzx(dest, word[rax]);
-                    break;
-                case 32:
-                    gen.mov(dest, dword[rax]);
-                    break;
-            }
-        }
-    }
-
-    // Stores a value of "size" bits from "source" to the given pointer
-    // Tries to use base pointer relative addressing, otherwise uses movabs
-    template <int size, typename T>
-    void store(T source, const void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)this;
-
-        if (Xbyak::inner::IsInInt32(distance)) {
-            switch (size) {
-                case 8:
-                    gen.mov(Xbyak::util::byte[contextPointer + distance], source);
-                    break;
-                case 16:
-                    gen.mov(word[contextPointer + distance], source);
-                    break;
-                case 32:
-                    gen.mov(dword[contextPointer + distance], source);
-                    break;
-            }
-        } else {
-            gen.mov(rax, (uintptr_t)pointer);
-            switch (size) {
-                case 8:
-                    gen.mov(Xbyak::util::byte[rax], source);
-                    break;
-                case 16:
-                    gen.mov(word[rax], source);
-                    break;
-                case 32:
-                    gen.mov(dword[rax], source);
-                    break;
-            }
-        }
-    }
-
+    // Class Wrapper Functions
     static void exceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->exception(e, bd); }
     static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
     static void recBranchTestWrapper(DynaRecCPU* that) { that->branchTest(); }
     static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
 
     static void signalShellReached(DynaRecCPU* that);
-    static DynarecCallback recRecompileWrapper(DynaRecCPU* that, bool fullLoadDelayEmulation) {
-        return that->recompile(that->m_regs.pc, fullLoadDelayEmulation);
-    }
-
-    void inlineClear(uint32_t address) {
-        if (isPcValid(address & ~3)) {
-            loadThisPointer(arg1.cvt64());
-            gen.mov(arg2, address & ~3);
-            call(recClearWrapper);
-        }
+    static DynarecCallback recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
+        return that->recompile(callback, that->m_regs.pc);
     }
 
     template <uint32_t pc>
@@ -314,44 +178,130 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         that->InterceptBIOS<false>(pc);
     }
 
-    // Check if we're executing from valid memory
-    inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
-
-    DynarecCallback* getBlockPointer(uint32_t pc);
-    DynarecCallback recompile(uint32_t pc, bool fullLoadDelayEmulation, bool align = true);
-    void error();
-    void flushCache();
-    void handleLinking();
-    void handleFastboot();
-    void emitBlockLookup();
-
-    std::string m_symbols;
-    RecompilerProfiler<10000000> m_profiler;
-
-    void makeSymbols();
-    bool startProfiling(uint32_t pc);
-    void endProfiling();
-    void dumpProfileData();
-
-    void maybeCancelDelayedLoad(int index) {
-        if (m_fullLoadDelayEmulation && m_firstInstruction) {
-            const auto& delay = m_runtimeLoadDelay;
-            const auto indexOffset = (uintptr_t)&delay.index - (uintptr_t)this;
-            const auto isActiveOffset = (uintptr_t)&delay.active - (uintptr_t)this;
-
-            Label(noDelayedLoad);
-            gen.cmp(Xbyak::util::dword[contextPointer + indexOffset], index);  // Check if there's an active delay
-            gen.jne(noDelayedLoad);
-            gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 0);
-            gen.L(noDelayedLoad);
+    // TODO: This is currently un-unsed in x64 DynaRec. Check this.
+    void inlineClear(uint32_t address) {
+        if (isPcValid(address & ~3)) {
+            loadThisPointer(arg1.X());
+            gen.Mov(arg2, address & ~3);
+            call(recClearWrapper);
         }
+    }
 
+  public:
+    DynaRecCPU() : R3000Acpu("Dynarec (arm64)") {}
+    virtual bool Implemented() final { return true; }
+    virtual bool Init() final;
+    virtual void Reset() final;
+    virtual void Execute() final {
+        ZoneScoped;         // Tell the Tracy profiler to do its thing
+        (*m_dispatcher)();  // Jump to assembly dispatcher
+    }
+    virtual void Clear(uint32_t Addr, uint32_t Size) final {
+        auto pointer = getBlockPointer(Addr);
+        for (auto i = 0; i < Size; i++) {
+            *pointer++ = m_uncompiledBlock;
+        }
+    }
+    virtual void Shutdown() final;
+    virtual bool isDynarec() final { return true; }
+
+    virtual void SetPGXPMode(uint32_t pgxpMode) final {
+        if (pgxpMode != 0) {
+            throw std::runtime_error("PGXP not supported in x64 JIT");
+        }
+    }
+
+    // For the GUI dynarec disassembly widget
+    virtual const uint8_t* getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
+    virtual const size_t getBufferSize() final { return gen.getSize(); }
+
+  private:
+    // Calculate the number of instructions between the current PC and the branch target
+    // Returns a negative number for backwards jumps
+    int64_t getPCOffset(const void* current, const void* target) {
+        return (int64_t)((ptrdiff_t)target - (ptrdiff_t)current) >> 2;
+    }
+
+    // Load a pointer to the JIT object in "reg" using lea with the context pointer
+    void loadThisPointer(Register reg) { gen.Mov(reg, contextPointer); }
+
+    // Loads a value into dest from the given pointer.
+    template <int size, bool signExtend>
+    void load(Register dest, const void* pointer) {
+        //        const auto distance = (intptr_t)pointer - (intptr_t)this;
+        gen.Mov(x4, (uintptr_t)pointer);
+        switch (size) {
+            case 8:
+                signExtend ? gen.Ldrsb(dest, MemOperand(x4)) : gen.Ldrb(dest, MemOperand(x4));
+                break;
+            case 16:
+                signExtend ? gen.Ldrsh(dest, MemOperand(x4)) : gen.Ldrh(dest, MemOperand(x4));
+                break;
+            case 32:
+                gen.Ldr(dest, MemOperand(x4));
+                break;
+        }
+    }
+
+    // Stores a value of "size" bits from "source" to the given pointer
+    template <int size, typename T>
+    void store(T source, const void* pointer) {
+        gen.Mov(x4, (uintptr_t)pointer);
+        gen.Mov(w5, source);
+        switch (size) {
+            case 8:
+                gen.Strb(w5, MemOperand(x4));
+                break;
+            case 16:
+                gen.Strh(w5, MemOperand(x4));
+                break;
+            case 32:
+                gen.Str(w5, MemOperand(x4));
+                break;
+        }
+    }
+
+    // Prepare for a call to a C++ function and then actually emit it
+    template <typename T>
+    void call(T& func) {
+        prepareForCall();
+        const auto ptr = reinterpret_cast<const void*>(func);
+        const int64_t disp = getPCOffset(gen.getCurr<const void*>(), ptr);
+
+        // If the displacement can fit in a 26-bit int, that means we can emit a direct call to the address
+        // Otherwise, load the address into a register and emit a blr
+        const bool canDoDirectCall = vixl::IsInt26(disp);
+
+        if (canDoDirectCall) {
+            gen.bl(disp);
+        } else {
+            gen.Mov(x4, (uintptr_t)ptr);
+            gen.Blr(x4);
+        }
+    }
+
+    // jmp function using same method as call to attempt direct jump
+    void jmp(void* pointer) {
+        const int64_t disp = getPCOffset(gen.getCurr<const void*>(), pointer);
+
+        // If the displacement can fit in a 26-bit int, that means we can emit a direct call to the address
+        // Otherwise, load the address into a register and emit a br
+        const bool canDoDirectJump = vixl::IsInt26(disp);
+
+        if (canDoDirectJump) {
+            gen.b(disp);
+        } else {
+            gen.Mov(x4, (uintptr_t)pointer);
+            gen.Br(x4);
+        }
+    }
+
+    void maybeCancelDelayedLoad(uint32_t index) {
         const unsigned other = m_currentDelayedLoad ^ 1;
         if (m_delayedLoadInfo[other].index == index) {
             m_delayedLoadInfo[other].active = false;
         }
     }
-    LoadDelayDependencyType getLoadDelayDependencyType(int index);
 
     // Instruction definitions
     void recUnknown();
@@ -451,25 +401,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     template <bool isAVSZ4>
     void recAVSZ();
-    void loadGTEDataRegister(Reg32 dest, int index);
 
-    template <bool readSR>
+    template <bool loadSR>
     void testSoftwareInterrupt();
-
-    // Prepare for a call to a C++ function and then actually emit it
-    template <typename T>
-    void call(T& func) {
-        prepareForCall();
-        gen.callFunc(func);
-    }
-
-    // Load a pointer to the JIT object in "reg" using lea with the context pointer
-    void loadThisPointer(Xbyak::Reg64 reg) { gen.mov(reg, contextPointer); }
 
     template <int size, bool signExtend>
     void recompileLoad();
-    template <int size, bool signExtend>
-    void recompileLoadWithDelay(LoadDelayDependencyType dependencyType);
 
     const recompilationFunc m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00
@@ -528,8 +465,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         &DynaRecCPU::recUnknown, &DynaRecCPU::recGPF,     &DynaRecCPU::recGPL,     &DynaRecCPU::recNCCT,     // 3c
     };
 
-    static constexpr bool ENABLE_BLOCK_LINKING = true;
-    static constexpr bool ENABLE_PROFILER = false;
-    static constexpr bool ENABLE_SYMBOLS = false;
+    static constexpr bool ENABLE_BLOCK_LINKING = false;
 };
-#endif  // DYNAREC_X86_64
+
+#endif  // DYNAREC_AA64
