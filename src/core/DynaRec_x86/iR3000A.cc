@@ -3213,7 +3213,7 @@ void DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
 
 class DynaRecCPU : public PCSX::R3000Acpu {
   public:
-    DynaRecCPU() : R3000Acpu("x86 DynaRec") {}
+    DynaRecCPU() : R3000Acpu("Dynarec (x86-32)") {}
     virtual bool Implemented() final { return false; }
     virtual bool Init() final { return false; }
     virtual void Reset() final { abort(); }

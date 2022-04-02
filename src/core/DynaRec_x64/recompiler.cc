@@ -325,6 +325,9 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     m_firstInstruction = true;
     m_fullLoadDelayEmulation = fullLoadDelayEmulation;
 
+    // If we somehow ended up compiling a block at an invalid PC, throw an error.
+    if (!isPcValid(m_pc)) return m_invalidBlock;
+
     const auto startingPC = m_pc;
     int count = 0;                                      // How many instructions have we compiled?
     DynarecCallback* callback = getBlockPointer(m_pc);  // Pointer to where we'll store the addr of the emitted code
