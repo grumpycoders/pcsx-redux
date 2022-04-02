@@ -1,4 +1,6 @@
 # Dockerfile for grumpycoders/pcsx-redux-build-cross
+# IMPORTANT: to build this file, the package qemu-user-static needs to be
+# installed on the host machine.
 
 FROM debian:bullseye-slim
 
@@ -35,7 +37,18 @@ RUN mkdir -p /opt/cross/sysroot
 
 # Run debootstrap to pull down Debian bullseye aarch64 rootfs
 RUN debootstrap --arch=arm64 --variant=minbase \
-    --include=build-essential,pkg-config,libcapstone-dev,libfreetype-dev,libavcodec-dev,libavformat-dev,libavutil-dev,libglfw3-dev,libswresample-dev,libuv1-dev,\
+    --include=\
+build-essential,\
+pkg-config,\
+libavcodec-dev,\
+libavformat-dev,\
+libavutil-dev,\
+libcapstone-dev,\
+libcurl4-openssl-dev,\
+libfreetype-dev,\
+libglfw3-dev,\
+libswresample-dev,\
+libuv1-dev,\
 zlib1g-dev --foreign bullseye /opt/cross/sysroot
 
 # Copy qemu-user-static over to sysroot so second stage can run
