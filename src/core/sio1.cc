@@ -53,34 +53,30 @@ uint32_t PCSX::SIO1::readStat32() {
 }
 
 void PCSX::SIO1::receiveCallback() {
-    bool do_interrupt = false;
-
     updateStat();
 
     if (m_regs.control & CR_RXIRQEN) {
         if (!(m_regs.status & SR_IRQ)) {
             switch ((m_regs.control & 0x300) >> 8) {
                 case 0:
-                    if (fifo_rx.bytesAvailable() >= 1) do_interrupt = true;
+                    if (!(fifo_rx.bytesAvailable() >= 1)) return;
                     break;
 
                 case 1:
-                    if (fifo_rx.bytesAvailable() >= 2) do_interrupt = true;
+                    if (!(fifo_rx.bytesAvailable() >= 2)) return;
                     break;
 
                 case 2:
-                    if (fifo_rx.bytesAvailable() >= 4) do_interrupt = true;
+                    if (!(fifo_rx.bytesAvailable() >= 4)) return;
                     break;
 
                 case 3:
-                    if (fifo_rx.bytesAvailable() >= 8) do_interrupt = true;
+                    if (!(fifo_rx.bytesAvailable() >= 8)) return;
                     break;
             }
 
-            if (do_interrupt) {
-                scheduleInterrupt(SIO1_CYCLES);
-                m_regs.status |= SR_IRQ;
-            }
+            scheduleInterrupt(SIO1_CYCLES);
+            m_regs.status |= SR_IRQ;
         }
     }
 }

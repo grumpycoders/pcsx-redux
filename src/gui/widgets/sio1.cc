@@ -124,9 +124,7 @@ void ShowHelpMarker(const char* desc) {
 }
 
 void PCSX::Widgets::SIO1::DrawControlEditor(PCSX::sio1Registers* regs) {
-    bool changed = false;
     bool register_set;
-    bool show_editor = false;
     std::string label;
 
     ImGui::Text("Control: 0x%04x", regs->control);
@@ -150,9 +148,8 @@ void PCSX::Widgets::SIO1::DrawControlEditor(PCSX::sio1Registers* regs) {
                     case 0:
                         register_set = (regs->control >> row) & 1;
                         label = fmt::format(_("{}"), row);
-                        changed = ImGui::Checkbox(label.c_str(), &register_set);
 
-                        if (changed) {
+                        if (ImGui::Checkbox(label.c_str(), &register_set)) {
                             if (register_set) {
                                 regs->control |= (1 << row);
                             } else {
@@ -201,9 +198,7 @@ void PCSX::Widgets::SIO1::DrawControlEditor(PCSX::sio1Registers* regs) {
 }
 
 void PCSX::Widgets::SIO1::DrawModeEditor(PCSX::sio1Registers* regs) {
-    bool changed = false;
     bool register_set;
-    bool show_editor = false;
     std::string label;
 
     ImGui::Text("Mode: 0x%04x", regs->mode);
@@ -227,9 +222,8 @@ void PCSX::Widgets::SIO1::DrawModeEditor(PCSX::sio1Registers* regs) {
                     case 0:
                         register_set = (regs->mode >> row) & 1;
                         label = fmt::format(_("{}"), row);
-                        changed = ImGui::Checkbox(label.c_str(), &register_set);
 
-                        if (changed) {
+                        if (ImGui::Checkbox(label.c_str(), &register_set);) {
                             if (register_set) {
                                 regs->mode |= (1 << row);
                             } else {
@@ -278,9 +272,7 @@ void PCSX::Widgets::SIO1::DrawModeEditor(PCSX::sio1Registers* regs) {
 }
 
 void PCSX::Widgets::SIO1::DrawStatusEditor(PCSX::sio1Registers* regs) {
-    bool changed = false;
     bool register_set;
-    bool show_editor = false;
     std::string label;
 
     ImGui::Text("Status: 0x%08x", regs->status);
@@ -304,9 +296,8 @@ void PCSX::Widgets::SIO1::DrawStatusEditor(PCSX::sio1Registers* regs) {
                     case 0:
                         register_set = (regs->status >> row) & 1;
                         label = fmt::format(_("{}"), row);
-                        changed = ImGui::Checkbox(label.c_str(), &register_set);
 
-                        if (changed) {
+                        if (ImGui::Checkbox(label.c_str(), &register_set)) {
                             if (register_set) {
                                 regs->status |= (1 << row);
                             } else {
@@ -355,9 +346,6 @@ void PCSX::Widgets::SIO1::DrawStatusEditor(PCSX::sio1Registers* regs) {
 }
 
 void PCSX::Widgets::SIO1::draw(GUI* gui, sio1Registers* regs, const char* title) {
-    bool changed = false;
-    bool register_set = false;
-
     ImGui::SetNextWindowPos(ImVec2(1040, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(210, 512), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
