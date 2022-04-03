@@ -140,6 +140,12 @@ PCSX::File *PCSX::BufferFile::dup() {
     }
 }
 
+PCSX::Slice PCSX::BufferFile::borrow() {
+    Slice ret;
+    ret.borrow(m_data, m_size);
+    return ret;
+}
+
 void PCSX::PosixFile::close() {
     if (m_handle) {
         fclose(m_handle);

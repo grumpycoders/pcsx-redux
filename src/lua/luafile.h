@@ -19,12 +19,41 @@
 
 #pragma once
 
+#include <stdio.h>
+
+#include "support/file.h"
+
 namespace PCSX {
 
 class Lua;
 
 namespace LuaFFI {
-void open_file(Lua*);
+
+enum SeekWheel {
+    WHEEL_SEEK_SET,
+    WHEEL_SEEK_CUR,
+    WHEEL_SEEK_END,
+};
+
+static constexpr inline int wheelConv(enum SeekWheel w) {
+    switch (w) {
+        case WHEEL_SEEK_SET:
+            return SEEK_SET;
+        case WHEEL_SEEK_CUR:
+            return SEEK_CUR;
+        case WHEEL_SEEK_END:
+            return SEEK_END;
+    }
+
+    return -1;
 }
+
+struct LuaFile {
+    LuaFile(IO<File> file) : file(file) {}
+    IO<File> file;
+};
+
+void open_file(Lua*);
+}  // namespace LuaFFI
 
 }  // namespace PCSX

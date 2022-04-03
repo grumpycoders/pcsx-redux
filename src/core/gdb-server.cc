@@ -22,7 +22,7 @@
 #include <assert.h>
 
 #include "core/debug.h"
-#include "core/misc.h"
+#include "support/strings-helpers.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -370,7 +370,7 @@ static const std::string targetXML = R"(<?xml version="1.0"?>
 )";
 
 std::pair<uint64_t, uint64_t> PCSX::GdbClient::parseCursor(const std::string& cursorStr) {
-    auto cursorStrs = Misc::split(cursorStr, ",");
+    auto cursorStrs = StringsHelpers::split(cursorStr, ",");
     uint64_t off = 0;
     uint64_t len = 0;
     if (cursorStrs.size() == 2) {
@@ -504,7 +504,7 @@ void PCSX::GdbClient::processCommand() {
         // 32 gpr + status + lo + hi + badv + cause + 32 fpr + 3 fpu registers
         for (int i = 0; i < 72; i++) stream(dumpOneRegister(i));
         stopStream();
-    } else if (Misc::startsWith(m_cmd, "p")) {
+    } else if (StringsHelpers::startsWith(m_cmd, "p")) {
         if (m_cmd.size() != 3) {
             write("E00");
             close();
@@ -514,7 +514,7 @@ void PCSX::GdbClient::processCommand() {
         n <<= 4;
         n |= fromHexChar(m_cmd[2]);
         dumpOneRegister(n);
-    } else if (Misc::startsWith(m_cmd, "P")) {
+    } else if (StringsHelpers::startsWith(m_cmd, "P")) {
         if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
             write("E00");
             close();
@@ -537,7 +537,7 @@ void PCSX::GdbClient::processCommand() {
         m_waitingForTrap = true;
     } else if (m_cmd[0] == 'M') {
         // write memory
-        auto elements = Misc::split(m_cmd, ":");
+        auto elements = StringsHelpers::split(m_cmd, ":");
         auto [off, len] = parseCursor(elements[0].substr(1));
         if (((off == 0x8000f800) && (len == 0x800)) || ((off == 0x8000ffea) && (len == 22))) {
             // heuristic for our ps-exe.ld and cpe.ld
@@ -586,7 +586,7 @@ void PCSX::GdbClient::processCommand() {
             write("");
             return;
         }
-        auto breakpointData = Misc::split(m_cmd.substr(1), ",");
+        auto breakpointData = StringsHelpers::split(m_cmd.substr(1), ",");
         if (breakpointData.size() != 3) {
             // wrong number of arguments
             write("");
@@ -659,9 +659,9 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
     } else if (m_cmd == "Hg0") {
         write("OK");
-    } else if (Misc::startsWith(m_cmd, "vKill;")) {
+    } else if (StringsHelpers::startsWith(m_cmd, "vKill;")) {
         write("OK");
-    } else if (Misc::startsWith(m_cmd, qSupported)) {
+    } else if (StringsHelpers::startsWith(m_cmd, qSupported)) {
         // do we care about any features gdb supports?
         // auto elements = split(m_cmd.substr(qSupported.length()), ";");
         if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
@@ -669,10 +669,10 @@ void PCSX::GdbClient::processCommand() {
         } else {
             write("PacketSize=4000;qXfer:threads:read+;QStartNoAckMode+");
         }
-    } else if (Misc::startsWith(m_cmd, "QStartNoAckMode")) {
+    } else if (StringsHelpers::startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
-    } else if (Misc::startsWith(m_cmd, "qRcmd,")) {
+    } else if (StringsHelpers::startsWith(m_cmd, "qRcmd,")) {
         // this is the "monitor" command
         size_t len = m_cmd.length() - 6;
         std::string monitor;
@@ -684,13 +684,13 @@ void PCSX::GdbClient::processCommand() {
             monitor += c;
         }
         processMonitorCommand(monitor);
-    } else if (Misc::startsWith(m_cmd, qXferMemMap) &&
+    } else if (StringsHelpers::startsWith(m_cmd, qXferMemMap) &&
                g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
         writePaged(memoryMap, m_cmd.substr(qXferMemMap.length()));
-    } else if (Misc::startsWith(m_cmd, qXferFeatures) &&
+    } else if (StringsHelpers::startsWith(m_cmd, qXferFeatures) &&
                g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
-    } else if (Misc::startsWith(m_cmd, qXferThreads)) {
+    } else if (StringsHelpers::startsWith(m_cmd, qXferThreads)) {
         writePaged("<?xml version=\"1.0\"?><threads></threads>", m_cmd.substr(qXferThreads.length()));
     } else {
         g_system->log(LogClass::GDB, "Unknown GDB command: %s\n", m_cmd.c_str());
@@ -699,10 +699,10 @@ void PCSX::GdbClient::processCommand() {
 }
 
 void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
-    if (Misc::startsWith(cmd, "reset")) {
+    if (StringsHelpers::startsWith(cmd, "reset")) {
         g_system->softReset();
         writeEscaped("Emulation reset\n");
-        auto words = Misc::split(cmd, " ");
+        auto words = StringsHelpers::split(cmd, " ");
         if (words.size() == 2) {
             if (words[1] == "halt") {
                 writeEscaped("Emulation paused\n");

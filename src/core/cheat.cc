@@ -43,6 +43,28 @@ void PCSX::Cheats::ClearAllCheats() {
     s_numCodesAllocated = 0;
 }
 
+
+static void trim_key(char *str, char key) {
+    int pos = 0;
+    char *dest = str;
+
+    // skip leading blanks
+    while (str[pos] <= key && str[pos] > 0) pos++;
+
+    while (str[pos]) {
+        *(dest++) = str[pos];
+        pos++;
+    }
+
+    *(dest--) = '\0';  // store the null
+
+    // remove trailing blanks
+    while (dest >= str && *dest <= key && *dest > 0) *(dest--) = '\0';
+}
+
+// remove the leading and trailing spaces in a string
+static void trim(char *str) { trim_key(str, ' '); }
+
 // load cheats from the specific filename
 void PCSX::Cheats::LoadCheats(const char *filename) {
     FILE *fp;
