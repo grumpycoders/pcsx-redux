@@ -259,7 +259,7 @@ void PCSX::GUI::init() {
         glfwSwapInterval(0);
         setRawMouseMotion(isRawMouseMotionEnabled());
     });
- 
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -450,12 +450,7 @@ void PCSX::GUI::init() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
-
-    for (int i = 0; i < 2; i++) {
-        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
@@ -600,6 +595,17 @@ void PCSX::GUI::startFrame() {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        }
+
+        if (m_clearTextures) {
+            GLubyte* data = new GLubyte[m_renderSize.x * m_renderSize.y * sizeof(uint32_t)]();
+            for (int i = 0; i < 2; i++) {
+                glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_renderSize.x, m_renderSize.y, GL_RGBA, GL_UNSIGNED_BYTE,
+                                data);
+            }
+            m_clearTextures = false;
+            delete[] data;
         }
 
         glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
