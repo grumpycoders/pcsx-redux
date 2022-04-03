@@ -389,7 +389,7 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 int32_t PCSX::SoftGPU::impl::open(GUI *gui) {
     m_gui = gui;
     bDoVSyncUpdate = true;
-    ulInitDisplay();  // setup direct draw
+    initDisplay();
 
     return 0;
 }
@@ -417,14 +417,14 @@ std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() {
 // Update display (swap buffers)
 ////////////////////////////////////////////////////////////////////////
 
-void updateDisplay()  // UPDATE DISPLAY
+void PCSX::SoftGPU::impl::updateDisplay()  // UPDATE DISPLAY
 {
     if (PSXDisplay.Disabled) {
         DoClearFrontBuffer();  // -> clear frontbuffer
         return;                // -> and bye
     }
 
-    DoBufferSwap();
+    doBufferSwap();
 }
 
 ////////////////////////////////////////////////////////////////////////

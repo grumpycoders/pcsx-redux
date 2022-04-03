@@ -22,6 +22,7 @@
 #include <stdexcept>
 #include "core/system.h"
 #include "fmt/format.h"
+#include "gui/gui.h"
 #include "tracy/Tracy.hpp"
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
@@ -40,29 +41,29 @@ int PCSX::OpenGL_GPU::init() {
     m_vao.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
 
-    m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+    m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_vramTexture.handle(), 0);
 
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("Non-complete framebuffer");
     }
 
-    static const char* vertexShaderUntextured =
+    static const char* vertSource =
         "#version 330 core\n"
         "layout (location = 0) in vec2 aPos;\n"
         "void main() {\n"
         "   gl_Position = vec4(aPos.x, aPos.y, 1.0, 1.0);\n"
         "}";
 
-    static const char* fragmentShaderUntextured =
+    static const char* fragSource =
         "#version 330 core\n"
         "out vec4 FragColor;\n"
         "void main() {\n"
         "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
         "}";
 
-    OpenGL::Shader frag(fragmentShaderUntextured, OpenGL::Fragment);
-    OpenGL::Shader vert(vertexShaderUntextured, OpenGL::Vertex);
+    OpenGL::Shader frag(fragSource, OpenGL::Fragment);
+    OpenGL::Shader vert(vertSource, OpenGL::Vertex);
     m_untexturedTriangleProgram.create({frag, vert});
 
     return 0;
@@ -74,7 +75,7 @@ int PCSX::OpenGL_GPU::shutdown() {
 }
 
 int PCSX::OpenGL_GPU::open(GUI* gui) {
-    g_system->printf("TODO: open\n");
+    m_gui = gui;
     return 0;
 }
 
@@ -122,7 +123,6 @@ bool PCSX::OpenGL_GPU::configure() {
 
 // Called at the start of a frame
 void PCSX::OpenGL_GPU::startFrame() {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     m_vao.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
     glViewport(0, 0, m_vramTexture.width(), m_vramTexture.height());
@@ -132,7 +132,23 @@ void PCSX::OpenGL_GPU::startFrame() {
 
 // Called at the end of a frame
 void PCSX::OpenGL_GPU::updateLace() {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    GLuint textureID = m_vramTexture.handle();
+    m_gui->setViewport();
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    const auto data = new GLubyte[vramWidth * vramHeight * 4];
+    for (auto i = 0; i < vramWidth * vramHeight * 4; i += 4) {
+        data[i] = 0xff;
+        data[i+1] = 0xff;
+        data[i+2] = 0xff;
+        data[i+3] = 0xff;
+    }
+
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, vramWidth, vramHeight, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {1024.0f, 512.0f}, {0, 0}, {1, 1},
+                                          m_gui->getRenderSize());
+    m_gui->flip();
+    delete[] data;
 }
 
 void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("TODO: save\n"); }

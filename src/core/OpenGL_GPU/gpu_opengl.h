@@ -46,6 +46,7 @@ class OpenGL_GPU final : public GPU {
 
     uint32_t m_gpustat = 0x14802000;
     uint8_t *m_vram = nullptr;
+    GUI *m_gui = nullptr;
     int m_useDither = 0;
     int m_height = 512;
 
@@ -67,5 +68,6 @@ class OpenGL_GPU final : public GPU {
     virtual void clearVRAM() final {
         std::memset(m_vram, 0x00, m_height * 2 * 1024 + (1024 * 1024));
     }  // Clear VRAM to 0s
+    virtual GLuint getVRAMTexture() final { return m_vramTexture.handle(); }
 };
 }  // namespace PCSX

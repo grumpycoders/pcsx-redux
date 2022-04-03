@@ -57,9 +57,14 @@ class impl final : public GPU {
     virtual void clearVRAM() final {
         std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
     }  // Clear VRAM to 0s
+    virtual GLuint getVRAMTexture() final { return m_vramTexture24; }
+    void updateDisplay();
+    void initDisplay();
+    void doBufferSwap();
 
     SoftPrim m_softPrim;
     void *m_dumpFile = nullptr;
+    GLuint m_vramTexture24;
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram

@@ -105,6 +105,7 @@
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/prim.h"
+#include "gpu/soft/interface.h"
 #include "gui/gui.h"
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -191,8 +192,8 @@ void ShowGunCursor(unsigned char *surf) {
 
 static GLuint vramTexture = 0;
 
-void DoBufferSwap() {
-    GLuint textureID = m_gui->getVRAMTexture();
+void PCSX::SoftGPU::impl::doBufferSwap() {
+    GLuint textureID = m_vramTexture24;
     m_gui->setViewport();
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
@@ -220,9 +221,12 @@ void DoBufferSwap() {
     m_gui->flip();
 }
 
-uint32_t ulInitDisplay(void) {
+void PCSX::SoftGPU::impl::initDisplay(void) {
     glGenTextures(1, &vramTexture);
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
-    return 1;
+
+    glGenTextures(1, &m_vramTexture24);
+    glBindTexture(GL_TEXTURE_2D, m_vramTexture24);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
 }

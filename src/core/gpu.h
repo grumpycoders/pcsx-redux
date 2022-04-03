@@ -23,9 +23,9 @@
 
 #include "core/psxemulator.h"
 #include "core/sstate.h"
+#include "support/opengl.h"
 
 namespace PCSX {
-
 class GUI;
 
 class GPU {
@@ -83,6 +83,7 @@ class GPU {
     virtual void setDither(int setting) {}
     virtual uint8_t *getVRAM() { return nullptr; }
     virtual void clearVRAM() {}
+    virtual GLuint getVRAMTexture() { return 0; }
 
     static std::unique_ptr<GPU> getSoft();
     static std::unique_ptr<GPU> getOpenGL();

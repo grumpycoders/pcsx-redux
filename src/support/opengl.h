@@ -79,13 +79,13 @@ struct Texture {
     GLuint m_handle = 0;
     int m_width, m_height;
 
-    void create(int width, int height, GLint internalFormat, GLenum format, GLenum type, const void* data = nullptr) {
+    void create(int width, int height, GLint internalFormat) {
         m_width = width;
         m_height = height;
 
         glGenTextures(1, &m_handle);
         bind();
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
+        glTexStorage2D(GL_TEXTURE_2D, 1, internalFormat, width, height);
     }
 
     ~Texture() { glDeleteTextures(1, &m_handle); }
@@ -166,6 +166,24 @@ struct Program {
     bool exists() { return m_handle != 0; }
     void use() { glUseProgram(m_handle); }
 };
+
+static void setClearColor(float val) { glClearColor(val, val, val, val); }
+static void setClearColor(float r, float g, float b, float a) { glClearColor(r, g, b, a); }
+static void setClearDepth(float depth) { glClearDepthf(depth); }
+static void clearColor() { glClear(GL_COLOR_BUFFER_BIT); }
+static void clearDepth() { glClear(GL_DEPTH_BUFFER_BIT); }
+static void clearColorAndDepth() { glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); }
+
+static void setViewport(GLsizei width, GLsizei height) { glViewport(0, 0, width, height); }
+static void setViewport(GLsizei x, GLsizei y, GLsizei width, GLsizei height) { glViewport(x, y, width, height); }
+static void setScissor(GLsizei width, GLsizei height) { glScissor(0, 0, width, height); }
+static void setScissor(GLsizei x, GLsizei y, GLsizei width, GLsizei height) { glScissor(x, y, width, height); }
+
+static void bindScreenFramebuffer() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
+static void enableScissor() { glEnable(GL_SCISSOR_TEST); }
+static void disableScissor() { glDisable(GL_SCISSOR_TEST); }
+static void enableBlend() { glEnable(GL_BLEND); }
+static void disableBlend() { glDisable(GL_BLEND); }
 
 }  // end namespace OpenGL
 }  // end namespace PCSX
