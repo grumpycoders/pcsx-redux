@@ -69,6 +69,10 @@ local function createFileWrapper(wrapper)
         failed = function(self) return C.isIsoFailed(self._wrapper) end,
         createReader = function(self) return createIsoReaderWrapper(C.createIsoReader(self._wrapper)) end,
         open = function(self, lba, size, mode)
+            if type(size) == 'string' and mode == nil then
+                mode = size
+                size = -1
+            end
             if size == nil then size = -1 end
             if mode == nil then mode = 'GUESS' end
             return Support.File._createFileWrapper(C.fileisoOpen(self._wrapper, lba, size, mode))
