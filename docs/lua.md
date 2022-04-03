@@ -174,6 +174,34 @@ The `open` function will function on filesystem and network URLs, while the `buf
 - `DOWNLOAD_URL`: Opens the file for reading only. Will immediately start downloading the file from the network. The [curl](http://curl.se/libcurl) is the backend for this feature, and its [url schemes](https://everything.curl.dev/cmdline/urls) are supported. The progress of the download can be monitored with the `:cacheProgress()` method.
 - `DOWNLOAD_URL_AND_WAIT`: As above, but suspends the current coroutine until the download is done. Cannot be used with the main thread.
 
+#### Iso files
+There is some limited API for working with ISO files.
+
+- `PCSX.getCurrentIso()` will return an `Iso` object representing the currently loaded ISO file by the emulator. The following methods are available:
+
+```lua
+:failed()       -- Returns true if the Iso file failed in some ways. The Iso object is defunct if this is true.
+:createReader() -- Returns an ISOReader object off the Iso file.
+:open(lba[, size[, mode]]) -- Returns a File object off the specified span of sectors.
+```
+
+The `:open` method has some magic built-in. The size argument is optional, and if missing, the code will attempt to guess the size of the underlying file within the Iso. This can only work on MODE2 FORM1 or FORM2 sectors, and will result in a failed File object otherwise. The mode argument is optional, and can be one of the following:
+
+- `'GUESS'`: will attempt to guess the mode of the file. This is the default.
+- `'RAW'`: the File object will return read 2352 bytes per sector.
+- `'M1'`: the File object will return read 2048 bytes per sector.
+- `'M2_RAW'`: the File object will return read 2336 bytes per sector. This can't be guessed. This is useful for extracting STR files that require the subheaders to be present.
+- `'M2_FORM1'`: the File object will return read 2048 bytes per sector.
+- `'M2_FORM2'`: the File object will return read 2324 bytes per sector.
+
+The resulting File object will cache a single full sector in memory, meaning that small sequential reads won't read the same sector over and off from the disk.
+
+The ISOReader object has the following methods:
+
+```lua
+:open(filename) -- Returns a File object off the specified file within the ISO.
+```
+
 #### Memory and registers
 The Lua code can access the emulated memory and registers directly through some FFI bindings:
 
