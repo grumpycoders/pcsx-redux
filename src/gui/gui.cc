@@ -598,7 +598,8 @@ void PCSX::GUI::startFrame() {
         }
 
         if (m_clearTextures) {
-            GLubyte* data = new GLubyte[m_renderSize.x * m_renderSize.y * sizeof(uint32_t)]();
+            const auto allocSize = static_cast<size_t>(std::ceil(m_renderSize.x * m_renderSize.y * sizeof(uint32_t)));
+            GLubyte* data = new GLubyte[allocSize]();
             for (int i = 0; i < 2; i++) {
                 glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_renderSize.x, m_renderSize.y, GL_RGBA, GL_UNSIGNED_BYTE,
