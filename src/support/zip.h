@@ -19,37 +19,31 @@
 
 #pragma once
 
-#include <zlib.h>
+#include <string>
+#include <vector>
 
 #include "support/file.h"
 
 namespace PCSX {
 
-class ZReader : public File {
+class ZipArchive {
   public:
-    ZReader(IO<File> file, bool raw = false) : File(RO_SEEKABLE), m_file(file), m_raw(raw) {
-        m_infstream.zalloc = Z_NULL;
-        m_infstream.zfree = Z_NULL;
-        m_infstream.opaque = Z_NULL;
-        m_infstream.avail_in = 0;
-        auto res = inflateInit2(&m_infstream, raw ? -MAX_WBITS : MAX_WBITS);
-        if (res != Z_OK) throw std::runtime_error("inflateInit didn't work");
-    }
-    virtual void close() final override { inflateEnd(&m_infstream); }
-    virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
-    virtual ssize_t rTell() final override { return m_filePtr; }
-    virtual ssize_t read(void* dest, size_t size) final override;
-    virtual bool eof() final override { return m_hitEOF; }
-    virtual File* dup() final override { return new ZReader(m_file, m_raw); };
-    virtual bool failed() final override { return m_file->failed(); }
+    ZipArchive(IO<File> file);
+    bool failed() { return m_failed; }
 
   private:
     IO<File> m_file;
-    z_stream m_infstream;
-    ssize_t m_filePtr = 0;
-    bool m_hitEOF = false;
-    bool m_raw = false;
-    uint8_t m_inBuffer[1024];
+
+    struct CompressedFile {
+        uint32_t offset;
+        uint32_t size;
+        uint32_t compressedSize;
+        std::string name;
+        bool compressed;
+    };
+
+    std::vector<CompressedFile> m_files;
+    bool m_failed = false;
 };
 
 }  // namespace PCSX

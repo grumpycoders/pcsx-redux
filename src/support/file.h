@@ -76,9 +76,9 @@ class File {
         }
     }
     virtual void close() {}
-    virtual ssize_t rSeek(ssize_t pos, int wheel) { throw std::runtime_error("Can't seek for reading"); }
+    virtual ssize_t rSeek(ssize_t pos, int wheel = SEEK_SET) { throw std::runtime_error("Can't seek for reading"); }
     virtual ssize_t rTell() { throw std::runtime_error("Can't seek for reading"); }
-    virtual ssize_t wSeek(ssize_t pos, int wheel) { throw std::runtime_error("Can't seek for writing"); }
+    virtual ssize_t wSeek(ssize_t pos, int wheel = SEEK_SET) { throw std::runtime_error("Can't seek for writing"); }
     virtual ssize_t wTell() { throw std::runtime_error("Can't seek for writing"); }
     virtual size_t size() { throw std::runtime_error("Unable to determine file size"); }
     virtual ssize_t read(void* dest, size_t size) { throw std::runtime_error("File is not readable"); }
@@ -194,6 +194,16 @@ class File {
     }
 
     template <IntegralConcept T, std::endian endianess = std::endian::little>
+    T peek() {
+        T ret = T(0);
+        readAt(&ret, sizeof(T), rTell());
+        if constexpr (endianess != std::endian::native) {
+            ret = byte_swap(ret);
+        }
+        return ret;
+    }
+
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
     T readAt(size_t pos) {
         T ret = T(0);
         readAt(&ret, sizeof(T), pos);
@@ -230,6 +240,8 @@ class File {
         readAt(&r, 1, pos);
         return r;
     }
+
+    void skip(size_t amount) { rSeek(amount, SEEK_CUR); }
 
   protected:
     File(FileType filetype) : m_filetype(filetype) {}

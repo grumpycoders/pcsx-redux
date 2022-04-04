@@ -21,6 +21,7 @@
 
 #include "lua/luawrapper.h"
 #include "support/uvfile.h"
+#include "support/zfile.h"
 
 namespace {
 
@@ -148,6 +149,8 @@ bool startFileCachingWithCallback(LuaFile* wrapper, void (*callback)()) {
 
 LuaFile* dupFile(LuaFile* wrapper) { return new LuaFile(wrapper->file->dup()); }
 
+LuaFile* zReader(LuaFile* wrapper, bool raw) { return new LuaFile(new PCSX::ZReader(wrapper->file, raw)); }
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -213,6 +216,8 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, startFileCachingWithCallback);
 
     REGISTER(L, dupFile);
+
+    REGISTER(L, zReader);
 
     L->settable();
     L->pop();
