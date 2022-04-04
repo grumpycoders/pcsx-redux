@@ -20,6 +20,7 @@
 #include "gpu_opengl.h"
 
 #include <stdexcept>
+
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
@@ -37,16 +38,16 @@ int PCSX::OpenGL_GPU::init() {
     m_writingMode = TransferMode::CommandTransfer;
 
     m_vao.create();
-    m_fbo.create();
+    m_vbo.create();
     m_vao.bind();
-    m_fbo.bind(OpenGL::DrawFramebuffer);
 
     m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
-    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_vramTexture.handle(), 0);
-
+    m_fbo.createWithDrawTexture(m_vramTexture);
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("Non-complete framebuffer");
     }
+
+    OpenGL::bindScreenFramebuffer();
 
     static const char* vertSource =
         "#version 330 core\n"
@@ -117,7 +118,7 @@ int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
 }
 
 bool PCSX::OpenGL_GPU::configure() {
-    //g_system->printf("TODO: configure\n");
+    // g_system->printf("TODO: configure\n");
     return false;
 }
 
@@ -125,30 +126,25 @@ bool PCSX::OpenGL_GPU::configure() {
 void PCSX::OpenGL_GPU::startFrame() {
     m_vao.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
-    glViewport(0, 0, m_vramTexture.width(), m_vramTexture.height());
+    OpenGL::setViewport(m_vramTexture.width(), m_vramTexture.height());
 
     m_untexturedTriangleProgram.use();
 }
 
+struct VertexData {
+    float x, y;
+};
+
 // Called at the end of a frame
 void PCSX::OpenGL_GPU::updateLace() {
-    GLuint textureID = m_vramTexture.handle();
+    m_fbo.bind(OpenGL::DrawFramebuffer);
+    OpenGL::setClearColor(1.f, 0.f, 1.f, 1.f);
+    OpenGL::clearColor();
     m_gui->setViewport();
-    glBindTexture(GL_TEXTURE_2D, textureID);
+    m_gui->flip(); // Set up offscreen framebuffer before rendering
 
-    const auto data = new GLubyte[vramWidth * vramHeight * 4];
-    for (auto i = 0; i < vramWidth * vramHeight * 4; i += 4) {
-        data[i] = 0xff;
-        data[i+1] = 0xff;
-        data[i+2] = 0xff;
-        data[i+3] = 0xff;
-    }
-
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, vramWidth, vramHeight, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {1024.0f, 512.0f}, {0, 0}, {1, 1},
+    m_gui->m_offscreenShaderEditor.render(m_gui, m_vramTexture.handle(), {1024.0f, 512.0f}, {0, 0}, {1, 1},
                                           m_gui->getRenderSize());
-    m_gui->flip();
-    delete[] data;
 }
 
 void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("TODO: save\n"); }

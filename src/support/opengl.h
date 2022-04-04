@@ -54,27 +54,6 @@ enum FramebufferTypes {
     DrawAndReadFramebuffer = GL_FRAMEBUFFER
 };
 
-struct Framebuffer {
-    GLuint m_handle = 0;
-
-    void create() {
-        if (m_handle == 0) {
-            glGenFramebuffers(1, &m_handle);
-        }
-    }
-    Framebuffer(bool shouldCreate = false) {
-        if (shouldCreate) {
-            create();
-        }
-    }
-
-    ~Framebuffer() { glDeleteFramebuffers(1, &m_handle); }
-    GLuint handle() { return m_handle; }
-    bool exists() { return m_handle != 0; }
-    void bind(GLenum target) { glBindFramebuffer(target, m_handle); }
-    void bind(FramebufferTypes target) { bind(static_cast<GLenum>(target)); }
-};
-
 struct Texture {
     GLuint m_handle = 0;
     int m_width, m_height;
@@ -94,6 +73,38 @@ struct Texture {
     void bind() { glBindTexture(GL_TEXTURE_2D, m_handle); }
     int width() { return m_width; }
     int height() { return m_height; }
+};
+
+
+struct Framebuffer {
+    GLuint m_handle = 0;
+
+    void create() {
+        if (m_handle == 0) {
+            glGenFramebuffers(1, &m_handle);
+        }
+    }
+
+    Framebuffer(bool shouldCreate = false) {
+        if (shouldCreate) {
+            create();
+        }
+    }
+
+    ~Framebuffer() { glDeleteFramebuffers(1, &m_handle); }
+    GLuint handle() { return m_handle; }
+    bool exists() { return m_handle != 0; }
+    void bind(GLenum target) { glBindFramebuffer(target, m_handle); }
+    void bind(FramebufferTypes target) { bind(static_cast<GLenum>(target)); }
+
+    void createWithTexture(Texture& tex, GLenum mode = GL_FRAMEBUFFER) {
+        create();
+        bind(mode);
+        glFramebufferTexture2D(mode, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.handle(), 0);
+    }
+
+    void createWithReadTexture(Texture& tex) { createWithTexture(tex, GL_READ_FRAMEBUFFER); }
+    void createWithDrawTexture(Texture& tex) { createWithTexture(tex, GL_DRAW_FRAMEBUFFER); }
 };
 
 enum ShaderType {
@@ -165,6 +176,31 @@ struct Program {
     GLuint handle() { return m_handle; }
     bool exists() { return m_handle != 0; }
     void use() { glUseProgram(m_handle); }
+};
+
+struct VertexBuffer {
+    GLuint m_handle = 0;
+
+    void create() {
+        if (m_handle == 0) {
+            glGenBuffers(1, &m_handle);
+        }
+    }
+    VertexBuffer(bool shouldCreate = false) {
+        if (shouldCreate) {
+            create();
+        }
+    }
+
+    ~VertexBuffer() { glDeleteBuffers(1, &m_handle); }
+    GLuint handle() { return m_handle; }
+    bool exists() { return m_handle != 0; }
+    void bind() { glBindBuffer(GL_ARRAY_BUFFER, m_handle); }
+
+    template <typename VertType>
+    void bufferVerts(VertType* vertices, int vertCount, GLenum usage = GL_DYNAMIC_DRAW) {
+        glBufferData(GL_ARRAY_BUFFER, sizeof(VertType) * vertCount, vertices, usage);
+    }
 };
 
 static void setClearColor(float val) { glClearColor(val, val, val, val); }

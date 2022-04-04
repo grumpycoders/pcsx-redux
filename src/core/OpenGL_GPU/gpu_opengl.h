@@ -58,6 +58,7 @@ class OpenGL_GPU final : public GPU {
     
     OpenGL::Program m_untexturedTriangleProgram;
     OpenGL::VertexArray m_vao;
+    OpenGL::VertexBuffer m_vbo;
     OpenGL::Framebuffer m_fbo;
     OpenGL::Texture m_vramTexture;
 
