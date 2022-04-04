@@ -28,10 +28,10 @@ namespace PCSX {
 class ZReader : public File {
   public:
     enum Raw { RAW };
-    ZReader(IO<File> file) : ZReader(file, -1, false) {}
-    ZReader(IO<File> file, Raw) : ZReader(file, -1, true) {}
-    ZReader(IO<File> file, ssize_t size) : ZReader(file, size, false) {}
-    ZReader(IO<File> file, ssize_t size, Raw) : ZReader(file, size, true) {}
+    ZReader(IO<File> file) : ZReader(INTERNAL, file, -1, false) {}
+    ZReader(IO<File> file, Raw) : ZReader(INTERNAL, file, -1, true) {}
+    ZReader(IO<File> file, ssize_t size) : ZReader(INTERNAL, file, size, false) {}
+    ZReader(IO<File> file, ssize_t size, Raw) : ZReader(INTERNAL, file, size, true) {}
     virtual void close() final override { inflateEnd(&m_infstream); }
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_filePtr; }
@@ -41,11 +41,12 @@ class ZReader : public File {
         throw std::runtime_error("Unable to determine file size");
     }
     virtual bool eof() final override { return m_hitEOF; }
-    virtual File* dup() final override { return new ZReader(m_file, m_size, m_raw); };
+    virtual File* dup() final override { return new ZReader(INTERNAL, m_file, m_size, m_raw); };
     virtual bool failed() final override { return m_file->failed(); }
 
   private:
-    ZReader(IO<File> file, size_t size, bool raw) : File(RO_SEEKABLE), m_file(file), m_size(size), m_raw(raw) {
+    enum Internal { INTERNAL };
+    ZReader(Internal, IO<File> file, ssize_t size, bool raw) : File(RO_SEEKABLE), m_file(file), m_size(size), m_raw(raw) {
         m_infstream.zalloc = Z_NULL;
         m_infstream.zfree = Z_NULL;
         m_infstream.opaque = Z_NULL;
@@ -56,7 +57,7 @@ class ZReader : public File {
     IO<File> m_file;
     z_stream m_infstream;
     ssize_t m_filePtr = 0;
-    size_t m_size = 0;
+    ssize_t m_size = 0;
     bool m_hitEOF = false;
     bool m_raw = false;
     uint8_t m_inBuffer[1024];
