@@ -80,7 +80,7 @@ bool startFileCachingWithCallback(LuaFile* wrapper, void (*callback)());
 
 LuaFile* dupFile(LuaFile*);
 
-LuaFile* zReader(LuaFile*, bool raw);
+LuaFile* zReader(LuaFile*, int64_t size, bool raw);
 
 ]]
 
@@ -347,9 +347,14 @@ local function buffer(ptr, size, type)
     return createFileWrapper(f)
 end
 
-local function zReader(file, raw)
-    if (raw == nil) then raw = false end
-    return createFileWrapper(C.zReader(file._wrapper, raw))
+local function zReader(file, size, raw)
+    if type(size) == 'string' then
+        raw = size
+        size = nil
+    end
+    raw = raw == 'RAW'
+    if size == nil then size = -1 end
+    return createFileWrapper(C.zReader(file._wrapper, size, raw))
 end
 
 if (type(Support) ~= 'table') then Support = {} end

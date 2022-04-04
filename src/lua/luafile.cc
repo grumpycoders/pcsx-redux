@@ -149,7 +149,10 @@ bool startFileCachingWithCallback(LuaFile* wrapper, void (*callback)()) {
 
 LuaFile* dupFile(LuaFile* wrapper) { return new LuaFile(wrapper->file->dup()); }
 
-LuaFile* zReader(LuaFile* wrapper, bool raw) { return new LuaFile(new PCSX::ZReader(wrapper->file, raw)); }
+LuaFile* zReader(LuaFile* wrapper, int64_t size, bool raw) {
+    return new LuaFile(raw ? new PCSX::ZReader(wrapper->file, size, PCSX::ZReader::RAW)
+                           : new PCSX::ZReader(wrapper->file, size));
+}
 
 }  // namespace
 
