@@ -221,5 +221,24 @@ static void disableScissor() { glDisable(GL_SCISSOR_TEST); }
 static void enableBlend() { glEnable(GL_BLEND); }
 static void disableBlend() { glDisable(GL_BLEND); }
 
+enum Primitives {
+    Triangle = GL_TRIANGLES,
+    Triangles = Triangle,
+    Tri = Triangle,
+    Tris = Triangle,
+    TriangleStrip = GL_TRIANGLE_STRIP,
+    TriangleFan = GL_TRIANGLE_FAN,
+    Line = GL_LINES,
+    Lines = Line,
+    LineStrip = GL_LINE_STRIP,
+    Point = GL_POINTS,
+    Points = Point
+};
+
+static void draw(Primitives prim, GLsizei vertexCount) { glDrawArrays(static_cast<GLenum>(prim), 0, vertexCount); }
+static void draw(Primitives prim, GLint first, GLsizei vertexCount) {
+    glDrawArrays(static_cast<GLenum>(prim), first, vertexCount);
+}
+
 }  // end namespace OpenGL
 }  // end namespace PCSX

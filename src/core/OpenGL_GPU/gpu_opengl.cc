@@ -60,12 +60,37 @@ int PCSX::OpenGL_GPU::init() {
         "#version 330 core\n"
         "out vec4 FragColor;\n"
         "void main() {\n"
-        "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+        "    FragColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
         "}";
+
+    static const char* geomSource = R"(
+        #version 330 core
+        layout(points) in;
+        layout(triangle_strip, max_vertices = 5) out;
+
+        void build_house(vec4 position) {
+            gl_Position = position + vec4(0.0, -0.4, 0.0, 0.0);  // 1:top
+            EmitVertex();
+            gl_Position = position + vec4(0.2, -0.2, 0.0, 0.0);  // 2:top-right
+            EmitVertex();
+            gl_Position = position + vec4(-0.2, -0.2, 0.0, 0.0);  // 3:top-left
+            EmitVertex();
+            gl_Position = position + vec4(0.2, 0.2, 0.0, 0.0);  // 4:bottom-right
+            EmitVertex();
+            gl_Position = position + vec4(-0.2, 0.2, 0.0, 0.0);  // 5:bottom-left
+            EmitVertex();
+            EndPrimitive();
+        }
+
+        void main() { 
+            build_house(gl_in[0].gl_Position);
+        }
+        )";
 
     OpenGL::Shader frag(fragSource, OpenGL::Fragment);
     OpenGL::Shader vert(vertSource, OpenGL::Vertex);
-    m_untexturedTriangleProgram.create({frag, vert});
+    OpenGL::Shader geom(geomSource, OpenGL::Geometry);
+    m_untexturedTriangleProgram.create({frag, vert, geom});
 
     return 0;
 }
@@ -132,14 +157,31 @@ void PCSX::OpenGL_GPU::startFrame() {
 }
 
 struct VertexData {
-    float x, y;
+    float positions[2];
+
+    VertexData(float x, float y) {
+        positions[0] = x;
+        positions[1] = y;
+    }
 };
 
 // Called at the end of a frame
 void PCSX::OpenGL_GPU::updateLace() {
+    m_vao.bind();
+    m_vbo.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
+    m_untexturedTriangleProgram.use();
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)&((VertexData*)nullptr)->positions);
+    glEnableVertexAttribArray(0);
+    
     OpenGL::setClearColor(1.f, 0.f, 1.f, 1.f);
     OpenGL::clearColor();
+
+    VertexData triangle[3] = {VertexData(0, 0), VertexData(0.3, -0.6), VertexData(-0.7, -0.3)};
+    m_vbo.bufferVerts(triangle, 3);
+    OpenGL::draw(OpenGL::Points, 3);
+
     m_gui->setViewport();
     m_gui->flip(); // Set up offscreen framebuffer before rendering
 
