@@ -46,6 +46,17 @@ struct VertexArray {
     GLuint handle() { return m_handle; }
     bool exists() { return m_handle != 0; }
     void bind() { glBindVertexArray(m_handle); }
+
+    void setAttribute(GLuint index, GLint size, GLenum type, bool normalized, GLsizei stride, const void* offset) {
+        glVertexAttribPointer(index, size, type, normalized, stride, offset);
+    }
+
+    void setAttribute(GLuint index, GLint size, GLenum type, bool normalized, GLsizei stride, size_t offset) {
+        glVertexAttribPointer(index, size, type, normalized, stride, reinterpret_cast<const void*>(offset));
+    }
+
+    void enableAttribute(GLuint index) { glEnableVertexAttribArray(index); }
+    void disableAttribute(GLuint index) { glDisableVertexAttribArray(index); }
 };
 
 enum FramebufferTypes {
@@ -74,7 +85,6 @@ struct Texture {
     int width() { return m_width; }
     int height() { return m_height; }
 };
-
 
 struct Framebuffer {
     GLuint m_handle = 0;

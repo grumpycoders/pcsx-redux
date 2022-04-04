@@ -19,6 +19,7 @@
 
 #include "gpu_opengl.h"
 
+#include <cstddef>
 #include <stdexcept>
 
 #include "core/system.h"
@@ -49,23 +50,29 @@ int PCSX::OpenGL_GPU::init() {
 
     OpenGL::bindScreenFramebuffer();
 
-    static const char* vertSource =
-        "#version 330 core\n"
-        "layout (location = 0) in vec2 aPos;\n"
-        "void main() {\n"
-        "   gl_Position = vec4(aPos.x, aPos.y, 1.0, 1.0);\n"
-        "}";
+    static const char* vertSource = R"(
+        #version 330 core
+        layout (location = 0) in vec2 aPos;
+        layout (location = 1) in vec3 Color;
+        out vec4 vertexColor;
+        void main() {
+           gl_Position = vec4(aPos.x, aPos.y, 1.0, 1.0);
+           vertexColor = vec4(Color, 1.0);
+        }
+    )";
 
-    static const char* fragSource =
-        "#version 330 core\n"
-        "out vec4 FragColor;\n"
-        "void main() {\n"
-        "    FragColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
-        "}";
+    static const char* fragSource = R"(
+        #version 330 core
+        in vec4 vertexColor;
+        out vec4 FragColor;
+        void main() {
+           FragColor = vertexColor;
+        }
+    )";
 
     static const char* geomSource = R"(
         #version 330 core
-        layout(points) in;
+        layout(triangles) in;
         layout(triangle_strip, max_vertices = 5) out;
 
         void build_house(vec4 position) {
@@ -85,12 +92,11 @@ int PCSX::OpenGL_GPU::init() {
         void main() { 
             build_house(gl_in[0].gl_Position);
         }
-        )";
-
+    )";
     OpenGL::Shader frag(fragSource, OpenGL::Fragment);
     OpenGL::Shader vert(vertSource, OpenGL::Vertex);
     OpenGL::Shader geom(geomSource, OpenGL::Geometry);
-    m_untexturedTriangleProgram.create({frag, vert, geom});
+    m_untexturedTriangleProgram.create({frag, vert});
 
     return 0;
 }
@@ -158,10 +164,14 @@ void PCSX::OpenGL_GPU::startFrame() {
 
 struct VertexData {
     float positions[2];
+    float colors[3];
 
-    VertexData(float x, float y) {
+    VertexData(float x, float y, float r, float g, float b) {
         positions[0] = x;
         positions[1] = y;
+        colors[0] = r;
+        colors[1] = g;
+        colors[2] = b;
     }
 };
 
@@ -171,16 +181,25 @@ void PCSX::OpenGL_GPU::updateLace() {
     m_vbo.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
     m_untexturedTriangleProgram.use();
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)&((VertexData*)nullptr)->positions);
-    glEnableVertexAttribArray(0);
     
+    // Position attribute
+    m_vao.setAttribute(0, 2, GL_FLOAT, false, sizeof(VertexData), offsetof(VertexData, positions));
+    m_vao.enableAttribute(0);
+    m_vao.setAttribute(1, 3, GL_FLOAT, false, sizeof(VertexData), offsetof(VertexData, colors));
+    m_vao.enableAttribute(1);
+    
+    OpenGL::enableScissor();
+    OpenGL::setScissor(200, 200, 600, 600);
     OpenGL::setClearColor(1.f, 0.f, 1.f, 1.f);
     OpenGL::clearColor();
+    OpenGL::disableScissor();
 
-    VertexData triangle[3] = {VertexData(0, 0), VertexData(0.3, -0.6), VertexData(-0.7, -0.3)};
+    VertexData triangle[3] = {
+        VertexData(0, 0, 1.0, 0, 0), VertexData(0.3, -0.6, 0.0, 1.0, 0.0), VertexData(-0.7, -0.3, 0.0, 0.0, 1.0)
+    };
+
     m_vbo.bufferVerts(triangle, 3);
-    OpenGL::draw(OpenGL::Points, 3);
+    OpenGL::draw(OpenGL::Triangle, 3);
 
     m_gui->setViewport();
     m_gui->flip(); // Set up offscreen framebuffer before rendering
