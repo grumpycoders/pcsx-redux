@@ -196,8 +196,7 @@ void DoBufferSwap() {
     float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
     float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
 
-    m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {1024.0f, 512.0f}, {startX, startY}, {width, height},
-                                          m_gui->getRenderSize());
+    m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {startX, startY}, {width, height}, m_gui->getRenderSize());
     m_gui->flip();
 }
 

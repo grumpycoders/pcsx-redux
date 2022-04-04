@@ -695,8 +695,8 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
     }
 }
 
-void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec2 &texSize, const ImVec2 &srcLoc,
-                                         const ImVec2 &srcSize, const ImVec2 &dstSize) {
+void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec2 &srcLoc, const ImVec2 &srcSize,
+                                         const ImVec2 &dstSize) {
     if (m_shaderProgram == 0) {
         compile(gui);
     }
@@ -757,7 +757,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 4, &quadVertices[0], GL_STATIC_DRAW);
     glDisable(GL_DEPTH_TEST);
-    
+
     if (m_setupVAO) {
         m_setupVAO = false;
         int loc = glGetAttribLocation(m_shaderProgram, "Position");
