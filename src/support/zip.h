@@ -19,7 +19,9 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "support/file.h"
@@ -30,11 +32,34 @@ class ZipArchive {
   public:
     ZipArchive(IO<File> file);
     bool failed() { return m_failed; }
+    void listAllFiles(std::function<void(const std::string_view &)> walker) {
+        listFiles([walker](const std::string_view &name) -> bool {
+            walker(name);
+            return true;
+        });
+    }
+    void listAllDirectories(std::function<void(const std::string_view &)> walker) {
+        listDirectories([walker](const std::string_view &name) -> bool {
+            walker(name);
+            return true;
+        });
+    }
+    void listFiles(std::function<bool(const std::string_view &)> walker);
+    void listDirectories(std::function<bool(const std::string_view &)> walker);
+    File *openFile(const std::string_view &path);
 
   private:
     IO<File> m_file;
 
     struct CompressedFile {
+        bool isDirectory() {
+            if (size != 0) return false;
+            if (compressedSize != 0) return false;
+            if (name.empty()) return false;
+            auto pos = name.length() - 1;
+            if (name[pos] != '/') return false;
+            return true;
+        }
         uint32_t offset;
         uint32_t size;
         uint32_t compressedSize;

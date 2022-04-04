@@ -21,6 +21,7 @@
 
 #include "support/binstruct.h"
 #include "support/typestring-wrapper.h"
+#include "support/zfile.h"
 
 typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("Signature")> Signature;
 typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt16, TYPESTRING("MadeByVersion")> MadeByVersion;
@@ -100,4 +101,38 @@ PCSX::ZipArchive::ZipArchive(IO<File> file) : m_file(file) {
             }
         }
     }
+}
+
+void PCSX::ZipArchive::listFiles(std::function<bool(const std::string_view&)> walker) {
+    for (auto& file : m_files) {
+        if (!file.isDirectory()) {
+            if (!walker(file.name)) return;
+        }
+    }
+}
+
+void PCSX::ZipArchive::listDirectories(std::function<bool(const std::string_view&)> walker) {
+    for (auto& file : m_files) {
+        if (file.isDirectory()) {
+            if (!walker(std::string_view(file.name.c_str(), file.name.length() - 1))) return;
+        }
+    }
+}
+
+PCSX::File* PCSX::ZipArchive::openFile(const std::string_view& path) {
+    File* ret = nullptr;
+    for (auto& file : m_files) {
+        if (file.name == path) {
+            SubFile* sub = new SubFile(m_file, file.offset, file.compressedSize);
+            if (file.compressed) {
+                ret = new ZReader(sub, file.size, ZReader::RAW);
+            } else {
+                ret = sub;
+            }
+            break;
+        }
+    }
+
+    if (!ret) ret = new FailedFile();
+    return ret;
 }
