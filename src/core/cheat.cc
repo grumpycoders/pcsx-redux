@@ -43,7 +43,6 @@ void PCSX::Cheats::ClearAllCheats() {
     s_numCodesAllocated = 0;
 }
 
-
 static void trim_key(char *str, char key) {
     int pos = 0;
     char *dest = str;

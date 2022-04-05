@@ -62,8 +62,8 @@
 
 // Local includes from core - anything else from core is forbidden
 #include "core/logger.h"
-#include "support/strings-helpers.h"
 #include "core/system.h"
+#include "support/strings-helpers.h"
 
 #if defined(__linux__) || defined(__MACOSX__)
 #define strnicmp strncasecmp

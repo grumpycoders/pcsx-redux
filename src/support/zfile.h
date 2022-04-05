@@ -46,7 +46,8 @@ class ZReader : public File {
 
   private:
     enum Internal { INTERNAL };
-    ZReader(Internal, IO<File> file, ssize_t size, bool raw) : File(RO_SEEKABLE), m_file(file), m_size(size), m_raw(raw) {
+    ZReader(Internal, IO<File> file, ssize_t size, bool raw)
+        : File(RO_SEEKABLE), m_file(file), m_size(size), m_raw(raw) {
         m_infstream.zalloc = Z_NULL;
         m_infstream.zfree = Z_NULL;
         m_infstream.opaque = Z_NULL;

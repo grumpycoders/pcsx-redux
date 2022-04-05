@@ -22,8 +22,6 @@
 #include <stdint.h>
 namespace PCSX {
 
-namespace ISO9660 {
-
-}  // namespace ISO9660
+namespace ISO9660 {}  // namespace ISO9660
 
 }  // namespace PCSX
