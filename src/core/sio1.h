@@ -20,6 +20,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include <string>
 
 #include "core/psxemulator.h"
@@ -27,6 +28,7 @@
 #include "core/r3000a.h"
 #include "core/sio1-server.h"
 #include "core/sstate.h"
+#include "support/file.h"
 
 //#define SIO1_CYCLES (m_regs.baud * 8)
 #define SIO1_CYCLES (1)
@@ -59,8 +61,7 @@ class SIO1 {
     void interrupt();
 
     void reset() {
-        m_slices.discardSlices();
-        fifo_rx.empty();
+        m_fifo.reset();
         m_regs.data = 0;
         m_regs.status = (SR_TXRDY | SR_TXRDY2 | SR_DSR | SR_CTS);
         m_regs.mode = 0;
@@ -114,7 +115,7 @@ class SIO1 {
 
     void receiveCallback();
 
-    void pushSlice(Slice slice) { m_slices.pushSlice(slice); }
+    void pushSlice(Slice&& slice) { m_fifo.pushSlice(std::move(slice)); }
 
     sio1Registers m_regs;
 
@@ -154,70 +155,6 @@ class SIO1 {
         IRQ8_SIO = 0x100
     };
 
-    template <size_t buffer_size, typename T>
-    class FIFO {
-      public:
-        ~FIFO() { empty(); }
-
-        void empty() {
-            while (!queue_.empty()) queue_.pop();
-        }
-        bool isEmpty() { return queue_.empty(); }
-        T pull() {
-            T ret = T();
-            if (!queue_.empty()) {
-                ret = queue_.front();
-                queue_.pop();
-            }
-
-            return ret;
-        }
-        void push(T data) {
-            if (queue_.size() >= buffer_size) {
-                queue_.back() = data;
-            } else {
-                queue_.push(data);
-            }
-        }
-
-        size_t bytesAvailable() { return queue_.size(); }
-
-      private:
-        std::queue<T> queue_;
-    };
-
-    struct Slices {
-        ~Slices() { discardSlices(); }
-
-        void discardSlices() {
-            while (!m_sliceQueueRX.empty()) m_sliceQueueRX.pop();
-        }
-        void pushSlice(const Slice& slice) { m_sliceQueueRX.push(slice); }
-
-        uint8_t getByte() {
-            if (m_sliceQueueRX.empty()) return 0xff;  // derp?
-            Slice& slice = m_sliceQueueRX.front();
-            uint8_t r = slice.getByte(m_cursor);
-            if (++m_cursor >= slice.size()) {
-                m_cursor = 0;
-                m_sliceQueueRX.pop();
-            }
-            return r;
-        }
-
-        uint32_t getBytesRemaining() {
-            Slice& slice = m_sliceQueueRX.front();
-
-            if (m_sliceQueueRX.empty()) return 0;
-
-            return slice.size() - m_cursor;
-        }
-
-        std::queue<Slice> m_sliceQueueRX;
-
-        uint32_t m_cursor = 0;
-    };
-
     inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
 
     void updateFIFO();
@@ -225,7 +162,6 @@ class SIO1 {
     void transmitData();
     bool isTransmitReady();
 
-    Slices m_slices;
-    FIFO<8, uint8_t> fifo_rx;
+    Fifo m_fifo;
 };
 }  // namespace PCSX

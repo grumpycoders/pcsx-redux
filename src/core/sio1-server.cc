@@ -40,8 +40,9 @@ bool PCSX::SIO1Client::accept(uv_tcp_t* server) {
 void PCSX::SIO1Client::alloc(size_t suggestedSize, uv_buf_t* buf) {
     assert(!m_allocated);
     m_allocated = true;
-    buf->base = m_buffer;
-    buf->len = sizeof(m_buffer);
+    m_buffer.resize(BUFFER_SIZE);
+    buf->base = m_buffer.data();
+    buf->len = BUFFER_SIZE;
 }
 
 void PCSX::SIO1Client::allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
@@ -60,28 +61,24 @@ void PCSX::SIO1Client::closeCB(uv_handle_t* handle) {
     delete client;
 }
 
-void PCSX::SIO1Client::processData(const Slice& slice) {
-    PCSX::g_emulator->m_sio1->pushSlice(slice);
-    PCSX::g_emulator->m_sio1->receiveCallback();
+void PCSX::SIO1Client::processData(Slice&& slice) {
+    g_emulator->m_sio1->pushSlice(std::move(slice));
+    g_emulator->m_sio1->receiveCallback();
 }
 
 void PCSX::SIO1Client::read(ssize_t nread, const uv_buf_t* buf) {
+    assert(m_allocated);
     m_allocated = false;
     if (nread <= 0) {
         close();
         return;
     }
 
-    if (nread > BUFFER_SIZE) {
-        g_system->log(LogClass::SIO1SERVER,
-                      "SIO1Server: Received more data[%i] than buffer[%i] can store, data truncated.\n", nread,
-                      BUFFER_SIZE);
-        nread = BUFFER_SIZE;
-    }
-
     Slice slice;
-    slice.borrow(m_buffer, static_cast<uint32_t>(nread));
-    processData(slice);
+    m_buffer.resize(nread);
+    slice.acquire(std::move(m_buffer));
+    processData(std::move(slice));
+    m_buffer.clear();
 }
 
 void PCSX::SIO1Client::readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {

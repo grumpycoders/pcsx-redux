@@ -23,13 +23,13 @@ void PCSX::SIO1::interrupt() {
     SIO1_LOG("SIO1 Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
     m_regs.status |= SR_IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(IRQ8_SIO);
-    if (fifo_rx.bytesAvailable() > 1) scheduleInterrupt(SIO1_CYCLES);
+    if (m_fifo.size() > 1) scheduleInterrupt(SIO1_CYCLES);
 }
 
 uint8_t PCSX::SIO1::readData8() {
     updateStat();
     if (m_regs.status & SR_RXRDY) {
-        m_regs.data = fifo_rx.pull();
+        m_regs.data = m_fifo.byte();
         psxHu8(0x1050) = m_regs.data;
     }
     updateStat();
@@ -59,19 +59,19 @@ void PCSX::SIO1::receiveCallback() {
         if (!(m_regs.status & SR_IRQ)) {
             switch ((m_regs.control & 0x300) >> 8) {
                 case 0:
-                    if (!(fifo_rx.bytesAvailable() >= 1)) return;
+                    if (!(m_fifo.size() >= 1)) return;
                     break;
 
                 case 1:
-                    if (!(fifo_rx.bytesAvailable() >= 2)) return;
+                    if (!(m_fifo.size() >= 2)) return;
                     break;
 
                 case 2:
-                    if (!(fifo_rx.bytesAvailable() >= 4)) return;
+                    if (!(m_fifo.size() >= 4)) return;
                     break;
 
                 case 3:
-                    if (!(fifo_rx.bytesAvailable() >= 8)) return;
+                    if (!(m_fifo.size() >= 8)) return;
                     break;
             }
 
@@ -97,20 +97,8 @@ bool PCSX::SIO1::isTransmitReady() {
     return (m_regs.control & CR_TXEN) && (m_regs.status & SR_CTS) && (m_regs.status & SR_TXRDY2);
 }
 
-void PCSX::SIO1::updateFIFO() {
-    // Grab incoming bytes and stash them in fifo
-    //
-    // dirty hack, nops sends more than 8 bytes at a time so make sure not to overflow fifo
-    // this prevents implementing STAT.4 RX FIFO Overrun
-    while (!m_slices.m_sliceQueueRX.empty() && fifo_rx.bytesAvailable() < 8) {
-        fifo_rx.push(m_slices.getByte());
-    }
-}
-
 void PCSX::SIO1::updateStat() {
-    updateFIFO();  // dirty hack. slices can be > fifo size, so need to check for more data
-
-    if (fifo_rx.bytesAvailable() > 0) {
+    if (m_fifo.size() > 0) {
         m_regs.status |= SR_RXRDY;
     } else {
         m_regs.status &= ~SR_RXRDY;

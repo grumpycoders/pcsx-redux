@@ -28,6 +28,7 @@
 #include <compare>
 #include <concepts>
 #include <filesystem>
+#include <queue>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -458,6 +459,29 @@ class SubFile : public File {
     size_t m_ptrR = 0;
     const size_t m_start = 0;
     const size_t m_size = 0;
+};
+
+class Fifo : public File {
+  public:
+    Fifo() : File(RO_STREAM) {}
+    void reset() {
+        m_size = 0;
+        m_ptrR = 0;
+        while (!m_slices.empty()) m_slices.pop();
+    }
+    virtual size_t size() final override { return m_size; }
+    virtual ssize_t read(void* dest, size_t size) final override;
+    virtual bool eof() final override { return m_slices.empty(); }
+
+    void pushSlice(Slice&& slice) {
+        m_size += slice.size();
+        m_slices.emplace(std::move(slice));
+    }
+
+  private:
+    std::queue<Slice> m_slices;
+    size_t m_ptrR = 0;
+    size_t m_size = 0;
 };
 
 }  // namespace PCSX

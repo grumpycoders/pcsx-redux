@@ -64,13 +64,13 @@ class SIO1Client : public Intrusive::List<SIO1Client>::Node {
     void alloc(size_t suggestedSize, uv_buf_t* buf);
     static void allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf);
     static void closeCB(uv_handle_t* handle);
-    void processData(const Slice& slice);
+    void processData(Slice&& slice);
     void read(ssize_t nread, const uv_buf_t* buf);
     static void readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf);
     void write(unsigned char c);
 
     bool m_allocated = false;
-    char m_buffer[BUFFER_SIZE] = {};
+    std::string m_buffer;
     EventBus::Listener m_listener;
     uv_loop_t* m_loop = NULL;
     Intrusive::HashTable<uintptr_t, WriteRequest> m_requests;
