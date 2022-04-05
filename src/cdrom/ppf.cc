@@ -1,26 +1,23 @@
-/*  PPF/SBI Support for PCSX-Reloaded
- *  Copyright (c) 2009, Wei Mingzhi <whistler_wmz@users.sf.net>.
- *  Copyright (c) 2010, shalma.
- *
- *  PPF code based on P.E.Op.S CDR Plugin by Pete Bernert.
- *  Copyright (c) 2002, Pete Bernert.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+/***************************************************************************
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
 
-#include "core/ppf.h"
+#include "cdrom/ppf.h"
 
 #include "core/cdrom.h"
 #include "core/psxemulator.h"
@@ -76,9 +73,9 @@ void PCSX::PPF::FreePPFCache() {
     s_ppfCache = NULL;
 }
 
-void PCSX::PPF::CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f) {
+void PCSX::PPF::CheckPPFCache(uint8_t *pB, IEC60908b::MSF msf) {
     PPF_CACHE *pcstart, *pcend, *pcpos;
-    int addr = PCSX::CDRom::MSF2SECT(PCSX::CDRom::btoi(m), PCSX::CDRom::btoi(s), PCSX::CDRom::btoi(f)), pos, anz, start;
+    int addr = msf.toLBA() - 150, pos, anz, start;
 
     if (s_ppfCache == NULL) return;
 
@@ -109,7 +106,7 @@ void PCSX::PPF::CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f) {
     if (addr == pcpos->addr) {
         PPF_DATA *p = pcpos->pNext;
         while (p != NULL && p->addr == addr) {
-            pos = p->pos - (PCSX::CDRom::CD_FRAMESIZE_RAW - PCSX::CDRom::DATA_SIZE);
+            pos = p->pos - (PCSX::IEC60908b::FRAMESIZE_RAW - PCSX::IEC60908b::DATA_SIZE);
             anz = p->anz;
             if (pos < 0) {
                 start = -pos;
@@ -172,7 +169,7 @@ void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem
     }
 }
 
-void PCSX::PPF::BuildPPFCache() {
+bool PCSX::PPF::load(std::filesystem::path iso) {
     FILE *ppffile;
     char buffer[12];
     char method, undo = 0, blockcheck = 0;
@@ -185,26 +182,9 @@ void PCSX::PPF::BuildPPFCache() {
 
     FreePPFCache();
 
-    if (PCSX::g_emulator->m_cdromId[0] == '\0') return;
-
-    // Generate filename in the format of SLUS_123.45
-    buffer[0] = toupper(PCSX::g_emulator->m_cdromId[0]);
-    buffer[1] = toupper(PCSX::g_emulator->m_cdromId[1]);
-    buffer[2] = toupper(PCSX::g_emulator->m_cdromId[2]);
-    buffer[3] = toupper(PCSX::g_emulator->m_cdromId[3]);
-    buffer[4] = '_';
-    buffer[5] = PCSX::g_emulator->m_cdromId[4];
-    buffer[6] = PCSX::g_emulator->m_cdromId[5];
-    buffer[7] = PCSX::g_emulator->m_cdromId[6];
-    buffer[8] = '.';
-    buffer[9] = PCSX::g_emulator->m_cdromId[7];
-    buffer[10] = PCSX::g_emulator->m_cdromId[8];
-    buffer[11] = '\0';
-
-    sprintf(szPPF, "%s/%s", PCSX::g_emulator->settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
-
-    ppffile = fopen(szPPF, "rb");
-    if (ppffile == NULL) return;
+    iso.replace_extension("ppf");
+    ppffile = fopen(iso.string().c_str(), "rb");
+    if (ppffile == NULL) return false;
 
     memset(buffer, 0, 5);
     if (fread(buffer, 3, 1, ppffile) != 1) {
@@ -214,7 +194,7 @@ void PCSX::PPF::BuildPPFCache() {
     if (strcmp(buffer, "PPF") != 0) {
         PCSX::g_system->printf(_("Invalid PPF patch: %s.\n"), szPPF);
         fclose(ppffile);
-        return;
+        return false;
     }
 
     fseek(ppffile, 5, SEEK_SET);
@@ -297,7 +277,7 @@ void PCSX::PPF::BuildPPFCache() {
         default:
             fclose(ppffile);
             PCSX::g_system->printf(_("Unsupported PPF version (%d).\n"), method + 1);
-            return;
+            return false;
     }
 
     // now do the data reading
@@ -319,11 +299,11 @@ void PCSX::PPF::BuildPPFCache() {
             throw("File read error.");
         }
 
-        ladr = pos / PCSX::CDRom::CD_FRAMESIZE_RAW;
-        off = pos % PCSX::CDRom::CD_FRAMESIZE_RAW;
+        ladr = pos / PCSX::IEC60908b::FRAMESIZE_RAW;
+        off = pos % PCSX::IEC60908b::FRAMESIZE_RAW;
 
-        if (off + anz > PCSX::CDRom::CD_FRAMESIZE_RAW) {
-            anx = off + anz - PCSX::CDRom::CD_FRAMESIZE_RAW;
+        if (off + anz > PCSX::IEC60908b::FRAMESIZE_RAW) {
+            anx = off + anz - PCSX::IEC60908b::FRAMESIZE_RAW;
             anz -= (unsigned char)anx;
             AddToPPF(ladr + 1, 0, anx, &ppfmem[anz]);
         }
@@ -344,4 +324,5 @@ void PCSX::PPF::BuildPPFCache() {
     FillPPFCache();  // build address array
 
     PCSX::g_system->printf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
+    return true;
 }

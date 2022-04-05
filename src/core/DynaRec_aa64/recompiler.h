@@ -17,7 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-
 #pragma once
 #include "core/r3000a.h"
 
@@ -50,15 +49,9 @@ static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
-static void write8Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_mem->write8(address, value);
-}
-static void write16Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_mem->write16(address, value);
-}
-static void write32Wrapper(uint32_t address, uint32_t value) {
-    PCSX::g_emulator->m_mem->write32(address, value);
-}
+static void write8Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write8(address, value); }
+static void write16Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write16(address, value); }
+static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 

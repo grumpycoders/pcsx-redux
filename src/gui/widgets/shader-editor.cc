@@ -106,8 +106,8 @@ function BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, 
 end
 )";
 
-PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, std::string_view dVS, std::string_view dPS,
-                                          std::string_view dL)
+PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::string_view &dVS,
+                                          const std::string_view &dPS, const std::string_view &dL)
     : m_baseFilename(base), m_index(++s_index) {
     std::filesystem::path f = base;
     {

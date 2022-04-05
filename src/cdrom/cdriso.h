@@ -1,6 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 PCSX-df Team                                       *
- *   Copyright (C) 2009 Wei Mingzhi                                        *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -21,71 +20,57 @@
 #pragma once
 
 #include <stdio.h>
+#include <zlib.h>
 
 #include <filesystem>
 
+#include "cdrom/iec-60908b.h"
+#include "cdrom/ppf.h"
 #include "core/psxemulator.h"
 #include "support/uvfile.h"
 
 namespace PCSX {
 
-struct CdrStat {
-    uint32_t Type;
-    uint32_t Status;
-    unsigned char Time[3];
-};
-
-struct SubQ {
-    char res0[12];
-    unsigned char ControlAndADR;
-    unsigned char TrackNumber;
-    unsigned char IndexNumber;
-    unsigned char TrackRelativeAddress[3];
-    unsigned char Filler;
-    unsigned char AbsoluteAddress[3];
-    unsigned char CRC[2];
-    char res1[72];
-};
-
-class CDRiso {
+class CDRIso {
   public:
-    bool isLidOpened() { return m_cdOpenCaseTime < 0 || m_cdOpenCaseTime > (int64_t)time(NULL); }
-    void setCdOpenCaseTime(int64_t time) { m_cdOpenCaseTime = time; }
-    void init();
-    void shutdown();
-    void setIsoPath(const std::filesystem::path& path) {
-        close();
+    CDRIso();
+    CDRIso(const std::filesystem::path& path) : CDRIso() {
         m_isoPath = path;
         open();
-        CheckCdrom();
     }
+    ~CDRIso() {
+        close();
+        inflateEnd(&m_zstr);
+    }
+    enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
+    TrackType getTrackType(unsigned track) { return m_ti[track].type; }
     const std::filesystem::path& getIsoPath() { return m_isoPath; }
-    bool open();
-    void close();
-    bool getTN(uint8_t* buffer);
-    bool getTD(uint8_t track, uint8_t* buffer);
-    bool readTrack(uint8_t* time);
+    uint8_t getTN() { return std::min(m_numtracks, 1); }
+    IEC60908b::MSF getTD(uint8_t track);
+    bool readTrack(const IEC60908b::MSF time);
+    unsigned readSectors(uint32_t lba, void* buffer, unsigned count);
     uint8_t* getBuffer();
-    void play(uint8_t* time);
-    void stop();
-    uint8_t* getBufferSub();
-    bool getStatus(CdrStat* stat);
-    bool readCDDA(unsigned char m, unsigned char s, unsigned char f, unsigned char* buffer);
+    const IEC60908b::Sub* getBufferSub();
+    bool readCDDA(IEC60908b::MSF msf, unsigned char* buffer);
 
-    bool isActive();
+    bool failed();
 
     unsigned m_cdrIsoMultidiskCount;
     unsigned m_cdrIsoMultidiskSelect;
 
-    int LoadSBI(const char* filename);
+    int get_compressed_cdda_track_length(const char* filepath);
+
     bool CheckSBI(const uint8_t* time);
 
   private:
-    std::filesystem::path m_isoPath;
-    typedef ssize_t (CDRiso::*read_func_t)(IO<File> f, unsigned int base, void* dest, int sector);
+    bool open();
+    void close();
 
-    int64_t m_cdOpenCaseTime = 0;
+    std::filesystem::path m_isoPath;
+    typedef ssize_t (CDRIso::*read_func_t)(IO<File> f, unsigned int base, void* dest, int sector);
+
     bool m_useCompressed = false;
+    z_stream m_zstr;
 
     IO<File> m_cdHandle;
     IO<File> m_subHandle;
@@ -98,9 +83,8 @@ class CDRiso {
     bool m_isMode1ISO = false;  // TODO: use sector size/mode info from CUE also?
 
     uint8_t m_cdbuffer[2352];
-    uint8_t m_subbuffer[96];
+    IEC60908b::Sub m_subbuffer;
 
-    bool m_playing = false;
     bool m_cddaBigEndian = false;
     uint32_t m_cddaCurPos = 0;
     /* Frame offset into CD image where pregap data would be found if it was there.
@@ -118,11 +102,9 @@ class CDRiso {
         unsigned int block_shift;
         unsigned int current_block;
         unsigned int sector_in_blk;
-    }* m_compr_img = NULL;
+    }* m_compr_img = nullptr;
 
-    read_func_t m_cdimg_read_func = NULL;
-    read_func_t m_cdimg_read_func_archive = NULL;
-    static const unsigned ECM_HEADER_SIZE = 4;
+    read_func_t m_cdimg_read_func = nullptr;
 
     uint32_t m_len_decoded_ecm_buffer = 0;  // same as decoded ECM file length or 2x size
     uint32_t m_len_ecm_savetable = 0;       // same as sector count of decoded ECM file or 2x count
@@ -132,34 +114,26 @@ class CDRiso {
     bool m_ecm_file_detected = false;
     uint32_t m_prevsector;
 
-    IO<File> m_decoded_ecm = NULL;
-    void* m_decoded_ecm_buffer = NULL;
+    IO<File> m_decoded_ecm = nullptr;
+    void* m_decoded_ecm_buffer = nullptr;
 
     // Function that is used to read CD normally
-    read_func_t m_cdimg_read_func_o = NULL;
+    read_func_t m_cdimg_read_func_o = nullptr;
 
     struct ECMFILELUT {
         int32_t sector;
         int32_t filepos;
     };
 
-    ECMFILELUT* m_ecm_savetable = NULL;
+    ECMFILELUT* m_ecm_savetable = nullptr;
 
     static inline const size_t ECM_SECTOR_SIZE[4] = {1, 2352, 2336, 2336};
-    ////////////////////////////////////////////////////////////////////////////////
-    //
-    // LUTs used for computing ECC/EDC
-    //
-    uint8_t m_ecc_f_lut[256];
-    uint8_t m_ecc_b_lut[256];
-    uint32_t m_edc_lut[256];
-
     static inline const uint8_t ZEROADDRESS[4] = {0, 0, 0, 0};
 
     struct trackinfo {
-        enum track_type_t { CLOSED = 0, DATA = 1, CDDA = 2 } type = CLOSED;
-        uint8_t start[3] = {0, 0, 0};                                      // MSF-format
-        uint8_t length[3] = {0, 0, 0};                                     // MSF-format
+        TrackType type = TrackType::CLOSED;
+        IEC60908b::MSF start;
+        IEC60908b::MSF length;
         IO<File> handle = nullptr;                                         // for multi-track images CDDA
         enum cddatype_t { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;  // BIN, WAV, MP3, APE
         char* decoded_buffer = nullptr;
@@ -168,54 +142,37 @@ class CDRiso {
         uint32_t start_offset = 0;  // byte offset from start of above file
     };
 
-    static const unsigned MAXTRACKS = 100; /* How many tracks can a CD hold? */
+    static constexpr unsigned MAXTRACKS = 100; /* How many tracks can a CD hold? */
 
     int m_numtracks = 0;
     struct trackinfo m_ti[MAXTRACKS];
 
     // redump.org SBI files
     uint8_t sbitime[256][3], sbicount;
+    PPF m_ppf;
 
-    uint32_t get32lsb(const uint8_t* src);
-    void put32lsb(uint8_t* dest, uint32_t value);
-    void eccedc_init();
-    uint32_t edc_compute(uint32_t edc, const uint8_t* src, size_t size);
-    void ecc_writepq(const uint8_t* address, const uint8_t* data, size_t major_count, size_t minor_count,
-                     size_t major_mult, size_t minor_inc, uint8_t* ecc);
-    void ecc_writesector(const uint8_t* address, const uint8_t* data, uint8_t* ecc);
-    void reconstruct_sector(uint8_t* sector, int8_t type);
-    // get a sector from a msf-array
-    static unsigned int msf2sec(const uint8_t* msf) { return ((msf[0] * 60 + msf[1]) * 75) + msf[2]; }
-    static void sec2msf(unsigned int s, uint8_t* msf) {
-        msf[0] = s / 75 / 60;
-        s = s - msf[0] * 75 * 60;
-        msf[1] = s / 75;
-        s = s - msf[1] * 75;
-        msf[2] = s;
-    }
-    static void tok2msf(char* time, char* msf);
-    trackinfo::cddatype_t get_cdda_type(const char* str);
-    void DecodeRawSubData();
+    void decodeRawSubData();
     int do_decode_cdda(struct trackinfo* tri, uint32_t tracknumber);
-    int parsetoc(const char* isofile);
-    int parsecue(const char* isofile);
-    int parseccd(const char* isofile);
-    int parsemds(const char* isofile);
-    int handlepbp(const char* isofile);
-    int handlecbin(const char* isofile);
-    int opensubfile(const char* isoname);
+    bool parsetoc(const char* isofile);
+    bool parsecue(const char* isofile);
+    bool parseccd(const char* isofile);
+    bool parsemds(const char* isofile);
+    bool handlepbp(const char* isofile);
+    bool handlecbin(const char* isofile);
+    bool handleecm(const char* isoname, IO<File> cdh, int32_t* accurate_length);
+    bool opensubfile(const char* isoname);
+    bool opensbifile(const char* isoname);
+
+    bool LoadSBI(const char* filename);
+
     ssize_t cdread_normal(IO<File> f, unsigned int base, void* dest, int sector);
     ssize_t cdread_sub_mixed(IO<File> f, unsigned int base, void* dest, int sector);
     ssize_t cdread_compressed(IO<File> f, unsigned int base, void* dest, int sector);
     ssize_t cdread_2048(IO<File> f, unsigned int base, void* dest, int sector);
-    ssize_t cdread_ecm_decode(IO<File> f, unsigned int base, void* dest, int sector);
-    int handleecm(const char* isoname, IO<File> cdh, int32_t* accurate_length);
-    void PrintTracks();
-    int aropen(IO<File> fparchive, const char* _fn);
-    int cdread_archive(IO<File> f, unsigned int base, void* dest, int sector);
-    int handlearchive(const char* isoname, int32_t* accurate_length);
+    ssize_t ecmDecode(IO<File> f, unsigned int base, void* dest, int sector);
+
+    void printTracks();
     void UnloadSBI();
-    int opensbifile(const char* isoname);
 };
 
 }  // namespace PCSX

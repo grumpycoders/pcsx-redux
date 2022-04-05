@@ -27,8 +27,34 @@
 #include "fmt/format.h"
 #include "mips/common/util/encoder.hh"
 #include "n2e-d.h"
+#include "support/binstruct.h"
 #include "support/file.h"
+#include "support/typestring-wrapper.h"
 #include "ucl/ucl.h"
+
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt64, TYPESTRING("id")> PSExe_ID;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("text")> PSExe_Text;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("data")> PSExe_Data;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("pc")> PSExe_PC;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("gp")> PSExe_GP;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("text_addr")> PSExe_TextAddr;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("text_size")> PSExe_TextSize;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("data_addr")> PSExe_DataAddr;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("data_size")> PSExe_DataSize;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("bss_addr")> PSExe_BssAddr;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("bss_size")> PSExe_BssSize;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("stack_addr")> PSExe_StackAddr;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("stack_size")> PSExe_StackSize;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_sp")> PSExe_SavedSP;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_fp")> PSExe_SavedFP;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_gp")> PSExe_SavedGP;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_ra")> PSExe_SavedRA;
+typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_s0")> PSExe_SavedS0;
+typedef PCSX::BinStruct::Struct<TYPESTRING("PSExeHeader"), PSExe_ID, PSExe_Text, PSExe_Data, PSExe_PC, PSExe_GP,
+                                PSExe_TextAddr, PSExe_TextSize, PSExe_DataAddr, PSExe_DataSize, PSExe_BssAddr,
+                                PSExe_BssSize, PSExe_StackAddr, PSExe_StackSize, PSExe_SavedSP, PSExe_SavedFP,
+                                PSExe_SavedGP, PSExe_SavedRA, PSExe_SavedS0>
+    PSExe_Header;
 
 using namespace Mips::Encoder;
 
@@ -95,26 +121,24 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
         return -1;
     }
 
-    uint64_t magic = file->read<uint64_t>();
-    if (magic != PSEXE) {
+    PSExe_Header inHeader;
+    inHeader.deserialize(file);
+
+    if (inHeader.get<PSExe_ID>() != PSEXE) {
         fmt::print("File {} isn't a valid ps-exe\n", input);
         return -1;
     }
 
-    file->read<uint32_t>();
-    file->read<uint32_t>();
-
-    uint32_t pc = file->read<uint32_t>();
-    uint32_t gp = file->read<uint32_t>();
-    uint32_t addr = file->read<uint32_t>();
-    uint32_t size = file->read<uint32_t>();
-    file->read<uint32_t>();
-    file->read<uint32_t>();
-    uint32_t bssAddr = file->read<uint32_t>();
-    uint32_t bssSize = file->read<uint32_t>();
-    uint32_t sp = file->read<uint32_t>();
-    sp += file->read<uint32_t>();
+    uint32_t pc = inHeader.get<PSExe_PC>();
+    uint32_t gp = inHeader.get<PSExe_GP>();
+    uint32_t addr = inHeader.get<PSExe_TextAddr>();
+    uint32_t size = inHeader.get<PSExe_TextSize>();
+    uint32_t bssAddr = inHeader.get<PSExe_BssAddr>();
+    uint32_t bssSize = inHeader.get<PSExe_BssSize>();
+    uint32_t sp = inHeader.get<PSExe_StackAddr>();
+    sp += inHeader.get<PSExe_StackSize>();
     if (sp == 0) sp = 0x801fff00;
+
     file->rSeek(2048, SEEK_SET);
 
     std::vector<uint8_t> dataIn;

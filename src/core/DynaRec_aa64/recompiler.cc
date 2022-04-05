@@ -63,13 +63,13 @@ bool DynaRecCPU::Init() {
     }
 
 #if !defined(__APPLE__)
-    if (!gen.setRWX()) { // Mark code cache as readable/writeable/executable
+    if (!gen.setRWX()) {  // Mark code cache as readable/writeable/executable
         PCSX::g_system->message("[Dynarec] Failed to allocate executable memory.\nTry disabling the Dynarec CPU.");
         return false;
     }
 #endif
 #if defined(__APPLE__)
-    gen.setRW(); // M1 wants buffer marked as readable/writable with mprotect before emitting code
+    gen.setRW();  // M1 wants buffer marked as readable/writable with mprotect before emitting code
 #endif
     emitDispatcher();  // Emit our assembly dispatcher
     uncompileAll();    // Mark all blocks as uncompiled
@@ -86,9 +86,9 @@ bool DynaRecCPU::Init() {
         PCSX::g_system->message("[Dynarec] Failed to allocate memory for Dynarec.\nTry disabling the Dynarec CPU.");
         return false;
     }
-    gen.setRX(); // Mark code cache as readable/executable before jumping into dispatcher
+    gen.setRX();  // Mark code cache as readable/executable before jumping into dispatcher
 #endif
-     return true;
+    return true;
 }
 
 void DynaRecCPU::Reset() {
@@ -164,14 +164,13 @@ void DynaRecCPU::emitDispatcher() {
     gen.align();
     m_dispatcher = gen.getCurr<DynarecCallback>();
 
-    gen.Str(x30, MemOperand(sp, -16, PreIndex));  // Backup link register
-    gen.Str(runningPointer,
-            MemOperand(sp, -16, PreIndex));  // Save runningPointer register in stack
+    gen.Str(x30, MemOperand(sp, -16, PreIndex));             // Backup link register
+    gen.Str(runningPointer, MemOperand(sp, -16, PreIndex));  // Save runningPointer register in stack
     gen.Str(contextPointer,
-            MemOperand(sp, -16, PreIndex));    // Save contextPointer register in stack (also align stack pointer)
+            MemOperand(sp, -16, PreIndex));  // Save contextPointer register in stack (also align stack pointer)
 
     gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());  // Move runningPtr to runningPointer register
-    gen.Mov(contextPointer, (uintptr_t)this);  // Load context pointer
+    gen.Mov(contextPointer, (uintptr_t)this);                          // Load context pointer
 
     // Back up all our allocateable volatile regs
     static_assert((ALLOCATEABLE_NON_VOLATILE_COUNT & 1) == 0);  // Make sure we've got an even number of regs
@@ -205,9 +204,9 @@ void DynaRecCPU::emitDispatcher() {
         gen.Ldp(reg.X(), reg2.X(), MemOperand(sp, 16, PostIndex));
     }
 
-    gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex)); // Restore contextPointer register from stack
+    gen.Ldr(contextPointer, MemOperand(sp, 16, PostIndex));  // Restore contextPointer register from stack
     gen.Ldr(runningPointer, MemOperand(sp, 16, PostIndex));  // Restore runningPointer register from stack
-    gen.Ldr(x30, MemOperand(sp, 16, PostIndex));  // Restore link register before returning
+    gen.Ldr(x30, MemOperand(sp, 16, PostIndex));             // Restore link register before returning
     gen.Ret();
 
     // Code for when the block to be executed needs to be compiled.
@@ -249,7 +248,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     int count = 0;  // How many instructions have we compiled?
 
 #if defined(__APPLE__)
-    gen.setRW();    // Mark code cache as readable/writeable before emitting code
+    gen.setRW();  // Mark code cache as readable/writeable before emitting code
 #endif
 
     if (align) {
@@ -287,11 +286,11 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         }
 
         m_regs.code = *p;  // Actually read the instruction
-        m_pc += 4;            // Increment recompiler PC
-        count++;              // Increment instruction count
+        m_pc += 4;         // Increment recompiler PC
+        count++;           // Increment instruction count
 
         const auto func = m_recBSC[m_regs.code >> 26];  // Look up the opcode in our decoding LUT
-        (*this.*func)();                                   // Jump into the handler to recompile it
+        (*this.*func)();                                // Jump into the handler to recompile it
     }
 
     flushRegs();
@@ -323,7 +322,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     __builtin___clear_cache(reinterpret_cast<char*>(blockStart), gen.getCurr<char*>());
     gen.ready();
 #if defined(__APPLE__)
-    gen.setRX(); // Mark code cache as readable/executable before returning to dispatcher
+    gen.setRX();  // Mark code cache as readable/executable before returning to dispatcher
 #endif
     // The block might have been invalidated by handleLinking, so re-read the pointer from *callback
     return *callback;

@@ -7,9 +7,6 @@
     <ClCompile Include="..\..\src\core\callstacks.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\cdriso.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\core\cdrom.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -44,9 +41,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\mdec.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\misc.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\pad.cc">
@@ -109,9 +103,6 @@
     <ClCompile Include="..\..\src\core\psxcounters.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\ppf.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\core\sio1.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -138,6 +129,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\core\DynaRec_x86\iR3000A.cc">
       <Filter>Source Files\Dynarec x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\luaiso.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -175,9 +169,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\psxcounters.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\ppf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\pgxp_value.h">
@@ -246,9 +237,6 @@
     <ClInclude Include="..\..\src\core\cdrom.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\cdriso.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\core\callstacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -273,10 +261,16 @@
     <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h">
       <Filter>Header Files\Dynarec x64</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\luaiso.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="..\..\src\core\pcsxffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\core\isoffi.lua">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
