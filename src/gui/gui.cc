@@ -42,6 +42,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sio1-server.h"
+#include "core/sio1.h"
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"

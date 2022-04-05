@@ -31,6 +31,7 @@
 #include "core/pad.h"
 #include "core/pcsxlua.h"
 #include "core/r3000a.h"
+#include "core/sio.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
 #include "core/web-server.h"
