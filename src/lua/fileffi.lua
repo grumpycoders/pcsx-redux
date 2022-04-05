@@ -80,6 +80,8 @@ bool startFileCachingWithCallback(LuaFile* wrapper, void (*callback)());
 
 LuaFile* dupFile(LuaFile*);
 
+LuaFile* zReader(LuaFile*, int64_t size, bool raw);
+
 ]]
 
 local C = ffi.load 'SUPPORT_FILE'
@@ -345,6 +347,16 @@ local function buffer(ptr, size, type)
     return createFileWrapper(f)
 end
 
+local function zReader(file, size, raw)
+    if type(size) == 'string' then
+        raw = size
+        size = nil
+    end
+    raw = raw == 'RAW'
+    if size == nil then size = -1 end
+    return createFileWrapper(C.zReader(file._wrapper, size, raw))
+end
+
 if (type(Support) ~= 'table') then Support = {} end
 
 Support.NewLuaBuffer = function(size)
@@ -353,6 +365,6 @@ Support.NewLuaBuffer = function(size)
     return buf
 end
 
-Support.File = { open = open, buffer = buffer, _createFileWrapper = createFileWrapper }
+Support.File = { open = open, buffer = buffer, zReader = zReader, _createFileWrapper = createFileWrapper }
 
 -- )EOF"
