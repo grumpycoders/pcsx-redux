@@ -22,11 +22,11 @@
 #include <stdexcept>
 #include <string>
 
-#include "support/strings-helpers.h"
 #include "imgui.h"
 #include "json.hpp"
 #include "support/hashtable.h"
 #include "support/list.h"
+#include "support/strings-helpers.h"
 #include "support/tree.h"
 
 namespace PCSX {

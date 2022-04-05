@@ -252,12 +252,10 @@ uint8_t *PCSX::CDRIso::getBuffer() {
 
 void PCSX::CDRIso::printTracks() {
     for (int i = 1; i <= m_numtracks; i++) {
-        PCSX::g_system->printf(_("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
-                               (m_ti[i].type == TrackType::DATA        ? "DATA"
-                                : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA"
-                                                                       : "CDDA"),
-                               m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s,
-                               m_ti[i].length.f);
+        PCSX::g_system->printf(
+            _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
+            (m_ti[i].type == TrackType::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
+            m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s, m_ti[i].length.f);
     }
 }
 
@@ -457,7 +455,7 @@ bool PCSX::CDRIso::readTrack(const IEC60908b::MSF time) {
 
 unsigned PCSX::CDRIso::readSectors(uint32_t lba, void *buffer_, unsigned count) {
     unsigned actual = 0;
-    uint8_t * buffer = reinterpret_cast<uint8_t *>(buffer_);
+    uint8_t *buffer = reinterpret_cast<uint8_t *>(buffer_);
 
     if (m_cdHandle->failed()) {
         return 0;

@@ -48,7 +48,7 @@ class CDRIso {
     uint8_t getTN() { return std::min(m_numtracks, 1); }
     IEC60908b::MSF getTD(uint8_t track);
     bool readTrack(const IEC60908b::MSF time);
-    unsigned readSectors(uint32_t lba, void * buffer, unsigned count);
+    unsigned readSectors(uint32_t lba, void* buffer, unsigned count);
     uint8_t* getBuffer();
     const IEC60908b::Sub* getBufferSub();
     bool readCDDA(IEC60908b::MSF msf, unsigned char* buffer);

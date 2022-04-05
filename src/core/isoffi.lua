@@ -15,7 +15,6 @@
 --   along with this program; if not, write to the
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 ffi.cdef [[
 
 enum SectorMode {
@@ -55,9 +54,7 @@ local isoMeta = { __gc = isoGarbageCollect }
 local function createIsoReaderWrapper(isoReader)
     local reader = {
         _wrapper = isoReader,
-        open = function(self, fname)
-            return Support.File._createFileWrapper(C.readerOpen(self._wrapper, fname))
-        end,
+        open = function(self, fname) return Support.File._createFileWrapper(C.readerOpen(self._wrapper, fname)) end,
     }
     setmetatable(reader, readerMeta)
     return reader

@@ -43,7 +43,7 @@ class Emitter : public MacroAssembler {
     Emitter() : MacroAssembler(reinterpret_cast<uint8_t*>(makeBuffer()), allocSize) {}
 
     static void* makeBuffer() {
-        void *ptr = mmap(s_codeCache, allocSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        void* ptr = mmap(s_codeCache, allocSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         return (ptr == MAP_FAILED) ? nullptr : ptr;
     }
 #else
@@ -67,20 +67,16 @@ class Emitter : public MacroAssembler {
 
     bool setRWX() {
 #if defined(_WIN32)
-    DWORD oldProtect; // Unused, but VirtualProtect wants somewhere to store it anyways.
-    return VirtualProtect(s_codeCache, allocSize, PAGE_EXECUTE_READWRITE, &oldProtect) != 0;
+        DWORD oldProtect;  // Unused, but VirtualProtect wants somewhere to store it anyways.
+        return VirtualProtect(s_codeCache, allocSize, PAGE_EXECUTE_READWRITE, &oldProtect) != 0;
 #elif !defined(__APPLE__)
-    return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE | PROT_EXEC) != -1;
+        return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE | PROT_EXEC) != -1;
 #endif
     }
 
-    void setRW() {
-        GetBuffer()->SetWritable();
-    }
+    void setRW() { GetBuffer()->SetWritable(); }
 
-    void setRX() {
-        GetBuffer()->SetExecutable();
-    }
+    void setRX() { GetBuffer()->SetExecutable(); }
 
     void align() { GetBuffer()->Align(); }
 

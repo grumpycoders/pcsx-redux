@@ -22,13 +22,13 @@
 #include <assert.h>
 
 #include "core/debug.h"
-#include "support/strings-helpers.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "fmt/format.h"
 #include "magic_enum/include/magic_enum.hpp"
+#include "support/strings-helpers.h"
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 

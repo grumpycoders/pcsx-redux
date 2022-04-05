@@ -25,9 +25,9 @@
 #include <bitset>
 #include <stdexcept>
 
-#include "support/strings-helpers.h"
 #include "core/pad.h"
 #include "support/sjis_conv.h"
+#include "support/strings-helpers.h"
 
 // clk cycle byte
 // 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)

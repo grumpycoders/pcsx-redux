@@ -25,8 +25,8 @@
 #include <compare>
 #include <string_view>
 
-#include "support/strings-helpers.h"
 #include "fmt/format.h"
+#include "support/strings-helpers.h"
 
 namespace PCSX {
 
