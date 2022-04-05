@@ -290,6 +290,7 @@ ssize_t PCSX::SubFile::readAt(void *dest, size_t size, size_t ptr) {
 }
 
 ssize_t PCSX::Fifo::read(void *dest_, size_t size) {
+    if (size == 0) return 0;
     uint8_t *dest = static_cast<uint8_t *>(dest_);
     ssize_t ret = 0;
     while (size != 0) {
@@ -308,4 +309,6 @@ ssize_t PCSX::Fifo::read(void *dest_, size_t size) {
             m_ptrR = 0;
         }
     }
+
+    return ret;
 }
