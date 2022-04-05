@@ -26,10 +26,10 @@
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gte.h"
+#include "core/luaiso.h"
 #include "core/mdec.h"
 #include "core/pad.h"
 #include "core/pcsxlua.h"
-#include "core/ppf.h"
 #include "core/r3000a.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
@@ -83,6 +83,7 @@ void PCSX::Emulator::setLua() {
     m_lua->settable(LUA_GLOBALSINDEX);
     LuaFFI::open_pcsx(m_lua.get());
     LuaFFI::open_file(m_lua.get());
+    LuaFFI::open_iso(m_lua.get());
     LuaFFI::open_extra(m_lua.get());
 }
 
@@ -119,8 +120,6 @@ void PCSX::Emulator::shutdown() {
     m_cheats->ClearAllCheats();
     m_cheats->FreeCheatSearchResults();
     m_cheats->FreeCheatSearchMem();
-
-    m_cdrom->m_ppf.FreePPFCache();
     m_mem->shutdown();
     m_cpu->psxShutdown();
 

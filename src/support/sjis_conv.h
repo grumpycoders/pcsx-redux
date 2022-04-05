@@ -25,7 +25,7 @@
 namespace PCSX {
 namespace Sjis {
 
-std::string toUtf8(std::string_view str);
+std::string toUtf8(const std::string_view& str);
 
 }  // namespace Sjis
 }  // namespace PCSX

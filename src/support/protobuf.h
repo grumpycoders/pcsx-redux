@@ -34,9 +34,9 @@
 
 namespace PCSX {
 
-class OutOfBoundError {};
-
 namespace Protobuf {
+
+class OutOfBoundError {};
 
 class InSlice {
   public:
@@ -155,7 +155,7 @@ struct FieldType {
     typedef innerType type;
     FieldType() {}
     FieldType(const type &init) : value(init) {}
-    FieldType(type &&init) : value(init) {}
+    FieldType(type &&init) : value(std::move(init)) {}
     type value = innerType();
     void reset() { value = type(); }
     static constexpr unsigned wireType = wireTypeValue;
@@ -696,7 +696,7 @@ struct MessageField<MessageType, irqus::typestring<C...>, fieldNumberValue> : pu
     template <typename... fields>
     MessageField(const fields &... values) : MessageType(values...) {}
     template <typename... fields>
-    MessageField(fields &&... values) : MessageType(values...) {}
+    MessageField(fields &&... values) : MessageType(std::move(values)...) {}
     static constexpr bool matches(unsigned wireType) { return wireType == 2; }
     static constexpr unsigned wireType = 2;
     static constexpr uint64_t fieldNumber = fieldNumberValue;
@@ -733,7 +733,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     using type = myself;
     Message() { verifyIntegrity<0, fields...>(); }
     Message(const fields &... values) : base(values...) { verifyIntegrity<0, fields...>(); }
-    Message(fields &&... values) : base(values...) { verifyIntegrity<0, fields...>(); }
+    Message(fields &&... values) : base(std::move(values)...) { verifyIntegrity<0, fields...>(); }
     using name = irqus::typestring<C...>;
     static constexpr char const typeName[sizeof...(C) + 1] = {C..., '\0'};
     static constexpr void dumpSchema(std::ostream &stream) {

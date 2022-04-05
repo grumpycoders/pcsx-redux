@@ -73,6 +73,9 @@
 [submodule "third_party/curl"]
 	path = third_party/curl
 	url = https://github.com/curl/curl
+[submodule "third_party/expected"]
+	path = third_party/expected
+	url = https://github.com/TartanLlama/expected.git
 [submodule "third_party/vixl"]
 	path = third_party/vixl
 	url = https://github.com/wheremyfoodat/vixl

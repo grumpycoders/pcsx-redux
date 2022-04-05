@@ -282,12 +282,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\mips\common\util\sjis-table.h" />
+    <ClInclude Include="..\..\src\support\binstruct.h" />
     <ClInclude Include="..\..\src\support\circular.h" />
     <ClInclude Include="..\..\src\support\djbhash.h" />
     <ClInclude Include="..\..\src\support\eventbus.h" />
     <ClInclude Include="..\..\src\support\file.h" />
     <ClInclude Include="..\..\src\support\hashtable.h" />
     <ClInclude Include="..\..\src\support\list.h" />
+    <ClInclude Include="..\..\src\support\strings-helpers.h" />
     <ClInclude Include="..\..\src\support\protobuf.h" />
     <ClInclude Include="..\..\src\support\settings.h" />
     <ClInclude Include="..\..\src\support\sjis_conv.h" />
@@ -297,6 +299,7 @@
     <ClInclude Include="..\..\src\support\uvfile.h" />
     <ClInclude Include="..\..\src\support\windowswrapper.h" />
     <ClInclude Include="..\..\src\support\zfile.h" />
+    <ClInclude Include="..\..\src\support\zip.h" />
     <ClInclude Include="..\..\third_party\interval_tree.h" />
     <ClInclude Include="..\..\third_party\json.hpp" />
     <ClInclude Include="..\..\third_party\typestring.hh" />
@@ -306,6 +309,7 @@
     <ClCompile Include="..\..\src\support\sjis_conv.cc" />
     <ClCompile Include="..\..\src\support\uvfile.cc" />
     <ClCompile Include="..\..\src\support\zfile.cc" />
+    <ClCompile Include="..\..\src\support\zip.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

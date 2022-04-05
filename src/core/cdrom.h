@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,9 +19,12 @@
 
 #pragma once
 
-#include "core/cdriso.h"
+#include <memory>
+#include <string>
+
+#include "cdrom/cdriso.h"
+#include "cdrom/iec-60908b.h"
 #include "core/decode_xa.h"
-#include "core/ppf.h"
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
 #include "core/psxmem.h"
@@ -29,17 +32,24 @@
 
 namespace PCSX {
 
+struct CdrStat {
+    uint32_t Type;
+    uint32_t Status;
+    IEC60908b::MSF Time;
+};
+
 class CDRom {
   public:
+    using MSF = PCSX::IEC60908b::MSF;
+    CDRom() : m_iso(new CDRIso()) {}
     virtual ~CDRom() {}
     static CDRom* factory();
-    static inline constexpr uint8_t btoi(uint8_t b) { return ((b / 16) * 10) + (b % 16); }
-    static inline constexpr uint8_t itob(uint8_t i) { return ((i / 10) * 16) + (i % 10); }
+    bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }
+    void setLidOpenTime(int64_t time) { m_lidOpenTime = time; }
+    void check();
 
-    static inline constexpr uint32_t MSF2SECT(uint8_t m, uint8_t s, uint8_t f) { return (m * 60 + s - 2) * 75 + f; }
-    static const ssize_t CD_FRAMESIZE_RAW = 2352;
-    static const ssize_t DATA_SIZE = CD_FRAMESIZE_RAW - 12;
-    static const ssize_t SUB_FRAMESIZE = 96;
+    const std::string& getCDRomID() { return m_cdromId; }
+    const std::string& getCDRomLabel() { return m_cdromLabel; }
 
     virtual void reset() = 0;
     virtual void attenuate(int16_t* buf, int samples, int stereo) = 0;
@@ -63,11 +73,7 @@ class CDRom {
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
 
-    void setCdOpenCaseTime(int64_t time) { m_iso.setCdOpenCaseTime(time); }
-    bool isLidOpen() { return m_iso.isLidOpened(); }
-
-    CDRiso m_iso;
-    PPF m_ppf;
+    std::shared_ptr<CDRIso> m_iso;
 
   protected:
     // savestate stuff starts here
@@ -79,15 +85,14 @@ class CDRom {
 
     uint8_t m_statP;
 
-    uint8_t m_transfer[CD_FRAMESIZE_RAW];
+    uint8_t m_transfer[PCSX::IEC60908b::FRAMESIZE_RAW];
     unsigned int m_transferIndex;
 
-    uint8_t m_prev[4];
+    MSF m_prev;
     uint8_t m_param[8];
     uint8_t m_result[16];
 
     uint8_t m_paramC;
-    uint8_t m_paramP;
     uint8_t m_resultC;
     uint8_t m_resultP;
     uint8_t m_resultReady;
@@ -97,11 +102,9 @@ class CDRom {
     bool m_locationChanged;
     uint32_t m_reading;
 
-    uint8_t m_resultTN[6];
-    uint8_t m_resultTD[4];
-    uint8_t m_setSectorPlay[4];
-    uint8_t m_setSectorEnd[4];
-    uint8_t m_setSector[4];
+    MSF m_setSectorPlay;
+    MSF m_setSectorEnd;
+    MSF m_setSector;
     uint8_t m_track;
     bool m_play, m_muted;
     int m_curTrack;
@@ -114,6 +117,7 @@ class CDRom {
     xa_decode_t m_xa;
 
   protected:
+    int64_t m_lidOpenTime = 0;
     uint16_t m_irq;
     uint8_t m_irqRepeated;
     uint32_t m_eCycle;
@@ -141,7 +145,8 @@ class CDRom {
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
   private:
-    void logCDROM(int command);
+    std::string m_cdromId;
+    std::string m_cdromLabel;
 };
 
 }  // namespace PCSX

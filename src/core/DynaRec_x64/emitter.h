@@ -215,9 +215,7 @@ struct Emitter final : public CodeGenerator {
     int64_t getRemainingSize() { return (int64_t)codeCacheSize - (int64_t)getSize(); }
 
     // Emit a trap instruction that gdb/lldb/Visual Studio can interpret as a breakpoint
-    void breakpoint() {
-        int3();
-    }
+    void breakpoint() { int3(); }
 
     // Tries to mark the emitter memory as readable/writeable/executable without throwing an exception.
     // Returns whether or not it succeeded

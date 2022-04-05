@@ -51,6 +51,7 @@ class Lua {
     void unref(int ref, int t = -1) { luaL_unref(L, t, ref); }
 
     void close();
+    void openlibs();
     void open_base();
     void open_bit();
     void open_debug();

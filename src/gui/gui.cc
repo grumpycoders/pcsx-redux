@@ -385,10 +385,10 @@ void PCSX::GUI::init() {
         g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
 
         std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
-        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
+        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso(isoToOpen));
         isoToOpen = m_args.get<std::string>("loadiso", "");
-        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
-
+        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso(isoToOpen));
+        PCSX::g_emulator->m_cdrom->check();
         auto argPCdrv = m_args.get<bool>("pcdrv");
         auto argPCdrvBase = m_args.get<std::string>("pcdrvbase");
         if (argPCdrv.has_value()) {
@@ -759,8 +759,8 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu(_("File"))) {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open ISO"));
                 if (ImGui::MenuItem(_("Close ISO"))) {
-                    PCSX::g_emulator->m_cdrom->m_iso.close();
-                    CheckCdrom();
+                    PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso());
+                    PCSX::g_emulator->m_cdrom->check();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
                     showOpenBinaryDialog = true;
@@ -810,15 +810,15 @@ void PCSX::GUI::endFrame() {
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(-1);
+                    PCSX::g_emulator->m_cdrom->setLidOpenTime(-1);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 if (ImGui::MenuItem(_("Close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(0);
+                    PCSX::g_emulator->m_cdrom->setLidOpenTime(0);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime((int64_t)time(NULL) + 2);
+                    PCSX::g_emulator->m_cdrom->setLidOpenTime((int64_t)time(nullptr) + 2);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 ImGui::Separator();
@@ -997,7 +997,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             ImGui::Separator();
             ImGui::Text(_("CPU: %s"), g_emulator->m_cpu->getName().c_str());
             ImGui::Separator();
-            ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdromId);
+            ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdrom->getCDRomID().c_str());
             ImGui::Separator();
             if (g_system->running()) {
                 ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
@@ -1025,8 +1025,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         changed = true;
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
-            PCSX::g_emulator->m_cdrom->m_iso.close();
-            PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+            PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
+            PCSX::g_emulator->m_cdrom->check();
         }
     }
 
@@ -1368,22 +1368,6 @@ with development binaries and games.)"));
                     changed = true;
                     type = PCSX::Emulator::PSX_TYPE_PAL;
                     autodetect = false;
-                }
-                ImGui::EndCombo();
-            }
-        }
-
-        {
-            const char* labels[] = {_("Disabled"), _("Little Endian"), _("Big Endian")};
-            auto& cdda = settings.get<Emulator::SettingCDDA>().value;
-            if (ImGui::BeginCombo(_("CDDA"), labels[cdda])) {
-                int counter = 0;
-                for (auto& label : labels) {
-                    if (ImGui::Selectable(label, cdda == counter)) {
-                        changed = true;
-                        cdda = decltype(cdda)(counter);
-                    }
-                    counter++;
                 }
                 ImGui::EndCombo();
             }
@@ -1765,7 +1749,8 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
     } else {
-        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(pathStr);
+        PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso(pathStr));
+        PCSX::g_emulator->m_cdrom->check();
     }
 
     free(extension);
@@ -1773,17 +1758,17 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
 std::string PCSX::GUI::buildSaveStateFilename(int i) {
     // the ID of the game. Every savestate is marked with the ID of the game it's from.
-    const auto gameID = g_emulator->m_cdromId;
+    const auto gameID = g_emulator->m_cdrom->getCDRomID();
 
     // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
     // EXEs don't have proper IDs
-    if (gameID[0] != 0) {
+    if (!gameID.empty()) {
         // For games with an ID of SLUS00213 for example, this will generate a state named
         // SLUS00213.sstate
         return fmt::format("{}.sstate{}", gameID, i);
     } else {
         // For games without IDs, identify them via filename
-        const auto& iso = PCSX::g_emulator->m_cdrom->m_iso.getIsoPath().filename();
+        const auto& iso = PCSX::g_emulator->m_cdrom->m_iso->getIsoPath().filename();
         const auto lastFile = iso.empty() ? "BIOS" : iso.string();
         return fmt::format("{}.sstate{}", lastFile, i);
     }
