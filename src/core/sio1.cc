@@ -82,7 +82,7 @@ void PCSX::SIO1::receiveCallback() {
 }
 
 void PCSX::SIO1::transmitData() {
-    PCSX::g_emulator->m_sio1Server->write(m_regs.data);
+    g_emulator->m_sio1Server->write(m_regs.data);
     if (m_regs.control & CR_TXIRQEN) {
         if (m_regs.status & SR_TXRDY || m_regs.status & SR_TXRDY2) {
             if (!(m_regs.status & SR_IRQ)) {
