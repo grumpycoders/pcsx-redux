@@ -44,7 +44,7 @@ uint8_t PCSX::SIO1::readStat8() {
 
 uint16_t PCSX::SIO1::readStat16() {
     updateStat();
-    return m_regs.status & 0xFFFF;
+    return m_regs.status;
 }
 
 uint32_t PCSX::SIO1::readStat32() {
