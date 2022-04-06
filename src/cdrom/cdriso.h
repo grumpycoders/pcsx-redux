@@ -45,7 +45,7 @@ class CDRIso {
     enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
     TrackType getTrackType(unsigned track) { return m_ti[track].type; }
     const std::filesystem::path& getIsoPath() { return m_isoPath; }
-    uint8_t getTN() { return std::min(m_numtracks, 1); }
+    uint8_t getTN() { return std::max(m_numtracks, 1); }
     IEC60908b::MSF getTD(uint8_t track);
     bool readTrack(const IEC60908b::MSF time);
     unsigned readSectors(uint32_t lba, void* buffer, unsigned count);
