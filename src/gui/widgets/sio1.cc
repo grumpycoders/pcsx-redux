@@ -132,7 +132,7 @@ void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1Re
     const std::string table_name = fmt::format("{}Table", regname);
     char current_value[11];
     const std::string popup_display_text;
-    const std::string edit_value_of = fmt::format("Edit value of {}", regname);
+    const std::string edit_value_of = fmt::format(_("Edit value of {}"), regname);
 
     snprintf(current_value, 11, displayformat, *reg);
 
@@ -220,7 +220,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title)
     {
         ImGui::BeginChild("ChildLStatus", ImVec2(width, 0), true);
 
-        DrawRegisterEditor<uint32_t>(&regs->status, "Status", status_text, 32, "%08x");
+        DrawRegisterEditor<uint32_t>(&regs->status, _("Status"), status_text, 32, "%08x");
 
         ImGui::EndChild();
     }
@@ -231,7 +231,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title)
     {
         ImGui::BeginChild("ChildMMode", ImVec2(width, 0), true);
 
-        DrawRegisterEditor<uint16_t>(&regs->mode, "Mode", mode_text, 16, "%04x");
+        DrawRegisterEditor<uint16_t>(&regs->mode, _("Mode"), mode_text, 16, "%04x");
 
         ImGui::EndChild();
     }
@@ -242,7 +242,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title)
     {
         ImGui::BeginChild("ChildRControl", ImVec2(width, 0), true);
 
-        DrawRegisterEditor<uint16_t>(&regs->control, "Control", control_text, 16, "%04x");
+        DrawRegisterEditor<uint16_t>(&regs->control, _("Control"), control_text, 16, "%04x");
 
         ImGui::EndChild();
     }
