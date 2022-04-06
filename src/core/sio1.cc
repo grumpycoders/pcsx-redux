@@ -39,7 +39,7 @@ uint8_t PCSX::SIO1::readData8() {
 
 uint8_t PCSX::SIO1::readStat8() {
     updateStat();
-    return m_regs.status & 0xFF;
+    return m_regs.status;
 }
 
 uint16_t PCSX::SIO1::readStat16() {
