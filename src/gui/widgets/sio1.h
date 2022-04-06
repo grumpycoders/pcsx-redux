@@ -22,23 +22,24 @@
 #include <string>
 
 namespace PCSX {
-struct sio1Registers;
+struct SIO1Registers;
+struct SIO1RegisterText;
 class GUI;
 
 namespace Widgets {
 
 class SIO1 {
   public:
-    void draw(GUI* gui, sio1Registers* registers, const char* title);
+    void draw(GUI* gui, SIO1Registers* registers, const char* title);
 
     bool m_show = false;
 
   private:
-    void DrawControlEditor(PCSX::sio1Registers* regs);
-    void DrawModeEditor(PCSX::sio1Registers* regs);
-    void DrawStatusEditor(PCSX::sio1Registers* regs);
+    template <typename T>
+    void DrawRegisterEditor(T* reg, const char* regname, SIO1RegisterText* reg_text, int bit_length,
+                                             const char* displayformat);
 
-    char m_registerEditor[20];
+    char m_registerEditor[9]; // Room for 8 nibbles + \0
 };
 
 }  // namespace Widgets

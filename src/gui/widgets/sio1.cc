@@ -24,7 +24,7 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
-struct registerDisplay {
+struct PCSX::SIO1RegisterText {
     const char* description;
     const char* notes;
 };
@@ -35,7 +35,7 @@ static const int kControlEntries = 16;
 
 // Lots of repeating strings. Need to add a value for bits repeated?
 
-static registerDisplay statusDisplay[kStatusEntries] = {
+static PCSX::SIO1RegisterText status_text[kStatusEntries] = {
     {"TX Ready Flag 1", "(1=Ready/Started)  (depends on CTS) (TX requires CTS)"},  //
     {"RX FIFO Not Empty", "(0=Empty, 1=Not Empty)"},                               //
     {"TX Ready Flag 2", "(1=Ready/Finished) (depends on TXEN and on CTS)"},        //
@@ -70,7 +70,7 @@ static registerDisplay statusDisplay[kStatusEntries] = {
     {"Unknown", "(usually zero, sometimes all bits set)"}                          //
 };
 
-static registerDisplay modeDisplay[kModeEntries] = {
+static PCSX::SIO1RegisterText mode_text[kModeEntries] = {
     {"Baudrate Reload Factor", "(1=MUL1, 2=MUL16, 3=MUL64) (or 0=STOP)"},  //
     {"Baudrate Reload Factor", "(1=MUL1, 2=MUL16, 3=MUL64) (or 0=STOP)"},  //
     {"Character Length", "(0=5bits, 1=6bits, 2=7bits, 3=8bits)"},          //
@@ -89,7 +89,7 @@ static registerDisplay modeDisplay[kModeEntries] = {
     {"Not used", "(always zero)"}                                          //
 };
 
-static registerDisplay controlDisplay[kControlEntries] = {
+static PCSX::SIO1RegisterText control_text[kControlEntries] = {
     {"TX Enable (TXEN)", "(0=Disable, 1=Enable, when CTS=On)"},                      //
     {"DTR Output Level", "(0=Off, 1=On)"},                                           //
     {"RX Enable (RXEN)", "(0=Disable, 1=Enable)  ;Disable also clears RXFIFO"},      //
@@ -123,49 +123,58 @@ void ShowHelpMarker(const char* desc) {
     }
 }
 
-void PCSX::Widgets::SIO1::DrawControlEditor(PCSX::sio1Registers* regs) {
+template <typename T>
+void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1RegisterText* reg_text, int bit_length,
+                                             const char* displayformat) {
     bool register_set;
     std::string label;
 
-    ImGui::Text("Control: 0x%04x", regs->control);
+    const std::string table_name = fmt::format("{}Table", regname);
+    char current_value[11];
+    const std::string popup_display_text;
+    const std::string edit_value_of = fmt::format("Edit value of {}", regname);
+
+    snprintf(current_value, 11, displayformat, *reg);
+
+    ImGui::Text("%s: 0x%s", regname, current_value);
     ImGui::SameLine();
-    if (ImGui::Button("Edit")) {
-        snprintf(m_registerEditor, 19, "%04x", regs->control);
-        ImGui::OpenPopup("Edit value of Control");
+    if (ImGui::Button(_("Edit"))) {
+        snprintf(m_registerEditor, 9, displayformat, *reg);
+        ImGui::OpenPopup(edit_value_of.c_str());
     }
 
-    if (ImGui::BeginTable("ControlTable", 3, tableFlags)) {
-        ImGui::TableSetupColumn("Bit", ImGuiTableColumnFlags_WidthFixed);          // Column 0
-        ImGui::TableSetupColumn("Description", ImGuiTableColumnFlags_WidthFixed);  // 1
-        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed);        // 2
+    if (ImGui::BeginTable(table_name.c_str(), 3, tableFlags)) {
+        ImGui::TableSetupColumn(_("Bit"), ImGuiTableColumnFlags_WidthFixed);          // Column 0
+        ImGui::TableSetupColumn(_("Description"), ImGuiTableColumnFlags_WidthFixed);  // 1
+        ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed);        // 2
         ImGui::TableHeadersRow();
 
-        for (int row = 0; row < kControlEntries; row++) {
+        for (int row = 0; row < bit_length; row++) {
             ImGui::TableNextRow();
             for (int column = 0; column <= 2; column++) {
                 ImGui::TableSetColumnIndex(column);
                 switch (column) {
                     case 0:
-                        register_set = (regs->control >> row) & 1;
-                        label = fmt::format(_("{}"), row);
+                        register_set = (*reg >> row) & 1;
+                        label = fmt::format("{}", row);
 
                         if (ImGui::Checkbox(label.c_str(), &register_set)) {
                             if (register_set) {
-                                regs->control |= (1 << row);
+                                *reg |= (1 << row);
                             } else {
-                                regs->control &= ~(1 << row);
+                                *reg &= ~(1 << row);
                             }
                         }
                         break;
 
                     case 1:
-                        ImGui::Text(controlDisplay[row].description);
+                        ImGui::Text(reg_text[row].description);
                         ImGui::SameLine();
-                        ShowHelpMarker(controlDisplay[row].notes);
+                        ShowHelpMarker(reg_text[row].notes);
                         break;
 
                     case 2:
-                        ImGui::Text("%i", regs->control >> row & 1);
+                        ImGui::Text("%i", *reg >> row & 1);
                         break;
                 }
             }
@@ -175,15 +184,15 @@ void PCSX::Widgets::SIO1::DrawControlEditor(PCSX::sio1Registers* regs) {
 
     // Register editor
     {
-        if (ImGui::BeginPopupModal("Edit value of Control", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Enter new value for Control");
-            if ((ImGui::InputText(_("h"), m_registerEditor, 8 + 1,
+        if (ImGui::BeginPopupModal(edit_value_of.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text(_("New value"));
+            if ((ImGui::InputText("h", m_registerEditor, (bit_length/4) + 1,
                                   ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) ||
                 ImGui::Button(_("OK"))) {
                 char* endPtr;
-                uint16_t newReg = strtoul(m_registerEditor, &endPtr, 16);
+                T newReg = strtoul(m_registerEditor, &endPtr, 16);
                 if (!*endPtr) {
-                    regs->control = newReg;
+                    *reg = newReg;
                     ImGui::CloseCurrentPopup();
                 }
             }
@@ -197,155 +206,7 @@ void PCSX::Widgets::SIO1::DrawControlEditor(PCSX::sio1Registers* regs) {
     }
 }
 
-void PCSX::Widgets::SIO1::DrawModeEditor(PCSX::sio1Registers* regs) {
-    bool register_set;
-    std::string label;
-
-    ImGui::Text("Mode: 0x%04x", regs->mode);
-    ImGui::SameLine();
-    if (ImGui::Button("Edit")) {
-        snprintf(m_registerEditor, 19, "%04x", regs->mode);
-        ImGui::OpenPopup("Edit value of Mode");
-    }
-
-    if (ImGui::BeginTable("ModeTable", 3, tableFlags)) {
-        ImGui::TableSetupColumn("Bit", ImGuiTableColumnFlags_WidthFixed);          // Column 0
-        ImGui::TableSetupColumn("Description", ImGuiTableColumnFlags_WidthFixed);  // 1
-        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed);        // 2
-        ImGui::TableHeadersRow();
-
-        for (int row = 0; row < kModeEntries; row++) {
-            ImGui::TableNextRow();
-            for (int column = 0; column <= 2; column++) {
-                ImGui::TableSetColumnIndex(column);
-                switch (column) {
-                    case 0:
-                        register_set = (regs->mode >> row) & 1;
-                        label = fmt::format(_("{}"), row);
-
-                        if (ImGui::Checkbox(label.c_str(), &register_set)) {
-                            if (register_set) {
-                                regs->mode |= (1 << row);
-                            } else {
-                                regs->mode &= ~(1 << row);
-                            }
-                        }
-                        break;
-
-                    case 1:
-                        ImGui::Text(modeDisplay[row].description);
-                        ImGui::SameLine();
-                        ShowHelpMarker(modeDisplay[row].notes);
-                        break;
-
-                    case 2:
-                        ImGui::Text("%i", regs->mode >> row & 1);
-                        break;
-                }
-            }
-        }
-        ImGui::EndTable();
-    }
-
-    // Register editor
-    {
-        if (ImGui::BeginPopupModal("Edit value of Mode", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Enter new value for Mode");
-            if ((ImGui::InputText(_("h"), m_registerEditor, 8 + 1,
-                                  ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) ||
-                ImGui::Button(_("OK"))) {
-                char* endPtr;
-                uint16_t newReg = strtoul(m_registerEditor, &endPtr, 16);
-                if (!*endPtr) {
-                    regs->mode = newReg;
-                    ImGui::CloseCurrentPopup();
-                }
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button(_("Cancel"))) ImGui::CloseCurrentPopup();
-
-            ImGui::EndPopup();
-        }
-    }
-}
-
-void PCSX::Widgets::SIO1::DrawStatusEditor(PCSX::sio1Registers* regs) {
-    bool register_set;
-    std::string label;
-
-    ImGui::Text("Status: 0x%08x", regs->status);
-    ImGui::SameLine();
-    if (ImGui::Button("Edit")) {
-        snprintf(m_registerEditor, 19, "%08x", regs->status);
-        ImGui::OpenPopup("Edit value of Status");
-    }
-
-    if (ImGui::BeginTable("StatusTable", 3, tableFlags)) {
-        ImGui::TableSetupColumn("Bit", ImGuiTableColumnFlags_WidthFixed);          // Column 0
-        ImGui::TableSetupColumn("Description", ImGuiTableColumnFlags_WidthFixed);  // 1
-        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed);        // 2
-        ImGui::TableHeadersRow();
-
-        for (int row = 0; row < kStatusEntries; row++) {
-            ImGui::TableNextRow();
-            for (int column = 0; column <= 2; column++) {
-                ImGui::TableSetColumnIndex(column);
-                switch (column) {
-                    case 0:
-                        register_set = (regs->status >> row) & 1;
-                        label = fmt::format(_("{}"), row);
-
-                        if (ImGui::Checkbox(label.c_str(), &register_set)) {
-                            if (register_set) {
-                                regs->status |= (1 << row);
-                            } else {
-                                regs->status &= ~(1 << row);
-                            }
-                        }
-                        break;
-
-                    case 1:
-                        ImGui::Text(statusDisplay[row].description);
-                        ImGui::SameLine();
-                        ShowHelpMarker(statusDisplay[row].notes);
-                        break;
-
-                    case 2:
-                        ImGui::Text("%i", regs->status >> row & 1);
-                        break;
-                }
-            }
-        }
-        ImGui::EndTable();
-    }
-
-    // Register editor
-    {
-        if (ImGui::BeginPopupModal("Edit value of Status", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Enter new value for Status");
-            if ((ImGui::InputText(_("h"), m_registerEditor, 8 + 1,
-                                  ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) ||
-                ImGui::Button(_("OK"))) {
-                char* endPtr;
-                uint32_t newReg = strtoul(m_registerEditor, &endPtr, 16);
-                if (!*endPtr) {
-                    regs->status = newReg;
-                    ImGui::CloseCurrentPopup();
-                }
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button(_("Cancel"))) ImGui::CloseCurrentPopup();
-
-            ImGui::EndPopup();
-        }
-    }
-}
-
-void PCSX::Widgets::SIO1::draw(GUI* gui, sio1Registers* regs, const char* title) {
+void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(1040, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(210, 512), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
@@ -359,7 +220,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, sio1Registers* regs, const char* title)
     {
         ImGui::BeginChild("ChildLStatus", ImVec2(width, 0), true);
 
-        DrawStatusEditor(regs);
+        DrawRegisterEditor<uint32_t>(&regs->status, "Status", status_text, 32, "%08x");
 
         ImGui::EndChild();
     }
@@ -370,7 +231,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, sio1Registers* regs, const char* title)
     {
         ImGui::BeginChild("ChildMMode", ImVec2(width, 0), true);
 
-        DrawModeEditor(regs);
+        DrawRegisterEditor<uint16_t>(&regs->mode, "Mode", mode_text, 16, "%04x");
 
         ImGui::EndChild();
     }
@@ -381,7 +242,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, sio1Registers* regs, const char* title)
     {
         ImGui::BeginChild("ChildRControl", ImVec2(width, 0), true);
 
-        DrawControlEditor(regs);
+        DrawRegisterEditor<uint16_t>(&regs->control, "Control", control_text, 16, "%04x");
 
         ImGui::EndChild();
     }

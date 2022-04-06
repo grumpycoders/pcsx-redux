@@ -35,7 +35,7 @@
 
 namespace PCSX {
 
-struct sio1Registers {
+struct SIO1Registers {
     uint32_t data;
     uint32_t status;
     uint16_t mode;
@@ -117,7 +117,7 @@ class SIO1 {
 
     void pushSlice(Slice&& slice) { m_fifo.pushSlice(std::move(slice)); }
 
-    sio1Registers m_regs;
+    SIO1Registers m_regs;
 
   private:
     enum {
@@ -157,7 +157,6 @@ class SIO1 {
 
     inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
 
-    void updateFIFO();
     void updateStat();
     void transmitData();
     bool isTransmitReady();

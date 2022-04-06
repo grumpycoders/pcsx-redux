@@ -67,12 +67,12 @@ void PCSX::SIO1Client::processData(Slice&& slice) {
 }
 
 void PCSX::SIO1Client::read(ssize_t nread, const uv_buf_t* buf) {
-    assert(m_allocated);
-    m_allocated = false;
     if (nread <= 0) {
         close();
         return;
     }
+    assert(m_allocated);
+    m_allocated = false;
 
     Slice slice;
     m_buffer.resize(nread);
