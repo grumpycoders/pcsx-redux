@@ -220,7 +220,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title)
     {
         ImGui::BeginChild("ChildLStatus", ImVec2(width, 0), true);
 
-        DrawRegisterEditor<uint32_t>(&regs->status, _("Status"), status_text, 32, "%08x");
+        DrawRegisterEditor(&regs->status, _("Status"), status_text, 32, "%08x");
 
         ImGui::EndChild();
     }
@@ -231,7 +231,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title)
     {
         ImGui::BeginChild("ChildMMode", ImVec2(width, 0), true);
 
-        DrawRegisterEditor<uint16_t>(&regs->mode, _("Mode"), mode_text, 16, "%04x");
+        DrawRegisterEditor(&regs->mode, _("Mode"), mode_text, 16, "%04x");
 
         ImGui::EndChild();
     }
@@ -242,7 +242,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title)
     {
         ImGui::BeginChild("ChildRControl", ImVec2(width, 0), true);
 
-        DrawRegisterEditor<uint16_t>(&regs->control, _("Control"), control_text, 16, "%04x");
+        DrawRegisterEditor(&regs->control, _("Control"), control_text, 16, "%04x");
 
         ImGui::EndChild();
     }
