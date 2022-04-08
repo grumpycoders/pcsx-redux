@@ -258,6 +258,7 @@
     <ClCompile Include="..\..\src\core\kernellog.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
     <ClCompile Include="..\..\src\core\misc.cc" />
+    <ClCompile Include="..\..\src\core\OpenGL_GPU\command_processor.cc" />
     <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc" />
     <ClCompile Include="..\..\src\core\pad.cc" />
     <ClCompile Include="..\..\src\core\pcsxlua.cc" />

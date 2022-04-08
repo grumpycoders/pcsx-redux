@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "core/gpu.h"
 #include "support/opengl.h"
 
@@ -27,6 +29,8 @@ namespace PCSX {
 enum class TransferMode { CommandTransfer, VRAMTransfer };
 
 class OpenGL_GPU final : public GPU {
+    using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
+
     virtual int init() final;
     virtual int shutdown() final;
     virtual int open(GUI *) final;
@@ -62,7 +66,16 @@ class OpenGL_GPU final : public GPU {
     OpenGL::Framebuffer m_fbo;
     OpenGL::Texture m_vramTexture;
 
+    std::array<uint32_t, 16> m_cmdFIFO;
+    std::array<GP0Func, 256> m_gp0Funcs;
+    int m_FIFOIndex;
+    int m_cmd;
+
+    int m_remainingWords = 0;
+    bool m_haveCommand = false;
+    bool m_textureLoad = false;
     virtual void save(SaveStates::GPU &gpu) final;
+
     virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_useDither = setting; }
     virtual uint8_t *getVRAM() final { return m_vram; }
@@ -70,5 +83,8 @@ class OpenGL_GPU final : public GPU {
         std::memset(m_vram, 0x00, m_height * 2 * 1024 + (1024 * 1024));
     }  // Clear VRAM to 0s
     virtual GLuint getVRAMTexture() final { return m_vramTexture.handle(); }
+
+    void initGP0Funcs();
+
 };
 }  // namespace PCSX

@@ -22,10 +22,25 @@
 #include <cstddef>
 #include <stdexcept>
 
+#include "core/debug.h"
+#include "core/psxemulator.h"
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "tracy/Tracy.hpp"
+
+struct VertexData {
+    float positions[2];
+    float colors[3];
+
+    VertexData(float x, float y, float r, float g, float b) {
+        positions[0] = x;
+        positions[1] = y;
+        colors[0] = r;
+        colors[1] = g;
+        colors[2] = b;
+    }
+};
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
 
@@ -37,10 +52,17 @@ int PCSX::OpenGL_GPU::init() {
 
     m_readingMode = TransferMode::CommandTransfer;
     m_writingMode = TransferMode::CommandTransfer;
+    m_remainingWords = 0;
 
     m_vao.create();
     m_vbo.create();
     m_vao.bind();
+
+    // Position attribute
+    m_vao.setAttribute(0, 2, GL_FLOAT, false, sizeof(VertexData), offsetof(VertexData, positions));
+    m_vao.enableAttribute(0);
+    m_vao.setAttribute(1, 3, GL_FLOAT, false, sizeof(VertexData), offsetof(VertexData, colors));
+    m_vao.enableAttribute(1);
 
     m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
     m_fbo.createWithDrawTexture(m_vramTexture);
@@ -139,12 +161,111 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
     } else {
         g_system->printf("Transferring command data\n");
     }
+
+    while (size) {
+        const uint32_t word = *source++; // Fetch word, inc pointer. TODO: Better bounds checking.
+        size--;
+start:
+        if (!m_haveCommand) {
+            const uint32_t cmd = word >> 24;
+            m_cmd = cmd;
+            m_haveCommand = true;
+            m_cmdFIFO[0] = word;
+            m_FIFOIndex = 1;
+
+            switch (cmd) {
+                case 0x00: // nop
+                    m_haveCommand = false;  // No params, move straight to the next command
+                    break;
+                case 0x01:                  // Clear texture cache
+                    m_haveCommand = false;  // No params, move straight to the next command
+                    break;
+                case 0x28: // Monochrome quad
+                    m_remainingWords = 4;
+                    break;
+                case 0xA0: // Copy rectangle (CPU->VRAM)
+                    m_remainingWords = 2;
+                    break;
+                case 0xC0: // Copy rectangle (CPU->VRAM)
+                    m_remainingWords = 2;
+                    PCSX::g_system->printf("Unimplemented read rectangle command: %08X\n", word);
+                    break;
+                case 0xE1: // Set draw mode
+                    m_haveCommand = false; // No params, move straight to the next command
+                    PCSX::g_system->printf("Unimplemented set draw mode command: %08X\n", word);
+                    break;
+                default:
+                    m_haveCommand = false;
+                    PCSX::g_system->printf("Unknown GP0 command: %02X\n", cmd);
+                    break;
+            }
+        } else {
+            if (m_textureLoad) {
+                if (m_remainingWords == 0) {
+                    m_textureLoad = false;
+                    m_haveCommand = false;
+                    goto start;
+                }
+                m_remainingWords--;
+                continue;
+            }
+
+            m_remainingWords--;
+            m_cmdFIFO[m_FIFOIndex++] = word;
+            if (m_remainingWords == 0) {
+                m_haveCommand = false;
+                if (m_cmd == 0x28) {
+                    const auto colour = m_cmdFIFO[0] & 0xffffff;
+                    PCSX::g_system->printf("Monochrome quad with colour: %08X\n", colour);
+
+                    for (auto i = 0; i < 4; i++) {
+                        const auto v = m_cmdFIFO[i + 1];
+                        const auto x = v & 0xffff;
+                        const auto y = v >> 16;
+
+                        PCSX::g_system->printf("v%d  x: %d   y:  %d\n", i + 1, x, y);
+                    }
+                }
+
+                else if (m_cmd == 0xA0) {
+                    m_textureLoad = true;
+                    m_haveCommand = true;
+                    const uint32_t res = m_cmdFIFO[2];
+                    const uint32_t width = res & 0xffff;
+                    const uint32_t height = res >> 16;
+                    if (width == 0 || height == 0)
+                        PCSX::g_system->printf("Weird %dx%d texture transfer\n", width, height);
+                    
+                    // The size of the texture in 16-bit pixels. If the number is odd, force align it up
+                    const uint32_t size = ((width * height) + 1) & ~1;
+                    m_remainingWords = size / 2;
+                }
+            }
+        }
+    }
 }
 
 void PCSX::OpenGL_GPU::writeStatus(uint32_t value) { g_system->printf("TODO: writeStatus\n"); }
 
 int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
-    g_system->printf("TODO: writeDMAChain\n");
+    int counter = 0;
+    do {
+        //if (iGPUHeight == 512) addr &= 0x1FFFFC;
+        if (counter++ > 2000000) break;
+        //if (::CheckForEndlessLoop(addr)) break;
+
+        const uint32_t header = baseAddr[addr];  // Header of linked list node
+        const uint32_t size = header >> 24; // Number of words to transfer for this node
+
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_emulator->m_debug->checkDMAread(2, addr, (size + 1) * 4);
+        }
+
+        if (size > 0) writeDataMem(&baseAddr[(addr + 4) >> 2] + 1, size);
+
+        addr = baseAddr[addr >> 2] & 0xffffff;
+    } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
+                                   // 0xFF'FFFF any pointer with bit 23 set will do.
     return 0;
 }
 
@@ -156,44 +277,14 @@ bool PCSX::OpenGL_GPU::configure() {
 // Called at the start of a frame
 void PCSX::OpenGL_GPU::startFrame() {
     m_vao.bind();
+    m_vbo.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
     OpenGL::setViewport(m_vramTexture.width(), m_vramTexture.height());
-
     m_untexturedTriangleProgram.use();
 }
 
-struct VertexData {
-    float positions[2];
-    float colors[3];
-
-    VertexData(float x, float y, float r, float g, float b) {
-        positions[0] = x;
-        positions[1] = y;
-        colors[0] = r;
-        colors[1] = g;
-        colors[2] = b;
-    }
-};
-
 // Called at the end of a frame
 void PCSX::OpenGL_GPU::updateLace() {
-    m_vao.bind();
-    m_vbo.bind();
-    m_fbo.bind(OpenGL::DrawFramebuffer);
-    m_untexturedTriangleProgram.use();
-    
-    // Position attribute
-    m_vao.setAttribute(0, 2, GL_FLOAT, false, sizeof(VertexData), offsetof(VertexData, positions));
-    m_vao.enableAttribute(0);
-    m_vao.setAttribute(1, 3, GL_FLOAT, false, sizeof(VertexData), offsetof(VertexData, colors));
-    m_vao.enableAttribute(1);
-    
-    OpenGL::enableScissor();
-    OpenGL::setScissor(200, 200, 600, 600);
-    OpenGL::setClearColor(1.f, 0.f, 1.f, 1.f);
-    OpenGL::clearColor();
-    OpenGL::disableScissor();
-
     VertexData triangle[3] = {
         VertexData(0, 0, 1.0, 0, 0), VertexData(0.3, -0.6, 0.0, 1.0, 0.0), VertexData(-0.7, -0.3, 0.0, 0.0, 1.0)
     };

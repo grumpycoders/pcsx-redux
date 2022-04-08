@@ -49,6 +49,9 @@
     <ClCompile Include="..\..\src\core\misc.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\OpenGL_GPU\command_processor.cc">
+      <Filter>Source Files\OpenGL GPU</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc">
       <Filter>Source Files\OpenGL GPU</Filter>
     </ClCompile>
