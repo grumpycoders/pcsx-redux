@@ -34,9 +34,9 @@ class OpenGL_GPU final : public GPU {
         float positions[2];
         float colors[3];
 
-        Vertex(float x, float y, float r, float g, float b) {
-            positions[0] = x;
-            positions[1] = y;
+        Vertex(uint32_t x, uint32_t y, float r, float g, float b) {
+            positions[0] = (float)x;
+            positions[1] = (float)y;
             colors[0] = r;
             colors[1] = g;
             colors[2] = b;

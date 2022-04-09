@@ -68,8 +68,18 @@ int PCSX::OpenGL_GPU::init() {
         layout (location = 0) in vec2 aPos;
         layout (location = 1) in vec3 Color;
         out vec4 vertexColor;
+
         void main() {
-           gl_Position = vec4(-aPos.x, -aPos.y, 1.0, 1.0);
+           // Normalize coords to [0, 2]
+           // The - 0.5 helps fix some holes in rendering, in places like the PS logo
+           float xx = (aPos.x - 0.5) / 512.0;
+           float yy = (aPos.y - 0.5) / 256;
+
+           // Normalize to [-1, 1]
+           xx -= 1.0;
+           yy -= 1.0;
+           
+           gl_Position = vec4(xx, yy, 1.0, 1.0);
            vertexColor = vec4(Color, 1.0);
         }
     )";
@@ -87,7 +97,7 @@ int PCSX::OpenGL_GPU::init() {
     OpenGL::Shader vert(vertSource, OpenGL::Vertex);
     m_untexturedTriangleProgram.create({frag, vert});
     m_untexturedTriangleProgram.use();
-    
+
     return 0;
 }
 
@@ -125,9 +135,9 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
     ZoneScoped;  // Let Tracy do its thing
 
     while (size) {
-        const uint32_t word = *source++; // Fetch word, inc pointer. TODO: Better bounds checking.
+        const uint32_t word = *source++;  // Fetch word, inc pointer. TODO: Better bounds checking.
         size--;
-start:
+    start:
         if (!m_haveCommand) {
             const uint32_t cmd = word >> 24;
             m_cmd = cmd;
@@ -136,34 +146,46 @@ start:
             m_FIFOIndex = 1;
 
             switch (cmd) {
-                case 0x00: // nop
+                case 0x00:                  // nop
                     m_haveCommand = false;  // No params, move straight to the next command
                     break;
                 case 0x01:                  // Clear texture cache
                     m_haveCommand = false;  // No params, move straight to the next command
                     break;
-                case 0x28: // Monochrome quad
+                case 0x02:  // Fill rectangle in VRAM with solid colour
+                    m_remainingWords = 2;
+                    PCSX::g_system->printf("Fill rectangle\n");
+                    break;
+                case 0x20:  // Monochrome triangle
+                    m_remainingWords = 3;
+                    break;
+                case 0x28:  // Monochrome quad
                     m_remainingWords = 4;
                     break;
-                case 0x2C: // Texured quad with blending
+                case 0x2C:  // Texured quad with blending
+                case 0x2D:  // Textured quad, opaque, no blending
+                case 0x2F:  // Textured quad, semi transparent, no blending
                     m_remainingWords = 8;
                     break;
-                case 0x30: // Shaded triangle
+                case 0x30:  // Shaded triangle
                     m_remainingWords = 5;
                     break;
-                case 0x38: // Shaded quad
+                case 0x38:  // Shaded quad
                     m_remainingWords = 7;
                     break;
-                case 0xA0: // Copy rectangle (CPU->VRAM)
+                case 0x65:  // Textured rect, opaque, no blending
+                    m_remainingWords = 3;
+                    break;
+                case 0xA0:  // Copy rectangle (CPU->VRAM)
                     m_remainingWords = 2;
                     break;
-                case 0xC0: // Copy rectangle (CPU->VRAM)
+                case 0xC0:  // Copy rectangle (CPU->VRAM)
                     m_remainingWords = 2;
                     PCSX::g_system->printf("Unimplemented read rectangle command: %08X\n", word);
                     break;
 
-                case 0xE1: // Set draw mode
-                    m_haveCommand = false; // No params, move straight to the next command
+                case 0xE1:                  // Set draw mode
+                    m_haveCommand = false;  // No params, move straight to the next command
                     PCSX::g_system->printf("Unimplemented set draw mode command: %08X\n", word);
                     break;
                 case 0xE2:                  // Set texture window
@@ -213,87 +235,70 @@ start:
                     const float b = (colour >> 16) & 0xff;
 
                     for (auto i = 0; i < 3; i++) {
-                        const auto v = m_cmdFIFO[i + 1];
-                        const float x = v & 0xffff;
-                        const float y = v >> 16;
-
-                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
-                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
-
-                        xx -= 1.f; // Normalize coords to [-1, 1]
-                        yy -= 1.f;
-                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+                        const uint32_t v = m_cmdFIFO[i + 1];
+                        const uint32_t x = v & 0xffff;
+                        const uint32_t y = v >> 16;
+                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
                     }
 
                     for (auto i = 1; i < 4; i++) {
-                        const auto v = m_cmdFIFO[i + 1];
-                        const float x = v & 0xffff;
-                        const float y = v >> 16;
+                        const uint32_t v = m_cmdFIFO[i + 1];
+                        const uint32_t x = v & 0xffff;
+                        const uint32_t y = v >> 16;
+                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
+                    }
+                }
 
-                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
-                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
-
-                        xx -= 1.f; // Normalize coords to [-1, 1]
-                        yy -= 1.f;
-                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+                else if (m_cmd == 0x20) {
+                    const uint32_t colour = m_cmdFIFO[0] & 0xffffff;
+                    for (int i = 0; i < 3; i++) {
+                        const uint32_t v = m_cmdFIFO[i + 1];
+                        const uint32_t x = v & 0xffff;
+                        const uint32_t y = v >> 16;
+                        const float r = colour & 0xff;
+                        const float g = (colour >> 8) & 0xff;
+                        const float b = (colour >> 16) & 0xff;
+                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
                     }
                 }
 
                 else if (m_cmd == 0x30) {
                     for (int i = 0; i < 3; i++) {
                         const uint32_t colour = m_cmdFIFO[i * 2] & 0xffffff;
-                        const auto v = m_cmdFIFO[i * 2 + 1];
-                        const float x = v & 0xffff;
-                        const float y = v >> 16;
+                        const uint32_t v = m_cmdFIFO[i * 2 + 1];
+                        const uint32_t x = v & 0xffff;
+                        const uint32_t y = v >> 16;
                         const float r = colour & 0xff;
                         const float g = (colour >> 8) & 0xff;
                         const float b = (colour >> 16) & 0xff;
-
-                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
-                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
-
-                        xx -= 1.f; // Normalize coords to [-1, 1]
-                        yy -= 1.f;
-                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
                     }
                 }
 
                 else if (m_cmd == 0x38) {
                     for (int i = 0; i < 3; i++) {
                         const uint32_t colour = m_cmdFIFO[i * 2] & 0xffffff;
-                        const auto v = m_cmdFIFO[i * 2 + 1];
-                        const float x = v & 0xffff;
-                        const float y = v >> 16;
+                        const uint32_t v = m_cmdFIFO[i * 2 + 1];
+                        const uint32_t x = v & 0xffff;
+                        const uint32_t y = v >> 16;
                         const float r = colour & 0xff;
                         const float g = (colour >> 8) & 0xff;
                         const float b = (colour >> 16) & 0xff;
-
-                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
-                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
-
-                        xx -= 1.f;  // Normalize coords to [-1, 1]
-                        yy -= 1.f;
-                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
                     }
 
                     for (int i = 1; i < 4; i++) {
                         const uint32_t colour = m_cmdFIFO[i * 2] & 0xffffff;
-                        const auto v = m_cmdFIFO[i * 2 + 1];
-                        const float x = v & 0xffff;
-                        const float y = v >> 16;
+                        const uint32_t v = m_cmdFIFO[i * 2 + 1];
+                        const uint32_t x = v & 0xffff;
+                        const uint32_t y = v >> 16;
                         const float r = colour & 0xff;
                         const float g = (colour >> 8) & 0xff;
                         const float b = (colour >> 16) & 0xff;
-
-                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
-                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
-
-                        xx -= 1.f; // Normalize coords to [-1, 1]
-                        yy -= 1.f;
-                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
                     }
                 }
-                   
+
                 else if (m_cmd == 0xA0) {
                     m_textureLoad = true;
                     m_haveCommand = true;
@@ -302,7 +307,7 @@ start:
                     const uint32_t height = res >> 16;
                     if (width == 0 || height == 0)
                         PCSX::g_system->printf("Weird %dx%d texture transfer\n", width, height);
-                    
+
                     // The size of the texture in 16-bit pixels. If the number is odd, force align it up
                     const uint32_t size = ((width * height) + 1) & ~1;
                     m_remainingWords = size / 2;
@@ -317,12 +322,12 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) { g_system->printf("TODO: wri
 int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
     int counter = 0;
     do {
-        //if (iGPUHeight == 512) addr &= 0x1FFFFC;
+        // if (iGPUHeight == 512) addr &= 0x1FFFFC;
         if (counter++ > 2000000) break;
-        //if (::CheckForEndlessLoop(addr)) break;
+        // if (::CheckForEndlessLoop(addr)) break;
 
         const uint32_t header = baseAddr[addr >> 2];  // Header of linked list node
-        const uint32_t size = header >> 24; // Number of words to transfer for this node
+        const uint32_t size = header >> 24;           // Number of words to transfer for this node
 
         if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
             g_emulator->m_debug->checkDMAread(2, addr, (size + 1) * 4);
@@ -357,8 +362,7 @@ void PCSX::OpenGL_GPU::updateLace() {
     }
 
     m_gui->setViewport();
-    m_gui->flip(); // Set up offscreen framebuffer before rendering
-
+    m_gui->flip();  // Set up offscreen framebuffer before rendering
     m_gui->m_offscreenShaderEditor.render(m_gui, m_vramTexture.handle(), {0, 0}, {1, 1}, m_gui->getRenderSize());
 }
 
@@ -368,7 +372,6 @@ void PCSX::OpenGL_GPU::renderBatch() {
     OpenGL::draw(OpenGL::Triangles, vertexCount);
     m_vertices.clear();
 }
-
 
 void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("TODO: save\n"); }
 
