@@ -72,6 +72,7 @@ int PCSX::OpenGL_GPU::init() {
         void main() {
            // Normalize coords to [0, 2]
            // The - 0.5 helps fix some holes in rendering, in places like the PS logo
+           // TODO: This might not work when upscaling?
            float xx = (aPos.x - 0.5) / 512.0;
            float yy = (aPos.y - 0.5) / 256;
 
@@ -80,7 +81,7 @@ int PCSX::OpenGL_GPU::init() {
            yy -= 1.0;
            
            gl_Position = vec4(xx, yy, 1.0, 1.0);
-           vertexColor = vec4(Color, 1.0);
+           vertexColor = vec4(Color / 255.0, 1.0);
         }
     )";
 
@@ -238,14 +239,14 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                         const uint32_t v = m_cmdFIFO[i + 1];
                         const uint32_t x = v & 0xffff;
                         const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
+                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
                     }
 
                     for (auto i = 1; i < 4; i++) {
                         const uint32_t v = m_cmdFIFO[i + 1];
                         const uint32_t x = v & 0xffff;
                         const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
+                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
                     }
                 }
 
@@ -258,7 +259,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                         const float r = colour & 0xff;
                         const float g = (colour >> 8) & 0xff;
                         const float b = (colour >> 16) & 0xff;
-                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
+                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
                     }
                 }
 
@@ -271,7 +272,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                         const float r = colour & 0xff;
                         const float g = (colour >> 8) & 0xff;
                         const float b = (colour >> 16) & 0xff;
-                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
+                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
                     }
                 }
 
@@ -284,7 +285,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                         const float r = colour & 0xff;
                         const float g = (colour >> 8) & 0xff;
                         const float b = (colour >> 16) & 0xff;
-                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
+                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
                     }
 
                     for (int i = 1; i < 4; i++) {
@@ -295,7 +296,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                         const float r = colour & 0xff;
                         const float g = (colour >> 8) & 0xff;
                         const float b = (colour >> 16) & 0xff;
-                        m_vertices.push_back(std::move(Vertex(x, y, r / 255.f, g / 255.f, b / 255.f)));
+                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
                     }
                 }
 
