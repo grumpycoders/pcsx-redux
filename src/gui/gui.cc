@@ -261,8 +261,6 @@ void PCSX::GUI::init() {
         setRawMouseMotion(isRawMouseMotionEnabled());
     });
 
-    auto monitor = glfwGetPrimaryMonitor();
-
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -438,15 +436,22 @@ void PCSX::GUI::init() {
     }
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
     g_system->m_eventBus->signal(Events::CreatedVRAMTexture{m_VRAMTexture});
 
+    glDisable(GL_CULL_FACE);
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
     glGenTextures(2, m_offscreenTextures);
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
@@ -586,10 +591,24 @@ void PCSX::GUI::startFrame() {
         normalizeDimensions(m_renderSize, renderRatio);
 
         // Reset texture and framebuffer storage
-        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[0]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[1]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        for (int i = 0; i < 2; i++) {
+            glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        }
+
+        if (m_clearTextures) {
+            const auto allocSize = static_cast<size_t>(std::ceil(m_renderSize.x * m_renderSize.y * sizeof(uint32_t)));
+            GLubyte* data = new GLubyte[allocSize]();
+            for (int i = 0; i < 2; i++) {
+                glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_renderSize.x, m_renderSize.y, GL_RGBA, GL_UNSIGNED_BYTE,
+                                data);
+            }
+            m_clearTextures = false;
+            delete[] data;
+        }
 
         glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
@@ -677,15 +696,11 @@ void PCSX::GUI::startFrame() {
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
 
 void PCSX::GUI::flip() {
+    const GLuint texture = m_offscreenTextures[m_currentTexture];
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
-    glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    GLuint texture = m_offscreenTextures[m_currentTexture];
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
 
@@ -693,12 +708,6 @@ void PCSX::GUI::flip() {
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-
-    glClearColor(0, 0, 0, 0);
-    glClearDepthf(0.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
 }
 
@@ -1053,9 +1062,13 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-    m_mainVRAMviewer.draw(this, m_VRAMTexture);
-    m_clutVRAMviewer.draw(this, m_VRAMTexture);
-    for (auto& viewer : m_VRAMviewers) viewer.draw(this, m_VRAMTexture);
+    if (m_mainVRAMviewer.m_show) m_mainVRAMviewer.draw(this, m_VRAMTexture);
+    if (m_clutVRAMviewer.m_show) m_clutVRAMviewer.draw(this, m_VRAMTexture);
+    for (auto& viewer : m_VRAMviewers) {
+        if (viewer.m_show) {
+            viewer.draw(this, m_VRAMTexture);
+        }
+    }
 
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
@@ -1284,14 +1297,12 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        GLFWwindow* backup_current_context = glfwGetCurrentContext();
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
-        glfwMakeContextCurrent(backup_current_context);
+        glfwMakeContextCurrent(m_window);
     }
 
     glfwSwapBuffers(m_window);
-    glFlush();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
