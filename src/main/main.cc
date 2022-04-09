@@ -95,11 +95,6 @@ class SystemImpl final : public PCSX::System {
         // debugger or UI is requesting a reset
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
         PCSX::g_emulator->reset();
-
-        // Upon hard-reset, clear the VRAM texture displayed by the VRAM viewers as well
-        s_gui->bindVRAMTexture();
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV,
-                        PCSX::g_emulator->m_gpu->getVRAM());
     }
 
     virtual void close() final override {

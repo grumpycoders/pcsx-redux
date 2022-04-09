@@ -179,7 +179,7 @@ void ShowGunCursor(unsigned char *surf) {
 static GLuint vramTexture = 0;
 
 void PCSX::SoftGPU::impl::doBufferSwap() {
-    GLuint textureID = m_vramTexture24;
+    GLuint textureID = m_vramTexture16;
     m_gui->setViewport();
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
@@ -201,7 +201,17 @@ void PCSX::SoftGPU::impl::doBufferSwap() {
     m_gui->flip();
 }
 
-void PCSX::SoftGPU::impl::initDisplay(void) {
+void PCSX::SoftGPU::impl::clearVRAM() {
+    // Cache previously binded texture
+    const auto oldTex = OpenGL::getTex2D();
+    std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
+
+    glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVSecure);
+    glBindTexture(GL_TEXTURE_2D, oldTex);
+}
+
+void PCSX::SoftGPU::impl::initDisplay() {
     glGenTextures(1, &vramTexture);
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
@@ -210,8 +220,8 @@ void PCSX::SoftGPU::impl::initDisplay(void) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glGenTextures(1, &m_vramTexture24);
-    glBindTexture(GL_TEXTURE_2D, m_vramTexture24);
+    glGenTextures(1, &m_vramTexture16);
+    glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

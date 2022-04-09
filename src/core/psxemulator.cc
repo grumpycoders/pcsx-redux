@@ -116,7 +116,7 @@ void PCSX::Emulator::reset() {
     m_mem->reset();
     m_spu->resetCaptureBuffer();
     m_cpu->psxReset();
-    m_gpu->clearVRAM();
+    m_gpu->reset();
     m_pads->shutdown();
     m_pads->init();
     m_pads->reset();

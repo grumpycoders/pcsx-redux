@@ -54,17 +54,17 @@ class impl final : public GPU {
     virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_softPrim.m_useDither = setting; }
     virtual uint8_t *getVRAM() final { return psxVSecure; }
-    virtual void clearVRAM() final {
-        std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
-    }  // Clear VRAM to 0s
-    virtual GLuint getVRAMTexture() final { return m_vramTexture24; }
+    virtual void clearVRAM() final;
+    virtual void reset() final { clearVRAM(); }
+    virtual GLuint getVRAMTexture() final { return m_vramTexture16; }
+
     void updateDisplay();
     void initDisplay();
     void doBufferSwap();
 
     SoftPrim m_softPrim;
     void *m_dumpFile = nullptr;
-    GLuint m_vramTexture24;
+    GLuint m_vramTexture16;
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram

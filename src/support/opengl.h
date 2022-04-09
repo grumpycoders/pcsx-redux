@@ -281,7 +281,7 @@ T get(GLenum query) {
 }
 
 static GLint getDrawFramebuffer() { return get<GLint>(GL_DRAW_FRAMEBUFFER_BINDING); }
-
+static GLint getTex2D() { return get<GLint>(GL_TEXTURE_BINDING_2D); }
 
 }  // end namespace OpenGL
 }  // end namespace PCSX

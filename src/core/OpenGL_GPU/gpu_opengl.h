@@ -92,9 +92,8 @@ class OpenGL_GPU final : public GPU {
     virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_useDither = setting; }
     virtual uint8_t *getVRAM() final { return m_vram; }
-    virtual void clearVRAM() final {
-        std::memset(m_vram, 0x00, m_height * 2 * 1024 + (1024 * 1024));
-    }  // Clear VRAM to 0s
+    virtual void clearVRAM() final;
+    virtual void reset() final;
     virtual GLuint getVRAMTexture() final { return m_vramTexture.handle(); }
 
     void initGP0Funcs();

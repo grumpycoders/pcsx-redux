@@ -31,15 +31,30 @@
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
 
-int PCSX::OpenGL_GPU::init() {
-    g_system->printf("TODO: init\n");
-    // Allocate some extra space for safety
-    m_vram = new uint8_t[m_height * 2 * 1024 + 1024 * 1024]();
+void PCSX::OpenGL_GPU::reset() {
     m_gpustat = 0x14802000;
 
     m_readingMode = TransferMode::CommandTransfer;
     m_writingMode = TransferMode::CommandTransfer;
     m_remainingWords = 0;
+    clearVRAM();
+}
+
+void PCSX::OpenGL_GPU::clearVRAM() {
+    const auto oldFBO = OpenGL::getDrawFramebuffer();
+    m_fbo.bind(OpenGL::DrawFramebuffer);
+    OpenGL::setClearColor(0.f, 0.f, 0.f, 1.f);
+    OpenGL::clearColor();
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oldFBO);
+}
+
+// Do not forget to call this with an active OpenGL context.
+int PCSX::OpenGL_GPU::init() {
+    g_system->printf("TODO: init\n");
+    // Allocate some extra space for safety
+    m_vram = new uint8_t[m_height * 2 * 1024 + 1024 * 1024]();
+    reset();
+
     // Reserve some size for vertices to avoid dynamic allocations later.
     m_vertices.reserve(0x10000);
 
@@ -55,8 +70,14 @@ int PCSX::OpenGL_GPU::init() {
     m_vao.setAttribute(1, 3, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, colors));
     m_vao.enableAttribute(1);
 
+    // Make VRAM texture and attach it to draw frambuffer
     m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
     m_fbo.createWithDrawTexture(m_vramTexture);
+    m_fbo.bind(OpenGL::DrawFramebuffer);
+    // Clear VRAM texture
+    OpenGL::setClearColor(0.0, 0, 0, 1.0);
+    OpenGL::clearColor();
+
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("Non-complete framebuffer");
     }
