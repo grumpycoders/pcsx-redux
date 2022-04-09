@@ -69,7 +69,7 @@ int PCSX::OpenGL_GPU::init() {
         layout (location = 1) in vec3 Color;
         out vec4 vertexColor;
         void main() {
-           gl_Position = vec4(aPos.x, aPos.y, 1.0, 1.0);
+           gl_Position = vec4(-aPos.x, -aPos.y, 1.0, 1.0);
            vertexColor = vec4(Color, 1.0);
         }
     )";
@@ -147,12 +147,6 @@ void PCSX::OpenGL_GPU::writeData(uint32_t value) { writeDataMem(&value, 1); }
 
 void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
     ZoneScoped;  // Let Tracy do its thing
-
-    if (m_writingMode == TransferMode::VRAMTransfer) {
-        g_system->printf("Transferring texture data\n");
-    } else {
-        g_system->printf("Transferring command data\n");
-    }
 
     while (size) {
         const uint32_t word = *source++; // Fetch word, inc pointer. TODO: Better bounds checking.
@@ -242,9 +236,7 @@ start:
                     const float g = (colour >> 8) & 0xff;
                     const float b = (colour >> 16) & 0xff;
 
-                    PCSX::g_system->printf("Monochrome quad with colour: %08X\n", colour);
-
-                    for (auto i = 0; i < 4; i++) {
+                    for (auto i = 0; i < 3; i++) {
                         const auto v = m_cmdFIFO[i + 1];
                         const float x = v & 0xffff;
                         const float y = v >> 16;
@@ -252,14 +244,80 @@ start:
                         float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
                         float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
 
-                        xx -= 1.f;         // make x coord be from -1 to 1
-                        yy = -(yy - 1.f);  // similarly here, but flip the sign too
+                        xx -= 1.f; // Normalize coords to [-1, 1]
+                        yy -= 1.f;
                         m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+                    }
 
-                        PCSX::g_system->printf("v%d  x: %f   y:  %f\n", i + 1, x, y);
+                    for (auto i = 1; i < 4; i++) {
+                        const auto v = m_cmdFIFO[i + 1];
+                        const float x = v & 0xffff;
+                        const float y = v >> 16;
+
+                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
+                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
+
+                        xx -= 1.f; // Normalize coords to [-1, 1]
+                        yy -= 1.f;
+                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
                     }
                 }
 
+                else if (m_cmd == 0x30) {
+                    for (int i = 0; i < 3; i++) {
+                        const uint32_t colour = m_cmdFIFO[i * 2] & 0xffffff;
+                        const auto v = m_cmdFIFO[i * 2 + 1];
+                        const float x = v & 0xffff;
+                        const float y = v >> 16;
+                        const float r = colour & 0xff;
+                        const float g = (colour >> 8) & 0xff;
+                        const float b = (colour >> 16) & 0xff;
+
+                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
+                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
+
+                        xx -= 1.f; // Normalize coords to [-1, 1]
+                        yy -= 1.f;
+                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+                    }
+                }
+
+                else if (m_cmd == 0x38) {
+                    for (int i = 0; i < 3; i++) {
+                        const uint32_t colour = m_cmdFIFO[i * 2] & 0xffffff;
+                        const auto v = m_cmdFIFO[i * 2 + 1];
+                        const float x = v & 0xffff;
+                        const float y = v >> 16;
+                        const float r = colour & 0xff;
+                        const float g = (colour >> 8) & 0xff;
+                        const float b = (colour >> 16) & 0xff;
+
+                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
+                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
+
+                        xx -= 1.f;  // Normalize coords to [-1, 1]
+                        yy -= 1.f;
+                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+                    }
+
+                    for (int i = 1; i < 4; i++) {
+                        const uint32_t colour = m_cmdFIFO[i * 2] & 0xffffff;
+                        const auto v = m_cmdFIFO[i * 2 + 1];
+                        const float x = v & 0xffff;
+                        const float y = v >> 16;
+                        const float r = colour & 0xff;
+                        const float g = (colour >> 8) & 0xff;
+                        const float b = (colour >> 16) & 0xff;
+
+                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
+                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
+
+                        xx -= 1.f; // Normalize coords to [-1, 1]
+                        yy -= 1.f;
+                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+                    }
+                }
+                   
                 else if (m_cmd == 0xA0) {
                     m_textureLoad = true;
                     m_haveCommand = true;
@@ -321,25 +379,17 @@ void PCSX::OpenGL_GPU::updateLace() {
     if (!m_vertices.empty()) {
         renderBatch();
     }
-    
-    m_vbo.bind();
-    m_fbo.bind(OpenGL::DrawFramebuffer);
-    OpenGL::setViewport(m_vramTexture.width(), m_vramTexture.height());
-    m_untexturedTriangleProgram.use();
-    m_vao.bind();
 
     m_gui->setViewport();
     m_gui->flip(); // Set up offscreen framebuffer before rendering
 
-    m_gui->m_offscreenShaderEditor.render(m_gui, m_vramTexture.handle(), {1024.0f, 512.0f}, {0, 0}, {1, 1},
-                                          m_gui->getRenderSize());
+    m_gui->m_offscreenShaderEditor.render(m_gui, m_vramTexture.handle(), {0, 0}, {1, 1}, m_gui->getRenderSize());
 }
 
 void PCSX::OpenGL_GPU::renderBatch() {
     const auto vertexCount = m_vertices.size();
-    PCSX::g_system->printf("Rendering %d vertices\n", vertexCount);
     m_vbo.bufferVerts(&m_vertices[0], vertexCount);
-    OpenGL::draw(OpenGL::TriangleStrip, vertexCount);
+    OpenGL::draw(OpenGL::Triangles, vertexCount);
     m_vertices.clear();
 }
 
