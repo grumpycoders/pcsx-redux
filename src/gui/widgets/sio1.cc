@@ -29,13 +29,13 @@ struct PCSX::SIO1RegisterText {
     const char* notes;
 };
 
-static const int kStatusEntries = 32;
-static const int kModeEntries = 16;
-static const int kControlEntries = 16;
+static constexpr unsigned c_statusEntries = 32;
+static constexpr unsigned c_modeEntries = 16;
+static constexpr unsigned c_controlEntries = 16;
 
 // Lots of repeating strings. Need to add a value for bits repeated?
 
-static PCSX::SIO1RegisterText status_text[kStatusEntries] = {
+static PCSX::SIO1RegisterText status_text[c_statusEntries] = {
     {"TX Ready Flag 1", "(1=Ready/Started)  (depends on CTS) (TX requires CTS)"},  //
     {"RX FIFO Not Empty", "(0=Empty, 1=Not Empty)"},                               //
     {"TX Ready Flag 2", "(1=Ready/Finished) (depends on TXEN and on CTS)"},        //
@@ -70,7 +70,7 @@ static PCSX::SIO1RegisterText status_text[kStatusEntries] = {
     {"Unknown", "(usually zero, sometimes all bits set)"}                          //
 };
 
-static PCSX::SIO1RegisterText mode_text[kModeEntries] = {
+static PCSX::SIO1RegisterText mode_text[c_modeEntries] = {
     {"Baudrate Reload Factor", "(1=MUL1, 2=MUL16, 3=MUL64) (or 0=STOP)"},  //
     {"Baudrate Reload Factor", "(1=MUL1, 2=MUL16, 3=MUL64) (or 0=STOP)"},  //
     {"Character Length", "(0=5bits, 1=6bits, 2=7bits, 3=8bits)"},          //
@@ -89,7 +89,7 @@ static PCSX::SIO1RegisterText mode_text[kModeEntries] = {
     {"Not used", "(always zero)"}                                          //
 };
 
-static PCSX::SIO1RegisterText control_text[kControlEntries] = {
+static PCSX::SIO1RegisterText control_text[c_controlEntries] = {
     {"TX Enable (TXEN)", "(0=Disable, 1=Enable, when CTS=On)"},                      //
     {"DTR Output Level", "(0=Off, 1=On)"},                                           //
     {"RX Enable (RXEN)", "(0=Disable, 1=Enable)  ;Disable also clears RXFIFO"},      //
@@ -108,8 +108,9 @@ static PCSX::SIO1RegisterText control_text[kControlEntries] = {
     {"Not used", "(always zero)"}                                                    //
 };
 
-static ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders |
-                                    ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
+static constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg |
+                                              ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable |
+                                              ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
 
 void ShowHelpMarker(const char* desc) {
     ImGui::SameLine();
@@ -124,42 +125,53 @@ void ShowHelpMarker(const char* desc) {
 }
 
 template <typename T>
-void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1RegisterText* reg_text, int bit_length,
-                                             const char* displayformat) {
-    bool register_set;
+void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1RegisterText* regText) {
+    constexpr unsigned bitLength = sizeof(T) * 8;
+    bool registerSet;
     std::string label;
+    const char* displayFormat = nullptr;
 
-    const std::string table_name = fmt::format("{}Table", regname);
-    char current_value[11];
-    const std::string popup_display_text;
-    const std::string edit_value_of = fmt::format(_("Edit value of {}"), regname);
+    const std::string tableName = fmt::format("{}Table", regname);
+    char currentValue[11];
+    const std::string popupDisplayText;
+    const std::string editValueOf = fmt::format(_("Edit value of {}"), regname);
 
-    snprintf(current_value, 11, displayformat, *reg);
+    if constexpr (sizeof(T) == 1) {
+        displayFormat = "%02x";
+    } else if constexpr (sizeof(T) == 2) {
+        displayFormat = "%04x";
+    } else if constexpr (sizeof(T) == 4) {
+        displayFormat = "%08x";
+    } else {
+        []<bool f = false>() { static_assert(f, "No known formatter"); }
+        ();
+    }
+    snprintf(currentValue, 11, displayFormat, *reg);
 
-    ImGui::Text("%s: 0x%s", regname, current_value);
+    ImGui::Text("%s: 0x%s", regname, currentValue);
     ImGui::SameLine();
     if (ImGui::Button(_("Edit"))) {
-        snprintf(m_registerEditor, 9, displayformat, *reg);
-        ImGui::OpenPopup(edit_value_of.c_str());
+        snprintf(m_registerEditor, 9, displayFormat, *reg);
+        ImGui::OpenPopup(editValueOf.c_str());
     }
 
-    if (ImGui::BeginTable(table_name.c_str(), 3, tableFlags)) {
+    if (ImGui::BeginTable(tableName.c_str(), 3, tableFlags)) {
         ImGui::TableSetupColumn(_("Bit"), ImGuiTableColumnFlags_WidthFixed);          // Column 0
         ImGui::TableSetupColumn(_("Description"), ImGuiTableColumnFlags_WidthFixed);  // 1
         ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed);        // 2
         ImGui::TableHeadersRow();
 
-        for (int row = 0; row < bit_length; row++) {
+        for (int row = 0; row < bitLength; row++) {
             ImGui::TableNextRow();
             for (int column = 0; column <= 2; column++) {
                 ImGui::TableSetColumnIndex(column);
                 switch (column) {
                     case 0:
-                        register_set = (*reg >> row) & 1;
+                        registerSet = (*reg >> row) & 1;
                         label = fmt::format("{}", row);
 
-                        if (ImGui::Checkbox(label.c_str(), &register_set)) {
-                            if (register_set) {
+                        if (ImGui::Checkbox(label.c_str(), &registerSet)) {
+                            if (registerSet) {
                                 *reg |= (1 << row);
                             } else {
                                 *reg &= ~(1 << row);
@@ -168,9 +180,9 @@ void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1Re
                         break;
 
                     case 1:
-                        ImGui::Text(reg_text[row].description);
+                        ImGui::Text(regText[row].description);
                         ImGui::SameLine();
-                        ShowHelpMarker(reg_text[row].notes);
+                        ShowHelpMarker(regText[row].notes);
                         break;
 
                     case 2:
@@ -184,9 +196,9 @@ void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1Re
 
     // Register editor
     {
-        if (ImGui::BeginPopupModal(edit_value_of.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (ImGui::BeginPopupModal(editValueOf.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::Text(_("New value"));
-            if ((ImGui::InputText("h", m_registerEditor, (bit_length/4) + 1,
+            if ((ImGui::InputText("h", m_registerEditor, (bitLength / 4) + 1,
                                   ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) ||
                 ImGui::Button(_("OK"))) {
                 char* endPtr;
@@ -219,9 +231,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title)
     // Status
     {
         ImGui::BeginChild("ChildLStatus", ImVec2(width, 0), true);
-
-        DrawRegisterEditor(&regs->status, _("Status"), status_text, 32, "%08x");
-
+        DrawRegisterEditor(&regs->status, _("Status"), status_text);
         ImGui::EndChild();
     }
 
@@ -230,9 +240,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title)
     // Mode
     {
         ImGui::BeginChild("ChildMMode", ImVec2(width, 0), true);
-
-        DrawRegisterEditor(&regs->mode, _("Mode"), mode_text, 16, "%04x");
-
+        DrawRegisterEditor(&regs->mode, _("Mode"), mode_text);
         ImGui::EndChild();
     }
 
@@ -241,9 +249,7 @@ void PCSX::Widgets::SIO1::draw(GUI* gui, SIO1Registers* regs, const char* title)
     // Control
     {
         ImGui::BeginChild("ChildRControl", ImVec2(width, 0), true);
-
-        DrawRegisterEditor(&regs->control, _("Control"), control_text, 16, "%04x");
-
+        DrawRegisterEditor(&regs->control, _("Control"), control_text);
         ImGui::EndChild();
     }
 

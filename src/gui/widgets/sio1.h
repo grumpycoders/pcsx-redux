@@ -36,10 +36,9 @@ class SIO1 {
 
   private:
     template <typename T>
-    void DrawRegisterEditor(T* reg, const char* regname, SIO1RegisterText* reg_text, int bit_length,
-                                             const char* displayformat);
+    void DrawRegisterEditor(T* reg, const char* regname, SIO1RegisterText* reg_text);
 
-    char m_registerEditor[9]; // Room for 8 nibbles + \0
+    char m_registerEditor[9];  // Room for 8 nibbles + \0
 };
 
 }  // namespace Widgets
