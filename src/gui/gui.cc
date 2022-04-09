@@ -560,7 +560,6 @@ void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 
 void PCSX::GUI::startFrame() {
     ZoneScoped;
-    if (g_system->running()) g_emulator->m_gpu->startFrame();
 
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     auto& L = g_emulator->m_lua;
@@ -1712,7 +1711,13 @@ bool PCSX::GUI::about() {
 void PCSX::GUI::update(bool vsync) {
     endFrame();
     startFrame();
-    if (vsync && m_breakOnVSync) g_system->pause();
+    if (vsync) {
+        if (m_breakOnVSync) {
+            g_system->pause();
+        } else {
+            g_emulator->m_gpu->startFrame();
+        }
+    }
 }
 
 void PCSX::GUI::shellReached() {

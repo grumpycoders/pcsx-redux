@@ -250,5 +250,15 @@ static void draw(Primitives prim, GLint first, GLsizei vertexCount) {
     glDrawArrays(static_cast<GLenum>(prim), first, vertexCount);
 }
 
+enum FillMode {
+    DrawPoints = GL_POINT,
+    DrawWire = GL_LINE,
+    FillPoly = GL_FILL
+};
+
+static void setFillMode(GLenum mode) { glPolygonMode(GL_FRONT_AND_BACK, mode); }
+static void setFillMode(FillMode mode) { glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode)); }
+static void drawWireframe() { setFillMode(DrawWire); }
+
 }  // end namespace OpenGL
 }  // end namespace PCSX

@@ -158,6 +158,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     PCSX::g_system->printf("Fill rectangle\n");
                     break;
                 case 0x20:  // Monochrome triangle
+                case 0x22:  // Monochrome triangle, semi-transparent (unimplemented)
                     m_remainingWords = 3;
                     break;
                 case 0x28:  // Monochrome quad
@@ -349,8 +350,8 @@ bool PCSX::OpenGL_GPU::configure() {
 
 // Called at the start of a frame
 void PCSX::OpenGL_GPU::startFrame() {
-    m_vao.bind();
     m_vbo.bind();
+    m_vao.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
     OpenGL::setViewport(m_vramTexture.width(), m_vramTexture.height());
     m_untexturedTriangleProgram.use();
