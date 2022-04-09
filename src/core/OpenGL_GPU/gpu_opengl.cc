@@ -183,6 +183,15 @@ start:
                 case 0x28: // Monochrome quad
                     m_remainingWords = 4;
                     break;
+                case 0x2C: // Texured quad with blending
+                    m_remainingWords = 8;
+                    break;
+                case 0x30: // Shaded triangle
+                    m_remainingWords = 5;
+                    break;
+                case 0x38: // Shaded quad
+                    m_remainingWords = 7;
+                    break;
                 case 0xA0: // Copy rectangle (CPU->VRAM)
                     m_remainingWords = 2;
                     break;
@@ -190,9 +199,30 @@ start:
                     m_remainingWords = 2;
                     PCSX::g_system->printf("Unimplemented read rectangle command: %08X\n", word);
                     break;
+
                 case 0xE1: // Set draw mode
                     m_haveCommand = false; // No params, move straight to the next command
                     PCSX::g_system->printf("Unimplemented set draw mode command: %08X\n", word);
+                    break;
+                case 0xE2:                  // Set texture window
+                    m_haveCommand = false;  // No params, move straight to the next command
+                    PCSX::g_system->printf("Unimplemented set texture window command: %08X\n", word);
+                    break;
+                case 0xE3:                  // Set draw area top left
+                    m_haveCommand = false;  // No params, move straight to the next command
+                    PCSX::g_system->printf("Unimplemented set draw area top left command: %08X\n", word);
+                    break;
+                case 0xE4:                  // Set draw area bottom right
+                    m_haveCommand = false;  // No params, move straight to the next command
+                    PCSX::g_system->printf("Unimplemented set draw area bottom right command: %08X\n", word);
+                    break;
+                case 0xE5:                  // Set draw offset
+                    m_haveCommand = false;  // No params, move straight to the next command
+                    PCSX::g_system->printf("Unimplemented set draw offset command: %08X\n", word);
+                    break;
+                case 0xE6:                  // Set draw mask
+                    m_haveCommand = false;  // No params, move straight to the next command
+                    PCSX::g_system->printf("Unimplemented set draw mask command: %08X\n", word);
                     break;
                 default:
                     m_haveCommand = false;
@@ -254,16 +284,16 @@ int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
         if (counter++ > 2000000) break;
         //if (::CheckForEndlessLoop(addr)) break;
 
-        const uint32_t header = baseAddr[addr];  // Header of linked list node
+        const uint32_t header = baseAddr[addr >> 2];  // Header of linked list node
         const uint32_t size = header >> 24; // Number of words to transfer for this node
 
         if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
             g_emulator->m_debug->checkDMAread(2, addr, (size + 1) * 4);
         }
 
-        if (size > 0) writeDataMem(&baseAddr[(addr + 4) >> 2] + 1, size);
+        if (size > 0) writeDataMem(&baseAddr[(addr + 4) >> 2], size);
 
-        addr = baseAddr[addr >> 2] & 0xffffff;
+        addr = header & 0xffffff;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
     return 0;
