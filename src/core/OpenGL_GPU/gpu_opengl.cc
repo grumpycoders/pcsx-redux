@@ -29,19 +29,6 @@
 #include "gui/gui.h"
 #include "tracy/Tracy.hpp"
 
-struct VertexData {
-    float positions[2];
-    float colors[3];
-
-    VertexData(float x, float y, float r, float g, float b) {
-        positions[0] = x;
-        positions[1] = y;
-        colors[0] = r;
-        colors[1] = g;
-        colors[2] = b;
-    }
-};
-
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
 
 int PCSX::OpenGL_GPU::init() {
@@ -53,15 +40,19 @@ int PCSX::OpenGL_GPU::init() {
     m_readingMode = TransferMode::CommandTransfer;
     m_writingMode = TransferMode::CommandTransfer;
     m_remainingWords = 0;
+    // Reserve some size for vertices to avoid dynamic allocations later.
+    m_vertices.reserve(0x10000);
 
-    m_vao.create();
     m_vbo.create();
+    m_vbo.bind();
+    m_vao.create();
     m_vao.bind();
 
-    // Position attribute
-    m_vao.setAttribute(0, 2, GL_FLOAT, false, sizeof(VertexData), offsetof(VertexData, positions));
+    // Position (x and y coord) attribute
+    m_vao.setAttribute(0, 2, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, positions));
     m_vao.enableAttribute(0);
-    m_vao.setAttribute(1, 3, GL_FLOAT, false, sizeof(VertexData), offsetof(VertexData, colors));
+    // Colour (r, g, b) attribute
+    m_vao.setAttribute(1, 3, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, colors));
     m_vao.enableAttribute(1);
 
     m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
@@ -119,7 +110,8 @@ int PCSX::OpenGL_GPU::init() {
     OpenGL::Shader vert(vertSource, OpenGL::Vertex);
     OpenGL::Shader geom(geomSource, OpenGL::Geometry);
     m_untexturedTriangleProgram.create({frag, vert});
-
+    m_untexturedTriangleProgram.use();
+    
     return 0;
 }
 
@@ -245,15 +237,26 @@ start:
             if (m_remainingWords == 0) {
                 m_haveCommand = false;
                 if (m_cmd == 0x28) {
-                    const auto colour = m_cmdFIFO[0] & 0xffffff;
+                    const uint32_t colour = m_cmdFIFO[0] & 0xffffff;
+                    const float r = colour & 0xff;
+                    const float g = (colour >> 8) & 0xff;
+                    const float b = (colour >> 16) & 0xff;
+
                     PCSX::g_system->printf("Monochrome quad with colour: %08X\n", colour);
 
                     for (auto i = 0; i < 4; i++) {
                         const auto v = m_cmdFIFO[i + 1];
-                        const auto x = v & 0xffff;
-                        const auto y = v >> 16;
+                        const float x = v & 0xffff;
+                        const float y = v >> 16;
 
-                        PCSX::g_system->printf("v%d  x: %d   y:  %d\n", i + 1, x, y);
+                        float xx = x / ((float)vramWidth / 2.f);   // get an x coord from 0 to 2
+                        float yy = y / ((float)vramHeight / 2.f);  // get a y coord from 0 to 2
+
+                        xx -= 1.f;         // make x coord be from -1 to 1
+                        yy = -(yy - 1.f);  // similarly here, but flip the sign too
+                        m_vertices.push_back(std::move(Vertex(xx, yy, r / 255.f, g / 255.f, b / 255.f)));
+
+                        PCSX::g_system->printf("v%d  x: %f   y:  %f\n", i + 1, x, y);
                     }
                 }
 
@@ -315,12 +318,15 @@ void PCSX::OpenGL_GPU::startFrame() {
 
 // Called at the end of a frame
 void PCSX::OpenGL_GPU::updateLace() {
-    VertexData triangle[3] = {
-        VertexData(0, 0, 1.0, 0, 0), VertexData(0.3, -0.6, 0.0, 1.0, 0.0), VertexData(-0.7, -0.3, 0.0, 0.0, 1.0)
-    };
-
-    m_vbo.bufferVerts(triangle, 3);
-    OpenGL::draw(OpenGL::Triangle, 3);
+    if (!m_vertices.empty()) {
+        renderBatch();
+    }
+    
+    m_vbo.bind();
+    m_fbo.bind(OpenGL::DrawFramebuffer);
+    OpenGL::setViewport(m_vramTexture.width(), m_vramTexture.height());
+    m_untexturedTriangleProgram.use();
+    m_vao.bind();
 
     m_gui->setViewport();
     m_gui->flip(); // Set up offscreen framebuffer before rendering
@@ -328,6 +334,15 @@ void PCSX::OpenGL_GPU::updateLace() {
     m_gui->m_offscreenShaderEditor.render(m_gui, m_vramTexture.handle(), {1024.0f, 512.0f}, {0, 0}, {1, 1},
                                           m_gui->getRenderSize());
 }
+
+void PCSX::OpenGL_GPU::renderBatch() {
+    const auto vertexCount = m_vertices.size();
+    PCSX::g_system->printf("Rendering %d vertices\n", vertexCount);
+    m_vbo.bufferVerts(&m_vertices[0], vertexCount);
+    OpenGL::draw(OpenGL::TriangleStrip, vertexCount);
+    m_vertices.clear();
+}
+
 
 void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("TODO: save\n"); }
 

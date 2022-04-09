@@ -30,6 +30,18 @@ enum class TransferMode { CommandTransfer, VRAMTransfer };
 
 class OpenGL_GPU final : public GPU {
     using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
+    struct Vertex {
+        float positions[2];
+        float colors[3];
+
+        Vertex(float x, float y, float r, float g, float b) {
+            positions[0] = x;
+            positions[1] = y;
+            colors[0] = r;
+            colors[1] = g;
+            colors[2] = b;
+        }
+    };
 
     virtual int init() final;
     virtual int shutdown() final;
@@ -66,6 +78,7 @@ class OpenGL_GPU final : public GPU {
     OpenGL::Framebuffer m_fbo;
     OpenGL::Texture m_vramTexture;
 
+    std::vector<Vertex> m_vertices;
     std::array<uint32_t, 16> m_cmdFIFO;
     std::array<GP0Func, 256> m_gp0Funcs;
     int m_FIFOIndex;
@@ -85,6 +98,6 @@ class OpenGL_GPU final : public GPU {
     virtual GLuint getVRAMTexture() final { return m_vramTexture.handle(); }
 
     void initGP0Funcs();
-
+    void renderBatch();
 };
 }  // namespace PCSX
