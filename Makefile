@@ -1,8 +1,10 @@
 TARGET := pcsx-redux
 BUILD ?= Release
 DESTDIR ?= /usr/local
+CROSS ?= none
 
 UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
@@ -83,11 +85,17 @@ LDFLAGS_asan += -fsanitize=address
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
 LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
 
+ifeq ($(CROSS),arm64)
+    CPPFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
+    LDFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
+endif
+
 LD := $(CXX)
 
 SRCS := $(call rwildcard,src/,*.cc)
 SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
+VIXL_SRCS := $(call rwildcard, third_party/vixl/src,*.cc)
 SRCS += $(IMGUI_SRCS)
 SRCS += $(wildcard third_party/libelfin/*.cc)
 SRCS += third_party/clip/clip.cpp
@@ -111,6 +119,21 @@ ifeq ($(UNAME_S),Darwin)
 else
     SRCS += third_party/clip/clip_x11.cpp
 endif
+ifeq ($(UNAME_M),aarch64)
+        SRCS += $(VIXL_SRCS)
+        CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+        CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+endif
+ifeq ($(UNAME_M),arm64)
+        SRCS += $(VIXL_SRCS)
+        CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+        CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+endif
+ifeq ($(CROSS),arm64)
+        SRCS += $(VIXL_SRCS)
+        CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+        CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+endif
 SUPPORT_SRCS := $(call rwildcard,src/support/,*.cc)
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
@@ -125,7 +148,7 @@ SUPPORT_OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS)))
 SUPPORT_OBJECTS += third_party/luajit/src/libluajit.a
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
 IMGUI_OBJECTS := $(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS)))
-
+VIXL_OBJECTS := $(patsubst %.cc,%.o,$(filter %.cc,$(VIXL_SRCS)))
 $(IMGUI_OBJECTS): EXTRA_CPPFLAGS := $(IMGUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
@@ -177,8 +200,13 @@ appimage:
 	DESTDIR=AppDir/usr $(MAKE) $(MAKEOPTS) install
 	appimage-builder --skip-tests
 
+ifeq ($(CROSS),arm64)
+third_party/luajit/src/libluajit.a:
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=gcc-10 CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
+else
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
+endif
 
 $(TARGET): $(OBJECTS)
 	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
@@ -217,6 +245,7 @@ gitclean:
 
 define msgmerge
 msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
+
 endef
 
 regen-i18n:

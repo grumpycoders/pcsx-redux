@@ -23,7 +23,7 @@
 
 #include "mips/common/util/sjis-table.h"
 
-std::string PCSX::Sjis::toUtf8(std::string_view str) {
+std::string PCSX::Sjis::toUtf8(const std::string_view& str) {
     std::string ret;
     constexpr unsigned tableSize = sizeof(c_sjisToUnicodeConvTable) / sizeof(c_sjisToUnicodeConvTable[0]);
     for (size_t i = 0; i < str.length(); i++) {

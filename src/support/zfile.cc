@@ -25,8 +25,10 @@ ssize_t PCSX::ZReader::rSeek(ssize_t pos, int wheel) {
             m_filePtr = pos;
             break;
         case SEEK_END:
-            throw std::runtime_error("Can't seek from the end of a ZReader");
-            m_filePtr += pos;
+            if (m_size < 0) {
+                throw std::runtime_error("Unable to seek from end without knowing full size");
+            }
+            m_filePtr = m_size + pos;
             break;
         case SEEK_CUR:
             m_filePtr += pos;

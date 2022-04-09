@@ -31,17 +31,16 @@
 
 #include "core/system.h"
 #include "json.hpp"
+#include "support/typestring-wrapper.h"
 #include "typestring.hh"
 
 namespace PCSX {
 
 template <typename type, typename name, type defaultValue = type()>
-class Setting;
+struct Setting;
 template <typename type, char... C, type defaultValue>
-class Setting<type, irqus::typestring<C...>, defaultValue> {
+struct Setting<type, irqus::typestring<C...>, defaultValue> {
     using json = nlohmann::json;
-
-  public:
     typedef irqus::typestring<C...> name;
 
   private:
@@ -60,12 +59,10 @@ class Setting<type, irqus::typestring<C...>, defaultValue> {
 };
 
 template <typename name, typename defaultValue = irqus::typestring<'\0'>>
-class SettingString;
+struct SettingString;
 template <char... C, char... D>
-class SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
+struct SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
     using json = nlohmann::json;
-
-  public:
     typedef irqus::typestring<C...> name;
     typedef irqus::typestring<D...> defaultValue;
     typedef std::string type;
@@ -87,12 +84,10 @@ class SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
 };
 
 template <typename name, typename defaultValue = irqus::typestring<'\0'>>
-class SettingPath;
+struct SettingPath;
 template <char... C, char... D>
-class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
+struct SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     using json = nlohmann::json;
-
-  public:
     typedef irqus::typestring<C...> name;
     typedef irqus::typestring<D...> defaultValue;
     typedef std::filesystem::path type;
@@ -120,13 +115,11 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
 };
 
 template <typename name, int defaultValue, int divisor>
-class SettingFloat;
+struct SettingFloat;
 template <char... C, int defaultValue, int divisor>
-class SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
+struct SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
     using json = nlohmann::json;
     static_assert(divisor != 0, "Can't have a SettingFloat with a divisor of 0");
-
-  public:
     typedef irqus::typestring<C...> name;
     typedef float type;
 
@@ -146,20 +139,17 @@ class SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
 };
 
 template <typename name, typename nestedSettings>
-class SettingNested;
+struct SettingNested;
 template <char... C, typename nestedSettings>
-class SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSettings {
-  public:
+struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSettings {
     typedef irqus::typestring<C...> name;
 };
 
 template <typename name, typename nestedSetting>
-class SettingArray;
+struct SettingArray;
 template <char... C, typename nestedSetting>
-class SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<nestedSetting> {
+struct SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<nestedSetting> {
     using json = nlohmann::json;
-
-  public:
     typedef irqus::typestring<C...> name;
     json serialize() const {
         auto ret = json::array();
@@ -183,10 +173,8 @@ class SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<
 };
 
 template <typename... settings>
-class Settings : private std::tuple<settings...> {
+struct Settings : private std::tuple<settings...> {
     using json = nlohmann::json;
-
-  public:
     template <typename setting>
     constexpr const setting &get() const {
         return std::get<setting>(*this);
@@ -202,20 +190,8 @@ class Settings : private std::tuple<settings...> {
         return ret;
     }
     constexpr void deserialize(const json &j) { deserialize<0, settings...>(j); }
-    void foreach (std::function<void(int, const char *)> iter) {
-        foreach
-            <0, settings...>(iter);
-    }
 
   private:
-    template <size_t index>
-    void foreach (std::function<void(int, const char *)> iter) {}
-    template <size_t index, typename settingType, typename... nestedSettings>
-    void foreach (std::function<void(int, const char *)> iter) {
-        iter(index, settingType::name);
-        foreach
-            <index + 1, nestedSettings...>(iter);
-    }
     template <size_t index>
     constexpr void reset() {}
     template <size_t index, typename settingType, typename... nestedSettings>
@@ -251,29 +227,3 @@ class Settings : private std::tuple<settings...> {
 };
 
 }  // namespace PCSX
-
-#if defined(_MSC_VER) && !defined(__clang__)
-#define TYPESTRING_MAX_CONST_CHAR 63
-
-#define TYPESTRING_MIN(a, b) (a) < (b) ? (a) : (b)
-
-#define TYPESTRING(s)                                                                                               \
-    irqus::typestring<                                                                                              \
-        ts_getChr(s, 0), ts_getChr(s, 1), ts_getChr(s, 2), ts_getChr(s, 3), ts_getChr(s, 4), ts_getChr(s, 5),       \
-        ts_getChr(s, 6), ts_getChr(s, 7), ts_getChr(s, 8), ts_getChr(s, 9), ts_getChr(s, 10), ts_getChr(s, 11),     \
-        ts_getChr(s, 12), ts_getChr(s, 13), ts_getChr(s, 14), ts_getChr(s, 15), ts_getChr(s, 16), ts_getChr(s, 17), \
-        ts_getChr(s, 18), ts_getChr(s, 19), ts_getChr(s, 20), ts_getChr(s, 21), ts_getChr(s, 22), ts_getChr(s, 23), \
-        ts_getChr(s, 24), ts_getChr(s, 25), ts_getChr(s, 26), ts_getChr(s, 27), ts_getChr(s, 28), ts_getChr(s, 29), \
-        ts_getChr(s, 30), ts_getChr(s, 31), ts_getChr(s, 32), ts_getChr(s, 33), ts_getChr(s, 34), ts_getChr(s, 35), \
-        ts_getChr(s, 36), ts_getChr(s, 37), ts_getChr(s, 38), ts_getChr(s, 39), ts_getChr(s, 40), ts_getChr(s, 41), \
-        ts_getChr(s, 42), ts_getChr(s, 43), ts_getChr(s, 44), ts_getChr(s, 45), ts_getChr(s, 46), ts_getChr(s, 47), \
-        ts_getChr(s, 48), ts_getChr(s, 49), ts_getChr(s, 50), ts_getChr(s, 51), ts_getChr(s, 52), ts_getChr(s, 53), \
-        ts_getChr(s, 54), ts_getChr(s, 55), ts_getChr(s, 56), ts_getChr(s, 57), ts_getChr(s, 58), ts_getChr(s, 59), \
-        ts_getChr(s, 60), ts_getChr(s, 61), ts_getChr(s, 62), ts_getChr(s, 63)>
-
-#define ts_getChr(name, ii) \
-    ((TYPESTRING_MIN(ii, TYPESTRING_MAX_CONST_CHAR)) < sizeof(name) / sizeof(*name) ? name[ii] : 0)
-
-#else
-#define TYPESTRING(s) typestring_is(s)
-#endif

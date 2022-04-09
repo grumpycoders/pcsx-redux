@@ -42,6 +42,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sio1-server.h"
+#include "core/sio1.h"
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"
@@ -260,8 +261,6 @@ void PCSX::GUI::init() {
         setRawMouseMotion(isRawMouseMotionEnabled());
     });
 
-    auto monitor = glfwGetPrimaryMonitor();
-
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -383,10 +382,10 @@ void PCSX::GUI::init() {
         g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
 
         std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
-        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
+        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso(isoToOpen));
         isoToOpen = m_args.get<std::string>("loadiso", "");
-        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
-
+        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso(isoToOpen));
+        PCSX::g_emulator->m_cdrom->check();
         auto argPCdrv = m_args.get<bool>("pcdrv");
         auto argPCdrvBase = m_args.get<std::string>("pcdrvbase");
         if (argPCdrv.has_value()) {
@@ -435,15 +434,22 @@ void PCSX::GUI::init() {
     }
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
     g_system->m_eventBus->signal(Events::CreatedVRAMTexture{m_VRAMTexture});
 
+    glDisable(GL_CULL_FACE);
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
     glGenTextures(2, m_offscreenTextures);
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
@@ -585,10 +591,24 @@ void PCSX::GUI::startFrame() {
         normalizeDimensions(m_renderSize, renderRatio);
 
         // Reset texture and framebuffer storage
-        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[0]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[1]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        for (int i = 0; i < 2; i++) {
+            glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        }
+
+        if (m_clearTextures) {
+            const auto allocSize = static_cast<size_t>(std::ceil(m_renderSize.x * m_renderSize.y * sizeof(uint32_t)));
+            GLubyte* data = new GLubyte[allocSize]();
+            for (int i = 0; i < 2; i++) {
+                glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_renderSize.x, m_renderSize.y, GL_RGBA, GL_UNSIGNED_BYTE,
+                                data);
+            }
+            m_clearTextures = false;
+            delete[] data;
+        }
 
         glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
@@ -676,15 +696,11 @@ void PCSX::GUI::startFrame() {
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
 
 void PCSX::GUI::flip() {
+    const GLuint texture = m_offscreenTextures[m_currentTexture];
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
-    glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    GLuint texture = m_offscreenTextures[m_currentTexture];
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
 
@@ -692,12 +708,6 @@ void PCSX::GUI::flip() {
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-
-    glClearColor(0, 0, 0, 0);
-    glClearDepthf(0.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
 }
 
@@ -759,8 +769,8 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu(_("File"))) {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open ISO"));
                 if (ImGui::MenuItem(_("Close ISO"))) {
-                    PCSX::g_emulator->m_cdrom->m_iso.close();
-                    CheckCdrom();
+                    PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso());
+                    PCSX::g_emulator->m_cdrom->check();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
                     showOpenBinaryDialog = true;
@@ -810,15 +820,15 @@ void PCSX::GUI::endFrame() {
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(-1);
+                    PCSX::g_emulator->m_cdrom->setLidOpenTime(-1);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 if (ImGui::MenuItem(_("Close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(0);
+                    PCSX::g_emulator->m_cdrom->setLidOpenTime(0);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime((int64_t)time(NULL) + 2);
+                    PCSX::g_emulator->m_cdrom->setLidOpenTime((int64_t)time(nullptr) + 2);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 ImGui::Separator();
@@ -965,6 +975,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
+                ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
+                ImGui::Separator();
                 if (ImGui::MenuItem(_("Start GPU dump"))) {
                     PCSX::g_emulator->m_gpu->startDump();
                 }
@@ -993,9 +1005,9 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             }
             ImGui::Separator();
             ImGui::Separator();
-            ImGui::Text(_("CPU: %s"), g_emulator->m_cpu->isDynarec() ? "DynaRec" : "Interpreted");
+            ImGui::Text(_("CPU: %s"), g_emulator->m_cpu->getName().c_str());
             ImGui::Separator();
-            ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdromId);
+            ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdrom->getCDRomID().c_str());
             ImGui::Separator();
             if (g_system->running()) {
                 ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
@@ -1023,8 +1035,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         changed = true;
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
-            PCSX::g_emulator->m_cdrom->m_iso.close();
-            PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+            PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
+            PCSX::g_emulator->m_cdrom->check();
         }
     }
 
@@ -1050,9 +1062,13 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-    m_mainVRAMviewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
-    m_clutVRAMviewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
-    for (auto& viewer : m_VRAMviewers) viewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
+    if (m_mainVRAMviewer.m_show) m_mainVRAMviewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
+    if (m_clutVRAMviewer.m_show) m_clutVRAMviewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
+    for (auto& viewer : m_VRAMviewers) {
+        if (viewer.m_show) {
+            viewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
+        }
+    }
 
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
@@ -1128,8 +1144,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), &m_dwarf,
-                        _("Assembly"));
+        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), &m_dwarf, _("Assembly"));
     }
 
     if (m_disassembly.m_show && PCSX::g_emulator->m_cpu->isDynarec()) {
@@ -1164,6 +1179,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_offscreenShaderEditor.draw(this, _("Offscreen Render"))) {
         // maybe throttle this?
         m_offscreenShaderEditor.compile(this);
+    }
+
+    if (m_sio1.m_show) {
+        m_sio1.draw(this, &PCSX::g_emulator->m_sio1->m_regs, _("SIO1 Debug"));
     }
 
     PCSX::g_emulator->m_spu->debug();
@@ -1278,14 +1297,12 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        GLFWwindow* backup_current_context = glfwGetCurrentContext();
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
-        glfwMakeContextCurrent(backup_current_context);
+        glfwMakeContextCurrent(m_window);
     }
 
     glfwSwapBuffers(m_window);
-    glFlush();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
@@ -1364,22 +1381,6 @@ with development binaries and games.)"));
                     changed = true;
                     type = PCSX::Emulator::PSX_TYPE_PAL;
                     autodetect = false;
-                }
-                ImGui::EndCombo();
-            }
-        }
-
-        {
-            const char* labels[] = {_("Disabled"), _("Little Endian"), _("Big Endian")};
-            auto& cdda = settings.get<Emulator::SettingCDDA>().value;
-            if (ImGui::BeginCombo(_("CDDA"), labels[cdda])) {
-                int counter = 0;
-                for (auto& label : labels) {
-                    if (ImGui::Selectable(label, cdda == counter)) {
-                        changed = true;
-                        cdda = decltype(cdda)(counter);
-                    }
-                    counter++;
                 }
                 ImGui::EndCombo();
             }
@@ -1761,7 +1762,8 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
     } else {
-        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(pathStr);
+        PCSX::g_emulator->m_cdrom->m_iso.reset(new CDRIso(pathStr));
+        PCSX::g_emulator->m_cdrom->check();
     }
 
     free(extension);
@@ -1769,17 +1771,17 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
 std::string PCSX::GUI::buildSaveStateFilename(int i) {
     // the ID of the game. Every savestate is marked with the ID of the game it's from.
-    const auto gameID = g_emulator->m_cdromId;
+    const auto gameID = g_emulator->m_cdrom->getCDRomID();
 
     // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
     // EXEs don't have proper IDs
-    if (gameID[0] != 0) {
+    if (!gameID.empty()) {
         // For games with an ID of SLUS00213 for example, this will generate a state named
         // SLUS00213.sstate
         return fmt::format("{}.sstate{}", gameID, i);
     } else {
         // For games without IDs, identify them via filename
-        const auto& iso = PCSX::g_emulator->m_cdrom->m_iso.getIsoPath().filename();
+        const auto& iso = PCSX::g_emulator->m_cdrom->m_iso->getIsoPath().filename();
         const auto lastFile = iso.empty() ? "BIOS" : iso.string();
         return fmt::format("{}.sstate{}", lastFile, i);
     }

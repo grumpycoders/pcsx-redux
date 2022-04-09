@@ -320,6 +320,9 @@
     <ProjectReference Include="..\capstone\capstone_static.vcxproj">
       <Project>{5b01d900-2359-44ca-9914-6b0c6afb7be7}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\cdrom\cdrom.vcxproj">
+      <Project>{026aecdd-eb41-4afd-866c-59f9fe886ff6}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\clip\clip.vcxproj">
       <Project>{a057157e-7638-474a-9d02-91483f20b301}</Project>
     </ProjectReference>

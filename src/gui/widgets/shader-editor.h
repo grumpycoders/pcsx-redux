@@ -36,8 +36,8 @@ namespace Widgets {
 
 class ShaderEditor {
   public:
-    ShaderEditor(const std::string& base, std::string_view dVS = "", std::string_view dPS = "",
-                 std::string_view dL = "");
+    ShaderEditor(const std::string& base, const std::string_view& dVS = "", const std::string_view& dPS = "",
+                 const std::string_view& dL = "");
     [[nodiscard]] std::optional<GLuint> compile(GUI* gui,
                                                 const std::vector<std::string_view>& mandatoryAttributes = {});
 
@@ -57,8 +57,7 @@ class ShaderEditor {
 
     bool draw(GUI*, const char* title);
     void renderWithImgui(GUI* gui, ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
-    void render(GUI*, GLuint textureID, const ImVec2& texSize, const ImVec2& srcLoc, const ImVec2& srcSize,
-                const ImVec2& dstSize);
+    void render(GUI*, GLuint textureID, const ImVec2& srcLoc, const ImVec2& srcSize, const ImVec2& dstSize);
 
     void setConfigure(bool configure = true);
     void configure(GUI*);
@@ -84,6 +83,7 @@ class ShaderEditor {
     bool m_autoreload = true;
     bool m_autosave = true;
     bool m_showAll = false;
+    bool m_setupVAO = true;
 
     static lua_Number s_index;
     const lua_Number m_index;

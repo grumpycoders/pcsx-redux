@@ -288,8 +288,7 @@ uint32_t PCSX::GTE::MFC2_internal(int reg) {
         case 9:
         case 10:
         case 11:
-            PCSX::g_emulator->m_cpu->m_regs.CP2D.p[reg].d =
-                (int32_t)PCSX::g_emulator->m_cpu->m_regs.CP2D.p[reg].sw.l;
+            PCSX::g_emulator->m_cpu->m_regs.CP2D.p[reg].d = (int32_t)PCSX::g_emulator->m_cpu->m_regs.CP2D.p[reg].sw.l;
             break;
 
         case 7:
@@ -297,8 +296,7 @@ uint32_t PCSX::GTE::MFC2_internal(int reg) {
         case 17:
         case 18:
         case 19:
-            PCSX::g_emulator->m_cpu->m_regs.CP2D.p[reg].d =
-                (uint32_t)PCSX::g_emulator->m_cpu->m_regs.CP2D.p[reg].w.l;
+            PCSX::g_emulator->m_cpu->m_regs.CP2D.p[reg].d = (uint32_t)PCSX::g_emulator->m_cpu->m_regs.CP2D.p[reg].w.l;
             break;
 
         case 15:

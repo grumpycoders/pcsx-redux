@@ -70,8 +70,7 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc, PCSX::GUI* gui)
     }
 
     if (pc != m_oldPC) {
-        m_currentStacktrace =
-            Stacktrace::computeStacktrace(g_emulator->m_mem.get(), &g_emulator->m_cpu->m_regs);
+        m_currentStacktrace = Stacktrace::computeStacktrace(g_emulator->m_mem.get(), &g_emulator->m_cpu->m_regs);
         bool found = false;
         m_oldPC = pc;
         for (auto& e : g_emulator->m_mem->getElves()) {

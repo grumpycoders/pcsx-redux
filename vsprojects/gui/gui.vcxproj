@@ -256,6 +256,7 @@
     <ClCompile Include="..\..\src\gui\widgets\memory_observer.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\shader-editor.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\sio1.cc" />
     <ClCompile Include="..\..\src\gui\widgets\source.cc" />
     <ClCompile Include="..\..\src\gui\widgets\types.cc" />
     <ClCompile Include="..\..\src\gui\widgets\vram-viewer.cc" />
@@ -282,6 +283,7 @@
     <ClInclude Include="..\..\src\gui\widgets\memory_observer.h" />
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />
     <ClInclude Include="..\..\src\gui\widgets\shader-editor.h" />
+    <ClInclude Include="..\..\src\gui\widgets\sio1.h" />
     <ClInclude Include="..\..\src\gui\widgets\source.h" />
     <ClInclude Include="..\..\src\gui\widgets\types.h" />
     <ClInclude Include="..\..\src\gui\widgets\vram-viewer.h" />

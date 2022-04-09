@@ -237,7 +237,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\core\binloader.cc" />
     <ClCompile Include="..\..\src\core\callstacks.cc" />
-    <ClCompile Include="..\..\src\core\cdriso.cc" />
     <ClCompile Include="..\..\src\core\cdrom.cc" />
     <ClCompile Include="..\..\src\core\cheat.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
@@ -256,8 +255,8 @@
     <ClCompile Include="..\..\src\core\gte.cc" />
     <ClCompile Include="..\..\src\core\kernel.cc" />
     <ClCompile Include="..\..\src\core\kernellog.cc" />
+    <ClCompile Include="..\..\src\core\luaiso.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
-    <ClCompile Include="..\..\src\core\misc.cc" />
     <ClCompile Include="..\..\src\core\OpenGL_GPU\command_processor.cc" />
     <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc" />
     <ClCompile Include="..\..\src\core\pad.cc" />
@@ -267,7 +266,6 @@
     <ClCompile Include="..\..\src\core\pgxp_gte.cc" />
     <ClCompile Include="..\..\src\core\pgxp_mem.cc" />
     <ClCompile Include="..\..\src\core\pgxp_value.cc" />
-    <ClCompile Include="..\..\src\core\ppf.cc" />
     <ClCompile Include="..\..\src\core\psxemulator.cc" />
     <ClCompile Include="..\..\src\core\psxcounters.cc" />
     <ClCompile Include="..\..\src\core\psxdma.cc" />
@@ -287,7 +285,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\core\binloader.h" />
     <ClInclude Include="..\..\src\core\callstacks.h" />
-    <ClInclude Include="..\..\src\core\cdriso.h" />
     <ClInclude Include="..\..\src\core\cdrom.h" />
     <ClInclude Include="..\..\src\core\cheat.h" />
     <ClInclude Include="..\..\src\core\coff.h" />
@@ -304,8 +301,8 @@
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\kernel.h" />
     <ClInclude Include="..\..\src\core\logger.h" />
+    <ClInclude Include="..\..\src\core\luaiso.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
-    <ClInclude Include="..\..\src\core\misc.h" />
     <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h" />
     <ClInclude Include="..\..\src\core\pad.h" />
     <ClInclude Include="..\..\src\core\pcsxlua.h" />
@@ -314,7 +311,6 @@
     <ClInclude Include="..\..\src\core\pgxp_gte.h" />
     <ClInclude Include="..\..\src\core\pgxp_mem.h" />
     <ClInclude Include="..\..\src\core\pgxp_value.h" />
-    <ClInclude Include="..\..\src\core\ppf.h" />
     <ClInclude Include="..\..\src\core\psxemulator.h" />
     <ClInclude Include="..\..\src\core\psxcounters.h" />
     <ClInclude Include="..\..\src\core\psxdma.h" />
@@ -332,13 +328,13 @@
     <ClInclude Include="..\..\src\mips\common\util\encoder.hh" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\core\isoffi.lua" />
     <None Include="..\..\src\core\pcsxffi.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\luajit.native.2.1.0-beta3b\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.0-beta3b\build\native\luajit.native.targets')" />
-    <Import Project="..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets" Condition="Exists('..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets')" />
     <Import Project="..\packages\glfw.3.3.5\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.5\build\native\glfw.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
@@ -346,7 +342,6 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\luajit.native.2.1.0-beta3b\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.0-beta3b\build\native\luajit.native.targets'))" />
-    <Error Condition="!Exists('..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets'))" />
     <Error Condition="!Exists('..\packages\glfw.3.3.5\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.5\build\native\glfw.targets'))" />
   </Target>
 </Project>

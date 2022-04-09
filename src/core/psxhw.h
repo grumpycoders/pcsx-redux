@@ -23,8 +23,6 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sio.h"
-#include "core/sio1.h"
 
 #define HW_DMA0_MADR (psxHu32ref(0x1080))  // MDEC in DMA
 #define HW_DMA0_BCR (psxHu32ref(0x1084))

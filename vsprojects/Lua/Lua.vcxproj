@@ -58,9 +58,9 @@
     <None Include="..\..\src\lua\glffi-enum2.lua" />
     <None Include="..\..\src\lua\glffi-enum3.lua" />
     <None Include="..\..\src\lua\glffi-typedefs.lua" />
-    <None Include="..\..\src\lua\zlibffi.lua" />
     <None Include="..\..\third_party\ffi-reflect\reflect.lua" />
     <None Include="..\..\third_party\pprint.lua\pprint.lua" />
+    <None Include="..\..\third_party\zlibffi\zlibffi.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

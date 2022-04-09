@@ -29,6 +29,8 @@
 #include "core/gte.h"
 #include "core/mdec.h"
 #include "core/pgxp_mem.h"
+#include "core/sio.h"
+#include "core/sio1.h"
 #include "core/spu.h"
 #include "fmt/format.h"
 #include "magic_enum/include/magic_enum.hpp"
@@ -301,8 +303,7 @@ void PCSX::R3000Acpu::branchTest() {
 
     const uint32_t cycle = m_regs.cycle;
 
-    if ((cycle - PCSX::g_emulator->m_counters->m_psxNextsCounter) >=
-        PCSX::g_emulator->m_counters->m_psxNextCounter)
+    if ((cycle - PCSX::g_emulator->m_counters->m_psxNextsCounter) >= PCSX::g_emulator->m_counters->m_psxNextCounter)
         PCSX::g_emulator->m_counters->update();
 
     if (m_regs.spuInterrupt.exchange(false)) PCSX::g_emulator->m_spu->interrupt();

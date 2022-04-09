@@ -60,6 +60,8 @@ void PCSX::Lua::close() {
     L = nullptr;
 }
 
+void PCSX::Lua::openlibs() { luaL_openlibs(L); }
+
 void PCSX::Lua::open_base() {
     int n = gettop();
     luaopen_base(L);

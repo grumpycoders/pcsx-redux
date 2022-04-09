@@ -24,8 +24,13 @@
 #include <zlib.h>
 
 #include <atomic>
+#include <bit>
 #include <compare>
+#include <concepts>
 #include <filesystem>
+#include <queue>
+#include <string>
+#include <string_view>
 #include <type_traits>
 
 #include "support/slice.h"
@@ -44,7 +49,26 @@ class File;
 template <class T>
 concept FileDerived = std::is_base_of<File, T>::value;
 
+template <class T>
+concept IntegralConcept = std::is_integral<T>::value;
+
 class File {
+#if defined(__cpp_lib_byteswap) && !defined(_WIN32)
+    using byte_swap = std::byte_swap;
+#else
+    template <IntegralConcept T>
+    static constexpr T byte_swap(T val) {
+        if constexpr (sizeof(T) == 1) {
+            return val;
+        } else {
+            T ret = 0;
+            for (size_t i = 0; i < sizeof(T); i++) {
+                ret |= static_cast<T>(static_cast<uint8_t>(val >> (i * 8)) << ((sizeof(T) - i - 1) * 8));
+            }
+            return ret;
+        }
+    }
+#endif
   public:
     enum FileType { RO_STREAM, RW_STREAM, RO_SEEKABLE, RW_SEEKABLE };
     virtual ~File() {
@@ -53,9 +77,9 @@ class File {
         }
     }
     virtual void close() {}
-    virtual ssize_t rSeek(ssize_t pos, int wheel) { throw std::runtime_error("Can't seek for reading"); }
+    virtual ssize_t rSeek(ssize_t pos, int wheel = SEEK_SET) { throw std::runtime_error("Can't seek for reading"); }
     virtual ssize_t rTell() { throw std::runtime_error("Can't seek for reading"); }
-    virtual ssize_t wSeek(ssize_t pos, int wheel) { throw std::runtime_error("Can't seek for writing"); }
+    virtual ssize_t wSeek(ssize_t pos, int wheel = SEEK_SET) { throw std::runtime_error("Can't seek for writing"); }
     virtual ssize_t wTell() { throw std::runtime_error("Can't seek for writing"); }
     virtual size_t size() { throw std::runtime_error("Unable to determine file size"); }
     virtual ssize_t read(void* dest, size_t size) { throw std::runtime_error("File is not readable"); }
@@ -137,23 +161,73 @@ class File {
         return slice;
     }
 
+    Slice readAt(ssize_t size, ssize_t pos) {
+        void* data = malloc(size);
+        readAt(data, size, pos);
+        Slice slice;
+        slice.acquire(data, size);
+        return slice;
+    }
+
     std::string readString(size_t size) {
-        std::string r;
-        r.reserve(size);
-        for (size_t i = 0; i < size; i++) {
-            r += (char)byte();
-        }
+        std::string r(size, '\0');
+        read(r.data(), size);
         return r;
     }
 
-    template <class T>
+    std::string readStringAt(size_t size, ssize_t pos) {
+        std::string r(size, '\0');
+        readAt(r.data(), size, pos);
+        return r;
+    }
+
+    void writeString(const std::string_view& str) { write(str.data(), str.size()); }
+    void writeStringAt(const std::string_view& str, ssize_t pos) { writeAt(str.data(), str.size(), pos); }
+
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
     T read() {
-        T ret = 0;
-        for (int i = 0; i < sizeof(T); i++) {
-            T b = byte();
-            ret |= (b << (i * 8));
+        T ret = T(0);
+        read(&ret, sizeof(T));
+        if constexpr (endianess != std::endian::native) {
+            ret = byte_swap(ret);
         }
         return ret;
+    }
+
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    T peek() {
+        T ret = T(0);
+        readAt(&ret, sizeof(T), rTell());
+        if constexpr (endianess != std::endian::native) {
+            ret = byte_swap(ret);
+        }
+        return ret;
+    }
+
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    T readAt(size_t pos) {
+        T ret = T(0);
+        readAt(&ret, sizeof(T), pos);
+        if constexpr (endianess != std::endian::native) {
+            ret = byte_swap(ret);
+        }
+        return ret;
+    }
+
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    void write(T val) {
+        if constexpr (endianess != std::endian::native) {
+            val = byte_swap(val);
+        }
+        write(&val, sizeof(T));
+    }
+
+    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    void writeAt(T val, size_t pos) {
+        if constexpr (endianess != std::endian::native) {
+            val = byte_swap(val);
+        }
+        writeAt(&val, sizeof(T), pos);
     }
 
     uint8_t byte() {
@@ -161,6 +235,14 @@ class File {
         read(&r, 1);
         return r;
     }
+
+    uint8_t byteAt(size_t pos) {
+        uint8_t r;
+        readAt(&r, 1, pos);
+        return r;
+    }
+
+    void skip(size_t amount) { rSeek(amount, SEEK_CUR); }
 
   protected:
     File(FileType filetype) : m_filetype(filetype) {}
@@ -246,6 +328,12 @@ class IO : public IOBase {
     bool isNull() { return dynamic_cast<T*>(m_file); }
 };
 
+class FailedFile : public File {
+  public:
+    FailedFile() : File(RO_STREAM) {}
+    virtual bool failed() final override { return true; }
+};
+
 class BufferFile : public File {
   public:
     enum Acquire { ACQUIRE };
@@ -275,6 +363,8 @@ class BufferFile : public File {
     virtual ssize_t write(const void* dest, size_t size) final override;
     virtual bool eof() final override;
     virtual File* dup() final override;
+
+    Slice borrow();
 
   private:
     static uint8_t m_internalBuffer;
@@ -369,6 +459,29 @@ class SubFile : public File {
     size_t m_ptrR = 0;
     const size_t m_start = 0;
     const size_t m_size = 0;
+};
+
+class Fifo : public File {
+  public:
+    Fifo() : File(RO_STREAM) {}
+    void reset() {
+        m_size = 0;
+        m_ptrR = 0;
+        while (!m_slices.empty()) m_slices.pop();
+    }
+    virtual size_t size() final override { return m_size; }
+    virtual ssize_t read(void* dest, size_t size) final override;
+    virtual bool eof() final override { return m_slices.empty(); }
+
+    void pushSlice(Slice&& slice) {
+        m_size += slice.size();
+        m_slices.emplace(std::move(slice));
+    }
+
+  private:
+    std::queue<Slice> m_slices;
+    size_t m_ptrR = 0;
+    size_t m_size = 0;
 };
 
 }  // namespace PCSX

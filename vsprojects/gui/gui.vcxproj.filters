@@ -79,6 +79,9 @@
     <ClCompile Include="..\..\src\gui\widgets\memory_observer.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\sio1.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h">
@@ -154,6 +157,9 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\memory_observer.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\sio1.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
   </ItemGroup>

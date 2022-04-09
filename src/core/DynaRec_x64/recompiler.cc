@@ -325,6 +325,9 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     m_firstInstruction = true;
     m_fullLoadDelayEmulation = fullLoadDelayEmulation;
 
+    // If we somehow ended up compiling a block at an invalid PC, throw an error.
+    if (!isPcValid(m_pc)) return m_invalidBlock;
+
     const auto startingPC = m_pc;
     int count = 0;                                      // How many instructions have we compiled?
     DynarecCallback* callback = getBlockPointer(m_pc);  // Pointer to where we'll store the addr of the emitted code
@@ -398,7 +401,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         count++;    // Increment instruction count
 
         const auto func = m_recBSC[m_regs.code >> 26];  // Look up the opcode in our decoding LUT
-        (*this.*func)();                                   // Jump into the handler to recompile it
+        (*this.*func)();                                // Jump into the handler to recompile it
     };
 
     const auto resolveInitialLoadDelay = [&]() {
@@ -460,7 +463,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
 
 void DynaRecCPU::recSpecial() {
     const auto func = m_recSPC[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)();                                    // Jump into the handler to recompile it
+    (*this.*func)();                                 // Jump into the handler to recompile it
 }
 
 // Checks if the block being compiled is one of the kernel call vectors

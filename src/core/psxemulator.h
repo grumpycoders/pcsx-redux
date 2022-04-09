@@ -62,8 +62,8 @@
 
 // Local includes from core - anything else from core is forbidden
 #include "core/logger.h"
-#include "core/misc.h"
 #include "core/system.h"
+#include "support/strings-helpers.h"
 
 #if defined(__linux__) || defined(__MACOSX__)
 #define strnicmp strncasecmp
@@ -106,8 +106,8 @@ class Emulator {
     Emulator(Emulator&&) = delete;
     Emulator(const Emulator&) = delete;
     Emulator& operator=(const Emulator&) = delete;
-    enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
-    enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };  // CDDA Types
+    enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };    // PSX Types
+    enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE };  // CDDA Types
     struct OverlaySetting {
         typedef SettingPath<TYPESTRING("Filename")> Filename;
         typedef Setting<uint32_t, TYPESTRING("FileOffset")> FileOffset;
@@ -171,7 +171,6 @@ class Emulator {
     typedef Setting<int, TYPESTRING("Scaler"), 100> SettingScaler;
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
-    typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
     typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
@@ -187,8 +186,8 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("HardwareRenderer"), true> SettingHardwareRenderer;
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
-             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingFastBoot, SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
+             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
+             SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
              SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither,
              SettingGLErrorReporting, SettingFullCaching, SettingHardwareRenderer>
         settings;
@@ -256,9 +255,6 @@ class Emulator {
     std::unique_ptr<WebServer> m_webServer;
 
     uv_loop_t m_loop;
-
-    char m_cdromId[10] = "";
-    char m_cdromLabel[33] = "";
 
   private:
     PcsxConfig m_config;
