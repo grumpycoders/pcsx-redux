@@ -20,10 +20,12 @@
 #pragma once
 #include <gl/gl3w.h>
 
+#include <cassert>
 #include <functional>
 #include <initializer_list>
 #include <iostream>
 #include <string_view>
+#include <type_traits>
 
 namespace PCSX {
 namespace OpenGL {
@@ -259,6 +261,27 @@ enum FillMode {
 static void setFillMode(GLenum mode) { glPolygonMode(GL_FRONT_AND_BACK, mode); }
 static void setFillMode(FillMode mode) { glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode)); }
 static void drawWireframe() { setFillMode(DrawWire); }
+
+template <typename T>
+T get(GLenum query) {
+    T ret{};
+    if constexpr (std::is_same<T, GLint>()) {
+        glGetIntegerv(query, &ret);
+    } else if constexpr (std::is_same<T, GLfloat>()) {
+        glGetFloatv(query, &ret);
+    } else if constexpr (std::is_same<T, GLdouble>()) {
+        glGetDoublev(query, &ret);
+    } else if constexpr (std::is_same<T, GLboolean>()) {
+        glGetBooleanv(query, &ret);
+    } else {
+        static_assert(0, "Invalid type for OpenGL::get");
+    }
+
+    return ret;
+}
+
+static GLint getDrawFramebuffer() { return get<GLint>(GL_DRAW_FRAMEBUFFER_BINDING); }
+
 
 }  // end namespace OpenGL
 }  // end namespace PCSX
