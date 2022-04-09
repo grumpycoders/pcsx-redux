@@ -30,6 +30,8 @@
 #include "core/logger.h"
 #include "core/mdec.h"
 #include "core/psxemulator.h"
+#include "core/sio.h"
+#include "core/sio1.h"
 #include "spu/interface.h"
 
 // Vampire Hunter D hack

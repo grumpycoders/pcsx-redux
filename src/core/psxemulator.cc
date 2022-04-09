@@ -31,6 +31,7 @@
 #include "core/pad.h"
 #include "core/pcsxlua.h"
 #include "core/r3000a.h"
+#include "core/sio.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
 #include "core/web-server.h"
@@ -113,7 +114,7 @@ void PCSX::Emulator::reset() {
     m_pads->init();
     m_pads->reset();
     m_sio->reset();
-    m_sio1->sio1Reset();
+    m_sio1->reset();
 }
 
 void PCSX::Emulator::shutdown() {
