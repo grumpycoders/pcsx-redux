@@ -335,6 +335,25 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     const uint32_t size = ((width * height) + 1) & ~1;
                     m_remainingWords = size / 2;
                 }
+
+                else if (m_cmd == 0x02) {
+                    const auto colour = m_cmdFIFO[0] & 0xffffff;
+                    const float r = float(colour & 0xff) / 255.f;
+                    const float g = float((colour >> 8) & 0xff) / 255.f;
+                    const float b = float((colour >> 16) & 0xff) / 255.f;
+
+                    OpenGL::setClearColor(r, g, b, 1.f);
+                    const uint32_t x0 = m_cmdFIFO[1] & 0xffff;
+                    const uint32_t y0 = m_cmdFIFO[1] >> 16;
+                    const uint32_t width = m_cmdFIFO[2] & 0xffff;
+                    const uint32_t height = m_cmdFIFO[2] >> 16;
+
+                    // Fix this when we implement the drawing area lmao
+                    OpenGL::enableScissor();
+                    OpenGL::setScissor(x0, y0, width, height);
+                    OpenGL::clearColor();
+                    OpenGL::disableScissor();
+                }
             }
         }
     }
