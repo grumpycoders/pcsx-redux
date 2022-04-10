@@ -87,14 +87,13 @@ class OpenGL_GPU final : public GPU {
 
     std::vector<Vertex> m_vertices;
     std::array<uint32_t, 16> m_cmdFIFO;
-    std::array<GP0Func, 256> m_gp0Funcs;
     int m_FIFOIndex;
     int m_cmd;
 
     int m_remainingWords = 0;
     bool m_haveCommand = false;
+    GP0Func m_pendingCommand;
 
-    void initGP0Funcs();
     void renderBatch();
 };
 }  // namespace PCSX

@@ -34,9 +34,12 @@ std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX:
 void PCSX::OpenGL_GPU::reset() {
     m_gpustat = 0x14802000;
 
+    m_haveCommand = false;
     m_readingMode = TransferMode::CommandTransfer;
     m_writingMode = TransferMode::CommandTransfer;
     m_remainingWords = 0;
+    m_FIFOIndex = 0;
+    m_vertices.clear();
     clearVRAM();
 }
 
@@ -175,7 +178,6 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     break;
                 case 0x02:  // Fill rectangle in VRAM with solid colour
                     m_remainingWords = 2;
-                    PCSX::g_system->printf("Fill rectangle\n");
                     break;
                 case 0x20:  // Monochrome triangle
                 case 0x22:  // Monochrome triangle, semi-transparent (unimplemented)
