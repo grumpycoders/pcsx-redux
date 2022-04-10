@@ -26,6 +26,7 @@
 #include <iostream>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 namespace PCSX {
 namespace OpenGL {
@@ -252,11 +253,7 @@ static void draw(Primitives prim, GLint first, GLsizei vertexCount) {
     glDrawArrays(static_cast<GLenum>(prim), first, vertexCount);
 }
 
-enum FillMode {
-    DrawPoints = GL_POINT,
-    DrawWire = GL_LINE,
-    FillPoly = GL_FILL
-};
+enum FillMode { DrawPoints = GL_POINT, DrawWire = GL_LINE, FillPoly = GL_FILL };
 
 static void setFillMode(GLenum mode) { glPolygonMode(GL_FRONT_AND_BACK, mode); }
 static void setFillMode(FillMode mode) { glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode)); }
@@ -290,7 +287,7 @@ class Vector {
     static_assert(size == 2 || size == 3 || size == 4);
     T m_storage[size];
 
-public:
+  public:
     T& r() { return m_storage[0]; }
     T& g() { return m_storage[1]; }
     T& b() {
@@ -325,11 +322,27 @@ using uvec2 = Vector<GLuint, 2>;
 using uvec3 = Vector<GLuint, 3>;
 using uvec4 = Vector<GLuint, 4>;
 
-class Rectangle {
+// A 2D rectangle, meant to be used for stuff like scissor rects or viewport rects
+// We're never supporting 3D rectangles, because rectangles were never meant to be 3D in the first place
+// x, y: Coords of the top left vertex
+// width, height: Dimensions of the rectangle
+template <typename T>
+struct Rectangle {
+    T x, y, width, height;
 
+    std::pair<T, T> topLeft() { return std::make_pair(x, y); }
+    std::pair<T, T> topRight() { return std::make_pair(x + width, y); }
+    std::pair<T, T> bottomLeft() { return std::make_pair(x, y + height); }
+    std::pair<T, T> bottomRight() { return std::make_pair(x + width, y + height); }
+
+    Rectangle() : x(0), y(0), width(0), height(0) {}
+    Rectangle(T x, T y, T width, T height) : x(x), y(y), width(width), height(height) {}
+    
+    bool isEmpty() { return width == 0 && height == 0; }
+    bool isLine() { return (width == 0 && height != 0) || (width != 0 && height == 0); }
 };
 
-using Rect = Rectangle;
+using Rect = Rectangle<GLuint>;
 
 }  // end namespace OpenGL
 }  // end namespace PCSX
