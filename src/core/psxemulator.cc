@@ -104,6 +104,7 @@ int PCSX::Emulator::init() {
         m_gpu = PCSX::GPU::getSoft();
     }
     m_gpu->setDither(settings.get<Emulator::SettingDither>());
+    m_gpu->startFrame();
 
     setPGXPMode(m_config.PGXP_Mode);
     m_pads->init();
