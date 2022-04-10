@@ -283,5 +283,53 @@ T get(GLenum query) {
 static GLint getDrawFramebuffer() { return get<GLint>(GL_DRAW_FRAMEBUFFER_BINDING); }
 static GLint getTex2D() { return get<GLint>(GL_TEXTURE_BINDING_2D); }
 
+// Abstraction for GLSL vectors
+template <typename T, int size>
+class Vector {
+    // A GLSL vector can only have 2, 3 or 4 elements
+    static_assert(size == 2 || size == 3 || size == 4);
+    T m_storage[size];
+
+public:
+    T& r() { return m_storage[0]; }
+    T& g() { return m_storage[1]; }
+    T& b() {
+        static_assert(size >= 3, "Out of bounds OpenGL::Vector access");
+        return m_storage[2];
+    }
+    T& a() {
+        static_assert(size >= 4, "Out of bounds OpenGL::Vector access");
+        return m_storage[3];
+    }
+
+    T& x() { return r(); }
+    T& y() { return g(); }
+    T& z() { return b(); }
+    T& w() { return a(); }
+    T& operator[](int index) { return m_storage[index]; }
+};
+
+using vec2 = Vector<GLfloat, 2>;
+using vec3 = Vector<GLfloat, 3>;
+using vec4 = Vector<GLfloat, 4>;
+
+using dvec2 = Vector<GLdouble, 2>;
+using dvec3 = Vector<GLdouble, 3>;
+using dvec4 = Vector<GLdouble, 4>;
+
+using ivec2 = Vector<GLint, 2>;
+using ivec3 = Vector<GLint, 3>;
+using ivec4 = Vector<GLint, 4>;
+
+using uvec2 = Vector<GLuint, 2>;
+using uvec3 = Vector<GLuint, 3>;
+using uvec4 = Vector<GLuint, 4>;
+
+class Rectangle {
+
+};
+
+using Rect = Rectangle;
+
 }  // end namespace OpenGL
 }  // end namespace PCSX

@@ -31,8 +31,8 @@ enum class TransferMode { CommandTransfer, VRAMTransfer };
 class OpenGL_GPU final : public GPU {
     using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
     struct Vertex {
-        float positions[2];
-        float colors[3];
+        OpenGL::vec2 positions;
+        OpenGL::vec3 colors;
 
         Vertex(uint32_t x, uint32_t y, float r, float g, float b) {
             positions[0] = (float)x;
