@@ -25,24 +25,8 @@
 #include "support/opengl.h"
 
 namespace PCSX {
-
-enum class TransferMode { CommandTransfer, VRAMTransfer };
-
 class OpenGL_GPU final : public GPU {
-    using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
-    struct Vertex {
-        OpenGL::vec2 positions;
-        OpenGL::vec3 colors;
-
-        Vertex(uint32_t x, uint32_t y, float r, float g, float b) {
-            positions[0] = (float)x;
-            positions[1] = (float)y;
-            colors[0] = r;
-            colors[1] = g;
-            colors[2] = b;
-        }
-    };
-
+    // Interface functions
     virtual int init() final;
     virtual int shutdown() final;
     virtual int open(GUI *) final;
@@ -60,6 +44,30 @@ class OpenGL_GPU final : public GPU {
     virtual void updateLace() final;
     virtual bool configure() final;
 
+    virtual void save(SaveStates::GPU &gpu) final;
+
+    virtual void load(const SaveStates::GPU &gpu) final;
+    virtual void setDither(int setting) final { m_useDither = setting; }
+    virtual void clearVRAM() final;
+    virtual void reset() final;
+    virtual GLuint getVRAMTexture() final { return m_vramTexture.handle(); }
+
+    // Actual emulation stuff
+    using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
+    struct Vertex {
+        OpenGL::vec2 positions;
+        OpenGL::vec3 colors;
+
+        Vertex(uint32_t x, uint32_t y, float r, float g, float b) {
+            positions[0] = (float)x;
+            positions[1] = (float)y;
+            colors[0] = r;
+            colors[1] = g;
+            colors[2] = b;
+        }
+    };
+    enum class TransferMode { CommandTransfer, VRAMTransfer };
+
     uint32_t m_gpustat = 0x14802000;
     GUI *m_gui = nullptr;
     int m_useDither = 0;
@@ -70,7 +78,7 @@ class OpenGL_GPU final : public GPU {
 
     TransferMode m_readingMode;
     TransferMode m_writingMode;
-    
+
     OpenGL::Program m_untexturedTriangleProgram;
     OpenGL::VertexArray m_vao;
     OpenGL::VertexBuffer m_vbo;
@@ -85,14 +93,6 @@ class OpenGL_GPU final : public GPU {
 
     int m_remainingWords = 0;
     bool m_haveCommand = false;
-    bool m_textureLoad = false;
-    virtual void save(SaveStates::GPU &gpu) final;
-
-    virtual void load(const SaveStates::GPU &gpu) final;
-    virtual void setDither(int setting) final { m_useDither = setting; }
-    virtual void clearVRAM() final;
-    virtual void reset() final;
-    virtual GLuint getVRAMTexture() final { return m_vramTexture.handle(); }
 
     void initGP0Funcs();
     void renderBatch();

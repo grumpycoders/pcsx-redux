@@ -236,9 +236,9 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     break;
             }
         } else {
-            if (m_textureLoad) {
+            if (m_writingMode == TransferMode::VRAMTransfer) {
                 if (m_remainingWords == 0) {
-                    m_textureLoad = false;
+                    m_writingMode = TransferMode::CommandTransfer;
                     m_haveCommand = false;
                     goto start;
                 }
@@ -322,7 +322,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                 }
 
                 else if (m_cmd == 0xA0) {
-                    m_textureLoad = true;
+                    m_writingMode = TransferMode::VRAMTransfer;
                     m_haveCommand = true;
                     const uint32_t res = m_cmdFIFO[2];
                     const uint32_t width = res & 0xffff;
