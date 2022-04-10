@@ -47,7 +47,7 @@ class impl final : public GPU {
     virtual void writeDataMem(uint32_t *pMem, int iSize) final;
     virtual void writeStatus(uint32_t gdata) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
-    virtual void updateLace() final;
+    virtual void vblank() final;
     virtual bool configure() final;
 
     virtual void save(SaveStates::GPU &gpu) final;

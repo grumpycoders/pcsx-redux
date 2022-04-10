@@ -41,7 +41,7 @@ class OpenGL_GPU final : public GPU {
     virtual void writeStatus(uint32_t value) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void startFrame() final;
-    virtual void updateLace() final;
+    virtual void vblank() final;
     virtual bool configure() final;
 
     virtual void save(SaveStates::GPU &gpu) final;

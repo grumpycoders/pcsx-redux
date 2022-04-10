@@ -505,7 +505,7 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
 // update lace is called every VSync
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::impl::updateLace() {
+void PCSX::SoftGPU::impl::vblank() {
     if (m_dumpFile) {
         uint32_t data = 0x02000000;
         fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);

@@ -399,7 +399,7 @@ void PCSX::OpenGL_GPU::startFrame() {
 }
 
 // Called at the end of a frame
-void PCSX::OpenGL_GPU::updateLace() {
+void PCSX::OpenGL_GPU::vblank() {
     if (!m_vertices.empty()) {
         renderBatch();
     }

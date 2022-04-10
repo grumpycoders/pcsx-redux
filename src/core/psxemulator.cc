@@ -136,6 +136,7 @@ void PCSX::Emulator::shutdown() {
 }
 
 void PCSX::Emulator::vsync() {
+    m_gpu->vblank();
     g_system->update(true);
     m_cheats->ApplyCheats();
 
