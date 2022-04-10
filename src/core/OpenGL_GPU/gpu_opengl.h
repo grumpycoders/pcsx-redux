@@ -61,7 +61,6 @@ class OpenGL_GPU final : public GPU {
     virtual bool configure() final;
 
     uint32_t m_gpustat = 0x14802000;
-    uint8_t *m_vram = nullptr;
     GUI *m_gui = nullptr;
     int m_useDither = 0;
     int m_height = 512;
@@ -91,7 +90,6 @@ class OpenGL_GPU final : public GPU {
 
     virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_useDither = setting; }
-    virtual uint8_t *getVRAM() final { return m_vram; }
     virtual void clearVRAM() final;
     virtual void reset() final;
     virtual GLuint getVRAMTexture() final { return m_vramTexture.handle(); }

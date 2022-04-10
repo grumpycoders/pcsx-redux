@@ -86,8 +86,6 @@ extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
 
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
 
-void PCSX::GUI::bindVRAMTexture() { glBindTexture(GL_TEXTURE_2D, m_VRAMTexture); }
-
 void PCSX::GUI::setFullscreen(bool fullscreen) {
     m_fullscreen = fullscreen;
     if (fullscreen) {
@@ -432,14 +430,6 @@ void PCSX::GUI::init() {
         g_system->log(LogClass::UI,
                       _("Warning: OpenGL error reporting disabled. See About dialog for more information.\n"));
     }
-    glGenTextures(1, &m_VRAMTexture);
-    glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
-    g_system->m_eventBus->signal(Events::CreatedVRAMTexture{m_VRAMTexture});
 
     glDisable(GL_CULL_FACE);
     // offscreen stuff

@@ -51,8 +51,6 @@ void PCSX::OpenGL_GPU::clearVRAM() {
 // Do not forget to call this with an active OpenGL context.
 int PCSX::OpenGL_GPU::init() {
     g_system->printf("TODO: init\n");
-    // Allocate some extra space for safety
-    m_vram = new uint8_t[m_height * 2 * 1024 + 1024 * 1024]();
     reset();
 
     // Reserve some size for vertices to avoid dynamic allocations later.
@@ -77,6 +75,7 @@ int PCSX::OpenGL_GPU::init() {
     // Clear VRAM texture
     OpenGL::setClearColor(0.0, 0, 0, 1.0);
     OpenGL::clearColor();
+    m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
 
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("Non-complete framebuffer");

@@ -53,7 +53,6 @@ class impl final : public GPU {
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_softPrim.m_useDither = setting; }
-    virtual uint8_t *getVRAM() final { return psxVSecure; }
     virtual void clearVRAM() final;
     virtual void reset() final { clearVRAM(); }
     virtual GLuint getVRAMTexture() final { return m_vramTexture16; }

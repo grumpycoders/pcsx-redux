@@ -81,7 +81,6 @@ class GPU {
     virtual void about(void) {}
 
     virtual void setDither(int setting) {}
-    virtual uint8_t *getVRAM() { return nullptr; }
     virtual void reset() {}
     virtual void clearVRAM() {}
     virtual GLuint getVRAMTexture() { return 0; }
