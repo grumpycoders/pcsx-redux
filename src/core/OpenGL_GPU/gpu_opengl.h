@@ -87,6 +87,9 @@ class OpenGL_GPU final : public GPU {
 
     std::vector<Vertex> m_vertices;
     std::array<uint32_t, 16> m_cmdFIFO;
+    OpenGL::Rect m_displayArea;
+    OpenGL::vec2 m_drawingOffset;
+
     int m_FIFOIndex;
     int m_cmd;
 

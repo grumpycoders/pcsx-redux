@@ -501,10 +501,6 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
     ptCursorPoint[iPlayer].y = y;
 }
 
-////////////////////////////////////////////////////////////////////////
-// update lace is called every VSync
-////////////////////////////////////////////////////////////////////////
-
 void PCSX::SoftGPU::impl::vblank() {
     if (m_dumpFile) {
         uint32_t data = 0x02000000;

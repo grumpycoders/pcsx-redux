@@ -34,7 +34,8 @@ class GPU {
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
 
-    bool m_showCfg;
+    bool m_showCfg = false;
+    bool m_showDebug = false;
     virtual bool configure() = 0;
     virtual ~GPU() {}
 

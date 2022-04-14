@@ -92,12 +92,14 @@ int PCSX::OpenGL_GPU::init() {
         layout (location = 1) in vec3 Color;
         out vec4 vertexColor;
 
+        uniform vec2 u_vertexOffsets = vec2(0.0, 0.0);
+
         void main() {
            // Normalize coords to [0, 2]
            // The - 0.5 helps fix some holes in rendering, in places like the PS logo
            // TODO: This might not work when upscaling?
-           float xx = (aPos.x - 0.5) / 512.0;
-           float yy = (aPos.y - 0.5) / 256;
+           float xx = (aPos.x - 0.5 + u_vertexOffsets.x) / 512.0;
+           float yy = (aPos.y - 0.5 + u_vertexOffsets.y) / 256;
 
            // Normalize to [-1, 1]
            xx -= 1.0;
@@ -224,10 +226,18 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     m_haveCommand = false;  // No params, move straight to the next command
                     PCSX::g_system->printf("Unimplemented set draw area bottom right command: %08X\n", word);
                     break;
-                case 0xE5:                  // Set draw offset
-                    m_haveCommand = false;  // No params, move straight to the next command
-                    PCSX::g_system->printf("Unimplemented set draw offset command: %08X\n", word);
+                case 0xE5: {
+                    m_haveCommand = false; // No params, move straight to the next command
+                    // Offset is a signed number in [-1024, 1023]
+                    const auto offsetX = (int32_t)word << 21 >> 21;
+                    const auto offsetY = (int32_t)word << 10 >> 21;
+                    m_drawingOffset.x() = (float) offsetX;
+                    m_drawingOffset.y() = (float) offsetY;
+                    
+                    const auto loc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vertexOffsets");
+                    glUniform2fv(loc, 1, &m_drawingOffset[0]);
                     break;
+                }
                 case 0xE6:                  // Set draw mask
                     m_haveCommand = false;  // No params, move straight to the next command
                     PCSX::g_system->printf("Unimplemented set draw mask command: %08X\n", word);
@@ -360,7 +370,37 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
     }
 }
 
-void PCSX::OpenGL_GPU::writeStatus(uint32_t value) { g_system->printf("TODO: writeStatus\n"); }
+// GP1 command writes
+void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
+    g_system->printf("TODO: writeStatus\n");
+
+    const uint32_t cmd = value >> 24;
+    switch (cmd) {
+        // Set display area start
+        case 5:
+            m_displayArea.x = value & 0x3ff;
+            m_displayArea.y = (value >> 10) & 0x1ff;
+            break;
+        // Set display area width
+        case 6: {
+            const auto x1 = value & 0xfff;
+            const auto x2 = (value >> 12) & 0xfff;
+            constexpr uint32_t cyclesPerPix = 2560;
+
+            m_displayArea.width = (((x2 - x1) / cyclesPerPix) + 2) & ~3;
+            m_displayArea.width = 320;
+            break;
+        }
+
+        case 7: {
+            const auto y1 = value & 0x3ff;
+            const auto y2 = (value >> 10) & 0x3ff;
+
+            m_displayArea.height = y2 - y1;
+            break;
+        }
+    }
+}
 
 int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
     int counter = 0;
@@ -386,6 +426,14 @@ int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
 
 bool PCSX::OpenGL_GPU::configure() {
     // g_system->printf("TODO: configure\n");
+    if (!m_showCfg) return false;
+    
+    if (ImGui::Begin("GPU Debugger"), &m_showDebug) {
+        ImGui::Text("Display horizontal range: %d-%d", m_displayArea.x, m_displayArea.x + m_displayArea.width);
+        ImGui::Text("Display vertical range: %d-%d", m_displayArea.y, m_displayArea.y + m_displayArea.height);
+        ImGui::End();
+    }
+
     return false;
 }
 
@@ -406,7 +454,25 @@ void PCSX::OpenGL_GPU::vblank() {
 
     m_gui->setViewport();
     m_gui->flip();  // Set up offscreen framebuffer before rendering
-    m_gui->m_offscreenShaderEditor.render(m_gui, m_vramTexture.handle(), {0, 0}, {1, 1}, m_gui->getRenderSize());
+
+    /*
+        float xRatio = PSXDisplay.RGB24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
+
+        float startX = PSXDisplay.DisplayPosition.x * xRatio;
+        float startY = PSXDisplay.DisplayPosition.y / 512.0f;
+        float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
+        float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
+    */
+
+    float xRatio = false ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
+
+    float startX = m_displayArea.x * xRatio;
+    float startY = m_displayArea.y / 512.0f;
+    float width = m_displayArea.width / 1024.0f;
+    float height = m_displayArea.height / 512.0f;
+
+    m_gui->m_offscreenShaderEditor.render(m_gui, m_vramTexture.handle(), {startX, startY}, {width, height},
+                                          m_gui->getRenderSize());
 }
 
 void PCSX::OpenGL_GPU::renderBatch() {
