@@ -89,6 +89,7 @@ class OpenGL_GPU final : public GPU {
     std::array<uint32_t, 16> m_cmdFIFO;
     OpenGL::Rect m_displayArea;
     OpenGL::vec2 m_drawingOffset;
+    GLint m_drawingOffsetLoc;
 
     int m_FIFOIndex;
     int m_cmd;

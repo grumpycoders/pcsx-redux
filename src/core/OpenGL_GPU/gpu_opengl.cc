@@ -92,14 +92,15 @@ int PCSX::OpenGL_GPU::init() {
         layout (location = 1) in vec3 Color;
         out vec4 vertexColor;
 
-        uniform vec2 u_vertexOffsets = vec2(0.0, 0.0);
+        // We always apply a -0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies 
+        uniform vec2 u_vertexOffsets = vec2(-0.5, -0.5);
 
         void main() {
            // Normalize coords to [0, 2]
            // The - 0.5 helps fix some holes in rendering, in places like the PS logo
            // TODO: This might not work when upscaling?
-           float xx = (aPos.x - 0.5 + u_vertexOffsets.x) / 512.0;
-           float yy = (aPos.y - 0.5 + u_vertexOffsets.y) / 256;
+           float xx = (aPos.x + u_vertexOffsets.x) / 512.0;
+           float yy = (aPos.y + u_vertexOffsets.y) / 256;
 
            // Normalize to [-1, 1]
            xx -= 1.0;
@@ -124,6 +125,7 @@ int PCSX::OpenGL_GPU::init() {
     m_untexturedTriangleProgram.create({frag, vert});
     m_untexturedTriangleProgram.use();
 
+    const auto m_drawingOffsetLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vertexOffsets");
     return 0;
 }
 
@@ -231,11 +233,10 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     // Offset is a signed number in [-1024, 1023]
                     const auto offsetX = (int32_t)word << 21 >> 21;
                     const auto offsetY = (int32_t)word << 10 >> 21;
-                    m_drawingOffset.x() = (float) offsetX;
-                    m_drawingOffset.y() = (float) offsetY;
-                    
-                    const auto loc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vertexOffsets");
-                    glUniform2fv(loc, 1, &m_drawingOffset[0]);
+                    // The -0.5 covers up OpenGL inaccuracies. Noticeable on the PS logo screen.
+                    m_drawingOffset.x() = (float)offsetX - 0.5;
+                    m_drawingOffset.y() = (float)offsetY - 0.5;
+                    glUniform2fv(m_drawingOffsetLoc, 1, &m_drawingOffset[0]);
                     break;
                 }
                 case 0xE6:                  // Set draw mask
