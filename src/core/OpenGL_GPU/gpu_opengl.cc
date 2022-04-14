@@ -201,6 +201,9 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                 case 0x38:  // Shaded quad
                     m_remainingWords = 7;
                     break;
+                case 0x60: // Monochrome Rectangle
+                    m_remainingWords = 2;
+                    break;
                 case 0x65:  // Textured rect, opaque, no blending
                     m_remainingWords = 3;
                     break;
@@ -233,7 +236,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     // Offset is a signed number in [-1024, 1023]
                     const auto offsetX = (int32_t)word << 21 >> 21;
                     const auto offsetY = (int32_t)word << 10 >> 21;
-                    // The -0.5 covers up OpenGL inaccuracies. Noticeable on the PS logo screen.
+                    // The -0.5 covers up OpenGL inaccuracies, most noticeably on the PS logo screen.
                     m_drawingOffset.x() = (float)offsetX - 0.5;
                     m_drawingOffset.y() = (float)offsetY - 0.5;
                     glUniform2fv(m_drawingOffsetLoc, 1, &m_drawingOffset[0]);
@@ -332,6 +335,28 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                         const float b = (colour >> 16) & 0xff;
                         m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
                     }
+                }
+
+                else if (m_cmd == 0x60) {
+                    const uint32_t colour = m_cmdFIFO[0] & 0xffffff;
+                    const uint32_t v = m_cmdFIFO[1];
+                    const uint32_t size = m_cmdFIFO[2];
+
+                    const uint32_t x = v & 0xffff;
+                    const uint32_t y = v >> 16;
+                    const float r = colour & 0xff;
+                    const float g = (colour >> 8) & 0xff;
+                    const float b = (colour >> 16) & 0xff;
+                    const uint32_t width = size & 0xffff;
+                    const uint32_t height = size >> 16;
+
+                    m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
+                    m_vertices.push_back(std::move(Vertex(x + width, y, r, g, b)));
+                    m_vertices.push_back(std::move(Vertex(x + width, y + height, r, g, b)));
+
+                    m_vertices.push_back(std::move(Vertex(x + width, y + height, r, g, b)));
+                    m_vertices.push_back(std::move(Vertex(x, y + height, r, g, b)));
+                    m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
                 }
 
                 else if (m_cmd == 0xA0) {
