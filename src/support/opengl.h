@@ -281,8 +281,8 @@ T get(GLenum query) {
 static GLint getDrawFramebuffer() { return get<GLint>(GL_DRAW_FRAMEBUFFER_BINDING); }
 static GLint getTex2D() { return get<GLint>(GL_TEXTURE_BINDING_2D); }
 
-[[nodscard]] static GLint uniformLocation(GLuint program, const char* name) { return glGetUniformLocation(program, name); }
-[[nodscard]] static GLint uniformLocation(Program& program, const char* name) {
+[[nodiscard]] static GLint uniformLocation(GLuint program, const char* name) { return glGetUniformLocation(program, name); }
+[[nodiscard]] static GLint uniformLocation(Program& program, const char* name) {
     return glGetUniformLocation(program.handle(), name);
 }
 
