@@ -455,6 +455,20 @@ int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
 
 bool PCSX::OpenGL_GPU::configure() {
     if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
+        static const char* polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
+        constexpr OpenGL::FillMode polygonModes[] = {OpenGL::FillPoly, OpenGL::DrawWire, OpenGL::DrawPoints};
+
+
+        if (ImGui::BeginCombo(_("Polygon rendering mode"), polygonModeNames[m_polygonModeIndex])) {
+            for (auto i = 0; i < 3; i++) {
+                if (ImGui::Selectable(polygonModeNames[i])) {
+                    m_polygonMode = polygonModes[i];
+                    m_polygonModeIndex = i;
+                }
+            }
+            ImGui::EndCombo();
+        }
+
         ImGui::End();
     }
 
@@ -466,7 +480,7 @@ void PCSX::OpenGL_GPU::debug() {
         ImGui::Text(_("Display horizontal range: %d-%d"), m_displayArea.x, m_displayArea.x + m_displayArea.width);
         ImGui::Text(_("Display vertical range: %d-%d"), m_displayArea.y, m_displayArea.y + m_displayArea.height);
 
-        ImGui::ColorEdit3("Clear colour", &m_clearColour[0]);
+        ImGui::ColorEdit3(_("Clear colour"), &m_clearColour[0]);
         if (ImGui::Button(_("Clear VRAM"))) {
             clearVRAM(m_clearColour.r(), m_clearColour.g(), m_clearColour.b());
         }
@@ -481,6 +495,7 @@ void PCSX::OpenGL_GPU::startFrame() {
     m_vao.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
     OpenGL::setViewport(m_vramTexture.width(), m_vramTexture.height());
+    OpenGL::setFillMode(m_polygonMode);
     m_untexturedTriangleProgram.use();
 }
 
@@ -488,6 +503,11 @@ void PCSX::OpenGL_GPU::startFrame() {
 void PCSX::OpenGL_GPU::vblank() {
     if (!m_vertices.empty()) {
         renderBatch();
+    }
+
+    // Set the fill mode to fill before passing the OpenGL context to the GUI
+    if (m_polygonMode != OpenGL::FillPoly) {
+        OpenGL::setFillMode(OpenGL::FillPoly);
     }
 
     m_gui->setViewport();

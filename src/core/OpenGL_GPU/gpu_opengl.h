@@ -92,6 +92,10 @@ class OpenGL_GPU final : public GPU {
     OpenGL::vec2 m_drawingOffset;
     // Clear colour used in the debugger
     OpenGL::vec3 m_clearColour = OpenGL::vec3({0.f, 0.f, 0.f});
+    // Specifies how and whether to fill renderer polygons
+    OpenGL::FillMode m_polygonMode = OpenGL::FillPoly;
+    int m_polygonModeIndex = 0;
+
     GLint m_drawingOffsetLoc;
 
     int m_FIFOIndex;
