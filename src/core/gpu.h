@@ -37,6 +37,7 @@ class GPU {
     bool m_showCfg = false;
     bool m_showDebug = false;
     virtual bool configure() = 0;
+    virtual void debug() = 0;
     virtual ~GPU() {}
 
   private:

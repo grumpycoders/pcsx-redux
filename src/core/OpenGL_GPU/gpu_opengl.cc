@@ -97,8 +97,6 @@ int PCSX::OpenGL_GPU::init() {
 
         void main() {
            // Normalize coords to [0, 2]
-           // The - 0.5 helps fix some holes in rendering, in places like the PS logo
-           // TODO: This might not work when upscaling?
            float xx = (aPos.x + u_vertexOffsets.x) / 512.0;
            float yy = (aPos.y + u_vertexOffsets.y) / 256;
 
@@ -236,7 +234,8 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     // Offset is a signed number in [-1024, 1023]
                     const auto offsetX = (int32_t)word << 21 >> 21;
                     const auto offsetY = (int32_t)word << 10 >> 21;
-                    // The -0.5 covers up OpenGL inaccuracies, most noticeably on the PS logo screen.
+                    // The - 0.5 helps fix some holes in rendering, in places like the PS logo
+                    // TODO: This might not work when upscaling?
                     m_drawingOffset.x() = (float)offsetX - 0.5;
                     m_drawingOffset.y() = (float)offsetY - 0.5;
                     glUniform2fv(m_drawingOffsetLoc, 1, &m_drawingOffset[0]);
@@ -451,16 +450,19 @@ int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
 }
 
 bool PCSX::OpenGL_GPU::configure() {
-    // g_system->printf("TODO: configure\n");
-    if (!m_showCfg) return false;
-    
-    if (ImGui::Begin("GPU Debugger"), &m_showDebug) {
-        ImGui::Text("Display horizontal range: %d-%d", m_displayArea.x, m_displayArea.x + m_displayArea.width);
-        ImGui::Text("Display vertical range: %d-%d", m_displayArea.y, m_displayArea.y + m_displayArea.height);
+    if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
         ImGui::End();
     }
 
     return false;
+}
+
+void PCSX::OpenGL_GPU::debug() {
+    if (ImGui::Begin(_("OpenGL GPU Debugger"), &m_showDebug)) {
+        ImGui::Text("Display horizontal range: %d-%d", m_displayArea.x, m_displayArea.x + m_displayArea.width);
+        ImGui::Text("Display vertical range: %d-%d", m_displayArea.y, m_displayArea.y + m_displayArea.height);
+        ImGui::End();
+    }
 }
 
 // Called at the start of a frame
@@ -513,5 +515,5 @@ void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("TODO: save
 void PCSX::OpenGL_GPU::load(const SaveStates::GPU& gpu) { g_system->printf("TODO: load\n"); }
 
 void PCSX::OpenGL_GPU::startDump() { g_system->printf("TODO: startDump\n"); }
-
+    
 void PCSX::OpenGL_GPU::stopDump() { g_system->printf("TODO: stopDump\n"); }

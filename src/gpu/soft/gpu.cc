@@ -1197,7 +1197,6 @@ void PCSX::SoftGPU::impl::load(const SaveStates::GPU &gpu) {
 void GPUsetfix(uint32_t dwFixBits) { dwEmuFixes = dwFixBits; }
 
 bool PCSX::SoftGPU::impl::configure() {
-    if (!m_showCfg) return false;
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
@@ -1214,4 +1213,11 @@ bool PCSX::SoftGPU::impl::configure() {
     }
 
     return changed;
+}
+
+void PCSX::SoftGPU::impl::debug() {
+    if (ImGui::Begin(_("Soft GPU debugger"), &m_showDebug)) {
+        ImGui::Text(_("Debugging featurs are not supported when using the software renderer yet\nConsider enabling the OpenGL GPU option instead"));
+        ImGui::End();
+    }
 }

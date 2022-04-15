@@ -49,6 +49,7 @@ class impl final : public GPU {
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void vblank() final;
     virtual bool configure() final;
+    virtual void debug() final;
 
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;

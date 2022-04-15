@@ -43,6 +43,7 @@ class OpenGL_GPU final : public GPU {
     virtual void startFrame() final;
     virtual void vblank() final;
     virtual bool configure() final;
+    virtual void debug() final;
 
     virtual void save(SaveStates::GPU &gpu) final;
 

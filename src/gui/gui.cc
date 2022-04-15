@@ -964,6 +964,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
+                ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator->m_gpu->m_showDebug);
+                ImGui::Separator();
                 ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Start GPU dump"))) {
@@ -1174,11 +1176,13 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_sio1.draw(this, &PCSX::g_emulator->m_sio1->m_regs, _("SIO1 Debug"));
     }
 
-    PCSX::g_emulator->m_spu->debug();
-    changed |= PCSX::g_emulator->m_spu->configure();
-    changed |= PCSX::g_emulator->m_gpu->configure();
-    changed |= PCSX::g_emulator->m_pads->configure(this);
+    g_emulator->m_spu->debug();
+    changed |= g_emulator->m_spu->configure();
+    changed |= g_emulator->m_pads->configure(this);
     changed |= configure();
+
+    if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
+    if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
