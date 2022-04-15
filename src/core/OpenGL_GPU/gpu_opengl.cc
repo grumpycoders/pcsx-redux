@@ -127,7 +127,7 @@ int PCSX::OpenGL_GPU::init() {
     m_untexturedTriangleProgram.create({frag, vert});
     m_untexturedTriangleProgram.use();
 
-    const auto m_drawingOffsetLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vertexOffsets");
+    m_drawingOffsetLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vertexOffsets");
     return 0;
 }
 
@@ -149,7 +149,7 @@ int PCSX::OpenGL_GPU::close() {
 uint32_t PCSX::OpenGL_GPU::readStatus() {
     g_system->printf("GPUSTAT read\n");
     return 0b01011110100000000000000000000000;
-    return m_gpustat;
+    // return m_gpustat;
 }
 
 uint32_t PCSX::OpenGL_GPU::readData() {
@@ -419,7 +419,7 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
             const auto x2 = (value >> 12) & 0xfff;
             constexpr uint32_t cyclesPerPix = 2560;
 
-            m_displayArea.width = (((x2 - x1) / cyclesPerPix) + 2) & ~3;
+            // m_displayArea.width = (((x2 - x1) / cyclesPerPix) + 2) & ~3;
             m_displayArea.width = 320;
             break;
         }
@@ -460,7 +460,6 @@ bool PCSX::OpenGL_GPU::configure() {
     if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
         static const char* polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
         constexpr OpenGL::FillMode polygonModes[] = {OpenGL::FillPoly, OpenGL::DrawWire, OpenGL::DrawPoints};
-
 
         if (ImGui::BeginCombo(_("Polygon rendering mode"), polygonModeNames[m_polygonModeIndex])) {
             for (auto i = 0; i < 3; i++) {
