@@ -238,11 +238,14 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     // Offset is a signed number in [-1024, 1023]
                     const auto offsetX = (int32_t)word << 21 >> 21;
                     const auto offsetY = (int32_t)word << 10 >> 21;
+                    
+                    m_drawingOffset.x() = static_cast<float>(offsetX);
+                    m_drawingOffset.y() = static_cast<float>(offsetY);
+
                     // The - 0.5 helps fix some holes in rendering, in places like the PS logo
                     // TODO: This might not work when upscaling?
-                    m_drawingOffset.x() = (float)offsetX - 0.5;
-                    m_drawingOffset.y() = (float)offsetY - 0.5;
-                    glUniform2fv(m_drawingOffsetLoc, 1, &m_drawingOffset[0]);
+                    float adjustedOffsets[2] = {m_drawingOffset.x() - 0.5, m_drawingOffset.y() - 0.5};
+                    glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
                     break;
                 }
                 case 0xE6:                  // Set draw mask
@@ -479,6 +482,8 @@ void PCSX::OpenGL_GPU::debug() {
     if (ImGui::Begin(_("OpenGL GPU Debugger"), &m_showDebug)) {
         ImGui::Text(_("Display horizontal range: %d-%d"), m_displayArea.x, m_displayArea.x + m_displayArea.width);
         ImGui::Text(_("Display vertical range: %d-%d"), m_displayArea.y, m_displayArea.y + m_displayArea.height);
+        ImGui::Text(_("Drawing area offset: (%d, %d)"), static_cast<int>(m_drawingOffset.x()),
+                    static_cast<int>(m_drawingOffset.y()));
 
         ImGui::ColorEdit3(_("Clear colour"), &m_clearColour[0]);
         if (ImGui::Button(_("Clear VRAM"))) {
@@ -513,15 +518,7 @@ void PCSX::OpenGL_GPU::vblank() {
     m_gui->setViewport();
     m_gui->flip();  // Set up offscreen framebuffer before rendering
 
-    /*
-        float xRatio = PSXDisplay.RGB24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
-
-        float startX = PSXDisplay.DisplayPosition.x * xRatio;
-        float startY = PSXDisplay.DisplayPosition.y / 512.0f;
-        float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
-        float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
-    */
-
+    // TODO: Handle 24-bit display here.
     float xRatio = false ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
 
     float startX = m_displayArea.x * xRatio;
