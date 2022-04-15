@@ -133,6 +133,12 @@
     <ClCompile Include="..\..\src\core\luaiso.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc">
+      <Filter>Source Files\OpenGL GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\OpenGL_GPU\command_processor.cc">
+      <Filter>Source Files\OpenGL GPU</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\web-server.h">
@@ -152,9 +158,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\sio.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h">
-      <Filter>Header Files\OpenGL GPU</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\r3000a.h">
       <Filter>Header Files</Filter>
@@ -264,6 +267,9 @@
     <ClInclude Include="..\..\src\core\luaiso.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h">
+      <Filter>Header Files\OpenGL GPU</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -289,6 +295,12 @@
     </Filter>
     <Filter Include="Source Files\Dynarec x86">
       <UniqueIdentifier>{625a927c-9a94-4054-9b76-56b4ad33beff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OpenGL GPU">
+      <UniqueIdentifier>{c973e13f-d1b9-4250-8920-f4adcde9f195}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\OpenGL GPU">
+      <UniqueIdentifier>{316b3d5e-d395-41bb-b5e6-82c31e173baf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
