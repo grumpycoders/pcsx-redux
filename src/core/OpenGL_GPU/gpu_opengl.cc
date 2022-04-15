@@ -43,13 +43,15 @@ void PCSX::OpenGL_GPU::reset() {
     clearVRAM();
 }
 
-void PCSX::OpenGL_GPU::clearVRAM() {
+void PCSX::OpenGL_GPU::clearVRAM(float r, float g, float b, float a) {
     const auto oldFBO = OpenGL::getDrawFramebuffer();
     m_fbo.bind(OpenGL::DrawFramebuffer);
-    OpenGL::setClearColor(0.f, 0.f, 0.f, 1.f);
+    OpenGL::setClearColor(r, g, b, a);
     OpenGL::clearColor();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oldFBO);
 }
+
+void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 
 // Do not forget to call this with an active OpenGL context.
 int PCSX::OpenGL_GPU::init() {
@@ -464,7 +466,10 @@ void PCSX::OpenGL_GPU::debug() {
         ImGui::Text(_("Display horizontal range: %d-%d"), m_displayArea.x, m_displayArea.x + m_displayArea.width);
         ImGui::Text(_("Display vertical range: %d-%d"), m_displayArea.y, m_displayArea.y + m_displayArea.height);
 
-        if (ImGui::Button(_("Clear VRAM"))) clearVRAM();
+        ImGui::ColorEdit3("Clear colour", &m_clearColour[0]);
+        if (ImGui::Button(_("Clear VRAM"))) {
+            clearVRAM(m_clearColour.r(), m_clearColour.g(), m_clearColour.b());
+        }
 
         ImGui::End();
     }

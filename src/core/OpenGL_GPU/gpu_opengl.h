@@ -90,6 +90,8 @@ class OpenGL_GPU final : public GPU {
     std::array<uint32_t, 16> m_cmdFIFO;
     OpenGL::Rect m_displayArea;
     OpenGL::vec2 m_drawingOffset;
+    // Clear colour used in the debugger
+    OpenGL::vec3 m_clearColour = OpenGL::vec3({0.f, 0.f, 0.f});
     GLint m_drawingOffsetLoc;
 
     int m_FIFOIndex;
@@ -100,5 +102,6 @@ class OpenGL_GPU final : public GPU {
     GP0Func m_pendingCommand;
 
     void renderBatch();
+    void clearVRAM(float r, float g, float b, float a = 1.0);
 };
 }  // namespace PCSX

@@ -20,6 +20,7 @@
 #pragma once
 #include <gl/gl3w.h>
 
+#include <array>
 #include <cassert>
 #include <functional>
 #include <initializer_list>
@@ -309,6 +310,12 @@ class Vector {
     T& z() { return b(); }
     T& w() { return a(); }
     T& operator[](int index) { return m_storage[index]; }
+
+    Vector(std::array<T, size> list) {
+        std::copy(list.begin(), list.end(), &m_storage[0]);
+    }
+
+    Vector() {}
 };
 
 using vec2 = Vector<GLfloat, 2>;
