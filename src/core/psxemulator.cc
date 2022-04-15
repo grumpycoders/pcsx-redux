@@ -98,11 +98,18 @@ int PCSX::Emulator::init() {
     if (m_mem->init() == -1) return -1;
     int ret = PCSX::R3000Acpu::psxInit();
 
-    if (settings.get<SettingHardwareRenderer>()) {
+    const auto& args = g_system->getArgs();
+
+    if (args.get<bool>("openglgpu")) {
+        m_gpu = PCSX::GPU::getOpenGL();
+    } else if (args.get<bool>("softgpu")) {
+        m_gpu = PCSX::GPU::getSoft();
+    } else if (settings.get<SettingHardwareRenderer>()) {
         m_gpu = PCSX::GPU::getOpenGL();
     } else {
         m_gpu = PCSX::GPU::getSoft();
     }
+
     m_gpu->setDither(settings.get<Emulator::SettingDither>());
     m_gpu->startFrame();
 

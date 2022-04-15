@@ -88,6 +88,7 @@ int PCSX::OpenGL_GPU::init() {
 
     static const char* vertSource = R"(
         #version 330 core
+
         layout (location = 0) in vec2 aPos;
         layout (location = 1) in vec3 Color;
         out vec4 vertexColor;
@@ -113,6 +114,7 @@ int PCSX::OpenGL_GPU::init() {
         #version 330 core
         in vec4 vertexColor;
         out vec4 FragColor;
+
         void main() {
            FragColor = vertexColor;
         }
@@ -459,8 +461,11 @@ bool PCSX::OpenGL_GPU::configure() {
 
 void PCSX::OpenGL_GPU::debug() {
     if (ImGui::Begin(_("OpenGL GPU Debugger"), &m_showDebug)) {
-        ImGui::Text("Display horizontal range: %d-%d", m_displayArea.x, m_displayArea.x + m_displayArea.width);
-        ImGui::Text("Display vertical range: %d-%d", m_displayArea.y, m_displayArea.y + m_displayArea.height);
+        ImGui::Text(_("Display horizontal range: %d-%d"), m_displayArea.x, m_displayArea.x + m_displayArea.width);
+        ImGui::Text(_("Display vertical range: %d-%d"), m_displayArea.y, m_displayArea.y + m_displayArea.height);
+
+        if (ImGui::Button(_("Clear VRAM"))) clearVRAM();
+
         ImGui::End();
     }
 }
