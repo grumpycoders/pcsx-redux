@@ -56,15 +56,13 @@ class OpenGL_GPU final : public GPU {
     // Actual emulation stuff
     using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
     struct Vertex {
-        OpenGL::vec2 positions;
-        OpenGL::vec3 colors;
+        OpenGL::uvec2 positions;
+        uint32_t colour;
 
-        Vertex(uint32_t x, uint32_t y, float r, float g, float b) {
-            positions[0] = (float)x;
-            positions[1] = (float)y;
-            colors[0] = r;
-            colors[1] = g;
-            colors[2] = b;
+        Vertex(uint32_t x, uint32_t y, uint32_t col) {
+            positions.x() = x;
+            positions.y() = y;
+            colour = col;
         }
     };
     enum class TransferMode { CommandTransfer, VRAMTransfer };

@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #pragma once
-#include <gl/gl3w.h>
+#include "GL/gl3w.h"
 
 #include <array>
 #include <cassert>
@@ -51,12 +51,20 @@ struct VertexArray {
     bool exists() { return m_handle != 0; }
     void bind() { glBindVertexArray(m_handle); }
 
-    void setAttribute(GLuint index, GLint size, GLenum type, bool normalized, GLsizei stride, const void* offset) {
-        glVertexAttribPointer(index, size, type, normalized, stride, offset);
+    template <typename T>
+    void setAttribute(GLuint index, GLint size, GLsizei stride, const void* offset, bool normalized = false) {
+        if constexpr (std::is_same<T, GLfloat>()) {
+            glVertexAttribPointer(index, size, GL_FLOAT, normalized, stride, offset);
+        } else if constexpr (std::is_same<T, GLuint>()) {
+            glVertexAttribIPointer(index, size, GL_UNSIGNED_INT, stride, offset);
+        } else {
+            static_assert(0, "Unimplemented type for OpenGL::setAttribute");
+        }
     }
 
-    void setAttribute(GLuint index, GLint size, GLenum type, bool normalized, GLsizei stride, size_t offset) {
-        glVertexAttribPointer(index, size, type, normalized, stride, reinterpret_cast<const void*>(offset));
+    template <typename T>
+    void setAttribute(GLuint index, GLint size, GLsizei stride, size_t offset, bool normalized = false) {
+        setAttribute<T>(index, size, stride, reinterpret_cast<const void*>(offset), normalized);
     }
 
     void enableAttribute(GLuint index) { glEnableVertexAttribArray(index); }

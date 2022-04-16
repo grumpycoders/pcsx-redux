@@ -67,10 +67,10 @@ int PCSX::OpenGL_GPU::init() {
     m_vao.bind();
 
     // Position (x and y coord) attribute
-    m_vao.setAttribute(0, 2, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, positions));
+    m_vao.setAttribute<GLuint>(0, 2, sizeof(Vertex), offsetof(Vertex, positions));
     m_vao.enableAttribute(0);
-    // Colour (r, g, b) attribute
-    m_vao.setAttribute(1, 3, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, colors));
+    // Colour attribute
+    m_vao.setAttribute<GLuint>(1, 1, sizeof(Vertex), offsetof(Vertex, colour));
     m_vao.enableAttribute(1);
 
     // Make VRAM texture and attach it to draw frambuffer
@@ -91,8 +91,11 @@ int PCSX::OpenGL_GPU::init() {
     static const char* vertSource = R"(
         #version 330 core
 
-        layout (location = 0) in vec2 aPos;
-        layout (location = 1) in vec3 Color;
+        // inPos: The vertex position.
+        // inColor: The colour in BGR888. Top 8 bits are garbage and are trimmed by the vertex shader to conserve CPU time 
+
+        layout (location = 0) in uvec2 inPos;
+        layout (location = 1) in uint inColor;
         out vec4 vertexColor;
 
         // We always apply a -0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies 
@@ -100,15 +103,22 @@ int PCSX::OpenGL_GPU::init() {
 
         void main() {
            // Normalize coords to [0, 2]
-           float xx = (aPos.x + u_vertexOffsets.x) / 512.0;
-           float yy = (aPos.y + u_vertexOffsets.y) / 256;
+           float x = float(inPos.x);
+           float y = float(inPos.y);
+           float xx = (x + u_vertexOffsets.x) / 512.0;
+           float yy = (y + u_vertexOffsets.y) / 256;
 
            // Normalize to [-1, 1]
            xx -= 1.0;
            yy -= 1.0;
+
+           float red = float(inColor & 0xff);
+           float green = float((inColor >> 8) & 0xff);
+           float blue = float((inColor >> 16) & 0xff);
+           vec3 color = vec3(red, green, blue);
            
            gl_Position = vec4(xx, yy, 1.0, 1.0);
-           vertexColor = vec4(Color / 255.0, 1.0);
+           vertexColor = vec4(color / 255.0, 1.0);
         }
     )";
 
@@ -273,96 +283,78 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
             if (m_remainingWords == 0) {
                 m_haveCommand = false;
                 if (m_cmd == 0x28) {
-                    const uint32_t colour = m_cmdFIFO[0] & 0xffffff;
-                    const float r = colour & 0xff;
-                    const float g = (colour >> 8) & 0xff;
-                    const float b = (colour >> 16) & 0xff;
+                    const uint32_t colour = m_cmdFIFO[0];
 
                     for (auto i = 0; i < 3; i++) {
                         const uint32_t v = m_cmdFIFO[i + 1];
                         const uint32_t x = v & 0xffff;
                         const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
+                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
                     }
 
                     for (auto i = 1; i < 4; i++) {
                         const uint32_t v = m_cmdFIFO[i + 1];
                         const uint32_t x = v & 0xffff;
                         const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
+                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
                     }
                 }
 
                 else if (m_cmd == 0x20) {
-                    const uint32_t colour = m_cmdFIFO[0] & 0xffffff;
+                    const uint32_t colour = m_cmdFIFO[0];
                     for (int i = 0; i < 3; i++) {
                         const uint32_t v = m_cmdFIFO[i + 1];
                         const uint32_t x = v & 0xffff;
                         const uint32_t y = v >> 16;
-                        const float r = colour & 0xff;
-                        const float g = (colour >> 8) & 0xff;
-                        const float b = (colour >> 16) & 0xff;
-                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
+                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
                     }
                 }
 
                 else if (m_cmd == 0x30) {
                     for (int i = 0; i < 3; i++) {
-                        const uint32_t colour = m_cmdFIFO[i * 2] & 0xffffff;
+                        const uint32_t colour = m_cmdFIFO[i * 2];
                         const uint32_t v = m_cmdFIFO[i * 2 + 1];
                         const uint32_t x = v & 0xffff;
                         const uint32_t y = v >> 16;
-                        const float r = colour & 0xff;
-                        const float g = (colour >> 8) & 0xff;
-                        const float b = (colour >> 16) & 0xff;
-                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
+                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
                     }
                 }
 
                 else if (m_cmd == 0x38) {
                     for (int i = 0; i < 3; i++) {
-                        const uint32_t colour = m_cmdFIFO[i * 2] & 0xffffff;
+                        const uint32_t colour = m_cmdFIFO[i * 2];
                         const uint32_t v = m_cmdFIFO[i * 2 + 1];
                         const uint32_t x = v & 0xffff;
                         const uint32_t y = v >> 16;
-                        const float r = colour & 0xff;
-                        const float g = (colour >> 8) & 0xff;
-                        const float b = (colour >> 16) & 0xff;
-                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
+                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
                     }
 
                     for (int i = 1; i < 4; i++) {
-                        const uint32_t colour = m_cmdFIFO[i * 2] & 0xffffff;
+                        const uint32_t colour = m_cmdFIFO[i * 2];
                         const uint32_t v = m_cmdFIFO[i * 2 + 1];
                         const uint32_t x = v & 0xffff;
                         const uint32_t y = v >> 16;
-                        const float r = colour & 0xff;
-                        const float g = (colour >> 8) & 0xff;
-                        const float b = (colour >> 16) & 0xff;
-                        m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
+                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
                     }
                 }
 
                 else if (m_cmd == 0x60) {
-                    const uint32_t colour = m_cmdFIFO[0] & 0xffffff;
+                    const uint32_t colour = m_cmdFIFO[0];
                     const uint32_t v = m_cmdFIFO[1];
                     const uint32_t size = m_cmdFIFO[2];
 
                     const uint32_t x = v & 0xffff;
                     const uint32_t y = v >> 16;
-                    const float r = colour & 0xff;
-                    const float g = (colour >> 8) & 0xff;
-                    const float b = (colour >> 16) & 0xff;
                     const uint32_t width = size & 0xffff;
                     const uint32_t height = size >> 16;
 
-                    m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
-                    m_vertices.push_back(std::move(Vertex(x + width, y, r, g, b)));
-                    m_vertices.push_back(std::move(Vertex(x + width, y + height, r, g, b)));
+                    m_vertices.push_back(std::move(Vertex(x, y, colour)));
+                    m_vertices.push_back(std::move(Vertex(x + width, y, colour)));
+                    m_vertices.push_back(std::move(Vertex(x + width, y + height, colour)));
 
-                    m_vertices.push_back(std::move(Vertex(x + width, y + height, r, g, b)));
-                    m_vertices.push_back(std::move(Vertex(x, y + height, r, g, b)));
-                    m_vertices.push_back(std::move(Vertex(x, y, r, g, b)));
+                    m_vertices.push_back(std::move(Vertex(x + width, y + height, colour)));
+                    m_vertices.push_back(std::move(Vertex(x, y + height, colour)));
+                    m_vertices.push_back(std::move(Vertex(x, y, colour)));
                 }
 
                 else if (m_cmd == 0xA0) {
