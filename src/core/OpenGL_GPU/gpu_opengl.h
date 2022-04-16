@@ -70,7 +70,6 @@ class OpenGL_GPU final : public GPU {
     uint32_t m_gpustat = 0x14802000;
     GUI *m_gui = nullptr;
     int m_useDither = 0;
-    int m_height = 512;
 
     static constexpr int vramWidth = 1024;
     static constexpr int vramHeight = 512;
@@ -87,6 +86,9 @@ class OpenGL_GPU final : public GPU {
     std::vector<Vertex> m_vertices;
     std::array<uint32_t, 16> m_cmdFIFO;
     OpenGL::Rect m_displayArea;
+    OpenGL::Rect m_scissorBox;
+    int m_drawAreaLeft, m_drawAreaRight, m_drawAreaTop, m_drawAreaBottom;
+
     OpenGL::vec2 m_drawingOffset;
     // Clear colour used in the debugger
     OpenGL::vec3 m_clearColour = OpenGL::vec3({0.f, 0.f, 0.f});
@@ -105,5 +107,7 @@ class OpenGL_GPU final : public GPU {
 
     void renderBatch();
     void clearVRAM(float r, float g, float b, float a = 1.0);
+    void updateDrawArea();
+    void setScissorArea();
 };
 }  // namespace PCSX

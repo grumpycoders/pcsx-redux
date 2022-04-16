@@ -345,7 +345,7 @@ using uvec4 = Vector<GLuint, 4>;
 // A 2D rectangle, meant to be used for stuff like scissor rects or viewport rects
 // We're never supporting 3D rectangles, because rectangles were never meant to be 3D in the first place
 // x, y: Coords of the top left vertex
-// width, height: Dimensions of the rectangle
+// width, height: Dimensions of the rectangle. Initialized to 0 if not specified.
 template <typename T>
 struct Rectangle {
     T x, y, width, height;
@@ -360,6 +360,8 @@ struct Rectangle {
     
     bool isEmpty() { return width == 0 && height == 0; }
     bool isLine() { return (width == 0 && height != 0) || (width != 0 && height == 0); }
+    
+    void setEmpty() { x = y = width = height = 0; }
 };
 
 using Rect = Rectangle<GLuint>;

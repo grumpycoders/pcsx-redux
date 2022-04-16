@@ -19,6 +19,7 @@
 
 #include "gpu_opengl.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <stdexcept>
 
@@ -40,6 +41,11 @@ void PCSX::OpenGL_GPU::reset() {
     m_remainingWords = 0;
     m_FIFOIndex = 0;
     m_vertices.clear();
+    m_displayArea.setEmpty();
+
+    m_drawAreaLeft = m_drawAreaRight = m_drawAreaTop = m_drawAreaBottom = 0;
+    updateDrawArea();
+
     clearVRAM();
 }
 
@@ -237,11 +243,15 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     break;
                 case 0xE3:                  // Set draw area top left
                     m_haveCommand = false;  // No params, move straight to the next command
-                    PCSX::g_system->printf("Unimplemented set draw area top left command: %08X\n", word);
+                    m_drawAreaLeft = word & 0x3ff;
+                    m_drawAreaTop = (word >> 10) & 0x1ff;
+                    updateDrawArea();
                     break;
                 case 0xE4:                  // Set draw area bottom right
                     m_haveCommand = false;  // No params, move straight to the next command
-                    PCSX::g_system->printf("Unimplemented set draw area bottom right command: %08X\n", word);
+                    m_drawAreaRight = word & 0x3ff;
+                    m_drawAreaBottom = (word >> 10) & 0x1ff;
+                    updateDrawArea();
                     break;
                 case 0xE5: {
                     m_haveCommand = false; // No params, move straight to the next command
@@ -383,11 +393,10 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     const uint32_t width = m_cmdFIFO[2] & 0xffff;
                     const uint32_t height = m_cmdFIFO[2] >> 16;
 
-                    // Fix this when we implement the drawing area lmao
-                    OpenGL::enableScissor();
+                    renderBatch();
                     OpenGL::setScissor(x0, y0, width, height);
                     OpenGL::clearColor();
-                    OpenGL::disableScissor();
+                    setScissorArea();
                 }
             }
         }
@@ -491,21 +500,45 @@ void PCSX::OpenGL_GPU::startFrame() {
     m_vao.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
     OpenGL::setViewport(m_vramTexture.width(), m_vramTexture.height());
-    OpenGL::setFillMode(m_polygonMode);
+    OpenGL::enableScissor();
+
+    if (m_polygonMode != OpenGL::FillPoly) {
+        OpenGL::setFillMode(m_polygonMode);
+    }
+
     m_untexturedTriangleProgram.use();
+}
+
+void PCSX::OpenGL_GPU::updateDrawArea() {
+    renderBatch();
+    const int left = m_drawAreaLeft-1;
+    const int right = std::max<uint32_t>(m_drawAreaRight+1, left+1);
+    const int top = m_drawAreaTop;
+    const int bottom = std::max<uint32_t>(m_drawAreaBottom + 1, top + 1);
+
+    m_scissorBox.x = left;
+    m_scissorBox.y = top;
+    m_scissorBox.width = right - left;
+    m_scissorBox.height = bottom - top;
+    setScissorArea();
+}
+
+// Set the OpenGL scissor based on our PS1's drawing area.
+void PCSX::OpenGL_GPU::setScissorArea() {
+    OpenGL::setScissor(m_scissorBox.x, m_scissorBox.y, m_scissorBox.width, m_scissorBox.height);
 }
 
 // Called at the end of a frame
 void PCSX::OpenGL_GPU::vblank() {
-    if (!m_vertices.empty()) {
-        renderBatch();
-    }
+    renderBatch();
 
     // Set the fill mode to fill before passing the OpenGL context to the GUI
     if (m_polygonMode != OpenGL::FillPoly) {
         OpenGL::setFillMode(OpenGL::FillPoly);
     }
 
+    // Also remove our scissor before passing the OpenGL context to the GUI
+    OpenGL::disableScissor();
     m_gui->setViewport();
     m_gui->flip();  // Set up offscreen framebuffer before rendering
 
@@ -522,10 +555,12 @@ void PCSX::OpenGL_GPU::vblank() {
 }
 
 void PCSX::OpenGL_GPU::renderBatch() {
-    const auto vertexCount = m_vertices.size();
-    m_vbo.bufferVerts(&m_vertices[0], vertexCount);
-    OpenGL::draw(OpenGL::Triangles, vertexCount);
-    m_vertices.clear();
+    if (!m_vertices.empty()) {
+        const auto vertexCount = m_vertices.size();
+        m_vbo.bufferVerts(&m_vertices[0], vertexCount);
+        OpenGL::draw(OpenGL::Triangles, vertexCount);
+        m_vertices.clear();
+    }
 }
 
 void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("TODO: save\n"); }

@@ -1703,6 +1703,7 @@ bool PCSX::GUI::about() {
 }
 
 void PCSX::GUI::update(bool vsync) {
+    glDisable(GL_SCISSOR_TEST);
     endFrame();
     startFrame();
     // At all times, either the emulated GPU core or the GUI have full control of the host GPU & the GL context
