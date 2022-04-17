@@ -286,8 +286,11 @@ T get(GLenum query) {
     return ret;
 }
 
+static bool isEnabled(GLenum query) { return glIsEnabled(query) != GL_FALSE; }
+
 static GLint getDrawFramebuffer() { return get<GLint>(GL_DRAW_FRAMEBUFFER_BINDING); }
 static GLint getTex2D() { return get<GLint>(GL_TEXTURE_BINDING_2D); }
+static bool scissorEnabled() { return isEnabled(GL_SCISSOR_TEST); }
 
 [[nodiscard]] static GLint uniformLocation(GLuint program, const char* name) { return glGetUniformLocation(program, name); }
 [[nodiscard]] static GLint uniformLocation(Program& program, const char* name) {

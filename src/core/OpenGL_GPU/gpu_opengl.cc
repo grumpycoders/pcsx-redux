@@ -43,7 +43,9 @@ void PCSX::OpenGL_GPU::reset() {
     m_vertices.clear();
     m_displayArea.setEmpty();
 
-    m_drawAreaLeft = m_drawAreaRight = m_drawAreaTop = m_drawAreaBottom = 0;
+    m_drawAreaLeft = m_drawAreaTop = 0;
+    m_drawAreaBottom = vramHeight;
+    m_drawAreaRight = vramWidth;
     updateDrawArea();
 
     clearVRAM();
@@ -51,10 +53,15 @@ void PCSX::OpenGL_GPU::reset() {
 
 void PCSX::OpenGL_GPU::clearVRAM(float r, float g, float b, float a) {
     const auto oldFBO = OpenGL::getDrawFramebuffer();
+    const auto oldScissor = OpenGL::scissorEnabled();
+
     m_fbo.bind(OpenGL::DrawFramebuffer);
+    OpenGL::disableScissor();
     OpenGL::setClearColor(r, g, b, a);
     OpenGL::clearColor();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oldFBO);
+
+    if (oldScissor) OpenGL::enableScissor();
 }
 
 void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
@@ -511,8 +518,8 @@ void PCSX::OpenGL_GPU::startFrame() {
 
 void PCSX::OpenGL_GPU::updateDrawArea() {
     renderBatch();
-    const int left = m_drawAreaLeft-1;
-    const int right = std::max<uint32_t>(m_drawAreaRight+1, left+1);
+    const int left = m_drawAreaLeft - 1;
+    const int right = std::max<uint32_t>(m_drawAreaRight + 1, left + 1);
     const int top = m_drawAreaTop;
     const int bottom = std::max<uint32_t>(m_drawAreaBottom + 1, top + 1);
 
