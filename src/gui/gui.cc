@@ -1736,6 +1736,16 @@ bool PCSX::GUI::about() {
             ImGui::TextWrapped("%s: %s", str, value);
         };
         if (ImGui::BeginTabBar("AboutTabs", ImGuiTabBarFlags_None)) {
+            if (ImGui::BeginTabItem(_("Version"))) {
+                auto& version = g_system->getVersion();
+                if (version.failed()) {
+                    ImGui::TextUnformatted(_("No version information.\n\nProbably built from source."));
+                } else {
+                    ImGui::Text(_("Version: %s"), version.version.c_str());
+                    ImGui::Text(_("Changeset: %s"), version.changeset.c_str());
+                }
+                ImGui::EndTabItem();
+            }
             if (ImGui::BeginTabItem(_("Authors"))) {
                 ImGui::BeginChild("Authors", ImVec2(0, 0), true);
                 ImGui::Text("%s",
