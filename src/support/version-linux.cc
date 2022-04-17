@@ -21,6 +21,8 @@
 
 #include "support/version.h"
 
+bool PCSX::Update::canFullyApply() { return false; }
+
 bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) { return false; }
 
 #endif

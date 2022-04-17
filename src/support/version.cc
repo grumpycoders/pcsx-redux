@@ -72,6 +72,7 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
                 return;
             }
             callback(true);
+            m_download.reset();
         },
         loop, UvFile::DOWNLOAD_URL);
     return true;

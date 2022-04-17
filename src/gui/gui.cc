@@ -396,6 +396,17 @@ void PCSX::GUI::init() {
         if (argPCdrvBase.has_value()) {
             debugSettings.get<Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
         }
+
+        if (emuSettings.get<Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
+            m_update.downloadUpdateInfo(
+                g_system->getVersion(),
+                [this](bool success) {
+                    if (success) {
+                        m_updateAvailable = true;
+                    }
+                },
+                g_system->getLoop());
+        }
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
@@ -881,6 +892,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
+                ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
                 ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
                 if (ImGui::BeginMenu(_("Shader presets"))) {
                     if (ImGui::MenuItem(_("Default shader"))) {
@@ -1226,6 +1238,78 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         ImGui::End();
     }
 
+    if (m_showSysCfg) {
+        if (ImGui::Begin(_("System Configuration"), &m_showSysCfg)) {
+            changed |= ImGui::Checkbox(_("Preload ISO files"), &emuSettings.get<Emulator::SettingFullCaching>().value);
+            changed |= ImGui::Checkbox(_("Enable Auto Update"), &emuSettings.get<Emulator::SettingAutoUpdate>().value);
+        }
+        ImGui::End();
+    }
+
+    if (!g_system->getVersion().failed() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
+        if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
+
+If you enable the auto update option, it will check for new updates
+on startup. No personal data nor identifiable token is sent for this
+process, but Microsoft might still keep and record information such
+as your IP address.
+
+If an update is available, you will get prompted to download and
+install it. You can still download versions of PCSX-Redux as usual
+from its website.
+
+If you want to change this setting later, you can go to the
+Configuration -> System menu.)")));
+            if (ImGui::Button(_("Enable auto update"))) {
+                emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value = true;
+                emuSettings.get<Emulator::SettingAutoUpdate>().value = true;
+                changed = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(_("No thanks"))) {
+                emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value = true;
+                changed = true;
+            }
+        }
+        ImGui::End();
+    }
+
+    if (m_updateAvailable) {
+        if (ImGui::Begin(_("Update available"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (m_update.canFullyApply()) {
+                ImGui::TextUnformatted((_(R"(An update is available.
+Click 'Download' to download and apply the update.
+PCSX-Redux will automatically restart to apply it.)")));
+            } else {
+                ImGui::TextUnformatted((_(R"(An update is available.
+Click 'Download' to download it. You will need to
+unpack the file and apply the update yourself.
+PCSX-Redux will quit once the update is downloaded.)")));
+            }
+            ImGui::ProgressBar(m_update.progress());
+            if (!m_updateDownloading) {
+                if (ImGui::Button(_("Download"))) {
+                    m_updateDownloading = true;
+                    m_update.downloadUpdate(
+                        g_system->getVersion(),
+                        [this](bool success) {
+                            if (success) {
+                                m_update.applyUpdate(g_system->getBinDir());
+                                g_system->quit();
+                            }
+                        },
+                        g_system->getLoop());
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(_("Cancel"))) {
+                    m_updateAvailable = false;
+                }
+            }
+        }
+        ImGui::End();
+    }
+
     if (m_showHandles) {
         if (ImGui::Begin(_("UvFiles"), &m_showHandles)) {
             std::string rate;
@@ -1340,7 +1424,6 @@ bool PCSX::GUI::configure() {
         scale /= 100.0f;
         changed |= ImGui::SliderFloat(_("Speed Scaler"), &scale, 0.1f, 25.0f);
         settings.get<Emulator::SettingScaler>() = scale * 100.0f;
-        changed |= ImGui::Checkbox(_("Preload ISO files"), &settings.get<Emulator::SettingFullCaching>().value);
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);

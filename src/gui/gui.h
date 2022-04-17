@@ -51,6 +51,7 @@
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/eventbus.h"
 #include "support/settings.h"
+#include "support/version.h"
 #include "widgets/memory_observer.h"
 
 #if defined(__APPLE__)
@@ -272,6 +273,7 @@ class GUI final {
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
+    bool m_showSysCfg = false;
 
     const CommandLine::args &m_args;
 
@@ -322,6 +324,10 @@ class GUI final {
     Widgets::ShaderEditor m_outputShaderEditor = {"output"};
 
     static void byteRateToString(float rate, std::string &out);
+
+    Update m_update;
+    bool m_updateAvailable = false;
+    bool m_updateDownloading = false;
 
   public:
     bool hasJapanese() { return m_hasJapanese; }

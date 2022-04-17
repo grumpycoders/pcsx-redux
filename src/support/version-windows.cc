@@ -24,6 +24,8 @@
 #include "support/windowswrapper.h"
 #include "support/zip.h"
 
+bool PCSX::Update::canFullyApply() { return true; }
+
 bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     if (!m_hasUpdate) return false;
     auto tmp = std::filesystem::temp_directory_path();

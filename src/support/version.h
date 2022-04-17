@@ -51,11 +51,14 @@ class Update {
     bool downloadUpdateInfo(const VersionInfo&, std::function<void(bool)> callback, uv_loop_t* loop);
     bool downloadUpdate(const VersionInfo&, std::function<void(bool)> callback, uv_loop_t* loop);
     bool applyUpdate(const std::filesystem::path& binDir);
+    bool canFullyApply();
 
     float progress() {
         if (m_download && !m_download->failed()) return m_download->cacheProgress();
         return 0.0f;
     }
+
+    bool hasUpdate() const { return m_hasUpdate; }
 
   private:
     using json = nlohmann::json;
