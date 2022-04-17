@@ -1291,15 +1291,25 @@ PCSX-Redux will quit once the update is downloaded.)")));
             if (!m_updateDownloading) {
                 if (ImGui::Button(_("Download"))) {
                     m_updateDownloading = true;
-                    m_update.downloadUpdate(
+                    bool started = m_update.downloadUpdate(
                         g_system->getVersion(),
                         [this](bool success) {
+                            m_updateAvailable = false;
+                            m_updateDownloading = false;
                             if (success) {
                                 m_update.applyUpdate(g_system->getBinDir());
                                 g_system->quit();
+                            } else {
+                                addNotification(
+                                    _("An error has occured while downloading\nand/or applying the update."));
                             }
                         },
                         g_system->getLoop());
+                    if (!started) {
+                        addNotification(_("An error has occured while downloading\nand/or applying the update."));
+                        m_updateAvailable = false;
+                        m_updateDownloading = false;
+                    }
                 }
                 ImGui::SameLine();
                 if (ImGui::Button(_("Cancel"))) {
