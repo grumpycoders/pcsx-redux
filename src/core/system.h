@@ -1,6 +1,5 @@
 /***************************************************************************
  *   Copyright (C) 2018 PCSX-Redux authors                                 *
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -21,6 +20,7 @@
 #pragma once
 
 #include <stdarg.h>
+#include <uv.h>
 
 #include <chrono>
 #include <filesystem>
@@ -34,6 +34,7 @@
 #include "imgui.h"
 #include "support/djbhash.h"
 #include "support/eventbus.h"
+#include "support/version.h"
 
 namespace PCSX {
 
@@ -90,7 +91,8 @@ struct Keyboard {
 
 class System {
   public:
-    virtual ~System() {}
+    System() { uv_loop_init(&m_loop); }
+    virtual ~System() { uv_loop_close(&m_loop); }
     // Requests a system reset
     virtual void softReset() = 0;
     virtual void hardReset() = 0;
@@ -100,21 +102,21 @@ class System {
 
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &... args) {
+    void printf(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         printf(std::move(s));
     }
     virtual void printf(std::string &&) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &... args) {
+    void log(LogClass logClass, const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, std::move(s));
     }
     virtual void log(LogClass, std::string &&) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &... args) {
+    void message(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         message(std::move(s));
     }
@@ -161,7 +163,7 @@ class System {
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
 
-    const char *getStr(uint64_t hash, const char *str) {
+    const char *getStr(uint64_t hash, const char *str) const {
         auto ret = m_i18n.find(hash);
         if (ret == m_i18n.end()) return str;
         return ret->second.c_str();
@@ -188,8 +190,8 @@ class System {
         m_i18n = locale->second;
         m_currentLocale = name;
     }
-    std::string localeName() { return m_currentLocale; }
-    const ImWchar *getLocaleRanges() {
+    std::string localeName() const { return m_currentLocale; }
+    const ImWchar *getLocaleRanges() const {
         auto localeInfo = LOCALES.find(m_currentLocale);
         if (localeInfo == LOCALES.end()) return nullptr;
         return localeInfo->second.ranges;
@@ -207,7 +209,8 @@ class System {
         return locales;
     }
 
-    std::filesystem::path getBinDir() { return m_binDir; }
+    std::filesystem::path getBinDir() const { return m_binDir; }
+    const VersionInfo &getVersion() const { return m_version; }
 
     // needs to be odd, and is a replica of ImGui's range tables
     enum class Range {
@@ -220,7 +223,10 @@ class System {
         VIETNAMESE = 13,
     };
 
+    uv_loop_t *getLoop() { return &m_loop; }
+
   private:
+    uv_loop_t m_loop;
     std::map<uint64_t, std::string> m_i18n;
     std::map<std::string, decltype(m_i18n)> m_locales;
     std::string m_currentLocale;
@@ -236,6 +242,7 @@ class System {
 
   protected:
     std::filesystem::path m_binDir;
+    PCSX::VersionInfo m_version;
 };
 
 extern System *g_system;

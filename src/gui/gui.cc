@@ -562,7 +562,7 @@ void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 
 void PCSX::GUI::startFrame() {
     ZoneScoped;
-    uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
+    uv_run(g_system->getLoop(), UV_RUN_NOWAIT);
     auto& L = g_emulator->m_lua;
     L->getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
     if (!L->isnil()) {
@@ -1408,7 +1408,7 @@ can slow down emulation to a noticable extend.)"));
         if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
-                g_emulator->m_gdbServer->startServer(&g_emulator->m_loop,
+                g_emulator->m_gdbServer->startServer(g_system->getLoop(),
                                                      debugSettings.get<Emulator::DebugSettings::GdbServerPort>());
             } else {
                 g_emulator->m_gdbServer->stopServer();
@@ -1451,7 +1451,7 @@ the gdb server system itself.)"));
         if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::WebServer>()) {
-                g_emulator->m_webServer->startServer(&g_emulator->m_loop,
+                g_emulator->m_webServer->startServer(g_system->getLoop(),
                                                      debugSettings.get<Emulator::DebugSettings::WebServerPort>());
             } else {
                 g_emulator->m_webServer->stopServer();
@@ -1465,7 +1465,7 @@ The debugger might be required in some cases.)"));
         if (ImGui::Checkbox(_("Enable SIO1 Server"), &debugSettings.get<Emulator::DebugSettings::SIO1Server>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::SIO1Server>()) {
-                g_emulator->m_sio1Server->startServer(&g_emulator->m_loop,
+                g_emulator->m_sio1Server->startServer(g_system->getLoop(),
                                                       debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
             } else {
                 g_emulator->m_sio1Server->stopServer();

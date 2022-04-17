@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -35,7 +35,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
-#include <uv.h>
 #include <zlib.h>
 
 #include <filesystem>
@@ -252,8 +251,6 @@ class Emulator {
     std::unique_ptr<SIO1Server> m_sio1Server;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
-
-    uv_loop_t m_loop;
 
   private:
     PcsxConfig m_config;
