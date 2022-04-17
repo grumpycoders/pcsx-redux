@@ -19,10 +19,33 @@
 
 #if defined(__APPLE__) && defined(__MACH__)
 
+#include <stdlib.h>
+
+#include "fmt/format.h"
 #include "support/version.h"
+#include "support/zip.h"
 
 bool PCSX::Update::canFullyApply() { return false; }
 
-bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) { return false; }
+bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
+    if (!m_hasUpdate) return false;
+    auto tmp = std::filesystem::temp_directory_path();
+
+    ZipArchive zip(m_download);
+    if (zip.failed()) return false;
+
+    std::string filename;
+
+    zip.listAllFiles([&zip, &filename, &tmp](const std::string_view& name) {
+        IO<File> out(new UvFile(tmp / name, FileOps::TRUNCATE));
+        IO<File> in(zip.openFile(name));
+        Slice data = in->read(in->size());
+        out->write(std::move(data));
+        filename = out->filename();
+    });
+
+    std::string cmd = fmt::format("open \"{}\"", filename);
+    system(cmd.c_str());
+}
 
 #endif

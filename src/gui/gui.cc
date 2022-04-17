@@ -1283,8 +1283,9 @@ Click 'Download' to download and apply the update.
 PCSX-Redux will automatically restart to apply it.)")));
             } else {
                 ImGui::TextUnformatted((_(R"(An update is available.
-Click 'Download' to download it. You will need to
-unpack the file and apply the update yourself.
+Click 'Download' to download it. While the update can be
+downloaded, it won't be applied automatically. You will
+have to install it manually, the way you previously did.
 PCSX-Redux will quit once the update is downloaded.)")));
             }
             ImGui::ProgressBar(m_update.progress());
