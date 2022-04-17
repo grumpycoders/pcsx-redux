@@ -48,6 +48,11 @@ void PCSX::OpenGL_GPU::reset() {
     m_drawAreaRight = vramWidth;
     updateDrawArea();
 
+    m_drawingOffset = OpenGL::vec2({0.f, 0.f});
+
+    float adjustedOffsets[2] = {+0.5, -0.5};
+    glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
+
     clearVRAM();
 }
 
@@ -69,7 +74,6 @@ void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 // Do not forget to call this with an active OpenGL context.
 int PCSX::OpenGL_GPU::init() {
     g_system->printf("TODO: init\n");
-    reset();
 
     // Reserve some size for vertices to avoid dynamic allocations later.
     m_vertices.reserve(0x10000);
@@ -89,10 +93,6 @@ int PCSX::OpenGL_GPU::init() {
     // Make VRAM texture and attach it to draw frambuffer
     m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
     m_fbo.createWithDrawTexture(m_vramTexture);
-    m_fbo.bind(OpenGL::DrawFramebuffer);
-    // Clear VRAM texture
-    OpenGL::setClearColor(0.0, 0, 0, 1.0);
-    OpenGL::clearColor();
     m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
 
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -111,8 +111,8 @@ int PCSX::OpenGL_GPU::init() {
         layout (location = 1) in uint inColor;
         out vec4 vertexColor;
 
-        // We always apply a -0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies 
-        uniform vec2 u_vertexOffsets = vec2(-0.5, -0.5);
+        // We always apply a 0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies 
+        uniform vec2 u_vertexOffsets = vec2(+0.5, -0.5);
 
         void main() {
            // Normalize coords to [0, 2]
@@ -125,9 +125,9 @@ int PCSX::OpenGL_GPU::init() {
            xx -= 1.0;
            yy -= 1.0;
 
-           float red = float(inColor & 0xff);
-           float green = float((inColor >> 8) & 0xff);
-           float blue = float((inColor >> 16) & 0xff);
+           float red = float(inColor & 0xffu);
+           float green = float((inColor >> 8u) & 0xffu);
+           float blue = float((inColor >> 16u) & 0xffu);
            vec3 color = vec3(red, green, blue);
            
            gl_Position = vec4(xx, yy, 1.0, 1.0);
@@ -149,8 +149,9 @@ int PCSX::OpenGL_GPU::init() {
     OpenGL::Shader vert(vertSource, OpenGL::Vertex);
     m_untexturedTriangleProgram.create({frag, vert});
     m_untexturedTriangleProgram.use();
-
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vertexOffsets");
+
+    reset();
     return 0;
 }
 
@@ -215,7 +216,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                 case 0x28:  // Monochrome quad
                     m_remainingWords = 4;
                     break;
-                case 0x2C:  // Texured quad with blending
+                case 0x2C:  // Textured quad with blending
                 case 0x2D:  // Textured quad, opaque, no blending
                 case 0x2F:  // Textured quad, semi transparent, no blending
                     m_remainingWords = 8;
@@ -261,6 +262,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     updateDrawArea();
                     break;
                 case 0xE5: {
+                    renderBatch();
                     m_haveCommand = false; // No params, move straight to the next command
                     // Offset is a signed number in [-1024, 1023]
                     const auto offsetX = (int32_t)word << 21 >> 21;
@@ -269,9 +271,9 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     m_drawingOffset.x() = static_cast<float>(offsetX);
                     m_drawingOffset.y() = static_cast<float>(offsetY);
 
-                    // The - 0.5 helps fix some holes in rendering, in places like the PS logo
+                    // The 0.5 offsets help fix some holes in rendering, in places like the PS logo
                     // TODO: This might not work when upscaling?
-                    float adjustedOffsets[2] = {m_drawingOffset.x() - 0.5, m_drawingOffset.y() - 0.5};
+                    float adjustedOffsets[2] = {m_drawingOffset.x() + 0.5, m_drawingOffset.y() - 0.5};
                     glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
                     break;
                 }
@@ -413,6 +415,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
 // GP1 command writes
 void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
     g_system->printf("TODO: writeStatus\n");
+    renderBatch();
 
     const uint32_t cmd = value >> 24;
     switch (cmd) {
@@ -518,15 +521,15 @@ void PCSX::OpenGL_GPU::startFrame() {
 
 void PCSX::OpenGL_GPU::updateDrawArea() {
     renderBatch();
-    const int left = m_drawAreaLeft - 1;
-    const int right = std::max<uint32_t>(m_drawAreaRight + 1, left + 1);
+    const int left = m_drawAreaLeft;
+    const int width = std::max<int>(m_drawAreaRight - left + 1, 0);
     const int top = m_drawAreaTop;
-    const int bottom = std::max<uint32_t>(m_drawAreaBottom + 1, top + 1);
+    const int height = std::max<int>(m_drawAreaBottom - m_drawAreaTop + 1, 0);
 
     m_scissorBox.x = left;
     m_scissorBox.y = top;
-    m_scissorBox.width = right - left;
-    m_scissorBox.height = bottom - top;
+    m_scissorBox.width = width;
+    m_scissorBox.height = height;
     setScissorArea();
 }
 
