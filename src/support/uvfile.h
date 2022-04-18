@@ -64,8 +64,9 @@ class UvFile : public File, public UvFilesListType::Node {
     virtual bool eof() final override;
     virtual std::filesystem::path filename() final override { return m_filename; }
     virtual File* dup() final override {
-        return m_download ? new UvFile(m_filename.string(), DOWNLOAD_URL)
-                          : writable() ? new UvFile(m_filename, FileOps::READWRITE) : new UvFile(m_filename);
+        return m_download   ? new UvFile(m_filename.string(), DOWNLOAD_URL)
+               : writable() ? new UvFile(m_filename, FileOps::READWRITE)
+                            : new UvFile(m_filename);
     }
 
     // Open the file in read-only mode.
@@ -123,7 +124,7 @@ class UvFile : public File, public UvFilesListType::Node {
     bool m_download = false;
     std::atomic<bool> m_cancelDownload = false;
     std::function<void(UvFile*)> m_cachingDoneCB = nullptr;
-    uv_async_t m_cbAsync;
+    uv_async_t* m_cbAsync = nullptr;
     const std::filesystem::path m_filename;
     size_t m_ptrR = 0;
     size_t m_ptrW = 0;

@@ -346,7 +346,7 @@ void PCSX::UvFile::downloadDone(CURLMsg *message) {
     m_curlHandle = nullptr;
     m_cacheProgress.store(1.0f, std::memory_order_release);
     if (m_cachingDoneCB) {
-        uv_async_send(&m_cbAsync);
+        uv_async_send(m_cbAsync);
     }
     m_cacheBarrier.set_value();
 }
@@ -628,7 +628,7 @@ void PCSX::UvFile::readCacheChunk(uv_loop_t *loop) {
     if (m_cachePtr >= m_size) {
         m_cacheProgress.store(1.0f, std::memory_order_release);
         if (m_cachingDoneCB) {
-            uv_async_send(&m_cbAsync);
+            uv_async_send(m_cbAsync);
         }
         m_cacheBarrier.set_value();
         return;
@@ -673,12 +673,16 @@ void PCSX::UvFile::startCaching(std::function<void(UvFile *)> &&completed, uv_lo
 void PCSX::UvFile::cacheCallbackSetup(std::function<void(UvFile *)> &&callbackDone, uv_loop_t *otherLoop) {
     if (otherLoop && callbackDone) {
         m_cachingDoneCB = std::move(callbackDone);
-        uv_async_init(otherLoop, &m_cbAsync, [](uv_async_t *handle) -> void {
+        m_cbAsync = new uv_async_t();
+        uv_async_init(otherLoop, m_cbAsync, [](uv_async_t *handle) -> void {
             UvFile *self = reinterpret_cast<UvFile *>(handle->data);
-            uv_close(reinterpret_cast<uv_handle_t *>(handle), [](uv_handle_t *) {});
+            uv_close(reinterpret_cast<uv_handle_t *>(handle), [](uv_handle_t *handle_) {
+                uv_async_t *handle = reinterpret_cast<uv_async_t *>(handle_);
+                delete handle;
+            });
             self->m_cachingDoneCB(self);
         });
-        m_cbAsync.data = this;
-        if (failed()) uv_async_send(&m_cbAsync);
+        m_cbAsync->data = this;
+        if (failed()) uv_async_send(m_cbAsync);
     }
 }
