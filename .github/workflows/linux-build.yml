@@ -31,19 +31,19 @@ jobs:
         run: |
           make install install-openbios DESTDIR=AppDir/usr
           echo '{' > AppDir/usr/version.json
-          echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> AppDir/usr/version.json
-          echo '  "changeset": "'`git rev-parse HEAD`'",' >> AppDir/usr/version.json
-          echo '  "timestamp": '`date '+%s'`',' >> AppDir/usr/version.json
-          echo '  "channel": "dev",' >> AppDir/usr/version.json
-          echo '  "updateInfo": [' >> AppDir/usr/version.json
-          echo '    {' >> AppDir/usr/version.json
-          echo '      "channel": "dev",' >> AppDir/usr/version.json
-          echo '      "method": "appcenter",' >> AppDir/usr/version.json
-          echo '      "updateCatalog": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/public_releases",' >> AppDir/usr/version.json
-          echo '      "updateInfoBase": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/releases/"' >> AppDir/usr/version.json
-          echo '    }' >> AppDir/usr/version.json
-          echo '  ]' >> AppDir/usr/version.json
-          echo '}' >> AppDir/usr/version.json
+          echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '  "changeset": "'`git rev-parse HEAD`'",' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '  "timestamp": '`date '+%s'`',' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '  "channel": "dev",' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '  "updateInfo": [' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '    {' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '      "channel": "dev",' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '      "method": "appcenter",' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '      "updateCatalog": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/public_releases",' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '      "updateInfoBase": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/releases/"' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '    }' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '  ]' >> AppDir/usr/share/pcsx-redux/version.json
+          echo '}' >> AppDir/usr/share/pcsx-redux/version.json
           appimage-builder --skip-tests
       - name: Test
         run: |
