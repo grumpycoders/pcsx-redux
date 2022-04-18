@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -35,7 +35,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
-#include <uv.h>
 #include <zlib.h>
 
 #include <filesystem>
@@ -183,12 +182,14 @@ class Emulator {
     typedef Setting<int, TYPESTRING("Dither"), 2> SettingDither;
     typedef Setting<bool, TYPESTRING("ReportGLErrors"), false> SettingGLErrorReporting;
     typedef Setting<bool, TYPESTRING("FullCaching"), false> SettingFullCaching;
+    typedef Setting<bool, TYPESTRING("ShownAutoUpdateConfig"), false> SettingShownAutoUpdateConfig;
+    typedef Setting<bool, TYPESTRING("AutoUpdate"), false> SettingAutoUpdate;
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
              SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
              SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither,
-             SettingGLErrorReporting, SettingFullCaching>
+             SettingGLErrorReporting, SettingFullCaching, SettingShownAutoUpdateConfig, SettingAutoUpdate>
         settings;
     class PcsxConfig {
       public:
@@ -252,8 +253,6 @@ class Emulator {
     std::unique_ptr<SIO1Server> m_sio1Server;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
-
-    uv_loop_t m_loop;
 
   private:
     PcsxConfig m_config;

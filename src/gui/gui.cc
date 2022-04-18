@@ -25,6 +25,7 @@
 #include <assert.h>
 
 #include <algorithm>
+#include <ctime>
 #include <fstream>
 #include <iomanip>
 #include <type_traits>
@@ -396,6 +397,17 @@ void PCSX::GUI::init() {
         if (argPCdrvBase.has_value()) {
             debugSettings.get<Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
         }
+
+        if (emuSettings.get<Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
+            m_update.downloadUpdateInfo(
+                g_system->getVersion(),
+                [this](bool success) {
+                    if (success) {
+                        m_updateAvailable = true;
+                    }
+                },
+                g_system->getLoop());
+        }
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
@@ -562,7 +574,7 @@ void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 
 void PCSX::GUI::startFrame() {
     ZoneScoped;
-    uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
+    uv_run(g_system->getLoop(), UV_RUN_NOWAIT);
     auto& L = g_emulator->m_lua;
     L->getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
     if (!L->isnil()) {
@@ -881,6 +893,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
+                ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
                 ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
                 if (ImGui::BeginMenu(_("Shader presets"))) {
                     if (ImGui::MenuItem(_("Default shader"))) {
@@ -1226,6 +1239,89 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         ImGui::End();
     }
 
+    if (m_showSysCfg) {
+        if (ImGui::Begin(_("System Configuration"), &m_showSysCfg)) {
+            changed |= ImGui::Checkbox(_("Preload ISO files"), &emuSettings.get<Emulator::SettingFullCaching>().value);
+            changed |= ImGui::Checkbox(_("Enable Auto Update"), &emuSettings.get<Emulator::SettingAutoUpdate>().value);
+        }
+        ImGui::End();
+    }
+
+    if (!g_system->getVersion().failed() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
+        if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
+
+If you enable the auto update option, it will check for new updates
+on startup. No personal data nor identifiable token is sent for this
+process, but Microsoft might still keep and record information such
+as your IP address.
+
+If an update is available, you will get prompted to download and
+install it. You can still download versions of PCSX-Redux as usual
+from its website.
+
+If you want to change this setting later, you can go to the
+Configuration -> System menu.)")));
+            if (ImGui::Button(_("Enable auto update"))) {
+                emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value = true;
+                emuSettings.get<Emulator::SettingAutoUpdate>().value = true;
+                changed = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(_("No thanks"))) {
+                emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value = true;
+                changed = true;
+            }
+        }
+        ImGui::End();
+    }
+
+    if (m_updateAvailable) {
+        if (ImGui::Begin(_("Update available"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (m_update.canFullyApply()) {
+                ImGui::TextUnformatted((_(R"(An update is available.
+Click 'Download' to download and apply the update.
+PCSX-Redux will automatically restart to apply it.)")));
+            } else {
+                ImGui::TextUnformatted((_(R"(An update is available.
+Click 'Download' to download it. While the update can be
+downloaded, it won't be applied automatically. You will
+have to install it manually, the way you previously did.
+PCSX-Redux will quit once the update is downloaded.)")));
+            }
+            ImGui::ProgressBar(m_update.progress());
+            if (!m_updateDownloading) {
+                if (ImGui::Button(_("Download"))) {
+                    m_updateDownloading = true;
+                    bool started = m_update.downloadUpdate(
+                        g_system->getVersion(),
+                        [this](bool success) {
+                            m_updateAvailable = false;
+                            m_updateDownloading = false;
+                            if (success) {
+                                m_update.applyUpdate(g_system->getBinDir());
+                                g_system->quit();
+                            } else {
+                                addNotification(
+                                    _("An error has occured while downloading\nand/or applying the update."));
+                            }
+                        },
+                        g_system->getLoop());
+                    if (!started) {
+                        addNotification(_("An error has occured while downloading\nand/or applying the update."));
+                        m_updateAvailable = false;
+                        m_updateDownloading = false;
+                    }
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(_("Cancel"))) {
+                    m_updateAvailable = false;
+                }
+            }
+        }
+        ImGui::End();
+    }
+
     if (m_showHandles) {
         if (ImGui::Begin(_("UvFiles"), &m_showHandles)) {
             std::string rate;
@@ -1340,7 +1436,6 @@ bool PCSX::GUI::configure() {
         scale /= 100.0f;
         changed |= ImGui::SliderFloat(_("Speed Scaler"), &scale, 0.1f, 25.0f);
         settings.get<Emulator::SettingScaler>() = scale * 100.0f;
-        changed |= ImGui::Checkbox(_("Preload ISO files"), &settings.get<Emulator::SettingFullCaching>().value);
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
@@ -1408,7 +1503,7 @@ can slow down emulation to a noticable extend.)"));
         if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
-                g_emulator->m_gdbServer->startServer(&g_emulator->m_loop,
+                g_emulator->m_gdbServer->startServer(g_system->getLoop(),
                                                      debugSettings.get<Emulator::DebugSettings::GdbServerPort>());
             } else {
                 g_emulator->m_gdbServer->stopServer();
@@ -1451,7 +1546,7 @@ the gdb server system itself.)"));
         if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::WebServer>()) {
-                g_emulator->m_webServer->startServer(&g_emulator->m_loop,
+                g_emulator->m_webServer->startServer(g_system->getLoop(),
                                                      debugSettings.get<Emulator::DebugSettings::WebServerPort>());
             } else {
                 g_emulator->m_webServer->stopServer();
@@ -1465,7 +1560,7 @@ The debugger might be required in some cases.)"));
         if (ImGui::Checkbox(_("Enable SIO1 Server"), &debugSettings.get<Emulator::DebugSettings::SIO1Server>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::SIO1Server>()) {
-                g_emulator->m_sio1Server->startServer(&g_emulator->m_loop,
+                g_emulator->m_sio1Server->startServer(g_system->getLoop(),
                                                       debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
             } else {
                 g_emulator->m_sio1Server->stopServer();
@@ -1653,6 +1748,20 @@ bool PCSX::GUI::about() {
             ImGui::TextWrapped("%s: %s", str, value);
         };
         if (ImGui::BeginTabBar("AboutTabs", ImGuiTabBarFlags_None)) {
+            if (ImGui::BeginTabItem(_("Version"))) {
+                auto& version = g_system->getVersion();
+                if (version.failed()) {
+                    ImGui::TextUnformatted(_("No version information.\n\nProbably built from source."));
+                } else {
+                    ImGui::Text(_("Version: %s"), version.version.c_str());
+                    ImGui::Text(_("Changeset: %s"), version.changeset.c_str());
+                    std::tm* tm = std::localtime(&version.timestamp);
+                    char buffer[32];
+                    std::strftime(buffer, 32, "%Y-%m-%d %H:%M:%S", tm);
+                    ImGui::Text(_("Date & time: %s"), buffer);
+                }
+                ImGui::EndTabItem();
+            }
             if (ImGui::BeginTabItem(_("Authors"))) {
                 ImGui::BeginChild("Authors", ImVec2(0, 0), true);
                 ImGui::Text("%s",

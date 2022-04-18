@@ -110,7 +110,7 @@ PCSX::SIO1Server::SIO1Server() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::SIO1Server>() &&
             (m_serverStatus != SIO1ServerStatus::SERVER_STARTED)) {
-            startServer(&g_emulator->m_loop, g_emulator->settings.get<Emulator::SettingDebugSettings>()
+            startServer(g_system->getLoop(), g_emulator->settings.get<Emulator::SettingDebugSettings>()
                                                  .get<Emulator::DebugSettings::SIO1ServerPort>());
         }
     });

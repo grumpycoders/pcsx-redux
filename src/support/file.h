@@ -315,7 +315,6 @@ class IO : public IOBase {
         return h;
     }
     IO<T>& operator=(const IO<T>& io) {
-        if (m_file) m_file->delRef();
         setFile(io.m_file);
         return *this;
     }

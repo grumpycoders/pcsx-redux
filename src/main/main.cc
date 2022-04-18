@@ -33,6 +33,7 @@
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
 #include "support/uvfile.h"
+#include "support/version.h"
 #include "tracy/Tracy.hpp"
 
 static PCSX::GUI *s_gui;
@@ -43,7 +44,7 @@ class SystemImpl final : public PCSX::System {
         m_putcharBuffer += std::string(1, c);
         if (c == '\n') {
             log(PCSX::LogClass::MIPS, std::move(m_putcharBuffer));
-            m_putcharBuffer.clear();  // I don't think this is necessary after the std::move...?
+            m_putcharBuffer.clear();
         }
     }
     virtual void message(std::string &&s) final override {
@@ -107,8 +108,8 @@ class SystemImpl final : public PCSX::System {
     }
 
     virtual void purgeAllEvents() final override {
-        uv_stop(&PCSX::g_emulator->m_loop);
-        uv_run(&PCSX::g_emulator->m_loop, UV_RUN_DEFAULT);
+        uv_stop(getLoop());
+        uv_run(getLoop(), UV_RUN_DEFAULT);
     }
 
     virtual void testQuit(int code) final override {
@@ -126,7 +127,18 @@ class SystemImpl final : public PCSX::System {
     PCSX::IO<PCSX::UvFile> m_logfile;
 
   public:
-    void setBinDir(std::filesystem::path path) { m_binDir = path; }
+    void setBinDir(std::filesystem::path path) {
+        m_binDir = path;
+        m_version.loadFromFile(new PCSX::PosixFile(path / "version.json"));
+        if (m_version.failed()) {
+            m_version.loadFromFile(
+                new PCSX::PosixFile(path / ".." / "share" / "pcsx-redux" / "resources" / "version.json"));
+        }
+        if (m_version.failed()) {
+            m_version.loadFromFile(
+                new PCSX::PosixFile(path / ".." / "Resources" / "share" / "pcsx-redux" / "resources" / "version.json"));
+        }
+    }
 
     explicit SystemImpl(const CommandLine::args &args) : m_args(args) {}
     ~SystemImpl() {}
