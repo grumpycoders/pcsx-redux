@@ -34,6 +34,7 @@ void PCSX::VersionInfo::loadFromFile(IO<File> file) {
     try {
         version = json["version"];
         changeset = json["changeset"];
+        timestamp = json["timestamp"];
         updateCatalog = json["updateInfo"][0]["updateCatalog"];
         updateInfoBase = json["updateInfo"][0]["updateInfoBase"];
     } catch (...) {

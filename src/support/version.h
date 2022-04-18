@@ -21,6 +21,7 @@
 
 #include <uv.h>
 
+#include <ctime>
 #include <filesystem>
 #include <functional>
 #include <string>
@@ -34,6 +35,7 @@ namespace PCSX {
 struct VersionInfo {
     std::string version;
     std::string changeset;
+    std::time_t timestamp;
     std::string updateCatalog;
     std::string updateInfoBase;
     void loadFromFile(IO<File> file);
