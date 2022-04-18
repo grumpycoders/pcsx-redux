@@ -56,12 +56,22 @@ class OpenGL_GPU final : public GPU {
     // Actual emulation stuff
     using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
     struct Vertex {
-        OpenGL::uvec2 positions;
+        OpenGL::ivec2 positions;
         uint32_t colour;
 
+        // TODO: See how coordinates should be sign extended for each colour
         Vertex(uint32_t x, uint32_t y, uint32_t col) {
-            positions.x() = x;
-            positions.y() = y;
+            positions.x() = int(x) << 21 >> 21;
+            positions.y() = int(y) << 21 >> 21;
+            colour = col;
+        }
+
+        // Same as above constructor, except it accepts the position in packed format
+        Vertex(uint32_t position, uint32_t col) {
+            const int x = position & 0xffff;
+            const int y = (position >> 16) & 0xffff;
+            positions.x() = x << 21 >> 21;
+            positions.y() = y << 21 >> 21;
             colour = col;
         }
     };

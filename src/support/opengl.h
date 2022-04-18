@@ -57,6 +57,8 @@ struct VertexArray {
             glVertexAttribPointer(index, size, GL_FLOAT, normalized, stride, offset);
         } else if constexpr (std::is_same<T, GLuint>()) {
             glVertexAttribIPointer(index, size, GL_UNSIGNED_INT, stride, offset);
+        } else if constexpr (std::is_same<T, GLint>()) {
+            glVertexAttribIPointer(index, size, GL_INT, stride, offset);
         } else {
             static_assert(0, "Unimplemented type for OpenGL::setAttribute");
         }

@@ -83,8 +83,8 @@ int PCSX::OpenGL_GPU::init() {
     m_vao.create();
     m_vao.bind();
 
-    // Position (x and y coord) attribute
-    m_vao.setAttribute<GLuint>(0, 2, sizeof(Vertex), offsetof(Vertex, positions));
+    // Position (x and y coord) attribute. Signed 11-bit numbers
+    m_vao.setAttribute<GLint>(0, 2, sizeof(Vertex), offsetof(Vertex, positions));
     m_vao.enableAttribute(0);
     // Colour attribute
     m_vao.setAttribute<GLuint>(1, 1, sizeof(Vertex), offsetof(Vertex, colour));
@@ -107,7 +107,7 @@ int PCSX::OpenGL_GPU::init() {
         // inPos: The vertex position.
         // inColor: The colour in BGR888. Top 8 bits are garbage and are trimmed by the vertex shader to conserve CPU time 
 
-        layout (location = 0) in uvec2 inPos;
+        layout (location = 0) in ivec2 inPos;
         layout (location = 1) in uint inColor;
         out vec4 vertexColor;
 
@@ -305,55 +305,43 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     const uint32_t colour = m_cmdFIFO[0];
 
                     for (auto i = 0; i < 3; i++) {
-                        const uint32_t v = m_cmdFIFO[i + 1];
-                        const uint32_t x = v & 0xffff;
-                        const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
+                        const uint32_t pos = m_cmdFIFO[i + 1];
+                        m_vertices.push_back(std::move(Vertex(pos, colour)));
                     }
 
                     for (auto i = 1; i < 4; i++) {
-                        const uint32_t v = m_cmdFIFO[i + 1];
-                        const uint32_t x = v & 0xffff;
-                        const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
+                        const uint32_t pos = m_cmdFIFO[i + 1];
+                        m_vertices.push_back(std::move(Vertex(pos, colour)));
                     }
                 }
 
                 else if (m_cmd == 0x20) {
                     const uint32_t colour = m_cmdFIFO[0];
                     for (int i = 0; i < 3; i++) {
-                        const uint32_t v = m_cmdFIFO[i + 1];
-                        const uint32_t x = v & 0xffff;
-                        const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
+                        const uint32_t pos = m_cmdFIFO[i + 1];
+                        m_vertices.push_back(std::move(Vertex(pos, colour)));
                     }
                 }
 
                 else if (m_cmd == 0x30) {
                     for (int i = 0; i < 3; i++) {
                         const uint32_t colour = m_cmdFIFO[i * 2];
-                        const uint32_t v = m_cmdFIFO[i * 2 + 1];
-                        const uint32_t x = v & 0xffff;
-                        const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
+                        const uint32_t pos = m_cmdFIFO[i * 2 + 1];
+                        m_vertices.push_back(std::move(Vertex(pos, colour)));
                     }
                 }
 
                 else if (m_cmd == 0x38) {
                     for (int i = 0; i < 3; i++) {
                         const uint32_t colour = m_cmdFIFO[i * 2];
-                        const uint32_t v = m_cmdFIFO[i * 2 + 1];
-                        const uint32_t x = v & 0xffff;
-                        const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
+                        const uint32_t pos = m_cmdFIFO[i * 2 + 1];
+                        m_vertices.push_back(std::move(Vertex(pos, colour)));
                     }
 
                     for (int i = 1; i < 4; i++) {
                         const uint32_t colour = m_cmdFIFO[i * 2];
-                        const uint32_t v = m_cmdFIFO[i * 2 + 1];
-                        const uint32_t x = v & 0xffff;
-                        const uint32_t y = v >> 16;
-                        m_vertices.push_back(std::move(Vertex(x, y, colour)));
+                        const uint32_t pos = m_cmdFIFO[i * 2 + 1];
+                        m_vertices.push_back(std::move(Vertex(pos, colour)));
                     }
                 }
 
@@ -442,6 +430,10 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
             m_displayArea.height = y2 - y1;
             break;
         }
+
+        default:
+            PCSX::g_system->printf("Unknown GP1 command: %02X\n", cmd);
+            break;
     }
 }
 
