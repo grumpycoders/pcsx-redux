@@ -47,7 +47,6 @@
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"
-#include "fmt/chrono.h"
 #include "gpu/soft/externals.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
@@ -1756,9 +1755,10 @@ bool PCSX::GUI::about() {
                 } else {
                     ImGui::Text(_("Version: %s"), version.version.c_str());
                     ImGui::Text(_("Changeset: %s"), version.changeset.c_str());
-                    std::tm tm = fmt::localtime(version.timestamp);
-                    std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
-                    ImGui::Text(_("Date & time: %s"), timestamp.c_str());
+                    std::tm* tm = std::localtime(&version.timestamp);
+                    char buffer[32];
+                    std::strftime(buffer, 32, "%Y-%m-%d %H:%M:%S", tm);
+                    ImGui::Text(_("Date & time: %s"), buffer);
                 }
                 ImGui::EndTabItem();
             }
