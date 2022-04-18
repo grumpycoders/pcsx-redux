@@ -130,6 +130,14 @@ class SystemImpl final : public PCSX::System {
     void setBinDir(std::filesystem::path path) {
         m_binDir = path;
         m_version.loadFromFile(new PCSX::PosixFile(path / "version.json"));
+        if (m_version.failed()) {
+            m_version.loadFromFile(
+                new PCSX::PosixFile(path / ".." / "share" / "pcsx-redux" / "resources" / "version.json"));
+        }
+        if (m_version.failed()) {
+            m_version.loadFromFile(
+                new PCSX::PosixFile(path / ".." / "Resources" / "share" / "pcsx-redux" / "resources" / "version.json"));
+        }
     }
 
     explicit SystemImpl(const CommandLine::args &args) : m_args(args) {}
