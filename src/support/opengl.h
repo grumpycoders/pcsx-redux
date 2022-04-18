@@ -32,6 +32,12 @@
 namespace PCSX {
 namespace OpenGL {
 
+// Workaround for using static_assert inside constexpr if
+// https://stackoverflow.com/questions/53945490/how-to-assert-that-a-constexpr-if-else-clause-never-happen
+template <class...>
+constexpr std::false_type AlwaysFalse{};
+
+
 struct VertexArray {
     GLuint m_handle = 0;
 
@@ -60,7 +66,7 @@ struct VertexArray {
         } else if constexpr (std::is_same<T, GLint>()) {
             glVertexAttribIPointer(index, size, GL_INT, stride, offset);
         } else {
-            static_assert(0, "Unimplemented type for OpenGL::setAttribute");
+            static_assert(AlwaysFalse<T>, "Unimplemented type for OpenGL::setAttribute");
         }
     }
 
@@ -282,7 +288,7 @@ T get(GLenum query) {
     } else if constexpr (std::is_same<T, GLboolean>()) {
         glGetBooleanv(query, &ret);
     } else {
-        static_assert(0, "Invalid type for OpenGL::get");
+        static_assert(AlwaysFalse<T>, "Invalid type for OpenGL::get");
     }
 
     return ret;
