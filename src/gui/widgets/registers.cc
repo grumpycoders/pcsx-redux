@@ -59,11 +59,11 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                     name = PCSX::Disasm::s_disRNameGPR[counter];
                 }
                 counter++;
-                std::string label = fmt::format(_("Edit##{}"), name);
+                std::string label = fmt::format(f_("Edit##{}"), name);
                 ImGui::Text("%s: %08x", name, reg);
                 ImGui::SameLine();
                 if (ImGui::SmallButton(label.c_str())) {
-                    editorToOpen = fmt::format(_("Edit value of {}"), name);
+                    editorToOpen = fmt::format(f_("Edit value of {}"), name);
                     snprintf(m_registerEditor, 19, "%08x", reg);
                 }
             }
@@ -155,7 +155,7 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             ImGui::Text("pc   : %08x", registers->pc);
             ImGui::SameLine();
             if (ImGui::SmallButton(_("Edit##pc"))) {
-                editorToOpen = fmt::format(_("Edit value of pc"));
+                editorToOpen = fmt::format(f_("Edit value of pc"));
                 snprintf(m_registerEditor, 19, "%08x", registers->pc);
             }
             ImGui::Text("cycle: %08x", registers->cycle);
@@ -189,7 +189,7 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
         } else {
             name = PCSX::Disasm::s_disRNameGPR[counter];
         }
-        std::string editor = fmt::format(_("Edit value of {}"), name);
+        std::string editor = fmt::format(f_("Edit value of {}"), name);
         if (ImGui::BeginPopupModal(editor.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::Text(_("Change the value of register %s:"), name);
             if (ImGui::InputText(_("Register"), m_registerEditor, 20,

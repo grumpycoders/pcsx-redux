@@ -31,6 +31,7 @@
 
 #include "flags.h"
 #include "fmt/printf.h"
+#include "fmt/format.h"
 #include "imgui.h"
 #include "support/djbhash.h"
 #include "support/eventbus.h"
@@ -250,3 +251,4 @@ extern System *g_system;
 }  // namespace PCSX
 
 #define _(str) PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str)
+#define f_(str) fmt::runtime(PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str))

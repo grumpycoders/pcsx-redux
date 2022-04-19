@@ -880,9 +880,9 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                 bool found = pos >= 0;
                 if (empty || found) {
                     std::string label = fmt::format("{} - {:08x}", symbol.first, symbol.second);
-                    std::string codeLabel = fmt::format(_("Code##{}{:08x}"), symbol.first, symbol.second);
-                    std::string dataLabel = fmt::format(_("Data##{}{:08x}"), symbol.first, symbol.second);
-                    std::string dwarfLabel = fmt::format(_("DWARF##{}{:08x}"), symbol.first, symbol.second);
+                    std::string codeLabel = fmt::format(f_("Code##{}{:08x}"), symbol.first, symbol.second);
+                    std::string dataLabel = fmt::format(f_("Data##{}{:08x}"), symbol.first, symbol.second);
+                    std::string dwarfLabel = fmt::format(f_("DWARF##{}{:08x}"), symbol.first, symbol.second);
                     if (ImGui::Button(codeLabel.c_str())) {
                         m_jumpToPC = symbol.second;
                     }
