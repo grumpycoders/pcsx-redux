@@ -59,12 +59,12 @@ msgstr "Αρχείο"
 msgid "  Size"
 msgstr "Μέγεθος"
 
-#: src/gui/gui.cc:1001
+#: src/gui/gui.cc:1026
 #, c-format
 msgid "%.2f FPS (%.2f ms)"
 msgstr "%.2f FPS (%.2f ms)"
 
-#: src/gui/gui.cc:1004
+#: src/gui/gui.cc:1029
 #, c-format
 msgid "%.2f ms audio buffer (%i frames)"
 msgstr ""
@@ -82,7 +82,7 @@ msgstr "(Χωρίς τίτλο)`"
 msgid "16 bytes (fast)"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:371
+#: src/gui/widgets/vram-viewer.cc:370
 msgid "24 bits shift"
 msgstr "Shift κατα 24 bits"
 
@@ -90,11 +90,11 @@ msgstr "Shift κατα 24 bits"
 msgid "8 bytes (fast)"
 msgstr ""
 
-#: src/gui/gui.cc:1342
+#: src/gui/gui.cc:1455
 msgid "8MB"
 msgstr "8MB"
 
-#: src/gui/gui.cc:991 src/gui/gui.cc:1630
+#: src/gui/gui.cc:1016 src/gui/gui.cc:1743
 msgid "About"
 msgstr "Σχετικά"
 
@@ -113,7 +113,7 @@ msgid ""
 "is necessary for some games."
 msgstr ""
 
-#: src/gui/gui.cc:1336
+#: src/gui/gui.cc:1449
 msgid ""
 "Activates the dynamic-recompiler CPU core.\n"
 "It is significantly faster than the interpreted CPU,\n"
@@ -138,7 +138,7 @@ msgid ""
 "slot of a branch."
 msgstr ""
 
-#: src/gui/gui.cc:1463
+#: src/gui/gui.cc:1576
 msgid "Add one entry"
 msgstr "Προσθήκη καταχώρησης"
 
@@ -146,13 +146,35 @@ msgstr "Προσθήκη καταχώρησης"
 msgid "Address"
 msgstr "Διεύθυνση"
 
-#: src/gui/gui.cc:1461
+#: src/gui/gui.cc:1574
 msgid "Advanced BIOS patching"
 msgstr "Προχωρημένη τροποποίηση BIOS"
 
-#: src/gui/gui.cc:1327
+#: src/gui/gui.cc:1440
 msgid "Always enable SPU IRQ"
 msgstr "Πάντα να είναι ενεργοποιημένες οι SPU IRQ"
+
+#: src/gui/gui.cc:1306 src/gui/gui.cc:1311
+msgid ""
+"An error has occured while downloading\n"
+"and/or applying the update."
+msgstr ""
+
+#: src/gui/gui.cc:1282
+msgid ""
+"An update is available.\n"
+"Click 'Download' to download and apply the update.\n"
+"PCSX-Redux will automatically restart to apply it."
+msgstr ""
+
+#: src/gui/gui.cc:1286
+msgid ""
+"An update is available.\n"
+"Click 'Download' to download it. While the update can be\n"
+"downloaded, it won't be applied automatically. You will\n"
+"have to install it manually, the way you previously did.\n"
+"PCSX-Redux will quit once the update is downloaded."
+msgstr ""
 
 #: src/core/pad.cc:558
 msgid "Analog"
@@ -162,7 +184,7 @@ msgstr ""
 msgid "Arbitrary"
 msgstr ""
 
-#: src/gui/gui.cc:1131
+#: src/gui/gui.cc:1160
 msgid "Assembly"
 msgstr "Assembly"
 
@@ -198,7 +220,7 @@ msgid ""
 "in sync, by changing its pitch. Consumes more CPU."
 msgstr ""
 
-#: src/gui/gui.cc:1638
+#: src/gui/gui.cc:1765
 msgid "Authors"
 msgstr ""
 
@@ -207,15 +229,15 @@ msgstr ""
 msgid "Auto"
 msgstr "Αυτόματη αποθήκευση"
 
-#: src/gui/widgets/luaeditor.cc:58 src/gui/widgets/shader-editor.cc:353
+#: src/gui/widgets/luaeditor.cc:58 src/gui/widgets/shader-editor.cc:354
 msgid "Auto reload"
 msgstr "Αυτόματη επαναφόρτωση"
 
-#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:355
+#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:356
 msgid "Auto save"
 msgstr "Αυτόματη αποθήκευση"
 
-#: src/gui/gui.cc:478
+#: src/gui/gui.cc:496
 msgid "BIOS"
 msgstr "BIOS"
 
@@ -224,12 +246,16 @@ msgstr "BIOS"
 msgid "BIOS entry point: %s\n"
 msgstr "Σημέιο έναρξης BIOS%s\n"
 
-#: src/gui/gui.cc:1376
+#: src/gui/gui.cc:1489
 msgid "BIOS file"
 msgstr "Αρχείο BIOS"
 
 #: src/spu/cfg.cc:51
 msgid "Backend"
+msgstr ""
+
+#: src/gui/widgets/sio1.cc:159
+msgid "Bit"
 msgstr ""
 
 #: src/gui/widgets/memcard_manager.cc:123
@@ -273,7 +299,7 @@ msgstr "Είδος Breakpoint"
 msgid "Breakpoint Width"
 msgstr "Breakpoints"
 
-#: src/gui/gui.cc:933
+#: src/gui/gui.cc:956
 msgid "Breakpoint on vsync"
 msgstr "Breakpoint κατά την περίοδο vsync"
 
@@ -282,7 +308,7 @@ msgstr "Breakpoint κατά την περίοδο vsync"
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
 msgstr "Πυροδότηση Breakpoint. PC=0x%08x - Cause: %s\n"
 
-#: src/gui/gui.cc:1139 src/gui/widgets/breakpoints.cc:59
+#: src/gui/gui.cc:1168 src/gui/widgets/breakpoints.cc:59
 msgid "Breakpoints"
 msgstr "Breakpoints"
 
@@ -310,7 +336,7 @@ msgstr "Ταυτότητα CD-ROM: %.9s\n"
 msgid "CD-ROM Label: %.32s\n"
 msgstr "Ετικέτα CD-ROM 1%.32s\n"
 
-#: src/gui/gui.cc:452
+#: src/gui/gui.cc:470
 msgid "CLUT VRAM selector"
 msgstr ""
 
@@ -318,16 +344,16 @@ msgstr ""
 msgid "CPU trace"
 msgstr ""
 
-#: src/gui/gui.cc:996
+#: src/gui/gui.cc:1021
 #, c-format
 msgid "CPU: %s"
 msgstr "Επεξεργαστής: %s"
 
-#: src/gui/gui.cc:884
+#: src/gui/gui.cc:907
 msgid "CRT-lottes shader"
 msgstr ""
 
-#: src/gui/gui.cc:1219
+#: src/gui/gui.cc:1335
 msgid "Caching"
 msgstr ""
 
@@ -335,12 +361,13 @@ msgstr ""
 msgid "Callstack"
 msgstr "Στοίβα κλήσεων"
 
-#: src/gui/gui.cc:1084
+#: src/gui/gui.cc:1113
 #, fuzzy
 msgid "Callstacks"
 msgstr "Στοίβα κλήσεων"
 
-#: src/gui/widgets/filedialog.cc:346 src/gui/widgets/registers.cc:208
+#: src/gui/gui.cc:1317 src/gui/widgets/filedialog.cc:346
+#: src/gui/widgets/registers.cc:208 src/gui/widgets/sio1.cc:214
 msgid "Cancel"
 msgstr "Ακύρωση"
 
@@ -356,6 +383,11 @@ msgstr ""
 #, c-format
 msgid "Change the value of register %s:"
 msgstr "Αλλαγή της τιμής του καταχωρητή %s:"
+
+#: src/gui/gui.cc:1757
+#, fuzzy, c-format
+msgid "Changeset: %s"
+msgstr "Αποθήκευση cheats σε: %s\n"
 
 #: src/core/cheat.cc:148
 #, c-format
@@ -379,11 +411,11 @@ msgstr "Εκκαθάριση"
 msgid "Clear Undo buffer"
 msgstr ""
 
-#: src/gui/gui.cc:761
+#: src/gui/gui.cc:783
 msgid "Close ISO"
 msgstr "Κλείσιμο ISO"
 
-#: src/gui/gui.cc:816
+#: src/gui/gui.cc:838
 msgid "Close LID"
 msgstr "Κλείσιμο LID:"
 
@@ -403,16 +435,16 @@ msgstr "Συνδυασμός ψευδο-εντολών"
 msgid "Computer button mapping"
 msgstr ""
 
-#: src/gui/gui.cc:850
+#: src/gui/gui.cc:872
 msgid "Configuration"
 msgstr "Ρυθμίσεις"
 
-#: src/gui/gui.cc:898
+#: src/gui/gui.cc:921
 #, fuzzy
 msgid "Configure Shaders"
 msgstr "Ρυθμίσεις"
 
-#: src/gui/widgets/shader-editor.cc:359
+#: src/gui/widgets/shader-editor.cc:360
 #, fuzzy
 msgid "Configure shader"
 msgstr "Ρυθμίσεις"
@@ -427,6 +459,10 @@ msgstr "Η σύνδεση έκλεισε!\n"
 msgid "Connection closed!\n"
 msgstr "Η σύνδεση έκλεισε!\n"
 
+#: src/gui/widgets/sio1.cc:252
+msgid "Control"
+msgstr ""
+
 #: src/core/pad.cc:549
 msgid "Controller"
 msgstr ""
@@ -435,7 +471,7 @@ msgstr ""
 msgid "Controller Type"
 msgstr ""
 
-#: src/gui/gui.cc:874
+#: src/gui/gui.cc:897
 msgid "Controls"
 msgstr ""
 
@@ -456,7 +492,7 @@ msgstr ""
 msgid "Copy##{}"
 msgstr "Αντιγραφή"
 
-#: src/core/r3000a.cc:38
+#: src/core/r3000a.cc:40
 #, fuzzy, c-format
 msgid "Copyright (C) 2019-2022 PCSX-Redux authors\n"
 msgstr "Πνευματικά δικαιώματα (C) 2019-2021 συγγραφείς του PCSX-Redux\n"
@@ -465,7 +501,7 @@ msgstr "Πνευματικά δικαιώματα (C) 2019-2021 συγγραφε
 msgid "Core"
 msgstr ""
 
-#: src/gui/gui.cc:1670
+#: src/gui/gui.cc:1797
 #, c-format
 msgid "Core profile: %s"
 msgstr "Προφίλ πυρήνα: %s"
@@ -560,11 +596,16 @@ msgstr "DWARF##{}{:08x}"
 msgid "Data##{}{:08x}"
 msgstr "Δεδομένα##{}{:08x}"
 
-#: src/gui/gui.cc:905 src/gui/widgets/assembly.cc:415
+#: src/gui/gui.cc:1761
+#, fuzzy, c-format
+msgid "Date & time: %s"
+msgstr "Ημερομηνία και ώρα"
+
+#: src/gui/gui.cc:928 src/gui/widgets/assembly.cc:415
 msgid "Debug"
 msgstr ""
 
-#: src/gui/gui.cc:1328
+#: src/gui/gui.cc:1441
 msgid "Decode MDEC videos in B&W"
 msgstr "Αποκωδικοποίηση βίντεο MDEC σε ασπρόμαυρο"
 
@@ -573,12 +614,17 @@ msgstr "Αποκωδικοποίηση βίντεο MDEC σε ασπρόμαυρ
 msgid "Decoding audio tr#%u (%s)..."
 msgstr ""
 
-#: src/gui/gui.cc:876
+#: src/gui/gui.cc:899
 msgid "Default shader"
 msgstr ""
 
 #: src/gui/widgets/assembly.cc:446
 msgid "Delay slot notch"
+msgstr ""
+
+#. Column 0
+#: src/gui/widgets/sio1.cc:160
+msgid "Description"
 msgstr ""
 
 #: src/spu/cfg.cc:60
@@ -628,7 +674,11 @@ msgstr "Προβολή"
 msgid "Down"
 msgstr ""
 
-#: src/gui/gui.cc:1217
+#: src/gui/gui.cc:1294
+msgid "Download"
+msgstr ""
+
+#: src/gui/gui.cc:1333
 #, c-format
 msgid "Download rate: %s"
 msgstr ""
@@ -645,28 +695,33 @@ msgstr ""
 msgid "Draw arrows for jumps"
 msgstr "Χρήση βελών για τα jumps"
 
-#: src/gui/gui.cc:769
+#: src/gui/gui.cc:791
 msgid "Dump save state proto schema"
 msgstr ""
 
-#: src/gui/gui.cc:1150
+#: src/gui/gui.cc:1179
 msgid "Dwarf"
 msgstr "Dwarf"
 
-#: src/gui/gui.cc:1135
+#: src/gui/gui.cc:1164
 msgid "DynaRec Disassembler"
 msgstr ""
 
-#: src/gui/gui.cc:928
+#: src/gui/gui.cc:951
 msgid ""
 "DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
 "[Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
 
-#: src/gui/gui.cc:1329
+#: src/gui/gui.cc:1442
 msgid "Dynarec CPU"
 msgstr "Επεξεργαστής Dynarec"
+
+#: src/gui/widgets/sio1.cc:153
+#, fuzzy
+msgid "Edit"
+msgstr "Επεξεργασία##{}"
 
 #: src/gui/widgets/registers.cc:158
 #, fuzzy
@@ -674,6 +729,7 @@ msgid "Edit value of pc"
 msgstr "Επεξεργασία τιμής του {}"
 
 #: src/gui/widgets/registers.cc:66 src/gui/widgets/registers.cc:192
+#: src/gui/widgets/sio1.cc:137
 msgid "Edit value of {}"
 msgstr "Επεξεργασία τιμής του {}"
 
@@ -686,7 +742,7 @@ msgstr "Επεξεργασία##{}"
 msgid "Edit##{}"
 msgstr "Επεξεργασία##{}"
 
-#: src/gui/gui.cc:1343
+#: src/gui/gui.cc:1456
 msgid ""
 "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
@@ -696,40 +752,45 @@ msgstr ""
 "Σε αντίθεση με τα συνηθισμένα 2MB. Χρήσιμο για\n"
 "την εργασία με δυαδικά αρχεία development και παιχνίδια"
 
-#: src/gui/gui.cc:834 src/gui/gui.cc:851
+#: src/gui/gui.cc:856 src/gui/gui.cc:873
 msgid "Emulation"
 msgstr "Εξομοίωση"
 
-#: src/gui/gui.cc:1311
+#: src/gui/gui.cc:1425
 msgid "Emulation Configuration"
 msgstr "Ρυθμίσεις εξομοίωσης"
 
-#: src/gui/widgets/vram-viewer.cc:391
+#: src/gui/widgets/vram-viewer.cc:390
 msgid "Enable Alpha channel view"
 msgstr "Ενεργοποίηση προβολής του καναλιού Alpha"
 
-#: src/gui/gui.cc:1380 src/gui/widgets/assembly.cc:473
+#: src/gui/gui.cc:1245
+#, fuzzy
+msgid "Enable Auto Update"
+msgstr "Ενεργοποίηση αποκωδικοποιητή XA"
+
+#: src/gui/gui.cc:1493 src/gui/widgets/assembly.cc:473
 msgid "Enable Debugger"
 msgstr "Ενεργοποίηση Αποσφαλματωτή"
 
-#: src/gui/gui.cc:1390
+#: src/gui/gui.cc:1503
 msgid "Enable GDB Server"
 msgstr "Ενεργοποίηση εξυπηρετητή GDB"
 
-#: src/gui/gui.cc:1662
+#: src/gui/gui.cc:1789
 msgid "Enable OpenGL error reporting"
 msgstr ""
 
-#: src/gui/gui.cc:1447
+#: src/gui/gui.cc:1560
 #, fuzzy
 msgid "Enable SIO1 Server"
 msgstr "Ενεργοποίηση εξυπηρετητή GDB"
 
-#: src/gui/gui.cc:1433
+#: src/gui/gui.cc:1546
 msgid "Enable Web Server"
 msgstr "Ενεργοποίηση εξυπηρετητή Web"
 
-#: src/gui/gui.cc:1326
+#: src/gui/gui.cc:1439
 msgid "Enable XA decoder"
 msgstr "Ενεργοποίηση αποκωδικοποιητή XA"
 
@@ -738,7 +799,11 @@ msgstr "Ενεργοποίηση αποκωδικοποιητή XA"
 msgid "Enable all"
 msgstr "Ενεργοποιημένο"
 
-#: src/gui/widgets/vram-viewer.cc:392
+#: src/gui/gui.cc:1265
+msgid "Enable auto update"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:391
 msgid "Enable greyscale"
 msgstr "Ενεργοποίηση αποχρώσεων του γκρι"
 
@@ -750,11 +815,11 @@ msgstr "Ενεργοποίηση streaming"
 msgid "Enable##"
 msgstr "Ενεργοποίηση##"
 
-#: src/gui/gui.cc:1506 src/gui/widgets/log.cc:67
+#: src/gui/gui.cc:1619 src/gui/widgets/log.cc:67
 msgid "Enabled"
 msgstr "Ενεργοποιημένο"
 
-#: src/gui/gui.cc:1404
+#: src/gui/gui.cc:1517
 msgid ""
 "Enables sending the processor's manifest\n"
 "from the gdb server. Keep this enabled, unless\n"
@@ -799,7 +864,7 @@ msgstr "Χάρτης εκτέλεσης"
 msgid "Export PNG##{}"
 msgstr ""
 
-#: src/gui/gui.cc:1677
+#: src/gui/gui.cc:1804
 #, fuzzy
 msgid "Extensions:"
 msgstr "επεκτάσεις:"
@@ -814,20 +879,20 @@ msgstr "Αδυναμία εύρεσης του κωδικοποιητή %s\n"
 msgid "Failed to open %s codec\n"
 msgstr "Αδυναμία ανοίγματος του κωδικοποιητή 1%s\n"
 
-#: src/gui/gui.cc:1370
+#: src/gui/gui.cc:1483
 msgid "Fast boot"
 msgstr "Γρήγορη εκκίνηση"
 
-#: src/gui/gui.cc:759 src/gui/widgets/assembly.cc:411
-#: src/gui/widgets/vram-viewer.cc:364
+#: src/gui/gui.cc:781 src/gui/widgets/assembly.cc:411
+#: src/gui/widgets/vram-viewer.cc:363
 msgid "File"
 msgstr "Αρχείο"
 
-#: src/gui/gui.cc:1482
+#: src/gui/gui.cc:1595
 msgid "File Offset"
 msgstr "Μετατόπιση αρχείου"
 
-#: src/gui/gui.cc:1220 src/gui/gui.cc:1474
+#: src/gui/gui.cc:1336 src/gui/gui.cc:1587
 #: src/gui/widgets/memcard_manager.cc:127
 msgid "Filename"
 msgstr "Όνομα αρχείου"
@@ -840,7 +905,7 @@ msgstr "Αρχεία"
 msgid "Filter"
 msgstr "Φίλτρο"
 
-#: src/gui/gui.cc:948
+#: src/gui/gui.cc:971
 msgid "First Chance Exceptions"
 msgstr ""
 
@@ -860,20 +925,20 @@ msgstr "Ακολούθηση PC"
 msgid "Free block"
 msgstr ""
 
-#: src/gui/gui.cc:978
+#: src/gui/gui.cc:1003
 msgid "Fullscreen render"
 msgstr "Απόδοση πλήρους οθόνης"
 
-#: src/gui/gui.cc:998
+#: src/gui/gui.cc:1023
 #, c-format
 msgid "GAME ID: %s"
 msgstr "Ταυτότητα παιχνιδιού: %s"
 
-#: src/gui/gui.cc:1427
+#: src/gui/gui.cc:1540
 msgid "GDB Server Port"
 msgstr "Θύρα εξυπηρετητή GDB"
 
-#: src/gui/gui.cc:1429
+#: src/gui/gui.cc:1542
 msgid "GDB Server Trace"
 msgstr "Trace εξυπηρετητή GDB"
 
@@ -881,11 +946,11 @@ msgstr "Trace εξυπηρετητή GDB"
 msgid "GDB client"
 msgstr ""
 
-#: src/gui/gui.cc:1403
+#: src/gui/gui.cc:1516
 msgid "GDB send manifest"
 msgstr "GDB αποστολή manifest"
 
-#: src/gui/gui.cc:871
+#: src/gui/gui.cc:893
 msgid "GPU"
 msgstr "GPU"
 
@@ -915,15 +980,15 @@ msgstr ""
 msgid "Guncon (Unimplemented"
 msgstr ""
 
-#: src/gui/gui.cc:844
+#: src/gui/gui.cc:866
 msgid "Hard Reset"
 msgstr "Επανεκκίνηση"
 
-#: src/gui/gui.cc:476
+#: src/gui/gui.cc:494
 msgid "Hardware Registers"
 msgstr "Καταχωρητές υλισμικού"
 
-#: src/gui/gui.cc:986
+#: src/gui/gui.cc:1011
 msgid "Help"
 msgstr "Βοήθεια"
 
@@ -947,11 +1012,11 @@ msgstr ""
 msgid "Icon size"
 msgstr ""
 
-#: src/gui/gui.cc:1006
+#: src/gui/gui.cc:1031
 msgid "Idle"
 msgstr "Αδρανές"
 
-#: src/gui/gui.cc:1312
+#: src/gui/gui.cc:1426
 msgid "Idle Swap Interval"
 msgstr ""
 
@@ -964,7 +1029,7 @@ msgstr ""
 msgid "Interpolation"
 msgstr "Παρεμβολή"
 
-#: src/gui/gui.cc:1585
+#: src/gui/gui.cc:1698
 msgid "Interrupt Scaler"
 msgstr ""
 
@@ -990,15 +1055,15 @@ msgstr ""
 msgid "Invalid load size specified BIOS Overlay:\"%s\"!\n"
 msgstr ""
 
-#: src/gui/gui.cc:947 src/gui/gui.cc:1081
+#: src/gui/gui.cc:970 src/gui/gui.cc:1110
 msgid "Kernel Calls"
 msgstr ""
 
-#: src/gui/gui.cc:946
+#: src/gui/gui.cc:969
 msgid "Kernel Events"
 msgstr ""
 
-#: src/gui/gui.cc:1078
+#: src/gui/gui.cc:1107
 msgid "Kernel events"
 msgstr ""
 
@@ -1063,16 +1128,16 @@ msgstr ""
 msgid "Left"
 msgstr ""
 
-#: src/gui/widgets/shader-editor.cc:231
+#: src/gui/widgets/shader-editor.cc:232
 #, fuzzy
 msgid "Link error: {}\n"
 msgstr "Σφάλμα link:\n"
 
-#: src/gui/gui.cc:1490
+#: src/gui/gui.cc:1603
 msgid "Load Offset"
 msgstr ""
 
-#: src/gui/gui.cc:1498
+#: src/gui/gui.cc:1611
 msgid "Load Size"
 msgstr "Φόρτωση μεγέθους"
 
@@ -1080,16 +1145,16 @@ msgstr "Φόρτωση μεγέθους"
 msgid "Load Symbols"
 msgstr "Φόρτωση συμβόλων"
 
-#: src/gui/gui.cc:765
+#: src/gui/gui.cc:787
 msgid "Load binary"
 msgstr "Φόρτωση δυαδικού αρχείου"
 
-#: src/gui/gui.cc:809
+#: src/gui/gui.cc:831
 #, fuzzy
 msgid "Load global state"
 msgstr "Φόρτωση κατάστασης"
 
-#: src/gui/gui.cc:791
+#: src/gui/gui.cc:813
 #, fuzzy
 msgid "Load state slots"
 msgstr "Φόρτωση κατάστασης"
@@ -1129,7 +1194,7 @@ msgstr "Άνοιγμα αρχείου SBI: 1%s.\n"
 msgid "Loading memory card %s\n"
 msgstr "Φόρτωση κάρτας μνήμης %s\n"
 
-#: src/gui/gui.cc:1181
+#: src/gui/gui.cc:1214
 msgid "Locale"
 msgstr "Γλώσσα"
 
@@ -1141,7 +1206,7 @@ msgstr ""
 msgid "Log kernel calls"
 msgstr ""
 
-#: src/gui/gui.cc:1060
+#: src/gui/gui.cc:1089
 msgid "Logs"
 msgstr "Καταγραφές"
 
@@ -1157,33 +1222,33 @@ msgstr "Πιο δυνατό"
 msgid "Low"
 msgstr "Χαμηλό"
 
-#: src/gui/gui.cc:1066
+#: src/gui/gui.cc:1095
 msgid "Lua Console"
 msgstr "Κονσόλα Lua"
 
-#: src/gui/gui.cc:1075
+#: src/gui/gui.cc:1104
 msgid "Lua Editor"
 msgstr "Επεξεργαστής Lua"
 
-#: src/gui/gui.cc:1072
+#: src/gui/gui.cc:1101
 msgid "Lua Inspector"
 msgstr "Προβολή Lua"
 
-#: src/gui/widgets/shader-editor.cc:396
+#: src/gui/widgets/shader-editor.cc:397
 #, fuzzy
 msgid "Lua Invoker"
 msgstr "Προβολή Lua"
 
-#: src/gui/gui.cc:1201
+#: src/gui/gui.cc:1234
 #, fuzzy
 msgid "Main Font Size"
 msgstr "Μέγεθος"
 
-#: src/gui/gui.cc:451
+#: src/gui/gui.cc:469
 msgid "Main VRAM Viewer"
 msgstr "Κύρια προβολή VRAM"
 
-#: src/gui/gui.cc:868
+#: src/gui/gui.cc:890
 #, fuzzy
 msgid "Manage Memory Cards"
 msgstr "Αποθήκευση κάρτας μνήμης %s\n"
@@ -1239,20 +1304,20 @@ msgstr "Σύνδεση της κάρτας μνήμης 2"
 msgid "Memory Card 2 inserted"
 msgstr "Σύνδεση της κάρτας μνήμης 2"
 
-#: src/gui/gui.cc:1123
+#: src/gui/gui.cc:1152
 #, fuzzy
 msgid "Memory Card Manager"
 msgstr "Σύνδεση της κάρτας μνήμης 1"
 
-#: src/gui/gui.cc:466
+#: src/gui/gui.cc:484
 msgid "Memory Editor #"
 msgstr "Επεξεργαστής μνήμης #"
 
-#: src/gui/gui.cc:934
+#: src/gui/gui.cc:957
 msgid "Memory Editors"
 msgstr "Επεξεργαστές μνήμης"
 
-#: src/gui/gui.cc:1143
+#: src/gui/gui.cc:1172
 msgid "Memory Observer"
 msgstr ""
 
@@ -1265,11 +1330,11 @@ msgstr "Αδυναμία φόρτωσης της κάρτας μνήμης %s\n"
 msgid "Misc"
 msgstr "Υπόλοιπα"
 
-#: src/gui/widgets/shader-editor.cc:243
+#: src/gui/widgets/shader-editor.cc:244
 msgid "Missing attribute {} in shader program"
 msgstr ""
 
-#: src/gui/widgets/events.cc:41
+#: src/gui/widgets/events.cc:41 src/gui/widgets/sio1.cc:243
 msgid "Mode"
 msgstr ""
 
@@ -1277,7 +1342,7 @@ msgstr ""
 msgid "Mono"
 msgstr "Mono"
 
-#: src/gui/gui.cc:1202
+#: src/gui/gui.cc:1235
 #, fuzzy
 msgid "Mono Font Size"
 msgstr "Μέγεθος"
@@ -1292,11 +1357,11 @@ msgstr ""
 msgid "Mouse"
 msgstr ""
 
-#: src/gui/gui.cc:1517
+#: src/gui/gui.cc:1630
 msgid "Move down"
 msgstr "Κίνηση κάτω"
 
-#: src/gui/gui.cc:1513
+#: src/gui/gui.cc:1626
 msgid "Move up"
 msgstr "Κίνηση πάνω"
 
@@ -1317,19 +1382,34 @@ msgstr "Απενεργοποίηση ήχου"
 msgid "Negcon (Unimplemented)"
 msgstr ""
 
+#: src/gui/widgets/sio1.cc:200
+msgid "New value"
+msgstr ""
+
 #: src/core/pad.cc:654
 msgid "No gamepad selected or connected"
+msgstr ""
+
+#: src/gui/gui.cc:1271
+msgid "No thanks"
+msgstr ""
+
+#: src/gui/gui.cc:1754
+msgid ""
+"No version information.\n"
+"\n"
+"Probably built from source."
 msgstr ""
 
 #: src/spu/cfg.cc:90 src/spu/cfg.cc:93
 msgid "None - fastest"
 msgstr "Κανένα - Γρηγορότερο"
 
-#: src/gui/gui.h:304
+#: src/gui/gui.h:309
 msgid "Notification"
 msgstr "Ειδοποίηση"
 
-#: src/gui/widgets/filedialog.cc:337
+#: src/gui/widgets/filedialog.cc:337 src/gui/widgets/sio1.cc:203
 msgid "OK"
 msgstr "OK"
 
@@ -1339,32 +1419,32 @@ msgstr "OK"
 msgid "OK\n"
 msgstr "ΟΚ\n"
 
-#: src/gui/gui.cc:1163
+#: src/gui/gui.cc:1192
 #, fuzzy
 msgid "Offscreen Render"
 msgstr "Απόδοση πλήρους οθόνης"
 
-#: src/gui/gui.h:129
+#: src/gui/gui.h:131
 msgid "Ok"
 msgstr "ΟΚ"
 
-#: src/gui/gui.h:262
+#: src/gui/gui.h:264
 msgid "Open Binary"
 msgstr "Άνοιγμα δυαδικού αρχείου"
 
-#: src/gui/gui.cc:760
+#: src/gui/gui.cc:782
 msgid "Open ISO"
 msgstr "Άνοιγμα ISO"
 
-#: src/gui/gui.h:261
+#: src/gui/gui.h:263
 msgid "Open Image"
 msgstr "Άνοιγμα αρχείου εικόνα"
 
-#: src/gui/gui.cc:812
+#: src/gui/gui.cc:834
 msgid "Open LID"
 msgstr "Άνοιγμα LID"
 
-#: src/gui/gui.cc:820
+#: src/gui/gui.cc:842
 msgid "Open and close LID"
 msgstr "Άνοιγμα και κλείσιμο LID"
 
@@ -1373,7 +1453,7 @@ msgstr "Άνοιγμα και κλείσιμο LID"
 msgid "OpenBIOS detected (%08x)\n"
 msgstr ""
 
-#: src/gui/gui.cc:1653
+#: src/gui/gui.cc:1780
 msgid ""
 "OpenGL error reporting has been disabled because your OpenGL driver is too "
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
@@ -1383,22 +1463,22 @@ msgid ""
 "be able to properly report problems accurately."
 msgstr ""
 
-#: src/gui/gui.cc:1666
+#: src/gui/gui.cc:1793
 msgid ""
 "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
 "some PCs. (Requires reboot)"
 msgstr ""
 
-#: src/gui/gui.cc:1650
+#: src/gui/gui.cc:1777
 msgid "OpenGL error reporting: disabled"
 msgstr ""
 
-#: src/gui/gui.cc:1648
+#: src/gui/gui.cc:1775
 msgid "OpenGL error reporting: enabled"
 msgstr ""
 
-#: src/gui/gui.cc:1646
+#: src/gui/gui.cc:1773
 msgid "OpenGL information"
 msgstr "Πληροφορίες OpenGL"
 
@@ -1410,23 +1490,40 @@ msgstr "Επιλογές"
 msgid "Order by"
 msgstr "Ταξινόμηση ανά"
 
-#: src/gui/gui.cc:743
+#: src/gui/gui.cc:765
 msgid "Output"
 msgstr "Έξοδος"
 
-#: src/gui/gui.cc:1158
+#: src/gui/gui.cc:1187
 #, fuzzy
 msgid "Output Video"
 msgstr "Έξοδος"
 
-#: src/gui/gui.cc:1411
+#: src/gui/gui.cc:1524
 msgid "PCSX Logs to GDB"
 msgstr ""
 
-#: src/core/r3000a.cc:37
+#: src/core/r3000a.cc:39
 #, c-format
 msgid "PCSX-Redux booting\n"
 msgstr "Εκκίνηση του PCSX-Redux\n"
+
+#: src/gui/gui.cc:1252
+msgid ""
+"PCSX-Redux can automatically update itself.\n"
+"\n"
+"If you enable the auto update option, it will check for new updates\n"
+"on startup. No personal data nor identifiable token is sent for this\n"
+"process, but Microsoft might still keep and record information such\n"
+"as your IP address.\n"
+"\n"
+"If an update is available, you will get prompted to download and\n"
+"install it. You can still download versions of PCSX-Redux as usual\n"
+"from its website.\n"
+"\n"
+"If you want to change this setting later, you can go to the\n"
+"Configuration -> System menu."
+msgstr ""
 
 #: src/core/pad.cc:488
 msgid "Pad"
@@ -1445,7 +1542,7 @@ msgstr ""
 msgid "Pad configuration"
 msgstr "Ρυθμίσεις SPU"
 
-#: src/gui/gui.cc:472
+#: src/gui/gui.cc:490
 msgid "Parallel Port"
 msgstr "Παράλληλη θύρα"
 
@@ -1453,7 +1550,7 @@ msgstr "Παράλληλη θύρα"
 msgid "Pattern search"
 msgstr ""
 
-#: src/gui/gui.cc:838 src/gui/widgets/assembly.cc:416
+#: src/gui/gui.cc:860 src/gui/widgets/assembly.cc:416
 #: src/gui/widgets/assembly.cc:480
 msgid "Pause"
 msgstr "Παύση"
@@ -1462,15 +1559,15 @@ msgstr "Παύση"
 msgid "Pause SPU waiting for CPU IRQ"
 msgstr "Παύση SPU ενώ αναμένεται CPU IRQ"
 
-#: src/gui/widgets/shader-editor.cc:390
+#: src/gui/widgets/shader-editor.cc:391
 msgid "Pixel Shader"
 msgstr ""
 
-#: src/gui/widgets/shader-editor.cc:209
+#: src/gui/widgets/shader-editor.cc:210
 msgid "Pixel Shader compilation error: {}\n"
 msgstr ""
 
-#: src/gui/gui.cc:1325
+#: src/gui/gui.cc:1244
 msgid "Preload ISO files"
 msgstr ""
 
@@ -1479,11 +1576,11 @@ msgstr ""
 msgid "Pseudo-instructions filling"
 msgstr "Γέμισμα ψευδο-εντολών"
 
-#: src/gui/gui.cc:775 src/gui/gui.cc:792
+#: src/gui/gui.cc:797 src/gui/gui.cc:814
 msgid "Quick-save slot"
 msgstr ""
 
-#: src/gui/gui.cc:828
+#: src/gui/gui.cc:850
 msgid "Quit"
 msgstr "Έξοδος"
 
@@ -1520,12 +1617,12 @@ msgstr "Χάρτης ανάγνωσης 32"
 msgid "Read 8 map"
 msgstr "Χάρτης ανάγνωσης 8"
 
-#: src/gui/gui.cc:1213
+#: src/gui/gui.cc:1329
 #, fuzzy, c-format
 msgid "Read rate: %s"
 msgstr "Ανάγνωση Byte"
 
-#: src/gui/gui.cc:825
+#: src/gui/gui.cc:847
 msgid "Reboot"
 msgstr "Επανεκκίνηση"
 
@@ -1537,15 +1634,15 @@ msgstr "Ανανέωση"
 msgid "Register"
 msgstr "Καταχωρητής"
 
-#: src/gui/gui.cc:1127 src/gui/widgets/registers.cc:40
+#: src/gui/gui.cc:1156 src/gui/widgets/registers.cc:40
 msgid "Registers"
 msgstr "Καταχωρητές"
 
-#: src/gui/gui.cc:1196
+#: src/gui/gui.cc:1229
 msgid "Reload locales"
 msgstr "Επαναφόρτωση γλωσσών"
 
-#: src/gui/gui.cc:1509
+#: src/gui/gui.cc:1622
 msgid "Remove"
 msgstr "Αφαίρεση"
 
@@ -1557,7 +1654,7 @@ msgstr "Αφαίρεση breakpoint από εδώ"
 msgid "Remove##"
 msgstr "Αφαίρεση##"
 
-#: src/gui/gui.cc:1672
+#: src/gui/gui.cc:1799
 msgid "Renderer"
 msgstr ""
 
@@ -1565,16 +1662,16 @@ msgstr ""
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr ""
 
-#: src/gui/gui.cc:1317
+#: src/gui/gui.cc:1431
 #, fuzzy
 msgid "Reset Scaler"
 msgstr "Επαναφορά όλων"
 
-#: src/gui/gui.cc:1586
+#: src/gui/gui.cc:1699
 msgid "Reset all"
 msgstr "Επαναφορά όλων"
 
-#: src/gui/widgets/vram-viewer.cc:368
+#: src/gui/widgets/vram-viewer.cc:367
 msgid "Reset view"
 msgstr "Επαναφορά προβολή"
 
@@ -1598,12 +1695,16 @@ msgstr "Ρίζες"
 msgid "Run to cursor"
 msgstr "Ανατρέξτε στον κέρσορα"
 
-#: src/gui/gui.cc:1460
+#: src/gui/gui.cc:1198
+msgid "SIO1 Debug"
+msgstr ""
+
+#: src/gui/gui.cc:1573
 #, fuzzy
 msgid "SIO1 Server Port"
 msgstr "Θύρα εξυπηρετητή GDB"
 
-#: src/gui/gui.cc:872
+#: src/gui/gui.cc:894
 msgid "SPU"
 msgstr "SPU"
 
@@ -1611,12 +1712,12 @@ msgstr "SPU"
 msgid "SPU configuration"
 msgstr "Ρυθμίσεις SPU"
 
-#: src/gui/gui.cc:804
+#: src/gui/gui.cc:826
 #, fuzzy
 msgid "Save global state"
 msgstr "Αποθήκευση κατάστασης"
 
-#: src/gui/gui.cc:774
+#: src/gui/gui.cc:796
 #, fuzzy
 msgid "Save state slots"
 msgstr "Αποθήκευση κατάστασης"
@@ -1635,7 +1736,7 @@ msgstr ""
 msgid "Scan type"
 msgstr "Προβολή types"
 
-#: src/gui/gui.cc:474
+#: src/gui/gui.cc:492
 msgid "Scratch Pad"
 msgstr "Scratch pad"
 
@@ -1648,15 +1749,15 @@ msgstr ""
 msgid "Select"
 msgstr "Επιλογή BIOS"
 
-#: src/gui/gui.h:263
+#: src/gui/gui.h:265
 msgid "Select BIOS"
 msgstr "Επιλογή BIOS"
 
-#: src/gui/gui.h:264
+#: src/gui/gui.h:266
 msgid "Select BIOS Overlay"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:389
+#: src/gui/widgets/vram-viewer.cc:388
 msgid "Select a CLUT"
 msgstr "Επιλογή CLUT"
 
@@ -1676,95 +1777,99 @@ msgstr "Προσθήκη Breakpoint εδώ"
 msgid "Set defaults"
 msgstr ""
 
-#: src/gui/gui.cc:875
+#: src/gui/gui.cc:898
 msgid "Shader presets"
 msgstr ""
 
-#: src/gui/gui.cc:1674
+#: src/gui/gui.cc:1801
 msgid "Shading language version"
 msgstr ""
 
-#: src/gui/gui.cc:922
+#: src/gui/gui.cc:945
 msgid "Show Assembly"
 msgstr "Ένδειξη Assembly"
 
-#: src/gui/gui.cc:931
+#: src/gui/gui.cc:954
 msgid "Show Breakpoints"
 msgstr "Προβολή Breakpoints"
 
-#: src/gui/gui.cc:912
+#: src/gui/gui.cc:935
 msgid "Show CLUT VRAM viewer"
 msgstr "Προβολή CLUT VRAM"
 
-#: src/gui/gui.cc:932
+#: src/gui/gui.cc:955
 #, fuzzy
 msgid "Show Callstacks"
 msgstr "Στοίβα κλήσεων"
 
-#: src/gui/gui.cc:924 src/gui/gui.cc:926
+#: src/gui/gui.cc:947 src/gui/gui.cc:949
 #, fuzzy
 msgid "Show DynaRec Disassembly"
 msgstr "Ένδειξη Assembly"
 
-#: src/gui/gui.cc:987
+#: src/gui/gui.cc:1012
 msgid "Show ImGui Demo"
 msgstr "Προβολή επίδειξης ImGui"
 
-#: src/gui/gui.cc:945
+#: src/gui/gui.cc:968
 msgid "Show Interrupts Scaler"
 msgstr ""
 
-#: src/gui/gui.cc:906
+#: src/gui/gui.cc:929
 msgid "Show Logs"
 msgstr "Ένδειξη καταγραφών"
 
-#: src/gui/gui.cc:907
+#: src/gui/gui.cc:930
 msgid "Show Lua Console"
 msgstr "Προβολή κονσόλας Lua"
 
-#: src/gui/gui.cc:908
+#: src/gui/gui.cc:931
 msgid "Show Lua Inspector"
 msgstr ""
 
-#: src/gui/gui.cc:909
+#: src/gui/gui.cc:932
 msgid "Show Lua editor"
 msgstr "Προβολή επεξεργαστή Lua"
 
-#: src/gui/gui.cc:944
+#: src/gui/gui.cc:967
 msgid "Show Memory Observer"
 msgstr ""
 
-#: src/gui/gui.cc:980
+#: src/gui/gui.cc:1005
 msgid "Show Offscreen Shader Editor"
 msgstr ""
 
-#: src/gui/gui.cc:979
+#: src/gui/gui.cc:1004
 #, fuzzy
 msgid "Show Output Shader Editor"
 msgstr "Προβολή επεξεργαστή Lua"
 
-#: src/gui/gui.cc:921
+#: src/gui/gui.cc:944
 msgid "Show Registers"
 msgstr "Ένδειξη καταχωρητών"
 
-#: src/gui/gui.cc:966
-msgid "Show SPU debug"
-msgstr ""
-
-#: src/gui/widgets/vram-viewer.cc:395
-msgid "Show Shader Editor"
+#: src/gui/gui.cc:991
+msgid "Show SIO1 debug"
 msgstr ""
 
 #: src/gui/gui.cc:989
+msgid "Show SPU debug"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:394
+msgid "Show Shader Editor"
+msgstr ""
+
+#: src/gui/gui.cc:1014
 #, fuzzy
 msgid "Show UvFile information"
 msgstr "Πληροφορίες OpenGL"
 
-#: src/gui/gui.cc:915
+#: src/gui/gui.cc:938
 msgid "Show VRAM viewer #"
 msgstr "Ενεργοποίηση προβολής VRAM #"
 
-#: src/gui/widgets/shader-editor.cc:357
+#: src/gui/widgets/shader-editor.cc:358
 msgid "Show all"
 msgstr ""
 
@@ -1774,19 +1879,19 @@ msgstr ""
 msgid "Show in memory editor##{}"
 msgstr "Προβολή επεξεργαστή Lua"
 
-#: src/gui/gui.cc:911
+#: src/gui/gui.cc:934
 msgid "Show main VRAM viewer"
 msgstr "Ενεργοποίηση κύριας προβολής VRAM"
 
-#: src/gui/gui.cc:982
+#: src/gui/gui.cc:1007
 msgid "Show raw DWARF info"
 msgstr "Προβολή πληροφοριών DWARF"
 
-#: src/gui/gui.cc:976
+#: src/gui/gui.cc:1001
 msgid "Show source"
 msgstr "Προβολή πηγής"
 
-#: src/gui/gui.cc:975
+#: src/gui/gui.cc:1000
 msgid "Show types"
 msgstr "Προβολή types"
 
@@ -1821,20 +1926,20 @@ msgstr ""
 msgid "Skip ISR during CPU traces"
 msgstr ""
 
-#: src/gui/gui.cc:781 src/gui/gui.cc:795
+#: src/gui/gui.cc:803 src/gui/gui.cc:817
 msgid "Slot {}"
 msgstr ""
 
-#: src/gpu/soft/gpu.cc:1465
+#: src/gpu/soft/gpu.cc:1207
 #, fuzzy
 msgid "Soft GPU configuration"
 msgstr "Ρυθμίσεις SPU"
 
-#: src/gui/gui.cc:841
+#: src/gui/gui.cc:863
 msgid "Soft Reset"
 msgstr "Επαναφορά μέσω λογισμικού"
 
-#: src/gui/gui.cc:1155
+#: src/gui/gui.cc:1184
 msgid "Source"
 msgstr "Πηγή"
 
@@ -1846,7 +1951,7 @@ msgstr ""
 msgid "Special"
 msgstr ""
 
-#: src/gui/gui.cc:1323
+#: src/gui/gui.cc:1437
 msgid "Speed Scaler"
 msgstr ""
 
@@ -1854,13 +1959,17 @@ msgstr ""
 msgid "Square"
 msgstr ""
 
-#: src/core/pad.cc:552 src/gui/gui.cc:835
+#: src/core/pad.cc:552 src/gui/gui.cc:857
 msgid "Start"
 msgstr "Έναρξη"
 
-#: src/gui/gui.cc:968
+#: src/gui/gui.cc:993
 msgid "Start GPU dump"
 msgstr "Έναρξη GPU dump"
+
+#: src/gui/widgets/sio1.cc:234
+msgid "Status"
+msgstr ""
 
 #: src/gui/widgets/memory_observer.cc:228
 msgid "Step"
@@ -1892,7 +2001,7 @@ msgstr ""
 msgid "Step over"
 msgstr ""
 
-#: src/gui/gui.cc:971
+#: src/gui/gui.cc:996
 msgid "Stop GPU dump"
 msgstr "Παύση GPU dump"
 
@@ -1907,11 +2016,21 @@ msgstr ""
 msgid "Symbols"
 msgstr "Σύμβολα"
 
-#: src/gui/gui.cc:1351
+#: src/gui/gui.cc:896
+#, fuzzy
+msgid "System"
+msgstr "Είδος Συστήματος"
+
+#: src/gui/gui.cc:1243
+#, fuzzy
+msgid "System Configuration"
+msgstr "Ρυθμίσεις"
+
+#: src/gui/gui.cc:1464
 msgid "System Type"
 msgstr "Είδος Συστήματος"
 
-#: src/gui/gui.cc:1430
+#: src/gui/gui.cc:1543
 msgid ""
 "The GDB server will start tracing its\n"
 "protocol into the logs, which can be helpful to debug\n"
@@ -1923,32 +2042,32 @@ msgstr ""
 msgid "The memory card %s doesn't exist - creating it\n"
 msgstr "Η καρτα μνήμης 1%s δεν υπάρχει - γίνεται δημιουργία της\n"
 
-#: src/gui/gui.cc:1606
+#: src/gui/gui.cc:1719
 msgid "Themes"
 msgstr "Στυλ"
 
-#: src/gui/gui.cc:1399
+#: src/gui/gui.cc:1512
 msgid ""
 "This will activate a gdb-server that you can\n"
 "connect to with any gdb-remote compliant client.\n"
 "You also need to enable the debugger."
 msgstr ""
 
-#: src/gui/gui.cc:1456
+#: src/gui/gui.cc:1569
 msgid ""
 "This will activate a tcp server, that will\n"
 "relay information between tcp and sio1.\n"
 "See the wiki for details."
 msgstr ""
 
-#: src/gui/gui.cc:1442
+#: src/gui/gui.cc:1555
 msgid ""
 "This will activate a web-server, that you can\n"
 "query using a REST api. See the wiki for details.\n"
 "The debugger might be required in some cases."
 msgstr ""
 
-#: src/gui/gui.cc:1371
+#: src/gui/gui.cc:1484
 msgid ""
 "This will cause the BIOS to skip the shell,\n"
 "which may include additional checks.\n"
@@ -1956,7 +2075,7 @@ msgid ""
 "faster by not displaying the logo."
 msgstr ""
 
-#: src/gui/gui.cc:1387
+#: src/gui/gui.cc:1500
 msgid ""
 "This will enable the usage of various breakpoints\n"
 "throughout the execution of mips code. Enabling this\n"
@@ -1980,11 +2099,11 @@ msgstr ""
 msgid "Types"
 msgstr ""
 
-#: src/gui/gui.cc:873
+#: src/gui/gui.cc:895
 msgid "UI"
 msgstr ""
 
-#: src/gui/gui.cc:1175
+#: src/gui/gui.cc:1208
 #, fuzzy
 msgid "UI Configuration"
 msgstr "Ρυθμίσεις"
@@ -2053,6 +2172,15 @@ msgstr "Μη-υποστηριγμένη έκδοση PPF (%d).\n"
 msgid "Up"
 msgstr ""
 
+#: src/gui/gui.cc:1280
+msgid "Update available"
+msgstr ""
+
+#: src/gui/gui.cc:1251
+#, fuzzy
+msgid "Update configuration"
+msgstr "Ρυθμίσεις SPU"
+
 #: src/spu/cfg.cc:69
 msgid "Use Null Sync"
 msgstr ""
@@ -2061,7 +2189,7 @@ msgstr ""
 msgid "Use raw input for mouse"
 msgstr ""
 
-#: src/gui/gui.cc:1210
+#: src/gui/gui.cc:1326
 #, fuzzy
 msgid "UvFiles"
 msgstr "Αρχεία"
@@ -2070,45 +2198,55 @@ msgstr "Αρχεία"
 msgid "VRAM Shader Editor"
 msgstr ""
 
-#: src/gui/gui.cc:910
+#: src/gui/gui.cc:933
 msgid "VRAM viewers"
 msgstr "Προβολείς VRAM"
 
-#: src/gui/gui.cc:1671
+#. 1
+#: src/gui/widgets/sio1.cc:161
+msgid "Value"
+msgstr ""
+
+#: src/gui/gui.cc:1798
 #, fuzzy
 msgid "Vendor"
 msgstr "πωλητής"
 
-#: src/gui/gui.cc:1673
+#: src/gui/gui.cc:1751 src/gui/gui.cc:1800
 #, fuzzy
 msgid "Version"
 msgstr "Έκδοση"
 
-#: src/gui/widgets/shader-editor.cc:384
+#: src/gui/gui.cc:1756
+#, fuzzy, c-format
+msgid "Version: %s"
+msgstr "Έκδοση"
+
+#: src/gui/widgets/shader-editor.cc:385
 msgid "Vertex Shader"
 msgstr ""
 
-#: src/gui/widgets/shader-editor.cc:188
+#: src/gui/widgets/shader-editor.cc:189
 msgid "Vertex Shader compilation error: {}\n"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:367
+#: src/gui/widgets/vram-viewer.cc:366
 msgid "View"
 msgstr "Προβολή"
 
-#: src/gui/widgets/vram-viewer.cc:376
+#: src/gui/widgets/vram-viewer.cc:375
 msgid "View VRAM in 16 bits"
 msgstr "Προβολή VRAM σε 16 bits"
 
-#: src/gui/widgets/vram-viewer.cc:372
+#: src/gui/widgets/vram-viewer.cc:371
 msgid "View VRAM in 24 bits"
 msgstr "Προβολή VRAM σε 24 bits"
 
-#: src/gui/widgets/vram-viewer.cc:384
+#: src/gui/widgets/vram-viewer.cc:383
 msgid "View VRAM in 4 bits"
 msgstr "Προβολή VRAM σε 4 bits"
 
-#: src/gui/widgets/vram-viewer.cc:380
+#: src/gui/widgets/vram-viewer.cc:379
 msgid "View VRAM in 8 bits"
 msgstr "Προβολή VRAM σε 8 bits"
 
@@ -2116,17 +2254,17 @@ msgstr "Προβολή VRAM σε 8 bits"
 msgid "Volume"
 msgstr "Ένταση"
 
-#: src/gui/gui.cc:457
+#: src/gui/gui.cc:475
 msgid "Vram Viewer #"
 msgstr "Προβολή VRAM #"
 
-#: src/gui/gui.cc:436
+#: src/gui/gui.cc:447
 msgid ""
 "Warning: OpenGL error reporting disabled. See About dialog for more "
 "information.\n"
 msgstr ""
 
-#: src/gui/gui.cc:1446
+#: src/gui/gui.cc:1559
 msgid "Web Server Port"
 msgstr "Θύρα Εξυπηρετητή Web"
 
@@ -2159,7 +2297,7 @@ msgstr "Χάρτης γραφής 32"
 msgid "Write 8 map"
 msgstr "Χάρτης γραφής 8"
 
-#: src/gui/gui.cc:1215
+#: src/gui/gui.cc:1331
 #, fuzzy, c-format
 msgid "Write rate: %s"
 msgstr "Γραφή Byte"
