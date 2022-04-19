@@ -51,7 +51,7 @@ void PCSX::OpenGL_GPU::reset() {
 
     m_drawingOffset = OpenGL::vec2({0.f, 0.f});
 
-    float adjustedOffsets[2] = {+0.5, -0.5};
+    float adjustedOffsets[2] = {+0.5f, -0.5f};
     glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
 
     clearVRAM();
@@ -74,8 +74,6 @@ void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 
 // Do not forget to call this with an active OpenGL context.
 int PCSX::OpenGL_GPU::init() {
-    g_system->printf("TODO: init\n");
-
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.reserve(0x10000);
     m_vramTransferBuffer.reserve(vramWidth * vramHeight);
@@ -277,7 +275,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
 
                     // The 0.5 offsets help fix some holes in rendering, in places like the PS logo
                     // TODO: This might not work when upscaling?
-                    float adjustedOffsets[2] = {m_drawingOffset.x() + 0.5, m_drawingOffset.y() - 0.5};
+                    float adjustedOffsets[2] = {m_drawingOffset.x() + 0.5f, m_drawingOffset.y() - 0.5f};
                     glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
                     break;
                 }
