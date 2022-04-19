@@ -97,8 +97,7 @@ int PCSX::OpenGL_GPU::init() {
     m_fbo.createWithDrawTexture(m_vramTexture);
     m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
 
-    m_vramWriteTexture.create(vramWidth, vramHeight, GL_RGB5_A1);
-    m_vramWriteFBO.createWithDrawTexture(m_vramWriteTexture);
+    m_sampleTexture.create(vramWidth, vramHeight, GL_RGB5_A1);
 
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("Non-complete framebuffer");
@@ -298,10 +297,14 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     m_writingMode = TransferMode::CommandTransfer;
                     m_haveCommand = false;
 
+                    m_vramTexture.bind();
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, m_vramTransferRect.x, m_vramTransferRect.y,
+                                    m_vramTransferRect.width, m_vramTransferRect.height, GL_RGBA,
+                                    GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramTransferBuffer[0]);
+                    
+                    m_sampleTexture.bind();
+                    // Copy sample texture to output texture here
                     m_vramTransferBuffer.clear();
-                    m_vramWriteTexture.bind();
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, m_vramTransferRect.x, m_vramTransferRect.y, m_vramTransferRect.width, m_vramTransferRect.height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV,
-                                    &m_vramTransferBuffer[0]);
                     goto start;
                 }
                 m_remainingWords--;
@@ -386,6 +389,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     if (width == 0 || height == 0)
                         PCSX::g_system->printf("Weird %dx%d texture transfer\n", width, height);
 
+                    // TODO: Sanitize this
                     m_vramTransferRect.x = coords & 0xffff;
                     m_vramTransferRect.y = coords >> 16;
                     m_vramTransferRect.width = width;

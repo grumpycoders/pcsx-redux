@@ -52,7 +52,7 @@ class OpenGL_GPU final : public GPU {
     virtual void setDither(int setting) final { m_useDither = setting; }
     virtual void clearVRAM() final;
     virtual void reset() final;
-    virtual GLuint getVRAMTexture() final { return m_vramWriteTexture.handle(); }
+    virtual GLuint getVRAMTexture() final { return m_vramTexture.handle(); }
 
     // Actual emulation stuff
     using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
@@ -95,10 +95,9 @@ class OpenGL_GPU final : public GPU {
     OpenGL::Texture m_vramTexture;
     
     // For CPU->VRAM texture transfers
-    OpenGL::Texture m_vramWriteTexture;
-    OpenGL::Framebuffer m_vramWriteFBO;
+    OpenGL::Texture m_sampleTexture;
     OpenGL::Rect m_vramTransferRect;
-    std::vector<uint16_t> m_vramTransferBuffer;
+    std::vector<uint32_t> m_vramTransferBuffer;
 
     std::vector<Vertex> m_vertices;
     std::array<uint32_t, 16> m_cmdFIFO;
