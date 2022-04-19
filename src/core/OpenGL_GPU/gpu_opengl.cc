@@ -41,6 +41,7 @@ void PCSX::OpenGL_GPU::reset() {
     m_remainingWords = 0;
     m_FIFOIndex = 0;
     m_vertices.clear();
+    m_vramTransferBuffer.clear();
     m_displayArea.setEmpty();
 
     m_drawAreaLeft = m_drawAreaTop = 0;
@@ -75,8 +76,9 @@ void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 int PCSX::OpenGL_GPU::init() {
     g_system->printf("TODO: init\n");
 
-    // Reserve some size for vertices to avoid dynamic allocations later.
+    // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.reserve(0x10000);
+    m_vramTransferBuffer.reserve(vramWidth * vramHeight);
 
     m_vbo.create();
     m_vbo.bind();
@@ -94,6 +96,9 @@ int PCSX::OpenGL_GPU::init() {
     m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
     m_fbo.createWithDrawTexture(m_vramTexture);
     m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
+
+    m_vramWriteTexture.create(vramWidth, vramHeight, GL_RGB5_A1);
+    m_vramWriteFBO.createWithDrawTexture(m_vramWriteTexture);
 
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("Non-complete framebuffer");
@@ -288,12 +293,19 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
             }
         } else {
             if (m_writingMode == TransferMode::VRAMTransfer) {
-                if (m_remainingWords == 0) {
+                if (m_remainingWords == 0) { // Texture transfer finished
+                    renderBatch();
                     m_writingMode = TransferMode::CommandTransfer;
                     m_haveCommand = false;
+
+                    m_vramTransferBuffer.clear();
+                    m_vramWriteTexture.bind();
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, m_vramTransferRect.x, m_vramTransferRect.y, m_vramTransferRect.width, m_vramTransferRect.height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV,
+                                    &m_vramTransferBuffer[0]);
                     goto start;
                 }
                 m_remainingWords--;
+                m_vramTransferBuffer.push_back(word);
                 continue;
             }
 
@@ -367,11 +379,17 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                 else if (m_cmd == 0xA0) {
                     m_writingMode = TransferMode::VRAMTransfer;
                     m_haveCommand = true;
+                    const uint32_t coords = m_cmdFIFO[1];
                     const uint32_t res = m_cmdFIFO[2];
                     const uint32_t width = res & 0xffff;
                     const uint32_t height = res >> 16;
                     if (width == 0 || height == 0)
                         PCSX::g_system->printf("Weird %dx%d texture transfer\n", width, height);
+
+                    m_vramTransferRect.x = coords & 0xffff;
+                    m_vramTransferRect.y = coords >> 16;
+                    m_vramTransferRect.width = width;
+                    m_vramTransferRect.height = height;
 
                     // The size of the texture in 16-bit pixels. If the number is odd, force align it up
                     const uint32_t size = ((width * height) + 1) & ~1;
