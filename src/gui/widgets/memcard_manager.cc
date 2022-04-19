@@ -160,18 +160,18 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
 
                 // We have to suffix the action button names with ##number because Imgui
                 // can't handle multiple buttons with the same name well
-                auto buttonName = fmt::format(_("Erase##{}"), i);
+                auto buttonName = fmt::format(f_("Erase##{}"), i);
                 if (ImGui::SmallButton(buttonName.c_str())) {
                     auto latest = getLatest();
                     g_emulator->m_sio->eraseMcdFile(block);
                     saveUndoBuffer(std::move(latest),
-                                   fmt::format(_("Erased file {}({}) off card {}"), block.number,
+                                   fmt::format(f_("Erased file {}({}) off card {}"), block.number,
                                                gui->hasJapanese() ? block.titleUtf8 : block.titleAscii, block.mcd));
                     g_emulator->m_sio->saveMcd(card);
                 }
                 ImGui::SameLine();
 
-                buttonName = fmt::format(_("Copy##{}"), i);
+                buttonName = fmt::format(f_("Copy##{}"), i);
                 if (otherFreeSpace >= size) {
                     if (ImGui::SmallButton(buttonName.c_str())) {
                         auto latest = getLatest();
@@ -181,7 +181,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                         } else {
                             saveUndoBuffer(
                                 std::move(latest),
-                                fmt::format(_("Copied file {}({}) from card {} to card {}"), block.number,
+                                fmt::format(f_("Copied file {}({}) from card {} to card {}"), block.number,
                                             gui->hasJapanese() ? block.titleUtf8 : block.titleAscii, card, othercard));
                             g_emulator->m_sio->saveMcd(othercard);
                         }
@@ -193,7 +193,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                 }
                 ImGui::SameLine();
 
-                buttonName = fmt::format(_("Move##{}"), i);
+                buttonName = fmt::format(f_("Move##{}"), i);
                 if (otherFreeSpace >= size) {
                     if (ImGui::SmallButton(buttonName.c_str())) {
                         auto latest = getLatest();
@@ -204,7 +204,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                             g_emulator->m_sio->eraseMcdFile(block);
                             saveUndoBuffer(
                                 std::move(latest),
-                                fmt::format(_("Moved file {}({}) from card {} to card {}"), block.number,
+                                fmt::format(f_("Moved file {}({}) from card {} to card {}"), block.number,
                                             gui->hasJapanese() ? block.titleUtf8 : block.titleAscii, card, othercard));
                             g_emulator->m_sio->saveMcd(1);
                             g_emulator->m_sio->saveMcd(2);
@@ -217,13 +217,13 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                 }
                 ImGui::SameLine();
 
-                buttonName = fmt::format(_("Export PNG##{}"), i);
+                buttonName = fmt::format(f_("Export PNG##{}"), i);
                 if (ImGui::SmallButton(buttonName.c_str())) {
                     exportPNG(block);
                 }
                 ImGui::SameLine();
 
-                buttonName = fmt::format(_("Copy icon##{}"), i);
+                buttonName = fmt::format(f_("Copy icon##{}"), i);
                 if (ImGui::SmallButton(buttonName.c_str())) {
                     copyToClipboard(block);
                 }

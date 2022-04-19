@@ -134,7 +134,7 @@ void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1Re
     const std::string tableName = fmt::format("{}Table", regname);
     char currentValue[11];
     const std::string popupDisplayText;
-    const std::string editValueOf = fmt::format(_("Edit value of {}"), regname);
+    const std::string editValueOf = fmt::format(f_("Edit value of {}"), regname);
 
     if constexpr (sizeof(T) == 1) {
         displayFormat = "%02x";

@@ -53,13 +53,13 @@
     <ClInclude Include="..\..\third_party\fmt\include\fmt\ostream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\third_party\fmt\include\fmt\posix.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\third_party\fmt\include\fmt\printf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\third_party\fmt\include\fmt\ranges.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\fmt\include\fmt\xchar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -186,7 +186,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
         char *log = (char *)malloc(maxLength);
         glGetShaderInfoLog(vertexShader, maxLength, &maxLength, log);
 
-        m_errorMessage = fmt::format(_("Vertex Shader compilation error: {}\n"), log);
+        m_errorMessage = fmt::format(f_("Vertex Shader compilation error: {}\n"), log);
 
         free(log);
         glDeleteShader(vertexShader);
@@ -207,7 +207,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
 
         glGetShaderInfoLog(pixelShader, maxLength, &maxLength, log);
 
-        m_errorMessage = fmt::format(_("Pixel Shader compilation error: {}\n"), log);
+        m_errorMessage = fmt::format(f_("Pixel Shader compilation error: {}\n"), log);
 
         free(log);
         glDeleteShader(vertexShader);
@@ -229,7 +229,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
 
         glGetProgramInfoLog(shaderProgram, maxLength, &maxLength, log);
 
-        m_errorMessage = fmt::format(_("Link error: {}\n"), log);
+        m_errorMessage = fmt::format(f_("Link error: {}\n"), log);
 
         free(log);
         glDeleteProgram(shaderProgram);
@@ -241,7 +241,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     for (auto attrib : mandatoryAttributes) {
         int loc = glGetAttribLocation(shaderProgram, attrib.data());
         if (loc == -1) {
-            m_errorMessage = fmt::format(_("Missing attribute {} in shader program"), attrib);
+            m_errorMessage = fmt::format(f_("Missing attribute {} in shader program"), attrib);
             glDeleteProgram(shaderProgram);
             glDeleteShader(vertexShader);
             glDeleteShader(pixelShader);
