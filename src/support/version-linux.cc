@@ -44,7 +44,10 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
         filename = out->filename();
     });
 
-    std::string cmd = fmt::format("dbus-send --session --print-reply --dest=org.freedesktop.FileManager1 --type=method_call /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:\"file://{}\" string:\"\"", filename);
+    std::string cmd = fmt::format(
+        "dbus-send --session --print-reply --dest=org.freedesktop.FileManager1 --type=method_call "
+        "/org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:\"file://{}\" string:\"\"",
+        filename);
     system(cmd.c_str());
 }
 
