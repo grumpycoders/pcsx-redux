@@ -84,6 +84,7 @@ class OpenGL_GPU final : public GPU {
 
     static constexpr int vramWidth = 1024;
     static constexpr int vramHeight = 512;
+    static constexpr int vertexBufferSize = 0x100000;
 
     TransferMode m_readingMode;
     TransferMode m_writingMode;
@@ -117,7 +118,9 @@ class OpenGL_GPU final : public GPU {
     int m_FIFOIndex;
     int m_cmd;
 
+    int m_vertexCount = 0;
     int m_remainingWords = 0;
+    int m_lastCommandHash = 0;
     bool m_haveCommand = false;
     GP0Func m_pendingCommand;
 
@@ -125,5 +128,113 @@ class OpenGL_GPU final : public GPU {
     void clearVRAM(float r, float g, float b, float a = 1.0);
     void updateDrawArea();
     void setScissorArea();
+    void changeProgram();
+
+    enum class TexturingMode {
+        NoTexture, Textured
+    };
+
+    enum class PolygonType {
+        Triangle, Quad
+    };
+
+    enum class RectSize {
+        Variable, Rect1, Rect8, Rect16
+    };
+
+    enum class Shading {
+        Flat, Gouraud
+    };
+
+    template <Shading shading, TexturingMode mode>
+    void drawVertex(int index, int vertexSize) {
+        if constexpr (shading == Shading::Flat) {
+            m_vertices[m_vertexCount].colour = m_cmdFIFO[0];
+        } else {
+            m_vertices[m_vertexCount].colour = m_cmdFIFO[index * vertexSize];
+        }
+
+        const uint32_t pos = m_cmdFIFO[index * vertexSize + 1];
+        // Sign extend vertices
+        const int x = int(pos) << 21 >> 21;
+        const int y = int(pos) << 5 >> 21;
+
+        m_vertices[m_vertexCount].positions.x() = x;
+        m_vertices[m_vertexCount].positions.y() = y;
+        m_vertexCount++;
+    }
+
+    template <PolygonType type, Shading shading, TexturingMode mode = TexturingMode::NoTexture>
+    void drawPolygon() {
+        int hash = 0;
+        int vertexSize = 1; // Vertex size in words
+        if constexpr (mode == TexturingMode::Textured) {
+            hash |= 1;
+            vertexSize++; // 1 word for each vert's UVs
+        }
+
+        if constexpr (shading == Shading::Gouraud) {
+            vertexSize++; // 1 word for each vert's colour
+        }
+
+        if constexpr (type == PolygonType::Triangle) {
+            if (m_vertexCount + 3 >= vertexBufferSize) {
+                renderBatch();
+            }
+
+            drawVertex<shading, mode>(0, vertexSize);
+            drawVertex<shading, mode>(1, vertexSize);
+            drawVertex<shading, mode>(2, vertexSize);
+        } else if constexpr (type == PolygonType::Quad) {
+            if (m_vertexCount + 6 >= vertexBufferSize) {
+                renderBatch();
+            }
+
+            drawVertex<shading, mode>(0, vertexSize);
+            drawVertex<shading, mode>(1, vertexSize);
+            drawVertex<shading, mode>(2, vertexSize);
+            drawVertex<shading, mode>(1, vertexSize);
+            drawVertex<shading, mode>(2, vertexSize);
+            drawVertex<shading, mode>(3, vertexSize);
+        }
+    }
+
+    template <RectSize size, TexturingMode mode = TexturingMode::NoTexture>
+    void drawRect() {
+        int height, width;
+
+        const uint32_t colour = m_cmdFIFO[0];
+        const uint32_t pos = m_cmdFIFO[1];
+
+        // Sign extend vertices
+        const int x = int(pos) << 21 >> 21;
+        const int y = int(pos) << 5 >> 21;
+
+        if constexpr (size == RectSize::Rect1) {
+            width = height = 1;
+        }
+        else if constexpr (size == RectSize::Rect8) {
+            width = height = 8;
+        }
+        else if constexpr (size == RectSize::Rect16) {
+            width = height = 16;
+        }
+        else {
+            uint32_t dimensions = mode == TexturingMode::NoTexture ? m_cmdFIFO[2] : m_cmdFIFO[3];
+            width = dimensions & 0xffff;
+            height = dimensions >> 16;
+        }
+
+        if (m_vertexCount + 6 >= vertexBufferSize) {
+            renderBatch();
+        }
+
+        m_vertices[m_vertexCount++] = Vertex(x, y, colour);
+        m_vertices[m_vertexCount++] = Vertex(x + width, y, colour);
+        m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour);
+        m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour);
+        m_vertices[m_vertexCount++] = Vertex(x, y + height, colour);
+        m_vertices[m_vertexCount++] = Vertex(x, y, colour);
+    }
 };
 }  // namespace PCSX

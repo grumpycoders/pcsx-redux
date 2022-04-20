@@ -40,7 +40,7 @@ void PCSX::OpenGL_GPU::reset() {
     m_writingMode = TransferMode::CommandTransfer;
     m_remainingWords = 0;
     m_FIFOIndex = 0;
-    m_vertices.clear();
+    m_vertexCount = 0;
     m_vramTransferBuffer.clear();
     m_displayArea.setEmpty();
 
@@ -75,7 +75,7 @@ void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 // Do not forget to call this with an active OpenGL context.
 int PCSX::OpenGL_GPU::init() {
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
-    m_vertices.reserve(0x10000);
+    m_vertices.reserve(vertexBufferSize);
     m_vramTransferBuffer.reserve(vramWidth * vramHeight);
 
     m_vbo.create();
@@ -142,6 +142,8 @@ int PCSX::OpenGL_GPU::init() {
         in vec4 vertexColor;
         out vec4 FragColor;
 
+        uniform sampler2D u_vramTex;
+
         void main() {
            FragColor = vertexColor;
         }
@@ -152,6 +154,9 @@ int PCSX::OpenGL_GPU::init() {
     m_untexturedTriangleProgram.create({frag, vert});
     m_untexturedTriangleProgram.use();
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vertexOffsets");
+
+    const auto vramSamplerLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vramTex");
+    glUniform1i(vramSamplerLoc, 0); // Make the fragment shader read from currently binded texture
 
     reset();
     return 0;
@@ -183,7 +188,10 @@ uint32_t PCSX::OpenGL_GPU::readData() {
     return 0;
 }
 
-void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) { g_system->printf("TODO: readDataMem\n"); }
+void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) {
+    g_system->printf("TODO: readDataMem\n");
+    for (int i = 0; i < size; i++) *destination = 0x12345678;
+}
 
 void PCSX::OpenGL_GPU::writeData(uint32_t value) { writeDataMem(&value, 1); }
 
@@ -301,6 +309,9 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                                     GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramTransferBuffer[0]);
                     
                     m_sampleTexture.bind();
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, m_vramTransferRect.x, m_vramTransferRect.y,
+                                    m_vramTransferRect.width, m_vramTransferRect.height, GL_RGBA,
+                                    GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramTransferBuffer[0]);
                     // Copy sample texture to output texture here
                     m_vramTransferBuffer.clear();
                     goto start;
@@ -315,66 +326,31 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
             if (m_remainingWords == 0) {
                 m_haveCommand = false;
                 if (m_cmd == 0x28) {
-                    const uint32_t colour = m_cmdFIFO[0];
-
-                    for (auto i = 0; i < 3; i++) {
-                        const uint32_t pos = m_cmdFIFO[i + 1];
-                        m_vertices.push_back(std::move(Vertex(pos, colour)));
-                    }
-
-                    for (auto i = 1; i < 4; i++) {
-                        const uint32_t pos = m_cmdFIFO[i + 1];
-                        m_vertices.push_back(std::move(Vertex(pos, colour)));
-                    }
+                    drawPolygon<PolygonType::Quad, Shading::Flat, TexturingMode::NoTexture>();
                 }
 
                 else if (m_cmd == 0x20) {
-                    const uint32_t colour = m_cmdFIFO[0];
-                    for (int i = 0; i < 3; i++) {
-                        const uint32_t pos = m_cmdFIFO[i + 1];
-                        m_vertices.push_back(std::move(Vertex(pos, colour)));
-                    }
+                    drawPolygon<PolygonType::Triangle, Shading::Flat, TexturingMode::NoTexture>();
                 }
 
                 else if (m_cmd == 0x30) {
-                    for (int i = 0; i < 3; i++) {
-                        const uint32_t colour = m_cmdFIFO[i * 2];
-                        const uint32_t pos = m_cmdFIFO[i * 2 + 1];
-                        m_vertices.push_back(std::move(Vertex(pos, colour)));
-                    }
+                    drawPolygon<PolygonType::Triangle, Shading::Gouraud, TexturingMode::NoTexture>();
                 }
 
                 else if (m_cmd == 0x38) {
-                    for (int i = 0; i < 3; i++) {
-                        const uint32_t colour = m_cmdFIFO[i * 2];
-                        const uint32_t pos = m_cmdFIFO[i * 2 + 1];
-                        m_vertices.push_back(std::move(Vertex(pos, colour)));
-                    }
+                    drawPolygon<PolygonType::Quad, Shading::Gouraud, TexturingMode::NoTexture>();
+                }
 
-                    for (int i = 1; i < 4; i++) {
-                        const uint32_t colour = m_cmdFIFO[i * 2];
-                        const uint32_t pos = m_cmdFIFO[i * 2 + 1];
-                        m_vertices.push_back(std::move(Vertex(pos, colour)));
-                    }
+                else if (m_cmd == 0x2D) {
+                    drawPolygon<PolygonType::Quad, Shading::Flat, TexturingMode::Textured>();
                 }
 
                 else if (m_cmd == 0x60) {
-                    const uint32_t colour = m_cmdFIFO[0];
-                    const uint32_t v = m_cmdFIFO[1];
-                    const uint32_t size = m_cmdFIFO[2];
+                    drawRect<RectSize::Variable, TexturingMode::NoTexture>();
+                }
 
-                    const uint32_t x = v & 0xffff;
-                    const uint32_t y = v >> 16;
-                    const uint32_t width = size & 0xffff;
-                    const uint32_t height = size >> 16;
-
-                    m_vertices.push_back(std::move(Vertex(x, y, colour)));
-                    m_vertices.push_back(std::move(Vertex(x + width, y, colour)));
-                    m_vertices.push_back(std::move(Vertex(x + width, y + height, colour)));
-
-                    m_vertices.push_back(std::move(Vertex(x + width, y + height, colour)));
-                    m_vertices.push_back(std::move(Vertex(x, y + height, colour)));
-                    m_vertices.push_back(std::move(Vertex(x, y, colour)));
+                else if (m_cmd == 0x65) {
+                    drawRect<RectSize::Variable, TexturingMode::Textured>();
                 }
 
                 else if (m_cmd == 0xA0) {
@@ -392,6 +368,8 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     m_vramTransferRect.y = coords >> 16;
                     m_vramTransferRect.width = width;
                     m_vramTransferRect.height = height;
+
+                    PCSX::g_system->printf("x: %d y: %d\nwidth: %d height: %d\n", m_vramTransferRect.x, m_vramTransferRect.y, m_vramTransferRect.width, m_vramTransferRect.height);
 
                     // The size of the texture in 16-bit pixels. If the number is odd, force align it up
                     const uint32_t size = ((width * height) + 1) & ~1;
@@ -521,6 +499,7 @@ void PCSX::OpenGL_GPU::startFrame() {
     m_vbo.bind();
     m_vao.bind();
     m_fbo.bind(OpenGL::DrawFramebuffer);
+    m_sampleTexture.bind();
     OpenGL::setViewport(m_vramTexture.width(), m_vramTexture.height());
     OpenGL::enableScissor();
 
@@ -577,11 +556,10 @@ void PCSX::OpenGL_GPU::vblank() {
 }
 
 void PCSX::OpenGL_GPU::renderBatch() {
-    if (!m_vertices.empty()) {
-        const auto vertexCount = m_vertices.size();
-        m_vbo.bufferVerts(&m_vertices[0], vertexCount);
-        OpenGL::draw(OpenGL::Triangles, vertexCount);
-        m_vertices.clear();
+    if (m_vertexCount > 0) {
+        m_vbo.bufferVerts(&m_vertices[0], m_vertexCount);
+        OpenGL::draw(OpenGL::Triangles, m_vertexCount);
+        m_vertexCount = 0;
     }
 }
 
