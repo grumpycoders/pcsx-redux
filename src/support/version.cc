@@ -68,6 +68,7 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
                     return;
                 }
                 m_updateId = latest["id"];
+                m_updateVersion = latest["version"];
             } catch (...) {
                 callback(false);
                 return;

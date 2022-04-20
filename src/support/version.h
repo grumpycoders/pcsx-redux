@@ -43,6 +43,7 @@ struct VersionInfo {
     void clear() {
         version.clear();
         changeset.clear();
+        timestamp = 0;
         updateCatalog.clear();
         updateInfoBase.clear();
     }
@@ -68,6 +69,7 @@ class Update {
     json m_updateInfo;
     IO<UvFile> m_download;
     unsigned m_updateId;
+    std::string m_updateVersion;
     bool m_hasUpdate = false;
 };
 
