@@ -49,6 +49,8 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
         "/org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:\"file://{}\" string:\"\"",
         filename);
     system(cmd.c_str());
+
+    return true;
 }
 
 #endif

@@ -29,23 +29,14 @@ bool PCSX::Update::canFullyApply() { return false; }
 
 bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     if (!m_hasUpdate) return false;
-    auto tmp = std::filesystem::temp_directory_path();
-
-    ZipArchive zip(m_download);
-    if (zip.failed()) return false;
-
-    std::string filename;
-
-    zip.listAllFiles([&zip, &filename, &tmp](const std::string_view& name) {
-        IO<File> out(new UvFile(tmp / name, FileOps::TRUNCATE));
-        IO<File> in(zip.openFile(name));
-        Slice data = in->read(in->size());
-        out->write(std::move(data));
-        filename = out->filename();
-    });
-
-    std::string cmd = fmt::format("open \"{}\"", filename);
+    auto outName = std::filesystem::temp_directory_path() / fmt::format("PCSX-Redux-{}.dmg", m_updateVersion);
+    IO<File> out(new UvFile(outName, FileOps::TRUNCATE));
+    if (out->failed()) return false;
+    Slice data = m_download.asA<File>()->read(m_download->size());
+    out->write(std::move(data));
+    std::string cmd = fmt::format("open \"{}\"", outName.string());
     system(cmd.c_str());
+    return true;
 }
 
 #endif
