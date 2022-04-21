@@ -159,6 +159,7 @@ int PCSX::OpenGL_GPU::init() {
     glUniform1i(vramSamplerLoc, 0); // Make the fragment shader read from currently binded texture
 
     reset();
+    initCommands();
     return 0;
 }
 
@@ -190,7 +191,7 @@ uint32_t PCSX::OpenGL_GPU::readData() {
 
 void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) {
     g_system->printf("TODO: readDataMem\n");
-    for (int i = 0; i < size; i++) *destination = 0x12345678;
+    for (int i = 0; i < size; i++) *destination++ = 0xff;
 }
 
 void PCSX::OpenGL_GPU::writeData(uint32_t value) { writeDataMem(&value, 1); }
@@ -203,102 +204,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
         size--;
     start:
         if (!m_haveCommand) {
-            const uint32_t cmd = word >> 24;
-            m_cmd = cmd;
-            m_haveCommand = true;
-            m_cmdFIFO[0] = word;
-            m_FIFOIndex = 1;
-
-            switch (cmd) {
-                case 0x00:                  // nop
-                    m_haveCommand = false;  // No params, move straight to the next command
-                    break;
-                case 0x01:                  // Clear texture cache
-                    m_haveCommand = false;  // No params, move straight to the next command
-                    break;
-                case 0x02:  // Fill rectangle in VRAM with solid colour
-                    m_remainingWords = 2;
-                    break;
-                case 0x20:  // Monochrome triangle
-                case 0x22:  // Monochrome triangle, semi-transparent (unimplemented)
-                    m_remainingWords = 3;
-                    break;
-                case 0x28:  // Monochrome quad
-                    m_remainingWords = 4;
-                    break;
-                case 0x2C:  // Textured quad with blending
-                case 0x2D:  // Textured quad, opaque, no blending
-                case 0x2F:  // Textured quad, semi transparent, no blending
-                    m_remainingWords = 8;
-                    break;
-                case 0x30:  // Shaded triangle
-                    m_remainingWords = 5;
-                    break;
-                case 0x38:  // Shaded quad
-                    m_remainingWords = 7;
-                    break;
-                case 0x60: // Monochrome rectangle (variable-sized)
-                    m_remainingWords = 2;
-                    break;
-                case 0x68: // Monochrome rectangle (1x1)
-                    m_remainingWords = 1;
-                    break;
-                case 0x65:  // Textured rect, opaque, no blending
-                    m_remainingWords = 3;
-                    break;
-                case 0xA0:  // Copy rectangle (CPU->VRAM)
-                    m_remainingWords = 2;
-                    break;
-                case 0xC0:  // Copy rectangle (CPU->VRAM)
-                    m_remainingWords = 2;
-                    PCSX::g_system->printf("Unimplemented read rectangle command: %08X\n", word);
-                    break;
-
-                case 0xE1:                  // Set draw mode
-                    m_haveCommand = false;  // No params, move straight to the next command
-                    PCSX::g_system->printf("Unimplemented set draw mode command: %08X\n", word);
-                    break;
-                case 0xE2:                  // Set texture window
-                    m_haveCommand = false;  // No params, move straight to the next command
-                    PCSX::g_system->printf("Unimplemented set texture window command: %08X\n", word);
-                    break;
-                case 0xE3:                  // Set draw area top left
-                    m_haveCommand = false;  // No params, move straight to the next command
-                    m_drawAreaLeft = word & 0x3ff;
-                    m_drawAreaTop = (word >> 10) & 0x1ff;
-                    updateDrawArea();
-                    break;
-                case 0xE4:                  // Set draw area bottom right
-                    m_haveCommand = false;  // No params, move straight to the next command
-                    m_drawAreaRight = word & 0x3ff;
-                    m_drawAreaBottom = (word >> 10) & 0x1ff;
-                    updateDrawArea();
-                    break;
-                case 0xE5: {
-                    renderBatch();
-                    m_haveCommand = false; // No params, move straight to the next command
-                    // Offset is a signed number in [-1024, 1023]
-                    const auto offsetX = (int32_t)word << 21 >> 21;
-                    const auto offsetY = (int32_t)word << 10 >> 21;
-                    
-                    m_drawingOffset.x() = static_cast<float>(offsetX);
-                    m_drawingOffset.y() = static_cast<float>(offsetY);
-
-                    // The 0.5 offsets help fix some holes in rendering, in places like the PS logo
-                    // TODO: This might not work when upscaling?
-                    float adjustedOffsets[2] = {m_drawingOffset.x() + 0.5f, m_drawingOffset.y() - 0.5f};
-                    glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
-                    break;
-                }
-                case 0xE6:                  // Set draw mask
-                    m_haveCommand = false;  // No params, move straight to the next command
-                    PCSX::g_system->printf("Unimplemented set draw mask command: %08X\n", word);
-                    break;
-                default:
-                    m_haveCommand = false;
-                    PCSX::g_system->printf("Unknown GP0 command: %02X\n", cmd);
-                    break;
-            }
+            startGP0Command(word);
         } else {
             if (m_writingMode == TransferMode::VRAMTransfer) {
                 if (m_remainingWords == 0) { // Texture transfer finished
@@ -328,78 +234,8 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
             m_cmdFIFO[m_FIFOIndex++] = word;
             if (m_remainingWords == 0) {
                 m_haveCommand = false;
-                if (m_cmd == 0x28) {
-                    drawPolygon<PolygonType::Quad, Shading::Flat, TexturingMode::NoTexture>();
-                }
-
-                else if (m_cmd == 0x20 || m_cmd == 0x22) {
-                    drawPolygon<PolygonType::Triangle, Shading::Flat, TexturingMode::NoTexture>();
-                }
-
-                else if (m_cmd == 0x30) {
-                    drawPolygon<PolygonType::Triangle, Shading::Gouraud, TexturingMode::NoTexture>();
-                }
-
-                else if (m_cmd == 0x38) {
-                    drawPolygon<PolygonType::Quad, Shading::Gouraud, TexturingMode::NoTexture>();
-                }
-
-                else if (m_cmd == 0x2C || m_cmd == 0x2D || m_cmd == 0x2F) {
-                    drawPolygon<PolygonType::Quad, Shading::Flat, TexturingMode::Textured>();
-                }
-
-                else if (m_cmd == 0x60) {
-                    drawRect<RectSize::Variable, TexturingMode::NoTexture>();
-                }
-
-                else if (m_cmd == 0x68) {
-                    drawRect<RectSize::Rect1, TexturingMode::NoTexture>();
-                }
-
-                else if (m_cmd == 0x65) {
-                    drawRect<RectSize::Variable, TexturingMode::Textured>();
-                }
-
-                else if (m_cmd == 0xA0) {
-                    m_writingMode = TransferMode::VRAMTransfer;
-                    m_haveCommand = true;
-                    const uint32_t coords = m_cmdFIFO[1];
-                    const uint32_t res = m_cmdFIFO[2];
-                    const uint32_t width = res & 0xffff;
-                    const uint32_t height = res >> 16;
-                    if (width == 0 || height == 0)
-                        PCSX::g_system->printf("Weird %dx%d texture transfer\n", width, height);
-
-                    // TODO: Sanitize this
-                    m_vramTransferRect.x = coords & 0xffff;
-                    m_vramTransferRect.y = coords >> 16;
-                    m_vramTransferRect.width = width;
-                    m_vramTransferRect.height = height;
-
-                    PCSX::g_system->printf("x: %d y: %d\nwidth: %d height: %d\n", m_vramTransferRect.x, m_vramTransferRect.y, m_vramTransferRect.width, m_vramTransferRect.height);
-
-                    // The size of the texture in 16-bit pixels. If the number is odd, force align it up
-                    const uint32_t size = ((width * height) + 1) & ~1;
-                    m_remainingWords = size / 2;
-                }
-
-                else if (m_cmd == 0x02) {
-                    const auto colour = m_cmdFIFO[0] & 0xffffff;
-                    const float r = float(colour & 0xff) / 255.f;
-                    const float g = float((colour >> 8) & 0xff) / 255.f;
-                    const float b = float((colour >> 16) & 0xff) / 255.f;
-
-                    OpenGL::setClearColor(r, g, b, 1.f);
-                    const uint32_t x0 = m_cmdFIFO[1] & 0xffff;
-                    const uint32_t y0 = m_cmdFIFO[1] >> 16;
-                    const uint32_t width = m_cmdFIFO[2] & 0xffff;
-                    const uint32_t height = m_cmdFIFO[2] >> 16;
-
-                    renderBatch();
-                    OpenGL::setScissor(x0, y0, width, height);
-                    OpenGL::clearColor();
-                    setScissorArea();
-                }
+                const auto func = m_cmdFuncs[m_cmd];
+                (*this.*func)();
             }
         }
     }
@@ -407,7 +243,6 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
 
 // GP1 command writes
 void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
-    g_system->printf("TODO: writeStatus\n");
     renderBatch();
 
     const uint32_t cmd = value >> 24;

@@ -122,7 +122,7 @@ class OpenGL_GPU final : public GPU {
     int m_remainingWords = 0;
     int m_lastCommandHash = 0;
     bool m_haveCommand = false;
-    GP0Func m_pendingCommand;
+    GP0Func m_cmdFuncs[256];
 
     void renderBatch();
     void clearVRAM(float r, float g, float b, float a = 1.0);
@@ -130,11 +130,11 @@ class OpenGL_GPU final : public GPU {
     void setScissorArea();
     void changeProgram();
 
-    enum class TexturingMode {
-        NoTexture, Textured
+    enum class Texturing {
+        None, Textured
     };
 
-    enum class PolygonType {
+    enum class PolyType {
         Triangle, Quad
     };
 
@@ -146,7 +146,7 @@ class OpenGL_GPU final : public GPU {
         Flat, Gouraud
     };
 
-    template <Shading shading, TexturingMode mode>
+    template <Shading shading, Texturing mode>
     void drawVertex(int index, int vertexSize) {
         if constexpr (shading == Shading::Flat) {
             m_vertices[m_vertexCount].colour = m_cmdFIFO[0];
@@ -164,11 +164,11 @@ class OpenGL_GPU final : public GPU {
         m_vertexCount++;
     }
 
-    template <PolygonType type, Shading shading, TexturingMode mode = TexturingMode::NoTexture>
-    void drawPolygon() {
+    template <PolyType type, Shading shading, Texturing mode = Texturing::None>
+    void drawPoly() {
         int hash = 0;
         int vertexSize = 1; // Vertex size in words
-        if constexpr (mode == TexturingMode::Textured) {
+        if constexpr (mode == Texturing::Textured) {
             hash |= 1;
             vertexSize++; // 1 word for each vert's UVs
         }
@@ -177,7 +177,7 @@ class OpenGL_GPU final : public GPU {
             vertexSize++; // 1 word for each vert's colour
         }
 
-        if constexpr (type == PolygonType::Triangle) {
+        if constexpr (type == PolyType::Triangle) {
             if (m_vertexCount + 3 >= vertexBufferSize) {
                 renderBatch();
             }
@@ -185,7 +185,7 @@ class OpenGL_GPU final : public GPU {
             drawVertex<shading, mode>(0, vertexSize);
             drawVertex<shading, mode>(1, vertexSize);
             drawVertex<shading, mode>(2, vertexSize);
-        } else if constexpr (type == PolygonType::Quad) {
+        } else if constexpr (type == PolyType::Quad) {
             if (m_vertexCount + 6 >= vertexBufferSize) {
                 renderBatch();
             }
@@ -199,7 +199,7 @@ class OpenGL_GPU final : public GPU {
         }
     }
 
-    template <RectSize size, TexturingMode mode = TexturingMode::NoTexture>
+    template <RectSize size, Texturing mode = Texturing::None>
     void drawRect() {
         int height, width;
 
@@ -220,7 +220,7 @@ class OpenGL_GPU final : public GPU {
             width = height = 16;
         }
         else {
-            uint32_t dimensions = mode == TexturingMode::NoTexture ? m_cmdFIFO[2] : m_cmdFIFO[3];
+            uint32_t dimensions = mode == Texturing::None ? m_cmdFIFO[2] : m_cmdFIFO[3];
             width = dimensions & 0xffff;
             height = dimensions >> 16;
         }
@@ -236,5 +236,22 @@ class OpenGL_GPU final : public GPU {
         m_vertices[m_vertexCount++] = Vertex(x, y + height, colour);
         m_vertices[m_vertexCount++] = Vertex(x, y, colour);
     }
+
+    // GP0/GP1 command funcs
+    void initCommands();
+    void startGP0Command(uint32_t commandWord);
+
+    void cmdUnimplemented();
+    void cmdClearTexCache();
+    void cmdFillRect();
+    void cmdCopyRectToVRAM();
+    void cmdCopyRectFromVRAM();
+    void cmdSetDrawMode();
+    void cmdSetTexWindow();
+    void cmdSetDrawAreaTopLeft();
+    void cmdSetDrawAreaBottomRight();
+    void cmdSetDrawOffset();
+    void cmdSetDrawMask();
+    void cmdNop();
 };
 }  // namespace PCSX
