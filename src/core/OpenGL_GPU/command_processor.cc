@@ -76,7 +76,6 @@ void PCSX::OpenGL_GPU::cmdNop() {}
 void PCSX::OpenGL_GPU::cmdClearTexCache() {
     //  Refresh our sample texture when the texture cache is flushed
     m_sampleTexture.bind();
-    m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, vramWidth, vramHeight);
 }
 
@@ -166,7 +165,6 @@ void PCSX::OpenGL_GPU::cmdCopyRectToVRAM() {
 }
 
 void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
-    m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
     const uint32_t coords = m_cmdFIFO[1];
     const uint32_t res = m_cmdFIFO[2];
     // TODO: Sanitize this

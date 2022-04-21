@@ -99,7 +99,6 @@ int PCSX::OpenGL_GPU::init() {
     m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
 
     m_sampleTexture.create(vramWidth, vramHeight, GL_RGBA8);
-    //m_vramWriteFBO.createWithDrawTexture(m_sampleTexture);
 
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("Non-complete framebuffer");
@@ -351,7 +350,7 @@ void PCSX::OpenGL_GPU::debug() {
 void PCSX::OpenGL_GPU::startFrame() {
     m_vbo.bind();
     m_vao.bind();
-    m_fbo.bind(OpenGL::DrawFramebuffer);
+    m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
     m_sampleTexture.bind();
     OpenGL::setViewport(m_vramTexture.width(), m_vramTexture.height());
     OpenGL::enableScissor();
