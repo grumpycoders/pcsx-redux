@@ -363,7 +363,8 @@ class CDRomImpl : public PCSX::CDRom {
         current = time.toLBA();
 
         for (m_curTrack = 1; m_curTrack < m_iso->getTN(); m_curTrack++) {
-            if (m_iso->getTD(m_curTrack + 1).toLBA() - current >= 150) break;
+            sect = static_cast<int>(m_iso->getTD(m_curTrack + 1).toLBA());
+            if (sect - current >= 150) break;
         }
         CDROM_LOG("Find_CurTrack *** %02d %02d\n", m_curTrack, current);
     }
