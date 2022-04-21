@@ -98,7 +98,8 @@ class OpenGL_GPU final : public GPU {
     // For CPU->VRAM texture transfers
     OpenGL::Texture m_sampleTexture;
     OpenGL::Rect m_vramTransferRect;
-    std::vector<uint32_t> m_vramTransferBuffer;
+    std::vector<uint32_t> m_vramWriteBuffer;
+    std::vector<uint32_t> m_vramReadBuffer;
 
     std::vector<Vertex> m_vertices;
     std::array<uint32_t, 16> m_cmdFIFO;
@@ -122,11 +123,14 @@ class OpenGL_GPU final : public GPU {
     int m_remainingWords = 0;
     int m_lastCommandHash = 0;
     bool m_haveCommand = false;
+    uint32_t m_vramReadBufferSize = 0;
+    uint32_t m_vramReadBufferIndex = 0;
     GP0Func m_cmdFuncs[256];
 
     void renderBatch();
     void clearVRAM(float r, float g, float b, float a = 1.0);
     void updateDrawArea();
+    void updateDispArea();
     void setScissorArea();
     void changeProgram();
 

@@ -39,9 +39,11 @@ void PCSX::OpenGL_GPU::reset() {
     m_readingMode = TransferMode::CommandTransfer;
     m_writingMode = TransferMode::CommandTransfer;
     m_remainingWords = 0;
+    m_vramReadBufferSize = 0;
     m_FIFOIndex = 0;
     m_vertexCount = 0;
-    m_vramTransferBuffer.clear();
+    m_vramReadBuffer.clear();
+    m_vramWriteBuffer.clear();
     m_displayArea.setEmpty();
 
     m_drawAreaLeft = m_drawAreaTop = 0;
@@ -76,7 +78,8 @@ void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 int PCSX::OpenGL_GPU::init() {
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.reserve(vertexBufferSize);
-    m_vramTransferBuffer.reserve(vramWidth * vramHeight);
+    m_vramReadBuffer.reserve(vramWidth * vramHeight);
+    m_vramWriteBuffer.reserve(vramWidth * vramHeight);
 
     m_vbo.create();
     m_vbo.bind();
@@ -92,10 +95,11 @@ int PCSX::OpenGL_GPU::init() {
 
     // Make VRAM texture and attach it to draw frambuffer
     m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
-    m_fbo.createWithDrawTexture(m_vramTexture);
+    m_fbo.createWithTexture(m_vramTexture);
     m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
 
-    m_sampleTexture.create(vramWidth, vramHeight, GL_RGB5_A1);
+    m_sampleTexture.create(vramWidth, vramHeight, GL_RGBA8);
+    //m_vramWriteFBO.createWithDrawTexture(m_sampleTexture);
 
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("Non-complete framebuffer");
@@ -185,13 +189,22 @@ uint32_t PCSX::OpenGL_GPU::readStatus() {
 }
 
 uint32_t PCSX::OpenGL_GPU::readData() {
-    g_system->printf("TODO: readData\n");
-    return 0;
+    uint32_t ret;
+    readDataMem(&ret, 1);
+    return ret;
 }
 
 void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) {
-    g_system->printf("TODO: readDataMem\n");
-    for (int i = 0; i < size; i++) *destination++ = 0xff;
+    for (int i = 0; i < size; i++) {
+        if (m_readingMode == TransferMode::VRAMTransfer) {
+            if (m_vramReadBufferSize == 1) m_readingMode = TransferMode::CommandTransfer;
+            *destination++ = m_vramReadBuffer[m_vramReadBufferIndex++];
+            m_vramReadBufferSize--;
+        } else {
+            g_system->printf("Don't know how to handle this GPUREAD read :(\n");
+            return;
+        }
+    }
 }
 
 void PCSX::OpenGL_GPU::writeData(uint32_t value) { writeDataMem(&value, 1); }
@@ -212,21 +225,19 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     m_writingMode = TransferMode::CommandTransfer;
                     m_haveCommand = false;
 
+                    OpenGL::bindScreenFramebuffer();
                     m_vramTexture.bind();
                     glTexSubImage2D(GL_TEXTURE_2D, 0, m_vramTransferRect.x, m_vramTransferRect.y,
                                     m_vramTransferRect.width, m_vramTransferRect.height, GL_RGBA,
-                                    GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramTransferBuffer[0]);
-                    
+                                    GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramWriteBuffer[0]);
                     m_sampleTexture.bind();
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, m_vramTransferRect.x, m_vramTransferRect.y,
-                                    m_vramTransferRect.width, m_vramTransferRect.height, GL_RGBA,
-                                    GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramTransferBuffer[0]);
-                    // Copy sample texture to output texture here
-                    m_vramTransferBuffer.clear();
+                    m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
+                    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, vramWidth, vramHeight);
+                    m_vramWriteBuffer.clear();
                     goto start;
                 }
                 m_remainingWords--;
-                m_vramTransferBuffer.push_back(word);
+                m_vramWriteBuffer.push_back(word);
                 continue;
             }
 
@@ -258,7 +269,7 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
             const auto x2 = (value >> 12) & 0xfff;
             constexpr uint32_t cyclesPerPix = 2560;
 
-            // m_displayArea.width = (((x2 - x1) / cyclesPerPix) + 2) & ~3;
+            //m_displayArea.width = (((x2 - x1) / cyclesPerPix) + 2) & ~3;
             m_displayArea.width = 320;
             break;
         }

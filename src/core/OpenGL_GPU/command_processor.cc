@@ -73,7 +73,12 @@ void PCSX::OpenGL_GPU::initCommands() {
 }
 
 void PCSX::OpenGL_GPU::cmdNop() {}
-void PCSX::OpenGL_GPU::cmdClearTexCache() {}
+void PCSX::OpenGL_GPU::cmdClearTexCache() {
+    //  Refresh our sample texture when the texture cache is flushed
+    m_sampleTexture.bind();
+    m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
+    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, vramWidth, vramHeight);
+}
 
 void PCSX::OpenGL_GPU::cmdSetDrawMode() {
     PCSX::g_system->printf("Unimplemented set draw mode command: %08X\n", m_cmdFIFO[0]);
@@ -143,13 +148,15 @@ void PCSX::OpenGL_GPU::cmdCopyRectToVRAM() {
     m_haveCommand = true;
     const uint32_t coords = m_cmdFIFO[1];
     const uint32_t res = m_cmdFIFO[2];
-    const uint32_t width = res & 0xffff;
-    const uint32_t height = res >> 16;
-    if (width == 0 || height == 0) PCSX::g_system->printf("Weird %dx%d texture transfer\n", width, height);
+    uint32_t width = res & 0xffff;
+    uint32_t height = res >> 16;
+
+    width = ((width - 1) & 0x3ff) + 1;
+    height = ((height - 1) & 0x1ff) + 1;
 
     // TODO: Sanitize this
-    m_vramTransferRect.x = coords & 0xffff;
-    m_vramTransferRect.y = coords >> 16;
+    m_vramTransferRect.x = coords & 0x3ff;
+    m_vramTransferRect.y = (coords >> 16) & 0x1ff;
     m_vramTransferRect.width = width;
     m_vramTransferRect.height = height;
 
@@ -158,6 +165,27 @@ void PCSX::OpenGL_GPU::cmdCopyRectToVRAM() {
     m_remainingWords = size / 2;
 }
 
-void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() { PCSX::g_system->printf("Attempted to read back VRAM :(\n"); }
+void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
+    m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
+    const uint32_t coords = m_cmdFIFO[1];
+    const uint32_t res = m_cmdFIFO[2];
+    // TODO: Sanitize this
+    const auto x = coords & 0x3ff;
+    const auto y = (coords >> 16) & 0x1ff;
+
+    uint32_t width = res & 0xffff;
+    uint32_t height = res >> 16;
+
+    width = ((width - 1) & 0x3ff) + 1;
+    height = ((height - 1) & 0x1ff) + 1;
+
+    // The size of the texture in 16-bit pixels. If the number is odd, force align it up
+    const uint32_t size = ((width * height) + 1) & ~1;
+
+    m_readingMode = TransferMode::VRAMTransfer;
+    m_vramReadBufferSize = size / 2;
+    m_vramReadBufferIndex = 0;
+    glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramReadBuffer[0]);
+}
 
 void PCSX::OpenGL_GPU::cmdUnimplemented() { PCSX::g_system->printf("Unknown GP0 command: %02X\n", m_cmdFIFO[0] >> 24); }
