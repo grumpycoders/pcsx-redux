@@ -237,8 +237,11 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                 case 0x38:  // Shaded quad
                     m_remainingWords = 7;
                     break;
-                case 0x60: // Monochrome Rectangle
+                case 0x60: // Monochrome rectangle (variable-sized)
                     m_remainingWords = 2;
+                    break;
+                case 0x68: // Monochrome rectangle (1x1)
+                    m_remainingWords = 1;
                     break;
                 case 0x65:  // Textured rect, opaque, no blending
                     m_remainingWords = 3;
@@ -329,7 +332,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     drawPolygon<PolygonType::Quad, Shading::Flat, TexturingMode::NoTexture>();
                 }
 
-                else if (m_cmd == 0x20) {
+                else if (m_cmd == 0x20 || m_cmd == 0x22) {
                     drawPolygon<PolygonType::Triangle, Shading::Flat, TexturingMode::NoTexture>();
                 }
 
@@ -341,12 +344,16 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     drawPolygon<PolygonType::Quad, Shading::Gouraud, TexturingMode::NoTexture>();
                 }
 
-                else if (m_cmd == 0x2D) {
+                else if (m_cmd == 0x2C || m_cmd == 0x2D || m_cmd == 0x2F) {
                     drawPolygon<PolygonType::Quad, Shading::Flat, TexturingMode::Textured>();
                 }
 
                 else if (m_cmd == 0x60) {
                     drawRect<RectSize::Variable, TexturingMode::NoTexture>();
+                }
+
+                else if (m_cmd == 0x68) {
+                    drawRect<RectSize::Rect1, TexturingMode::NoTexture>();
                 }
 
                 else if (m_cmd == 0x65) {
