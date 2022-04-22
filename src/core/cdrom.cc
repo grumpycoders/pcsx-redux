@@ -363,7 +363,8 @@ class CDRomImpl : public PCSX::CDRom {
         current = time.toLBA();
 
         for (m_curTrack = 1; m_curTrack < m_iso->getTN(); m_curTrack++) {
-            if (m_iso->getTD(m_curTrack + 1).toLBA() - current >= 150) break;
+            sect = static_cast<int>(m_iso->getTD(m_curTrack + 1).toLBA());
+            if (sect - current >= 150) break;
         }
         CDROM_LOG("Find_CurTrack *** %02d %02d\n", m_curTrack, current);
     }
@@ -845,8 +846,8 @@ class CDRomImpl : public PCSX::CDRom {
                     m_stat = Acknowledge;
                     MSF td = m_iso->getTD(m_track);
                     m_result[0] = m_statP;
-                    m_result[1] = td.m;
-                    m_result[2] = td.s;
+                    m_result[1] = PCSX::IEC60908b::itob(td.m);
+                    m_result[2] = PCSX::IEC60908b::itob(td.s);
                 }
                 break;
             }
@@ -919,7 +920,8 @@ class CDRomImpl : public PCSX::CDRom {
                 if (cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
                     m_result[1] = 0xc0;
                 } else {
-                    if (cdr_stat.Type == 2) m_result[1] |= 0x10;
+                    // Audio, unlicensed
+                    if (cdr_stat.Type == 2) m_result[1] |= (0x10 | 0x80);
                 }
                 m_result[0] |= (m_result[1] >> 4) & 0x08;
 
