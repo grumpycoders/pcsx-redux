@@ -81,7 +81,7 @@ int PCSX::OpenGL_GPU::init() {
     m_vramReadBuffer.reserve(vramWidth * vramHeight);
     m_vramWriteBuffer.reserve(vramWidth * vramHeight);
 
-    m_vbo.create();
+    m_vbo.createFixedSize(sizeof(Vertex) * vertexBufferSize, GL_STREAM_DRAW);
     m_vbo.bind();
     m_vao.create();
     m_vao.bind();
@@ -408,7 +408,7 @@ void PCSX::OpenGL_GPU::vblank() {
 
 void PCSX::OpenGL_GPU::renderBatch() {
     if (m_vertexCount > 0) {
-        m_vbo.bufferVerts(&m_vertices[0], m_vertexCount);
+        m_vbo.bufferVertsSub(&m_vertices[0], m_vertexCount);
         OpenGL::draw(OpenGL::Triangles, m_vertexCount);
         m_vertexCount = 0;
     }
