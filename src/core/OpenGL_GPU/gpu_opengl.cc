@@ -51,7 +51,7 @@ void PCSX::OpenGL_GPU::reset() {
     m_drawAreaRight = vramWidth;
     updateDrawArea();
 
-    m_drawingOffset = OpenGL::vec2({0.f, 0.f});
+    m_drawingOffset = OpenGL::ivec2({0, 0});
 
     float adjustedOffsets[2] = {+0.5f, -0.5f};
     glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
@@ -334,8 +334,7 @@ void PCSX::OpenGL_GPU::debug() {
     if (ImGui::Begin(_("OpenGL GPU Debugger"), &m_showDebug)) {
         ImGui::Text(_("Display horizontal range: %d-%d"), m_displayArea.x, m_displayArea.x + m_displayArea.width);
         ImGui::Text(_("Display vertical range: %d-%d"), m_displayArea.y, m_displayArea.y + m_displayArea.height);
-        ImGui::Text(_("Drawing area offset: (%d, %d)"), static_cast<int>(m_drawingOffset.x()),
-                    static_cast<int>(m_drawingOffset.y()));
+        ImGui::Text(_("Drawing area offset: (%d, %d)"), m_drawingOffset.x(), m_drawingOffset.y());
 
         ImGui::ColorEdit3(_("Clear colour"), &m_clearColour[0]);
         if (ImGui::Button(_("Clear VRAM"))) {

@@ -107,7 +107,7 @@ class OpenGL_GPU final : public GPU {
     OpenGL::Rect m_scissorBox;
     int m_drawAreaLeft, m_drawAreaRight, m_drawAreaTop, m_drawAreaBottom;
 
-    OpenGL::vec2 m_drawingOffset;
+    OpenGL::ivec2 m_drawingOffset;
     // Clear colour used in the debugger
     OpenGL::vec3 m_clearColour = OpenGL::vec3({0.f, 0.f, 0.f});
     // Specifies how and whether to fill renderer polygons

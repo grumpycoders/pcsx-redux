@@ -115,12 +115,12 @@ void PCSX::OpenGL_GPU::cmdSetDrawOffset() {
     const auto offsetX = (int32_t)word << 21 >> 21;
     const auto offsetY = (int32_t)word << 10 >> 21;
 
-    m_drawingOffset.x() = static_cast<float>(offsetX);
-    m_drawingOffset.y() = static_cast<float>(offsetY);
+    m_drawingOffset.x() = offsetX;
+    m_drawingOffset.y() = offsetY;
 
     // The 0.5 offsets help fix some holes in rendering, in places like the PS logo
     // TODO: This might not work when upscaling?
-    float adjustedOffsets[2] = {m_drawingOffset.x() + 0.5f, m_drawingOffset.y() - 0.5f};
+    float adjustedOffsets[2] = {static_cast<float>(offsetX) + 0.5f, static_cast<float>(offsetY) - 0.5f};
     glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
 }
 
