@@ -846,8 +846,8 @@ class CDRomImpl : public PCSX::CDRom {
                     m_stat = Acknowledge;
                     MSF td = m_iso->getTD(m_track);
                     m_result[0] = m_statP;
-                    m_result[1] = td.m;
-                    m_result[2] = td.s;
+                    m_result[1] = PCSX::IEC60908b::itob(td.m);
+                    m_result[2] = PCSX::IEC60908b::itob(td.s);
                 }
                 break;
             }
