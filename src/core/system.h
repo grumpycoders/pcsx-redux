@@ -31,6 +31,7 @@
 
 #include "flags.h"
 #include "fmt/printf.h"
+#include "fmt/format.h"
 #include "imgui.h"
 #include "support/djbhash.h"
 #include "support/eventbus.h"
@@ -102,21 +103,21 @@ class System {
 
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &...args) {
+    void printf(const char *format, const Args &... args) {
         std::string s = fmt::sprintf(format, args...);
         printf(std::move(s));
     }
     virtual void printf(std::string &&) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &...args) {
+    void log(LogClass logClass, const char *format, const Args &... args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, std::move(s));
     }
     virtual void log(LogClass, std::string &&) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &...args) {
+    void message(const char *format, const Args &... args) {
         std::string s = fmt::sprintf(format, args...);
         message(std::move(s));
     }
@@ -250,3 +251,4 @@ extern System *g_system;
 }  // namespace PCSX
 
 #define _(str) PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str)
+#define f_(str) fmt::runtime(PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str))

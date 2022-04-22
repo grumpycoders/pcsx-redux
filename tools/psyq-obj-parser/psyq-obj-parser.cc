@@ -21,9 +21,13 @@
 
 #include <list>
 #include <map>
+#include <string>
+#include <string_view>
 
 #include "elfio/elfio.hpp"
 #include "flags.h"
+#include "fmt/format.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "support/djbhash.h"
 #include "support/file.h"
 #include "support/hashtable.h"
@@ -208,8 +212,8 @@ struct PsyqLnkFile {
     void display();
     bool writeElf(const std::string& prefix, const std::string& out, bool abiNone);
     template <typename... Args>
-    inline void setElfConversionError(const std::string& formatStr, Args&&... args) {
-        elfConversionError = fmt::format(formatStr, args...);
+    inline void setElfConversionError(std::string_view formatStr, Args&&... args) {
+        elfConversionError = fmt::format(fmt::runtime(formatStr), args...);
 #ifdef _WIN32
         if (IsDebuggerPresent()) __debugbreak();
 #endif
@@ -962,7 +966,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 break;
             }
             default:
-                psyq->setElfConversionError("Unsupported relocation type {}.", type);
+                psyq->setElfConversionError("Unsupported relocation type {}.", magic_enum::enum_integer(type));
                 return false;
         }
         section->section->set_data((char*)sectionData, size);
@@ -1005,7 +1009,8 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 return simpleSymbolReloc(expr);
             }
             default: {
-                psyq->setElfConversionError("Unsupported relocation expression type: {}", expr->type);
+                psyq->setElfConversionError("Unsupported relocation expression type: {}",
+                                            magic_enum::enum_integer(expr->type));
                 return false;
             }
         }
@@ -1087,7 +1092,8 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 }
             }
             default: {
-                psyq->setElfConversionError("Unsupported relocation expression type: {}", expr->type);
+                psyq->setElfConversionError("Unsupported relocation expression type: {}",
+                                            magic_enum::enum_integer(expr->type));
                 return false;
             }
         }

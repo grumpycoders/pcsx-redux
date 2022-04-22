@@ -47,6 +47,7 @@
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"
+#include "fmt/chrono.h"
 #include "gpu/soft/externals.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
@@ -788,7 +789,7 @@ void PCSX::GUI::endFrame() {
                     }
 
                     for (auto i = 1; i < 10; i++) {
-                        const auto str = fmt::format(_("Slot {}"), i);
+                        const auto str = fmt::format(f_("Slot {}"), i);
                         if (ImGui::MenuItem(str.c_str())) {
                             zstr::ofstream save(buildSaveStateFilename(i), std::ios::binary);
                             save << SaveStates::save();
@@ -802,7 +803,7 @@ void PCSX::GUI::endFrame() {
                     if (ImGui::MenuItem(_("Quick-save slot"), "F2")) loadSaveState(buildSaveStateFilename(0));
 
                     for (auto i = 1; i < 10; i++) {
-                        const auto str = fmt::format(_("Slot {}"), i);
+                        const auto str = fmt::format(f_("Slot {}"), i);
                         if (ImGui::MenuItem(str.c_str())) loadSaveState(buildSaveStateFilename(i));
                     }
 
@@ -1748,10 +1749,9 @@ bool PCSX::GUI::about() {
                 } else {
                     ImGui::Text(_("Version: %s"), version.version.c_str());
                     ImGui::Text(_("Changeset: %s"), version.changeset.c_str());
-                    std::tm* tm = std::localtime(&version.timestamp);
-                    char buffer[32];
-                    std::strftime(buffer, 32, "%Y-%m-%d %H:%M:%S", tm);
-                    ImGui::Text(_("Date & time: %s"), buffer);
+                    std::tm tm = fmt::localtime(version.timestamp);
+                    std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
+                    ImGui::Text(_("Date & time: %s"), timestamp.c_str());
                 }
                 ImGui::EndTabItem();
             }

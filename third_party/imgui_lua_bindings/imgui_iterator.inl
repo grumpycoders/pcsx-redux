@@ -40,6 +40,12 @@ OPTIONAL_BOOL_POINTER_ARG(p_open)
 CALL_FUNCTION_NO_RET(ShowMetricsWindow, p_open)
 END_BOOL_POINTER(p_open)
 END_IMGUI_FUNC
+//    IMGUI_API void          ShowStackToolWindow(bool* p_open = NULL);   // create Stack Tool window. hover items with mouse to query information about the source of their unique ID.
+IMGUI_FUNCTION(ShowStackToolWindow)
+OPTIONAL_BOOL_POINTER_ARG(p_open)
+CALL_FUNCTION_NO_RET(ShowStackToolWindow, p_open)
+END_BOOL_POINTER(p_open)
+END_IMGUI_FUNC
 //    IMGUI_API void          ShowAboutWindow(bool* p_open = NULL);       // create About window. display Dear ImGui version, credits and build/system information.
 IMGUI_FUNCTION(ShowAboutWindow)
 OPTIONAL_BOOL_POINTER_ARG(p_open)
@@ -225,22 +231,17 @@ CALL_FUNCTION(GetContentRegionMax, ImVec2)
 PUSH_NUMBER(ret.x)
 PUSH_NUMBER(ret.y)
 END_IMGUI_FUNC
-//    IMGUI_API ImVec2        GetWindowContentRegionMin();                                    // content boundaries min (roughly (0,0)-Scroll), in window coordinates
+//    IMGUI_API ImVec2        GetWindowContentRegionMin();                                    // content boundaries min for the full window (roughly (0,0)-Scroll), in window coordinates
 IMGUI_FUNCTION(GetWindowContentRegionMin)
 CALL_FUNCTION(GetWindowContentRegionMin, ImVec2)
 PUSH_NUMBER(ret.x)
 PUSH_NUMBER(ret.y)
 END_IMGUI_FUNC
-//    IMGUI_API ImVec2        GetWindowContentRegionMax();                                    // content boundaries max (roughly (0,0)+Size-Scroll) where Size can be override with SetNextWindowContentSize(), in window coordinates
+//    IMGUI_API ImVec2        GetWindowContentRegionMax();                                    // content boundaries max for the full window (roughly (0,0)+Size-Scroll) where Size can be override with SetNextWindowContentSize(), in window coordinates
 IMGUI_FUNCTION(GetWindowContentRegionMax)
 CALL_FUNCTION(GetWindowContentRegionMax, ImVec2)
 PUSH_NUMBER(ret.x)
 PUSH_NUMBER(ret.y)
-END_IMGUI_FUNC
-//    IMGUI_API float         GetWindowContentRegionWidth();                                  //
-IMGUI_FUNCTION(GetWindowContentRegionWidth)
-CALL_FUNCTION(GetWindowContentRegionWidth, float)
-PUSH_NUMBER(ret)
 END_IMGUI_FUNC
 //    IMGUI_API float         GetScrollX();                                                   // get scrolling amount [0 .. GetScrollMaxX()]
 IMGUI_FUNCTION(GetScrollX)
@@ -1482,6 +1483,17 @@ POP_END_STACK(17)
 END_IMGUI_FUNC
 //    IMGUI_API const ImGuiPayload*   GetDragDropPayload();                                                           // peek directly into the current payload from anywhere. may return NULL. use ImGuiPayload::IsDataType() to test for the payload type.
 // Unsupported return type const
+//    IMGUI_API void          BeginDisabled(bool disabled = true);
+IMGUI_FUNCTION(BeginDisabled)
+OPTIONAL_BOOL_ARG(disabled, true)
+CALL_FUNCTION_NO_RET(BeginDisabled, disabled)
+ADD_END_STACK(18)
+END_IMGUI_FUNC
+//    IMGUI_API void          EndDisabled();
+IMGUI_FUNCTION(EndDisabled)
+CALL_FUNCTION_NO_RET(EndDisabled)
+POP_END_STACK(18)
+END_IMGUI_FUNC
 //    IMGUI_API void          PushClipRect(const ImVec2& clip_rect_min, const ImVec2& clip_rect_max, bool intersect_with_current_clip_rect);
 IMGUI_FUNCTION(PushClipRect)
 IM_VEC_2_ARG(clip_rect_min)
@@ -1624,29 +1636,19 @@ END_IMGUI_FUNC
 // Unsupported arg type ImGuiStorage* storage
 //    IMGUI_API ImGuiStorage* GetStateStorage();
 // Unsupported return type ImGuiStorage*
-//    IMGUI_API void          CalcListClipping(int items_count, float items_height, int* out_items_display_start, int* out_items_display_end);    // calculate coarse clipping for large list of evenly sized items. Prefer using the ImGuiListClipper higher-level helper if you can.
-IMGUI_FUNCTION(CalcListClipping)
-INT_ARG(items_count)
-NUMBER_ARG(items_height)
-INT_POINTER_ARG(out_items_display_start)
-INT_POINTER_ARG(out_items_display_end)
-CALL_FUNCTION_NO_RET(CalcListClipping, items_count, items_height, out_items_display_start, out_items_display_end)
-END_INT_POINTER(out_items_display_start)
-END_INT_POINTER(out_items_display_end)
-END_IMGUI_FUNC
 //    IMGUI_API bool          BeginChildFrame(ImGuiID id, const ImVec2& size, ImGuiWindowFlags flags = 0); // helper to create a child window / scrolling region that looks like a normal widget frame
 IMGUI_FUNCTION(BeginChildFrame)
 UINT_ARG(id)
 IM_VEC_2_ARG(size)
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(BeginChildFrame, bool, id, size, flags)
-IF_RET_ADD_END_STACK(18)
+IF_RET_ADD_END_STACK(19)
 PUSH_BOOL(ret)
 END_IMGUI_FUNC
 //    IMGUI_API void          EndChildFrame();                                                    // always call EndChildFrame() regardless of BeginChildFrame() return values (which indicates a collapsed/clipped window)
 IMGUI_FUNCTION(EndChildFrame)
 CALL_FUNCTION_NO_RET(EndChildFrame)
-POP_END_STACK(18)
+POP_END_STACK(19)
 END_IMGUI_FUNC
 //    IMGUI_API ImVec2        CalcTextSize(const char* text, const char* text_end = NULL, bool hide_text_after_double_hash = false, float wrap_width = -1.0f);
 IMGUI_FUNCTION(CalcTextSize)
@@ -1704,11 +1706,14 @@ CALL_FUNCTION_NO_RET(CaptureKeyboardFromApp, want_capture_keyboard_value)
 END_IMGUI_FUNC
 //    IMGUI_API bool          IsMouseDown(ImGuiMouseButton button);                               // is mouse button held?
 // Unsupported arg type ImGuiMouseButton button
-//    IMGUI_API bool          IsMouseClicked(ImGuiMouseButton button, bool repeat = false);       // did mouse button clicked? (went from !Down to Down)
+//    IMGUI_API bool          IsMouseClicked(ImGuiMouseButton button, bool repeat = false);       // did mouse button clicked? (went from !Down to Down). Same as GetMouseClickedCount() == 1.
 // Unsupported arg type ImGuiMouseButton button
 //    IMGUI_API bool          IsMouseReleased(ImGuiMouseButton button);                           // did mouse button released? (went from Down to !Down)
 // Unsupported arg type ImGuiMouseButton button
-//    IMGUI_API bool          IsMouseDoubleClicked(ImGuiMouseButton button);                      // did mouse button double-clicked? (note that a double-click will also report IsMouseClicked() == true)
+//    IMGUI_API bool          IsMouseDoubleClicked(ImGuiMouseButton button);                      // did mouse button double-clicked? Same as GetMouseClickedCount() == 2. (note that a double-click will also report IsMouseClicked() == true)
+// Unsupported arg type ImGuiMouseButton button
+//    IMGUI_API int           GetMouseClickedCount(ImGuiMouseButton button);                      // return the number of successive mouse-clicks at the time where a click happen (otherwise 0).
+// Unsupported return type int
 // Unsupported arg type ImGuiMouseButton button
 //    IMGUI_API bool          IsMouseHoveringRect(const ImVec2& r_min, const ImVec2& r_max, bool clip = true);// is mouse hovering given bounding rect (in screen space). clipped by current clipping settings, but disregarding of other consideration of focus/window ordering/popup-block.
 IMGUI_FUNCTION(IsMouseHoveringRect)
@@ -1836,7 +1841,8 @@ END_STACK_OPTION(14, EndTabBar)
 END_STACK_OPTION(15, EndTabItem)
 END_STACK_OPTION(16, EndDragDropSource)
 END_STACK_OPTION(17, EndDragDropTarget)
-END_STACK_OPTION(18, EndChildFrame)
+END_STACK_OPTION(18, EndDisabled)
+END_STACK_OPTION(19, EndChildFrame)
 END_STACK_END
 //enum ImGuiWindowFlags_
 
@@ -1853,7 +1859,7 @@ MAKE_ENUM(ImGuiWindowFlags_NoMove,NoMove)
 MAKE_ENUM(ImGuiWindowFlags_NoScrollbar,NoScrollbar)
 //    ImGuiWindowFlags_NoScrollWithMouse      = 1 << 4,   // Disable user vertically scrolling with mouse wheel. On child window, mouse wheel will be forwarded to the parent unless NoScrollbar is also set.
 MAKE_ENUM(ImGuiWindowFlags_NoScrollWithMouse,NoScrollWithMouse)
-//    ImGuiWindowFlags_NoCollapse             = 1 << 5,   // Disable user collapsing window by double-clicking on it. Also referred to as "window menu button" within a docking node.
+//    ImGuiWindowFlags_NoCollapse             = 1 << 5,   // Disable user collapsing window by double-clicking on it. Also referred to as Window Menu Button (e.g. within a docking node).
 MAKE_ENUM(ImGuiWindowFlags_NoCollapse,NoCollapse)
 //    ImGuiWindowFlags_AlwaysAutoResize       = 1 << 6,   // Resize every window to its content every frame
 MAKE_ENUM(ImGuiWindowFlags_AlwaysAutoResize,AlwaysAutoResize)
@@ -1891,7 +1897,7 @@ MAKE_ENUM(ImGuiWindowFlags_NoNav,NoNav)
 MAKE_ENUM(ImGuiWindowFlags_NoDecoration,NoDecoration)
 //    ImGuiWindowFlags_NoInputs               = ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoNavFocus,
 MAKE_ENUM(ImGuiWindowFlags_NoInputs,NoInputs)
-//    ImGuiWindowFlags_NavFlattened           = 1 << 23,  // [BETA] Allow gamepad/keyboard navigation to cross over parent border to this child (only use on child that have no scrolling!)
+//    ImGuiWindowFlags_NavFlattened           = 1 << 23,  // [BETA] On child window: allow gamepad/keyboard navigation to cross over parent border to this child or between sibling child windows.
 MAKE_ENUM(ImGuiWindowFlags_NavFlattened,NavFlattened)
 //    ImGuiWindowFlags_ChildWindow            = 1 << 24,  // Don't use! For internal use by BeginChild()
 MAKE_ENUM(ImGuiWindowFlags_ChildWindow,ChildWindow)
@@ -2239,12 +2245,16 @@ END_ENUM(TableBgTarget)
 START_ENUM(FocusedFlags)
 //    ImGuiFocusedFlags_None                          = 0,
 MAKE_ENUM(ImGuiFocusedFlags_None,None)
-//    ImGuiFocusedFlags_ChildWindows                  = 1 << 0,   // IsWindowFocused(): Return true if any children of the window is focused
+//    ImGuiFocusedFlags_ChildWindows                  = 1 << 0,   // Return true if any children of the window is focused
 MAKE_ENUM(ImGuiFocusedFlags_ChildWindows,ChildWindows)
-//    ImGuiFocusedFlags_RootWindow                    = 1 << 1,   // IsWindowFocused(): Test from root window (top most parent of the current hierarchy)
+//    ImGuiFocusedFlags_RootWindow                    = 1 << 1,   // Test from root window (top most parent of the current hierarchy)
 MAKE_ENUM(ImGuiFocusedFlags_RootWindow,RootWindow)
-//    ImGuiFocusedFlags_AnyWindow                     = 1 << 2,   // IsWindowFocused(): Return true if any window is focused. Important: If you are trying to tell how to dispatch your low-level inputs, do NOT use this. Use 'io.WantCaptureMouse' instead! Please read the FAQ!
+//    ImGuiFocusedFlags_AnyWindow                     = 1 << 2,   // Return true if any window is focused. Important: If you are trying to tell how to dispatch your low-level inputs, do NOT use this. Use 'io.WantCaptureMouse' instead! Please read the FAQ!
 MAKE_ENUM(ImGuiFocusedFlags_AnyWindow,AnyWindow)
+//    ImGuiFocusedFlags_NoPopupHierarchy              = 1 << 3,   // Do not consider popup hierarchy (do not treat popup emitter as parent of popup) (when used with _ChildWindows or _RootWindow)
+MAKE_ENUM(ImGuiFocusedFlags_NoPopupHierarchy,NoPopupHierarchy)
+//    ImGuiFocusedFlags_DockHierarchy                 = 1 << 4,   // Consider docking hierarchy (treat dockspace host as parent of docked window) (when used with _ChildWindows or _RootWindow)
+MAKE_ENUM(ImGuiFocusedFlags_DockHierarchy,DockHierarchy)
 //    ImGuiFocusedFlags_RootAndChildWindows           = ImGuiFocusedFlags_RootWindow | ImGuiFocusedFlags_ChildWindows
 MAKE_ENUM(ImGuiFocusedFlags_RootAndChildWindows,RootAndChildWindows)
 END_ENUM(FocusedFlags)
@@ -2259,13 +2269,17 @@ MAKE_ENUM(ImGuiHoveredFlags_ChildWindows,ChildWindows)
 MAKE_ENUM(ImGuiHoveredFlags_RootWindow,RootWindow)
 //    ImGuiHoveredFlags_AnyWindow                     = 1 << 2,   // IsWindowHovered() only: Return true if any window is hovered
 MAKE_ENUM(ImGuiHoveredFlags_AnyWindow,AnyWindow)
-//    ImGuiHoveredFlags_AllowWhenBlockedByPopup       = 1 << 3,   // Return true even if a popup window is normally blocking access to this item/window
+//    ImGuiHoveredFlags_NoPopupHierarchy              = 1 << 3,   // IsWindowHovered() only: Do not consider popup hierarchy (do not treat popup emitter as parent of popup) (when used with _ChildWindows or _RootWindow)
+MAKE_ENUM(ImGuiHoveredFlags_NoPopupHierarchy,NoPopupHierarchy)
+//    ImGuiHoveredFlags_DockHierarchy                 = 1 << 4,   // IsWindowHovered() only: Consider docking hierarchy (treat dockspace host as parent of docked window) (when used with _ChildWindows or _RootWindow)
+MAKE_ENUM(ImGuiHoveredFlags_DockHierarchy,DockHierarchy)
+//    ImGuiHoveredFlags_AllowWhenBlockedByPopup       = 1 << 5,   // Return true even if a popup window is normally blocking access to this item/window
 MAKE_ENUM(ImGuiHoveredFlags_AllowWhenBlockedByPopup,AllowWhenBlockedByPopup)
-//    ImGuiHoveredFlags_AllowWhenBlockedByActiveItem  = 1 << 5,   // Return true even if an active item is blocking access to this item/window. Useful for Drag and Drop patterns.
+//    ImGuiHoveredFlags_AllowWhenBlockedByActiveItem  = 1 << 7,   // Return true even if an active item is blocking access to this item/window. Useful for Drag and Drop patterns.
 MAKE_ENUM(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem,AllowWhenBlockedByActiveItem)
-//    ImGuiHoveredFlags_AllowWhenOverlapped           = 1 << 6,   // Return true even if the position is obstructed or overlapped by another window
+//    ImGuiHoveredFlags_AllowWhenOverlapped           = 1 << 8,   // IsItemHovered() only: Return true even if the position is obstructed or overlapped by another window
 MAKE_ENUM(ImGuiHoveredFlags_AllowWhenOverlapped,AllowWhenOverlapped)
-//    ImGuiHoveredFlags_AllowWhenDisabled             = 1 << 7,   // Return true even if the item is disabled
+//    ImGuiHoveredFlags_AllowWhenDisabled             = 1 << 9,   // IsItemHovered() only: Return true even if the item is disabled
 MAKE_ENUM(ImGuiHoveredFlags_AllowWhenDisabled,AllowWhenDisabled)
 //    ImGuiHoveredFlags_RectOnly                      = ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenOverlapped,
 MAKE_ENUM(ImGuiHoveredFlags_RectOnly,RectOnly)
@@ -2285,7 +2299,7 @@ MAKE_ENUM(ImGuiDockNodeFlags_NoDockingInCentralNode,NoDockingInCentralNode)
 MAKE_ENUM(ImGuiDockNodeFlags_PassthruCentralNode,PassthruCentralNode)
 //    ImGuiDockNodeFlags_NoSplit                      = 1 << 4,   // Shared/Local // Disable splitting the node into smaller nodes. Useful e.g. when embedding dockspaces into a main root one (the root one may have splitting disabled to reduce confusion). Note: when turned off, existing splits will be preserved.
 MAKE_ENUM(ImGuiDockNodeFlags_NoSplit,NoSplit)
-//    ImGuiDockNodeFlags_NoResize                     = 1 << 5,   // Shared/Local // Disable resizing node using the splitter/separators. Useful with programatically setup dockspaces.
+//    ImGuiDockNodeFlags_NoResize                     = 1 << 5,   // Shared/Local // Disable resizing node using the splitter/separators. Useful with programmatically setup dockspaces.
 MAKE_ENUM(ImGuiDockNodeFlags_NoResize,NoResize)
 //    ImGuiDockNodeFlags_AutoHideTabBar               = 1 << 6    // Shared/Local // Tab bar will automatically hide when there is a single window in the dock node.
 MAKE_ENUM(ImGuiDockNodeFlags_AutoHideTabBar,AutoHideTabBar)
@@ -2641,6 +2655,8 @@ END_ENUM(Col)
 START_ENUM(StyleVar)
 //    ImGuiStyleVar_Alpha,               // float     Alpha
 MAKE_ENUM(ImGuiStyleVar_Alpha,Alpha)
+//    ImGuiStyleVar_DisabledAlpha,       // float     DisabledAlpha
+MAKE_ENUM(ImGuiStyleVar_DisabledAlpha,DisabledAlpha)
 //    ImGuiStyleVar_WindowPadding,       // ImVec2    WindowPadding
 MAKE_ENUM(ImGuiStyleVar_WindowPadding,WindowPadding)
 //    ImGuiStyleVar_WindowRounding,      // float     WindowRounding

@@ -526,7 +526,7 @@ static std::string glfwKeyToString(int key) {
 
     auto keyName = glfwGetKeyName(key, 0);
     if (keyName == nullptr) {
-        return fmt::format(_("Unknown keyboard key {}"), key);
+        return fmt::format(f_("Unknown keyboard key {}"), key);
     }
 
     auto str = std::string(keyName);
