@@ -757,7 +757,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     quadVertices[3].color[3] = 1.0;
 
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 4, &quadVertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 4, &quadVertices[0], GL_DYNAMIC_DRAW);
     glDisable(GL_DEPTH_TEST);
 
     if (m_setupVAO) {
