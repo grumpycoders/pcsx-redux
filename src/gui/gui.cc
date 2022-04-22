@@ -713,7 +713,6 @@ void PCSX::GUI::flip() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
 
