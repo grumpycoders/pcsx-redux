@@ -920,7 +920,8 @@ class CDRomImpl : public PCSX::CDRom {
                 if (cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
                     m_result[1] = 0xc0;
                 } else {
-                    if (cdr_stat.Type == 2) m_result[1] |= 0x10;
+                    // Audio, unlicensed
+                    if (cdr_stat.Type == 2) m_result[1] |= (0x10 | 0x80);
                 }
                 m_result[0] |= (m_result[1] >> 4) & 0x08;
 
