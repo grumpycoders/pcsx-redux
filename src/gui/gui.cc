@@ -660,6 +660,10 @@ void PCSX::GUI::startFrame() {
         saveCfg();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
+    GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+
+    // this call seems to sometime fails when the window is minimized...?
+    glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
 
     // Check hotkeys (TODO: Make configurable)
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) {
@@ -711,13 +715,7 @@ void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y)
 void PCSX::GUI::flip() {
     const GLuint texture = m_offscreenTextures[m_currentTexture];
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-    GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-
-    // this call seems to sometime fails when the window is minimized...?
-    glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     m_currentTexture ^= 1;
