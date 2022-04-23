@@ -432,13 +432,12 @@ void PCSX::GUI::init() {
     if (glDebugMessageCallback && g_emulator->settings.get<Emulator::SettingGLErrorReporting>()) {
         m_reportGLErrors = true;
         glEnable(GL_DEBUG_OUTPUT);
-        glDebugMessageCallback(
-            [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
-               GLvoid* userParam) {
-                GUI* self = reinterpret_cast<GUI*>(userParam);
-                self->glErrorCallback(source, type, id, severity, length, message);
-            },
-            this);
+        GLDEBUGPROC callback = [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+                                  const GLchar* message, const void* userParam) {
+            GUI* self = reinterpret_cast<GUI*>(const_cast<void*>(userParam));
+            self->glErrorCallback(source, type, id, severity, length, message);
+        };
+        glDebugMessageCallback(callback, this);
     } else {
         g_system->log(LogClass::UI,
                       _("Warning: OpenGL error reporting disabled. See About dialog for more information.\n"));
