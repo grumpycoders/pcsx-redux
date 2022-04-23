@@ -90,6 +90,7 @@ typedef double GLclampd;
 typedef void GLvoid;
 
 /*************************************************************/
+#define GLCOREARB_PROTOTYPES
 
 #ifndef GL_VERSION_1_1
 /* AttribMask */
@@ -3418,6 +3419,14 @@ typedef void (APIENTRYP PFNGLBLENDFUNCSEPARATEIPROC) (GLuint buf, GLenum srcRGB,
 /* ARB_texture_view */
 /* ARB_vertex_attrib_binding */
 #endif
+
+#ifndef GL_VERSION_4_4_PARTIAL
+#define GL_VERSION_4_4_PARTIAL 1
+#define GL_MAP_PERSISTENT_BIT  0x0040
+typedef void (APIENTRYP PFNGLBUFFERSTORAGEPROC) (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
+GLAPI void APIENTRY glBufferStorage (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
+#endif
+
 
 #ifndef GL_ARB_depth_buffer_float
 #define GL_ARB_depth_buffer_float 1
