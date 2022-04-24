@@ -204,7 +204,17 @@ int PCSX::OpenGL_GPU::init() {
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor.a = 1.0;
            } else if (texMode == 1) { // 8bpp texture
-               FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+               ivec2 texelCoord = ivec2(int(texCoords.x / 2), int(texCoords.y)) + texpageBase;
+               
+               int sample = sample16(texelCoord);
+               int shift = (int(texCoords.x) & 1) << 3;
+               int clutIndex = (sample >> shift) & 0xff;
+
+               ivec2 sampleCoords = ivec2(clutBase.x + clutIndex, clutBase.y);
+               FragColor = texelFetch(u_vramTex, sampleCoords, 0);
+
+               if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
+               FragColor.a = 1.0;
            } else if (texMode == 2) { // 16bpp texture
                ivec2 texelCoord = ivec2(int(texCoords.x), int(texCoords.y)) + texpageBase;
                FragColor = texelFetch(u_vramTex, texelCoord, 0);
