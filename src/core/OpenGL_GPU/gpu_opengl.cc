@@ -196,6 +196,9 @@ int PCSX::OpenGL_GPU::init() {
 
                ivec2 sampleCoords = ivec2(clutBase.x + clutIndex, clutBase.y);
                FragColor = texelFetch(u_vramTex, sampleCoords, 0);
+
+               if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
+
                FragColor.a = 1.0;
            }
         }
