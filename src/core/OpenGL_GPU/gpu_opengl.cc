@@ -131,6 +131,7 @@ int PCSX::OpenGL_GPU::init() {
         out vec2 texCoords;
         flat out ivec2 clutBase;
         flat out ivec2 texpageBase;
+        flat out int texMode;
 
         // We always apply a 0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies 
         uniform vec2 u_vertexOffsets = vec2(+0.5, -0.5);
@@ -156,6 +157,8 @@ int PCSX::OpenGL_GPU::init() {
            texCoords = vec2(float(inUV & 0xff), float((inUV >> 8) & 0xff));
            texpageBase = ivec2((inTexpage & 0xf) * 64, ((inTexpage >> 4) & 0x1) * 256);
            clutBase = ivec2((inClut & 0x3f) * 16, inClut >> 6);
+
+           texMode = (inTexpage >> 7) & 3;
         }
     )";
 
@@ -165,6 +168,7 @@ int PCSX::OpenGL_GPU::init() {
         in vec2 texCoords;
         flat in ivec2 clutBase;
         flat in ivec2 texpageBase;
+        flat in int texMode;
 
         out vec4 FragColor;
 
@@ -187,7 +191,7 @@ int PCSX::OpenGL_GPU::init() {
         void main() {
            if (u_textured == 0) {
                FragColor = vertexColor;
-           } else {
+           } else if (texMode == 0) { // 4bpp texture
                ivec2 texelCoord = ivec2(int(texCoords.x / 4), int(texCoords.y)) + texpageBase;
                
                int sample = sample16(texelCoord);
@@ -198,9 +202,18 @@ int PCSX::OpenGL_GPU::init() {
                FragColor = texelFetch(u_vramTex, sampleCoords, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
+               FragColor.a = 1.0;
+           } else if (texMode == 1) { // 8bpp texture
+               FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+           } else if (texMode == 2) { // 16bpp texture
+               ivec2 texelCoord = ivec2(int(texCoords.x), int(texCoords.y)) + texpageBase;
+               FragColor = texelFetch(u_vramTex, texelCoord, 0);
 
+               if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor.a = 1.0;
            }
+
+           // texMode == 3 is invalid. We should see what it does on hardware eventually.
         }
     )";
 

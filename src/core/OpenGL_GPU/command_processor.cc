@@ -59,7 +59,8 @@ void PCSX::OpenGL_GPU::initCommands() {
 
     //m_cmdFuncs[0x2C] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;  // TODO: Blending
     m_cmdFuncs[0x2C] = &OpenGL_GPU::theOminousTexturedQuad;
-    m_cmdFuncs[0x2D] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;
+    m_cmdFuncs[0x2D] = &OpenGL_GPU::theOminousTexturedQuad;
+    //m_cmdFuncs[0x2D] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;
     m_cmdFuncs[0x2F] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>; // TODO: Transparency
     
     m_cmdFuncs[0x30] = &OpenGL_GPU::drawPoly<PolyType::Triangle, Shading::Gouraud, Texturing::None>;
@@ -197,17 +198,17 @@ void PCSX::OpenGL_GPU::theOminousTexturedQuad() {
     glUniform1i(m_texturedLoc, 1);
     for (int i = 0; i < 3; i++) {
         const auto pos = m_cmdFIFO[i * 2 + 1];
-        const auto texcoord = m_cmdFIFO[i * 2 + 2];
+        const auto uv = m_cmdFIFO[i * 2 + 2];
 
-        m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, texcoord);
+        m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, uv);
         m_vertexCount++;
     }
 
     for (int i = 1; i < 4; i++) {
         const auto pos = m_cmdFIFO[i * 2 + 1];
-        const auto texcoord = m_cmdFIFO[i * 2 + 2];
+        const auto uv = m_cmdFIFO[i * 2 + 2];
 
-        m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, texcoord);
+        m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, uv);
         m_vertexCount++;
     }
 
