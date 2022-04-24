@@ -175,7 +175,7 @@ int PCSX::OpenGL_GPU::init() {
            if (u_textured == 0) {
                FragColor = vertexColor;
            } else {
-               vec2 texelCoord = texCoords + texpageBase;
+               vec2 texelCoord = vec2(texCoords.x / 4, texCoords.y) + texpageBase;
                texelCoord /= vec2(1024.0, 512.0); // Normalize texture coordinate to [0, 1]
                FragColor = texture(u_vramTex, texelCoord);
            }
