@@ -159,13 +159,14 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
                 if (linked) {
                     uint32_t sp = regs.GPR.n.sp;
                     m_stepperHasBreakpoint = true;
-                    addBreakpoint(oldPC + 4, BreakpointType::Exec, 4, _("Step Over"),
-                                  [sp, this](const Breakpoint* bp, uint32_t address, unsigned width) {
-                                      if (sp != g_emulator->m_cpu->m_regs.GPR.n.sp) return true;
-                                      g_system->pause();
-                                      m_stepperHasBreakpoint = false;
-                                      return false;
-                                  });
+                    addBreakpoint(
+                        oldPC + 4, BreakpointType::Exec, 4, _("Step Over"),
+                        [sp, this](const Breakpoint* bp, uint32_t address, unsigned width, const char* cause) {
+                            if (sp != g_emulator->m_cpu->m_regs.GPR.n.sp) return true;
+                            g_system->pause();
+                            m_stepperHasBreakpoint = false;
+                            return false;
+                        });
                 } else {
                     triggerBP(nullptr, newPC, 4, _("Step over"));
                 }
@@ -190,7 +191,7 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, uint32_t address, unsigned width, co
     m_lastBP = nullptr;
     if (bp) {
         name = bp->name();
-        keepBP = bp->trigger(address, width);
+        keepBP = bp->trigger(address, width, cause);
         if (keepBP) m_lastBP = bp;
     } else {
         g_system->pause();
@@ -277,7 +278,7 @@ void PCSX::Debug::stepOut() {
     if (fp == 0) return;
 
     addBreakpoint(ra, BreakpointType::Exec, 4, _("Step Out"),
-                  [fp, this](const Breakpoint* bp, uint32_t address, unsigned width) {
+                  [fp, this](const Breakpoint* bp, uint32_t address, unsigned width, const char* cause) {
                       if (g_emulator->m_cpu->m_regs.GPR.n.sp != fp) return true;
                       g_system->pause();
                       m_stepperHasBreakpoint = false;

@@ -62,7 +62,8 @@ class Debug {
     typedef Intrusive::Tree<uint32_t, Breakpoint> BreakpointTreeType;
     typedef Intrusive::List<Breakpoint> BreakpointUserListType;
 
-    typedef std::function<bool(const Breakpoint*, uint32_t address, unsigned width)> BreakpointInvoker;
+    typedef std::function<bool(const Breakpoint*, uint32_t address, unsigned width, const char* cause)>
+        BreakpointInvoker;
 
     class Breakpoint : public BreakpointTreeType::Node, public BreakpointUserListType::Node {
       public:
@@ -79,8 +80,8 @@ class Debug {
         uint32_t base() const { return m_base; }
 
       private:
-        bool trigger(uint32_t address, unsigned width) {
-            if (m_enabled) return m_invoker(this, address, width);
+        bool trigger(uint32_t address, unsigned width, const char* cause) {
+            if (m_enabled) return m_invoker(this, address, width, cause);
             return true;
         }
 
@@ -116,7 +117,7 @@ class Debug {
   public:
     inline Breakpoint* addBreakpoint(
         uint32_t address, BreakpointType type, unsigned width, const std::string& source,
-        BreakpointInvoker invoker = [](const Breakpoint* self, uint32_t address, unsigned width) {
+        BreakpointInvoker invoker = [](const Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
             g_system->pause();
             return true;
         }) {

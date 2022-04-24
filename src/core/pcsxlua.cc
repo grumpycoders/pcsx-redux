@@ -37,11 +37,13 @@ void* getRomPtr() { return PCSX::g_emulator->m_mem->m_psxR; }
 void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_psxH; }
 void* getRegisters() { return &PCSX::g_emulator->m_cpu->m_regs; }
 LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type, unsigned width, const char* cause,
-                             bool (*invoker)(uint32_t address, unsigned width)) {
+                             bool (*invoker)(uint32_t address, unsigned width, const char* cause)) {
     LuaBreakpoint* ret = new LuaBreakpoint();
-    auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(address, type, width, std::string("Lua Breakpoint ") + cause,
-                                                        [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address,
-                                                                  unsigned width) { return invoker(address, width); });
+    auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
+        address, type, width, std::string("Lua Breakpoint ") + cause,
+        [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
+            return invoker(address, width, cause);
+        });
 
     ret->wrapper.push_back(bp);
     return ret;
