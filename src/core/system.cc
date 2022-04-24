@@ -31,7 +31,6 @@ PCSX::System* PCSX::g_system = NULL;
 static const ImWchar c_frenchRanges[] = {0x0020, 0x00ff, 0x0152, 0x0153, 0};
 static const ImWchar c_greekRanges[] = {0x0020, 0x00ff, 0x0370, 0x03ff, 0};
 static const ImWchar c_hindiSupplementalRanges[] = {0x0900, 0x097f, 0};
-static const ImWchar* const c_japaneseRanges = reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE);
 static const ImWchar c_malteseRanges[] = {0x0020, 0x00ff, 0x010a, 0x010b, 0x0120, 0x0121,
                                           0x0126, 0x0127, 0x017b, 0x017c, 0};
 
