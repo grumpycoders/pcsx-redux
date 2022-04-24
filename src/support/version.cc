@@ -48,12 +48,12 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
     m_hasUpdate = false;
     m_download = new UvFile(
         versionInfo.updateCatalog,
-        [this, callback, versionInfo](UvFile* download) {
-            if (download->failed()) {
+        [this, callback, versionInfo]() {
+            if (m_download->failed()) {
                 callback(false);
             }
             try {
-                FileAsContainer container(download);
+                FileAsContainer container(m_download);
                 nlohmann::json catalog;
                 catalog = nlohmann::json::parse(container.begin(), container.end());
                 if (!catalog.is_array()) {
@@ -85,13 +85,13 @@ bool PCSX::Update::downloadUpdate(const VersionInfo& versionInfo, std::function<
     m_hasUpdate = false;
     m_download = new UvFile(
         versionInfo.updateInfoBase + std::to_string(m_updateId),
-        [this, loop, callback](UvFile* download) {
-            if (download->failed()) {
+        [this, loop, callback]() {
+            if (m_download->failed()) {
                 callback(false);
             }
             std::string url;
             try {
-                FileAsContainer container(download);
+                FileAsContainer container(m_download);
                 nlohmann::json update;
                 update = nlohmann::json::parse(container.begin(), container.end());
                 url = update["download_url"];
@@ -101,8 +101,8 @@ bool PCSX::Update::downloadUpdate(const VersionInfo& versionInfo, std::function<
             }
             m_download = new UvFile(
                 url,
-                [this, callback](UvFile* download) {
-                    if (download->failed()) {
+                [this, callback]() {
+                    if (m_download->failed()) {
                         callback(false);
                     }
                     m_hasUpdate = true;

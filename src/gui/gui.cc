@@ -1336,19 +1336,27 @@ PCSX-Redux will quit once the update is downloaded.)")));
                 ImGui::TableSetupColumn(_("Caching"));
                 ImGui::TableSetupColumn(_("Filename"));
                 ImGui::TableHeadersRow();
-                UvFile::iterateOverAllFiles([](UvFile* f) {
+                UvThreadOp::iterateOverAllOps([](UvThreadOp* f) {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
                     if (f->caching()) {
                         ImGui::ProgressBar(f->cacheProgress());
                     } else {
                         std::string label = fmt::format("Cache##{}", reinterpret_cast<void*>(f));
-                        if (ImGui::Button(label.c_str())) {
+                        auto canCache = f->canCache();
+                        if (!canCache) {
+                            ImGui::BeginDisabled();
+                        }
+                        if (ImGui::Button(label.c_str()) && canCache) {
                             f->startCaching();
+                        }
+                        if (!canCache) {
+                            ImGui::EndDisabled();
                         }
                     }
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::TextUnformatted(f->filename().string().c_str());
+                    File* actual = dynamic_cast<File*>(f);
+                    ImGui::TextUnformatted(actual->filename().string().c_str());
                 });
                 ImGui::EndTable();
             }

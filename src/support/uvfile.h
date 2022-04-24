@@ -34,20 +34,85 @@
 
 namespace PCSX {
 
-class UvFile;
-typedef Intrusive::List<UvFile> UvFilesListType;
+class UvThreadOp;
+typedef Intrusive::List<UvThreadOp> UvThreadOpListType;
 
-class UvFile : public File, public UvFilesListType::Node {
+class UvThreadOp : public UvThreadOpListType::Node {
   public:
     enum DownloadUrl { DOWNLOAD_URL };
-    struct UvFileThread {
-        UvFileThread() { PCSX::UvFile::startThread(); }
-        ~UvFileThread() { PCSX::UvFile::stopThread(); }
+    struct UvThread {
+        UvThread() { PCSX::UvThreadOp::startThread(); }
+        ~UvThread() { PCSX::UvThreadOp::stopThread(); }
     };
 
+  private:
     static void startThread();
     static void stopThread();
 
+  public:
+    virtual bool canCache() const = 0;
+    void startCaching() { startCaching(nullptr, nullptr); }
+    virtual void startCaching(std::function<void()>&& completed, uv_loop_t* loop) = 0;
+    bool caching() { return m_cache; }
+    float cacheProgress() { return m_cacheProgress.load(std::memory_order_relaxed); }
+    void waitCache() { m_cacheBarrier.get_future().get(); }
+
+    static void iterateOverAllOps(std::function<void(UvThreadOp*)> walker) {
+        for (auto& f : s_allOps) walker(&f);
+    }
+
+    static float getReadRate() {
+        return 1000.0f * float(s_dataReadLastTick.load(std::memory_order_relaxed)) / float(c_tick);
+    }
+    static float getWriteRate() {
+        return 1000.0f * float(s_dataWrittenLastTick.load(std::memory_order_relaxed)) / float(c_tick);
+    }
+    static float getDownloadRate() {
+        return 1000.0f * float(s_dataDownloadLastTick.load(std::memory_order_relaxed)) / float(c_tick);
+    }
+
+  private:
+    virtual void downloadDone(CURLMsg* message) = 0;
+
+  protected:
+    static uv_loop_t s_uvLoop;
+    uint8_t* m_cache = nullptr;
+    std::atomic<float> m_cacheProgress = 0.0;
+    std::promise<void> m_cacheBarrier;
+    typedef std::function<void(uv_loop_t*)> UvRequest;
+    static void request(UvRequest&& req) {
+        s_queue.enqueue(std::move(req));
+        uv_async_send(&s_kicker);
+    }
+    static CURLM* s_curlMulti;
+    static uv_timer_t s_curlTimeout;
+
+    static int curlSocketFunction(CURL* easy, curl_socket_t s, int action, void* userp, void* socketp);
+    static int curlTimerFunction(CURLM* multi, long timeout_ms, void* userp);
+    static void processCurlMultiInfo();
+
+    // This isn't really safe, but it's not meant to.
+    static bool s_threadRunning;
+    static std::thread s_uvThread;
+    static uv_async_t s_kicker;
+    static uv_timer_t s_timer;
+    static size_t s_dataReadTotal;
+    static size_t s_dataWrittenTotal;
+    static size_t s_dataDownloadTotal;
+    static size_t s_dataReadSinceLastTick;
+    static size_t s_dataWrittenSinceLastTick;
+    static size_t s_dataDownloadSinceLastTick;
+    static std::atomic<size_t> s_dataReadLastTick;
+    static std::atomic<size_t> s_dataWrittenLastTick;
+    static std::atomic<size_t> s_dataDownloadLastTick;
+    static constexpr uint64_t c_tick = 500;
+
+    static moodycamel::ConcurrentQueue<UvRequest> s_queue;
+    static UvThreadOpListType s_allOps;
+};
+
+class UvFile : public File, public UvThreadOp {
+  public:
     virtual void close() final override;
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
@@ -64,8 +129,9 @@ class UvFile : public File, public UvFilesListType::Node {
     virtual bool eof() final override;
     virtual std::filesystem::path filename() final override { return m_filename; }
     virtual File* dup() final override {
-        return m_download ? new UvFile(m_filename.string(), DOWNLOAD_URL)
-                          : writable() ? new UvFile(m_filename, FileOps::READWRITE) : new UvFile(m_filename);
+        return m_download   ? new UvFile(m_filename.string(), DOWNLOAD_URL)
+               : writable() ? new UvFile(m_filename, FileOps::READWRITE)
+                            : new UvFile(m_filename);
     }
 
     // Open the file in read-only mode.
@@ -79,7 +145,7 @@ class UvFile : public File, public UvFilesListType::Node {
         : UvFile(filename.u8string(), FileOps::READWRITE) {}
     // Download a URL
     UvFile(const std::string_view& url, DownloadUrl) : UvFile(url, nullptr, nullptr, DOWNLOAD_URL) {}
-    UvFile(const std::string_view& url, std::function<void(UvFile*)>&& completed, uv_loop_t* other, DownloadUrl);
+    UvFile(const std::string_view& url, std::function<void()>&& completed, uv_loop_t* other, DownloadUrl);
 #if defined(__cpp_lib_char8_t)
     UvFile(const std::u8string& filename) : UvFile(reinterpret_cast<const char*>(filename.c_str())) {}
     UvFile(const std::u8string& filename, FileOps::Truncate)
@@ -99,90 +165,36 @@ class UvFile : public File, public UvFilesListType::Node {
     UvFile(const char* filename, FileOps::ReadWrite);
 
     void startCaching() { startCaching(nullptr, nullptr); }
-    void startCaching(std::function<void(UvFile*)>&& completed, uv_loop_t* loop);
-    bool caching() { return m_cache; }
-    float cacheProgress() { return m_cacheProgress.load(std::memory_order_relaxed); }
-    void waitCache() { m_cacheBarrier.get_future().get(); }
-
-    static void iterateOverAllFiles(std::function<void(UvFile*)> walker) {
-        for (auto& f : s_allFiles) walker(&f);
-    }
-
-    static float getReadRate() {
-        return 1000.0f * float(s_dataReadLastTick.load(std::memory_order_relaxed)) / float(c_tick);
-    }
-    static float getWriteRate() {
-        return 1000.0f * float(s_dataWrittenLastTick.load(std::memory_order_relaxed)) / float(c_tick);
-    }
-    static float getDownloadRate() {
-        return 1000.0f * float(s_dataDownloadLastTick.load(std::memory_order_relaxed)) / float(c_tick);
-    }
+    virtual void startCaching(std::function<void()>&& completed, uv_loop_t* loop) override;
 
   private:
+    virtual bool canCache() const override { return true; }
+    void openwrapper(const char* filename, int flags);
+    void readCacheChunk(uv_loop_t* loop);
+    void readCacheChunkResult();
+    virtual void downloadDone(CURLMsg* message) override;
+    size_t curlWriteFunction(char* ptr, size_t size);
+    int curlXferInfoFunction(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
+
+    static size_t curlWriteFunctionTrampoline(char* ptr, size_t size, size_t nmemb, void* userdata);
+    static int curlXferInfoFunctionTrampoline(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal,
+                                              curl_off_t ulnow);
+    void cacheCallbackSetup(std::function<void()>&& callbackDone, uv_loop_t* otherLoop);
+
     bool m_failed = true;
     bool m_download = false;
     std::atomic<bool> m_cancelDownload = false;
-    std::function<void(UvFile*)> m_cachingDoneCB = nullptr;
+    std::function<void()> m_cachingDoneCB = nullptr;
     uv_async_t* m_cbAsync = nullptr;
     const std::filesystem::path m_filename;
     size_t m_ptrR = 0;
     size_t m_ptrW = 0;
     size_t m_size = 0;
-    uint8_t* m_cache = nullptr;
     uv_file m_handle = -1;  // ugh
     CURL* m_curlHandle = nullptr;
     uv_buf_t m_cacheBuf;
     uv_fs_t m_cacheReq;
-
-    static uv_loop_t s_uvLoop;
-    static uv_timer_t s_curlTimeout;
-    static CURLM* s_curlMulti;
-
-    void readCacheChunk(uv_loop_t* loop);
-    void readCacheChunkResult();
-    static void processCurlMultiInfo();
-    void downloadDone(CURLMsg* message);
-    static int curlSocketFunction(CURL* easy, curl_socket_t s, int action, void* userp, void* socketp);
-    static int curlTimerFunction(CURLM* multi, long timeout_ms, void* userp);
-    static size_t curlWriteFunctionTrampoline(char* ptr, size_t size, size_t nmemb, void* userdata);
-    size_t curlWriteFunction(char* ptr, size_t size);
-    static int curlXferInfoFunctionTrampoline(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal,
-                                              curl_off_t ulnow);
-    int curlXferInfoFunction(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
-
-    void openwrapper(const char* filename, int flags);
-
-    void cacheCallbackSetup(std::function<void(UvFile*)>&& callbackDone, uv_loop_t* otherLoop);
-
-    std::atomic<float> m_cacheProgress = 0.0;
-    std::promise<void> m_cacheBarrier;
     size_t m_cachePtr = 0;
-
-    // This isn't really safe, but it's not meant to.
-    static bool s_threadRunning;
-    static std::thread s_uvThread;
-    static uv_async_t s_kicker;
-    static uv_timer_t s_timer;
-    static size_t s_dataReadTotal;
-    static size_t s_dataWrittenTotal;
-    static size_t s_dataDownloadTotal;
-    static size_t s_dataReadSinceLastTick;
-    static size_t s_dataWrittenSinceLastTick;
-    static size_t s_dataDownloadSinceLastTick;
-    static std::atomic<size_t> s_dataReadLastTick;
-    static std::atomic<size_t> s_dataWrittenLastTick;
-    static std::atomic<size_t> s_dataDownloadLastTick;
-    static constexpr uint64_t c_tick = 500;
-
-    typedef std::function<void(uv_loop_t*)> UvRequest;
-    static moodycamel::ConcurrentQueue<UvRequest> s_queue;
-
-    static void request(UvRequest&& req) {
-        s_queue.enqueue(std::move(req));
-        uv_async_send(&s_kicker);
-    }
-
-    static UvFilesListType s_allFiles;
 };
 
 }  // namespace PCSX

@@ -38,26 +38,26 @@ struct CurlContext {
     curl_socket_t sockfd;
 };
 
-std::thread PCSX::UvFile::s_uvThread;
-bool PCSX::UvFile::s_threadRunning = false;
-uv_async_t PCSX::UvFile::s_kicker;
-uv_timer_t PCSX::UvFile::s_timer;
-size_t PCSX::UvFile::s_dataReadTotal;
-size_t PCSX::UvFile::s_dataWrittenTotal;
-size_t PCSX::UvFile::s_dataDownloadTotal;
-size_t PCSX::UvFile::s_dataReadSinceLastTick;
-size_t PCSX::UvFile::s_dataWrittenSinceLastTick;
-size_t PCSX::UvFile::s_dataDownloadSinceLastTick;
-std::atomic<size_t> PCSX::UvFile::s_dataReadLastTick;
-std::atomic<size_t> PCSX::UvFile::s_dataWrittenLastTick;
-std::atomic<size_t> PCSX::UvFile::s_dataDownloadLastTick;
-moodycamel::ConcurrentQueue<PCSX::UvFile::UvRequest> PCSX::UvFile::s_queue;
-PCSX::UvFilesListType PCSX::UvFile::s_allFiles;
-uv_loop_t PCSX::UvFile::s_uvLoop;
-uv_timer_t PCSX::UvFile::s_curlTimeout;
-CURLM *PCSX::UvFile::s_curlMulti = nullptr;
+std::thread PCSX::UvThreadOp::s_uvThread;
+bool PCSX::UvThreadOp::s_threadRunning = false;
+uv_async_t PCSX::UvThreadOp::s_kicker;
+uv_timer_t PCSX::UvThreadOp::s_timer;
+size_t PCSX::UvThreadOp::s_dataReadTotal;
+size_t PCSX::UvThreadOp::s_dataWrittenTotal;
+size_t PCSX::UvThreadOp::s_dataDownloadTotal;
+size_t PCSX::UvThreadOp::s_dataReadSinceLastTick;
+size_t PCSX::UvThreadOp::s_dataWrittenSinceLastTick;
+size_t PCSX::UvThreadOp::s_dataDownloadSinceLastTick;
+std::atomic<size_t> PCSX::UvThreadOp::s_dataReadLastTick;
+std::atomic<size_t> PCSX::UvThreadOp::s_dataWrittenLastTick;
+std::atomic<size_t> PCSX::UvThreadOp::s_dataDownloadLastTick;
+moodycamel::ConcurrentQueue<PCSX::UvThreadOp::UvRequest> PCSX::UvThreadOp::s_queue;
+PCSX::UvThreadOpListType PCSX::UvThreadOp::s_allOps;
+uv_loop_t PCSX::UvThreadOp::s_uvLoop;
+uv_timer_t PCSX::UvThreadOp::s_curlTimeout;
+CURLM *PCSX::UvThreadOp::s_curlMulti = nullptr;
 
-void PCSX::UvFile::startThread() {
+void PCSX::UvThreadOp::startThread() {
     if (s_threadRunning) throw std::runtime_error("UV thread already running");
     std::promise<void> barrier;
     auto f = barrier.get_future();
@@ -105,7 +105,7 @@ void PCSX::UvFile::startThread() {
     f.wait();
 }
 
-int PCSX::UvFile::curlSocketFunction(CURL *easy, curl_socket_t s, int action, void *userp, void *socketp) {
+int PCSX::UvThreadOp::curlSocketFunction(CURL *easy, curl_socket_t s, int action, void *userp, void *socketp) {
     CurlContext *curlContext = reinterpret_cast<CurlContext *>(socketp);
     int events = 0;
 
@@ -149,7 +149,7 @@ int PCSX::UvFile::curlSocketFunction(CURL *easy, curl_socket_t s, int action, vo
     return 0;
 }
 
-int PCSX::UvFile::curlTimerFunction(CURLM *multi, long timeout_ms, void *userp) {
+int PCSX::UvThreadOp::curlTimerFunction(CURLM *multi, long timeout_ms, void *userp) {
     if (timeout_ms < 0) {
         uv_timer_stop(&s_curlTimeout);
     } else {
@@ -168,7 +168,7 @@ int PCSX::UvFile::curlTimerFunction(CURLM *multi, long timeout_ms, void *userp) 
     return 0;
 }
 
-void PCSX::UvFile::stopThread() {
+void PCSX::UvThreadOp::stopThread() {
     if (!s_threadRunning) throw std::runtime_error("UV thread isn't running");
     request([](auto loop) {
         uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {});
@@ -199,7 +199,7 @@ void PCSX::UvFile::close() {
 }
 
 void PCSX::UvFile::openwrapper(const char *filename, int flags) {
-    s_allFiles.push_back(this);
+    s_allOps.push_back(this);
     struct Info {
         std::promise<uv_file> handle;
         std::promise<size_t> size;
@@ -255,10 +255,10 @@ PCSX::UvFile::UvFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABL
     openwrapper(filename, UV_FS_O_RDWR);
 }
 
-PCSX::UvFile::UvFile(const std::string_view &url, std::function<void(UvFile *)> &&callbackDone, uv_loop_t *otherLoop,
+PCSX::UvFile::UvFile(const std::string_view &url, std::function<void()> &&callbackDone, uv_loop_t *otherLoop,
                      DownloadUrl)
     : File(RO_SEEKABLE), m_filename(url), m_download(true), m_failed(false) {
-    s_allFiles.push_back(this);
+    s_allOps.push_back(this);
     std::string urlCopy(url);
     cacheCallbackSetup(std::move(callbackDone), otherLoop);
     request([url = std::move(urlCopy), this](auto loop) {
@@ -267,7 +267,7 @@ PCSX::UvFile::UvFile(const std::string_view &url, std::function<void(UvFile *)> 
         curl_easy_setopt(m_curlHandle, CURLOPT_NOPROGRESS, 0L);
         curl_easy_setopt(m_curlHandle, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(m_curlHandle, CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(m_curlHandle, CURLOPT_PRIVATE, this);
+        curl_easy_setopt(m_curlHandle, CURLOPT_PRIVATE, dynamic_cast<UvThreadOp*>(this));
         curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, this);
         curl_easy_setopt(m_curlHandle, CURLOPT_XFERINFODATA, this);
         curl_easy_setopt(m_curlHandle, CURLOPT_WRITEFUNCTION, curlWriteFunctionTrampoline);
@@ -321,7 +321,7 @@ int PCSX::UvFile::curlXferInfoFunction(curl_off_t dltotal, curl_off_t dlnow, cur
     return 0;
 }
 
-void PCSX::UvFile::processCurlMultiInfo() {
+void PCSX::UvThreadOp::processCurlMultiInfo() {
     CURLMsg *message;
     int pending;
 
@@ -329,7 +329,7 @@ void PCSX::UvFile::processCurlMultiInfo() {
         switch (message->msg) {
             case CURLMSG_DONE: {
                 CURL *easy_handle = message->easy_handle;
-                UvFile *self;
+                UvThreadOp *self;
 
                 curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &self);
                 self->downloadDone(message);
@@ -662,7 +662,7 @@ void PCSX::UvFile::readCacheChunkResult() {
     readCacheChunk(loop);
 }
 
-void PCSX::UvFile::startCaching(std::function<void(UvFile *)> &&completed, uv_loop_t *loop) {
+void PCSX::UvFile::startCaching(std::function<void()> &&completed, uv_loop_t *loop) {
     if (m_cache || m_download) throw std::runtime_error("File is already cached");
     cacheCallbackSetup(std::move(completed), loop);
     if (failed()) return;
@@ -670,7 +670,7 @@ void PCSX::UvFile::startCaching(std::function<void(UvFile *)> &&completed, uv_lo
     request([this](auto loop) { readCacheChunk(loop); });
 }
 
-void PCSX::UvFile::cacheCallbackSetup(std::function<void(UvFile *)> &&callbackDone, uv_loop_t *otherLoop) {
+void PCSX::UvFile::cacheCallbackSetup(std::function<void()> &&callbackDone, uv_loop_t *otherLoop) {
     if (otherLoop && callbackDone) {
         m_cachingDoneCB = std::move(callbackDone);
         m_cbAsync = new uv_async_t();
@@ -680,7 +680,7 @@ void PCSX::UvFile::cacheCallbackSetup(std::function<void(UvFile *)> &&callbackDo
                 uv_async_t *handle = reinterpret_cast<uv_async_t *>(handle_);
                 delete handle;
             });
-            self->m_cachingDoneCB(self);
+            self->m_cachingDoneCB();
         });
         m_cbAsync->data = this;
         if (failed()) uv_async_send(m_cbAsync);
