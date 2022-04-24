@@ -171,13 +171,32 @@ int PCSX::OpenGL_GPU::init() {
         uniform sampler2D u_vramTex;
         uniform int u_textured = 0;
 
+        int floatToU5(float f) {
+            return int(floor(f * 31.0 + 0.5));
+        }
+
+        int sample16(ivec2 coords) {
+            vec4 colour = texelFetch(u_vramTex, coords, 0);
+            int r = floatToU5(colour.r);
+            int g = floatToU5(colour.g);
+            int b = floatToU5(colour.b);
+            int msb = int(ceil(colour.a)) << 15;
+            return r | (g << 5) | (b << 10) | msb;
+        }
+
         void main() {
            if (u_textured == 0) {
                FragColor = vertexColor;
            } else {
-               vec2 texelCoord = vec2(texCoords.x / 4, texCoords.y) + texpageBase;
-               texelCoord /= vec2(1024.0, 512.0); // Normalize texture coordinate to [0, 1]
-               FragColor = texture(u_vramTex, texelCoord);
+               ivec2 texelCoord = ivec2(int(texCoords.x / 4), int(texCoords.y)) + texpageBase;
+               
+               int sample = sample16(texelCoord);
+               int shift = (int(texCoords.x) & 3) << 2;
+               int clutIndex = (sample >> shift) & 0xf;
+
+               ivec2 sampleCoords = ivec2(clutBase.x + clutIndex, clutBase.y);
+               FragColor = texelFetch(u_vramTex, sampleCoords, 0);
+               FragColor.a = 1.0;
            }
         }
     )";
