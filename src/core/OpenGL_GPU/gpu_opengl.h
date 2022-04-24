@@ -59,6 +59,9 @@ class OpenGL_GPU final : public GPU {
     struct Vertex {
         OpenGL::ivec2 positions;
         uint32_t colour;
+        int32_t clut;
+        int32_t texpage;
+        int32_t uv;
 
         // TODO: See how coordinates should be sign extended for each colour
         Vertex(uint32_t x, uint32_t y, uint32_t col) {
@@ -74,6 +77,14 @@ class OpenGL_GPU final : public GPU {
             positions.x() = x << 21 >> 21;
             positions.y() = y << 21 >> 21;
             colour = col;
+        }
+
+        Vertex(uint32_t position, uint32_t col, int32_t clut, int32_t texpage, int32_t uv)
+            : colour(col), clut(clut), texpage(texpage), uv(uv) {
+            const int x = position & 0xffff;
+            const int y = (position >> 16) & 0xffff;
+            positions.x() = x << 21 >> 21;
+            positions.y() = y << 21 >> 21;
         }
     };
     enum class TransferMode { CommandTransfer, VRAMTransfer };
@@ -115,6 +126,7 @@ class OpenGL_GPU final : public GPU {
     int m_polygonModeIndex = 0;
 
     GLint m_drawingOffsetLoc;
+    GLint m_texturedLoc;
 
     int m_FIFOIndex;
     int m_cmd;
@@ -157,6 +169,16 @@ class OpenGL_GPU final : public GPU {
         } else {
             m_vertices[m_vertexCount].colour = m_cmdFIFO[index * vertexSize];
         }
+
+        /*
+        if constexpr (mode == Texturing::Textured) {
+            if constexpr (shading == Shading::Gouraud) {
+                m_vertices[m_vertexCount].texpage = 
+            } else {
+            
+            }
+        }
+        */
 
         const uint32_t pos = m_cmdFIFO[index * vertexSize + 1];
         // Sign extend vertices
@@ -257,5 +279,7 @@ class OpenGL_GPU final : public GPU {
     void cmdSetDrawOffset();
     void cmdSetDrawMask();
     void cmdNop();
+
+    void theOminousTexturedQuad();
 };
 }  // namespace PCSX

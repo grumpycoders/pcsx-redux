@@ -57,7 +57,8 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x22] = &OpenGL_GPU::drawPoly<PolyType::Triangle, Shading::Flat, Texturing::None>;  // TODO: Transparency
     m_cmdFuncs[0x28] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::None>;
 
-    m_cmdFuncs[0x2C] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;  // TODO: Blending
+    //m_cmdFuncs[0x2C] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;  // TODO: Blending
+    m_cmdFuncs[0x2C] = &OpenGL_GPU::theOminousTexturedQuad;
     m_cmdFuncs[0x2D] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;
     m_cmdFuncs[0x2F] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>; // TODO: Transparency
     
@@ -184,6 +185,34 @@ void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
     m_vramReadBufferSize = size / 2;
     m_vramReadBufferIndex = 0;
     glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramReadBuffer[0]);
+}
+
+// Command 2C temp stub
+void PCSX::OpenGL_GPU::theOminousTexturedQuad() {
+    renderBatch();
+    const uint32_t colour = m_cmdFIFO[0];
+    const uint32_t clut = m_cmdFIFO[2] >> 16;
+    const uint32_t texpage = m_cmdFIFO[4] >> 16;
+
+    glUniform1i(m_texturedLoc, 1);
+    for (int i = 0; i < 3; i++) {
+        const auto pos = m_cmdFIFO[i * 2 + 1];
+        const auto texcoord = m_cmdFIFO[i * 2 + 2];
+
+        m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, texcoord);
+        m_vertexCount++;
+    }
+
+    for (int i = 1; i < 4; i++) {
+        const auto pos = m_cmdFIFO[i * 2 + 1];
+        const auto texcoord = m_cmdFIFO[i * 2 + 2];
+
+        m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, texcoord);
+        m_vertexCount++;
+    }
+
+    renderBatch();
+    glUniform1i(m_texturedLoc, 0);
 }
 
 void PCSX::OpenGL_GPU::cmdUnimplemented() { PCSX::g_system->printf("Unknown GP0 command: %02X\n", m_cmdFIFO[0] >> 24); }
