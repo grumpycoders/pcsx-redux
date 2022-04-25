@@ -103,7 +103,6 @@ class SystemImpl final : public PCSX::System {
     }
 
     virtual void purgeAllEvents() final override {
-        uv_stop(getLoop());
         uv_run(getLoop(), UV_RUN_DEFAULT);
     }
 

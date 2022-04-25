@@ -76,7 +76,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
 
     checkBP(newPC, BreakpointType::Exec, 4);
     if (m_breakmp_e && !isMapMarked(newPC, MAP_EXEC)) {
-        triggerBP(nullptr, _("Execution map"));
+        triggerBP(nullptr, newPC, 4, _("Execution map"));
     }
     if (m_mapping_e) {
         const bool isJAL = basic == 3;
@@ -106,42 +106,42 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
         if (isLB || isLBU) {
             checkBP(offset, BreakpointType::Read, 1);
             if (m_breakmp_r8 && !isMapMarked(offset, MAP_R8)) {
-                triggerBP(nullptr, _("Read 8 map"));
+                triggerBP(nullptr, offset, 1, _("Read 8 map"));
             }
             if (m_mapping_r8) markMap(offset, MAP_R8);
         }
         if (isLH || isLHU) {
             checkBP(offset, BreakpointType::Read, 2);
             if (m_breakmp_r16 && !isMapMarked(offset, MAP_R16)) {
-                triggerBP(nullptr, _("Read 16 map"));
+                triggerBP(nullptr, offset, 2, _("Read 16 map"));
             }
             if (m_mapping_r16) markMap(offset, MAP_R16);
         }
         if (isLW || isLWR || isLWL) {
             checkBP(offset, BreakpointType::Read, 4);
             if (m_breakmp_r32 && !isMapMarked(offset, MAP_R32)) {
-                triggerBP(nullptr, _("Read 32 map"));
+                triggerBP(nullptr, offset, 4, _("Read 32 map"));
             }
             if (m_mapping_r32) markMap(offset, MAP_R32);
         }
         if (isSB) {
             checkBP(offset, BreakpointType::Write, 1);
             if (m_breakmp_w8 && !isMapMarked(offset, MAP_W8)) {
-                triggerBP(nullptr, _("Write 8 map"));
+                triggerBP(nullptr, offset, 1, _("Write 8 map"));
             }
             if (m_mapping_w8) markMap(offset, MAP_W8);
         }
         if (isSH) {
             checkBP(offset, BreakpointType::Write, 2);
             if (m_breakmp_w16 && !isMapMarked(offset, MAP_W16)) {
-                triggerBP(nullptr, _("Write 16 map"));
+                triggerBP(nullptr, offset, 2, _("Write 16 map"));
             }
             if (m_mapping_w16) markMap(offset, MAP_W16);
         }
         if (isSW || isSWR || isSWL) {
             checkBP(offset, BreakpointType::Write, 4);
             if (m_breakmp_w32 && !isMapMarked(offset, MAP_W32)) {
-                triggerBP(nullptr, _("Write 32 map"));
+                triggerBP(nullptr, offset, 4, _("Write 32 map"));
             }
             if (m_mapping_w32) markMap(offset, MAP_W32);
         }
@@ -152,26 +152,28 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
 
     switch (m_step) {
         case STEP_IN: {
-            triggerBP(nullptr, _("Step in"));
+            triggerBP(nullptr, newPC, 4, _("Step in"));
         } break;
         case STEP_OVER: {
             if (!m_stepperHasBreakpoint) {
                 if (linked) {
                     uint32_t sp = regs.GPR.n.sp;
                     m_stepperHasBreakpoint = true;
-                    addBreakpoint(oldPC + 4, BreakpointType::Exec, 4, _("Step Over"), [sp, this](const Breakpoint* bp) {
-                        if (sp != g_emulator->m_cpu->m_regs.GPR.n.sp) return true;
-                        g_system->pause();
-                        m_stepperHasBreakpoint = false;
-                        return false;
-                    });
+                    addBreakpoint(
+                        oldPC + 4, BreakpointType::Exec, 4, _("Step Over"),
+                        [sp, this](const Breakpoint* bp, uint32_t address, unsigned width, const char* cause) {
+                            if (sp != g_emulator->m_cpu->m_regs.GPR.n.sp) return true;
+                            g_system->pause();
+                            m_stepperHasBreakpoint = false;
+                            return false;
+                        });
                 } else {
-                    triggerBP(nullptr, _("Step over"));
+                    triggerBP(nullptr, newPC, 4, _("Step over"));
                 }
             }
         } break;
         case STEP_OUT: {
-            if (!m_stepperHasBreakpoint) triggerBP(nullptr, _("Step out (no callstack)"));
+            if (!m_stepperHasBreakpoint) triggerBP(nullptr, newPC, 4, _("Step out (no callstack)"));
         }
     }
 }
@@ -182,14 +184,14 @@ void PCSX::Debug::startStepping() {
     g_system->resume();
 }
 
-bool PCSX::Debug::triggerBP(Breakpoint* bp, const char* cause) {
+bool PCSX::Debug::triggerBP(Breakpoint* bp, uint32_t address, unsigned width, const char* cause) {
     uint32_t pc = g_emulator->m_cpu->m_regs.pc;
     bool keepBP = true;
     std::string name;
     m_lastBP = nullptr;
     if (bp) {
         name = bp->name();
-        keepBP = bp->trigger();
+        keepBP = bp->trigger(address, width, cause);
         if (keepBP) m_lastBP = bp;
     } else {
         g_system->pause();
@@ -224,7 +226,7 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
 
     for (auto it = m_breakpoints.find(address, address + width - 1); it != end; it++) {
         if (it->type() != type) continue;
-        if (!triggerBP(&*it, cause)) m_todelete.push_back(&*it);
+        if (!triggerBP(&*it, address, width, cause)) m_todelete.push_back(&*it);
     }
     m_todelete.destroyAll();
 }
@@ -275,12 +277,13 @@ void PCSX::Debug::stepOut() {
     if (ra == 0) return;
     if (fp == 0) return;
 
-    addBreakpoint(ra, BreakpointType::Exec, 4, _("Step Out"), [fp, this](const Breakpoint* bp) {
-        if (g_emulator->m_cpu->m_regs.GPR.n.sp != fp) return true;
-        g_system->pause();
-        m_stepperHasBreakpoint = false;
-        return false;
-    });
+    addBreakpoint(ra, BreakpointType::Exec, 4, _("Step Out"),
+                  [fp, this](const Breakpoint* bp, uint32_t address, unsigned width, const char* cause) {
+                      if (g_emulator->m_cpu->m_regs.GPR.n.sp != fp) return true;
+                      g_system->pause();
+                      m_stepperHasBreakpoint = false;
+                      return false;
+                  });
     m_stepperHasBreakpoint = true;
 }
 
