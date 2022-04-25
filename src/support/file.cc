@@ -285,7 +285,12 @@ ssize_t PCSX::SubFile::read(void *dest, size_t size) {
 
 ssize_t PCSX::SubFile::readAt(void *dest, size_t size, size_t ptr) {
     ssize_t excess = size + ptr - m_size;
-    if (excess > 0) size -= excess;
+    if (excess > 0) {
+        if (excess > size) {
+            return -1;
+        }
+        size -= excess;
+    }
     return m_file->readAt(dest, size, ptr + m_start);
 }
 
