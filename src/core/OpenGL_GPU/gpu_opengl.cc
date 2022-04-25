@@ -114,6 +114,10 @@ int PCSX::OpenGL_GPU::init() {
     }
 
     OpenGL::bindScreenFramebuffer();
+    // Without manually setting alignment, texture uploads in eg the BIOS will break if the width/x coord are odd
+    // TODO: Find efficient method to handle this
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+    glPixelStorei(GL_PACK_ALIGNMENT, 2);
 
     static const char* vertSource = R"(
         #version 330 core
@@ -290,7 +294,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
     while (size) {
         const uint32_t word = *source++;  // Fetch word, inc pointer. TODO: Better bounds checking.
         size--;
-    start:
+
         if (!m_haveCommand) {
             startGP0Command(word);
         } else {
@@ -304,12 +308,15 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     m_vramTexture.bind();
                     glTexSubImage2D(GL_TEXTURE_2D, 0, m_vramTransferRect.x, m_vramTransferRect.y,
                                     m_vramTransferRect.width, m_vramTransferRect.height, GL_RGBA,
-                                    GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramWriteBuffer[0]);
+                                    GL_UNSIGNED_SHORT_1_5_5_5_REV, m_vramWriteBuffer.data());
                     m_sampleTexture.bind();
                     m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
                     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, vramWidth, vramHeight);
                     m_vramWriteBuffer.clear();
-                    goto start;
+                    
+                    // Since the texture transfer has ended, this word actually marks the start of a new GP0 command
+                    startGP0Command(word);
+                    continue;
                 }
                 m_remainingWords--;
                 m_vramWriteBuffer.push_back(word);

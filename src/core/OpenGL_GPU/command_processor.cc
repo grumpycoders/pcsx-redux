@@ -149,6 +149,7 @@ void PCSX::OpenGL_GPU::cmdCopyRectToVRAM() {
     m_haveCommand = true;
     const uint32_t coords = m_cmdFIFO[1];
     const uint32_t res = m_cmdFIFO[2];
+
     uint32_t width = res & 0xffff;
     uint32_t height = res >> 16;
 
