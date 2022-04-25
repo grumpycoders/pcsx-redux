@@ -54,7 +54,7 @@ uint8_t* getMemPtr();
 uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
-Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)());
+Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause));
 void enableBreakpoint(Breakpoint*);
 void disableBreakpoint(Breakpoint*);
 bool breakpointEnabled(Breakpoint*);
@@ -78,7 +78,7 @@ end
 
 local meta = { __gc = garbageCollect }
 
-local function defaultInvoker()
+local function defaultInvoker(address, width, cause)
     C.pauseEmulator()
     return true
 end
@@ -100,8 +100,9 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
     local invokercb = defaultInvoker
     if invoker ~= nil then
         if type(invoker) ~= 'function' then error 'PCSX.addBreakpoint needs an invoker that is a function' end
-        invokercb = function()
-            local ret = invoker()
+        invokercb = function(address, width, cause)
+            cause = ffi.string(cause)
+            local ret = invoker(address, width, cause)
             if ret == false then
                 return false
             else
@@ -109,7 +110,7 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
             end
         end
     end
-    local invokercb = ffi.cast('bool (*)()', invokercb)
+    local invokercb = ffi.cast('bool (*)(uint32_t address, unsigned width, const char* cause)', invokercb)
     local wrapper = C.addBreakpoint(address, bptype, width, cause, invokercb)
     local bp = {
         _wrapper = wrapper,

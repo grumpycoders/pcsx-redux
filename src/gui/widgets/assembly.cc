@@ -652,11 +652,12 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
                     DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
-                        g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
-                                                           [](const Debug::Breakpoint* bp) {
-                                                               g_system->pause();
-                                                               return false;
-                                                           });
+                        g_emulator->m_debug->addBreakpoint(
+                            dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
+                            [](const Debug::Breakpoint* bp, uint32_t address, unsigned width, const char* cause) {
+                                g_system->pause();
+                                return false;
+                            });
                         ImGui::CloseCurrentPopup();
                         g_system->resume();
                     });
