@@ -63,14 +63,14 @@ class OpenGL_GPU final : public GPU {
         int32_t texpage;
         int32_t uv;
 
-        // TODO: See how coordinates should be sign extended for each colour
+        // TODO: See how coordinates should be sign extended for each vertex. Used for rectangles
         Vertex(uint32_t x, uint32_t y, uint32_t col) {
             positions.x() = int(x) << 21 >> 21;
             positions.y() = int(y) << 21 >> 21;
             colour = col;
         }
 
-        // Same as above constructor, except it accepts the position in packed format
+        // Same as above constructor, except it accepts the position in packed format. Used for polygons
         Vertex(uint32_t position, uint32_t col) {
             const int x = position & 0xffff;
             const int y = (position >> 16) & 0xffff;
@@ -79,12 +79,20 @@ class OpenGL_GPU final : public GPU {
             colour = col;
         }
 
+        // Constructor that also submits UV/CLUT/Texpage info and coords in packed format. Used for textured polygons
         Vertex(uint32_t position, uint32_t col, int32_t clut, int32_t texpage, int32_t uv)
             : colour(col), clut(clut), texpage(texpage), uv(uv) {
             const int x = position & 0xffff;
             const int y = (position >> 16) & 0xffff;
             positions.x() = x << 21 >> 21;
             positions.y() = y << 21 >> 21;
+        }
+
+        // Constructor that also submits UV/CLUT/Texpage info and coords in unpacked format. Used for textured rectangles
+        Vertex(uint32_t x, uint32_t y, uint32_t col, int32_t clut, int32_t texpage, int32_t uv)
+            : colour(col), clut(clut), texpage(texpage), uv(uv) {
+            positions.x() = int(x) << 21 >> 21;
+            positions.y() = int(y) << 21 >> 21;
         }
     };
     enum class TransferMode { CommandTransfer, VRAMTransfer };
@@ -135,6 +143,7 @@ class OpenGL_GPU final : public GPU {
     int m_remainingWords = 0;
     int m_lastCommandHash = 0;
     bool m_haveCommand = false;
+    uint32_t m_rectTexpage = 0; // Rects have their own texpage settings
     uint32_t m_vramReadBufferSize = 0;
     uint32_t m_vramReadBufferIndex = 0;
     GP0Func m_cmdFuncs[256];
@@ -247,8 +256,8 @@ class OpenGL_GPU final : public GPU {
         }
         else {
             uint32_t dimensions = mode == Texturing::None ? m_cmdFIFO[2] : m_cmdFIFO[3];
-            width = dimensions & 0xffff;
-            height = dimensions >> 16;
+            width = dimensions & 0x3ff;
+            height = (dimensions >> 16) & 0x1ff;
         }
 
         if (m_vertexCount + 6 >= vertexBufferSize) {
@@ -281,5 +290,7 @@ class OpenGL_GPU final : public GPU {
     void cmdNop();
 
     void theOminousTexturedQuad();
+    void theOminousTexturedShadedQuad();
+    void theOminousTexturedRect();
 };
 }  // namespace PCSX

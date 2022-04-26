@@ -66,7 +66,11 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x30] = &OpenGL_GPU::drawPoly<PolyType::Triangle, Shading::Gouraud, Texturing::None>;
     m_cmdFuncs[0x38] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Gouraud, Texturing::None>;
 
+    m_cmdFuncs[0x3C] = &OpenGL_GPU::theOminousTexturedShadedQuad;
+    m_cmdFuncs[0x3E] = &OpenGL_GPU::theOminousTexturedShadedQuad;
+
     m_cmdFuncs[0x60] = &OpenGL_GPU::drawRect<RectSize::Variable, Texturing::None>;
+    m_cmdFuncs[0x64] = &OpenGL_GPU::theOminousTexturedRect;
     m_cmdFuncs[0x65] = &OpenGL_GPU::drawRect<RectSize::Variable, Texturing::Textured>;
     m_cmdFuncs[0x68] = &OpenGL_GPU::drawRect<RectSize::Rect1, Texturing::None>;
 
@@ -82,6 +86,7 @@ void PCSX::OpenGL_GPU::cmdClearTexCache() {
 }
 
 void PCSX::OpenGL_GPU::cmdSetDrawMode() {
+    m_rectTexpage = m_cmdFIFO[0];
     PCSX::g_system->printf("Unimplemented set draw mode command: %08X\n", m_cmdFIFO[0]);
 }
 
@@ -212,6 +217,81 @@ void PCSX::OpenGL_GPU::theOminousTexturedQuad() {
         m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, uv);
         m_vertexCount++;
     }
+
+    renderBatch();
+    glUniform1i(m_texturedLoc, 0);
+}
+
+void PCSX::OpenGL_GPU::theOminousTexturedShadedQuad() {
+    renderBatch();
+    const uint32_t clut = m_cmdFIFO[2] >> 16;
+    const uint32_t texpage = m_cmdFIFO[5] >> 16;
+
+    glUniform1i(m_texturedLoc, 1);
+    for (int i = 0; i < 3; i++) {
+        const auto colour = m_cmdFIFO[i * 3];
+        const auto pos = m_cmdFIFO[i * 3 + 1];
+        const auto uv = m_cmdFIFO[i * 3 + 2];
+
+        m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, uv);
+        m_vertexCount++;
+    }
+
+    for (int i = 1; i < 4; i++) {
+        const auto colour = m_cmdFIFO[i * 3];
+        const auto pos = m_cmdFIFO[i * 3 + 1];
+        const auto uv = m_cmdFIFO[i * 3 + 2];
+
+        m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, uv);
+        m_vertexCount++;
+    }
+
+    renderBatch();
+    glUniform1i(m_texturedLoc, 0);
+}
+
+void PCSX::OpenGL_GPU::theOminousTexturedRect() {
+    renderBatch();
+    const uint32_t colour = m_cmdFIFO[0];
+    const auto pos = m_cmdFIFO[1];
+    const uint32_t clut = m_cmdFIFO[2] >> 16;
+    const uint32_t uv = m_cmdFIFO[2] & 0xffff;
+    const uint32_t u = uv & 0xff;
+    const uint32_t v = uv >> 8;
+    const uint32_t texpage = m_rectTexpage;
+
+    // Sign extend vertices
+    const int x = int(pos) << 21 >> 21;
+    const int y = int(pos) << 5 >> 21;
+    const int width = m_cmdFIFO[3] & 0x3ff;
+    const int height = (m_cmdFIFO[3] >> 16) & 0x1ff;
+
+    glUniform1i(m_texturedLoc, 1);
+
+    { m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, uv); }
+    {
+        uint32_t uu = u + width;
+        uint32_t uuvv = (uu & 0xff) | (v << 8);
+        m_vertices[m_vertexCount++] = Vertex(x + width, y, colour, clut, texpage, uuvv);
+    }
+    {
+        uint32_t uu = u + width;
+        uint32_t vv = v + height;
+        uint32_t uuvv = (uu & 0xff) | ((vv & 0xff) << 8);
+        m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour, clut, texpage, uuvv);
+    }
+    {
+        uint32_t uu = u + width;
+        uint32_t vv = v + height;
+        uint32_t uuvv = (uu & 0xff) | ((vv & 0xff) << 8);
+        m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour, clut, texpage, uuvv);
+    }
+    {
+        uint32_t vv = v + height;
+        uint32_t uuvv = (u & 0xff) | ((vv & 0xff) << 8);
+        m_vertices[m_vertexCount++] = Vertex(x, y + height, colour, clut, texpage, uuvv);
+    }
+    { m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, uv); }
 
     renderBatch();
     glUniform1i(m_texturedLoc, 0);

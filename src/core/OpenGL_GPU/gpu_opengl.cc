@@ -38,6 +38,7 @@ void PCSX::OpenGL_GPU::reset() {
     m_haveCommand = false;
     m_readingMode = TransferMode::CommandTransfer;
     m_writingMode = TransferMode::CommandTransfer;
+    m_rectTexpage = 0;
     m_remainingWords = 0;
     m_vramReadBufferSize = 0;
     m_FIFOIndex = 0;
