@@ -429,6 +429,10 @@ bool PCSX::CDRIso::readTrack(const IEC60908b::MSF time) {
     if (!m_cdHandle || m_cdHandle->failed()) {
         return false;
     }
+    
+    if (this->getTrackType(time) == TrackType::CDDA) {
+        return false;
+    }
 
     if (m_pregapOffset) {
         m_subChanMissing = false;
