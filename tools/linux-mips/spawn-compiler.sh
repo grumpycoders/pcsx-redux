@@ -8,17 +8,17 @@
 # dependencies to do so. The script expects to be run as root.
 #
 
-wget https://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.gz
-tar xvfz binutils-2.37.tar.gz
-cd binutils-2.37
+wget https://ftp.gnu.org/gnu/binutils/binutils-2.38.tar.gz
+tar xvfz binutils-2.38.tar.gz
+cd binutils-2.38
 ./configure --target=mipsel-none-elf --disable-multilib --disable-nls --disable-werror
 make
 make install-strip
 cd ..
 
-wget https://ftp.gnu.org/gnu/gcc/gcc-11.2.0/gcc-11.2.0.tar.gz
-tar xvfz gcc-11.2.0.tar.gz
-cd gcc-11.2.0
+wget https://ftp.gnu.org/gnu/gcc/gcc-11.3.0/gcc-11.3.0.tar.gz
+tar xvfz gcc-11.3.0.tar.gz
+cd gcc-11.3.0
 mkdir build
 cd build
 ../configure --target=mipsel-none-elf --without-isl --disable-nls --disable-threads --disable-shared --disable-libssp --disable-libstdcxx-pch --disable-libgomp --disable-werror --without-headers --with-as=/usr/local/bin/mipsel-none-elf-as --with-ld=/usr/local/bin/mipsel-none-elf-ld --enable-languages=c,c++
