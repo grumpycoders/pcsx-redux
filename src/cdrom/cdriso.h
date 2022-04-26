@@ -44,18 +44,6 @@ class CDRIso {
     }
     enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
     TrackType getTrackType(unsigned track) { return m_ti[track].type; }
-    TrackType getTrackType(const IEC60908b::MSF time) {
-        uint8_t curTrack;
-        int current, sect;
-        current = time.toLBA();
-
-        for (curTrack = 1; curTrack < this->getTN(); curTrack++) {
-            sect = static_cast<int>(this->getTD(curTrack + 1).toLBA());
-            if (sect - current >= 150) break;
-        }
-
-        return getTrackType(curTrack);
-    }
     const std::filesystem::path& getIsoPath() { return m_isoPath; }
     uint8_t getTN() { return std::max(m_numtracks, 1); }
     IEC60908b::MSF getTD(uint8_t track);
