@@ -52,7 +52,9 @@ class UvThreadOp : public UvThreadOpListType::Node {
   public:
     virtual bool canCache() const = 0;
     void startCaching() { startCaching(nullptr, nullptr); }
-    virtual void startCaching(std::function<void()>&& completed, uv_loop_t* loop) = 0;
+    virtual void startCaching(std::function<void()>&& completed, uv_loop_t* loop) {
+        throw std::runtime_error("Not cachable");
+    }
     bool caching() { return m_cache; }
     float cacheProgress() { return m_cacheProgress.load(std::memory_order_relaxed); }
     void waitCache() { m_cacheBarrier.get_future().get(); }
@@ -72,7 +74,7 @@ class UvThreadOp : public UvThreadOpListType::Node {
     }
 
   private:
-    virtual void downloadDone(CURLMsg* message) = 0;
+    virtual void downloadDone(CURLMsg* message) { throw std::runtime_error("Not cachable"); }
 
   protected:
     static uv_loop_t s_uvLoop;
@@ -109,6 +111,10 @@ class UvThreadOp : public UvThreadOpListType::Node {
 
     static moodycamel::ConcurrentQueue<UvRequest> s_queue;
     static UvThreadOpListType s_allOps;
+
+    static uv_pipe_t s_pipeIn;
+    static uv_pipe_t s_pipeOut;
+    static uintptr_t s_pipeBuf;
 };
 
 class UvFile : public File, public UvThreadOp {
@@ -195,6 +201,32 @@ class UvFile : public File, public UvThreadOp {
     uv_buf_t m_cacheBuf;
     uv_fs_t m_cacheReq;
     size_t m_cachePtr = 0;
+};
+
+class UvFifo : public File, public UvThreadOp {
+  public:
+    UvFifo(uv_stream_t*);
+    virtual void close() final override;
+    virtual ssize_t read(void* dest, size_t size) final override;
+    virtual ssize_t write(const void* src, size_t size) final override;
+    virtual void write(Slice&& slice) final override;
+    virtual bool eof() final override { return m_closed && (m_size.load() == 0); }
+
+  private:
+    virtual bool canCache() const override { return false; }
+    void startRead();
+    uv_tcp_t* m_tcp = nullptr;
+    void* m_buffer = nullptr;
+    bool m_closed = false;
+    uv_write_t m_writeReq;
+    uintptr_t m_buf;
+    const size_t c_chunkSize = 4096;
+    moodycamel::ConcurrentQueue<Slice> m_queue;
+    std::atomic<size_t> m_size = 0;
+    Slice m_slice;
+    size_t m_currentPtr = 0;
+
+    friend class UvThreadOp;
 };
 
 }  // namespace PCSX

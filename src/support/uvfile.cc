@@ -56,6 +56,9 @@ PCSX::UvThreadOpListType PCSX::UvThreadOp::s_allOps;
 uv_loop_t PCSX::UvThreadOp::s_uvLoop;
 uv_timer_t PCSX::UvThreadOp::s_curlTimeout;
 CURLM *PCSX::UvThreadOp::s_curlMulti = nullptr;
+uv_pipe_t PCSX::UvThreadOp::s_pipeIn;
+uv_pipe_t PCSX::UvThreadOp::s_pipeOut;
+uintptr_t PCSX::UvThreadOp::s_pipeBuf;
 
 void PCSX::UvThreadOp::startThread() {
     if (s_threadRunning) throw std::runtime_error("UV thread already running");
@@ -68,6 +71,49 @@ void PCSX::UvThreadOp::startThread() {
         }
         uv_loop_init(&s_uvLoop);
         uv_timer_init(&s_uvLoop, &s_curlTimeout);
+        uv_pipe_init(&s_uvLoop, &s_pipeIn, 1);
+        uv_pipe_init(&s_uvLoop, &s_pipeOut, 0);
+        uv_file pipeFDs[2];
+        int flags = UV_NONBLOCK_PIPE | UV_READABLE_PIPE | UV_WRITABLE_PIPE;
+        uv_pipe(pipeFDs, flags, flags);
+        uv_pipe_open(&s_pipeIn, pipeFDs[0]);
+        uv_pipe_open(&s_pipeOut, pipeFDs[1]);
+        uv_read_start(
+            reinterpret_cast<uv_stream_t *>(&s_pipeOut),
+            [](uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+                buf->base = reinterpret_cast<char *>(&s_pipeBuf);
+                buf->len = sizeof(s_pipeBuf);
+            },
+            [](uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
+                uv_pipe_t *pipe = reinterpret_cast<uv_pipe_t *>(stream);
+                if (nread == 0) return;
+                if (nread < 0) {
+                    if (nread == UV_EOF) return;
+                    throw std::runtime_error("Failed to read from pipe");
+                }
+                if (nread != sizeof(s_pipeBuf)) {
+                    throw std::runtime_error("Failed to read full pipe buffer");
+                }
+                UvFifo *fifo = reinterpret_cast<UvFifo *>(s_pipeBuf);
+                if (!uv_pipe_pending_count(pipe)) {
+                    throw std::runtime_error("Pipe has no pending sockets");
+                }
+
+                uv_handle_type pending = uv_pipe_pending_type(pipe);
+                if (pending != UV_TCP) {
+                    throw std::runtime_error("Pipe's pending socket isn't TCP");
+                }
+
+                assert(!fifo->m_tcp);
+                fifo->m_tcp = new uv_tcp_t;
+                uv_tcp_init(&s_uvLoop, fifo->m_tcp);
+                fifo->m_tcp->data = fifo;
+                if (uv_accept(stream, reinterpret_cast<uv_stream_t *>(fifo->m_tcp)) == 0) {
+                    fifo->startRead();
+                } else {
+                    throw std::runtime_error("Failed to accept pending socket");
+                }
+            });
         s_curlMulti = curl_multi_init();
         curl_multi_setopt(s_curlMulti, CURLMOPT_SOCKETFUNCTION, curlSocketFunction);
         curl_multi_setopt(s_curlMulti, CURLMOPT_TIMERFUNCTION, curlTimerFunction);
@@ -101,6 +147,7 @@ void PCSX::UvThreadOp::startThread() {
             c_tick, c_tick);
         barrier.set_value();
         uv_run(&s_uvLoop, UV_RUN_DEFAULT);
+        uv_loop_close(&s_uvLoop);
     });
     f.wait();
 }
@@ -173,6 +220,8 @@ void PCSX::UvThreadOp::stopThread() {
     request([](auto loop) {
         uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {});
         uv_close(reinterpret_cast<uv_handle_t *>(&s_timer), [](auto handle) {});
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_pipeIn), [](auto handle) {});
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_pipeOut), [](auto handle) {});
     });
     s_uvThread.join();
     s_threadRunning = false;
@@ -267,7 +316,7 @@ PCSX::UvFile::UvFile(const std::string_view &url, std::function<void()> &&callba
         curl_easy_setopt(m_curlHandle, CURLOPT_NOPROGRESS, 0L);
         curl_easy_setopt(m_curlHandle, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(m_curlHandle, CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(m_curlHandle, CURLOPT_PRIVATE, dynamic_cast<UvThreadOp*>(this));
+        curl_easy_setopt(m_curlHandle, CURLOPT_PRIVATE, dynamic_cast<UvThreadOp *>(this));
         curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, this);
         curl_easy_setopt(m_curlHandle, CURLOPT_XFERINFODATA, this);
         curl_easy_setopt(m_curlHandle, CURLOPT_WRITEFUNCTION, curlWriteFunctionTrampoline);
@@ -448,11 +497,12 @@ ssize_t PCSX::UvFile::write(const void *src, size_t size) {
     struct Info {
         uv_buf_t buf;
         uv_fs_t req;
+        Slice slice;
     };
     auto info = new Info();
     info->req.data = info;
-    info->buf.base = reinterpret_cast<decltype(info->buf.base)>(malloc(size));
-    memcpy(info->buf.base, src, size);
+    info->slice.copy(src, size);
+    info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
     info->buf.len = size;
     request([info, handle = m_handle, offset = m_ptrW](auto loop) {
         uv_fs_write(loop, &info->req, handle, &info->buf, 1, offset, [](uv_fs_t *req) {
@@ -460,7 +510,6 @@ ssize_t PCSX::UvFile::write(const void *src, size_t size) {
             if (ret >= 0) s_dataWrittenTotal += ret;
             auto info = reinterpret_cast<Info *>(req->data);
             uv_fs_req_cleanup(req);
-            free(info->buf.base);
             delete info;
         });
     });
@@ -567,11 +616,12 @@ ssize_t PCSX::UvFile::writeAt(const void *src, size_t size, size_t ptr) {
     struct Info {
         uv_buf_t buf;
         uv_fs_t req;
+        Slice slice;
     };
     auto info = new Info();
     info->req.data = info;
-    info->buf.base = reinterpret_cast<decltype(info->buf.base)>(malloc(size));
-    memcpy(info->buf.base, src, size);
+    info->slice.copy(src, size);
+    info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
     info->buf.len = size;
     request([info, handle = m_handle, offset = ptr](auto loop) {
         uv_fs_write(loop, &info->req, handle, &info->buf, 1, offset, [](uv_fs_t *req) {
@@ -579,7 +629,6 @@ ssize_t PCSX::UvFile::writeAt(const void *src, size_t size, size_t ptr) {
             if (ret >= 0) s_dataWrittenTotal += ret;
             auto info = reinterpret_cast<Info *>(req->data);
             uv_fs_req_cleanup(req);
-            free(info->buf.base);
             delete info;
         });
     });
@@ -685,4 +734,116 @@ void PCSX::UvFile::cacheCallbackSetup(std::function<void()> &&callbackDone, uv_l
         m_cbAsync->data = this;
         if (failed()) uv_async_send(m_cbAsync);
     }
+}
+
+PCSX::UvFifo::UvFifo(uv_stream_t *str) : File(File::FileType::RW_STREAM) {
+    uv_buf_t buf = uv_buf_init(reinterpret_cast<char *>(&m_buf), sizeof(m_buf));
+    m_buf = reinterpret_cast<uintptr_t>(this);
+    uv_write2(&m_writeReq, reinterpret_cast<uv_stream_t *>(&s_pipeIn), &buf, 1, str, [](uv_write_t *req, int status) {
+        if (status != 0) throw std::runtime_error("Failed to write to pipe");
+    });
+}
+
+void PCSX::UvFifo::close() {
+    request([tcp = m_tcp](uv_loop_t *loop) {
+        if (!tcp) return;
+        uv_close(reinterpret_cast<uv_handle_t *>(tcp), [](uv_handle_t *handle) {
+            auto tcp = reinterpret_cast<uv_tcp_t *>(handle);
+            delete tcp;
+        });
+    });
+}
+
+ssize_t PCSX::UvFifo::read(void *dest_, size_t size) {
+    uint8_t *dest = static_cast<uint8_t *>(dest_);
+    ssize_t ret = 0;
+
+    while (size) {
+        if (m_slice.size() == m_currentPtr) {
+            m_currentPtr = 0;
+            m_slice.reset();
+            if (m_size.load() == 0) {
+                return ret == 0 ? -1 : ret;
+            }
+            while (!m_queue.try_dequeue(m_slice))
+                ;
+        }
+        auto toRead = std::min(size, static_cast<size_t>(m_slice.size()) - m_currentPtr);
+        memcpy(dest, m_slice.data<uint8_t>() + m_currentPtr, toRead);
+        dest += toRead;
+        m_currentPtr += toRead;
+        size -= toRead;
+        ret += toRead;
+        m_size.fetch_sub(toRead);
+    }
+
+    return ret;
+}
+
+ssize_t PCSX::UvFifo::write(const void *src, size_t size) {
+    struct Info {
+        uv_buf_t buf;
+        uv_write_t req;
+        Slice slice;
+    };
+    auto info = new Info();
+    info->req.data = info;
+    info->slice.copy(src, size);
+    info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
+    info->buf.len = size;
+    request([info, tcp = m_tcp](auto loop) {
+        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
+        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
+            auto info = reinterpret_cast<Info *>(req->data);
+            delete info;
+        });
+    });
+    return size;
+}
+
+void PCSX::UvFifo::write(Slice &&slice) {
+    struct Info {
+        uv_buf_t buf;
+        uv_write_t req;
+        Slice slice;
+    };
+    auto size = slice.size();
+    auto info = new Info();
+    info->req.data = info;
+    info->buf.len = size;
+    info->slice = std::move(slice);
+    request([info, tcp = m_tcp](auto loop) {
+        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
+        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
+            auto info = reinterpret_cast<Info *>(req->data);
+            delete info;
+        });
+    });
+}
+
+void PCSX::UvFifo::startRead() {
+    uv_read_start(
+        reinterpret_cast<uv_stream_t *>(m_tcp),
+        [](uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+            UvFifo *fifo = reinterpret_cast<UvFifo *>(handle->data);
+            assert(!fifo->m_buffer);
+            void *b = fifo->m_buffer = malloc(fifo->c_chunkSize);
+            buf->base = reinterpret_cast<char *>(b);
+            buf->len = fifo->c_chunkSize;
+        },
+        [](uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
+            UvFifo *fifo = reinterpret_cast<UvFifo *>(client->data);
+            if (nread <= 0) {
+                free(fifo->m_buffer);
+                fifo->m_closed = true;
+                return;
+            }
+            assert(fifo->m_buffer);
+            void *b = realloc(fifo->m_buffer, nread);
+            fifo->m_buffer = nullptr;
+            Slice slice;
+            slice.acquire(b, nread);
+            fifo->m_queue.enqueue(std::move(slice));
+            fifo->m_size.fetch_add(nread);
+        });
 }
