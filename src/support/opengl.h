@@ -25,6 +25,7 @@
 #include <functional>
 #include <initializer_list>
 #include <iostream>
+#include <stdexcept>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -88,26 +89,49 @@ enum FramebufferTypes {
 struct Texture {
     GLuint m_handle = 0;
     int m_width, m_height;
+    GLenum m_binding;
+    int m_samples = 1; // For MSAA
 
-    void create(int width, int height, GLint internalFormat) {
+    void create(int width, int height, GLint internalFormat, GLenum binding = GL_TEXTURE_2D, int samples = 1) {
         m_width = width;
         m_height = height;
+        m_binding = binding;
 
         glGenTextures(1, &m_handle);
         bind();
-        glTexStorage2D(GL_TEXTURE_2D, 1, internalFormat, width, height);
+
+        if (binding == GL_TEXTURE_2D_MULTISAMPLE) {
+            if (!glTexStorage2DMultisample) {  // Assert that glTexStorage2DMultisample has been loaded
+                throw std::runtime_error("MSAA is not supported on this platform");
+            }
+
+            int maxSampleCount;
+            glGetIntegerv(GL_MAX_INTEGER_SAMPLES, &maxSampleCount);
+            if (samples > maxSampleCount) {
+                samples = maxSampleCount;
+            }
+
+            glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internalFormat, width, height, GL_TRUE);
+        } else {
+            glTexStorage2D(binding, 1, internalFormat, width, height);
+        }
+    }
+
+    void createMSAA(int width, int height, GLint internalFormat, int samples) { 
+        create(width, height, internalFormat, GL_TEXTURE_2D_MULTISAMPLE, samples);
     }
 
     ~Texture() { glDeleteTextures(1, &m_handle); }
     GLuint handle() { return m_handle; }
     bool exists() { return m_handle != 0; }
-    void bind() { glBindTexture(GL_TEXTURE_2D, m_handle); }
+    void bind() { glBindTexture(m_binding, m_handle); }
     int width() { return m_width; }
     int height() { return m_height; }
 };
 
 struct Framebuffer {
     GLuint m_handle = 0;
+    GLenum m_textureType; // GL_TEXTURE_2D or GL_TEXTURE_2D_MULTISAMPLE
 
     void create() {
         if (m_handle == 0) {
@@ -127,14 +151,26 @@ struct Framebuffer {
     void bind(GLenum target) { glBindFramebuffer(target, m_handle); }
     void bind(FramebufferTypes target) { bind(static_cast<GLenum>(target)); }
 
-    void createWithTexture(Texture& tex, GLenum mode = GL_FRAMEBUFFER) {
+    void createWithTexture(Texture& tex, GLenum mode = GL_FRAMEBUFFER, GLenum textureType = GL_TEXTURE_2D) {
+        m_textureType = textureType;
         create();
         bind(mode);
-        glFramebufferTexture2D(mode, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.handle(), 0);
+        glFramebufferTexture2D(mode, GL_COLOR_ATTACHMENT0, textureType, tex.handle(), 0);
     }
 
-    void createWithReadTexture(Texture& tex) { createWithTexture(tex, GL_READ_FRAMEBUFFER); }
-    void createWithDrawTexture(Texture& tex) { createWithTexture(tex, GL_DRAW_FRAMEBUFFER); }
+    void createWithReadTexture(Texture& tex, GLenum textureType = GL_TEXTURE_2D) {
+        createWithTexture(tex, GL_READ_FRAMEBUFFER, textureType);
+    }
+    void createWithDrawTexture(Texture& tex, GLenum textureType = GL_TEXTURE_2D) {
+        createWithTexture(tex, GL_DRAW_FRAMEBUFFER, textureType);
+    }
+
+    void createWithTextureMSAA(Texture& tex, GLenum mode = GL_FRAMEBUFFER) {
+        m_textureType = GL_TEXTURE_2D_MULTISAMPLE;
+        create();
+        bind(mode);
+        glFramebufferTexture2D(mode, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, tex.handle(), 0);
+    }
 };
 
 enum ShaderType {
@@ -312,8 +348,11 @@ T get(GLenum query) {
 static bool isEnabled(GLenum query) { return glIsEnabled(query) != GL_FALSE; }
 
 static GLint getDrawFramebuffer() { return get<GLint>(GL_DRAW_FRAMEBUFFER_BINDING); }
+static GLint maxSamples() { return get<GLint>(GL_MAX_INTEGER_SAMPLES); }
 static GLint getTex2D() { return get<GLint>(GL_TEXTURE_BINDING_2D); }
 static bool scissorEnabled() { return isEnabled(GL_SCISSOR_TEST); }
+
+static bool versionSupported(int major, int minor) { return gl3wIsSupported(major, minor); }
 
 [[nodiscard]] static GLint uniformLocation(GLuint program, const char* name) { return glGetUniformLocation(program, name); }
 [[nodiscard]] static GLint uniformLocation(Program& program, const char* name) {

@@ -30,6 +30,9 @@
 #include "gui/gui.h"
 #include "tracy/Tracy.hpp"
 
+constexpr bool msaa = true;
+constexpr int msaaSamples = 8;
+
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
 
 void PCSX::OpenGL_GPU::reset() {
@@ -104,9 +107,20 @@ int PCSX::OpenGL_GPU::init() {
     m_vao.enableAttribute(4);
 
     // Make VRAM texture and attach it to draw frambuffer
-    m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
-    m_fbo.createWithTexture(m_vramTexture);
-    m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
+    if (msaa && glTexStorage2DMultisample != nullptr) {
+        m_vramTexture.createMSAA(vramWidth, vramHeight, GL_RGBA8, msaaSamples);
+        m_fbo.createWithTextureMSAA(m_vramTexture);
+
+        m_vramTextureNoMSAA.create(vramWidth, vramHeight, GL_RGBA8);
+        m_fboNoMSAA.createWithTexture(m_vramTextureNoMSAA);
+        m_multisampled = true;
+        m_gui->signalVRAMTextureCreated(m_vramTextureNoMSAA.handle());
+    } else {
+        m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
+        m_fbo.createWithTexture(m_vramTexture);
+        m_multisampled = false;
+        m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
+    }
 
     m_sampleTexture.create(vramWidth, vramHeight, GL_RGBA8);
 
@@ -464,6 +478,14 @@ void PCSX::OpenGL_GPU::setScissorArea() {
     OpenGL::setScissor(m_scissorBox.x, m_scissorBox.y, m_scissorBox.width, m_scissorBox.height);
 }
 
+
+GLuint PCSX::OpenGL_GPU::getVRAMTexture() {
+    if (!m_multisampled)
+        return m_vramTexture.handle();
+    else
+        return m_vramTextureNoMSAA.handle();
+}
+
 // Called at the end of a frame
 void PCSX::OpenGL_GPU::vblank() {
     renderBatch();
@@ -471,6 +493,13 @@ void PCSX::OpenGL_GPU::vblank() {
     // Set the fill mode to fill before passing the OpenGL context to the GUI
     if (m_polygonMode != OpenGL::FillPoly) {
         OpenGL::setFillMode(OpenGL::FillPoly);
+    }
+
+    // We can't draw the MSAA texture directly. So if we're using MSAA, we copy the texture to a non-MSAA texture.
+    if (m_multisampled) {
+        m_fbo.bind(OpenGL::ReadFramebuffer);
+        m_fboNoMSAA.bind(OpenGL::DrawFramebuffer);
+        glBlitFramebuffer(0, 0, 1024, 512, 0, 0, 1024, 512, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     }
 
     // Also remove our scissor before passing the OpenGL context to the GUI
@@ -486,8 +515,8 @@ void PCSX::OpenGL_GPU::vblank() {
     float width = m_displayArea.width / 1024.0f;
     float height = m_displayArea.height / 512.0f;
 
-    m_gui->m_offscreenShaderEditor.render(m_gui, m_vramTexture.handle(), {startX, startY}, {width, height},
-                                          m_gui->getRenderSize());
+    const auto tex = m_multisampled ? m_vramTextureNoMSAA.handle() : m_vramTexture.handle();
+    m_gui->m_offscreenShaderEditor.render(m_gui, tex, {0, 0}, {1, 1}, m_gui->getRenderSize());
 }
 
 void PCSX::OpenGL_GPU::renderBatch() {

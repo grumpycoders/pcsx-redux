@@ -52,7 +52,7 @@ class OpenGL_GPU final : public GPU {
     virtual void setDither(int setting) final { m_useDither = setting; }
     virtual void clearVRAM() final;
     virtual void reset() final;
-    virtual GLuint getVRAMTexture() final { return m_vramTexture.handle(); }
+    virtual GLuint getVRAMTexture() final;
 
     // Actual emulation stuff
     using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
@@ -113,6 +113,10 @@ class OpenGL_GPU final : public GPU {
     OpenGL::VertexBuffer m_vbo;
     OpenGL::Framebuffer m_fbo;
     OpenGL::Texture m_vramTexture;
+
+    // We need non-MSAA copies of our texture & FBO when using multisampling
+    OpenGL::Texture m_vramTextureNoMSAA;
+    OpenGL::Framebuffer m_fboNoMSAA;
     
     // For CPU->VRAM texture transfers
     OpenGL::Texture m_sampleTexture;
@@ -131,6 +135,7 @@ class OpenGL_GPU final : public GPU {
     OpenGL::vec3 m_clearColour = OpenGL::vec3({0.f, 0.f, 0.f});
     // Specifies how and whether to fill renderer polygons
     OpenGL::FillMode m_polygonMode = OpenGL::FillPoly;
+    bool m_multisampled = false;
     int m_polygonModeIndex = 0;
 
     GLint m_drawingOffsetLoc;
