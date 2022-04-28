@@ -191,7 +191,19 @@ void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
     m_readingMode = TransferMode::VRAMTransfer;
     m_vramReadBufferSize = size / 2;
     m_vramReadBufferIndex = 0;
-    glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramReadBuffer[0]);
+
+    if (!m_multisampled) {
+        glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramReadBuffer[0]);
+    } else {
+        // We can't read from multisampled textures as they contain more than just our pixels.
+        // So we blit the part of the texture that we want to our non-MSAA texture, then read that
+
+        m_fboNoMSAA.bind(OpenGL::DrawFramebuffer);
+        glBlitFramebuffer(x, y, x + width, y + height, x, y, x + width, y + height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        m_fboNoMSAA.bind(OpenGL::ReadFramebuffer);
+        glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramReadBuffer[0]);
+        m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
+    }
 }
 
 // Command 2C temp stub
