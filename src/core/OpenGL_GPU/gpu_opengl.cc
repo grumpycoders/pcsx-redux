@@ -20,6 +20,7 @@
 #include "gpu_opengl.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <stdexcept>
 
@@ -29,9 +30,6 @@
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "tracy/Tracy.hpp"
-
-constexpr bool msaa = true;
-constexpr int msaaSamples = 8;
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
 
@@ -107,8 +105,9 @@ int PCSX::OpenGL_GPU::init() {
     m_vao.enableAttribute(4);
 
     // Make VRAM texture and attach it to draw frambuffer
-    if (msaa && glTexStorage2DMultisample != nullptr) {
-        m_vramTexture.createMSAA(vramWidth, vramHeight, GL_RGBA8, msaaSamples);
+    const int msaaSampleCount = g_emulator->settings.get<Emulator::SettingMSAA>();
+    if (msaaSampleCount > 1 && glTexStorage2DMultisample != nullptr) {
+        m_vramTexture.createMSAA(vramWidth, vramHeight, GL_RGBA8, msaaSampleCount);
         m_fbo.createWithTextureMSAA(m_vramTexture);
 
         m_vramTextureNoMSAA.create(vramWidth, vramHeight, GL_RGBA8);
@@ -408,6 +407,8 @@ int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
 }
 
 bool PCSX::OpenGL_GPU::configure() {
+    bool changed = false;
+
     if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
         static const char* polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
         constexpr OpenGL::FillMode polygonModes[] = {OpenGL::FillPoly, OpenGL::DrawWire, OpenGL::DrawPoints};
@@ -422,10 +423,30 @@ bool PCSX::OpenGL_GPU::configure() {
             ImGui::EndCombo();
         }
 
+        int msaaSampleCount = g_emulator->settings.get<Emulator::SettingMSAA>();
+        const auto msaaString = msaaSampleCount == 1 ? _("No MSAA") : fmt::format(f_("{}x MSAA"), msaaSampleCount);
+
+        if (ImGui::BeginCombo(_("MSAA"), msaaString.c_str())) {
+            const int maxMSAA = OpenGL::maxSamples();
+
+            if (ImGui::Selectable(_("No MSAA"))) {
+                g_emulator->settings.get<Emulator::SettingMSAA>() = 1;
+                changed = true;
+            }
+
+            for (int i = 2; i <= maxMSAA; i *= 2) {
+                auto str = std::to_string(i) + "x MSAA";
+                if (ImGui::Selectable(str.c_str())) {
+                    g_emulator->settings.get<Emulator::SettingMSAA>() = i;
+                    changed = true;
+                }
+            }
+            ImGui::EndCombo();
+        }
         ImGui::End();
     }
 
-    return false;
+    return changed;
 }
 
 void PCSX::OpenGL_GPU::debug() {

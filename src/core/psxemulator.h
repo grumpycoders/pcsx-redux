@@ -185,13 +185,14 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("HardwareRenderer"), true> SettingHardwareRenderer;
     typedef Setting<bool, TYPESTRING("ShownAutoUpdateConfig"), false> SettingShownAutoUpdateConfig;
     typedef Setting<bool, TYPESTRING("AutoUpdate"), false> SettingAutoUpdate;
+    typedef Setting<int, TYPESTRING("MSAA"), 1> SettingMSAA;
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
              SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
              SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither,
-             SettingGLErrorReporting, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate>
-
+             SettingGLErrorReporting, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate,
+             SettingMSAA>
         settings;
     class PcsxConfig {
       public:
