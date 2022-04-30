@@ -1,6 +1,6 @@
 # Dockerfile for grumpycoders/pcsx-redux-build
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # The tzdata package isn't docker-friendly, and something pulls it.
 ENV DEBIAN_FRONTEND noninteractive
