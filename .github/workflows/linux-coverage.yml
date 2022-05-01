@@ -13,7 +13,6 @@ jobs:
       image: grumpycoders/pcsx-redux-build:latest
       env:
         TEST_RESULTS: /tmp/test-results
-        LLVM_PROFILE_FILE: /tmp/llvm_profile/profile-%p.profraw
         BUILD: Coverage
     steps:
       - uses: actions/checkout@v3
@@ -33,10 +32,7 @@ jobs:
       - name: Test
         run: |
           xvfb-run catchsegv ./pcsx-redux-tests
-      - name: Merge Code coverage
+      - name: Produce code coverage
         run: |
-          llvm-profdata-11 merge -sparse /tmp/llvm_profile/profile-*.profraw -o coverage.profdata
-      - name: Convert Code coverage
-        run: |
-          llvm-cov-11 export --format=lcov ./pcsx-redux-tests -instr-profile=coverage.profdata > coverage.info
+          lcov --directory . --capture --output-file coverage.info
       - uses: codecov/codecov-action@v2
