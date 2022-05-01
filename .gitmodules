@@ -78,4 +78,4 @@
 	url = https://github.com/TartanLlama/expected.git
 [submodule "third_party/vixl"]
 	path = third_party/vixl
-	url = https://github.com/wheremyfoodat/vixl
+	url = https://github.com/grumpycoders/vixl
