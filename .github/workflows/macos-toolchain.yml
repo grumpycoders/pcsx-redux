@@ -12,10 +12,10 @@ jobs:
     runs-on: macOS-latest
 
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-          set-safe-directory: true
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        set-safe-directory: true
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
