@@ -12,9 +12,9 @@ jobs:
     container:
       image: grumpycoders/pcsx-redux-build:latest
       env:
-        CC: clang-11
-        CXX: clang++-11
-        LD: clang++-11
+        CC: clang-14
+        CXX: clang++-14
+        LD: clang++-14
         TEST_RESULTS: /tmp/test-results
     steps:
       - uses: actions/checkout@v3

@@ -10,7 +10,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "command": "CC=clang-10 CXX=clang++-10 LD=clang++-10 make -j8",
+            "command": "CC=clang-14 CXX=clang++-14 LD=clang++-14 make -j8",
             "problemMatcher": {
                 "owner": "cpp",
                 "fileLocation": [
@@ -31,7 +31,7 @@
             "label": "make_clean",
             "type": "shell",
             "group": "build",
-            "command": "CC=clang-10 CXX=clang++-10 LD=clang++-10 make clean",
+            "command": "CC=clang-14 CXX=clang++-14 LD=clang++-14 make clean",
             "problemMatcher": []
         },
         {
