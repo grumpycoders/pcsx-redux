@@ -1,6 +1,6 @@
 # Dockerfile for grumpycoders/pcsx-redux-build
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # The tzdata package isn't docker-friendly, and something pulls it.
 ENV DEBIAN_FRONTEND noninteractive
@@ -15,8 +15,7 @@ RUN apt install -y make
 RUN apt install -y pkg-config
 
 # Compilers & base libraries
-RUN apt install -y clang-11
-RUN apt install -y g++-10
+RUN apt install -y g++-12
 RUN apt install -y g++-mipsel-linux-gnu
 
 # Development packages
@@ -35,6 +34,7 @@ RUN apt install -y zlib1g-dev
 RUN apt install -y curl wget
 RUN apt install -y xvfb
 RUN apt install -y python3-pip python3-setuptools patchelf desktop-file-utils libgdk-pixbuf2.0-dev fakeroot strace
+RUN apt install -y glibc-tools lcov
 WORKDIR /tmp
 RUN wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage && \
     chmod +x /tmp/appimagetool-x86_64.AppImage && \
