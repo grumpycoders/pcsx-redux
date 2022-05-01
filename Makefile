@@ -49,7 +49,11 @@ IMGUI_CPPFLAGS += -include src/forced-includes/imgui.h
 CPPFLAGS_Release += -O3
 CPPFLAGS_Debug += -O0
 CPPFLAGS_Coverage += -O0
-CPPFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+ifeq ($(CC_IS_CLANG),true)
+    CPPFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+else
+    CPPFLAGS_Coverage += -fprofile-arcs -ftest-coverage
+endif
 CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
 CPPFLAGS_ReleaseWithTracy += -O3 -DTRACY_ENABLE
 
@@ -79,7 +83,11 @@ LDFLAGS += third_party/luajit/src/libluajit.a
 LDFLAGS += -ldl
 LDFLAGS += -g
 
-LDFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+ifeq ($(CC_IS_CLANG),true)
+    LDFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+else
+    LDFLAGS_Coverage += -fprofile-arcs -ftest-coverage
+endif
 LDFLAGS_asan += -fsanitize=address
 
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
