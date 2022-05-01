@@ -4,9 +4,8 @@
 
 export DISTCC_NO_REWRITE_CROSS=1
 export DISTCC_HOSTS=10.12.1.2/60,lzo
-export CC="distcc clang-14"
-export CXX="distcc clang++-14"
-export LD=clang++-14
+export CC="distcc"
+export CXX="distcc"
 
 export JOBS=60
 
