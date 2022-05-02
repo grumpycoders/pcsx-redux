@@ -111,10 +111,6 @@ class UvThreadOp : public UvThreadOpListType::Node {
 
     static moodycamel::ConcurrentQueue<UvRequest> s_queue;
     static UvThreadOpListType s_allOps;
-
-    static uv_pipe_t s_pipeIn;
-    static uv_pipe_t s_pipeOut;
-    static uintptr_t s_pipeBuf;
 };
 
 class UvFile : public File, public UvThreadOp {
@@ -205,28 +201,38 @@ class UvFile : public File, public UvThreadOp {
 
 class UvFifo : public File, public UvThreadOp {
   public:
-    UvFifo(uv_stream_t*);
+    UvFifo(uv_tcp_t*);
     virtual void close() final override;
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t write(const void* src, size_t size) final override;
     virtual void write(Slice&& slice) final override;
-    virtual bool eof() final override { return m_closed && (m_size.load() == 0); }
+    virtual bool eof() final override { return m_closed.load() && (m_size.load() == 0); }
 
   private:
     virtual bool canCache() const override { return false; }
-    void startRead();
     uv_tcp_t* m_tcp = nullptr;
     void* m_buffer = nullptr;
-    bool m_closed = false;
+    std::atomic<bool> m_closed = false;
     uv_write_t m_writeReq;
-    uintptr_t m_buf;
     const size_t c_chunkSize = 4096;
     moodycamel::ConcurrentQueue<Slice> m_queue;
     std::atomic<size_t> m_size = 0;
     Slice m_slice;
     size_t m_currentPtr = 0;
+};
 
-    friend class UvThreadOp;
+class UvFifoListener : public UvThreadOp {
+  public:
+    UvFifoListener() {}
+    void start(unsigned port, uv_loop_t* loop, uv_async_t* async, std::function<void(UvFifo*)>&& cb);
+    void stop();
+
+  private:
+    virtual bool canCache() const override { return false; }
+    uv_async_t* m_async = nullptr;
+    uv_tcp_t m_server = {};
+    std::function<void(UvFifo*)> m_cb;
+    moodycamel::ConcurrentQueue<UvFifo*> m_pending;
 };
 
 }  // namespace PCSX

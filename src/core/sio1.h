@@ -28,7 +28,7 @@
 #include "core/r3000a.h"
 #include "core/sio1-server.h"
 #include "core/sstate.h"
-#include "support/file.h"
+#include "support/uvfile.h"
 
 //#define SIO1_CYCLES (m_regs.baud * 8)
 #define SIO1_CYCLES (1)
@@ -115,8 +115,6 @@ class SIO1 {
 
     void receiveCallback();
 
-    void pushSlice(Slice&& slice) { m_fifo.pushSlice(std::move(slice)); }
-
     SIO1Registers m_regs;
 
   private:
@@ -161,6 +159,8 @@ class SIO1 {
     void transmitData();
     bool isTransmitReady();
 
-    Fifo m_fifo;
+    IO<UvFifo> m_fifo;
+
+    friend class SIO1Server;
 };
 }  // namespace PCSX
