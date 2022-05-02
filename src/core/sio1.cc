@@ -82,7 +82,7 @@ void PCSX::SIO1::receiveCallback() {
 }
 
 void PCSX::SIO1::transmitData() {
-    m_fifo.asA<File>()->write(m_regs.data);
+    if (m_fifo) m_fifo.asA<File>()->write(m_regs.data);
     if (m_regs.control & CR_TXIRQEN) {
         if (m_regs.status & SR_TXRDY || m_regs.status & SR_TXRDY2) {
             if (!(m_regs.status & SR_IRQ)) {
@@ -98,7 +98,7 @@ bool PCSX::SIO1::isTransmitReady() {
 }
 
 void PCSX::SIO1::updateStat() {
-    if (m_fifo->size() > 0) {
+    if (m_fifo && m_fifo->size() > 0) {
         m_regs.status |= SR_RXRDY;
     } else {
         m_regs.status &= ~SR_RXRDY;
