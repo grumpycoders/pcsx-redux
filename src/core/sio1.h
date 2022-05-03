@@ -28,7 +28,7 @@
 #include "core/r3000a.h"
 #include "core/sio1-server.h"
 #include "core/sstate.h"
-#include "support/uvfile.h"
+#include "support/file.h"
 
 //#define SIO1_CYCLES (m_regs.baud * 8)
 #define SIO1_CYCLES (1)
@@ -159,7 +159,7 @@ class SIO1 {
     void transmitData();
     bool isTransmitReady();
 
-    IO<UvFifo> m_fifo;
+    IO<File> m_fifo;
 
     friend class SIO1Server;
 };

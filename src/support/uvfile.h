@@ -206,6 +206,7 @@ class UvFifo : public File, public UvThreadOp {
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t write(const void* src, size_t size) final override;
     virtual void write(Slice&& slice) final override;
+    virtual size_t size() final override { return m_size.load(); }
     virtual bool eof() final override { return m_closed.load() && (m_size.load() == 0); }
 
   private:

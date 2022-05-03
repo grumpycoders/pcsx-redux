@@ -39,10 +39,13 @@ void PCSX::SIO1Server::startServer(uv_loop_t* loop, int port) {
         throw std::runtime_error("Server already started");
     }
 
+    m_serverStatus = SIO1ServerStatus::SERVER_STARTED;
+
     m_fifoListener.start(port, loop, &m_async, [this](auto fifo) {
         if (fifo) {
             g_emulator->m_sio1->m_fifo.setFile(fifo);
         } else {
+            g_emulator->m_sio1->m_fifo.reset();
             m_async.data = this;
             uv_close(reinterpret_cast<uv_handle_t*>(&m_async), [](uv_handle_t* handle) {
                 SIO1Server* server = reinterpret_cast<SIO1Server*>(handle->data);
