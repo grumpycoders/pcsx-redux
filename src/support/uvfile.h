@@ -28,7 +28,7 @@
 #include <string>
 #include <thread>
 
-#include "concurrentqueue/concurrentqueue.h"
+#include "cq/concurrent_queue.h"
 #include "support/file.h"
 #include "support/list.h"
 
@@ -83,7 +83,7 @@ class UvThreadOp : public UvThreadOpListType::Node {
     std::promise<void> m_cacheBarrier;
     typedef std::function<void(uv_loop_t*)> UvRequest;
     static void request(UvRequest&& req) {
-        s_queue.enqueue(std::move(req));
+        s_queue.Enqueue(std::move(req));
         uv_async_send(&s_kicker);
     }
     static CURLM* s_curlMulti;
@@ -109,7 +109,7 @@ class UvThreadOp : public UvThreadOpListType::Node {
     static std::atomic<size_t> s_dataDownloadLastTick;
     static constexpr uint64_t c_tick = 500;
 
-    static moodycamel::ConcurrentQueue<UvRequest> s_queue;
+    static ConcurrentQueue<UvRequest> s_queue;
     static UvThreadOpListType s_allOps;
 };
 
@@ -216,7 +216,7 @@ class UvFifo : public File, public UvThreadOp {
     std::atomic<bool> m_closed = false;
     uv_write_t m_writeReq;
     const size_t c_chunkSize = 4096;
-    moodycamel::ConcurrentQueue<Slice> m_queue;
+    ConcurrentQueue<Slice> m_queue;
     std::atomic<size_t> m_size = 0;
     Slice m_slice;
     size_t m_currentPtr = 0;
@@ -233,7 +233,7 @@ class UvFifoListener : public UvThreadOp {
     uv_async_t* m_async = nullptr;
     uv_tcp_t m_server = {};
     std::function<void(UvFifo*)> m_cb;
-    moodycamel::ConcurrentQueue<UvFifo*> m_pending;
+    ConcurrentQueue<UvFifo*> m_pending;
 };
 
 }  // namespace PCSX

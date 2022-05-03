@@ -51,7 +51,7 @@ size_t PCSX::UvThreadOp::s_dataDownloadSinceLastTick;
 std::atomic<size_t> PCSX::UvThreadOp::s_dataReadLastTick;
 std::atomic<size_t> PCSX::UvThreadOp::s_dataWrittenLastTick;
 std::atomic<size_t> PCSX::UvThreadOp::s_dataDownloadLastTick;
-moodycamel::ConcurrentQueue<PCSX::UvThreadOp::UvRequest> PCSX::UvThreadOp::s_queue;
+ConcurrentQueue<PCSX::UvThreadOp::UvRequest> PCSX::UvThreadOp::s_queue;
 PCSX::UvThreadOpListType PCSX::UvThreadOp::s_allOps;
 uv_loop_t PCSX::UvThreadOp::s_uvLoop;
 uv_timer_t PCSX::UvThreadOp::s_curlTimeout;
@@ -82,7 +82,7 @@ void PCSX::UvThreadOp::startThread() {
         s_dataDownloadLastTick = 0;
         uv_async_init(&s_uvLoop, &s_kicker, [](uv_async_t *async) {
             UvRequest req;
-            while (s_queue.try_dequeue(req)) {
+            while (s_queue.Dequeue(req)) {
                 req(async->loop);
             }
         });
@@ -712,7 +712,7 @@ PCSX::UvFifo::UvFifo(uv_tcp_t *tcp) : File(File::FileType::RW_STREAM) {
             fifo->m_buffer = nullptr;
             Slice slice;
             slice.acquire(b, nread);
-            fifo->m_queue.enqueue(std::move(slice));
+            fifo->m_queue.Enqueue(std::move(slice));
             fifo->m_size.fetch_add(nread);
         });
 }
@@ -739,7 +739,7 @@ ssize_t PCSX::UvFifo::read(void *dest_, size_t size) {
             if (m_size.load() == 0) {
                 return ret == 0 ? -1 : ret;
             }
-            while (!m_queue.try_dequeue(m_slice))
+            while (!m_queue.Dequeue(m_slice))
                 ;
         }
         auto toRead = std::min(size, static_cast<size_t>(m_slice.size()) - m_currentPtr);
@@ -803,7 +803,7 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
     uv_async_init(loop, async, [](uv_async_t *async) {
         UvFifoListener *self = reinterpret_cast<UvFifoListener *>(async->data);
         UvFifo *fifo = nullptr;
-        while (self->m_pending.try_dequeue(fifo)) {
+        while (self->m_pending.Dequeue(fifo)) {
             self->m_cb(fifo);
         }
     });
@@ -830,7 +830,7 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
             uv_tcp_init(loop, tcp);
             if (uv_accept(reinterpret_cast<uv_stream_t *>(server), reinterpret_cast<uv_stream_t *>(tcp)) == 0) {
                 UvFifo *fifo = new UvFifo(tcp);
-                listener->m_pending.enqueue(fifo);
+                listener->m_pending.Enqueue(fifo);
                 uv_async_send(listener->m_async);
             } else {
                 uv_close(reinterpret_cast<uv_handle_t *>(tcp),
@@ -848,7 +848,7 @@ void PCSX::UvFifoListener::stop() {
     request([this](auto loop) {
         uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {
             UvFifoListener *listener = reinterpret_cast<UvFifoListener *>(handle->data);
-            listener->m_pending.enqueue(nullptr);
+            listener->m_pending.Enqueue(nullptr);
             uv_async_send(listener->m_async);
         });
     });
