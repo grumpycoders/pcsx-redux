@@ -106,6 +106,7 @@ IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
 VIXL_SRCS := $(call rwildcard, third_party/vixl/src,*.cc)
 SRCS += $(IMGUI_SRCS)
 SRCS += $(wildcard third_party/libelfin/*.cc)
+SRCS += third_party/cq/reclaimer.cc
 SRCS += third_party/clip/clip.cpp
 SRCS += third_party/clip/image.cpp
 SRCS += third_party/gl3w/GL/gl3w.c
