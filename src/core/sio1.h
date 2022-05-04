@@ -115,8 +115,6 @@ class SIO1 {
 
     void receiveCallback();
 
-    void pushSlice(Slice&& slice) { m_fifo.pushSlice(std::move(slice)); }
-
     SIO1Registers m_regs;
 
   private:
@@ -161,6 +159,8 @@ class SIO1 {
     void transmitData();
     bool isTransmitReady();
 
-    Fifo m_fifo;
+    IO<File> m_fifo;
+
+    friend class SIO1Server;
 };
 }  // namespace PCSX

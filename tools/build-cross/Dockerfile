@@ -2,7 +2,7 @@
 # IMPORTANT: to build this file, the package qemu-user-static needs to be
 # installed on the host machine.
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # The tzdata package isn't docker-friendly, and something pulls it.
 ENV DEBIAN_FRONTEND noninteractive
@@ -22,7 +22,7 @@ RUN apt install -y gcc-10
 RUN apt install -y gcc
 # CI utilities
 RUN apt install -y curl wget
-RUN apt install -y python
+RUN apt install -y python-is-python3
 
 
 # Cross Compiler stuff
@@ -35,7 +35,7 @@ WORKDIR /
 # Create directory to hold aarch64 sysroot
 RUN mkdir -p /opt/cross/sysroot
 
-# Run debootstrap to pull down Debian bullseye aarch64 rootfs
+# Run debootstrap to pull down Debian bookworm aarch64 rootfs
 RUN debootstrap --arch=arm64 --variant=minbase \
     --include=\
 build-essential,\
@@ -49,7 +49,7 @@ libfreetype-dev,\
 libglfw3-dev,\
 libswresample-dev,\
 libuv1-dev,\
-zlib1g-dev --foreign bullseye /opt/cross/sysroot
+zlib1g-dev --foreign bookworm /opt/cross/sysroot
 
 # Copy qemu-user-static over to sysroot so second stage can run
 RUN cp /usr/bin/qemu-aarch64-static /opt/cross/sysroot/usr/bin/

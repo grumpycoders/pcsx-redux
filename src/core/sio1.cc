@@ -23,13 +23,13 @@ void PCSX::SIO1::interrupt() {
     SIO1_LOG("SIO1 Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
     m_regs.status |= SR_IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(IRQ8_SIO);
-    if (m_fifo.size() > 1) scheduleInterrupt(SIO1_CYCLES);
+    if (m_fifo->size() > 1) scheduleInterrupt(SIO1_CYCLES);
 }
 
 uint8_t PCSX::SIO1::readData8() {
     updateStat();
     if (m_regs.status & SR_RXRDY) {
-        m_regs.data = m_fifo.byte();
+        m_regs.data = m_fifo->byte();
         psxHu8(0x1050) = m_regs.data;
     }
     updateStat();
@@ -59,19 +59,19 @@ void PCSX::SIO1::receiveCallback() {
         if (!(m_regs.status & SR_IRQ)) {
             switch ((m_regs.control & 0x300) >> 8) {
                 case 0:
-                    if (!(m_fifo.size() >= 1)) return;
+                    if (!(m_fifo->size() >= 1)) return;
                     break;
 
                 case 1:
-                    if (!(m_fifo.size() >= 2)) return;
+                    if (!(m_fifo->size() >= 2)) return;
                     break;
 
                 case 2:
-                    if (!(m_fifo.size() >= 4)) return;
+                    if (!(m_fifo->size() >= 4)) return;
                     break;
 
                 case 3:
-                    if (!(m_fifo.size() >= 8)) return;
+                    if (!(m_fifo->size() >= 8)) return;
                     break;
             }
 
@@ -82,7 +82,7 @@ void PCSX::SIO1::receiveCallback() {
 }
 
 void PCSX::SIO1::transmitData() {
-    g_emulator->m_sio1Server->write(m_regs.data);
+    if (m_fifo) m_fifo->write<uint8_t>(m_regs.data);
     if (m_regs.control & CR_TXIRQEN) {
         if (m_regs.status & SR_TXRDY || m_regs.status & SR_TXRDY2) {
             if (!(m_regs.status & SR_IRQ)) {
@@ -98,7 +98,7 @@ bool PCSX::SIO1::isTransmitReady() {
 }
 
 void PCSX::SIO1::updateStat() {
-    if (m_fifo.size() > 0) {
+    if (m_fifo && m_fifo->size() > 0) {
         m_regs.status |= SR_RXRDY;
     } else {
         m_regs.status &= ~SR_RXRDY;
