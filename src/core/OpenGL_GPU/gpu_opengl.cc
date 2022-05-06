@@ -89,19 +89,19 @@ int PCSX::OpenGL_GPU::init() {
     m_vao.bind();
 
     // Position (x and y coord) attribute. Signed 11-bit numbers
-    m_vao.setAttribute<GLint>(0, 2, sizeof(Vertex), offsetof(Vertex, positions));
+    m_vao.setAttributeInt<GLint>(0, 2, sizeof(Vertex), offsetof(Vertex, positions));
     m_vao.enableAttribute(0);
     // Colour attribute
-    m_vao.setAttribute<GLuint>(1, 1, sizeof(Vertex), offsetof(Vertex, colour));
+    m_vao.setAttributeInt<GLuint>(1, 1, sizeof(Vertex), offsetof(Vertex, colour));
     m_vao.enableAttribute(1);
     // CLUT attribute
-    m_vao.setAttribute<GLint>(2, 1, sizeof(Vertex), offsetof(Vertex, clut));
+    m_vao.setAttributeInt<GLint>(2, 1, sizeof(Vertex), offsetof(Vertex, clut));
     m_vao.enableAttribute(2);
     // Texpage attribute
-    m_vao.setAttribute<GLint>(3, 1, sizeof(Vertex), offsetof(Vertex, texpage));
+    m_vao.setAttributeInt<GLint>(3, 1, sizeof(Vertex), offsetof(Vertex, texpage));
     m_vao.enableAttribute(3);
     // UV attribute
-    m_vao.setAttribute<GLint>(4, 1, sizeof(Vertex), offsetof(Vertex, uv));
+    m_vao.setAttributeInt<GLint>(4, 1, sizeof(Vertex), offsetof(Vertex, uv));
     m_vao.enableAttribute(4);
 
     // Make VRAM texture and attach it to draw frambuffer

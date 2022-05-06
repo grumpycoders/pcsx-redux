@@ -59,21 +59,53 @@ struct VertexArray {
     void bind() { glBindVertexArray(m_handle); }
 
     template <typename T>
-    void setAttribute(GLuint index, GLint size, GLsizei stride, const void* offset, bool normalized = false) {
+    void setAttributeFloat(GLuint index, GLint size, GLsizei stride, const void* offset, bool normalized = false) {
         if constexpr (std::is_same<T, GLfloat>()) {
             glVertexAttribPointer(index, size, GL_FLOAT, normalized, stride, offset);
-        } else if constexpr (std::is_same<T, GLuint>()) {
-            glVertexAttribIPointer(index, size, GL_UNSIGNED_INT, stride, offset);
+        } else if constexpr (std::is_same<T, GLbyte>()) {
+            glVertexAttribPointer(index, size, GL_BYTE, normalized, stride, offset);
+        } else if constexpr (std::is_same<T, GLubyte>()) {
+            glVertexAttribPointer(index, size, GL_UNSIGNED_BYTE, normalized, stride, offset);
+        } else if constexpr (std::is_same<T, GLshort>()) {
+            glVertexAttribPointer(index, size, GL_SHORT, normalized, stride, offset);
+        } else if constexpr (std::is_same<T, GLushort>()) {
+            glVertexAttribPointer(index, size, GL_UNSIGNED_SHORT, normalized, stride, offset);
         } else if constexpr (std::is_same<T, GLint>()) {
-            glVertexAttribIPointer(index, size, GL_INT, stride, offset);
-        } else {
-            static_assert(AlwaysFalse<T>, "Unimplemented type for OpenGL::setAttribute");
+            glVertexAttribPointer(index, size, GL_INT, normalized, stride, offset);
+        } else if constexpr (std::is_same<T, GLuint>()) {
+            glVertexAttribPointer(index, size, GL_UNSIGNED_INT, normalized, stride, offset);
+        }   else {
+            static_assert(AlwaysFalse<T>, "Unimplemented type for OpenGL::setAttributeFloat");
         }
     }
 
     template <typename T>
-    void setAttribute(GLuint index, GLint size, GLsizei stride, size_t offset, bool normalized = false) {
-        setAttribute<T>(index, size, stride, reinterpret_cast<const void*>(offset), normalized);
+    void setAttributeInt(GLuint index, GLint size, GLsizei stride, const void* offset) {
+        if constexpr (std::is_same<T, GLbyte>()) {
+            glVertexAttribIPointer(index, size, GL_BYTE, stride, offset);
+        } else if constexpr (std::is_same<T, GLubyte>()) {
+            glVertexAttribIPointer(index, size, GL_UNSIGNED_BYTE, stride, offset);
+        } else if constexpr (std::is_same<T, GLshort>()) {
+            glVertexAttribIPointer(index, size, GL_SHORT, stride, offset);
+        } else if constexpr (std::is_same<T, GLushort>()) {
+            glVertexAttribIPointer(index, size, GL_UNSIGNED_SHORT, stride, offset);
+        } else if constexpr (std::is_same<T, GLint>()) {
+            glVertexAttribIPointer(index, size, GL_INT, stride, offset);
+        } else if constexpr (std::is_same<T, GLuint>()) {
+            glVertexAttribIPointer(index, size, GL_UNSIGNED_INT, stride, offset);
+        } else {
+            static_assert(AlwaysFalse<T>, "Unimplemented type for OpenGL::setAttributeInt");
+        }
+    }
+
+    template <typename T>
+    void setAttributeFloat(GLuint index, GLint size, GLsizei stride, size_t offset, bool normalized = false) {
+        setAttributeFloat<T>(index, size, stride, reinterpret_cast<const void*>(offset), normalized);
+    }
+
+    template <typename T>
+    void setAttributeInt(GLuint index, GLint size, GLsizei stride, size_t offset) {
+        setAttributeInt<T>(index, size, stride, reinterpret_cast<const void*>(offset));
     }
 
     void enableAttribute(GLuint index) { glEnableVertexAttribArray(index); }
