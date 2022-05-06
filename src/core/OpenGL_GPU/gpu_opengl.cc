@@ -95,13 +95,13 @@ int PCSX::OpenGL_GPU::init() {
     m_vao.setAttributeInt<GLuint>(1, 1, sizeof(Vertex), offsetof(Vertex, colour));
     m_vao.enableAttribute(1);
     // CLUT attribute
-    m_vao.setAttributeInt<GLint>(2, 1, sizeof(Vertex), offsetof(Vertex, clut));
+    m_vao.setAttributeInt<GLushort>(2, 1, sizeof(Vertex), offsetof(Vertex, clut));
     m_vao.enableAttribute(2);
     // Texpage attribute
-    m_vao.setAttributeInt<GLint>(3, 1, sizeof(Vertex), offsetof(Vertex, texpage));
+    m_vao.setAttributeInt<GLushort>(3, 1, sizeof(Vertex), offsetof(Vertex, texpage));
     m_vao.enableAttribute(3);
     // UV attribute
-    m_vao.setAttributeInt<GLint>(4, 1, sizeof(Vertex), offsetof(Vertex, uv));
+    m_vao.setAttributeFloat<GLushort>(4, 2, sizeof(Vertex), offsetof(Vertex, uv));
     m_vao.enableAttribute(4);
 
     // Make VRAM texture and attach it to draw frambuffer
@@ -143,7 +143,7 @@ int PCSX::OpenGL_GPU::init() {
         layout (location = 1) in uint inColor;
         layout (location = 2) in int inClut;
         layout (location = 3) in int inTexpage;
-        layout (location = 4) in int inUV;
+        layout (location = 4) in vec2 inUV;
 
         out vec4 vertexColor;
         out vec2 texCoords;
@@ -172,7 +172,7 @@ int PCSX::OpenGL_GPU::init() {
            
            gl_Position = vec4(xx, yy, 1.0, 1.0);
            vertexColor = vec4(color / 255.0, 1.0);
-           texCoords = vec2(float(inUV & 0xff), float((inUV >> 8) & 0xff));
+           texCoords = inUV;
            texpageBase = ivec2((inTexpage & 0xf) * 64, ((inTexpage >> 4) & 0x1) * 256);
            clutBase = ivec2((inClut & 0x3f) * 16, inClut >> 6);
 

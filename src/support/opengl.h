@@ -416,6 +416,14 @@ class Vector {
     T& w() { return a(); }
     T& operator[](int index) { return m_storage[index]; }
 
+    T& u() { return r(); }
+    T& v() { return g(); }
+
+    T& s() { return r(); }
+    T& t() { return g(); }
+    T& p() { return b(); }
+    T& q() { return a(); }
+
     Vector(std::array<T, size> list) {
         std::copy(list.begin(), list.end(), &m_storage[0]);
     }

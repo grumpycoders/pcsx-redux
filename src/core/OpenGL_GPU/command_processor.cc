@@ -280,30 +280,12 @@ void PCSX::OpenGL_GPU::theOminousTexturedRect() {
 
     glUniform1i(m_texturedLoc, 1);
 
-    { m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, uv); }
-    {
-        uint32_t uu = u + width;
-        uint32_t uuvv = (uu & 0xff) | (v << 8);
-        m_vertices[m_vertexCount++] = Vertex(x + width, y, colour, clut, texpage, uuvv);
-    }
-    {
-        uint32_t uu = u + width;
-        uint32_t vv = v + height;
-        uint32_t uuvv = (uu & 0xff) | ((vv & 0xff) << 8);
-        m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour, clut, texpage, uuvv);
-    }
-    {
-        uint32_t uu = u + width;
-        uint32_t vv = v + height;
-        uint32_t uuvv = (uu & 0xff) | ((vv & 0xff) << 8);
-        m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour, clut, texpage, uuvv);
-    }
-    {
-        uint32_t vv = v + height;
-        uint32_t uuvv = (u & 0xff) | ((vv & 0xff) << 8);
-        m_vertices[m_vertexCount++] = Vertex(x, y + height, colour, clut, texpage, uuvv);
-    }
-    { m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, uv); }
+    m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, u, v);
+    m_vertices[m_vertexCount++] = Vertex(x + width, y, colour, clut, texpage, u + width, v);
+    m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour, clut, texpage, u + width, v + height);
+    m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour, clut, texpage, u + width, v + height);
+    m_vertices[m_vertexCount++] = Vertex(x, y + height, colour, clut, texpage, u, v + height);
+    m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, u, v);
 
     renderBatch();
     glUniform1i(m_texturedLoc, 0);

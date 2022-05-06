@@ -59,18 +59,16 @@ class OpenGL_GPU final : public GPU {
     struct Vertex {
         OpenGL::ivec2 positions;
         uint32_t colour;
-        int32_t clut;
-        int32_t texpage;
-        int32_t uv;
+        uint16_t texpage;
+        uint16_t clut;
+        OpenGL::Vector<uint16_t, 2> uv;
 
-        // TODO: See how coordinates should be sign extended for each vertex. Used for rectangles
         Vertex(uint32_t x, uint32_t y, uint32_t col) {
             positions.x() = int(x) << 21 >> 21;
             positions.y() = int(y) << 21 >> 21;
             colour = col;
         }
 
-        // Same as above constructor, except it accepts the position in packed format. Used for polygons
         Vertex(uint32_t position, uint32_t col) {
             const int x = position & 0xffff;
             const int y = (position >> 16) & 0xffff;
@@ -79,20 +77,24 @@ class OpenGL_GPU final : public GPU {
             colour = col;
         }
 
-        // Constructor that also submits UV/CLUT/Texpage info and coords in packed format. Used for textured polygons
-        Vertex(uint32_t position, uint32_t col, int32_t clut, int32_t texpage, int32_t uv)
-            : colour(col), clut(clut), texpage(texpage), uv(uv) {
+        Vertex(uint32_t position, uint32_t col, uint16_t clut, uint16_t texpage,  uint32_t texcoords)
+            : colour(col), clut(clut), texpage(texpage) {
             const int x = position & 0xffff;
             const int y = (position >> 16) & 0xffff;
             positions.x() = x << 21 >> 21;
             positions.y() = y << 21 >> 21;
+
+            uv.u() = texcoords & 0xff;
+            uv.v() = (texcoords >> 8) & 0xff;
         }
 
-        // Constructor that also submits UV/CLUT/Texpage info and coords in unpacked format. Used for textured rectangles
-        Vertex(uint32_t x, uint32_t y, uint32_t col, int32_t clut, int32_t texpage, int32_t uv)
-            : colour(col), clut(clut), texpage(texpage), uv(uv) {
+        Vertex(uint32_t x, uint32_t y, uint32_t col, uint16_t clut, uint16_t texpage, uint16_t u, uint16_t v)
+            : colour(col), clut(clut), texpage(texpage) {
             positions.x() = int(x) << 21 >> 21;
             positions.y() = int(y) << 21 >> 21;
+
+            uv.u() = u;
+            uv.v() = v;
         }
     };
     enum class TransferMode { CommandTransfer, VRAMTransfer };
