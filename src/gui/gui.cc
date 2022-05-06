@@ -61,8 +61,9 @@
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
+#include "support/uvfile.h"
+#include "support/zfile.h"
 #include "tracy/Tracy.hpp"
-#include "zstr.hpp"
 
 #ifdef _WIN32
 extern "C" {
@@ -673,8 +674,7 @@ void PCSX::GUI::startFrame() {
     }
 
     if (ImGui::IsKeyPressed(GLFW_KEY_F1)) {  // Save to quick-save slot
-        zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
-        save << SaveStates::save();
+        saveSaveState(buildSaveStateFilename(0));
     }
 
     if (ImGui::IsKeyPressed(GLFW_KEY_F2)) {  // Load from quick-save slot
@@ -796,15 +796,13 @@ void PCSX::GUI::endFrame() {
 
                 if (ImGui::BeginMenu(_("Save state slots"))) {
                     if (ImGui::MenuItem(_("Quick-save slot"), "F1")) {
-                        zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
-                        save << SaveStates::save();
+                        saveSaveState(buildSaveStateFilename(0));
                     }
 
                     for (auto i = 1; i < 10; i++) {
                         const auto str = fmt::format(f_("Slot {}"), i);
                         if (ImGui::MenuItem(str.c_str())) {
-                            zstr::ofstream save(buildSaveStateFilename(i), std::ios::binary);
-                            save << SaveStates::save();
+                            saveSaveState(buildSaveStateFilename(i));
                         }
                     }
 
@@ -825,8 +823,7 @@ void PCSX::GUI::endFrame() {
                 static constexpr char globalSaveState[] = "global.sstate";
 
                 if (ImGui::MenuItem(_("Save global state"))) {
-                    zstr::ofstream save(globalSaveState, std::ios::binary);
-                    save << SaveStates::save();
+                    saveSaveState(globalSaveState);
                 }
 
                 if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveState);
@@ -1903,23 +1900,35 @@ std::string PCSX::GUI::buildSaveStateFilename(int i) {
     }
 }
 
-void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
-    if (!std::filesystem::exists(std::filesystem::path(filename))) return;  // Return if the savestate doesn't exist
+void PCSX::GUI::saveSaveState(const std::filesystem::path& filename) {
+    // TODO: yeet this to libuv's threadpool.
+    ZWriter save(new UvFile(filename, FileOps::TRUNCATE), ZWriter::GZIP);
+    if (!save.failed()) save.writeString(SaveStates::save());
+    save.close();
+}
 
-    zstr::ifstream save(filename.string(), std::ios::binary);
+void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
+    ZReader save(new PosixFile(filename));
+    if (save.failed()) return;
     std::ostringstream os;
     constexpr unsigned buff_size = 1 << 16;
     char* buff = new char[buff_size];
+    bool error = false;
 
-    while (true) {
-        save.read(buff, buff_size);
-        std::streamsize cnt = save.gcount();
+    while (!save.eof()) {
+        auto cnt = save.read(buff, buff_size);
         if (cnt == 0) break;
+        if (cnt < 0) {
+            error = true;
+            break;
+        }
         os.write(buff, cnt);
     }
 
+    save.close();
     delete[] buff;
-    SaveStates::load(os.str());
+
+    if (!error) SaveStates::load(os.str());
 };
 
 void PCSX::GUI::byteRateToString(float rate, std::string& str) {
