@@ -22,63 +22,10 @@
 #include <queue>
 #include <string>
 
-#include "core/debug.h"
-#include "core/psxemulator.h"
-#include "core/psxmem.h"
 #include "support/eventbus.h"
-#include "support/hashtable.h"
-#include "support/list.h"
-#include "support/slice.h"
+#include "support/uvfile.h"
 
 namespace PCSX {
-class SIO1Client;
-class SIO1Server;
-
-class SIO1Client : public Intrusive::List<SIO1Client>::Node {
-  public:
-    typedef Intrusive::List<SIO1Client> ListType;
-
-    SIO1Client(uv_tcp_t* server);
-
-    bool accept(uv_tcp_t* server);
-    void close();
-
-  private:
-    enum class SIO1ClientStatus { CLOSED, OPEN, CLOSING };
-
-    struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
-        uv_buf_t m_buf = {};
-        Slice m_slice;
-        uv_write_t m_req = {};
-
-        WriteRequest() {}
-        WriteRequest(Slice&& slice) : m_slice(std::move(slice)) {}
-        void enqueue(SIO1Client* client);
-        static void writeCB(uv_write_t* request, int status);
-    };
-
-    SIO1ClientStatus m_status = SIO1ClientStatus::CLOSED;
-
-    static constexpr size_t BUFFER_SIZE = 4096;
-
-    void alloc(size_t suggestedSize, uv_buf_t* buf);
-    static void allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf);
-    static void closeCB(uv_handle_t* handle);
-    void processData(Slice&& slice);
-    void read(ssize_t nread, const uv_buf_t* buf);
-    static void readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf);
-    void write(unsigned char c);
-
-    bool m_allocated = false;
-    std::string m_buffer;
-    EventBus::Listener m_listener;
-    uv_loop_t* m_loop = NULL;
-    Intrusive::HashTable<uintptr_t, WriteRequest> m_requests;
-    uv_tcp_t m_tcp;
-
-    friend SIO1Server;
-};
-
 class SIO1Server {
   public:
     enum class SIO1ServerStatus {
@@ -93,21 +40,11 @@ class SIO1Server {
     void startServer(uv_loop_t* loop, int port = 6699);
     void stopServer();
 
-    void write(unsigned char c) {
-        for (auto& client : m_clients) client.write(c);
-    }
-
   private:
-    static void closeCB(uv_handle_t* handle);
-    void onNewConnection(int status);
-    static void onNewConnectionTrampoline(uv_stream_t* server, int status);
-
-    SIO1Client::ListType m_clients;
-    std::string m_gotError;
     EventBus::Listener m_listener;
-    uv_loop_t* m_loop = NULL;
-    uv_tcp_t m_server = {};
+    uv_async_t m_async;
     SIO1ServerStatus m_serverStatus = SIO1ServerStatus::SERVER_STOPPED;
+    UvFifoListener m_fifoListener;
 };
 
 }  // namespace PCSX

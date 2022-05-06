@@ -208,6 +208,8 @@ class Slice {
         return reinterpret_cast<const uint8_t *>(data())[offset];
     }
 
+    void reset() { m_data = std::monostate(); }
+
   private:
     void copyFrom(const Slice &other) {
         if (std::holds_alternative<Owned>(other.m_data)) {

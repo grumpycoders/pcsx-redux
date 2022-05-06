@@ -151,7 +151,7 @@ using json = nlohmann::json;
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     const CommandLine::args args(argc, argv);
-    PCSX::UvFile::UvFileThread uvThread;
+    PCSX::UvThreadOp::UvThread uvThread;
 
 #if defined(_WIN32) || defined(_WIN64)
     if (args.get<bool>("stdout")) {

@@ -67,9 +67,6 @@
 [submodule "third_party/capstone"]
 	path = third_party/capstone
 	url = https://github.com/capstone-engine/capstone.git
-[submodule "third_party/concurrentqueue"]
-	path = third_party/concurrentqueue
-	url = https://github.com/cameron314/concurrentqueue.git
 [submodule "third_party/curl"]
 	path = third_party/curl
 	url = https://github.com/curl/curl
@@ -78,4 +75,4 @@
 	url = https://github.com/TartanLlama/expected.git
 [submodule "third_party/vixl"]
 	path = third_party/vixl
-	url = https://github.com/wheremyfoodat/vixl
+	url = https://github.com/grumpycoders/vixl

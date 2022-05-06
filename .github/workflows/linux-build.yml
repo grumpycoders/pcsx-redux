@@ -12,17 +12,15 @@ jobs:
     container:
       image: grumpycoders/pcsx-redux-build:latest
       env:
-        CC: clang-11
-        CXX: clang++-11
-        LD: clang++-11
         TEST_RESULTS: /tmp/test-results
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          set-safe-directory: true
       - uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Fetch submodules
-        run: git submodule update --init --recursive
       - run: |
           make -j 2 all pcsx-redux-tests
           make -C src/mips/tests -j 2 PCSX_TESTS=true
