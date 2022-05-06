@@ -172,7 +172,7 @@ int PCSX::OpenGL_GPU::init() {
            
            gl_Position = vec4(xx, yy, 1.0, 1.0);
            vertexColor = vec4(color / 255.0, 1.0);
-           texCoords = inUV;
+           texCoords = inUV + vec2(+0.5, -0.5);
            texpageBase = ivec2((inTexpage & 0xf) * 64, ((inTexpage >> 4) & 0x1) * 256);
            clutBase = ivec2((inClut & 0x3f) * 16, inClut >> 6);
 
