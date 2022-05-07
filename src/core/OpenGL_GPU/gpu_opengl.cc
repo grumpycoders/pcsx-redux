@@ -180,8 +180,11 @@ int PCSX::OpenGL_GPU::init() {
            texpageBase = ivec2((inTexpage & 0xf) * 64, ((inTexpage >> 4) & 0x1) * 256);
            clutBase = ivec2((inClut & 0x3f) * 16, inClut >> 6);
 
-           if (inTexpage & 0x8000) texMode = 4;
-           else texMode = (inTexpage >> 7) & 3;
+           if (inTexpage & 0x8000) { // Untextured primitive
+               texMode = 4;
+           } else {
+               texMode = (inTexpage >> 7) & 3;
+           }
         }
     )";
 
@@ -237,15 +240,13 @@ int PCSX::OpenGL_GPU::init() {
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor.a = 1.0;
-           } else if (texMode == 2) { // 16bpp texture
+           } else { // Texture depth 2 and 3 both indicate 16bpp textures
                ivec2 texelCoord = ivec2(int(texCoords.x), int(texCoords.y)) + texpageBase;
                FragColor = texelFetch(u_vramTex, texelCoord, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor.a = 1.0;
            }
-
-           // texMode == 3 is invalid. We should see what it does on hardware eventually.
         }
     )";
 
