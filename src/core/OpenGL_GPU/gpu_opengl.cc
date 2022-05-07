@@ -138,6 +138,10 @@ int PCSX::OpenGL_GPU::init() {
 
         // inPos: The vertex position.
         // inColor: The colour in BGR888. Top 8 bits are garbage and are trimmed by the vertex shader to conserve CPU time 
+        // inClut: The CLUT (palette) for textured primitives
+        // inTexpage: The texpage. We use bit 15 for indicating an untextured primitive (1 = untextured). This
+        // lets us batch untextured and textured primitives together. Bit 15 is unused by hardware, so this is a possible optimization
+        // inUV: The UVs (texture coordinates) for textured primitives
 
         layout (location = 0) in ivec2 inPos;
         layout (location = 1) in uint inColor;
@@ -176,7 +180,8 @@ int PCSX::OpenGL_GPU::init() {
            texpageBase = ivec2((inTexpage & 0xf) * 64, ((inTexpage >> 4) & 0x1) * 256);
            clutBase = ivec2((inClut & 0x3f) * 16, inClut >> 6);
 
-           texMode = (inTexpage >> 7) & 3;
+           if (inTexpage & 0x8000) texMode = 4;
+           else texMode = (inTexpage >> 7) & 3;
         }
     )";
 
@@ -191,7 +196,6 @@ int PCSX::OpenGL_GPU::init() {
         out vec4 FragColor;
 
         uniform sampler2D u_vramTex;
-        uniform int u_textured = 0;
 
         int floatToU5(float f) {
             return int(floor(f * 31.0 + 0.5));
@@ -207,7 +211,7 @@ int PCSX::OpenGL_GPU::init() {
         }
 
         void main() {
-           if (u_textured == 0) {
+           if (texMode == 4) { // Untextured primitive
                FragColor = vertexColor;
            } else if (texMode == 0) { // 4bpp texture
                ivec2 texelCoord = ivec2(int(texCoords.x / 4), int(texCoords.y)) + texpageBase;
@@ -250,7 +254,6 @@ int PCSX::OpenGL_GPU::init() {
     m_untexturedTriangleProgram.create({frag, vert});
     m_untexturedTriangleProgram.use();
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vertexOffsets");
-    m_texturedLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_textured");
 
     const auto vramSamplerLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vramTex");
     glUniform1i(vramSamplerLoc, 0); // Make the fragment shader read from currently binded texture
@@ -498,7 +501,6 @@ void PCSX::OpenGL_GPU::updateDrawArea() {
 void PCSX::OpenGL_GPU::setScissorArea() {
     OpenGL::setScissor(m_scissorBox.x, m_scissorBox.y, m_scissorBox.width, m_scissorBox.height);
 }
-
 
 GLuint PCSX::OpenGL_GPU::getVRAMTexture() {
     if (!m_multisampled)

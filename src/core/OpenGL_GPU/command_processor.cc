@@ -86,7 +86,7 @@ void PCSX::OpenGL_GPU::cmdClearTexCache() {
 }
 
 void PCSX::OpenGL_GPU::cmdSetDrawMode() {
-    m_rectTexpage = m_cmdFIFO[0];
+    m_rectTexpage = m_cmdFIFO[0] & 0x3fff;
     PCSX::g_system->printf("Unimplemented set draw mode command: %08X\n", m_cmdFIFO[0]);
 }
 
@@ -132,6 +132,7 @@ void PCSX::OpenGL_GPU::cmdSetDrawOffset() {
 }
 
 void PCSX::OpenGL_GPU::cmdFillRect() {
+    renderBatch();
     const auto colour = m_cmdFIFO[0] & 0xffffff;
     const float r = float(colour & 0xff) / 255.f;
     const float g = float((colour >> 8) & 0xff) / 255.f;
@@ -143,7 +144,6 @@ void PCSX::OpenGL_GPU::cmdFillRect() {
     const uint32_t width = m_cmdFIFO[2] & 0xffff;
     const uint32_t height = m_cmdFIFO[2] >> 16;
 
-    renderBatch();
     OpenGL::setScissor(x0, y0, width, height);
     OpenGL::clearColor();
     setScissorArea();
@@ -209,12 +209,11 @@ void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
 
 // Command 2C temp stub
 void PCSX::OpenGL_GPU::theOminousTexturedQuad() {
-    renderBatch();
+    if (m_vertexCount + 6 >= vertexBufferSize) renderBatch();
     const uint32_t colour = m_cmdFIFO[0];
     const uint32_t clut = m_cmdFIFO[2] >> 16;
-    const uint32_t texpage = m_cmdFIFO[4] >> 16;
+    const uint32_t texpage = (m_cmdFIFO[4] >> 16) & 0x3fff;
 
-    glUniform1i(m_texturedLoc, 1);
     for (int i = 0; i < 3; i++) {
         const auto pos = m_cmdFIFO[i * 2 + 1];
         const auto uv = m_cmdFIFO[i * 2 + 2];
@@ -230,17 +229,13 @@ void PCSX::OpenGL_GPU::theOminousTexturedQuad() {
         m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, uv);
         m_vertexCount++;
     }
-
-    renderBatch();
-    glUniform1i(m_texturedLoc, 0);
 }
 
 void PCSX::OpenGL_GPU::theOminousTexturedShadedQuad() {
-    renderBatch();
+    if (m_vertexCount + 6 >= vertexBufferSize) renderBatch();
     const uint32_t clut = m_cmdFIFO[2] >> 16;
-    const uint32_t texpage = m_cmdFIFO[5] >> 16;
+    const uint32_t texpage = (m_cmdFIFO[5] >> 16) & 0x3fff;
 
-    glUniform1i(m_texturedLoc, 1);
     for (int i = 0; i < 3; i++) {
         const auto colour = m_cmdFIFO[i * 3];
         const auto pos = m_cmdFIFO[i * 3 + 1];
@@ -258,13 +253,10 @@ void PCSX::OpenGL_GPU::theOminousTexturedShadedQuad() {
         m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, uv);
         m_vertexCount++;
     }
-
-    renderBatch();
-    glUniform1i(m_texturedLoc, 0);
 }
 
 void PCSX::OpenGL_GPU::theOminousTexturedRect() {
-    renderBatch();
+    if (m_vertexCount + 6 >= vertexBufferSize) renderBatch();
     const uint32_t colour = m_cmdFIFO[0];
     const auto pos = m_cmdFIFO[1];
     const uint32_t clut = m_cmdFIFO[2] >> 16;
@@ -279,17 +271,12 @@ void PCSX::OpenGL_GPU::theOminousTexturedRect() {
     const int width = m_cmdFIFO[3] & 0x3ff;
     const int height = (m_cmdFIFO[3] >> 16) & 0x1ff;
 
-    glUniform1i(m_texturedLoc, 1);
-
     m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, u, v);
     m_vertices[m_vertexCount++] = Vertex(x + width, y, colour, clut, texpage, u + width, v);
     m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour, clut, texpage, u + width, v + height);
     m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour, clut, texpage, u + width, v + height);
     m_vertices[m_vertexCount++] = Vertex(x, y + height, colour, clut, texpage, u, v + height);
     m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, u, v);
-
-    renderBatch();
-    glUniform1i(m_texturedLoc, 0);
 }
 
 void PCSX::OpenGL_GPU::cmdUnimplemented() { PCSX::g_system->printf("Unknown GP0 command: %02X\n", m_cmdFIFO[0] >> 24); }

@@ -63,10 +63,14 @@ class OpenGL_GPU final : public GPU {
         uint16_t clut;
         OpenGL::Vector<uint16_t, 2> uv;
 
+        // We use bit 15 of the texpage attribute (normally unused) to indicate an untextured prim.
+        static constexpr uint16_t c_untexturedPrimitiveTexpage = 0x8000;
+
         Vertex(uint32_t x, uint32_t y, uint32_t col) {
             positions.x() = int(x) << 21 >> 21;
             positions.y() = int(y) << 21 >> 21;
             colour = col;
+            texpage = c_untexturedPrimitiveTexpage;
         }
 
         Vertex(uint32_t position, uint32_t col) {
@@ -75,6 +79,7 @@ class OpenGL_GPU final : public GPU {
             positions.x() = x << 21 >> 21;
             positions.y() = y << 21 >> 21;
             colour = col;
+            texpage = c_untexturedPrimitiveTexpage;
         }
 
         Vertex(uint32_t position, uint32_t col, uint16_t clut, uint16_t texpage,  uint32_t texcoords)
@@ -141,7 +146,6 @@ class OpenGL_GPU final : public GPU {
     int m_polygonModeIndex = 0;
 
     GLint m_drawingOffsetLoc;
-    GLint m_texturedLoc;
 
     int m_FIFOIndex;
     int m_cmd;
@@ -180,10 +184,11 @@ class OpenGL_GPU final : public GPU {
 
     template <Shading shading, Texturing mode>
     void drawVertex(int index, int vertexSize) {
+        uint32_t colour;
         if constexpr (shading == Shading::Flat) {
-            m_vertices[m_vertexCount].colour = m_cmdFIFO[0];
+            colour = m_cmdFIFO[0];
         } else {
-            m_vertices[m_vertexCount].colour = m_cmdFIFO[index * vertexSize];
+            colour = m_cmdFIFO[index * vertexSize];
         }
 
         /*
@@ -197,13 +202,7 @@ class OpenGL_GPU final : public GPU {
         */
 
         const uint32_t pos = m_cmdFIFO[index * vertexSize + 1];
-        // Sign extend vertices
-        const int x = int(pos) << 21 >> 21;
-        const int y = int(pos) << 5 >> 21;
-
-        m_vertices[m_vertexCount].positions.x() = x;
-        m_vertices[m_vertexCount].positions.y() = y;
-        m_vertexCount++;
+        m_vertices[m_vertexCount++] = Vertex(pos, colour);
     }
 
     template <PolyType type, Shading shading, Texturing mode = Texturing::None>
