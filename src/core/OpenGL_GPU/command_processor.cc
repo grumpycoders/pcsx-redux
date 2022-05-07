@@ -173,6 +173,7 @@ void PCSX::OpenGL_GPU::cmdCopyRectToVRAM() {
 }
 
 void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
+    renderBatch();
     const uint32_t coords = m_cmdFIFO[1];
     const uint32_t res = m_cmdFIFO[2];
     // TODO: Sanitize this
