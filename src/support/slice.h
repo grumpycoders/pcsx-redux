@@ -113,7 +113,7 @@ class Slice {
             m_data = Inlined{size};
             dest = std::get<Inlined>(m_data).inlined;
         } else {
-            m_data = Owned{size, malloc(size)};
+            m_data.emplace<Owned>(size, malloc(size));
             dest = std::get<Owned>(m_data).ptr;
         }
         memcpy(dest, data, size);
@@ -232,6 +232,17 @@ class Slice {
     };
     struct Owned {
         ~Owned() { free(ptr); }
+        Owned(uint32_t size, void * ptr) : size(size), ptr(ptr) {}
+        Owned(const Owned & other) { abort(); }
+        Owned(Owned &&other) : ptr(other.ptr), size(other.size) { other.ptr = nullptr; }
+        Owned & operator=(const Owned & other) { abort(); return *this; }
+        Owned & operator=(Owned &&other) {
+            if (ptr) free(ptr);
+            ptr = other.ptr;
+            size = other.size;
+            other.ptr = nullptr;
+            return *this;
+        }
         uint32_t size;
         void *ptr;
     };
