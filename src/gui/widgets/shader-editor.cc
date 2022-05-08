@@ -170,6 +170,7 @@ void PCSX::Widgets::ShaderEditor::init() {
 std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
                                                            const std::vector<std::string_view> &mandatoryAttributes) {
     m_setupVAO = true;
+    m_shaderProjMtxLoc = -1;
     GLint status = 0;
     GUI::ScopedOnlyLog scopedOnlyLog(gui);
 
@@ -345,6 +346,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
         glDeleteProgram(m_shaderProgram);
     }
     m_shaderProgram = shaderProgram;
+    m_shaderProjMtxLoc = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
     return shaderProgram;
 }
 
@@ -619,18 +621,18 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
 void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
     GLuint textureID = static_cast<GLuint>(reinterpret_cast<uintptr_t>(cmd->TextureId));
 
-    GLfloat currentProjection[4][4];
-    GLint imguiProgramID;
-    glGetIntegerv(GL_CURRENT_PROGRAM, &imguiProgramID);
-
-    GLint projMatrixLocation = glGetUniformLocation(imguiProgramID, "ProjMtx");
-    glGetUniformfv(imguiProgramID, projMatrixLocation, &currentProjection[0][0]);
-
-    glUseProgram(m_shaderProgram);
-    int proj = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
-    if (proj >= 0) {
-        glUniformMatrix4fv(proj, 1, GL_FALSE, &currentProjection[0][0]);
+    GLfloat projMtx[4][4];
+    if (m_imguiProjMtxLoc == -1) {
+        glGetIntegerv(GL_CURRENT_PROGRAM, &m_imguiProgram);
+        m_imguiProjMtxLoc = glGetUniformLocation(m_imguiProgram, "ProjMtx");
     }
+
+    // Get projection matrix from the Imgui program
+    glUseProgram(m_shaderProgram);
+    glGetUniformfv(m_imguiProgram, m_imguiProjMtxLoc, &projMtx[0][0]);
+
+    // Send projection matrix to our shader
+    glUniformMatrix4fv(m_shaderProjMtxLoc, 1, GL_FALSE, &projMtx[0][0]);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
     auto &Lorg = g_emulator->m_lua;
@@ -783,6 +785,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     }
 
     GLfloat currentProjection[4][4];
+
     currentProjection[0][0] = 1.0f;
     currentProjection[0][1] = 0.0f;
     currentProjection[0][2] = 0.0f;
@@ -799,10 +802,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     currentProjection[3][1] = 0.0f;
     currentProjection[3][2] = 0.0f;
     currentProjection[3][3] = 1.0f;
-    int proj = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
-    if (proj >= 0) {
-        glUniformMatrix4fv(proj, 1, GL_FALSE, &currentProjection[0][0]);
-    }
+    glUniformMatrix4fv(m_shaderProjMtxLoc, 1, GL_FALSE, &currentProjection[0][0]);
 
     glBindTexture(GL_TEXTURE_2D, textureID);
 

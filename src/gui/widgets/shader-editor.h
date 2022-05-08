@@ -90,6 +90,9 @@ class ShaderEditor {
 
     GLuint m_vao = 0;
     GLuint m_vbo = 0;
+    GLint m_imguiProjMtxLoc = -1; // -1 = not found
+    GLint m_shaderProjMtxLoc = -1;
+    GLint m_imguiProgram = 0;
 
     GUI* m_cachedGui = nullptr;
 };
