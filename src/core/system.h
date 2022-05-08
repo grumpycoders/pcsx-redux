@@ -30,8 +30,8 @@
 #include <vector>
 
 #include "flags.h"
-#include "fmt/printf.h"
 #include "fmt/format.h"
+#include "fmt/printf.h"
 #include "imgui.h"
 #include "support/djbhash.h"
 #include "support/eventbus.h"

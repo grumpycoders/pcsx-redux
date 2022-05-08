@@ -107,9 +107,7 @@ class SystemImpl final : public PCSX::System {
         // emulator is requesting a shutdown of the emulation
     }
 
-    virtual void purgeAllEvents() final override {
-        uv_run(getLoop(), UV_RUN_DEFAULT);
-    }
+    virtual void purgeAllEvents() final override { uv_run(getLoop(), UV_RUN_DEFAULT); }
 
     virtual void testQuit(int code) final override {
         if (m_args.get<bool>("testmode")) {
