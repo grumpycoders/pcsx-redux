@@ -162,18 +162,16 @@ bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
     char tagtag[6];
     file->read(tagtag, 5);
     tagtag[5] = 0;
+    std::string tagsStorage;
 
     std::map<std::string_view, std::string_view> pairs;
 
     if (strcmp(tagtag, "[TAG]") == 0) {
         size_t tagsSize = file->size() - file->rTell();
-        std::string tags;
-        tags.reserve(tagsSize);
+        tagsStorage = file->readString(tagsSize);
+        std::string_view tags = tagsStorage;
 
-        file->read(tags.data(), tagsSize);
-        char* cr;
-
-        auto lines = StringsHelpers::split(std::string_view(tags.data(), tags.size()), "\n\r");
+        auto lines = StringsHelpers::split(tags, "\n\r");
 
         for (auto& line : lines) {
             auto e = line.find('=', 0);
