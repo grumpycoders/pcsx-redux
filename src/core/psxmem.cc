@@ -156,12 +156,6 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
     if (!f->failed()) {
         f->read(m_psxR, bios_size);
         f->close();
-        if ((m_psxR[0] == 0x7f) && (m_psxR[1] == 'E') && (m_psxR[2] == 'L') && (m_psxR[3] == 'F')) {
-            Elf e;
-            if (e.load(biosPath.string())) m_elfs.push_back(std::move(e));
-            auto [entry, stack] = (--m_elfs.end())->findByAddress(0xbfc00000);
-            if (entry.valid()) PCSX::g_system->printf(_("BIOS entry point: %s\n"), entry.get_description());
-        }
         PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
     }
     uint32_t adler = adler32(0L, Z_NULL, 0);
