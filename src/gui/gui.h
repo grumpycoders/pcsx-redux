@@ -31,7 +31,6 @@
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/callstacks.h"
 #include "gui/widgets/console.h"
-#include "gui/widgets/dwarf.h"
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
@@ -43,8 +42,6 @@
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
 #include "gui/widgets/sio1.h"
-#include "gui/widgets/source.h"
-#include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
@@ -281,10 +278,6 @@ class GUI final {
     Widgets::VRAMViewer m_clutVRAMviewer;
     Widgets::VRAMViewer m_VRAMviewers[4];
 
-    Widgets::Dwarf m_dwarf;
-
-    Widgets::Types m_types;
-    Widgets::Source m_source;
     Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
 
     Widgets::Events m_events;

@@ -326,9 +326,6 @@
     <ProjectReference Include="..\..\libcurl\libcurl.vcxproj">
       <Project>{25c13988-a8a8-4bfa-962f-0833020e4ee4}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\libelfin\libelfin.vcxproj">
-      <Project>{65df2840-29d7-46fc-868d-201cf2b651e0}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\libuv\libuv.vcxproj">
       <Project>{4b88e4f6-56b3-4f66-bee8-0a4a21937bee}</Project>
     </ProjectReference>

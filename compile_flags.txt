@@ -12,7 +12,6 @@
 -Ithird_party/imgui/misc/cpp
 -Ithird_party/imgui_club
 -Ithird_party/http-parser
--Ithird_party/libelfin
 -Ithird_party/luajit/src
 -Ithird_party/luv/src
 -Ithird_party/luv/deps/lua-compat-5.3/c-api

@@ -992,14 +992,9 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     PCSX::g_emulator->m_gpu->stopDump();
                 }
                 ImGui::Separator();
-                ImGui::MenuItem(_("Show types"), nullptr, &m_types.m_show);
-                ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
-                ImGui::Separator();
                 ImGui::MenuItem(_("Fullscreen render"), nullptr, &m_fullscreenRender);
                 ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
                 ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
-                ImGui::Separator();
-                ImGui::MenuItem(_("Show raw DWARF info"), nullptr, &m_dwarf.m_show);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -1152,7 +1147,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), &m_dwarf, _("Assembly"));
+        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), _("Assembly"));
     }
 
     if (m_disassembly.m_show && PCSX::g_emulator->m_cpu->isDynarec()) {
@@ -1169,15 +1164,6 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     changed |= about();
     interruptsScaler();
-
-    if (m_dwarf.m_show) {
-        m_dwarf.draw(_("Dwarf"));
-    }
-
-    m_types.draw();
-    if (m_source.m_show) {
-        m_source.draw(_("Source"), g_emulator->m_cpu->m_regs.pc, this);
-    }
 
     if (m_outputShaderEditor.draw(this, _("Output Video"))) {
         // maybe throttle this?
