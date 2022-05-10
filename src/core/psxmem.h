@@ -22,7 +22,6 @@
 #include <string_view>
 #include <vector>
 
-#include "core/elfloader.h"
 #include "core/psxemulator.h"
 
 #if defined(__BIGENDIAN__)
@@ -134,12 +133,10 @@ class Memory {
 
     void setLuts();
 
-    const std::vector<Elf> getElves() const { return m_elfs; }
     uint32_t getBiosAdler32() { return m_biosAdler32; }
     std::string_view getBiosVersionString();
 
   private:
-    std::vector<Elf> m_elfs;
     int m_writeok = 1;
     uint32_t m_biosAdler32 = 0;
 };

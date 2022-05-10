@@ -244,7 +244,6 @@
     <ClCompile Include="..\..\src\gui\widgets\breakpoints.cc" />
     <ClCompile Include="..\..\src\gui\widgets\callstacks.cc" />
     <ClCompile Include="..\..\src\gui\widgets\console.cc" />
-    <ClCompile Include="..\..\src\gui\widgets\dwarf.cc" />
     <ClCompile Include="..\..\src\gui\widgets\dynarec_disassembly.cc" />
     <ClCompile Include="..\..\src\gui\widgets\events.cc" />
     <ClCompile Include="..\..\src\gui\widgets\filedialog.cc" />
@@ -257,8 +256,6 @@
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\shader-editor.cc" />
     <ClCompile Include="..\..\src\gui\widgets\sio1.cc" />
-    <ClCompile Include="..\..\src\gui\widgets\source.cc" />
-    <ClCompile Include="..\..\src\gui\widgets\types.cc" />
     <ClCompile Include="..\..\src\gui\widgets\vram-viewer.cc" />
     <ClCompile Include="..\..\src\gui\widgets\zep-lua.cc" />
     <ClCompile Include="..\..\src\gui\widgets\zep.cc" />
@@ -271,7 +268,6 @@
     <ClInclude Include="..\..\src\gui\widgets\breakpoints.h" />
     <ClInclude Include="..\..\src\gui\widgets\callstacks.h" />
     <ClInclude Include="..\..\src\gui\widgets\console.h" />
-    <ClInclude Include="..\..\src\gui\widgets\dwarf.h" />
     <ClInclude Include="..\..\src\gui\widgets\dynarec_disassembly.h" />
     <ClInclude Include="..\..\src\gui\widgets\events.h" />
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h" />
@@ -284,8 +280,6 @@
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />
     <ClInclude Include="..\..\src\gui\widgets\shader-editor.h" />
     <ClInclude Include="..\..\src\gui\widgets\sio1.h" />
-    <ClInclude Include="..\..\src\gui\widgets\source.h" />
-    <ClInclude Include="..\..\src\gui\widgets\types.h" />
     <ClInclude Include="..\..\src\gui\widgets\vram-viewer.h" />
     <ClInclude Include="..\..\src\gui\widgets\zep-lua.h" />
     <ClInclude Include="..\..\src\gui\widgets\zep.h" />
