@@ -83,13 +83,13 @@ void PCSX::GUI::openUrl(const std::string_view& url) {
 }
 #elif defined(__APPLE__) && defined(__MACH__)
 #include <stdlib.h>
-void PCSX::GUI::openUrl(const std::string& url) {
+void PCSX::GUI::openUrl(const std::string_view& url) {
     auto cmd = fmt::format("open {}", url);
     system(cmd.c_str());
 }
 #else
 #include <stdlib.h>
-void PCSX::GUI::openUrl(const std::string& url) {
+void PCSX::GUI::openUrl(const std::string_view& url) {
     auto cmd = fmt::format("xdg-open {}", url);
     system(cmd.c_str());
 }
