@@ -28,7 +28,6 @@ jobs:
       - name: Packaging
         run: |
           make install install-openbios DESTDIR=AppDir/usr
-          echo "BUILD=`git rev-parse HEAD | cut -c 1-8`" >> $GITHUB_ENV
           echo '{' > AppDir/usr/share/pcsx-redux/resources/version.json
           echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> AppDir/usr/share/pcsx-redux/resources/version.json
           echo '  "changeset": "'`git rev-parse HEAD`'",' >> AppDir/usr/share/pcsx-redux/resources/version.json
@@ -54,6 +53,8 @@ jobs:
         env:
           APPCENTER_ACCESS_TOKEN: ${{ secrets.LINUX_APPCENTER_ACCESS_TOKEN }}
         run: |
+          git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
+          export BUILD=`git rev-parse HEAD | cut -c 1-8`
           . /usr/local/nvm/nvm.sh
           zip PCSX-Redux-$BUILD-linux-x86_64.zip *.AppImage
           appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD-linux-x86_64.zip -g public -a grumpycoders/pcsx-redux-linux64 --disable-telemetry
