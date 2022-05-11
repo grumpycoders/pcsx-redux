@@ -35,6 +35,7 @@ RUN apt install -y curl wget
 RUN apt install -y xvfb
 RUN apt install -y python3-pip python3-setuptools patchelf desktop-file-utils libgdk-pixbuf2.0-dev fakeroot strace
 RUN apt install -y glibc-tools lcov
+RUN apt install -y file
 WORKDIR /tmp
 RUN wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage && \
     chmod +x /tmp/appimagetool-x86_64.AppImage && \
