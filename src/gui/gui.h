@@ -44,6 +44,7 @@
 #include "gui/widgets/sio1.h"
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
+#include "imgui_md/imgui_md.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/eventbus.h"
@@ -76,6 +77,31 @@ class GUI final {
     std::vector<std::string> m_glErrors;
 
   public:
+    struct MarkDown : public imgui_md {
+        MarkDown() {}
+        MarkDown(std::map<std::string_view, std::function<void()>> &&customURLs)
+            : m_customURLs(std::move(customURLs)) {}
+        int print(const std::string_view text) {
+            const char *ptr = text.data();
+            const char *end = ptr + text.size();
+            return imgui_md::print(ptr, end);
+        }
+
+        void open_url() const override {
+            if (m_href.starts_with("http")) {
+                openUrl(m_href);
+                return;
+            }
+            auto i = m_customURLs.find(m_href);
+            if (i != m_customURLs.end()) i->second();
+        }
+
+        bool get_image(image_info &nfo) const override { return false; }
+
+      private:
+        std::map<std::string_view, std::function<void()>> m_customURLs;
+    };
+    static void openUrl(const std::string_view &url);
     void setOnlyLogGLErrors(bool value) { m_onlyLogGLErrors = value; }
     class ScopedOnlyLog {
       public:
@@ -322,6 +348,7 @@ class GUI final {
     Update m_update;
     bool m_updateAvailable = false;
     bool m_updateDownloading = false;
+    bool m_aboutSelectAuthors = false;
 
   public:
     bool hasJapanese() { return m_hasJapanese; }

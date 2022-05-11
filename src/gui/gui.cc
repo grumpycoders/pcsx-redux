@@ -17,9 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#define GLFW_INCLUDE_NONE
-#include "gui/gui.h"
+// These need to go first
+#include "support/windowswrapper.h"
+#ifdef _WIN32
+#include <shellapi.h>
+#endif
 
+// And only then we can load the rest
+#define GLFW_INCLUDE_NONE
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <assert.h>
@@ -49,6 +54,7 @@
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gpu/soft/externals.h"
+#include "gui/gui.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
 #include "imgui.h"
@@ -69,6 +75,23 @@
 extern "C" {
 _declspec(dllexport) DWORD NvOptimusEnablement = 1;
 _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
+}
+
+void PCSX::GUI::openUrl(const std::string_view& url) {
+    std::string storage = std::string(url);
+    ShellExecuteA(0, 0, storage.c_str(), 0, 0, SW_SHOW);
+}
+#elif defined(__APPLE__) && defined(__MACH__)
+#include <stdlib.h>
+void PCSX::GUI::openUrl(const std::string_view& url) {
+    auto cmd = fmt::format("open {}", url);
+    system(cmd.c_str());
+}
+#else
+#include <stdlib.h>
+void PCSX::GUI::openUrl(const std::string_view& url) {
+    auto cmd = fmt::format("xdg-open {}", url);
+    system(cmd.c_str());
 }
 #endif
 
@@ -1750,11 +1773,28 @@ bool PCSX::GUI::about() {
                 }
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem(_("Authors"))) {
+            ImGuiTabItemFlags flag = 0;
+            if (m_aboutSelectAuthors) {
+                flag |= ImGuiTabItemFlags_SetSelected;
+                m_aboutSelectAuthors = false;
+            }
+            if (ImGui::BeginTabItem(_("Authors"), nullptr, flag)) {
                 ImGui::BeginChild("Authors", ImVec2(0, 0), true);
-                ImGui::Text("%s",
+                ImGui::TextUnformatted(
 #include "AUTHORS"
                 );
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(_("Licenses"))) {
+                ImGui::BeginChild("Licenses", ImVec2(0, 0), true);
+
+                static MarkDown md({{"AUTHORS", [this]() { m_aboutSelectAuthors = true; }}});
+                std::string_view text =
+#include "LICENSES.md"
+                    ;
+                md.print(text);
+
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
