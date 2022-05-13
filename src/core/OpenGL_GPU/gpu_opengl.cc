@@ -44,6 +44,7 @@ void PCSX::OpenGL_GPU::reset() {
     m_vramReadBufferSize = 0;
     m_FIFOIndex = 0;
     m_vertexCount = 0;
+    m_syncVRAM = true;
     m_vramReadBuffer.clear();
     m_vramWriteBuffer.clear();
     m_displayArea.setEmpty();
@@ -176,7 +177,7 @@ int PCSX::OpenGL_GPU::init() {
            
            gl_Position = vec4(xx, yy, 1.0, 1.0);
            vertexColor = vec4(color / 255.0, 1.0);
-           texCoords = inUV + vec2(+0.5, +0.5);
+           texCoords = inUV;
            texpageBase = ivec2((inTexpage & 0xf) * 64, ((inTexpage >> 4) & 0x1) * 256);
            clutBase = ivec2((inClut & 0x3f) * 16, inClut >> 6);
 
@@ -214,13 +215,22 @@ int PCSX::OpenGL_GPU::init() {
         }
 
         void main() {
+           //ivec2 UV = ivec2(round(texCoords + vec2(0.5, 0.5))) & ivec2(0xff);
+           //ivec2 UV = ivec2(round(texCoords + vec2(0.001))) & ivec2(0xff);
+           //ivec2 UV = ivec2(round(texCoords + vec2(0.0))) & ivec2(0xff);
+           //ivec2 UV = ivec2(floor(texCoords + vec2(0.0001))) & ivec2(0xff);
+           //ivec2 UV = ivec2(floor(texCoords + vec2(0.0))) & ivec2(0xff);
+           //ivec2 UV = ivec2(floor(texCoords + vec2(0.0001))) & ivec2(0xff);
+           //ivec2 UV = ivec2(round(texCoords)) & ivec2(0xff);
+           ivec2 UV = ivec2(round(texCoords + vec2(-0.5, +0.5))) & ivec2(0xff);
+
            if (texMode == 4) { // Untextured primitive
                FragColor = vertexColor;
            } else if (texMode == 0) { // 4bpp texture
-               ivec2 texelCoord = ivec2(int(texCoords.x / 4), int(texCoords.y)) + texpageBase;
+               ivec2 texelCoord = ivec2(UV.x >> 2, UV.y) + texpageBase;
                
                int sample = sample16(texelCoord);
-               int shift = (int(texCoords.x) & 3) << 2;
+               int shift = (UV.x & 3) << 2;
                int clutIndex = (sample >> shift) & 0xf;
 
                ivec2 sampleCoords = ivec2(clutBase.x + clutIndex, clutBase.y);
@@ -229,10 +239,10 @@ int PCSX::OpenGL_GPU::init() {
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor.a = 1.0;
            } else if (texMode == 1) { // 8bpp texture
-               ivec2 texelCoord = ivec2(int(texCoords.x / 2), int(texCoords.y)) + texpageBase;
+               ivec2 texelCoord = ivec2(UV.x >> 1, UV.y) + texpageBase;
                
                int sample = sample16(texelCoord);
-               int shift = (int(texCoords.x) & 1) << 3;
+               int shift = (UV.x & 1) << 3;
                int clutIndex = (sample >> shift) & 0xff;
 
                ivec2 sampleCoords = ivec2(clutBase.x + clutIndex, clutBase.y);
@@ -241,7 +251,7 @@ int PCSX::OpenGL_GPU::init() {
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor.a = 1.0;
            } else { // Texture depth 2 and 3 both indicate 16bpp textures
-               ivec2 texelCoord = ivec2(int(texCoords.x), int(texCoords.y)) + texpageBase;
+               ivec2 texelCoord = UV + texpageBase;
                FragColor = texelFetch(u_vramTex, texelCoord, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
@@ -329,7 +339,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                                     GL_UNSIGNED_SHORT_1_5_5_5_REV, m_vramWriteBuffer.data());
                     m_sampleTexture.bind();
                     m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
-                    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, vramWidth, vramHeight);
+                    m_syncVRAM = true;
                     m_vramWriteBuffer.clear();
                     
                     // Since the texture transfer has ended, this word actually marks the start of a new GP0 command
@@ -545,6 +555,11 @@ void PCSX::OpenGL_GPU::vblank() {
 
 void PCSX::OpenGL_GPU::renderBatch() {
     if (m_vertexCount > 0) {
+        if (m_syncVRAM) {
+            m_syncVRAM = false;
+            glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, vramWidth, vramHeight);
+        }
+
         m_vbo.bufferVertsSub(&m_vertices[0], m_vertexCount);
         OpenGL::draw(OpenGL::Triangles, m_vertexCount);
         m_vertexCount = 0;

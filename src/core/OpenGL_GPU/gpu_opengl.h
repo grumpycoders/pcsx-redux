@@ -154,6 +154,7 @@ class OpenGL_GPU final : public GPU {
     int m_remainingWords = 0;
     int m_lastCommandHash = 0;
     bool m_haveCommand = false;
+    bool m_syncVRAM;
     uint32_t m_rectTexpage = 0; // Rects have their own texpage settings
     uint32_t m_vramReadBufferSize = 0;
     uint32_t m_vramReadBufferIndex = 0;

@@ -56,6 +56,7 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x20] = &OpenGL_GPU::drawPoly<PolyType::Triangle, Shading::Flat, Texturing::None>;
     m_cmdFuncs[0x22] = &OpenGL_GPU::drawPoly<PolyType::Triangle, Shading::Flat, Texturing::None>;  // TODO: Transparency
     m_cmdFuncs[0x28] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::None>;
+    m_cmdFuncs[0x29] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::None>;
 
     //m_cmdFuncs[0x2C] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;  // TODO: Blending
     m_cmdFuncs[0x2C] = &OpenGL_GPU::theOminousTexturedQuad;
@@ -80,9 +81,7 @@ void PCSX::OpenGL_GPU::initCommands() {
 
 void PCSX::OpenGL_GPU::cmdNop() {}
 void PCSX::OpenGL_GPU::cmdClearTexCache() {
-    //  Refresh our sample texture when the texture cache is flushed
-    m_sampleTexture.bind();
-    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, vramWidth, vramHeight);
+    m_syncVRAM = true;
 }
 
 void PCSX::OpenGL_GPU::cmdSetDrawMode() {
