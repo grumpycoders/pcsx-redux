@@ -8,6 +8,8 @@
 # dependencies to do so. The script expects to be run as root.
 #
 
+set -ex
+
 wget https://ftp.gnu.org/gnu/binutils/binutils-2.38.tar.gz
 tar xvfz binutils-2.38.tar.gz
 cd binutils-2.38
