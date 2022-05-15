@@ -194,7 +194,8 @@ In addition to the above methods, the File API has these helpers, that'll read o
 The Lua VM can create File objects in two different ways:
 ```lua
 Support.File.open(filename[, type])
-Support.File.buffer([size])
+Support.File.buffer()
+Support.File.buffer(ptr, size[, type])
 ```
 
 The `open` function will function on filesystem and network URLs, while the `buffer` function will generate a memory-only File object that's fully readable, writable, and seekable. The `type` argument of the `open` function will determine what happens exactly. It's a string that can have the following values:
@@ -205,6 +206,12 @@ The `open` function will function on filesystem and network URLs, while the `buf
 - `READWRITE`: Opens the file for reading and writing. Will fail if the file does not exist.
 - `DOWNLOAD_URL`: Opens the file for reading only. Will immediately start downloading the file from the network. The [curl](http://curl.se/libcurl) is the backend for this feature, and its [url schemes](https://everything.curl.dev/cmdline/urls) are supported. The progress of the download can be monitored with the `:cacheProgress()` method.
 - `DOWNLOAD_URL_AND_WAIT`: As above, but suspends the current coroutine until the download is done. Cannot be used with the main thread.
+- `ACQUIRE`: Only valid for `buffer`. See below.
+
+When calling `buffer()` with no argument, this will create an empty read-write buffer. When calling it with a pointer and a size, this will have the following behavior, depending on type:
+- `READWRITE` (or no type): The memory passed as an argument will be copied first.
+- `READ`: The memory passed as an argument will be referenced, and the lifespan of said memory needs to outlast the File object. The File object will be read-only.
+- `ACQUIRE`: It will acquire the pointer passed as an argument, and free it later using `free()`, meaning it needed to be allocated using `malloc()` in the first place.
 
 #### Iso files
 There is some limited API for working with ISO files.
