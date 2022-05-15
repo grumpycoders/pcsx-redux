@@ -449,7 +449,9 @@ This breakpoint will be triggered when the main game loop at `0x80042068` is exe
 In the Lua console, paste the following and hit enter.
 
 ```lua
-bp = PCSX.addBreakpoint(0x80042068, 'Exec', 4, 'Stormy Ascent', function() PCSX.getMemPtr()[0x11db0] = 0x22 end)
+bp = PCSX.addBreakpoint(0x80042068, 'Exec', 4, 'Stormy Ascent', function()
+  PCSX.getMemPtr()[0x11db0] = 0x22
+end)
 ```
 
 We can now disable/remove our Read breakpoint using the Breakpoints UI, and restart the game. Emulation → Hard Reset
