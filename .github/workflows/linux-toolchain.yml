@@ -1,0 +1,23 @@
+name: Linux CI toolchain
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  toolchain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          set-safe-directory: true
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build toolchains
+        run: tools/linux-mips/spawn-compiler.sh
+      - name: Build OpenBIOS with it
+        run: make -C src/mips/openbios -j 2 all
