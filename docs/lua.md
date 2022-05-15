@@ -64,6 +64,38 @@ The `AfterPollingCleanup` function will be called exactly once, then deleted. Th
 
 Note that the function may be called pretty frequently, so it's important to keep it fast.
 
+This can also be used to move an unprotected callback to a protected environment. In particular, `luv` will call its callbacks on an unprotected Lua environment. A good method to create a safe TCP client is to do the following:
+
+```lua
+function createClient(ip, port)
+  client = luv.new_tcp()
+
+  luv.tcp_connect(client, ip, port, function (err)
+    local oldCleanup = AfterPollingCleanup
+    AfterPollingCleanup = function()
+      if oldCleanup then oldCleanup() end
+      assert(not err, err)
+
+      luv.read_start(client, function (err, chunk)
+        pprint("received at client", {err=err,chunk=chunk})
+        assert(not err, err)
+        if chunk then
+          luv.shutdown(client)
+        else
+          luv.close(client)
+        end
+      end)
+
+      pprint("writing from client")
+      luv.write(client, "Hello")
+      luv.write(client, "World")
+
+    end
+  end)
+  return client
+end
+```
+
 #### File API
 While the io API isn't exposed, there's a more powerful API that's more tightly integrated with the rest of the PCSX-Redux File handling code. It's an abstraction class that allows seamless manipulation of various objects using a common API.
 
