@@ -16,13 +16,15 @@ make
 make install-strip
 cd ..
 
-wget https://ftp.gnu.org/gnu/gcc/gcc-11.3.0/gcc-11.3.0.tar.gz
-tar xvfz gcc-11.3.0.tar.gz
-cd gcc-11.3.0
+wget https://ftp.gnu.org/gnu/gcc/gcc-12.1.0/gcc-12.1.0.tar.gz
+tar xvfz gcc-12.1.0.tar.gz
+cd gcc-12.1.0
 mkdir build
 cd build
-../configure --target=mipsel-none-elf --without-isl --disable-nls --disable-threads --disable-shared --disable-libssp --disable-libstdcxx-pch --disable-libgomp --disable-werror --without-headers --with-as=/usr/local/bin/mipsel-none-elf-as --with-ld=/usr/local/bin/mipsel-none-elf-ld --enable-languages=c,c++
+../configure --target=mipsel-none-elf --without-isl --disable-nls --disable-threads --disable-shared --disable-libssp --disable-libstdcxx-pch --disable-libgomp --disable-werror --without-headers --disable-hosted-libstdcxx --with-as=/usr/local/bin/mipsel-none-elf-as --with-ld=/usr/local/bin/mipsel-none-elf-ld --enable-languages=c,c++
 make all-gcc
 make install-strip-gcc
 make all-target-libgcc
 make install-strip-target-libgcc
+make all-target-libstdc++-v3
+make install-strip-target-libstdc++-v3
