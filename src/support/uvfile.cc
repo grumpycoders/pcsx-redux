@@ -699,7 +699,7 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
     // something to parse uri here
     auto host = std::string(address);
     request([this, host, port](auto loop) {
-        uv_tcp_t* tcp = new uv_tcp_t();
+        uv_tcp_t *tcp = new uv_tcp_t();
         uv_tcp_init(loop, tcp);
         tcp->data = this;
         m_tcp = tcp;
@@ -709,10 +709,10 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
             uv_close(reinterpret_cast<uv_handle_t *>(tcp), [](uv_handle_t *handle) {});
             return;
         }
-        uv_connect_t* connect = new uv_connect_t();
+        uv_connect_t *connect = new uv_connect_t();
         connect->data = this;
         result = uv_tcp_connect(connect, tcp, reinterpret_cast<const sockaddr *>(&connectAddr),
-                                [](uv_connect_t* connect, int status) {
+                                [](uv_connect_t *connect, int status) {
                                     if (status < 0) return;
                                     UvFifo *fifo = reinterpret_cast<UvFifo *>(connect->data);
                                     fifo->process(reinterpret_cast<uv_tcp_t *>(connect->handle));

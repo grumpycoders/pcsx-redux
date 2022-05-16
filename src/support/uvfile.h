@@ -131,8 +131,9 @@ class UvFile : public File, public UvThreadOp {
     virtual bool eof() final override;
     virtual std::filesystem::path filename() final override { return m_filename; }
     virtual File* dup() final override {
-        return m_download ? new UvFile(m_filename.string(), DOWNLOAD_URL)
-                          : writable() ? new UvFile(m_filename, FileOps::READWRITE) : new UvFile(m_filename);
+        return m_download   ? new UvFile(m_filename.string(), DOWNLOAD_URL)
+               : writable() ? new UvFile(m_filename, FileOps::READWRITE)
+                            : new UvFile(m_filename);
     }
 
     // Open the file in read-only mode.
