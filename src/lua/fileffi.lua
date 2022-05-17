@@ -219,12 +219,10 @@ local function startCachingAndWait(self)
     captures.current = coroutine.running()
     if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
     captures.callback = function()
-        local oldCleanup = AfterPollingCleanup
-        AfterPollingCleanup = function()
-            if oldCleanup then oldCleanup() end
+        PCSX.nextTick(function()
             captures.callback:free()
             coroutine.resume(captures.current)
-        end
+        end)
     end
     captures.callback = ffi.cast('void (*)()', captures.callback)
     if C.startFileCachingWithCallback(self._wrapper, captures.callback) then
@@ -313,12 +311,10 @@ local function open(filename, t)
         captures.current = coroutine.running()
         if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
         captures.callback = function()
-            local oldCleanup = AfterPollingCleanup
-            AfterPollingCleanup = function()
-                if oldCleanup then oldCleanup() end
+            PCSX.nextTick(function()
                 captures.callback:free()
                 coroutine.resume(captures.current)
-            end
+            end)
         end
         captures.callback = ffi.cast('void (*)()', captures.callback)
         local ret = createFileWrapper(C.openFileAndWait(filename, captures.callback))

@@ -154,6 +154,13 @@ PCSX = {
     hardResetEmulator = function() C.hardResetEmulator() end,
     log = function(...) printLike(C.luaLog, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
+    nextTick = function(f)
+        local oldCleanup = AfterPollingCleanup
+        AfterPollingCleanup = function()
+            if oldCleanup then oldCleanup() end
+            f()
+        end
+     end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end
