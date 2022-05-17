@@ -42,49 +42,43 @@ The [PPrint](https://github.com/jagt/pprint.lua) library is loaded globally as t
 #### ImGui interaction
 PCSX-Redux will periodically try to call the Lua function `DrawImguiFrame` to allow the Lua code to draw some widgets on screen. The function will be called exactly once per actual UI frame draw, which, when the emulator is running, will correspond to the emulated GPU's vsync. If the function throws an exception however, it will be disabled until recompiled with new code.
 
-#### Events Engine interaction
-Every time the events are polled, PCSX-Redux will try to call the function `AfterPollingCleanup`. This is mainly because LuaJIT C callbacks can't resume coroutines as the Lua context isn't properly picked up there, so callbacks can schedule resuming coroutines the following way:
+#### Events Engine interaction & Execution Contexts
+LuaJIT C callbacks aren't called from a safe execution context that can allow for coroutine resuming, and luv's execution context doesn't have any error handling.
+
+It is possible to defer executing code to the main loop of PCSX, which can (a) resume coroutines and (b) execute code in a safe context. The function `PCSX.nextTick(func)` will execute the given function in the next main loop iteration. Here's some examples of how to use it:
 
 ```lua
     local captures = {}
     captures.current = coroutine.running()
     captures.callback = function()
-        local oldCleanup = AfterPollingCleanup
-        AfterPollingCleanup = function()
-            if oldCleanup then oldCleanup() end
+        PCSX.nextTick(function()
             captures.callback:free()
             coroutine.resume(captures.current)
-        end
+        end)
     end
     captures.callback = ffi.cast('void (*)()', captures.callback)
     -- use the C callback somewhere...
 ```
-
-The `AfterPollingCleanup` function will be called exactly once, then deleted. The callback will be called from the main thread, so it's safe to resume coroutines from there.
-
-Note that the function may be called pretty frequently, so it's important to keep it fast.
-
-This can also be used to move an unprotected callback to a protected environment. In particular, `luv` will call its callbacks on an unprotected Lua environment. A good method to create a safe TCP client is to do the following:
 
 ```lua
 function createClient(ip, port)
   client = luv.new_tcp()
 
   luv.tcp_connect(client, ip, port, function (err)
-    local oldCleanup = AfterPollingCleanup
-    AfterPollingCleanup = function()
-      if oldCleanup then oldCleanup() end
+    PCSX.nextTick(function()
       assert(not err, err)
 
       luv.read_start(client, function (err, chunk)
-        pprint("received at client", {err=err,chunk=chunk})
-        assert(not err, err)
-        if chunk then
-          luv.shutdown(client)
-        else
-          luv.close(client)
-        end
-      end)
+        PCSX.nextTick(function()
+          pprint("received at client", {err=err, chunk=chunk})
+          assert(not err, err)
+          if chunk then
+            -- do something with the client
+          else
+            luv.close(client)
+          end
+        end)
+      )
 
       pprint("writing from client")
       luv.write(client, "Hello")
@@ -95,6 +89,8 @@ function createClient(ip, port)
   return client
 end
 ```
+
+Of course, this can also delay processing significantly, as the main loop is usually bound to the speed of the UI, which can mean up to 13ms of delay.
 
 #### File API
 While the io API isn't exposed, there's a more powerful API that's more tightly integrated with the rest of the PCSX-Redux File handling code. It's an abstraction class that allows seamless manipulation of various objects using a common API.
