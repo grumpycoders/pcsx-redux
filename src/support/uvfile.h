@@ -212,7 +212,7 @@ class UvFifo : public File, public UvThreadOp {
 
   private:
     UvFifo(uv_tcp_t*);
-    void process(uv_tcp_t*);
+    void startRead(uv_tcp_t*);
     virtual bool canCache() const override { return false; }
     uv_tcp_t* m_tcp = nullptr;
     void* m_buffer = nullptr;
