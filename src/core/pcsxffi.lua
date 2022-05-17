@@ -160,7 +160,7 @@ PCSX = {
             if oldCleanup then oldCleanup() end
             f()
         end
-     end,
+    end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end
