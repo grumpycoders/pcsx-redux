@@ -696,6 +696,7 @@ PCSX::UvFifo::UvFifo(uv_tcp_t *tcp) : File(File::FileType::RW_STREAM) {
 
 PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File::FileType::RW_STREAM) {
     m_failed.clear();
+    m_connecting.test_and_set();
     // something to parse uri here
     uv_tcp_t *tcp = new uv_tcp_t();
     tcp->data = this;
@@ -712,11 +713,13 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
         connect->data = this;
         result = uv_tcp_connect(connect, m_tcp, reinterpret_cast<const sockaddr *>(&connectAddr),
                                 [](uv_connect_t *connect, int status) {
+                                    UvFifo *fifo = reinterpret_cast<UvFifo *>(connect->data);
                                     if (status < 0) {
+                                        fifo->m_failed.test_and_set();
                                         delete connect;
                                         return;
                                     }
-                                    UvFifo *fifo = reinterpret_cast<UvFifo *>(connect->data);
+                                    fifo->m_connecting.clear();
                                     fifo->startRead(reinterpret_cast<uv_tcp_t *>(connect->handle));
                                 });
         if (result != 0) {

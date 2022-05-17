@@ -209,6 +209,7 @@ class UvFifo : public File, public UvThreadOp {
     virtual size_t size() final override { return m_size.load(); }
     virtual bool eof() final override { return m_closed.load() && (m_size.load() == 0); }
     virtual bool failed() final override { return m_failed.test(); }
+    bool isConnecting() { return m_connecting.test(); }
 
   private:
     UvFifo(uv_tcp_t*);
@@ -222,6 +223,7 @@ class UvFifo : public File, public UvThreadOp {
     ConcurrentQueue<Slice> m_queue;
     std::atomic<size_t> m_size = 0;
     std::atomic_flag m_failed;
+    std::atomic_flag m_connecting;
     Slice m_slice;
     size_t m_currentPtr = 0;
     friend class UvFifoListener;
