@@ -71,6 +71,7 @@ LuaFile* bufferFileEmpty() { return new LuaFile(new PCSX::BufferFile(PCSX::FileO
 LuaFile* subFile(LuaFile* wrapper, uint64_t start, int64_t size) {
     return new LuaFile(new PCSX::SubFile(wrapper->file, start, size));
 }
+LuaFile* uvFifo(const char* address, int port) { return new LuaFile(new PCSX::UvFifo(address, port)); }
 
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
 
@@ -188,6 +189,7 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, bufferFileAcquire);
     REGISTER(L, bufferFileEmpty);
     REGISTER(L, subFile);
+    REGISTER(L, uvFifo);
 
     REGISTER(L, closeFile);
 
