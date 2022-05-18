@@ -29,9 +29,12 @@
 #include "core/sio1-server.h"
 #include "core/sstate.h"
 #include "support/file.h"
+#include "support/protobuf.h"
+#include <compare>
 
 //#define SIO1_CYCLES (m_regs.baud * 8)
 #define SIO1_CYCLES (1)
+#define SIO1_PB_VERSION (2)
 
 namespace PCSX {
 
@@ -42,6 +45,18 @@ struct SIO1Registers {
     uint16_t control;
     uint16_t baud;
 };
+
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("dxr"), 1> FlowControlDXR;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("xts"), 2> FlowControlXTS;
+typedef Protobuf::Message<TYPESTRING("FlowControl"), FlowControlDXR, FlowControlXTS> FlowControl;
+typedef Protobuf::MessageField<FlowControl, TYPESTRING("flow_control"), 3> FlowControlField;
+typedef Protobuf::Field<Protobuf::Bytes, TYPESTRING("data"), 1> DataTransferData;
+typedef Protobuf::Message<TYPESTRING("DataTransfer"), DataTransferData> DataTransfer;
+typedef Protobuf::MessageField<DataTransfer, TYPESTRING("data_transfer"), 2> DataTransferField;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("version_number"), 1> VersionNumber;
+typedef Protobuf::Message<TYPESTRING("Version"), VersionNumber> Version;
+typedef Protobuf::MessageField<Version, TYPESTRING("version_field"), 1> VersionField;
+typedef Protobuf::Message<TYPESTRING("SIOPayload"), VersionField, DataTransferField, FlowControlField> SIOPayload;
 
 class SIO1 {
     /*
