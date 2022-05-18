@@ -58,6 +58,7 @@ PCSX::Emulator::Emulator()
       m_webServer(new PCSX::WebServer()),
       m_sio1(new PCSX::SIO1()),
       m_sio1Server(new PCSX::SIO1Server()),
+      m_sio1Client(new PCSX::SIO1Client()),
       m_debug(new PCSX::Debug()),
       m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),
