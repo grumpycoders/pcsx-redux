@@ -187,11 +187,12 @@ In addition to the above methods, the File API has these helpers, that'll read o
 :writeI8At(val, pos), :writeI16At(val, pos), :writeI32At(val, pos), :writeI64At(val, pos),
 ```
 
-The Lua VM can create File objects in two different ways:
+The Lua VM can create File objects in different ways:
 ```lua
 Support.File.open(filename[, type])
 Support.File.buffer()
 Support.File.buffer(ptr, size[, type])
+Support.File.uvFifo(address, port)
 ```
 
 The `open` function will function on filesystem and network URLs, while the `buffer` function will generate a memory-only File object that's fully readable, writable, and seekable. The `type` argument of the `open` function will determine what happens exactly. It's a string that can have the following values:
@@ -208,6 +209,8 @@ When calling `buffer()` with no argument, this will create an empty read-write b
 - `READWRITE` (or no type): The memory passed as an argument will be copied first.
 - `READ`: The memory passed as an argument will be referenced, and the lifespan of said memory needs to outlast the File object. The File object will be read-only.
 - `ACQUIRE`: It will acquire the pointer passed as an argument, and free it later using `free()`, meaning it needed to be allocated using `malloc()` in the first place.
+
+The `uvFifo` function will create a File object that will read from and write to the specified TCP address and port after connecting to it. The `:failed()` method will return true in case of a connection failure. The address is a string, and must be a strict IP address. The port is a number. As the name suggests, this object is a FIFO, meaning that incoming bytes will be consumed by any read operation. The `:size()` method will return the number of bytes in the FIFO. Writes will be immediately sent over. There are no reception guarantees, as the other side might have disconnected at any point. The `:eof()` method will return true when the opposite end of the stream has been disconnected and there's no more bytes in the FIFO.
 
 #### Iso files
 There is some limited API for working with ISO files.
