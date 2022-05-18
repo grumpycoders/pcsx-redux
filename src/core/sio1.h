@@ -91,6 +91,18 @@ class SIO1 {
         g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
     }
 
+    void stopSIO1Connection() {
+        m_decodeState = READ_SIZE;
+        messageSize = 0;
+        initialMessage = true;
+        m_sio1fifo.reset();
+        m_fifo.reset();
+    }
+
+    bool fifoError() {
+        return (!m_fifo || m_fifo->failed());
+    }
+
     uint8_t readBaud8() { return m_regs.baud; }
     uint16_t readBaud16() { return m_regs.baud; }
 

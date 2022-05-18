@@ -19,6 +19,130 @@
 
 #include "core/sio1.h"
 
+PCSX::SIOPayload PCSX::SIO1::makeFCMessage() {
+    m_prevFlowControl = m_flowControl;
+    return SIOPayload {
+        Version { SIO1_PB_VERSION },
+        DataTransfer {},
+        FlowControl { m_flowControl.dxr, m_flowControl.xts },
+    };
+}
+
+PCSX::SIOPayload PCSX::SIO1::makeDataMessage(std::string data) {
+    pollFlowControl();
+    return SIOPayload {
+        Version { SIO1_PB_VERSION },
+        DataTransfer {
+            DataTransferData { data },
+        },
+        FlowControl {m_flowControl.dxr, m_flowControl.xts},
+    };
+}
+
+void PCSX::SIO1::encodeDataMessage() {
+    if (fifoError()) return;
+
+    SIOPayload payload;
+    std::string txByte(1, m_regs.data);
+    payload = makeDataMessage(txByte);
+    Protobuf::OutSlice outslice;
+    payload.serialize(&outslice);
+    std::string data = outslice.finalize();
+
+    uint8_t size = data.size();
+    m_fifo->write<uint8_t>(size);
+    Slice txData;
+    txData.acquire(std::move(data));
+    m_fifo->write(std::move(txData));
+}
+
+void PCSX::SIO1::encodeFCMessage() {
+    if (fifoError() || m_fifo->eof()) return;
+    pollFlowControl();
+    if (!initialMessage) {
+        if (m_flowControl == m_prevFlowControl) return;
+    }
+
+    SIOPayload payload;
+    payload = makeFCMessage();
+    Protobuf::OutSlice outslice;
+    payload.serialize(&outslice);
+    std::string data = outslice.finalize();
+
+    uint8_t size = data.size();
+    m_fifo->write<uint8_t>(size);
+    Slice sliceFc;
+    sliceFc.acquire(std::move(data));
+    m_fifo->write(std::move(sliceFc));
+    if (initialMessage) {
+        if (!m_fifo.asA<UvFifo>()->isConnecting())
+            g_system->printf("%s", _("SIO1 client connected\n"));
+        initialMessage = false;
+    }
+}
+
+void PCSX::SIO1::decodeMessage() {
+    if (fifoError()) return;
+    std::string message = m_fifo->readString(messageSize);
+
+    SIOPayload payload;
+    Protobuf::InSlice inslice(reinterpret_cast<const uint8_t*>(message.data()), message.size());
+    try {
+        payload.deserialize(&inslice, 0);
+    } catch(...) {
+        g_system->message("%s", _("SIO1 TCP session closing due to unreliable connection.\nRestart SIO1 server/client and try again."));
+        g_system->log(LogClass::SIO1, "SIO1 TCP session closing due to unreliable connection\n");
+        stopSIO1Connection();
+        return;
+    }
+    processMessage(payload);
+}
+
+void PCSX::SIO1::processMessage(SIOPayload payload) {
+    if (payload.get<FlowControlField>().hasData()) {
+        setDsr(payload.get<FlowControlField>().get<FlowControlDXR>().value);
+        setCts(payload.get<FlowControlField>().get<FlowControlXTS>().value);
+    } else {
+        setDsr(false);
+        setCts(false);
+    }
+    if (payload.get<DataTransferField>().get<DataTransferData>().hasData()) {
+        std::string byte = payload.get<DataTransferField>().get<DataTransferData>().value;
+        PCSX::Slice pushByte;
+        pushByte.acquire(std::move(byte));
+        if (m_regs.control & CR_RTS) {
+            m_sio1fifo.pushSlice(std::move(pushByte));
+            receiveCallback();
+        }
+    }
+}
+
+void PCSX::SIO1::sio1StateMachine() {
+    if (fifoError()) return;
+
+    if (m_sio1Mode == SIO1Mode::Raw) {
+        if (m_fifo->size() > 0) {
+            auto byte = m_fifo->byte();
+            Slice rxByte;
+            rxByte.copy(static_cast<uint8_t*>(&byte), 1);
+            m_sio1fifo.pushSlice(std::move(rxByte));
+            receiveCallback();
+        }
+        return;
+    }
+
+    switch (m_decodeState) {
+        case READ_SIZE: while (m_fifo->size() >= 1) {
+            messageSize = m_fifo->byte();
+            m_decodeState = READ_MESSAGE;
+        case READ_MESSAGE:
+            if (m_fifo->size() < messageSize) return;
+            decodeMessage();
+            m_decodeState = READ_SIZE;
+        }
+    }
+}
+
 void PCSX::SIO1::interrupt() {
     SIO1_LOG("SIO1 Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
     m_regs.status |= SR_IRQ;
