@@ -238,5 +238,6 @@ class SIO1 {
     Fifo m_sio1fifo;
 
     friend class SIO1Server;
+    friend class SIO1Client;
 };
 }  // namespace PCSX
