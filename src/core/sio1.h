@@ -110,8 +110,8 @@ class SIO1 {
     uint16_t readCtrl16() { return m_regs.control; }
 
     uint8_t readData8();
-    uint16_t readData16() { return psxHu16(0x1050); }
-    uint32_t readData32() { return psxHu32(0x1050); }
+    uint16_t readData16();
+    uint32_t readData32();
 
     uint8_t readMode8() { return m_regs.mode; }
     uint16_t readMode16() { return m_regs.mode; }
@@ -235,6 +235,7 @@ class SIO1 {
     bool isTransmitReady();
 
     IO<File> m_fifo;
+    Fifo m_sio1fifo;
 
     friend class SIO1Server;
 };

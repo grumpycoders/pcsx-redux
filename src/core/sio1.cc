@@ -176,11 +176,30 @@ void PCSX::SIO1::interrupt() {
 uint8_t PCSX::SIO1::readData8() {
     updateStat();
     if (m_regs.status & SR_RXRDY) {
-        m_regs.data = m_fifo->byte();
+        m_regs.data = m_sio1fifo.byte();
         psxHu8(0x1050) = m_regs.data;
     }
     updateStat();
+    return m_regs.data;
+}
 
+uint16_t PCSX::SIO1::readData16() {
+    updateStat();
+    if (m_regs.status & SR_RXRDY) {
+        m_sio1fifo.read(&m_regs.data, 2);
+        psxHu16(0x1050) = m_regs.data;
+    }
+    updateStat();
+    return m_regs.data;
+}
+
+uint32_t PCSX::SIO1::readData32() {
+    updateStat();
+    if (m_regs.status & SR_RXRDY) {
+        m_sio1fifo.read(&m_regs.data, 4);
+        psxHu32(0x1050) = m_regs.data;
+    }
+    updateStat();
     return m_regs.data;
 }
 
@@ -201,24 +220,23 @@ uint32_t PCSX::SIO1::readStat32() {
 
 void PCSX::SIO1::receiveCallback() {
     updateStat();
-
     if (m_regs.control & CR_RXIRQEN) {
         if (!(m_regs.status & SR_IRQ)) {
             switch ((m_regs.control & 0x300) >> 8) {
                 case 0:
-                    if (!(m_fifo->size() >= 1)) return;
+                    if (!(m_sio1fifo.size() >= 1)) return;
                     break;
 
                 case 1:
-                    if (!(m_fifo->size() >= 2)) return;
+                    if (!(m_sio1fifo.size() >= 2)) return;
                     break;
 
                 case 2:
-                    if (!(m_fifo->size() >= 4)) return;
+                    if (!(m_sio1fifo.size() >= 4)) return;
                     break;
 
                 case 3:
-                    if (!(m_fifo->size() >= 8)) return;
+                    if (!(m_sio1fifo.size() >= 8)) return;
                     break;
             }
 
@@ -229,7 +247,16 @@ void PCSX::SIO1::receiveCallback() {
 }
 
 void PCSX::SIO1::transmitData() {
-    if (m_fifo) m_fifo->write<uint8_t>(m_regs.data);
+    if (fifoError() || m_fifo->eof()) return;
+    switch (m_sio1Mode) {
+        case SIO1Mode::Protobuf:
+            encodeDataMessage();
+            break;
+        case SIO1Mode::Raw:
+            m_fifo->write<uint8_t>(m_regs.data);
+            break;
+    }
+
     if (m_regs.control & CR_TXIRQEN) {
         if (m_regs.status & SR_TXRDY || m_regs.status & SR_TXRDY2) {
             if (!(m_regs.status & SR_IRQ)) {
@@ -245,16 +272,18 @@ bool PCSX::SIO1::isTransmitReady() {
 }
 
 void PCSX::SIO1::updateStat() {
-    if (m_fifo && m_fifo->size() > 0) {
+    if (m_sio1fifo.size() > 0) {
         m_regs.status |= SR_RXRDY;
     } else {
         m_regs.status &= ~SR_RXRDY;
     }
-
     psxHu32ref(0x1054) = SWAP_LEu32(m_regs.status);
 }
+
 void PCSX::SIO1::writeBaud16(uint16_t v) {
     m_regs.baud = v;
+    if (m_sio1Mode == SIO1Mode::Protobuf)
+        encodeFCMessage();
     psxHu8ref(0x105E) = m_regs.baud;
 }
 
@@ -281,21 +310,24 @@ void PCSX::SIO1::writeCtrl16(uint16_t v) {
 
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
     }
-
+    if (m_sio1Mode == SIO1Mode::Protobuf)
+        encodeFCMessage();
     psxHu16ref(0x105A) = SWAP_LE16(m_regs.control);
 }
 
 void PCSX::SIO1::writeData8(uint8_t v) {
     m_regs.data = v;
-
     if (isTransmitReady()) {
         transmitData();
     }
-
     psxHu8ref(0x1050) = m_regs.data;
 }
 
-void PCSX::SIO1::writeMode16(uint16_t v) { m_regs.mode = v; }
+void PCSX::SIO1::writeMode16(uint16_t v) {
+    if (m_sio1Mode == SIO1Mode::Protobuf)
+        encodeFCMessage();
+    m_regs.mode = v;
+}
 
 void PCSX::SIO1::writeStat32(uint32_t v) {
     m_regs.status = v;
