@@ -131,8 +131,9 @@ class UvFile : public File, public UvThreadOp {
     virtual bool eof() final override;
     virtual std::filesystem::path filename() final override { return m_filename; }
     virtual File* dup() final override {
-        return m_download ? new UvFile(m_filename.string(), DOWNLOAD_URL)
-                          : writable() ? new UvFile(m_filename, FileOps::READWRITE) : new UvFile(m_filename);
+        return m_download   ? new UvFile(m_filename.string(), DOWNLOAD_URL)
+               : writable() ? new UvFile(m_filename, FileOps::READWRITE)
+                            : new UvFile(m_filename);
     }
 
     // Open the file in read-only mode.
@@ -200,15 +201,19 @@ class UvFile : public File, public UvThreadOp {
 
 class UvFifo : public File, public UvThreadOp {
   public:
-    UvFifo(uv_tcp_t*);
+    UvFifo(const std::string_view address, unsigned port);
     virtual void close() final override;
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t write(const void* src, size_t size) final override;
     virtual void write(Slice&& slice) final override;
     virtual size_t size() final override { return m_size.load(); }
     virtual bool eof() final override { return m_closed.load() && (m_size.load() == 0); }
+    virtual bool failed() final override { return m_failed.test(); }
+    bool isConnecting() { return m_connecting.test(); }
 
   private:
+    UvFifo(uv_tcp_t*);
+    void startRead(uv_tcp_t*);
     virtual bool canCache() const override { return false; }
     uv_tcp_t* m_tcp = nullptr;
     void* m_buffer = nullptr;
@@ -217,8 +222,11 @@ class UvFifo : public File, public UvThreadOp {
     const size_t c_chunkSize = 4096;
     ConcurrentQueue<Slice> m_queue;
     std::atomic<size_t> m_size = 0;
+    std::atomic_flag m_failed;
+    std::atomic_flag m_connecting;
     Slice m_slice;
     size_t m_currentPtr = 0;
+    friend class UvFifoListener;
 };
 
 class UvFifoListener : public UvThreadOp {
