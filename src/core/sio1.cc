@@ -22,20 +22,17 @@
 PCSX::SIOPayload PCSX::SIO1::makeFCMessage() {
     m_prevFlowControl = m_flowControl;
     return SIOPayload {
-        Version { SIO1_PB_VERSION },
         DataTransfer {},
         FlowControl { m_flowControl.dxr, m_flowControl.xts },
     };
 }
 
-PCSX::SIOPayload PCSX::SIO1::makeDataMessage(std::string data) {
-    pollFlowControl();
+PCSX::SIOPayload PCSX::SIO1::makeDataMessage(std::string &&data) {
     return SIOPayload {
-        Version { SIO1_PB_VERSION },
         DataTransfer {
-            DataTransferData { data },
+            DataTransferData { std::move(data) },
         },
-        FlowControl {m_flowControl.dxr, m_flowControl.xts},
+        FlowControl {},
     };
 }
 
@@ -44,7 +41,7 @@ void PCSX::SIO1::encodeDataMessage() {
 
     SIOPayload payload;
     std::string txByte(1, m_regs.data);
-    payload = makeDataMessage(txByte);
+    payload = makeDataMessage(std::move(txByte));
     Protobuf::OutSlice outslice;
     payload.serialize(&outslice);
     std::string data = outslice.finalize();
@@ -58,6 +55,7 @@ void PCSX::SIO1::encodeDataMessage() {
 
 void PCSX::SIO1::encodeFCMessage() {
     if (fifoError() || m_fifo->eof()) return;
+
     pollFlowControl();
     if (!initialMessage) {
         if (m_flowControl == m_prevFlowControl) return;
@@ -102,10 +100,11 @@ void PCSX::SIO1::processMessage(SIOPayload payload) {
     if (payload.get<FlowControlField>().hasData()) {
         setDsr(payload.get<FlowControlField>().get<FlowControlDXR>().value);
         setCts(payload.get<FlowControlField>().get<FlowControlXTS>().value);
-    } else {
-        setDsr(false);
-        setCts(false);
+    } else if (!payload.get<DataTransferField>().get<DataTransferData>().hasData()) {
+            setDsr(false);
+            setCts(false);
     }
+
     if (payload.get<DataTransferField>().get<DataTransferData>().hasData()) {
         std::string byte = payload.get<DataTransferField>().get<DataTransferData>().value;
         PCSX::Slice pushByte;
