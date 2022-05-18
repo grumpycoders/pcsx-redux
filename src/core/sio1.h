@@ -79,7 +79,7 @@ class SIO1 {
     void interrupt();
 
     void reset() {
-        m_fifo.reset();
+        m_sio1fifo.reset();
         m_regs.data = 0;
         m_regs.status = (SR_TXRDY | SR_TXRDY2 | SR_DSR | SR_CTS);
         m_regs.mode = 0;
@@ -209,7 +209,7 @@ class SIO1 {
         CR_RXEN = 0x0004,
         CR_TXOUTLVL = 0x0008,
         CR_ACK = 0x0010,
-        CR_RTSOUTLVL = 0x0020,
+        CR_RTS = 0x0020,
         CR_RESET = 0x0040,  // RESET INT?
         CR_UNKNOWN = 0x0080,
         CR_RXIRQMODE = 0x0100,  // FIFO byte count, need to implement

@@ -288,13 +288,7 @@ void PCSX::SIO1::writeBaud16(uint16_t v) {
 }
 
 void PCSX::SIO1::writeCtrl16(uint16_t v) {
-    uint16_t old_ctrl = m_regs.control;
     m_regs.control = v;
-    if (!(old_ctrl & CR_TXEN) && (m_regs.control & CR_TXEN)) {
-        if (isTransmitReady()) {
-            transmitData();
-        }
-    }
 
     if (m_regs.control & CR_ACK) {
         m_regs.control &= ~CR_ACK;
@@ -307,6 +301,8 @@ void PCSX::SIO1::writeCtrl16(uint16_t v) {
         m_regs.mode = 0;
         m_regs.control = 0;
         m_regs.baud = 0;
+        m_regs.data = 0;
+        m_sio1fifo.reset();
 
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
     }
