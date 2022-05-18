@@ -94,6 +94,7 @@ class Counters {
 
   public:
     uint32_t m_psxNextCounter, m_psxNextsCounter;
+    bool m_pollSIO1 = false; // For SIO1 polling
 
     void init();
     void update();
