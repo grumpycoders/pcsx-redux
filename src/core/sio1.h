@@ -73,6 +73,9 @@ class SIO1 {
      */
 
   public:
+    enum class SIO1Mode { Raw, Protobuf };
+    SIO1Mode m_sio1Mode = SIO1Mode::Protobuf;
+    SIO1Mode getSIO1Mode() { return m_sio1Mode; }
     void interrupt();
 
     void reset() {
@@ -82,7 +85,9 @@ class SIO1 {
         m_regs.mode = 0;
         m_regs.control = 0;
         m_regs.baud = 0;
-
+        m_decodeState = READ_SIZE;
+        messageSize = 0;
+        initialMessage = true;
         g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
     }
 
@@ -129,10 +134,48 @@ class SIO1 {
     void writeStat32(uint32_t v);
 
     void receiveCallback();
+    void sio1StateMachine();
 
     SIO1Registers m_regs;
 
   private:
+    uint8_t messageSize = 0;
+    bool initialMessage = true;
+    SIOPayload makeDataMessage(std::string data);
+    SIOPayload makeFCMessage();
+    void decodeMessage();
+    void encodeDataMessage();
+    void encodeFCMessage();
+    void processMessage(SIOPayload payload);
+
+    struct flowControl {
+        bool dxr;
+        bool xts;
+        auto operator<=>(const flowControl&) const = default;
+    };
+
+    flowControl m_flowControl = {};
+    flowControl m_prevFlowControl = {};
+    inline void pollFlowControl() {
+        m_flowControl.dxr = (m_regs.control & CR_DTR);
+        m_flowControl.xts = (m_regs.control & CR_RTS);
+    }
+
+    inline void setDsr(bool value) {
+        if (value) {
+            m_regs.status |= SR_DSR;
+        } else {
+            m_regs.status &= ~SR_DSR;
+        }
+    }
+    inline void setCts(bool value) {
+        if (value) {
+            m_regs.status |= SR_CTS;
+        } else {
+            m_regs.status &= ~SR_CTS;
+        }
+    }
+
     enum {
         // Status Flags
         SR_TXRDY = 0x0001,
@@ -167,6 +210,11 @@ class SIO1 {
         // I_STAT
         IRQ8_SIO = 0x100
     };
+
+    enum {
+        READ_SIZE,
+        READ_MESSAGE
+    } m_decodeState = READ_SIZE;
 
     inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
 
