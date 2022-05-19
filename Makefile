@@ -119,6 +119,7 @@ SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/imgui_md/imgui_md.cpp
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/md4c/src/md4c.c
+SRCS += third_party/multipart-parser-c/multipart_parser.c
 SRCS += third_party/tracy/TracyClient.cpp
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)

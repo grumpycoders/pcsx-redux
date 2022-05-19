@@ -368,6 +368,9 @@
     <ProjectReference Include="..\md4c\md4c.vcxproj">
       <Project>{b90d7510-9ab2-47e9-a1d8-bc307902a0a6}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\multipart-parser\multipart-parser.vcxproj">
+      <Project>{de9d9c53-5caa-4542-8c27-72d84334f9e3}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\soft\soft.vcxproj">
       <Project>{660a9963-15e0-4b91-a5cf-bed493e862ec}</Project>
     </ProjectReference>
