@@ -25,9 +25,9 @@
 #include <bitset>
 #include <stdexcept>
 
-#include "core/misc.h"
 #include "core/pad.h"
 #include "support/sjis_conv.h"
+#include "support/strings-helpers.h"
 
 // clk cycle byte
 // 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
@@ -324,9 +324,6 @@ uint16_t PCSX::SIO::readBaud16() { return m_baudReg; }
 void PCSX::SIO::netError() {
     // ClosePlugins();
     PCSX::g_system->message("%s", _("Connection closed!\n"));
-
-    PCSX::g_emulator->m_cdromId[0] = '\0';
-    PCSX::g_emulator->m_cdromLabel[0] = '\0';
 }
 
 void PCSX::SIO::interrupt() {

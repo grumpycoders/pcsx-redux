@@ -1,4 +1,20 @@
 -- lualoader, R"EOF(--
+--   Copyright (C) 2022 PCSX-Redux authors
+--
+--   This program is free software; you can redistribute it and/or modify
+--   it under the terms of the GNU General Public License as published by
+--   the Free Software Foundation; either version 2 of the License, or
+--   (at your option) any later version.
+--
+--   This program is distributed in the hope that it will be useful,
+--   but WITHOUT ANY WARRANTY; without even the implied warranty of
+--   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--   GNU General Public License for more details.
+--
+--   You should have received a copy of the GNU General Public License
+--   along with this program; if not, write to the
+--   Free Software Foundation, Inc.,
+--   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ffi.cdef [[
 typedef union {
     struct {
@@ -38,7 +54,7 @@ uint8_t* getMemPtr();
 uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
-Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)());
+Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause));
 void enableBreakpoint(Breakpoint*);
 void disableBreakpoint(Breakpoint*);
 bool breakpointEnabled(Breakpoint*);
@@ -62,7 +78,7 @@ end
 
 local meta = { __gc = garbageCollect }
 
-local function defaultInvoker()
+local function defaultInvoker(address, width, cause)
     C.pauseEmulator()
     return true
 end
@@ -84,8 +100,9 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
     local invokercb = defaultInvoker
     if invoker ~= nil then
         if type(invoker) ~= 'function' then error 'PCSX.addBreakpoint needs an invoker that is a function' end
-        invokercb = function()
-            local ret = invoker()
+        invokercb = function(address, width, cause)
+            cause = ffi.string(cause)
+            local ret = invoker(address, width, cause)
             if ret == false then
                 return false
             else
@@ -93,7 +110,7 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
             end
         end
     end
-    local invokercb = ffi.cast('bool (*)()', invokercb)
+    local invokercb = ffi.cast('bool (*)(uint32_t address, unsigned width, const char* cause)', invokercb)
     local wrapper = C.addBreakpoint(address, bptype, width, cause, invokercb)
     local bp = {
         _wrapper = wrapper,
@@ -137,6 +154,13 @@ PCSX = {
     hardResetEmulator = function() C.hardResetEmulator() end,
     log = function(...) printLike(C.luaLog, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
+    nextTick = function(f)
+        local oldCleanup = AfterPollingCleanup
+        AfterPollingCleanup = function()
+            if oldCleanup then oldCleanup() end
+            f()
+        end
+    end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end

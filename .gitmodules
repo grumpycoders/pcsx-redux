@@ -10,9 +10,6 @@
 [submodule "third_party/libuv"]
 	path = third_party/libuv
 	url = https://github.com/libuv/libuv.git
-[submodule "third_party/zstr"]
-	path = third_party/zstr
-	url = https://github.com/mateidavid/zstr.git
 [submodule "third_party/uC-sdk"]
 	path = third_party/uC-sdk
 	url = https://github.com/grumpycoders/uC-sdk.git
@@ -67,9 +64,18 @@
 [submodule "third_party/capstone"]
 	path = third_party/capstone
 	url = https://github.com/capstone-engine/capstone.git
-[submodule "third_party/concurrentqueue"]
-	path = third_party/concurrentqueue
-	url = https://github.com/cameron314/concurrentqueue.git
 [submodule "third_party/curl"]
 	path = third_party/curl
 	url = https://github.com/curl/curl
+[submodule "third_party/expected"]
+	path = third_party/expected
+	url = https://github.com/TartanLlama/expected.git
+[submodule "third_party/vixl"]
+	path = third_party/vixl
+	url = https://github.com/grumpycoders/vixl
+[submodule "third_party/md4c"]
+	path = third_party/md4c
+	url = https://github.com/mity/md4c.git
+[submodule "third_party/imgui_md"]
+	path = third_party/imgui_md
+	url = https://github.com/mekhontsev/imgui_md.git

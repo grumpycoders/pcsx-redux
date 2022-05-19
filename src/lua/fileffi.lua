@@ -1,4 +1,20 @@
 -- lualoader, R"EOF(--
+--   Copyright (C) 2022 PCSX-Redux authors
+--
+--   This program is free software; you can redistribute it and/or modify
+--   it under the terms of the GNU General Public License as published by
+--   the Free Software Foundation; either version 2 of the License, or
+--   (at your option) any later version.
+--
+--   This program is distributed in the hope that it will be useful,
+--   but WITHOUT ANY WARRANTY; without even the implied warranty of
+--   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--   GNU General Public License for more details.
+--
+--   You should have received a copy of the GNU General Public License
+--   along with this program; if not, write to the
+--   Free Software Foundation, Inc.,
+--   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ffi.cdef [[
 
 typedef struct { char opaque[?]; } LuaFile;
@@ -29,6 +45,8 @@ LuaFile* bufferFileAcquire(void* data, uint64_t size);
 LuaFile* bufferFileEmpty();
 
 LuaFile* subFile(LuaFile*, uint64_t start, int64_t size);
+
+LuaFile* uvFifo(const char* address, int port);
 
 void closeFile(LuaFile* wrapper);
 
@@ -63,13 +81,15 @@ bool startFileCachingWithCallback(LuaFile* wrapper, void (*callback)());
 
 LuaFile* dupFile(LuaFile*);
 
+LuaFile* zReader(LuaFile*, int64_t size, bool raw);
+
 ]]
 
 local C = ffi.load 'SUPPORT_FILE'
 
 local function fileGarbageCollect(file) C.deleteFile(file._wrapper) end
-
 local fileMeta = { __gc = fileGarbageCollect }
+
 local bufferMeta = {
     __tostring = function(buffer) return ffi.string(buffer.data, buffer.size) end,
     __len = function(buffer) return buffer.size end,
@@ -91,6 +111,7 @@ local bufferMeta = {
         error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
     end,
 }
+
 local function validateBuffer(buffer)
     if buffer:maxsize() < buffer.size then
         error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' ..
@@ -200,12 +221,10 @@ local function startCachingAndWait(self)
     captures.current = coroutine.running()
     if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
     captures.callback = function()
-        local oldCleanup = AfterPollingCleanup
-        AfterPollingCleanup = function()
-            if oldCleanup then oldCleanup() end
+        PCSX.nextTick(function()
             captures.callback:free()
             coroutine.resume(captures.current)
-        end
+        end)
     end
     captures.callback = ffi.cast('void (*)()', captures.callback)
     if C.startFileCachingWithCallback(self._wrapper, captures.callback) then
@@ -294,12 +313,10 @@ local function open(filename, t)
         captures.current = coroutine.running()
         if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
         captures.callback = function()
-            local oldCleanup = AfterPollingCleanup
-            AfterPollingCleanup = function()
-                if oldCleanup then oldCleanup() end
+            PCSX.nextTick(function()
                 captures.callback:free()
                 coroutine.resume(captures.current)
-            end
+            end)
         end
         captures.callback = ffi.cast('void (*)()', captures.callback)
         local ret = createFileWrapper(C.openFileAndWait(filename, captures.callback))
@@ -327,6 +344,22 @@ local function buffer(ptr, size, type)
     return createFileWrapper(f)
 end
 
+local function zReader(file, size, raw)
+    if type(size) == 'string' then
+        raw = size
+        size = nil
+    end
+    raw = raw == 'RAW'
+    if size == nil then size = -1 end
+    return createFileWrapper(C.zReader(file._wrapper, size, raw))
+end
+
+local function uvFifo(address, port)
+    if type(address) ~= 'string' then error('address must be a string') end
+    if type(port) ~= 'number' then error('port must be a number') end
+    return createFileWrapper(C.uvFifo(address, port))
+end
+
 if (type(Support) ~= 'table') then Support = {} end
 
 Support.NewLuaBuffer = function(size)
@@ -335,6 +368,6 @@ Support.NewLuaBuffer = function(size)
     return buf
 end
 
-Support.File = { open = open, buffer = buffer, _createFileWrapper = createFileWrapper }
+Support.File = { open = open, buffer = buffer, zReader = zReader, uvFifo = uvFifo, _createFileWrapper = createFileWrapper }
 
 -- )EOF"

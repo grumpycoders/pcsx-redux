@@ -58,17 +58,44 @@ class Slice {
         moveFrom(std::move(other));
         return *this;
     }
+    Slice &operator+=(const Slice &other) {
+        concatenate(other);
+        return *this;
+    }
     void concatenate(const Slice &other) {
         auto newSize = size() + other.size();
-        if (std::holds_alternative<Owned>(m_data)) {
+        if (m_data.index() == 0) {
+            copy(other.data(), other.size());
+        } else if (std::holds_alternative<Owned>(m_data)) {
             auto &data = std::get<Owned>(m_data);
             data.ptr = realloc(data.ptr, newSize);
             memcpy(((uint8_t *)data.ptr) + size(), other.data(), other.size());
             data.size += other.size();
+        } else if (std::holds_alternative<std::string>(m_data)) {
+            auto &data = std::get<std::string>(m_data);
+            auto oldSize = data.size();
+            data.resize(newSize);
+            memcpy(((uint8_t *)data.data()) + oldSize, other.data(), other.size());
         } else {
             uint8_t *newData = (uint8_t *)malloc(newSize);
             memcpy(newData, data(), size());
             memcpy(newData + size(), other.data(), other.size());
+            acquire(newData, newSize);
+        }
+    }
+    void resize(uint32_t newSize) {
+        if (m_data.index() == 0) {
+            m_data = Owned{newSize, malloc(newSize)};
+        } else if (std::holds_alternative<Owned>(m_data)) {
+            auto &data = std::get<Owned>(m_data);
+            data.ptr = realloc(data.ptr, newSize);
+            data.size = newSize;
+        } else if (std::holds_alternative<std::string>(m_data)) {
+            auto &data = std::get<std::string>(m_data);
+            data.resize(newSize);
+        } else {
+            uint8_t *newData = (uint8_t *)malloc(newSize);
+            memcpy(newData, data(), std::min(size(), newSize));
             acquire(newData, newSize);
         }
     }
@@ -86,7 +113,7 @@ class Slice {
             m_data = Inlined{size};
             dest = std::get<Inlined>(m_data).inlined;
         } else {
-            m_data = Owned{size, malloc(size)};
+            m_data.emplace<Owned>(size, malloc(size));
             dest = std::get<Owned>(m_data).ptr;
         }
         memcpy(dest, data, size);
@@ -113,17 +140,33 @@ class Slice {
         m_data = Borrowed{L - 1, data};
     }
     void borrow(const void *data, uint32_t size) { m_data = Borrowed{size, data}; }
-    const void *data() const {
+    template <typename T = void>
+    const T *data() const {
+        const void *ret = nullptr;
         if (std::holds_alternative<std::string>(m_data)) {
-            return std::get<std::string>(m_data).data();
+            ret = std::get<std::string>(m_data).data();
         } else if (std::holds_alternative<Inlined>(m_data)) {
-            return std::get<Inlined>(m_data).inlined;
+            ret = std::get<Inlined>(m_data).inlined;
         } else if (std::holds_alternative<Owned>(m_data)) {
-            return std::get<Owned>(m_data).ptr;
+            ret = std::get<Owned>(m_data).ptr;
         } else if (std::holds_alternative<Borrowed>(m_data)) {
-            return std::get<Borrowed>(m_data).ptr;
+            ret = std::get<Borrowed>(m_data).ptr;
         }
-        return nullptr;
+        return static_cast<const T *>(ret);
+    }
+    template <typename T = void>
+    T *mutableData() {
+        void *ret = nullptr;
+        if (std::holds_alternative<std::string>(m_data)) {
+            ret = std::get<std::string>(m_data).data();
+        } else if (std::holds_alternative<Inlined>(m_data)) {
+            ret = std::get<Inlined>(m_data).inlined;
+        } else if (std::holds_alternative<Owned>(m_data)) {
+            ret = std::get<Owned>(m_data).ptr;
+        } else if (std::holds_alternative<Borrowed>(m_data)) {
+            throw std::runtime_error("Cannot modify borrowed data");
+        }
+        return static_cast<T *>(ret);
     }
     const uint32_t size() const {
         if (std::holds_alternative<std::string>(m_data)) {
@@ -165,6 +208,8 @@ class Slice {
         return reinterpret_cast<const uint8_t *>(data())[offset];
     }
 
+    void reset() { m_data = std::monostate(); }
+
   private:
     void copyFrom(const Slice &other) {
         if (std::holds_alternative<Owned>(other.m_data)) {
@@ -187,6 +232,20 @@ class Slice {
     };
     struct Owned {
         ~Owned() { free(ptr); }
+        Owned(uint32_t size, void *ptr) : size(size), ptr(ptr) {}
+        Owned(const Owned &other) { abort(); }
+        Owned(Owned &&other) : ptr(other.ptr), size(other.size) { other.ptr = nullptr; }
+        Owned &operator=(const Owned &other) {
+            abort();
+            return *this;
+        }
+        Owned &operator=(Owned &&other) {
+            if (ptr) free(ptr);
+            ptr = other.ptr;
+            size = other.size;
+            other.ptr = nullptr;
+            return *this;
+        }
         uint32_t size;
         void *ptr;
     };

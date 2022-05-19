@@ -161,7 +161,7 @@ typedef Protobuf::FieldPtr<Protobuf::FixedBytes<4>, TYPESTRING("prev"), 10> CDPr
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<8>, TYPESTRING("param"), 11> CDParam;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<16>, TYPESTRING("result"), 12> CDResult;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("param_c"), 13> CDParamC;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("param_p"), 14> CDParamP;
+// skip id 14
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("result_c"), 15> CDResultC;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("result_p"), 16> CDResultP;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("result_ready"), 17> CDResultReady;
@@ -169,8 +169,8 @@ typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("cmd"), 18> CDCmd;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("read"), 19> CDRead;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("set_loc_pending"), 20> CDSetLocPending;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("reading"), 21> CDReading;
-typedef Protobuf::FieldPtr<Protobuf::FixedBytes<6>, TYPESTRING("result_tn"), 22> CDResultTN;
-typedef Protobuf::FieldPtr<Protobuf::FixedBytes<4>, TYPESTRING("result_td"), 23> CDResultTD;
+// skip id 22
+// skip id 23
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<4>, TYPESTRING("set_sector_play"), 24> CDSetSectorPlay;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<4>, TYPESTRING("set_sector_end"), 25> CDSetSectorEnd;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<4>, TYPESTRING("set_sector"), 26> CDSetSector;
@@ -208,13 +208,12 @@ typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("location_changed"), 57> C
 
 typedef Protobuf::Message<
     TYPESTRING("CDRom"), CDReg1Mode, CDReg2, CDCmdProcess, CDCtrl, CDStat, CDStatP, CDTransfer, CDTransferIndex, CDPrev,
-    CDParam, CDResult, CDParamC, CDParamP, CDResultC, CDResultP, CDResultReady, CDCmd, CDRead, CDSetLocPending,
-    CDReading, CDResultTN, CDResultTD, CDSetSectorPlay, CDSetSectorEnd, CDSetSector, CDTrack, CDPlay, CDMuted,
-    CDCurTrack, CDMode, CDFile, CDChannel, CDSuceeded, CDFirstSector, CDIRQ, CDIrqRepeated, CDECycle, CDSeeked,
-    CDReadRescheduled, CDDriveState, CDFastForward, CDFastBackward, CDAttenuatorLeftToLeft, CDAttenuatorLeftToRight,
-    CDAttenuatorRightToRight, CDAttenuatorRightToLeft, CDAttenuatorLeftToLeftT, CDAttenuatorLeftToRightT,
-    CDAttenuatorRightToRightT, CDAttenuatorRightToLeftT, CDSubQTrack, CDSubQIndex, CDSubQRelative, CDSubQAbsolute,
-    CDTrackChanged, CDLocationChanged>
+    CDParam, CDResult, CDParamC, CDResultC, CDResultP, CDResultReady, CDCmd, CDRead, CDSetLocPending, CDReading,
+    CDSetSectorPlay, CDSetSectorEnd, CDSetSector, CDTrack, CDPlay, CDMuted, CDCurTrack, CDMode, CDFile, CDChannel,
+    CDSuceeded, CDFirstSector, CDIRQ, CDIrqRepeated, CDECycle, CDSeeked, CDReadRescheduled, CDDriveState, CDFastForward,
+    CDFastBackward, CDAttenuatorLeftToLeft, CDAttenuatorLeftToRight, CDAttenuatorRightToRight, CDAttenuatorRightToLeft,
+    CDAttenuatorLeftToLeftT, CDAttenuatorLeftToRightT, CDAttenuatorRightToRightT, CDAttenuatorRightToLeftT, CDSubQTrack,
+    CDSubQIndex, CDSubQRelative, CDSubQAbsolute, CDTrackChanged, CDLocationChanged>
     CDRom;
 typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 8> CDRomField;
 

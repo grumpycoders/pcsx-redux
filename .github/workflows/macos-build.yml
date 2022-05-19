@@ -10,12 +10,13 @@ jobs:
   build-openbios:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        set-safe-directory: true
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Fetch submodules
-      run: git submodule update --init --recursive
     - name: Update packages
       run: sudo apt-get update
     - name: Install dependencies
@@ -52,6 +53,22 @@ jobs:
       run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
     - name: Injecting OpenBIOS
       run: cp openbios.bin PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources
+    - name: Packaging
+      run: |
+        echo '{' > PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '  "changeset": "'`git rev-parse HEAD`'",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '  "timestamp": '`date '+%s'`',' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '  "channel": "dev",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '  "updateInfo": [' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '    {' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '      "channel": "dev",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '      "method": "appcenter",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '      "updateCatalog": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/public_releases",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '      "updateInfoBase": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/releases/"' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '    }' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '  ]' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '}' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
     - name: Adjusting for dmg folder
       run: |
         mkdir dmgdir

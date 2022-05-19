@@ -12,17 +12,15 @@ jobs:
     container:
       image: grumpycoders/pcsx-redux-build:latest
       env:
-        CC: clang-11
-        CXX: clang++-11
-        LD: clang++-11
         TEST_RESULTS: /tmp/test-results
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          set-safe-directory: true
       - uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Fetch submodules
-        run: git submodule update --init --recursive
       - run: |
           make -j 2 all pcsx-redux-tests
           make -C src/mips/tests -j 2 PCSX_TESTS=true
@@ -30,6 +28,20 @@ jobs:
       - name: Packaging
         run: |
           make install install-openbios DESTDIR=AppDir/usr
+          echo '{' > AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '  "changeset": "'`git rev-parse HEAD`'",' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '  "timestamp": '`date '+%s'`',' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '  "channel": "dev",' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '  "updateInfo": [' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '    {' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '      "channel": "dev",' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '      "method": "appcenter",' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '      "updateCatalog": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/public_releases",' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '      "updateInfoBase": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/releases/"' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '    }' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '  ]' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '}' >> AppDir/usr/share/pcsx-redux/resources/version.json
           appimage-builder --skip-tests
       - name: Test
         run: |
@@ -41,7 +53,8 @@ jobs:
         env:
           APPCENTER_ACCESS_TOKEN: ${{ secrets.LINUX_APPCENTER_ACCESS_TOKEN }}
         run: |
-          . /usr/local/nvm/nvm.sh
+          git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
           export BUILD=`git rev-parse HEAD | cut -c 1-8`
+          . /usr/local/nvm/nvm.sh
           zip PCSX-Redux-$BUILD-linux-x86_64.zip *.AppImage
           appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD-linux-x86_64.zip -g public -a grumpycoders/pcsx-redux-linux64 --disable-telemetry

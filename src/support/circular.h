@@ -60,24 +60,8 @@ class Circular {
     }
 
   private:
-    size_t availableLocked() const {
-        const size_t begin = m_begin;
-        const size_t end = m_end;
-        if (end >= begin) {
-            return BUFFER_SIZE - (end - begin);
-        } else {
-            return begin - end;
-        }
-    }
-    size_t bufferedLocked() const {
-        const size_t begin = m_begin;
-        const size_t end = m_end;
-        if (end >= begin) {
-            return end - begin;
-        } else {
-            return BUFFER_SIZE - (begin - end);
-        }
-    }
+    size_t availableLocked() const { return BUFFER_SIZE - m_size; }
+    size_t bufferedLocked() const { return m_size; }
     void enqueueSafe(const T* data, size_t N) {
         size_t end = m_end;
         const size_t subLen = BUFFER_SIZE - end;
@@ -89,6 +73,7 @@ class Circular {
             end += N;
             if (end == BUFFER_SIZE) end = 0;
             m_end = end;
+            m_size += N;
         }
     }
     void dequeueSafe(T* data, size_t N) {
@@ -102,11 +87,12 @@ class Circular {
             begin += N;
             if (begin == BUFFER_SIZE) begin = 0;
             m_begin = begin;
+            m_size -= N;
             m_cv.notify_one();
         }
     }
 
-    size_t m_begin = 0, m_end = 0;
+    size_t m_begin = 0, m_end = 0, m_size = 0;
     T m_buffer[BUFFER_SIZE];
 
     std::mutex m_mu;

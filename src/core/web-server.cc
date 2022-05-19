@@ -41,6 +41,7 @@ class VramExecutor : public PCSX::WebExecutor {
         static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
         uint16_t* pixels = (uint16_t*)malloc(texSize);
         int oldTexture;
+        glFlush();
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
         glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
@@ -98,7 +99,7 @@ PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
         if (debugSettings.get<Emulator::DebugSettings::WebServer>() && (m_serverStatus != SERVER_STARTED)) {
-            startServer(&g_emulator->m_loop, debugSettings.get<Emulator::DebugSettings::WebServerPort>());
+            startServer(g_system->getLoop(), debugSettings.get<Emulator::DebugSettings::WebServerPort>());
         }
     });
     m_listener.listen<Events::Quitting>([this](const auto& event) {

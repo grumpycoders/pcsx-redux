@@ -1888,4 +1888,5 @@ void DynaRecCPU::recBREAK() {
     recException(Exception::Break);
 }
 
+#undef BAILZERO
 #endif  // DYNAREC_X86_64

@@ -107,9 +107,6 @@
 #include "gpu/soft/prim.h"
 #include "gui/gui.h"
 
-////////////////////////////////////////////////////////////////////////////////////
-// misc globals
-////////////////////////////////////////////////////////////////////////////////////
 int iFastFwd = 0;
 PSXPoint_t ptCursorPoint[8];
 uint16_t usCursorActive = 0;
@@ -117,28 +114,17 @@ uint16_t usCursorActive = 0;
 PCSX::GUI *m_gui;
 bool bVsync_Key = false;
 
-////////////////////////////////////////////////////////////////////////
-
 static const unsigned int pitch = 4096;
 
-////////////////////////////////////////////////////////////////////////
-
-void DoClearScreenBuffer(void)  // CLEAR DX BUFFER
-{
+void DoClearScreenBuffer() {
     glClearColor(1, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-////////////////////////////////////////////////////////////////////////
-
-void DoClearFrontBuffer(void)  // CLEAR PRIMARY BUFFER
-{
+void DoClearFrontBuffer() {
     glClearColor(1, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 }
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
 
 void ShowGunCursor(unsigned char *surf) {
     uint16_t dx = (uint16_t)PreviousPSXDisplay.Range.x1;
@@ -203,11 +189,6 @@ void DoBufferSwap() {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, psxVuw);
     }
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
     float xRatio = PSXDisplay.RGB24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
 
     float startX = PSXDisplay.DisplayPosition.x * xRatio;
@@ -215,14 +196,17 @@ void DoBufferSwap() {
     float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
     float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
 
-    m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {1024.0f, 512.0f}, {startX, startY}, {width, height},
-                                          m_gui->getRenderSize());
+    m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {startX, startY}, {width, height}, m_gui->getRenderSize());
     m_gui->flip();
 }
 
-uint32_t ulInitDisplay(void) {
+void InitDisplay() {
     glGenTextures(1, &vramTexture);
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
-    return 1;
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }

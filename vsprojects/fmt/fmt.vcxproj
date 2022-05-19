@@ -262,9 +262,9 @@
     <ClInclude Include="..\..\third_party\fmt\include\fmt\locale.h" />
     <ClInclude Include="..\..\third_party\fmt\include\fmt\os.h" />
     <ClInclude Include="..\..\third_party\fmt\include\fmt\ostream.h" />
-    <ClInclude Include="..\..\third_party\fmt\include\fmt\posix.h" />
     <ClInclude Include="..\..\third_party\fmt\include\fmt\printf.h" />
     <ClInclude Include="..\..\third_party\fmt\include\fmt\ranges.h" />
+    <ClInclude Include="..\..\third_party\fmt\include\fmt\xchar.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

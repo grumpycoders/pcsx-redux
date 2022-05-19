@@ -21,6 +21,7 @@
 
 #include <algorithm>
 
+#include "support/slice.h"
 #include "support/windowswrapper.h"
 
 uint8_t PCSX::BufferFile::m_internalBuffer = 0;
@@ -138,6 +139,12 @@ PCSX::File *PCSX::BufferFile::dup() {
     } else {
         return new BufferFile(m_data, m_size, FileOps::READWRITE);
     }
+}
+
+PCSX::Slice PCSX::BufferFile::borrow() {
+    Slice ret;
+    ret.borrow(m_data, m_size);
+    return ret;
 }
 
 void PCSX::PosixFile::close() {
@@ -278,6 +285,35 @@ ssize_t PCSX::SubFile::read(void *dest, size_t size) {
 
 ssize_t PCSX::SubFile::readAt(void *dest, size_t size, size_t ptr) {
     ssize_t excess = size + ptr - m_size;
-    if (excess > 0) size -= excess;
+    if (excess > 0) {
+        if (excess > size) {
+            return -1;
+        }
+        size -= excess;
+    }
     return m_file->readAt(dest, size, ptr + m_start);
+}
+
+ssize_t PCSX::Fifo::read(void *dest_, size_t size) {
+    if (size == 0) return 0;
+    uint8_t *dest = static_cast<uint8_t *>(dest_);
+    ssize_t ret = 0;
+    while (size != 0) {
+        if (m_slices.empty()) {
+            return ret == 0 ? -1 : ret;
+        }
+        Slice &slice = m_slices.front();
+        auto tocopy = std::min(size, slice.size() - m_ptrR);
+        memcpy(dest + ret, slice.data<uint8_t>() + m_ptrR, tocopy);
+        size -= tocopy;
+        ret += tocopy;
+        m_size -= tocopy;
+        m_ptrR += tocopy;
+        if (slice.size() == m_ptrR) {
+            m_slices.pop();
+            m_ptrR = 0;
+        }
+    }
+
+    return ret;
 }

@@ -1,4 +1,4 @@
-name: Linux CI
+name: Linux CI coverage
 
 on:
   push:
@@ -12,19 +12,16 @@ jobs:
     container:
       image: grumpycoders/pcsx-redux-build:latest
       env:
-        CC: clang-11
-        CXX: clang++-11
-        LD: clang++-11
         TEST_RESULTS: /tmp/test-results
-        LLVM_PROFILE_FILE: /tmp/llvm_profile/profile-%p.profraw
         BUILD: Coverage
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          set-safe-directory: true
       - uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Fetch submodules
-        run: git submodule update --init --recursive
       - run: |
           make -j 2 all pcsx-redux-tests
           make -C src/mips/openbios -j 2
@@ -35,10 +32,7 @@ jobs:
       - name: Test
         run: |
           xvfb-run catchsegv ./pcsx-redux-tests
-      - name: Merge Code coverage
+      - name: Produce code coverage
         run: |
-          llvm-profdata-11 merge -sparse /tmp/llvm_profile/profile-*.profraw -o coverage.profdata
-      - name: Convert Code coverage
-        run: |
-          llvm-cov-11 export --format=lcov ./pcsx-redux-tests -instr-profile=coverage.profdata > coverage.info
+          lcov --directory . --capture --output-file coverage.info
       - uses: codecov/codecov-action@v2

@@ -12,12 +12,13 @@ jobs:
     runs-on: macOS-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        set-safe-directory: true
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Fetch submodules
-      run: git submodule update --init --recursive
     - name: build mips binutils
       run: brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb --debug
     - name: build mips gcc

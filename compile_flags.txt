@@ -12,7 +12,6 @@
 -Ithird_party/imgui/misc/cpp
 -Ithird_party/imgui_club
 -Ithird_party/http-parser
--Ithird_party/libelfin
 -Ithird_party/luajit/src
 -Ithird_party/luv/src
 -Ithird_party/luv/deps/lua-compat-5.3/c-api
@@ -22,7 +21,6 @@
 -Ithird_party/zlib
 -Ithird_party/zep/extensions
 -Ithird_party/zep/include
--Ithird_party/zstr/src
 -Ithird_party/xbyak/xbyak
 -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 -DIMGUI_ENABLE_FREETYPE

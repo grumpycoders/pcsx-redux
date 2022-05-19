@@ -393,7 +393,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     }
 }
 
-void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title) {
+void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
     m_registers = registers;
     m_memory = memory;
     ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
@@ -652,11 +652,12 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
                     DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
-                        g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
-                                                           [](const Debug::Breakpoint* bp) {
-                                                               g_system->pause();
-                                                               return false;
-                                                           });
+                        g_emulator->m_debug->addBreakpoint(
+                            dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
+                            [](const Debug::Breakpoint* bp, uint32_t address, unsigned width, const char* cause) {
+                                g_system->pause();
+                                return false;
+                            });
                         ImGui::CloseCurrentPopup();
                         g_system->resume();
                     });
@@ -880,19 +881,14 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                 bool found = pos >= 0;
                 if (empty || found) {
                     std::string label = fmt::format("{} - {:08x}", symbol.first, symbol.second);
-                    std::string codeLabel = fmt::format(_("Code##{}{:08x}"), symbol.first, symbol.second);
-                    std::string dataLabel = fmt::format(_("Data##{}{:08x}"), symbol.first, symbol.second);
-                    std::string dwarfLabel = fmt::format(_("DWARF##{}{:08x}"), symbol.first, symbol.second);
+                    std::string codeLabel = fmt::format(f_("Code##{}{:08x}"), symbol.first, symbol.second);
+                    std::string dataLabel = fmt::format(f_("Data##{}{:08x}"), symbol.first, symbol.second);
                     if (ImGui::Button(codeLabel.c_str())) {
                         m_jumpToPC = symbol.second;
                     }
                     ImGui::SameLine();
                     if (ImGui::Button(dataLabel.c_str())) {
                         jumpToMemory(symbol.second, 1);
-                    }
-                    ImGui::SameLine();
-                    if (ImGui::Button(dwarfLabel.c_str())) {
-                        dwarf->m_pc = fmt::format("{:08x}", symbol.second);
                     }
                     ImGui::SameLine();
                     ImGui::TextUnformatted(label.c_str());
@@ -920,14 +916,6 @@ void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
     m_symbolsCache.clear();
     for (auto& symbol : m_symbols) {
         m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
-    }
-
-    for (auto& elf : g_emulator->m_mem->getElves()) {
-        auto& symbols = elf.getSymbols();
-        for (auto& symbol : symbols) {
-            m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
-            m_elfSymbolsCache.insert(std::pair(symbol.first, symbol.second));
-        }
     }
     m_symbolsCachesValid = true;
 }

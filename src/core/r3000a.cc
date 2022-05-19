@@ -29,6 +29,8 @@
 #include "core/gte.h"
 #include "core/mdec.h"
 #include "core/pgxp_mem.h"
+#include "core/sio.h"
+#include "core/sio1.h"
 #include "core/spu.h"
 #include "fmt/format.h"
 #include "magic_enum/include/magic_enum.hpp"

@@ -22,11 +22,11 @@
 #include <stdexcept>
 #include <string>
 
-#include "core/misc.h"
 #include "imgui.h"
 #include "json.hpp"
 #include "support/hashtable.h"
 #include "support/list.h"
+#include "support/strings-helpers.h"
 #include "support/tree.h"
 
 namespace PCSX {
@@ -58,7 +58,7 @@ class Log {
         if (c == m_classes.end()) throw std::runtime_error("Unknown log class");
         if (!c->enabled) return false;
         c->buffer += log;
-        auto lines = Misc::split(c->buffer, "\n", true);
+        auto lines = StringsHelpers::split(c->buffer, "\n", true);
         c->buffer = lines.back();
         lines.pop_back();
         for (auto& line : lines) {

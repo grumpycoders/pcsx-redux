@@ -1,8 +1,8 @@
 class MipselNoneElfGcc < Formula
   desc "The GNU compiler collection for mipsel"
   homepage "https://gcc.gnu.org"
-  url "https://ftp.gnu.org/gnu/gcc/gcc-11.2.0/gcc-11.2.0.tar.xz"
-  sha256 "d08edc536b54c372a1010ff6619dd274c0f1603aa49212ba20f7aa2cda36fa8b"
+  url "https://ftp.gnu.org/gnu/gcc/gcc-12.1.0/gcc-12.1.0.tar.xz"
+  sha256 "62fd634889f31c02b64af2c468f064b47ad1ca78411c45abe6ac4b5f8dd19c7b"
 
   depends_on "gmp"
   depends_on "mipsel-none-elf-binutils"
@@ -24,6 +24,7 @@ class MipselNoneElfGcc < Formula
                              "--disable-libgomp",
                              "--disable-werror",
                              "--without-headers",
+                             "--disable-hosted-libstdcxx",
                              "--with-as=#{Formula["mipsel-none-elf-binutils"].bin}/mipsel-none-elf-as",
                              "--with-ld=#{Formula["mipsel-none-elf-binutils"].bin}/mipsel-none-elf-ld",
                              "--enable-languages=c,c++"
@@ -31,6 +32,8 @@ class MipselNoneElfGcc < Formula
       system "make", "install-strip-gcc"
       system "make", "all-target-libgcc"
       system "make", "install-strip-target-libgcc"
+      system "make", "all-target-libstdc++-v3"
+      system "make", "install-strip-target-libstdc++-v3"
     end
   end
 

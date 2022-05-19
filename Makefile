@@ -1,8 +1,10 @@
 TARGET := pcsx-redux
 BUILD ?= Release
 DESTDIR ?= /usr/local
+CROSS ?= none
 
 UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
@@ -34,10 +36,10 @@ CPPFLAGS += -Ithird_party/libelfin
 CPPFLAGS += -Ithird_party/luajit/src
 CPPFLAGS += -Ithird_party/luv/src
 CPPFLAGS += -Ithird_party/luv/deps/lua-compat-5.3/c-api
+CPPFLAGS += -Ithird_party/md4c/src
 CPPFLAGS += -Ithird_party/ucl -Ithird_party/ucl/include
 CPPFLAGS += -Ithird_party/zep/extensions
 CPPFLAGS += -Ithird_party/zep/include
-CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -Ithird_party/xbyak/xbyak
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W -DIMGUI_ENABLE_FREETYPE
@@ -47,7 +49,11 @@ IMGUI_CPPFLAGS += -include src/forced-includes/imgui.h
 CPPFLAGS_Release += -O3
 CPPFLAGS_Debug += -O0
 CPPFLAGS_Coverage += -O0
-CPPFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+ifeq ($(CC_IS_CLANG),true)
+    CPPFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+else
+    CPPFLAGS_Coverage += -fprofile-arcs -ftest-coverage
+endif
 CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
 CPPFLAGS_ReleaseWithTracy += -O3 -DTRACY_ENABLE
 
@@ -77,29 +83,42 @@ LDFLAGS += third_party/luajit/src/libluajit.a
 LDFLAGS += -ldl
 LDFLAGS += -g
 
-LDFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+ifeq ($(CC_IS_CLANG),true)
+    LDFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+else
+    LDFLAGS_Coverage += -fprofile-arcs -ftest-coverage
+endif
 LDFLAGS_asan += -fsanitize=address
 
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
 LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
+
+ifeq ($(CROSS),arm64)
+    CPPFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
+    LDFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
+endif
 
 LD := $(CXX)
 
 SRCS := $(call rwildcard,src/,*.cc)
 SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
+VIXL_SRCS := $(call rwildcard, third_party/vixl/src,*.cc)
 SRCS += $(IMGUI_SRCS)
 SRCS += $(wildcard third_party/libelfin/*.cc)
+SRCS += third_party/cq/reclaimer.cc
 SRCS += third_party/clip/clip.cpp
 SRCS += third_party/clip/image.cpp
 SRCS += third_party/gl3w/GL/gl3w.c
+SRCS += third_party/http-parser/http_parser.c
 SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/backends/imgui_impl_glfw.cpp
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
 SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
-SRCS += third_party/http-parser/http_parser.c
+SRCS += third_party/imgui_md/imgui_md.cpp
 SRCS += third_party/luv/src/luv.c
+SRCS += third_party/md4c/src/md4c.c
 SRCS += third_party/tracy/TracyClient.cpp
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
@@ -110,6 +129,21 @@ ifeq ($(UNAME_S),Darwin)
     SRCS += src/main/complain.mm third_party/clip/clip_osx.mm
 else
     SRCS += third_party/clip/clip_x11.cpp
+endif
+ifeq ($(UNAME_M),aarch64)
+        SRCS += $(VIXL_SRCS)
+        CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+        CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+endif
+ifeq ($(UNAME_M),arm64)
+        SRCS += $(VIXL_SRCS)
+        CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+        CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
+endif
+ifeq ($(CROSS),arm64)
+        SRCS += $(VIXL_SRCS)
+        CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
+        CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
 SUPPORT_SRCS := $(call rwildcard,src/support/,*.cc)
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
@@ -125,7 +159,7 @@ SUPPORT_OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS)))
 SUPPORT_OBJECTS += third_party/luajit/src/libluajit.a
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
 IMGUI_OBJECTS := $(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS)))
-
+VIXL_OBJECTS := $(patsubst %.cc,%.o,$(filter %.cc,$(VIXL_SRCS)))
 $(IMGUI_OBJECTS): EXTRA_CPPFLAGS := $(IMGUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
@@ -177,8 +211,13 @@ appimage:
 	DESTDIR=AppDir/usr $(MAKE) $(MAKEOPTS) install
 	appimage-builder --skip-tests
 
+ifeq ($(CROSS),arm64)
+third_party/luajit/src/libluajit.a:
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=gcc-10 CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
+else
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
+endif
 
 $(TARGET): $(OBJECTS)
 	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
@@ -222,7 +261,7 @@ endef
 
 regen-i18n:
 	find src -name *.cc -or -name *.c -or -name *.h | sort -u > pcsx-src-list.txt
-	xgettext --keyword=_ --language=C++ --add-comments --sort-output -o i18n/pcsx-redux.pot --omit-header -f pcsx-src-list.txt
+	xgettext --keyword=_,f_ --language=C++ --add-comments --sort-output -o i18n/pcsx-redux.pot --omit-header -f pcsx-src-list.txt
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 

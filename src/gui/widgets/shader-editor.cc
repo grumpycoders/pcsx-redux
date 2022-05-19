@@ -106,8 +106,8 @@ function BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, 
 end
 )";
 
-PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, std::string_view dVS, std::string_view dPS,
-                                          std::string_view dL)
+PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::string_view &dVS,
+                                          const std::string_view &dPS, const std::string_view &dL)
     : m_baseFilename(base), m_index(++s_index) {
     std::filesystem::path f = base;
     {
@@ -169,6 +169,8 @@ void PCSX::Widgets::ShaderEditor::init() {
 
 std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
                                                            const std::vector<std::string_view> &mandatoryAttributes) {
+    m_setupVAO = true;
+    m_shaderProjMtxLoc = -1;
     GLint status = 0;
     GUI::ScopedOnlyLog scopedOnlyLog(gui);
 
@@ -185,7 +187,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
         char *log = (char *)malloc(maxLength);
         glGetShaderInfoLog(vertexShader, maxLength, &maxLength, log);
 
-        m_errorMessage = fmt::format(_("Vertex Shader compilation error: {}\n"), log);
+        m_errorMessage = fmt::format(f_("Vertex Shader compilation error: {}\n"), log);
 
         free(log);
         glDeleteShader(vertexShader);
@@ -206,7 +208,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
 
         glGetShaderInfoLog(pixelShader, maxLength, &maxLength, log);
 
-        m_errorMessage = fmt::format(_("Pixel Shader compilation error: {}\n"), log);
+        m_errorMessage = fmt::format(f_("Pixel Shader compilation error: {}\n"), log);
 
         free(log);
         glDeleteShader(vertexShader);
@@ -228,7 +230,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
 
         glGetProgramInfoLog(shaderProgram, maxLength, &maxLength, log);
 
-        m_errorMessage = fmt::format(_("Link error: {}\n"), log);
+        m_errorMessage = fmt::format(f_("Link error: {}\n"), log);
 
         free(log);
         glDeleteProgram(shaderProgram);
@@ -240,7 +242,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     for (auto attrib : mandatoryAttributes) {
         int loc = glGetAttribLocation(shaderProgram, attrib.data());
         if (loc == -1) {
-            m_errorMessage = fmt::format(_("Missing attribute {} in shader program"), attrib);
+            m_errorMessage = fmt::format(f_("Missing attribute {} in shader program"), attrib);
             glDeleteProgram(shaderProgram);
             glDeleteShader(vertexShader);
             glDeleteShader(pixelShader);
@@ -344,6 +346,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
         glDeleteProgram(m_shaderProgram);
     }
     m_shaderProgram = shaderProgram;
+    m_shaderProjMtxLoc = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
     return shaderProgram;
 }
 
@@ -618,18 +621,18 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
 void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
     GLuint textureID = static_cast<GLuint>(reinterpret_cast<uintptr_t>(cmd->TextureId));
 
-    GLfloat currentProjection[4][4];
-    GLint imguiProgramID;
-    glGetIntegerv(GL_CURRENT_PROGRAM, &imguiProgramID);
-
-    GLint projMatrixLocation = glGetUniformLocation(imguiProgramID, "ProjMtx");
-    glGetUniformfv(imguiProgramID, projMatrixLocation, &currentProjection[0][0]);
-
-    glUseProgram(m_shaderProgram);
-    int proj = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
-    if (proj >= 0) {
-        glUniformMatrix4fv(proj, 1, GL_FALSE, &currentProjection[0][0]);
+    GLfloat projMtx[4][4];
+    if (m_imguiProjMtxLoc == -1) {
+        glGetIntegerv(GL_CURRENT_PROGRAM, &m_imguiProgram);
+        m_imguiProjMtxLoc = glGetUniformLocation(m_imguiProgram, "ProjMtx");
     }
+
+    // Get projection matrix from the Imgui program
+    glUseProgram(m_shaderProgram);
+    glGetUniformfv(m_imguiProgram, m_imguiProjMtxLoc, &projMtx[0][0]);
+
+    // Send projection matrix to our shader
+    glUniformMatrix4fv(m_shaderProjMtxLoc, 1, GL_FALSE, &projMtx[0][0]);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
     auto &Lorg = g_emulator->m_lua;
@@ -694,8 +697,8 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
     }
 }
 
-void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec2 &texSize, const ImVec2 &srcLoc,
-                                         const ImVec2 &srcSize, const ImVec2 &dstSize) {
+void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec2 &srcLoc, const ImVec2 &srcSize,
+                                         const ImVec2 &dstSize) {
     if (m_shaderProgram == 0) {
         compile(gui);
     }
@@ -711,7 +714,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
         float color[4];
     };
 
-    VertexData quadVertices[6];
+    VertexData quadVertices[4];
 
     quadVertices[0].positions[0] = -1.0;
     quadVertices[0].positions[1] = -1.0;
@@ -733,76 +736,56 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     quadVertices[1].color[2] = 1.0;
     quadVertices[1].color[3] = 1.0;
 
-    quadVertices[2].positions[0] = 1.0;
+    quadVertices[2].positions[0] = -1.0;
     quadVertices[2].positions[1] = 1.0;
     quadVertices[2].positions[2] = 0.0;
-    quadVertices[2].textures[0] = srcLoc.x + srcSize.x;
+    quadVertices[2].textures[0] = srcLoc.x;
     quadVertices[2].textures[1] = srcLoc.y + srcSize.y;
     quadVertices[2].color[0] = 1.0;
     quadVertices[2].color[1] = 1.0;
     quadVertices[2].color[2] = 1.0;
     quadVertices[2].color[3] = 1.0;
 
-    quadVertices[3].positions[0] = -1.0;
-    quadVertices[3].positions[1] = -1.0;
+    quadVertices[3].positions[0] = 1.0;
+    quadVertices[3].positions[1] = 1.0;
     quadVertices[3].positions[2] = 0.0;
-    quadVertices[3].textures[0] = srcLoc.x;
-    quadVertices[3].textures[1] = srcLoc.y;
+    quadVertices[3].textures[0] = srcLoc.x + srcSize.x;
+    quadVertices[3].textures[1] = srcLoc.y + srcSize.y;
     quadVertices[3].color[0] = 1.0;
     quadVertices[3].color[1] = 1.0;
     quadVertices[3].color[2] = 1.0;
     quadVertices[3].color[3] = 1.0;
 
-    quadVertices[4].positions[0] = -1.0;
-    quadVertices[4].positions[1] = 1.0;
-    quadVertices[4].positions[2] = 0.0;
-    quadVertices[4].textures[0] = srcLoc.x;
-    quadVertices[4].textures[1] = srcLoc.y + srcSize.y;
-    quadVertices[4].color[0] = 1.0;
-    quadVertices[4].color[1] = 1.0;
-    quadVertices[4].color[2] = 1.0;
-    quadVertices[4].color[3] = 1.0;
-
-    quadVertices[5].positions[0] = 1.0;
-    quadVertices[5].positions[1] = 1.0;
-    quadVertices[5].positions[2] = 0.0;
-    quadVertices[5].textures[0] = srcLoc.x + srcSize.x;
-    quadVertices[5].textures[1] = srcLoc.y + srcSize.y;
-    quadVertices[5].color[0] = 1.0;
-    quadVertices[5].color[1] = 1.0;
-    quadVertices[5].color[2] = 1.0;
-    quadVertices[5].color[3] = 1.0;
-
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 6, &quadVertices[0], GL_STATIC_DRAW);
-
-    glDisable(GL_CULL_FACE);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 4, &quadVertices[0], GL_STATIC_DRAW);
     glDisable(GL_DEPTH_TEST);
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    int loc;
+    if (m_setupVAO) {
+        m_setupVAO = false;
+        int loc = glGetAttribLocation(m_shaderProgram, "Position");
+        if (loc >= 0) {
+            glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                                  (void *)&((VertexData *)nullptr)->positions);
+            glEnableVertexAttribArray(loc);
+        }
 
-    loc = glGetAttribLocation(m_shaderProgram, "Position");
-    if (loc >= 0) {
-        glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData),
-                              (void *)&((VertexData *)nullptr)->positions);
-        glEnableVertexAttribArray(loc);
-    }
+        loc = glGetAttribLocation(m_shaderProgram, "UV");
+        if (loc >= 0) {
+            glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                                  (void *)&((VertexData *)nullptr)->textures);
+            glEnableVertexAttribArray(loc);
+        }
 
-    loc = glGetAttribLocation(m_shaderProgram, "UV");
-    if (loc >= 0) {
-        glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData),
-                              (void *)&((VertexData *)nullptr)->textures);
-        glEnableVertexAttribArray(loc);
-    }
-
-    loc = glGetAttribLocation(m_shaderProgram, "Color");
-    if (loc >= 0) {
-        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)&((VertexData *)nullptr)->color);
-        glEnableVertexAttribArray(loc);
+        loc = glGetAttribLocation(m_shaderProgram, "Color");
+        if (loc >= 0) {
+            glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                                  (void *)&((VertexData *)nullptr)->color);
+            glEnableVertexAttribArray(loc);
+        }
     }
 
     GLfloat currentProjection[4][4];
+
     currentProjection[0][0] = 1.0f;
     currentProjection[0][1] = 0.0f;
     currentProjection[0][2] = 0.0f;
@@ -819,10 +802,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     currentProjection[3][1] = 0.0f;
     currentProjection[3][2] = 0.0f;
     currentProjection[3][3] = 1.0f;
-    int proj = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
-    if (proj >= 0) {
-        glUniformMatrix4fv(proj, 1, GL_FALSE, &currentProjection[0][0]);
-    }
+    glUniformMatrix4fv(m_shaderProjMtxLoc, 1, GL_FALSE, &currentProjection[0][0]);
 
     glBindTexture(GL_TEXTURE_2D, textureID);
 
@@ -872,5 +852,5 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
         }
     }
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }

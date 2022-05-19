@@ -31,4 +31,4 @@
 void DoBufferSwap();
 void DoClearScreenBuffer();
 void DoClearFrontBuffer();
-uint32_t ulInitDisplay();
+void InitDisplay();
