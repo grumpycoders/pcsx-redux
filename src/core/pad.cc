@@ -567,8 +567,14 @@ bool PCSX::Pads::Pad::configure() {
         reset();  // Reset pad state when unplugging/replugging pad
     }
 
-    if (m_type == PadType::Analog) {
-        ImGui::Checkbox("Analog mode", &m_analogMode);
+    if (m_type != PadType::Analog) {
+        ImGui::BeginDisabled();
+    }
+
+    ImGui::Checkbox("Analog mode", &m_analogMode);
+
+    if (m_type != PadType::Analog) {
+        ImGui::EndDisabled();
     }
 
     {
