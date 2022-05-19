@@ -22,6 +22,7 @@
 
 #if defined(DYNAREC_X86_64)
 #include <array>
+#include <cassert>
 #include <fstream>
 #include <optional>
 #include <stdexcept>
@@ -43,18 +44,11 @@
 #define HI_OFFSET ((uintptr_t)&m_regs.GPR.n.hi - (uintptr_t)this)
 #define CYCLE_OFFSET ((uintptr_t)&m_regs.cycle - (uintptr_t)this)
 
-static uint8_t read8Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read8(address); }
-static uint16_t read16Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read16(address); }
 static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
-
+static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
 static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
-
-// For 8/16-bit writes, the entire value is put on the bus. This matters for certain IO registers
-static void write8Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write8(address, value); }
-static void write16Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write16(address, value); }
-static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 using namespace Xbyak;
@@ -210,16 +204,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
   private:
-    // Sets dest to "pointer", using base pointer relative addressing if possible
-    void loadAddress(Xbyak::Reg64 dest, void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)this;
-
-        if (Xbyak::inner::IsInInt32(distance)) {
-            gen.lea(dest, ptr[contextPointer + distance]);
-        } else {
-            gen.mov(dest, (uintptr_t)pointer);
-        }
-    }
+    // Sets dest to "pointer"
+    void loadAddress(Xbyak::Reg64 dest, void* pointer) { gen.mov(dest, (uintptr_t)pointer); }
 
     // Loads a value into dest from the given pointer.
     // Tries to use base pointer relative addressing, otherwise uses movabs
@@ -291,27 +277,57 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         }
     }
 
+    // Emit a call to a class member function, passing "thisObject" (+ an adjustment if necessary)
+    // As the function's "this" pointer. Only works with classes with single, non-virtual inheritance
+    // Hence the static asserts. Those are all we need though, thankfully.
+    template <typename T>
+    void emitMemberFunctionCall(T func, void* thisObject) {
+        void* functionPtr;
+        uintptr_t thisPtr = reinterpret_cast<uintptr_t>(thisObject);
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+        static_assert(sizeof(T) == 8, "[x64 JIT] Invalid size for member function pointer");
+        std::memcpy(&functionPtr, &func, sizeof(T));
+#else
+        static_assert(sizeof(T) == 16, "[x64 JIT] Invalid size for member function pointer");
+        uintptr_t arr[2];
+        std::memcpy(arr, &func, sizeof(T));
+        // First 8 bytes correspond to the actual pointer to the function
+        functionPtr = reinterpret_cast<void*>(arr[0]);
+        // Next 8 bytes correspond to the "this" pointer adjustment
+        thisPtr += arr[1];
+#endif
+
+        // Load this pointer to arg1
+        if (thisPtr == reinterpret_cast<uintptr_t>(this)) {
+            loadThisPointer(arg1.cvt64());
+        } else {
+            loadAddress(arg1.cvt64(), reinterpret_cast<void*>(thisPtr));
+        }
+
+        gen.call(functionPtr);
+    }
+
+    template <typename T>
+    void callMemoryFunc(T func) {
+        void* object = PCSX::g_emulator->m_mem.get();
+        prepareForCall();
+        emitMemberFunctionCall(func, object);
+    }
+
+    template <typename T>
+    void callGTEFunc(T func) {
+        void* object = PCSX::g_emulator->m_gte.get();
+        prepareForCall();
+        emitMemberFunctionCall(func, object);
+    }
+
     static void exceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->exception(e, bd); }
-    static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
-    static void recBranchTestWrapper(DynaRecCPU* that) { that->branchTest(); }
     static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
 
     static void signalShellReached(DynaRecCPU* that);
     static DynarecCallback recRecompileWrapper(DynaRecCPU* that, bool fullLoadDelayEmulation) {
         return that->recompile(that->m_regs.pc, fullLoadDelayEmulation);
-    }
-
-    void inlineClear(uint32_t address) {
-        if (isPcValid(address & ~3)) {
-            loadThisPointer(arg1.cvt64());
-            gen.mov(arg2, address & ~3);
-            call(recClearWrapper);
-        }
-    }
-
-    template <uint32_t pc>
-    static void interceptKernelCallWrapper(DynaRecCPU* that) {
-        that->InterceptBIOS<false>(pc);
     }
 
     // Check if we're executing from valid memory
@@ -463,7 +479,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         gen.callFunc(func);
     }
 
-    // Load a pointer to the JIT object in "reg" using lea with the context pointer
+    // Load a pointer to the JIT object in "reg"
     void loadThisPointer(Xbyak::Reg64 reg) { gen.mov(reg, contextPointer); }
 
     template <int size, bool signExtend>
