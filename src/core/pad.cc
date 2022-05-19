@@ -173,16 +173,6 @@ void PCSX::Pads::Pad::getButtons() {
         return result ^ 0xffff;  // Controls are inverted, so 0 = pressed
     };
 
-    // Check for analog mode toggle key
-    if (m_type == PadType::Analog && m_settings.get<Keyboard_AnalogMode>() != GLFW_KEY_UNKNOWN) {
-        const bool* keys = ImGui::GetIO().KeysDown;
-        const int key = m_settings.get<Keyboard_AnalogMode>();
-
-        if (keys[key]) {
-            m_analogMode = !m_analogMode;
-        }
-    }
-
     if (inputType == InputType::Keyboard) {
         pad.buttonStatus = getKeyboardButtons();
         pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
@@ -471,6 +461,18 @@ uint8_t PCSX::Pads::Pad::read() {
 }
 
 bool PCSX::Pads::configure(PCSX::GUI* gui) {
+    // Check for analog mode toggle key
+    const bool* keys = ImGui::GetIO().KeysDown;
+    for (auto& pad : m_pads) {
+        if (pad.m_type == PadType::Analog && pad.m_settings.get<Keyboard_AnalogMode>() != GLFW_KEY_UNKNOWN) {
+            const int key = pad.m_settings.get<Keyboard_AnalogMode>();
+
+            if (keys[key]) {
+                pad.m_analogMode = !pad.m_analogMode;
+            }
+        }
+    }
+
     if (!m_showCfg) {
         return false;
     }

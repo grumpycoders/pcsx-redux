@@ -22,6 +22,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include <array>
 #include <cstdint>
 
 #include "core/psxemulator.h"
@@ -190,7 +191,7 @@ class Pads {
         uint8_t m_analogpar[8] = {0x73, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     };
 
-    Pad m_pads[2];
+    std::array<Pad, 2> m_pads;
     unsigned m_selectedPadForConfig = 0;
 };
 
