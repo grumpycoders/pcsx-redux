@@ -173,6 +173,16 @@ void PCSX::Pads::Pad::getButtons() {
         return result ^ 0xffff;  // Controls are inverted, so 0 = pressed
     };
 
+    // Check for analog mode toggle key
+    if (m_type == PadType::Analog && m_settings.get<Keyboard_AnalogMode>() != GLFW_KEY_UNKNOWN) {
+        const bool* keys = ImGui::GetIO().KeysDown;
+        const int key = m_settings.get<Keyboard_AnalogMode>();
+
+        if (keys[key]) {
+            m_analogMode = !m_analogMode;
+        }
+    }
+
     if (inputType == InputType::Keyboard) {
         pad.buttonStatus = getKeyboardButtons();
         pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
@@ -245,7 +255,7 @@ void PCSX::Pads::Pad::getButtons() {
                 buttons[6] = true;
             }
         }
-    } else {
+    } else if (m_type == PadType::Analog) {
         // Normalize an axis from (-1, 1) to (0, 255) with 128 = center
         const auto axisToUint8 = [](float axis) {
             constexpr float scale = 1.3;
@@ -522,6 +532,8 @@ static std::string glfwKeyToString(int key) {
             return _("Keyboard Enter");
         case GLFW_KEY_SPACE:
             return _("Keyboard Space");
+        case GLFW_KEY_UNKNOWN:
+            return _("Unbound");
     };
 
     auto keyName = glfwGetKeyName(key, 0);
@@ -551,7 +563,8 @@ bool PCSX::Pads::Pad::configure() {
         []() { return _("Cross"); },  []() { return _("Square"); }, []() { return _("Triangle"); },
         []() { return _("Circle"); }, []() { return _("Select"); }, []() { return _("Start"); },
         []() { return _("L1"); },     []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); },     []() { return _("L3"); },     []() { return _("R3"); }};
+        []() { return _("R2"); },     []() { return _("L3"); },     []() { return _("R3"); },
+        []() { return _("Analog Mode"); }};
     static std::function<const char*()> const c_dpadDirections[] = {
         []() { return _("Up"); }, []() { return _("Right"); }, []() { return _("Down"); }, []() { return _("Left"); }};
     static std::function<const char*()> const c_controllerTypes[] = {[]() { return _("Digital"); },
@@ -613,7 +626,7 @@ bool PCSX::Pads::Pad::configure() {
         ImGui::TableSetupColumn(_("Computer button mapping"));
         ImGui::TableSetupColumn(_("Gamepad button"));
         ImGui::TableHeadersRow();
-        for (auto i = 0; i < 12; i++) {
+        for (auto i = 0; i < 13; i++) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(1);
             ImGui::Text(c_buttonNames[i]());
@@ -641,7 +654,7 @@ bool PCSX::Pads::Pad::configure() {
             ImGui::Text(c_dpadDirections[i]());
             ImGui::TableSetColumnIndex(0);
             bool hasToPop = false;
-            const auto absI = i + 12;
+            const auto absI = i + 13;
             if (m_buttonToWait == absI) {
                 const ImVec4 highlight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
                 ImGui::PushStyleColor(ImGuiCol_Button, highlight);
@@ -725,12 +738,14 @@ int& PCSX::Pads::Pad::getButtonFromGUIIndex(int buttonIndex) {
         case 11:
             return m_settings.get<Keyboard_PadR3>().value;
         case 12:
-            return m_settings.get<Keyboard_PadUp>().value;
+            return m_settings.get<Keyboard_AnalogMode>().value;
         case 13:
-            return m_settings.get<Keyboard_PadRight>().value;
+            return m_settings.get<Keyboard_PadUp>().value;
         case 14:
-            return m_settings.get<Keyboard_PadDown>().value;
+            return m_settings.get<Keyboard_PadRight>().value;
         case 15:
+            return m_settings.get<Keyboard_PadDown>().value;
+        case 16:
             return m_settings.get<Keyboard_PadLeft>().value;
         default:
             abort();
