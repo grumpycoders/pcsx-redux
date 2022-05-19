@@ -80,6 +80,8 @@ struct RequestData {
         HTTP_SOURCE,
     } method;
     std::multimap<std::string, std::string> headers;
+    std::multimap<std::string, std::string> form;
+    Slice body;
 };
 
 class WebClient;
@@ -129,7 +131,6 @@ class WebServer {
     void stopServer();
 
   private:
-    static void onNewConnectionTrampoline(uv_stream_t* server, int status);
     void onNewConnection(int status);
     static void closeCB(uv_handle_t* handle);
     WebServerStatus m_serverStatus = SERVER_STOPPED;
