@@ -28,7 +28,6 @@ namespace PCSX {
 
 class Counters {
   private:
-    /******************************************************************************/
     static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
     uint32_t readCounterInternal(uint32_t index);
     void writeCounterInternal(uint32_t index, uint32_t value);
@@ -36,8 +35,6 @@ class Counters {
     void set();
     void reset(uint32_t index);
     void calculateHsync();
-
-    /******************************************************************************/
 
     struct Rcnt {
         uint16_t mode, target;
@@ -80,22 +77,16 @@ class Counters {
 
     static const uint16_t JITTER_FLAGS = (Rc2OneEighthClock | RcIrqRegenerate | RcCountToTarget);
 
-    /******************************************************************************/
-
     Rcnt m_rcnts[CounterQuantity];
 
     uint32_t m_hSyncCount = 0;
-    uint32_t m_spuSyncCount = 0;
     uint32_t m_audioFrames = 0;
+    int32_t m_spuSyncCountdown = 0;
 
     uint32_t m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL + 1];  // 2
-
-    /******************************************************************************/
-
   public:
-    uint32_t m_psxNextCounter, m_psxNextsCounter;
-    bool m_pollSIO1 = false; // For SIO1 polling
-
+    uint32_t m_psxNextCounter;
+    bool m_pollSIO1 = false;
     void init();
     void update();
 

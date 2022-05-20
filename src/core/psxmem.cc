@@ -81,7 +81,6 @@ int PCSX::Memory::init() {
     memcpy(m_readLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
 
     m_readLUT[0x1f00] = (uint8_t *)m_psxP;
-    m_readLUT[0x1f80] = (uint8_t *)m_psxH;
 
     for (int i = 0; i < 0x08; i++) m_readLUT[i + 0x1fc0] = (uint8_t *)&m_psxR[i << 16];
 
@@ -95,7 +94,6 @@ int PCSX::Memory::init() {
     memcpy(m_writeLUT + 0xa000, m_writeLUT, 0x80 * sizeof(void *));
 
     m_writeLUT[0x1f00] = (uint8_t *)m_psxP;
-    m_writeLUT[0x1f80] = (uint8_t *)m_psxH;
 
     return 0;
 }
@@ -258,183 +256,154 @@ void PCSX::Memory::shutdown() {
     free(m_writeLUT);
 }
 
-uint8_t PCSX::Memory::read8(uint32_t mem) {
-    char *p;
-    uint32_t t;
+uint8_t PCSX::Memory::read8(uint32_t address) {
+    PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
+    const uint32_t page = address >> 16;
+    const auto pointer = (uint8_t *)m_readLUT[page];
 
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
-    }
-
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            return psxHu8(mem);
-        else
-            return PCSX::g_emulator->m_hw->read8(mem);
+    if (pointer != nullptr) {
+        const uint32_t offset = address & 0xffff;
+        return *(pointer + offset);
     } else {
-        p = (char *)(m_readLUT[t]);
-        if (p != NULL) {
-            return *(uint8_t *)(p + (mem & 0xffff));
+        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+            if ((address & 0xffff) < 0x400)
+                return psxHu8(address);
+            else
+                return PCSX::g_emulator->m_hw->read8(address);
         } else {
-            PSXMEM_LOG("err lb %8.8lx\n", mem);
+            PSXMEM_LOG("8-bit read from unknown address: %8.8lx\n", address);
             return 0xff;
         }
     }
 }
 
-uint16_t PCSX::Memory::read16(uint32_t mem) {
-    char *p;
-    uint32_t t;
+uint16_t PCSX::Memory::read16(uint32_t address) {
+    PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
+    const uint32_t page = address >> 16;
+    const auto pointer = (uint8_t *)m_readLUT[page];
 
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
-    }
-
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            return psxHu16(mem);
-        else
-            return PCSX::g_emulator->m_hw->read16(mem);
+    if (pointer != nullptr) {
+        const uint32_t offset = address & 0xffff;
+        return SWAP_LEu16(*(uint16_t *)(pointer + offset));
     } else {
-        p = (char *)(m_readLUT[t]);
-        if (p != NULL) {
-            return SWAP_LEu16(*(uint16_t *)(p + (mem & 0xffff)));
+        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+            if ((address & 0xffff) < 0x400)
+                return psxHu16(address);
+            else
+                return PCSX::g_emulator->m_hw->read16(address);
         } else {
-            PSXMEM_LOG("err lh %8.8lx\n", mem);
+            PSXMEM_LOG("16-bit read from unknown address: %8.8lx\n", address);
             return 0xffff;
         }
     }
 }
 
-uint32_t PCSX::Memory::read32(uint32_t mem) {
-    char *p;
-    uint32_t t;
+uint32_t PCSX::Memory::read32(uint32_t address) {
+    PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
+    const uint32_t page = address >> 16;
+    const auto pointer = (uint8_t *)m_readLUT[page];
 
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
-    }
-
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            return psxHu32(mem);
-        else
-            return PCSX::g_emulator->m_hw->read32(mem);
+    if (pointer != nullptr) {
+        const uint32_t offset = address & 0xffff;
+        return SWAP_LEu32(*(uint32_t *)(pointer + offset));
     } else {
-        p = (char *)(m_readLUT[t]);
-        if (p != NULL) {
-            return SWAP_LEu32(*(uint32_t *)(p + (mem & 0xffff)));
+        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+            if ((address & 0xffff) < 0x400)
+                return psxHu32(address);
+            else
+                return PCSX::g_emulator->m_hw->read32(address);
         } else {
             if (m_writeok) {
-                PSXMEM_LOG("err lw %8.8lx\n", mem);
+                PSXMEM_LOG("32-bit read from unknown address: %8.8lx\n", address);
             }
             return 0xffffffff;
         }
     }
 }
 
-void PCSX::Memory::write8(uint32_t mem, uint32_t value) {
-    char *p;
-    uint32_t t;
+void PCSX::Memory::write8(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
+    const uint32_t page = address >> 16;
+    const auto pointer = (uint8_t *)m_writeLUT[page];
 
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
-    }
-
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            psxHu8(mem) = value;
-        else
-            PCSX::g_emulator->m_hw->write8(mem, value);
+    if (pointer != nullptr) {
+        const uint32_t offset = address & 0xffff;
+        *(pointer + offset) = static_cast<uint8_t>(value);
+        PCSX::g_emulator->m_cpu->Clear((address & (~3)), 1);
     } else {
-        p = (char *)(m_writeLUT[t]);
-        if (p != NULL) {
-            *(uint8_t *)(p + (mem & 0xffff)) = value;
-            PCSX::g_emulator->m_cpu->Clear((mem & (~3)), 1);
+        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+            if ((address & 0xffff) < 0x400)
+                psxHu8(address) = value;
+            else
+                PCSX::g_emulator->m_hw->write8(address, value);
         } else {
-            PSXMEM_LOG("err sb %8.8lx\n", mem);
+            PSXMEM_LOG("8-bit write to unknown address: %8.8lx\n", address);
         }
     }
 }
 
-void PCSX::Memory::write16(uint32_t mem, uint32_t value) {
-    char *p;
-    uint32_t t;
+void PCSX::Memory::write16(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
+    const uint32_t page = address >> 16;
+    const auto pointer = (uint8_t *)m_writeLUT[page];
 
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
-    }
-
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            psxHu16ref(mem) = SWAP_LEu16(value);
-        else
-            PCSX::g_emulator->m_hw->write16(mem, value);
+    if (pointer != nullptr) {
+        const uint32_t offset = address & 0xffff;
+        *(uint16_t *)(pointer + offset) = SWAP_LEu16(static_cast<uint16_t>(value));
+        PCSX::g_emulator->m_cpu->Clear((address & (~3)), 1);
     } else {
-        p = (char *)(m_writeLUT[t]);
-        if (p != NULL) {
-            *(uint16_t *)(p + (mem & 0xffff)) = SWAP_LEu16(value);
-            PCSX::g_emulator->m_cpu->Clear((mem & (~3)), 1);
+        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+            if ((address & 0xffff) < 0x400)
+                psxHu16ref(address) = SWAP_LEu16(value);
+            else
+                PCSX::g_emulator->m_hw->write16(address, value);
         } else {
-            PSXMEM_LOG("err sh %8.8lx\n", mem);
+            PSXMEM_LOG("16-bit write to unknown address: %8.8lx\n", address);
         }
     }
 }
 
-void PCSX::Memory::write32(uint32_t mem, uint32_t value) {
-    char *p;
-    uint32_t t;
+void PCSX::Memory::write32(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
+    const uint32_t page = address >> 16;
+    const auto pointer = (uint8_t *)m_writeLUT[page];
 
-    if (!PCSX::g_emulator->config().MemHack) {
-        PCSX::g_emulator->m_cpu->m_regs.cycle += 1;
-    }
-
-    //  if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) PCSX::g_system->printf("t2fix!!\n");
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            psxHu32ref(mem) = SWAP_LEu32(value);
-        else
-            PCSX::g_emulator->m_hw->write32(mem, value);
+    if (pointer != nullptr) {
+        const uint32_t offset = address & 0xffff;
+        *(uint32_t *)(pointer + offset) = SWAP_LEu32(value);
+        PCSX::g_emulator->m_cpu->Clear((address & (~3)), 1);
     } else {
-        p = (char *)(m_writeLUT[t]);
-        if (p != NULL) {
-            *(uint32_t *)(p + (mem & 0xffff)) = SWAP_LEu32(value);
-            PCSX::g_emulator->m_cpu->Clear(mem, 1);
+        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+            if ((address & 0xffff) < 0x400)
+                psxHu32ref(address) = SWAP_LEu32(value);
+            else
+                PCSX::g_emulator->m_hw->write32(address, value);
+        } else if (address != 0xfffe0130) {
+            if (!m_writeok) PCSX::g_emulator->m_cpu->Clear(address, 1);
+
+            if (m_writeok) {
+                PSXMEM_LOG("32-bit write to unknown address: %8.8lx\n", address);
+            }
         } else {
-            if (mem != 0xfffe0130) {
-                if (!m_writeok) PCSX::g_emulator->m_cpu->Clear(mem, 1);
+            // a0-44: used for cache flushing
+            switch (value) {
+                case 0x800:
+                case 0x804:
+                    if (m_writeok == 0) break;
+                    m_writeok = 0;
+                    setLuts();
 
-                if (m_writeok) {
-                    PSXMEM_LOG("err sw %8.8lx\n", mem);
-                }
-            } else {
-                int i;
-
-                // a0-44: used for cache flushing
-                switch (value) {
-                    case 0x800:
-                    case 0x804:
-                        if (m_writeok == 0) break;
-                        m_writeok = 0;
-                        setLuts();
-
-                        PCSX::g_emulator->m_cpu->invalidateCache();
-                        break;
-                    case 0x00:
-                    case 0x1e988:
-                        if (m_writeok == 1) break;
-                        m_writeok = 1;
-                        setLuts();
-                        break;
-                    default:
-                        PSXMEM_LOG("unk %8.8lx = %x\n", mem, value);
-                        break;
-                }
+                    PCSX::g_emulator->m_cpu->invalidateCache();
+                    break;
+                case 0x00:
+                case 0x1e988:
+                    if (m_writeok == 1) break;
+                    m_writeok = 1;
+                    setLuts();
+                    break;
+                default:
+                    PSXMEM_LOG("unk %8.8lx = %x\n", address, value);
+                    break;
             }
         }
     }

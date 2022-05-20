@@ -21,6 +21,7 @@
 
 #if defined(DYNAREC_X86_64)
 #include <array>
+#include <cstring>
 
 #include "fmt/format.h"
 
@@ -28,6 +29,14 @@
     m_symbols += fmt::format("{} {} {}\n", (void*)&(variable), (name), (size))
 
 #define REGISTER_FUNCTION(function, name) m_symbols += fmt::format("{} {}\n", (void*)&(function), (name));
+
+#define REGISTER_CLASS_FUNCTION(function, name)            \
+    {                                                      \
+        void* func;                                        \
+        const auto& mfp = &function;                       \
+        std::memcpy(&func, &mfp, sizeof(void*));           \
+        m_symbols += fmt::format("{} {}\n", func, (name)); \
+    }
 
 void DynaRecCPU::makeSymbols() {
     static constexpr std::array<const char*, 34> GPRs = {
@@ -83,18 +92,20 @@ void DynaRecCPU::makeSymbols() {
         REGISTER_VARIABLE(m_hostRegisterCache[i], fmt::format("cached_host_reg_{}", i), 8);
     }
 
-    REGISTER_FUNCTION(read8Wrapper, "read8");
-    REGISTER_FUNCTION(read16Wrapper, "read16");
-    REGISTER_FUNCTION(read32Wrapper, "read32");
-    REGISTER_FUNCTION(write8Wrapper, "write8");
-    REGISTER_FUNCTION(write16Wrapper, "write16");
-    REGISTER_FUNCTION(write32Wrapper, "write32");
+    REGISTER_FUNCTION(read32Wrapper, "read32_wrapper");
+    REGISTER_FUNCTION(write32Wrapper, "write32_wrapper");
+
+    REGISTER_CLASS_FUNCTION(PCSX::Memory::read8, "read8");
+    REGISTER_CLASS_FUNCTION(PCSX::Memory::read16, "read16");
+    REGISTER_CLASS_FUNCTION(PCSX::Memory::read32, "read32");
+    REGISTER_CLASS_FUNCTION(PCSX::Memory::write8, "write8");
+    REGISTER_CLASS_FUNCTION(PCSX::Memory::write16, "write16");
+    REGISTER_CLASS_FUNCTION(PCSX::Memory::write32, "write32");
+    REGISTER_CLASS_FUNCTION(PCSX::R3000Acpu::branchTest, "branch_test");
 
     REGISTER_FUNCTION(exceptionWrapper, "fire_exception");
-    REGISTER_FUNCTION(recClearWrapper, "recompiler_clear");
     REGISTER_FUNCTION(signalShellReached, "signal_shell_reached");
     REGISTER_FUNCTION(SPU_writeRegisterWrapper, "spu_write_register");
-    REGISTER_FUNCTION(recBranchTestWrapper, "branch_test_wrapper");
     REGISTER_FUNCTION(recErrorWrapper, "recompiler_error_wrapper");
     REGISTER_FUNCTION(recRecompileWrapper, "recompiler_compile_wrapper");
 

@@ -200,8 +200,8 @@ void DynaRecCPU::emitDispatcher() {
     gen.align(16);
     m_returnFromBlock = gen.getCurr<DynarecCallback>();
 
-    loadThisPointer(arg1.cvt64());  // Poll events
-    gen.callFunc(recBranchTestWrapper);
+    // Poll events
+    emitMemberFunctionCall(&PCSX::R3000Acpu::branchTest, this);
     gen.test(Xbyak::util::byte[runningPointer], 1);  // Check if PCSX::g_system->running is true
     gen.jz(done);                                    // If it's not, return
     emitBlockLookup();                               // Otherwise, look up next block
@@ -401,7 +401,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         count++;    // Increment instruction count
 
         const auto func = m_recBSC[m_regs.code >> 26];  // Look up the opcode in our decoding LUT
-        (*this.*func)();                                // Jump into the handler to recompile it
+        (*this.*func)();                                   // Jump into the handler to recompile it
     };
 
     const auto resolveInitialLoadDelay = [&]() {
@@ -463,7 +463,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
 
 void DynaRecCPU::recSpecial() {
     const auto func = m_recSPC[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)();                                 // Jump into the handler to recompile it
+    (*this.*func)();                                    // Jump into the handler to recompile it
 }
 
 // Checks if the block being compiled is one of the kernel call vectors
@@ -480,21 +480,9 @@ void DynaRecCPU::handleKernelCall() {
     if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
         return;  // Mask out the segment, return if not a kernel call vector
 
-    switch (pc) {  // Handle the A0/B0/C0 vectors
-        case 0xA0:
-            loadThisPointer(arg1.cvt64());
-            call(interceptKernelCallWrapper<0xA0>);
-            break;
-
-        case 0xB0:
-            loadThisPointer(arg1.cvt64());
-            call(interceptKernelCallWrapper<0xB0>);
-            break;
-
-        case 0xC0:
-            loadThisPointer(arg1.cvt64());
-            call(interceptKernelCallWrapper<0xC0>);
-            break;
+    if (pc == 0xA0 || pc == 0xB0 || pc == 0xC0) {
+        gen.mov(arg2, m_pc);
+        emitMemberFunctionCall(&PCSX::R3000Acpu::InterceptBIOS<false>, this);
     }
 }
 
@@ -645,5 +633,9 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
             return (index == rs || index == rt) ? LoadDelayDependencyType::DependencyInsideBlock
                                                 : LoadDelayDependencyType::NoDependency;
     }
+
+    // Unreachable, but returning nothing would technically be UB.
+    abort();
+    return LoadDelayDependencyType::NoDependency;
 }
 #endif  // DYNAREC_X86_64

@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #pragma once
+#include <bit>
 
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
@@ -79,45 +80,52 @@ class GTE {
     // If MSB is set, return the number of leading ones, else return the number of leading zeroes
     // For an input of 0, 32 is returned
     static uint32_t countLeadingBits(uint32_t value) {
-#ifdef __GNUC__
         if (value & 0x80000000) {
             value = ~value;
         }
-        return (value == 0) ? 32 : __builtin_clz(value);
-#elif defined(_MSC_VER)
-        if (value & 0x80000000) {
-            value = ~value;
-        }
+        return std::countl_zero<uint32_t>(value);
+    }
 
-        if (value == 0) return 32;
-
-        unsigned long count;
-        _BitScanReverse(&count, value);
-        return 31 - count;
-#else
-        if ((value & 0x80000000) == 0) {
-            value = ~value;
-        }
-
-        uint32_t count = 0;
-        while ((value & 0x80000000) != 0) {
-            count++;
-            value <<= 1;
-        }
-
-        return count;
-#endif
+    // Count leading zeroes of a 16-bit value. For an input of 0, 16 is returned
+    static uint32_t countLeadingZeros16(uint16_t value) {
+        // Use a 32-bit CLZ as it's what's most commonly available and Clang/GCC fail to optimize 16-bit CLZ
+        const auto count = std::countl_zero<uint32_t>((uint32_t)value);
+        return count - 16;
     }
 
   private:
+    class int44 {
+      public:
+        int44(int64_t value)
+            : m_value(value), m_positive_overflow(value > 0x7ffffffffff), m_negative_overflow(value < -0x80000000000) {}
+
+        int44(int64_t value, bool positive_overflow, bool negative_overflow)
+            : m_value(value), m_positive_overflow(positive_overflow), m_negative_overflow(negative_overflow) {}
+
+        int44 operator+(int64_t rhs) {
+            int64_t value = ((m_value + rhs) << 20) >> 20;
+            return int44(value, m_positive_overflow || (value < 0 && m_value >= 0 && rhs >= 0),
+                         m_negative_overflow || (value >= 0 && m_value < 0 && rhs < 0));
+        }
+
+        bool positiveOverflow() { return m_positive_overflow; }
+        bool negativeOverflow() { return m_negative_overflow; }
+        int64_t value() { return m_value; }
+
+      private:
+        int64_t m_value;
+        bool m_positive_overflow;
+        bool m_negative_overflow;
+    };
+
     int s_sf;
     int64_t s_mac0;
     int64_t s_mac3;
 
-    int32_t BOUNDS(/*int44*/ int64_t value, int max_flag, int min_flag);
-    int32_t A1(/*int44*/ int64_t a);
-    int32_t A2(/*int44*/ int64_t a);
-    int32_t A3(/*int44*/ int64_t a);
+    int32_t BOUNDS(int44 value, int max_flag, int min_flag);
+    int32_t A1(int44 a);
+    int32_t A2(int44 a);
+    int32_t A3(int44 a);
     int64_t F(int64_t a);
 
     uint32_t MFC2_internal(int reg);
