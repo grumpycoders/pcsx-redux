@@ -232,11 +232,14 @@ class Slice {
     };
     struct Owned {
         ~Owned() { free(ptr); }
-        Owned(uint32_t size, void * ptr) : size(size), ptr(ptr) {}
-        Owned(const Owned & other) { abort(); }
+        Owned(uint32_t size, void *ptr) : size(size), ptr(ptr) {}
+        Owned(const Owned &other) { abort(); }
         Owned(Owned &&other) : ptr(other.ptr), size(other.size) { other.ptr = nullptr; }
-        Owned & operator=(const Owned & other) { abort(); return *this; }
-        Owned & operator=(Owned &&other) {
+        Owned &operator=(const Owned &other) {
+            abort();
+            return *this;
+        }
+        Owned &operator=(Owned &&other) {
             if (ptr) free(ptr);
             ptr = other.ptr;
             size = other.size;

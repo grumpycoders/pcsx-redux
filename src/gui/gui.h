@@ -31,7 +31,6 @@
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/callstacks.h"
 #include "gui/widgets/console.h"
-#include "gui/widgets/dwarf.h"
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
@@ -43,10 +42,9 @@
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
 #include "gui/widgets/sio1.h"
-#include "gui/widgets/source.h"
-#include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
+#include "imgui_md/imgui_md.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/eventbus.h"
@@ -79,6 +77,31 @@ class GUI final {
     std::vector<std::string> m_glErrors;
 
   public:
+    struct MarkDown : public imgui_md {
+        MarkDown() {}
+        MarkDown(std::map<std::string_view, std::function<void()>> &&customURLs)
+            : m_customURLs(std::move(customURLs)) {}
+        int print(const std::string_view text) {
+            const char *ptr = text.data();
+            const char *end = ptr + text.size();
+            return imgui_md::print(ptr, end);
+        }
+
+        void open_url() const override {
+            if (m_href.starts_with("http")) {
+                openUrl(m_href);
+                return;
+            }
+            auto i = m_customURLs.find(m_href);
+            if (i != m_customURLs.end()) i->second();
+        }
+
+        bool get_image(image_info &nfo) const override { return false; }
+
+      private:
+        std::map<std::string_view, std::function<void()>> m_customURLs;
+    };
+    static void openUrl(const std::string_view &url);
     void setOnlyLogGLErrors(bool value) { m_onlyLogGLErrors = value; }
     class ScopedOnlyLog {
       public:
@@ -282,10 +305,6 @@ class GUI final {
     Widgets::VRAMViewer m_clutVRAMviewer;
     Widgets::VRAMViewer m_VRAMviewers[4];
 
-    Widgets::Dwarf m_dwarf;
-
-    Widgets::Types m_types;
-    Widgets::Source m_source;
     Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
 
     Widgets::Events m_events;
@@ -330,6 +349,7 @@ class GUI final {
     Update m_update;
     bool m_updateAvailable = false;
     bool m_updateDownloading = false;
+    bool m_aboutSelectAuthors = false;
 
   public:
     bool hasJapanese() { return m_hasJapanese; }

@@ -28,8 +28,6 @@
 #include "fmt/printf.h"
 #include "spu/interface.h"
 
-/******************************************************************************/
-
 template <typename... Args>
 void verboseLog(int32_t level, const char *str, const Args &... args) {
     PSXHW_LOG(str, args...);
@@ -71,27 +69,24 @@ inline uint32_t PCSX::Counters::readCounterInternal(uint32_t index) {
 }
 
 void PCSX::Counters::set() {
-    int32_t countToUpdate;
-    uint32_t i;
+    m_psxNextCounter = PCSX::g_emulator->m_cpu->m_regs.cycle;
+    uint32_t next = 0x7fffffff;
 
-    m_psxNextsCounter = PCSX::g_emulator->m_cpu->m_regs.cycle;
-    m_psxNextCounter = 0x7fffffff;
-
-    for (i = 0; i < CounterQuantity; ++i) {
-        countToUpdate = m_rcnts[i].cycle - (m_psxNextsCounter - m_rcnts[i].cycleStart);
+    for (int i = 0; i < CounterQuantity; ++i) {
+        int32_t countToUpdate = m_rcnts[i].cycle - (m_psxNextCounter - m_rcnts[i].cycleStart);
 
         if (countToUpdate < 0) {
-            m_psxNextCounter = 0;
+            next = 0;
             break;
         }
 
-        if (countToUpdate < (int32_t)m_psxNextCounter) {
-            m_psxNextCounter = countToUpdate;
+        if (countToUpdate < (int32_t)next) {
+            next = countToUpdate;
         }
     }
-}
 
-/******************************************************************************/
+    m_psxNextCounter += next;
+}
 
 void PCSX::Counters::reset(uint32_t index) {
     uint32_t count;
@@ -188,13 +183,15 @@ void PCSX::Counters::update() {
         reset(3);
 
         m_hSyncCount++;
-        m_spuSyncCount++;
-        // Update spu.
-        if (m_spuSyncCount >= SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
-            m_spuSyncCount = 0;
+        m_spuSyncCountdown--;
 
-            PCSX::g_emulator->m_spu->async(
-                SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] * m_rcnts[3].target);
+        // Update spu.
+        if (m_spuSyncCountdown <= 0) {
+            // Scanlines until next sync
+            const auto scanlines = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
+            m_spuSyncCountdown = scanlines;
+
+            PCSX::g_emulator->m_spu->async(scanlines * m_rcnts[3].target);
         }
 
 #ifdef ENABLE_SIO1API
@@ -215,13 +212,10 @@ void PCSX::Counters::update() {
     }
 }
 
-/******************************************************************************/
-
 void PCSX::Counters::writeCounter(uint32_t index, uint32_t value) {
     verboseLog(2, "[RCNT %i] writeCounter: %x\n", index, value);
 
     update();
-
     writeCounterInternal(index, value);
     set();
 }
@@ -230,7 +224,6 @@ void PCSX::Counters::writeMode(uint32_t index, uint32_t value) {
     verboseLog(1, "[RCNT %i] writeMode: %x\n", index, value);
 
     update();
-
     m_rcnts[index].mode = value;
     m_rcnts[index].irqState = false;
 
@@ -271,24 +264,17 @@ void PCSX::Counters::writeMode(uint32_t index, uint32_t value) {
 
 void PCSX::Counters::writeTarget(uint32_t index, uint32_t value) {
     verboseLog(1, "[RCNT %i] wtarget: %x\n", index, value);
-
     update();
 
-    m_rcnts[index].target =
-        value;  // The target is only 16 bits. To make sure of this, the 32-bit write handlers mask it with 0xFFFF
-
+    // The target is only 16 bits. To make sure of this, the 32-bit write handlers mask it with 0xFFFF
+    m_rcnts[index].target =value;
     writeCounterInternal(index, readCounterInternal(index));
     set();
 }
 
-/******************************************************************************/
-
 uint32_t PCSX::Counters::readCounter(uint32_t index) {
-    uint32_t count;
-
     update();
-
-    count = readCounterInternal(index);
+    uint32_t count = readCounterInternal(index);
 
     // Parasite Eve 2 fix - artificial clock jitter based on PCSX::Emulator::BIAS
     // TODO: any other games depend on getting excepted value from RCNT?
@@ -320,30 +306,23 @@ uint32_t PCSX::Counters::readCounter(uint32_t index) {
     }
 
     verboseLog(2, "[RCNT %i] rcount: %x\n", index, count);
-
     return count;
 }
 
 uint32_t PCSX::Counters::readMode(uint32_t index) {
-    uint16_t mode;
-
     update();
 
-    mode = m_rcnts[index].mode;
+    uint16_t mode = m_rcnts[index].mode;
     m_rcnts[index].mode &= 0xe7ff;
 
     verboseLog(2, "[RCNT %i] rmode: %x\n", index, mode);
-
     return mode;
 }
 
 uint32_t PCSX::Counters::readTarget(uint32_t index) {
     verboseLog(2, "[RCNT %i] rtarget: %x\n", index, m_rcnts[index].target);
-
     return m_rcnts[index].target;
 }
-
-/******************************************************************************/
 
 void PCSX::Counters::calculateHsync() {
     m_HSyncTotal[PCSX::Emulator::PSX_TYPE_NTSC] = 263;
@@ -358,8 +337,6 @@ void PCSX::Counters::calculateHsync() {
 }
 
 void PCSX::Counters::init() {
-    int32_t i;
-
     calculateHsync();
 
     // rcnt 0.
@@ -381,19 +358,15 @@ void PCSX::Counters::init() {
                          (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
                           m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
 
-    for (i = 0; i < CounterQuantity; ++i) {
+    for (int i = 0; i < CounterQuantity; ++i) {
         writeCounterInternal(i, 0);
     }
 
     m_hSyncCount = 0;
-    m_spuSyncCount = 0;
-
+    m_spuSyncCountdown = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
     m_audioFrames = PCSX::g_emulator->m_spu->getCurrentFrames();
-
     set();
 }
-
-/******************************************************************************/
 
 void PCSX::Counters::save(PCSX::SaveStates::Counters &counters) {
     for (unsigned i = 0; i < CounterQuantity; i++) {
@@ -407,9 +380,8 @@ void PCSX::Counters::save(PCSX::SaveStates::Counters &counters) {
         counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value = m_rcnts[i].cycleStart;
     }
     counters.get<SaveStates::HSyncCount>().value = m_hSyncCount;
-    counters.get<SaveStates::SPUSyncCount>().value = m_spuSyncCount;
+    counters.get<SaveStates::SPUSyncCountdown>().value = m_spuSyncCountdown;
     counters.get<SaveStates::PSXNextCounter>().value = m_psxNextCounter;
-    counters.get<SaveStates::PSXNextsCounter>().value = m_psxNextsCounter;
 }
 
 void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
@@ -424,9 +396,8 @@ void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
         m_rcnts[i].cycleStart = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value;
     }
     m_hSyncCount = counters.get<SaveStates::HSyncCount>().value;
-    m_spuSyncCount = counters.get<SaveStates::SPUSyncCount>().value;
+    m_spuSyncCountdown = counters.get<SaveStates::SPUSyncCountdown>().value;
     m_psxNextCounter = counters.get<SaveStates::PSXNextCounter>().value;
-    m_psxNextsCounter = counters.get<SaveStates::PSXNextsCounter>().value;
 
     calculateHsync();
     // iCB: recalculate target count in case overclock is changed

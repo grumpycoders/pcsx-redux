@@ -46,6 +46,8 @@ LuaFile* bufferFileEmpty();
 
 LuaFile* subFile(LuaFile*, uint64_t start, int64_t size);
 
+LuaFile* uvFifo(const char* address, int port);
+
 void closeFile(LuaFile* wrapper);
 
 uint64_t readFileRawPtr(LuaFile* wrapper, void* dst, uint64_t size);
@@ -219,12 +221,10 @@ local function startCachingAndWait(self)
     captures.current = coroutine.running()
     if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
     captures.callback = function()
-        local oldCleanup = AfterPollingCleanup
-        AfterPollingCleanup = function()
-            if oldCleanup then oldCleanup() end
+        PCSX.nextTick(function()
             captures.callback:free()
             coroutine.resume(captures.current)
-        end
+        end)
     end
     captures.callback = ffi.cast('void (*)()', captures.callback)
     if C.startFileCachingWithCallback(self._wrapper, captures.callback) then
@@ -313,12 +313,10 @@ local function open(filename, t)
         captures.current = coroutine.running()
         if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
         captures.callback = function()
-            local oldCleanup = AfterPollingCleanup
-            AfterPollingCleanup = function()
-                if oldCleanup then oldCleanup() end
+            PCSX.nextTick(function()
                 captures.callback:free()
                 coroutine.resume(captures.current)
-            end
+            end)
         end
         captures.callback = ffi.cast('void (*)()', captures.callback)
         local ret = createFileWrapper(C.openFileAndWait(filename, captures.callback))
@@ -356,6 +354,12 @@ local function zReader(file, size, raw)
     return createFileWrapper(C.zReader(file._wrapper, size, raw))
 end
 
+local function uvFifo(address, port)
+    if type(address) ~= 'string' then error('address must be a string') end
+    if type(port) ~= 'number' then error('port must be a number') end
+    return createFileWrapper(C.uvFifo(address, port))
+end
+
 if (type(Support) ~= 'table') then Support = {} end
 
 Support.NewLuaBuffer = function(size)
@@ -364,6 +368,6 @@ Support.NewLuaBuffer = function(size)
     return buf
 end
 
-Support.File = { open = open, buffer = buffer, zReader = zReader, _createFileWrapper = createFileWrapper }
+Support.File = { open = open, buffer = buffer, zReader = zReader, uvFifo = uvFifo, _createFileWrapper = createFileWrapper }
 
 -- )EOF"

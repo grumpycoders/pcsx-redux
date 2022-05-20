@@ -62,6 +62,16 @@ class impl final : public GPU {
     void initDisplay();
     void doBufferSwap();
 
+    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) final override {
+        auto ptr = psxVuw;
+        ptr += y * 1024 + x;
+        for (int i = 0; i < h; i++) {
+            std::memcpy(ptr, pixels, w * sizeof(uint16_t));
+            ptr += 1024;
+            pixels += w;
+        }
+    }
+
     SoftPrim m_softPrim;
     void *m_dumpFile = nullptr;
     GLuint m_vramTexture16;

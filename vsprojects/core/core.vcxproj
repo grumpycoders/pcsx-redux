@@ -249,7 +249,6 @@
     <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\symbols.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x86\iR3000A.cc" />
-    <ClCompile Include="..\..\src\core\elfloader.cc" />
     <ClCompile Include="..\..\src\core\gdb-server.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />
     <ClCompile Include="..\..\src\core\gte.cc" />
@@ -278,7 +277,6 @@
     <ClCompile Include="..\..\src\core\sio1.cc" />
     <ClCompile Include="..\..\src\core\spu.cc" />
     <ClCompile Include="..\..\src\core\sstate.cc" />
-    <ClCompile Include="..\..\src\core\stacktrace.cc" />
     <ClCompile Include="..\..\src\core\system.cc" />
     <ClCompile Include="..\..\src\core\web-server.cc" />
   </ItemGroup>
@@ -295,7 +293,6 @@
     <ClInclude Include="..\..\src\core\DynaRec_x64\profiler.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h" />
-    <ClInclude Include="..\..\src\core\elfloader.h" />
     <ClInclude Include="..\..\src\core\gdb-server.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
@@ -322,7 +319,6 @@
     <ClInclude Include="..\..\src\core\sio1-server.h" />
     <ClInclude Include="..\..\src\core\spu.h" />
     <ClInclude Include="..\..\src\core\sstate.h" />
-    <ClInclude Include="..\..\src\core\stacktrace.h" />
     <ClInclude Include="..\..\src\core\system.h" />
     <ClInclude Include="..\..\src\core\web-server.h" />
     <ClInclude Include="..\..\src\mips\common\util\encoder.hh" />

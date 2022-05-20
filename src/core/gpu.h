@@ -88,6 +88,8 @@ class GPU {
 
     static std::unique_ptr<GPU> getSoft();
     static std::unique_ptr<GPU> getOpenGL();
+
+    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) {}
 };
 
 }  // namespace PCSX

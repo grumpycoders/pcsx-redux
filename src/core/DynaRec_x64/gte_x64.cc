@@ -309,14 +309,14 @@ void DynaRecCPU::recCFC2() {
 }
 
 void DynaRecCPU::recLWC2() {
-    if (m_gprs[_Rs_].isConst()) {  // Store address in arg1
-        gen.mov(arg1, m_gprs[_Rs_].val + _Imm_);
+    if (m_gprs[_Rs_].isConst()) {  // Store address in arg2
+        gen.mov(arg2, m_gprs[_Rs_].val + _Imm_);
     } else {
         allocateReg(_Rs_);
-        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);
+        gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);
     }
 
-    call(read32Wrapper);
+    callMemoryFunc(&PCSX::Memory::read32);
     switch (_Rt_) {
         case 15:                                                         // SXYP
             gen.mov(rcx, qword[contextPointer + COP2_DATA_OFFSET(13)]);  // SXY0 = SXY1 and SXY1 = SXY2
@@ -365,17 +365,17 @@ void DynaRecCPU::recLWC2() {
 }
 
 void DynaRecCPU::recSWC2() {
-    loadGTEDataRegister(arg2, _Rt_);  // Load the register we'll write to memory in arg2
+    loadGTEDataRegister(arg3, _Rt_);  // Load the register we'll write to memory in arg3
 
-    // Address in arg1
+    // Address in arg2
     if (m_gprs[_Rs_].isConst()) {
-        gen.mov(arg1, m_gprs[_Rs_].val + _Imm_);
+        gen.mov(arg2, m_gprs[_Rs_].val + _Imm_);
     } else {
         allocateReg(_Rs_);
-        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);
+        gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);
     }
 
-    call(write32Wrapper);
+    callMemoryFunc(&PCSX::Memory::write32);
 }
 
 template <bool isAVSZ4>
@@ -449,12 +449,10 @@ void DynaRecCPU::recAVSZ() {
 void DynaRecCPU::recAVSZ3() { recAVSZ<false>(); }
 void DynaRecCPU::recAVSZ4() { recAVSZ<true>(); }
 
-#define GTE_FALLBACK(name)                                                                          \
-    static void name##Wrapper(uint32_t instruction) { PCSX::g_emulator->m_gte->name(instruction); } \
-                                                                                                    \
-    void DynaRecCPU::rec##name() {                                                                  \
-        gen.mov(arg1, m_regs.code);                                                                 \
-        call(name##Wrapper);                                                                        \
+#define GTE_FALLBACK(name)             \
+    void DynaRecCPU::rec##name() {     \
+        gen.mov(arg2, m_regs.code);    \
+        callGTEFunc(&PCSX::GTE::name); \
     }
 
 GTE_FALLBACK(CC);

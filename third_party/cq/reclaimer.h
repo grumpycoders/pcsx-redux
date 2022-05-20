@@ -15,7 +15,7 @@ class Reclaimer {
 	friend HazardPointer;
 
 private:
-	// A coefficient that used to calcuate the max number
+	// A coefficient that used to calculate the max number
 	// of reclaim node in reclaim list.
 	static const int kCoefficient = 4 + 1 / 4;
 	static const HPIndex HP_INDEX_NULL = -1;

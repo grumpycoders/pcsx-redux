@@ -19,15 +19,18 @@
 
 #include "core/web-server.h"
 
+#include <charconv>
 #include <map>
 #include <memory>
 #include <string>
 
 #include "GL/gl3w.h"
+#include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/system.h"
 #include "http-parser/http_parser.h"
+#include "multipart-parser-c/multipart_parser.h"
 #include "support/hashtable.h"
 
 namespace {
@@ -37,20 +40,55 @@ class VramExecutor : public PCSX::WebExecutor {
         return urldata.path == "/api/v1/gpu/vram/raw";
     }
     virtual bool execute(PCSX::WebClient* client, const PCSX::RequestData& request) final {
-        client->write("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 1048576\r\n\r\n");
-        static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
-        uint16_t* pixels = (uint16_t*)malloc(texSize);
-        int oldTexture;
-        glFlush();
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
-        glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
-        glBindTexture(GL_TEXTURE_2D, oldTexture);
-        PCSX::Slice slice;
-        slice.acquire(pixels, texSize);
-        client->write(std::move(slice));
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
+            client->write(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 1048576\r\n\r\n");
+            static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
+            uint16_t* pixels = (uint16_t*)malloc(texSize);
+            int oldTexture;
+            glFlush();
+            glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
+            glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
+            glBindTexture(GL_TEXTURE_2D, oldTexture);
+            PCSX::Slice slice;
+            slice.acquire(pixels, texSize);
+            client->write(std::move(slice));
 
-        return true;
+            return true;
+        } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            auto vars = parseQuery(request.urlData.query);
+            auto ix = vars.find("x");
+            auto iy = vars.find("y");
+            auto iwidth = vars.find("width");
+            auto iheight = vars.find("height");
+            if (ix == vars.end() || iy == vars.end() || iwidth == vars.end() || iheight == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            auto x = std::stoi(ix->second);
+            auto y = std::stoi(iy->second);
+            auto width = std::stoi(iwidth->second);
+            auto height = std::stoi(iheight->second);
+            if ((x < 0) || (y < 0) || (width < 0) || (height < 0)) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            if ((x > 1024) || (y > 512) || ((x + width) > 1024) || ((y + height) > 512)) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            auto size = width * height * sizeof(uint16_t);
+            if (size != request.body.size()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+
+            PCSX::g_emulator->m_gpu->partialUpdateVRAM(x, y, width, height, request.body.data<uint16_t>());
+            client->write("HTTP/1.1 200 OK\r\n\r\n");
+            return true;
+        }
+        return false;
     }
 
     PCSX::EventBus::Listener m_listener;
@@ -93,6 +131,49 @@ class RamExecutor : public PCSX::WebExecutor {
 
 }  // namespace
 
+std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(const std::string& query) {
+    std::multimap<std::string, std::string> ret;
+    auto fragments = StringsHelpers::split(std::string_view(query), "&");
+    for (auto& f : fragments) {
+        auto parts = StringsHelpers::split(f, "=", true);
+        if (parts.size() == 2) {
+            ret.emplace(percentDecode(parts[0]), percentDecode(parts[1]));
+        }
+    }
+    return ret;
+}
+
+std::string PCSX::WebExecutor::percentDecode(std::string_view str) {
+    std::string ret;
+    auto len = str.length();
+    for (decltype(len) i = 0; i < len; i++) {
+        auto c = str[i];
+        switch (c) {
+            case '%': {
+                if ((len - i) < 3) return ret;
+
+                auto hex = str.substr(i + 1, 2);
+                uint8_t result = 0;
+
+                auto [ptr, ec]{std::from_chars(hex.data(), hex.data() + hex.size(), result, 16)};
+
+                if (ec != std::errc()) return ret;
+                i += 2;
+                break;
+            }
+            case '+': {
+                ret += ' ';
+                break;
+            }
+            default: {
+                ret += c;
+                break;
+            }
+        }
+    }
+    return ret;
+}
+
 PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new VramExecutor());
     m_executors.push_back(new RamExecutor());
@@ -131,7 +212,10 @@ void PCSX::WebServer::startServer(uv_loop_t* loop, int port) {
         uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
         return;
     }
-    result = uv_listen((uv_stream_t*)&m_server, 16, onNewConnectionTrampoline);
+    result = uv_listen((uv_stream_t*)&m_server, 16, [](uv_stream_t* handle, int status) {
+        WebServer* self = static_cast<WebServer*>(handle->data);
+        self->onNewConnection(status);
+    });
     if (result != 0) {
         uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
         return;
@@ -142,11 +226,6 @@ void PCSX::WebServer::startServer(uv_loop_t* loop, int port) {
 void PCSX::WebServer::closeCB(uv_handle_t* handle) {
     WebServer* self = static_cast<WebServer*>(handle->data);
     self->m_serverStatus = SERVER_STOPPED;
-}
-
-void PCSX::WebServer::onNewConnectionTrampoline(uv_stream_t* handle, int status) {
-    WebServer* self = static_cast<WebServer*>(handle->data);
-    self->onNewConnection(status);
 }
 
 void PCSX::WebServer::onNewConnection(int status) {
@@ -188,16 +267,46 @@ struct PCSX::WebClient::WebClientImpl {
     WebClientImpl(WebServer* server, WebClient* parent) : m_server(server), m_parent(parent) {
         uv_tcp_init(server->m_loop, &m_tcp);
         m_tcp.data = this;
-        m_httpParserSettings.on_message_begin = WebClientImpl::onMessageBeginTrampoline;
-        m_httpParserSettings.on_url = WebClientImpl::onUrlTrampoline;
-        m_httpParserSettings.on_status = WebClientImpl::onStatusTrampoline;
-        m_httpParserSettings.on_header_field = WebClientImpl::onHeaderFieldTrampoline;
-        m_httpParserSettings.on_header_value = WebClientImpl::onHeaderValueTrampoline;
-        m_httpParserSettings.on_headers_complete = WebClientImpl::onHeadersCompleteTrampoline;
-        m_httpParserSettings.on_body = WebClientImpl::onBodyTrampoline;
-        m_httpParserSettings.on_message_complete = WebClientImpl::onMessageCompleteTrampoline;
-        m_httpParserSettings.on_chunk_header = WebClientImpl::onChunkHeaderTrampoline;
-        m_httpParserSettings.on_chunk_complete = WebClientImpl::onChunkCompleteTrampoline;
+        m_httpParserSettings.on_message_begin = [](http_parser* parser) {
+            return static_cast<WebClientImpl*>(parser->data)->onMessageBegin();
+        };
+        m_httpParserSettings.on_url = [](http_parser* parser, const char* data, size_t size) {
+            Slice slice;
+            slice.borrow(data, size);
+            return static_cast<WebClientImpl*>(parser->data)->onUrl(slice);
+        };
+        m_httpParserSettings.on_status = [](http_parser* parser, const char* data, size_t size) {
+            Slice slice;
+            slice.borrow(data, size);
+            return static_cast<WebClientImpl*>(parser->data)->onStatus(slice);
+        };
+        m_httpParserSettings.on_header_field = [](http_parser* parser, const char* data, size_t size) {
+            Slice slice;
+            slice.borrow(data, size);
+            return static_cast<WebClientImpl*>(parser->data)->onHeaderField(slice);
+        };
+        m_httpParserSettings.on_header_value = [](http_parser* parser, const char* data, size_t size) {
+            Slice slice;
+            slice.borrow(data, size);
+            return static_cast<WebClientImpl*>(parser->data)->onHeaderValue(slice);
+        };
+        m_httpParserSettings.on_headers_complete = [](http_parser* parser) {
+            return static_cast<WebClientImpl*>(parser->data)->onHeadersComplete();
+        };
+        m_httpParserSettings.on_body = [](http_parser* parser, const char* data, size_t size) {
+            Slice slice;
+            slice.borrow(data, size);
+            return static_cast<WebClientImpl*>(parser->data)->onBody(slice);
+        };
+        m_httpParserSettings.on_message_complete = [](http_parser* parser) {
+            return static_cast<WebClientImpl*>(parser->data)->onMessageComplete();
+        };
+        m_httpParserSettings.on_chunk_header = [](http_parser* parser) {
+            return static_cast<WebClientImpl*>(parser->data)->onChunkHeader();
+        };
+        m_httpParserSettings.on_chunk_complete = [](http_parser* parser) {
+            return static_cast<WebClientImpl*>(parser->data)->onChunkComplete();
+        };
         http_parser_init(&m_httpParser, HTTP_REQUEST);
         m_httpParser.data = this;
     }
@@ -209,7 +318,16 @@ struct PCSX::WebClient::WebClientImpl {
     bool accept(uv_tcp_t* srv) {
         assert(m_status == CLOSED);
         if (uv_accept(reinterpret_cast<uv_stream_t*>(srv), reinterpret_cast<uv_stream_t*>(&m_tcp)) == 0) {
-            uv_read_start(reinterpret_cast<uv_stream_t*>(&m_tcp), allocTrampoline, readTrampoline);
+            uv_read_start(
+                reinterpret_cast<uv_stream_t*>(&m_tcp),
+                [](uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
+                    WebClientImpl* client = static_cast<WebClientImpl*>(handle->data);
+                    client->alloc(suggestedSize, buf);
+                },
+                [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
+                    WebClientImpl* client = static_cast<WebClientImpl*>(stream->data);
+                    client->read(nread, buf);
+                });
             m_status = OPEN;
         }
         return m_status == OPEN;
@@ -249,72 +367,114 @@ struct PCSX::WebClient::WebClientImpl {
         return findExecutor() ? 0 : 1;
     }
     int onStatus(const Slice& slice) { return 0; }
+    void headerComplete() {
+        m_requestData.headers.insert(std::pair(m_currentHeader, m_currentValue));
+        m_currentHeader.clear();
+        m_currentValue.clear();
+    }
     int onHeaderField(const Slice& slice) {
-        m_currentHeader = slice.asString();
+        if (m_headerState == PARSING_VALUE) {
+            headerComplete();
+            m_headerState = PARSING_HEADER;
+        }
+        m_currentHeader += slice.asString();
         return 0;
     }
     int onHeaderValue(const Slice& slice) {
-        m_requestData.headers.insert(std::pair(m_currentHeader, slice.asString()));
+        m_headerState = PARSING_VALUE;
+        m_currentValue += slice.asString();
         return 0;
     }
-    int onHeadersComplete() { return 0; }
-    int onBody(const Slice& slice) { return 0; }
-    int onMessageComplete() { return executeRequest(); }
+    void formHeaderComplete() {
+        m_requestData.form.insert(std::pair(m_currentFormHeader, m_currentFormValue));
+        m_currentFormHeader.clear();
+        m_currentFormValue.clear();
+    }
+    int onFormHeaderField(const Slice& slice) {
+        if (m_formHeaderState == PARSING_VALUE) {
+            formHeaderComplete();
+            m_formHeaderState = PARSING_HEADER;
+        }
+        m_currentFormHeader += slice.asString();
+        return 0;
+    }
+    int onFormHeaderValue(const Slice& slice) {
+        m_formHeaderState = PARSING_VALUE;
+        m_currentFormValue += slice.asString();
+        return 0;
+    }
+    int onHeadersComplete() {
+        headerComplete();
+        auto& ct = m_requestData.headers;
+        auto it = ct.find("Content-Type");
+        if (it != ct.end()) {
+            auto& contentType = it->second;
+            if (contentType.starts_with("multipart/form-data")) {
+                auto pos = contentType.find("boundary=");
+                if (pos != std::string::npos) {
+                    m_multipartBoundary = "--" + contentType.substr(pos + 9);
+                    m_multipart = true;
+                    memset(&m_multipartParserCallbacks, 0, sizeof(multipart_parser_settings));
+                    m_multipartParserCallbacks.on_header_field = [](multipart_parser* p, const char* at,
+                                                                    size_t length) {
+                        Slice slice;
+                        slice.borrow(at, length);
+                        return static_cast<WebClientImpl*>(multipart_parser_get_data(p))->onFormHeaderField(slice);
+                    };
+                    m_multipartParserCallbacks.on_header_value = [](multipart_parser* p, const char* at,
+                                                                    size_t length) {
+                        Slice slice;
+                        slice.borrow(at, length);
+                        return static_cast<WebClientImpl*>(multipart_parser_get_data(p))->onFormHeaderValue(slice);
+                    };
+                    m_multipartParserCallbacks.on_headers_complete = [](multipart_parser* p) {
+                        return static_cast<WebClientImpl*>(multipart_parser_get_data(p))->onFormHeadersComplete();
+                    };
+                    m_multipartParserCallbacks.on_part_data = [](multipart_parser* p, const char* at, size_t length) {
+                        Slice slice;
+                        slice.borrow(at, length);
+                        return static_cast<WebClientImpl*>(multipart_parser_get_data(p))->onFormData(slice);
+                    };
+                    m_multipartParser = multipart_parser_init(m_multipartBoundary.c_str(), &m_multipartParserCallbacks);
+                    multipart_parser_set_data(m_multipartParser, this);
+                }
+            }
+        }
+        return 0;
+    }
+
+    int onFormHeadersComplete() {
+        formHeaderComplete();
+        return 0;
+    }
+
+    int onFormData(const Slice& slice) {
+        m_requestData.body.concatenate(slice);
+        return 0;
+    }
+
+    int onBody(const Slice& slice) {
+        if (m_multipart) {
+            multipart_parser_execute(m_multipartParser, slice.data<char>(), slice.size());
+        } else {
+            m_requestData.body.concatenate(slice);
+        }
+        return 0;
+    }
+    int onMessageComplete() {
+        if (m_multipart) {
+            multipart_parser_free(m_multipartParser);
+        }
+        executeRequest();
+        return 0;
+    }
     int onChunkHeader() { return 0; }
     int onChunkComplete() { return 0; }
-    static int onMessageBeginTrampoline(http_parser* parser) {
-        return static_cast<WebClientImpl*>(parser->data)->onMessageBegin();
-    }
-    static int onUrlTrampoline(http_parser* parser, const char* data, size_t size) {
-        Slice slice;
-        slice.borrow(data, size);
-        return static_cast<WebClientImpl*>(parser->data)->onUrl(slice);
-    }
-    static int onStatusTrampoline(http_parser* parser, const char* data, size_t size) {
-        Slice slice;
-        slice.borrow(data, size);
-        return static_cast<WebClientImpl*>(parser->data)->onStatus(slice);
-    }
-    static int onHeaderFieldTrampoline(http_parser* parser, const char* data, size_t size) {
-        Slice slice;
-        slice.borrow(data, size);
-        return static_cast<WebClientImpl*>(parser->data)->onHeaderField(slice);
-    }
-    static int onHeaderValueTrampoline(http_parser* parser, const char* data, size_t size) {
-        Slice slice;
-        slice.borrow(data, size);
-        return static_cast<WebClientImpl*>(parser->data)->onHeaderValue(slice);
-    }
-    static int onHeadersCompleteTrampoline(http_parser* parser) {
-        return static_cast<WebClientImpl*>(parser->data)->onHeadersComplete();
-    }
-    static int onBodyTrampoline(http_parser* parser, const char* data, size_t size) {
-        Slice slice;
-        slice.borrow(data, size);
-        return static_cast<WebClientImpl*>(parser->data)->onBody(slice);
-    }
-    static int onMessageCompleteTrampoline(http_parser* parser) {
-        return static_cast<WebClientImpl*>(parser->data)->onMessageComplete();
-    }
-    static int onChunkHeaderTrampoline(http_parser* parser) {
-        return static_cast<WebClientImpl*>(parser->data)->onChunkHeader();
-    }
-    static int onChunkCompleteTrampoline(http_parser* parser) {
-        return static_cast<WebClientImpl*>(parser->data)->onChunkComplete();
-    }
-    static void allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
-        WebClientImpl* client = static_cast<WebClientImpl*>(handle->data);
-        client->alloc(suggestedSize, buf);
-    }
     void alloc(size_t suggestedSize, uv_buf_t* buf) {
         assert(!m_allocated);
         m_allocated = true;
         buf->base = m_buffer;
         buf->len = sizeof(m_buffer);
-    }
-    static void readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
-        WebClientImpl* client = static_cast<WebClientImpl*>(stream->data);
-        client->read(nread, buf);
     }
     void read(ssize_t nread, const uv_buf_t* buf) {
         m_allocated = false;
@@ -409,7 +569,20 @@ struct PCSX::WebClient::WebClientImpl {
     WebClient* m_parent;
 
     std::string m_currentHeader;
+    std::string m_currentValue;
+    std::string m_currentFormHeader;
+    std::string m_currentFormValue;
+    enum HeaderState {
+        PARSING_HEADER,
+        PARSING_VALUE,
+    };
+    HeaderState m_headerState = PARSING_HEADER;
+    HeaderState m_formHeaderState = PARSING_HEADER;
     RequestData m_requestData;
+    bool m_multipart = false;
+    std::string m_multipartBoundary;
+    multipart_parser* m_multipartParser;
+    multipart_parser_settings m_multipartParserCallbacks;
 
     bool m_closeScheduled = false;
 };

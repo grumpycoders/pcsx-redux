@@ -80,6 +80,8 @@ struct RequestData {
         HTTP_SOURCE,
     } method;
     std::multimap<std::string, std::string> headers;
+    std::multimap<std::string, std::string> form;
+    Slice body;
 };
 
 class WebClient;
@@ -89,6 +91,8 @@ class WebExecutor : public Intrusive::List<WebExecutor>::Node {
   public:
     virtual bool match(WebClient* client, const UrlData&) = 0;
     virtual bool execute(WebClient* client, const RequestData&) = 0;
+    std::multimap<std::string, std::string> parseQuery(const std::string&);
+    std::string percentDecode(std::string_view);
 };
 
 class WebClient : public Intrusive::List<WebClient>::Node {
@@ -129,7 +133,6 @@ class WebServer {
     void stopServer();
 
   private:
-    static void onNewConnectionTrampoline(uv_stream_t* server, int status);
     void onNewConnection(int status);
     static void closeCB(uv_handle_t* handle);
     WebServerStatus m_serverStatus = SERVER_STOPPED;
