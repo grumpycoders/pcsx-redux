@@ -19,11 +19,13 @@
 
 #include "core/web-server.h"
 
+#include <charconv>
 #include <map>
 #include <memory>
 #include <string>
 
 #include "GL/gl3w.h"
+#include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/system.h"
@@ -38,20 +40,55 @@ class VramExecutor : public PCSX::WebExecutor {
         return urldata.path == "/api/v1/gpu/vram/raw";
     }
     virtual bool execute(PCSX::WebClient* client, const PCSX::RequestData& request) final {
-        client->write("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 1048576\r\n\r\n");
-        static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
-        uint16_t* pixels = (uint16_t*)malloc(texSize);
-        int oldTexture;
-        glFlush();
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
-        glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
-        glBindTexture(GL_TEXTURE_2D, oldTexture);
-        PCSX::Slice slice;
-        slice.acquire(pixels, texSize);
-        client->write(std::move(slice));
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
+            client->write(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 1048576\r\n\r\n");
+            static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
+            uint16_t* pixels = (uint16_t*)malloc(texSize);
+            int oldTexture;
+            glFlush();
+            glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
+            glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
+            glBindTexture(GL_TEXTURE_2D, oldTexture);
+            PCSX::Slice slice;
+            slice.acquire(pixels, texSize);
+            client->write(std::move(slice));
 
-        return true;
+            return true;
+        } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            auto vars = parseQuery(request.urlData.query);
+            auto ix = vars.find("x");
+            auto iy = vars.find("y");
+            auto iwidth = vars.find("width");
+            auto iheight = vars.find("height");
+            if (ix == vars.end() || iy == vars.end() || iwidth == vars.end() || iheight == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            auto x = std::stoi(ix->second);
+            auto y = std::stoi(iy->second);
+            auto width = std::stoi(iwidth->second);
+            auto height = std::stoi(iheight->second);
+            if ((x < 0) || (y < 0) || (width < 0) || (height < 0)) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            if ((x > 1024) || (y > 512) || ((x + width) > 1024) || ((y + height) > 512)) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            auto size = width * height * sizeof(uint16_t);
+            if (size != request.body.size()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+
+            PCSX::g_emulator->m_gpu->partialUpdateVRAM(x, y, width, height, request.body.data<uint16_t>());
+            client->write("HTTP/1.1 200 OK\r\n\r\n");
+            return true;
+        }
+        return false;
     }
 
     PCSX::EventBus::Listener m_listener;
@@ -93,6 +130,49 @@ class RamExecutor : public PCSX::WebExecutor {
 };
 
 }  // namespace
+
+std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(const std::string& query) {
+    std::multimap<std::string, std::string> ret;
+    auto fragments = StringsHelpers::split(std::string_view(query), "&");
+    for (auto& f : fragments) {
+        auto parts = StringsHelpers::split(f, "=", true);
+        if (parts.size() == 2) {
+            ret.emplace(percentDecode(parts[0]), percentDecode(parts[1]));
+        }
+    }
+    return ret;
+}
+
+std::string PCSX::WebExecutor::percentDecode(std::string_view str) {
+    std::string ret;
+    auto len = str.length();
+    for (decltype(len) i = 0; i < len; i++) {
+        auto c = str[i];
+        switch (c) {
+            case '%': {
+                if ((len - i) < 3) return ret;
+
+                auto hex = str.substr(i + 1, 2);
+                uint8_t result = 0;
+
+                auto [ptr, ec]{std::from_chars(hex.data(), hex.data() + hex.size(), result, 16)};
+
+                if (ec != std::errc()) return ret;
+                i += 2;
+                break;
+            }
+            case '+': {
+                ret += ' ';
+                break;
+            }
+            default: {
+                ret += c;
+                break;
+            }
+        }
+    }
+    return ret;
+}
 
 PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new VramExecutor());
