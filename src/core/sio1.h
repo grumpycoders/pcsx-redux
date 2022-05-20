@@ -157,9 +157,11 @@ class SIO1 {
     bool initialMessage = true;
     SIOPayload makeDataMessage(std::string &&data);
     SIOPayload makeFCMessage();
+    std::string encodeMessage(SIOPayload message);
+    void sendDataMessage();
+    void sendFCMessage();
+    void transmitMessage(std::string &&message);
     void decodeMessage();
-    void encodeDataMessage();
-    void encodeFCMessage();
     void processMessage(SIOPayload payload);
 
     struct flowControl {
@@ -170,6 +172,7 @@ class SIO1 {
 
     flowControl m_flowControl = {};
     flowControl m_prevFlowControl = {};
+
     inline void pollFlowControl() {
         m_flowControl.dxr = (m_regs.control & CR_DTR);
         m_flowControl.xts = (m_regs.control & CR_RTS);
