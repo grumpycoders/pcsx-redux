@@ -33,7 +33,11 @@ static int callwrap(lua_State* raw, lua_CFunction func) {
     return r;
 }
 
+std::function<void(const std::string&)> PCSX::Lua::normalPrinter = nullptr;
+std::function<void(const std::string&)> PCSX::Lua::errorPrinter = nullptr;
+
 PCSX::Lua::Lua() : L(lua_open()) {
+    static_assert(sizeof(Lua) == sizeof(lua_State*));
     assert(("Couldn't create Lua VM", L));
     lua_atpanic(L, [](lua_State* L) -> int { throw std::runtime_error(lua_tostring(L, 1)); });
     setCallWrap(callwrap);
@@ -220,11 +224,26 @@ void PCSX::Lua::call(int nargs) {
 }
 
 void PCSX::Lua::pcall(int nargs) {
-    int r = lua_pcall(L, nargs, LUA_MULTRET, 0);
-
+    push([](lua_State* L_) -> int {
+        Lua L(L_);
+        return L.pushLuaContext(true);
+    });
+    insert();
+    int r = lua_pcall(L, nargs, LUA_MULTRET, 1);
+    remove();
     if (r == 0) return;
 
-    pushLuaContext();
+    int n = 1;
+    int t = gettop();
+    while (true) {
+        push(lua_Number(n++));
+        gettable(t);
+        if (isnil()) {
+            pop();
+            remove();
+            break;
+        }
+    }
     displayStack(true);
     while (gettop()) pop();
 
@@ -264,17 +283,37 @@ void PCSX::Lua::getglobal(const char* name) {
     gettable(LUA_GLOBALSINDEX);
 }
 
-void PCSX::Lua::pushLuaContext() {
-    std::string whole_msg;
+int PCSX::Lua::pushLuaContext(bool inTable) {
     struct lua_Debug ar;
     bool got_error = false;
     int level = 0;
+    int n = 1;
+    if (inTable) {
+        newtable();
+        insert(1);
+        push(lua_Number(n));
+        insert(2);
+        settable();
+    }
 
     do {
         if (lua_getstack(L, level, &ar) == 1) {
             if (lua_getinfo(L, "nSl", &ar) != 0) {
-                push(std::string("at ") + ar.source + ":" + std::to_string(ar.currentline) + " (" +
-                     (ar.name ? ar.name : "[top]") + ")");
+                n++;
+                if (inTable) {
+                    push(lua_Number(n));
+                }
+                std::string ctx = "at ";
+                ctx += ar.source;
+                ctx += ":";
+                ctx += std::to_string(ar.currentline);
+                ctx += " (";
+                ctx += ar.name ? ar.name : "[top]";
+                ctx += ")";
+                push(ctx);
+                if (inTable) {
+                    settable();
+                }
             } else {
                 got_error = true;
             }
@@ -283,6 +322,8 @@ void PCSX::Lua::pushLuaContext() {
         }
         level++;
     } while (!got_error);
+
+    return inTable ? 1 : n;
 }
 
 void PCSX::Lua::error(const char* msg) {

@@ -23,9 +23,9 @@
 #include <map>
 #include <string>
 
-#include "core/psxemulator.h"
 #include "json.hpp"
 #include "lua.hpp"
+#include "support/ssize_t.h"
 
 using json = nlohmann::json;
 
@@ -35,8 +35,8 @@ class Lua {
   public:
     typedef int (*openlualib_t)(lua_State* L);
 
-    std::function<void(const std::string&)> normalPrinter = nullptr;
-    std::function<void(const std::string&)> errorPrinter = nullptr;
+    static std::function<void(const std::string&)> normalPrinter;
+    static std::function<void(const std::string&)> errorPrinter;
 
     Lua();
     Lua(lua_State* L) : L(L) {}
@@ -180,7 +180,7 @@ class Lua {
     void setvar() { lua_settable(L, LUA_GLOBALSINDEX); }
     int gettop() { return lua_gettop(L); }
     void getglobal(const char* name);
-    void pushLuaContext();
+    int pushLuaContext(bool inTable = false);
     void error(const char* msg);
     void error(const std::string& msg) { error(msg.c_str()); }
 

@@ -24,7 +24,6 @@
 
 #pragma once
 
-// System includes
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -42,34 +41,24 @@
 #include <string>
 
 #include "support/settings.h"
+#include "support/ssize_t.h"
+#include "support/strings-helpers.h"
 
 #ifndef MAXPATHLEN
-#ifdef _WIN32
 #include "support/windowswrapper.h"
-#endif
-#ifdef MAX_PATH
+#if defined(MAX_PATH)
 #define MAXPATHLEN MAX_PATH
-#endif
-#ifdef PATH_MAX
+#elif defined(PATH_MAX)
 #define MAXPATHLEN PATH_MAX
 #endif
-#endif
-
-#ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0"
 #endif
 
 // Local includes from core - anything else from core is forbidden
 #include "core/logger.h"
 #include "core/system.h"
-#include "support/strings-helpers.h"
 
 #if defined(__linux__) || defined(__MACOSX__)
 #define strnicmp strncasecmp
-#endif
-
-#ifdef _WIN32
-typedef intptr_t ssize_t;
 #endif
 
 namespace PCSX {
