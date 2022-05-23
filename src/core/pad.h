@@ -29,6 +29,7 @@
 #include "core/system.h"
 #include "imgui.h"
 #include "json.hpp"
+#include "lua/luawrapper.h"
 
 struct PadData;
 using json = nlohmann::json;
@@ -63,6 +64,8 @@ class Pads {
 
     void scanGamepads();
     void reset();
+
+    void setLua(Lua L);
 
   private:
     EventBus::Listener m_listener;

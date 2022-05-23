@@ -41,8 +41,14 @@ class UvThreadOp : public UvThreadOpListType::Node {
   public:
     enum DownloadUrl { DOWNLOAD_URL };
     struct UvThread {
+        void setEmergencyExit() { m_emergencyExit = true; }
         UvThread() { PCSX::UvThreadOp::startThread(); }
-        ~UvThread() { PCSX::UvThreadOp::stopThread(); }
+        ~UvThread() {
+            if (!m_emergencyExit) PCSX::UvThreadOp::stopThread();
+        }
+
+      private:
+        bool m_emergencyExit = false;
     };
 
   private:
