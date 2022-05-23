@@ -798,3 +798,21 @@ void PCSX::Pads::Pad::setDefaults(bool firstController) {
     }
     map();
 }
+
+void PCSX::Pads::setLua(Lua L) {
+    L.getfield("PCSX", LUA_GLOBALSINDEX);
+    L.getfield("settings");
+    L.push("pads");
+    L.newtable();
+    L.push(lua_Number(1));
+    m_pads[0].m_settings.pushValue(L);
+    L.settable();
+    L.push(lua_Number(2));
+    m_pads[0].m_settings.pushValue(L);
+    L.settable();
+    L.settable();
+    L.pop();
+    L.pop();
+
+    assert(L.gettop() == 0);
+}

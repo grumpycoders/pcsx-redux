@@ -159,26 +159,26 @@ LuaFile* zReader(LuaFile* wrapper, int64_t size, bool raw) {
 }  // namespace
 
 template <typename T, size_t S>
-static void registerSymbol(PCSX::Lua* L, const char (&name)[S], const T ptr) {
-    L->push<S>(name);
-    L->push((void*)ptr);
-    L->settable();
+static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
+    L.push<S>(name);
+    L.push((void*)ptr);
+    L.settable();
 }
 
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
-static void registerAllSymbols(PCSX::Lua* L) {
-    L->push("_CLIBS");
-    L->gettable(LUA_REGISTRYINDEX);
-    if (L->isnil()) {
-        L->pop();
-        L->newtable();
-        L->push("_CLIBS");
-        L->copy(-2);
-        L->settable(LUA_REGISTRYINDEX);
+static void registerAllSymbols(PCSX::Lua L) {
+    L.push("_CLIBS");
+    L.gettable(LUA_REGISTRYINDEX);
+    if (L.isnil()) {
+        L.pop();
+        L.newtable();
+        L.push("_CLIBS");
+        L.copy(-2);
+        L.settable(LUA_REGISTRYINDEX);
     }
-    L->push("SUPPORT_FILE");
-    L->newtable();
+    L.push("SUPPORT_FILE");
+    L.newtable();
 
     REGISTER(L, deleteFile);
 
@@ -225,15 +225,15 @@ static void registerAllSymbols(PCSX::Lua* L) {
 
     REGISTER(L, zReader);
 
-    L->settable();
-    L->pop();
+    L.settable();
+    L.pop();
 }
 
-void PCSX::LuaFFI::open_file(Lua* L) {
+void PCSX::LuaFFI::open_file(Lua L) {
     static int lualoader = 1;
     static const char* fileFFI = (
 #include "lua/fileffi.lua"
     );
     registerAllSymbols(L);
-    L->load(fileFFI, "internal:lua/fileffi.lua");
+    L.load(fileFFI, "internal:lua/fileffi.lua");
 }

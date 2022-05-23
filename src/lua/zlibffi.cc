@@ -24,26 +24,26 @@
 #include "lua/luawrapper.h"
 
 template <typename T, size_t S>
-static void registerSymbol(PCSX::Lua* L, const char (&name)[S], const T ptr) {
-    L->push<S>(name);
-    L->push((void*)ptr);
-    L->settable();
+static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
+    L.push<S>(name);
+    L.push((void*)ptr);
+    L.settable();
 }
 
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
-static void registerAllSymbols(PCSX::Lua* L) {
-    L->push("_CLIBS");
-    L->gettable(LUA_REGISTRYINDEX);
-    if (L->isnil()) {
-        L->pop();
-        L->newtable();
-        L->push("_CLIBS");
-        L->copy(-2);
-        L->settable(LUA_REGISTRYINDEX);
+static void registerAllSymbols(PCSX::Lua L) {
+    L.push("_CLIBS");
+    L.gettable(LUA_REGISTRYINDEX);
+    if (L.isnil()) {
+        L.pop();
+        L.newtable();
+        L.push("_CLIBS");
+        L.copy(-2);
+        L.settable(LUA_REGISTRYINDEX);
     }
-    L->push("z");
-    L->newtable();
+    L.push("z");
+    L.newtable();
     REGISTER(L, zlibVersion);
     REGISTER(L, deflate);
     REGISTER(L, deflateEnd);
@@ -130,15 +130,15 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, inflateResetKeep);
     REGISTER(L, deflateResetKeep);
     //    REGISTER(L, gzopen_w);
-    L->settable();
-    L->pop();
+    L.settable();
+    L.pop();
 }
 
-void PCSX::LuaFFI::open_zlib(Lua* L) {
+void PCSX::LuaFFI::open_zlib(Lua L) {
     static int lualoader = 1;
     static const char* zlibFFI = (
 #include "third_party/zlibffi/zlibffi.lua"
     );
     registerAllSymbols(L);
-    L->load(zlibFFI, "internal:third_party/zlibffi/zlibffi.lua");
+    L.load(zlibFFI, "internal:third_party/zlibffi/zlibffi.lua");
 }

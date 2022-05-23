@@ -24,26 +24,26 @@
 #include "lua/luawrapper.h"
 
 template <typename T, size_t S>
-static void registerSymbol(PCSX::Lua* L, const char (&name)[S], const T ptr) {
-    L->push<S>(name);
-    L->push((void*)ptr);
-    L->settable();
+static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
+    L.push<S>(name);
+    L.push((void*)ptr);
+    L.settable();
 }
 
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
-static void registerAllSymbols(PCSX::Lua* L) {
-    L->push("_CLIBS");
-    L->gettable(LUA_REGISTRYINDEX);
-    if (L->isnil()) {
-        L->pop();
-        L->newtable();
-        L->push("_CLIBS");
-        L->copy(-2);
-        L->settable(LUA_REGISTRYINDEX);
+static void registerAllSymbols(PCSX::Lua L) {
+    L.push("_CLIBS");
+    L.gettable(LUA_REGISTRYINDEX);
+    if (L.isnil()) {
+        L.pop();
+        L.newtable();
+        L.push("_CLIBS");
+        L.copy(-2);
+        L.settable(LUA_REGISTRYINDEX);
     }
-    L->push("gl");
-    L->newtable();
+    L.push("gl");
+    L.newtable();
     REGISTER(L, glCullFace);
     REGISTER(L, glFrontFace);
     REGISTER(L, glHint);
@@ -648,11 +648,11 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, glTexStorage3DMultisample);
     REGISTER(L, glTextureStorage2DMultisampleEXT);
     REGISTER(L, glTextureStorage3DMultisampleEXT);
-    L->settable();
-    L->pop();
+    L.settable();
+    L.pop();
 }
 
-void PCSX::LuaFFI::open_gl(Lua* L) {
+void PCSX::LuaFFI::open_gl(Lua L) {
     registerAllSymbols(L);
     static int lualoader = 8;
     static const char* glFFI_enum1 = (
@@ -679,12 +679,12 @@ void PCSX::LuaFFI::open_gl(Lua* L) {
     static const char* glFFI_def4 = (
 #include "third_party/glffi/glffi-def4.lua"
     );
-    L->load(glFFI_enum1, "internal:third_party/glffi/glffi-enum1.lua");
-    L->load(glFFI_enum2, "internal:third_party/glffi/glffi-enum2.lua");
-    L->load(glFFI_enum3, "internal:third_party/glffi/glffi-enum3.lua");
-    L->load(glFFI_typedefs, "internal:third_party/glffi/glffi-typedefs.lua");
-    L->load(glFFI_def1, "internal:third_party/glffi/glffi-def1.lua");
-    L->load(glFFI_def2, "internal:third_party/glffi/glffi-def2.lua");
-    L->load(glFFI_def3, "internal:third_party/glffi/glffi-def3.lua");
-    L->load(glFFI_def4, "internal:third_party/glffi/glffi-def4.lua");
+    L.load(glFFI_enum1, "internal:third_party/glffi/glffi-enum1.lua");
+    L.load(glFFI_enum2, "internal:third_party/glffi/glffi-enum2.lua");
+    L.load(glFFI_enum3, "internal:third_party/glffi/glffi-enum3.lua");
+    L.load(glFFI_typedefs, "internal:third_party/glffi/glffi-typedefs.lua");
+    L.load(glFFI_def1, "internal:third_party/glffi/glffi-def1.lua");
+    L.load(glFFI_def2, "internal:third_party/glffi/glffi-def2.lua");
+    L.load(glFFI_def3, "internal:third_party/glffi/glffi-def3.lua");
+    L.load(glFFI_def4, "internal:third_party/glffi/glffi-def4.lua");
 }

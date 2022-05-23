@@ -121,7 +121,7 @@ class GUI final {
         s_gui = nullptr;
     }
     void init();
-    void setLua();
+    void setLua(Lua L);
     void close();
     void update(bool vsync = false);
     void flip();
@@ -286,13 +286,8 @@ class GUI final {
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
-    Widgets::FileDialog m_selectBiosOverlayDialog = {[]() { return _("Select BIOS Overlay"); }};
-    int m_selectedBiosOverlayId;
     Widgets::Breakpoints m_breakpoints;
     bool m_breakOnVSync = false;
-    std::vector<std::string> m_overlayFileOffsets;
-    std::vector<std::string> m_overlayLoadOffsets;
-    std::vector<std::string> m_overlayLoadSizes;
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
