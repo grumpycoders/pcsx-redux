@@ -40,6 +40,8 @@ class LuaInspector {
         STACK,
         REGISTRY,
     } m_display = Display::GLOBALS;
+
+    bool m_raw = true;
 };
 
 }  // namespace Widgets

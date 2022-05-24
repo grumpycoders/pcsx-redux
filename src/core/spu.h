@@ -25,6 +25,7 @@
 #include "core/r3000a.h"
 #include "core/sstate.h"
 #include "json.hpp"
+#include "lua/luawrapper.h"
 
 /*
 #define H_SPUirqAddr 0x0da4
@@ -70,6 +71,7 @@ class SPUInterface {
     virtual uint32_t getCurrentFrames() = 0;
     virtual void waitForGoal(uint32_t goal) = 0;
     virtual uint32_t getFrameCount() = 0;
+    virtual void setLua(Lua L) = 0;
 
     bool m_showDebug = false;
     bool m_showCfg = false;

@@ -23,9 +23,9 @@
 #include <map>
 #include <string>
 
-#include "core/psxemulator.h"
 #include "json.hpp"
 #include "lua.hpp"
+#include "support/ssize_t.h"
 
 using json = nlohmann::json;
 
@@ -35,8 +35,8 @@ class Lua {
   public:
     typedef int (*openlualib_t)(lua_State* L);
 
-    std::function<void(const std::string&)> normalPrinter = nullptr;
-    std::function<void(const std::string&)> errorPrinter = nullptr;
+    static std::function<void(const std::string&)> normalPrinter;
+    static std::function<void(const std::string&)> errorPrinter;
 
     Lua();
     Lua(lua_State* L) : L(L) {}
@@ -99,7 +99,11 @@ class Lua {
     }
     void push(const std::string& s) {
         checkstack();
-        lua_pushlstring(L, s.c_str(), s.length());
+        lua_pushlstring(L, s.data(), s.length());
+    }
+    void push(std::string_view s) {
+        checkstack();
+        lua_pushlstring(L, s.data(), s.length());
     }
     void push(bool b) {
         checkstack();
@@ -146,33 +150,29 @@ class Lua {
         return lua_newuserdata(L, s);
     }
     template <size_t S>
-    void setfield(const char (&field)[S], int tableIdx = -2, bool raw = false) {
-        int n = gettop();
-        if ((tableIdx) < 0 && (-tableIdx <= n)) tableIdx += n - 1;
+    void setfield(const char (&field)[S], int i = -2, bool raw = false) {
+        if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
         push<S>(field);
-        insert(n);
-        settable(tableIdx, raw);
+        insert(-1);
+        settable(i, raw);
     }
-    void setfield(const std::string& field, int tableIdx = -2, bool raw = false) {
-        int n = gettop();
-        if ((tableIdx) < 0 && (-tableIdx <= n)) tableIdx += n - 1;
+    void setfield(const std::string& field, int i = -2, bool raw = false) {
+        if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
         push(field);
-        insert(n);
-        settable(tableIdx, raw);
+        insert(-1);
+        settable(i, raw);
     }
     void settable(int tableIdx = -3, bool raw = false);
     template <size_t S>
-    void getfield(const char (&field)[S], int tableIdx = -1, bool raw = false) {
-        int n = gettop();
-        if ((tableIdx) < 0 && (-tableIdx <= n)) tableIdx += n - 1;
+    void getfield(const char (&field)[S], int i = -1, bool raw = false) {
+        if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 1;
         push<S>(field);
-        gettable(tableIdx, raw);
+        gettable(i, raw);
     }
-    void getfield(const std::string& field, int tableIdx = -1, bool raw = false) {
-        int n = gettop();
-        if ((tableIdx) < 0 && (-tableIdx <= n)) tableIdx += n - 1;
+    void getfield(const std::string& field, int i = -1, bool raw = false) {
+        if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 1;
         push(field);
-        gettable(tableIdx, raw);
+        gettable(i, raw);
     }
     void gettable(int tableIdx = -2, bool raw = false);
     void rawseti(int idx, int tableIdx = -2) { lua_rawseti(L, tableIdx, idx); }
@@ -180,7 +180,7 @@ class Lua {
     void setvar() { lua_settable(L, LUA_GLOBALSINDEX); }
     int gettop() { return lua_gettop(L); }
     void getglobal(const char* name);
-    void pushLuaContext();
+    int pushLuaContext(bool inTable = false);
     void error(const char* msg);
     void error(const std::string& msg) { error(msg.c_str()); }
 
@@ -201,6 +201,7 @@ class Lua {
 
     bool toboolean(int i = -1) { return lua_toboolean(L, i); }
     lua_Number tonumber(int i = -1) { return lua_tonumber(L, i); }
+    lua_Number checknumber(int i = -1) { return luaL_checknumber(L, i); }
     std::string tostring(int i = -1);
     lua_CFunction tocfunction(int i = -1) { return lua_tocfunction(L, i); }
     void* touserdata(int i = -1) { return lua_touserdata(L, i); }

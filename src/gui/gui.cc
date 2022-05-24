@@ -223,8 +223,8 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
     }
 }
 
-void PCSX::GUI::setLua() {
-    g_emulator->m_lua->load(R"(
+void PCSX::GUI::setLua(Lua L) {
+    L.load(R"(
 print("PCSX-Redux Lua Console")
 print(jit.version)
 print((function(status, ...)
@@ -235,9 +235,16 @@ print((function(status, ...)
   return ret
 end)(jit.status()))
 )",
-                            "gui startup");
-    LoadImguiBindings(g_emulator->m_lua->getState());
-    LuaFFI::open_gl(g_emulator->m_lua.get());
+           "gui startup");
+    LoadImguiBindings(L.getState());
+    LuaFFI::open_gl(L);
+    L.getfield("PCSX", LUA_GLOBALSINDEX);
+    L.getfield("settings");
+    L.push("gui");
+    settings.pushValue(L);
+    L.settable();
+    L.pop();
+    L.pop();
     m_offscreenShaderEditor.compile(this);
     m_outputShaderEditor.compile(this);
 }
@@ -888,23 +895,7 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Configuration"))) {
-                if (ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg)) {
-                    auto& overlays = g_emulator->settings.get<Emulator::SettingBiosOverlay>();
-                    m_overlayFileOffsets.resize(overlays.size());
-                    m_overlayLoadOffsets.resize(overlays.size());
-                    m_overlayLoadSizes.resize(overlays.size());
-                    unsigned counter = 0;
-                    for (auto& overlay : overlays) {
-                        char str[32];
-                        std::snprintf(str, 32, "0x%08x", overlay.get<Emulator::OverlaySetting::FileOffset>().value);
-                        m_overlayFileOffsets[counter] = str;
-                        std::snprintf(str, 32, "0x%08x", overlay.get<Emulator::OverlaySetting::LoadOffset>().value);
-                        m_overlayLoadOffsets[counter] = str;
-                        std::snprintf(str, 32, "0x%08x", overlay.get<Emulator::OverlaySetting::LoadSize>().value);
-                        m_overlayLoadSizes[counter] = str;
-                        counter++;
-                    }
-                }
+                ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
                 if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
                     m_memcardManager.m_frameCount = 0;  // Reset frame count when memcard manager is toggled
                 }
@@ -1427,7 +1418,6 @@ bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
     bool showDynarecWarning = false;
-    bool selectBiosOverlayDialog = false;
     auto& settings = g_emulator->settings;
     auto& debugSettings = settings.get<Emulator::SettingDebugSettings>();
     if (!m_showCfg) return false;
@@ -1583,7 +1573,6 @@ relay information between tcp and sio1.
 See the wiki for details.)"));
         changed |=
             ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
-
         if (ImGui::Checkbox(_("Enable SIO1 Client"), &debugSettings.get<Emulator::DebugSettings::SIO1Client>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::SIO1Client>()) {
@@ -1600,106 +1589,11 @@ See the wiki for details.)"));
         ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
 to another PCSX-Redux server to relay information between tcp and sio1.
 See the wiki for details.)"));
-        changed |= ImGui::InputText(
-            _("SIO1 Client Host"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value,
-            ImGuiInputTextFlags_CharsDecimal);
+        changed |=
+            ImGui::InputText(_("SIO1 Client Host"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value,
+                             ImGuiInputTextFlags_CharsDecimal);
         changed |=
             ImGui::InputInt(_("SIO1 Client Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientPort>().value);
-
-        auto& currentSIO1Mode = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
-        auto currentSIO1Name = magic_enum::enum_name(currentSIO1Mode);
-        if (ImGui::Button(_("Reset SIO"))) {
-            g_emulator->m_sio1->reset();
-        }
-        if (ImGui::BeginCombo(_("SIO1Mode"), currentSIO1Name.data())) {
-            for (auto v : magic_enum::enum_values<Emulator::DebugSettings::SIO1Mode>()) {
-                bool selected = (v == currentSIO1Mode);
-                auto name = magic_enum::enum_name(v);
-                if (ImGui::Selectable(name.data(), selected)) {
-                    currentSIO1Mode = v;
-                    changed = true;
-                }
-                if (selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
-            auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
-            if (ImGui::Button(_("Add one entry"))) overlays.push_back({});
-            m_overlayFileOffsets.resize(overlays.size());
-            m_overlayLoadOffsets.resize(overlays.size());
-            m_overlayLoadSizes.resize(overlays.size());
-            int counter = 0;
-            int overlayToRemove = -1;
-            int swapMe = -1;
-            for (auto& overlay : overlays) {
-                std::string id = "overlay" + std::to_string(counter);
-                ImGui::BeginChild(id.c_str(), ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 7.0f), true);
-                auto overlayFilename = overlay.get<Emulator::OverlaySetting::Filename>().string();
-                ImGui::InputText(_("Filename"),
-                                 const_cast<char*>(reinterpret_cast<const char*>(overlayFilename.c_str())),
-                                 overlayFilename.length(), ImGuiInputTextFlags_ReadOnly);
-                ImGui::SameLine();
-                if (ImGui::Button("...")) {
-                    selectBiosOverlayDialog = true;
-                    m_selectedBiosOverlayId = counter;
-                }
-                if (ImGui::InputText(_("File Offset"), &m_overlayFileOffsets[counter])) {
-                    char* endPtr;
-                    uint32_t offset = strtoul(m_overlayFileOffsets[counter].c_str(), &endPtr, 0);
-                    if (!m_overlayFileOffsets[counter].empty() && !*endPtr) {
-                        overlay.get<Emulator::OverlaySetting::FileOffset>().value = offset;
-                        changed = true;
-                    }
-                }
-                if (ImGui::InputText(_("Load Offset"), &m_overlayLoadOffsets[counter])) {
-                    char* endPtr;
-                    uint32_t offset = strtoul(m_overlayLoadOffsets[counter].c_str(), &endPtr, 0);
-                    if (!m_overlayLoadOffsets[counter].empty() && !*endPtr) {
-                        overlay.get<Emulator::OverlaySetting::LoadOffset>().value = offset;
-                        changed = true;
-                    }
-                }
-                if (ImGui::InputText(_("Load Size"), &m_overlayLoadSizes[counter])) {
-                    char* endPtr;
-                    uint32_t size = strtoul(m_overlayLoadSizes[counter].c_str(), &endPtr, 0);
-                    if (!m_overlayLoadSizes[counter].empty() && !*endPtr) {
-                        overlay.get<Emulator::OverlaySetting::LoadSize>().value = size;
-                        changed = true;
-                    }
-                }
-                if (ImGui::Checkbox(_("Enabled"), &overlay.get<Emulator::OverlaySetting::Enabled>().value))
-                    changed = true;
-                ImGui::SameLine();
-                if (ImGui::Button(_("Remove"))) {
-                    overlayToRemove = counter;
-                }
-                ImGui::SameLine();
-                if (ImGui::Button(_("Move up"))) {
-                    swapMe = counter - 1;
-                }
-                ImGui::SameLine();
-                if (ImGui::Button(_("Move down"))) {
-                    swapMe = counter;
-                }
-                ImGui::EndChild();
-                counter++;
-            }
-            if (overlayToRemove >= 0) {
-                overlays.erase(overlays.begin() + overlayToRemove);
-                changed = true;
-            }
-            if ((swapMe >= 0) && (swapMe != (overlays.size() - 1))) {
-                std::iter_swap(overlays.begin() + swapMe, overlays.begin() + swapMe + 1);
-                std::iter_swap(m_overlayFileOffsets.begin() + swapMe, m_overlayFileOffsets.begin() + swapMe + 1);
-                std::iter_swap(m_overlayLoadOffsets.begin() + swapMe, m_overlayLoadOffsets.begin() + swapMe + 1);
-                std::iter_swap(m_overlayLoadSizes.begin() + swapMe, m_overlayLoadSizes.begin() + swapMe + 1);
-                changed = true;
-            }
-        }
     }
     ImGui::End();
 
@@ -1708,17 +1602,6 @@ See the wiki for details.)"));
         std::vector<PCSX::u8string> fileToOpen = m_selectBiosDialog.selected();
         if (!fileToOpen.empty()) {
             settings.get<Emulator::SettingBios>().value = fileToOpen[0];
-            changed = true;
-        }
-    }
-
-    if (selectBiosOverlayDialog) m_selectBiosOverlayDialog.openDialog();
-    if (m_selectBiosOverlayDialog.draw()) {
-        std::vector<PCSX::u8string> fileToOpen = m_selectBiosOverlayDialog.selected();
-        if (!fileToOpen.empty()) {
-            settings.get<Emulator::SettingBiosOverlay>()[m_selectedBiosOverlayId]
-                .get<Emulator::OverlaySetting::Filename>()
-                .value = fileToOpen[0];
             changed = true;
         }
     }

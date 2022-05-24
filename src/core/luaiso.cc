@@ -55,26 +55,26 @@ PCSX::LuaFFI::LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size,
 }  // namespace
 
 template <typename T, size_t S>
-static void registerSymbol(PCSX::Lua* L, const char (&name)[S], const T ptr) {
-    L->push<S>(name);
-    L->push((void*)ptr);
-    L->settable();
+static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
+    L.push<S>(name);
+    L.push((void*)ptr);
+    L.settable();
 }
 
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
-static void registerAllSymbols(PCSX::Lua* L) {
-    L->push("_CLIBS");
-    L->gettable(LUA_REGISTRYINDEX);
-    if (L->isnil()) {
-        L->pop();
-        L->newtable();
-        L->push("_CLIBS");
-        L->copy(-2);
-        L->settable(LUA_REGISTRYINDEX);
+static void registerAllSymbols(PCSX::Lua L) {
+    L.push("_CLIBS");
+    L.gettable(LUA_REGISTRYINDEX);
+    if (L.isnil()) {
+        L.pop();
+        L.newtable();
+        L.push("_CLIBS");
+        L.copy(-2);
+        L.settable(LUA_REGISTRYINDEX);
     }
-    L->push("CORE_ISO");
-    L->newtable();
+    L.push("CORE_ISO");
+    L.newtable();
 
     REGISTER(L, deleteIso);
     REGISTER(L, isIsoFailed);
@@ -85,15 +85,15 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, readerOpen);
     REGISTER(L, fileisoOpen);
 
-    L->settable();
-    L->pop();
+    L.settable();
+    L.pop();
 }
 
-void PCSX::LuaFFI::open_iso(Lua* L) {
+void PCSX::LuaFFI::open_iso(Lua L) {
     static int lualoader = 1;
     static const char* isoFFI = (
 #include "core/isoffi.lua"
     );
     registerAllSymbols(L);
-    L->load(isoFFI, "internal:core/isoffi.lua");
+    L.load(isoFFI, "internal:core/isoffi.lua");
 }

@@ -76,15 +76,29 @@ void PCSX::Emulator::setLua() {
     // m_lua->open_package();
     m_lua->open_string();
     m_lua->open_table();
-    LuaFFI::open_zlib(m_lua.get());
+    LuaFFI::open_zlib(*m_lua);
     luv_set_loop(m_lua->getState(), g_system->getLoop());
     m_lua->push("luv");
     luaopen_luv(m_lua->getState());
     m_lua->settable(LUA_GLOBALSINDEX);
-    LuaFFI::open_pcsx(m_lua.get());
-    LuaFFI::open_file(m_lua.get());
-    LuaFFI::open_iso(m_lua.get());
-    LuaFFI::open_extra(m_lua.get());
+    LuaFFI::open_pcsx(*m_lua);
+    LuaFFI::open_file(*m_lua);
+    LuaFFI::open_iso(*m_lua);
+    LuaFFI::open_extra(*m_lua);
+
+    m_lua->push("PCSX");
+    m_lua->gettable(LUA_GLOBALSINDEX);
+    m_lua->newtable();
+    m_lua->push("settings");
+    m_lua->copy(-2);
+    m_lua->settable(-4);
+    m_lua->push("emulator");
+    settings.pushValue(*m_lua.get());
+    m_lua->settable();
+    m_lua->pop();
+    m_lua->pop();
+
+    m_pads->setLua(*m_lua);
 }
 
 PCSX::Emulator::~Emulator() {

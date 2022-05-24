@@ -17,6 +17,7 @@ pprint.defaults = {
     show_function = false,
     show_thread = false,
     show_userdata = false,
+	show_cdata = false,
     -- additional display trigger
     show_metatable = false,     -- show metatable
     show_all = false,           -- override other show settings and show everything
@@ -34,7 +35,8 @@ pprint.defaults = {
 
 local TYPES = {
     ['nil'] = 1, ['boolean'] = 2, ['number'] = 3, ['string'] = 4, 
-    ['table'] = 5, ['function'] = 6, ['thread'] = 7, ['userdata'] = 8
+    ['table'] = 5, ['function'] = 6, ['thread'] = 7, ['userdata'] = 8,
+    ['cdata'] = 9,
 }
 
 -- seems this is the only way to escape these, as lua don't know how to map char '\a' to 'a'
@@ -62,7 +64,8 @@ local function is_plain_key(key)
 end
 
 local CACHE_TYPES = {
-    ['table'] = true, ['function'] = true, ['thread'] = true, ['userdata'] = true
+    ['table'] = true, ['function'] = true, ['thread'] = true,
+    ['userdata'] = true, ['cdata'] = true,
 }
 
 -- cache would be populated to be like:
@@ -151,8 +154,8 @@ local function cmp(lhs, rhs)
     if tleft == tright then return str_natural_cmp(tostring(lhs), tostring(rhs)) end
 
     -- allow custom types
-    local oleft = TYPES[tleft] or 9
-    local oright = TYPES[tright] or 9
+    local oleft = TYPES[tleft] or 10
+    local oright = TYPES[tright] or 10
     return oleft < oright
 end
 
@@ -439,6 +442,7 @@ function pprint.pformat(obj, option, printer)
     formatter['userdata'] = option.show_userdata and make_fixed_formatter('userdata', option.object_cache) or nop_formatter
     formatter['string'] = option.show_string and string_formatter or nop_formatter
     formatter['table'] = option.show_table and table_formatter or nop_formatter
+    formatter['cdata'] = option.show_cdata and make_fixed_formatter('cdata', option.object_cache) or nop_formatter
 
     if option.object_cache then
         -- needs to visit the table before start printing

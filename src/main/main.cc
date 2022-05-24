@@ -140,6 +140,8 @@ class SystemImpl final : public PCSX::System {
     explicit SystemImpl(const CommandLine::args &args) : m_args(args) {}
     ~SystemImpl() {}
 
+    void setEmergencyExit() { m_emergencyExit = true; }
+
     void useLogfile(const PCSX::u8string &filename) {
         m_logfile.setFile(new PCSX::UvFile(filename, PCSX::FileOps::TRUNCATE));
     }
@@ -150,6 +152,14 @@ class SystemImpl final : public PCSX::System {
 };
 
 using json = nlohmann::json;
+
+struct Cleaner {
+    Cleaner(std::function<void()> &&f) : f(std::move(f)) {}
+    ~Cleaner() { f(); }
+
+  private:
+    std::function<void()> f;
+};
 
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
@@ -190,9 +200,10 @@ int pcsxMain(int argc, char **argv) {
     if (!logfile.empty()) system->useLogfile(logfile);
 
     emulator->setLua();
-    s_gui->setLua();
+    s_gui->setLua(*emulator->m_lua);
     emulator->m_gpu->init();
     emulator->m_spu->init();
+    emulator->m_spu->setLua(*emulator->m_lua);
 
     emulator->m_gpu->open(s_gui);
     emulator->m_spu->open();
@@ -204,42 +215,53 @@ int pcsxMain(int argc, char **argv) {
     s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
     if (s_gui->m_exeToLoad.empty()) s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("exe", "").c_str()));
 
+    assert(emulator->m_lua->gettop() == 0);
     auto luaexecs = args.values("exec");
-    for (auto &luaexec : luaexecs) {
+    int exitCode = 0;
+    {
+        Cleaner cleaner([&emulator, &system, &exitCode]() {
+            emulator->m_spu->close();
+            emulator->m_gpu->close();
+            emulator->m_cdrom->m_iso.reset();
+
+            emulator->m_cpu->psxShutdown();
+            emulator->m_spu->shutdown();
+            emulator->m_gpu->shutdown();
+            s_gui->close();
+            delete s_gui;
+
+            delete emulator;
+            PCSX::g_emulator = nullptr;
+
+            exitCode = system->exitCode();
+            delete system;
+            PCSX::g_system = nullptr;
+        });
         try {
-            emulator->m_lua->load(luaexec.data(), "cmdline", false);
-            emulator->m_lua->pcall();
-        } catch (std::exception &e) {
-            fprintf(stderr, "%s\n", e.what());
+            for (auto &luaexec : luaexecs) {
+                try {
+                    emulator->m_lua->load(luaexec.data(), "cmdline", false);
+                    emulator->m_lua->pcall();
+                } catch (std::exception &e) {
+                    fprintf(stderr, "%s\n", e.what());
+                }
+            }
+
+            system->m_inStartup = false;
+
+            while (!system->quitting()) {
+                if (system->running()) {
+                    emulator->m_cpu->Execute();
+                } else {
+                    s_gui->update();
+                }
+            }
+        } catch (...) {
+            system->setEmergencyExit();
+            uvThread.setEmergencyExit();
+            throw;
         }
     }
-
-    system->m_inStartup = false;
-
-    while (!system->quitting()) {
-        if (system->running()) {
-            emulator->m_cpu->Execute();
-        } else {
-            s_gui->update();
-        }
-    }
-
-    emulator->m_spu->close();
-    emulator->m_gpu->close();
-    emulator->m_cdrom->m_iso.reset();
-
-    emulator->m_cpu->psxShutdown();
-    emulator->m_spu->shutdown();
-    emulator->m_gpu->shutdown();
-    s_gui->close();
-    delete s_gui;
-
-    delete emulator;
-    PCSX::g_emulator = nullptr;
-
-    int exitCode = system->exitCode();
-    delete system;
-    PCSX::g_system = nullptr;
 
     return exitCode;
 }

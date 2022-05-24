@@ -22,12 +22,14 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include <array>
 #include <cstdint>
 
 #include "core/psxemulator.h"
 #include "core/system.h"
 #include "imgui.h"
 #include "json.hpp"
+#include "lua/luawrapper.h"
 
 struct PadData;
 using json = nlohmann::json;
@@ -63,6 +65,8 @@ class Pads {
     void scanGamepads();
     void reset();
 
+    void setLua(Lua L);
+
   private:
     EventBus::Listener m_listener;
     int m_gamepadsMap[16] = {0};
@@ -89,6 +93,7 @@ class Pads {
     typedef Setting<int, TYPESTRING("Keyboard_PadR1"), GLFW_KEY_R> Keyboard_PadR1;
     typedef Setting<int, TYPESTRING("Keyboard_PadR2"), GLFW_KEY_F> Keyboard_PadR2;
     typedef Setting<int, TYPESTRING("Keyboard_PadR3"), GLFW_KEY_T> Keyboard_PadR3;
+    typedef Setting<int, TYPESTRING("Keyboard_AnalogMode"), GLFW_KEY_UNKNOWN> Keyboard_AnalogMode;
 
     // Pad controller bindings
     typedef Setting<int, TYPESTRING("Controller_PadUp"), GLFW_GAMEPAD_BUTTON_DPAD_UP> Controller_PadUp;
@@ -118,14 +123,14 @@ class Pads {
     typedef SettingFloat<TYPESTRING("MouseSensitivityX"), 5, 10> SettingMouseSensitivityX;
     typedef SettingFloat<TYPESTRING("MouseSensitivityY"), 5, 10> SettingMouseSensitivityY;
 
-    typedef Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
-                     Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
-                     Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2, Keyboard_PadL3, Keyboard_PadR1, Keyboard_PadR2,
-                     Keyboard_PadR3, Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft,
-                     Controller_PadCross, Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle,
-                     Controller_PadSelect, Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadL3,
-                     Controller_PadR1, Controller_PadR2, Controller_PadR3, SettingInputType, SettingDeviceType,
-                     SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
+    typedef Settings<
+        Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross, Keyboard_PadTriangle,
+        Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect, Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2,
+        Keyboard_PadL3, Keyboard_PadR1, Keyboard_PadR2, Keyboard_PadR3, Keyboard_AnalogMode, Controller_PadUp,
+        Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross, Controller_PadTriangle,
+        Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart, Controller_PadL1,
+        Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2, Controller_PadR3, SettingInputType,
+        SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
         PadSettings;
 
     struct PadData {
@@ -189,7 +194,7 @@ class Pads {
         uint8_t m_analogpar[8] = {0x73, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     };
 
-    Pad m_pads[2];
+    std::array<Pad, 2> m_pads;
     unsigned m_selectedPadForConfig = 0;
 };
 

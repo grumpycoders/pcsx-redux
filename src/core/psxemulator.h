@@ -24,7 +24,6 @@
 
 #pragma once
 
-// System includes
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -42,34 +41,24 @@
 #include <string>
 
 #include "support/settings.h"
+#include "support/ssize_t.h"
+#include "support/strings-helpers.h"
 
 #ifndef MAXPATHLEN
-#ifdef _WIN32
 #include "support/windowswrapper.h"
-#endif
-#ifdef MAX_PATH
+#if defined(MAX_PATH)
 #define MAXPATHLEN MAX_PATH
-#endif
-#ifdef PATH_MAX
+#elif defined(PATH_MAX)
 #define MAXPATHLEN PATH_MAX
 #endif
-#endif
-
-#ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0"
 #endif
 
 // Local includes from core - anything else from core is forbidden
 #include "core/logger.h"
 #include "core/system.h"
-#include "support/strings-helpers.h"
 
 #if defined(__linux__) || defined(__MACOSX__)
 #define strnicmp strncasecmp
-#endif
-
-#ifdef _WIN32
-typedef intptr_t ssize_t;
 #endif
 
 namespace PCSX {
@@ -108,14 +97,6 @@ class Emulator {
     Emulator& operator=(const Emulator&) = delete;
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };    // PSX Types
     enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE };  // CDDA Types
-    struct OverlaySetting {
-        typedef SettingPath<TYPESTRING("Filename")> Filename;
-        typedef Setting<uint32_t, TYPESTRING("FileOffset")> FileOffset;
-        typedef Setting<uint32_t, TYPESTRING("LoadOffset")> LoadOffset;
-        typedef Setting<uint32_t, TYPESTRING("LoadSize")> LoadSize;
-        typedef Setting<bool, TYPESTRING("Enabled")> Enabled;
-        typedef Settings<Filename, FileOffset, LoadOffset, LoadSize, Enabled> type;
-    };
     struct DebugSettings {
         typedef Setting<bool, TYPESTRING("Debug")> Debug;
         typedef Setting<bool, TYPESTRING("Trace")> Trace;
@@ -165,7 +146,6 @@ class Emulator {
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
-    typedef SettingArray<TYPESTRING("Overlay"), OverlaySetting::type> SettingBiosOverlay;
     typedef Setting<bool, TYPESTRING("Stdout")> SettingStdout;
     typedef SettingPath<TYPESTRING("Logfile")> SettingLogfile;
     typedef SettingPath<TYPESTRING("Mcd1")> SettingMcd1;
@@ -197,8 +177,8 @@ class Emulator {
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
              SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
-             SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither,
-             SettingGLErrorReporting, SettingFullCaching, SettingShownAutoUpdateConfig, SettingAutoUpdate>
+             SettingMcd2Inserted, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither, SettingGLErrorReporting,
+             SettingFullCaching, SettingShownAutoUpdateConfig, SettingAutoUpdate>
         settings;
     class PcsxConfig {
       public:

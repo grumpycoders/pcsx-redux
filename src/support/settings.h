@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <array>
 #include <cassert>
 #include <codecvt>
 #include <cstddef>
@@ -26,11 +27,14 @@
 #include <filesystem>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 
 #include "core/system.h"
 #include "json.hpp"
+#include "lua/luawrapper.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "support/typestring-wrapper.h"
 #include "typestring.hh"
 
@@ -42,6 +46,48 @@ template <typename type, char... C, type defaultValue>
 struct Setting<type, irqus::typestring<C...>, defaultValue> {
     using json = nlohmann::json;
     typedef irqus::typestring<C...> name;
+
+    void pushLuaClosures(Lua L) {
+        L.push(name::data());
+        L.newtable();
+        L.declareFunc(
+            "index",
+            [this](Lua L) -> int {
+                if constexpr (std::is_same<type, bool>::value) {
+                    L.push(value);
+                } else if constexpr (std::is_enum<type>::value) {
+                    L.push(magic_enum::enum_name(value));
+                } else {
+                    L.push(lua_Number(value));
+                }
+                return 1;
+            },
+            -1);
+        L.declareFunc(
+            "newindex",
+            [this](Lua L) -> int {
+                if constexpr (std::is_same<type, bool>::value) {
+                    value = L.toboolean();
+                } else if constexpr (std::is_enum<type>::value) {
+                    auto v = magic_enum::enum_cast<type>(L.tostring());
+                    if (v.has_value()) {
+                        value = v.value();
+                    }
+                } else {
+                    value = type(L.checknumber());
+                }
+                return 0;
+            },
+            -1);
+        L.declareFunc(
+            "reset",
+            [this](Lua L) -> int {
+                reset();
+                return 0;
+            },
+            -1);
+        L.settable();
+    }
 
   private:
     using myself = Setting<type, name, defaultValue>;
@@ -67,6 +113,33 @@ struct SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
     typedef irqus::typestring<D...> defaultValue;
     typedef std::string type;
 
+    void pushLuaClosures(Lua L) {
+        L.push(name::data());
+        L.newtable();
+        L.declareFunc(
+            "index",
+            [this](Lua L) -> int {
+                L.push(std::string_view(value.data(), value.size()));
+                return 1;
+            },
+            -1);
+        L.declareFunc(
+            "newindex",
+            [this](Lua L) -> int {
+                value = L.tostring();
+                return 0;
+            },
+            -1);
+        L.declareFunc(
+            "reset",
+            [this](Lua L) -> int {
+                reset();
+                return 0;
+            },
+            -1);
+        L.settable();
+    }
+
   private:
     using myself = SettingString<name, defaultValue>;
 
@@ -91,6 +164,36 @@ struct SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     typedef irqus::typestring<C...> name;
     typedef irqus::typestring<D...> defaultValue;
     typedef std::filesystem::path type;
+
+    void pushLuaClosures(Lua L) {
+        L.push(name::data());
+        L.newtable();
+        L.declareFunc(
+            "index",
+            [this](Lua L) -> int {
+                auto str = value.u8string();
+                auto data = str.data();
+                auto size = str.size();
+                L.push(reinterpret_cast<char *>(data), size);
+                return 1;
+            },
+            -1);
+        L.declareFunc(
+            "newindex",
+            [this](Lua L) -> int {
+                value = L.tostring();
+                return 0;
+            },
+            -1);
+        L.declareFunc(
+            "reset",
+            [this](Lua L) -> int {
+                reset();
+                return 0;
+            },
+            -1);
+        L.settable();
+    }
 
   private:
     using myself = SettingPath<name, defaultValue>;
@@ -123,6 +226,33 @@ struct SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
     typedef irqus::typestring<C...> name;
     typedef float type;
 
+    void pushLuaClosures(Lua L) {
+        L.push(name::data());
+        L.newtable();
+        L.declareFunc(
+            "index",
+            [this](Lua L) -> int {
+                L.push(value);
+                return 1;
+            },
+            -1);
+        L.declareFunc(
+            "newindex",
+            [this](Lua L) -> int {
+                value = L.checknumber();
+                return 0;
+            },
+            -1);
+        L.declareFunc(
+            "reset",
+            [this](Lua L) -> int {
+                reset();
+                return 0;
+            },
+            -1);
+        L.settable();
+    }
+
   private:
     using myself = SettingFloat<name, defaultValue, divisor>;
 
@@ -143,12 +273,37 @@ struct SettingNested;
 template <char... C, typename nestedSettings>
 struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSettings {
     typedef irqus::typestring<C...> name;
+
+    void pushLuaClosures(Lua L) {
+        L.push(name::data());
+        L.newtable();
+        L.push("value");
+        nestedSettings::pushValue(L);
+        L.settable();
+        L.declareFunc(
+            "index",
+            [this](Lua L) -> int {
+                L.getfield("value");
+                return 1;
+            },
+            -1);
+        L.declareFunc(
+            "newindex", [this](Lua L) -> int { return 0; }, -1);
+        L.declareFunc(
+            "reset",
+            [this](Lua L) -> int {
+                nestedSettings::reset();
+                return 0;
+            },
+            -1);
+        L.settable();
+    }
 };
 
-template <typename name, typename nestedSetting>
+template <typename name, size_t N, typename nestedSetting>
 struct SettingArray;
-template <char... C, typename nestedSetting>
-struct SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<nestedSetting> {
+template <char... C, size_t N, typename nestedSetting>
+struct SettingArray<irqus::typestring<C...>, N, nestedSetting> : public std::array<nestedSetting, N> {
     using json = nlohmann::json;
     typedef irqus::typestring<C...> name;
     json serialize() const {
@@ -159,10 +314,17 @@ struct SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector
         return ret;
     }
     void deserialize(const json &j) {
+        int count = 0;
         for (auto &item : j) {
             nestedSetting s;
             s.deserialize(item);
-            this->push_back(s);
+            if (count < N) {
+                (*this)[count] = s;
+            }
+            count++;
+        }
+        for (; count < N; count++) {
+            (*this)[count].reset();
         }
     }
     void reset() {
@@ -190,6 +352,65 @@ struct Settings : private std::tuple<settings...> {
         return ret;
     }
     constexpr void deserialize(const json &j) { deserialize<0, settings...>(j); }
+    void pushValue(Lua L) {
+        L.newtable();
+        L.newtable();
+        L.push("keys");
+        L.newtable();
+        pushValue<0, settings...>(L);
+        L.settable();
+        L.declareFunc("__index", lua_index, -1);
+        L.declareFunc("__newindex", lua_newindex, -1);
+        L.declareFunc("__pairs", lua_pairswrapper, -1);
+        L.setmetatable();
+    }
+    static int lua_index(lua_State *L_) {
+        Lua L(L_);
+        int r = L.getmetatable(-2);
+        if (r != 1) return 0;
+        L.getfield("keys");
+        L.remove(-2);
+        L.copy(-2);
+        L.gettable();
+        if (!L.istable()) return 0;
+        L.getfield("index");
+        if (!L.isfunction()) return 0;
+        L.copy(-2);
+        L.pcall(1);
+        return 1;
+    }
+    static int lua_newindex(lua_State *L_) {
+        Lua L(L_);
+        int r = L.getmetatable(-3);
+        if (r != 1) return 0;
+        L.getfield("keys");
+        L.copy(-4);
+        L.gettable();
+        if (!L.istable()) return 0;
+        L.getfield("newindex");
+        if (!L.isfunction()) return 0;
+        L.copy(-5);
+        L.pcall(1);
+        return 0;
+    }
+    static int lua_pairswrapper(lua_State *L_) {
+        Lua L(L_);
+        int r = L.getmetatable();
+        if (r != 1) return 0;
+        L.push([](lua_State *L_) {
+            Lua L(L_);
+            int r = L.next();
+            if (r == 0) return 0;
+            L.getfield("index");
+            L.copy(-2);
+            L.pcall(1);
+            L.remove(-2);
+            return 2;
+        });
+        L.getfield("keys", -2);
+        L.push();
+        return 3;
+    }
 
   private:
     template <size_t index>
@@ -223,6 +444,14 @@ struct Settings : private std::tuple<settings...> {
             if (doReset) setting.reset();
         }
         deserialize<index + 1, nestedSettings...>(j, doReset);
+    }
+    template <size_t index>
+    void pushValue(Lua L) {}
+    template <size_t index, typename settingType, typename... nestedSettings>
+    void pushValue(Lua L) {
+        settingType &setting = std::get<index>(*this);
+        setting.pushLuaClosures(L);
+        pushValue<index + 1, nestedSettings...>(L);
     }
 };
 

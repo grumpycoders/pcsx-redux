@@ -1045,3 +1045,13 @@ void PCSX::SPU::impl::playCDDAchannel(int16_t *data, int size) {
     memcpy(m_cdda.pcm, data, size);
     FeedXA(&m_cdda);
 }
+
+void PCSX::SPU::impl::setLua(Lua L) {
+    L.getfield("PCSX", LUA_GLOBALSINDEX);
+    L.getfield("settings");
+    L.push("spu");
+    settings.pushValue(L);
+    L.settable();
+    L.pop();
+    L.pop();
+}
