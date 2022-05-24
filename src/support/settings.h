@@ -171,9 +171,10 @@ struct SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
         L.declareFunc(
             "index",
             [this](Lua L) -> int {
-                const char *str = reinterpret_cast<const char *>(value.u8string().data());
-                std::string_view sv(str, value.u8string().size());
-                L.push(sv);
+                auto str = value.u8string();
+                auto data = str.data();
+                auto size = str.size();
+                L.push(reinterpret_cast<char *>(data), size);
                 return 1;
             },
             -1);
@@ -360,6 +361,7 @@ struct Settings : private std::tuple<settings...> {
         L.settable();
         L.declareFunc("__index", lua_index, -1);
         L.declareFunc("__newindex", lua_newindex, -1);
+        L.declareFunc("__pairs", lua_pairswrapper, -1);
         L.setmetatable();
     }
     static int lua_index(lua_State *L_) {
@@ -390,6 +392,24 @@ struct Settings : private std::tuple<settings...> {
         L.copy(-5);
         L.pcall(1);
         return 0;
+    }
+    static int lua_pairswrapper(lua_State *L_) {
+        Lua L(L_);
+        int r = L.getmetatable();
+        if (r != 1) return 0;
+        L.push([](lua_State *L_) {
+            Lua L(L_);
+            int r = L.next();
+            if (r == 0) return 0;
+            L.getfield("index");
+            L.copy(-2);
+            L.pcall(1);
+            L.remove(-2);
+            return 2;
+        });
+        L.getfield("keys", -2);
+        L.push();
+        return 3;
     }
 
   private:
