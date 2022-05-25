@@ -237,7 +237,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 }
             }
 
-            if (ImGui::BeginTable("Found values", 2, tableFlags)) {
+            if (ImGui::BeginTable("Found values", 3, tableFlags)) {
                 ImGui::TableSetupColumn("Address");
                 ImGui::TableSetupColumn("Current value");
                 ImGui::TableSetupColumn("Access");
