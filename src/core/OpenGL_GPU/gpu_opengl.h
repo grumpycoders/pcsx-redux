@@ -300,6 +300,7 @@ class OpenGL_GPU final : public GPU {
 
     void theOminousTexturedQuad();
     void theOminousTexturedShadedQuad();
+    void theOminousTexturedTriTextureBlending();
     void theOminousTexturedRect();
 };
 }  // namespace PCSX

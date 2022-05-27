@@ -65,6 +65,7 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x2F] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>; // TODO: Transparency
     
     m_cmdFuncs[0x30] = &OpenGL_GPU::drawPoly<PolyType::Triangle, Shading::Gouraud, Texturing::None>;
+    m_cmdFuncs[0x34] = &OpenGL_GPU::theOminousTexturedTriTextureBlending;
     m_cmdFuncs[0x38] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Gouraud, Texturing::None>;
 
     m_cmdFuncs[0x3C] = &OpenGL_GPU::theOminousTexturedShadedQuad;
@@ -209,7 +210,7 @@ void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
 // Command 2C temp stub
 void PCSX::OpenGL_GPU::theOminousTexturedQuad() {
     if (m_vertexCount + 6 >= vertexBufferSize) renderBatch();
-    const uint32_t colour = m_cmdFIFO[0];
+    constexpr uint32_t colour = 0x808080;
     const uint32_t clut = m_cmdFIFO[2] >> 16;
     const uint32_t texpage = (m_cmdFIFO[4] >> 16) & 0x3fff;
 
@@ -224,6 +225,21 @@ void PCSX::OpenGL_GPU::theOminousTexturedQuad() {
     for (int i = 1; i < 4; i++) {
         const auto pos = m_cmdFIFO[i * 2 + 1];
         const auto uv = m_cmdFIFO[i * 2 + 2];
+
+        m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, uv);
+        m_vertexCount++;
+    }
+}
+
+void PCSX::OpenGL_GPU::theOminousTexturedTriTextureBlending() {
+    if (m_vertexCount + 3 >= vertexBufferSize) renderBatch();
+    const uint32_t clut = m_cmdFIFO[2] >> 16;
+    const uint32_t texpage = (m_cmdFIFO[5] >> 16) & 0x3fff;
+
+    for (int i = 0; i < 3; i++) {
+        const auto colour = m_cmdFIFO[i * 3];
+        const auto pos = m_cmdFIFO[i * 3 + 1];
+        const auto uv = m_cmdFIFO[i * 3 + 2];
 
         m_vertices[m_vertexCount] = Vertex(pos, colour, clut, texpage, uv);
         m_vertexCount++;
@@ -256,7 +272,7 @@ void PCSX::OpenGL_GPU::theOminousTexturedShadedQuad() {
 
 void PCSX::OpenGL_GPU::theOminousTexturedRect() {
     if (m_vertexCount + 6 >= vertexBufferSize) renderBatch();
-    const uint32_t colour = m_cmdFIFO[0];
+    constexpr uint32_t colour = 0x808080;
     const auto pos = m_cmdFIFO[1];
     const uint32_t clut = m_cmdFIFO[2] >> 16;
     const uint32_t uv = m_cmdFIFO[2] & 0xffff;
