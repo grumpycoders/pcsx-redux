@@ -177,7 +177,7 @@ int PCSX::OpenGL_GPU::init() {
            
            gl_Position = vec4(xx, yy, 1.0, 1.0);
            vertexColor = vec4(color / 255.0, 1.0);
-           texCoords = inUV;
+           texCoords = inUV + vec2(0.0, -0.6);
            texpageBase = ivec2((inTexpage & 0xf) * 64, ((inTexpage >> 4) & 0x1) * 256);
            clutBase = ivec2((inClut & 0x3f) * 16, inClut >> 6);
 
@@ -215,14 +215,7 @@ int PCSX::OpenGL_GPU::init() {
         }
 
         void main() {
-           //ivec2 UV = ivec2(round(texCoords + vec2(0.5, 0.5))) & ivec2(0xff);
-           //ivec2 UV = ivec2(round(texCoords + vec2(0.001))) & ivec2(0xff);
-           //ivec2 UV = ivec2(round(texCoords + vec2(0.0))) & ivec2(0xff);
-           //ivec2 UV = ivec2(floor(texCoords + vec2(0.0001))) & ivec2(0xff);
-           //ivec2 UV = ivec2(floor(texCoords + vec2(0.0))) & ivec2(0xff);
-           //ivec2 UV = ivec2(floor(texCoords + vec2(0.0001))) & ivec2(0xff);
-           //ivec2 UV = ivec2(round(texCoords)) & ivec2(0xff);
-           ivec2 UV = ivec2(round(texCoords + vec2(-0.5, +0.5))) & ivec2(0xff);
+           ivec2 UV = ivec2(round(texCoords)) & ivec2(0xff);
 
            if (texMode == 4) { // Untextured primitive
                FragColor = vertexColor;
@@ -260,13 +253,15 @@ int PCSX::OpenGL_GPU::init() {
         }
     )";
 
-    OpenGL::Shader frag(fragSource, OpenGL::Fragment);
-    OpenGL::Shader vert(vertSource, OpenGL::Vertex);
-    m_untexturedTriangleProgram.create({frag, vert});
-    m_untexturedTriangleProgram.use();
-    m_drawingOffsetLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vertexOffsets");
+    m_shaderEditor.init();
+    m_shaderEditor.reset(m_gui);
+    m_shaderEditor.setText(vertSource, fragSource, "");
+    m_program.m_handle = m_shaderEditor.compile(m_gui).value();
 
-    const auto vramSamplerLoc = OpenGL::uniformLocation(m_untexturedTriangleProgram, "u_vramTex");
+    m_program.use();
+    m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
+
+    const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
     glUniform1i(vramSamplerLoc, 0); // Make the fragment shader read from currently binded texture
 
     reset();
@@ -377,9 +372,6 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
         case 6: {
             const auto x1 = value & 0xfff;
             const auto x2 = (value >> 12) & 0xfff;
-            constexpr uint32_t cyclesPerPix = 2560;
-
-            //m_displayArea.width = (((x2 - x1) / cyclesPerPix) + 2) & ~3;
             m_displayArea.width = 320;
             break;
         }
@@ -423,6 +415,21 @@ int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
 bool PCSX::OpenGL_GPU::configure() {
     bool changed = false;
 
+    if (m_shaderEditor.draw(m_gui, "Hardware renderer shader editor")) {
+        const auto program = m_shaderEditor.compile(m_gui);
+        if (program.has_value()) {
+            m_program.m_handle = program.value();
+            m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
+
+            const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
+            glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
+
+            float adjustedOffsets[2] = {static_cast<float>(m_drawingOffset.x()) + 0.5f,
+                                        static_cast<float>(m_drawingOffset.y()) - 0.5f};
+            glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
+        }
+    }
+
     if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
         static const char* polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
         constexpr OpenGL::FillMode polygonModes[] = {OpenGL::FillPoly, OpenGL::DrawWire, OpenGL::DrawPoints};
@@ -457,6 +464,8 @@ bool PCSX::OpenGL_GPU::configure() {
             }
             ImGui::EndCombo();
         }
+
+        ImGui::Checkbox("Edit OpenGL GPU shaders", &m_shaderEditor.m_show);
         ImGui::End();
     }
 
@@ -491,7 +500,7 @@ void PCSX::OpenGL_GPU::startFrame() {
         OpenGL::setFillMode(m_polygonMode);
     }
 
-    m_untexturedTriangleProgram.use();
+    m_program.use();
 }
 
 void PCSX::OpenGL_GPU::updateDrawArea() {

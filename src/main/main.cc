@@ -190,8 +190,8 @@ int pcsxMain(int argc, char **argv) {
     emulator->m_spu->open();
 
     emulator->init();
-    emulator->m_gpu->init();
     emulator->m_gpu->open(s_gui);
+    emulator->m_gpu->init();
     emulator->reset();
 
     if (args.get<bool>("run", false)) system->start();

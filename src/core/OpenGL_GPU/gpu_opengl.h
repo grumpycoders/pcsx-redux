@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "core/gpu.h"
+#include "gui/widgets/shader-editor.h"
 #include "support/opengl.h"
 
 namespace PCSX {
@@ -115,7 +116,7 @@ class OpenGL_GPU final : public GPU {
     TransferMode m_readingMode;
     TransferMode m_writingMode;
 
-    OpenGL::Program m_untexturedTriangleProgram;
+    OpenGL::Program m_program;
     OpenGL::VertexArray m_vao;
     OpenGL::VertexBuffer m_vbo;
     OpenGL::Framebuffer m_fbo;
@@ -124,6 +125,7 @@ class OpenGL_GPU final : public GPU {
     // We need non-MSAA copies of our texture & FBO when using multisampling
     OpenGL::Texture m_vramTextureNoMSAA;
     OpenGL::Framebuffer m_fboNoMSAA;
+    Widgets::ShaderEditor m_shaderEditor = {"hw renderer"};
     
     // For CPU->VRAM texture transfers
     OpenGL::Texture m_sampleTexture;
