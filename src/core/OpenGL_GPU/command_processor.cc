@@ -210,7 +210,7 @@ void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
 // Command 2C temp stub
 void PCSX::OpenGL_GPU::theOminousTexturedQuad() {
     if (m_vertexCount + 6 >= vertexBufferSize) renderBatch();
-    constexpr uint32_t colour = 0x808080;
+    constexpr uint32_t colour = c_rawTextureBlendColour;
     const uint32_t clut = m_cmdFIFO[2] >> 16;
     const uint32_t texpage = (m_cmdFIFO[4] >> 16) & 0x3fff;
 
@@ -272,7 +272,7 @@ void PCSX::OpenGL_GPU::theOminousTexturedShadedQuad() {
 
 void PCSX::OpenGL_GPU::theOminousTexturedRect() {
     if (m_vertexCount + 6 >= vertexBufferSize) renderBatch();
-    constexpr uint32_t colour = 0x808080;
+    constexpr uint32_t colour = c_rawTextureBlendColour;
     const auto pos = m_cmdFIFO[1];
     const uint32_t clut = m_cmdFIFO[2] >> 16;
     const uint32_t uv = m_cmdFIFO[2] & 0xffff;

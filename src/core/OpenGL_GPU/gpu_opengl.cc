@@ -214,8 +214,16 @@ int PCSX::OpenGL_GPU::init() {
             return r | (g << 5) | (b << 10) | msb;
         }
 
+        // Apply texture blending
+	    // Formula for RGB8 colours: col1 * col2 / 128
+        vec4 texBlend(vec4 colour1, vec4 colour2) {
+            vec4 ret = (colour1 * colour2) / (128.0 / 255.0);
+            ret.a = 1.0;
+            return ret;
+        }
+
         void main() {
-           ivec2 UV = ivec2(floor(texCoords + vec2(0.0001, +0.0001))) & ivec2(0xff);
+           ivec2 UV = ivec2(round(texCoords + vec2(0.0001, 0.0001))) & ivec2(0xff);
 
            if (texMode == 4) { // Untextured primitive
                FragColor = vertexColor;
@@ -230,7 +238,7 @@ int PCSX::OpenGL_GPU::init() {
                FragColor = texelFetch(u_vramTex, sampleCoords, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
-               FragColor.a = 1.0;
+               FragColor = texBlend(FragColor, vertexColor);
            } else if (texMode == 1) { // 8bpp texture
                ivec2 texelCoord = ivec2(UV.x >> 1, UV.y) + texpageBase;
                
@@ -242,13 +250,13 @@ int PCSX::OpenGL_GPU::init() {
                FragColor = texelFetch(u_vramTex, sampleCoords, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
-               FragColor.a = 1.0;
+               FragColor = texBlend(FragColor, vertexColor);
            } else { // Texture depth 2 and 3 both indicate 16bpp textures
                ivec2 texelCoord = UV + texpageBase;
                FragColor = texelFetch(u_vramTex, texelCoord, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
-               FragColor.a = 1.0;
+               FragColor = texBlend(FragColor, vertexColor);
            }
         }
     )";

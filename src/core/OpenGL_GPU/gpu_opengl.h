@@ -185,6 +185,10 @@ class OpenGL_GPU final : public GPU {
         Flat, Gouraud
     };
 
+    // We can emulate raw texture primitives as primitives with texture blending enabled
+    // And 0x808080 as the blend colour
+    static constexpr uint32_t c_rawTextureBlendColour = 0x808080;
+
     template <Shading shading, Texturing mode>
     void drawVertex(int index, int vertexSize) {
         uint32_t colour;
