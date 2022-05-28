@@ -58,11 +58,13 @@ class SIO1Client {
     SIO1Client();
     void startClient(std::string_view address, unsigned port);
     void stopClient();
-
+    void reconnect();
 
   private:
     EventBus::Listener m_listener;
     SIO1ClientStatus m_clientStatus = SIO1ClientStatus::CLIENT_STOPPED;
+    std::string_view m_address;
+    unsigned m_port;
 };
 
 }  // namespace PCSX

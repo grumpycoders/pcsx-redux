@@ -52,9 +52,8 @@ void PCSX::SIO1Server::startServer(uv_loop_t* loop, int port) {
     g_emulator->m_counters->m_pollSIO1 = true;
     m_fifoListener.start(port, loop, &m_async, [this](auto fifo) {
         if (fifo) {
-            g_emulator->m_sio1->m_fifo.setFile(fifo);
+            g_emulator->m_sio1->setFifo(fifo);
         } else {
-            g_emulator->m_sio1->m_fifo.reset();
             m_async.data = this;
             uv_close(reinterpret_cast<uv_handle_t*>(&m_async), [](uv_handle_t* handle) {
                 SIO1Server* server = reinterpret_cast<SIO1Server*>(handle->data);
@@ -87,6 +86,8 @@ void PCSX::SIO1Client::startClient(std::string_view address, unsigned port) {
     if (m_clientStatus == SIO1ClientStatus::CLIENT_STARTED) {
         throw std::runtime_error("Client already started");
     }
+    m_address = address;
+    m_port = port;
     auto& emuSettings = PCSX::g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     auto SIO1ModeSettings = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
@@ -94,21 +95,25 @@ void PCSX::SIO1Client::startClient(std::string_view address, unsigned port) {
         g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Raw;
     } else {
         g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Protobuf;
+        g_emulator->m_counters->m_pollSIO1 = true;
     }
 
     m_clientStatus = SIO1ClientStatus::CLIENT_STARTED;
-    g_emulator->m_sio1->m_fifo.setFile(new UvFifo(address, port));
+    g_emulator->m_sio1->setFifo(new UvFifo(address, port));
+
     if (g_emulator->m_sio1->fifoError()) {
         m_clientStatus = SIO1ClientStatus::CLIENT_STOPPING;
         g_emulator->m_counters->m_pollSIO1 = false;
         stopClient();
     }
 
-    g_system->printf("%s", _("SIO1 client connecting...\n"));
-    if (!g_emulator->m_sio1->m_fifo.asA<UvFifo>()->isConnecting())
-        g_system->printf("%s", _("SIO1 client connected\n"));
+}
 
-    g_emulator->m_counters->m_pollSIO1 = true;
+void PCSX::SIO1Client::reconnect() {
+    if (m_clientStatus == SIO1ClientStatus::CLIENT_STARTED) {
+        m_clientStatus = SIO1ClientStatus::CLIENT_STOPPED;
+        startClient(m_address, m_port);
+    }
 }
 
 void PCSX::SIO1Client::stopClient() {
