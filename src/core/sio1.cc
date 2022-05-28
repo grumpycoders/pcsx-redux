@@ -126,33 +126,14 @@ void PCSX::SIO1::sio1StateMachine() {
 
 void PCSX::SIO1::interrupt() {
     SIO1_LOG("SIO1 Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
-    if (!m_sio1fifo || m_sio1fifo->eof()) return;
-    m_regs.status |= SR_IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(IRQ8_SIO);
-        if (m_regs.control & CR_RXIRQEN) {
-            if (!(m_regs.status & SR_IRQ)) {
-                switch ((m_regs.control & 0x300) >> 8) {
-                    case 0:
-                        if (!(m_sio1fifo->size() >= 1)) return;
-                        break;
-
-                    case 1:
-                        if (!(m_sio1fifo->size() >= 2)) return;
-                        break;
-
-                    case 2:
-                        if (!(m_sio1fifo->size() >= 4)) return;
-                        break;
-
-                    case 3:
-                        if (!(m_sio1fifo->size() >= 8)) return;
-                        break;
-                }
-
-                scheduleInterrupt(SIO1_CYCLES);
-                m_regs.status |= SR_IRQ;
-            }
+    m_regs.status |= SR_IRQ;
+    if (m_sio1Mode == SIO1Mode::Raw) {
+        if (!m_sio1fifo || m_sio1fifo->eof()) return;
+        if (m_sio1fifo->size() >= 1) {
+            scheduleInterrupt(SIO1_CYCLES);
         }
+    }
 }
 
 uint8_t PCSX::SIO1::readData8() {
@@ -228,9 +209,7 @@ void PCSX::SIO1::receiveCallback() {
                     if (!(m_sio1fifo->size() >= 8)) return;
                     break;
             }
-
             scheduleInterrupt(SIO1_CYCLES);
-            m_regs.status |= SR_IRQ;
         }
     }
 }
