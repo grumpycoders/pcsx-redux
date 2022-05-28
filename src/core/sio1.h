@@ -81,7 +81,8 @@ class SIO1 {
     void interrupt();
 
     void reset() {
-        m_sio1fifo.reset();
+        if (m_sio1fifo.isA<Fifo>())
+            m_sio1fifo.asA<Fifo>()->reset();
         m_regs.data = 0;
         m_regs.status = (SR_TXRDY | SR_TXRDY2 | SR_DSR | SR_CTS);
         m_regs.mode = 0;
@@ -97,12 +98,31 @@ class SIO1 {
         m_decodeState = READ_SIZE;
         messageSize = 0;
         initialMessage = true;
-        m_sio1fifo.reset();
-        m_fifo.reset();
+        if (m_sio1fifo.isA<Fifo>()) {
+            m_sio1fifo.asA<Fifo>()->reset();
+        } else if (m_sio1fifo) {
+            m_sio1fifo.reset();
+        }
+        if (m_fifo)
+            m_fifo.reset();
+    }
+
+    void setFifo(IO<File> newFifo) {
+        if (m_sio1Mode == SIO1Mode::Raw) {
+            m_sio1fifo = newFifo;
+        } else {
+            m_fifo = newFifo;
+            m_sio1fifo.setFile(new Fifo());
+        }
+    }
+
+    bool connecting() {
+        return m_fifo.asA<UvFifo>()->isConnecting();
     }
 
     bool fifoError() {
-        return (!m_fifo || m_fifo->failed());
+        return (!m_fifo || m_fifo->failed()
+            || m_fifo->eof() || m_fifo->isClosed());
     }
 
     uint8_t readBaud8() { return m_regs.baud; }
@@ -156,10 +176,10 @@ class SIO1 {
     uint8_t messageSize = 0;
     bool initialMessage = true;
     SIOPayload makeDataMessage(std::string &&data);
-    SIOPayload makeFCMessage();
+    SIOPayload makeFlowControlMessage();
     std::string encodeMessage(SIOPayload message);
     void sendDataMessage();
-    void sendFCMessage();
+    void sendFlowControlMessage();
     void transmitMessage(std::string &&message);
     void decodeMessage();
     void processMessage(SIOPayload payload);
@@ -240,9 +260,7 @@ class SIO1 {
     bool isTransmitReady();
 
     IO<File> m_fifo;
-    Fifo m_sio1fifo;
+    IO<File> m_sio1fifo;
 
-    friend class SIO1Server;
-    friend class SIO1Client;
 };
 }  // namespace PCSX
