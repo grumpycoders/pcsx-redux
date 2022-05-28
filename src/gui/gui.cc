@@ -1600,6 +1600,22 @@ See the wiki for details.)"));
         if (ImGui::Button(_("Reset SIO"))) {
             g_emulator->m_sio1->reset();
         }
+
+        const bool enableReconnect = debugSettings.get<Emulator::DebugSettings::SIO1Client>()
+                && !g_emulator->m_sio1->connecting() && g_emulator->m_sio1->fifoError();
+
+        if (!enableReconnect) {
+            ImGui::BeginDisabled();
+        }
+
+        if (ImGui::Button(_("Reconnect"))) {
+            g_emulator->m_sio1Client->reconnect();
+        }
+
+        if (!enableReconnect) {
+            ImGui::EndDisabled();
+        }
+
         if (ImGui::BeginCombo(_("SIO1Mode"), currentSIO1Name.data())) {
             for (auto v : magic_enum::enum_values<Emulator::DebugSettings::SIO1Mode>()) {
                 bool selected = (v == currentSIO1Mode);
