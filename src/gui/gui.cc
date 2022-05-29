@@ -1621,15 +1621,20 @@ See the wiki for details.)"));
             g_emulator->m_sio1->reset();
         }
 
-        const bool enableReconnect = debugSettings.get<Emulator::DebugSettings::SIO1Client>()
-                && !g_emulator->m_sio1->connecting() && g_emulator->m_sio1->fifoError();
+        const bool enableReconnect = debugSettings.get<Emulator::DebugSettings::SIO1Client>() &&
+                                     !g_emulator->m_sio1->connecting() && g_emulator->m_sio1->fifoError();
 
         if (!enableReconnect) {
             ImGui::BeginDisabled();
         }
 
         if (ImGui::Button(_("Reconnect"))) {
-            g_emulator->m_sio1Client->reconnect();
+            g_emulator->m_sio1Client->reconnect(
+                std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                                     .get<Emulator::DebugSettings::SIO1ClientHost>()
+                                     .value),
+                g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                    .get<Emulator::DebugSettings::SIO1ClientPort>());
         }
 
         if (!enableReconnect) {
