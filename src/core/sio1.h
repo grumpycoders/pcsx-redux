@@ -32,8 +32,6 @@
 #include "support/file.h"
 #include "support/protobuf.h"
 
-//#define SIO1_CYCLES (m_regs.baud * 8)
-#define SIO1_CYCLES (1)
 #define SIO1_PB_VERSION (1)
 
 namespace PCSX {
@@ -62,15 +60,10 @@ typedef Protobuf::Message<TYPESTRING("SIO1Version"), SIO1VersionField> SIO1Info;
 
 class SIO1 {
     /*
-     * To-do:
-     * STAT Baudrate timer + BAUD register
-     *
-     * FIFO buffer - not 100% how this will work,
-     * spx unclear and the server receives large packets[2048+] at a time.
-     *
-     * Test and finish interrupts,
-     * only RX is tested
-     *
+     * TODO:
+     * STAT Baudrate timer
+     * Implement TX interrupts
+     * Implement DSR interrupts
      * Add/verify cases for all R/W functions exist in psxhw.cpp
      */
 
@@ -173,6 +166,8 @@ class SIO1 {
 
   private:
     uint8_t messageSize = 0;
+    uint64_t m_cycleCount = 2352; // Default to cycles for 115200 baud
+    uint64_t m_baudRate = 115200; // Default to 115200 baud
     bool initialMessage = true;
     SIOPayload makeDataMessage(std::string &&data);
     SIOPayload makeFlowControlMessage();
@@ -182,6 +177,7 @@ class SIO1 {
     void transmitMessage(std::string &&message);
     void decodeMessage();
     void processMessage(SIOPayload payload);
+    void calcCycleCount();
 
     struct flowControl {
         bool dxr;
@@ -246,6 +242,8 @@ class SIO1 {
         // I_STAT
         IRQ8_SIO = 0x100
     };
+
+    int m_reloadFactor[4] = {0, 1, 16, 64};
 
     enum { READ_SIZE, READ_MESSAGE } m_decodeState = READ_SIZE;
 

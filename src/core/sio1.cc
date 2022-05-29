@@ -134,7 +134,7 @@ void PCSX::SIO1::interrupt() {
     if (!m_sio1fifo || m_sio1fifo->eof()) return;
     if (m_sio1Mode == SIO1Mode::Raw) {
         if (m_sio1fifo->size() >= 1) {
-            scheduleInterrupt(SIO1_CYCLES);
+            scheduleInterrupt(m_cycleCount);
         }
     }
     if (m_sio1fifo.isA<Fifo>()) {
@@ -215,7 +215,7 @@ void PCSX::SIO1::receiveCallback() {
                     if (!(m_sio1fifo->size() >= 8)) return;
                     break;
             }
-            scheduleInterrupt(SIO1_CYCLES);
+            scheduleInterrupt(m_cycleCount);
         }
     }
 }
@@ -235,7 +235,7 @@ void PCSX::SIO1::transmitData() {
     if (m_regs.control & CR_TXIRQEN) {
         if (m_regs.status & SR_TXRDY || m_regs.status & SR_TXRDY2) {
             if (!(m_regs.status & SR_IRQ)) {
-                scheduleInterrupt(SIO1_CYCLES);
+                scheduleInterrupt(m_cycleCount);
                 m_regs.status |= SR_IRQ;
             }
         }
@@ -247,7 +247,7 @@ bool PCSX::SIO1::isTransmitReady() {
 }
 
 void PCSX::SIO1::updateStat() {
-    if (!m_sio1fifo || m_sio1fifo->eof()) return;
+    if (fifoError()) return;
     if (m_sio1fifo->size() > 0) {
         m_regs.status |= SR_RXRDY;
     } else {
@@ -260,6 +260,7 @@ void PCSX::SIO1::writeBaud16(uint16_t v) {
     m_regs.baud = v;
     if (m_sio1Mode == SIO1Mode::Protobuf) sendFlowControlMessage();
     psxHu8ref(0x105E) = m_regs.baud;
+    calcCycleCount();
 }
 
 void PCSX::SIO1::writeCtrl16(uint16_t v) {
@@ -306,4 +307,11 @@ void PCSX::SIO1::writeStat32(uint32_t v) {
         transmitData();
     }
     psxHu32ref(0x1054) = SWAP_LE32(m_regs.status);
+}
+
+void PCSX::SIO1::calcCycleCount() {
+    int reload = m_reloadFactor[m_regs.mode & 0x3];
+    if (m_regs.baud * reload <= 0) return;
+    m_baudRate = g_emulator->m_psxClockSpeed / (m_regs.baud * reload);
+    m_cycleCount = g_emulator->m_psxClockSpeed / m_baudRate * 8;
 }
