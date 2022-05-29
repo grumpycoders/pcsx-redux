@@ -258,7 +258,6 @@ void PCSX::SIO1::updateStat() {
 
 void PCSX::SIO1::writeBaud16(uint16_t v) {
     m_regs.baud = v;
-    if (m_sio1Mode == SIO1Mode::Protobuf) sendFlowControlMessage();
     psxHu8ref(0x105E) = m_regs.baud;
     calcCycleCount();
 }
@@ -284,6 +283,13 @@ void PCSX::SIO1::writeCtrl16(uint16_t v) {
 
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
     }
+
+    if (!(m_regs.control & CR_RXEN)) {
+        if (m_sio1fifo.isA<Fifo>()) {
+            m_sio1fifo.asA<Fifo>()->reset();
+        }
+    }
+
     if (m_sio1Mode == SIO1Mode::Protobuf) sendFlowControlMessage();
     psxHu16ref(0x105A) = SWAP_LE16(m_regs.control);
 }
@@ -297,7 +303,6 @@ void PCSX::SIO1::writeData8(uint8_t v) {
 }
 
 void PCSX::SIO1::writeMode16(uint16_t v) {
-    if (m_sio1Mode == SIO1Mode::Protobuf) sendFlowControlMessage();
     m_regs.mode = v;
 }
 
