@@ -20,18 +20,18 @@
 #include "core/sio1.h"
 
 PCSX::SIOPayload PCSX::SIO1::makeFlowControlMessage() {
-    return SIOPayload {
-        DataTransfer {},
-        FlowControl { m_flowControl.dxr, m_flowControl.xts },
+    return SIOPayload{
+        DataTransfer{},
+        FlowControl{m_flowControl.dxr, m_flowControl.xts},
     };
 }
 
 PCSX::SIOPayload PCSX::SIO1::makeDataMessage(std::string &&data) {
-    return SIOPayload {
-        DataTransfer {
-            DataTransferData { std::move(data) },
+    return SIOPayload{
+        DataTransfer{
+            DataTransferData{std::move(data)},
         },
-        FlowControl {},
+        FlowControl{},
     };
 }
 
@@ -71,8 +71,7 @@ void PCSX::SIO1::sendFlowControlMessage() {
     transmitMessage(std::move(message));
 
     if (initialMessage) {
-        if (!connecting() && !fifoError())
-            g_system->printf("%s", _("SIO1 client connected\n"));
+        if (!connecting() && !fifoError()) g_system->printf("%s", _("SIO1 client connected\n"));
         initialMessage = false;
     }
 }
@@ -82,11 +81,13 @@ void PCSX::SIO1::decodeMessage() {
     std::string message = m_fifo->readString(messageSize);
 
     SIOPayload payload;
-    Protobuf::InSlice inslice(reinterpret_cast<const uint8_t*>(message.data()), message.size());
+    Protobuf::InSlice inslice(reinterpret_cast<const uint8_t *>(message.data()), message.size());
     try {
         payload.deserialize(&inslice, 0);
-    } catch(...) {
-        g_system->message("%s", _("SIO1 TCP session closing due to unreliable connection.\nRestart SIO1 server/client and try again."));
+    } catch (...) {
+        g_system->message(
+            "%s",
+            _("SIO1 TCP session closing due to unreliable connection.\nRestart SIO1 server/client and try again."));
         g_system->log(LogClass::SIO1, "SIO1 TCP session closing due to unreliable connection\n");
         stopSIO1Connection();
         return;
@@ -113,14 +114,15 @@ void PCSX::SIO1::sio1StateMachine() {
     if (fifoError()) return;
 
     switch (m_decodeState) {
-        case READ_SIZE: while (m_fifo->size() >= 1) {
-            messageSize = m_fifo->byte();
-            m_decodeState = READ_MESSAGE;
-        case READ_MESSAGE:
-            if (m_fifo->size() < messageSize) return;
-            decodeMessage();
-            m_decodeState = READ_SIZE;
-        }
+        case READ_SIZE:
+            while (m_fifo->size() >= 1) {
+                messageSize = m_fifo->byte();
+                m_decodeState = READ_MESSAGE;
+                case READ_MESSAGE:
+                    if (m_fifo->size() < messageSize) return;
+                    decodeMessage();
+                    m_decodeState = READ_SIZE;
+            }
     }
 }
 
@@ -128,11 +130,15 @@ void PCSX::SIO1::interrupt() {
     SIO1_LOG("SIO1 Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
     psxHu32ref(0x1070) |= SWAP_LEu32(IRQ8_SIO);
     m_regs.status |= SR_IRQ;
+
+    if (!m_sio1fifo || m_sio1fifo->eof()) return;
     if (m_sio1Mode == SIO1Mode::Raw) {
-        if (!m_sio1fifo || m_sio1fifo->eof()) return;
         if (m_sio1fifo->size() >= 1) {
             scheduleInterrupt(SIO1_CYCLES);
         }
+    }
+    if (m_sio1fifo.isA<Fifo>()) {
+        if (m_sio1fifo->size() > 8) m_sio1fifo.asA<Fifo>()->reset();
     }
 }
 
@@ -222,7 +228,7 @@ void PCSX::SIO1::transmitData() {
             break;
         case SIO1Mode::Raw:
             if (!m_sio1fifo || m_sio1fifo->eof()) return;
-                m_sio1fifo->write<uint8_t>(m_regs.data);
+            m_sio1fifo->write<uint8_t>(m_regs.data);
             break;
     }
 
@@ -230,7 +236,7 @@ void PCSX::SIO1::transmitData() {
         if (m_regs.status & SR_TXRDY || m_regs.status & SR_TXRDY2) {
             if (!(m_regs.status & SR_IRQ)) {
                 scheduleInterrupt(SIO1_CYCLES);
-                m_regs.status |= SWAP_LEu32(SR_IRQ);
+                m_regs.status |= SR_IRQ;
             }
         }
     }
@@ -241,7 +247,8 @@ bool PCSX::SIO1::isTransmitReady() {
 }
 
 void PCSX::SIO1::updateStat() {
-    if (m_sio1fifo && m_sio1fifo->size() > 0) {
+    if (!m_sio1fifo || m_sio1fifo->eof()) return;
+    if (m_sio1fifo->size() > 0) {
         m_regs.status |= SR_RXRDY;
     } else {
         m_regs.status &= ~SR_RXRDY;

@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 
+#include <compare>
 #include <string>
 
 #include "core/psxemulator.h"
@@ -30,7 +31,6 @@
 #include "core/sstate.h"
 #include "support/file.h"
 #include "support/protobuf.h"
-#include <compare>
 
 //#define SIO1_CYCLES (m_regs.baud * 8)
 #define SIO1_CYCLES (1)
@@ -81,8 +81,7 @@ class SIO1 {
     void interrupt();
 
     void reset() {
-        if (m_sio1fifo.isA<Fifo>())
-            m_sio1fifo.asA<Fifo>()->reset();
+        if (m_sio1fifo.isA<Fifo>()) m_sio1fifo.asA<Fifo>()->reset();
         m_regs.data = 0;
         m_regs.status = (SR_TXRDY | SR_TXRDY2 | SR_DSR | SR_CTS);
         m_regs.mode = 0;
@@ -103,8 +102,7 @@ class SIO1 {
         } else if (m_sio1fifo) {
             m_sio1fifo.reset();
         }
-        if (m_fifo)
-            m_fifo.reset();
+        if (m_fifo) m_fifo.reset();
     }
 
     void setFifo(IO<File> newFifo) {
@@ -116,14 +114,9 @@ class SIO1 {
         }
     }
 
-    bool connecting() {
-        return m_fifo.asA<UvFifo>()->isConnecting();
-    }
+    bool connecting() { return m_fifo.asA<UvFifo>()->isConnecting(); }
 
-    bool fifoError() {
-        return (!m_fifo || m_fifo->failed()
-            || m_fifo->eof() || m_fifo->isClosed());
-    }
+    bool fifoError() { return (!m_fifo || m_fifo->failed() || m_fifo->eof() || m_fifo->isClosed()); }
 
     uint8_t readBaud8() { return m_regs.baud; }
     uint16_t readBaud16() { return m_regs.baud; }
@@ -187,7 +180,7 @@ class SIO1 {
     struct flowControl {
         bool dxr;
         bool xts;
-        auto operator<=>(const flowControl&) const = default;
+        auto operator<=>(const flowControl &) const = default;
     };
 
     flowControl m_flowControl = {};
@@ -248,10 +241,7 @@ class SIO1 {
         IRQ8_SIO = 0x100
     };
 
-    enum {
-        READ_SIZE,
-        READ_MESSAGE
-    } m_decodeState = READ_SIZE;
+    enum { READ_SIZE, READ_MESSAGE } m_decodeState = READ_SIZE;
 
     inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
 
@@ -261,6 +251,5 @@ class SIO1 {
 
     IO<File> m_fifo;
     IO<File> m_sio1fifo;
-
 };
 }  // namespace PCSX
