@@ -116,7 +116,13 @@ class SIO1 {
 
     bool connecting() { return m_fifo.asA<UvFifo>()->isConnecting(); }
 
-    bool fifoError() { return (!m_fifo || m_fifo->failed() || m_fifo->eof() || m_fifo->isClosed()); }
+    bool fifoError() {
+        if (m_sio1Mode == SIO1Mode::Raw) {
+            return (!m_sio1fifo || m_sio1fifo->failed() || m_sio1fifo->eof() || m_sio1fifo->isClosed());
+        } else {
+            return (!m_fifo || m_fifo->failed() || m_fifo->eof() || m_fifo->isClosed());
+        }
+    }
 
     uint8_t readBaud8() { return m_regs.baud; }
     uint16_t readBaud16() { return m_regs.baud; }
