@@ -96,6 +96,7 @@ void PCSX::SIO1Client::startClient(std::string_view address, unsigned port) {
     auto SIO1ModeSettings = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
     if (SIO1ModeSettings == Emulator::DebugSettings::SIO1Mode::Raw) {
         g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Raw;
+        throw std::runtime_error("Client doesn't currently support raw mode");
     } else {
         g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Protobuf;
         g_emulator->m_counters->m_pollSIO1 = true;
