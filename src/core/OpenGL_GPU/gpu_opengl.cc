@@ -205,8 +205,13 @@ int PCSX::OpenGL_GPU::init() {
             return int(floor(f * 31.0 + 0.5));
         }
 
+        vec4 sampleVRAM(ivec2 coords) {
+            coords &= ivec2(1023, 511); // Out-of-bounds VRAM accesses wrap
+            return texelFetch(u_vramTex, coords, 0);
+        }
+
         int sample16(ivec2 coords) {
-            vec4 colour = texelFetch(u_vramTex, coords, 0);
+            vec4 colour = sampleVRAM(coords);
             int r = floatToU5(colour.r);
             int g = floatToU5(colour.g);
             int b = floatToU5(colour.b);
@@ -235,7 +240,7 @@ int PCSX::OpenGL_GPU::init() {
                int clutIndex = (sample >> shift) & 0xf;
 
                ivec2 sampleCoords = ivec2(clutBase.x + clutIndex, clutBase.y);
-               FragColor = texelFetch(u_vramTex, sampleCoords, 0);
+               FragColor = sampleVRAM(sampleCoords);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor = texBlend(FragColor, vertexColor);
@@ -247,13 +252,13 @@ int PCSX::OpenGL_GPU::init() {
                int clutIndex = (sample >> shift) & 0xff;
 
                ivec2 sampleCoords = ivec2(clutBase.x + clutIndex, clutBase.y);
-               FragColor = texelFetch(u_vramTex, sampleCoords, 0);
+               FragColor = sampleVRAM(sampleCoords);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor = texBlend(FragColor, vertexColor);
            } else { // Texture depth 2 and 3 both indicate 16bpp textures
                ivec2 texelCoord = UV + texpageBase;
-               FragColor = texelFetch(u_vramTex, texelCoord, 0);
+               FragColor = sampleVRAM(texelCoord);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor = texBlend(FragColor, vertexColor);
