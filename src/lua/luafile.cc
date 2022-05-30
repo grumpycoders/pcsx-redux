@@ -162,13 +162,9 @@ LuaFile* zReader(LuaFile* wrapper, int64_t size, bool raw) {
                            : new PCSX::ZReader(wrapper->file, size));
 }
 
-uint64_t getSliceSize(PCSX::Slice* slice) {
-    return slice->size();
-}
+uint64_t getSliceSize(PCSX::Slice* slice) { return slice->size(); }
 
-const void* getSliceData(PCSX::Slice* slice) {
-    return slice->data();
-}
+const void* getSliceData(PCSX::Slice* slice) { return slice->data(); }
 
 void destroySlice(PCSX::Slice* slice) { delete slice; }
 

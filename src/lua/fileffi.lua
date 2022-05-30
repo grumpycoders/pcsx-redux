@@ -111,7 +111,7 @@ local sliceMeta = {
         error('Unknown index `' .. index .. '` for LuaSlice')
     end,
     __newindex = function(slice, index, value) end,
-    __gc = function(slice) C.destroySlice(slice._wrapper) end
+    __gc = function(slice) C.destroySlice(slice._wrapper) end,
 }
 
 local function createSliceWrapper(wrapper)
@@ -200,13 +200,9 @@ local function writeAt(self, data, size, pos)
     return C.writeFileAtRawPtr(self._wrapper, data, string.len(data), size)
 end
 
-local function writeMoveSlice(self, slice)
-    C.writeFileMoveSlice(self._wrapper, slice._wrapper)
-end
+local function writeMoveSlice(self, slice) C.writeFileMoveSlice(self._wrapper, slice._wrapper) end
 
-local function writeAtMoveSlice(self, slice, pos)
-    C.writeFileAtMoveSlice(self._wrapper, slice._wrapper, pos)
-end
+local function writeAtMoveSlice(self, slice, pos) C.writeFileAtMoveSlice(self._wrapper, slice._wrapper, pos) end
 
 local function rSeek(self, pos, wheel)
     if wheel == nil then wheel = 'SEEK_SET' end
@@ -351,7 +347,9 @@ local function open(filename, t)
     if (t == 'DOWNLOAD_URL_AND_WAIT') then
         local captures = {}
         captures.current = coroutine.running()
-        if not captures.current then error(':open() with DOWNLOAD_URL_AND_WAIT needs to be called from a coroutine') end
+        if not captures.current then
+            error(':open() with DOWNLOAD_URL_AND_WAIT needs to be called from a coroutine')
+        end
         captures.callback = function()
             PCSX.nextTick(function()
                 captures.callback:free()
