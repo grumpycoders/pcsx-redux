@@ -351,7 +351,7 @@ local function open(filename, t)
     if (t == 'DOWNLOAD_URL_AND_WAIT') then
         local captures = {}
         captures.current = coroutine.running()
-        if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
+        if not captures.current then error(':open() with DOWNLOAD_URL_AND_WAIT needs to be called from a coroutine') end
         captures.callback = function()
             PCSX.nextTick(function()
                 captures.callback:free()
