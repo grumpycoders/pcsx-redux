@@ -138,16 +138,16 @@ Writes to the File object. The non-At variants will advances the write pointer a
 :writeAt(ptr, size, pos)
 ```
 
-Some APIs may return a `Slice` object, which is an opaque buffer coming from C++. The only available methods to manipulate it are:
+Some APIs may return a `Slice` object, which is an opaque buffer coming from C++. It's possible to write a slice to a file in a zero-copy manner:
 
 ```lua
 :writeMoveSlice(slice)
 :writeAtMoveSlice(slice, pos)
 ```
 
-After which, the slice will be consumed and not reusable.
+After which, the slice will be consumed and not reusable. The object is convertible to a string, and also has two members: `data`, which is a `const void*`, and `size`. Once consumed, the size of a slice will go down to zero.
 
-These manipulate the read and write pointers. All of them return their corresponding pointer. The `wheel` argument can be of the values `'SEEK_SET'`, `'SEEK_CUR'`, and `'SEEK_END'`, and will default to `'SEEK_SET'`.
+The following methods manipulate the read and write pointers. All of them return their corresponding pointer. The `wheel` argument can be of the values `'SEEK_SET'`, `'SEEK_CUR'`, and `'SEEK_END'`, and will default to `'SEEK_SET'`.
 ```lua
 :rSeek(pos[, wheel])
 :rTell()
