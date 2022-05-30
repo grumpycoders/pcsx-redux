@@ -444,11 +444,13 @@ void PCSX::Lua::displayStack(bool error) {
 
     checkstack(6);
     bool useLuaPrinter = false;
+    bool hasLuaPrinter = true;
 
     if ((!normalPrinter && error) || (!errorPrinter && !error)) {
         useLuaPrinter = true;
         lua_pushstring(L, error ? "printError" : "print");
         lua_gettable(L, LUA_GLOBALSINDEX);
+        hasLuaPrinter = !isnil(-1);
     }
     for (int i = 1; i <= n; i++) {
         int c = 3;
@@ -498,7 +500,7 @@ void PCSX::Lua::displayStack(bool error) {
         }
         concat(c);
         if (useLuaPrinter) {
-            if (isInDisplayStackAlready) {
+            if (isInDisplayStackAlready || !hasLuaPrinter) {
                 std::string msg = tostring();
                 pop();
                 printf("%s\n", msg.c_str());

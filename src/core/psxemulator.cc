@@ -80,8 +80,8 @@ void PCSX::Emulator::setLua() {
     m_lua->push("luv");
     luaopen_luv(m_lua->getState());
     m_lua->settable(LUA_GLOBALSINDEX);
-    LuaFFI::open_pcsx(*m_lua);
     LuaFFI::open_file(*m_lua);
+    LuaFFI::open_pcsx(*m_lua);
     LuaFFI::open_iso(*m_lua);
     LuaFFI::open_extra(*m_lua);
 
@@ -139,6 +139,7 @@ void PCSX::Emulator::shutdown() {
 }
 
 void PCSX::Emulator::vsync() {
+    g_system->m_eventBus->signal<Events::GPU::VSync>({});
     g_system->update(true);
     m_cheats->ApplyCheats();
 

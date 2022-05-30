@@ -91,6 +91,8 @@ uint64_t writeFileBuffer(LuaFile* wrapper, const void* buffer) {
     return wrapper->file->write(data, *pSize);
 }
 
+void writeFileMoveSlice(LuaFile* wrapper, PCSX::Slice* slice) { wrapper->file->write(std::move(*slice)); }
+
 int64_t rSeek(LuaFile* wrapper, int64_t pos, PCSX::LuaFFI::SeekWheel wheel) {
     return wrapper->file->rSeek(pos, PCSX::LuaFFI::wheelConv(wheel));
 }
@@ -118,6 +120,10 @@ uint64_t writeFileAtBuffer(LuaFile* wrapper, const void* buffer, uint64_t pos) {
     const uint32_t* pSize = reinterpret_cast<const uint32_t*>(buffer);
     const uint8_t* data = reinterpret_cast<const uint8_t*>(pSize + 1);
     return wrapper->file->writeAt(data, *pSize, pos);
+}
+
+void writeFileAtMoveSlice(LuaFile* wrapper, PCSX::Slice* slice, uint64_t pos) {
+    wrapper->file->writeAt(std::move(*slice), pos);
 }
 
 bool isFileSeekable(LuaFile* wrapper) { return wrapper->file->seekable(); }
@@ -155,6 +161,8 @@ LuaFile* zReader(LuaFile* wrapper, int64_t size, bool raw) {
     return new LuaFile(raw ? new PCSX::ZReader(wrapper->file, size, PCSX::ZReader::RAW)
                            : new PCSX::ZReader(wrapper->file, size));
 }
+
+void destroySlice(PCSX::Slice* slice) { delete slice; }
 
 }  // namespace
 
@@ -197,6 +205,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, readFileBuffer);
     REGISTER(L, writeFileRawPtr);
     REGISTER(L, writeFileBuffer);
+    REGISTER(L, writeFileMoveSlice);
 
     REGISTER(L, rSeek);
     REGISTER(L, rTell);
@@ -210,6 +219,7 @@ static void registerAllSymbols(PCSX::Lua L) {
 
     REGISTER(L, writeFileAtRawPtr);
     REGISTER(L, writeFileAtBuffer);
+    REGISTER(L, writeFileAtMoveSlice);
 
     REGISTER(L, isFileSeekable);
     REGISTER(L, isFileWritable);
@@ -224,6 +234,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, dupFile);
 
     REGISTER(L, zReader);
+
+    REGISTER(L, destroySlice);
 
     L.settable();
     L.pop();
