@@ -58,12 +58,12 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x28] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::None>;
     m_cmdFuncs[0x29] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::None>;
 
-    //m_cmdFuncs[0x2C] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;  // TODO: Blending
+    // m_cmdFuncs[0x2C] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;  // TODO: Blending
     m_cmdFuncs[0x2C] = &OpenGL_GPU::theOminousTexturedQuad;
     m_cmdFuncs[0x2D] = &OpenGL_GPU::theOminousTexturedQuad;
-    //m_cmdFuncs[0x2D] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;
-    m_cmdFuncs[0x2F] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>; // TODO: Transparency
-    
+    // m_cmdFuncs[0x2D] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;
+    m_cmdFuncs[0x2F] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Flat, Texturing::Textured>;  // TODO: Transparency
+
     m_cmdFuncs[0x30] = &OpenGL_GPU::drawPoly<PolyType::Triangle, Shading::Gouraud, Texturing::None>;
     m_cmdFuncs[0x34] = &OpenGL_GPU::theOminousTexturedTriTextureBlending;
     m_cmdFuncs[0x38] = &OpenGL_GPU::drawPoly<PolyType::Quad, Shading::Gouraud, Texturing::None>;
@@ -81,17 +81,37 @@ void PCSX::OpenGL_GPU::initCommands() {
 }
 
 void PCSX::OpenGL_GPU::cmdNop() {}
-void PCSX::OpenGL_GPU::cmdClearTexCache() {
-    m_syncVRAM = true;
-}
+void PCSX::OpenGL_GPU::cmdClearTexCache() { m_syncVRAM = true; }
 
 void PCSX::OpenGL_GPU::cmdSetDrawMode() {
     m_rectTexpage = m_cmdFIFO[0] & 0x3fff;
     PCSX::g_system->printf("Unimplemented set draw mode command: %08X\n", m_cmdFIFO[0]);
 }
 
+// Set texture window, regardless of whether the window config changed
+void PCSX::OpenGL_GPU::setTexWindowUnchecked(uint32_t cmd) {
+    renderBatch();
+    m_lastTexwindowSetting = cmd & 0xffffff;  // Only keep bottom 20 bits
+
+    const uint32_t maskX = (cmd & 0x1f) * 8;          // Window mask x in 8 pixel steps
+    const uint32_t maskY = ((cmd >> 5) & 0x1f) * 8;   // Window mask y in 8 pixel steps
+    const uint32_t offsX = ((cmd >> 10) & 0x1f) * 8;  // Window offset x in 8 pixel steps
+    const uint32_t offsY = ((cmd >> 15) & 0x1f) * 8;  // Window offset y in 8 pixel steps
+
+    // Upload data to GPU
+    glUniform4i(m_texWindowLoc, ~maskX, ~maskY, offsX & maskX, offsY & maskY);
+}
+
+// Set texture window, provided the window config actually changed
+void PCSX::OpenGL_GPU::setTexWindow(uint32_t cmd) {
+    cmd &= 0xfffff;  // Only keep bottom 20 bits
+    if (m_lastTexwindowSetting != cmd) {
+        setTexWindowUnchecked(cmd);
+    }
+}
+
 void PCSX::OpenGL_GPU::cmdSetTexWindow() {
-    PCSX::g_system->printf("Unimplemented set texture window command: %08X\n", m_cmdFIFO[0]);
+    setTexWindow(m_cmdFIFO[0]);
 }
 
 void PCSX::OpenGL_GPU::cmdSetDrawMask() {

@@ -58,6 +58,7 @@ void PCSX::OpenGL_GPU::reset() {
 
     float adjustedOffsets[2] = {+0.5f, -0.5f};
     glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
+    setTexWindowUnchecked(0x00000000);
 
     clearVRAM();
 }
@@ -198,7 +199,11 @@ int PCSX::OpenGL_GPU::init() {
         flat in int texMode;
 
         out vec4 FragColor;
-
+    
+        // Tex window uniform format
+        // x, y components: masks to & coords with
+        // z, w components: masks to | coords with
+        uniform ivec4 u_texWindow;
         uniform sampler2D u_vramTex;
 
         int floatToU5(float f) {
@@ -228,11 +233,16 @@ int PCSX::OpenGL_GPU::init() {
         }
 
         void main() {
-           ivec2 UV = ivec2(round(texCoords + vec2(0.0001, 0.0001))) & ivec2(0xff);
-
            if (texMode == 4) { // Untextured primitive
                FragColor = vertexColor;
-           } else if (texMode == 0) { // 4bpp texture
+               return;
+           }
+
+           // Fix up UVs and apply texture window
+           ivec2 UV = ivec2(round(texCoords + vec2(0.0001, 0.0001))) & ivec2(0xff);
+           UV = (UV & u_texWindow.xy) | u_texWindow.zw;
+
+           if (texMode == 0) { // 4bpp texture
                ivec2 texelCoord = ivec2(UV.x >> 2, UV.y) + texpageBase;
                
                int sample = sample16(texelCoord);
@@ -273,6 +283,7 @@ int PCSX::OpenGL_GPU::init() {
 
     m_program.use();
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
+    m_texWindowLoc = OpenGL::uniformLocation(m_program, "u_texWindow");
 
     const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
     glUniform1i(vramSamplerLoc, 0); // Make the fragment shader read from currently binded texture
@@ -433,6 +444,7 @@ bool PCSX::OpenGL_GPU::configure() {
         if (program.has_value()) {
             m_program.m_handle = program.value();
             m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
+            m_texWindowLoc = OpenGL::uniformLocation(m_program, "u_texWindow");
 
             const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
             glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
@@ -440,6 +452,7 @@ bool PCSX::OpenGL_GPU::configure() {
             float adjustedOffsets[2] = {static_cast<float>(m_drawingOffset.x()) + 0.5f,
                                         static_cast<float>(m_drawingOffset.y()) - 0.5f};
             glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
+            setTexWindowUnchecked(m_lastTexwindowSetting);
         }
     }
 
