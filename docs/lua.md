@@ -138,6 +138,15 @@ Writes to the File object. The non-At variants will advances the write pointer a
 :writeAt(ptr, size, pos)
 ```
 
+Some APIs may return a `Slice` object, which is an opaque buffer coming from C++. The only available methods to manipulate it are:
+
+```lua
+:writeMoveSlice(slice)
+:writeAtMoveSlice(slice, pos)
+```
+
+After which, the slice will be consumed and not reusable.
+
 These manipulate the read and write pointers. All of them return their corresponding pointer. The `wheel` argument can be of the values `'SEEK_SET'`, `'SEEK_CUR'`, and `'SEEK_END'`, and will default to `'SEEK_SET'`.
 ```lua
 :rSeek(pos[, wheel])
@@ -300,6 +309,21 @@ You can move the cursor within the assembly window and the first memory view usi
 
 - `PCSX.GUI.jumpToPC(pc)`
 - `PCSX.GUI.jumpToMemory(address[, width])`
+
+#### GPU
+You can take a screenshot of the current view of the emulated display using the following:
+- `PCSX.GPU.takeScreenShot()`
+
+This will return a struct that has the following fields:
+```c
+struct ScreenShot {
+    Slice data;
+    uint16_t width, height;
+    enum { BPP_16, BPP_24 } bpp;
+};
+```
+
+The `Slice` will contain the raw bytes of the screenshot data. It's meant to be written out using the `:writeMoveSlice()` method. The `width` and `height` will be the width and height of the screenshot, in pixels. The `bpp` will be either `BPP_16` or `BPP_24`, depending on the color depth of the screenshot. The size of the `data` Slice will be `height * width` multiplied by the number of bytes per pixel, depending on the `bpp`.
 
 #### Breakpoints
 If the debugger is activated, and while using the interpreter, the Lua code can insert powerful breakpoints using the following API:
