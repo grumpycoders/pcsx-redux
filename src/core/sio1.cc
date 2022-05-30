@@ -302,9 +302,7 @@ void PCSX::SIO1::writeData8(uint8_t v) {
     psxHu8ref(0x1050) = m_regs.data;
 }
 
-void PCSX::SIO1::writeMode16(uint16_t v) {
-    m_regs.mode = v;
-}
+void PCSX::SIO1::writeMode16(uint16_t v) { m_regs.mode = v; }
 
 void PCSX::SIO1::writeStat32(uint32_t v) {
     m_regs.status = v;

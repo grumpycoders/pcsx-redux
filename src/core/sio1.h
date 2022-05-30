@@ -166,8 +166,8 @@ class SIO1 {
 
   private:
     uint8_t messageSize = 0;
-    uint64_t m_cycleCount = 2352; // Default to cycles for 115200 baud
-    uint64_t m_baudRate = 115200; // Default to 115200 baud
+    uint64_t m_cycleCount = 2352;  // Default to cycles for 115200 baud
+    uint64_t m_baudRate = 115200;  // Default to 115200 baud
     bool initialMessage = true;
     SIOPayload makeDataMessage(std::string &&data);
     SIOPayload makeFlowControlMessage();

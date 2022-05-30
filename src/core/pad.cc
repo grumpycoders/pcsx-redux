@@ -562,10 +562,10 @@ bool PCSX::Pads::Pad::configure() {
     static std::function<const char*()> const c_inputDevices[] = {
         []() { return _("Auto"); }, []() { return _("Controller"); }, []() { return _("Keyboard"); }};
     static std::function<const char*()> const c_buttonNames[] = {
-        []() { return _("Cross"); },  []() { return _("Square"); }, []() { return _("Triangle"); },
-        []() { return _("Circle"); }, []() { return _("Select"); }, []() { return _("Start"); },
-        []() { return _("L1"); },     []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); },     []() { return _("L3"); },     []() { return _("R3"); },
+        []() { return _("Cross"); },      []() { return _("Square"); }, []() { return _("Triangle"); },
+        []() { return _("Circle"); },     []() { return _("Select"); }, []() { return _("Start"); },
+        []() { return _("L1"); },         []() { return _("R1"); },     []() { return _("L2"); },
+        []() { return _("R2"); },         []() { return _("L3"); },     []() { return _("R3"); },
         []() { return _("Analog Mode"); }};
     static std::function<const char*()> const c_dpadDirections[] = {
         []() { return _("Up"); }, []() { return _("Right"); }, []() { return _("Down"); }, []() { return _("Left"); }};
