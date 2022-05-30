@@ -19,6 +19,7 @@ ffi.cdef [[
 
 typedef struct { char opaque[?]; } LuaFile;
 typedef struct { uint32_t size; uint8_t data[?]; } LuaBuffer;
+typedef struct { char opaque[?]; } LuaSlice;
 
 enum FileOps {
     READ,
@@ -55,6 +56,7 @@ uint64_t readFileBuffer(LuaFile* wrapper, LuaBuffer* buffer);
 
 uint64_t writeFileRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size);
 uint64_t writeFileBuffer(LuaFile* wrapper, const LuaBuffer* buffer);
+void writeFileMoveSlice(LuaFile* wrapper, LuaSlice* slice);
 
 int64_t rSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel);
 int64_t rTell(LuaFile* wrapper);
@@ -68,6 +70,7 @@ uint64_t readFileAtBuffer(LuaFile* wrapper, LuaBuffer* buffer, uint64_t pos);
 
 uint64_t writeFileAtRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size, uint64_t pos);
 uint64_t writeFileAtBuffer(LuaFile* wrapper, const LuaBuffer* buffer, uint64_t pos);
+void writeFileAtMoveSlice(LuaFile* wrapper, LuaSlice* slice, uint64_t pos);
 
 bool isFileSeekable(LuaFile*);
 bool isFileWritable(LuaFile*);
@@ -83,12 +86,16 @@ LuaFile* dupFile(LuaFile*);
 
 LuaFile* zReader(LuaFile*, int64_t size, bool raw);
 
+void destroySlice(LuaSlice*);
+
 ]]
 
 local C = ffi.load 'SUPPORT_FILE'
 
 local function fileGarbageCollect(file) C.deleteFile(file._wrapper) end
 local fileMeta = { __gc = fileGarbageCollect }
+
+ffi.metatype('LuaSlice', { __gc = { C.destroySlice } })
 
 local bufferMeta = {
     __tostring = function(buffer) return ffi.string(buffer.data, buffer.size) end,
@@ -168,6 +175,14 @@ local function writeAt(self, data, size, pos)
     end
     if type(data) ~= 'string' then data = tostring(data) end
     return C.writeFileAtRawPtr(self._wrapper, data, string.len(data), size)
+end
+
+local function writeMoveSlice(self, slice)
+    C.writeFileMoveSlice(self._wrapper, slice)
+end
+
+local function writeAtMoveSlice(self, slice, pos)
+    C.writeFileAtMoveSlice(self._wrapper, slice, pos)
 end
 
 local function rSeek(self, pos, wheel)
@@ -251,6 +266,8 @@ local function createFileWrapper(wrapper)
         readAt = readAt,
         write = write,
         writeAt = writeAt,
+        writeMoveSlice = writeMoveSlice,
+        writeAtMoveSlice = writeAtMoveSlice,
         rSeek = rSeek,
         rTell = function(self) return C.rTell(self._wrapper) end,
         wSeek = wSeek,
@@ -368,6 +385,12 @@ Support.NewLuaBuffer = function(size)
     return buf
 end
 
-Support.File = { open = open, buffer = buffer, zReader = zReader, uvFifo = uvFifo, _createFileWrapper = createFileWrapper }
+Support.File = {
+    open = open,
+    buffer = buffer,
+    zReader = zReader,
+    uvFifo = uvFifo,
+    _createFileWrapper = createFileWrapper,
+}
 
 -- )EOF"

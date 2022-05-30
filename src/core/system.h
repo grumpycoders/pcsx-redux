@@ -63,6 +63,9 @@ struct LogMessage {
     LogClass logClass;
     std::string message;
 };
+namespace GPU {
+struct VSync {};
+}  // namespace GPU
 namespace ExecutionFlow {
 struct ShellReached {};
 struct Run {};

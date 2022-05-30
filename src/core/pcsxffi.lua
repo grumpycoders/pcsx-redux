@@ -67,6 +67,16 @@ void luaMessage(const char* msg, bool error);
 void luaLog(const char* msg);
 void jumpToPC(uint32_t address);
 void jumpToMemory(uint32_t address, unsigned width);
+
+typedef enum { BPP_16, BPP_24 } ScreenShotBPP;
+
+typedef struct {
+    LuaSlice* data;
+    uint16_t width, height;
+    ScreenShotBPP bpp;
+} LuaScreenShot;
+
+LuaScreenShot takeScreenShot();
 ]]
 
 local C = ffi.load 'PCSX'
@@ -161,6 +171,7 @@ PCSX = {
             f()
         end
     end,
+    takeScreenShot = function() return C.takeScreenShot() end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end
