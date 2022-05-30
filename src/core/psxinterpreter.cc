@@ -838,8 +838,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
         // TODO: is Rd modified in this case?
         m_regs.pc -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU,
-                            _("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp,
-                            m_regs.pc);
+                            _("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp, m_regs.pc);
         m_regs.CP0.n.BadVAddr = temp;
         exception(Exception::LoadAddressError, m_inDelaySlot);
         return;
@@ -894,8 +893,7 @@ void InterpretedCPU::psxLHU(uint32_t code) {
     // load delay = 1 latency
     if (_oB_ & 1) {
         m_regs.pc -= 4;
-        PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LHU from 0x%08x\n"), _oB_,
-                            m_regs.pc);
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LHU from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::LoadAddressError, m_inDelaySlot);
         return;

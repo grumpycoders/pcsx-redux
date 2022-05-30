@@ -177,13 +177,9 @@ local function writeAt(self, data, size, pos)
     return C.writeFileAtRawPtr(self._wrapper, data, string.len(data), size)
 end
 
-local function writeMoveSlice(self, slice)
-    C.writeFileMoveSlice(self._wrapper, slice)
-end
+local function writeMoveSlice(self, slice) C.writeFileMoveSlice(self._wrapper, slice) end
 
-local function writeAtMoveSlice(self, slice, pos)
-    C.writeFileAtMoveSlice(self._wrapper, slice, pos)
-end
+local function writeAtMoveSlice(self, slice, pos) C.writeFileAtMoveSlice(self._wrapper, slice, pos) end
 
 local function rSeek(self, pos, wheel)
     if wheel == nil then wheel = 'SEEK_SET' end

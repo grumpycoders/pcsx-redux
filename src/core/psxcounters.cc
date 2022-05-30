@@ -25,9 +25,9 @@
 
 #include "core/debug.h"
 #include "core/gpu.h"
+#include "core/sio1.h"
 #include "fmt/printf.h"
 #include "spu/interface.h"
-#include "core/sio1.h"
 
 template <typename... Args>
 void verboseLog(int32_t level, const char *str, const Args &... args) {
@@ -271,7 +271,7 @@ void PCSX::Counters::writeTarget(uint32_t index, uint32_t value) {
     update();
 
     // The target is only 16 bits. To make sure of this, the 32-bit write handlers mask it with 0xFFFF
-    m_rcnts[index].target =value;
+    m_rcnts[index].target = value;
     writeCounterInternal(index, readCounterInternal(index));
     set();
 }
