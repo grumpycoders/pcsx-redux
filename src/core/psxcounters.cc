@@ -27,6 +27,7 @@
 #include "core/gpu.h"
 #include "fmt/printf.h"
 #include "spu/interface.h"
+#include "core/sio1.h"
 
 template <typename... Args>
 void verboseLog(int32_t level, const char *str, const Args &... args) {
@@ -194,11 +195,10 @@ void PCSX::Counters::update() {
             PCSX::g_emulator->m_spu->async(scanlines * m_rcnts[3].target);
         }
 
-#ifdef ENABLE_SIO1API
-        if (SIO1_update) {
-            SIO1_update(0);
+        // SIO1 callback on hsync to process data
+        if (m_pollSIO1) {
+            PCSX::g_emulator->m_sio1->sio1StateMachine();
         }
-#endif
 
         // Trigger VBlank IRQ when VBlank starts
         if (m_hSyncCount == VBlankStart[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {

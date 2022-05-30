@@ -1593,6 +1593,68 @@ relay information between tcp and sio1.
 See the wiki for details.)"));
         changed |=
             ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
+        if (ImGui::Checkbox(_("Enable SIO1 Client"), &debugSettings.get<Emulator::DebugSettings::SIO1Client>().value)) {
+            changed = true;
+            if (debugSettings.get<Emulator::DebugSettings::SIO1Client>()) {
+                g_emulator->m_sio1Client->startClient(
+                    std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                                         .get<Emulator::DebugSettings::SIO1ClientHost>()
+                                         .value),
+                    g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                        .get<Emulator::DebugSettings::SIO1ClientPort>());
+            } else {
+                g_emulator->m_sio1Client->stopClient();
+            }
+        }
+        ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
+to another PCSX-Redux server to relay information between tcp and sio1.
+See the wiki for details.)"));
+        changed |=
+            ImGui::InputText(_("SIO1 Client Host"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value,
+                             ImGuiInputTextFlags_CharsDecimal);
+        changed |=
+            ImGui::InputInt(_("SIO1 Client Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientPort>().value);
+
+        auto& currentSIO1Mode = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
+        auto currentSIO1Name = magic_enum::enum_name(currentSIO1Mode);
+        if (ImGui::Button(_("Reset SIO"))) {
+            g_emulator->m_sio1->reset();
+        }
+
+        const bool enableReconnect = debugSettings.get<Emulator::DebugSettings::SIO1Client>() &&
+                                     !g_emulator->m_sio1->connecting() && g_emulator->m_sio1->fifoError();
+
+        if (!enableReconnect) {
+            ImGui::BeginDisabled();
+        }
+
+        if (ImGui::Button(_("Reconnect"))) {
+            g_emulator->m_sio1Client->reconnect(
+                std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                                     .get<Emulator::DebugSettings::SIO1ClientHost>()
+                                     .value),
+                g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                    .get<Emulator::DebugSettings::SIO1ClientPort>());
+        }
+
+        if (!enableReconnect) {
+            ImGui::EndDisabled();
+        }
+
+        if (ImGui::BeginCombo(_("SIO1Mode"), currentSIO1Name.data())) {
+            for (auto v : magic_enum::enum_values<Emulator::DebugSettings::SIO1Mode>()) {
+                bool selected = (v == currentSIO1Mode);
+                auto name = magic_enum::enum_name(v);
+                if (ImGui::Selectable(name.data(), selected)) {
+                    currentSIO1Mode = v;
+                    changed = true;
+                }
+                if (selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
     }
     ImGui::End();
 

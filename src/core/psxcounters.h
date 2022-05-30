@@ -86,6 +86,7 @@ class Counters {
     uint32_t m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL + 1];  // 2
   public:
     uint32_t m_psxNextCounter;
+    bool m_pollSIO1 = false;
     void init();
     void update();
 

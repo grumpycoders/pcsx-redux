@@ -209,6 +209,7 @@ class UvFifo : public File, public UvThreadOp {
   public:
     UvFifo(const std::string_view address, unsigned port);
     virtual void close() final override;
+    virtual bool isClosed() final override {return m_closed.load();}
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t write(const void* src, size_t size) final override;
     virtual void write(Slice&& slice) final override;
