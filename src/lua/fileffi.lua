@@ -86,16 +86,39 @@ LuaFile* dupFile(LuaFile*);
 
 LuaFile* zReader(LuaFile*, int64_t size, bool raw);
 
+uint64_t getSliceSize(LuaSlice*);
+const void* getSliceData(LuaSlice*);
 void destroySlice(LuaSlice*);
 
 ]]
 
 local C = ffi.load 'SUPPORT_FILE'
 
-local function fileGarbageCollect(file) C.deleteFile(file._wrapper) end
-local fileMeta = { __gc = fileGarbageCollect }
+local fileMeta = { __gc = function(file) C.deleteFile(file._wrapper) end }
+local sliceMeta = {
+    __tostring = function(slice) return ffi.string(C.getSliceData(slice._wrapper), C.getSliceSize(slice._wrapper)) end,
+    __len = function(slice) return tonumber(C.getSliceSize(slice._wrapper)) end,
+    __index = function(slice, index)
+        if type(index) == 'number' and index >= 0 and index < C.getSliceSize(slice._wrapper) then
+            local data = C.getSliceData(slice._wrapper)
+            local buffer = ffi.cast('const uint8_t*', data)
+            return buffer[index]
+        elseif index == 'data' then
+            return C.getSliceData(slice._wrapper)
+        elseif index == 'size' then
+            return C.getSliceSize(slice._wrapper)
+        end
+        error('Unknown index `' .. index .. '` for LuaSlice')
+    end,
+    __newindex = function(slice, index, value) end,
+    __gc = function(slice) C.destroySlice(slice._wrapper) end
+}
 
-ffi.metatype('LuaSlice', { __gc = { C.destroySlice } })
+local function createSliceWrapper(wrapper)
+    local slice = { _wrapper = wrapper }
+    setmetatable(slice, sliceMeta)
+    return slice
+end
 
 local bufferMeta = {
     __tostring = function(buffer) return ffi.string(buffer.data, buffer.size) end,
@@ -177,9 +200,13 @@ local function writeAt(self, data, size, pos)
     return C.writeFileAtRawPtr(self._wrapper, data, string.len(data), size)
 end
 
-local function writeMoveSlice(self, slice) C.writeFileMoveSlice(self._wrapper, slice) end
+local function writeMoveSlice(self, slice)
+    C.writeFileMoveSlice(self._wrapper, slice._wrapper)
+end
 
-local function writeAtMoveSlice(self, slice, pos) C.writeFileAtMoveSlice(self._wrapper, slice, pos) end
+local function writeAtMoveSlice(self, slice, pos)
+    C.writeFileAtMoveSlice(self._wrapper, slice._wrapper, pos)
+end
 
 local function rSeek(self, pos, wheel)
     if wheel == nil then wheel = 'SEEK_SET' end
@@ -387,6 +414,7 @@ Support.File = {
     zReader = zReader,
     uvFifo = uvFifo,
     _createFileWrapper = createFileWrapper,
+    _createSliceWrapper = createSliceWrapper,
 }
 
 -- )EOF"

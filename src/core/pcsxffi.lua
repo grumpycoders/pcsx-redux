@@ -171,7 +171,15 @@ PCSX = {
             f()
         end
     end,
-    takeScreenShot = function() return C.takeScreenShot() end,
+    takeScreenShot = function()
+        local ss = C.takeScreenShot()
+        return {
+            data = Support.File._createSliceWrapper(ss.data),
+            width = ss.width,
+            height = ss.height,
+            bpp = ss.bpp,
+        }
+    end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end
