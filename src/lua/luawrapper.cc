@@ -23,14 +23,14 @@
 
 static int callwrap(lua_State* raw, lua_CFunction func) {
     PCSX::Lua L(raw);
-    int r = 0;
 
     try {
-        r = func(raw);
+        return func(raw);
     } catch (std::exception& e) {
-        L.error(std::string("LuaException: ") + e.what());
+        return L.error(std::string("LuaException: ") + e.what());
+    } catch (...) {
+        return L.error("LuaException: unknown exception");
     }
-    return r;
 }
 
 std::function<void(const std::string&)> PCSX::Lua::normalPrinter = nullptr;
@@ -326,7 +326,7 @@ int PCSX::Lua::pushLuaContext(bool inTable) {
     return inTable ? 1 : n;
 }
 
-void PCSX::Lua::error(const char* msg) {
+int PCSX::Lua::error(const char* msg) {
     push(msg);
 
     if (yielded()) {
@@ -335,8 +335,9 @@ void PCSX::Lua::error(const char* msg) {
         while (gettop()) pop();
 
         throw std::runtime_error("Runtime error while running yielded C code.");
+        return 0;
     } else {
-        lua_error(L);
+        return lua_error(L);
     }
 }
 
