@@ -181,8 +181,8 @@ class Lua {
     int gettop() { return lua_gettop(L); }
     void getglobal(const char* name);
     int pushLuaContext(bool inTable = false);
-    void error(const char* msg);
-    void error(const std::string& msg) { error(msg.c_str()); }
+    int error(const char* msg);
+    int error(const std::string& msg) { return error(msg.c_str()); }
 
     int type(int i = -1) { return lua_type(L, i); }
     const char* typestring(int i = -1) { return lua_typename(L, lua_type(L, i)); }
