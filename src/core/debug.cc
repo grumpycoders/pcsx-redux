@@ -269,10 +269,18 @@ void PCSX::Debug::stepOut() {
     auto& callstack = g_emulator->m_callStacks->getCurrent();
     if ((callstack.calls.size() == 0) && (callstack.ra == 0)) return;
 
-    auto call = callstack.calls.end();
-    call--;
-    uint32_t fp = call->fp;
-    uint32_t ra = call->ra;
+    uint32_t fp = 0;
+    uint32_t ra = 0;
+
+    if (callstack.ra != 0) {
+        fp = callstack.fp;
+        ra = callstack.ra;
+    } else {
+        auto call = callstack.calls.end();
+        call--;
+        fp = call->fp;
+        ra = call->ra;
+    }
 
     if (ra == 0) return;
     if (fp == 0) return;
