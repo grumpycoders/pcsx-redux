@@ -382,6 +382,7 @@ static bool isEnabled(GLenum query) { return glIsEnabled(query) != GL_FALSE; }
 static GLint getDrawFramebuffer() { return get<GLint>(GL_DRAW_FRAMEBUFFER_BINDING); }
 static GLint maxSamples() { return get<GLint>(GL_MAX_INTEGER_SAMPLES); }
 static GLint getTex2D() { return get<GLint>(GL_TEXTURE_BINDING_2D); }
+static GLint getProgram() { return get<GLint>(GL_CURRENT_PROGRAM); }
 static bool scissorEnabled() { return isEnabled(GL_SCISSOR_TEST); }
 
 static bool versionSupported(int major, int minor) { return gl3wIsSupported(major, minor); }

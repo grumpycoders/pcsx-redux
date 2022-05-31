@@ -173,121 +173,39 @@ class OpenGL_GPU final : public GPU {
     void setTexWindowUnchecked(uint32_t cmd);
     void changeProgram();
 
-    enum class Texturing {
-        None, Textured
-    };
-
-    enum class PolyType {
-        Triangle, Quad
-    };
-
     enum class RectSize {
         Variable, Rect1, Rect8, Rect16
     };
 
     enum class Shading {
-        Flat, Gouraud
+        Flat, Gouraud, RawTexture, TextureBlendFlat, TextureBlendGouraud
+    };
+
+    enum class Transparency {
+        Opaque, Transparent
     };
 
     // We can emulate raw texture primitives as primitives with texture blending enabled
     // And 0x808080 as the blend colour
     static constexpr uint32_t c_rawTextureBlendColour = 0x808080;
 
-    template <Shading shading, Texturing mode>
-    void drawVertex(int index, int vertexSize) {
-        uint32_t colour;
-        if constexpr (shading == Shading::Flat) {
-            colour = m_cmdFIFO[0];
-        } else {
-            colour = m_cmdFIFO[index * vertexSize];
-        }
+    template <Shading shading, Transparency transparency, int firstVertex = 0>
+    void drawTri();
 
-        /*
-        if constexpr (mode == Texturing::Textured) {
-            if constexpr (shading == Shading::Gouraud) {
-                m_vertices[m_vertexCount].texpage = 
-            } else {
-            
-            }
-        }
-        */
+    template <Shading shading, Transparency transparency>
+    void drawQuad();
 
-        const uint32_t pos = m_cmdFIFO[index * vertexSize + 1];
-        m_vertices[m_vertexCount++] = Vertex(pos, colour);
-    }
+    template <Shading shading, Transparency transparency, int firstVertex = 0>
+    void drawTriTextured();
 
-    template <PolyType type, Shading shading, Texturing mode = Texturing::None>
-    void drawPoly() {
-        int hash = 0;
-        int vertexSize = 1; // Vertex size in words
-        if constexpr (mode == Texturing::Textured) {
-            hash |= 1;
-            vertexSize++; // 1 word for each vert's UVs
-        }
+    template <Shading shading, Transparency transparency>
+    void drawQuadTextured();
 
-        if constexpr (shading == Shading::Gouraud) {
-            vertexSize++; // 1 word for each vert's colour
-        }
+    template <RectSize size, Transparency transparency>
+    void drawRect();
 
-        if constexpr (type == PolyType::Triangle) {
-            if (m_vertexCount + 3 >= vertexBufferSize) {
-                renderBatch();
-            }
-
-            drawVertex<shading, mode>(0, vertexSize);
-            drawVertex<shading, mode>(1, vertexSize);
-            drawVertex<shading, mode>(2, vertexSize);
-        } else if constexpr (type == PolyType::Quad) {
-            if (m_vertexCount + 6 >= vertexBufferSize) {
-                renderBatch();
-            }
-
-            drawVertex<shading, mode>(0, vertexSize);
-            drawVertex<shading, mode>(1, vertexSize);
-            drawVertex<shading, mode>(2, vertexSize);
-            drawVertex<shading, mode>(1, vertexSize);
-            drawVertex<shading, mode>(2, vertexSize);
-            drawVertex<shading, mode>(3, vertexSize);
-        }
-    }
-
-    template <RectSize size, Texturing mode = Texturing::None>
-    void drawRect() {
-        int height, width;
-
-        const uint32_t colour = m_cmdFIFO[0];
-        const uint32_t pos = m_cmdFIFO[1];
-
-        // Sign extend vertices
-        const int x = int(pos) << 21 >> 21;
-        const int y = int(pos) << 5 >> 21;
-
-        if constexpr (size == RectSize::Rect1) {
-            width = height = 1;
-        }
-        else if constexpr (size == RectSize::Rect8) {
-            width = height = 8;
-        }
-        else if constexpr (size == RectSize::Rect16) {
-            width = height = 16;
-        }
-        else {
-            uint32_t dimensions = mode == Texturing::None ? m_cmdFIFO[2] : m_cmdFIFO[3];
-            width = dimensions & 0x3ff;
-            height = (dimensions >> 16) & 0x1ff;
-        }
-
-        if (m_vertexCount + 6 >= vertexBufferSize) {
-            renderBatch();
-        }
-
-        m_vertices[m_vertexCount++] = Vertex(x, y, colour);
-        m_vertices[m_vertexCount++] = Vertex(x + width, y, colour);
-        m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour);
-        m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour);
-        m_vertices[m_vertexCount++] = Vertex(x, y + height, colour);
-        m_vertices[m_vertexCount++] = Vertex(x, y, colour);
-    }
+    template <RectSize size, Shading shading, Transparency transparency>
+    void drawRectTextured();
 
     // GP0/GP1 command funcs
     void initCommands();
@@ -305,10 +223,5 @@ class OpenGL_GPU final : public GPU {
     void cmdSetDrawOffset();
     void cmdSetDrawMask();
     void cmdNop();
-
-    void theOminousTexturedQuad();
-    void theOminousTexturedShadedQuad();
-    void theOminousTexturedTriTextureBlending();
-    void theOminousTexturedRect();
 };
 }  // namespace PCSX

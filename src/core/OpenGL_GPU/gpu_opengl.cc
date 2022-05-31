@@ -239,7 +239,7 @@ int PCSX::OpenGL_GPU::init() {
            }
 
            // Fix up UVs and apply texture window
-           ivec2 UV = ivec2(round(texCoords + vec2(0.0001, 0.0001))) & ivec2(0xff);
+           ivec2 UV = ivec2(floor(texCoords + vec2(0.0001, -0.0001))) & ivec2(0xff);
            UV = (UV & u_texWindow.xy) | u_texWindow.zw;
 
            if (texMode == 0) { // 4bpp texture
@@ -443,6 +443,9 @@ bool PCSX::OpenGL_GPU::configure() {
         const auto program = m_shaderEditor.compile(m_gui);
         if (program.has_value()) {
             m_program.m_handle = program.value();
+            const auto lastProgram = OpenGL::getProgram();
+
+            m_program.use();
             m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
             m_texWindowLoc = OpenGL::uniformLocation(m_program, "u_texWindow");
 
@@ -453,6 +456,7 @@ bool PCSX::OpenGL_GPU::configure() {
                                         static_cast<float>(m_drawingOffset.y()) - 0.5f};
             glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
             setTexWindowUnchecked(m_lastTexwindowSetting);
+            glUseProgram(lastProgram);
         }
     }
 
