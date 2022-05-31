@@ -52,6 +52,16 @@ class MemoryObserver {
                            uint8_t stride);
 
     /**
+     * Plain search.
+     */
+
+    // The GNU libc has one, but we may want to do simd versions of it.
+    static const void* memmem(const void* haystack, size_t haystacklen, const void* needle, size_t needlelen);
+    std::vector<uint32_t> m_plainAddresses;
+    bool m_plainHex = false;
+    std::string m_plainSearchString;
+
+    /**
      * Delta-over-time search.
      */
 
