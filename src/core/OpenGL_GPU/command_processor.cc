@@ -215,6 +215,7 @@ void PCSX::OpenGL_GPU::initCommands() {
         &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Opaque>;
 
     m_cmdFuncs[0x68] = &OpenGL_GPU::drawRect<RectSize::Rect1, Transparency::Opaque>;
+    m_cmdFuncs[0x7D] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::RawTexture, Transparency::Opaque>;
 
     m_cmdFuncs[0xA0] = &OpenGL_GPU::cmdCopyRectToVRAM;
     m_cmdFuncs[0xC0] = &OpenGL_GPU::cmdCopyRectFromVRAM;
