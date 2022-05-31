@@ -232,7 +232,6 @@ void PCSX::OpenGL_GPU::cmdSetDrawMode() {
 // Set texture window, regardless of whether the window config changed
 void PCSX::OpenGL_GPU::setTexWindowUnchecked(uint32_t cmd) {
     renderBatch();
-    PCSX::g_system->printf("CMD: %X\nUniform: %d\n", cmd, m_texWindowLoc);
     m_lastTexwindowSetting = cmd & 0xfffff;  // Only keep bottom 20 bits
 
     const uint32_t maskX = (cmd & 0x1f) * 8;          // Window mask x in 8 pixel steps
