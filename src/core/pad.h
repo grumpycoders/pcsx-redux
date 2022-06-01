@@ -137,6 +137,9 @@ class Pads {
         // status of buttons - every controller fills this field
         uint16_t buttonStatus;
 
+        // overriding from Lua
+        uint16_t overrides = 0xffff;
+
         // Analog stick values in range (0 - 255) where 128 = center
         uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
     };

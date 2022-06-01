@@ -83,6 +83,8 @@ void PCSX::Pads::Pad::reset() {
     m_cmd = magic_enum::enum_integer(PadCommands::Idle);
     m_bufferLen = 0;
     m_currentByte = 0;
+    m_data.buttonStatus = 0xffff;
+    m_data.overrides = 0xffff;
 }
 
 void PCSX::Pads::Pad::map() {
@@ -393,6 +395,7 @@ uint8_t PCSX::Pads::Pad::startPoll() {
 
 uint8_t PCSX::Pads::Pad::read() {
     const PadData& pad = m_data;
+    uint16_t buttonStatus = pad.buttonStatus & pad.overrides;
     if (!m_settings.get<SettingConnected>()) {
         m_bufferLen = 0;
         return 0xff;
@@ -423,8 +426,8 @@ uint8_t PCSX::Pads::Pad::read() {
 
         case PadType::Negcon:  // npc101/npc104(slph00001/slph00069)
             m_analogpar[0] = 0x23;
-            m_analogpar[2] = pad.buttonStatus & 0xff;
-            m_analogpar[3] = pad.buttonStatus >> 8;
+            m_analogpar[2] = buttonStatus & 0xff;
+            m_analogpar[3] = buttonStatus >> 8;
             m_analogpar[4] = pad.rightJoyX;
             m_analogpar[5] = pad.rightJoyY;
             m_analogpar[6] = pad.leftJoyX;
@@ -437,8 +440,8 @@ uint8_t PCSX::Pads::Pad::read() {
         case PadType::Analog:  // scph1110, scph1150
             if (m_analogMode || m_configMode) {
                 m_analogpar[0] = 0x73;
-                m_analogpar[2] = pad.buttonStatus & 0xff;
-                m_analogpar[3] = pad.buttonStatus >> 8;
+                m_analogpar[2] = buttonStatus & 0xff;
+                m_analogpar[3] = buttonStatus >> 8;
                 m_analogpar[4] = pad.rightJoyX;
                 m_analogpar[5] = pad.rightJoyY;
                 m_analogpar[6] = pad.leftJoyX;
@@ -451,8 +454,8 @@ uint8_t PCSX::Pads::Pad::read() {
             [[fallthrough]];
         case PadType::Digital:
         default:
-            m_stdpar[2] = pad.buttonStatus & 0xff;
-            m_stdpar[3] = pad.buttonStatus >> 8;
+            m_stdpar[2] = buttonStatus & 0xff;
+            m_stdpar[3] = buttonStatus >> 8;
 
             memcpy(m_buf, m_stdpar, 4);
             m_bufferLen = 4;
@@ -800,7 +803,106 @@ void PCSX::Pads::Pad::setDefaults(bool firstController) {
 }
 
 void PCSX::Pads::setLua(Lua L) {
+    auto getButton = [this](Lua L, unsigned pad) -> int {
+        int n = L.gettop();
+        if (n == 0) return L.error("Not enough arguments to getButton");
+        if (!L.isnumber(1)) return L.error("Invalid argument to getButton");
+        auto buttons = m_pads[pad].m_data.buttonStatus;
+        unsigned button = L.checknumber(1);
+        L.push((buttons & (1 << button)) == 0);
+        return 1;
+    };
+
+    auto setOverride = [this](Lua L, unsigned pad) -> int {
+        int n = L.gettop();
+        if (n == 0) return L.error("Not enough arguments to setOverride");
+        if (!L.isnumber(1)) return L.error("Invalid argument to setOverride");
+        auto& overrides = m_pads[pad].m_data.overrides;
+        unsigned button = L.checknumber(1);
+        button = 1 << button;
+        overrides &= ~button;
+        return 0;
+    };
+
+    auto clearOverride = [this](Lua L, unsigned pad) -> int {
+        int n = L.gettop();
+        if (n == 0) return L.error("Not enough arguments to clearOverride");
+        if (!L.isnumber(1)) return L.error("Invalid argument to clearOverride");
+        auto& overrides = m_pads[pad].m_data.overrides;
+        unsigned button = L.checknumber(1);
+        button = 1 << button;
+        overrides |= button;
+        return 0;
+    };
+
     L.getfield("PCSX", LUA_GLOBALSINDEX);
+
+    // setting constants
+
+    L.newtable();
+    L.push("CONSTS");
+    L.copy(-2);
+    L.settable(-4);
+
+    L.newtable();
+    L.push("PAD");
+    L.copy(-2);
+    L.settable(-4);
+
+    L.newtable();
+    L.push("BUTTON");
+    L.copy(-2);
+    L.settable(-4);
+
+    L.push("SELECT");
+    L.push(lua_Number(0));
+    L.settable();
+    L.push("START");
+    L.push(lua_Number(3));
+    L.settable();
+    L.push("UP");
+    L.push(lua_Number(4));
+    L.settable();
+    L.push("RIGHT");
+    L.push(lua_Number(5));
+    L.settable();
+    L.push("DOWN");
+    L.push(lua_Number(6));
+    L.settable();
+    L.push("LEFT");
+    L.push(lua_Number(7));
+    L.settable();
+    L.push("L2");
+    L.push(lua_Number(8));
+    L.settable();
+    L.push("R2");
+    L.push(lua_Number(9));
+    L.settable();
+    L.push("L1");
+    L.push(lua_Number(10));
+    L.settable();
+    L.push("R1");
+    L.push(lua_Number(11));
+    L.settable();
+    L.push("TRIANGLE");
+    L.push(lua_Number(12));
+    L.settable();
+    L.push("CIRCLE");
+    L.push(lua_Number(13));
+    L.settable();
+    L.push("CROSS");
+    L.push(lua_Number(14));
+    L.settable();
+    L.push("SQUARE");
+    L.push(lua_Number(15));
+    L.settable();
+
+    L.pop();
+    L.pop();
+    L.pop();
+
+    // pushing settings
+
     L.getfield("settings");
     L.push("pads");
     L.newtable();
@@ -811,6 +913,75 @@ void PCSX::Pads::setLua(Lua L) {
     m_pads[0].m_settings.pushValue(L);
     L.settable();
     L.settable();
+    L.pop();
+
+    L.newtable();
+    L.push("SIO1");
+    L.copy(-2);
+    L.settable(-4);
+
+    L.newtable();
+    L.push("slots");
+    L.copy(-2);
+    L.settable(-4);
+
+    // pads callbacks
+
+    L.newtable();
+    L.push(lua_Number(1));
+    L.copy(-2);
+    L.settable(-4);
+
+    L.newtable();
+    L.push("pads");
+    L.copy(-2);
+    L.settable(-4);
+
+    L.newtable();
+    L.push(lua_Number(1));
+    L.copy(-2);
+    L.settable(-4);
+
+    // push first pad stuff here
+    L.declareFunc(
+        "getButton", [getButton](Lua L) -> int { return getButton(L, 0); }, -1);
+    L.declareFunc(
+        "setOverride", [setOverride](Lua L) -> int { return setOverride(L, 0); }, -1);
+    L.declareFunc(
+        "clearOverride", [clearOverride](Lua L) -> int { return clearOverride(L, 0); }, -1);
+
+    L.pop();
+    L.pop();
+    L.pop();
+
+    L.newtable();
+    L.push(lua_Number(2));
+    L.copy(-2);
+    L.settable(-4);
+
+    L.newtable();
+    L.push("pads");
+    L.copy(-2);
+    L.settable(-4);
+
+    L.newtable();
+    L.push(lua_Number(1));
+    L.copy(-2);
+    L.settable(-4);
+
+    // push second pad stuff here
+    L.declareFunc(
+        "getButton", [getButton](Lua L) -> int { return getButton(L, 1); }, -1);
+    L.declareFunc(
+        "setOverride", [setOverride](Lua L) -> int { return setOverride(L, 1); }, -1);
+    L.declareFunc(
+        "clearOverride", [clearOverride](Lua L) -> int { return clearOverride(L, 1); }, -1);
+
+    L.pop();
+    L.pop();
+    L.pop();
+
+    L.pop();
     L.pop();
     L.pop();
 
