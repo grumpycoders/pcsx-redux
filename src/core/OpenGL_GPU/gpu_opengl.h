@@ -177,8 +177,12 @@ class OpenGL_GPU final : public GPU {
         Variable, Rect1, Rect8, Rect16
     };
 
+    // For untextured primitives, there's flat and gouraud shading.
+    // For textured primitives, RawTexture and RawTextureGouraud work the same way, except the latter has unused colour parameters
+    // RawTextureGouraud is used a lot by some games, like Castlevania
+    // TextureBlendFlat is texture blending with a flat colour, TextureBlendGouraud is texture blending with a gouraud shaded colour
     enum class Shading {
-        Flat, Gouraud, RawTexture, TextureBlendFlat, TextureBlendGouraud
+        Flat, Gouraud, RawTexture, RawTextureGouraud, TextureBlendFlat, TextureBlendGouraud
     };
 
     enum class Transparency {

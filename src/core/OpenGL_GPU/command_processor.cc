@@ -81,7 +81,7 @@ void PCSX::OpenGL_GPU::drawTriTextured() {
         const uint32_t texpage = (m_cmdFIFO[5] >> 16) & 0x3fff;
 
         for (int i = firstVertex; i < firstVertex + 3; i++) {
-            const auto colour = m_cmdFIFO[i * 3];
+            const auto colour = shading == Shading::TextureBlendGouraud ? m_cmdFIFO[i * 3] : c_rawTextureBlendColour;
             const auto pos = m_cmdFIFO[i * 3 + 1];
             const auto uv = m_cmdFIFO[i * 3 + 2];
             m_vertices[m_vertexCount++] = Vertex(pos, colour, clut, texpage, uv);
@@ -205,7 +205,9 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x3A] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Transparent>;
 
     m_cmdFuncs[0x3C] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendGouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x3D] = &OpenGL_GPU::drawQuadTextured<Shading::RawTextureGouraud, Transparency::Opaque>;
     m_cmdFuncs[0x3E] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendGouraud, Transparency::Transparent>;
+    m_cmdFuncs[0x3F] = &OpenGL_GPU::drawQuadTextured<Shading::RawTextureGouraud, Transparency::Transparent>;
 
     m_cmdFuncs[0x60] = &OpenGL_GPU::drawRect<RectSize::Variable, Transparency::Opaque>;
     m_cmdFuncs[0x62] = &OpenGL_GPU::drawRect<RectSize::Variable, Transparency::Transparent>;
@@ -213,6 +215,8 @@ void PCSX::OpenGL_GPU::initCommands() {
         &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::TextureBlendFlat, Transparency::Opaque>;
     m_cmdFuncs[0x65] =
         &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Opaque>;
+    m_cmdFuncs[0x67] =
+        &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Transparent>;
 
     m_cmdFuncs[0x68] = &OpenGL_GPU::drawRect<RectSize::Rect1, Transparency::Opaque>;
     m_cmdFuncs[0x7D] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::RawTexture, Transparency::Opaque>;
