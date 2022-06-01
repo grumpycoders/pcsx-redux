@@ -285,23 +285,32 @@ void PCSX::OpenGL_GPU::cmdSetDrawAreaBottomRight() {
     updateDrawArea();
 }
 
-void PCSX::OpenGL_GPU::cmdSetDrawOffset() {
-    renderBatch();
-    const uint32_t word = m_cmdFIFO[0];
-
+void PCSX::OpenGL_GPU::setDrawOffset(uint32_t cmd) { 
+    m_updateDrawOffset = false;
+    m_lastDrawOffsetSetting = cmd & 0x3fffff; // Discard the bits we don't care about
+    
     // Offset is a signed number in [-1024, 1023]
-    const auto offsetX = (int32_t)word << 21 >> 21;
-    const auto offsetY = (int32_t)word << 10 >> 21;
-
-    if (offsetX == m_drawingOffset.x() && offsetY == m_drawingOffset.y()) return;
+    const auto offsetX = (int32_t)cmd << 21 >> 21;
+    const auto offsetY = (int32_t)cmd << 10 >> 21;
 
     m_drawingOffset.x() = offsetX;
     m_drawingOffset.y() = offsetY;
-
+    
     // The 0.5 offsets help fix some holes in rendering, in places like the PS logo
     // TODO: This might not work when upscaling?
     float adjustedOffsets[2] = {static_cast<float>(offsetX) + 0.5f, static_cast<float>(offsetY) - 0.5f};
     glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
+}
+
+void PCSX::OpenGL_GPU::cmdSetDrawOffset() {
+    renderBatch();
+    const uint32_t word = m_cmdFIFO[0] & 0x3fffff; // Discard the bits we don't care about
+
+    // Queue a draw offset update if it changed
+    if (word != m_lastDrawOffsetSetting) {
+        m_updateDrawOffset = true;
+        m_lastDrawOffsetSetting = word;
+    }
 }
 
 void PCSX::OpenGL_GPU::cmdFillRect() {

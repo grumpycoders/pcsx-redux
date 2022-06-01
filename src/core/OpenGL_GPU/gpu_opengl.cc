@@ -56,8 +56,7 @@ void PCSX::OpenGL_GPU::reset() {
 
     m_drawingOffset = OpenGL::ivec2({0, 0});
 
-    float adjustedOffsets[2] = {+0.5f, -0.5f};
-    glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
+    setDrawOffset(0x00000000);
     setTexWindowUnchecked(0x00000000);
 
     clearVRAM();
@@ -309,7 +308,6 @@ int PCSX::OpenGL_GPU::close() {
 }
 
 uint32_t PCSX::OpenGL_GPU::readStatus() {
-    g_system->printf("GPUSTAT read\n");
     return 0b01011110100000000000000000000000;
     // return m_gpustat;
 }
@@ -452,9 +450,7 @@ bool PCSX::OpenGL_GPU::configure() {
             const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
             glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
 
-            float adjustedOffsets[2] = {static_cast<float>(m_drawingOffset.x()) + 0.5f,
-                                        static_cast<float>(m_drawingOffset.y()) - 0.5f};
-            glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
+            setDrawOffset(m_lastDrawOffsetSetting);
             setTexWindowUnchecked(m_lastTexwindowSetting);
             glUseProgram(lastProgram);
         }
@@ -597,6 +593,11 @@ void PCSX::OpenGL_GPU::renderBatch() {
         if (m_syncVRAM) {
             m_syncVRAM = false;
             glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, vramWidth, vramHeight);
+        }
+
+        if (m_updateDrawOffset) {
+            m_updateDrawOffset = false;
+            setDrawOffset(m_lastDrawOffsetSetting);
         }
 
         m_vbo.bufferVertsSub(&m_vertices[0], m_vertexCount);

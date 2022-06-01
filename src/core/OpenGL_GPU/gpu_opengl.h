@@ -157,11 +157,14 @@ class OpenGL_GPU final : public GPU {
     int m_remainingWords = 0;
     int m_lastCommandHash = 0;
     bool m_haveCommand = false;
-    bool m_syncVRAM;
+    bool m_updateDrawOffset = false;
+    bool m_syncVRAM = true;
     uint32_t m_rectTexpage = 0; // Rects have their own texpage settings
     uint32_t m_vramReadBufferSize = 0;
     uint32_t m_vramReadBufferIndex = 0;
     uint32_t m_lastTexwindowSetting = 0;
+    uint32_t m_lastDrawOffsetSetting = 0;
+
     GP0Func m_cmdFuncs[256];
 
     void renderBatch();
@@ -169,9 +172,9 @@ class OpenGL_GPU final : public GPU {
     void updateDrawArea();
     void updateDispArea();
     void setScissorArea();
+    void setDrawOffset(uint32_t cmd);
     void setTexWindow(uint32_t cmd);
     void setTexWindowUnchecked(uint32_t cmd);
-    void changeProgram();
 
     enum class RectSize {
         Variable, Rect1, Rect8, Rect16
