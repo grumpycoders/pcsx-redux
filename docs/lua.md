@@ -13,6 +13,8 @@ The editor allows for more complex, multi-line statements to be written, such as
 
 The auto-execution of the editor permits for rapid development loop, with immediate feedback of what's done.
 
+For complex projects however, it is recommended to split your work into sub-modules, and use the `loadfile` function to load them in your main code. This implies working on your project using an external editor.
+
 ## API
 
 ### Basic Lua
