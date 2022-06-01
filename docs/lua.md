@@ -295,6 +295,28 @@ typedef struct {
 } psxRegisters;
 ```
 
+#### Constants
+The table `PCSX.CONSTS` contains numerical constants used throughout the rest of the API. Keeping an up to date list here is too exhausting, and it's simpler to print them using `pprint(PCSX.CONSTS)`.
+
+#### Pads
+You can access the pads API through `PCSX.SIO1.slots[s].pads[p]` where `s` is the slot number and `p` is the pad number, both indexed from 1, Lua-style. So `PCSX.SIO1.slots[1].pads[1]` accesses the first pad, and `PCSX.SIO1.slots[2].pads[1]` accesses the second pad.
+
+Each Pad table has the following functions:
+
+```lua
+getButton(button)     -- Returns true if the specified button is pressed.
+setOverride(button)   -- Overrides the specified button.
+clearOverride(button) -- Clears the override for the specified button.
+```
+
+The button constants can be found in `PCSX.CONSTS.PAD.BUTTON`.
+
+You can for instance press the button Down on the first pad using the following code:
+
+```lua
+PCSX.SIO1.slots[1].pads[1].setOverride(PCSX.CONSTS.PAD.BUTTON.DOWN)
+```
+
 #### Execution flow
 The Lua code has the following 4 API functions available to it in order to control the execution flow of the emulator:
 
