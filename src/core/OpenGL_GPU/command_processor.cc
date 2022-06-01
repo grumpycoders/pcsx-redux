@@ -189,9 +189,14 @@ void PCSX::OpenGL_GPU::initCommands() {
 
     m_cmdFuncs[0x20] = &OpenGL_GPU::drawTri<Shading::Flat, Transparency::Opaque>;
     m_cmdFuncs[0x22] = &OpenGL_GPU::drawTri<Shading::Flat, Transparency::Transparent>;
+    m_cmdFuncs[0x24] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendFlat, Transparency::Opaque>;
+    m_cmdFuncs[0x25] = &OpenGL_GPU::drawTriTextured<Shading::RawTexture, Transparency::Opaque>;
+    m_cmdFuncs[0x26] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendFlat, Transparency::Transparent>;
+
     m_cmdFuncs[0x28] = &OpenGL_GPU::drawQuad<Shading::Flat, Transparency::Opaque>;
     m_cmdFuncs[0x29] = m_cmdFuncs[0x28]; // Duplicate
     m_cmdFuncs[0x2A] = &OpenGL_GPU::drawQuad<Shading::Flat, Transparency::Transparent>;
+    m_cmdFuncs[0x2E] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendFlat, Transparency::Transparent>;
 
     m_cmdFuncs[0x2C] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendFlat, Transparency::Opaque>;
     m_cmdFuncs[0x2D] = &OpenGL_GPU::drawQuadTextured<Shading::RawTexture, Transparency::Opaque>;
@@ -219,6 +224,7 @@ void PCSX::OpenGL_GPU::initCommands() {
         &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Transparent>;
 
     m_cmdFuncs[0x68] = &OpenGL_GPU::drawRect<RectSize::Rect1, Transparency::Opaque>;
+    m_cmdFuncs[0x75] = &OpenGL_GPU::drawRectTextured<RectSize::Rect8, Shading::RawTexture, Transparency::Opaque>;
     m_cmdFuncs[0x7D] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::RawTexture, Transparency::Opaque>;
 
     m_cmdFuncs[0xA0] = &OpenGL_GPU::cmdCopyRectToVRAM;
@@ -286,6 +292,8 @@ void PCSX::OpenGL_GPU::cmdSetDrawOffset() {
     // Offset is a signed number in [-1024, 1023]
     const auto offsetX = (int32_t)word << 21 >> 21;
     const auto offsetY = (int32_t)word << 10 >> 21;
+
+    if (offsetX == m_drawingOffset.x() && offsetY == m_drawingOffset.y()) return;
 
     m_drawingOffset.x() = offsetX;
     m_drawingOffset.y() = offsetY;
