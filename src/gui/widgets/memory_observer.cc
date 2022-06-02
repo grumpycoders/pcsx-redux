@@ -28,12 +28,44 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/system.h"
+#include "imgui.h"
+#include "imgui_stdlib.h"
 
 PCSX::Widgets::MemoryObserver::MemoryObserver() {
 #ifdef MEMORY_OBSERVER_X86
     const auto cpu = Xbyak::util::Cpu();
     m_useSIMD = cpu.has(Xbyak::util::Cpu::tAVX2);
 #endif
+}
+
+const void* PCSX::Widgets::MemoryObserver::memmem(const void* haystack_, size_t n, const void* needle_, size_t m) {
+    const uint8_t* haystack = reinterpret_cast<const uint8_t*>(haystack_);
+    const uint8_t* needle = reinterpret_cast<const uint8_t*>(needle_);
+
+    if ((m > n) || (m == 0) || (n == 0)) return nullptr;
+    // The algo doesn't like it when the needle is too small.
+    if (m == 1) return memchr(haystack, needle[0], n);
+
+    // http://www-igm.univ-mlv.fr/~lecroq/string/node13.html#SECTION00130
+    // Preprocessing
+    size_t k = 1, l = 2;
+    if (needle[0] == needle[1]) {
+        k = 2;
+        l = 1;
+    }
+    // Searching
+    size_t j = 0;
+    while (j <= (n - m)) {
+        if (needle[1] != haystack[j + 1]) {
+            j += k;
+        } else {
+            if ((memcmp(needle + 2, haystack + j + 2, m - 2) == 0) && (needle[0] == haystack[j])) {
+                return static_cast<const void*>(haystack + j);
+            }
+            j += l;
+        }
+    }
+    return nullptr;
 }
 
 void PCSX::Widgets::MemoryObserver::draw(const char* title) {
@@ -43,7 +75,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
     }
 
     if (ImGui::BeginTabBar("SearchTabBar")) {
-        const uint8_t* memData = g_emulator->m_mem->m_psxM;
+        const uint8_t* const memData = g_emulator->m_mem->m_psxM;
         const uint32_t memSize = 1024 * 1024 * (g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
         constexpr uint32_t memBase = 0x80000000;
 
@@ -51,10 +83,111 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                                                       ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
                                                       ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
 
-        if (ImGui::BeginTabItem("Delta-over-time search")) {
+        if (ImGui::BeginTabItem(_("Plain search"))) {
+            bool gotEnter = ImGui::InputText(_("Pattern"), &m_plainSearchString, ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::Checkbox(_("Hex"), &m_plainHex);
+            auto needleSize = 0;
+            std::string needle;
+            bool valid = true;
+            if (m_plainHex) {
+                char n = 0;
+                bool gotOne = false;
+                auto maybePushOne = [&]() {
+                    if (gotOne) {
+                        needle += n;
+                        gotOne = false;
+                        needleSize++;
+                        n = 0;
+                    } else {
+                        gotOne = true;
+                    }
+                };
+                for (auto c : m_plainSearchString) {
+                    if (c >= '0' && c <= '9') {
+                        n <<= 4;
+                        n |= c - '0';
+                        maybePushOne();
+                    } else if (c >= 'a' && c <= 'f') {
+                        n <<= 4;
+                        n |= c - 'a' + 10;
+                        maybePushOne();
+                    } else if (c >= 'A' && c <= 'F') {
+                        n <<= 4;
+                        n |= c - 'A' + 10;
+                        maybePushOne();
+                    } else if (c == ' ') {
+                        if (gotOne) {
+                            needle += n;
+                            gotOne = false;
+                            needleSize++;
+                            n = 0;
+                        }
+                    } else {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (gotOne) {
+                    needle += n;
+                    needleSize++;
+                }
+            } else {
+                needleSize = m_plainSearchString.size();
+                needle = m_plainSearchString;
+            }
+            if (!valid) {
+                ImGui::BeginDisabled();
+            }
+            if (ImGui::Button(_("Search")) || (gotEnter && valid)) {
+                auto ptr = memData;
+                auto size = memSize;
+                m_plainAddresses.clear();
+                while (true) {
+                    auto found = reinterpret_cast<const uint8_t*>(memmem(ptr, size, needle.c_str(), needleSize));
+                    if (found) {
+                        m_plainAddresses.push_back(memBase + static_cast<uint32_t>(found - memData));
+                        ptr = reinterpret_cast<const uint8_t*>(found) + 1;
+                        size -= static_cast<uint32_t>(ptr - memData);
+                    } else {
+                        break;
+                    }
+                }
+            }
+            if (!valid) {
+                ImGui::EndDisabled();
+            }
+            if (ImGui::BeginTable(_("Found values"), 2, tableFlags)) {
+                ImGui::TableSetupColumn(_("Address"));
+                ImGui::TableSetupColumn(_("Access"));
+                ImGui::TableHeadersRow();
+
+                ImGuiListClipper clipper;
+                clipper.Begin(m_plainAddresses.size());
+                while (clipper.Step()) {
+                    for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
+                        const auto& currentAddress = m_plainAddresses[row];
+
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("%x", currentAddress);
+                        ImGui::TableSetColumnIndex(1);
+                        auto buttonName = fmt::format(f_("Show in memory editor##{}"), row);
+                        if (ImGui::Button(buttonName.c_str())) {
+                            const uint32_t editorAddress = currentAddress - memBase;
+                            g_system->m_eventBus->signal(
+                                PCSX::Events::GUI::JumpToMemory{editorAddress, static_cast<unsigned>(needleSize)});
+                        }
+                    }
+                }
+                ImGui::EndTable();
+            }
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem(_("Delta-over-time search"))) {
             const auto stride = static_cast<uint8_t>(m_scanAlignment);
 
-            if (m_addressValuePairs.empty() && ImGui::Button("First scan")) {
+            if (m_addressValuePairs.empty() && ImGui::Button(_("First scan"))) {
                 int memValue = 0;
 
                 for (uint32_t i = 0; i < memSize; ++i) {
@@ -96,7 +229,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 }
             }
 
-            if (!m_addressValuePairs.empty() && ImGui::Button("Next scan")) {
+            if (!m_addressValuePairs.empty() && ImGui::Button(_("Next scan"))) {
                 auto doesntMatchCriterion = [this, memData, memSize, memBase,
                                              stride](const AddressValuePair& addressValuePair) {
                     const uint32_t address = addressValuePair.address;
@@ -136,13 +269,13 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 }
             }
 
-            if (!m_addressValuePairs.empty() && ImGui::Button("New scan")) {
+            if (!m_addressValuePairs.empty() && ImGui::Button(_("New scan"))) {
                 m_addressValuePairs.clear();
                 m_scanType = ScanType::ExactValue;
             }
 
-            ImGui::Checkbox("Hex", &m_hex);
-            ImGui::InputInt("Value", &m_value, 1, 100,
+            ImGui::Checkbox(_("Hex"), &m_hex);
+            ImGui::InputInt(_("Value"), &m_value, 1, 100,
                             m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal);
 
             const auto currentScanAlignment = magic_enum::enum_name(m_scanAlignment);
@@ -175,11 +308,11 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 ImGui::EndCombo();
             }
 
-            if (ImGui::BeginTable("Found values", 4, tableFlags)) {
-                ImGui::TableSetupColumn("Address");
-                ImGui::TableSetupColumn("Current value");
-                ImGui::TableSetupColumn("Scanned value");
-                ImGui::TableSetupColumn("Access");
+            if (ImGui::BeginTable(_("Found values"), 4, tableFlags)) {
+                ImGui::TableSetupColumn(_("Address"));
+                ImGui::TableSetupColumn(_("Current value"));
+                ImGui::TableSetupColumn(_("Scanned value"));
+                ImGui::TableSetupColumn(_("Access"));
                 ImGui::TableHeadersRow();
 
                 const auto valueDisplayFormat = m_hex ? "%x" : "%i";
@@ -237,10 +370,9 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 }
             }
 
-            if (ImGui::BeginTable("Found values", 2, tableFlags)) {
-                ImGui::TableSetupColumn("Address");
-                ImGui::TableSetupColumn("Current value");
-                ImGui::TableSetupColumn("Access");
+            if (ImGui::BeginTable(_("Found values"), 2, tableFlags)) {
+                ImGui::TableSetupColumn(_("Address"));
+                ImGui::TableSetupColumn(_("Access"));
                 ImGui::TableHeadersRow();
 
                 ImGuiListClipper clipper;

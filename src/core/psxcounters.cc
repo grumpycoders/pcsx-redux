@@ -25,6 +25,7 @@
 
 #include "core/debug.h"
 #include "core/gpu.h"
+#include "core/sio1.h"
 #include "fmt/printf.h"
 #include "spu/interface.h"
 
@@ -194,11 +195,10 @@ void PCSX::Counters::update() {
             PCSX::g_emulator->m_spu->async(scanlines * m_rcnts[3].target);
         }
 
-#ifdef ENABLE_SIO1API
-        if (SIO1_update) {
-            SIO1_update(0);
+        // SIO1 callback on hsync to process data
+        if (m_pollSIO1) {
+            PCSX::g_emulator->m_sio1->sio1StateMachine();
         }
-#endif
 
         // Trigger VBlank IRQ when VBlank starts
         if (m_hSyncCount == VBlankStart[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
@@ -267,7 +267,7 @@ void PCSX::Counters::writeTarget(uint32_t index, uint32_t value) {
     update();
 
     // The target is only 16 bits. To make sure of this, the 32-bit write handlers mask it with 0xFFFF
-    m_rcnts[index].target =value;
+    m_rcnts[index].target = value;
     writeCounterInternal(index, readCounterInternal(index));
     set();
 }

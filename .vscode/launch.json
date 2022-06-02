@@ -7,17 +7,18 @@
 
         {
             "type": "gdb",
-            "request": "launch",
+            "request": "attach",
             "name": "(gdb) Launch OpenBIOS",
-            "target": "./src/mips/openbios/openbios.elf",
+            "target": "localhost:3333",
+            "remote": true,
+            "stopAtConnect": true,
+            "executable": "./src/mips/openbios/openbios.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
                 "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
-                "set remote interrupt-sequence Ctrl-C",
-                "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset halt",
                 "load ./src/mips/openbios/openbios.elf",
@@ -29,17 +30,18 @@
 
         {
             "type": "gdb",
-            "request": "launch",
+            "request": "attach",
             "name": "(gdb) Launch Cube",
-            "target": "./src/mips/cube/cube.elf",
+            "target": "localhost:3333",
+            "remote": true,
+            "stopAtConnect": true,
+            "executable": "./src/mips/cube/cube.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
                 "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
-                "set remote interrupt-sequence Ctrl-C",
-                "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
                 "load ./src/mips/cube/cube.elf",
@@ -51,17 +53,18 @@
 
         {
             "type": "gdb",
-            "request": "launch",
+            "request": "attach",
             "name": "(gdb) Launch modplayer demo",
-            "target": "./src/mips/modplayer/modplay-demo.elf",
+            "target": "localhost:3333",
+            "remote": true,
+            "stopAtConnect": true,
+            "executable": "./src/mips/modplayer/modplay-demo.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
                 "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
-                "set remote interrupt-sequence Ctrl-C",
-                "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
                 "load ./src/mips/modplayer/modplay-demo.elf",
@@ -73,17 +76,18 @@
 
         {
             "type": "gdb",
-            "request": "launch",
+            "request": "attach",
             "name": "(gdb) Launch shell",
-            "target": "./src/mips/shell/shell.elf",
+            "target": "localhost:3333",
+            "remote": true,
+            "stopAtConnect": true,
+            "executable": "./src/mips/shell/shell.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
                 "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
-                "set remote interrupt-sequence Ctrl-C",
-                "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
                 "load ./src/mips/shell/shell.elf",
@@ -95,17 +99,18 @@
 
         {
             "type": "gdb",
-            "request": "launch",
+            "request": "attach",
             "name": "(gdb) Launch Basic Test",
-            "target": "./src/mips/tests/basic/basic.elf",
+            "target": "localhost:3333",
+            "remote": true,
+            "stopAtConnect": true,
+            "executable": "./src/mips/tests/basic/basic.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
                 "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
-                "set remote interrupt-sequence Ctrl-C",
-                "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
                 "load ./src/mips/tests/basic/basic.elf",
@@ -117,17 +122,18 @@
 
         {
             "type": "gdb",
-            "request": "launch",
+            "request": "attach",
             "name": "(gdb) Launch libc Test",
-            "target": "./src/mips/tests/libc/libc.elf",
+            "target": "localhost:3333",
+            "remote": true,
+            "stopAtConnect": true,
+            "executable": "./src/mips/tests/libc/libc.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
                 "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
-                "set remote interrupt-sequence Ctrl-C",
-                "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
                 "load ./src/mips/tests/libc/libc.elf",
@@ -139,17 +145,18 @@
 
         {
             "type": "gdb",
-            "request": "launch",
+            "request": "attach",
             "name": "(gdb) Launch cpu Test",
-            "target": "./src/mips/tests/cpu/cpu.elf",
+            "target": "localhost:3333",
+            "remote": true,
+            "stopAtConnect": true,
+            "executable": "./src/mips/tests/cpu/cpu.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
                 "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
-                "set remote interrupt-sequence Ctrl-C",
-                "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
                 "load ./src/mips/tests/cpu/cpu.elf",

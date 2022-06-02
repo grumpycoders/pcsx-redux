@@ -23,17 +23,21 @@
 
 static int callwrap(lua_State* raw, lua_CFunction func) {
     PCSX::Lua L(raw);
-    int r = 0;
 
     try {
-        r = func(raw);
+        return func(raw);
     } catch (std::exception& e) {
-        L.error(std::string("LuaException: ") + e.what());
+        return L.error(std::string("LuaException: ") + e.what());
+    } catch (...) {
+        return L.error("LuaException: unknown exception");
     }
-    return r;
 }
 
+std::function<void(const std::string&)> PCSX::Lua::normalPrinter = nullptr;
+std::function<void(const std::string&)> PCSX::Lua::errorPrinter = nullptr;
+
 PCSX::Lua::Lua() : L(lua_open()) {
+    static_assert(sizeof(Lua) == sizeof(lua_State*));
     assert(("Couldn't create Lua VM", L));
     lua_atpanic(L, [](lua_State* L) -> int { throw std::runtime_error(lua_tostring(L, 1)); });
     setCallWrap(callwrap);
@@ -152,7 +156,7 @@ void PCSX::Lua::declareFunc(const char* name, lua_CFunction f, int i) {
     checkstack(2);
     lua_pushstring(L, name);
     lua_pushcfunction(L, f);
-    if ((i < 0) && (i > LUA_REGISTRYINDEX)) i += 2;
+    if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
     lua_settable(L, i);
 }
 
@@ -183,7 +187,7 @@ void PCSX::Lua::declareFunc(const char* name, std::function<int(Lua)> f, int i) 
     settable();
     setmetatable();
     lua_pushcclosure(L, lambdaWrapper, 1);
-    if ((i < 0) && (i > LUA_REGISTRYINDEX)) i += 2;
+    if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
     lua_settable(L, i);
 }
 
@@ -220,11 +224,26 @@ void PCSX::Lua::call(int nargs) {
 }
 
 void PCSX::Lua::pcall(int nargs) {
-    int r = lua_pcall(L, nargs, LUA_MULTRET, 0);
-
+    push([](lua_State* L_) -> int {
+        Lua L(L_);
+        return L.pushLuaContext(true);
+    });
+    insert();
+    int r = lua_pcall(L, nargs, LUA_MULTRET, 1);
+    remove();
     if (r == 0) return;
 
-    pushLuaContext();
+    int n = 1;
+    int t = gettop();
+    while (true) {
+        push(lua_Number(n++));
+        gettable(t);
+        if (isnil()) {
+            pop();
+            remove();
+            break;
+        }
+    }
     displayStack(true);
     while (gettop()) pop();
 
@@ -264,17 +283,37 @@ void PCSX::Lua::getglobal(const char* name) {
     gettable(LUA_GLOBALSINDEX);
 }
 
-void PCSX::Lua::pushLuaContext() {
-    std::string whole_msg;
+int PCSX::Lua::pushLuaContext(bool inTable) {
     struct lua_Debug ar;
     bool got_error = false;
     int level = 0;
+    int n = 1;
+    if (inTable) {
+        newtable();
+        insert(1);
+        push(lua_Number(n));
+        insert(2);
+        settable();
+    }
 
     do {
         if (lua_getstack(L, level, &ar) == 1) {
             if (lua_getinfo(L, "nSl", &ar) != 0) {
-                push(std::string("at ") + ar.source + ":" + std::to_string(ar.currentline) + " (" +
-                     (ar.name ? ar.name : "[top]") + ")");
+                n++;
+                if (inTable) {
+                    push(lua_Number(n));
+                }
+                std::string ctx = "at ";
+                ctx += ar.source;
+                ctx += ":";
+                ctx += std::to_string(ar.currentline);
+                ctx += " (";
+                ctx += ar.name ? ar.name : "[top]";
+                ctx += ")";
+                push(ctx);
+                if (inTable) {
+                    settable();
+                }
             } else {
                 got_error = true;
             }
@@ -283,9 +322,11 @@ void PCSX::Lua::pushLuaContext() {
         }
         level++;
     } while (!got_error);
+
+    return inTable ? 1 : n;
 }
 
-void PCSX::Lua::error(const char* msg) {
+int PCSX::Lua::error(const char* msg) {
     push(msg);
 
     if (yielded()) {
@@ -294,8 +335,9 @@ void PCSX::Lua::error(const char* msg) {
         while (gettop()) pop();
 
         throw std::runtime_error("Runtime error while running yielded C code.");
+        return 0;
     } else {
-        lua_error(L);
+        return lua_error(L);
     }
 }
 
@@ -403,11 +445,13 @@ void PCSX::Lua::displayStack(bool error) {
 
     checkstack(6);
     bool useLuaPrinter = false;
+    bool hasLuaPrinter = true;
 
     if ((!normalPrinter && error) || (!errorPrinter && !error)) {
         useLuaPrinter = true;
         lua_pushstring(L, error ? "printError" : "print");
         lua_gettable(L, LUA_GLOBALSINDEX);
+        hasLuaPrinter = !isnil(-1);
     }
     for (int i = 1; i <= n; i++) {
         int c = 3;
@@ -457,7 +501,7 @@ void PCSX::Lua::displayStack(bool error) {
         }
         concat(c);
         if (useLuaPrinter) {
-            if (isInDisplayStackAlready) {
+            if (isInDisplayStackAlready || !hasLuaPrinter) {
                 std::string msg = tostring();
                 pop();
                 printf("%s\n", msg.c_str());

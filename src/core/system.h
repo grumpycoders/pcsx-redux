@@ -63,6 +63,9 @@ struct LogMessage {
     LogClass logClass;
     std::string message;
 };
+namespace GPU {
+struct VSync {};
+}  // namespace GPU
 namespace ExecutionFlow {
 struct ShellReached {};
 struct Run {};
@@ -93,7 +96,9 @@ struct Keyboard {
 class System {
   public:
     System() { uv_loop_init(&m_loop); }
-    virtual ~System() { uv_loop_close(&m_loop); }
+    virtual ~System() {
+        if (!m_emergencyExit) uv_loop_close(&m_loop);
+    }
     // Requests a system reset
     virtual void softReset() = 0;
     virtual void hardReset() = 0;
@@ -133,6 +138,7 @@ class System {
     const bool *runningPtr() { return &m_running; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
+    bool emergencyExit() { return m_emergencyExit; }
     void start() {
         if (m_running) return;
         m_running = true;
@@ -244,6 +250,7 @@ class System {
   protected:
     std::filesystem::path m_binDir;
     PCSX::VersionInfo m_version;
+    bool m_emergencyExit = true;
 };
 
 extern System *g_system;

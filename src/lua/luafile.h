@@ -21,11 +21,10 @@
 
 #include <stdio.h>
 
+#include "lua/luawrapper.h"
 #include "support/file.h"
 
 namespace PCSX {
-
-class Lua;
 
 namespace LuaFFI {
 
@@ -53,7 +52,7 @@ struct LuaFile {
     IO<File> file;
 };
 
-void open_file(Lua*);
+void open_file(Lua);
 }  // namespace LuaFFI
 
 }  // namespace PCSX

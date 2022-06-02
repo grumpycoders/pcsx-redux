@@ -121,7 +121,7 @@ class GUI final {
         s_gui = nullptr;
     }
     void init();
-    void setLua();
+    void setLua(Lua L);
     void close();
     void update(bool vsync = false);
     void flip();
@@ -287,13 +287,8 @@ class GUI final {
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
-    Widgets::FileDialog m_selectBiosOverlayDialog = {[]() { return _("Select BIOS Overlay"); }};
-    int m_selectedBiosOverlayId;
     Widgets::Breakpoints m_breakpoints;
     bool m_breakOnVSync = false;
-    std::vector<std::string> m_overlayFileOffsets;
-    std::vector<std::string> m_overlayLoadOffsets;
-    std::vector<std::string> m_overlayLoadSizes;
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
@@ -350,6 +345,7 @@ class GUI final {
     bool m_updateAvailable = false;
     bool m_updateDownloading = false;
     bool m_aboutSelectAuthors = false;
+    std::function<void(const char *msg)> m_luaImguiUserError;
 
   public:
     bool hasJapanese() { return m_hasJapanese; }
@@ -378,6 +374,9 @@ class GUI final {
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
     void useMainFont() { ImGui::PushFont(m_mainFont); }
     void useMonoFont() { ImGui::PushFont(m_monoFont); }
+
+    void useImguiLuaUserErrorHandler();
+    void noImguiUserErrorHandler();
 };
 
 }  // namespace PCSX

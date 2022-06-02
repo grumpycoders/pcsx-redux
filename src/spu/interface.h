@@ -58,6 +58,8 @@ class impl final : public SPUInterface {
     void save(SaveStates::SPU &) final;
     void load(const SaveStates::SPU &) final;
 
+    virtual void setLua(Lua L) override;
+
     void async(uint32_t) final;
     void playCDDAchannel(int16_t *, int) final;
     void registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t));

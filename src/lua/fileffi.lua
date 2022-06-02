@@ -19,6 +19,7 @@ ffi.cdef [[
 
 typedef struct { char opaque[?]; } LuaFile;
 typedef struct { uint32_t size; uint8_t data[?]; } LuaBuffer;
+typedef struct { char opaque[?]; } LuaSlice;
 
 enum FileOps {
     READ,
@@ -55,6 +56,7 @@ uint64_t readFileBuffer(LuaFile* wrapper, LuaBuffer* buffer);
 
 uint64_t writeFileRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size);
 uint64_t writeFileBuffer(LuaFile* wrapper, const LuaBuffer* buffer);
+void writeFileMoveSlice(LuaFile* wrapper, LuaSlice* slice);
 
 int64_t rSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel);
 int64_t rTell(LuaFile* wrapper);
@@ -68,6 +70,7 @@ uint64_t readFileAtBuffer(LuaFile* wrapper, LuaBuffer* buffer, uint64_t pos);
 
 uint64_t writeFileAtRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size, uint64_t pos);
 uint64_t writeFileAtBuffer(LuaFile* wrapper, const LuaBuffer* buffer, uint64_t pos);
+void writeFileAtMoveSlice(LuaFile* wrapper, LuaSlice* slice, uint64_t pos);
 
 bool isFileSeekable(LuaFile*);
 bool isFileWritable(LuaFile*);
@@ -83,12 +86,39 @@ LuaFile* dupFile(LuaFile*);
 
 LuaFile* zReader(LuaFile*, int64_t size, bool raw);
 
+uint64_t getSliceSize(LuaSlice*);
+const void* getSliceData(LuaSlice*);
+void destroySlice(LuaSlice*);
+
 ]]
 
 local C = ffi.load 'SUPPORT_FILE'
 
-local function fileGarbageCollect(file) C.deleteFile(file._wrapper) end
-local fileMeta = { __gc = fileGarbageCollect }
+local fileMeta = { __gc = function(file) C.deleteFile(file._wrapper) end }
+local sliceMeta = {
+    __tostring = function(slice) return ffi.string(C.getSliceData(slice._wrapper), C.getSliceSize(slice._wrapper)) end,
+    __len = function(slice) return tonumber(C.getSliceSize(slice._wrapper)) end,
+    __index = function(slice, index)
+        if type(index) == 'number' and index >= 0 and index < C.getSliceSize(slice._wrapper) then
+            local data = C.getSliceData(slice._wrapper)
+            local buffer = ffi.cast('const uint8_t*', data)
+            return buffer[index]
+        elseif index == 'data' then
+            return C.getSliceData(slice._wrapper)
+        elseif index == 'size' then
+            return C.getSliceSize(slice._wrapper)
+        end
+        error('Unknown index `' .. index .. '` for LuaSlice')
+    end,
+    __newindex = function(slice, index, value) end,
+    __gc = function(slice) C.destroySlice(slice._wrapper) end,
+}
+
+local function createSliceWrapper(wrapper)
+    local slice = { _wrapper = wrapper }
+    setmetatable(slice, sliceMeta)
+    return slice
+end
 
 local bufferMeta = {
     __tostring = function(buffer) return ffi.string(buffer.data, buffer.size) end,
@@ -169,6 +199,10 @@ local function writeAt(self, data, size, pos)
     if type(data) ~= 'string' then data = tostring(data) end
     return C.writeFileAtRawPtr(self._wrapper, data, string.len(data), size)
 end
+
+local function writeMoveSlice(self, slice) C.writeFileMoveSlice(self._wrapper, slice._wrapper) end
+
+local function writeAtMoveSlice(self, slice, pos) C.writeFileAtMoveSlice(self._wrapper, slice._wrapper, pos) end
 
 local function rSeek(self, pos, wheel)
     if wheel == nil then wheel = 'SEEK_SET' end
@@ -251,6 +285,8 @@ local function createFileWrapper(wrapper)
         readAt = readAt,
         write = write,
         writeAt = writeAt,
+        writeMoveSlice = writeMoveSlice,
+        writeAtMoveSlice = writeAtMoveSlice,
         rSeek = rSeek,
         rTell = function(self) return C.rTell(self._wrapper) end,
         wSeek = wSeek,
@@ -311,7 +347,9 @@ local function open(filename, t)
     if (t == 'DOWNLOAD_URL_AND_WAIT') then
         local captures = {}
         captures.current = coroutine.running()
-        if not captures.current then error(':startCachingAndWait() needs to be called from a coroutine') end
+        if not captures.current then
+            error(':open() with DOWNLOAD_URL_AND_WAIT needs to be called from a coroutine')
+        end
         captures.callback = function()
             PCSX.nextTick(function()
                 captures.callback:free()
@@ -368,6 +406,13 @@ Support.NewLuaBuffer = function(size)
     return buf
 end
 
-Support.File = { open = open, buffer = buffer, zReader = zReader, uvFifo = uvFifo, _createFileWrapper = createFileWrapper }
+Support.File = {
+    open = open,
+    buffer = buffer,
+    zReader = zReader,
+    uvFifo = uvFifo,
+    _createFileWrapper = createFileWrapper,
+    _createSliceWrapper = createSliceWrapper,
+}
 
 -- )EOF"

@@ -48,14 +48,14 @@ void PCSX::Widgets::LuaInspector::dumpTree(const std::string& label, Lua* L, int
         for (auto n : numerals) {
             L->push(n);
             std::string label = L->tostring();
-            L->gettable(i, true);
+            L->gettable(i, m_raw);
             dumpTree(label, L, L->gettop());
             L->pop();
         }
 
         for (auto s : strings) {
             L->push(s);
-            L->gettable(i, true);
+            L->gettable(i, m_raw);
             dumpTree(s, L, L->gettop());
             L->pop();
         }
@@ -98,6 +98,9 @@ void PCSX::Widgets::LuaInspector::draw(const char* title, Lua* L, PCSX::GUI* gui
         }
         ImGui::EndCombo();
     }
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Raw"), &m_raw);
+
     ImGui::BeginChild("tree");
     gui->useMonoFont();
     switch (m_display) {

@@ -24,7 +24,6 @@
 
 #pragma once
 
-// System includes
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -42,34 +41,24 @@
 #include <string>
 
 #include "support/settings.h"
+#include "support/ssize_t.h"
+#include "support/strings-helpers.h"
 
 #ifndef MAXPATHLEN
-#ifdef _WIN32
 #include "support/windowswrapper.h"
-#endif
-#ifdef MAX_PATH
+#if defined(MAX_PATH)
 #define MAXPATHLEN MAX_PATH
-#endif
-#ifdef PATH_MAX
+#elif defined(PATH_MAX)
 #define MAXPATHLEN PATH_MAX
 #endif
-#endif
-
-#ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0"
 #endif
 
 // Local includes from core - anything else from core is forbidden
 #include "core/logger.h"
 #include "core/system.h"
-#include "support/strings-helpers.h"
 
 #if defined(__linux__) || defined(__MACOSX__)
 #define strnicmp strncasecmp
-#endif
-
-#ifdef _WIN32
-typedef intptr_t ssize_t;
 #endif
 
 namespace PCSX {
@@ -94,6 +83,7 @@ class System;
 class WebServer;
 class SIO1;
 class SIO1Server;
+class SIO1Client;
 
 class Emulator;
 extern Emulator* g_emulator;
@@ -107,14 +97,6 @@ class Emulator {
     Emulator& operator=(const Emulator&) = delete;
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };    // PSX Types
     enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE };  // CDDA Types
-    struct OverlaySetting {
-        typedef SettingPath<TYPESTRING("Filename")> Filename;
-        typedef Setting<uint32_t, TYPESTRING("FileOffset")> FileOffset;
-        typedef Setting<uint32_t, TYPESTRING("LoadOffset")> LoadOffset;
-        typedef Setting<uint32_t, TYPESTRING("LoadSize")> LoadSize;
-        typedef Setting<bool, TYPESTRING("Enabled")> Enabled;
-        typedef Settings<Filename, FileOffset, LoadOffset, LoadSize, Enabled> type;
-    };
     struct DebugSettings {
         typedef Setting<bool, TYPESTRING("Debug")> Debug;
         typedef Setting<bool, TYPESTRING("Trace")> Trace;
@@ -148,15 +130,23 @@ class Emulator {
         typedef SettingPath<TYPESTRING("PCdrvBase")> PCdrvBase;
         typedef Setting<bool, TYPESTRING("SIO1Server"), false> SIO1Server;
         typedef Setting<int, TYPESTRING("SIO1ServerPort"), 6699> SIO1ServerPort;
+        typedef Setting<bool, TYPESTRING("SIO1Client"), false> SIO1Client;
+        typedef SettingString<TYPESTRING("SIO1Clienthost")> SIO1ClientHost;
+        typedef Setting<int, TYPESTRING("SIO1ClientPort"), 6699> SIO1ClientPort;
+        enum class SIO1Mode {
+            Protobuf,
+            Raw,
+        };
+        typedef Setting<SIO1Mode, TYPESTRING("SIO1Mode"), SIO1Mode::Protobuf> SIO1ModeSetting;
         typedef Settings<Debug, Trace, KernelLog, FirstChanceException, SkipISR, LoggingCDROM, GdbServer, GdbManifest,
                          GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
                          KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f, KernelCallA0_80_9f,
                          KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f, KernelCallB0_40_5f,
-                         KernelCallC0_00_1f, PCdrv, PCdrvBase, SIO1Server, SIO1ServerPort>
+                         KernelCallC0_00_1f, PCdrv, PCdrvBase, SIO1Server, SIO1ServerPort, SIO1Client, SIO1ClientHost,
+                         SIO1ClientPort, SIO1ModeSetting>
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
-    typedef SettingArray<TYPESTRING("Overlay"), OverlaySetting::type> SettingBiosOverlay;
     typedef Setting<bool, TYPESTRING("Stdout")> SettingStdout;
     typedef SettingPath<TYPESTRING("Logfile")> SettingLogfile;
     typedef SettingPath<TYPESTRING("Mcd1")> SettingMcd1;
@@ -190,9 +180,8 @@ class Emulator {
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
              SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
-             SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither,
-             SettingGLErrorReporting, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate,
-             SettingMSAA>
+             SettingMcd2Inserted, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither, SettingGLErrorReporting,
+             SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA>
         settings;
     class PcsxConfig {
       public:
@@ -253,6 +242,7 @@ class Emulator {
     std::unique_ptr<SIO> m_sio;
     std::unique_ptr<SIO1> m_sio1;
     std::unique_ptr<SIO1Server> m_sio1Server;
+    std::unique_ptr<SIO1Client> m_sio1Client;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
 

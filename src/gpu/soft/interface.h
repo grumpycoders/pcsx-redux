@@ -72,6 +72,39 @@ class impl final : public GPU {
         }
     }
 
+    virtual ScreenShot takeScreenShot() {
+        ScreenShot ss;
+        auto startX = PSXDisplay.DisplayPosition.x;
+        auto startY = PSXDisplay.DisplayPosition.y;
+        auto width = PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x;
+        auto height = PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y;
+        ss.width = width;
+        ss.height = height;
+        unsigned factor = PSXDisplay.RGB24 ? 3 : 2;
+        ss.bpp = PSXDisplay.RGB24 ? ScreenShot::BPP_24 : ScreenShot::BPP_16;
+        unsigned size = width * height * factor;
+        char *pixels = reinterpret_cast<char *>(malloc(size));
+        ss.data.acquire(pixels, size);
+        if (PSXDisplay.RGB24) {
+            auto ptr = psxVSecure;
+            ptr += (startY * 1024 + startX) * 3;
+            for (int i = 0; i < height; i++) {
+                std::memcpy(pixels, ptr, width * 3);
+                ptr += 1024 * 3;
+                pixels += width * 3;
+            }
+        } else {
+            auto ptr = psxVuw;
+            ptr += startY * 1024 + startX;
+            for (int i = 0; i < height; i++) {
+                std::memcpy(pixels, ptr, width * sizeof(uint16_t));
+                ptr += 1024;
+                pixels += width * 2;
+            }
+        }
+
+        return ss;
+    }
     SoftPrim m_softPrim;
     void *m_dumpFile = nullptr;
     GLuint m_vramTexture16;

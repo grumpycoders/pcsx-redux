@@ -21,7 +21,7 @@
 
 #include "lua/luawrapper.h"
 
-void PCSX::LuaFFI::open_extra(Lua* L) {
+void PCSX::LuaFFI::open_extra(Lua L) {
     static int lualoader = 1;
     static const char* pprint = (
 #include "pprint.lua/pprint.lua"
@@ -29,6 +29,6 @@ void PCSX::LuaFFI::open_extra(Lua* L) {
     static const char* reflectFFI = (
 #include "ffi-reflect/reflect.lua"
     );
-    L->load(pprint, "internal:pprinter.lua/pprint.lua");
-    L->load(reflectFFI, "internal:ffi-reflect/reflect.lua");
+    L.load(pprint, "internal:pprinter.lua/pprint.lua");
+    L.load(reflectFFI, "internal:ffi-reflect/reflect.lua");
 }

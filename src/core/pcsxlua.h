@@ -19,12 +19,12 @@
 
 #pragma once
 
+#include "lua/luawrapper.h"
+
 namespace PCSX {
 
-class Lua;
-
 namespace LuaFFI {
-void open_pcsx(Lua*);
+void open_pcsx(Lua);
 }
 
 }  // namespace PCSX

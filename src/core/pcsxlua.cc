@@ -20,6 +20,7 @@
 #include "core/pcsxlua.h"
 
 #include "core/debug.h"
+#include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -75,29 +76,45 @@ void jumpToMemory(uint32_t address, unsigned width) {
     PCSX::g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{address, width});
 }
 
+struct LuaScreenShot {
+    PCSX::Slice* data;
+    uint16_t width, height;
+    decltype(PCSX::GPU::ScreenShot::bpp) bpp;
+};
+
+LuaScreenShot takeScreenShot() {
+    LuaScreenShot ret;
+    auto ss = PCSX::g_emulator->m_gpu->takeScreenShot();
+    ret.data = new PCSX::Slice(std::move(ss.data));
+    ret.width = ss.width;
+    ret.height = ss.height;
+    ret.bpp = ss.bpp;
+    return ret;
+}
+
 }  // namespace
 
 template <typename T, size_t S>
-static void registerSymbol(PCSX::Lua* L, const char (&name)[S], const T ptr) {
-    L->push<S>(name);
-    L->push((void*)ptr);
-    L->settable();
+static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
+    L.push<S>(name);
+    L.push((void*)ptr);
+    L.settable();
 }
 
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
-static void registerAllSymbols(PCSX::Lua* L) {
-    L->push("_CLIBS");
-    L->gettable(LUA_REGISTRYINDEX);
-    if (L->isnil()) {
-        L->pop();
-        L->newtable();
-        L->push("_CLIBS");
-        L->copy(-2);
-        L->settable(LUA_REGISTRYINDEX);
+static void registerAllSymbols(PCSX::Lua L) {
+    L.push("_CLIBS");
+    L.gettable(LUA_REGISTRYINDEX);
+    if (L.isnil()) {
+        L.pop();
+        L.newtable();
+        L.push("_CLIBS");
+        L.copy(-2);
+        L.settable(LUA_REGISTRYINDEX);
     }
-    L->push("PCSX");
-    L->newtable();
+    L.push("PCSX");
+    L.newtable();
     REGISTER(L, getMemPtr);
     REGISTER(L, getRomPtr);
     REGISTER(L, getScratchPtr);
@@ -115,15 +132,16 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, luaLog);
     REGISTER(L, jumpToPC);
     REGISTER(L, jumpToMemory);
-    L->settable();
-    L->pop();
+    REGISTER(L, takeScreenShot);
+    L.settable();
+    L.pop();
 }
 
-void PCSX::LuaFFI::open_pcsx(Lua* L) {
+void PCSX::LuaFFI::open_pcsx(Lua L) {
     static int lualoader = 1;
     static const char* pcsxFFI = (
 #include "core/pcsxffi.lua"
     );
     registerAllSymbols(L);
-    L->load(pcsxFFI, "internal:core/pcsxffi.lua");
+    L.load(pcsxFFI, "internal:core/pcsxffi.lua");
 }

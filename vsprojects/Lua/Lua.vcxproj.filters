@@ -73,7 +73,6 @@
     <None Include="..\..\src\lua\glffi-def4.lua">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="packages.config" />
     <None Include="..\..\src\lua\fileffi.lua">
       <Filter>Source Files</Filter>
     </None>
@@ -86,5 +85,6 @@
     <None Include="..\..\third_party\zlibffi\zlibffi.lua">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

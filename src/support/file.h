@@ -77,6 +77,7 @@ class File {
         }
     }
     virtual void close() {}
+    virtual bool isClosed() { return false; }
     virtual ssize_t rSeek(ssize_t pos, int wheel = SEEK_SET) { throw std::runtime_error("Can't seek for reading"); }
     virtual ssize_t rTell() { throw std::runtime_error("Can't seek for reading"); }
     virtual ssize_t wSeek(ssize_t pos, int wheel = SEEK_SET) { throw std::runtime_error("Can't seek for writing"); }

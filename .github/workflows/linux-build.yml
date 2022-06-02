@@ -27,6 +27,7 @@ jobs:
           make -C src/mips/openbios -j 2 clean all
       - name: Packaging
         run: |
+          git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
           make install install-openbios DESTDIR=AppDir/usr
           echo '{' > AppDir/usr/share/pcsx-redux/resources/version.json
           echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> AppDir/usr/share/pcsx-redux/resources/version.json

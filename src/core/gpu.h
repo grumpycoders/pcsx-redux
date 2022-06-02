@@ -24,6 +24,7 @@
 #include "core/psxemulator.h"
 #include "core/sstate.h"
 #include "support/opengl.h"
+#include "support/slice.h"
 
 namespace PCSX {
 class GUI;
@@ -90,6 +91,13 @@ class GPU {
     static std::unique_ptr<GPU> getOpenGL();
 
     virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) {}
+
+    struct ScreenShot {
+        Slice data;
+        uint16_t width, height;
+        enum { BPP_16, BPP_24 } bpp;
+    };
+    virtual ScreenShot takeScreenShot() = 0;
 };
 
 }  // namespace PCSX
