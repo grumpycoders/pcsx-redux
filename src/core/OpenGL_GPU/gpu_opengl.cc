@@ -285,7 +285,7 @@ int PCSX::OpenGL_GPU::init() {
     m_texWindowLoc = OpenGL::uniformLocation(m_program, "u_texWindow");
 
     const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
-    glUniform1i(vramSamplerLoc, 0); // Make the fragment shader read from currently binded texture
+    glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
 
     reset();
     initCommands();
@@ -344,7 +344,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
             startGP0Command(word);
         } else {
             if (m_writingMode == TransferMode::VRAMTransfer) {
-                if (m_remainingWords == 0) { // Texture transfer finished
+                if (m_remainingWords == 0) {  // Texture transfer finished
                     renderBatch();
                     m_writingMode = TransferMode::CommandTransfer;
                     m_haveCommand = false;
@@ -358,7 +358,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
                     m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
                     m_syncVRAM = true;
                     m_vramWriteBuffer.clear();
-                    
+
                     // Since the texture transfer has ended, this word actually marks the start of a new GP0 command
                     startGP0Command(word);
                     continue;
@@ -610,6 +610,14 @@ void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("TODO: save
 
 void PCSX::OpenGL_GPU::load(const SaveStates::GPU& gpu) { g_system->printf("TODO: load\n"); }
 
+PCSX::GPU::ScreenShot PCSX::OpenGL_GPU::takeScreenShot() {
+    ScreenShot ss;
+    ss.width = 0;
+    ss.height = 0;
+    ss.data.acquire(nullptr, 0);
+    return ss;
+}
+
 void PCSX::OpenGL_GPU::startDump() { g_system->printf("TODO: startDump\n"); }
-    
+
 void PCSX::OpenGL_GPU::stopDump() { g_system->printf("TODO: stopDump\n"); }

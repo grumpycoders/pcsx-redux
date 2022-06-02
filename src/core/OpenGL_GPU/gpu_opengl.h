@@ -48,6 +48,7 @@ class OpenGL_GPU final : public GPU {
     virtual void debug() final;
 
     virtual void save(SaveStates::GPU &gpu) final;
+    virtual ScreenShot takeScreenShot() final;
 
     virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_useDither = setting; }
