@@ -477,6 +477,10 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
+    ImGui::SameLine();
+    if (ImGui::Button(_("Jump to PC"))) {
+        m_jumpToPC = m_registers->pc;
+    }
     DButton(_("Pause"), g_system->running(), [&]() mutable { g_system->pause(); });
     ImGui::SameLine();
     DButton(_("Resume"), !g_system->running(), [&]() mutable { g_system->resume(); });
@@ -819,7 +823,8 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     if (ImGui::Button(_("Symbols"))) m_showSymbols = true;
     ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
-    if (m_followPC || m_jumpToPC.has_value()) {
+    if ((m_followPC && (m_registers->pc != m_previousPC)) || m_jumpToPC.has_value()) {
+        m_previousPC = m_registers->pc;
         if (m_followPC) {
             uint32_t basePC = (m_registers->pc >> 20) & 0xffc;
             switch (basePC) {
