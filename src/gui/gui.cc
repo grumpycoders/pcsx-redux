@@ -1375,8 +1375,9 @@ PCSX-Redux will quit once the update is downloaded.)")));
             m_glErrors.clear();
             if (gotGLerror) throw("OpenGL error while running Lua code");
         } catch (...) {
+            L->push("DrawImguiFrame");
             L->push();
-            L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+            L->settable(LUA_GLOBALSINDEX);
         }
     } else {
         L->pop();

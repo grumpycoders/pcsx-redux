@@ -117,7 +117,7 @@ static int impl_##name(lua_State *L) { \
 #define OPTIONAL_UINT_ARG(name, otherwise)\
   unsigned int name = otherwise; \
   if (arg <= max_args) { \
-    name = (unsigned int)lua_tounsigned(L, arg++); \
+    name = (unsigned int)lua_tonumber(L, arg++); \
   }
 
 #define UINT_ARG(name) \
