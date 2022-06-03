@@ -225,22 +225,17 @@ CALL_FUNCTION(GetContentRegionMax, ImVec2)
 PUSH_NUMBER(ret.x)
 PUSH_NUMBER(ret.y)
 END_IMGUI_FUNC
-//    IMGUI_API ImVec2        GetWindowContentRegionMin();                                    // content boundaries min (roughly (0,0)-Scroll), in window coordinates
+//    IMGUI_API ImVec2        GetWindowContentRegionMin();                                    // content boundaries min for the full window (roughly (0,0)-Scroll), in window coordinates
 IMGUI_FUNCTION(GetWindowContentRegionMin)
 CALL_FUNCTION(GetWindowContentRegionMin, ImVec2)
 PUSH_NUMBER(ret.x)
 PUSH_NUMBER(ret.y)
 END_IMGUI_FUNC
-//    IMGUI_API ImVec2        GetWindowContentRegionMax();                                    // content boundaries max (roughly (0,0)+Size-Scroll) where Size can be override with SetNextWindowContentSize(), in window coordinates
+//    IMGUI_API ImVec2        GetWindowContentRegionMax();                                    // content boundaries max for the full window (roughly (0,0)+Size-Scroll) where Size can be override with SetNextWindowContentSize(), in window coordinates
 IMGUI_FUNCTION(GetWindowContentRegionMax)
 CALL_FUNCTION(GetWindowContentRegionMax, ImVec2)
 PUSH_NUMBER(ret.x)
 PUSH_NUMBER(ret.y)
-END_IMGUI_FUNC
-//    IMGUI_API float         GetWindowContentRegionWidth();                                  //
-IMGUI_FUNCTION(GetWindowContentRegionWidth)
-CALL_FUNCTION(GetWindowContentRegionWidth, float)
-PUSH_NUMBER(ret)
 END_IMGUI_FUNC
 //    IMGUI_API float         GetScrollX();                                                   // get scrolling amount [0 .. GetScrollMaxX()]
 IMGUI_FUNCTION(GetScrollX)
@@ -1283,7 +1278,7 @@ IMGUI_FUNCTION(TableSetupColumn)
 LABEL_ARG(label)
 OPTIONAL_INT_ARG(flags, 0)
 OPTIONAL_NUMBER_ARG(init_width_or_weight, 0.0f)
-UINT_ARG(user_id)
+OPTIONAL_UINT_ARG(user_id, 0)
 CALL_FUNCTION_NO_RET(TableSetupColumn, label, flags, init_width_or_weight, user_id)
 END_IMGUI_FUNC
 //    IMGUI_API void          TableSetupScrollFreeze(int cols, int rows); // lock columns/rows so they stay visible when scrolled.
@@ -1482,6 +1477,17 @@ POP_END_STACK(17)
 END_IMGUI_FUNC
 //    IMGUI_API const ImGuiPayload*   GetDragDropPayload();                                                           // peek directly into the current payload from anywhere. may return NULL. use ImGuiPayload::IsDataType() to test for the payload type.
 // Unsupported return type const
+//    IMGUI_API void          BeginDisabled(bool disabled = true);
+IMGUI_FUNCTION(BeginDisabled)
+OPTIONAL_BOOL_ARG(disabled, true)
+CALL_FUNCTION_NO_RET(BeginDisabled, disabled)
+ADD_END_STACK(18)
+END_IMGUI_FUNC
+//    IMGUI_API void          EndDisabled();
+IMGUI_FUNCTION(EndDisabled)
+CALL_FUNCTION_NO_RET(EndDisabled)
+POP_END_STACK(18)
+END_IMGUI_FUNC
 //    IMGUI_API void          PushClipRect(const ImVec2& clip_rect_min, const ImVec2& clip_rect_max, bool intersect_with_current_clip_rect);
 IMGUI_FUNCTION(PushClipRect)
 IM_VEC_2_ARG(clip_rect_min)
@@ -1640,13 +1646,13 @@ UINT_ARG(id)
 IM_VEC_2_ARG(size)
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(BeginChildFrame, bool, id, size, flags)
-IF_RET_ADD_END_STACK(18)
+IF_RET_ADD_END_STACK(19)
 PUSH_BOOL(ret)
 END_IMGUI_FUNC
 //    IMGUI_API void          EndChildFrame();                                                    // always call EndChildFrame() regardless of BeginChildFrame() return values (which indicates a collapsed/clipped window)
 IMGUI_FUNCTION(EndChildFrame)
 CALL_FUNCTION_NO_RET(EndChildFrame)
-POP_END_STACK(18)
+POP_END_STACK(19)
 END_IMGUI_FUNC
 //    IMGUI_API ImVec2        CalcTextSize(const char* text, const char* text_end = NULL, bool hide_text_after_double_hash = false, float wrap_width = -1.0f);
 IMGUI_FUNCTION(CalcTextSize)
@@ -1836,7 +1842,8 @@ END_STACK_OPTION(14, EndTabBar)
 END_STACK_OPTION(15, EndTabItem)
 END_STACK_OPTION(16, EndDragDropSource)
 END_STACK_OPTION(17, EndDragDropTarget)
-END_STACK_OPTION(18, EndChildFrame)
+END_STACK_OPTION(18, EndDisabled)
+END_STACK_OPTION(19, EndChildFrame)
 END_STACK_END
 //enum ImGuiWindowFlags_
 
@@ -2641,6 +2648,8 @@ END_ENUM(Col)
 START_ENUM(StyleVar)
 //    ImGuiStyleVar_Alpha,               // float     Alpha
 MAKE_ENUM(ImGuiStyleVar_Alpha,Alpha)
+//    ImGuiStyleVar_DisabledAlpha,       // float     DisabledAlpha
+MAKE_ENUM(ImGuiStyleVar_DisabledAlpha,DisabledAlpha)
 //    ImGuiStyleVar_WindowPadding,       // ImVec2    WindowPadding
 MAKE_ENUM(ImGuiStyleVar_WindowPadding,WindowPadding)
 //    ImGuiStyleVar_WindowRounding,      // float     WindowRounding
@@ -3044,7 +3053,7 @@ IM_VEC_2_ARG(p_min)
 IM_VEC_2_ARG(p_max)
 OPTIONAL_IM_VEC_2_ARG(uv_min, 0, 0)
 OPTIONAL_IM_VEC_2_ARG(uv_max, 1, 1)
-UINT_ARG(col)
+OPTIONAL_UINT_ARG(col, IM_COL32_WHITE)
 DRAW_LIST_CALL_FUNCTION_NO_RET(AddImage, user_texture_id, p_min, p_max, uv_min, uv_max, col)
 END_IMGUI_FUNC
 //    IMGUI_API void  AddImageQuad(ImTextureID user_texture_id, const ImVec2& p1, const ImVec2& p2, const ImVec2& p3, const ImVec2& p4, const ImVec2& uv1 = ImVec2 0  0, const ImVec2& uv2 = ImVec2 1  0, const ImVec2& uv3 = ImVec2 1  1, const ImVec2& uv4 = ImVec2 0  1, ImU32 col = IM_COL32_WHITE);
@@ -3058,7 +3067,7 @@ OPTIONAL_IM_VEC_2_ARG(uv1, 0, 0)
 OPTIONAL_IM_VEC_2_ARG(uv2, 1, 0)
 OPTIONAL_IM_VEC_2_ARG(uv3, 1, 1)
 OPTIONAL_IM_VEC_2_ARG(uv4, 0, 1)
-UINT_ARG(col)
+OPTIONAL_UINT_ARG(col, IM_COL32_WHITE)
 DRAW_LIST_CALL_FUNCTION_NO_RET(AddImageQuad, user_texture_id, p1, p2, p3, p4, uv1, uv2, uv3, uv4, col)
 END_IMGUI_FUNC
 //    IMGUI_API void  AddImageRounded(ImTextureID user_texture_id, const ImVec2& p_min, const ImVec2& p_max, const ImVec2& uv_min, const ImVec2& uv_max, ImU32 col, float rounding, ImDrawFlags flags = 0);

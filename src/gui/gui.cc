@@ -249,20 +249,15 @@ end)(jit.status()))
     m_outputShaderEditor.compile(this);
 }
 
-void PCSX::GUI::useImguiLuaUserErrorHandler() { s_imguiUserErrorFunctor = m_luaImguiUserError; }
-void PCSX::GUI::noImguiUserErrorHandler() { s_imguiUserErrorFunctor = nullptr; }
-
 void PCSX::GUI::init() {
     int result;
 
-    m_luaImguiUserError = [this](const char* msg) {
+    s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
     };
-    noImguiUserErrorHandler();
     m_luaConsole.setCmdExec([this](const std::string& cmd) {
         ScopedOnlyLog scopedOnlyLog(this);
-        useImguiLuaUserErrorHandler();
         try {
             g_emulator->m_lua->load(cmd, "console", false);
             g_emulator->m_lua->pcall();
@@ -281,7 +276,6 @@ void PCSX::GUI::init() {
                 fprintf(stderr, "%s\n", e.what());
             }
         }
-        noImguiUserErrorHandler();
     });
 
     glfwSetErrorCallback(
@@ -616,22 +610,10 @@ void PCSX::GUI::startFrame() {
     auto& L = g_emulator->m_lua;
     L->getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
     if (!L->isnil()) {
-        useImguiLuaUserErrorHandler();
         try {
             L->pcall();
-            bool gotGLerror = false;
-            for (const auto& error : m_glErrors) {
-                m_luaConsole.addError(error);
-                if (m_args.get<bool>("lua_stdout", false)) {
-                    fprintf(stderr, "%s\n", error.c_str());
-                }
-                gotGLerror = true;
-            }
-            m_glErrors.clear();
-            if (gotGLerror) throw("OpenGL error while running Lua code");
         } catch (...) {
         }
-        noImguiUserErrorHandler();
         L->push();
         L->setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
     } else {
@@ -1380,7 +1362,6 @@ PCSX-Redux will quit once the update is downloaded.)")));
     L->getfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     if (!L->isnil()) {
         ScopedOnlyLog(this);
-        useImguiLuaUserErrorHandler();
         try {
             L->pcall();
             bool gotGLerror = false;
@@ -1394,10 +1375,10 @@ PCSX-Redux will quit once the update is downloaded.)")));
             m_glErrors.clear();
             if (gotGLerror) throw("OpenGL error while running Lua code");
         } catch (...) {
+            L->push("DrawImguiFrame");
             L->push();
-            L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+            L->settable(LUA_GLOBALSINDEX);
         }
-        noImguiUserErrorHandler();
     } else {
         L->pop();
     }

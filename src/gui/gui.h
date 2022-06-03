@@ -344,7 +344,6 @@ class GUI final {
     bool m_updateAvailable = false;
     bool m_updateDownloading = false;
     bool m_aboutSelectAuthors = false;
-    std::function<void(const char *msg)> m_luaImguiUserError;
 
   public:
     bool hasJapanese() { return m_hasJapanese; }
@@ -373,9 +372,6 @@ class GUI final {
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
     void useMainFont() { ImGui::PushFont(m_mainFont); }
     void useMonoFont() { ImGui::PushFont(m_monoFont); }
-
-    void useImguiLuaUserErrorHandler();
-    void noImguiUserErrorHandler();
 };
 
 }  // namespace PCSX

@@ -294,7 +294,7 @@ sub generateImguiGeneric {
         #unsigned int with default value or not
         } elsif ($args[$i] =~ m/^ *(unsigned +int|ImGuiID|ImU32) ([^ =\[]*)( = [^ ]*|) *$/) {
           my $name = $2;
-          if ($2 =~ m/^ = ([^ ]*)$/) {
+          if ($3 =~ m/^ = ([^ ]*)$/) {
             push(@before, "OPTIONAL_UINT_ARG($name, $1)");
           } else {
             push(@before, "UINT_ARG($name)");

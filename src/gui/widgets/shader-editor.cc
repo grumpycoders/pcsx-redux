@@ -283,7 +283,6 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
         L->push("shaderProgramID");
         L->push(static_cast<lua_Number>(shaderProgram));
         L->settable();
-        gui->useImguiLuaUserErrorHandler();
         try {
             f.replace_extension("lua");
             L->load(getLuaText(), f.string().c_str(), false);
@@ -318,7 +317,6 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
         } catch (...) {
             m_displayError = true;
         }
-        gui->noImguiUserErrorHandler();
         while (top < L->gettop()) {
             L->pop();
         }
@@ -459,7 +457,6 @@ void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
                 L->copy(-2);
                 L->setfenv();
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
-                gui->useImguiLuaUserErrorHandler();
                 try {
                     int top = L->gettop() - 1;
                     L->pcall();
@@ -493,7 +490,6 @@ void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
                     Lorg->push();
                     Lorg->settable();
                 }
-                gui->noImguiUserErrorHandler();
             }
         }
         while (top < Lorg->gettop()) {
@@ -517,7 +513,6 @@ void PCSX::Widgets::ShaderEditor::reset(GUI *gui) {
                 L->copy(-2);
                 L->setfenv();
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
-                gui->useImguiLuaUserErrorHandler();
                 try {
                     L->pcall();
                     bool gotGLerror = false;
@@ -535,7 +530,6 @@ void PCSX::Widgets::ShaderEditor::reset(GUI *gui) {
                     Lorg->push();
                     Lorg->settable();
                 }
-                gui->noImguiUserErrorHandler();
             }
         }
         while (top < Lorg->gettop()) {
@@ -596,7 +590,6 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
                 L->push(dstSize.x);
                 L->push(dstSize.y);
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
-                gui->useImguiLuaUserErrorHandler();
                 try {
                     L->pcall(5);
                     bool gotGLerror = false;
@@ -614,7 +607,6 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
                     Lorg->push();
                     Lorg->settable();
                 }
-                gui->noImguiUserErrorHandler();
             } else {
                 ImGui::Image(textureID, dstSize, {0, 0}, {1, 1});
             }
@@ -671,7 +663,6 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
                 L->push(lua_Number(textureID));
                 L->push(lua_Number(m_shaderProgram));
                 GUI::ScopedOnlyLog scopedOnlyLog(m_cachedGui);
-                m_cachedGui->useImguiLuaUserErrorHandler();
                 try {
                     L->pcall(2);
                     bool gotGLerror = false;
@@ -698,7 +689,6 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
                     Lorg->settable(LUA_GLOBALSINDEX);
                     Lorg->pop();
                 }
-                m_cachedGui->noImguiUserErrorHandler();
             }
         }
         while (top < Lorg->gettop()) {
@@ -838,7 +828,6 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
                 L->push(dstSize.x);
                 L->push(dstSize.y);
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
-                gui->useImguiLuaUserErrorHandler();
                 try {
                     L->pcall(8);
                     bool gotGLerror = false;
@@ -856,7 +845,6 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
                     Lorg->push();
                     Lorg->settable();
                 }
-                gui->noImguiUserErrorHandler();
             }
         }
         while (top < Lorg->gettop()) {
