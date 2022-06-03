@@ -153,13 +153,13 @@ class Lua {
     void setfield(const char (&field)[S], int i = -2, bool raw = false) {
         if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
         push<S>(field);
-        insert(-2);
+        insert(-1);
         settable(i, raw);
     }
     void setfield(const std::string& field, int i = -2, bool raw = false) {
         if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
         push(field);
-        insert(-2);
+        insert(-1);
         settable(i, raw);
     }
     void settable(int tableIdx = -3, bool raw = false);
