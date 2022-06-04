@@ -33,8 +33,8 @@ static int callwrap(lua_State* raw, lua_CFunction func) {
     }
 }
 
-std::function<void(const std::string&)> PCSX::Lua::normalPrinter = nullptr;
-std::function<void(const std::string&)> PCSX::Lua::errorPrinter = nullptr;
+std::function<void(std::string_view)> PCSX::Lua::normalPrinter = nullptr;
+std::function<void(std::string_view)> PCSX::Lua::errorPrinter = nullptr;
 
 PCSX::Lua::Lua() : L(lua_open()) {
     static_assert(sizeof(Lua) == sizeof(lua_State*));
@@ -123,7 +123,7 @@ void PCSX::Lua::open_string() {
     while (n < gettop()) pop();
 }
 
-std::unique_ptr<PCSX::Lua> PCSX::Lua::thread(bool saveit) {
+PCSX::Lua PCSX::Lua::thread(bool saveit) {
     checkstack();
     lua_State* L1 = lua_newthread(L);
     if (saveit) {                     // -1 = thread
@@ -134,7 +134,7 @@ std::unique_ptr<PCSX::Lua> PCSX::Lua::thread(bool saveit) {
         settable();                   // -2 = thread, -1 = _THREADS
         pop();                        // -1 = thread
     }
-    return std::make_unique<Lua>(L1);
+    return L1;
 }
 
 void PCSX::Lua::weaken() {
@@ -152,11 +152,11 @@ void PCSX::Lua::setCallWrap(lua_CallWrapper wrapper) {
     pop();
 }
 
-void PCSX::Lua::declareFunc(const char* name, lua_CFunction f, int i) {
+void PCSX::Lua::declareFunc(std::string_view name, lua_CFunction f, int i) {
+    i = getabsolute(i);
     checkstack(2);
-    lua_pushstring(L, name);
+    lua_pushlstring(L, name.data(), name.size());
     lua_pushcfunction(L, f);
-    if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
     lua_settable(L, i);
 }
 
@@ -177,9 +177,10 @@ static int lambdaGC(lua_State* L_) {
     return 0;
 }
 
-void PCSX::Lua::declareFunc(const char* name, std::function<int(Lua)> f, int i) {
+void PCSX::Lua::declareFunc(std::string_view name, std::function<int(Lua)> f, int i) {
+    i = getabsolute(i);
     checkstack(5);
-    lua_pushstring(L, name);
+    lua_pushlstring(L, name.data(), name.size());
     new (lua_newuserdata(L, sizeof(f))) std::function<int(Lua)>(f);
     newtable();
     push("__gc");
@@ -187,13 +188,12 @@ void PCSX::Lua::declareFunc(const char* name, std::function<int(Lua)> f, int i) 
     settable();
     setmetatable();
     lua_pushcclosure(L, lambdaWrapper, 1);
-    if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
     lua_settable(L, i);
 }
 
-void PCSX::Lua::call(const char* f, int i, int nargs) {
+void PCSX::Lua::call(std::string_view f, int i, int nargs) {
     checkstack(1);
-    lua_pushstring(L, f);
+    lua_pushlstring(L, f.data(), f.size());
     lua_gettable(L, i);
     lua_insert(L, -1 - nargs);
     call(nargs);
@@ -278,9 +278,30 @@ void PCSX::Lua::gettable(int i, bool raw) {
     }
 }
 
-void PCSX::Lua::getglobal(const char* name) {
+void PCSX::Lua::getfieldtable(std::string_view name, int tableIdx, bool raw) {
+    tableIdx = getabsolute(tableIdx);
     push(name);
-    gettable(LUA_GLOBALSINDEX);
+    gettable(tableIdx, raw);
+    if (!isnil()) return;
+
+    pop();
+    newtable();
+    push(name);
+    copy(-2);
+    settable(tableIdx, raw);
+}
+
+void PCSX::Lua::getfieldtable(int idx, int tableIdx, bool raw) {
+    tableIdx = getabsolute(tableIdx);
+    push(lua_Number(idx));
+    gettable(tableIdx, raw);
+    if (!isnil()) return;
+
+    pop();
+    newtable();
+    push(lua_Number(idx));
+    copy(-2);
+    settable(tableIdx, raw);
 }
 
 int PCSX::Lua::pushLuaContext(bool inTable) {
@@ -326,7 +347,7 @@ int PCSX::Lua::pushLuaContext(bool inTable) {
     return inTable ? 1 : n;
 }
 
-int PCSX::Lua::error(const char* msg) {
+int PCSX::Lua::error(std::string_view msg) {
     push(msg);
 
     if (yielded()) {
@@ -371,7 +392,7 @@ std::string PCSX::Lua::tostring(int i) {
     return "<lua-NULL>";
 }
 
-std::string PCSX::Lua::escapeString(const std::string& s) {
+std::string PCSX::Lua::escapeString(std::string_view s) {
     std::string r = "";
 
     for (int i = 0; i < s.size(); i++) {
@@ -397,8 +418,8 @@ std::string PCSX::Lua::escapeString(const std::string& s) {
     return r;
 }
 
-void PCSX::Lua::load(const std::string& str, const std::string& name, bool docall) {
-    int status = luaL_loadbuffer(L, str.c_str(), str.size(), name.c_str());
+void PCSX::Lua::load(std::string_view code, const char* name, bool docall) {
+    int status = luaL_loadbuffer(L, code.data(), code.size(), name);
 
     if (status) {
         pushLuaContext();

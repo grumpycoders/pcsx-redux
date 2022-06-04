@@ -67,38 +67,28 @@ PCSX::Emulator::Emulator()
       m_callStacks(new PCSX::CallStacks) {}
 
 void PCSX::Emulator::setLua() {
-    m_lua->open_base();
-    m_lua->open_bit();
-    m_lua->open_debug();
-    m_lua->open_ffi();
-    m_lua->open_jit();
-    m_lua->open_math();
-    // m_lua->open_package();
-    m_lua->open_string();
-    m_lua->open_table();
-    LuaFFI::open_zlib(*m_lua);
-    luv_set_loop(m_lua->getState(), g_system->getLoop());
-    m_lua->push("luv");
-    luaopen_luv(m_lua->getState());
-    m_lua->settable(LUA_GLOBALSINDEX);
-    LuaFFI::open_file(*m_lua);
-    LuaFFI::open_pcsx(*m_lua);
-    LuaFFI::open_iso(*m_lua);
-    LuaFFI::open_extra(*m_lua);
+    auto L = *m_lua;
+    L.openlibs();
+    L.load("ffi = require('ffi')", "internal:setffi.lua");
+    LuaFFI::open_zlib(L);
+    luv_set_loop(L.getState(), g_system->getLoop());
+    L.push("luv");
+    luaopen_luv(L.getState());
+    L.settable(LUA_GLOBALSINDEX);
+    LuaFFI::open_file(L);
+    LuaFFI::open_pcsx(L);
+    LuaFFI::open_iso(L);
+    LuaFFI::open_extra(L);
 
-    m_lua->push("PCSX");
-    m_lua->gettable(LUA_GLOBALSINDEX);
-    m_lua->newtable();
-    m_lua->push("settings");
-    m_lua->copy(-2);
-    m_lua->settable(-4);
-    m_lua->push("emulator");
-    settings.pushValue(*m_lua.get());
-    m_lua->settable();
-    m_lua->pop();
-    m_lua->pop();
+    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.getfieldtable("settings");
+    L.push("emulator");
+    settings.pushValue(L);
+    L.settable();
+    L.pop();
+    L.pop();
 
-    m_pads->setLua(*m_lua);
+    m_pads->setLua(L);
 }
 
 PCSX::Emulator::~Emulator() {

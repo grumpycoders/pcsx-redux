@@ -22,6 +22,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <string_view>
 
 #include "json.hpp"
 #include "lua.hpp"
@@ -35,8 +36,8 @@ class Lua {
   public:
     typedef int (*openlualib_t)(lua_State* L);
 
-    static std::function<void(const std::string&)> normalPrinter;
-    static std::function<void(const std::string&)> errorPrinter;
+    static std::function<void(std::string_view)> normalPrinter;
+    static std::function<void(std::string_view)> errorPrinter;
 
     Lua();
     Lua(lua_State* L) : L(L) {}
@@ -46,6 +47,11 @@ class Lua {
     Lua& operator=(Lua&& oL) noexcept;
 
     typedef int (*lua_CallWrapper)(lua_State*, lua_CFunction);
+
+    int getabsolute(int index) {
+        if ((index < 0) && (index > LUA_REGISTRYINDEX)) return gettop() + index + 1;
+        return index;
+    }
 
     int ref(int t = -2) { return luaL_ref(L, t); }
     void unref(int ref, int t = -1) { luaL_unref(L, t, ref); }
@@ -62,7 +68,7 @@ class Lua {
     void open_string();
     void open_table();
 
-    std::unique_ptr<Lua> thread(bool saveit = false);
+    Lua thread(bool saveit = false);
     void weaken();
 
     int wrap_open(openlualib_t open) {
@@ -71,21 +77,13 @@ class Lua {
         while (n < gettop()) pop();
         return r;
     }
-    void openlib(const std::string& libname, const struct luaL_Reg* l, int nup) {
-        luaL_openlib(L, libname.c_str(), l, nup);
-    }
+    void openlib(const char* libname, const struct luaL_Reg* l, int nup) { luaL_openlib(L, libname, l, nup); }
 
     void setCallWrap(lua_CallWrapper wrapper);
-    void declareFunc(const char* funcName, lua_CFunction f, int tableIdx = LUA_GLOBALSINDEX);
-    void declareFunc(const char* funcName, std::function<int(Lua)> f, int tableIdx = LUA_GLOBALSINDEX);
-    void declareFunc(const std::string& funcName, lua_CFunction f, int tableIdx = LUA_GLOBALSINDEX) {
-        declareFunc(funcName.c_str(), f, tableIdx);
-    }
-    void declareFunc(const std::string& funcName, std::function<int(Lua)> f, int tableIdx = LUA_GLOBALSINDEX) {
-        declareFunc(funcName.c_str(), f, tableIdx);
-    }
+    void declareFunc(std::string_view funcName, lua_CFunction f, int tableIdx = LUA_GLOBALSINDEX);
+    void declareFunc(std::string_view funcName, std::function<int(Lua)> f, int tableIdx = LUA_GLOBALSINDEX);
 
-    void call(const char* funcName, int tableIdx = LUA_GLOBALSINDEX, int nArgs = 0);
+    void call(std::string_view funcName, int tableIdx = LUA_GLOBALSINDEX, int nArgs = 0);
     void call(int nArgs = 0);
     void pcall(int nArgs = 0);
 
@@ -97,13 +95,9 @@ class Lua {
         checkstack();
         lua_pushnumber(L, n);
     }
-    void push(const std::string& s) {
-        checkstack();
-        lua_pushlstring(L, s.data(), s.length());
-    }
     void push(std::string_view s) {
         checkstack();
-        lua_pushlstring(L, s.data(), s.length());
+        lua_pushlstring(L, s.data(), s.size());
     }
     void push(bool b) {
         checkstack();
@@ -149,40 +143,33 @@ class Lua {
         checkstack();
         return lua_newuserdata(L, s);
     }
-    template <size_t S>
-    void setfield(const char (&field)[S], int i = -2, bool raw = false) {
-        if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
-        push<S>(field);
-        insert(-1);
+    void setfield(std::string_view field, int i = -2, bool raw = false) {
+        i = getabsolute(i);
+        push(field);
+        insert(-2);
         settable(i, raw);
     }
-    void setfield(const std::string& field, int i = -2, bool raw = false) {
-        if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 2;
-        push(field);
-        insert(-1);
+    void setfield(int idx, int i = -2, bool raw = false) {
+        i = getabsolute(i);
+        push(lua_Number(idx));
+        insert(-2);
         settable(i, raw);
     }
     void settable(int tableIdx = -3, bool raw = false);
-    template <size_t S>
-    void getfield(const char (&field)[S], int i = -1, bool raw = false) {
-        if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 1;
-        push<S>(field);
-        gettable(i, raw);
-    }
-    void getfield(const std::string& field, int i = -1, bool raw = false) {
-        if ((i < 0) && (i > LUA_REGISTRYINDEX)) i -= 1;
+    void getfield(std::string_view field, int i = -1, bool raw = false) {
+        i = getabsolute(i);
         push(field);
         gettable(i, raw);
     }
     void gettable(int tableIdx = -2, bool raw = false);
+    void getfieldtable(std::string_view name, int tableIdx = -1, bool raw = false);
+    void getfieldtable(int idx, int tableIdx = -1, bool raw = false);
     void rawseti(int idx, int tableIdx = -2) { lua_rawseti(L, tableIdx, idx); }
     void rawgeti(int idx, int tableIdx = -1) { lua_rawgeti(L, tableIdx, idx); }
     void setvar() { lua_settable(L, LUA_GLOBALSINDEX); }
     int gettop() { return lua_gettop(L); }
-    void getglobal(const char* name);
     int pushLuaContext(bool inTable = false);
-    int error(const char* msg);
-    int error(const std::string& msg) { return error(msg.c_str()); }
+    int error(std::string_view msg);
 
     int type(int i = -1) { return lua_type(L, i); }
     const char* typestring(int i = -1) { return lua_typename(L, lua_type(L, i)); }
@@ -213,8 +200,8 @@ class Lua {
     json toJson(int t = -1);
     void fromJson(const json&, int t = -1);
 
-    std::string escapeString(const std::string&);
-    void load(const std::string& str, const std::string& name, bool docall = true);
+    std::string escapeString(std::string_view);
+    void load(std::string_view code, const char* name, bool docall = true);
     int yield(int nresults = 0) { return lua_yield(L, nresults); }
     bool yielded() { return lua_status(L) == LUA_YIELD; }
     int getmetatable(int i = -1) {

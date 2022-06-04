@@ -1047,8 +1047,8 @@ void PCSX::SPU::impl::playCDDAchannel(int16_t *data, int size) {
 }
 
 void PCSX::SPU::impl::setLua(Lua L) {
-    L.getfield("PCSX", LUA_GLOBALSINDEX);
-    L.getfield("settings");
+    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.getfieldtable("settings");
     L.push("spu");
     settings.pushValue(L);
     L.settable();
