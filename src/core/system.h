@@ -55,6 +55,9 @@ DstTP ClockCast(const SrcTP tp) {
 }
 
 namespace Events {
+// While the event bus can handle any type as event, we only use the ones that
+// are within this namespace. Also, any new event should also be added to the
+// Lua bindings, in the file eventslua.cc.
 struct SettingsLoaded {
     bool safe = false;
 };

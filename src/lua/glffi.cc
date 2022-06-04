@@ -33,15 +33,7 @@ static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
 static void registerAllSymbols(PCSX::Lua L) {
-    L.push("_CLIBS");
-    L.gettable(LUA_REGISTRYINDEX);
-    if (L.isnil()) {
-        L.pop();
-        L.newtable();
-        L.push("_CLIBS");
-        L.copy(-2);
-        L.settable(LUA_REGISTRYINDEX);
-    }
+    L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("gl");
     L.newtable();
     REGISTER(L, glCullFace);

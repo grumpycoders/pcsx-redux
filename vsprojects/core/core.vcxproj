@@ -249,6 +249,7 @@
     <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\symbols.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x86\iR3000A.cc" />
+    <ClCompile Include="..\..\src\core\eventslua.cc" />
     <ClCompile Include="..\..\src\core\gdb-server.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />
     <ClCompile Include="..\..\src\core\gte.cc" />
@@ -291,6 +292,7 @@
     <ClInclude Include="..\..\src\core\DynaRec_x64\profiler.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h" />
+    <ClInclude Include="..\..\src\core\eventslua.h" />
     <ClInclude Include="..\..\src\core\gdb-server.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />

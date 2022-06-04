@@ -161,6 +161,11 @@ class Lua {
         push(field);
         gettable(i, raw);
     }
+    void getfield(int idx, int i = -1, bool raw = false) {
+        i = getabsolute(i);
+        push(lua_Number(idx));
+        gettable(i, raw);
+    }
     void gettable(int tableIdx = -2, bool raw = false);
     void getfieldtable(std::string_view name, int tableIdx = -1, bool raw = false);
     void getfieldtable(int idx, int tableIdx = -1, bool raw = false);
