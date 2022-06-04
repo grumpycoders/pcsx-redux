@@ -42,7 +42,7 @@
 #ifdef _MSC_VER
 #define HAS_ATOMIC_WAIT 1
 #else
-#define HAS_ATOMIC_WAIT 0
+#define HAS_ATOMIC_WAIT 1
 #endif
 
 namespace PCSX {
