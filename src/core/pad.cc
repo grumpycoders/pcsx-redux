@@ -835,67 +835,41 @@ void PCSX::Pads::setLua(Lua L) {
         return 0;
     };
 
-    L.getfield("PCSX", LUA_GLOBALSINDEX);
+    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
 
     // setting constants
+    L.getfieldtable("CONSTS");
+    L.getfieldtable("PAD");
+    L.getfieldtable("BUTTON");
 
-    L.newtable();
-    L.push("CONSTS");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("PAD");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("BUTTON");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.push("SELECT");
     L.push(lua_Number(0));
-    L.settable();
-    L.push("START");
+    L.setfield("SELECT");
     L.push(lua_Number(3));
-    L.settable();
-    L.push("UP");
+    L.setfield("START");
     L.push(lua_Number(4));
-    L.settable();
-    L.push("RIGHT");
+    L.setfield("UP");
     L.push(lua_Number(5));
-    L.settable();
-    L.push("DOWN");
+    L.setfield("RIGHT");
     L.push(lua_Number(6));
-    L.settable();
-    L.push("LEFT");
+    L.setfield("DOWN");
     L.push(lua_Number(7));
-    L.settable();
-    L.push("L2");
+    L.setfield("LEFT");
     L.push(lua_Number(8));
-    L.settable();
-    L.push("R2");
+    L.setfield("L2");
     L.push(lua_Number(9));
-    L.settable();
-    L.push("L1");
+    L.setfield("R2");
     L.push(lua_Number(10));
-    L.settable();
-    L.push("R1");
+    L.setfield("L1");
     L.push(lua_Number(11));
-    L.settable();
-    L.push("TRIANGLE");
+    L.setfield("R1");
     L.push(lua_Number(12));
-    L.settable();
-    L.push("CIRCLE");
+    L.setfield("TRIANGLE");
     L.push(lua_Number(13));
-    L.settable();
-    L.push("CROSS");
+    L.setfield("CIRCLE");
     L.push(lua_Number(14));
-    L.settable();
-    L.push("SQUARE");
+    L.setfield("CROSS");
     L.push(lua_Number(15));
-    L.settable();
+    L.setfield("SQUARE");
 
     L.pop();
     L.pop();
@@ -903,44 +877,25 @@ void PCSX::Pads::setLua(Lua L) {
 
     // pushing settings
 
-    L.getfield("settings");
-    L.push("pads");
-    L.newtable();
+    L.getfieldtable("settings");
+    L.getfieldtable("pads");
     L.push(lua_Number(1));
     m_pads[0].m_settings.pushValue(L);
     L.settable();
     L.push(lua_Number(2));
     m_pads[0].m_settings.pushValue(L);
     L.settable();
-    L.settable();
+    L.pop();
     L.pop();
 
-    L.newtable();
-    L.push("SIO1");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("slots");
-    L.copy(-2);
-    L.settable(-4);
+    L.getfieldtable("SIO1");
+    L.getfieldtable("slots");
 
     // pads callbacks
 
-    L.newtable();
-    L.push(lua_Number(1));
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("pads");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push(lua_Number(1));
-    L.copy(-2);
-    L.settable(-4);
+    L.getfieldtable(1);
+    L.getfieldtable("pads");
+    L.getfieldtable(1);
 
     // push first pad stuff here
     L.declareFunc(
@@ -954,20 +909,9 @@ void PCSX::Pads::setLua(Lua L) {
     L.pop();
     L.pop();
 
-    L.newtable();
-    L.push(lua_Number(2));
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("pads");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push(lua_Number(1));
-    L.copy(-2);
-    L.settable(-4);
+    L.getfieldtable(2);
+    L.getfieldtable("pads");
+    L.getfieldtable(1);
 
     // push second pad stuff here
     L.declareFunc(

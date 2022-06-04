@@ -238,8 +238,8 @@ end)(jit.status()))
            "gui startup");
     LoadImguiBindings(L.getState());
     LuaFFI::open_gl(L);
-    L.getfield("PCSX", LUA_GLOBALSINDEX);
-    L.getfield("settings");
+    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.getfieldtable("settings");
     L.push("gui");
     settings.pushValue(L);
     L.settable();
@@ -607,17 +607,17 @@ void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 void PCSX::GUI::startFrame() {
     ZoneScoped;
     uv_run(g_system->getLoop(), UV_RUN_NOWAIT);
-    auto& L = g_emulator->m_lua;
-    L->getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
-    if (!L->isnil()) {
+    auto L = *g_emulator->m_lua;
+    L.getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
+    if (!L.isnil()) {
         try {
-            L->pcall();
+            L.pcall();
         } catch (...) {
         }
-        L->push();
-        L->setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
+        L.push();
+        L.setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
     } else {
-        L->pop();
+        L.pop();
     }
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
@@ -1102,7 +1102,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_luaInspector.m_show) {
         ImGui::SetNextWindowPos(ImVec2(20, 550), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get(), this);
+        m_luaInspector.draw(_("Lua Inspector"), *g_emulator->m_lua, this);
     }
     if (m_luaEditor.m_show) {
         m_luaEditor.draw(_("Lua Editor"), this);
@@ -1358,12 +1358,12 @@ PCSX-Redux will quit once the update is downloaded.)")));
         ImGui::End();
     }
 
-    auto& L = g_emulator->m_lua;
-    L->getfield("DrawImguiFrame", LUA_GLOBALSINDEX);
-    if (!L->isnil()) {
+    auto L = *g_emulator->m_lua;
+    L.getfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+    if (!L.isnil()) {
         ScopedOnlyLog(this);
         try {
-            L->pcall();
+            L.pcall();
             bool gotGLerror = false;
             for (const auto& error : m_glErrors) {
                 m_luaConsole.addError(error);
@@ -1375,12 +1375,12 @@ PCSX-Redux will quit once the update is downloaded.)")));
             m_glErrors.clear();
             if (gotGLerror) throw("OpenGL error while running Lua code");
         } catch (...) {
-            L->push("DrawImguiFrame");
-            L->push();
-            L->settable(LUA_GLOBALSINDEX);
+            L.push("DrawImguiFrame");
+            L.push();
+            L.settable(LUA_GLOBALSINDEX);
         }
     } else {
-        L->pop();
+        L.pop();
     }
     m_notifier.draw();
 
@@ -1408,8 +1408,8 @@ PCSX-Redux will quit once the update is downloaded.)")));
     if (m_gotImguiUserError) {
         g_system->log(LogClass::UI, "Got ImGui User Error: %s\n", m_imguiUserError.c_str());
         m_gotImguiUserError = false;
-        L->push();
-        L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+        L.push();
+        L.setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
 
     FrameMark
