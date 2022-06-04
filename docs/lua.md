@@ -18,7 +18,7 @@ For complex projects however, it is recommended to split your work into sub-modu
 ## API
 
 ### Basic Lua
-The [LuaJIT extensions](https://luajit.org/extensions.html) are fully loaded, and can be used globally. Most of the [standard Lua libraries](https://www.lua.org/manual/5.1/manual.html#5) are loaded, and are usable. The `require` keyword however doesn't exist at the moment. As a side-effect of Luv, [Lua-compat-5.3](https://github.com/keplerproject/lua-compat-5.3) is loaded.
+The [LuaJIT extensions](https://luajit.org/extensions.html) are fully loaded, and can be used globally. Most of the [standard Lua libraries](https://www.lua.org/manual/5.1/manual.html#5) are loaded, and are usable. The `require` function exists, but isn't recommended as the loading of external DLLs might be difficult to properly accomplish. Loading pure Lua files is fine. The `ffi` table is loaded globally, there is no need to `require` it, but it'll work nonetheless. As a side-effect of Luv, [Lua-compat-5.3](https://github.com/keplerproject/lua-compat-5.3) is loaded.
 
 ### Dear ImGui
 A good portion of [ImGui](https://github.com/ocornut/imgui) is bound to the Lua environment, and it's possible for the Lua code to emit arbitrary widgets through ImGui. It is advised to consult the [user manual](https://pthom.github.io/imgui_manual_online/manual/imgui_manual.html) of ImGui in order to properly understand how to make use of it. The list of current bindings can be found [within the source code](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/imgui_lua_bindings/imgui_iterator.inl). Some usage examples will be provided within the case studies.
@@ -98,7 +98,7 @@ end
 Of course, this can also delay processing significantly, as the main loop is usually bound to the speed of the UI, which can mean up to 13ms of delay.
 
 #### File API
-While the io API isn't exposed, there's a more powerful API that's more tightly integrated with the rest of the PCSX-Redux File handling code. It's an abstraction class that allows seamless manipulation of various objects using a common API.
+While the normal Lua io API is loaded, there's a more powerful API that's more tightly integrated with the rest of the PCSX-Redux File handling code. It's an abstraction class that allows seamless manipulation of various objects using a common API.
 
 The File objects have different properties depending on how they are created and their intention. But generally speaking, the following rules apply:
 
