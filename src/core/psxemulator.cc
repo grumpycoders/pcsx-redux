@@ -23,6 +23,7 @@
 #include "core/cdrom.h"
 #include "core/cheat.h"
 #include "core/debug.h"
+#include "core/eventslua.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gte.h"
@@ -79,6 +80,7 @@ void PCSX::Emulator::setLua() {
     LuaFFI::open_pcsx(L);
     LuaFFI::open_iso(L);
     LuaFFI::open_extra(L);
+    LuaBindings::open_events(L);
 
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");
@@ -89,6 +91,8 @@ void PCSX::Emulator::setLua() {
     L.pop();
 
     m_pads->setLua(L);
+
+    assert(L.gettop() == 0);
 }
 
 PCSX::Emulator::~Emulator() {

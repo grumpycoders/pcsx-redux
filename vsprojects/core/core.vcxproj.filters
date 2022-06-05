@@ -127,6 +127,9 @@
     <ClCompile Include="..\..\src\core\luaiso.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\eventslua.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\web-server.h">
@@ -250,6 +253,9 @@
       <Filter>Header Files\Dynarec x64</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\luaiso.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\eventslua.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
