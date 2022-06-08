@@ -184,8 +184,8 @@ SECTIONS {
     __bss_end = .;
 
     __heap_start = __heap_base;
-	
-	. = ADDR(.text) - 0x800;
+
+    . = ADDR(.text) - 0x800;
     __end = .;
 
     /DISCARD/ : { *(.MIPS.abiflags) }
@@ -195,4 +195,8 @@ SECTIONS {
 
     /* Discard things that the standard link script drops, too. */
     /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }
+
+    .scratchpad (NOLOAD) : {
+        *(.scratchpad)
+    } > dcache
 }

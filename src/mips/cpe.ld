@@ -163,4 +163,8 @@ SECTIONS {
 
     /* Discard things that the standard link script drops, too. */
     /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }
+
+    .scratchpad (NOLOAD) : {
+        $(.scratchpad)
+    } > dcache
 }
