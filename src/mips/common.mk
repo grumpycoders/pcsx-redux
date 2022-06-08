@@ -16,12 +16,12 @@ CC  = $(PREFIX)-gcc
 CXX = $(PREFIX)-g++
 
 TYPE ?= cpe
-LDSCRIPT ?= $(ROOTDIR)/$(TYPE).ld
-ifneq ($(strip $(OVERLAYSCRIPT)),)
-LDSCRIPT := $(addprefix $(OVERLAYSCRIPT) , -T$(LDSCRIPT))
-else
-LDSCRIPT := $(addprefix $(ROOTDIR)/default.ld , -T$(LDSCRIPT))
+LDSCRIPT ?= $(ROOTDIR)$(TYPE).ld
+ifeq ($(strip $(OVERLAYSCRIPT)),)
+OVERLAYSCRIPT := $(ROOTDIR)nooverlay.ld
 endif
+
+LDSCRIPTS = $(OVERLAYSCRIPT) $(LDSCRIPT) $(EXTRA_LDSCRIPT)
 
 USE_FUNCTION_SECTIONS ?= true
 
@@ -35,7 +35,7 @@ CPPFLAGS += -fno-builtin -fno-strict-aliasing -Wno-attributes
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I$(ROOTDIR)
 
-LDFLAGS += -Wl,-Map=$(BINDIR)$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
+LDFLAGS += -Wl,-Map=$(BINDIR)$(TARGET).map -nostdlib $(foreach script, $(LDSCRIPTS), -T$(script)) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS) -Wl,--oformat=$(FORMAT)
 
 CPPFLAGS_Release += -Os
