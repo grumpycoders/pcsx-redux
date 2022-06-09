@@ -12,7 +12,7 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-lua_stdout` | Redirect Lua's console output to stdout. |
 | `-logfile` | Specify a file to log output to. |
 | `-bios` | Specify a BIOS file. |
-| `-testmode` | Interpret [internal API](mips_api.md)'s `pcsx_exit()` command and close the emulator. |
+| `-testmode` | Interpret [internal API](mips_api.md)'s `pcsx_exit()` command as a request to exit the emulator instead of pausing, and close the emulator. Implies `-safe`, `-no-gui-log`, and will also disable first chance exceptions. Use only when doing unit testing. |
 | `-exe` | Load a PSX exe. |
 | `-loadexe` | Load a PSX exe. |
 | `-iso` | Load a PSX disk image (iso, bin/cue). |
@@ -24,3 +24,8 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-safe` | Resets configuration to defaults. |
 | `-interpreter` | Use the interpreter CPU core. |
 | `-dynarec` | Use the dynamic recompiler CPU core. |
+| `-debugger` | Activates the debugger. Will change the saved setting. |
+| `-no-debugger` | Deactivates the debugger. Will change the saved setting. |
+| `-trace` | Activates the CPU trace logging. Will change the saved setting. |
+| `-no-trace` | Deactivates the CPU trace logging. Will change the saved setting. |
+| `-no-gui-log` | Fully disables logs to be sent to the GUI. |
