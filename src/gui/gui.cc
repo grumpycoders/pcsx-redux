@@ -349,7 +349,7 @@ void PCSX::GUI::init() {
         auto& emuSettings = PCSX::g_emulator->settings;
         auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
         json j;
-        bool safeMode = m_args.get<bool>("safe").value_or(false);
+        bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
         if (cfg.is_open() && !safeMode) {
             try {
                 cfg >> j;
@@ -413,6 +413,22 @@ void PCSX::GUI::init() {
         if (biosCfg.has_value()) emuSettings.get<Emulator::SettingBios>() = biosCfg.value();
 
         g_system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
+
+        if (m_args.get<bool>("debugger")) {
+            debugSettings.get<Emulator::DebugSettings::Debug>().value = true;
+        }
+
+        if (m_args.get<bool>("no-debugger")) {
+            debugSettings.get<Emulator::DebugSettings::Debug>().value = false;
+        }
+
+        if (m_args.get<bool>("trace")) {
+            debugSettings.get<Emulator::DebugSettings::Trace>().value = true;
+        }
+
+        if (m_args.get<bool>("no-trace")) {
+            debugSettings.get<Emulator::DebugSettings::Trace>().value = false;
+        }
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
 

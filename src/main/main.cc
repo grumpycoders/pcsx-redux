@@ -48,7 +48,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
     virtual void message(std::string &&s) final override {
-        s_gui->addNotification(s.c_str());
+        if (!m_noGuiLog) s_gui->addNotification(s.c_str());
         if (s_gui->addLog(PCSX::LogClass::UI, s)) {
             if (m_enableStdout) ::printf("%s", s.c_str());
             m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
@@ -57,21 +57,27 @@ class SystemImpl final : public PCSX::System {
     }
 
     virtual void log(PCSX::LogClass logClass, std::string &&s) final override {
-        if (!s_gui->addLog(logClass, s)) return;
+        if (!m_noGuiLog) {
+            if (!s_gui->addLog(logClass, s)) return;
+        }
         if (m_enableStdout) ::printf("%s", s.c_str());
         m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
         if (m_logfile) m_logfile->write(std::move(s));
     }
 
     virtual void printf(std::string &&s) final override {
-        if (!s_gui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
+        if (!m_noGuiLog) {
+            if (!s_gui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
+        }
         if (m_enableStdout) ::printf("%s", s.c_str());
         m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
         if (m_logfile) m_logfile->write(std::move(s));
     }
 
     virtual void luaMessage(const std::string &s, bool error) final override {
-        s_gui->addLuaLog(s, error);
+        if (!m_noGuiLog) {
+            s_gui->addLuaLog(s, error);
+        }
         if ((error && m_inStartup) || m_args.get<bool>("lua_stdout", false)) {
             if (error) {
                 fprintf(stderr, "%s\n", s.c_str());
@@ -110,7 +116,7 @@ class SystemImpl final : public PCSX::System {
     virtual void purgeAllEvents() final override { uv_run(getLoop(), UV_RUN_DEFAULT); }
 
     virtual void testQuit(int code) final override {
-        if (m_args.get<bool>("testmode")) {
+        if (testmode()) {
             quit(code);
         } else {
             PCSX::System::log(PCSX::LogClass::UI, "PSX software requested an exit with code %i\n", code);
@@ -124,6 +130,7 @@ class SystemImpl final : public PCSX::System {
     PCSX::IO<PCSX::UvFile> m_logfile;
 
   public:
+    void setTestmode() { m_testmode = true; }
     void setBinDir(std::filesystem::path path) {
         m_binDir = path;
         m_version.loadFromFile(new PCSX::PosixFile(path / "version.json"));
@@ -149,6 +156,7 @@ class SystemImpl final : public PCSX::System {
     bool m_enableStdout = false;
     const CommandLine::args &m_args;
     bool m_inStartup = true;
+    bool m_noGuiLog = false;
 };
 
 using json = nlohmann::json;
@@ -181,6 +189,16 @@ int pcsxMain(int argc, char **argv) {
     }
 
     SystemImpl *system = new SystemImpl(args);
+    if (args.get<bool>("testmode").value_or(false)) {
+        system->setTestmode();
+    }
+    if (args.get<bool>("stdout")) system->m_enableStdout = true;
+    const auto &logfileArgOpt = args.get<std::string>("logfile");
+    const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
+    if (!logfileArg.empty()) system->useLogfile(logfileArg);
+    if (args.get<bool>("testmode").value_or(false) || args.get<bool>("no-gui-log").value_or(false)) {
+        system->m_noGuiLog = true;
+    }
     PCSX::g_system = system;
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
@@ -192,12 +210,8 @@ int pcsxMain(int argc, char **argv) {
     s_gui = new PCSX::GUI(args);
     s_gui->init();
     system->m_enableStdout = emulator->settings.get<PCSX::Emulator::SettingStdout>();
-    if (args.get<bool>("stdout")) system->m_enableStdout = true;
-    const auto &logfileArgOpt = args.get<std::string>("logfile");
-    const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     const PCSX::u8string &logfileSet = emulator->settings.get<PCSX::Emulator::SettingLogfile>().string();
-    const auto &logfile = logfileArg.empty() ? logfileSet : logfileArg;
-    if (!logfile.empty()) system->useLogfile(logfile);
+    if (logfileArg.empty() && !logfileSet.empty()) system->useLogfile(logfileSet);
 
     emulator->setLua();
     s_gui->setLua(*emulator->m_lua);
