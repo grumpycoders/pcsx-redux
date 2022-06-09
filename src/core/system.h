@@ -235,6 +235,8 @@ class System {
 
     uv_loop_t *getLoop() { return &m_loop; }
 
+    bool testmode() { return m_testmode; }
+
   private:
     uv_loop_t m_loop;
     std::map<uint64_t, std::string> m_i18n;
@@ -254,6 +256,7 @@ class System {
     std::filesystem::path m_binDir;
     PCSX::VersionInfo m_version;
     bool m_emergencyExit = true;
+    bool m_testmode = false;
 };
 
 extern System *g_system;
