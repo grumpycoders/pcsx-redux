@@ -182,8 +182,8 @@ bool ConcurrentQueue<T>::Dequeue(T& value) {
 		AcquireSafeNodeAndNext(head_, &head, &next, head_hp, next_hp);
 		tail = get_tail();
 		if (head != get_head()) continue;  // Are head, tail, and next consistent?
+		if (nullptr == next) return false;  // Queue is empty;
 		if (head == tail) {                // Is queue empty or tail falling behind?
-			if (nullptr == next) return false;  // Queue is empty;
 			// Tail is falling behind. Try to advance it.
 			tail_.compare_exchange_weak(tail, next);
 		}
