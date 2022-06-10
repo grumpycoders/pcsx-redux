@@ -623,7 +623,13 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
             Lorg->pop();
         }
     }
-    drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+    
+    drawList->AddCallback(
+        [](const ImDrawList *parentList, const ImDrawCmd *cmd) {
+            ShaderEditor *that = reinterpret_cast<ShaderEditor *>(cmd->UserCallbackData);
+            glUseProgram(that->m_imguiProgram);
+        },
+        this);
 }
 
 void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
@@ -641,7 +647,6 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
 
     // Send projection matrix to our shader
     glUniformMatrix4fv(m_shaderProjMtxLoc, 1, GL_FALSE, &projMtx[0][0]);
-    glBindTexture(GL_TEXTURE_2D, textureID);
 
     auto &Lorg = g_emulator->m_lua;
     {
