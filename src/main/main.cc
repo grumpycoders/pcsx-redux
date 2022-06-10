@@ -192,7 +192,7 @@ int pcsxMain(int argc, char **argv) {
     if (args.get<bool>("testmode").value_or(false)) {
         system->setTestmode();
     }
-    if (args.get<bool>("stdout")) system->m_enableStdout = true;
+    if (args.get<bool>("stdout").value_or(false)) system->m_enableStdout = true;
     const auto &logfileArgOpt = args.get<std::string>("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     if (!logfileArg.empty()) system->useLogfile(logfileArg);
@@ -209,7 +209,9 @@ int pcsxMain(int argc, char **argv) {
 
     s_gui = new PCSX::GUI(args);
     s_gui->init();
-    system->m_enableStdout = emulator->settings.get<PCSX::Emulator::SettingStdout>();
+    if (!args.get<bool>("stdout").has_value()) {
+        system->m_enableStdout = emulator->settings.get<PCSX::Emulator::SettingStdout>();
+    }
     const PCSX::u8string &logfileSet = emulator->settings.get<PCSX::Emulator::SettingLogfile>().string();
     if (logfileArg.empty() && !logfileSet.empty()) system->useLogfile(logfileSet);
 
