@@ -53,15 +53,6 @@ CESTER_TEST(cpu_quiet, cpu_tests,
     cester_assert_uint_eq(0, s_got80);
 )
 
-CESTER_TEST(cpu_unaligned_write_fault, cpu_tests,
-    uint32_t expectedEPC;
-    __asm__ volatile("la %0, 1f\n1:\nsw $0, 1($0)" : "=r"(expectedEPC));
-    cester_assert_uint_eq(0, s_got40);
-    cester_assert_uint_eq(1, s_got80);
-    cester_assert_uint_eq(0x80, s_from);
-    cester_assert_uint_eq(expectedEPC, s_epc);
-)
-
 CESTER_TEST(cpu_LWR_LWL_half, cpu_tests,
     uint32_t buff[2] = {0x11223344, 0x55667788};
     // when lwl is used alone, while waiting properly for the
@@ -101,7 +92,7 @@ CESTER_MAYBE_TEST(cpu_BRANCH_BRANCH_slot, cpu_tests,
     cester_assert_uint_eq(9, out);
 )
 
-CESTER_TEST(cpu_JUMP_JUMP_slot, cpu_tests,
+CESTER_MAYBE_TEST(cpu_JUMP_JUMP_slot, cpu_tests,
     // while branches are relative PC adjustments, jumps
     // are absolute; this is technically the same test as
     // above, but without the relative quirkness
