@@ -240,11 +240,11 @@ There is some limited API for working with ISO files.
 The `:open` method has some magic built-in. The size argument is optional, and if missing, the code will attempt to guess the size of the underlying file within the Iso. This can only work on MODE2 FORM1 or FORM2 sectors, and will result in a failed File object otherwise. The mode argument is optional, and can be one of the following:
 
 - `'GUESS'`: will attempt to guess the mode of the file. This is the default.
-- `'RAW'`: the File object will return read 2352 bytes per sector.
-- `'M1'`: the File object will return read 2048 bytes per sector.
-- `'M2_RAW'`: the File object will return read 2336 bytes per sector. This can't be guessed. This is useful for extracting STR files that require the subheaders to be present.
-- `'M2_FORM1'`: the File object will return read 2048 bytes per sector.
-- `'M2_FORM2'`: the File object will return read 2324 bytes per sector.
+- `'RAW'`: the returned File object will read 2352 bytes per sector.
+- `'M1'`: the returned File object will read 2048 bytes per sector.
+- `'M2_RAW'`: the returned File object will read 2336 bytes per sector. This can't be guessed. This is useful for extracting STR files that require the subheaders to be present.
+- `'M2_FORM1'`: the returned File object will read 2048 bytes per sector.
+- `'M2_FORM2'`: the returned File object will read 2324 bytes per sector.
 
 The resulting File object will cache a single full sector in memory, meaning that small sequential reads won't read the same sector over and off from the disk.
 
