@@ -24,6 +24,8 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
+#include "lua/luafile.h"
 #include "lua/luawrapper.h"
 
 namespace {
@@ -92,6 +94,13 @@ LuaScreenShot takeScreenShot() {
     return ret;
 }
 
+PCSX::Slice* createSaveState() {
+    auto ss = PCSX::SaveStates::save();
+    return new PCSX::Slice(std::move(ss));
+}
+
+void loadSaveState(PCSX::Slice* data) { PCSX::SaveStates::load(data->asStringView()); }
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -125,6 +134,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, jumpToPC);
     REGISTER(L, jumpToMemory);
     REGISTER(L, takeScreenShot);
+    REGISTER(L, createSaveState);
+    REGISTER(L, loadSaveState);
     L.settable();
     L.pop();
 }
