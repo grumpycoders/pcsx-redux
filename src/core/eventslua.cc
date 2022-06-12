@@ -135,6 +135,8 @@ void PCSX::LuaBindings::open_events(Lua L) {
             auto name = L.tostring(1);
             if (name == "Quitting") {
                 createListener<Events::Quitting>(L);
+            } else if (name == "IsoMounted") {
+                createListener<Events::IsoMounted>(L);
             } else if (name == "GPU::Vsync") {
                 createListener<Events::GPU::VSync>(L);
             } else if (name == "ExecutionFlow::ShellReached") {
