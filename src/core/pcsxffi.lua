@@ -77,6 +77,9 @@ typedef struct {
 } LuaScreenShot;
 
 LuaScreenShot takeScreenShot();
+
+LuaSlice* createSaveState();
+void loadSaveState(LuaSlice*);
 ]]
 
 local C = ffi.load 'PCSX'
@@ -174,6 +177,13 @@ PCSX = {
     takeScreenShot = function()
         local ss = C.takeScreenShot()
         return { data = Support.File._createSliceWrapper(ss.data), width = ss.width, height = ss.height, bpp = ss.bpp }
+    end,
+    createSaveState = function()
+        local slice = C.createSaveState()
+        return Support.File._createSliceWrapper(slice)
+    end,
+    loadSaveState = function(slice)
+        C.loadSaveState(slice._wrapper)
     end,
 }
 

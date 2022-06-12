@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <string_view>
+
 #include "spu/types.h"
 #include "support/protobuf.h"
 #include "support/settings.h"
@@ -293,7 +295,7 @@ typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Reg
 SaveState constructSaveState();
 
 std::string save();
-bool load(const std::string& data);
+bool load(std::string_view data);
 }  // namespace SaveStates
 
 }  // namespace PCSX

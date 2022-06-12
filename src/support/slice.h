@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <limits>
 #include <string>
+#include <string_view>
 #include <variant>
 
 #include "fmt/format.h"
@@ -203,12 +204,14 @@ class Slice {
         return ret;
     }
 
-    uint8_t getByte(size_t offset) {
+    uint8_t getByte(size_t offset) const {
         if (offset >= size()) throw std::runtime_error("getByte called with an out of range offset");
         return reinterpret_cast<const uint8_t *>(data())[offset];
     }
 
     void reset() { m_data = std::monostate(); }
+
+    std::string_view asStringView() const { return {data<char>(), size()}; }
 
   private:
     void copyFrom(const Slice &other) {
