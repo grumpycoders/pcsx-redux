@@ -39,7 +39,7 @@ void deleteIso(LuaIso* wrapper) { delete wrapper; }
 
 bool isIsoFailed(LuaIso* wrapper) { return wrapper->iso->failed(); }
 
-LuaIso* getCurrentIso() { return new LuaIso(PCSX::g_emulator->m_cdrom->m_iso); }
+LuaIso* getCurrentIso() { return new LuaIso(PCSX::g_emulator->m_cdrom->getIso()); }
 
 PCSX::ISO9660Reader* createIsoReader(LuaIso* wrapper) { return new PCSX::ISO9660Reader(wrapper->iso); }
 void deleteIsoReader(PCSX::ISO9660Reader* isoReader) { delete isoReader; }

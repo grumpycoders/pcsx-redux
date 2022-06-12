@@ -238,7 +238,7 @@ int pcsxMain(int argc, char **argv) {
         Cleaner cleaner([&emulator, &system, &exitCode]() {
             emulator->m_spu->close();
             emulator->m_gpu->close();
-            emulator->m_cdrom->m_iso.reset();
+            emulator->m_cdrom->clearIso();
 
             emulator->m_cpu->psxShutdown();
             emulator->m_spu->shutdown();

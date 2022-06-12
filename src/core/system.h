@@ -66,6 +66,7 @@ struct LogMessage {
     LogClass logClass;
     std::string message;
 };
+struct IsoMounted {};
 namespace GPU {
 struct VSync {};
 }  // namespace GPU
