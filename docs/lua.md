@@ -261,9 +261,12 @@ The Lua code can listen for events broadcasted from within the emulator. The fol
 PCSX.Events.createEventListener(eventName, callback)
 ```
 
+The callback function will be called from an unsecured environment, and it is advised to delegate anything complex or risky enough to `PCSX.nextTick`.
+
 The `eventName` argument is a string that can have the following values:
 
  - `Quitting`: The emulator is about to quit. The callback will be called with no arguments. This is where you'd need to close libuv objects held by Lua through luv in order to allow the emulator to quit gracefully. Otherwise you may soft lock the application where it'll wait for libuv objects to close.
+ - `IsoMounted`: A new ISO file has been mounted into the virtual CDRom drive. The callback will be called with no arguments.
  - `GPU::Vsync`: The emulated GPU has just completed a vertical blanking interval. The callback will be called with no arguments.
  - `ExecutionFlow::ShellReached`: The emulation execution has reached the beginning of the BIOS' shell. The callback will be called with no arguments. This is the moment where the kernel is properly set up and ready to execute any arbitrary binary. The emulator may use this event to side load binaries, or signal gdb that the kernel is ready.
  - `ExecutionFlow::Run`: The emulator resumed execution. The callback will be called with no arguments. This event will fire when calling `PCSX.resumeEmulator()`, when the user presses Start, or other potential interactions.
@@ -339,10 +342,15 @@ PCSX.SIO1.slots[1].pads[1].setOverride(PCSX.CONSTS.PAD.BUTTON.DOWN)
 #### Execution flow
 The Lua code has the following 4 API functions available to it in order to control the execution flow of the emulator:
 
-- `PCSX.pauseEmulator()`
-- `PCSX.resumeEmulator()`
-- `PCSX.softResetEmulator()`
-- `PCSX.hardResetEmulator()`
+ - `PCSX.pauseEmulator()`
+ - `PCSX.resumeEmulator()`
+ - `PCSX.softResetEmulator()`
+ - `PCSX.hardResetEmulator()`
+
+It's also possible to manipulate savestates using the following two functions:
+
+ - `PCSX.createSaveState()    -- returns a slice representing the savestate`
+ - `PCSX.loadSaveState(slice)`
 
 #### Messages
 The globals `print` and `printError` are available, and will display logs in the Lua Console. You can also use `PCSX.log` to display a line in the general Log window. All three functions should behave the way you'd expect from a `print` function in Lua.
