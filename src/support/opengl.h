@@ -18,8 +18,6 @@
  ***************************************************************************/
 
 #pragma once
-#include "GL/gl3w.h"
-
 #include <array>
 #include <cassert>
 #include <functional>
@@ -30,6 +28,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "GL/gl3w.h"
+
 namespace PCSX {
 namespace OpenGL {
 
@@ -37,7 +37,6 @@ namespace OpenGL {
 // https://stackoverflow.com/questions/53945490/how-to-assert-that-a-constexpr-if-else-clause-never-happen
 template <class...>
 constexpr std::false_type AlwaysFalse{};
-
 
 struct VertexArray {
     GLuint m_handle = 0;
@@ -74,7 +73,7 @@ struct VertexArray {
             glVertexAttribPointer(index, size, GL_INT, normalized, stride, offset);
         } else if constexpr (std::is_same<T, GLuint>()) {
             glVertexAttribPointer(index, size, GL_UNSIGNED_INT, normalized, stride, offset);
-        }   else {
+        } else {
             static_assert(AlwaysFalse<T>, "Unimplemented type for OpenGL::setAttributeFloat");
         }
     }
@@ -122,7 +121,7 @@ struct Texture {
     GLuint m_handle = 0;
     int m_width, m_height;
     GLenum m_binding;
-    int m_samples = 1; // For MSAA
+    int m_samples = 1;  // For MSAA
 
     void create(int width, int height, GLint internalFormat, GLenum binding = GL_TEXTURE_2D, int samples = 1) {
         m_width = width;
@@ -149,7 +148,7 @@ struct Texture {
         }
     }
 
-    void createMSAA(int width, int height, GLint internalFormat, int samples) { 
+    void createMSAA(int width, int height, GLint internalFormat, int samples) {
         create(width, height, internalFormat, GL_TEXTURE_2D_MULTISAMPLE, samples);
     }
 
@@ -163,7 +162,7 @@ struct Texture {
 
 struct Framebuffer {
     GLuint m_handle = 0;
-    GLenum m_textureType; // GL_TEXTURE_2D or GL_TEXTURE_2D_MULTISAMPLE
+    GLenum m_textureType;  // GL_TEXTURE_2D or GL_TEXTURE_2D_MULTISAMPLE
 
     void create() {
         if (m_handle == 0) {
@@ -276,7 +275,6 @@ struct Program {
     void use() { glUseProgram(m_handle); }
 };
 
-
 struct VertexBuffer {
     GLuint m_handle = 0;
 
@@ -387,9 +385,28 @@ static bool scissorEnabled() { return isEnabled(GL_SCISSOR_TEST); }
 
 static bool versionSupported(int major, int minor) { return gl3wIsSupported(major, minor); }
 
-[[nodiscard]] static GLint uniformLocation(GLuint program, const char* name) { return glGetUniformLocation(program, name); }
+[[nodiscard]] static GLint uniformLocation(GLuint program, const char* name) {
+    return glGetUniformLocation(program, name);
+}
 [[nodiscard]] static GLint uniformLocation(Program& program, const char* name) {
     return glGetUniformLocation(program.handle(), name);
+}
+
+enum BlendEquation {
+    Add = GL_FUNC_ADD,
+    Sub = GL_FUNC_SUBTRACT,
+    ReverseSub = GL_FUNC_REVERSE_SUBTRACT,
+    Min = GL_MIN,
+    Max = GL_MAX
+};
+
+static void setBlendColor(float r, float g, float b, float a = 1.0) { glBlendColor(r, g, b, a); }
+static void setBlendEquation(BlendEquation eq) { glBlendEquation(eq); }
+static void setBlendEquation(BlendEquation eq1, BlendEquation eq2) { glBlendEquationSeparate(eq1, eq2); }
+
+static void setBlendFactor(GLenum fac1, GLenum fac2) { glBlendFunc(fac1, fac2); }
+static void setBlendFactor(GLenum fac1, GLenum fac2, GLenum fac3, GLenum fac4) {
+    glBlendFuncSeparate(fac1, fac2, fac3, fac4);
 }
 
 // Abstraction for GLSL vectors
@@ -425,9 +442,7 @@ class Vector {
     T& p() { return b(); }
     T& q() { return a(); }
 
-    Vector(std::array<T, size> list) {
-        std::copy(list.begin(), list.end(), &m_storage[0]);
-    }
+    Vector(std::array<T, size> list) { std::copy(list.begin(), list.end(), &m_storage[0]); }
 
     Vector() {}
 };
@@ -463,10 +478,10 @@ struct Rectangle {
 
     Rectangle() : x(0), y(0), width(0), height(0) {}
     Rectangle(T x, T y, T width, T height) : x(x), y(y), width(width), height(height) {}
-    
+
     bool isEmpty() { return width == 0 && height == 0; }
     bool isLine() { return (width == 0 && height != 0) || (width != 0 && height == 0); }
-    
+
     void setEmpty() { x = y = width = height = 0; }
 };
 
