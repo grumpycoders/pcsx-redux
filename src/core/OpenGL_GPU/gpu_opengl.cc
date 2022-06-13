@@ -563,7 +563,10 @@ void PCSX::OpenGL_GPU::vblank() {
     if (m_polygonMode != OpenGL::FillPoly) {
         OpenGL::setFillMode(OpenGL::FillPoly);
     }
-
+    
+    // Disable scissor before passing the GPU to the frontend. This is also necessary as scissor testing affects glBlitFramebuffer
+    OpenGL::disableScissor();
+    
     // We can't draw the MSAA texture directly. So if we're using MSAA, we copy the texture to a non-MSAA texture.
     if (m_multisampled) {
         m_fbo.bind(OpenGL::ReadFramebuffer);
@@ -571,8 +574,6 @@ void PCSX::OpenGL_GPU::vblank() {
         glBlitFramebuffer(0, 0, 1024, 512, 0, 0, 1024, 512, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     }
 
-    // Also remove our scissor before passing the OpenGL context to the GUI
-    OpenGL::disableScissor();
     m_gui->setViewport();
     m_gui->flip();  // Set up offscreen framebuffer before rendering
 
