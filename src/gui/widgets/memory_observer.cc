@@ -140,14 +140,12 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             }
             if (ImGui::Button(_("Search")) || (gotEnter && valid)) {
                 auto ptr = memData;
-                auto size = memSize;
                 m_plainAddresses.clear();
                 while (true) {
-                    auto found = reinterpret_cast<const uint8_t*>(memmem(ptr, size, needle.c_str(), needleSize));
+                    auto found = reinterpret_cast<const uint8_t*>(memmem(ptr, memData + memSize - ptr, needle.c_str(), needleSize));
                     if (found) {
                         m_plainAddresses.push_back(memBase + static_cast<uint32_t>(found - memData));
                         ptr = reinterpret_cast<const uint8_t*>(found) + 1;
-                        size -= static_cast<uint32_t>(ptr - memData);
                     } else {
                         break;
                     }
