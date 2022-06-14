@@ -59,9 +59,24 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                     name = PCSX::Disasm::s_disRNameGPR[counter];
                 }
                 counter++;
-                std::string label = fmt::format(f_("Edit##{}"), name);
                 ImGui::Text("%s: %08x", name, reg);
+                std::string contextLabel = fmt::format(f_("Context##{}"), name);
+                if (ImGui::BeginPopupContextItem(contextLabel.c_str())) {
+                    if (ImGui::MenuItem(_("Go to in Assembly"))) {
+                        g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{reg});
+                    }
+                    if (ImGui::MenuItem(_("Go to in Memory Editor"))) {
+                        g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{reg, 1});
+                    }
+                    if (ImGui::MenuItem(_("Copy Value"))) {
+                        char strVal[10];
+                        std::snprintf(strVal, sizeof(strVal), "%8.8x", reg);
+                        ImGui::SetClipboardText(strVal);
+                    }
+                    ImGui::EndPopup();
+                }
                 ImGui::SameLine();
+                std::string label = fmt::format(f_("Edit##{}"), name);
                 if (ImGui::SmallButton(label.c_str())) {
                     editorToOpen = fmt::format(f_("Edit value of {}"), name);
                     snprintf(m_registerEditor, 19, "%08x", reg);
