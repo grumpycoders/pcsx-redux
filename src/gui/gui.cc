@@ -468,6 +468,12 @@ void PCSX::GUI::init() {
 
     ImGui_ImplGlfw_InitForOpenGL(m_window, true);
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    io.SetClipboardTextFn = [](void*, const char* text) -> void { clip::set_text(text); };
+    io.GetClipboardTextFn = [](void*) -> const char* {
+        static std::string clipboard;
+        clip::get_text(clipboard);
+        return clipboard.c_str();
+    };
     m_createWindowOldCallback = platform_io.Platform_CreateWindow;
     platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
         s_gui->m_createWindowOldCallback(viewport);
