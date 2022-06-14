@@ -652,13 +652,12 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                 }
                 ImGui::Text("  %s:%8.8x %c%c%c%c %8.8x: ", section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]), tc(b[3]),
                             code);
-                auto toggleBP = [&]() mutable {
+                auto toggleBP = [&]() {
                     if (hasBP) {
                         g_emulator->m_debug->removeBreakpoint(currentBP);
                     } else {
                         g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"));
                     }
-                    hasBP = !hasBP;
                 };
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
                     toggleBP();
@@ -670,11 +669,9 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                         char fmtAddr[10];
                         std::snprintf(fmtAddr, sizeof(fmtAddr), "%8.8x", dispAddr);
                         ImGui::SetClipboardText(fmtAddr);
-                        ImGui::CloseCurrentPopup();
                     }
-                    if (ImGui::MenuItem(_("Go to in Memory View"))) {
+                    if (ImGui::MenuItem(_("Go to in Memory Editor"))) {
                         jumpToMemory(dispAddr, 4);
-                        ImGui::CloseCurrentPopup();
                     }
                     if (ImGui::MenuItem(_("Run to Cursor"), nullptr, false, !PCSX::g_system->running())) {
                         g_emulator->m_debug->addBreakpoint(
@@ -683,12 +680,10 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                                 g_system->pause();
                                 return false;
                             });
-                        ImGui::CloseCurrentPopup();
                         g_system->resume();
                     }
                     if (ImGui::MenuItem(_("Toggle Breakpoint"))) {
                         toggleBP();
-                        ImGui::CloseCurrentPopup();
                     }
                     ImGui::EndPopup();
                 }
