@@ -652,10 +652,31 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                 }
                 ImGui::Text("  %s:%8.8x %c%c%c%c %8.8x: ", section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]), tc(b[3]),
                             code);
+                auto toggleBP = [&]() mutable {
+                    if (hasBP) {
+                        g_emulator->m_debug->removeBreakpoint(currentBP);
+                    } else {
+                        g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"));
+                    }
+                    hasBP = !hasBP;
+                };
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
+                    toggleBP();
+                }
                 std::string contextMenuTitle = "assembly address menu ";
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
-                    DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
+                    if (ImGui::MenuItem(_("Copy Address"))) {
+                        char fmtAddr[10];
+                        std::snprintf(fmtAddr, sizeof(fmtAddr), "%8.8x", dispAddr);
+                        ImGui::SetClipboardText(fmtAddr);
+                        ImGui::CloseCurrentPopup();
+                    }
+                    if (ImGui::MenuItem(_("Go to in Memory View"))) {
+                        jumpToMemory(dispAddr, 4);
+                        ImGui::CloseCurrentPopup();
+                    }
+                    if (ImGui::MenuItem(_("Run to Cursor"), nullptr, false, !PCSX::g_system->running())) {
                         g_emulator->m_debug->addBreakpoint(
                             dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
                             [](const Debug::Breakpoint* bp, uint32_t address, unsigned width, const char* cause) {
@@ -664,17 +685,11 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                             });
                         ImGui::CloseCurrentPopup();
                         g_system->resume();
-                    });
-                    DButton(_("Set Breakpoint here"), !hasBP, [&]() mutable {
-                        g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"));
+                    }
+                    if (ImGui::MenuItem(_("Toggle Breakpoint"))) {
+                        toggleBP();
                         ImGui::CloseCurrentPopup();
-                        hasBP = true;
-                    });
-                    DButton(_("Remove breakpoint from here"), hasBP, [&]() mutable {
-                        g_emulator->m_debug->removeBreakpoint(currentBP);
-                        ImGui::CloseCurrentPopup();
-                        hasBP = false;
-                    });
+                    }
                     ImGui::EndPopup();
                 }
                 if (skipNext && m_pseudoFilling) {
