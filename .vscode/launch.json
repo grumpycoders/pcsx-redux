@@ -167,6 +167,32 @@
         },
 
         {
+            "type": "gdb",
+            "request": "attach",
+            "name": "(gdb) Launch Tetris",
+            "target": "localhost:3333",
+            "remote": true,
+            "stopAtConnect": true,
+            "executable": "./src/mips/psyqo/examples/tetris/tetris.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "set confirm off",
+                "set substitute-path /project .",
+                "load ./src/mips/openbios/openbios.elf",
+                "add-symbol-file ./src/mips/openbios/openbios.elf",
+                "monitor reset shellhalt",
+                "load ./src/mips/psyqo/examples/tetris/tetris.elf",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
             "name": "(gdb) Launch PCSX-Redux",
             "type": "cppdbg",
             "request": "launch",

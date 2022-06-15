@@ -192,8 +192,14 @@ static __attribute__((always_inline)) void syscall__exit(int code) {
 // doing this one in raw inline assembly would prove tricky,
 // and there's already enough voodoo in this file.
 // this is syscall a0:3f
+#ifdef __cplusplus
+extern "C" {
+#endif
 int romsyscall_printf(const char *fmt, ...);
 int ramsyscall_printf(const char *fmt, ...);
+#ifdef __cplusplus
+}
+#endif
 
 static __attribute__((always_inline)) int syscall_unresolvedException() {
     register int n asm("t1") = 0x40;
@@ -341,10 +347,10 @@ static __attribute__((always_inline)) void syscall_deliverEvent(uint32_t classId
 }
 
 static __attribute__((always_inline)) uint32_t syscall_openEvent(uint32_t classId, uint32_t spec, uint32_t mode,
-                                                                 void *handler) {
+                                                                 void (*handler)()) {
     register int n asm("t1") = 0x08;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((uint32_t(*)(uint32_t, uint32_t, uint32_t, void *))0xb0)(classId, spec, mode, handler);
+    return ((uint32_t(*)(uint32_t, uint32_t, uint32_t, void (*)()))0xb0)(classId, spec, mode, handler);
 }
 
 static __attribute__((always_inline)) int syscall_closeEvent(uint32_t event) {
@@ -498,10 +504,22 @@ static __attribute__((always_inline)) void syscall_kernInitheap(void *base, size
     ((void (*)(void *, size_t))0xc0)(base, size);
 }
 
+static __attribute__((always_inline)) int syscall_setTimerAutoAck(uint32_t timer, int value) {
+    register int n asm("t1") = 0x0a;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(uint32_t, int))0xc0)(timer, value);
+}
+
 static __attribute__((always_inline)) int syscall_enqueueIrqHandler(int priority) {
     register int n asm("t1") = 0x0c;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((int (*)(int))0xc0)(priority);
+}
+
+static __attribute__((always_inline)) void syscall_setIrqAutoAck(uint32_t irq, int value) {
+    register int n asm("t1") = 0x0d;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(uint32_t, int))0xc0)(irq, value);
 }
 
 static __attribute__((always_inline)) void syscall_setupFileIO(int installTTY) {

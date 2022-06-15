@@ -35,6 +35,8 @@ freestanding compiler won't have the libstdc++, and this wouldn't work. */
 
 #include <stddef.h>
 
+#include "common/hardware/pcsxhw.h"
+
 typedef void (*fptr)();
 
 extern fptr __preinit_array_start[] __attribute__((weak));
@@ -67,6 +69,7 @@ void cxxmain() {
 }
 
 void abort() {
+    pcsx_debugbreak();
     // TODO: make this better
     while (1)
         ;
@@ -124,3 +127,9 @@ __attribute__((section(".preinit_array"))) static fptr pi_heap[] = {
 };
 
 */
+
+// we're not going to care about exit cleanup
+__attribute__((weak)) void __cxa_atexit(void (*func)(void*), void* arg, void* dso_handle) {}
+
+// no, we're not going to have shared libraries
+__attribute__((weak)) void* __dso_handle = NULL;

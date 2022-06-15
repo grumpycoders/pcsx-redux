@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2022 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,17 +26,8 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/psxlibc/handlers.h"
+namespace psyqo {
 
-int sysEnqIntRP(int priority, struct HandlerInfo* handler);
-struct HandlerInfos* sysDeqIntRP(int priority, struct HandlerInfo* handler);
-int enqueueSyscallHandler(int priority);
-int enqueueIrqHandler(int priority);
-int enqueueRCntIrqs(int priority);
-void setIrqAutoAck(uint32_t irq, int value);
-int initTimer(uint32_t timer, uint16_t target, uint16_t flags);
-int setTimerAutoAck(uint32_t timer, int value);
-int getTimer(uint32_t timer);
-int enableTimerIRQ(uint32_t timer);
-int disableTimerIRQ(uint32_t timer);
-int restartTimer(uint32_t timer);
+class Music {};
+
+} // namespace psyqo

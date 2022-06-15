@@ -1,0 +1,5 @@
+-m32
+-I.
+-I..
+-I../../../third_party/EASTL/include
+-I../../../third_party/EABase/include/Common
