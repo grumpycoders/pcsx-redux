@@ -160,6 +160,7 @@ class OpenGL_GPU final : public GPU {
     bool m_haveCommand = false;
     bool m_updateDrawOffset = false;
     bool m_syncVRAM = true;
+    bool m_drawnStuff = false;
     uint32_t m_rectTexpage = 0; // Rects have their own texpage settings
     uint32_t m_vramReadBufferSize = 0;
     uint32_t m_vramReadBufferIndex = 0;
@@ -193,6 +194,14 @@ class OpenGL_GPU final : public GPU {
         Opaque, Transparent
     };
 
+    // 0: Back / 2 + Front / 2
+    // 1: Back + Front
+    // 2: Back - Front
+    // 3: Back + Front / 4
+    // -1: Transparency was previously disabled
+    int m_lastBlendingMode = -1;
+    Transparency m_lastTransparency;
+
     // We can emulate raw texture primitives as primitives with texture blending enabled
     // And 0x808080 as the blend colour
     static constexpr uint32_t c_rawTextureBlendColour = 0x808080;
@@ -214,6 +223,11 @@ class OpenGL_GPU final : public GPU {
 
     template <RectSize size, Shading shading, Transparency transparency>
     void drawRectTextured();
+
+    template <Transparency setting>
+    void setTransparency();
+
+    void setBlendingModeFromTexpage(uint32_t texpage);
 
     // GP0/GP1 command funcs
     void initCommands();

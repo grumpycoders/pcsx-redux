@@ -37,6 +37,8 @@ void PCSX::OpenGL_GPU::reset() {
     m_gpustat = 0x14802000;
 
     m_haveCommand = false;
+    m_lastTransparency = Transparency::Opaque;
+    m_lastBlendingMode = -1;
     m_readingMode = TransferMode::CommandTransfer;
     m_writingMode = TransferMode::CommandTransfer;
     m_rectTexpage = 0;
@@ -566,6 +568,11 @@ void PCSX::OpenGL_GPU::vblank() {
     
     // Disable scissor before passing the GPU to the frontend. This is also necessary as scissor testing affects glBlitFramebuffer
     OpenGL::disableScissor();
+    if (m_lastTransparency == Transparency::Transparent) {
+        m_lastTransparency = Transparency::Opaque;
+        m_lastBlendingMode = -1;
+        OpenGL::disableBlend();
+    }
     
     // We can't draw the MSAA texture directly. So if we're using MSAA, we copy the texture to a non-MSAA texture.
     if (m_multisampled) {

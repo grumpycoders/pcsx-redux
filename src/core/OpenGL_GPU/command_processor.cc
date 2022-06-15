@@ -38,9 +38,63 @@ void PCSX::OpenGL_GPU::startGP0Command(uint32_t commandWord) {
     }
 }
 
+template <PCSX::OpenGL_GPU::Transparency setting>
+void PCSX::OpenGL_GPU::setTransparency() {
+    // Check if we had transparency previously disabled and it just got enabled or vice versa
+    if (m_lastTransparency != setting) {
+        renderBatch();
+        if constexpr (setting == Transparency::Opaque) {
+            OpenGL::disableBlend();
+            m_lastBlendingMode = -1;
+        } else {
+            OpenGL::enableBlend();
+        }
+
+        m_lastTransparency = setting;
+    }
+}
+
+void PCSX::OpenGL_GPU::setBlendingModeFromTexpage(uint32_t texpage) {
+    const auto newBlendingMode = (texpage >> 5) & 3;
+
+    if (m_lastBlendingMode != newBlendingMode) {
+        m_lastBlendingMode = newBlendingMode;
+        renderBatch();
+
+        switch (newBlendingMode) {
+            case 0:  // B/2 + F/2
+                OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
+                OpenGL::setBlendFactor(GL_CONSTANT_ALPHA, GL_CONSTANT_ALPHA, GL_ONE, GL_ZERO);
+                OpenGL::setBlendColor(0.0, 0.0, 0.0, 0.5);
+                break;
+            case 1:  // B + F
+                OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
+                OpenGL::setBlendFactor(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
+                break;
+            case 2:  //  B - F
+                OpenGL::setBlendEquation(OpenGL::BlendEquation::ReverseSub, OpenGL::BlendEquation::Add);
+                OpenGL::setBlendFactor(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
+                break;
+            case 3:  // B + F/4
+                OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
+                OpenGL::setBlendFactor(GL_CONSTANT_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
+                OpenGL::setBlendColor(0.0, 0.0, 0.0, 0.25);
+                break;
+        }
+    }
+}
+
 template <PCSX::OpenGL_GPU::Shading shading, PCSX::OpenGL_GPU::Transparency transparency, int firstVertex>
 void PCSX::OpenGL_GPU::drawTri() {
     if (m_vertexCount + 3 >= vertexBufferSize) renderBatch();
+
+    // Only do transparency-related stuff for the first triangle of a quad
+    if constexpr (firstVertex == 0) {
+        setTransparency<transparency>();
+        if constexpr (transparency == Transparency::Transparent) {
+            setBlendingModeFromTexpage(m_rectTexpage);
+        }
+    }
 
     if constexpr (shading == Shading::Flat) {
         const uint32_t colour = m_cmdFIFO[0];
@@ -65,6 +119,16 @@ void PCSX::OpenGL_GPU::drawQuad() {
 template <PCSX::OpenGL_GPU::Shading shading, PCSX::OpenGL_GPU::Transparency transparency, int firstVertex>
 void PCSX::OpenGL_GPU::drawTriTextured() {
     if (m_vertexCount + 3 >= vertexBufferSize) renderBatch();
+
+    // Only do transparency-related stuff for the first triangle of a quad
+    if constexpr (firstVertex == 0) {
+        setTransparency<transparency>();
+        if constexpr (transparency == Transparency::Transparent) {
+            const uint32_t texpage =
+                (shading == Shading::RawTexture || shading == Shading::TextureBlendFlat) ? m_cmdFIFO[4] : m_cmdFIFO[5];
+            setBlendingModeFromTexpage(texpage >> 16);
+        }
+    }
 
     if constexpr (shading == Shading::RawTexture || shading == Shading::TextureBlendFlat) {
         const uint32_t colour = shading == Shading::RawTexture ? c_rawTextureBlendColour : m_cmdFIFO[0];
@@ -97,6 +161,15 @@ void PCSX::OpenGL_GPU::drawQuadTextured() {
 
 template <PCSX::OpenGL_GPU::RectSize size, PCSX::OpenGL_GPU::Transparency transparency>
 void PCSX::OpenGL_GPU::drawRect() {
+    if (m_vertexCount + 6 >= vertexBufferSize) {
+        renderBatch();
+    }
+
+    setTransparency<transparency>();
+    if constexpr (transparency == Transparency::Transparent) {
+        setBlendingModeFromTexpage(m_rectTexpage);
+    }
+
     int height, width;
 
     const uint32_t colour = m_cmdFIFO[0];
@@ -118,10 +191,6 @@ void PCSX::OpenGL_GPU::drawRect() {
         height = (dimensions >> 16) & 0x1ff;
     }
 
-    if (m_vertexCount + 6 >= vertexBufferSize) {
-        renderBatch();
-    }
-
     m_vertices[m_vertexCount++] = Vertex(x, y, colour);
     m_vertices[m_vertexCount++] = Vertex(x + width, y, colour);
     m_vertices[m_vertexCount++] = Vertex(x + width, y + height, colour);
@@ -133,6 +202,15 @@ void PCSX::OpenGL_GPU::drawRect() {
 template <PCSX::OpenGL_GPU::RectSize size, PCSX::OpenGL_GPU::Shading shading,
           PCSX::OpenGL_GPU::Transparency transparency>
 void PCSX::OpenGL_GPU::drawRectTextured() {
+    if (m_vertexCount + 6 >= vertexBufferSize) {
+        renderBatch();
+    }
+
+    setTransparency<transparency>();
+    if constexpr (transparency == Transparency::Transparent) {
+        setBlendingModeFromTexpage(m_rectTexpage);
+    }
+
     int height, width;
 
     const uint32_t colour = shading == Shading::RawTexture ? c_rawTextureBlendColour : m_cmdFIFO[0];
@@ -158,10 +236,6 @@ void PCSX::OpenGL_GPU::drawRectTextured() {
         uint32_t dimensions = m_cmdFIFO[3];
         width = dimensions & 0x3ff;
         height = (dimensions >> 16) & 0x1ff;
-    }
-
-    if (m_vertexCount + 6 >= vertexBufferSize) {
-        renderBatch();
     }
 
     m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, u, v);
@@ -205,6 +279,8 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x30] = &OpenGL_GPU::drawTri<Shading::Gouraud, Transparency::Opaque>;
     m_cmdFuncs[0x32] = &OpenGL_GPU::drawTri<Shading::Gouraud, Transparency::Transparent>;
     m_cmdFuncs[0x34] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendGouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x35] = &OpenGL_GPU::drawTriTextured<Shading::RawTextureGouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x36] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendGouraud, Transparency::Transparent>;
     
     m_cmdFuncs[0x38] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Opaque>;
     m_cmdFuncs[0x3A] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Transparent>;
@@ -236,7 +312,6 @@ void PCSX::OpenGL_GPU::cmdClearTexCache() { m_syncVRAM = true; }
 
 void PCSX::OpenGL_GPU::cmdSetDrawMode() {
     m_rectTexpage = m_cmdFIFO[0] & 0x3fff;
-    PCSX::g_system->printf("Unimplemented set draw mode command: %08X\n", m_cmdFIFO[0]);
 }
 
 // Set texture window, regardless of whether the window config changed
