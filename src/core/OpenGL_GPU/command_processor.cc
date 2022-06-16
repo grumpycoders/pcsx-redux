@@ -60,27 +60,35 @@ void PCSX::OpenGL_GPU::setBlendingModeFromTexpage(uint32_t texpage) {
     if (m_lastBlendingMode != newBlendingMode) {
         m_lastBlendingMode = newBlendingMode;
         renderBatch();
+        OpenGL::setBlendFactor(GL_SRC1_COLOR, GL_SRC1_ALPHA, GL_ONE, GL_ZERO);
 
         switch (newBlendingMode) {
             case 0:  // B/2 + F/2
                 OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
-                OpenGL::setBlendFactor(GL_CONSTANT_ALPHA, GL_CONSTANT_ALPHA, GL_ONE, GL_ZERO);
-                OpenGL::setBlendColor(0.0, 0.0, 0.0, 0.5);
+                setBlendFactors(0.5, 0.5);
                 break;
             case 1:  // B + F
                 OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
-                OpenGL::setBlendFactor(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
+                setBlendFactors(1.0, 1.0);
                 break;
             case 2:  //  B - F
                 OpenGL::setBlendEquation(OpenGL::BlendEquation::ReverseSub, OpenGL::BlendEquation::Add);
-                OpenGL::setBlendFactor(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
+                setBlendFactors(1.0, 1.0);
                 break;
             case 3:  // B + F/4
                 OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
-                OpenGL::setBlendFactor(GL_CONSTANT_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
-                OpenGL::setBlendColor(0.0, 0.0, 0.0, 0.25);
+                setBlendFactors(1.0, 0.25);
                 break;
         }
+    }
+}
+
+void PCSX::OpenGL_GPU::setBlendFactors(float destFactor, float sourceFactor) {
+    if (m_blendFactors.x() != destFactor || m_blendFactors.y() != sourceFactor) {
+        m_blendFactors.x() = destFactor;
+        m_blendFactors.y() = sourceFactor;
+
+        glUniform4f(m_blendFactorsLoc, destFactor, destFactor, destFactor, sourceFactor);
     }
 }
 

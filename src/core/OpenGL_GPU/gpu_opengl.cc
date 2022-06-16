@@ -60,6 +60,7 @@ void PCSX::OpenGL_GPU::reset() {
 
     setDrawOffset(0x00000000);
     setTexWindowUnchecked(0x00000000);
+    setBlendFactors(0.0, 0.0);
 
     clearVRAM();
 }
@@ -199,13 +200,18 @@ int PCSX::OpenGL_GPU::init() {
         flat in ivec2 texpageBase;
         flat in int texMode;
 
-        out vec4 FragColor;
+        // We use dual-source blending in order to emulate the fact that the GPU can enable blending per-pixel
+        // FragColor: The colour of the pixel before alpha blending comes into play
+        // BlendColor: Contains blending coefficients
+        layout(location = 0, index = 0) out vec4 FragColor;
+        layout(location = 0, index = 1) out vec4 BlendColor;
     
         // Tex window uniform format
         // x, y components: masks to & coords with
         // z, w components: masks to | coords with
         uniform ivec4 u_texWindow;
         uniform sampler2D u_vramTex;
+        uniform vec4 u_blendFactors;
 
         int floatToU5(float f) {
             return int(floor(f * 31.0 + 0.5));
@@ -236,11 +242,12 @@ int PCSX::OpenGL_GPU::init() {
         void main() {
            if (texMode == 4) { // Untextured primitive
                FragColor = vertexColor;
+               BlendColor = u_blendFactors;
                return;
            }
 
            // Fix up UVs and apply texture window
-           ivec2 UV = ivec2(floor(texCoords + vec2(0.0001, -0.0001))) & ivec2(0xff);
+           ivec2 UV = ivec2(floor(texCoords + vec2(0.0001, 0.0001))) & ivec2(0xff);
            UV = (UV & u_texWindow.xy) | u_texWindow.zw;
 
            if (texMode == 0) { // 4bpp texture
@@ -254,6 +261,7 @@ int PCSX::OpenGL_GPU::init() {
                FragColor = sampleVRAM(sampleCoords);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
+               BlendColor = FragColor.a >= 0.5 ? u_blendFactors : vec4(1.0, 1.0, 1.0, 0.0);
                FragColor = texBlend(FragColor, vertexColor);
            } else if (texMode == 1) { // 8bpp texture
                ivec2 texelCoord = ivec2(UV.x >> 1, UV.y) + texpageBase;
@@ -266,6 +274,7 @@ int PCSX::OpenGL_GPU::init() {
                FragColor = sampleVRAM(sampleCoords);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
+               BlendColor = FragColor.a >= 0.5 ? u_blendFactors : vec4(1.0, 1.0, 1.0, 0.0);
                FragColor = texBlend(FragColor, vertexColor);
            } else { // Texture depth 2 and 3 both indicate 16bpp textures
                ivec2 texelCoord = UV + texpageBase;
@@ -273,6 +282,7 @@ int PCSX::OpenGL_GPU::init() {
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                FragColor = texBlend(FragColor, vertexColor);
+               BlendColor = u_blendFactors;
            }
         }
     )";
@@ -285,6 +295,7 @@ int PCSX::OpenGL_GPU::init() {
     m_program.use();
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
     m_texWindowLoc = OpenGL::uniformLocation(m_program, "u_texWindow");
+    m_blendFactorsLoc = OpenGL::uniformLocation(m_program, "u_blendFactors");
 
     const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
     glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
@@ -448,6 +459,7 @@ bool PCSX::OpenGL_GPU::configure() {
             m_program.use();
             m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
             m_texWindowLoc = OpenGL::uniformLocation(m_program, "u_texWindow");
+            m_blendFactorsLoc = OpenGL::uniformLocation(m_program, "u_blendFactors");
 
             const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
             glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
@@ -583,7 +595,6 @@ void PCSX::OpenGL_GPU::vblank() {
 
     m_gui->setViewport();
     m_gui->flip();  // Set up offscreen framebuffer before rendering
-
     // TODO: Handle 24-bit display here.
     float xRatio = false ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
 

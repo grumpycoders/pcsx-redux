@@ -145,11 +145,16 @@ class OpenGL_GPU final : public GPU {
     OpenGL::vec3 m_clearColour = OpenGL::vec3({0.f, 0.f, 0.f});
     // Specifies how and whether to fill renderer polygons
     OpenGL::FillMode m_polygonMode = OpenGL::FillPoly;
+    // x: The factor to multiply the destination (framebuffer) colour with
+    // y: The factor to multiply the source colour with
+    OpenGL::vec2 m_blendFactors;
+
     bool m_multisampled = false;
     int m_polygonModeIndex = 0;
 
     GLint m_drawingOffsetLoc;
     GLint m_texWindowLoc;
+    GLint m_blendFactorsLoc;
 
     int m_FIFOIndex;
     int m_cmd;
@@ -228,6 +233,7 @@ class OpenGL_GPU final : public GPU {
     void setTransparency();
 
     void setBlendingModeFromTexpage(uint32_t texpage);
+    void setBlendFactors(float destFactor, float sourceFactor);
 
     // GP0/GP1 command funcs
     void initCommands();
