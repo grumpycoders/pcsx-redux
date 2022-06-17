@@ -213,38 +213,38 @@ namespace eastl
 
 	inline void fill(char* first, char* last, const char& c) // It's debateable whether we should use 'char& c' or 'char c' here.
 	{
-		memset(first, (unsigned char)c, (size_t)(last - first));
+		__builtin_memset(first, (unsigned char)c, (size_t)(last - first));
 	}
 
 	inline void fill(char* first, char* last, const int c) // This is used for cases like 'fill(first, last, 0)'.
 	{
-		memset(first, (unsigned char)c, (size_t)(last - first));
+		__builtin_memset(first, (unsigned char)c, (size_t)(last - first));
 	}
 
 	inline void fill(unsigned char* first, unsigned char* last, const unsigned char& c)
 	{
-		memset(first, (unsigned char)c, (size_t)(last - first));
+		__builtin_memset(first, (unsigned char)c, (size_t)(last - first));
 	}
 
 	inline void fill(unsigned char* first, unsigned char* last, const int c)
 	{
-		memset(first, (unsigned char)c, (size_t)(last - first));
+		__builtin_memset(first, (unsigned char)c, (size_t)(last - first));
 	}
 
 	inline void fill(signed char* first, signed char* last, const signed char& c)
 	{
-		memset(first, (unsigned char)c, (size_t)(last - first));
+		__builtin_memset(first, (unsigned char)c, (size_t)(last - first));
 	}
 
 	inline void fill(signed char* first, signed char* last, const int c)
 	{
-		memset(first, (unsigned char)c, (size_t)(last - first));
+		__builtin_memset(first, (unsigned char)c, (size_t)(last - first));
 	}
 
 	#if defined(_MSC_VER) || defined(__BORLANDC__) || defined(__ICL) // ICL = Intel compiler
 		inline void fill(bool* first, bool* last, const bool& b)
 		{
-			memset(first, (char)b, (size_t)(last - first));
+			__builtin_memset(first, (char)b, (size_t)(last - first));
 		}
 	#endif
 
@@ -304,26 +304,26 @@ namespace eastl
 	template <typename Size>
 	inline char* fill_n(char* first, Size n, const char& c)
 	{
-		return (char*)memset(first, (char)c, (size_t)n) + n;
+		return (char*)__builtin_memset(first, (char)c, (size_t)n) + n;
 	}
 
 	template <typename Size>
 	inline unsigned char* fill_n(unsigned char* first, Size n, const unsigned char& c)
 	{
-		return (unsigned char*)memset(first, (unsigned char)c, (size_t)n) + n;
+		return (unsigned char*)__builtin_memset(first, (unsigned char)c, (size_t)n) + n;
 	}
 
 	template <typename Size>
 	inline signed char* fill_n(signed char* first, Size n, const signed char& c)
 	{
-		return (signed char*)memset(first, (signed char)c, n) + (size_t)n;
+		return (signed char*)__builtin_memset(first, (signed char)c, n) + (size_t)n;
 	}
 
 	#if defined(_MSC_VER) || defined(__BORLANDC__) || defined(__ICL) // ICL = Intel compiler
 		template <typename Size>
 		inline bool* fill_n(bool* first, Size n, const bool& b)
 		{
-			return (bool*)memset(first, (char)b, n) + (size_t)n;
+			return (bool*)__builtin_memset(first, (char)b, n) + (size_t)n;
 		}
 	#endif
 

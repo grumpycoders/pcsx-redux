@@ -68,7 +68,7 @@ void cxxmain() {
     main();
 }
 
-void abort() {
+__attribute__((weak)) void abort() {
     pcsx_debugbreak();
     // TODO: make this better
     while (1)
@@ -133,3 +133,54 @@ __attribute__((weak)) void __cxa_atexit(void (*func)(void*), void* arg, void* ds
 
 // no, we're not going to have shared libraries
 __attribute__((weak)) void* __dso_handle = NULL;
+
+__attribute__((weak)) void* memcpy(void* s1_, const void* s2_, size_t n) {
+    uint8_t* s1 = (uint8_t*)s1_;
+    const uint8_t* s2 = (uint8_t*)s2_;
+    size_t i;
+
+    for (i = 0; i < n; i++) *s1++ = *s2++;
+
+    return s1_;
+}
+
+__attribute__((weak)) void* memmove(void* s1_, const void* s2_, size_t n) {
+    uint8_t* s1 = (uint8_t*)s1_;
+    const uint8_t* s2 = (uint8_t*)s2_;
+    size_t i;
+
+    if (s1 < s2) {
+        for (i = 0; i < n; i++) *s1++ = *s2++;
+    } else if (s1 > s2) {
+        s1 += n;
+        s2 += n;
+        for (i = 0; i < n; i++) *--s1 = *--s2;
+    }
+
+    return s1_;
+}
+
+__attribute__((weak)) int memcmp(const void* s1_, const void* s2_, size_t n) {
+    uint8_t* s1 = (uint8_t*)s1_;
+    const uint8_t* s2 = (uint8_t*)s2_;
+    size_t i;
+
+    for (i = 0; i < n; i++, s1++, s2++) {
+        if (*s1 < *s2) {
+            return -1;
+        } else if (*s1 > *s2) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+__attribute__((weak)) void* memset(void* s_, int c, size_t n) {
+    uint8_t* s = (uint8_t*)s_;
+    size_t i;
+
+    for (i = 0; i < n; i++) *s++ = (uint8_t)c;
+
+    return s_;
+}

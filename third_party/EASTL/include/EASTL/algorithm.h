@@ -49,8 +49,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Optimizations
 //
-// There are a number of opportunities for opptimizations that we take here
-// in this library. The most obvious kinds are those that subsitute memcpy
+// There are a number of opportunities for optimizations that we take here
+// in this library. The most obvious kinds are those that substitute memcpy
 // in the place of a conventional loop for data types with which this is
 // possible. The algorithms here are optimized to a higher level than currently
 // available C++ STL algorithms from vendors such as Microsoft. This is especially
@@ -255,7 +255,6 @@ EA_DISABLE_ALL_VC_WARNINGS();
 	#endif
 
 	#include <stddef.h>
-	#include <string.h> // memcpy, memcmp, memmove
 
 EA_RESTORE_ALL_VC_WARNINGS();
 
@@ -1250,7 +1249,7 @@ namespace eastl
 		template <typename T>
 		static T* move_or_copy_backward(const T* first, const T* last, T* resultEnd)
 		{
-			return (T*)memmove(resultEnd - (last - first), first, (size_t)((uintptr_t)last - (uintptr_t)first));
+			return (T*)__builtin_memmove(resultEnd - (last - first), first, (size_t)((uintptr_t)last - (uintptr_t)first));
 			// We could use memcpy here if there's no range overlap, but memcpy is rarely much faster than memmove.
 		}
 	};
@@ -2010,7 +2009,7 @@ namespace eastl
 	lexicographical_compare(const char* first1, const char* last1, const char* first2, const char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const int result = __builtin_memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2018,7 +2017,7 @@ namespace eastl
 	lexicographical_compare(char* first1, char* last1, char* first2, char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const int result = __builtin_memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2026,7 +2025,7 @@ namespace eastl
 	lexicographical_compare(const unsigned char* first1, const unsigned char* last1, const unsigned char* first2, const unsigned char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const int result = __builtin_memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2034,7 +2033,7 @@ namespace eastl
 	lexicographical_compare(unsigned char* first1, unsigned char* last1, unsigned char* first2, unsigned char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const int result = __builtin_memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2042,7 +2041,7 @@ namespace eastl
 	lexicographical_compare(const signed char* first1, const signed char* last1, const signed char* first2, const signed char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const int result = __builtin_memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2050,7 +2049,7 @@ namespace eastl
 	lexicographical_compare(signed char* first1, signed char* last1, signed char* first2, signed char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const int result = __builtin_memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
 		return result ? (result < 0) : (n1 < n2);
 	}
 

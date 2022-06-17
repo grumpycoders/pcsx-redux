@@ -80,7 +80,6 @@
 #include <EASTL/numeric_limits.h>
 
 EA_DISABLE_ALL_VC_WARNINGS()
-#include <stdlib.h>
 #include <new>
 EA_RESTORE_ALL_VC_WARNINGS()
 

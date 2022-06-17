@@ -77,13 +77,12 @@ static inline void waitGPU() {
         ;
 }
 
-static inline void sendGPUData(uint32_t status) {
+static inline void sendGPUData(uint32_t data) {
     waitGPU();
-    GPU_DATA = status;
+    GPU_DATA = data;
 }
 
 static inline void sendGPUStatus(uint32_t status) {
-    waitGPU();
     GPU_STATUS = status;
 }
 
@@ -97,7 +96,9 @@ static inline uint32_t generateDisplayMode(const struct DisplayModeConfig* confi
            (config->colorDepth << 4) | (config->videoInterlace << 5) | (config->hResolutionExtended << 6);
 }
 
-static inline void setDisplayMode(const struct DisplayModeConfig* config) { sendGPUStatus(generateDisplayMode(config)); }
+static inline void setDisplayMode(const struct DisplayModeConfig* config) {
+    sendGPUStatus(generateDisplayMode(config));
+}
 
 static inline uint32_t generateDisplayArea(int16_t x, int16_t y) { return 0x05000000 | x | (y << 10); }
 static inline void setDisplayArea(int16_t x, int16_t y) { sendGPUStatus(generateDisplayArea(x, y)); }
@@ -136,7 +137,7 @@ static inline void setDrawingArea(int16_t x1, int16_t y1, int16_t x2, int16_t y2
     sendGPUData(generateDrawingAreaEnd(x2, y2));
 }
 
-static inline uint32_t generateDrawingOffset(int16_t x, int16_t y) { return 0xe5000000 | x | y << 10; }
+static inline uint32_t generateDrawingOffset(int16_t x, int16_t y) { return 0xe5000000 | x | y << 11; }
 static inline void setDrawingOffset(int16_t x, int16_t y) { sendGPUData(generateDrawingOffset(x, y)); }
 
 enum Shading {
@@ -196,3 +197,6 @@ static inline uint32_t generateLineCommand(const struct GPULineCommand* c) {
            c->color.g << 8 | c->color.r;
 }
 static inline void startLineCommand(const struct GPULineCommand* c) { sendGPUData(generateLineCommand(c)); }
+
+static inline uint32_t generateFlushGPUCache() { return 0x04000000; }
+static inline void flushGPUCache() { sendGPUData(generateFlushGPUCache()); }

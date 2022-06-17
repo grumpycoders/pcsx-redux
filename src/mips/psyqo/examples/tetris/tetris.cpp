@@ -50,6 +50,7 @@ class Tetris final : public psyqo::Application {
 
     uint8_t m_anim = 0;
     bool m_direction = true;
+    bool m_systemFontUploaded = false;
 };
 
 }  // namespace
@@ -70,6 +71,10 @@ void Tetris::prepare() {
 void Tetris::button(psyqo::Input::Event& event) {}
 
 void Tetris::frame() {
+    if (!m_systemFontUploaded) {
+        m_systemFontUploaded = true;
+        m_font.uploadSystemFont(gpu());
+    }
     if (m_anim == 0) {
         m_direction = true;
     } else if (m_anim == 255) {
@@ -83,6 +88,10 @@ void Tetris::frame() {
     } else {
         m_anim--;
     }
+
+    Color c = {.r = 0xff, .g = 0xff, .b = 0xff};
+    c.b = 255 - m_anim;
+    m_font.print(gpu(), "HELLO WORLD", {.x = 16, .y = 32}, c);
 }
 
 Tetris tetris;

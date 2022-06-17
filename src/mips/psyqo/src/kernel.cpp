@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "psyqo/kernel.hh"
 
+#include <EASTL/atomic.h>
+#include <EASTL/bonus/fixed_ring_buffer.h>
 #include <stdint.h>
 
 #include "common/hardware/hwregs.h"
@@ -34,6 +36,8 @@ SOFTWARE.
 #include "common/kernel/events.h"
 #include "common/syscalls/syscalls.h"
 #include "common/util/encoder.hh"
+
+void abort();
 
 namespace {
 
@@ -80,6 +84,7 @@ void freeEventFunction(void* function) {
 }  // namespace
 
 void psyqo::Kernel::abort(const char* msg) {
+    pcsx_message(msg);
     pcsx_debugbreak();
     while (1)
         ;
@@ -94,10 +99,10 @@ namespace {
 eastl::function<void()> s_dmaCallbacks[7][SLOTS];
 }
 
-unsigned psyqo::Kernel::registerDmaCallback(DMA channel_, eastl::function<void()>&& lambda) {
+unsigned psyqo::Kernel::registerDmaEvent(DMA channel_, eastl::function<void()>&& lambda) {
     unsigned channel = static_cast<unsigned>(channel_);
     if (channel >= static_cast<unsigned>(DMA::Max)) {
-        psyqo::Kernel::abort("registerDmaCallback: invalid dma channel");
+        psyqo::Kernel::abort("registerDmaEvent: invalid dma channel");
     }
     auto& slots = s_dmaCallbacks[channel];
     for (unsigned slot = 0; slot < SLOTS; slot++) {
@@ -107,7 +112,7 @@ unsigned psyqo::Kernel::registerDmaCallback(DMA channel_, eastl::function<void()
         }
     }
 
-    psyqo::Kernel::abort("registerDmaCallback: no function slot available");
+    psyqo::Kernel::abort("registerDmaEvent: no function slot available");
     return 0xffffffff;
 }
 
@@ -140,12 +145,12 @@ void psyqo::Kernel::disableDma(DMA channel_) {
     DPCR = dpcr;
 }
 
-void psyqo::Kernel::unregisterDmaCallback(unsigned slot) {
+void psyqo::Kernel::unregisterDmaEvent(unsigned slot) {
     unsigned channel = slot >> 16;
     slot &= 0xffff;
 
     if ((channel >= static_cast<unsigned>(DMA::Max)) || (slot >= SLOTS) || !s_dmaCallbacks[channel][slot]) {
-        psyqo::Kernel::abort("unregisterDmaCallback: function wasn't previously allocated.");
+        psyqo::Kernel::abort("unregisterDmaEvent: function wasn't previously allocated.");
     }
     s_dmaCallbacks[channel][slot] = nullptr;
 }
@@ -182,5 +187,37 @@ void psyqo::Kernel::Internal::prepare() {
     auto t = IMASK;
     t |= IRQ_DMA;
     IMASK = t;
+    t = DICR;
+    t &= 0xffffff;
+    t |= 0x800000;
+    DICR = t;
     syscall_setIrqAutoAck(3, 1);
+}
+
+namespace {
+eastl::fixed_ring_buffer<eastl::function<void()>, 128> s_callbacks(128);
+}
+
+void psyqo::Kernel::queueCallback(eastl::function<void()>&& lambda) {
+    fastEnterCriticalSection();
+    s_callbacks.push_back(eastl::move(lambda));
+    fastLeaveCriticalSection();
+}
+
+void psyqo::Kernel::queueCallbackFromISR(eastl::function<void()>&& lambda) {
+    s_callbacks.push_back() = eastl::move(lambda);
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+}
+
+void psyqo::Kernel::Internal::pumpCallbacks() {
+    fastEnterCriticalSection();
+    eastl::atomic_signal_fence(eastl::memory_order_acquire);
+    while (!s_callbacks.empty()) {
+        auto& l = s_callbacks.front();
+        fastLeaveCriticalSection();
+        l();
+        fastEnterCriticalSection();
+        s_callbacks.pop_front();
+    }
+    fastLeaveCriticalSection();
 }

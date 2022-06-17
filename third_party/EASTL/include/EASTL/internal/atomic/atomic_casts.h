@@ -14,9 +14,6 @@
 #include <EASTL/internal/type_transformations.h>
 
 
-#include <string.h>
-
-
 namespace eastl
 {
 
@@ -127,7 +124,7 @@ EASTL_FORCE_INLINE Pun AtomicTypePunCast(const T& fromType) EA_NOEXCEPT
 	 * but still trivially copyable.
 	 */
 	typename eastl::aligned_storage<sizeof(Pun), alignof(Pun)>::type ret;
-	memcpy(eastl::addressof(ret), eastl::addressof(fromType), sizeof(Pun));
+	__builtin_memcpy(eastl::addressof(ret), eastl::addressof(fromType), sizeof(Pun));
 	return reinterpret_cast<Pun&>(ret);
 }
 

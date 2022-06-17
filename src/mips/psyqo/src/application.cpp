@@ -32,13 +32,11 @@ SOFTWARE.
 #include "psyqo/kernel.hh"
 
 int psyqo::Application::run() {
-    bool wasInCriticalSection = enterCriticalSection();
+    enterCriticalSection();
     ramsyscall_printf("*** PSYQo Application - starting ***\n");
     Kernel::Internal::prepare();
     prepare();
-    if (!wasInCriticalSection) {
-        leaveCriticalSection();
-    }
+    leaveCriticalSection();
     while (true) {
         frame();
         m_gpu.flip();

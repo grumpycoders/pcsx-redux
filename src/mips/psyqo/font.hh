@@ -26,8 +26,52 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/array.h>
+#include <EASTL/atomic.h>
+#include <EASTL/functional.h>
+
+#include "psyqo/gpu.hh"
+
 namespace psyqo {
 
-class Font {};
+class Font {
+  public:
+    void uploadSystemFont(GPU& gpu) {
+        bool done = false;
+        uploadSystemFont(
+            gpu,
+            [&done]() {
+                done = true;
+                eastl::atomic_signal_fence(eastl::memory_order_release);
+            },
+            GPU::FROM_ISR);
+        while (!done) {
+            eastl::atomic_signal_fence(eastl::memory_order_acquire);
+        }
+    }
+    void uploadSystemFont(GPU& gpu, eastl::function<void()>&& callback,
+                          GPU::DmaCallback dmaCallback = GPU::FROM_MAIN_THREAD);
+    void print(GPU& gpu, const char* text, Vertex pos, Color color = {.r = 255, .g = 255, .b = 255}) {
+        bool done = false;
+        print(
+            gpu, text, pos, color,
+            [&done]() {
+                done = true;
+                eastl::atomic_signal_fence(eastl::memory_order_release);
+            },
+            GPU::FROM_ISR);
+        while (!done) {
+            eastl::atomic_signal_fence(eastl::memory_order_acquire);
+        }
+    }
+    void print(GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
+               GPU::DmaCallback dmaCallback);
 
-} // namespace psyqo
+  private:
+    GPU::Fragment<GPU::Sprite, 256> m_fragment;
+    bool m_is8bits = false;
+    Vertex m_size;
+    eastl::array<GPU::TexInfo, 96> m_lut;
+};
+
+}  // namespace psyqo

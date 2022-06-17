@@ -27,7 +27,9 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 
 #include <EASTL/atomic.h>
+#include <EASTL/functional.h>
 
+#include "common/hardware/dma.h"
 #include "common/hardware/gpu.h"
 #include "common/hardware/irq.h"
 #include "common/hardware/pcsxhw.h"
@@ -35,7 +37,7 @@ SOFTWARE.
 #include "common/syscalls/syscalls.h"
 #include "psyqo/kernel.hh"
 
-void psyqo::GPU::initialize(const psyqo::GPU::Configuration& config) {
+void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     GPU_STATUS = 0;
     setDisplayMode(&config.config);
     setHorizontalRange(0, 0xa00);
@@ -81,30 +83,67 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration& config) {
     };
     fastFill(&ff);
     enableDisplay();
+    Kernel::enableDma(Kernel::DMA::GPU);
+    Kernel::registerDmaEvent(Kernel::DMA::GPU, [this]() {
+        sendGPUStatus(0x04000000);
+        eastl::atomic_signal_fence(eastl::memory_order_acquire);
+        if (m_flushCacheAfterDMA) {
+            flushGPUCache();
+            m_flushCacheAfterDMA = false;
+        }
+        if (m_fromISR) {
+            m_dmaCallback();
+            m_dmaCallback = nullptr;
+        } else {
+            Kernel::queueCallbackFromISR(eastl::move(m_dmaCallback));
+        }
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+    });
+    auto t = DICR;
+    t &= 0xffffff;
+    t |= 0x040000;
+    DICR = t;
 }
 
 void psyqo::GPU::flip() {
-    while (m_previousFrameCount == m_frameCount) {
+    do {
+        Kernel::Internal::pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
-    }
+    } while (m_previousFrameCount == m_frameCount);
 
     m_previousFrameCount = m_frameCount;
-    if (m_interlaced) return;
     auto parity = m_parity;
     parity ^= 1;
     m_parity = parity;
+    bool firstBuffer = !parity || m_interlaced;
+    setDisplayArea(0, firstBuffer ? 256 : 0);
+    enableScissor();
+}
+
+bool psyqo::GPU::disableScissor() {
+    bool wasEnabled = m_scissorEnabled;
+    m_scissorEnabled = false;
+    setDrawingArea(0, 0, 1024, 512);
+    setDrawingOffset(0, 0);
+    return wasEnabled;
+}
+
+bool psyqo::GPU::enableScissor() {
+    bool wasEnabled = m_scissorEnabled;
+    m_scissorEnabled = true;
+    auto parity = m_parity;
     auto width = m_width;
     auto height = m_height;
-    setDisplayArea(0, parity ? 256 : 0);
-    setDrawingArea(0, parity ? 256 : 0, width, parity ? (256 + height) : height);
-    setDrawingOffset(0, parity ? 0 : height);
+    bool firstBuffer = !parity || m_interlaced;
+    setDrawingArea(0, firstBuffer ? 0 : 256, width, firstBuffer ? height : (256 + height));
+    setDrawingOffset(0, firstBuffer ? 0 : 256);
+    return wasEnabled;
 }
 
 void psyqo::GPU::clear(Color bg) {
-    auto parity = m_parity;
     int16_t width = m_width;
     int16_t height = m_height;
-    bool firstBuffer = parity || m_interlaced;
+    bool firstBuffer = !m_parity || m_interlaced;
     struct FastFill ff = {
         .c = bg,
         .x = int16_t(0),
@@ -113,4 +152,74 @@ void psyqo::GPU::clear(Color bg) {
         .h = height,
     };
     fastFill(&ff);
+}
+
+void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect rect, eastl::function<void()> &&callback,
+                              DmaCallback dmaCallback) {
+    uintptr_t ptr = reinterpret_cast<uintptr_t>(data);
+    Kernel::assert(!m_dmaCallback, "Only one GPU DMA transfer at a time is permitted");
+    Kernel::assert((ptr & 3) == 0, "Unaligned DMA transfer");
+    // TODO: check rectangle bounds
+    m_fromISR = dmaCallback == FROM_ISR;
+    m_flushCacheAfterDMA = true;
+    m_dmaCallback = eastl::move(callback);
+    uint32_t coords = rect.pos.y;
+    coords <<= 16;
+    coords |= rect.pos.x;
+    uint32_t size = rect.size.h;
+    size <<= 16;
+    size |= rect.size.w;
+
+    uint32_t bcr = rect.size.w * rect.size.h;
+    Kernel::assert((bcr & 1) == 0, "Odd number of pixels to transfer");
+    bcr >>= 1;
+
+    unsigned bs = 1;
+    while (((bcr & 1) == 0) && (bs < 16)) {
+        bs <<= 1;
+        bcr >>= 1;
+    }
+    Kernel::assert(bcr < 65536, "Transfer too big or block size too small");
+    bcr <<= 16;
+    bcr |= bs;
+
+    sendGPUData(0xa0000000);
+    GPU_DATA = coords;
+    GPU_DATA = size;
+
+    sendGPUStatus(0x04000002);
+    while ((GPU_STATUS & 0x10000000) == 0)
+        ;
+    DMA_CTRL[DMA_GPU].MADR = ptr;
+    DMA_CTRL[DMA_GPU].BCR = bcr;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+    DMA_CTRL[DMA_GPU].CHCR = 0x01000201;
+}
+
+void psyqo::GPU::sendFragment(uint32_t *data, unsigned count, eastl::function<void()> &&callback,
+                              DmaCallback dmaCallback) {
+    uintptr_t ptr = reinterpret_cast<uintptr_t>(data);
+    Kernel::assert(!m_dmaCallback, "Only one GPU DMA transfer at a time is permitted");
+    Kernel::assert((ptr & 3) == 0, "Unaligned DMA transfer");
+    m_fromISR = dmaCallback == FROM_ISR;
+    m_dmaCallback = eastl::move(callback);
+
+    uint32_t bcr = count;
+
+    unsigned bs = 1;
+    while (((bcr & 1) == 0) && (bs < 16)) {
+        bs <<= 1;
+        bcr >>= 1;
+    }
+    Kernel::assert(bcr < 65536, "Transfer too big or block size too small");
+    bcr <<= 16;
+    bcr |= bs;
+
+    sendGPUStatus(0x04000002);
+    while ((GPU_STATUS & 0x10000000) == 0)
+        ;
+    DMA_CTRL[DMA_GPU].MADR = ptr;
+    DMA_CTRL[DMA_GPU].BCR = bcr;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+    DMA_CTRL[DMA_GPU].CHCR = 0x01000201;
 }

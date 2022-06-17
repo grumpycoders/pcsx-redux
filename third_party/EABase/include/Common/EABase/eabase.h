@@ -8,6 +8,8 @@
 #ifndef INCLUDED_eabase_H
 #define INCLUDED_eabase_H
 
+#include <stdint.h>
+
 
 // Identify the compiler and declare the EA_COMPILER_xxxx defines
 #include <EABase/config/eacompiler.h>
@@ -97,9 +99,9 @@
 // ------------------------------------------------------------------------
 // We need to test this after we potentially include stddef.h, otherwise we
 // would have put this into the compilertraits header.
-#if !defined(EA_COMPILER_HAS_INTTYPES) && (!defined(_MSC_VER) || (_MSC_VER > 1500)) && (defined(EA_COMPILER_IS_C99) || defined(INT8_MIN) || defined(EA_COMPILER_HAS_C99_TYPES) || defined(_SN_STDINT_H))
-	#define EA_COMPILER_HAS_INTTYPES
-#endif
+//#if !defined(EA_COMPILER_HAS_INTTYPES) && (!defined(_MSC_VER) || (_MSC_VER > 1500)) && (defined(EA_COMPILER_IS_C99) || defined(INT8_MIN) || defined(EA_COMPILER_HAS_C99_TYPES) || defined(_SN_STDINT_H))
+//	#define EA_COMPILER_HAS_INTTYPES
+//#endif
 
 #ifdef EA_COMPILER_HAS_INTTYPES // If the compiler supports inttypes...
 	// ------------------------------------------------------------------------
@@ -187,6 +189,7 @@
 	#endif
 #else // else we must implement types ourselves.
 
+#if 0
 	#if !defined(__BIT_TYPES_DEFINED__) && !defined(__int8_t_defined)
 		typedef signed char             int8_t;             //< 8 bit signed integer
 	#endif
@@ -201,6 +204,7 @@
 		typedef unsigned int           uint32_t;            //< 32 bit unsigned integer. This works for both 32 bit and 64 bit platforms, as we assume the LP64 is followed.
 		#define __uint32_t_defined
 	#endif
+#endif
 
 	// According to the C98/99 standard, FLT_EVAL_METHOD defines control the 
 	// width used for floating point _t types.
@@ -574,6 +578,7 @@
 // signed equivalent to size_t.
 // This is defined by GCC (except the QNX implementation of GCC) but not by other compilers.
 //
+#if 0
 #if !defined(__GNUC__)
 	// As of this writing, all non-GCC compilers significant to us implement 
 	// uintptr_t the same as size_t. However, this isn't guaranteed to be 
@@ -591,7 +596,7 @@
 #else
 	#include <sys/types.h>
 #endif
-
+#endif
 
 // ------------------------------------------------------------------------
 // Character types

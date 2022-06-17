@@ -26,6 +26,8 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/array.h>
+#include <EASTL/atomic.h>
 #include <EASTL/functional.h>
 #include <EASTL/utility.h>
 #include <stdint.h>
@@ -34,11 +36,120 @@ SOFTWARE.
 
 namespace psyqo {
 
+struct Vertex {
+    union {
+        int16_t x, w;
+    };
+    union {
+        int16_t y, h;
+    };
+};
+
+struct Rect {
+    union {
+        Vertex a, pos;
+    };
+    union {
+        Vertex b, size;
+    };
+};
+
 class GPU {
   public:
+    template <typename T, size_t count>
+    struct Fragment {
+        typedef T FragmentBaseType;
+        constexpr size_t size() { return count; }
+        uint32_t head;
+        eastl::array<T, count> data;
+    };
+    struct ClutIndex {
+        ClutIndex() : index(0) {}
+        ClutIndex(uint16_t x, uint16_t y) : index((y << 6) | x) {}
+        uint16_t index;
+    };
+    struct TexInfo {
+        uint8_t u;
+        uint8_t v;
+        ClutIndex clut;
+    };
+    struct Sprite {
+        Sprite() : command(0b01100100000000000000000000000000) {}
+        uint32_t command;
+        Vertex position;
+        TexInfo texInfo;
+        Vertex size;
+    };
+    struct Configuration;
     enum Resolution { W256, W320, W368, W512, W640 };
     enum VideoMode { AUTO, NTSC, PAL };
     enum ColorMode { C15BITS, C24BITS };
+    void initialize(const Configuration &config);
+    void onVsync(eastl::function<void()> &&callback) { m_vsync = eastl::move(callback); }
+    uint32_t getFrameCount() { return m_frameCount; }
+    void clear(Color bg = {{0, 0, 0}});
+
+    void uploadToVRAM(const uint16_t *data, Rect rect) {
+        bool done = false;
+        uploadToVRAM(
+            data, rect,
+            [&done]() {
+                done = true;
+                eastl::atomic_signal_fence(eastl::memory_order_release);
+            },
+            FROM_ISR);
+        while (!done) {
+            eastl::atomic_signal_fence(eastl::memory_order_acquire);
+        }
+    }
+    enum DmaCallback {
+        FROM_ISR,
+        FROM_MAIN_THREAD,
+    };
+    template <typename Fragment>
+    void sendFragment(Fragment &fragment, unsigned count) {
+        bool done = false;
+        sendFragment(
+            reinterpret_cast<uint32_t *>(fragment.data.data()),
+            count * sizeof(typename Fragment::FragmentBaseType) / sizeof(uint32_t),
+            [&done]() {
+                done = true;
+                eastl::atomic_signal_fence(eastl::memory_order_release);
+            },
+            FROM_ISR);
+        while (!done) {
+            eastl::atomic_signal_fence(eastl::memory_order_acquire);
+        }
+    }
+    template <typename Fragment>
+    void sendFragment(Fragment &fragment, unsigned count, eastl::function<void()> &&callback,
+                      DmaCallback dmaCallback = FROM_MAIN_THREAD) {
+        sendFragment(reinterpret_cast<uint32_t *>(fragment.data.data()),
+                     count * sizeof(typename Fragment::FragmentBaseType) / sizeof(uint32_t), eastl::move(callback),
+                     dmaCallback);
+    }
+    void uploadToVRAM(const uint16_t *data, Rect rect, eastl::function<void()> &&callback,
+                      DmaCallback dmaCallback = FROM_MAIN_THREAD);
+    bool disableScissor();
+    bool enableScissor();
+
+  private:
+    void sendFragment(uint32_t *data, unsigned count, eastl::function<void()> &&callback, DmaCallback dmaCallback);
+    eastl::function<void(void)> m_vsync = nullptr;
+    eastl::function<void(void)> m_dmaCallback = nullptr;
+    bool m_fromISR = false;
+    bool m_flushCacheAfterDMA = false;
+    int m_width = 0;
+    int m_height = 0;
+    uint32_t m_frameCount = 0;
+    uint32_t m_previousFrameCount = 0;
+    int m_parity = 0;
+    bool m_interlaced = false;
+    bool m_scissorEnabled = false;
+    void flip();
+    friend class Application;
+
+  public:
     struct Configuration {
         Configuration &setResolution(Resolution resolution) {
             if (resolution == Resolution::W368) {
@@ -97,21 +208,6 @@ class GPU {
         DisplayModeConfig config = {};
         friend class GPU;
     };
-    void initialize(const Configuration &config);
-    void onVsync(eastl::function<void(void)> &&callback) { m_vsync = eastl::move(callback); }
-    uint32_t getFrameCount() { return m_frameCount; }
-    void clear(Color bg = {{0, 0, 0}});
-
-  private:
-    eastl::function<void(void)> m_vsync = nullptr;
-    int m_width = 0;
-    int m_height = 0;
-    uint32_t m_frameCount = 0;
-    uint32_t m_previousFrameCount = 0;
-    int m_parity = 0;
-    bool m_interlaced = false;
-    void flip();
-    friend class Application;
 };
 
 }  // namespace psyqo

@@ -14,7 +14,6 @@
 
 #include <EASTL/type_traits.h>
 #include <EASTL/iterator.h>
-#include <string.h> // memcpy, memcmp, memmove
 
 
 namespace eastl
@@ -116,7 +115,7 @@ namespace eastl
 				return result;
 
 			// We could use memcpy here if there's no range overlap, but memcpy is rarely much faster than memmove.
-			return (T*)memmove(result, first, (size_t)((uintptr_t)last - (uintptr_t)first)) + (last - first);
+			return (T*)__builtin_memmove(result, first, (size_t)((uintptr_t)last - (uintptr_t)first)) + (last - first);
 		}
 	};
 

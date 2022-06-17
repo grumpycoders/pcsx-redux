@@ -33,6 +33,28 @@ namespace psyqo {
 
 namespace Kernel {
 
+namespace Internal {
+static inline uint32_t getCop0Status() {
+    uint32_t r;
+    asm("mfc0 %0, $12 ; nop" : "=r"(r));
+    return r;
+}
+
+static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(r)); }
+}  // namespace Internal
+
+static inline bool fastEnterCriticalSection() {
+    uint32_t sr = Internal::getCop0Status();
+    Internal::setCop0Status(sr & ~0x404);
+    return (sr & 0x404) == 0x404;
+}
+
+static inline void fastLeaveCriticalSection() {
+    uint32_t sr = Internal::getCop0Status();
+    sr |= 0x404;
+    Internal::setCop0Status(sr);
+}
+
 enum class DMA : unsigned {
     MDECin,
     MDECout,
@@ -46,14 +68,22 @@ enum class DMA : unsigned {
 
 void abort(const char* msg);
 uint32_t openEvent(uint32_t classId, uint32_t spec, uint32_t mode, eastl::function<void()>&& lambda);
-unsigned registerDmaCallback(DMA channel, eastl::function<void()>&& lambda);
+unsigned registerDmaEvent(DMA channel, eastl::function<void()>&& lambda);
 void enableDma(DMA channel, unsigned priority = 7);
 void disableDma(DMA channel);
-void unregisterDmaCallback(unsigned slot);
+void unregisterDmaEvent(unsigned slot);
+
+void queueCallback(eastl::function<void()>&& lambda);
+void queueCallbackFromISR(eastl::function<void()>&& lambda);
 
 namespace Internal {
 void prepare();
+void pumpCallbacks();
 }  // namespace Internal
+
+inline void assert(bool condition, const char* message) {
+    if (!condition) abort(message);
+}
 
 }  // namespace Kernel
 

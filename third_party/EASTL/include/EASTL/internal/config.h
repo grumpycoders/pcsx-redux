@@ -6,6 +6,8 @@
 #ifndef EASTL_INTERNAL_CONFIG_H
 #define EASTL_INTERNAL_CONFIG_H
 
+#include <stdint.h>
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // ReadMe
