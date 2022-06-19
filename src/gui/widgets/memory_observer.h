@@ -45,8 +45,8 @@ namespace Widgets {
 class MemoryObserver {
   public:
     void draw(const char* title);
-    bool m_show = false;
-    MemoryObserver();
+    bool& m_show;
+    MemoryObserver(bool& show);
 
   private:
     static int getMemValue(uint32_t absoluteAddress, const uint8_t* memData, uint32_t memSize, uint32_t memBase,

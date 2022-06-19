@@ -37,13 +37,13 @@ namespace Widgets {
 
 class MemcardManager {
   public:
+    MemcardManager(bool& show) : m_show(show) {}
     bool draw(GUI* gui, const char* title);
-    bool m_show = false;
+    bool& m_show;
     // The framecount from 0 to 59 inclusive. We need it to know which frame of multi-animation
     // icons to display.
     int m_frameCount = 0;
 
-    MemcardManager() {}
     void initTextures();
 
   private:

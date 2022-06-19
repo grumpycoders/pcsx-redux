@@ -31,7 +31,7 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
-PCSX::Widgets::MemoryObserver::MemoryObserver() {
+PCSX::Widgets::MemoryObserver::MemoryObserver(bool& show) : m_show(show) {
 #ifdef MEMORY_OBSERVER_X86
     const auto cpu = Xbyak::util::Cpu();
     m_useSIMD = cpu.has(Xbyak::util::Cpu::tAVX2);
@@ -142,7 +142,8 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 auto ptr = memData;
                 m_plainAddresses.clear();
                 while (true) {
-                    auto found = reinterpret_cast<const uint8_t*>(memmem(ptr, memData + memSize - ptr, needle.c_str(), needleSize));
+                    auto found = reinterpret_cast<const uint8_t*>(
+                        memmem(ptr, memData + memSize - ptr, needle.c_str(), needleSize));
                     if (found) {
                         m_plainAddresses.push_back(memBase + static_cast<uint32_t>(found - memData));
                         ptr = reinterpret_cast<const uint8_t*>(found) + 1;

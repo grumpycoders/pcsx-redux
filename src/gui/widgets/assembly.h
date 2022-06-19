@@ -42,13 +42,13 @@ namespace Widgets {
 
 class Assembly : private Disasm {
   public:
-    Assembly() : m_listener(g_system->m_eventBus) {
+    Assembly(bool& show) : m_show(show), m_listener(g_system->m_eventBus) {
         m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
     void draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
 
-    bool m_show = false;
+    bool& m_show;
 
   private:
     EventBus::Listener m_listener;

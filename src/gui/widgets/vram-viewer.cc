@@ -219,7 +219,9 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
 }
 
-PCSX::Widgets::VRAMViewer::VRAMViewer() { m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, ""); }
+PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show) {
+    m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, "");
+}
 
 void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     if (!m_shaderProgram) {

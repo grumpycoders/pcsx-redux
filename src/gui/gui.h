@@ -239,6 +239,22 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowLuaConsole")> ShowLuaConsole;
     typedef Setting<bool, TYPESTRING("ShowLuaInspector")> ShowLuaInspector;
     typedef Setting<bool, TYPESTRING("ShowLuaEditor")> ShowLuaEditor;
+    typedef Setting<bool, TYPESTRING("ShowMainVRAMViewer")> ShowMainVRAMViewer;
+    typedef Setting<bool, TYPESTRING("ShowCLUTVRAMViewer")> ShowCLUTVRAMViewer;
+    typedef Setting<bool, TYPESTRING("ShowVRAMViewer1")> ShowVRAMViewer1;
+    typedef Setting<bool, TYPESTRING("ShowVRAMViewer2")> ShowVRAMViewer2;
+    typedef Setting<bool, TYPESTRING("ShowVRAMViewer3")> ShowVRAMViewer3;
+    typedef Setting<bool, TYPESTRING("ShowVRAMViewer4")> ShowVRAMViewer4;
+    typedef Setting<bool, TYPESTRING("ShowMemoryObserver")> ShowMemoryObserver;
+    typedef Setting<bool, TYPESTRING("ShowMemcardManager")> ShowMemcardManager;
+    typedef Setting<bool, TYPESTRING("ShowRegisters")> ShowRegisters;
+    typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
+    typedef Setting<bool, TYPESTRING("ShowDisassembly")> ShowDisassembly;
+    typedef Setting<bool, TYPESTRING("ShowBreakpoints")> ShowBreakpoints;
+    typedef Setting<bool, TYPESTRING("ShowEvents")> ShowEvents;
+    typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
+    typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
+    typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
@@ -249,8 +265,10 @@ class GUI final {
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
     typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize, GUITheme,
-             EnableRawMouseMotion>
+             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
+             ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowMemcardManager,
+             ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents, ShowKernelLog, ShowCallstacks,
+             ShowSIO1, MainFontSize, MonoFontSize, GUITheme, EnableRawMouseMotion>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -278,15 +296,15 @@ class GUI final {
     MemoryEditorWrapper m_scratchPadEditor;
     MemoryEditorWrapper m_hwrEditor;
     MemoryEditorWrapper m_biosEditor;
-    Widgets::MemoryObserver m_memoryObserver;
-    Widgets::MemcardManager m_memcardManager;
-    Widgets::Registers m_registers;
-    Widgets::Assembly m_assembly;
-    Widgets::Disassembly m_disassembly;
+    Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
+    Widgets::MemcardManager m_memcardManager = {settings.get<ShowMemcardManager>().value};
+    Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
+    Widgets::Assembly m_assembly = {settings.get<ShowAssembly>().value};
+    Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
-    Widgets::Breakpoints m_breakpoints;
+    Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     bool m_breakOnVSync = false;
 
     bool m_showCfg = false;
@@ -295,18 +313,21 @@ class GUI final {
 
     const CommandLine::args &m_args;
 
-    Widgets::VRAMViewer m_mainVRAMviewer;
-    Widgets::VRAMViewer m_clutVRAMviewer;
-    Widgets::VRAMViewer m_VRAMviewers[4];
+    Widgets::VRAMViewer m_mainVRAMviewer = {settings.get<ShowMainVRAMViewer>().value};
+    Widgets::VRAMViewer m_clutVRAMviewer = {settings.get<ShowCLUTVRAMViewer>().value};
+    Widgets::VRAMViewer m_VRAMviewers[4] = {{settings.get<ShowVRAMViewer1>().value},
+                                            {settings.get<ShowVRAMViewer2>().value},
+                                            {settings.get<ShowVRAMViewer3>().value},
+                                            {settings.get<ShowVRAMViewer4>().value}};
 
     Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
 
-    Widgets::Events m_events;
-    Widgets::KernelLog m_kernelLog;
+    Widgets::Events m_events = {settings.get<ShowEvents>().value};
+    Widgets::KernelLog m_kernelLog = {settings.get<ShowKernelLog>().value};
 
-    Widgets::CallStacks m_callstacks;
+    Widgets::CallStacks m_callstacks = {settings.get<ShowCallstacks>().value};
 
-    Widgets::SIO1 m_sio1;
+    Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     EventBus::Listener m_listener;
 

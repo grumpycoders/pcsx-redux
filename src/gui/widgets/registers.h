@@ -29,9 +29,10 @@ namespace Widgets {
 
 class Registers {
   public:
+    Registers(bool& show) : m_show(show) {}
     void draw(GUI* gui, psxRegisters* registers, const char* title);
 
-    bool m_show = false;
+    bool& m_show;
 
   private:
     unsigned m_selected = 0;
