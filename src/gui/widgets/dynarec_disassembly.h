@@ -44,8 +44,9 @@ namespace Widgets {
 
 class Disassembly {
   public:
+    Disassembly(bool& show) : m_show(show) {}
     void draw(GUI*, const char*);
-    bool m_show = false;
+    bool& m_show;
 
   private:
     std::vector<std::string> m_items;

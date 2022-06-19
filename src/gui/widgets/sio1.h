@@ -30,9 +30,10 @@ namespace Widgets {
 
 class SIO1 {
   public:
+    SIO1(bool& show) : m_show(show) {}
     void draw(GUI* gui, SIO1Registers* registers, const char* title);
 
-    bool m_show = false;
+    bool& m_show;
 
   private:
     template <typename T>

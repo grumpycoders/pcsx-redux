@@ -31,9 +31,10 @@ namespace Widgets {
 
 class KernelLog {
   public:
+    KernelLog(bool& show) : m_show(show) {}
     bool draw(R3000Acpu* cpu, const char* title);
 
-    bool m_show = false;
+    bool& m_show;
 };
 
 }  // namespace Widgets

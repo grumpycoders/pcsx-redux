@@ -300,40 +300,6 @@ struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSet
     }
 };
 
-template <typename name, size_t N, typename nestedSetting>
-struct SettingArray;
-template <char... C, size_t N, typename nestedSetting>
-struct SettingArray<irqus::typestring<C...>, N, nestedSetting> : public std::array<nestedSetting, N> {
-    using json = nlohmann::json;
-    typedef irqus::typestring<C...> name;
-    json serialize() const {
-        auto ret = json::array();
-        for (auto &item : *this) {
-            ret.push_back(item.serialize());
-        }
-        return ret;
-    }
-    void deserialize(const json &j) {
-        int count = 0;
-        for (auto &item : j) {
-            nestedSetting s;
-            s.deserialize(item);
-            if (count < N) {
-                (*this)[count] = s;
-            }
-            count++;
-        }
-        for (; count < N; count++) {
-            (*this)[count].reset();
-        }
-    }
-    void reset() {
-        for (auto &item : *this) {
-            item.reset();
-        }
-    }
-};
-
 template <typename... settings>
 struct Settings : private std::tuple<settings...> {
     using json = nlohmann::json;
