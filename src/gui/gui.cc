@@ -284,6 +284,7 @@ void PCSX::GUI::init() {
         abort();
     }
 
+    m_listener.listen<Events::Quitting>([this](const auto& event) { saveCfg(); });
     m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         glfwSwapInterval(m_idleSwapInterval);
