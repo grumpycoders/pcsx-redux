@@ -48,12 +48,12 @@ body:
     validations:
       required: true
     attributes:
-      label: PCSX-Redux verison
+      label: PCSX-Redux version
       placeholder: (go to Help -> About to get version information)
       description: >
         The version of PCSX-Redux you're currently running
 
-- type: input
+  - type: input
     validations:
       required: true
     attributes:
