@@ -22,7 +22,6 @@
 #include <stdint.h>
 
 #include <list>
-#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -60,7 +59,6 @@ class Assembly : private Disasm {
     int m_numColumns = 4;
     char m_jumpAddressString[20];
     uint32_t m_previousPC = 0;
-    std::map<uint32_t, std::string> m_symbols;
     FileDialog m_symbolsFileDialog = {[]() { return _("Load Symbols"); }};
     std::vector<std::pair<uint32_t, uint32_t>> m_arrows;
 
