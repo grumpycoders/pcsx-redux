@@ -44,7 +44,7 @@ body:
       description: >
         The OS of the system you're running Redux on
 
-  - type: input
+  - type: textarea
     validations:
       required: true
     attributes:
