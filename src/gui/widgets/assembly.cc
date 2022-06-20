@@ -394,6 +394,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
 }
 
 void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
+    auto& cpu = g_emulator->m_cpu;
     m_registers = registers;
     m_memory = memory;
     ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
@@ -410,6 +411,9 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu(_("File"))) {
             openSymbolsDialog = ImGui::MenuItem(_("Load symbols map"));
+            if (ImGui::MenuItem(_("Reset symbols map"))) {
+                cpu->m_symbols.clear();
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu(_("Debug"))) {
@@ -491,7 +495,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     ImGui::SameLine();
     DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOut(); });
     ImGui::SameLine();
-    ImGui::Text(_("In ISR: %s"), g_emulator->m_cpu->m_inISR ? "yes" : "no");
+    ImGui::Text(_("In ISR: %s"), cpu->m_inISR ? "yes" : "no");
 
     gui->useMonoFont();
 
@@ -873,7 +877,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                 uint32_t address = strtoul(addressString.c_str(), &endPtr, 16);
                 bool addressValid = addressString[0] && !*endPtr;
                 if (!addressValid) continue;
-                m_symbols[address] = name;
+                cpu->m_symbols[address] = name;
             }
         }
     }
@@ -916,9 +920,10 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
 }
 
 std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
+    auto& cpu = g_emulator->m_cpu;
     std::list<std::string> ret;
-    auto symbol = m_symbols.find(addr);
-    if (symbol != m_symbols.end()) ret.emplace_back(symbol->second);
+    auto symbol = cpu->m_symbols.find(addr);
+    if (symbol != cpu->m_symbols.end()) ret.emplace_back(symbol->second);
 
     if (!m_symbolsCachesValid) rebuildSymbolsCaches();
     auto elfSymbol = m_elfSymbolsCache.find(addr);
@@ -928,8 +933,9 @@ std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
 }
 
 void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
+    auto& cpu = g_emulator->m_cpu;
     m_symbolsCache.clear();
-    for (auto& symbol : m_symbols) {
+    for (auto& symbol : cpu->m_symbols) {
         m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
     }
     m_symbolsCachesValid = true;

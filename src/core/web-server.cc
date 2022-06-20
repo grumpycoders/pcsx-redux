@@ -28,10 +28,13 @@
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "core/r3000a.h"
 #include "core/system.h"
 #include "http-parser/http_parser.h"
 #include "multipart-parser-c/multipart_parser.h"
+#include "support/file.h"
 #include "support/hashtable.h"
+#include "support/strings-helpers.h"
 
 namespace {
 
@@ -39,7 +42,7 @@ class VramExecutor : public PCSX::WebExecutor {
     virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
         return urldata.path == "/api/v1/gpu/vram/raw";
     }
-    virtual bool execute(PCSX::WebClient* client, const PCSX::RequestData& request) final {
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
         if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
             client->write(
                 "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 1048576\r\n\r\n");
@@ -105,7 +108,7 @@ class RamExecutor : public PCSX::WebExecutor {
     virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
         return urldata.path == "/api/v1/cpu/ram/raw";
     }
-    virtual bool execute(PCSX::WebClient* client, const PCSX::RequestData& request) final {
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
         const auto& ram8M = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>().value;
         if (ram8M) {
             client->write(
@@ -127,6 +130,37 @@ class RamExecutor : public PCSX::WebExecutor {
   public:
     RamExecutor() = default;
     virtual ~RamExecutor() = default;
+};
+
+class AssemblyExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return urldata.path == "/api/v1/assembly/symbols";
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        auto& cpu = PCSX::g_emulator->m_cpu;
+        auto& body = request.body;
+        PCSX::IO<PCSX::File> file = new PCSX::BufferFile(std::move(body));
+        while (file && !file->failed() && !file->eof()) {
+            auto line = file->gets();
+            auto tokens = PCSX::StringsHelpers::split(std::string_view(line), " ");
+            if (tokens.size() != 2) {
+                continue;
+            }
+            auto addressStr = tokens[0];
+            auto name = tokens[1];
+            uint32_t address;
+            auto result = std::from_chars(addressStr.data(), addressStr.data() + addressStr.size(), address, 16);
+            if (result.ec == std::errc::invalid_argument) continue;
+
+            cpu->m_symbols[address] = name;
+        }
+        client->write("HTTP/1.1 200 OK\r\n\r\n");
+        return true;
+    }
+
+  public:
+    AssemblyExecutor() = default;
+    virtual ~AssemblyExecutor() = default;
 };
 
 }  // namespace
@@ -177,6 +211,7 @@ std::string PCSX::WebExecutor::percentDecode(std::string_view str) {
 PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new VramExecutor());
     m_executors.push_back(new RamExecutor());
+    m_executors.push_back(new AssemblyExecutor());
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
         if (debugSettings.get<Emulator::DebugSettings::WebServer>() && (m_serverStatus != SERVER_STARTED)) {

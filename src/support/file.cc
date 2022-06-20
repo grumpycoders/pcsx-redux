@@ -55,6 +55,11 @@ PCSX::BufferFile::BufferFile(FileOps::ReadWrite) : File(RW_SEEKABLE) {
     m_owned = true;
 }
 
+PCSX::BufferFile::BufferFile(Slice &&slice) : File(RO_SEEKABLE), m_slice(std::move(slice)) {
+    m_data = const_cast<uint8_t *>(m_slice.data<uint8_t>());
+    m_size = m_slice.size();
+}
+
 void PCSX::BufferFile::close() {
     if (m_owned) free(m_data);
     m_owned = true;
