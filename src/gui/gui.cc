@@ -1754,6 +1754,14 @@ bool PCSX::GUI::about() {
             if (ImGui::BeginTabItem(_("Version"))) {
                 auto& version = g_system->getVersion();
                 if (version.failed()) {
+                    ImGui::BeginDisabled();
+                }
+                if (ImGui::Button(_("Copy to clipboard"))) {
+                    clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
+                                               version.version, version.changeset, fmt::localtime(version.timestamp)));
+                }
+                if (version.failed()) {
+                    ImGui::EndDisabled();
                     ImGui::TextUnformatted(_("No version information.\n\nProbably built from source."));
                 } else {
                     ImGui::Text(_("Version: %s"), version.version.c_str());
