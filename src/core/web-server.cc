@@ -65,7 +65,7 @@ class VramExecutor : public PCSX::WebExecutor {
             auto iy = vars.find("y");
             auto iwidth = vars.find("width");
             auto iheight = vars.find("height");
-            if (ix == vars.end() || iy == vars.end() || iwidth == vars.end() || iheight == vars.end()) {
+            if ((ix == vars.end()) || (iy == vars.end()) || (iwidth == vars.end()) || (iheight == vars.end())) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
@@ -110,21 +110,45 @@ class RamExecutor : public PCSX::WebExecutor {
     }
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
         const auto& ram8M = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>().value;
-        if (ram8M) {
-            client->write(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 8388608\r\n\r\n");
-        } else {
-            client->write(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 2097152\r\n\r\n");
-        }
-        uint32_t size = 1024 * 1024 * (ram8M ? 8 : 2);
-        uint8_t* data = (uint8_t*)malloc(size);
-        memcpy(data, PCSX::g_emulator->m_mem->m_psxM, size);
-        PCSX::Slice slice;
-        slice.acquire(data, size);
-        client->write(std::move(slice));
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
+            if (ram8M) {
+                client->write(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 8388608\r\n\r\n");
+            } else {
+                client->write(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 2097152\r\n\r\n");
+            }
+            uint32_t size = 1024 * 1024 * (ram8M ? 8 : 2);
+            uint8_t* data = (uint8_t*)malloc(size);
+            memcpy(data, PCSX::g_emulator->m_mem->m_psxM, size);
+            PCSX::Slice slice;
+            slice.acquire(data, size);
+            client->write(std::move(slice));
 
-        return true;
+        } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            const auto ramSize = (ram8M ? 8 : 2) * 1024 * 1024;
+            auto vars = parseQuery(request.urlData.query);
+            auto ioffset = vars.find("offset");
+            auto isize = vars.find("size");
+            if ((ioffset == vars.end()) || (isize == vars.end())) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            auto offset = std::stoul(ioffset->second);
+            auto size = std::stoul(isize->second);
+            if ((offset >= ramSize) || (size > ramSize) || ((offset + size) > ramSize)) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            if (size != request.body.size()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+
+            memcpy(PCSX::g_emulator->m_mem->m_psxM, request.body.data<uint8_t>(), size);
+            client->write("HTTP/1.1 200 OK\r\n\r\n");
+            return true;
+        }
     }
 
   public:
