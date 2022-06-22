@@ -49,9 +49,9 @@ struct Handler {
         uint16_t high = value >> 16;
         int16_t low = value & 0xffff;
         dst[0] = lui(Reg::K0, high);
-        dst[1] = addiu(Reg::K0, Reg::K0, low);
+        dst[1] = ori(Reg::K0, Reg::K0, low);
         dst[2] = jr(Reg::K0);
-        dst[3] = addiu(Reg::K1, Reg::R0, addr);
+        dst[3] = ori(Reg::K1, Reg::R0, addr);
     }
 
     void restore() {

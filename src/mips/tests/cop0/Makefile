@@ -1,4 +1,4 @@
-TARGET = cpu
+TARGET = cop0
 USE_FUNCTION_SECTIONS = false
 TYPE = ps-exe
 
@@ -45,10 +45,7 @@ endif
 SRCS += \
 ../../common/syscalls/printf.s \
 ../../common/crt0/uC-sdk-crt0.s \
-../cop0/exceptions.cpp \
-branchbranch.s \
-cpu.c \
-links.s \
-lwlr.s \
+cop0.c \
+exceptions.cpp \
 
 include ../../common.mk

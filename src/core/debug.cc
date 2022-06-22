@@ -204,19 +204,24 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, uint32_t address, unsigned width, co
 
 void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause) {
     auto& cpu = g_emulator->m_cpu;
-    const auto& regs = cpu->m_regs;
-    if ((regs.CP0.n.DCIC & 0xc0800000) == 0xc0800000) {
+    auto& regs = cpu->m_regs;
+
+    if (m_scheduledCop0.has_value()) {
+        regs.pc = std::get<uint32_t>(m_scheduledCop0.value());
+        cpu->exception(R3000Acpu::Exception::Break, std::get<bool>(m_scheduledCop0.value()), true);
+        m_scheduledCop0.reset();
+    } else if ((regs.CP0.n.DCIC & 0xc0800000) == 0xc0800000) {
         if (type == BreakpointType::Exec && ((regs.CP0.n.DCIC & 0x01000000) == 0x01000000)) {
             if (((regs.CP0.n.BPC ^ address) & regs.CP0.n.BPCM) == 0) {
-                cpu->exception(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
+                m_scheduledCop0.emplace(regs.pc, cpu->m_inDelaySlot);
             }
         } else if ((type == BreakpointType::Read) && ((regs.CP0.n.DCIC & 0x06000000) == 0x06000000)) {
             if (((regs.CP0.n.BDA ^ address) & regs.CP0.n.BDAM) == 0) {
-                cpu->exception(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
+                m_scheduledCop0.emplace(regs.pc, cpu->m_inDelaySlot);
             }
         } else if ((type == BreakpointType::Write) && ((regs.CP0.n.DCIC & 0x0a000000) == 0x0a000000)) {
             if (((regs.CP0.n.BDA ^ address) & regs.CP0.n.BDAM) == 0) {
-                cpu->exception(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
+                m_scheduledCop0.emplace(regs.pc, cpu->m_inDelaySlot);
             }
         }
     }

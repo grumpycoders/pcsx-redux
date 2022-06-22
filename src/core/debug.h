@@ -156,6 +156,7 @@ class Debug {
     bool m_wasInISR = false;
     Breakpoint* m_lastBP = nullptr;
     BreakpointUserListType m_todelete;
+    std::optional<std::tuple<uint32_t, bool>> m_scheduledCop0;
 };
 
 }  // namespace PCSX
