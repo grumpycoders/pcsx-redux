@@ -1486,13 +1486,13 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
-        DMA_INTERRUPT(3);
+        DMA_INTERRUPT<3>();
     }
 
     void dmaInterrupt() final {
         if (HW_DMA3_CHCR & SWAP_LE32(0x01000000)) {
             HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
-            DMA_INTERRUPT(3);
+            DMA_INTERRUPT<3>();
         }
     }
 

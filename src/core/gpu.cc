@@ -169,10 +169,10 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     }
 
     HW_DMA2_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT(2);
+    DMA_INTERRUPT<2>();
 }
 
 void PCSX::GPU::gpuInterrupt() {
     HW_DMA2_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT(2);
+    DMA_INTERRUPT<2>();
 }
