@@ -78,7 +78,7 @@ class SystemImpl final : public PCSX::System {
         if (!m_noGuiLog) {
             s_gui->addLuaLog(s, error);
         }
-        if ((error && m_inStartup) || m_args.get<bool>("lua_stdout", false)) {
+        if ((error && m_inStartup) || args.get<bool>("lua_stdout", false)) {
             if (error) {
                 fprintf(stderr, "%s\n", s.c_str());
             } else {
@@ -124,7 +124,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    virtual const CommandLine::args &getArgs() final override { return m_args; }
+    virtual const CommandLine::args &getArgs() final override { return args; }
 
     std::string m_putcharBuffer;
     PCSX::IO<PCSX::UvFile> m_logfile;
@@ -144,7 +144,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    explicit SystemImpl(const CommandLine::args &args) : m_args(args) {}
+    explicit SystemImpl(const CommandLine::args &args) : args(args) {}
     ~SystemImpl() {}
 
     void setEmergencyExit() { m_emergencyExit = true; }
@@ -154,7 +154,7 @@ class SystemImpl final : public PCSX::System {
     }
 
     bool m_enableStdout = false;
-    const CommandLine::args &m_args;
+    const CommandLine::args &args;
     bool m_inStartup = true;
     bool m_noGuiLog = false;
 };
@@ -209,7 +209,64 @@ int pcsxMain(int argc, char **argv) {
 
     s_gui = new PCSX::GUI(args);
     s_gui->init();
-    if (!args.get<bool>("stdout").has_value()) {
+    auto& emuSettings = emulator->settings;
+    auto& debugSettings = emuSettings.get<PCSX::Emulator::SettingDebugSettings>();
+    if (emuSettings.get<PCSX::Emulator::SettingMcd1>().empty()) {
+        emuSettings.get<PCSX::Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
+    }
+
+    if (emuSettings.get<PCSX::Emulator::SettingMcd2>().empty()) {
+        emuSettings.get<PCSX::Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
+    }
+
+    emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
+
+    auto argPath1 = args.get<std::string>("memcard1");
+    auto argPath2 = args.get<std::string>("memcard2");
+    if (argPath1.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd1>().value = argPath1.value();
+    if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>().value = argPath1.value();
+    PCSX::u8string path1 = emuSettings.get<PCSX::Emulator::SettingMcd1>().string();
+    PCSX::u8string path2 = emuSettings.get<PCSX::Emulator::SettingMcd2>().string();
+
+    emulator->m_sio->LoadMcds(path1, path2);
+    auto biosCfg = args.get<std::string>("bios");
+    if (biosCfg.has_value()) emuSettings.get<PCSX::Emulator::SettingBios>() = biosCfg.value();
+
+    system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
+
+    if (args.get<bool>("debugger", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value = true;
+    }
+
+    if (args.get<bool>("no-debugger", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value = false;
+    }
+
+    if (args.get<bool>("trace", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::Trace>().value = true;
+    }
+
+    if (args.get<bool>("no-trace", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::Trace>().value = false;
+    }
+
+    if (args.get<bool>("8mb", false)) {
+        emuSettings.get<PCSX::Emulator::Setting8MB>().value = true;
+    }
+
+    std::filesystem::path isoToOpen = args.get<std::string>("iso", "");
+    if (isoToOpen.empty()) isoToOpen = args.get<std::string>("loadiso", "");
+    if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->setIso(new PCSX::CDRIso(isoToOpen));
+    PCSX::g_emulator->m_cdrom->check();
+    auto argPCdrvBase = args.get<std::string>("pcdrvbase");
+    if (args.get<bool>("pcdrv", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::PCdrv>().value = true;
+    }
+    if (argPCdrvBase.has_value()) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
+    }
+
+    if (!args.get<bool>("stdout", false)) {
         system->m_enableStdout = emulator->settings.get<PCSX::Emulator::SettingStdout>();
     }
     const PCSX::u8string &logfileSet = emulator->settings.get<PCSX::Emulator::SettingLogfile>().string();

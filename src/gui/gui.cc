@@ -388,66 +388,8 @@ void PCSX::GUI::init() {
             saveCfg();
         }
 
-        setFullscreen(m_fullscreen);
-        const auto currentTheme = emuSettings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
-        applyTheme(currentTheme);
-
-        if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
-            emuSettings.get<Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
-        }
-
-        if (emuSettings.get<Emulator::SettingMcd2>().empty()) {
-            emuSettings.get<Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
-        }
-
-        PCSX::g_emulator->m_gpu->setDither(emuSettings.get<Emulator::SettingDither>());
-
-        auto argPath1 = m_args.get<std::string>("memcard1");
-        auto argPath2 = m_args.get<std::string>("memcard2");
-        if (argPath1.has_value()) emuSettings.get<Emulator::SettingMcd1>().value = argPath1.value();
-        if (argPath2.has_value()) emuSettings.get<Emulator::SettingMcd2>().value = argPath1.value();
-        PCSX::u8string path1 = emuSettings.get<Emulator::SettingMcd1>().string();
-        PCSX::u8string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
-
-        PCSX::g_emulator->m_sio->LoadMcds(path1, path2);
-        auto biosCfg = m_args.get<std::string>("bios");
-        if (biosCfg.has_value()) emuSettings.get<Emulator::SettingBios>() = biosCfg.value();
-
-        g_system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
-
-        if (m_args.get<bool>("debugger")) {
-            debugSettings.get<Emulator::DebugSettings::Debug>().value = true;
-        }
-
-        if (m_args.get<bool>("no-debugger")) {
-            debugSettings.get<Emulator::DebugSettings::Debug>().value = false;
-        }
-
-        if (m_args.get<bool>("trace")) {
-            debugSettings.get<Emulator::DebugSettings::Trace>().value = true;
-        }
-
-        if (m_args.get<bool>("no-trace")) {
-            debugSettings.get<Emulator::DebugSettings::Trace>().value = false;
-        }
-
         g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
-
-        std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
-        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->setIso(new CDRIso(isoToOpen));
-        isoToOpen = m_args.get<std::string>("loadiso", "");
-        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->setIso(new CDRIso(isoToOpen));
-        PCSX::g_emulator->m_cdrom->check();
-        auto argPCdrv = m_args.get<bool>("pcdrv");
-        auto argPCdrvBase = m_args.get<std::string>("pcdrvbase");
-        if (argPCdrv.has_value()) {
-            debugSettings.get<Emulator::DebugSettings::PCdrv>().value = argPCdrv.value();
-        }
-        if (argPCdrvBase.has_value()) {
-            debugSettings.get<Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
-        }
-
-        if (emuSettings.get<Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
+        if (emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
                 [this](bool success) {
@@ -457,6 +399,10 @@ void PCSX::GUI::init() {
                 },
                 g_system->getLoop());
         }
+
+        setFullscreen(m_fullscreen);
+        const auto currentTheme = emuSettings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
+        applyTheme(currentTheme);
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
