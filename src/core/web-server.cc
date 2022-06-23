@@ -124,7 +124,7 @@ class RamExecutor : public PCSX::WebExecutor {
             PCSX::Slice slice;
             slice.acquire(data, size);
             client->write(std::move(slice));
-
+            return true;
         } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
             const auto ramSize = (ram8M ? 8 : 2) * 1024 * 1024;
             auto vars = parseQuery(request.urlData.query);
@@ -145,10 +145,11 @@ class RamExecutor : public PCSX::WebExecutor {
                 return true;
             }
 
-            memcpy(PCSX::g_emulator->m_mem->m_psxM, request.body.data<uint8_t>(), size);
+            memcpy(PCSX::g_emulator->m_mem->m_psxM + offset, request.body.data<uint8_t>(), size);
             client->write("HTTP/1.1 200 OK\r\n\r\n");
             return true;
         }
+        return false;
     }
 
   public:
