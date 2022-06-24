@@ -537,6 +537,8 @@ static std::string glfwKeyToString(int key) {
             return _("Keyboard Enter");
         case GLFW_KEY_SPACE:
             return _("Keyboard Space");
+        case GLFW_KEY_ESCAPE:
+            return _("Keyboard Escape");
         case GLFW_KEY_UNKNOWN:
             return _("Unbound");
     };
@@ -627,7 +629,7 @@ bool PCSX::Pads::Pad::configure() {
     changed |= ImGui::SliderFloat("Mouse sensitivity Y", &m_settings.get<SettingMouseSensitivityY>().value, 0.f, 10.f);
 
     ImGui::Text(_("Keyboard mapping"));
-    if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame)) {
+    if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_Resizable)) {
         ImGui::TableSetupColumn(_("Computer button mapping"));
         ImGui::TableSetupColumn(_("Gamepad button"));
         ImGui::TableHeadersRow();
