@@ -592,7 +592,7 @@ void PCSX::GUI::startFrame() {
     glfwPollEvents();
 
     if (m_setupScreenSize) {
-        constexpr float renderRatio = 3.0f / 4.0f;
+        const float renderRatio = settings.get<WidescreenRatio>() ? 9.0f / 16.0f : 3.0f / 4.0f;
         int w, h;
 
         glfwGetFramebufferSize(m_window, &w, &h);
@@ -1197,8 +1197,22 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             }
             needFontReload |= ImGui::SliderInt(_("Main Font Size"), &settings.get<MainFontSize>().value, 8, 48);
             needFontReload |= ImGui::SliderInt(_("Mono Font Size"), &settings.get<MonoFontSize>().value, 8, 48);
-            changed |= needFontReload;
+            bool ratioChanged =
+                ImGui::Checkbox(_("Use Widescreen Aspect Ratio"), &settings.get<WidescreenRatio>().value);
+            ShowHelpMarker(_(R"(Sets the output screen ratio to 16:9 instead of 4:3.
+
+Note that this setting is NOT the popular hack
+to force games into widescreen mode, but rather an
+emulation of the fact users could change their
+TV sets to be in 16:9 mode instead of 4:3.
+
+Some games have a "wide screen" rendering setting,
+which changes the rendering of the game accordingly,
+and requires the user to change the settings of
+their TV set to match the aspect ratio of the game.)"));
+            changed |= needFontReload | ratioChanged;
             if (needFontReload) m_reloadFonts = true;
+            if (ratioChanged) m_setupScreenSize = true;
         }
         ImGui::End();
     }

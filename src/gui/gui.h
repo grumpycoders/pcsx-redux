@@ -264,11 +264,12 @@ class GUI final {
     typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
     typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
+    typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowMemcardManager,
              ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents, ShowKernelLog, ShowCallstacks,
-             ShowSIO1, MainFontSize, MonoFontSize, GUITheme, EnableRawMouseMotion>
+             ShowSIO1, MainFontSize, MonoFontSize, GUITheme, EnableRawMouseMotion, WidescreenRatio>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
