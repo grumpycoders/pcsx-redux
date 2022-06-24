@@ -776,8 +776,8 @@ void PCSX::GUI::endFrame() {
     if (m_showMenu || !m_fullscreenRender || !PCSX::g_system->running()) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu(_("File"))) {
-                showOpenIsoFileDialog = ImGui::MenuItem(_("Open ISO"));
-                if (ImGui::MenuItem(_("Close ISO"))) {
+                showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
+                if (ImGui::MenuItem(_("Close Disk Image"))) {
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso());
                     PCSX::g_emulator->m_cdrom->check();
                 }
@@ -1219,7 +1219,7 @@ their TV set to match the aspect ratio of the game.)"));
 
     if (m_showSysCfg) {
         if (ImGui::Begin(_("System Configuration"), &m_showSysCfg)) {
-            changed |= ImGui::Checkbox(_("Preload ISO files"), &emuSettings.get<Emulator::SettingFullCaching>().value);
+            changed |= ImGui::Checkbox(_("Preload Disk Image files"), &emuSettings.get<Emulator::SettingFullCaching>().value);
             changed |= ImGui::Checkbox(_("Enable Auto Update"), &emuSettings.get<Emulator::SettingAutoUpdate>().value);
         }
         ImGui::End();
