@@ -313,7 +313,7 @@ class R3000Acpu {
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
         PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
         const uint32_t cycle = m_regs.cycle;
-        uint32_t target = cycle + eCycle * m_interruptScales[interrupt];
+        uint32_t target = uint32_t(cycle + eCycle * m_interruptScales[interrupt]);
         m_regs.interrupt |= (1 << interrupt);
         m_regs.intTargets[interrupt] = target;
         int32_t lowest = m_regs.lowestTarget - cycle;

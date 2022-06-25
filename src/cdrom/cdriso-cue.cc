@@ -38,7 +38,6 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
     IO<File> fi;
     char *token;
     char time[20];
-    char *tmp;
     char linebuf[256], tmpb[256], dummy[256];
     unsigned int t, file_len, mode, sector_offs;
     unsigned int sector_size = 2352;

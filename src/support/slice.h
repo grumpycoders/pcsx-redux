@@ -171,7 +171,7 @@ class Slice {
     }
     const uint32_t size() const {
         if (std::holds_alternative<std::string>(m_data)) {
-            return std::get<std::string>(m_data).size();
+            return uint32_t(std::get<std::string>(m_data).size());
         } else if (std::holds_alternative<Inlined>(m_data)) {
             return std::get<Inlined>(m_data).size;
         } else if (std::holds_alternative<Owned>(m_data)) {
@@ -237,7 +237,7 @@ class Slice {
         ~Owned() { free(ptr); }
         Owned(uint32_t size, void *ptr) : size(size), ptr(ptr) {}
         Owned(const Owned &other) { abort(); }
-        Owned(Owned &&other) : ptr(other.ptr), size(other.size) { other.ptr = nullptr; }
+        Owned(Owned &&other) : size(other.size), ptr(other.ptr) { other.ptr = nullptr; }
         Owned &operator=(const Owned &other) {
             abort();
             return *this;

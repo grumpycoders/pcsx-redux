@@ -13,6 +13,7 @@
       <PreprocessorDefinitions>IMGUI_ENABLE_FREETYPE;HAVE_STDINT_H;_CONSOLE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_GNU_SOURCE;NOMINMAX;WIN32;_WINDOWS;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;ZEP_FEATURE_CPP_FILE_SYSTEM;CURL_STATICLIB;BUILDING_LIBCURL;USE_WIN32_IDN;WANT_IDN_PROTOTYPES;USE_IPV6;USE_WINDOWS_SSPI;USE_SCHANNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <SDLCheck>false</SDLCheck>
+      <DisableSpecificWarnings>4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <AdditionalDependencies>crypt32.lib;normaliz.lib;wldap32.lib;%(AdditionalDependencies)</AdditionalDependencies>
