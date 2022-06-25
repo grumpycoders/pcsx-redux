@@ -209,8 +209,8 @@ int pcsxMain(int argc, char **argv) {
 
     s_gui = new PCSX::GUI(args);
     s_gui->init();
-    auto& emuSettings = emulator->settings;
-    auto& debugSettings = emuSettings.get<PCSX::Emulator::SettingDebugSettings>();
+    auto &emuSettings = emulator->settings;
+    auto &debugSettings = emuSettings.get<PCSX::Emulator::SettingDebugSettings>();
     if (emuSettings.get<PCSX::Emulator::SettingMcd1>().empty()) {
         emuSettings.get<PCSX::Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
     }
