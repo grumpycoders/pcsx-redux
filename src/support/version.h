@@ -52,7 +52,8 @@ struct VersionInfo {
 class Update {
   public:
     bool downloadUpdateInfo(const VersionInfo&, std::function<void(bool)> callback, uv_loop_t* loop);
-    bool downloadUpdate(const VersionInfo&, std::function<void(bool)> callback, uv_loop_t* loop);
+    bool downloadAndApplyUpdate(const VersionInfo&, std::function<void(bool)> callback, uv_loop_t* loop);
+    bool getDownloadUrl(const VersionInfo&, std::function<void(std::string)> callback, uv_loop_t* loop);
     bool applyUpdate(const std::filesystem::path& binDir);
     bool canFullyApply();
 
