@@ -16,8 +16,8 @@ These GET methods are available:
 | :- | :- |
 | [/api/v1/gpu/vram/raw](http://localhost:8080/api/v1/gpu/vram/raw) | Dump VRAM  |
 | [/api/v1/cpu/ram/raw](http://localhost:8080/api/v1/cpu/ram/raw) | Dump RAM |
-| [/api/v1/cpu/cache](http://localhost:8080/api/v1/cpu/cache) | Flush Cache |
-| [/api/v1/execution-flow](http://localhost:8080/api/v1/execution-flow) | Execution Flow |
+| [/api/v1/cpu/cache](http://localhost:8080/api/v1/cpu/cache) | - |
+| [/api/v1/execution-flow](http://localhost:8080/api/v1/execution-flow) | - |
 
 The following POST methods are available:
 
@@ -29,10 +29,18 @@ The above needs to also send a form with binary contents. This will partially up
 
 The above needs to also send a form with binary contents, which will update the RAM at the specified offset. Offset is expected to be a number from [0, 0x1FFFFF] in case of running redux with 2MB RAM, or [0, 0x7FFFFF] in case the 8MB memory expansion is enabled. The value of size + offset must not exceed the total space in the RAM.
 
-`/api/v1/execution-flow?function=<value>`
+`/api/v1/cpu/cache?function=<value>`
 
 | Value | Function |
 | :- | :- |
-| pause | Pauses the emulator. |
-| start | Starts/Resumes the emulator. |
-| resume | Starts/Resumes the emulator. |
+| flush | Flushes the CPU cache |
+
+`/api/v1/execution-flow?function=<value>&type=<value>`
+
+| Value | Type | Function |
+| :- | :- | :- |
+| pause | - | Pauses the emulator |
+| start | - | Starts/Resumes the emulator |
+| resume | - | Starts/Resumes the emulator |
+| reset | hard | Hard resets the emulator |
+| reset | soft | Soft resets the emulator |
