@@ -188,7 +188,95 @@ class AssemblyExecutor : public PCSX::WebExecutor {
     virtual ~AssemblyExecutor() = default;
 };
 
+class CacheExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return urldata.path == "/api/v1/cpu/cache";
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            auto vars = parseQuery(request.urlData.query);
+            auto ifunction = vars.find("function");
+            if (ifunction == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            std::string function = ifunction->second;
+            if (function.compare("flush") == 0) {
+                PCSX::g_emulator->m_cpu->invalidateCache();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+            return true;
+        }
+        return false;
+    }
+
+  public:
+    CacheExecutor() = default;
+    virtual ~CacheExecutor() = default;
+};
+
+class FlowExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return urldata.path == "/api/v1/execution-flow";
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            auto vars = parseQuery(request.urlData.query);
+            auto ifunction = vars.find("function");
+            if (ifunction == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            std::string function = ifunction->second;
+            if (function.compare("start") == 0) {
+                PCSX::g_system->start();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (function.compare("pause") == 0) {
+                PCSX::g_system->pause();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (function.compare("resume") == 0) {
+                PCSX::g_system->resume();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            /* Start of functions that requires a type */
+            auto itype = vars.find("type");
+            if (itype == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            std::string type = itype->second;
+            if (function.compare("reset") == 0) {
+                if (type.compare("hard") == 0) {
+                    PCSX::g_system->hardReset();
+                    client->write("HTTP/1.1 200 OK\r\n\r\n");
+                    return true;
+                }
+                if (type.compare("soft") == 0) {
+                    PCSX::g_system->softReset();
+                    client->write("HTTP/1.1 200 OK\r\n\r\n");
+                    return true;
+                }
+            }
+            client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+            return true;
+        }
+        return false;
+    }
+
+  public:
+    FlowExecutor() = default;
+    virtual ~FlowExecutor() = default;
+};
+
 }  // namespace
+
 
 std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(const std::string& query) {
     std::multimap<std::string, std::string> ret;
@@ -237,6 +325,8 @@ PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new VramExecutor());
     m_executors.push_back(new RamExecutor());
     m_executors.push_back(new AssemblyExecutor());
+    m_executors.push_back(new CacheExecutor());
+    m_executors.push_back(new FlowExecutor());
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
         if (debugSettings.get<Emulator::DebugSettings::WebServer>() && (m_serverStatus != SERVER_STARTED)) {
