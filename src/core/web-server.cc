@@ -193,9 +193,20 @@ class CacheExecutor : public PCSX::WebExecutor {
         return urldata.path == "/api/v1/cpu/cache";
     }
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
-        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
-            PCSX::g_emulator->m_cpu->invalidateCache();
-            client->write("HTTP/1.1 200 OK\r\n\r\n");
+        if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            auto vars = parseQuery(request.urlData.query);
+            auto ifunction = vars.find("function");
+            if (ifunction == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            std::string function = ifunction->second;
+            if (function.compare("flush") == 0) {
+                PCSX::g_emulator->m_cpu->invalidateCache();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
             return true;
         }
         return false;
@@ -233,6 +244,25 @@ class FlowExecutor : public PCSX::WebExecutor {
                 PCSX::g_system->resume();
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
                 return true;
+            }
+            /* Start of functions that requires a type */
+            auto itype = vars.find("type");
+            if (itype == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            std::string type = itype->second;
+            if (function.compare("reset") == 0) {
+                if (type.compare("hard") == 0) {
+                    PCSX::g_system->hardReset();
+                    client->write("HTTP/1.1 200 OK\r\n\r\n");
+                    return true;
+                }
+                if (type.compare("soft") == 0) {
+                    PCSX::g_system->softReset();
+                    client->write("HTTP/1.1 200 OK\r\n\r\n");
+                    return true;
+                }
             }
             client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
             return true;
