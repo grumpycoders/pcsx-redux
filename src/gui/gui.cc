@@ -1259,20 +1259,26 @@ Configuration -> System menu.)")));
         if (ImGui::Begin(_("Update available"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             if (m_update.canFullyApply()) {
                 ImGui::TextUnformatted((_(R"(An update is available.
-Click 'Download' to download and apply the update.
-PCSX-Redux will automatically restart to apply it.)")));
+Click 'Update' to download and apply the update.
+PCSX-Redux will automatically restart to apply it.
+
+Click 'Download' to use your browser to download
+the update and manually apply it.)")));
             } else {
                 ImGui::TextUnformatted((_(R"(An update is available.
-Click 'Download' to download it. While the update can be
+Click 'Update' to download it. While the update can be
 downloaded, it won't be applied automatically. You will
 have to install it manually, the way you previously did.
-PCSX-Redux will quit once the update is downloaded.)")));
+PCSX-Redux will quit once the update is downloaded.
+
+Click 'Download' to use your browser to download
+the update and manually apply it.)")));
             }
             ImGui::ProgressBar(m_update.progress());
             if (!m_updateDownloading) {
-                if (ImGui::Button(_("Download"))) {
+                if (ImGui::Button(_("Update"))) {
                     m_updateDownloading = true;
-                    bool started = m_update.downloadUpdate(
+                    bool started = m_update.downloadAndApplyUpdate(
                         g_system->getVersion(),
                         [this](bool success) {
                             m_updateAvailable = false;
@@ -1288,6 +1294,22 @@ PCSX-Redux will quit once the update is downloaded.)")));
                         g_system->getLoop());
                     if (!started) {
                         addNotification(_("An error has occured while downloading\nand/or applying the update."));
+                        m_updateAvailable = false;
+                        m_updateDownloading = false;
+                    }
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(_("Download"))) {
+                    m_updateDownloading = true;
+                    bool started = m_update.getDownloadUrl(
+                        g_system->getVersion(),
+                        [this](std::string url) {
+                            openUrl(url);
+                            m_updateDownloading = false;
+                        },
+                        g_system->getLoop());
+                    if (!started) {
+                        addNotification(_("An error has occured while downloading the update."));
                         m_updateAvailable = false;
                         m_updateDownloading = false;
                     }
