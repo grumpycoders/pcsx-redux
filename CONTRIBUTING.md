@@ -47,6 +47,10 @@ Please read and follow the [Code of Conduct](CODE_OF_CONDUCT.md) before contribu
 * The codebase is using C++-20, so all features from there are fair game, provided it builds on all of the supported platforms. Submitting a pull request should trigger builds for all supported platforms.
 * Please try and follow the codestyle, which is enforced by the [clang-format](https://github.com/grumpycoders/pcsx-redux/blob/main/src/.clang-format) rules. Worst case scenario, a bot will issue another PR to fix the codestyle however, so no need to sweat it too much.
 
+## Contributing unit tests
+
+The project heavily relies on unit tests. If you find a problem while writing PS1 code, but are unable to fix it yourself in a pull request, the next best thing is to submit a pull request introducing a unit test exhibiting the problem. See the [existing tests](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/tests) for some examples on how to introduce a new test.
+
 ## Filing a bug report
 
 If you find a bug, please as much as possible try to file a detailed bug report using the [issue template](https://github.com/grumpycoders/pcsx-redux/issues/new?assignees=&labels=&template=bug_report.yml).
