@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2022 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@ SOFTWARE.
 
 // This file isn't to be compiled directly. It's to be included in every
 // sub test .c file that requires access to the exception handler test system.
+
+// clang-format off
 
 CESTER_BODY(
     static int s_got40;
