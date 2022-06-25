@@ -30,7 +30,8 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     if (!m_hasUpdate) return false;
     auto tmp = std::filesystem::temp_directory_path();
 
-    std::filesystem::remove(tmp / "pcsx-redux-update.started");
+    std::error_code ec;
+    std::filesystem::remove(tmp / "pcsx-redux-update.started", ec);
 
     ZipArchive zip(m_download);
     if (zip.failed()) return false;
