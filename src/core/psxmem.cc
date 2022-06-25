@@ -75,11 +75,6 @@ int PCSX::Memory::init() {
     }
 
     // MemR
-    for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_psxM[(i & 0x1f) << 16];
-
-    memcpy(m_readLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
-    memcpy(m_readLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
-
     m_readLUT[0x1f00] = (uint8_t *)m_psxP;
 
     for (int i = 0; i < 0x08; i++) m_readLUT[i + 0x1fc0] = (uint8_t *)&m_psxR[i << 16];
@@ -88,12 +83,9 @@ int PCSX::Memory::init() {
     memcpy(m_readLUT + 0xbfc0, m_readLUT + 0x1fc0, 0x08 * sizeof(void *));
 
     // MemW
-    for (int i = 0; i < 0x80; i++) m_writeLUT[i + 0x0000] = (uint8_t *)&m_psxM[(i & 0x1f) << 16];
-
-    memcpy(m_writeLUT + 0x8000, m_writeLUT, 0x80 * sizeof(void *));
-    memcpy(m_writeLUT + 0xa000, m_writeLUT, 0x80 * sizeof(void *));
-
     m_writeLUT[0x1f00] = (uint8_t *)m_psxP;
+
+    setLuts();
 
     return 0;
 }
@@ -422,12 +414,15 @@ const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
 }
 
 void PCSX::Memory::setLuts() {
+    int max = (m_psxH[0x1061] & 0x1) ? 0x80 : 0x20;
+    if (!g_emulator->settings.get<Emulator::Setting8MB>()) max = 0x20;
+    for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_psxM[(i & (max - 1)) << 16];
+    memcpy(m_readLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
+    memcpy(m_readLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
     if (m_writeok) {
-        int max = (m_psxH[0x1061] & 0x1) ? 0x80 : 0x20;
-        if (!g_emulator->settings.get<Emulator::Setting8MB>()) max = 0x20;
-        for (int i = 0; i < 0x80; i++) m_writeLUT[i + 0x0000] = (uint8_t *)&m_psxM[(i & (max - 1)) << 16];
-        memcpy(m_writeLUT + 0x8000, m_writeLUT, 0x80 * sizeof(void *));
-        memcpy(m_writeLUT + 0xa000, m_writeLUT, 0x80 * sizeof(void *));
+        memcpy(m_writeLUT + 0x0000, m_readLUT, 0x80 * sizeof(void *));
+        memcpy(m_writeLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
+        memcpy(m_writeLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
     } else {
         memset(m_writeLUT + 0x0000, 0, 0x80 * sizeof(void *));
         memset(m_writeLUT + 0x8000, 0, 0x80 * sizeof(void *));
