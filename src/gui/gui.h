@@ -65,6 +65,46 @@ namespace PCSX {
 enum class LogClass : unsigned;
 
 class GUI final {
+    typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
+    typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
+    typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
+    typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
+    typedef Setting<bool, TYPESTRING("ShowLuaConsole")> ShowLuaConsole;
+    typedef Setting<bool, TYPESTRING("ShowLuaInspector")> ShowLuaInspector;
+    typedef Setting<bool, TYPESTRING("ShowLuaEditor")> ShowLuaEditor;
+    typedef Setting<bool, TYPESTRING("ShowMainVRAMViewer")> ShowMainVRAMViewer;
+    typedef Setting<bool, TYPESTRING("ShowCLUTVRAMViewer")> ShowCLUTVRAMViewer;
+    typedef Setting<bool, TYPESTRING("ShowVRAMViewer1")> ShowVRAMViewer1;
+    typedef Setting<bool, TYPESTRING("ShowVRAMViewer2")> ShowVRAMViewer2;
+    typedef Setting<bool, TYPESTRING("ShowVRAMViewer3")> ShowVRAMViewer3;
+    typedef Setting<bool, TYPESTRING("ShowVRAMViewer4")> ShowVRAMViewer4;
+    typedef Setting<bool, TYPESTRING("ShowMemoryObserver")> ShowMemoryObserver;
+    typedef Setting<bool, TYPESTRING("ShowMemcardManager")> ShowMemcardManager;
+    typedef Setting<bool, TYPESTRING("ShowRegisters")> ShowRegisters;
+    typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
+    typedef Setting<bool, TYPESTRING("ShowDisassembly")> ShowDisassembly;
+    typedef Setting<bool, TYPESTRING("ShowBreakpoints")> ShowBreakpoints;
+    typedef Setting<bool, TYPESTRING("ShowEvents")> ShowEvents;
+    typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
+    typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
+    typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
+    typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
+    typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
+    typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
+    typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
+    typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
+    typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
+    typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
+    typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
+    typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
+    typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
+             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
+             ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowMemcardManager,
+             ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents, ShowKernelLog, ShowCallstacks,
+             ShowSIO1, MainFontSize, MonoFontSize, GUITheme, EnableRawMouseMotion, WidescreenRatio>
+        settings;
+
     // imgui can't handle more than one "instance", so...
     static GUI *s_gui;
     void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
@@ -231,46 +271,6 @@ class GUI final {
 
     bool &m_fullscreen = {settings.get<Fullscreen>().value};
 
-    // GUI
-    typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
-    typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
-    typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
-    typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
-    typedef Setting<bool, TYPESTRING("ShowLuaConsole")> ShowLuaConsole;
-    typedef Setting<bool, TYPESTRING("ShowLuaInspector")> ShowLuaInspector;
-    typedef Setting<bool, TYPESTRING("ShowLuaEditor")> ShowLuaEditor;
-    typedef Setting<bool, TYPESTRING("ShowMainVRAMViewer")> ShowMainVRAMViewer;
-    typedef Setting<bool, TYPESTRING("ShowCLUTVRAMViewer")> ShowCLUTVRAMViewer;
-    typedef Setting<bool, TYPESTRING("ShowVRAMViewer1")> ShowVRAMViewer1;
-    typedef Setting<bool, TYPESTRING("ShowVRAMViewer2")> ShowVRAMViewer2;
-    typedef Setting<bool, TYPESTRING("ShowVRAMViewer3")> ShowVRAMViewer3;
-    typedef Setting<bool, TYPESTRING("ShowVRAMViewer4")> ShowVRAMViewer4;
-    typedef Setting<bool, TYPESTRING("ShowMemoryObserver")> ShowMemoryObserver;
-    typedef Setting<bool, TYPESTRING("ShowMemcardManager")> ShowMemcardManager;
-    typedef Setting<bool, TYPESTRING("ShowRegisters")> ShowRegisters;
-    typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
-    typedef Setting<bool, TYPESTRING("ShowDisassembly")> ShowDisassembly;
-    typedef Setting<bool, TYPESTRING("ShowBreakpoints")> ShowBreakpoints;
-    typedef Setting<bool, TYPESTRING("ShowEvents")> ShowEvents;
-    typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
-    typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
-    typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
-    typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
-    typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
-    typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
-    typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
-    typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
-    typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
-    typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
-    typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
-    typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
-    typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
-             ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowMemcardManager,
-             ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents, ShowKernelLog, ShowCallstacks,
-             ShowSIO1, MainFontSize, MonoFontSize, GUITheme, EnableRawMouseMotion, WidescreenRatio>
-        settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
     int &m_idleSwapInterval = {settings.get<IdleSwapInterval>().value};

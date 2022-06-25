@@ -32,7 +32,7 @@ namespace Widgets {
 class FileDialog {
   public:
     enum Flags { NewFile = 1 };
-    FileDialog(std::function<const char*()> title, uint64_t flags = 0) : m_title(title), m_flags(flags) {
+    FileDialog(std::function<const char*()> title, uint64_t flags = 0) : m_flags(flags), m_title(title) {
         setToCurrentPath();
     }
     void setToCurrentPath() {

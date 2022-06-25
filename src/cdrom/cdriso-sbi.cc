@@ -21,7 +21,7 @@
 
 bool PCSX::CDRIso::LoadSBI(const char *filename) {
     IO<File> sbihandle;
-    char buffer[16], sbifile[MAXPATHLEN];
+    char buffer[16];
 
     sbihandle.setFile(new UvFile(filename));
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
