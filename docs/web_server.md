@@ -16,8 +16,6 @@ These GET methods are available:
 | :- | :- |
 | [/api/v1/gpu/vram/raw](http://localhost:8080/api/v1/gpu/vram/raw) | Dump VRAM  |
 | [/api/v1/cpu/ram/raw](http://localhost:8080/api/v1/cpu/ram/raw) | Dump RAM |
-| [/api/v1/cpu/cache](http://localhost:8080/api/v1/cpu/cache) | - |
-| [/api/v1/execution-flow](http://localhost:8080/api/v1/execution-flow) | - |
 
 The following POST methods are available:
 
