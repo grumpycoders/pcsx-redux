@@ -1219,7 +1219,8 @@ their TV set to match the aspect ratio of the game.)"));
 
     if (m_showSysCfg) {
         if (ImGui::Begin(_("System Configuration"), &m_showSysCfg)) {
-            changed |= ImGui::Checkbox(_("Preload Disk Image files"), &emuSettings.get<Emulator::SettingFullCaching>().value);
+            changed |=
+                ImGui::Checkbox(_("Preload Disk Image files"), &emuSettings.get<Emulator::SettingFullCaching>().value);
             changed |= ImGui::Checkbox(_("Enable Auto Update"), &emuSettings.get<Emulator::SettingAutoUpdate>().value);
         }
         ImGui::End();
@@ -1438,10 +1439,15 @@ however it doesn't play nicely with the debugger.
 Changing this setting requires a reboot to take effect.
 The dynarec core isn't available for all CPUs, so
 this setting may not have any effect for you.)"));
-        changed |= ImGui::Checkbox(_("8MB"), &settings.get<Emulator::Setting8MB>().value);
+        bool memChanged = ImGui::Checkbox(_("8MB"), &settings.get<Emulator::Setting8MB>().value);
         ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
+
+        if (memChanged) {
+            changed = true;
+            g_emulator->m_mem->setLuts();
+        }
 
         {
             static const char* types[] = {"Auto", "NTSC", "PAL"};
