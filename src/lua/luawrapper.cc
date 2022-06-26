@@ -604,6 +604,7 @@ void PCSX::Lua::fromJson(const json& j, int t) {
     for (auto it = j.begin(); it != j.end(); it++) {
         switch (it.value().type()) {
             case json::value_t::number_integer:
+            case json::value_t::number_unsigned:
                 push(it.key());
                 push(lua_Number(it.value().get<int>()));
                 settable(t);
@@ -624,11 +625,16 @@ void PCSX::Lua::fromJson(const json& j, int t) {
                 settable(t);
                 break;
             case json::value_t::object:
+            case json::value_t::array:
                 push(it.key());
                 newtable();
                 fromJson(it.value(), -1);
                 settable(t);
                 break;
+            case json::value_t::null:
+                push(it.key());
+                push();
+                settable(t);
         }
     }
 }

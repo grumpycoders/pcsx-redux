@@ -44,11 +44,11 @@ class CDRIsoFile : public File {
     static constexpr uint32_t c_sectorSizes[] = {2352, 2352, 2048, 2336, 2048, 2324};
     CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size = -1, SectorMode = SectorMode::GUESS);
     virtual bool failed() final override { return m_failed; }
-    virtual ssize_t rSeek(ssize_t pos, int wheel);
-    virtual ssize_t rTell() { return m_ptrR; }
-    virtual size_t size() { return m_size; }
-    virtual ssize_t read(void* dest, size_t size);
-    virtual File* dup() { return new CDRIsoFile(m_iso, m_lba, m_size, m_mode); };
+    virtual ssize_t rSeek(ssize_t pos, int wheel) override;
+    virtual ssize_t rTell() override { return m_ptrR; }
+    virtual size_t size() override { return m_size; }
+    virtual ssize_t read(void* dest, size_t size) override;
+    virtual File* dup() override { return new CDRIsoFile(m_iso, m_lba, m_size, m_mode); };
 
   private:
     std::shared_ptr<CDRIso> m_iso;

@@ -808,7 +808,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     ImGui::EndChild();
     ImGui::PopFont();
     if (m_jumpToPC.has_value()) {
-        std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPC);
+        std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPC.value());
     }
     ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
     if (ImGui::InputText(_("Address"), m_jumpAddressString, 20,

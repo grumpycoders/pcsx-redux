@@ -602,7 +602,6 @@ void PCSX::MDEC::mdec1Interrupt() {
 
 void PCSX::MDEC::save(PCSX::SaveStates::MDEC &mdecSave) {
     uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
-    uint32_t v;
 
     mdecSave.get<SaveStates::MDECReg0>().value = mdec.reg0;
     mdecSave.get<SaveStates::MDECReg1>().value = mdec.reg1;
@@ -621,7 +620,6 @@ void PCSX::MDEC::save(PCSX::SaveStates::MDEC &mdecSave) {
 
 void PCSX::MDEC::load(const PCSX::SaveStates::MDEC &mdecSave) {
     uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
-    uint32_t v;
 
     mdec.reg0 = mdecSave.get<SaveStates::MDECReg0>().value;
     mdec.reg1 = mdecSave.get<SaveStates::MDECReg1>().value;

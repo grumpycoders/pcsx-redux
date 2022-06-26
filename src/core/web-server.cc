@@ -500,7 +500,7 @@ struct PCSX::WebClient::WebClientImpl {
         http_parser_url_init(&urlParser);
         int result = http_parser_parse_url(data, slice.size(), connect, &urlParser);
         if (result) return result;
-        auto copyField = [this, data, &urlParser](std::string& str, int field) {
+        auto copyField = [data, &urlParser](std::string& str, int field) {
             if (urlParser.field_set & (1 << field)) {
                 str = std::string(data + urlParser.field_data[field].off, urlParser.field_data[field].len);
             } else {

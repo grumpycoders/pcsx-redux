@@ -282,13 +282,13 @@ struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSet
         L.settable();
         L.declareFunc(
             "index",
-            [this](Lua L) -> int {
+            [](Lua L) -> int {
                 L.getfield("value");
                 return 1;
             },
             -1);
         L.declareFunc(
-            "newindex", [this](Lua L) -> int { return 0; }, -1);
+            "newindex", [](Lua L) -> int { return 0; }, -1);
         L.declareFunc(
             "reset",
             [this](Lua L) -> int {

@@ -228,7 +228,6 @@ ssize_t PCSX::CDRIso::cdread_2048(IO<File> f, unsigned int base, void *dest_, in
     dest[11] = 0x00;
     IEC60908b::MSF(sector + 150).toBCD(dest + 12);
     m_cdbuffer[15] = 1;
-    auto ref32 = [sector](uint32_t offset) -> uint32_t & { return *reinterpret_cast<uint32_t *>(sector + offset); };
     uint32_t edc = IEC60908b::computeEDC(0, dest, 0x810);
     dest[0x810] = edc & 0xff;
     edc >>= 8;

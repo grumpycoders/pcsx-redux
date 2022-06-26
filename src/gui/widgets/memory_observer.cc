@@ -229,7 +229,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             }
 
             if (!m_addressValuePairs.empty() && ImGui::Button(_("Next scan"))) {
-                auto doesntMatchCriterion = [this, memData, memSize, memBase,
+                auto doesntMatchCriterion = [this, memData, memSize,
                                              stride](const AddressValuePair& addressValuePair) {
                     const uint32_t address = addressValuePair.address;
                     const int memValue = getMemValue(address, memData, memSize, memBase, stride);
@@ -346,7 +346,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
         if (ImGui::BeginTabItem(_("Pattern search"))) {
             if (m_useSIMD) {
-                ImGui::Text(_("Sequence size: "));
+                ImGui::TextUnformatted(_("Sequence size: "));
                 ImGui::SameLine();
                 ImGui::RadioButton(_("8 bytes (fast)"), &m_sequenceSize, 8);
                 ImGui::SameLine();

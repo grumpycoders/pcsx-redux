@@ -437,7 +437,6 @@ void PCSX::Widgets::ShaderEditor::setConfigure(bool configure) {
 
 void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
     auto Lorg = *g_emulator->m_lua;
-    bool config = false;
     {
         int top = Lorg.gettop();
         auto L = Lorg.thread();
@@ -445,12 +444,6 @@ void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
         L.push(m_index);
         L.gettable();
         if (L.istable()) {
-            L.push("configureme");
-            L.gettable();
-            if (L.isboolean()) {
-                config = L.toboolean();
-            }
-            L.pop();
             L.push("Draw");
             L.gettable();
             if (L.isfunction()) {

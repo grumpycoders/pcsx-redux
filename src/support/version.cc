@@ -121,7 +121,7 @@ bool PCSX::Update::getDownloadUrl(const VersionInfo& versionInfo, std::function<
     m_hasUpdate = false;
     m_download = new UvFile(
         versionInfo.updateInfoBase + std::to_string(m_updateId),
-        [this, loop, callback]() {
+        [this, callback]() {
             if (m_download->failed()) {
                 callback("");
             }

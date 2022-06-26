@@ -98,16 +98,17 @@ void PCSX::GUI::openUrl(const std::string_view& url) {
 using json = nlohmann::json;
 
 static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
+static void thrower(const char* msg) { throw std::runtime_error(msg); }
 extern "C" void pcsxStaticImguiUserError(const char* msg) {
     if (s_imguiUserErrorFunctor) {
         s_imguiUserErrorFunctor(msg);
     } else {
-        throw std::runtime_error(msg);
+        thrower(msg);
     }
 }
 
 extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
-    if (!exp) throw std::runtime_error(msg);
+    if (!exp) thrower(msg);
 }
 
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
@@ -261,13 +262,11 @@ void PCSX::GUI::init() {
         try {
             g_emulator->m_lua->load(cmd, "console", false);
             g_emulator->m_lua->pcall();
-            bool gotGLerror = false;
             for (const auto& error : m_glErrors) {
                 m_luaConsole.addError(error);
                 if (m_args.get<bool>("lua_stdout", false)) {
                     fprintf(stderr, "%s\n", error.c_str());
                 }
-                gotGLerror = true;
             }
             m_glErrors.clear();
         } catch (std::exception& e) {
@@ -348,7 +347,6 @@ void PCSX::GUI::init() {
         io.IniFilename = nullptr;
         std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator->settings;
-        auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
         json j;
         bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
         if (cfg.is_open() && !safeMode) {
