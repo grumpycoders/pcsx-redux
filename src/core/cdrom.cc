@@ -1489,9 +1489,7 @@ class CDRomImpl : public PCSX::CDRom {
         }
     }
 
-    void getCdInfo(void) {
-        m_setSectorEnd = m_iso->getTD(0);
-    }
+    void getCdInfo(void) { m_setSectorEnd = m_iso->getTD(0); }
 
     void reset() final {
         m_reg1Mode = 0;
