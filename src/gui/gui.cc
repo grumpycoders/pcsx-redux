@@ -1424,6 +1424,7 @@ the update and manually apply it.)")));
 bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
+    bool showDynarecDebugWarning = false;
     bool showDynarecWarning = false;
     auto& settings = g_emulator->settings;
     auto& debugSettings = settings.get<Emulator::SettingDebugSettings>();
@@ -1450,8 +1451,9 @@ bool PCSX::GUI::configure() {
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
         if (ImGui::Checkbox(_("Dynarec CPU"), &settings.get<Emulator::SettingDynarec>().value)) {
             changed = true;
+            showDynarecWarning = true;
             if (debugSettings.get<PCSX::Emulator::DebugSettings::Debug>() && settings.get<Emulator::SettingDynarec>()) {
-                showDynarecWarning = true;
+                showDynarecDebugWarning = true;
             }
         }
 
@@ -1507,7 +1509,7 @@ faster by not displaying the logo.)"));
         if (ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value)) {
             changed = true;
             if (debugSettings.get<PCSX::Emulator::DebugSettings::Debug>() && settings.get<Emulator::SettingDynarec>()) {
-                showDynarecWarning = true;
+                showDynarecDebugWarning = true;
             }
         }
 
@@ -1659,10 +1661,19 @@ See the wiki for details.)"));
         }
     }
 
-    if (showDynarecWarning) {
+    if (showDynarecDebugWarning && showDynarecWarning) {
         addNotification(R"(Debugger and dynarec enabled at the same time.
 Consider turning either one off, otherwise
-debugging features may not work)");
+debugging features may not work. Additionally,
+changing the dynarec option requires a restart
+of the emulator to take effect.)");
+    } else if (showDynarecDebugWarning) {
+        addNotification(R"(Debugger and dynarec enabled at the same time.
+Consider turning either one off, otherwise
+debugging features may not work.)");
+    } else if (showDynarecWarning) {
+        addNotification(R"(Toggling the Dynarec option requires a restart
+of the emulator to take effect.)");
     }
     return changed;
 }
