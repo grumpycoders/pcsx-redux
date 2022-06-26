@@ -41,12 +41,10 @@ static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
-    int sinc, spos, i, iSize, iPlace, vl, vr, voldiv = 4 - settings.get<Volume>();
+    int sinc, spos, i, iSize, vl, vr, voldiv = 4 - settings.get<Volume>();
 
     MiniAudio::Frame XABuffer[32 * 1024];
     MiniAudio::Frame *XAFeed = XABuffer;
-
-    iPlace = 32 * 1024;
 
     if (!bSPUIsOpen) return;
 

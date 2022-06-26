@@ -224,7 +224,6 @@ class UvFifo : public File, public UvThreadOp {
     uv_tcp_t* m_tcp = nullptr;
     void* m_buffer = nullptr;
     std::atomic<bool> m_closed = false;
-    uv_write_t m_writeReq;
     const size_t c_chunkSize = 4096;
     ConcurrentQueue<Slice> m_queue;
     std::atomic<size_t> m_size = 0;

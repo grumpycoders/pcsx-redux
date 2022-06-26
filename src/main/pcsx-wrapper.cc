@@ -91,7 +91,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         GetExitCodeProcess(sei.hProcess, &code);
         return code;
     } else {
-        DWORD error = GetLastError();
         MessageBox(NULL, L"An unknown error occured while trying to run this application.", L"Error",
                    MB_ICONERROR | MB_OK | MB_DEFBUTTON1);
     }

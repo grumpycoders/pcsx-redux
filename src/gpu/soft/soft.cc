@@ -70,8 +70,6 @@
 //
 //*************************************************************************//
 
-#define NOMINMAX
-
 #include "gpu/soft/soft.h"
 
 #include <algorithm>
@@ -8371,7 +8369,6 @@ void PCSX::SoftGPU::SoftRenderer::HorzLineFlat(int y, int x0, int x1, uint16_t c
 /* Bresenham Line drawing function */
 void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineShade(int32_t rgb0, int32_t rgb1) {
     int16_t x0, y0, x1, y1, xt, yt;
-    int32_t rgbt;
     double m, dy, dx;
 
     if (lx0 > drawW && lx1 > drawW) return;
@@ -8403,7 +8400,6 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineShade(int32_t rgb0, int32_t rg
         if (dx < 0) {
             xt = x0;
             yt = y0;
-            rgbt = rgb0;
             x0 = x1;
             y0 = y1;
             rgb0 = rgb1;

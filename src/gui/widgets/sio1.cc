@@ -180,7 +180,7 @@ void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1Re
                         break;
 
                     case 1:
-                        ImGui::Text(regText[row].description);
+                        ImGui::TextUnformatted(regText[row].description);
                         ImGui::SameLine();
                         ShowHelpMarker(regText[row].notes);
                         break;
@@ -197,7 +197,7 @@ void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1Re
     // Register editor
     {
         if (ImGui::BeginPopupModal(editValueOf.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text(_("New value"));
+            ImGui::TextUnformatted(_("New value"));
             if ((ImGui::InputText("h", m_registerEditor, (bitLength / 4) + 1,
                                   ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) ||
                 ImGui::Button(_("OK"))) {

@@ -146,7 +146,6 @@ static int fromHexChar(char c) {
 void PCSX::GdbClient::processData(const Slice& slice) {
     const char* ptr = reinterpret_cast<const char*>(slice.data());
     auto size = slice.size();
-    int v = 0;
     while (size) {
         if (m_passthrough) {  // passthrough
             Slice passthrough;

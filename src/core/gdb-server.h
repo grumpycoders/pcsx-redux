@@ -236,11 +236,6 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     bool m_passthrough = false;
     bool m_ackEnabled = true;
     bool m_waitingForTrap = false;
-    enum {
-        QSYMBOL_IDLE,
-        QSYMBOL_WAITING_FOR_START,
-        QSYMBOL_WAITING_FOR_RESET,
-    } m_qsymbolState = QSYMBOL_IDLE;
     bool m_waitingForShell = false;
     bool m_exception = false;
     std::string m_cmd;

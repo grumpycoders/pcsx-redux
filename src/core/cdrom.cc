@@ -71,8 +71,6 @@ class CDRomImpl : public PCSX::CDRom {
 
     static const size_t cdCmdEnumCount = magic_enum::enum_count<Commands>();
 
-    static const inline uint8_t Test04[] = {0};
-    static const inline uint8_t Test05[] = {0};
     static const inline uint8_t Test20[] = {0x98, 0x06, 0x10, 0xC3};
     static const inline uint8_t Test22[] = {0x66, 0x6F, 0x72, 0x20, 0x45, 0x75, 0x72, 0x6F};
     static const inline uint8_t Test23[] = {0x43, 0x58, 0x44, 0x32, 0x39, 0x34, 0x30, 0x51};
@@ -152,10 +150,7 @@ class CDRomImpl : public PCSX::CDRom {
     struct PCSX::CdrStat cdr_stat;
 
     static const uint32_t H_SPUirqAddr = 0x1f801da4;
-    static const uint32_t H_SPUaddr = 0x1f801da6;
     static const uint32_t H_SPUctrl = 0x1f801daa;
-    static const uint32_t H_CDLeft = 0x1f801db0;
-    static const uint32_t H_CDRight = 0x1f801db2;
 
     // interrupt
     static inline void scheduleCDIRQ(uint32_t eCycle) {
@@ -271,8 +266,6 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     void getStatus(PCSX::CdrStat *stat) {
-        uint32_t sect;
-
         if (isLidOpened()) {
             stat->Status = 0x10;
         } else {
@@ -1497,8 +1490,6 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     void getCdInfo(void) {
-        uint8_t tmp;
-
         m_setSectorEnd = m_iso->getTD(0);
     }
 

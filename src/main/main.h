@@ -52,7 +52,6 @@ class MainInvoker {
     template <typename Head, typename... Args>
     void argGenerateOne(char** array, int index, Head head, Args... args) {
         std::filesystem::path cwd = std::filesystem::current_path();
-        bool found = false;
         while (true) {
             std::filesystem::path maybe = cwd / head;
             if (std::filesystem::exists(maybe)) {

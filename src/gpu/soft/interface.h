@@ -66,7 +66,7 @@ class impl final : public GPU {
     virtual void clearVRAM() final {
         std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
     }  // Clear VRAM to 0s
-    virtual ScreenShot takeScreenShot() {
+    virtual ScreenShot takeScreenShot() override {
         ScreenShot ss;
         auto startX = PSXDisplay.DisplayPosition.x;
         auto startY = PSXDisplay.DisplayPosition.y;

@@ -156,8 +156,6 @@ TEST(BasicTree, RandomElements) {
         delete &*it;
     }
 
-    const uint32_t midSeed = seed;
-
     seed = fullSeed;
     for (unsigned i = 0; i < COUNT; i++) {
         uint32_t v = someRand(seed);

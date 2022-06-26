@@ -34,7 +34,6 @@ struct LuaBreakpoint {
     PCSX::Debug::BreakpointUserListType wrapper;
 };
 
-void setBreakpoint() {}
 void* getMemPtr() { return PCSX::g_emulator->m_mem->m_psxM; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_psxR; }
 void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_psxH; }

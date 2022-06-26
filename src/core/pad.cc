@@ -137,7 +137,7 @@ void PCSX::Pads::Pad::map() {
     m_padMapping[15] = m_settings.get<Controller_PadSquare>();    // SQUARE
 }
 
-static constexpr float THRESHOLD = 0.85;
+static constexpr float THRESHOLD = 0.85f;
 
 // Certain buttons on controllers are actually axis that can be pressed, half-pressed, etc.
 bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* state) {
@@ -250,7 +250,7 @@ void PCSX::Pads::Pad::getButtons() {
     } else if (m_type == PadType::Analog) {
         // Normalize an axis from (-1, 1) to (0, 255) with 128 = center
         const auto axisToUint8 = [](float axis) {
-            constexpr float scale = 1.3;
+            constexpr float scale = 1.3f;
             const float scaledValue = std::clamp<float>(axis * scale, -1.0f, 1.0f);
             return (uint8_t)(std::clamp<float>(std::round(((scaledValue + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
         };
@@ -628,7 +628,7 @@ bool PCSX::Pads::Pad::configure() {
     changed |= ImGui::SliderFloat("Mouse sensitivity X", &m_settings.get<SettingMouseSensitivityX>().value, 0.f, 10.f);
     changed |= ImGui::SliderFloat("Mouse sensitivity Y", &m_settings.get<SettingMouseSensitivityY>().value, 0.f, 10.f);
 
-    ImGui::Text(_("Keyboard mapping"));
+    ImGui::TextUnformatted(_("Keyboard mapping"));
     if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_Resizable)) {
         ImGui::TableSetupColumn(_("Computer button mapping"));
         ImGui::TableSetupColumn(_("Gamepad button"));
@@ -636,7 +636,7 @@ bool PCSX::Pads::Pad::configure() {
         for (auto i = 0; i < 13; i++) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text(c_buttonNames[i]());
+            ImGui::TextUnformatted(c_buttonNames[i]());
             ImGui::TableSetColumnIndex(0);
             bool hasToPop = false;
             if (m_buttonToWait == i) {
@@ -658,7 +658,7 @@ bool PCSX::Pads::Pad::configure() {
         for (auto i = 0; i < 4; i++) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text(c_dpadDirections[i]());
+            ImGui::TextUnformatted(c_dpadDirections[i]());
             ImGui::TableSetColumnIndex(0);
             bool hasToPop = false;
             const auto absI = i + 13;
