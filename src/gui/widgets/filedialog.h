@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -24,81 +24,43 @@
 #include <string>
 #include <vector>
 
+#include "ImFileDialog/ImFileDialog.h"
 #include "core/system.h"
 
 namespace PCSX {
 namespace Widgets {
 
-class FileDialog {
+class FileDialog : private ifd::FileDialog {
   public:
-    enum Flags { NewFile = 1 };
-    FileDialog(std::function<const char*()> title, uint64_t flags = 0) : m_flags(flags), m_title(title) {
+    FileDialog(std::function<const char*()> title) : m_title(title) {
         setToCurrentPath();
+        setDeleteTexture();
     }
-    void setToCurrentPath() {
-        m_currentPath = std::filesystem::current_path();
-        nukeCache();
+    virtual ~FileDialog() = default;
+    void setToCurrentPath() { m_currentPath = std::filesystem::current_path(); }
+    void openDialog() {
+        Open(m_title(), m_title(), "*.*", false, reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
     }
-    void openDialog();
-    const std::vector<PCSX::u8string> selected() const { return m_selected; }
-    bool draw();
+    const std::vector<PCSX::u8string>& selected() const { return m_results; }
+    bool draw() {
+        bool done = IsDone(m_title());
+        m_currentPath = CurrentDirectory();
+        if (done) {
+            auto results = GetResults();
+            m_results.reserve(results.size());
+            for (auto& result : results) m_results.push_back(result.u8string());
+            Close();
+        }
+        return done;
+    }
     std::filesystem::path m_currentPath;
 
+    virtual void* CreateTexture(uint8_t* data, int w, int h, char fmt) override;
+
   private:
-    void fillRoots();
-    void nukeCache() {
-        m_cacheDirty = true;
-        m_roots.clear();
-        m_directories.clear();
-        m_files.clear();
-    }
-    bool m_cacheDirty = true;
-    uint64_t m_flags;
+    void setDeleteTexture();
     const std::function<const char*()> m_title;
-    struct Root {
-        PCSX::u8string root;
-        PCSX::u8string label;
-    };
-    std::vector<Root> m_roots;
-    std::vector<PCSX::u8string> m_directories;
-    struct File {
-        PCSX::u8string filename;
-        std::uintmax_t size;
-        std::string dateTime;
-        std::time_t dateTimeTimeT;
-        bool selected;
-    };
-    std::vector<File> m_files;
-    std::vector<PCSX::u8string> m_selected;
-    enum sort { UNSORTED, SORT_DOWN, SORT_UP };
-    struct {
-        bool operator()(const File& a, const File& b) const {
-            switch (name) {
-                case SORT_DOWN:
-                    return a.filename < b.filename;
-                case SORT_UP:
-                    return a.filename > b.filename;
-            }
-            switch (size) {
-                case SORT_DOWN:
-                    return a.size < b.size;
-                case SORT_UP:
-                    return a.size > b.size;
-            }
-            switch (date) {
-                case SORT_DOWN:
-                    return a.dateTimeTimeT < b.dateTimeTimeT;
-                case SORT_UP:
-                    return a.dateTimeTimeT > b.dateTimeTimeT;
-            }
-            return false;
-        }
-        sort name = SORT_DOWN;
-        sort size = UNSORTED;
-        sort date = UNSORTED;
-    } m_sorter;
-    std::filesystem::space_info m_spaceInfo;
-    PCSX::u8string m_newFile;
+    std::vector<PCSX::u8string> m_results;
 };
 
 }  // namespace Widgets

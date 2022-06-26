@@ -113,6 +113,7 @@ SRCS += third_party/clip/clip.cpp
 SRCS += third_party/clip/image.cpp
 SRCS += third_party/gl3w/GL/gl3w.c
 SRCS += third_party/http-parser/http_parser.c
+SRCS += third_party/ImFileDialog/ImFileDialog.cpp
 SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/backends/imgui_impl_glfw.cpp
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
