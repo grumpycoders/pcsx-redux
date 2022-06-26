@@ -39,7 +39,7 @@ void* PCSX::Widgets::FileDialog::CreateTexture(uint8_t* data, int w, int h, char
 
 void PCSX::Widgets::FileDialog::setDeleteTexture() {
     DeleteTexture = [](void* tex) {
-        GLuint texID = (GLuint)tex;
+        GLuint texID = reinterpret_cast<uintptr_t>(tex);
         glDeleteTextures(1, &texID);
     };
 }

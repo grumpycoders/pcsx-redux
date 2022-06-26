@@ -439,7 +439,7 @@ namespace ifd {
 		thisPC->Read = true;
 		for (const auto& entry : std::filesystem::directory_iterator("/", ec)) {
 			if (std::filesystem::is_directory(entry, ec))
-				thisPC->Children.push_back(new FileTreeNode(entry.path().u8string()));
+				thisPC->Children.push_back(new FileTreeNode(u8StringToString(entry.path().u8string())));
 		}
 		m_treeCache.push_back(thisPC);
 #endif
@@ -770,10 +770,10 @@ namespace ifd {
 
 		return m_icons[pathU8];
 #else
-		if (m_icons.count(path.u8string()) > 0)
-			return m_icons[path.u8string()];
+		if (m_icons.count(u8StringToString(path.u8string())) > 0)
+			return m_icons[u8StringToString(path.u8string())];
 
-		std::string pathU8 = path.u8string();
+		std::string pathU8 = u8StringToString(path.u8string());
 
 		m_icons[pathU8] = nullptr;
 
@@ -1233,7 +1233,7 @@ namespace ifd {
 				ImGui::CloseCurrentPopup();
 			else {
 				const FileData& data = m_content[m_selectedFileItem];
-				ImGui::TextWrapped("Are you sure you want to delete %s?", data.Path.filename().u8string().c_str());
+				ImGui::TextWrapped("Are you sure you want to delete %s?", u8StringToString(data.Path.filename().u8string()).c_str());
 				if (ImGui::Button("Yes")) {
 					std::error_code ec;
 					std::filesystem::remove_all(data.Path, ec);
