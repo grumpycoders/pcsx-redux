@@ -182,9 +182,7 @@ PCSX = {
         local slice = C.createSaveState()
         return Support.File._createSliceWrapper(slice)
     end,
-    loadSaveState = function(slice)
-        C.loadSaveState(slice._wrapper)
-    end,
+    loadSaveState = function(slice) C.loadSaveState(slice._wrapper) end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end

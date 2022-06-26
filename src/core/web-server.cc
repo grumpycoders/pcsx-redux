@@ -277,7 +277,6 @@ class FlowExecutor : public PCSX::WebExecutor {
 
 }  // namespace
 
-
 std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(const std::string& query) {
     std::multimap<std::string, std::string> ret;
     auto fragments = StringsHelpers::split(std::string_view(query), "&");
