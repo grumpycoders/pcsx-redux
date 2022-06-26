@@ -229,8 +229,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             }
 
             if (!m_addressValuePairs.empty() && ImGui::Button(_("Next scan"))) {
-                auto doesntMatchCriterion = [this, memData, memSize,
-                                             stride](const AddressValuePair& addressValuePair) {
+                auto doesntMatchCriterion = [this, memData, memSize, stride](const AddressValuePair& addressValuePair) {
                     const uint32_t address = addressValuePair.address;
                     const int memValue = getMemValue(address, memData, memSize, memBase, stride);
 
