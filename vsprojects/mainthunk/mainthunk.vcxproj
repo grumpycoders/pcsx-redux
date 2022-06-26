@@ -341,6 +341,9 @@
     <ProjectReference Include="..\http-parser\http-parser.vcxproj">
       <Project>{2f6c532e-1d52-4e87-8b7d-979eaa214db6}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\ImFileDialog\ImFileDialog.vcxproj">
+      <Project>{2bf92257-03c6-43fe-85e8-918166a07a26}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\imgui-glfw-ogl3\imgui-glfw-ogl3.vcxproj">
       <Project>{b86f9380-6228-4b11-87ad-29fdabf95abb}</Project>
     </ProjectReference>

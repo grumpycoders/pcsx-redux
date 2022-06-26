@@ -33,6 +33,7 @@ find a link to the vendored version itself.
  - [googletest](https://github.com/google/googletest)
  - [GoogleTestAdapter](https://github.com/csoltenborn/GoogleTestAdapter) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/GoogleTestAdapter))
  - [http-parser](https://github.com/nodejs/http-parser)
+ - [ImFileDialog](https://github.com/dfranx/ImFileDialog) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/ImFileDialog))
  - [imgui](https://github.com/ocornut/imgui)
  - [imgui_club](https://github.com/ocornut/imgui_club)
  - [imgui_lua_bindings](https://github.com/patrickriordan/imgui_lua_bindings) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/imgui_lua_bindings))
