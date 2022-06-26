@@ -87,6 +87,7 @@ local C = ffi.load 'PCSX'
 local function garbageCollect(bp)
     C.removeBreakpoint(bp._wrapper)
     bp._invokercb:free()
+    setmetatable(bp, {})
 end
 
 local meta = { __gc = garbageCollect }
