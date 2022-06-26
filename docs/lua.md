@@ -261,6 +261,8 @@ The Lua code can listen for events broadcasted from within the emulator. The fol
 PCSX.Events.createEventListener(eventName, callback)
 ```
 
+**Important**: the return value of this function will be an object that represents the listener itself. If this object gets garbage collected, the corresponding listener will be removed. Thus it is important to store it somewhere that won't get garbage collected right away. The listener object has a `:remove` method to stop the listener before its garbage collection time.
+
 The callback function will be called from an unsecured environment, and it is advised to delegate anything complex or risky enough to `PCSX.nextTick`.
 
 The `eventName` argument is a string that can have the following values:
