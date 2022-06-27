@@ -16,6 +16,7 @@ These GET methods are available:
 | :- | :- |
 | [/api/v1/gpu/vram/raw](http://localhost:8080/api/v1/gpu/vram/raw) | Dump VRAM  |
 | [/api/v1/cpu/ram/raw](http://localhost:8080/api/v1/cpu/ram/raw) | Dump RAM |
+| [/api/v1/execution-flow](http://localhost:8080/api/v1/execution-flow) | Emulation Status |
 
 The following POST methods are available:
 
@@ -26,6 +27,10 @@ The above needs to also send a form with binary contents. This will partially up
 `/api/v1/cpu/ram/raw?offset=<value>&size=<value>`
 
 The above needs to also send a form with binary contents, which will update the RAM at the specified offset. Offset is expected to be a number from [0, 0x1FFFFF] in case of running redux with 2MB RAM, or [0, 0x7FFFFF] in case the 8MB memory expansion is enabled. The value of size + offset must not exceed the total space in the RAM.
+
+`/api/v1/assembly/symbols`
+
+The above expects a `.map` file with symbols and addresses, which will be loaded in redux. The map file should contain one pair of `symbol address` for each line. e.g `Foo 80010000` would load the symbol `Foo` in the address `0x80010000`.
 
 `/api/v1/cpu/cache?function=<value>`
 
