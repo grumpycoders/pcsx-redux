@@ -222,7 +222,16 @@ class FlowExecutor : public PCSX::WebExecutor {
         return urldata.path == "/api/v1/execution-flow";
     }
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
-        if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
+            std::string json = fmt::format("{{\"running\": {}}}", PCSX::g_system->running());
+            std::string message = std::string(
+                                      "HTTP/1.1 200 OK\r\n"
+                                      "Content-Type: application/json\r\n"
+                                      "Content-Length: ") +
+                                  std::to_string(json.size()) + std::string("\r\n\r\n") + json;
+            client->write(message);
+            return true;
+        } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
             auto vars = parseQuery(request.urlData.query);
             auto ifunction = vars.find("function");
             if (ifunction == vars.end()) {
