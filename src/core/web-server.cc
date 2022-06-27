@@ -237,7 +237,7 @@ class FlowExecutor : public PCSX::WebExecutor {
                                       "Content-Type: application/json\r\n"
                                       "Content-Length: ") +
                                   std::to_string(json.size()) + std::string("\r\n\r\n") + json;
-            client->write(message);
+            client->write(std::move(message));
             return true;
         } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
             auto vars = parseQuery(request.urlData.query);
