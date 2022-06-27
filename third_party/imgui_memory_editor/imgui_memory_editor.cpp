@@ -58,6 +58,7 @@ void MemoryEditor::GotoAddrAndHighlight(size_t addr_min, size_t addr_max)
 
 void MemoryEditor::CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr)
 {
+	if (PushMonoFont) PushMonoFont();
 	ImGuiStyle& style = ImGui::GetStyle();
 	s.AddrDigitsCount = OptAddrDigitsCount;
 	if (s.AddrDigitsCount == 0)
@@ -78,6 +79,7 @@ void MemoryEditor::CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr
 		s.PosAsciiEnd = s.PosAsciiStart + Cols * s.GlyphWidth;
 	}
 	s.WindowWidth = s.PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + s.GlyphWidth;
+	if (PushMonoFont) ImGui::PopFont();
 }
 
 // Standalone Memory Editor window
@@ -109,9 +111,11 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 	if (Cols < 1)
 		Cols = 1;
 
+
 	ImU8* mem_data = (ImU8*)mem_data_void;
 	Sizes s;
 	CalcSizes(s, mem_size, base_display_addr);
+	if (PushMonoFont) PushMonoFont();
 	ImGuiStyle& style = ImGui::GetStyle();
 
 	// We begin into our scrolling region with the 'ImGuiWindowFlags_NoMove' in order to prevent click from moving the window.
@@ -166,11 +170,11 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 	const char* format_byte_space = OptUpperCaseHex ? "%02X " : "%02x ";
 
 	auto formatter_variable_hex = [this](size_t count, size_t addr) {
-		return fmt::format(fmt::runtime(OptUpperCaseHex ? "{1:0{2}X}" : "{1:0{2}x}"), addr, count);
+		return fmt::format(fmt::runtime(OptUpperCaseHex ? "{0:0{1}X}" : "{0:0{1}x}"), addr, count);
 	};
 
 	auto formatter_byte = [this](ImU8 byte) {
-		return fmt::format(fmt::runtime(OptUpperCaseHex ? "{1:02X}" : "{1:02x}"), byte);
+		return fmt::format(fmt::runtime(OptUpperCaseHex ? "{:02X}" : "{:02x}"), byte);
 	};
 
 	while (clipper.Step())
@@ -327,6 +331,7 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 				}
 			}
 		}
+	if (PushMonoFont) ImGui::PopFont();
 	ImGui::PopStyleVar(2);
 	ImGui::EndChild();
 

@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include <functional>
 #include <string>
 
 #include "imgui.h"
@@ -82,6 +83,7 @@ struct MemoryEditor
     ImU8            (*ReadFn)(const ImU8* data, size_t off);    // = 0      // optional handler to read bytes.
     void            (*WriteFn)(ImU8* data, size_t off, ImU8 d); // = 0      // optional handler to write bytes.
     bool            (*HighlightFn)(const ImU8* data, size_t off);//= 0      // optional handler to return Highlight property (to support non-contiguous highlighting).
+    std::function<void()> PushMonoFont = nullptr;
 
 private:
     // [Internal State]

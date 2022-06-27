@@ -281,9 +281,10 @@ class GUI final {
     bool m_showInterruptsScaler = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
-        MemoryEditorWrapper() {
+        MemoryEditorWrapper(GUI *gui) {
             editor.OptShowDataPreview = true;
             editor.OptUpperCaseHex = false;
+            editor.PushMonoFont = [gui]() { gui->useMonoFont(); };
         }
         MemoryEditor editor;
         std::function<const char *()> title;
@@ -292,11 +293,11 @@ class GUI final {
         void draw(void *mem, size_t size, uint32_t baseAddr = 0) { editor.DrawWindow(title(), mem, size, baseAddr); }
     };
     std::string m_stringHolder;
-    MemoryEditorWrapper m_mainMemEditors[8];
-    MemoryEditorWrapper m_parallelPortEditor;
-    MemoryEditorWrapper m_scratchPadEditor;
-    MemoryEditorWrapper m_hwrEditor;
-    MemoryEditorWrapper m_biosEditor;
+    MemoryEditorWrapper m_mainMemEditors[8] = {{this}, {this}, {this}, {this}, {this}, {this}, {this}, {this}};
+    MemoryEditorWrapper m_parallelPortEditor = {this};
+    MemoryEditorWrapper m_scratchPadEditor = {this};
+    MemoryEditorWrapper m_hwrEditor = {this};
+    MemoryEditorWrapper m_biosEditor = {this};
     Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
     Widgets::MemcardManager m_memcardManager = {settings.get<ShowMemcardManager>().value};
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
