@@ -223,7 +223,15 @@ class FlowExecutor : public PCSX::WebExecutor {
     }
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
         if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
-            std::string json = fmt::format("{{\"running\": {}}}", PCSX::g_system->running());
+            auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+            
+            nlohmann::json j;
+            j["running"] = PCSX::g_system->running();
+            j["isDynarec"] = PCSX::g_emulator->m_cpu->isDynarec();
+            j["8mb"] = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>().value;
+            j["debugger"] = debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value;
+
+            std::string json = j.dump();
             std::string message = std::string(
                                       "HTTP/1.1 200 OK\r\n"
                                       "Content-Type: application/json\r\n"
