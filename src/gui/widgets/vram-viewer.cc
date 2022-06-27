@@ -400,7 +400,7 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
             }
             ImGui::Separator();
             ImGui::Separator();
-            ImGui::Text("%.0f : %.0f", m_mouseUV.x * 1024.0f, m_mouseUV.y * 512.0f);
+            ImGui::Text("%.0f : %.0f", std::floor(m_mouseUV.x * 1024.0f), std::floor(m_mouseUV.y * 512.0f));
             ImGui::EndMenuBar();
         }
         drawVRAM(gui, VRAMTexture);
