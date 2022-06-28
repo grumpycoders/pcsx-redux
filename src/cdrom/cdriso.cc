@@ -333,9 +333,10 @@ bool PCSX::CDRIso::open(void) {
         m_ti[1].start = IEC60908b::MSF(0, 2, 0);
     }
 
+    if (m_ppf.load(m_isoPath)) {
+        PCSX::g_system->printf("[+ppf]");
+    }
     PCSX::g_system->printf(".\n");
-
-    m_ppf.load(m_isoPath);
 
     printTracks();
 
@@ -390,8 +391,6 @@ void PCSX::CDRIso::close() {
         m_decoded_ecm_buffer = nullptr;
     }
     m_ecm_file_detected = false;
-
-    m_ppf.FreePPFCache();
 }
 
 PCSX::IEC60908b::MSF PCSX::CDRIso::getTD(uint8_t track) {
@@ -446,7 +445,7 @@ bool PCSX::CDRIso::readTrack(const IEC60908b::MSF time) {
         if (m_subChanRaw) decodeRawSubData();
     }
 
-    m_ppf.CheckPPFCache(m_cdbuffer, time);
+    m_ppf.maybePatchSector(m_cdbuffer, time);
 
     return true;
 }
@@ -460,7 +459,10 @@ unsigned PCSX::CDRIso::readSectors(uint32_t lba, void *buffer_, unsigned count) 
     }
 
     for (unsigned i = 0; i < count; i++) {
-        long ret = (*this.*m_cdimg_read_func)(m_cdHandle, 0, buffer + actual * IEC60908b::FRAMESIZE_RAW, lba++);
+        auto ptr = buffer + actual * IEC60908b::FRAMESIZE_RAW;
+        IEC60908b::MSF time(lba + 150);
+        long ret = (*this.*m_cdimg_read_func)(m_cdHandle, 0, ptr, lba++);
+        m_ppf.maybePatchSector(ptr, time);
         if (ret < 0) return actual;
         actual++;
     }
