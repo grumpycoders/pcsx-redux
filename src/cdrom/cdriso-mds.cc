@@ -23,7 +23,6 @@
 // the necessary data is put into the ti (trackinformation)-array
 bool PCSX::CDRIso::parsemds(const char *isofileString) {
     std::filesystem::path mdsname, isofile = MAKEU8(isofileString);
-    IO<File> fi;
     unsigned int offset, extra_offset, l, i;
     unsigned short s;
 
@@ -33,11 +32,11 @@ bool PCSX::CDRIso::parsemds(const char *isofileString) {
     mdsname = isofile;
     isofile.replace_extension("mds");
 
-    fi.setFile(new UvFile(mdsname));
+    IO<File> fi(new UvFile(mdsname));
+    if (fi->failed()) return false;
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         fi.asA<UvFile>()->startCaching();
     }
-    if (fi->failed()) return false;
 
     memset(&m_ti, 0, sizeof(m_ti));
 

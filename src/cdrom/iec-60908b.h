@@ -112,13 +112,13 @@ struct MSF {
         ++(*this);
         return tmp;
     }
-    uint32_t toLBA() const { return (m * 60 + s) * 75 + f; }
-    void toBCD(uint8_t *dst) const {
+    constexpr uint32_t toLBA() const { return (m * 60 + s) * 75 + f; }
+    constexpr void toBCD(uint8_t *dst) const {
         dst[0] = itob(m);
         dst[1] = itob(s);
         dst[2] = itob(f);
     }
-    void fromBCD(const uint8_t *src) {
+    constexpr void fromBCD(const uint8_t *src) {
         m = btoi(src[0]);
         s = btoi(src[1]);
         f = btoi(src[2]);
