@@ -47,6 +47,7 @@ class FileDialog : private ifd::FileDialog {
         m_currentPath = CurrentDirectory();
         if (done) {
             auto results = GetResults();
+            m_results.clear();
             m_results.reserve(results.size());
             for (auto& result : results) m_results.push_back(result.u8string());
             Close();
