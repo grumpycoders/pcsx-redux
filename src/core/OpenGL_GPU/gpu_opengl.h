@@ -104,6 +104,13 @@ class OpenGL_GPU final : public GPU {
             uv.v() = v;
         }
     };
+
+    // One of the 2 points in a line
+    struct LinePoint {
+        uint32_t coords;
+        uint32_t colour;
+    };
+
     enum class TransferMode { CommandTransfer, VRAMTransfer };
 
     uint32_t m_gpustat = 0x14802000;
@@ -161,7 +168,6 @@ class OpenGL_GPU final : public GPU {
 
     int m_vertexCount = 0;
     int m_remainingWords = 0;
-    int m_lastCommandHash = 0;
     bool m_haveCommand = false;
     bool m_updateDrawOffset = false;
     bool m_syncVRAM = true;
@@ -171,6 +177,7 @@ class OpenGL_GPU final : public GPU {
     uint32_t m_vramReadBufferIndex = 0;
     uint32_t m_lastTexwindowSetting = 0;
     uint32_t m_lastDrawOffsetSetting = 0;
+    uint32_t m_lastDisplayMode = 0;
 
     GP0Func m_cmdFuncs[256];
 
@@ -228,6 +235,11 @@ class OpenGL_GPU final : public GPU {
 
     template <RectSize size, Shading shading, Transparency transparency>
     void drawRectTextured();
+
+    template <Shading shading, Transparency transparency>
+    void drawLine();
+
+    void drawLineInternal(const LinePoint &p1, const LinePoint &p2);
 
     template <Transparency setting>
     void setTransparency();

@@ -582,7 +582,6 @@ void PCSX::OpenGL_GPU::vblank() {
     OpenGL::disableScissor();
     if (m_lastTransparency == Transparency::Transparent) {
         m_lastTransparency = Transparency::Opaque;
-        m_lastBlendingMode = -1;
         OpenGL::disableBlend();
     }
     

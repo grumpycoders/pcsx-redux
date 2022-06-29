@@ -1,4 +1,5 @@
 #include "gpu_opengl.h"
+#include <cmath>
 
 // The number of 32-bit parameters for each GP0 command (discounting the command word)
 static constexpr int c_paramCount[256] = {
@@ -45,7 +46,6 @@ void PCSX::OpenGL_GPU::setTransparency() {
         renderBatch();
         if constexpr (setting == Transparency::Opaque) {
             OpenGL::disableBlend();
-            m_lastBlendingMode = -1;
         } else {
             OpenGL::enableBlend();
         }
@@ -85,6 +85,7 @@ void PCSX::OpenGL_GPU::setBlendingModeFromTexpage(uint32_t texpage) {
 
 void PCSX::OpenGL_GPU::setBlendFactors(float destFactor, float sourceFactor) {
     if (m_blendFactors.x() != destFactor || m_blendFactors.y() != sourceFactor) {
+        PCSX::g_system->printf("I've been waiting for you all day\nStuck in traffic tryna make it to my baby\n");
         m_blendFactors.x() = destFactor;
         m_blendFactors.y() = sourceFactor;
 
@@ -254,6 +255,86 @@ void PCSX::OpenGL_GPU::drawRectTextured() {
     m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, u, v);
 }
 
+template <PCSX::OpenGL_GPU::Shading shading, PCSX::OpenGL_GPU::Transparency transparency>
+void PCSX::OpenGL_GPU::drawLine() {
+    setTransparency<transparency>();
+    if constexpr (transparency == Transparency::Transparent) {
+        setBlendingModeFromTexpage(m_rectTexpage);
+    }
+
+    LinePoint p1, p2;
+    if constexpr (shading == Shading::Flat) {
+        p1.colour = m_cmdFIFO[0];
+        p1.coords = m_cmdFIFO[1];
+
+        p2.colour = m_cmdFIFO[0];
+        p2.coords = m_cmdFIFO[2];
+    } else {
+        p1.colour = m_cmdFIFO[0];
+        p1.coords = m_cmdFIFO[1];
+
+        p2.colour = m_cmdFIFO[2];
+        p2.coords = m_cmdFIFO[3];
+    }
+
+    drawLineInternal(p1, p2);
+}
+
+void PCSX::OpenGL_GPU::drawLineInternal(const LinePoint& p1, const LinePoint& p2) {
+    if (m_vertexCount + 6 >= vertexBufferSize) {
+        renderBatch();
+    }
+
+    const auto getPos = [](const LinePoint& point) -> std::pair<int32_t, int32_t> {
+        int32_t x = int32_t(point.coords) << 21 >> 21;
+        int32_t y = int32_t(point.coords) << 5 >> 21;
+        return {x, y};
+    };
+
+    auto [x1, y1] = getPos(p1);
+    auto [x2, y2] = getPos(p2);
+
+    const int32_t dx = x2 - x1;
+    const int32_t dy = y2 - y1;
+
+    const auto absDx = std::abs(dx);
+    const auto absDy = std::abs(dy);
+
+    // Both vertices coincide, render 1x1 rectangle with the colour and coords of v1
+    if (dx == 0 && dy == 0) {
+        m_vertices[m_vertexCount++] = Vertex(x1, y1, p1.colour);
+        m_vertices[m_vertexCount++] = Vertex(x1 + 1, y1, p1.colour);
+        m_vertices[m_vertexCount++] = Vertex(x1 + 1, y1 + 1, p1.colour);
+
+        m_vertices[m_vertexCount++] = Vertex(x1 + 1, y1 + 1, p1.colour);
+        m_vertices[m_vertexCount++] = Vertex(x1, y1 + 1, p1.colour);
+        m_vertices[m_vertexCount++] = Vertex(x1, y1, p1.colour);
+    } else {
+        int xOffset, yOffset;
+        if (absDx > absDy) { // x-major line
+            xOffset = 0;
+            yOffset = 1;
+
+            // Align line depending on whether dx is positive or not
+            dx > 0 ? x2++ : x1++;
+        } else { // y-major line
+            xOffset = 1;
+            yOffset = 0;
+
+            // Align line depending on whether dy is positive or not
+            dy > 0 ? y2++ : y1++;
+        }
+
+        m_vertices[m_vertexCount++] = Vertex(x1, y1, p1.colour);
+        m_vertices[m_vertexCount++] = Vertex(x2, y2, p2.colour);
+        m_vertices[m_vertexCount++] = Vertex(x2 + xOffset, y2 + yOffset, p2.colour);
+
+        m_vertices[m_vertexCount++] = Vertex(x2 + xOffset, y2 + yOffset, p2.colour);
+        m_vertices[m_vertexCount++] = Vertex(x1 + xOffset, y1 + yOffset, p1.colour);
+        m_vertices[m_vertexCount++] = Vertex(x1, y1, p1.colour);
+    }
+}
+
 void PCSX::OpenGL_GPU::initCommands() {
     for (int i = 0; i < 256; i++) {
         m_cmdFuncs[i] = &OpenGL_GPU::cmdUnimplemented;
@@ -297,6 +378,11 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x3D] = &OpenGL_GPU::drawQuadTextured<Shading::RawTextureGouraud, Transparency::Opaque>;
     m_cmdFuncs[0x3E] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendGouraud, Transparency::Transparent>;
     m_cmdFuncs[0x3F] = &OpenGL_GPU::drawQuadTextured<Shading::RawTextureGouraud, Transparency::Transparent>;
+
+    m_cmdFuncs[0x40] = &OpenGL_GPU::drawLine<Shading::Flat, Transparency::Opaque>;
+    m_cmdFuncs[0x42] = &OpenGL_GPU::drawLine<Shading::Flat, Transparency::Transparent>;
+    m_cmdFuncs[0x50] = &OpenGL_GPU::drawLine<Shading::Gouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x52] = &OpenGL_GPU::drawLine<Shading::Gouraud, Transparency::Transparent>;
 
     m_cmdFuncs[0x60] = &OpenGL_GPU::drawRect<RectSize::Variable, Transparency::Opaque>;
     m_cmdFuncs[0x62] = &OpenGL_GPU::drawRect<RectSize::Variable, Transparency::Transparent>;
