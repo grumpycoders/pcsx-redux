@@ -77,7 +77,9 @@ void PCSX::Widgets::LuaInspector::dumpTree(const std::string& label, Lua L, int 
     } else {
         std::string typestring = fmt::format("({})", L.typestring(i));
         std::string entry = fmt::format("{:40} {:15} {}", label, typestring, L.tostring(i));
+        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
         ImGui::TextUnformatted(entry.c_str());
+        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
     }
 }
 
