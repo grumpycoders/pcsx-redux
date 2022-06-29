@@ -107,22 +107,28 @@ void createListener(PCSX::Lua L) {
 
     L.newtable();
     L.newtable();
-    L.declareFunc("__gc", [ref, listener](PCSX::Lua L) -> int {
-        L.getfieldtable("EVENT_LISTENERS", LUA_REGISTRYINDEX);
-        L.unref(ref);
-        delete listener;
-        return 0;
-    }, -1);
+    L.declareFunc(
+        "__gc",
+        [ref, listener](PCSX::Lua L) -> int {
+            L.getfieldtable("EVENT_LISTENERS", LUA_REGISTRYINDEX);
+            L.unref(ref);
+            delete listener;
+            return 0;
+        },
+        -1);
     L.setmetatable();
 
-    L.declareFunc("remove", [ref, listener](PCSX::Lua L) -> int {
-        L.newtable();
-        L.setmetatable();
-        L.getfieldtable("EVENT_LISTENERS", LUA_REGISTRYINDEX);
-        L.unref(ref);
-        delete listener;
-        return 0;
-    }, -1);
+    L.declareFunc(
+        "remove",
+        [ref, listener](PCSX::Lua L) -> int {
+            L.newtable();
+            L.setmetatable();
+            L.getfieldtable("EVENT_LISTENERS", LUA_REGISTRYINDEX);
+            L.unref(ref);
+            delete listener;
+            return 0;
+        },
+        -1);
 }
 
 }  // namespace
