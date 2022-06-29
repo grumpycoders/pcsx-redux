@@ -46,6 +46,7 @@ Please read and follow the [Code of Conduct](CODE_OF_CONDUCT.md) before contribu
 * Software pull requests should be as small as possible and providing only one feature per pull request.
 * The codebase is using C++-20, so all features from there are fair game, provided it builds on all of the supported platforms. Submitting a pull request should trigger builds for all supported platforms.
 * Please try and follow the codestyle, which is enforced by the [clang-format](https://github.com/grumpycoders/pcsx-redux/blob/main/src/.clang-format) rules. Worst case scenario, a bot will issue another PR to fix the codestyle however, so no need to sweat it too much.
+* If submitting a UI change, please add before and after screenshots if possible.
 
 ## Contributing unit tests
 
