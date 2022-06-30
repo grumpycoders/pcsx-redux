@@ -224,7 +224,7 @@ class FlowExecutor : public PCSX::WebExecutor {
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
         if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
             auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
-            
+
             nlohmann::json j;
             j["running"] = PCSX::g_system->running();
             j["isDynarec"] = PCSX::g_emulator->m_cpu->isDynarec();
