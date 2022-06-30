@@ -48,7 +48,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
     virtual void message(std::string &&s) final override {
-        s_gui->addNotification(s.c_str());
+        if (!m_noGuiLog) s_gui->addNotification(s.c_str());
         if (s_gui->addLog(PCSX::LogClass::UI, s)) {
             if (m_enableStdout) ::printf("%s", s.c_str());
             m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
@@ -57,22 +57,28 @@ class SystemImpl final : public PCSX::System {
     }
 
     virtual void log(PCSX::LogClass logClass, std::string &&s) final override {
-        if (!s_gui->addLog(logClass, s)) return;
+        if (!m_noGuiLog) {
+            if (!s_gui->addLog(logClass, s)) return;
+        }
         if (m_enableStdout) ::printf("%s", s.c_str());
         m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
         if (m_logfile) m_logfile->write(std::move(s));
     }
 
     virtual void printf(std::string &&s) final override {
-        if (!s_gui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
+        if (!m_noGuiLog) {
+            if (!s_gui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
+        }
         if (m_enableStdout) ::printf("%s", s.c_str());
         m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
         if (m_logfile) m_logfile->write(std::move(s));
     }
 
     virtual void luaMessage(const std::string &s, bool error) final override {
-        s_gui->addLuaLog(s, error);
-        if ((error && m_inStartup) || m_args.get<bool>("lua_stdout", false)) {
+        if (!m_noGuiLog) {
+            s_gui->addLuaLog(s, error);
+        }
+        if ((error && m_inStartup) || args.get<bool>("lua_stdout", false)) {
             if (error) {
                 fprintf(stderr, "%s\n", s.c_str());
             } else {
@@ -105,7 +111,7 @@ class SystemImpl final : public PCSX::System {
     virtual void purgeAllEvents() final override { uv_run(getLoop(), UV_RUN_DEFAULT); }
 
     virtual void testQuit(int code) final override {
-        if (m_args.get<bool>("testmode")) {
+        if (testmode()) {
             quit(code);
         } else {
             PCSX::System::log(PCSX::LogClass::UI, "PSX software requested an exit with code %i\n", code);
@@ -113,12 +119,13 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    virtual const CommandLine::args &getArgs() final override { return m_args; }
+    virtual const CommandLine::args &getArgs() final override { return args; }
 
     std::string m_putcharBuffer;
     PCSX::IO<PCSX::UvFile> m_logfile;
 
   public:
+    void setTestmode() { m_testmode = true; }
     void setBinDir(std::filesystem::path path) {
         m_binDir = path;
         m_version.loadFromFile(new PCSX::PosixFile(path / "version.json"));
@@ -132,7 +139,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    explicit SystemImpl(const CommandLine::args &args) : m_args(args) {}
+    explicit SystemImpl(const CommandLine::args &args) : args(args) {}
     ~SystemImpl() {}
 
     void setEmergencyExit() { m_emergencyExit = true; }
@@ -142,8 +149,9 @@ class SystemImpl final : public PCSX::System {
     }
 
     bool m_enableStdout = false;
-    const CommandLine::args &m_args;
+    const CommandLine::args &args;
     bool m_inStartup = true;
+    bool m_noGuiLog = false;
 };
 
 using json = nlohmann::json;
@@ -176,6 +184,16 @@ int pcsxMain(int argc, char **argv) {
     }
 
     SystemImpl *system = new SystemImpl(args);
+    if (args.get<bool>("testmode").value_or(false)) {
+        system->setTestmode();
+    }
+    if (args.get<bool>("stdout").value_or(false)) system->m_enableStdout = true;
+    const auto &logfileArgOpt = args.get<std::string>("logfile");
+    const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
+    if (!logfileArg.empty()) system->useLogfile(logfileArg);
+    if (args.get<bool>("testmode").value_or(false) || args.get<bool>("no-gui-log").value_or(false)) {
+        system->m_noGuiLog = true;
+    }
     PCSX::g_system = system;
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
@@ -186,13 +204,69 @@ int pcsxMain(int argc, char **argv) {
 
     s_gui = new PCSX::GUI(args);
     s_gui->init();
-    system->m_enableStdout = emulator->settings.get<PCSX::Emulator::SettingStdout>();
-    if (args.get<bool>("stdout")) system->m_enableStdout = true;
-    const auto &logfileArgOpt = args.get<std::string>("logfile");
-    const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
+    auto &emuSettings = emulator->settings;
+    auto &debugSettings = emuSettings.get<PCSX::Emulator::SettingDebugSettings>();
+    if (emuSettings.get<PCSX::Emulator::SettingMcd1>().empty()) {
+        emuSettings.get<PCSX::Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
+    }
+
+    if (emuSettings.get<PCSX::Emulator::SettingMcd2>().empty()) {
+        emuSettings.get<PCSX::Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
+    }
+
+    emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
+
+    auto argPath1 = args.get<std::string>("memcard1");
+    auto argPath2 = args.get<std::string>("memcard2");
+    if (argPath1.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd1>().value = argPath1.value();
+    if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>().value = argPath1.value();
+    PCSX::u8string path1 = emuSettings.get<PCSX::Emulator::SettingMcd1>().string();
+    PCSX::u8string path2 = emuSettings.get<PCSX::Emulator::SettingMcd2>().string();
+
+    emulator->m_sio->LoadMcds(path1, path2);
+    auto biosCfg = args.get<std::string>("bios");
+    if (biosCfg.has_value()) emuSettings.get<PCSX::Emulator::SettingBios>() = biosCfg.value();
+
+    system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
+
+    if (args.get<bool>("debugger", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value = true;
+    }
+
+    if (args.get<bool>("no-debugger", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value = false;
+    }
+
+    if (args.get<bool>("trace", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::Trace>().value = true;
+    }
+
+    if (args.get<bool>("no-trace", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::Trace>().value = false;
+    }
+
+    if (args.get<bool>("8mb", false)) {
+        emuSettings.get<PCSX::Emulator::Setting8MB>().value = true;
+    }
+
+    std::filesystem::path isoToOpen = args.get<std::string>("iso", "");
+    if (isoToOpen.empty()) isoToOpen = args.get<std::string>("loadiso", "");
+    if (isoToOpen.empty()) isoToOpen = args.get<std::string>("disk", "");
+    if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->setIso(new PCSX::CDRIso(isoToOpen));
+    PCSX::g_emulator->m_cdrom->check();
+    auto argPCdrvBase = args.get<std::string>("pcdrvbase");
+    if (args.get<bool>("pcdrv", false)) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::PCdrv>().value = true;
+    }
+    if (argPCdrvBase.has_value()) {
+        debugSettings.get<PCSX::Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
+    }
+
+    if (!args.get<bool>("stdout", false)) {
+        system->m_enableStdout = emulator->settings.get<PCSX::Emulator::SettingStdout>();
+    }
     const PCSX::u8string &logfileSet = emulator->settings.get<PCSX::Emulator::SettingLogfile>().string();
-    const auto &logfile = logfileArg.empty() ? logfileSet : logfileArg;
-    if (!logfile.empty()) system->useLogfile(logfile);
+    if (logfileArg.empty() && !logfileSet.empty()) system->useLogfile(logfileSet);
 
     emulator->setLua();
     s_gui->setLua(*emulator->m_lua);
@@ -216,7 +290,7 @@ int pcsxMain(int argc, char **argv) {
         Cleaner cleaner([&emulator, &system, &exitCode]() {
             emulator->m_spu->close();
             emulator->m_gpu->close();
-            emulator->m_cdrom->m_iso.reset();
+            emulator->m_cdrom->clearIso();
 
             emulator->m_cpu->psxShutdown();
             emulator->m_spu->shutdown();

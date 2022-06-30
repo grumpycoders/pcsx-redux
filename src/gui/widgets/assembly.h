@@ -22,7 +22,6 @@
 #include <stdint.h>
 
 #include <list>
-#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -42,13 +41,13 @@ namespace Widgets {
 
 class Assembly : private Disasm {
   public:
-    Assembly() : m_listener(g_system->m_eventBus) {
+    Assembly(bool& show) : m_show(show), m_listener(g_system->m_eventBus) {
         m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
     void draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
 
-    bool m_show = false;
+    bool& m_show;
 
   private:
     EventBus::Listener m_listener;
@@ -59,7 +58,7 @@ class Assembly : private Disasm {
     bool m_displayArrowForJumps = false;
     int m_numColumns = 4;
     char m_jumpAddressString[20];
-    std::map<uint32_t, std::string> m_symbols;
+    uint32_t m_previousPC = 0;
     FileDialog m_symbolsFileDialog = {[]() { return _("Load Symbols"); }};
     std::vector<std::pair<uint32_t, uint32_t>> m_arrows;
 

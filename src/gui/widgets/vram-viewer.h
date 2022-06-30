@@ -34,7 +34,7 @@ namespace Widgets {
 
 class VRAMViewer {
   public:
-    VRAMViewer();
+    VRAMViewer(bool &show);
     void setMain() { m_isMain = true; }
     void setTitle(std::function<std::string()> title) { m_title = title; }
     void setClutDestination(VRAMViewer *destination) {
@@ -104,7 +104,7 @@ class VRAMViewer {
     int m_24shift = 0;
 
   public:
-    bool m_show = false;
+    bool &m_show;
 
   private:
     std::function<std::string()> m_title;

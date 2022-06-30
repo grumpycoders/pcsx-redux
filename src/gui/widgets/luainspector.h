@@ -21,6 +21,8 @@
 
 #include <string>
 
+#include "lua/luawrapper.h"
+
 namespace PCSX {
 class Lua;
 class GUI;
@@ -29,12 +31,12 @@ namespace Widgets {
 class LuaInspector {
   public:
     LuaInspector(bool& show) : m_show(show) {}
-    void draw(const char* title, Lua* L, GUI* gui);
+    void draw(const char* title, Lua L, GUI* gui);
 
     bool& m_show;
 
   private:
-    void dumpTree(const std::string& label, Lua* L, int i);
+    void dumpTree(const std::string& label, Lua L, int i);
     enum class Display {
         GLOBALS,
         STACK,

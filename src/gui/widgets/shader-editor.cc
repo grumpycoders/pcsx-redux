@@ -256,42 +256,41 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     m_errorMessage.clear();
     gui->getGLerrors();
 
-    auto &L = g_emulator->m_lua;
+    auto L = *g_emulator->m_lua;
     std::filesystem::path f = m_baseFilename;
 
     if (m_autoreload) {
         m_lastLuaErrors.clear();
-        auto oldNormalPrinter = L->normalPrinter;
-        auto oldErrorPrinter = L->errorPrinter;
-        L->normalPrinter = [](const std::string &) {};
-        L->errorPrinter = [this](const std::string &msg) { m_lastLuaErrors.push_back(msg); };
-        int top = L->gettop();
+        auto oldNormalPrinter = L.normalPrinter;
+        auto oldErrorPrinter = L.errorPrinter;
+        L.normalPrinter = [](std::string_view) {};
+        L.errorPrinter = [this](std::string_view msg) { m_lastLuaErrors.push_back(std::string(msg)); };
+        int top = L.gettop();
         // grabbing the table where we'll store our shader invoker
         getRegistry(L);
         // each ShaderEditor has its own constant index for this table
-        L->push(m_index);
+        L.push(m_index);
         // this table will contain the sandbox environment
-        L->newtable();
+        L.newtable();
         // assign _G to __index's metatable
-        if (L->newmetatable("SHADER_EDITOR_METATABLE")) {
-            L->push("__index");
-            L->push("_G");
-            L->gettable(LUA_GLOBALSINDEX);
-            L->settable();
+        if (L.newmetatable("SHADER_EDITOR_METATABLE")) {
+            L.push("__index");
+            L.push("_G");
+            L.gettable(LUA_GLOBALSINDEX);
+            L.settable();
         }
-        L->setmetatable();
-        L->push("shaderProgramID");
-        L->push(static_cast<lua_Number>(shaderProgram));
-        L->settable();
-        gui->useImguiLuaUserErrorHandler();
+        L.setmetatable();
+        L.push("shaderProgramID");
+        L.push(static_cast<lua_Number>(shaderProgram));
+        L.settable();
         try {
             f.replace_extension("lua");
-            L->load(getLuaText(), f.string().c_str(), false);
+            L.load(getLuaText(), f.string().c_str(), false);
             // assign our sandbox as the global environment of this new piece of code
-            L->copy(-2);
-            L->setfenv();
+            L.copy(-2);
+            L.setfenv();
             // and evaluate it
-            L->pcall();
+            L.pcall();
             bool gotGLerror = false;
             auto errors = gui->getGLerrors();
             for (const auto &error : errors) {
@@ -310,20 +309,19 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
                     }
                 } catch (...) {
                 }
-                L->fromJson(settings);
+                L.fromJson(settings);
 
                 // and remember the newest Lua code
-                L->settable();
+                L.settable();
             }
         } catch (...) {
             m_displayError = true;
         }
-        gui->noImguiUserErrorHandler();
-        while (top < L->gettop()) {
-            L->pop();
+        while (top < L.gettop()) {
+            L.pop();
         }
-        L->normalPrinter = oldNormalPrinter;
-        L->errorPrinter = oldErrorPrinter;
+        L.normalPrinter = oldNormalPrinter;
+        L.errorPrinter = oldErrorPrinter;
     }
 
     if (m_autosave) {
@@ -424,45 +422,37 @@ bool PCSX::Widgets::ShaderEditor::draw(GUI *gui, const char *title) {
 }
 
 void PCSX::Widgets::ShaderEditor::setConfigure(bool configure) {
-    auto &L = g_emulator->m_lua;
-    int top = L->gettop();
+    auto L = *g_emulator->m_lua;
+    int top = L.gettop();
     getRegistry(L);
-    L->push(m_index);
-    L->gettable();
-    L->push("configureme");
-    L->push(configure);
-    L->settable();
-    while (top < L->gettop()) {
-        L->pop();
+    L.push(m_index);
+    L.gettable();
+    L.push("configureme");
+    L.push(configure);
+    L.settable();
+    while (top < L.gettop()) {
+        L.pop();
     }
 }
 
 void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
-    auto &Lorg = g_emulator->m_lua;
-    bool config = false;
+    auto Lorg = *g_emulator->m_lua;
     {
-        int top = Lorg->gettop();
-        auto L = Lorg->thread();
+        int top = Lorg.gettop();
+        auto L = Lorg.thread();
         getRegistry(L);
-        L->push(m_index);
-        L->gettable();
-        if (L->istable()) {
-            L->push("configureme");
-            L->gettable();
-            if (L->isboolean()) {
-                config = L->toboolean();
-            }
-            L->pop();
-            L->push("Draw");
-            L->gettable();
-            if (L->isfunction()) {
-                L->copy(-2);
-                L->setfenv();
+        L.push(m_index);
+        L.gettable();
+        if (L.istable()) {
+            L.push("Draw");
+            L.gettable();
+            if (L.isfunction()) {
+                L.copy(-2);
+                L.setfenv();
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
-                gui->useImguiLuaUserErrorHandler();
                 try {
-                    int top = L->gettop() - 1;
-                    L->pcall();
+                    int top = L.gettop() - 1;
+                    L.pcall();
                     bool gotGLerror = false;
                     auto errors = gui->getGLerrors();
                     for (const auto &error : errors) {
@@ -471,10 +461,10 @@ void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
                     }
                     if (gotGLerror) throw("OpenGL error while running Lua code");
 
-                    if (top != L->gettop()) {
-                        bool changed = L->toboolean(top + 1);
+                    if (top != L.gettop()) {
+                        bool changed = L.toboolean(top + 1);
                         if (changed) {
-                            auto j = L->toJson(-2);
+                            auto j = L.toJson(-2);
                             if (j.is_object()) {
                                 auto i = j.find("shaderProgramID");
                                 if (i != j.end()) j.erase(i);
@@ -487,39 +477,37 @@ void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
                     }
                 } catch (...) {
                     getRegistry(Lorg);
-                    Lorg->push(m_index);
-                    Lorg->gettable();
-                    Lorg->push("Draw");
-                    Lorg->push();
-                    Lorg->settable();
+                    Lorg.push(m_index);
+                    Lorg.gettable();
+                    Lorg.push("Draw");
+                    Lorg.push();
+                    Lorg.settable();
                 }
-                gui->noImguiUserErrorHandler();
             }
         }
-        while (top < Lorg->gettop()) {
-            Lorg->pop();
+        while (top < Lorg.gettop()) {
+            Lorg.pop();
         }
     }
 }
 
 void PCSX::Widgets::ShaderEditor::reset(GUI *gui) {
-    auto &Lorg = g_emulator->m_lua;
+    auto Lorg = *g_emulator->m_lua;
     {
-        int top = Lorg->gettop();
-        auto L = Lorg->thread();
+        int top = Lorg.gettop();
+        auto L = Lorg.thread();
         getRegistry(L);
-        L->push(m_index);
-        L->gettable();
-        if (L->istable()) {
-            L->push("Reset");
-            L->gettable();
-            if (L->isfunction()) {
-                L->copy(-2);
-                L->setfenv();
+        L.push(m_index);
+        L.gettable();
+        if (L.istable()) {
+            L.push("Reset");
+            L.gettable();
+            if (L.isfunction()) {
+                L.copy(-2);
+                L.setfenv();
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
-                gui->useImguiLuaUserErrorHandler();
                 try {
-                    L->pcall();
+                    L.pcall();
                     bool gotGLerror = false;
                     auto errors = gui->getGLerrors();
                     for (const auto &error : errors) {
@@ -529,30 +517,29 @@ void PCSX::Widgets::ShaderEditor::reset(GUI *gui) {
                     if (gotGLerror) throw("OpenGL error while running Lua code");
                 } catch (...) {
                     getRegistry(Lorg);
-                    Lorg->push(m_index);
-                    Lorg->gettable();
-                    Lorg->push("Reset");
-                    Lorg->push();
-                    Lorg->settable();
+                    Lorg.push(m_index);
+                    Lorg.gettable();
+                    Lorg.push("Reset");
+                    Lorg.push();
+                    Lorg.settable();
                 }
-                gui->noImguiUserErrorHandler();
             }
         }
-        while (top < Lorg->gettop()) {
-            Lorg->pop();
+        while (top < Lorg.gettop()) {
+            Lorg.pop();
         }
     }
 }
 
-void PCSX::Widgets::ShaderEditor::getRegistry(std::unique_ptr<Lua> &L) {
-    L->push("SHADER_EDITOR");
-    L->gettable(LUA_REGISTRYINDEX);
-    if (L->isnil()) {
-        L->pop();
-        L->newtable();
-        L->push("SHADER_EDITOR");
-        L->copy(-2);
-        L->settable(LUA_REGISTRYINDEX);
+void PCSX::Widgets::ShaderEditor::getRegistry(Lua L) {
+    L.push("SHADER_EDITOR");
+    L.gettable(LUA_REGISTRYINDEX);
+    if (L.isnil()) {
+        L.pop();
+        L.newtable();
+        L.push("SHADER_EDITOR");
+        L.copy(-2);
+        L.settable(LUA_REGISTRYINDEX);
     }
 }
 
@@ -575,30 +562,29 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
         },
         this);
 
-    auto &Lorg = g_emulator->m_lua;
+    auto Lorg = *g_emulator->m_lua;
     {
-        int top = Lorg->gettop();
-        auto L = Lorg->thread();
+        int top = Lorg.gettop();
+        auto L = Lorg.thread();
         getRegistry(L);
-        L->push(m_index);
-        L->gettable();
-        if (L->isnil() || !L->istable()) {
+        L.push(m_index);
+        L.gettable();
+        if (L.isnil() || !L.istable()) {
             ImGui::Image(textureID, dstSize, {0, 0}, {1, 1});
         } else {
-            L->push("Image");
-            L->gettable();
-            if (L->isfunction()) {
-                L->copy(-2);
-                L->setfenv();
-                L->push(static_cast<lua_Number>(reinterpret_cast<uintptr_t>(textureID)));
-                L->push(srcSize.x);
-                L->push(srcSize.y);
-                L->push(dstSize.x);
-                L->push(dstSize.y);
+            L.push("Image");
+            L.gettable();
+            if (L.isfunction()) {
+                L.copy(-2);
+                L.setfenv();
+                L.push(static_cast<lua_Number>(reinterpret_cast<uintptr_t>(textureID)));
+                L.push(srcSize.x);
+                L.push(srcSize.y);
+                L.push(dstSize.x);
+                L.push(dstSize.y);
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
-                gui->useImguiLuaUserErrorHandler();
                 try {
-                    L->pcall(5);
+                    L.pcall(5);
                     bool gotGLerror = false;
                     auto errors = gui->getGLerrors();
                     for (const auto &error : errors) {
@@ -608,19 +594,18 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
                     if (gotGLerror) throw("OpenGL error while running Lua code");
                 } catch (...) {
                     getRegistry(Lorg);
-                    Lorg->push(m_index);
-                    Lorg->gettable();
-                    Lorg->push("Image");
-                    Lorg->push();
-                    Lorg->settable();
+                    Lorg.push(m_index);
+                    Lorg.gettable();
+                    Lorg.push("Image");
+                    Lorg.push();
+                    Lorg.settable();
                 }
-                gui->noImguiUserErrorHandler();
             } else {
                 ImGui::Image(textureID, dstSize, {0, 0}, {1, 1});
             }
         }
-        while (top < Lorg->gettop()) {
-            Lorg->pop();
+        while (top < Lorg.gettop()) {
+            Lorg.pop();
         }
     }
     
@@ -648,37 +633,36 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
     // Send projection matrix to our shader
     glUniformMatrix4fv(m_shaderProjMtxLoc, 1, GL_FALSE, &projMtx[0][0]);
 
-    auto &Lorg = g_emulator->m_lua;
+    auto Lorg = *g_emulator->m_lua;
     {
-        int top = Lorg->gettop();
-        auto L = Lorg->thread();
+        int top = Lorg.gettop();
+        auto L = Lorg.thread();
         getRegistry(L);
-        L->push(m_index);
-        L->gettable();
-        if (L->istable()) {
-            L->push("BindAttributes");
-            L->gettable();
-            if (L->isfunction()) {
+        L.push(m_index);
+        L.gettable();
+        if (L.istable()) {
+            L.push("BindAttributes");
+            L.gettable();
+            if (L.isfunction()) {
                 {
-                    Lorg->push("SHADER_EDITOR");
-                    Lorg->gettable(LUA_REGISTRYINDEX);
-                    Lorg->push("imgui");
-                    Lorg->copy();
-                    Lorg->copy();
-                    Lorg->gettable(LUA_GLOBALSINDEX);
-                    Lorg->settable(-4);
-                    Lorg->push();
-                    Lorg->settable(LUA_GLOBALSINDEX);
-                    Lorg->pop();
+                    Lorg.push("SHADER_EDITOR");
+                    Lorg.gettable(LUA_REGISTRYINDEX);
+                    Lorg.push("imgui");
+                    Lorg.copy();
+                    Lorg.copy();
+                    Lorg.gettable(LUA_GLOBALSINDEX);
+                    Lorg.settable(-4);
+                    Lorg.push();
+                    Lorg.settable(LUA_GLOBALSINDEX);
+                    Lorg.pop();
                 }
-                L->copy(-2);
-                L->setfenv();
-                L->push(lua_Number(textureID));
-                L->push(lua_Number(m_shaderProgram));
+                L.copy(-2);
+                L.setfenv();
+                L.push(lua_Number(textureID));
+                L.push(lua_Number(m_shaderProgram));
                 GUI::ScopedOnlyLog scopedOnlyLog(m_cachedGui);
-                m_cachedGui->useImguiLuaUserErrorHandler();
                 try {
-                    L->pcall(2);
+                    L.pcall(2);
                     bool gotGLerror = false;
                     auto errors = m_cachedGui->getGLerrors();
                     for (const auto &error : errors) {
@@ -688,26 +672,25 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
                     if (gotGLerror) throw("OpenGL error while running Lua code");
                 } catch (...) {
                     getRegistry(Lorg);
-                    Lorg->push(m_index);
-                    Lorg->gettable();
-                    Lorg->push("BindAttributes");
-                    Lorg->push();
-                    Lorg->settable();
+                    Lorg.push(m_index);
+                    Lorg.gettable();
+                    Lorg.push("BindAttributes");
+                    Lorg.push();
+                    Lorg.settable();
                 }
                 {
-                    Lorg->push("SHADER_EDITOR");
-                    Lorg->gettable(LUA_REGISTRYINDEX);
-                    Lorg->push("imgui");
-                    Lorg->copy();
-                    Lorg->gettable(-3);
-                    Lorg->settable(LUA_GLOBALSINDEX);
-                    Lorg->pop();
+                    Lorg.push("SHADER_EDITOR");
+                    Lorg.gettable(LUA_REGISTRYINDEX);
+                    Lorg.push("imgui");
+                    Lorg.copy();
+                    Lorg.gettable(-3);
+                    Lorg.settable(LUA_GLOBALSINDEX);
+                    Lorg.pop();
                 }
-                m_cachedGui->noImguiUserErrorHandler();
             }
         }
-        while (top < Lorg->gettop()) {
-            Lorg->pop();
+        while (top < Lorg.gettop()) {
+            Lorg.pop();
         }
     }
 }
@@ -821,31 +804,30 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
 
     glBindTexture(GL_TEXTURE_2D, textureID);
 
-    auto &Lorg = g_emulator->m_lua;
+    auto Lorg = *g_emulator->m_lua;
     {
-        int top = Lorg->gettop();
-        auto L = Lorg->thread();
+        int top = Lorg.gettop();
+        auto L = Lorg.thread();
         getRegistry(L);
-        L->push(m_index);
-        L->gettable();
-        if (L->istable()) {
-            L->push("BindAttributes");
-            L->gettable();
-            if (L->isfunction()) {
-                L->copy(-2);
-                L->setfenv();
-                L->push(static_cast<lua_Number>(textureID));
-                L->push(lua_Number(m_shaderProgram));
-                L->push(srcLoc.x);
-                L->push(srcLoc.y);
-                L->push(srcSize.x);
-                L->push(srcSize.y);
-                L->push(dstSize.x);
-                L->push(dstSize.y);
+        L.push(m_index);
+        L.gettable();
+        if (L.istable()) {
+            L.push("BindAttributes");
+            L.gettable();
+            if (L.isfunction()) {
+                L.copy(-2);
+                L.setfenv();
+                L.push(static_cast<lua_Number>(textureID));
+                L.push(lua_Number(m_shaderProgram));
+                L.push(srcLoc.x);
+                L.push(srcLoc.y);
+                L.push(srcSize.x);
+                L.push(srcSize.y);
+                L.push(dstSize.x);
+                L.push(dstSize.y);
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
-                gui->useImguiLuaUserErrorHandler();
                 try {
-                    L->pcall(8);
+                    L.pcall(8);
                     bool gotGLerror = false;
                     auto errors = gui->getGLerrors();
                     for (const auto &error : errors) {
@@ -855,17 +837,16 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
                     if (gotGLerror) throw("OpenGL error while running Lua code");
                 } catch (...) {
                     getRegistry(Lorg);
-                    Lorg->push(m_index);
-                    Lorg->gettable();
-                    Lorg->push("BindAttributes");
-                    Lorg->push();
-                    Lorg->settable();
+                    Lorg.push(m_index);
+                    Lorg.gettable();
+                    Lorg.push("BindAttributes");
+                    Lorg.push();
+                    Lorg.settable();
                 }
-                gui->noImguiUserErrorHandler();
             }
         }
-        while (top < Lorg->gettop()) {
-            Lorg->pop();
+        while (top < Lorg.gettop()) {
+            Lorg.pop();
         }
     }
 

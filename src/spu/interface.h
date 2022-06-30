@@ -79,8 +79,8 @@ class impl final : public SPUInterface {
             settings.reset();
         }
     }
-    uint32_t getCurrentFrames() { return m_audioOut.getCurrentFrames(); }
-    void waitForGoal(uint32_t goal) { m_audioOut.waitForGoal(goal); }
+    uint32_t getCurrentFrames() override { return m_audioOut.getCurrentFrames(); }
+    void waitForGoal(uint32_t goal) override { m_audioOut.waitForGoal(goal); }
 
   private:
     // sound buffer sizes

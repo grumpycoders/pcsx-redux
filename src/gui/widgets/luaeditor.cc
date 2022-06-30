@@ -67,10 +67,9 @@ void PCSX::Widgets::LuaEditor::draw(const char* title, PCSX::GUI* gui) {
             m_lastErrors.clear();
             auto oldNormalPrinter = L->normalPrinter;
             auto oldErrorPrinter = L->errorPrinter;
-            L->normalPrinter = [](const std::string&) {};
-            L->errorPrinter = [this](const std::string& msg) { m_lastErrors.push_back(msg); };
+            L->normalPrinter = [](std::string_view) {};
+            L->errorPrinter = [this](std::string_view msg) { m_lastErrors.push_back(std::string(msg)); };
             GUI::ScopedOnlyLog scopedOnlyLog(gui);
-            gui->useImguiLuaUserErrorHandler();
             try {
                 L->load(m_text.getText(), "pcsx.lua", false);
                 L->pcall();
@@ -85,7 +84,6 @@ void PCSX::Widgets::LuaEditor::draw(const char* title, PCSX::GUI* gui) {
             } catch (...) {
                 m_displayError = true;
             }
-            gui->noImguiUserErrorHandler();
             L->normalPrinter = oldNormalPrinter;
             L->errorPrinter = oldErrorPrinter;
         }

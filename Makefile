@@ -30,7 +30,6 @@ CPPFLAGS += -Ithird_party/imgui
 CPPFLAGS += -Ithird_party/imgui/backends
 CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui/misc/cpp
-CPPFLAGS += -Ithird_party/imgui_club
 CPPFLAGS += -Ithird_party/http-parser
 CPPFLAGS += -Ithird_party/libelfin
 CPPFLAGS += -Ithird_party/luajit/src
@@ -55,6 +54,7 @@ else
     CPPFLAGS_Coverage += -fprofile-arcs -ftest-coverage
 endif
 CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
+CPPFLAGS_ubsan += -O1 -fsanitize=undefined -fno-omit-frame-pointer
 CPPFLAGS_ReleaseWithTracy += -O3 -DTRACY_ENABLE
 
 ifeq ($(CC_IS_CLANG),true)
@@ -89,6 +89,7 @@ else
     LDFLAGS_Coverage += -fprofile-arcs -ftest-coverage
 endif
 LDFLAGS_asan += -fsanitize=address
+LDFLAGS_ubsan += -fsanitize=undefined
 
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
 LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
@@ -111,12 +112,14 @@ SRCS += third_party/clip/clip.cpp
 SRCS += third_party/clip/image.cpp
 SRCS += third_party/gl3w/GL/gl3w.c
 SRCS += third_party/http-parser/http_parser.c
+SRCS += third_party/ImFileDialog/ImFileDialog.cpp
 SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/backends/imgui_impl_glfw.cpp
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
 SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/imgui_md/imgui_md.cpp
+SRCS += third_party/imgui_memory_editor/imgui_memory_editor.cpp
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/md4c/src/md4c.c
 SRCS += third_party/multipart-parser-c/multipart_parser.c

@@ -24,7 +24,7 @@ static constexpr unsigned ECM_HEADER_SIZE = 4;
 
 /* Adapted from ecm.c:unecmify() (C) Neill Corlett */
 ssize_t PCSX::CDRIso::ecmDecode(IO<File> f, unsigned int base, void *dest, int sector) {
-    uint32_t output_edc = 0, b = 0, writebytecount = 0, num;
+    uint32_t b = 0, writebytecount = 0, num;
     uint32_t sectorcount = 0;
     int8_t type = 0;  // mode type 0 (META) or 1, 2 or 3 for CDROM type
     uint8_t sector_buffer[PCSX::IEC60908b::FRAMESIZE_RAW];

@@ -25,8 +25,9 @@ namespace Widgets {
 
 class Breakpoints {
   public:
+    Breakpoints(bool& show) : m_show(show) {}
     void draw(const char* title);
-    bool m_show = false;
+    bool& m_show;
 
   private:
     bool m_filterE = true;

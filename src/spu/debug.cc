@@ -156,8 +156,7 @@ void PCSX::SPU::impl::debug() {
                 ImGui::Text("Spu states");
                 ImGui::Text("Irq addr:\nCtrl:\nStat:\nSpu mem:");
                 ImGui::SameLine();
-                ImGui::Text("%li\n%04x\n%04x\n%i", pSpuIrq ? -1 : (unsigned long)pSpuIrq - (unsigned long)spuMemC,
-                            spuCtrl, spuStat, spuAddr);
+                ImGui::Text("%li\n%04x\n%04x\n%i", pSpuIrq ? -1 : pSpuIrq - spuMemC, spuCtrl, spuStat, spuAddr);
             }
             ImGui::EndChild();
         }

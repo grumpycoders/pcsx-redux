@@ -24,6 +24,8 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
+#include "lua/luafile.h"
 #include "lua/luawrapper.h"
 
 namespace {
@@ -32,7 +34,6 @@ struct LuaBreakpoint {
     PCSX::Debug::BreakpointUserListType wrapper;
 };
 
-void setBreakpoint() {}
 void* getMemPtr() { return PCSX::g_emulator->m_mem->m_psxM; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_psxR; }
 void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_psxH; }
@@ -92,6 +93,13 @@ LuaScreenShot takeScreenShot() {
     return ret;
 }
 
+PCSX::Slice* createSaveState() {
+    auto ss = PCSX::SaveStates::save();
+    return new PCSX::Slice(std::move(ss));
+}
+
+void loadSaveState(PCSX::Slice* data) { PCSX::SaveStates::load(data->asStringView()); }
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -104,15 +112,7 @@ static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
 static void registerAllSymbols(PCSX::Lua L) {
-    L.push("_CLIBS");
-    L.gettable(LUA_REGISTRYINDEX);
-    if (L.isnil()) {
-        L.pop();
-        L.newtable();
-        L.push("_CLIBS");
-        L.copy(-2);
-        L.settable(LUA_REGISTRYINDEX);
-    }
+    L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("PCSX");
     L.newtable();
     REGISTER(L, getMemPtr);
@@ -133,6 +133,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, jumpToPC);
     REGISTER(L, jumpToMemory);
     REGISTER(L, takeScreenShot);
+    REGISTER(L, createSaveState);
+    REGISTER(L, loadSaveState);
     L.settable();
     L.pop();
 }

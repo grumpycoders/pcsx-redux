@@ -22,36 +22,64 @@
 #include <stdint.h>
 
 #include <filesystem>
+#include <list>
+#include <string>
+#include <string_view>
+#include <utility>
 
 #include "cdrom/iec-60908b.h"
+#include "support/hashtable.h"
 
 namespace PCSX {
 
 class PPF {
   public:
+    ~PPF() { clear(); }
+    void clear() { m_patches.destroyAll(); }
+    // given an input iso filename, attempt to load its corresponding ppf
     bool load(std::filesystem::path iso);
-    void FreePPFCache();
-    void CheckPPFCache(uint8_t *pB, IEC60908b::MSF);
+    // given an input iso filename, create a new ppf1 file for it from memory patches
+    void save(std::filesystem::path iso);
+    // apply ppf patches to a sector
+    void maybePatchSector(uint8_t *sector, IEC60908b::MSF) const;
+    // inject a new patch in memory based on the difference between two sectors
+    void calculatePatch(const uint8_t *in, const uint8_t *out, IEC60908b::MSF);
+    // inject a new patch in memory using an offset - this allowed to straddle across sectors
+    void injectPatch(std::string_view data, uint32_t offset, IEC60908b::MSF);
+
+    void simplify();
+    void simplify(IEC60908b::MSF msf);
+
+    std::string m_description;
+    std::string m_fileIdDiz;
 
   private:
-    struct PPF_DATA {
-        int32_t addr;
-        int32_t pos;
-        int32_t anz;
-        struct PPF_DATA *pNext;
+    struct Patch;
+    void simplify(Patch &);
+    struct MSFHash {
+        static constexpr uint32_t hash(const IEC60908b::MSF &key) {
+            uint32_t a = key.toLBA();
+            a = (a ^ 61) ^ (a >> 16);
+            a += (a << 3);
+            a ^= (a >> 4);
+            a *= 0x27d4eb2f;
+            a ^= (a >> 15);
+            return a;
+        }
+        static constexpr bool isEqual(const IEC60908b::MSF &lhs, const IEC60908b::MSF &rhs) {
+            return std::equal_to<const IEC60908b::MSF>{}(lhs, rhs);
+        }
     };
-
-    struct PPF_CACHE {
-        int32_t addr;
-        struct PPF_DATA *pNext;
+    typedef Intrusive::HashTable<IEC60908b::MSF, Patch, MSFHash> Patches;
+    struct Patch : public Patches::Node {
+        std::list<std::pair<uint32_t, std::string>> data;
+        Patch() = default;
+        Patch(const Patch &) = default;
+        Patch(Patch &&) = default;
+        ~Patch() = default;
     };
-
-    PPF_CACHE *s_ppfCache = nullptr;
-    PPF_DATA *s_ppfHead = nullptr, *s_ppfLast = nullptr;
-    int s_iPPFNum = 0;
-
-    void FillPPFCache();
-    void AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem);
+    Patches m_patches;
+    unsigned m_version;
 };
 
 }  // namespace PCSX

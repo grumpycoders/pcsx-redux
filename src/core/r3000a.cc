@@ -230,7 +230,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
             }
         }
         ec = 1 << ec;
-        if (debugSettings.get<Emulator::DebugSettings::FirstChanceException>() & ec) {
+        if (!g_system->testmode() && ((debugSettings.get<Emulator::DebugSettings::FirstChanceException>() & ec) != 0)) {
             auto name = magic_enum::enum_name(e.value());
             g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_regs.pc).c_str());
             g_system->pause(true);

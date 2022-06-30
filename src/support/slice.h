@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <limits>
 #include <string>
+#include <string_view>
 #include <variant>
 
 #include "fmt/format.h"
@@ -170,7 +171,7 @@ class Slice {
     }
     const uint32_t size() const {
         if (std::holds_alternative<std::string>(m_data)) {
-            return std::get<std::string>(m_data).size();
+            return uint32_t(std::get<std::string>(m_data).size());
         } else if (std::holds_alternative<Inlined>(m_data)) {
             return std::get<Inlined>(m_data).size;
         } else if (std::holds_alternative<Owned>(m_data)) {
@@ -203,12 +204,14 @@ class Slice {
         return ret;
     }
 
-    uint8_t getByte(size_t offset) {
+    uint8_t getByte(size_t offset) const {
         if (offset >= size()) throw std::runtime_error("getByte called with an out of range offset");
         return reinterpret_cast<const uint8_t *>(data())[offset];
     }
 
     void reset() { m_data = std::monostate(); }
+
+    std::string_view asStringView() const { return {data<char>(), size()}; }
 
   private:
     void copyFrom(const Slice &other) {
@@ -234,7 +237,7 @@ class Slice {
         ~Owned() { free(ptr); }
         Owned(uint32_t size, void *ptr) : size(size), ptr(ptr) {}
         Owned(const Owned &other) { abort(); }
-        Owned(Owned &&other) : ptr(other.ptr), size(other.size) { other.ptr = nullptr; }
+        Owned(Owned &&other) : size(other.size), ptr(other.ptr) { other.ptr = nullptr; }
         Owned &operator=(const Owned &other) {
             abort();
             return *this;

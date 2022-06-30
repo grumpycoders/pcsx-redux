@@ -28,10 +28,13 @@
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "core/r3000a.h"
 #include "core/system.h"
 #include "http-parser/http_parser.h"
 #include "multipart-parser-c/multipart_parser.h"
+#include "support/file.h"
 #include "support/hashtable.h"
+#include "support/strings-helpers.h"
 
 namespace {
 
@@ -39,7 +42,7 @@ class VramExecutor : public PCSX::WebExecutor {
     virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
         return urldata.path == "/api/v1/gpu/vram/raw";
     }
-    virtual bool execute(PCSX::WebClient* client, const PCSX::RequestData& request) final {
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
         if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
             client->write(
                 "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 1048576\r\n\r\n");
@@ -62,7 +65,7 @@ class VramExecutor : public PCSX::WebExecutor {
             auto iy = vars.find("y");
             auto iwidth = vars.find("width");
             auto iheight = vars.find("height");
-            if (ix == vars.end() || iy == vars.end() || iwidth == vars.end() || iheight == vars.end()) {
+            if ((ix == vars.end()) || (iy == vars.end()) || (iwidth == vars.end()) || (iheight == vars.end())) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
@@ -105,28 +108,188 @@ class RamExecutor : public PCSX::WebExecutor {
     virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
         return urldata.path == "/api/v1/cpu/ram/raw";
     }
-    virtual bool execute(PCSX::WebClient* client, const PCSX::RequestData& request) final {
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
         const auto& ram8M = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>().value;
-        if (ram8M) {
-            client->write(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 8388608\r\n\r\n");
-        } else {
-            client->write(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 2097152\r\n\r\n");
-        }
-        uint32_t size = 1024 * 1024 * (ram8M ? 8 : 2);
-        uint8_t* data = (uint8_t*)malloc(size);
-        memcpy(data, PCSX::g_emulator->m_mem->m_psxM, size);
-        PCSX::Slice slice;
-        slice.acquire(data, size);
-        client->write(std::move(slice));
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
+            if (ram8M) {
+                client->write(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 8388608\r\n\r\n");
+            } else {
+                client->write(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 2097152\r\n\r\n");
+            }
+            uint32_t size = 1024 * 1024 * (ram8M ? 8 : 2);
+            uint8_t* data = (uint8_t*)malloc(size);
+            memcpy(data, PCSX::g_emulator->m_mem->m_psxM, size);
+            PCSX::Slice slice;
+            slice.acquire(data, size);
+            client->write(std::move(slice));
+            return true;
+        } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            const auto ramSize = (ram8M ? 8 : 2) * 1024 * 1024;
+            auto vars = parseQuery(request.urlData.query);
+            auto ioffset = vars.find("offset");
+            auto isize = vars.find("size");
+            if ((ioffset == vars.end()) || (isize == vars.end())) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            auto offset = std::stoul(ioffset->second);
+            auto size = std::stoul(isize->second);
+            if ((offset >= ramSize) || (size > ramSize) || ((offset + size) > ramSize)) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            if (size != request.body.size()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
 
-        return true;
+            memcpy(PCSX::g_emulator->m_mem->m_psxM + offset, request.body.data<uint8_t>(), size);
+            client->write("HTTP/1.1 200 OK\r\n\r\n");
+            return true;
+        }
+        return false;
     }
 
   public:
     RamExecutor() = default;
     virtual ~RamExecutor() = default;
+};
+
+class AssemblyExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return urldata.path == "/api/v1/assembly/symbols";
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        auto& cpu = PCSX::g_emulator->m_cpu;
+        auto& body = request.body;
+        PCSX::IO<PCSX::File> file = new PCSX::BufferFile(std::move(body));
+        while (file && !file->failed() && !file->eof()) {
+            auto line = file->gets();
+            auto tokens = PCSX::StringsHelpers::split(std::string_view(line), " ");
+            if (tokens.size() != 2) {
+                continue;
+            }
+            auto addressStr = tokens[0];
+            auto name = tokens[1];
+            uint32_t address;
+            auto result = std::from_chars(addressStr.data(), addressStr.data() + addressStr.size(), address, 16);
+            if (result.ec == std::errc::invalid_argument) continue;
+
+            cpu->m_symbols[address] = name;
+        }
+        client->write("HTTP/1.1 200 OK\r\n\r\n");
+        return true;
+    }
+
+  public:
+    AssemblyExecutor() = default;
+    virtual ~AssemblyExecutor() = default;
+};
+
+class CacheExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return urldata.path == "/api/v1/cpu/cache";
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            auto vars = parseQuery(request.urlData.query);
+            auto ifunction = vars.find("function");
+            if (ifunction == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            std::string function = ifunction->second;
+            if (function.compare("flush") == 0) {
+                PCSX::g_emulator->m_cpu->invalidateCache();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+            return true;
+        }
+        return false;
+    }
+
+  public:
+    CacheExecutor() = default;
+    virtual ~CacheExecutor() = default;
+};
+
+class FlowExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return urldata.path == "/api/v1/execution-flow";
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
+            auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+            
+            nlohmann::json j;
+            j["running"] = PCSX::g_system->running();
+            j["isDynarec"] = PCSX::g_emulator->m_cpu->isDynarec();
+            j["8mb"] = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>().value;
+            j["debugger"] = debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value;
+
+            std::string json = j.dump();
+            std::string message = std::string(
+                                      "HTTP/1.1 200 OK\r\n"
+                                      "Content-Type: application/json\r\n"
+                                      "Content-Length: ") +
+                                  std::to_string(json.size()) + std::string("\r\n\r\n") + json;
+            client->write(std::move(message));
+            return true;
+        } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            auto vars = parseQuery(request.urlData.query);
+            auto ifunction = vars.find("function");
+            if (ifunction == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            std::string function = ifunction->second;
+            if (function.compare("start") == 0) {
+                PCSX::g_system->start();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (function.compare("pause") == 0) {
+                PCSX::g_system->pause();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (function.compare("resume") == 0) {
+                PCSX::g_system->resume();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            /* Start of functions that requires a type */
+            auto itype = vars.find("type");
+            if (itype == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
+            }
+            std::string type = itype->second;
+            if (function.compare("reset") == 0) {
+                if (type.compare("hard") == 0) {
+                    PCSX::g_system->hardReset();
+                    client->write("HTTP/1.1 200 OK\r\n\r\n");
+                    return true;
+                }
+                if (type.compare("soft") == 0) {
+                    PCSX::g_system->softReset();
+                    client->write("HTTP/1.1 200 OK\r\n\r\n");
+                    return true;
+                }
+            }
+            client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+            return true;
+        }
+        return false;
+    }
+
+  public:
+    FlowExecutor() = default;
+    virtual ~FlowExecutor() = default;
 };
 
 }  // namespace
@@ -177,6 +340,9 @@ std::string PCSX::WebExecutor::percentDecode(std::string_view str) {
 PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new VramExecutor());
     m_executors.push_back(new RamExecutor());
+    m_executors.push_back(new AssemblyExecutor());
+    m_executors.push_back(new CacheExecutor());
+    m_executors.push_back(new FlowExecutor());
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
         if (debugSettings.get<Emulator::DebugSettings::WebServer>() && (m_serverStatus != SERVER_STARTED)) {
@@ -350,7 +516,7 @@ struct PCSX::WebClient::WebClientImpl {
         http_parser_url_init(&urlParser);
         int result = http_parser_parse_url(data, slice.size(), connect, &urlParser);
         if (result) return result;
-        auto copyField = [this, data, &urlParser](std::string& str, int field) {
+        auto copyField = [data, &urlParser](std::string& str, int field) {
             if (urlParser.field_set & (1 << field)) {
                 str = std::string(data + urlParser.field_data[field].off, urlParser.field_data[field].len);
             } else {

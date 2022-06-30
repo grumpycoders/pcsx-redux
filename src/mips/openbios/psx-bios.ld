@@ -144,7 +144,10 @@ SECTIONS {
         *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.* .rodata1)
     } > rom
 
+    . = ALIGN(4);
+
     .rom_data_start : {
+        . = ALIGN(4);
         __rom_data_start = .;
     } > rom
 

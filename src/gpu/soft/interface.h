@@ -72,7 +72,7 @@ class impl final : public GPU {
         }
     }
 
-    virtual ScreenShot takeScreenShot() {
+    virtual ScreenShot takeScreenShot() override {
         ScreenShot ss;
         auto startX = PSXDisplay.DisplayPosition.x;
         auto startY = PSXDisplay.DisplayPosition.y;

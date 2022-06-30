@@ -51,14 +51,14 @@ const char *PCSX::Disasm::s_disRNameCP2C[] = {
 };
 
 const char *PCSX::Disasm::s_disRNameCP0[] = {
-    "Index",    "Random",   "EntryLo0", "EntryLo1",  // 00
-    "Context",  "PageMask", "Wired",    "+Checkme",  // 04
-    "BadVAddr", "Count",    "EntryHi",  "Compare",   // 08
-    "Status",   "Cause",    "ExceptPC", "PRevID",    // 0c
-    "Config",   "LLAddr",   "WatchLo",  "WatchHi",   // 10
-    "XContext", "*RES*",    "*RES*",    "*RES*",     // 14
-    "*RES*",    "*RES*",    "PErr",     "CacheErr",  // 18
-    "TagLo",    "TagHi",    "ErrorEPC", "*RES*",     // 1c
+    "Index",    "Random", "EntryLo0", "BPC",       // 00
+    "Context",  "BDA",    "PIDMask",  "DCIC",      // 04
+    "BadVAddr", "BDAM",   "EntryHi",  "BPCM",      // 08
+    "Status",   "Cause",  "EPC",      "PRid",      // 0c
+    "Config",   "LLAddr", "WatchLo",  "WatchHi",   // 10
+    "XContext", "*RES*",  "*RES*",    "*RES*",     // 14
+    "*RES*",    "*RES*",  "ECC",      "CacheErr",  // 18
+    "TagLo",    "TagHi",  "ErrorEPC", "*RES*",     // 1c
 };
 
 #undef declare

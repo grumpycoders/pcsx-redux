@@ -45,8 +45,8 @@ endif
 SRCS += \
 ../../common/syscalls/printf.s \
 ../../common/crt0/uC-sdk-crt0.s \
+../cop0/exceptions.cpp \
 branchbranch.s \
-exceptions.cpp \
 cpu.c \
 links.s \
 lwlr.s \

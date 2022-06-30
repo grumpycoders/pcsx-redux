@@ -973,7 +973,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
         free(sectionData);
         return true;
     };
-    auto localSymbolReloc = [&, this](uint16_t sectionIndex, int32_t symbolOffset) {
+    auto localSymbolReloc = [&](uint16_t sectionIndex, int32_t symbolOffset) {
         if (pass == ElfRelocationPass::PASS2) {
             skipped.skipped = true;
             return true;
@@ -996,7 +996,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
         }
         return simpleSymbolReloc(nullptr, elfSym, symbolOffset);
     };
-    auto checkZero = [&, this](Expression* expr) {
+    auto checkZero = [&](Expression* expr) {
         switch (expr->type) {
             case PsyqExprOpcode::SECTION_BASE: {
                 return localSymbolReloc(expr->sectionIndex, 0);

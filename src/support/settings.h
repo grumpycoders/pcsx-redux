@@ -282,13 +282,13 @@ struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSet
         L.settable();
         L.declareFunc(
             "index",
-            [this](Lua L) -> int {
+            [](Lua L) -> int {
                 L.getfield("value");
                 return 1;
             },
             -1);
         L.declareFunc(
-            "newindex", [this](Lua L) -> int { return 0; }, -1);
+            "newindex", [](Lua L) -> int { return 0; }, -1);
         L.declareFunc(
             "reset",
             [this](Lua L) -> int {
@@ -297,40 +297,6 @@ struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSet
             },
             -1);
         L.settable();
-    }
-};
-
-template <typename name, size_t N, typename nestedSetting>
-struct SettingArray;
-template <char... C, size_t N, typename nestedSetting>
-struct SettingArray<irqus::typestring<C...>, N, nestedSetting> : public std::array<nestedSetting, N> {
-    using json = nlohmann::json;
-    typedef irqus::typestring<C...> name;
-    json serialize() const {
-        auto ret = json::array();
-        for (auto &item : *this) {
-            ret.push_back(item.serialize());
-        }
-        return ret;
-    }
-    void deserialize(const json &j) {
-        int count = 0;
-        for (auto &item : j) {
-            nestedSetting s;
-            s.deserialize(item);
-            if (count < N) {
-                (*this)[count] = s;
-            }
-            count++;
-        }
-        for (; count < N; count++) {
-            (*this)[count].reset();
-        }
-    }
-    void reset() {
-        for (auto &item : *this) {
-            item.reset();
-        }
     }
 };
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -22,7 +22,9 @@
 #include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <map>
 #include <memory>
+#include <string>
 #include <type_traits>
 
 #include "core/kernel.h"
@@ -280,6 +282,8 @@ class R3000Acpu {
 
     const std::string &getName() { return m_name; }
 
+    std::map<uint32_t, std::string> m_symbols;
+
   public:
     static int psxInit();
     virtual bool isDynarec() = 0;
@@ -309,7 +313,7 @@ class R3000Acpu {
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
         PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
         const uint32_t cycle = m_regs.cycle;
-        uint32_t target = cycle + eCycle * m_interruptScales[interrupt];
+        uint32_t target = uint32_t(cycle + eCycle * m_interruptScales[interrupt]);
         m_regs.interrupt |= (1 << interrupt);
         m_regs.intTargets[interrupt] = target;
         int32_t lowest = m_regs.lowestTarget - cycle;

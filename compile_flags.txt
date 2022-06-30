@@ -10,7 +10,6 @@
 -Ithird_party/imgui/backends
 -Ithird_party/imgui/examples
 -Ithird_party/imgui/misc/cpp
--Ithird_party/imgui_club
 -Ithird_party/http-parser
 -Ithird_party/luajit/src
 -Ithird_party/luv/src

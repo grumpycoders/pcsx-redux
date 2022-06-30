@@ -90,7 +90,7 @@ class WebServer;
 class WebExecutor : public Intrusive::List<WebExecutor>::Node {
   public:
     virtual bool match(WebClient* client, const UrlData&) = 0;
-    virtual bool execute(WebClient* client, const RequestData&) = 0;
+    virtual bool execute(WebClient* client, RequestData&) = 0;
     std::multimap<std::string, std::string> parseQuery(const std::string&);
     std::string percentDecode(std::string_view);
 };

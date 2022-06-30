@@ -73,6 +73,9 @@
     <ClCompile Include="..\..\src\gui\widgets\sio1.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\third_party\imgui_memory_editor\imgui_memory_editor.cpp">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h">
@@ -93,7 +96,7 @@
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\third_party\imgui_club\imgui_memory_editor\imgui_memory_editor.h">
+    <ClInclude Include="..\..\third_party\imgui_memory_editor\imgui_memory_editor.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\log.h">

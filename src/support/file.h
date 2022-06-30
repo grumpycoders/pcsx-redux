@@ -73,7 +73,7 @@ class File {
     enum FileType { RO_STREAM, RW_STREAM, RO_SEEKABLE, RW_SEEKABLE };
     virtual ~File() {
         if (m_refCount.load() != 0) {
-            throw std::runtime_error("File object used without IO<> wrapper despite being in one");
+            abort();
         }
     }
     virtual void close() {}
@@ -352,6 +352,8 @@ class BufferFile : public File {
     BufferFile();
     // Makes an empty read-write buffer.
     BufferFile(FileOps::ReadWrite);
+    // Makes a read-only buffer out of the input slice.
+    BufferFile(Slice&& slice);
 
     virtual void close() final override;
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
@@ -374,6 +376,7 @@ class BufferFile : public File {
     size_t m_allocSize = 0;
     uint8_t* m_data = nullptr;
     bool m_owned = false;
+    Slice m_slice;
 };
 
 class PosixFile : public File {

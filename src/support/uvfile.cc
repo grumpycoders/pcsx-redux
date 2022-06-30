@@ -258,7 +258,7 @@ PCSX::UvFile::UvFile(const char *filename, FileOps::ReadWrite) : File(RW_SEEKABL
 
 PCSX::UvFile::UvFile(const std::string_view &url, std::function<void()> &&callbackDone, uv_loop_t *otherLoop,
                      DownloadUrl)
-    : File(RO_SEEKABLE), m_filename(url), m_download(true), m_failed(false) {
+    : File(RO_SEEKABLE), m_download(true), m_failed(false), m_filename(url) {
     s_allOps.push_back(this);
     std::string urlCopy(url);
     cacheCallbackSetup(std::move(callbackDone), otherLoop);
@@ -327,15 +327,13 @@ void PCSX::UvThreadOp::processCurlMultiInfo() {
     int pending;
 
     while ((message = curl_multi_info_read(s_curlMulti, &pending))) {
-        switch (message->msg) {
-            case CURLMSG_DONE: {
-                CURL *easy_handle = message->easy_handle;
-                UvThreadOp *self;
+        if (message->msg == CURLMSG_DONE) {
+            CURL *easy_handle = message->easy_handle;
+            UvThreadOp *self;
 
-                curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &self);
-                self->downloadDone(message);
-                break;
-            }
+            curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &self);
+            self->downloadDone(message);
+            break;
         }
     }
 }

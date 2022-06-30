@@ -31,7 +31,7 @@
 
 void spuInterrupt() {
     HW_DMA4_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT(4);
+    DMA_INTERRUPT<4>();
 }
 
 void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
@@ -89,7 +89,7 @@ void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
     }
 
     HW_DMA4_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT(4);
+    DMA_INTERRUPT<4>();
 }
 
 void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
@@ -102,7 +102,7 @@ void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         if (mem == nullptr) {
             PSXDMA_LOG("*** DMA6 OT *** NULL Pointer!!!\n");
             HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
-            DMA_INTERRUPT(6);
+            DMA_INTERRUPT<6>();
             return;
         }
 
@@ -133,10 +133,10 @@ void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     }
 
     HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT(6);
+    DMA_INTERRUPT<6>();
 }
 
 void gpuotcInterrupt() {
     HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT(6);
+    DMA_INTERRUPT<6>();
 }

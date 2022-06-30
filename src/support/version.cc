@@ -80,7 +80,8 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
     return true;
 }
 
-bool PCSX::Update::downloadUpdate(const VersionInfo& versionInfo, std::function<void(bool)> callback, uv_loop_t* loop) {
+bool PCSX::Update::downloadAndApplyUpdate(const VersionInfo& versionInfo, std::function<void(bool)> callback,
+                                          uv_loop_t* loop) {
     if (versionInfo.failed()) return false;
     m_hasUpdate = false;
     m_download = new UvFile(
@@ -109,6 +110,32 @@ bool PCSX::Update::downloadUpdate(const VersionInfo& versionInfo, std::function<
                     callback(true);
                 },
                 loop, UvFile::DOWNLOAD_URL);
+        },
+        loop, UvFile::DOWNLOAD_URL);
+    return true;
+}
+
+bool PCSX::Update::getDownloadUrl(const VersionInfo& versionInfo, std::function<void(std::string)> callback,
+                                  uv_loop_t* loop) {
+    if (versionInfo.failed()) return false;
+    m_hasUpdate = false;
+    m_download = new UvFile(
+        versionInfo.updateInfoBase + std::to_string(m_updateId),
+        [this, callback]() {
+            if (m_download->failed()) {
+                callback("");
+            }
+            std::string url;
+            try {
+                FileAsContainer container(m_download);
+                nlohmann::json update;
+                update = nlohmann::json::parse(container.begin(), container.end());
+                url = update["download_url"];
+            } catch (...) {
+                callback("");
+                return;
+            }
+            callback(url);
         },
         loop, UvFile::DOWNLOAD_URL);
     return true;

@@ -55,6 +55,9 @@ DstTP ClockCast(const SrcTP tp) {
 }
 
 namespace Events {
+// While the event bus can handle any type as event, we only use the ones that
+// are within this namespace. Also, any new event should also be added to the
+// Lua bindings, in the file eventslua.cc.
 struct SettingsLoaded {
     bool safe = false;
 };
@@ -63,6 +66,7 @@ struct LogMessage {
     LogClass logClass;
     std::string message;
 };
+struct IsoMounted {};
 namespace GPU {
 struct VSync {};
 }  // namespace GPU
@@ -232,6 +236,8 @@ class System {
 
     uv_loop_t *getLoop() { return &m_loop; }
 
+    bool testmode() { return m_testmode; }
+
   private:
     uv_loop_t m_loop;
     std::map<uint64_t, std::string> m_i18n;
@@ -251,6 +257,7 @@ class System {
     std::filesystem::path m_binDir;
     PCSX::VersionInfo m_version;
     bool m_emergencyExit = true;
+    bool m_testmode = false;
 };
 
 extern System *g_system;

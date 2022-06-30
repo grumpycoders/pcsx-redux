@@ -43,7 +43,6 @@ bool PCSX::Widgets::KernelLog::draw(R3000Acpu* cpu, const char* title) {
         ImGui::TableSetupColumn("C0");
         ImGui::TableHeadersRow();
         for (unsigned i = 0; i < numRows; i++) {
-            bool v;
             const char* name;
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);

@@ -31,7 +31,7 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
-PCSX::Widgets::MemoryObserver::MemoryObserver() {
+PCSX::Widgets::MemoryObserver::MemoryObserver(bool& show) : m_show(show) {
 #ifdef MEMORY_OBSERVER_X86
     const auto cpu = Xbyak::util::Cpu();
     m_useSIMD = cpu.has(Xbyak::util::Cpu::tAVX2);
@@ -140,14 +140,13 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             }
             if (ImGui::Button(_("Search")) || (gotEnter && valid)) {
                 auto ptr = memData;
-                auto size = memSize;
                 m_plainAddresses.clear();
                 while (true) {
-                    auto found = reinterpret_cast<const uint8_t*>(memmem(ptr, size, needle.c_str(), needleSize));
+                    auto found = reinterpret_cast<const uint8_t*>(
+                        memmem(ptr, memData + memSize - ptr, needle.c_str(), needleSize));
                     if (found) {
                         m_plainAddresses.push_back(memBase + static_cast<uint32_t>(found - memData));
                         ptr = reinterpret_cast<const uint8_t*>(found) + 1;
-                        size -= static_cast<uint32_t>(ptr - memData);
                     } else {
                         break;
                     }
@@ -230,8 +229,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             }
 
             if (!m_addressValuePairs.empty() && ImGui::Button(_("Next scan"))) {
-                auto doesntMatchCriterion = [this, memData, memSize, memBase,
-                                             stride](const AddressValuePair& addressValuePair) {
+                auto doesntMatchCriterion = [this, memData, memSize, stride](const AddressValuePair& addressValuePair) {
                     const uint32_t address = addressValuePair.address;
                     const int memValue = getMemValue(address, memData, memSize, memBase, stride);
 
@@ -347,7 +345,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
         if (ImGui::BeginTabItem(_("Pattern search"))) {
             if (m_useSIMD) {
-                ImGui::Text(_("Sequence size: "));
+                ImGui::TextUnformatted(_("Sequence size: "));
                 ImGui::SameLine();
                 ImGui::RadioButton(_("8 bytes (fast)"), &m_sequenceSize, 8);
                 ImGui::SameLine();

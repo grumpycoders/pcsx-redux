@@ -158,9 +158,6 @@ PCSX::Kernel::Events::Event::Event(const uint32_t* psxMemory, uint32_t eventId) 
 
 PCSX::Kernel::Events::Event::Event(const uint32_t* psxMemory, uint32_t classId, uint16_t spec) {
     uint32_t eventsPtr = SWAP_LE32(psxMemory[0x48]);
-    uint32_t eventsCount = SWAP_LE32(psxMemory[0x49]);
-    eventsCount /= 28;
-
     uint32_t segment = eventsPtr & 0xe0000000;
     if ((segment != 0x00000000) && (segment != 0x80000000) && (segment != 0xa0000000))
         return;  // events table not in any known segment

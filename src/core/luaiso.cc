@@ -39,7 +39,7 @@ void deleteIso(LuaIso* wrapper) { delete wrapper; }
 
 bool isIsoFailed(LuaIso* wrapper) { return wrapper->iso->failed(); }
 
-LuaIso* getCurrentIso() { return new LuaIso(PCSX::g_emulator->m_cdrom->m_iso); }
+LuaIso* getCurrentIso() { return new LuaIso(PCSX::g_emulator->m_cdrom->getIso()); }
 
 PCSX::ISO9660Reader* createIsoReader(LuaIso* wrapper) { return new PCSX::ISO9660Reader(wrapper->iso); }
 void deleteIsoReader(PCSX::ISO9660Reader* isoReader) { delete isoReader; }
@@ -64,15 +64,7 @@ static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
 static void registerAllSymbols(PCSX::Lua L) {
-    L.push("_CLIBS");
-    L.gettable(LUA_REGISTRYINDEX);
-    if (L.isnil()) {
-        L.pop();
-        L.newtable();
-        L.push("_CLIBS");
-        L.copy(-2);
-        L.settable(LUA_REGISTRYINDEX);
-    }
+    L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("CORE_ISO");
     L.newtable();
 

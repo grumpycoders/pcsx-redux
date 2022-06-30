@@ -29,6 +29,7 @@
 #include "core/psxhw.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/system.h"
 
 namespace PCSX {
 
@@ -47,6 +48,16 @@ class CDRom {
     bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }
     void setLidOpenTime(int64_t time) { m_lidOpenTime = time; }
     void check();
+
+    std::shared_ptr<CDRIso> getIso() { return m_iso; }
+    void clearIso() {
+        m_iso.reset();
+        g_system->m_eventBus->signal(Events::IsoMounted{});
+    }
+    void setIso(CDRIso* iso) {
+        m_iso.reset(iso);
+        g_system->m_eventBus->signal(Events::IsoMounted{});
+    }
 
     const std::string& getCDRomID() { return m_cdromId; }
     const std::string& getCDRomLabel() { return m_cdromLabel; }
@@ -73,9 +84,8 @@ class CDRom {
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
 
-    std::shared_ptr<CDRIso> m_iso;
-
   protected:
+    std::shared_ptr<CDRIso> m_iso;
     // savestate stuff starts here
     uint8_t m_reg1Mode;
     uint8_t m_reg2;

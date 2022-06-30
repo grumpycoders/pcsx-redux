@@ -67,7 +67,7 @@ class ShaderEditor {
     std::string getPixelText() { return m_pixelShaderEditor.getText(); }
     std::string getLuaText() { return m_luaEditor.getText(); }
 
-    void getRegistry(std::unique_ptr<Lua>& L);
+    void getRegistry(Lua L);
 
     void imguiCB(const ImDrawList* parentList, const ImDrawCmd* cmd);
 

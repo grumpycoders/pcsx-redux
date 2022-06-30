@@ -17,8 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
-
 #include "support/sjis_conv.h"
 
 #include "mips/common/util/sjis-table.h"

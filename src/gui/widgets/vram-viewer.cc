@@ -219,7 +219,9 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
 }
 
-PCSX::Widgets::VRAMViewer::VRAMViewer() { m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, ""); }
+PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show) {
+    m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, "");
+}
 
 void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     if (!m_shaderProgram) {
@@ -363,6 +365,7 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
             if (ImGui::BeginMenu(_("File"))) {
                 ImGui::EndMenu();
             }
+            ImGui::Separator();
             if (ImGui::BeginMenu(_("View"))) {
                 if (ImGui::MenuItem(_("Reset view"))) resetView();
                 if (!m_clutDestination) {
@@ -395,6 +398,9 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
                 }
                 ImGui::EndMenu();
             }
+            ImGui::Separator();
+            ImGui::Separator();
+            ImGui::Text("%.0f : %.0f", std::floor(m_mouseUV.x * 1024.0f), std::floor(m_mouseUV.y * 512.0f));
             ImGui::EndMenuBar();
         }
         drawVRAM(gui, VRAMTexture);

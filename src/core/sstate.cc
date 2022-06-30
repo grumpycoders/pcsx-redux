@@ -209,7 +209,7 @@ void PCSX::CallStacks::serialize(SaveStateWrapper* w) {
     w->state.get<SaveStates::CallStacksField>().get<CallStacksCurrentSP>().value = m_currentSP;
 }
 
-bool PCSX::SaveStates::load(const std::string& data) {
+bool PCSX::SaveStates::load(std::string_view data) {
     SaveState state = constructSaveState();
 
     Protobuf::InSlice slice(reinterpret_cast<const uint8_t*>(data.data()), data.size());

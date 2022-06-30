@@ -44,6 +44,15 @@ body:
       description: >
         The OS of the system you're running Redux on
 
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: PCSX-Redux version
+      placeholder: (go to Help -> About to get version information)
+      description: >
+        The version of PCSX-Redux you're currently running
+
   - type: input
     validations:
       required: true

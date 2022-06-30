@@ -29,9 +29,10 @@ namespace Widgets {
 
 class Events {
   public:
+    Events(bool& show) : m_show(show) {}
     void draw(const uint32_t* psxMemory, const char* title);
 
-    bool m_show = false;
+    bool& m_show;
 };
 
 }  // namespace Widgets

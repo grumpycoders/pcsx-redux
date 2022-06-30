@@ -137,7 +137,7 @@ void PCSX::Pads::Pad::map() {
     m_padMapping[15] = m_settings.get<Controller_PadSquare>();    // SQUARE
 }
 
-static constexpr float THRESHOLD = 0.85;
+static constexpr float THRESHOLD = 0.85f;
 
 // Certain buttons on controllers are actually axis that can be pressed, half-pressed, etc.
 bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* state) {
@@ -250,7 +250,7 @@ void PCSX::Pads::Pad::getButtons() {
     } else if (m_type == PadType::Analog) {
         // Normalize an axis from (-1, 1) to (0, 255) with 128 = center
         const auto axisToUint8 = [](float axis) {
-            constexpr float scale = 1.3;
+            constexpr float scale = 1.3f;
             const float scaledValue = std::clamp<float>(axis * scale, -1.0f, 1.0f);
             return (uint8_t)(std::clamp<float>(std::round(((scaledValue + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
         };
@@ -537,6 +537,8 @@ static std::string glfwKeyToString(int key) {
             return _("Keyboard Enter");
         case GLFW_KEY_SPACE:
             return _("Keyboard Space");
+        case GLFW_KEY_ESCAPE:
+            return _("Keyboard Escape");
         case GLFW_KEY_UNKNOWN:
             return _("Unbound");
     };
@@ -626,15 +628,15 @@ bool PCSX::Pads::Pad::configure() {
     changed |= ImGui::SliderFloat("Mouse sensitivity X", &m_settings.get<SettingMouseSensitivityX>().value, 0.f, 10.f);
     changed |= ImGui::SliderFloat("Mouse sensitivity Y", &m_settings.get<SettingMouseSensitivityY>().value, 0.f, 10.f);
 
-    ImGui::Text(_("Keyboard mapping"));
-    if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame)) {
+    ImGui::TextUnformatted(_("Keyboard mapping"));
+    if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_Resizable)) {
         ImGui::TableSetupColumn(_("Computer button mapping"));
         ImGui::TableSetupColumn(_("Gamepad button"));
         ImGui::TableHeadersRow();
         for (auto i = 0; i < 13; i++) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text(c_buttonNames[i]());
+            ImGui::TextUnformatted(c_buttonNames[i]());
             ImGui::TableSetColumnIndex(0);
             bool hasToPop = false;
             if (m_buttonToWait == i) {
@@ -656,7 +658,7 @@ bool PCSX::Pads::Pad::configure() {
         for (auto i = 0; i < 4; i++) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text(c_dpadDirections[i]());
+            ImGui::TextUnformatted(c_dpadDirections[i]());
             ImGui::TableSetColumnIndex(0);
             bool hasToPop = false;
             const auto absI = i + 13;
@@ -835,67 +837,41 @@ void PCSX::Pads::setLua(Lua L) {
         return 0;
     };
 
-    L.getfield("PCSX", LUA_GLOBALSINDEX);
+    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
 
     // setting constants
+    L.getfieldtable("CONSTS");
+    L.getfieldtable("PAD");
+    L.getfieldtable("BUTTON");
 
-    L.newtable();
-    L.push("CONSTS");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("PAD");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("BUTTON");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.push("SELECT");
     L.push(lua_Number(0));
-    L.settable();
-    L.push("START");
+    L.setfield("SELECT");
     L.push(lua_Number(3));
-    L.settable();
-    L.push("UP");
+    L.setfield("START");
     L.push(lua_Number(4));
-    L.settable();
-    L.push("RIGHT");
+    L.setfield("UP");
     L.push(lua_Number(5));
-    L.settable();
-    L.push("DOWN");
+    L.setfield("RIGHT");
     L.push(lua_Number(6));
-    L.settable();
-    L.push("LEFT");
+    L.setfield("DOWN");
     L.push(lua_Number(7));
-    L.settable();
-    L.push("L2");
+    L.setfield("LEFT");
     L.push(lua_Number(8));
-    L.settable();
-    L.push("R2");
+    L.setfield("L2");
     L.push(lua_Number(9));
-    L.settable();
-    L.push("L1");
+    L.setfield("R2");
     L.push(lua_Number(10));
-    L.settable();
-    L.push("R1");
+    L.setfield("L1");
     L.push(lua_Number(11));
-    L.settable();
-    L.push("TRIANGLE");
+    L.setfield("R1");
     L.push(lua_Number(12));
-    L.settable();
-    L.push("CIRCLE");
+    L.setfield("TRIANGLE");
     L.push(lua_Number(13));
-    L.settable();
-    L.push("CROSS");
+    L.setfield("CIRCLE");
     L.push(lua_Number(14));
-    L.settable();
-    L.push("SQUARE");
+    L.setfield("CROSS");
     L.push(lua_Number(15));
-    L.settable();
+    L.setfield("SQUARE");
 
     L.pop();
     L.pop();
@@ -903,44 +879,25 @@ void PCSX::Pads::setLua(Lua L) {
 
     // pushing settings
 
-    L.getfield("settings");
-    L.push("pads");
-    L.newtable();
+    L.getfieldtable("settings");
+    L.getfieldtable("pads");
     L.push(lua_Number(1));
     m_pads[0].m_settings.pushValue(L);
     L.settable();
     L.push(lua_Number(2));
     m_pads[0].m_settings.pushValue(L);
     L.settable();
-    L.settable();
+    L.pop();
     L.pop();
 
-    L.newtable();
-    L.push("SIO1");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("slots");
-    L.copy(-2);
-    L.settable(-4);
+    L.getfieldtable("SIO1");
+    L.getfieldtable("slots");
 
     // pads callbacks
 
-    L.newtable();
-    L.push(lua_Number(1));
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("pads");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push(lua_Number(1));
-    L.copy(-2);
-    L.settable(-4);
+    L.getfieldtable(1);
+    L.getfieldtable("pads");
+    L.getfieldtable(1);
 
     // push first pad stuff here
     L.declareFunc(
@@ -954,20 +911,9 @@ void PCSX::Pads::setLua(Lua L) {
     L.pop();
     L.pop();
 
-    L.newtable();
-    L.push(lua_Number(2));
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push("pads");
-    L.copy(-2);
-    L.settable(-4);
-
-    L.newtable();
-    L.push(lua_Number(1));
-    L.copy(-2);
-    L.settable(-4);
+    L.getfieldtable(2);
+    L.getfieldtable("pads");
+    L.getfieldtable(1);
 
     // push second pad stuff here
     L.declareFunc(

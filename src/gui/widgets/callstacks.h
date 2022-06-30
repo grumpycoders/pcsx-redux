@@ -29,9 +29,10 @@ class Assembly;
 
 class CallStacks {
   public:
+    CallStacks(bool& show) : m_show(show) {}
     void draw(const char* title, GUI*);
 
-    bool m_show = false;
+    bool& m_show;
 };
 
 }  // namespace Widgets

@@ -456,12 +456,12 @@ void PCSX::MDEC::dma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     }
 
     HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT(0);
+    DMA_INTERRUPT<0>();
 }
 
 void PCSX::MDEC::mdec0Interrupt() {
     HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT(0);
+    DMA_INTERRUPT<0>();
 }
 
 #define SIZE_OF_24B_BLOCK (16 * 16 * 3)
@@ -586,23 +586,22 @@ void PCSX::MDEC::mdec1Interrupt() {
     if (mdec.rl >= mdec.rl_end) {
         mdec.reg1 &= ~MDEC1_STP;
         HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
-        DMA_INTERRUPT(0);
+        DMA_INTERRUPT<0>();
         mdec.reg1 &= ~MDEC1_BUSY;
     } else if (SWAP_LE16(*(mdec.rl)) == MDEC_END_OF_DATA) {
         mdec.reg1 &= ~MDEC1_STP;
         HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
-        DMA_INTERRUPT(0);
+        DMA_INTERRUPT<0>();
         mdec.reg1 &= ~MDEC1_BUSY;
     }
 
     HW_DMA1_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT(1);
+    DMA_INTERRUPT<1>();
     return;
 }
 
 void PCSX::MDEC::save(PCSX::SaveStates::MDEC &mdecSave) {
     uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
-    uint32_t v;
 
     mdecSave.get<SaveStates::MDECReg0>().value = mdec.reg0;
     mdecSave.get<SaveStates::MDECReg1>().value = mdec.reg1;
@@ -621,7 +620,6 @@ void PCSX::MDEC::save(PCSX::SaveStates::MDEC &mdecSave) {
 
 void PCSX::MDEC::load(const PCSX::SaveStates::MDEC &mdecSave) {
     uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
-    uint32_t v;
 
     mdec.reg0 = mdecSave.get<SaveStates::MDECReg0>().value;
     mdec.reg1 = mdecSave.get<SaveStates::MDECReg1>().value;

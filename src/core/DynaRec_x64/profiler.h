@@ -33,7 +33,7 @@ struct ProfilerEntry {
     uint64_t timesInvoked = 0;  // Total amount of times this block has been executed
 
     ProfilerEntry(uint64_t cyclesSpent, uint64_t timesInvoked, uint32_t pc)
-        : cyclesSpent(cyclesSpent), timesInvoked(timesInvoked), pc(pc) {}
+        : cyclesSpent(cyclesSpent), pc(pc), timesInvoked(timesInvoked) {}
     ProfilerEntry() {}
 
     // Compare objects based on cyclesSpent (used for sorting entries)

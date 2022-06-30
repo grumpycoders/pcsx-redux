@@ -30,15 +30,29 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     if (!m_hasUpdate) return false;
     auto tmp = std::filesystem::temp_directory_path();
 
+    std::error_code ec;
+    std::filesystem::remove(tmp / "pcsx-redux-update.started", ec);
+
     ZipArchive zip(m_download);
     if (zip.failed()) return false;
     IO<File> script(new PosixFile(tmp / "pcsx-redux-update.ps1", FileOps::TRUNCATE));
     if (script->failed()) return false;
 
+    script->writeString("New-Item -Path \"");
+    script->writeString(tmp.string());
+    script->writeString("pcsx-redux-update.started\" -ItemType File | Out-Null\n");
     script->writeString("Write-Host \"Waiting for PCSX-Redux to close in order to self-update...\"\n");
     script->writeString("Wait-Process -Id ");
     script->writeString(std::to_string(GetCurrentProcessId()));
     script->writeString("\n");
+    script->writeString("Remove-Item -Path \"");
+    script->writeString(tmp.string());
+    script->writeString("pcsx-redux-update.started\"\n");
+    script->writeString("$Confirmation = Read-Host -Prompt \"Proceed with the upgrade (y/n)?\"\n");
+    script->writeString("if ($Confirmation -ne \"y\") {\n");
+    script->writeString("    Write-Host \"Cancelling update.\"\n");
+    script->writeString("    exit 1\n");
+    script->writeString("}\n");
     script->writeString("Write-Host \"Self-updating...\"\n");
 
     zip.listAllDirectories([&script, &binDir](const std::string_view& name) {
@@ -92,6 +106,9 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
 #ifdef UNICODE
     _freea(str);
 #endif
+
+    while (!std::filesystem::exists(tmp / "pcsx-redux-update.started"))
+        ;
 
     return true;
 }
