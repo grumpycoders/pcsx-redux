@@ -36,13 +36,16 @@ SOFTWARE.
 
 namespace psyqo {
 
-struct Vertex {
-    union {
-        int16_t x, w;
+union Vertex {
+    struct {
+        union {
+            int16_t x, w;
+        };
+        union {
+            int16_t y, h;
+        };
     };
-    union {
-        int16_t y, h;
-    };
+    int32_t packed;
 };
 
 struct Rect {
@@ -57,14 +60,16 @@ struct Rect {
 class GPU {
   public:
     template <typename T, size_t count>
-    struct Fragment {
+    struct FragmentArray {
         typedef T FragmentBaseType;
+        FragmentArray() { static_assert(sizeof(*this) == (sizeof(T) * count + sizeof(uint32_t))); }
         constexpr size_t size() { return count; }
         uint32_t head;
         eastl::array<T, count> data;
     };
     struct ClutIndex {
         ClutIndex() : index(0) {}
+        ClutIndex(Vertex v) : ClutIndex(v.x >> 4, v.y) {}
         ClutIndex(uint16_t x, uint16_t y) : index((y << 6) | x) {}
         uint16_t index;
     };

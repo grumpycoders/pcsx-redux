@@ -36,21 +36,7 @@ namespace psyqo {
 
 class Font {
   public:
-    void uploadSystemFont(GPU& gpu) {
-        bool done = false;
-        uploadSystemFont(
-            gpu,
-            [&done]() {
-                done = true;
-                eastl::atomic_signal_fence(eastl::memory_order_release);
-            },
-            GPU::FROM_ISR);
-        while (!done) {
-            eastl::atomic_signal_fence(eastl::memory_order_acquire);
-        }
-    }
-    void uploadSystemFont(GPU& gpu, eastl::function<void()>&& callback,
-                          GPU::DmaCallback dmaCallback = GPU::FROM_MAIN_THREAD);
+    void uploadSystemFont(GPU& gpu);
     void print(GPU& gpu, const char* text, Vertex pos, Color color = {.r = 255, .g = 255, .b = 255}) {
         bool done = false;
         print(
@@ -68,9 +54,10 @@ class Font {
                GPU::DmaCallback dmaCallback);
 
   private:
-    GPU::Fragment<GPU::Sprite, 256> m_fragment;
+    GPU::FragmentArray<GPU::Sprite, 256> m_fragment;
     bool m_is8bits = false;
     Vertex m_size;
+    Vertex m_clutPosition;
     eastl::array<GPU::TexInfo, 96> m_lut;
 };
 

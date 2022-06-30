@@ -198,5 +198,5 @@ static inline uint32_t generateLineCommand(const struct GPULineCommand* c) {
 }
 static inline void startLineCommand(const struct GPULineCommand* c) { sendGPUData(generateLineCommand(c)); }
 
-static inline uint32_t generateFlushGPUCache() { return 0x04000000; }
+static inline uint32_t generateFlushGPUCache() { return 0x01000000; }
 static inline void flushGPUCache() { sendGPUData(generateFlushGPUCache()); }

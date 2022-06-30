@@ -91,7 +91,7 @@ void Tetris::frame() {
 
     Color c = {.r = 0xff, .g = 0xff, .b = 0xff};
     c.b = 255 - m_anim;
-    m_font.print(gpu(), "HELLO WORLD", {.x = 16, .y = 32}, c);
+    m_font.print(gpu(), "Hello World!", {.x = 16, .y = 32}, c);
 }
 
 Tetris tetris;

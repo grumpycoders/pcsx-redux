@@ -31,11 +31,15 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 #include "system-font.c"
 
-void psyqo::Font::uploadSystemFont(psyqo::GPU& gpu, eastl::function<void()>&& callback, GPU::DmaCallback dmaCallback) {
-    GPU::ClutIndex clut(0, 240);
+void psyqo::Font::uploadSystemFont(psyqo::GPU& gpu) {
+    Vertex clutPosition = {.x = 961, .y = 464};
+    GPU::ClutIndex clut(clutPosition);
+    m_clutPosition = clutPosition;
     for (unsigned i = 0; i < 96; i++) {
-        GPU::TexInfo texInfo = {.u = 0, .v = 240, .clut = clut};
+        GPU::TexInfo texInfo = {.u = 0, .v = 208, .clut = clut};
+        uint8_t l = i / 32;
         texInfo.u = i * 8;
+        texInfo.v += 16 * l;
         m_lut[i] = texInfo;
     }
     auto size = m_size = {.w = 8, .h = 16};
@@ -43,8 +47,39 @@ void psyqo::Font::uploadSystemFont(psyqo::GPU& gpu, eastl::function<void()>&& ca
         p.command |= 0xffffff;
         p.size = size;
     }
-    Rect rect = {.pos = {.x = 0, .y = 240}, .size = {.w = 188, .h = 16}};
-    gpu.uploadToVRAM(reinterpret_cast<const uint16_t*>(s_systemFont), rect, eastl::move(callback), dmaCallback);
+    {
+        Rect rect = {.pos = {.x = 960, .y = 464}, .size = {.w = 64, .h = 48}};
+        uint32_t coords = rect.pos.packed;
+        uint32_t size = rect.size.packed;
+        sendGPUData(0xa0000000);
+        GPU_DATA = coords;
+        GPU_DATA = size;
+    }
+    uint32_t d;
+    for (unsigned i = 0; i < sizeof(s_systemFont); i++) {
+        uint8_t b = s_systemFont[i];
+        for (unsigned j = 0; j < 4; j++) {
+            uint32_t m;
+            d >>= 8;
+            switch (b & 3) {
+                case 0:
+                    m = 0x00000000;
+                    break;
+                case 1:
+                    m = 0x01000000;
+                    break;
+                case 2:
+                    m = 0x10000000;
+                    break;
+                case 3:
+                    m = 0x11000000;
+                    break;
+            }
+            d |= m;
+            b >>= 2;
+        }
+        GPU_DATA = d;
+    }
 }
 
 void psyqo::Font::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
@@ -71,12 +106,12 @@ void psyqo::Font::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color col
         Vertex p;
         uint32_t packed;
     } arg;
-    arg.p = {.x = 1, .y = 240};
+    arg.p = m_clutPosition;
     bool enableScissor = gpu.disableScissor();
     sendGPUData(cmd);
     GPU_DATA = arg.packed;
     flushGPUCache();
     if (enableScissor) gpu.enableScissor();
-    sendGPUData(0b11100001000000000000010000000001);
+    sendGPUData(0b11100001000000000000010000011111);
     gpu.sendFragment(m_fragment, i, eastl::move(callback), dmaCallback);
 }
