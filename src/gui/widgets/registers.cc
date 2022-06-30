@@ -27,6 +27,30 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
+void PCSX::Widgets::Registers::makeEditableRegister(const char* name, uint32_t reg) {
+    std::string contextLabel = fmt::format(f_("Context##{}"), name);
+    if (ImGui::BeginPopupContextItem(contextLabel.c_str())) {
+        if (ImGui::MenuItem(_("Go to in Assembly"))) {
+            g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{reg});
+        }
+        if (ImGui::MenuItem(_("Go to in Memory Editor"))) {
+            g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{reg, 1});
+        }
+        if (ImGui::MenuItem(_("Copy Value"))) {
+            char strVal[10];
+            std::snprintf(strVal, sizeof(strVal), "%8.8x", reg);
+            ImGui::SetClipboardText(strVal);
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::SameLine();
+    std::string label = fmt::format(f_("Edit##{}"), name);
+    if (ImGui::SmallButton(label.c_str())) {
+        m_editorToOpen = fmt::format(f_("Edit value of {}"), name);
+        snprintf(m_registerEditor, 19, "%08x", reg);
+    }
+}
+
 void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* registers, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(1040, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(210, 512), ImGuiCond_FirstUseEver);
@@ -34,8 +58,6 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
         ImGui::End();
         return;
     }
-
-    std::string editorToOpen;
 
     if (ImGui::BeginTabBar(_("Registers"))) {
         gui->useMonoFont();
@@ -58,30 +80,13 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                 } else {
                     name = PCSX::Disasm::s_disRNameGPR[counter];
                 }
-                counter++;
                 ImGui::Text("%s: %08x", name, reg);
-                std::string contextLabel = fmt::format(f_("Context##{}"), name);
-                if (ImGui::BeginPopupContextItem(contextLabel.c_str())) {
-                    if (ImGui::MenuItem(_("Go to in Assembly"))) {
-                        g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{reg});
-                    }
-                    if (ImGui::MenuItem(_("Go to in Memory Editor"))) {
-                        g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{reg, 1});
-                    }
-                    if (ImGui::MenuItem(_("Copy Value"))) {
-                        char strVal[10];
-                        std::snprintf(strVal, sizeof(strVal), "%8.8x", reg);
-                        ImGui::SetClipboardText(strVal);
-                    }
-                    ImGui::EndPopup();
-                }
-                ImGui::SameLine();
-                std::string label = fmt::format(f_("Edit##{}"), name);
-                if (ImGui::SmallButton(label.c_str())) {
-                    editorToOpen = fmt::format(f_("Edit value of {}"), name);
-                    snprintf(m_registerEditor, 19, "%08x", reg);
-                }
+                makeEditableRegister(name, reg);
+                counter++;
             }
+            ImGui::Separator();
+            ImGui::Text("pc: %08x", registers->pc);
+            makeEditableRegister("pc", registers->pc);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("CP0")) {
@@ -168,11 +173,7 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
         }
         if (ImGui::BeginTabItem(_("Misc"))) {
             ImGui::Text("pc   : %08x", registers->pc);
-            ImGui::SameLine();
-            if (ImGui::SmallButton(_("Edit##pc"))) {
-                editorToOpen = fmt::format(f_("Edit value of pc"));
-                snprintf(m_registerEditor, 19, "%08x", registers->pc);
-            }
+            makeEditableRegister("pc", registers->pc);
             ImGui::Text("cycle: %08x", registers->cycle);
             ImGui::Text("int  : %08x", registers->interrupt);
             ImGui::EndTabItem();
@@ -183,7 +184,10 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
 
     ImGui::End();
 
-    if (!editorToOpen.empty()) ImGui::OpenPopup(editorToOpen.c_str());
+    if (!m_editorToOpen.empty()) {
+        ImGui::OpenPopup(m_editorToOpen.c_str());
+        m_editorToOpen = "";
+    }
     for (unsigned counter = 0; counter < 35; counter++) {
         const char* name;
         if (counter >= 32) {
