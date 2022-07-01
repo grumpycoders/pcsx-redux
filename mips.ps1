@@ -75,7 +75,7 @@ function Usage() {
 function Download-Index($Path) {
     $IndexFile = $Path + "/index.json"
     $FullURL = $MipsBaseURL + "/index.json"
-    Invoke-WebRequest -ContentType "application/octet-stream" -Uri $FullURL -OutFile $IndexFile
+    Invoke-WebRequest -UseBasicParsing -ContentType "application/octet-stream" -Uri $FullURL -OutFile $IndexFile
 }
 
 function Sort-Versions($Data) {
@@ -175,12 +175,12 @@ function Install($Version) {
     $ToolchainURL = $MipsBaseURL + "g++-mipsel-none-elf-" + $Version.version.TrimStart("v") + ".zip"
     $OutputToolchain = $TempDir + "/gcc.zip"
     Write-Host "Downloading toolchain package from $ToolchainURL..."
-    Invoke-WebRequest -ContentType "application/octet-stream" -Uri $ToolchainURL -OutFile $OutputToolchain
+    Invoke-WebRequest -UseBasicParsing -ContentType "application/octet-stream" -Uri $ToolchainURL -OutFile $OutputToolchain
 
     $GdbURL = $GdbBaseURL + "gdb-multiarch-" + $Version.gdb + ".zip"
     $OutputGDB = $TempDir + "/gdb.zip"
     Write-Host "Downloading gdb package from $GdbURL..."
-    Invoke-WebRequest -ContentType "application/octet-stream" -Uri $GdbURL -OutFile $OutputGDB
+    Invoke-WebRequest -UseBasicParsing -ContentType "application/octet-stream" -Uri $GdbURL -OutFile $OutputGDB
 
     Write-Host "Extracting toolchain package..."
     Expand-Archive -Path $OutputToolchain -DestinationPath $OutputDir -Force
