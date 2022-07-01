@@ -28,7 +28,7 @@ The above needs to also send a form with binary contents. This will partially up
 
 The above needs to also send a form with binary contents, which will update the RAM at the specified offset. Offset is expected to be a number from [0, 0x1FFFFF] in case of running redux with 2MB RAM, or [0, 0x7FFFFF] in case the 8MB memory expansion is enabled. The value of size + offset must not exceed the total space in the RAM.
 
-`/api/v1/assembly/symbols`
+`/api/v1/assembly/symbols?function=<value>`
 
 | Value | Function |
 | :- | :- |
