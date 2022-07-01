@@ -65,7 +65,7 @@ class Assembly : private Disasm {
     // Disasm section
     void sameLine();
     void comma();
-    uint8_t* ptr(uint32_t addr);
+    const uint8_t* ptr(uint32_t addr);
     void jumpToMemory(uint32_t addr, unsigned size);
     uint8_t mem8(uint32_t addr);
     uint16_t mem16(uint32_t addr);
