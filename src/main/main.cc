@@ -214,8 +214,6 @@ int pcsxMain(int argc, char **argv) {
         emuSettings.get<PCSX::Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
     }
 
-    emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
-
     auto argPath1 = args.get<std::string>("memcard1");
     auto argPath2 = args.get<std::string>("memcard2");
     if (argPath1.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd1>().value = argPath1.value();
@@ -277,6 +275,7 @@ int pcsxMain(int argc, char **argv) {
     emulator->init();
     emulator->m_gpu->open(s_gui);
     emulator->m_gpu->init();
+    emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
     emulator->reset();
 
     if (args.get<bool>("run", false)) system->start();
