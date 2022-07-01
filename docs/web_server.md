@@ -30,6 +30,11 @@ The above needs to also send a form with binary contents, which will update the 
 
 `/api/v1/assembly/symbols`
 
+| Value | Function |
+| :- | :- |
+| reset | Resets the symbols loaded in redux |
+| upload | Uploads a `.map` file to redux |
+
 The above expects a `.map` file with symbols and addresses, which will be merged with the current symbols already loaded in redux. The map file should contain a pair of `symbol address` for each line. e.g `Foo 80010000` would load the symbol `Foo` in the address `0x80010000`.
 
 `/api/v1/cpu/cache?function=<value>`
