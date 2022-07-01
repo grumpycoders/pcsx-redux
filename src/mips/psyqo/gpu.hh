@@ -33,58 +33,12 @@ SOFTWARE.
 #include <stdint.h>
 
 #include "common/hardware/gpu.h"
+#include "psyqo/primitives.hh"
 
 namespace psyqo {
 
-union Vertex {
-    struct {
-        union {
-            int16_t x, w;
-        };
-        union {
-            int16_t y, h;
-        };
-    };
-    int32_t packed;
-};
-
-struct Rect {
-    union {
-        Vertex a, pos;
-    };
-    union {
-        Vertex b, size;
-    };
-};
-
 class GPU {
   public:
-    template <typename T, size_t count>
-    struct FragmentArray {
-        typedef T FragmentBaseType;
-        FragmentArray() { static_assert(sizeof(*this) == (sizeof(T) * count + sizeof(uint32_t))); }
-        constexpr size_t size() { return count; }
-        uint32_t head;
-        eastl::array<T, count> data;
-    };
-    struct ClutIndex {
-        ClutIndex() : index(0) {}
-        ClutIndex(Vertex v) : ClutIndex(v.x >> 4, v.y) {}
-        ClutIndex(uint16_t x, uint16_t y) : index((y << 6) | x) {}
-        uint16_t index;
-    };
-    struct TexInfo {
-        uint8_t u;
-        uint8_t v;
-        ClutIndex clut;
-    };
-    struct Sprite {
-        Sprite() : command(0b01100100000000000000000000000000) {}
-        uint32_t command;
-        Vertex position;
-        TexInfo texInfo;
-        Vertex size;
-    };
     struct Configuration;
     enum Resolution { W256, W320, W368, W512, W640 };
     enum VideoMode { AUTO, NTSC, PAL };
@@ -112,7 +66,7 @@ class GPU {
         FROM_MAIN_THREAD,
     };
     template <typename Fragment>
-    void sendFragment(Fragment &fragment, unsigned count) {
+    void sendFragment(const Fragment &fragment, unsigned count) {
         bool done = false;
         sendFragment(
             reinterpret_cast<uint32_t *>(fragment.data.data()),
@@ -127,19 +81,19 @@ class GPU {
         }
     }
     template <typename Fragment>
-    void sendFragment(Fragment &fragment, unsigned count, eastl::function<void()> &&callback,
+    void sendFragment(const Fragment &fragment, eastl::function<void()> &&callback,
                       DmaCallback dmaCallback = FROM_MAIN_THREAD) {
-        sendFragment(reinterpret_cast<uint32_t *>(fragment.data.data()),
-                     count * sizeof(typename Fragment::FragmentBaseType) / sizeof(uint32_t), eastl::move(callback),
-                     dmaCallback);
+        sendFragment(fragment.getFragmentDataPtr(), fragment.getActualFragmentSize(), eastl::move(callback), dmaCallback);
     }
     void uploadToVRAM(const uint16_t *data, Rect rect, eastl::function<void()> &&callback,
                       DmaCallback dmaCallback = FROM_MAIN_THREAD);
-    bool disableScissor();
-    bool enableScissor();
+    void disableScissor();
+    void enableScissor();
+    void getScissor(Prim::Scissor &);
 
   private:
-    void sendFragment(uint32_t *data, unsigned count, eastl::function<void()> &&callback, DmaCallback dmaCallback);
+    void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
+                      DmaCallback dmaCallback);
     eastl::function<void(void)> m_vsync = nullptr;
     eastl::function<void(void)> m_dmaCallback = nullptr;
     bool m_fromISR = false;
@@ -149,70 +103,12 @@ class GPU {
     uint32_t m_frameCount = 0;
     uint32_t m_previousFrameCount = 0;
     int m_parity = 0;
+
     bool m_interlaced = false;
-    bool m_scissorEnabled = false;
     void flip();
     friend class Application;
-
-  public:
-    struct Configuration {
-        Configuration &setResolution(Resolution resolution) {
-            if (resolution == Resolution::W368) {
-                config.hResolution = HR_EXTENDED;
-                config.hResolutionExtended = HRE_368;
-            } else {
-                config.hResolutionExtended = HRE_NORMAL;
-                switch (resolution) {
-                    case Resolution::W256:
-                        config.hResolution = HR_256;
-                        break;
-                    case Resolution::W320:
-                        config.hResolution = HR_320;
-                        break;
-                    case Resolution::W512:
-                        config.hResolution = HR_512;
-                        break;
-                    case Resolution::W640:
-                        config.hResolution = HR_640;
-                        break;
-                }
-            }
-            return *this;
-        }
-        Configuration &setVideoMode(VideoMode videoMode) {
-            switch (videoMode) {
-                case VideoMode::AUTO:
-                    config.videoMode = (*((char *)0xbfc7ff52) == 'E') ? VM_PAL : VM_NTSC;
-                    break;
-                case VideoMode::NTSC:
-                    config.videoMode = VM_NTSC;
-                    break;
-                case VideoMode::PAL:
-                    config.videoMode = VM_PAL;
-                    break;
-            }
-            return *this;
-        }
-        Configuration &setColorMode(ColorMode colorMode) {
-            switch (colorMode) {
-                case ColorMode::C15BITS:
-                    config.colorDepth = CD_15BITS;
-                    break;
-                case ColorMode::C24BITS:
-                    config.colorDepth = CD_24BITS;
-                    break;
-            }
-            return *this;
-        }
-        Configuration &setInterlace(bool interlace) {
-            config.videoInterlace = interlace ? VI_ON : VI_OFF;
-            return *this;
-        }
-
-      private:
-        DisplayModeConfig config = {};
-        friend class GPU;
-    };
 };
 
 }  // namespace psyqo
+
+#include "psyqo/internal/gpu/configuration.hh"

@@ -120,24 +120,29 @@ void psyqo::GPU::flip() {
     enableScissor();
 }
 
-bool psyqo::GPU::disableScissor() {
-    bool wasEnabled = m_scissorEnabled;
-    m_scissorEnabled = false;
+void psyqo::GPU::disableScissor() {
     setDrawingArea(0, 0, 1024, 512);
     setDrawingOffset(0, 0);
-    return wasEnabled;
 }
 
-bool psyqo::GPU::enableScissor() {
-    bool wasEnabled = m_scissorEnabled;
-    m_scissorEnabled = true;
+void psyqo::GPU::enableScissor() {
     auto parity = m_parity;
     auto width = m_width;
     auto height = m_height;
     bool firstBuffer = !parity || m_interlaced;
     setDrawingArea(0, firstBuffer ? 0 : 256, width, firstBuffer ? height : (256 + height));
     setDrawingOffset(0, firstBuffer ? 0 : 256);
-    return wasEnabled;
+}
+
+void psyqo::GPU::getScissor(Prim::Scissor &scissor) {
+    auto parity = m_parity;
+    int16_t width = m_width;
+    int16_t height = m_height;
+    bool firstBuffer = !parity || m_interlaced;
+
+    scissor.start = Prim::DrawingAreaStart(Vertex{{.x = 0, .y = firstBuffer ? int16_t(0) : int16_t(256)}});
+    scissor.end = Prim::DrawingAreaEnd(Vertex{{.x = width, .y = firstBuffer ? height : int16_t(256 + height)}});
+    scissor.offset = Prim::DrawingOffset(Vertex{{.x = int16_t(0), .y = firstBuffer ? int16_t(0) : int16_t(256)}});
 }
 
 void psyqo::GPU::clear(Color bg) {
@@ -196,7 +201,7 @@ void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect rect, eastl::function<v
     DMA_CTRL[DMA_GPU].CHCR = 0x01000201;
 }
 
-void psyqo::GPU::sendFragment(uint32_t *data, unsigned count, eastl::function<void()> &&callback,
+void psyqo::GPU::sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                               DmaCallback dmaCallback) {
     uintptr_t ptr = reinterpret_cast<uintptr_t>(data);
     Kernel::assert(!m_dmaCallback, "Only one GPU DMA transfer at a time is permitted");

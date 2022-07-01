@@ -46,7 +46,7 @@ class Tetris final : public psyqo::Application {
     psyqo::Timer m_timer;
     psyqo::Sound m_sound;
     psyqo::Music m_music;
-    psyqo::Font m_font;
+    psyqo::Font<> m_font;
 
     uint8_t m_anim = 0;
     bool m_direction = true;

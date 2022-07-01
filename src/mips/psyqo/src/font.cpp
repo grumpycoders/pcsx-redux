@@ -31,22 +31,24 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 #include "system-font.c"
 
-void psyqo::Font::uploadSystemFont(psyqo::GPU& gpu) {
+void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
     Vertex clutPosition = {.x = 961, .y = 464};
-    GPU::ClutIndex clut(clutPosition);
-    m_clutPosition = clutPosition;
+    Prim::ClutIndex clut(clutPosition);
     for (unsigned i = 0; i < 96; i++) {
-        GPU::TexInfo texInfo = {.u = 0, .v = 208, .clut = clut};
+        Prim::TexInfo texInfo = {.u = 0, .v = 208, .clut = clut};
         uint8_t l = i / 32;
         texInfo.u = i * 8;
         texInfo.v += 16 * l;
         m_lut[i] = texInfo;
     }
     auto size = m_size = {.w = 8, .h = 16};
-    for (auto& p : m_fragment.data) {
-        p.command |= 0xffffff;
-        p.size = size;
-    }
+    forEach([this, clutPosition](auto& fragment) {
+        fragment.prologue.clutWriter.position = clutPosition;
+        for (auto& p : fragment.primitives) {
+            p.setColor({{.r = 0xff, .g = 0xff, .b = 0xff}});
+            p.size = m_size;
+        }
+    });
     {
         Rect rect = {.pos = {.x = 960, .y = 464}, .size = {.w = 64, .h = 48}};
         uint32_t coords = rect.pos.packed;
@@ -82,12 +84,14 @@ void psyqo::Font::uploadSystemFont(psyqo::GPU& gpu) {
     }
 }
 
-void psyqo::Font::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
-                        GPU::DmaCallback dmaCallback) {
+void psyqo::FontBase::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color color,
+                            eastl::function<void()>&& callback, GPU::DmaCallback dmaCallback) {
     auto size = m_size;
     unsigned i;
+    auto& fragment = getGlyphFragment(false);
+    auto maxSize = fragment.primitives.size();
 
-    for (i = 0; i < m_fragment.size(); pos.x += size.w) {
+    for (i = 0; i < maxSize; pos.x += size.w) {
         auto c = *text++;
         if (c == 0) break;
         if (c < 32 || c > 127) {
@@ -96,22 +100,13 @@ void psyqo::Font::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color col
         if (c == ' ') {
             continue;
         }
-        auto& f = m_fragment.data[i++];
-        auto& p = m_lut[c - 32];
+        auto& f = fragment.primitives[i++];
+        auto p = m_lut[c - 32];
         f.position = pos;
         f.texInfo = p;
     }
-    uint32_t cmd = color.packed | 0b01101000000000000000000000000000;
-    union {
-        Vertex p;
-        uint32_t packed;
-    } arg;
-    arg.p = m_clutPosition;
-    bool enableScissor = gpu.disableScissor();
-    sendGPUData(cmd);
-    GPU_DATA = arg.packed;
-    flushGPUCache();
-    if (enableScissor) gpu.enableScissor();
-    sendGPUData(0b11100001000000000000010000011111);
-    gpu.sendFragment(m_fragment, i, eastl::move(callback), dmaCallback);
+    fragment.count = i;
+    fragment.prologue.clutWriter.setColor(color);
+    gpu.getScissor(fragment.prologue.enableScissor);
+    gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
 }

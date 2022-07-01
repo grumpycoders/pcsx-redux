@@ -30,14 +30,18 @@ SOFTWARE.
 #include <EASTL/atomic.h>
 #include <EASTL/functional.h>
 
+#include "psyqo/fragments.hh"
 #include "psyqo/gpu.hh"
+#include "psyqo/primitives.hh"
 
 namespace psyqo {
 
-class Font {
+class FontBase {
   public:
+    virtual ~FontBase() {}
+    // Blocking call that will unpack the font and upload it to vram at a fixed location.
     void uploadSystemFont(GPU& gpu);
-    void print(GPU& gpu, const char* text, Vertex pos, Color color = {.r = 255, .g = 255, .b = 255}) {
+    void print(GPU& gpu, const char* text, Vertex pos, Color color) {
         bool done = false;
         print(
             gpu, text, pos, color,
@@ -53,12 +57,46 @@ class Font {
     void print(GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
                GPU::DmaCallback dmaCallback);
 
+  protected:
+    struct GlyphsFragmentPrologue {
+        Prim::Scissor disableScissor;
+        Prim::Pixel clutWriter;
+        Prim::FlushCache flushCache;
+        Prim::Scissor enableScissor;
+        uint32_t tpage = 0b11100001'0000000000'0'0'0'1'0'00'00'1'1111;
+    };
+    typedef Fragments::FixedFragment<GlyphsFragmentPrologue, Prim::Sprite, 48> GlyphsFragment;
+    virtual GlyphsFragment& getGlyphFragment(bool increment) = 0;
+    virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) = 0;
+
   private:
-    GPU::FragmentArray<GPU::Sprite, 256> m_fragment;
-    bool m_is8bits = false;
+    GlyphsFragment& printToFragment(GPU& gpu, const char* text, Vertex pos, Color color);
+    eastl::array<Prim::TexInfo, 96> m_lut;
     Vertex m_size;
-    Vertex m_clutPosition;
-    eastl::array<GPU::TexInfo, 96> m_lut;
+};
+
+template <size_t Fragments = 16>
+class Font : public FontBase {
+  public:
+    virtual ~Font() {}
+
+  private:
+    virtual GlyphsFragment& getGlyphFragment(bool increment) override {
+        auto& fragment = m_fragments[m_index];
+        if (increment) {
+            if (++m_index == Fragments) {
+                m_index = 0;
+            }
+        }
+        return fragment;
+    }
+    virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) override {
+        for (auto& fragment : m_fragments) {
+            cb(fragment);
+        }
+    }
+    eastl::array<GlyphsFragment, Fragments> m_fragments;
+    unsigned m_index = 0;
 };
 
 }  // namespace psyqo
