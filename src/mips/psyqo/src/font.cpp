@@ -134,6 +134,9 @@ void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, const char* for
             eastl::atomic_signal_fence(eastl::memory_order_release);
         },
         DMA::FROM_ISR, format, ap);
+    while (!done) {
+        eastl::atomic_signal_fence(eastl::memory_order_acquire);
+    }
 }
 
 struct psyqo::FontBase::XPrintfInfo {
