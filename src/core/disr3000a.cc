@@ -85,10 +85,10 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 
 namespace {
 struct StringDisasm : public PCSX::Disasm {
-    uint8_t *ptr(uint32_t addr) {
-        uint8_t *lut = PCSX::g_emulator->m_mem->m_readLUT[addr >> 16];
-        if (lut) {
-            return lut + (addr & 0xffff);
+    const uint8_t *ptr(uint32_t addr) {
+        auto ptr = static_cast<const uint8_t *>(PCSX::g_emulator->m_mem->pointerRead(addr));
+        if (ptr != nullptr) {
+            return ptr;
         } else {
             static uint8_t dummy[4] = {0, 0, 0, 0};
             return dummy;
