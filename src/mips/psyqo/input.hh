@@ -27,16 +27,37 @@ SOFTWARE.
 #pragma once
 
 #include <EASTL/functional.h>
+#include <stdint.h>
 
 namespace psyqo {
 
 class Input {
   public:
-    struct Event {};
-    void onEvent(eastl::function<void(Event &)> &&callback) { eastl::move(m_callback); }
+    enum Pad { Pad1, Pad2 };
+    enum Button {
+        Select = 0,
+        L3 = 1,
+        R3 = 2,
+        Start = 3,
+        Up = 4,
+        Right = 5,
+        Down = 6,
+        Left = 7,
+        L2 = 8,
+        R2 = 9,
+        L1 = 10,
+        R1 = 11,
+        Triangle = 12,
+        Circle = 13,
+        Cross = 14,
+        Square = 15,
+    };
+    void initialize();
+    bool isPadConnected(Pad pad) const { return m_padData[pad][0] == 0x4100; }
+    bool isButtonPressed(Pad pad, Button button) const { return (m_padData[pad][1] & (1 << button)) == 0; }
 
   private:
-    eastl::function<void(Event &)> m_callback;
+    uint16_t m_padData[2][0x11];
 };
 
 }  // namespace psyqo

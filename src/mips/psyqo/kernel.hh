@@ -79,6 +79,8 @@ void queueCallbackFromISR(eastl::function<void()>&& lambda);
 namespace Internal {
 void prepare();
 void pumpCallbacks();
+void addOnFrame(eastl::function<void()>&& lambda);
+void beginFrame();
 }  // namespace Internal
 
 inline void assert(bool condition, const char* message) {

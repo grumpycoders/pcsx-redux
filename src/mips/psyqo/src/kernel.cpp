@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <EASTL/atomic.h>
 #include <EASTL/bonus/fixed_ring_buffer.h>
+#include <EASTL/fixed_vector.h>
 #include <stdint.h>
 
 #include "common/hardware/hwregs.h"
@@ -220,4 +221,18 @@ void psyqo::Kernel::Internal::pumpCallbacks() {
         s_callbacks.pop_front();
     }
     fastLeaveCriticalSection();
+}
+
+namespace {
+eastl::fixed_vector<eastl::function<void()>, 128> s_beginFrameEvents;
+}
+
+void psyqo::Kernel::Internal::addOnFrame(eastl::function<void()>&& lambda) {
+    s_beginFrameEvents.push_back(eastl::move(lambda));
+}
+
+void psyqo::Kernel::Internal::beginFrame() {
+    for (auto& f : s_beginFrameEvents) {
+        f();
+    }
 }

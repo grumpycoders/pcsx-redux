@@ -42,6 +42,8 @@ class Application {
     virtual void createScene() {}
     psyqo::GPU& gpu() { return m_gpu; }
 
+    Scene* getCurrentScene();
+
     void pushScene(Scene* scene);
     void popScene();
 

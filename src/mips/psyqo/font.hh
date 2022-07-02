@@ -29,6 +29,7 @@ SOFTWARE.
 #include <EASTL/array.h>
 #include <EASTL/atomic.h>
 #include <EASTL/functional.h>
+#include <stdarg.h>
 
 #include "psyqo/fragments.hh"
 #include "psyqo/gpu.hh"
@@ -48,6 +49,22 @@ class FontBase {
     void print(GPU& gpu, const char* text, Vertex pos, Color color);
     void print(GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
                DMA::DmaCallback dmaCallback);
+    void printf(GPU& gpu, Vertex pos, Color color, const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vprintf(gpu, pos, color, format, args);
+        va_end(args);
+    }
+    void printf(GPU& gpu, Vertex pos, Color color, eastl::function<void()>&& callback, DMA::DmaCallback dmaCallback,
+                const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vprintf(gpu, pos, color, eastl::move(callback), dmaCallback, format, args);
+        va_end(args);
+    }
+    void vprintf(GPU& gpu, Vertex pos, Color color, const char* format, va_list ap);
+    void vprintf(GPU& gpu, Vertex pos, Color color, eastl::function<void()>&& callback, DMA::DmaCallback dmaCallback,
+                 const char* format, va_list ap);
 
   protected:
     struct GlyphsFragmentPrologue {
@@ -63,9 +80,12 @@ class FontBase {
     virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) = 0;
 
   private:
+    struct XPrintfInfo;
     GlyphsFragment& printToFragment(GPU& gpu, const char* text, Vertex pos, Color color);
     eastl::array<Prim::TexInfo, 96> m_lut;
     Vertex m_size;
+
+    friend struct XPrintfInfo;
 };
 
 }  // namespace psyqo

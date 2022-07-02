@@ -24,51 +24,14 @@ SOFTWARE.
 
 */
 
-#include "psyqo/application.hh"
+#include "psyqo/input.hh"
 
-#include "common/hardware/hwregs.h"
 #include "common/syscalls/syscalls.h"
 #include "psyqo/kernel.hh"
-#include "psyqo/scene.hh"
 
-int psyqo::Application::run() {
-    enterCriticalSection();
-    ramsyscall_printf("*** PSYQo Application - starting ***\n");
-    Kernel::Internal::prepare();
-    prepare();
-    leaveCriticalSection();
-    while (true) {
-        if (m_scenesStack.empty()) {
-            createScene();
-        }
-        Kernel::assert(m_scenesStack.size() > 0, "Scenes stack is empty");
-        getCurrentScene()->frame();
-        m_gpu.flip();
-    }
-
-    return 0;
-}
-
-psyqo::Scene* psyqo::Application::getCurrentScene() {
-    if (m_scenesStack.empty()) {
-        return nullptr;
-    }
-    return m_scenesStack.back();
-}
-
-void psyqo::Application::pushScene(Scene* scene) {
-    if (m_scenesStack.size() > 0) {
-        m_scenesStack.back()->teardown();
-    }
-    m_scenesStack.push_back(scene);
-    scene->m_parent = this;
-    scene->start();
-}
-
-void psyqo::Application::popScene() {
-    m_scenesStack.back()->teardown();
-    m_scenesStack.pop_back();
-    if (m_scenesStack.size() > 0) {
-        m_scenesStack.back()->start();
-    }
+void psyqo::Input::initialize() {
+    syscall_initPad(m_padData[0], sizeof(m_padData[0]), m_padData[1], sizeof(m_padData[1]));
+    syscall_startPad();
+    __builtin_memset(m_padData[0], 0xff, sizeof(m_padData[0]));
+    __builtin_memset(m_padData[1], 0xff, sizeof(m_padData[1]));
 }

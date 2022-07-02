@@ -136,6 +136,7 @@ void psyqo::GPU::flip() {
         GPU_STATUS = 0x05000000;
     }
     enableScissor();
+    Kernel::Internal::beginFrame();
 }
 
 void psyqo::GPU::disableScissor() {

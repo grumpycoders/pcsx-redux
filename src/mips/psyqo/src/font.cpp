@@ -27,6 +27,7 @@ SOFTWARE.
 #include "psyqo/font.hh"
 
 #include <EASTL/atomic.h>
+#include <stdarg.h>
 
 #include "psyqo/gpu.hh"
 #include "system-font.c"
@@ -83,7 +84,7 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
     }
 }
 
-void psyqo::FontBase::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color color) {
+void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color) {
     bool done = false;
     print(
         gpu, text, pos, color,
@@ -97,8 +98,8 @@ void psyqo::FontBase::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color
     }
 }
 
-void psyqo::FontBase::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color color,
-                            eastl::function<void()>&& callback, DMA::DmaCallback dmaCallback) {
+void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
+                            DMA::DmaCallback dmaCallback) {
     auto size = m_size;
     unsigned i;
     auto& fragment = getGlyphFragment(false);
@@ -121,5 +122,64 @@ void psyqo::FontBase::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color
     fragment.count = i;
     fragment.prologue.clutWriter.setColor(color);
     gpu.getScissor(fragment.prologue.enableScissor);
+    gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
+}
+
+void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, const char* format, va_list ap) {
+    bool done = false;
+    vprintf(
+        gpu, pos, color,
+        [&done]() {
+            done = true;
+            eastl::atomic_signal_fence(eastl::memory_order_release);
+        },
+        DMA::FROM_ISR, format, ap);
+}
+
+struct psyqo::FontBase::XPrintfInfo {
+    psyqo::FontBase::GlyphsFragment& fragment;
+    GPU& gpu;
+    psyqo::Vertex pos;
+    psyqo::Color color;
+    psyqo::FontBase* self;
+};
+
+extern "C" int vxprintf(void (*func)(const char*, int, void*), void* arg, const char* format, va_list ap);
+
+void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, eastl::function<void()>&& callback,
+                              DMA::DmaCallback dmaCallback, const char* format, va_list ap) {
+    auto& fragment = getGlyphFragment(false);
+    fragment.count = 0;
+    XPrintfInfo info{getGlyphFragment(false), gpu, pos, color, this};
+    fragment.prologue.clutWriter.setColor(info.color);
+    gpu.getScissor(fragment.prologue.enableScissor);
+    vxprintf(
+        [](const char* str, int len, void* info_) {
+            auto& info = *static_cast<XPrintfInfo*>(info_);
+            auto& fragment = info.fragment;
+            auto& primitives = info.fragment.primitives;
+            auto maxSize = primitives.size();
+            auto& pos = info.pos;
+            auto& color = info.color;
+            auto self = info.self;
+            unsigned i;
+            for (i = 0; i < len; i++) {
+                if (fragment.count >= maxSize) break;
+                auto c = str[i];
+                if (c == ' ') {
+                    pos.x += self->m_size.w;
+                    continue;
+                }
+                if (c < 32 || c > 127) {
+                    c = '?';
+                }
+                auto& f = primitives[fragment.count++];
+                auto p = self->m_lut[c - 32];
+                f.position = pos;
+                f.texInfo = p;
+                pos.x += self->m_size.w;
+            }
+        },
+        &info, format, ap);
     gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
 }
