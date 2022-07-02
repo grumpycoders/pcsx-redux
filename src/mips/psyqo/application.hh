@@ -26,19 +26,30 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/fixed_vector.h>
+
 #include "psyqo/gpu.hh"
 
 namespace psyqo {
 
+class Scene;
+
 class Application {
   public:
     int run();
+    virtual ~Application() {}
     virtual void prepare() {}
-    virtual void frame() {}
+    virtual void createScene() {}
     psyqo::GPU& gpu() { return m_gpu; }
+
+    void pushScene(Scene* scene);
+    void popScene();
 
   private:
     psyqo::GPU m_gpu;
+    eastl::fixed_vector<Scene*, 16> m_scenesStack;
+
+    friend class Scene;
 };
 
 }  // namespace psyqo

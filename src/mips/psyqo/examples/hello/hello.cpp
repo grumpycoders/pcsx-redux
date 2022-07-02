@@ -28,53 +28,62 @@ SOFTWARE.
 #include "psyqo/application.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
-#include "psyqo/input.hh"
-#include "psyqo/music.hh"
 #include "psyqo/scene.hh"
-#include "psyqo/sound.hh"
-#include "psyqo/timer.hh"
 
 namespace {
 
-class Tetris final : public psyqo::Application {
+class Hello final : public psyqo::Application {
     void prepare() override;
     void createScene() override;
-    void button(psyqo::Input::Event& event);
 
-    psyqo::Input m_input;
-    psyqo::Timer m_timer;
-    psyqo::Sound m_sound;
-    psyqo::Music m_music;
+  public:
     psyqo::Font<> m_font;
 };
 
-class SplashScreen final : public psyqo::Scene {
+class HelloScene final : public psyqo::Scene {
     void frame() override;
+
+    uint8_t m_anim = 0;
+    bool m_direction = true;
 };
 
-Tetris tetris;
-SplashScreen splashScreen;
+Hello hello;
+HelloScene helloScene;
 
 }  // namespace
 
-void Tetris::prepare() {
+void Hello::prepare() {
     auto config = psyqo::GPU::Configuration();
     config.setResolution(psyqo::GPU::Resolution::W320)
         .setVideoMode(psyqo::GPU::VideoMode::AUTO)
         .setColorMode(psyqo::GPU::ColorMode::C15BITS)
         .setInterlace(false);
     gpu().initialize(config);
-
-    m_input.onEvent([this](auto event) -> void { button(event); });
 }
 
-void Tetris::button(psyqo::Input::Event& event) {}
-
-void Tetris::createScene() {
+void Hello::createScene() {
     m_font.uploadSystemFont(gpu());
-    pushScene(&splashScreen);
+    pushScene(&helloScene);
 }
 
-void SplashScreen::frame() {}
+void HelloScene::frame() {
+    if (m_anim == 0) {
+        m_direction = true;
+    } else if (m_anim == 255) {
+        m_direction = false;
+    }
+    psyqo::Color bg{{.r = 0, .g = 64, .b = 91}};
+    bg.r = m_anim;
+    hello.gpu().clear(bg);
+    if (m_direction) {
+        m_anim++;
+    } else {
+        m_anim--;
+    }
 
-int main() { return tetris.run(); }
+    psyqo::Color c = {.r = 0xff, .g = 0xff, .b = 0xff};
+    c.b = 255 - m_anim;
+    hello.m_font.print(hello.gpu(), "Hello World!", {.x = 16, .y = 32}, c);
+}
+
+int main() { return hello.run(); }

@@ -24,44 +24,27 @@ SOFTWARE.
 
 */
 
-#include "psyqo/application.hh"
+#pragma once
 
-#include "common/hardware/hwregs.h"
-#include "common/syscalls/syscalls.h"
-#include "psyqo/kernel.hh"
-#include "psyqo/scene.hh"
+namespace psyqo {
 
-int psyqo::Application::run() {
-    enterCriticalSection();
-    ramsyscall_printf("*** PSYQo Application - starting ***\n");
-    Kernel::Internal::prepare();
-    prepare();
-    leaveCriticalSection();
-    while (true) {
-        if (m_scenesStack.empty()) {
-            createScene();
-        }
-        Kernel::assert(m_scenesStack.size() > 0, "Scenes stack is empty");
-        m_scenesStack.back()->frame();
-        m_gpu.flip();
-    }
+class Application;
 
-    return 0;
-}
+class Scene {
+  public:
+    virtual ~Scene() {}
+    virtual void start() {}
+    virtual void frame() {}
+    virtual void teardown() {}
 
-void psyqo::Application::pushScene(Scene* scene) {
-    if (m_scenesStack.size() > 0) {
-        m_scenesStack.back()->teardown();
-    }
-    m_scenesStack.push_back(scene);
-    scene->m_parent = this;
-    scene->start();
-}
+  protected:
+    void pushScene(Scene* scene);
+    void popScene();
 
-void psyqo::Application::popScene() {
-    m_scenesStack.back()->teardown();
-    m_scenesStack.pop_back();
-    if (m_scenesStack.size() > 0) {
-        m_scenesStack.back()->start();
-    }
-}
+  private:
+    Application* m_parent;
+
+    friend class Application;
+};
+
+}  // namespace psyqo

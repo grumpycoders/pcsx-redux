@@ -1,4 +1,4 @@
-TARGET = tetris
+TARGET = hello
 TYPE = ps-exe
 
 SRCS = \
@@ -10,7 +10,7 @@ SRCS = \
 ../../src/kernel.cpp \
 ../../src/gpu.cpp \
 ../../src/scene.cpp \
-tetris.cpp \
+hello.cpp \
 
 CPPFLAGS = -Werror -I../../../../../third_party/EASTL/include -I../../../../../third_party/EABase/include/Common
 CXXFLAGS = -std=c++20

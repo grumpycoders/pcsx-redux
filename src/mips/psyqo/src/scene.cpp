@@ -24,10 +24,13 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include "psyqo/application.hh"
+#include "psyqo/scene.hh"
 
-namespace psyqo {
+void psyqo::Scene::pushScene(Scene* scene) {
+    m_parent->pushScene(scene);
+}
 
-class Graphics {};
-
-} // namespace psyqo
+void psyqo::Scene::popScene() {
+    m_parent->popScene();
+}
