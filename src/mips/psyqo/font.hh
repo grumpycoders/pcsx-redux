@@ -36,26 +36,18 @@ SOFTWARE.
 
 namespace psyqo {
 
+template <size_t Fragments = 16>
+class Font;
+
 class FontBase {
   public:
     virtual ~FontBase() {}
-    // Blocking call that will unpack the font and upload it to vram at a fixed location.
+    // Blocking call that will unpack the built-in system font and upload it to vram at a fixed location.
     void uploadSystemFont(GPU& gpu);
-    void print(GPU& gpu, const char* text, Vertex pos, Color color) {
-        bool done = false;
-        print(
-            gpu, text, pos, color,
-            [&done]() {
-                done = true;
-                eastl::atomic_signal_fence(eastl::memory_order_release);
-            },
-            GPU::FROM_ISR);
-        while (!done) {
-            eastl::atomic_signal_fence(eastl::memory_order_acquire);
-        }
-    }
+
+    void print(GPU& gpu, const char* text, Vertex pos, Color color);
     void print(GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
-               GPU::DmaCallback dmaCallback);
+               DMA::DmaCallback dmaCallback);
 
   protected:
     struct GlyphsFragmentPrologue {
@@ -63,6 +55,7 @@ class FontBase {
         Prim::Pixel clutWriter;
         Prim::FlushCache flushCache;
         Prim::Scissor enableScissor;
+        // TODO: add a "getTPage" method to the GPU or something.
         uint32_t tpage = 0b11100001'0000000000'0'0'0'1'0'00'00'1'1111;
     };
     typedef Fragments::FixedFragment<GlyphsFragmentPrologue, Prim::Sprite, 48> GlyphsFragment;
@@ -75,28 +68,6 @@ class FontBase {
     Vertex m_size;
 };
 
-template <size_t Fragments = 16>
-class Font : public FontBase {
-  public:
-    virtual ~Font() {}
-
-  private:
-    virtual GlyphsFragment& getGlyphFragment(bool increment) override {
-        auto& fragment = m_fragments[m_index];
-        if (increment) {
-            if (++m_index == Fragments) {
-                m_index = 0;
-            }
-        }
-        return fragment;
-    }
-    virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) override {
-        for (auto& fragment : m_fragments) {
-            cb(fragment);
-        }
-    }
-    eastl::array<GlyphsFragment, Fragments> m_fragments;
-    unsigned m_index = 0;
-};
-
 }  // namespace psyqo
+
+#include "psyqo/internal/font.hh"

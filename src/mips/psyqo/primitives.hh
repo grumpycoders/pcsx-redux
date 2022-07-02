@@ -28,8 +28,6 @@ SOFTWARE.
 
 #include <stdint.h>
 
-#include "common/hardware/gpu.h"
-
 namespace psyqo {
 
 union Vertex {
@@ -53,6 +51,13 @@ struct Rect {
     };
 };
 
+union Color {
+    struct {
+        uint8_t r, g, b;
+    };
+    uint32_t packed;
+};
+
 namespace Prim {
 
 struct ClutIndex {
@@ -68,10 +73,22 @@ struct TexInfo {
     ClutIndex clut;
 };
 
+struct FastFill {
+    FastFill() : command(0x02000000) {}
+    FastFill(Color c) : command(0x02000000 | c.packed) {}
+    void setColor(Color c) { command = 0x02000000 | c.packed; }
+
+  private:
+    uint32_t command;
+
+  public:
+    Rect rect;
+};
+
 struct Sprite {
-    Sprite() : command(0b01100100000000000000000000000000) {}
-    Sprite(Color c) : command(0b01100100000000000000000000000000 | c.packed) {}
-    void setColor(Color c) { command = 0b01100100000000000000000000000000 | c.packed; }
+    Sprite() : command(0b01100100'00000000'00000000'00000000) {}
+    Sprite(Color c) : command(0b01100100'00000000'00000000'00000000 | c.packed) {}
+    void setColor(Color c) { command = 0b01100100'00000000'00000000'00000000 | c.packed; }
 
   private:
     uint32_t command;
@@ -118,6 +135,12 @@ struct Scissor {
     DrawingAreaStart start = DrawingAreaStart(Vertex{{.x = 0, .y = 0}});
     DrawingAreaEnd end = DrawingAreaEnd(Vertex{{.x = 1024, .y = 512}});
     DrawingOffset offset = DrawingOffset(Vertex{{.x = 0, .y = 0}});
+};
+
+struct VRAMUpload {
+    VRAMUpload() : command(0xa0000000) {}
+    uint32_t command;
+    Rect region;
 };
 
 }  // namespace Prim

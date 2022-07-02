@@ -49,14 +49,13 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
             p.size = m_size;
         }
     });
-    {
-        Rect rect = {.pos = {.x = 960, .y = 464}, .size = {.w = 64, .h = 48}};
-        uint32_t coords = rect.pos.packed;
-        uint32_t size = rect.size.packed;
-        sendGPUData(0xa0000000);
-        GPU_DATA = coords;
-        GPU_DATA = size;
-    }
+
+    Rect region = {.pos = {.x = 960, .y = 464}, .size = {.w = 64, .h = 48}};
+    Prim::VRAMUpload upload;
+    upload.region = region;
+    gpu.sendPrimitive(upload);
+
+    // On the fly decompression of the system font.
     uint32_t d;
     for (unsigned i = 0; i < sizeof(s_systemFont); i++) {
         uint8_t b = s_systemFont[i];
@@ -84,8 +83,22 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
     }
 }
 
+void psyqo::FontBase::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color color) {
+    bool done = false;
+    print(
+        gpu, text, pos, color,
+        [&done]() {
+            done = true;
+            eastl::atomic_signal_fence(eastl::memory_order_release);
+        },
+        DMA::FROM_ISR);
+    while (!done) {
+        eastl::atomic_signal_fence(eastl::memory_order_acquire);
+    }
+}
+
 void psyqo::FontBase::print(psyqo::GPU& gpu, const char* text, Vertex pos, Color color,
-                            eastl::function<void()>&& callback, GPU::DmaCallback dmaCallback) {
+                            eastl::function<void()>&& callback, DMA::DmaCallback dmaCallback) {
     auto size = m_size;
     unsigned i;
     auto& fragment = getGlyphFragment(false);

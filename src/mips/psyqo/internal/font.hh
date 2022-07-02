@@ -24,22 +24,28 @@ SOFTWARE.
 
 */
 
-#include "psyqo/application.hh"
+#pragma once
 
-#include "common/hardware/hwregs.h"
-#include "common/syscalls/syscalls.h"
-#include "psyqo/kernel.hh"
+template <size_t Fragments>
+class psyqo::Font : public psyqo::FontBase {
+  public:
+    virtual ~Font() {}
 
-int psyqo::Application::run() {
-    enterCriticalSection();
-    ramsyscall_printf("*** PSYQo Application - starting ***\n");
-    Kernel::Internal::prepare();
-    prepare();
-    leaveCriticalSection();
-    while (true) {
-        frame();
-        m_gpu.flip();
+  private:
+    virtual GlyphsFragment& getGlyphFragment(bool increment) override {
+        auto& fragment = m_fragments[m_index];
+        if (increment) {
+            if (++m_index == Fragments) {
+                m_index = 0;
+            }
+        }
+        return fragment;
     }
-
-    return 0;
-}
+    virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) override {
+        for (auto& fragment : m_fragments) {
+            cb(fragment);
+        }
+    }
+    eastl::array<GlyphsFragment, Fragments> m_fragments;
+    unsigned m_index = 0;
+};

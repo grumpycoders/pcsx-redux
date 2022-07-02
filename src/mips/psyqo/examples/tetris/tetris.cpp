@@ -80,7 +80,7 @@ void Tetris::frame() {
     } else if (m_anim == 255) {
         m_direction = false;
     }
-    Color bg{{.r = 0, .g = 64, .b = 91}};
+    psyqo::Color bg{{.r = 0, .g = 64, .b = 91}};
     bg.r = m_anim;
     gpu().clear(bg);
     if (m_direction) {
@@ -89,7 +89,7 @@ void Tetris::frame() {
         m_anim--;
     }
 
-    Color c = {.r = 0xff, .g = 0xff, .b = 0xff};
+    psyqo::Color c = {.r = 0xff, .g = 0xff, .b = 0xff};
     c.b = 255 - m_anim;
     m_font.print(gpu(), "Hello World!", {.x = 16, .y = 32}, c);
 }

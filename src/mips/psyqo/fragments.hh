@@ -35,7 +35,10 @@ namespace Fragments {
 
 template <typename P, typename T, size_t N>
 struct FixedFragment {
-    FixedFragment() { static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(P) + sizeof(T) * N)); }
+    FixedFragment() {
+        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(P) + sizeof(T) * N),
+                      "Spurious padding in fixed fragment");
+    }
     typedef T FragmentBaseType;
     const uint32_t* getFragmentDataPtr() const { return reinterpret_cast<const uint32_t*>(&prologue); }
     size_t getActualFragmentSize() const { return (sizeof(P) + sizeof(T) * count) / sizeof(uint32_t); }

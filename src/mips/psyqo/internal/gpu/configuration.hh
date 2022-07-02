@@ -81,6 +81,48 @@ struct psyqo::GPU::Configuration {
     }
 
   private:
+    enum HResolution {
+        HR_EXTENDED,
+        HR_256 = 0,
+        HR_320 = 1,
+        HR_512 = 2,
+        HR_640 = 3,
+    };
+
+    enum VResolution {
+        VR_240 = 0,
+        VR_480 = 1,
+    };
+
+    enum VMode {
+        VM_NTSC = 0,
+        VM_PAL = 1,
+    };
+
+    enum ColorDepth {
+        CD_15BITS = 0,
+        CD_24BITS = 1,
+    };
+
+    enum VideoInterlace {
+        VI_OFF = 0,
+        VI_ON = 1,
+    };
+
+    enum HResolutionExtended {
+        HRE_NORMAL = 0,
+        HRE_368 = 1,
+    };
+
+    struct DisplayModeConfig {
+        enum HResolution hResolution;
+        enum VResolution vResolution;
+        enum VMode videoMode;
+        enum ColorDepth colorDepth;
+        enum VideoInterlace videoInterlace;
+        enum HResolutionExtended hResolutionExtended;
+    };
+
     DisplayModeConfig config = {};
     friend class GPU;
 };

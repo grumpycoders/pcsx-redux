@@ -32,10 +32,19 @@ SOFTWARE.
 #include <EASTL/utility.h>
 #include <stdint.h>
 
-#include "common/hardware/gpu.h"
+#include "common/hardware/hwregs.h"
 #include "psyqo/primitives.hh"
 
 namespace psyqo {
+
+namespace DMA {
+
+enum DmaCallback {
+    FROM_ISR,
+    FROM_MAIN_THREAD,
+};
+
+}
 
 class GPU {
   public:
@@ -44,58 +53,54 @@ class GPU {
     enum VideoMode { AUTO, NTSC, PAL };
     enum ColorMode { C15BITS, C24BITS };
     void initialize(const Configuration &config);
-    void onVsync(eastl::function<void()> &&callback) { m_vsync = eastl::move(callback); }
-    uint32_t getFrameCount() { return m_frameCount; }
-    void clear(Color bg = {{0, 0, 0}});
+    unsigned getRefreshRate() const { return m_refreshRate; }
 
-    void uploadToVRAM(const uint16_t *data, Rect rect) {
-        bool done = false;
-        uploadToVRAM(
-            data, rect,
-            [&done]() {
-                done = true;
-                eastl::atomic_signal_fence(eastl::memory_order_release);
-            },
-            FROM_ISR);
-        while (!done) {
-            eastl::atomic_signal_fence(eastl::memory_order_acquire);
-        }
-    }
-    enum DmaCallback {
-        FROM_ISR,
-        FROM_MAIN_THREAD,
-    };
+    void onVsync(eastl::function<void()> &&callback) { m_vsync = eastl::move(callback); }
+
+    uint32_t getFrameCount() const { return m_frameCount; }
+
+    void clear(Color bg = {{0, 0, 0}});
+    void getClear(Prim::FastFill &, Color bg = {{0, 0, 0}}) const;
+
+    void uploadToVRAM(const uint16_t *data, Rect region);
+    void uploadToVRAM(const uint16_t *data, Rect region, eastl::function<void()> &&callback,
+                      DMA::DmaCallback dmaCallback = DMA::FROM_MAIN_THREAD);
     template <typename Fragment>
+
     void sendFragment(const Fragment &fragment, unsigned count) {
-        bool done = false;
-        sendFragment(
-            reinterpret_cast<uint32_t *>(fragment.data.data()),
-            count * sizeof(typename Fragment::FragmentBaseType) / sizeof(uint32_t),
-            [&done]() {
-                done = true;
-                eastl::atomic_signal_fence(eastl::memory_order_release);
-            },
-            FROM_ISR);
-        while (!done) {
-            eastl::atomic_signal_fence(eastl::memory_order_acquire);
-        }
+        sendFragment(fragment.getFragmentDataPtr(), fragment.getActualFragmentSize());
     }
     template <typename Fragment>
     void sendFragment(const Fragment &fragment, eastl::function<void()> &&callback,
-                      DmaCallback dmaCallback = FROM_MAIN_THREAD) {
-        sendFragment(fragment.getFragmentDataPtr(), fragment.getActualFragmentSize(), eastl::move(callback), dmaCallback);
+                      DMA::DmaCallback dmaCallback = DMA::FROM_MAIN_THREAD) {
+        sendFragment(fragment.getFragmentDataPtr(), fragment.getActualFragmentSize(), eastl::move(callback),
+                     dmaCallback);
     }
-    void uploadToVRAM(const uint16_t *data, Rect rect, eastl::function<void()> &&callback,
-                      DmaCallback dmaCallback = FROM_MAIN_THREAD);
+
     void disableScissor();
     void enableScissor();
     void getScissor(Prim::Scissor &);
 
+    static void waitReady();
+    static void sendRaw(uint32_t data) { GPU_DATA = data; }
+    template <typename Primitive>
+    static void sendPrimitive(const Primitive &primitive) {
+        static_assert((sizeof(Primitive) % 4) == 0, "Primitive's size must be a multiple of 4");
+        waitReady();
+        const uint32_t *ptr = reinterpret_cast<const uint32_t *>(&primitive);
+        size_t size = sizeof(Primitive) / sizeof(uint32_t);
+        for (int i = 0; i < size; i++) {
+            sendRaw(*ptr++);
+        }
+    }
+
   private:
+    void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
-                      DmaCallback dmaCallback);
+                      DMA::DmaCallback dmaCallback);
     eastl::function<void(void)> m_vsync = nullptr;
     eastl::function<void(void)> m_dmaCallback = nullptr;
+    unsigned m_refreshRate = 0;
     bool m_fromISR = false;
     bool m_flushCacheAfterDMA = false;
     int m_width = 0;
