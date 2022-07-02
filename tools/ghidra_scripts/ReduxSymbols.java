@@ -26,7 +26,7 @@ public class ReduxSymbols extends GhidraScript {
 
     	HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/api/v1/assembly/symbols"))
+                .uri(URI.create("http://localhost:8080/api/v1/assembly/symbols?function=upload"))
                 .POST(HttpRequest.BodyPublishers.ofString(String.join("\n", symbols)))
                 .build();
 
