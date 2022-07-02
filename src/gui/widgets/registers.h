@@ -35,8 +35,11 @@ class Registers {
     bool& m_show;
 
   private:
+    void makeEditableRegister(const char *name, uint32_t reg);
+
     unsigned m_selected = 0;
     char m_registerEditor[20];
+    std::string m_editorToOpen;
 };
 
 }  // namespace Widgets
