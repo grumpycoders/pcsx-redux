@@ -28,7 +28,12 @@ The above needs to also send a form with binary contents. This will partially up
 
 The above needs to also send a form with binary contents, which will update the RAM at the specified offset. Offset is expected to be a number from [0, 0x1FFFFF] in case of running redux with 2MB RAM, or [0, 0x7FFFFF] in case the 8MB memory expansion is enabled. The value of size + offset must not exceed the total space in the RAM.
 
-`/api/v1/assembly/symbols`
+`/api/v1/assembly/symbols?function=<value>`
+
+| Value | Function |
+| :- | :- |
+| reset | Resets the symbols loaded in redux |
+| upload | Uploads a `.map` file to redux |
 
 The above expects a `.map` file with symbols and addresses, which will be merged with the current symbols already loaded in redux. The map file should contain a pair of `symbol address` for each line. e.g `Foo 80010000` would load the symbol `Foo` in the address `0x80010000`.
 
