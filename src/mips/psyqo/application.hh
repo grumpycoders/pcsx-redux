@@ -34,18 +34,84 @@ namespace psyqo {
 
 class Scene;
 
+/**
+ * @brief The application class.
+ *
+ * @details The application class is the main class of the application.
+ * It's supposed to be a singleton object instantiated in your main program.
+ * It's responsible for the main loop of the application, and creating the
+ * initial scene. It will hold the `GPU` object that can be used to render
+ * primitives throughout the lifetime of the application. The `main`
+ * function should simply instantiate an application object and call
+ * its `run` method.
+ */
+
 class Application {
   public:
+    /**
+     * @brief Runs the main loop.
+     *
+     * @details Call this from the `main` function. It will never return.
+     */
     int run();
-    virtual ~Application() {}
+
+    /**
+     * @brief Prepare the objects for the application
+     *
+     * @details This will be called once before creating the first scene,
+     * and should be used to initialize any other objects necessary. Do
+     * not try to access any hardware resources during this call.
+     */
     virtual void prepare() {}
+
+    /**
+     * @brief Create the root scene object.
+     *
+     * @details This will be called once before the main loop. It should
+     * create the root scene object and push it onto the stack.
+     */
     virtual void createScene() {}
+
+    /**
+     * @brief Get the GPU object.
+     *
+     * @details Simple accessor for the `GPU` object.
+     */
     psyqo::GPU& gpu() { return m_gpu; }
 
+    /**
+     * @brief Get the current scene object.
+     *
+     * @details Returns the top scene object on the stack.
+     */
     Scene* getCurrentScene();
 
+    /**
+     * @brief Push a scene object onto the stack.
+     *
+     * @details Pushes a new scene object onto the stack.
+     * There can be only one active scene at a time. Pushing a scene object
+     * will cause the current scene, if any, to be teared down, and the
+     * new scene to be started.
+     */
     void pushScene(Scene* scene);
-    void popScene();
+
+    /**
+     * @brief Pop a scene object from the stack.
+     *
+     * @details Pops the top scene object from the stack.
+     * There can be only one active scene at a time. Popping a scene object
+     * will cause the current scene to be teared down and the new top scene,
+     * if any, to be started. If the scene stack ends up being empty, the
+     * `createScene` method will be called again.
+     *
+     * Calling this method when the stack is empty is undefined behavior.
+     *
+     * @return the popped scene, potentially for deletion if needed.
+     */
+    Scene* popScene();
+
+    virtual ~Application() = default;
 
   private:
     psyqo::GPU m_gpu;

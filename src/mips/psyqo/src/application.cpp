@@ -65,10 +65,12 @@ void psyqo::Application::pushScene(Scene* scene) {
     scene->start();
 }
 
-void psyqo::Application::popScene() {
-    m_scenesStack.back()->teardown();
+psyqo::Scene* psyqo::Application::popScene() {
+    Scene* top = m_scenesStack.back();
+    top->teardown();
     m_scenesStack.pop_back();
     if (m_scenesStack.size() > 0) {
         m_scenesStack.back()->start();
     }
+    return top;
 }

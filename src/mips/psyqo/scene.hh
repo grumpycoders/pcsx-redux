@@ -30,16 +30,55 @@ namespace psyqo {
 
 class Application;
 
+/**
+ * @brief The Scene class.
+ *
+ * @details This class is the base class for all scenes. Rendering is supposed
+ * to be done by the scenes. Only one scene can be active at a time. There is
+ * a helper stack system for managing the scenes. See the `Application` class
+ * for more information.
+ */
 class Scene {
   public:
-    virtual ~Scene() {}
+    /**
+     * @brief Starts the scene.
+     *
+     * @details This method will be called when the scene is started. It is
+     * meant to set the environment in a suitable manner. A scene starts when
+     * it becomes the active scene, either when being pushed or when the
+     * previous scene is popped.
+     */
     virtual void start() {}
+
+    /**
+     * @brief Renders a frame.
+     *
+     * @details This method will be called when the scene is active, every time
+     * a new frame is to be rendered.
+     */
     virtual void frame() {}
+
+    /**
+     * @brief Tears down the scene.
+     *
+     * @details This method will be called when the scene is no longer the
+     * active scene. It is meant to clean up the environment, basically
+     * reversing the effects of `start`.
+     */
     virtual void teardown() {}
 
+    virtual ~Scene() = default;
+
   protected:
+    /**
+     * @brief Alias for `Application::pushScene`.
+     */
     void pushScene(Scene* scene);
-    void popScene();
+
+    /**
+     * @brief Alias for `Application::popScene`.
+     */
+    Scene* popScene();
 
   private:
     Application* m_parent;

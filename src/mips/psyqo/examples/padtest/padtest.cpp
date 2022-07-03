@@ -28,7 +28,7 @@ SOFTWARE.
 #include "psyqo/application.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
-#include "psyqo/input.hh"
+#include "psyqo/simplepad.hh"
 #include "psyqo/scene.hh"
 
 namespace {
@@ -39,7 +39,7 @@ class PadTest final : public psyqo::Application {
 
   public:
     psyqo::Font<> m_font;
-    psyqo::Input m_input;
+    psyqo::SimplePad m_input;
 };
 
 class PadTestScene final : public psyqo::Scene {
@@ -74,7 +74,7 @@ void PadTestScene::frame() {
     auto& font = padTest.m_font;
     gpu.clear();
     font.printf(gpu, {.x = 16, .y = 32}, {.r = 255, .g = 255, .b = 255}, "Start pressed: %s",
-                padTest.m_input.isButtonPressed(psyqo::Input::Pad1, psyqo::Input::Start) ? "true" : "false");
+                padTest.m_input.isButtonPressed(psyqo::SimplePad::Pad1, psyqo::SimplePad::Start) ? "true" : "false");
 }
 
 int main() { return padTest.run(); }

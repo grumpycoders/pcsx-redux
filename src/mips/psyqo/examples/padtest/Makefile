@@ -8,7 +8,7 @@ SRCS = \
 ../../src/application.cpp \
 ../../src/font.cpp \
 ../../src/gpu.cpp \
-../../src/input.cpp \
+../../src/simplepad.cpp \
 ../../src/kernel.cpp \
 ../../src/scene.cpp \
 ../../src/xprintf.c \

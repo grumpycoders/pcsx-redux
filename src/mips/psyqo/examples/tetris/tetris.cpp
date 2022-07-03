@@ -28,7 +28,7 @@ SOFTWARE.
 #include "psyqo/application.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
-#include "psyqo/input.hh"
+#include "psyqo/simplepad.hh"
 #include "psyqo/music.hh"
 #include "psyqo/scene.hh"
 #include "psyqo/sound.hh"
@@ -39,9 +39,9 @@ namespace {
 class Tetris final : public psyqo::Application {
     void prepare() override;
     void createScene() override;
-    void button(psyqo::Input::Event& event);
+    void button(psyqo::SimplePad::Event& event);
 
-    psyqo::Input m_input;
+    psyqo::SimplePad m_input;
     psyqo::Timer m_timer;
     psyqo::Sound m_sound;
     psyqo::Music m_music;
@@ -68,7 +68,7 @@ void Tetris::prepare() {
     m_input.onEvent([this](auto event) -> void { button(event); });
 }
 
-void Tetris::button(psyqo::Input::Event& event) {}
+void Tetris::button(psyqo::SimplePad::Event& event) {}
 
 void Tetris::createScene() {
     m_font.uploadSystemFont(gpu());

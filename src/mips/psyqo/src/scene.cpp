@@ -24,13 +24,10 @@ SOFTWARE.
 
 */
 
-#include "psyqo/application.hh"
 #include "psyqo/scene.hh"
 
-void psyqo::Scene::pushScene(Scene* scene) {
-    m_parent->pushScene(scene);
-}
+#include "psyqo/application.hh"
 
-void psyqo::Scene::popScene() {
-    m_parent->popScene();
-}
+void psyqo::Scene::pushScene(Scene* scene) { m_parent->pushScene(scene); }
+
+psyqo::Scene* psyqo::Scene::popScene() { return m_parent->popScene(); }
