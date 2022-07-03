@@ -14,6 +14,7 @@ ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 CC  = $(PREFIX)-gcc
 CXX = $(PREFIX)-g++
+AR  = $(PREFIX)-ar
 
 TYPE ?= cpe
 LDSCRIPT ?= $(ROOTDIR)$(TYPE).ld
@@ -55,7 +56,11 @@ CXXFLAGS += -fno-exceptions -fno-rtti
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
-all: dep $(BINDIR)$(TARGET).$(TYPE) $(foreach ovl, $(OVERLAYSECTION), $(BINDIR)Overlay$(ovl))
+ifeq ($(TYPE), library)
+all: dep $(BINDIR)lib$(TARGET).a
+else
+all: dep $(LIBRARIES) $(BINDIR)$(TARGET).$(TYPE) $(foreach ovl, $(OVERLAYSECTION), $(BINDIR)Overlay$(ovl))
+endif
 
 $(BINDIR)Overlay%: $(BINDIR)$(TARGET).elf
 	$(PREFIX)-objcopy -j $(@:$(BINDIR)Overlay%=%) -O binary $< $(BINDIR)Overlay$(@:$(BINDIR)Overlay%=%)
@@ -63,11 +68,14 @@ $(BINDIR)Overlay%: $(BINDIR)$(TARGET).elf
 $(BINDIR)$(TARGET).$(TYPE): $(BINDIR)$(TARGET).elf
 	$(PREFIX)-objcopy $(addprefix -R , $(OVERLAYSECTION)) -O binary $< $@
 
-$(BINDIR)$(TARGET).elf: $(OBJS)
+$(BINDIR)$(TARGET).elf: $(OBJS) $(LIBRARIES)
 ifneq ($(strip $(BINDIR)),)
 	mkdir -p $(BINDIR)
 endif
-	$(CC) -g -o $(BINDIR)$(TARGET).elf $(OBJS) $(LDFLAGS)
+	$(CC) -g -o $(BINDIR)$(TARGET).elf $(OBJS) $(LDFLAGS) $(LIBRARIES)
+
+$(BINDIR)lib$(TARGET).a: $(OBJS)
+	$(AR) rcs $(BINDIR)lib$(TARGET).a $(OBJS)
 
 %.o: %.s
 	$(CC) $(ARCHFLAGS) -I$(ROOTDIR) -g -c -o $@ $<
@@ -92,8 +100,8 @@ DEPS += $(patsubst %.s,   %.dep,$(filter %.s,$(SRCS)))
 
 dep: $(DEPS)
 
-clean:
-	rm -f $(OBJS) $(BINDIR)Overlay.* $(BINDIR)*.elf $(BINDIR)*.ps-exe $(BINDIR)*.map $(DEPS)
+clean: $(EXTRA_CLEAN)
+	rm -f $(OBJS) $(BINDIR)*.a $(BINDIR)Overlay.* $(BINDIR)*.elf $(BINDIR)*.ps-exe $(BINDIR)*.map $(DEPS)
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), deepclean)
