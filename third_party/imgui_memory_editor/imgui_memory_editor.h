@@ -108,6 +108,8 @@ public:
         int     AddrDigitsCount;
         float   LineHeight;
         float   GlyphWidth;
+        float   ByteWidth;
+        float   ByteSpacingWidth;
         float   HexCellWidth;
         float   SpacingBetweenMidCols;
         float   PosHexStart;
