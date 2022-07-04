@@ -46,6 +46,14 @@ enum DmaCallback {
 
 }
 
+/**
+ * @brief The singleton GPU class.
+ *
+ * @details This class shouldn't be instantiated directly. It is a singleton instantiated
+ * within the `Application` class, and accessed using the `gpu` method. It contains
+ * the current state of the psyqo renderer, and provides various helpers for rendering.
+ */
+
 class GPU {
   public:
     struct Configuration;
@@ -54,8 +62,6 @@ class GPU {
     enum ColorMode { C15BITS, C24BITS };
     void initialize(const Configuration &config);
     unsigned getRefreshRate() const { return m_refreshRate; }
-
-    void onVsync(eastl::function<void()> &&callback) { m_vsync = eastl::move(callback); }
 
     uint32_t getFrameCount() const { return m_frameCount; }
 
@@ -98,7 +104,6 @@ class GPU {
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
-    eastl::function<void(void)> m_vsync = nullptr;
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
     bool m_fromISR = false;
