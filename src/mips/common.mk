@@ -68,13 +68,13 @@ $(BINDIR)Overlay%: $(BINDIR)$(TARGET).elf
 $(BINDIR)$(TARGET).$(TYPE): $(BINDIR)$(TARGET).elf
 	$(PREFIX)-objcopy $(addprefix -R , $(OVERLAYSECTION)) -O binary $< $@
 
-$(BINDIR)$(TARGET).elf: $(OBJS) $(LIBRARIES)
+$(BINDIR)$(TARGET).elf: $(OBJS) $(LIBRARIES) $(EXTRA_DEPS)
 ifneq ($(strip $(BINDIR)),)
 	mkdir -p $(BINDIR)
 endif
 	$(CC) -g -o $(BINDIR)$(TARGET).elf $(OBJS) $(LDFLAGS) $(LIBRARIES)
 
-$(BINDIR)lib$(TARGET).a: $(OBJS)
+$(BINDIR)lib$(TARGET).a: $(OBJS) $(EXTRA_DEPS)
 	$(AR) rcs $(BINDIR)lib$(TARGET).a $(OBJS)
 
 %.o: %.s
