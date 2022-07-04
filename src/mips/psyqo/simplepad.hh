@@ -103,7 +103,7 @@ class SimplePad {
      * @param pad The pad to query.
      * @return A boolean value indicating whether the pad is connected.
      */
-    bool isPadConnected(Pad pad) const { return m_padData[pad][0] == 0x4100; }
+    bool isPadConnected(Pad pad) const { return (m_padData[pad][0] & 0xff) == 0; }
 
     /**
      * @brief Returns the state of a button.
