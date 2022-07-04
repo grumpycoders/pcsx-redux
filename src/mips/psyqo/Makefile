@@ -7,11 +7,15 @@ SRCS = \
 ../common/syscalls/printf.s \
 src/application.cpp \
 src/font.cpp \
-src/kernel.cpp \
 src/gpu.cpp \
+src/kernel.cpp \
 src/scene.cpp \
+src/simplepad.cpp \
+src/xprintf.c \
 
 CPPFLAGS = -Werror -I../../../third_party/EASTL/include -I../../../third_party/EABase/include/Common
 CXXFLAGS = -std=c++20
+
+DEFINES = XPRINTFNOALLOC
 
 include ../common.mk

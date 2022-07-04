@@ -13,4 +13,4 @@ $(PSYQODIR)libpsyqo.a:
 clean-psyqo:
 	$(MAKE) -C $(PSYQODIR) clean
 
-.PHONY: clean-psyqo
+.PHONY: clean-psyqo $(PSYQODIR)libpsyqo.a
