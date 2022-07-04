@@ -81,8 +81,7 @@ void HelloScene::frame() {
         m_anim--;
     }
 
-    psyqo::Color c = {.r = 0xff, .g = 0xff, .b = 0xff};
-    c.b = 255 - m_anim;
+    psyqo::Color c = {.r = 255, .g = 255, .b = uint8_t(255 - m_anim)};
     hello.m_font.print(hello.gpu(), "Hello World!", {.x = 16, .y = 32}, c);
 }
 
