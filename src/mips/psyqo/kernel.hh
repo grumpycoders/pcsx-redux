@@ -76,9 +76,10 @@ void unregisterDmaEvent(unsigned slot);
 void queueCallback(eastl::function<void()>&& lambda);
 void queueCallbackFromISR(eastl::function<void()>&& lambda);
 
+void pumpCallbacks();
+
 namespace Internal {
 void prepare();
-void pumpCallbacks();
 void addOnFrame(eastl::function<void()>&& lambda);
 void beginFrame();
 }  // namespace Internal

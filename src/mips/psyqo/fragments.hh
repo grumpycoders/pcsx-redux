@@ -31,16 +31,48 @@ SOFTWARE.
 
 namespace psyqo {
 
+/**
+ * @brief The fragments helpers.
+ *
+ * @details This namespace provides helper templates to create fragments.
+ * A fragment is any structure which validates the following constraints:
+ * - it must contain a uint32_t named `head` which is reserved for the usage
+ *   of the `GPU` class.
+ * - it must have a `size_t getActualFragmentSize()` method which returns
+ *   the size of the fragment's payload in uint32_t units.
+ * - the fragment payload must be immediately after the `head` field.
+ *
+ * The structure may have any other field for its own usage.
+ *
+ * Fragments are used by the `GPU` class to send a list of commands to the GPU.
+ * This can be done either using the `sendFragment` call to only send a single
+ * fragment, or by using the `chain` call to queue the fragments in a chain to
+ * be sent later.
+ */
+
 namespace Fragments {
+
+/**
+ * @brief A maximum fixed sized fragment of similar primitives.
+ *
+ * @details This fragment contains a prologue, followed by a sequence of
+ * identical primitives. The prologue typically is used to store a setup
+ * for the rest of the primitives. The payload is a sequence of primitives
+ * of identical type. The `count` field needs to be updated to reflect the
+ * actual number of primitives stored in the fragment's payload.
+ * @tparam P The prologue type.
+ * @tparam T The primitive type.
+ * @tparam N The maximum number of primitives in the payload.
+ */
 
 template <typename P, typename T, size_t N>
 struct FixedFragment {
+    constexpr size_t maxSize() const { return N; }
     FixedFragment() {
         static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(P) + sizeof(T) * N),
                       "Spurious padding in fixed fragment");
     }
     typedef T FragmentBaseType;
-    const uint32_t* getFragmentDataPtr() const { return reinterpret_cast<const uint32_t*>(&prologue); }
     size_t getActualFragmentSize() const { return (sizeof(P) + sizeof(T) * count) / sizeof(uint32_t); }
     unsigned count;
     uint32_t head;
