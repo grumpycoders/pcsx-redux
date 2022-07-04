@@ -88,7 +88,7 @@ class SimplePad {
      * such as pad connection / disconnection, or button press / release.
      * The callback will only be called between frames.
      *
-     * Scenes that are callin `setOnEvent` during their `start` method should
+     * Scenes that are calling `setOnEvent` during their `start` method should
      * call `setOnEvent` again in their `teardown` method with the `nullptr`
      * value in order to unregister the event callback cleanly.
      */
