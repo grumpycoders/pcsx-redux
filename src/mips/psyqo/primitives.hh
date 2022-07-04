@@ -277,7 +277,7 @@ struct DrawingOffset {
  * can be used sometimes to clip a different area within the vram.
  *
  * The default constructor will create a Scissor which will clip over the
- * entire screen, effectively disabling scissoring.
+ * entire VRAM, effectively disabling scissoring.
  */
 struct Scissor {
     DrawingAreaStart start = DrawingAreaStart(Vertex{{.x = 0, .y = 0}});
