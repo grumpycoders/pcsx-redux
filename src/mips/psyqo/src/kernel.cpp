@@ -210,7 +210,7 @@ void psyqo::Kernel::queueCallbackFromISR(eastl::function<void()>&& lambda) {
     eastl::atomic_signal_fence(eastl::memory_order_release);
 }
 
-void psyqo::Kernel::Internal::pumpCallbacks() {
+void psyqo::Kernel::pumpCallbacks() {
     fastEnterCriticalSection();
     eastl::atomic_signal_fence(eastl::memory_order_acquire);
     while (!s_callbacks.empty()) {

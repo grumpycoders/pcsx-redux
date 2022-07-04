@@ -120,7 +120,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
 
 void psyqo::GPU::flip() {
     do {
-        Kernel::Internal::pumpCallbacks();
+        Kernel::pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     } while (m_previousFrameCount == m_frameCount);
 
