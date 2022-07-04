@@ -45,13 +45,13 @@ static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(
 
 static inline bool fastEnterCriticalSection() {
     uint32_t sr = Internal::getCop0Status();
-    Internal::setCop0Status(sr & ~0x404);
-    return (sr & 0x404) == 0x404;
+    Internal::setCop0Status(sr & ~0x401);
+    return (sr & 0x401) == 0x401;
 }
 
 static inline void fastLeaveCriticalSection() {
     uint32_t sr = Internal::getCop0Status();
-    sr |= 0x404;
+    sr |= 0x401;
     Internal::setCop0Status(sr);
 }
 
