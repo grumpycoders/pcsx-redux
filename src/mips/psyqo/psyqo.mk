@@ -8,7 +8,7 @@ EXTRA_CLEAN += clean-psyqo
 include $(PSYQODIR)../common.mk
 
 $(PSYQODIR)libpsyqo.a:
-	$(MAKE) -C $(PSYQODIR)
+	$(MAKE) -C $(PSYQODIR) BUILD=$(BUILD)
 
 clean-psyqo:
 	$(MAKE) -C $(PSYQODIR) clean
