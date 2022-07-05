@@ -53,6 +53,8 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     GPU_STATUS = 0x06000000 | 0x260 | (0xc60 << 12);
     // Vertical Range
     GPU_STATUS = 0x07000000 | 16 | (255 << 10);
+    // Display Area
+    GPU_STATUS = 0x05000000;
 
     if (config.config.videoInterlace == Configuration::VI_ON) {
         m_interlaced = true;
@@ -122,21 +124,35 @@ void psyqo::GPU::flip() {
     do {
         Kernel::pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
-    } while (m_previousFrameCount == m_frameCount);
+    } while ((m_previousFrameCount == m_frameCount) || (m_chainStatus == CHAIN_TRANSFERRING));
+    m_chainStatus = CHAIN_IDLE;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
 
     m_previousFrameCount = m_frameCount;
     auto parity = m_parity;
     parity ^= 1;
     m_parity = parity;
-    bool firstBuffer = !parity || m_interlaced;
-    // Set Display Area
-    if (firstBuffer) {
-        GPU_STATUS = 0x05000000 | (256 << 10);
-    } else {
-        GPU_STATUS = 0x05000000;
+    if (!m_interlaced) {
+        bool firstBuffer = !parity;
+        // Set Display Area
+        if (firstBuffer) {
+            GPU_STATUS = 0x05000000 | (256 << 10);
+        } else {
+            GPU_STATUS = 0x05000000;
+        }
     }
     enableScissor();
     Kernel::Internal::beginFrame();
+    if (m_chainHead) {
+        m_chainStatus = CHAIN_TRANSFERRING;
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+        sendChain(
+            [this]() {
+                m_chainStatus = CHAIN_TRANSFERRED;
+                eastl::atomic_signal_fence(eastl::memory_order_release);
+            },
+            DMA::FROM_ISR);
+    }
 }
 
 void psyqo::GPU::disableScissor() {
@@ -161,6 +177,17 @@ void psyqo::GPU::getScissor(Prim::Scissor &scissor) {
     scissor.offset = Prim::DrawingOffset(Vertex{{.x = int16_t(0), .y = firstBuffer ? int16_t(0) : int16_t(256)}});
 }
 
+void psyqo::GPU::getNextScissor(Prim::Scissor &scissor) {
+    auto parity = m_parity;
+    int16_t width = m_width;
+    int16_t height = m_height;
+    bool firstBuffer = !parity || m_interlaced;
+
+    scissor.start = Prim::DrawingAreaStart(Vertex{{.x = 0, .y = firstBuffer ? int16_t(256) : int16_t(0)}});
+    scissor.end = Prim::DrawingAreaEnd(Vertex{{.x = width, .y = firstBuffer ? int16_t(256 + height) : height}});
+    scissor.offset = Prim::DrawingOffset(Vertex{{.x = int16_t(0), .y = firstBuffer ? int16_t(256) : int16_t(0)}});
+}
+
 void psyqo::GPU::clear(Color bg) {
     Prim::FastFill ff;
     getClear(ff, bg);
@@ -173,6 +200,14 @@ void psyqo::GPU::getClear(Prim::FastFill &ff, Color bg) const {
     bool firstBuffer = !m_parity || m_interlaced;
     ff.setColor(bg);
     ff.rect = Rect{0, firstBuffer ? int16_t(0) : int16_t(256), width, height};
+}
+
+void psyqo::GPU::getNextClear(Prim::FastFill &ff, Color bg) const {
+    int16_t width = m_width;
+    int16_t height = m_height;
+    bool firstBuffer = !m_parity || m_interlaced;
+    ff.setColor(bg);
+    ff.rect = Rect{0, firstBuffer ? int16_t(256) : int16_t(0), width, height};
 }
 
 void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect rect) {
@@ -267,4 +302,63 @@ void psyqo::GPU::sendFragment(const uint32_t *data, size_t count, eastl::functio
     DMA_CTRL[DMA_GPU].BCR = bcr;
     eastl::atomic_signal_fence(eastl::memory_order_release);
     DMA_CTRL[DMA_GPU].CHCR = 0x01000201;
+}
+
+void psyqo::GPU::chain(uint32_t *head, size_t count) {
+    Kernel::assert(count < 256, "Fragment too big to be chained");
+    count <<= 24;
+    if (!m_chainHead) {
+        m_chainHead = head;
+    } else {
+        *m_chainTail = m_chainTailCount | (reinterpret_cast<uintptr_t>(head) & 0xff0000);
+    }
+    m_chainTail = head;
+    m_chainTailCount = count;
+}
+
+void psyqo::GPU::sendChain() {
+    bool done = false;
+    sendChain(
+        [&done]() {
+            done = true;
+            eastl::atomic_signal_fence(eastl::memory_order_release);
+        },
+        DMA::FROM_ISR);
+    while (!done) {
+        eastl::atomic_signal_fence(eastl::memory_order_acquire);
+    }
+}
+
+void psyqo::GPU::sendChain(eastl::function<void()> &&callback, DMA::DmaCallback dmaCallback) {
+    uintptr_t ptr = reinterpret_cast<uintptr_t>(m_chainHead);
+    *m_chainTail = m_chainTailCount | 0xff0000;
+    Kernel::assert(!m_dmaCallback, "Only one GPU DMA transfer at a time is permitted");
+    Kernel::assert((ptr & 3) == 0, "Unaligned DMA transfer");
+    m_chainHead = m_chainTail = nullptr;
+    m_fromISR = dmaCallback == DMA::FROM_ISR;
+    m_dmaCallback = eastl::move(callback);
+
+    // Activating CPU->GPU DMA
+    GPU_STATUS = 0x04000002;
+    while ((GPU_STATUS & 0x10000000) == 0)
+        ;
+    DMA_CTRL[DMA_GPU].MADR = ptr;
+    DMA_CTRL[DMA_GPU].BCR = 0;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+    DMA_CTRL[DMA_GPU].CHCR = 0x01000401;
+}
+
+bool psyqo::GPU::isChainIdle() const {
+    eastl::atomic_signal_fence(eastl::memory_order_acquire);
+    return m_chainStatus == CHAIN_IDLE;
+}
+
+bool psyqo::GPU::isChainTransferring() const {
+    eastl::atomic_signal_fence(eastl::memory_order_acquire);
+    return m_chainStatus == CHAIN_TRANSFERRING;
+}
+
+bool psyqo::GPU::isChainTransferred() const {
+    eastl::atomic_signal_fence(eastl::memory_order_acquire);
+    return m_chainStatus == CHAIN_TRANSFERRED;
 }

@@ -90,16 +90,29 @@ class GPU {
     void clear(Color bg = {{0, 0, 0}});
 
     /**
-     * @brief Sets a `FastFill` primitive to clear the drawing buffer.
+     * @brief Sets a `FastFill` primitive to clear the current drawing buffer.
      *
      * @details This method will set the `FastFill` primitive passed as
-     * an argument in a way to completely clear the drawing buffer with
+     * an argument in a way to completely clear the current drawing buffer with
      * the specified color. This will be done in accordance to the current
      * drawing buffer settings.
      * @param ff The `FastFill` primitive to set.
      * @param end The color to issue.
      */
     void getClear(Prim::FastFill &ff, Color bg = {{0, 0, 0}}) const;
+
+    /**
+     * @brief Sets a `FastFill` primitive to clear the next drawing buffer.
+     *
+     * @details This method will set the `FastFill` primitive passed as
+     * an argument in a way to completely clear the next drawing buffer with
+     * the specified color. This will be done in accordance to the next
+     * drawing buffer settings, after a flip. This is useful for clearing the
+     * buffer within a dma chain to be sent during the frame flip.
+     * @param ff The `FastFill` primitive to set.
+     * @param end The color to issue.
+     */
+    void getNextClear(Prim::FastFill &ff, Color bg = {{0, 0, 0}}) const;
 
     /**
      * @brief Uploads a buffer to the VRAM as a blocking call.
@@ -154,6 +167,8 @@ class GPU {
     /**
      * @brief Sends a fragment to the GPU as a non-blocking call.
      *
+     * @details See the non-blocking variant of `uploadToVRAM` for more information about asynchronous transfers.
+     *
      * @param fragment The fragment to send to the GPU.
      * @param callback The callback to call upon completion.
      * @param dmaCallback `DMA::FROM_MAIN_LOOP` or `DMA::FROM_ISR`.
@@ -187,6 +202,16 @@ class GPU {
     void getScissor(Prim::Scissor &scissor);
 
     /**
+     * @brief Gets the next scissoring region.
+     *
+     * @details This method will set the scissor primitive to the next
+     * active drawing buffer. This is useful for setting the scissor
+     * within a dma chain to be sent during the frame flip.
+     * @param scissor The scissor primitive to set.
+     */
+    void getNextScissor(Prim::Scissor &scissor);
+
+    /**
      * @brief Waits until the GPU is ready to send a command.
      */
     static void waitReady();
@@ -213,10 +238,67 @@ class GPU {
         }
     }
 
+    /**
+     * @brief Chains a fragment to the next DMA chain transfer.
+     *
+     * @details This method will chain a fragment to the next DMA chain transfer. DMA Chaining is a complex
+     * operation, and it is recommended that you use the `sendFragment` method instead if you are unsure.
+     * This can be used while a DMA chain is being sent. Use the `sendChain` method to transfer the DMA chain
+     * during the current frame, or simply return from the current scene's `frame` method to transfer the
+     * DMA chain automatically during the frame flip operation. Note that the latter means the DMA chain
+     * will render on the _next_ rendered frame, thus creating a sort of triple buffering system. The
+     * constructed DMA chain will thus need to be using the `Next` variants of the primitive constructors,
+     * if applicable.
+     * @param fragment The fragment to chain.
+     */
+    template <typename Fragment>
+    void chain(Fragment &fragment) {
+        chain(&fragment.head, fragment.getActualFragmentSize());
+    }
+
+    /**
+     * @brief Immediately sends the current DMA chain
+     *
+     * @details This method will immediately send the current DMA chain to the GPU, and block until completion.
+     */
+    void sendChain();
+
+    /**
+     * @brief Initiates the transfer of the current DMA chain.
+     *
+     * @details See the non-blocking variant of `uploadToVRAM` for more information about asynchronous transfers.
+     * @param callback The callback to call upon completion.
+     * @param dmaCallback `DMA::FROM_MAIN_LOOP` or `DMA::FROM_ISR`.
+     */
+    void sendChain(eastl::function<void()> &&callback, DMA::DmaCallback dmaCallback = DMA::FROM_MAIN_LOOP);
+
+    /**
+     * @brief Gets the status of the background DMA transfer operation when initiated by a frame flip.
+     *
+     * @return true if no background DMA transfer is in progress nor completed.
+     */
+    bool isChainIdle() const;
+
+    /**
+     * @brief Gets the status of the background DMA transfer operation when initiated by a frame flip.
+     *
+     * @return true if a background DMA transfer is in progress.
+     */
+    bool isChainTransferring() const;
+
+    /**
+     * @brief Gets the status of the background DMA transfer operation when initiated by a frame flip.
+     *
+     * @return true if a background DMA transfer has completed, and is now waiting for a frame flip.
+     */
+    bool isChainTransferred() const;
+
   private:
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
+    void chain(uint32_t *head, size_t count);
+
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
     bool m_fromISR = false;
@@ -226,6 +308,10 @@ class GPU {
     uint32_t m_frameCount = 0;
     uint32_t m_previousFrameCount = 0;
     int m_parity = 0;
+    uint32_t *m_chainHead = nullptr;
+    uint32_t *m_chainTail = nullptr;
+    size_t m_chainTailCount = 0;
+    enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus;
 
     bool m_interlaced = false;
     void flip();
