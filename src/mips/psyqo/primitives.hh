@@ -45,7 +45,6 @@ namespace psyqo {
  *    `Vertex{{.x = 18, .y = 42}};`
  */
 union Vertex {
-    ~Vertex() { static_assert(sizeof(*this) == sizeof(uint32_t), "Vertex is not 32 bits"); }
     struct {
         union {
             int16_t x, u, w;
@@ -56,6 +55,7 @@ union Vertex {
     };
     int32_t packed;
 };
+static_assert(sizeof(Vertex) == sizeof(uint32_t), "Vertex is not 32 bits");
 
 /**
  * @brief The Rect struct.
@@ -72,7 +72,6 @@ union Vertex {
  *    `Rect{a. = {.x = 18, .y = 42}, .b = {}};`
  */
 struct Rect {
-    ~Rect() { static_assert(sizeof(*this) == sizeof(uint64_t), "Rect is not 64 bits"); }
     union {
         Vertex a, pos;
     };
@@ -80,6 +79,7 @@ struct Rect {
         Vertex b, size;
     };
 };
+static_assert(sizeof(Rect) == sizeof(uint64_t), "Rect is not 64 bits");
 
 /**
  * @brief The Color struct
@@ -88,12 +88,12 @@ struct Rect {
  */
 
 union Color {
-    ~Color() { static_assert(sizeof(*this) == sizeof(uint32_t), "Color is not 32 bits"); }
     struct {
         uint8_t r, g, b;
     };
     uint32_t packed;
 };
+static_assert(sizeof(Color) == sizeof(uint32_t), "Color is not 32 bits");
 
 namespace Prim {
 
@@ -109,13 +109,14 @@ namespace Prim {
  * to the lowest multiple of 16 on the X axis.
  */
 struct ClutIndex {
-    ClutIndex() { static_assert(sizeof(*this) == sizeof(uint16_t), "ClutIndex is not 16 bits"); }
+    ClutIndex() {}
     ClutIndex(Vertex v) : ClutIndex(v.x >> 4, v.y) {}
     ClutIndex(uint16_t x, uint16_t y) : index((y << 6) | x) {}
 
   private:
     uint16_t index = 0;
 };
+static_assert(sizeof(ClutIndex) == sizeof(uint16_t), "ClutIndex is not 16 bits");
 
 /**
  * @brief A primitive's texture information.
@@ -125,11 +126,11 @@ struct ClutIndex {
  * GPU commands.
  */
 struct TexInfo {
-    ~TexInfo() { static_assert(sizeof(*this) == sizeof(uint32_t), "TexInfo is not 32 bits"); }
     uint8_t u;
     uint8_t v;
     ClutIndex clut;
 };
+static_assert(sizeof(TexInfo) == sizeof(uint32_t), "TexInfo is not 32 bits");
 
 /**
  * @brief The FastFill primitive.
@@ -142,9 +143,7 @@ struct TexInfo {
  * to use it directly. It'll be used properly by the various GPU clear commands.
  */
 struct FastFill {
-    FastFill() : command(0x02000000) {
-        static_assert(sizeof(*this) == (sizeof(uint32_t) * 3), "FastFill is not 96 bits");
-    }
+    FastFill() : command(0x02000000) {}
     FastFill(Color c) : command(0x02000000 | c.packed) {}
     void setColor(Color c) { command = 0x02000000 | c.packed; }
 
@@ -154,6 +153,7 @@ struct FastFill {
   public:
     Rect rect;
 };
+static_assert(sizeof(FastFill) == (sizeof(uint32_t) * 3), "FastFill is not 96 bits");
 
 /**
  * @brief The Sprite primitive.
@@ -166,9 +166,7 @@ struct FastFill {
  * The texture information needs to be specified with a TPage primitive beforehand.
  */
 struct Sprite {
-    Sprite() : command(0b01100100'00000000'00000000'00000000) {
-        static_assert(sizeof(*this) == (sizeof(uint32_t) * 4), "Sprite is not 128 bits");
-    }
+    Sprite() : command(0b01100100'00000000'00000000'00000000) {}
     Sprite(Color c) : command(0b01100100'00000000'00000000'00000000 | c.packed) {}
     void setColor(Color c) { command = 0b01100100'00000000'00000000'00000000 | c.packed; }
 
@@ -180,6 +178,7 @@ struct Sprite {
     TexInfo texInfo;
     Vertex size;
 };
+static_assert(sizeof(Sprite) == (sizeof(uint32_t) * 4), "Sprite is not 128 bits");
 
 /**
  * @brief The Pixel primitive.
@@ -190,9 +189,7 @@ struct Sprite {
  * method.
  */
 struct Pixel {
-    Pixel() : command(0b01101000'00000000'00000000'00000000) {
-        static_assert(sizeof(*this) == (sizeof(uint64_t)), "Pixel is not 64 bits");
-    }
+    Pixel() : command(0b01101000'00000000'00000000'00000000) {}
     Pixel(Color c) : command(0b01101000'00000000'00000000'00000000 | c.packed) {}
     void setColor(Color c) { command = 0b01101000'00000000'00000000'00000000 | c.packed; }
 
@@ -202,6 +199,7 @@ struct Pixel {
   public:
     Vertex position;
 };
+static_assert(sizeof(Pixel) == (sizeof(uint64_t)), "Pixel is not 64 bits");
 
 /**
  * @brief The FlushCache primitive.
@@ -212,13 +210,12 @@ struct Pixel {
  * will use it for its `uploadToVRAM` method.
  */
 struct FlushCache {
-    FlushCache() : command(0x01000000) {
-        static_assert(sizeof(*this) == sizeof(uint32_t), "FlushCache is not 32 bits");
-    }
+    FlushCache() : command(0x01000000) {}
 
   private:
     uint32_t command;
 };
+static_assert(sizeof(FlushCache) == sizeof(uint32_t), "FlushCache is not 32 bits");
 
 /**
  * @brief The DrawingAreaStart primitive.
@@ -229,13 +226,12 @@ struct FlushCache {
  * area will be clipped away.
  */
 struct DrawingAreaStart {
-    DrawingAreaStart(Vertex p) : command(0xe3000000 | p.x | (p.y << 10)) {
-        static_assert(sizeof(*this) == sizeof(uint32_t), "DrawingAreaStart is not 32 bits");
-    }
+    DrawingAreaStart(Vertex p) : command(0xe3000000 | p.x | (p.y << 10)) {}
 
   private:
     uint32_t command;
 };
+static_assert(sizeof(DrawingAreaStart) == sizeof(uint32_t), "DrawingAreaStart is not 32 bits");
 
 /**
  * @brief The DrawingAreaEnd primitive.
@@ -251,6 +247,7 @@ struct DrawingAreaEnd {
   private:
     uint32_t command;
 };
+static_assert(sizeof(DrawingAreaEnd) == sizeof(uint32_t), "DrawingAreaEnd is not 32 bits");
 
 /**
  * @brief The DrawingOffset primitive.
@@ -261,13 +258,12 @@ struct DrawingAreaEnd {
  * offset specified in the constructor.
  */
 struct DrawingOffset {
-    DrawingOffset(Vertex p) : command(0xe5000000 | p.x | (p.y << 11)) {
-        static_assert(sizeof(*this) == sizeof(uint32_t), "DrawingOffset is not 32 bits");
-    }
+    DrawingOffset(Vertex p) : command(0xe5000000 | p.x | (p.y << 11)) {}
 
   private:
     uint32_t command;
 };
+static_assert(sizeof(DrawingOffset) == sizeof(uint32_t), "DrawingOffset is not 32 bits");
 
 /**
  * @brief A compounded Scissor primitive.
@@ -292,9 +288,7 @@ struct Scissor {
  * it must be followed by the raw pixel data to be sent to the VRAM.
  */
 struct VRAMUpload {
-    VRAMUpload() : command(0xa0000000) {
-        static_assert(sizeof(*this) == (sizeof(uint32_t) * 3), "VRAMUpload is not 96 bits");
-    }
+    VRAMUpload() : command(0xa0000000) {}
 
   private:
     uint32_t command;
@@ -302,6 +296,7 @@ struct VRAMUpload {
   public:
     Rect region;
 };
+static_assert(sizeof(VRAMUpload) == (sizeof(uint32_t) * 3), "VRAMUpload is not 96 bits");
 
 }  // namespace Prim
 
