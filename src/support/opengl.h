@@ -229,7 +229,7 @@ struct Shader {
 
         GLint success;
         glGetShaderiv(m_handle, GL_COMPILE_STATUS, &success);
-        if (success == GL_FALSE) {
+        if (!success) {
             char buf[4096];
             glGetShaderInfoLog(m_handle, 4096, nullptr, buf);
             fprintf(stderr, "Failed to compile shader\nError: %s\n", buf);
@@ -256,9 +256,9 @@ struct Program {
 
         glLinkProgram(m_handle);
         GLint success;
-        glGetShaderiv(m_handle, GL_LINK_STATUS, &success);
+        glGetProgramiv(m_handle, GL_LINK_STATUS, &success);
 
-        if (success == GL_FALSE) {
+        if (!success) {
             char buf[4096];
             glGetProgramInfoLog(m_handle, 4096, nullptr, buf);
             fprintf(stderr, "Failed to link program\nError: %s\n", buf);
