@@ -57,9 +57,10 @@ enum DmaCallback {
 class GPU {
   public:
     struct Configuration;
-    enum Resolution { W256, W320, W368, W512, W640 };
-    enum VideoMode { AUTO, NTSC, PAL };
-    enum ColorMode { C15BITS, C24BITS };
+    enum class Resolution { W256, W320, W368, W512, W640 };
+    enum class VideoMode { AUTO, NTSC, PAL };
+    enum class ColorMode { C15BITS, C24BITS };
+    enum class Interlace { PROGRESSIVE, INTERLACED };
     void initialize(const Configuration &config);
 
     /**

@@ -68,11 +68,11 @@ PadTestScene padTestScene;
 // We shouldn't do anything else that touches the hardware here however, because interrupts
 // aren't initialized yet. We could also create more objects here, but we don't have any.
 void PadTest::prepare() {
-    auto config = psyqo::GPU::Configuration();
-    config.setResolution(psyqo::GPU::Resolution::W320)
-        .setVideoMode(psyqo::GPU::VideoMode::AUTO)
-        .setColorMode(psyqo::GPU::ColorMode::C15BITS)
-        .setInterlace(false);
+    psyqo::GPU::Configuration config;
+    config.set(psyqo::GPU::Resolution::W320)
+        .set(psyqo::GPU::VideoMode::AUTO)
+        .set(psyqo::GPU::ColorMode::C15BITS)
+        .set(psyqo::GPU::Interlace::PROGRESSIVE);
     gpu().initialize(config);
 }
 

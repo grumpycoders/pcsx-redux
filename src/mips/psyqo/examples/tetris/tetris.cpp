@@ -58,11 +58,11 @@ SplashScreen splashScreen;
 }  // namespace
 
 void Tetris::prepare() {
-    auto config = psyqo::GPU::Configuration();
-    config.setResolution(psyqo::GPU::Resolution::W320)
-        .setVideoMode(psyqo::GPU::VideoMode::AUTO)
-        .setColorMode(psyqo::GPU::ColorMode::C15BITS)
-        .setInterlace(false);
+    psyqo::GPU::Configuration config;
+    config.set(psyqo::GPU::Resolution::W320)
+        .set(psyqo::GPU::VideoMode::AUTO)
+        .set(psyqo::GPU::ColorMode::C15BITS)
+        .set(psyqo::GPU::Interlace::PROGRESSIVE);
     gpu().initialize(config);
 
     m_input.onEvent([this](auto event) -> void { button(event); });

@@ -27,7 +27,7 @@ SOFTWARE.
 #pragma once
 
 struct psyqo::GPU::Configuration {
-    Configuration &setResolution(Resolution resolution) {
+    Configuration &set(Resolution resolution) {
         if (resolution == Resolution::W368) {
             config.hResolution = HR_EXTENDED;
             config.hResolutionExtended = HRE_368;
@@ -50,7 +50,7 @@ struct psyqo::GPU::Configuration {
         }
         return *this;
     }
-    Configuration &setVideoMode(VideoMode videoMode) {
+    Configuration &set(VideoMode videoMode) {
         switch (videoMode) {
             case VideoMode::AUTO:
                 config.videoMode = (*((char *)0xbfc7ff52) == 'E') ? VM_PAL : VM_NTSC;
@@ -64,7 +64,7 @@ struct psyqo::GPU::Configuration {
         }
         return *this;
     }
-    Configuration &setColorMode(ColorMode colorMode) {
+    Configuration &set(ColorMode colorMode) {
         switch (colorMode) {
             case ColorMode::C15BITS:
                 config.colorDepth = CD_15BITS;
@@ -75,8 +75,8 @@ struct psyqo::GPU::Configuration {
         }
         return *this;
     }
-    Configuration &setInterlace(bool interlace) {
-        config.videoInterlace = interlace ? VI_ON : VI_OFF;
+    Configuration &set(Interlace interlace) {
+        config.videoInterlace = interlace == Interlace::INTERLACED ? VI_ON : VI_OFF;
         return *this;
     }
 
