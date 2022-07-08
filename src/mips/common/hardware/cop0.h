@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 static __inline__ uint32_t readCOP0Status() {
     uint32_t ret;

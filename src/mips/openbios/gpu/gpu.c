@@ -26,7 +26,8 @@ SOFTWARE.
 
 #include "openbios/gpu/gpu.h"
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
 #include "common/hardware/dma.h"
 #include "common/hardware/hwregs.h"
 #include "openbios/fileio/fileio.h"

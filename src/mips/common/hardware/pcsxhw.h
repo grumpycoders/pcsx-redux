@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 static __inline__ void pcsx_putc(int c) { *((volatile char* const)0x1f802080) = c; }
 static __inline__ void pcsx_debugbreak() { *((volatile char* const)0x1f802081) = 0; }

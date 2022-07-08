@@ -27,8 +27,8 @@ SOFTWARE.
 #include "openbios/tty/tty.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
-#include "common/compiler/stdint.h"
 #include "common/hardware/hwregs.h"
 #include "common/hardware/util.h"
 #include "common/psxlibc/circularbuffer.h"
@@ -36,6 +36,7 @@ SOFTWARE.
 #include "common/psxlibc/stdio.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/kernel/libcmisc.h"
+
 
 #ifdef OPENBIOS_INSTALL_TTY_CONSOLE
 #define DEFAULT_TTY_INSTALL 1

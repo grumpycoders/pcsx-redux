@@ -27,9 +27,9 @@ SOFTWARE.
 #include "openbios/shell/shell.h"
 
 #include <memory.h>
+#include <stdint.h>
 #include <string.h>
 
-#include "common/compiler/stdint.h"
 #include "openbios/kernel/flushcache.h"
 
 extern const uint8_t _binary_shell_bin_start[];

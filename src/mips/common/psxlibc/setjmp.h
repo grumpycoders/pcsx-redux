@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 struct JmpBuf {
     uint32_t ra, sp, s8, s0, s1, s2, s3, s4, s5, s6, s7, gp;

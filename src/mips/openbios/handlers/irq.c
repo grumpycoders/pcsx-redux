@@ -27,8 +27,8 @@ SOFTWARE.
 #include "common/hardware/irq.h"
 
 #include <memory.h>
+#include <stdint.h>
 
-#include "common/compiler/stdint.h"
 #include "common/hardware/hwregs.h"
 #include "common/psxlibc/handlers.h"
 #include "common/psxlibc/string.h"

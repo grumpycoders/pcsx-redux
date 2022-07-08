@@ -27,10 +27,10 @@ SOFTWARE.
 #include <ctype.h>
 #include <malloc.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/compiler/stdint.h"
 
 int psxdummy() { return 0; }
 

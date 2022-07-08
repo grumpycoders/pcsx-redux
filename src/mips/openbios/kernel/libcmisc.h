@@ -27,8 +27,7 @@ SOFTWARE.
 #pragma once
 
 #include <stddef.h>
-
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 int psxdummy();
 

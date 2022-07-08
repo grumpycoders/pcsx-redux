@@ -26,6 +26,6 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 int startShell(uint32_t arg);

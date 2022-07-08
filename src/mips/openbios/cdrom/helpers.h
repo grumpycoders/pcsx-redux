@@ -26,6 +26,4 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
-
 int cdromBlockReading(int count, int sector, char* buffer);

@@ -26,6 +26,6 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 uint32_t patch_hash(const uint32_t* ptr, uint8_t* mask, unsigned len);
