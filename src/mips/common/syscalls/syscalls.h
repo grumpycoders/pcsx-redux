@@ -334,8 +334,26 @@ static __attribute__((always_inline)) int syscall_initTimer(uint32_t timer, uint
     return ((int (*)(uint32_t, uint16_t, uint16_t))0xb0)(timer, target, flags);
 }
 
+static __attribute__((always_inline)) int syscall_getTimer(uint32_t timer) {
+    register int n asm("t1") = 0x03;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(uint32_t))0xb0)(timer);
+}
+
 static __attribute__((always_inline)) int syscall_enableTimerIRQ(uint32_t timer) {
     register int n asm("t1") = 0x04;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(uint32_t))0xb0)(timer);
+}
+
+static __attribute__((always_inline)) int syscall_disableTimerIRQ(uint32_t timer) {
+    register int n asm("t1") = 0x05;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(uint32_t))0xb0)(timer);
+}
+
+static __attribute__((always_inline)) int syscall_restartTimer(uint32_t timer) {
+    register int n asm("t1") = 0x06;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((int (*)(uint32_t))0xb0)(timer);
 }
