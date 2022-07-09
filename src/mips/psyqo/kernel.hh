@@ -80,6 +80,7 @@ void pumpCallbacks();
 
 namespace Internal {
 void prepare();
+void addInitializer(eastl::function<void()>&& lambda);
 void addOnFrame(eastl::function<void()>&& lambda);
 void beginFrame();
 }  // namespace Internal

@@ -156,6 +156,17 @@ void psyqo::Kernel::unregisterDmaEvent(unsigned slot) {
     s_dmaCallbacks[channel][slot] = nullptr;
 }
 
+namespace {
+auto& getInitializers() {
+    static eastl::fixed_vector<eastl::function<void()>, 12> initializers;
+    return initializers;
+}
+}  // namespace
+
+void psyqo::Kernel::Internal::addInitializer(eastl::function<void()>&& lambda) {
+    getInitializers().push_back(eastl::move(lambda));
+}
+
 void psyqo::Kernel::Internal::prepare() {
     syscall_dequeueCDRomHandlers();
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
@@ -193,6 +204,8 @@ void psyqo::Kernel::Internal::prepare() {
     t |= 0x800000;
     DICR = t;
     syscall_setIrqAutoAck(3, 1);
+
+    for (auto& i : getInitializers()) i();
 }
 
 namespace {
