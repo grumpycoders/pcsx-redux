@@ -66,6 +66,9 @@ void psyqo::Application::pushScene(Scene* scene) {
 }
 
 psyqo::Scene* psyqo::Application::popScene() {
+    if (m_scenesStack.empty()) {
+        return nullptr;
+    }
     Scene* top = m_scenesStack.back();
     top->teardown(Scene::TearDownReason::Destroy);
     m_scenesStack.pop_back();

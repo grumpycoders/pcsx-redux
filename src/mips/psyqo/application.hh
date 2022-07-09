@@ -105,7 +105,7 @@ class Application {
      * if any, to be started. If the scene stack ends up being empty, the
      * `createScene` method will be called again.
      *
-     * Calling this method when the stack is empty is undefined behavior.
+     * Calling this method when the stack is empty will return `nullptr`.
      *
      * @return the popped scene, potentially for deletion if needed.
      */
