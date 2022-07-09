@@ -40,15 +40,19 @@ class Application;
  */
 class Scene {
   public:
+    enum class StartReason { Create, Resume };
     /**
      * @brief Starts the scene.
      *
      * @details This method will be called when the scene is started. It is
      * meant to set the environment in a suitable manner. A scene starts when
      * it becomes the active scene, either when being pushed or when the
-     * previous scene is popped.
+     * previous scene is popped. The argument will indicate whether the scene
+     * is started because it just got pushed, or because another one is getting
+     * popped.
+     * @param reason The reason why the scene is started. Create or Resume.
      */
-    virtual void start() {}
+    virtual void start(StartReason reason) {}
 
     /**
      * @brief Renders a frame.
@@ -58,14 +62,17 @@ class Scene {
      */
     virtual void frame() {}
 
+    enum class TearDownReason { Destroy, Pause };
     /**
      * @brief Tears down the scene.
      *
      * @details This method will be called when the scene is no longer the
      * active scene. It is meant to clean up the environment, basically
-     * reversing the effects of `start`.
+     * reversing the effects of `start`. The argument will indicate whether
+     * the scene is being popped, or if another scene is pushed on the stack.
+     * @param reason The reason why the scene is being torn down. DESTROY or PAUSE.
      */
-    virtual void teardown() {}
+    virtual void teardown(TearDownReason reason) {}
 
     virtual ~Scene() = default;
 

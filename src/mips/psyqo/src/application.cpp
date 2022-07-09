@@ -58,19 +58,19 @@ psyqo::Scene* psyqo::Application::getCurrentScene() {
 
 void psyqo::Application::pushScene(Scene* scene) {
     if (m_scenesStack.size() > 0) {
-        m_scenesStack.back()->teardown();
+        m_scenesStack.back()->teardown(Scene::TearDownReason::Pause);
     }
     m_scenesStack.push_back(scene);
     scene->m_parent = this;
-    scene->start();
+    scene->start(Scene::StartReason::Create);
 }
 
 psyqo::Scene* psyqo::Application::popScene() {
     Scene* top = m_scenesStack.back();
-    top->teardown();
+    top->teardown(Scene::TearDownReason::Destroy);
     m_scenesStack.pop_back();
     if (m_scenesStack.size() > 0) {
-        m_scenesStack.back()->start();
+        m_scenesStack.back()->start(Scene::StartReason::Resume);
     }
     return top;
 }
