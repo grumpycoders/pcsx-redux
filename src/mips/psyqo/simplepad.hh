@@ -94,6 +94,9 @@ class SimplePad {
      * call `setOnEvent` again in their `teardown` method with the `nullptr`
      * value in order to unregister the event callback cleanly.
      *
+     * Only one callback can be registered at a time, so setting a new
+     * callback will simply remove the previous one.
+     *
      * Careful about what is called from the callback: pushing or popping scenes
      * might call into `setOnEvent` as a result, and could end up corrupting
      * memory as a result of the callback being deleted while being executed.
