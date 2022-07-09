@@ -93,6 +93,10 @@ class SimplePad {
      * Scenes that are calling `setOnEvent` during their `start` method should
      * call `setOnEvent` again in their `teardown` method with the `nullptr`
      * value in order to unregister the event callback cleanly.
+     *
+     * Careful about what is called from the callback: pushing or popping scenes
+     * might call into `setOnEvent` as a result, and could end up corrupting
+     * memory as a result of the callback being deleted while being executed.
      */
     void setOnEvent(eastl::function<void(Event)>&& callback) { m_callback = eastl::move(callback); }
 
