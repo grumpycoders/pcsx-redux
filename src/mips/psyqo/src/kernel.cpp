@@ -224,15 +224,18 @@ void psyqo::Kernel::pumpCallbacks() {
 }
 
 namespace {
-eastl::fixed_vector<eastl::function<void()>, 128> s_beginFrameEvents;
+auto& getBeginFrameEvents() {
+    static eastl::fixed_vector<eastl::function<void()>, 128> beginFrameEvents;
+    return beginFrameEvents;
 }
+}  // namespace
 
 void psyqo::Kernel::Internal::addOnFrame(eastl::function<void()>&& lambda) {
-    s_beginFrameEvents.push_back(eastl::move(lambda));
+    getBeginFrameEvents().push_back(eastl::move(lambda));
 }
 
 void psyqo::Kernel::Internal::beginFrame() {
-    for (auto& f : s_beginFrameEvents) {
+    for (auto& f : getBeginFrameEvents()) {
         f();
     }
 }
