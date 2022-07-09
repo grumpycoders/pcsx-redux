@@ -294,6 +294,95 @@ class GPU {
      */
     bool isChainTransferred() const;
 
+    /**
+     * @brief Gets the current timestamp in microseconds.
+     *
+     * @details The current timestamp is in microseconds. It will wrap around after a bit more than
+     * an hour, so it shouldn't be used for deadlines that are more than 30 minutes away. This relies
+     * on root counter 1 set in hsync mode without any target value. The value will be updated
+     * during the idle moments of the page flip, without relying on interrupts. The precision isn't
+     * really good, as it assumes one scanline runs at 64ms, but it should be good enough for most
+     * purposes. Creating a stopwatch out of it should show that it's running a bit too fast,
+     * approximately 1 second too fast every minute or so. Its monotonicity should be proper however.
+     * @return The current timestamp in microseconds.
+     */
+    uint32_t now() const { return m_currentTime; }
+
+    /**
+     * @brief Creates a single-use timer.
+     *
+     * @details This method will create a single-use timer. The timer will fire after the specified
+     * deadline has passed. Timers will only fire during the idle period of the CPU, between calls
+     * to the `frame` method of the current scene. If the scene takes too long to complete,
+     * timers may significantly be delayed past their set deadline. The deadline can be computed
+     * based on the return value of the `now()` method. It is okay if the deadline rolls over
+     * their 32 bits span. Simply doing `gpu().now() + DELAY_IN_MICROSECONDS` will still work,
+     * as long as the delay isn't greater than 30 minutes. Single-use timers will automatically
+     * be disabled upon being fired, and their id will no longer be valid. The returned id is
+     * guaranteed to be unique across active timers, but may collision with the id of timers
+     * that got canceled or got disabled on their own.
+     * @param deadline The deadline of the timer in microseconds.
+     * @param callback The callback function to be called when the timer expires.
+     * @return The id of the created timer.
+     */
+    uintptr_t armTimer(uint32_t deadline, eastl::function<void(uint32_t)> &&callback);
+
+    /**
+     * @brief Creates a periodic timer.
+     *
+     * @details This method will create a period timer. The timer will fire every `period` microseconds.
+     * See the `armTimer` method for more information about timers in general. Periodic timers
+     * will first fire at `now() + period` milliseconds, and then every `period` milliseconds thereafter.
+     * They will never be canceled automatically.
+     * @param period The period of the timer in microseconds.
+     * @param callback The callback function to be called when the timer expires.
+     * @return The id of the created timer.
+     */
+    unsigned armPeriodicTimer(uint32_t period, eastl::function<void(uint32_t)> &&callback);
+
+    /**
+     * @brief Changes the period of a periodic timer.
+     *
+     * @details This method will change the period of a periodic timer. The timer now will fire
+     * every `period` microseconds instead of its previous period. The next deadline for the timer
+     * will be adjusted according to the difference between the new period and the previous one.
+     * If the new period is shorter, and the deadline was already past, the timer will fire as soon
+     * as possible. This method has no effect if the timer is not periodic.
+     * @param id The id of the timer to change.
+     * @param period The new period of the timer.
+     */
+    void changeTimerPeriod(uintptr_t id, uint32_t period);
+
+    /**
+     * @brief Pauses a timer.
+     *
+     * @details This method will pause a timer. It will not fire anymore, even if its deadline
+     * had already passed at the moment of this call, but it will remain active, and its id
+     * will remain valid. The remainder of the deadline will be remembered, for when the timer
+     * is resumed. This method has no effect if the timer is already paused.
+     * @param id The id of the timer to pause.
+     */
+    void pauseTimer(uintptr_t id);
+
+    /**
+     * @brief Resumes a paused timer.
+     *
+     * @details This method will resume a paused timer. The timer will be able to fire again,
+     * according to its original settings. The new deadline will be calculated from the
+     * remainder of the time left when it was paused. This method will have no effect if the
+     * timer is not paused.
+     * @param id The id of the timer to resume.
+     */
+    void resumeTimer(uintptr_t id);
+
+    /**
+     * @brief Cancels a timer.
+     *
+     * @details This method will cancel an active timer. The timer will no longer fire.
+     * @param id The id of the timer to cancel.
+     */
+    void cancelTimer(uintptr_t id);
+
   private:
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
@@ -306,6 +395,7 @@ class GPU {
     bool m_flushCacheAfterDMA = false;
     int m_width = 0;
     int m_height = 0;
+    uint32_t m_currentTime = 0;
     uint32_t m_frameCount = 0;
     uint32_t m_previousFrameCount = 0;
     int m_parity = 0;
@@ -314,6 +404,7 @@ class GPU {
     size_t m_chainTailCount = 0;
     enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus;
 
+    uint16_t m_lastHSyncCounter = 0;
     bool m_interlaced = false;
     void flip();
     friend class Application;

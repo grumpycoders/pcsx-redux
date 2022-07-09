@@ -4,6 +4,7 @@ TARGET = psyqo
 TYPE = library
 
 SRCS = \
+../../../third_party/EASTL/source/fixed_pool.cpp \
 ../common/crt0/crt0cxx.s \
 ../common/crt0/cxxglue.c \
 ../common/syscalls/printf.s \

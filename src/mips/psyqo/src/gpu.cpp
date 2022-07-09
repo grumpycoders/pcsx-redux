@@ -27,6 +27,7 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 
 #include <EASTL/atomic.h>
+#include <EASTL/fixed_list.h>
 #include <EASTL/functional.h>
 
 #include "common/hardware/dma.h"
@@ -56,6 +57,9 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     // Display Area
     GPU_STATUS = 0x05000000;
 
+    COUNTERS[1].mode = 0x100;
+    COUNTERS[1].value = 0;
+
     if (config.config.videoInterlace == Configuration::VI_ON) {
         m_interlaced = true;
         m_height = 480;
@@ -83,10 +87,17 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
         m_width = 368;
     }
 
-    m_refreshRate = (config.config.videoMode == Configuration::VM_NTSC) ? 60 : 50;
+    if (config.config.videoMode == Configuration::VM_NTSC) {
+        m_refreshRate = 60;
+    } else {
+        m_refreshRate = 50;
+    }
 
     // Install VBlank interrupt handler
-    uint32_t event = Kernel::openEvent(0xf2000003, 2, EVENT_MODE_CALLBACK, [this]() { m_frameCount++; });
+    uint32_t event = Kernel::openEvent(0xf2000003, 2, EVENT_MODE_CALLBACK, [this]() {
+        m_frameCount++;
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+    });
     syscall_enableEvent(event);
     syscall_enableTimerIRQ(3);
     syscall_setTimerAutoAck(3, 1);
@@ -120,11 +131,49 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     DICR = t;
 }
 
+namespace {
+struct Timer {
+    eastl::function<void(uint32_t)> callback;
+    uint32_t deadline;
+    uint32_t period;
+    int32_t pausedRemaining;
+    bool periodic;
+    bool paused = false;
+};
+eastl::fixed_list<Timer, 32> s_timers;
+}  // namespace
+
 void psyqo::GPU::flip() {
+    uint32_t lastHSyncCounter = m_lastHSyncCounter;
+    uint32_t lastNow = m_currentTime;
     do {
+        uint32_t hsyncCounter = COUNTERS[1].value;
+        if (hsyncCounter < lastHSyncCounter) {
+            hsyncCounter += 0x10000;
+        }
+        uint32_t currentTime = m_currentTime = lastNow + (hsyncCounter - lastHSyncCounter) * 64;
+        bool done = false;
+        while (!done) {
+            done = true;
+            for (auto it = s_timers.begin(); it != s_timers.end(); it++) {
+                auto &timer = *it;
+                if (timer.paused) continue;
+                if ((int32_t)(timer.deadline - currentTime) <= 0) {
+                    timer.callback(currentTime);
+                    if (!timer.periodic) {
+                        s_timers.erase(it);
+                    } else {
+                        timer.deadline += timer.period;
+                    }
+                    done = false;
+                    break;
+                }
+            }
+        }
         Kernel::pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     } while ((m_previousFrameCount == m_frameCount) || (m_chainStatus == CHAIN_TRANSFERRING));
+    m_lastHSyncCounter = COUNTERS[1].value;
     m_chainStatus = CHAIN_IDLE;
     eastl::atomic_signal_fence(eastl::memory_order_release);
 
@@ -361,4 +410,54 @@ bool psyqo::GPU::isChainTransferring() const {
 bool psyqo::GPU::isChainTransferred() const {
     eastl::atomic_signal_fence(eastl::memory_order_acquire);
     return m_chainStatus == CHAIN_TRANSFERRED;
+}
+
+uintptr_t psyqo::GPU::armTimer(uint32_t deadline, eastl::function<void(uint32_t)> &&callback) {
+    s_timers.emplace_back(eastl::move(callback), deadline, 0, 0, false);
+    return reinterpret_cast<uintptr_t>(&s_timers.back());
+}
+
+uintptr_t psyqo::GPU::armPeriodicTimer(uint32_t interval, eastl::function<void(uint32_t)> &&callback) {
+    s_timers.emplace_back(eastl::move(callback), m_currentTime + interval, interval, 0, true);
+    return reinterpret_cast<uintptr_t>(&s_timers.back());
+}
+
+void psyqo::GPU::changeTimerPeriod(uintptr_t id, uint32_t period) {
+    for (auto &timer : s_timers) {
+        if (reinterpret_cast<uintptr_t>(&timer) != id) continue;
+        if (timer.period == period) continue;
+        if (!timer.periodic) continue;
+        int32_t diff = timer.period - period;
+        timer.period = period;
+        timer.deadline += diff;
+        return;
+    }
+}
+
+void psyqo::GPU::pauseTimer(uintptr_t id) {
+    for (auto &timer : s_timers) {
+        if (reinterpret_cast<uintptr_t>(&timer) != id) continue;
+        if (timer.paused) return;
+        timer.paused = true;
+        timer.pausedRemaining = timer.deadline - m_currentTime;
+        return;
+    }
+}
+
+void psyqo::GPU::resumeTimer(uintptr_t id) {
+    for (auto &timer : s_timers) {
+        if (reinterpret_cast<uintptr_t>(&timer) != id) continue;
+        if (!timer.paused) return;
+        timer.paused = false;
+        timer.deadline = m_currentTime + timer.pausedRemaining;
+        return;
+    }
+}
+
+void psyqo::GPU::cancelTimer(uintptr_t id) {
+    for (auto it = s_timers.begin(); it != s_timers.end(); ++it) {
+        if (reinterpret_cast<uintptr_t>(&*it) != id) continue;
+        s_timers.erase(it);
+        return;
+    }
 }
