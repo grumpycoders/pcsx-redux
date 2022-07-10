@@ -438,11 +438,8 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
     }
 
-    // If this was the block at 0x8003'0000 (Start of shell) send the GUI a "shell reached" signal
-    // This must happen after the PC is written back, otherwise our PC after sideloading will be overriden.
+    // If this was the block at 0x8003'0000 (Start of shell), don't link the PC in case we fastboot
     if (startingPC == 0x80030000) {
-        loadThisPointer(arg1.cvt64());
-        call(signalShellReached);
         m_linkedPC = std::nullopt;
     }
     if constexpr (ENABLE_PROFILER) {
@@ -532,7 +529,7 @@ void DynaRecCPU::handleFastboot() {
 
     loadAddress(rax, &m_shellStarted);  // Check if shell has already been reached
     gen.cmp(Xbyak::util::byte[rax], 0);
-    gen.jnz(noFastBoot);  // Don't fastboot if so
+    gen.jne(noFastBoot);  // Don't fastboot if so
 
     loadAddress(rax, &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>());  // Check if fastboot is on
     gen.cmp(Xbyak::util::byte[rax], 0);
@@ -540,8 +537,6 @@ void DynaRecCPU::handleFastboot() {
 
     loadThisPointer(arg1.cvt64());  // If fastbooting, call the signalShellReached function, set pc, and exit the block
     call(signalShellReached);
-    gen.mov(eax, dword[contextPointer + GPR_OFFSET(31)]);
-    gen.mov(dword[contextPointer + PC_OFFSET], eax);
     gen.jmp((void*)m_returnFromBlock);
 
     gen.L(noFastBoot);
