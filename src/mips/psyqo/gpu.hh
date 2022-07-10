@@ -304,6 +304,11 @@ class GPU {
      * really good, as it assumes one scanline runs at 64ms, but it should be good enough for most
      * purposes. Creating a stopwatch out of it should show that it's running a bit too fast,
      * approximately 1 second too fast every minute or so. Its monotonicity should be proper however.
+     *
+     * The method `now()` should be reserved for interacting with timers. If longer span is required,
+     * with more accuracy but less precision, for something that's not related with timers, then the
+     * current amount of time in seconds since the application started can simply be obtained using
+     * `getFrameCount() / getRefreshRate()`.
      * @return The current timestamp in microseconds.
      */
     uint32_t now() const { return m_currentTime; }
