@@ -299,11 +299,8 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
     }
 
-    // If this was the block at 0x8003'0000 (Start of shell) send the GUI a "shell reached" signal
-    // This must happen after the PC is written back, otherwise our PC after sideloading will be overriden.
+    // If this was the block at 0x8003'0000 (Start of shell), don't link the PC in case we fastboot
     if (startingPC == 0x80030000) {
-        loadThisPointer(arg1.X());
-        call(signalShellReached);
         m_linkedPC = std::nullopt;
     }
 
@@ -418,8 +415,6 @@ void DynaRecCPU::handleFastboot() {
 
     loadThisPointer(arg1.X());  // If fastbooting, call the signalShellReached function, set pc, and exit the block
     call(signalShellReached);
-    gen.Ldr(w0, MemOperand(contextPointer, GPR_OFFSET(31)));
-    gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
     jmp((void*)m_returnFromBlock);
 
     gen.L(noFastBoot);
