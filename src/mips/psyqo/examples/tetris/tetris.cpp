@@ -29,10 +29,7 @@ SOFTWARE.
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
 #include "psyqo/simplepad.hh"
-#include "psyqo/music.hh"
 #include "psyqo/scene.hh"
-#include "psyqo/sound.hh"
-#include "psyqo/timer.hh"
 
 namespace {
 
@@ -42,9 +39,6 @@ class Tetris final : public psyqo::Application {
     void button(psyqo::SimplePad::Event& event);
 
     psyqo::SimplePad m_input;
-    psyqo::Timer m_timer;
-    psyqo::Sound m_sound;
-    psyqo::Music m_music;
     psyqo::Font<> m_font;
 };
 
@@ -65,7 +59,7 @@ void Tetris::prepare() {
         .set(psyqo::GPU::Interlace::PROGRESSIVE);
     gpu().initialize(config);
 
-    m_input.onEvent([this](auto event) -> void { button(event); });
+    m_input.setOnEvent([this](auto event) -> void { button(event); });
 }
 
 void Tetris::button(psyqo::SimplePad::Event& event) {}
