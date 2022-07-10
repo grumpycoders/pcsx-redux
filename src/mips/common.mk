@@ -14,7 +14,7 @@ ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 CC  = $(PREFIX)-gcc
 CXX = $(PREFIX)-g++
-AR  = $(PREFIX)-ar
+AR  = $(PREFIX)-gcc-ar
 
 TYPE ?= cpe
 LDSCRIPT ?= $(ROOTDIR)$(TYPE).ld
@@ -42,6 +42,9 @@ LDFLAGS += $(ARCHFLAGS) -Wl,--oformat=$(FORMAT)
 
 CPPFLAGS_Release += -Os
 LDFLAGS_Release += -Os
+
+CPPFLAGS_LTO += -Os -flto
+LDFLAGS_LTO += -Os -flto
 
 CPPFLAGS_Debug += -Og
 CPPFLAGS_Coverage += -Og
