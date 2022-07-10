@@ -330,7 +330,7 @@ class GPU {
     /**
      * @brief Creates a periodic timer.
      *
-     * @details This method will create a period timer. The timer will fire every `period` microseconds.
+     * @details This method will create a periodic timer. The timer will fire every `period` microseconds.
      * See the `armTimer` method for more information about timers in general. Periodic timers
      * will first fire at `now() + period` milliseconds, and then every `period` milliseconds thereafter.
      * They will never be canceled automatically.
@@ -346,7 +346,7 @@ class GPU {
      * @details This method will change the period of a periodic timer. The timer now will fire
      * every `period` microseconds instead of its previous period. The next deadline for the timer
      * will be adjusted according to the difference between the new period and the previous one.
-     * If the new period is shorter, and the deadline was already past, the timer will fire as soon
+     * If the new period is shorter, and the deadline goes in the past, the timer will fire as soon
      * as possible. This method has no effect if the timer is not periodic.
      * @param id The id of the timer to change.
      * @param period The new period of the timer.
@@ -379,6 +379,7 @@ class GPU {
      * @brief Cancels a timer.
      *
      * @details This method will cancel an active timer. The timer will no longer fire.
+     * Its id will no longer be valid.
      * @param id The id of the timer to cancel.
      */
     void cancelTimer(uintptr_t id);
