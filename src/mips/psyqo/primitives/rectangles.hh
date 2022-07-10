@@ -43,7 +43,7 @@ struct Rectangle {
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Rectangle& setSolid() {
+    Rectangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -78,7 +78,7 @@ struct Pixel {
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Pixel& setSolid() {
+    Pixel& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -104,7 +104,7 @@ struct Rectangle8x8 {
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Rectangle8x8& setSolid() {
+    Rectangle8x8& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -130,7 +130,7 @@ struct Rectangle16x16 {
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Rectangle16x16& setSolid() {
+    Rectangle16x16& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }

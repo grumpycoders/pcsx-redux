@@ -42,7 +42,7 @@ struct Line {
         command = 0x40000000 | c.packed | wasSemiTrans;
         return *this;
     }
-    Line& setSolid() {
+    Line& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -72,7 +72,7 @@ struct GouraudLine {
         colorB = c;
         return *this;
     }
-    GouraudLine& setSolid() {
+    GouraudLine& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }

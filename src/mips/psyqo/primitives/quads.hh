@@ -42,7 +42,7 @@ struct FlatQuad {
         command = 0x28000000 | c.packed | wasSemiTrans;
         return *this;
     }
-    FlatQuad& setSolid() {
+    FlatQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -64,7 +64,7 @@ static_assert(sizeof(FlatQuad) == (sizeof(uint32_t) * 5), "FlatQuad is not 5 wor
 
 struct FlatTexturedQuad {
     FlatTexturedQuad() : command(0x2c000000) {}
-    FlatTexturedQuad& setSolid() {
+    FlatTexturedQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -110,7 +110,7 @@ struct GouraudQuad {
         colorD = c;
         return *this;
     }
-    GouraudQuad& setSolid() {
+    GouraudQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -153,7 +153,7 @@ struct GouraudTexturedQuad {
         colorD = c;
         return *this;
     }
-    GouraudTexturedQuad& setSolid() {
+    GouraudTexturedQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }

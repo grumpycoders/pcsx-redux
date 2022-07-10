@@ -53,7 +53,7 @@ struct Sprite {
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Sprite& setSolid() {
+    Sprite& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -81,7 +81,7 @@ struct Sprite1x1 {
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Sprite1x1& setSolid() {
+    Sprite1x1& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -108,7 +108,7 @@ struct Sprite8x8 {
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Sprite8x8& setSolid() {
+    Sprite8x8& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -135,7 +135,7 @@ struct Sprite16x16 {
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Sprite16x16& setSolid() {
+    Sprite16x16& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }

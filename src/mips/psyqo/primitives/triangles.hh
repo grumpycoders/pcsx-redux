@@ -42,7 +42,7 @@ struct FlatTriangle {
         command = 0x20000000 | c.packed | wasSemiTrans;
         return *this;
     }
-    FlatTriangle& setSolid() {
+    FlatTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -63,7 +63,7 @@ static_assert(sizeof(FlatTriangle) == (sizeof(uint32_t) * 4), "FlatTriangle is n
 
 struct FlatTexturedTriangle {
     FlatTexturedTriangle() : command(0x24000000) {}
-    FlatTexturedTriangle& setSolid() {
+    FlatTexturedTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -103,7 +103,7 @@ struct GouraudTriangle {
         colorC = c;
         return *this;
     }
-    GouraudTriangle& setSolid() {
+    GouraudTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
@@ -140,7 +140,7 @@ struct GouraudTexturedTriangle {
         colorC = c;
         return *this;
     }
-    GouraudTexturedTriangle& setSolid() {
+    GouraudTexturedTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
