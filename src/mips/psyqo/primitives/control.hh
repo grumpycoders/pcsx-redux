@@ -34,6 +34,15 @@ namespace psyqo {
 
 namespace Prim {
 
+struct TexPage {
+    TexPage() : command(0xe100) {}
+    TPage tpage;
+
+  private:
+    uint16_t command;
+};
+static_assert(sizeof(TexPage) == sizeof(uint32_t), "TexPage is not 32 bits");
+
 /**
  * @brief The DrawingAreaStart primitive.
  *

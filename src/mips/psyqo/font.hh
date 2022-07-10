@@ -72,8 +72,7 @@ class FontBase {
         Prim::Pixel clutWriter;
         Prim::FlushCache flushCache;
         Prim::Scissor enableScissor;
-        // TODO: add a "getTPage" method to the GPU or something.
-        uint32_t tpage = 0b11100001'0000000000'0'0'0'1'0'00'00'1'1111;
+        Prim::TexPage tpage;
     };
     typedef Fragments::FixedFragment<GlyphsFragmentPrologue, Prim::Sprite, 48> GlyphsFragment;
     virtual GlyphsFragment& getGlyphFragment(bool increment) = 0;

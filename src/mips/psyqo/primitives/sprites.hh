@@ -34,20 +34,30 @@ namespace psyqo {
 
 namespace Prim {
 
-struct Rectangle {
-    static constexpr uint32_t BASE = 0b011'00'0 << 26;
-    Rectangle() : command(BASE) {}
-    Rectangle(Color c) : command(BASE | c.packed) {}
-    Rectangle& setColor(Color c) {
+/**
+ * @brief The Sprite primitive.
+ *
+ * @details This primitive will draw a sprite of arbitrary size. The `position` member
+ * describes the location within the screen where the sprite will be blitted. The
+ * `texInfo`member indicates where the source sprite is blitted from, and the
+ * `size` member specifies actual sprite size to blit.
+ *
+ * The texture information needs to be specified with a TPage primitive beforehand.
+ */
+struct Sprite {
+    static constexpr uint32_t BASE = 0b011'00'1 << 26;
+    Sprite() : command(BASE) {}
+    Sprite(Color c) : command(BASE | c.packed) {}
+    Sprite& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Rectangle& setSolid() {
+    Sprite& setSolid() {
         command &= ~0x02000000;
         return *this;
     }
-    Rectangle& setSemiTrans() {
+    Sprite& setSemiTrans() {
         command |= 0x02000000;
         return *this;
     }
@@ -57,32 +67,25 @@ struct Rectangle {
 
   public:
     Vertex position;
+    TexInfo texInfo;
     Vertex size;
 };
-static_assert(sizeof(Rectangle) == (sizeof(uint32_t) * 3), "Rectangle is not 3 words");
+static_assert(sizeof(Sprite) == (sizeof(uint32_t) * 4), "Sprite is not 128 bits");
 
-/**
- * @brief The Pixel primitive.
- *
- * @details This primitive will draw a single pixel. The `position` member
- * specifies the location within the screen where the pixel will be drawn.
- * The color is specified by the constructor parameter, or the `setColor`
- * method.
- */
-struct Pixel {
-    static constexpr uint32_t BASE = 0b011'01'0 << 26;
-    Pixel() : command(BASE) {}
-    Pixel(Color c) : command(BASE | c.packed) {}
-    Pixel& setColor(Color c) {
+struct Sprite1x1 {
+    static constexpr uint32_t BASE = 0b011'01'1 << 26;
+    Sprite1x1() : command(BASE) {}
+    Sprite1x1(Color c) : command(BASE | c.packed) {}
+    Sprite1x1& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Pixel& setSolid() {
+    Sprite1x1& setSolid() {
         command &= ~0x02000000;
         return *this;
     }
-    Pixel& setSemiTrans() {
+    Sprite1x1& setSemiTrans() {
         command |= 0x02000000;
         return *this;
     }
@@ -92,23 +95,24 @@ struct Pixel {
 
   public:
     Vertex position;
+    TexInfo texInfo;
 };
-static_assert(sizeof(Pixel) == (sizeof(uint64_t)), "Pixel is not 64 bits");
+static_assert(sizeof(Sprite1x1) == (sizeof(uint32_t) * 3), "Sprite1x1 is not 3 words");
 
-struct Rectangle8x8 {
-    static constexpr uint32_t BASE = 0b011'10'0 << 26;
-    Rectangle8x8() : command(BASE) {}
-    Rectangle8x8(Color c) : command(BASE | c.packed) {}
-    Rectangle8x8& setColor(Color c) {
+struct Sprite8x8 {
+    static constexpr uint32_t BASE = 0b011'10'1 << 26;
+    Sprite8x8() : command(BASE) {}
+    Sprite8x8(Color c) : command(BASE | c.packed) {}
+    Sprite8x8& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Rectangle8x8& setSolid() {
+    Sprite8x8& setSolid() {
         command &= ~0x02000000;
         return *this;
     }
-    Rectangle8x8& setSemiTrans() {
+    Sprite8x8& setSemiTrans() {
         command |= 0x02000000;
         return *this;
     }
@@ -118,23 +122,24 @@ struct Rectangle8x8 {
 
   public:
     Vertex position;
+    TexInfo texInfo;
 };
-static_assert(sizeof(Rectangle8x8) == (sizeof(uint64_t)), "Rectangle8x8 is not 64 bits");
+static_assert(sizeof(Sprite8x8) == (sizeof(uint32_t) * 3), "Sprite8x8 is not 3 words");
 
-struct Rectangle16x16 {
-    static constexpr uint32_t BASE = 0b011'11'0 << 26;
-    Rectangle16x16() : command(BASE) {}
-    Rectangle16x16(Color c) : command(BASE | c.packed) {}
-    Rectangle16x16& setColor(Color c) {
+struct Sprite16x16 {
+    static constexpr uint32_t BASE = 0b011'11'1 << 26;
+    Sprite16x16() : command(BASE) {}
+    Sprite16x16(Color c) : command(BASE | c.packed) {}
+    Sprite16x16& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
         command = BASE | c.packed | wasSemiTrans;
         return *this;
     }
-    Rectangle16x16& setSolid() {
+    Sprite16x16& setSolid() {
         command &= ~0x02000000;
         return *this;
     }
-    Rectangle16x16& setSemiTrans() {
+    Sprite16x16& setSemiTrans() {
         command |= 0x02000000;
         return *this;
     }
@@ -144,8 +149,9 @@ struct Rectangle16x16 {
 
   public:
     Vertex position;
+    TexInfo texInfo;
 };
-static_assert(sizeof(Rectangle16x16) == (sizeof(uint64_t)), "Rectangle16x16 is not 64 bits");
+static_assert(sizeof(Sprite16x16) == (sizeof(uint32_t) * 3), "Sprite16x16 is not 3 words");
 
 }  // namespace Prim
 

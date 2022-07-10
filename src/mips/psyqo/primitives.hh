@@ -26,7 +26,10 @@ SOFTWARE.
 
 #pragma once
 
-#include "psyqo/primitives/common.hh"
 #include "psyqo/primitives/control.hh"
+#include "psyqo/primitives/lines.hh"
 #include "psyqo/primitives/misc.hh"
+#include "psyqo/primitives/quads.hh"
+#include "psyqo/primitives/rectangles.hh"
+#include "psyqo/primitives/sprites.hh"
 #include "psyqo/primitives/triangles.hh"

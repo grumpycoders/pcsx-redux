@@ -133,28 +133,28 @@ struct TexInfo {
 static_assert(sizeof(TexInfo) == sizeof(uint32_t), "TexInfo is not 32 bits");
 
 struct TPage {
-    TPage& setXBase(uint8_t x) {
-        info &= 0x000f;
+    TPage& setPageX(uint8_t x) {
+        info &= ~0x000f;
         x &= 0x000f;
         info |= x;
         return *this;
     }
-    TPage& setYBase(uint8_t y) {
-        info &= 0x0010;
+    TPage& setPageY(uint8_t y) {
+        info &= ~0x0010;
         y &= 0x0001;
         info |= y << 4;
         return *this;
     }
     enum SemiTrans { HalfBackAndHalfFront, FullBackAndFullFront, FullBackSubFullFront, FullBackAndQuarterFront };
     TPage& set(SemiTrans trans) {
-        info &= 0x0060;
+        info &= ~0x0060;
         uint32_t t = static_cast<uint32_t>(trans);
         info |= t << 5;
         return *this;
     }
     enum ColorMode { Tex4Bits, Tex8Bits, Tex16Bits };
     TPage& set(ColorMode mode) {
-        info &= 0x0180;
+        info &= ~0x0180;
         uint32_t m = static_cast<uint32_t>(mode);
         info |= m << 7;
         return *this;
@@ -181,22 +181,6 @@ struct TPage {
     }
     TPage& enableTexture() {
         info |= 0x0800;
-        return *this;
-    }
-    TPage& disableXFlip() {
-        info &= ~0x1000;
-        return *this;
-    }
-    TPage& enableXFlip() {
-        info |= 0x1000;
-        return *this;
-    }
-    TPage& disableYFlip() {
-        info &= ~0x2000;
-        return *this;
-    }
-    TPage& enableYFlip() {
-        info |= 0x2000;
         return *this;
     }
 
