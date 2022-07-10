@@ -38,7 +38,7 @@ namespace psyqo {
  * register, and the MIPS ABI ought to pass it as argument or return value gracefully,
  * making it a nice general purpose utility.
  *
- * Accessors can be either {x, y}, {u, v}, or {w, h}, for readability purposes.
+ * Accessors can be either {x, y}, {u, v}, {s, t}, or {w, h}, for readability purposes.
  *
  * Using C++ list-initializations, one can create a vertex directly using such syntax:
  *
@@ -47,10 +47,10 @@ namespace psyqo {
 union Vertex {
     struct {
         union {
-            int16_t x, u, w;
+            int16_t x, u, s, w;
         };
         union {
-            int16_t y, v, h;
+            int16_t y, v, t, h;
         };
     };
     int32_t packed;
