@@ -85,7 +85,6 @@ void PCSX::OpenGL_GPU::setBlendingModeFromTexpage(uint32_t texpage) {
 
 void PCSX::OpenGL_GPU::setBlendFactors(float destFactor, float sourceFactor) {
     if (m_blendFactors.x() != destFactor || m_blendFactors.y() != sourceFactor) {
-        PCSX::g_system->printf("I've been waiting for you all day\nStuck in traffic tryna make it to my baby\n");
         m_blendFactors.x() = destFactor;
         m_blendFactors.y() = sourceFactor;
 
