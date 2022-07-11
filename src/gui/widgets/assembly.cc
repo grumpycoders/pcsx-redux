@@ -286,10 +286,10 @@ void PCSX::Widgets::Assembly::Sa(uint8_t value) {
     ImGui::Text(" 0x%2.2x", value);
     ImGui::PopStyleColor();
 }
-uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
-    uint8_t* lut = m_memory->m_readLUT[addr >> 16];
-    if (lut) {
-        return lut + (addr & 0xffff);
+const uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
+    auto ptr = static_cast<const uint8_t*>(m_memory->pointerRead(addr));
+    if (ptr != nullptr) {
+        return ptr;
     } else {
         static uint8_t dummy[4] = {0, 0, 0, 0};
         return dummy;

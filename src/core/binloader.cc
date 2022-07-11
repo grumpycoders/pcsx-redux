@@ -128,8 +128,8 @@ bool loadPSEXE(IO<File> file) {
     file->read<uint32_t>();
     file->read<uint32_t>();
     file->read<uint32_t>();
-    regs.GPR.n.sp = file->read<uint32_t>();
-    if (regs.GPR.n.sp == 0) regs.GPR.n.sp = 0x801fff00;
+    const auto sp = file->read<uint32_t>();
+    if (sp != 0) regs.GPR.n.sp = sp;
     file->rSeek(0x71, SEEK_SET);
     uint8_t region = file->byte();
     file->rSeek(2048, SEEK_SET);

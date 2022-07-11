@@ -50,7 +50,7 @@ Note: If you get an error saying `hresult e_fail has been returned from a call t
 If you want to compile OpenBIOS or other PS1 software, you need to install a MIPS toolchain on Windows. You can do this by copy-pasting the following into a command prompt:
 
 ```
-powershell -c "& { iwr https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }"
+powershell -c "& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }"
 ```
 
 Then, open a new command prompt, and type the following:

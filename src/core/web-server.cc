@@ -162,25 +162,45 @@ class AssemblyExecutor : public PCSX::WebExecutor {
         return urldata.path == "/api/v1/assembly/symbols";
     }
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
-        auto& cpu = PCSX::g_emulator->m_cpu;
-        auto& body = request.body;
-        PCSX::IO<PCSX::File> file = new PCSX::BufferFile(std::move(body));
-        while (file && !file->failed() && !file->eof()) {
-            auto line = file->gets();
-            auto tokens = PCSX::StringsHelpers::split(std::string_view(line), " ");
-            if (tokens.size() != 2) {
-                continue;
+        if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            auto vars = parseQuery(request.urlData.query);
+            auto ifunction = vars.find("function");
+            if (ifunction == vars.end()) {
+                client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                return true;
             }
-            auto addressStr = tokens[0];
-            auto name = tokens[1];
-            uint32_t address;
-            auto result = std::from_chars(addressStr.data(), addressStr.data() + addressStr.size(), address, 16);
-            if (result.ec == std::errc::invalid_argument) continue;
+            std::string function = ifunction->second;
+            auto& cpu = PCSX::g_emulator->m_cpu;
+            if (function.compare("reset") == 0) {
+                cpu->m_symbols.clear();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (function.compare("upload") == 0)
+            {
+                auto& body = request.body;
+                PCSX::IO<PCSX::File> file = new PCSX::BufferFile(std::move(body));
+                while (file && !file->failed() && !file->eof()) {
+                    auto line = file->gets();
+                    auto tokens = PCSX::StringsHelpers::split(std::string_view(line), " ");
+                    if (tokens.size() != 2) {
+                        continue;
+                    }
+                    auto addressStr = tokens[0];
+                    auto name = tokens[1];
+                    uint32_t address;
+                    auto result = std::from_chars(addressStr.data(), addressStr.data() + addressStr.size(), address, 16);
+                    if (result.ec == std::errc::invalid_argument) continue;
 
-            cpu->m_symbols[address] = name;
+                    cpu->m_symbols[address] = name;
+                }
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+            return true;
         }
-        client->write("HTTP/1.1 200 OK\r\n\r\n");
-        return true;
+        return false;
     }
 
   public:
@@ -224,7 +244,7 @@ class FlowExecutor : public PCSX::WebExecutor {
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
         if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
             auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
-            
+
             nlohmann::json j;
             j["running"] = PCSX::g_system->running();
             j["isDynarec"] = PCSX::g_emulator->m_cpu->isDynarec();

@@ -66,10 +66,12 @@ void MemoryEditor::CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr
 			s.AddrDigitsCount++;
 	s.LineHeight = ImGui::GetTextLineHeight();
 	s.GlyphWidth = ImGui::CalcTextSize("F").x + 1;                  // We assume the font is mono-space
-	s.HexCellWidth = (float)(int)(s.GlyphWidth * 2.5f);             // "FF " we include trailing space in the width to easily catch clicks everywhere
+	s.ByteWidth = (float)(int)(s.GlyphWidth * 2.0f);
+	s.ByteSpacingWidth = (float)(int)(s.GlyphWidth * 0.5f);
+	s.HexCellWidth = (float)(int)((s.ByteWidth * (float)(int)DataTypeGetSize(PreviewDataType) + s.ByteSpacingWidth));             // "FF " we include trailing space in the width to easily catch clicks everywhere
 	s.SpacingBetweenMidCols = (float)(int)(s.HexCellWidth * 0.25f); // Every OptMidColsCount columns we add a bit of extra spacing
 	s.PosHexStart = (s.AddrDigitsCount + 2) * s.GlyphWidth;
-	s.PosHexEnd = s.PosHexStart + (s.HexCellWidth * Cols);
+	s.PosHexEnd = s.PosHexStart + (s.HexCellWidth * (float)(int)(Cols / DataTypeGetSize(PreviewDataType)));
 	s.PosAsciiStart = s.PosAsciiEnd = s.PosHexEnd;
 	if (OptShowAscii)
 	{
@@ -144,7 +146,7 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 	if (DataPreviewAddr >= mem_size)
 		DataPreviewAddr = (size_t)-1;
 
-	size_t preview_data_type_size = OptShowDataPreview ? DataTypeGetSize(PreviewDataType) : 0;
+	size_t preview_data_type_size = DataTypeGetSize(PreviewDataType);
 
 	size_t data_editing_addr_next = (size_t)-1;
 	if (DataEditingAddr != (size_t)-1)
@@ -186,26 +188,20 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 			// Draw Hexadecimal
 			for (int n = 0; n < Cols && addr < mem_size; n++, addr++)
 			{
-				float byte_pos_x = s.PosHexStart + s.HexCellWidth * n;
+				float byte_pos_x = s.PosHexStart + s.ByteWidth * n + s.ByteSpacingWidth * (n / preview_data_type_size);
 				if (OptMidColsCount > 0)
 					byte_pos_x += (float)(n / OptMidColsCount) * s.SpacingBetweenMidCols;
 				ImGui::SameLine(byte_pos_x);
 
 				// Draw highlight
-				bool is_highlight_from_user_range = (addr >= HighlightMin && addr < HighlightMax);
+				size_t DataPreviewHighlightBase = DataPreviewAddr & ~(preview_data_type_size - 1);					
+				bool is_highlight_from_user_range = (HighlightMin && addr >= HighlightMin && addr < HighlightMax);
 				bool is_highlight_from_user_func = (HighlightFn && HighlightFn(mem_data, addr));
-				bool is_highlight_from_preview = (addr >= DataPreviewAddr && addr < DataPreviewAddr + preview_data_type_size);
+				bool is_highlight_from_preview = (addr >= DataPreviewHighlightBase && addr < DataPreviewHighlightBase + preview_data_type_size);
 				if (is_highlight_from_user_range || is_highlight_from_user_func || is_highlight_from_preview)
 				{
 					ImVec2 pos = ImGui::GetCursorScreenPos();
-					float highlight_width = s.GlyphWidth * 2;
-					bool is_next_byte_highlighted = (addr + 1 < mem_size) && ((HighlightMax != (size_t)-1 && addr + 1 < HighlightMax) || (HighlightFn && HighlightFn(mem_data, addr + 1)));
-					if (is_next_byte_highlighted || (n + 1 == Cols))
-					{
-						highlight_width = s.HexCellWidth;
-						if (OptMidColsCount > 0 && n > 0 && (n + 1) < Cols && ((n + 1) % OptMidColsCount) == 0)
-							highlight_width += s.SpacingBetweenMidCols;
-					}
+					float highlight_width = s.ByteWidth;
 					draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), HighlightColor);
 				}
 
@@ -345,8 +341,13 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 	}
 	else if (data_editing_addr_next != (size_t)-1)
 	{
-		DataEditingAddr = DataPreviewAddr = data_editing_addr_next;
+		DataEditingAddr = data_editing_addr_next;
 		DataEditingTakeFocus = true;
+		// User clicked away from any pattern search address, set them to -1
+		if (data_editing_addr_next < HighlightMin || data_editing_addr_next >= HighlightMax) {
+			DataPreviewAddr = data_editing_addr_next;
+			HighlightMin = HighlightMax = (size_t)-1;
+		}
 	}
 
 	const bool lock_show_data_preview = OptShowDataPreview;
