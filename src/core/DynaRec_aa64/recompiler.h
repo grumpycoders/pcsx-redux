@@ -149,7 +149,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void error();
     void flushCache();
     void handleLinking();
-    void handleFastboot();
+    void handleShellReached();
     void handleKernelCall();
     void emitDispatcher();
     void emitBlockLookup();
