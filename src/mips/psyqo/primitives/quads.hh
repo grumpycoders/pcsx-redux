@@ -34,19 +34,32 @@ namespace psyqo {
 
 namespace Prim {
 
-struct FlatQuad {
-    FlatQuad() : command(0x28000000) {}
-    FlatQuad(Color c) : command(0x28000000 | c.packed) {}
-    FlatQuad& setColor(Color c) {
+/**
+ * @brief A flat-colored quad.
+ *
+ * @details This primitive will draw a flat-colored quad. It will be drawn
+ * between the `pointA`, `pointB`, `pointC`, and `pointD` vertices. Note that
+ * the ordering of the vertices matters for proper rendering, and it is not
+ * intuitive. The quad will be drawn using two triangles: the first triangle
+ * will be drawn with the `pointA`, `pointB`, and `pointC` vertices, and the
+ * second triangle will be drawn with the `pointB`, `pointC`, and `pointD`
+ * vertices. This means that the vertices of the quad need to be sent in a
+ * Z pattern to be drawn properly. Failure to do so will result in a weird
+ * looking 5-edged polygon resembling a M envelope, which is not what you want.
+ */
+struct Quad {
+    Quad() : command(0x28000000) {}
+    Quad(Color c) : command(0x28000000 | c.packed) {}
+    Quad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
         command = 0x28000000 | c.packed | wasSemiTrans;
         return *this;
     }
-    FlatQuad& setOpaque() {
+    Quad& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
-    FlatQuad& setSemiTrans() {
+    Quad& setSemiTrans() {
         command |= 0x02000000;
         return *this;
     }
@@ -60,15 +73,26 @@ struct FlatQuad {
     Vertex pointC;
     Vertex pointD;
 };
-static_assert(sizeof(FlatQuad) == (sizeof(uint32_t) * 5), "FlatQuad is not 5 words");
+static_assert(sizeof(Quad) == (sizeof(uint32_t) * 5), "Quad is not 5 words");
 
-struct FlatTexturedQuad {
-    FlatTexturedQuad() : command(0x2c000000) {}
-    FlatTexturedQuad& setOpaque() {
+/**
+ * @brief A textured quad.
+ *
+ * @details This primitive will draw a textured quad. See `Quad` for more information
+ * about vertices and ordering. The primitive has weird-looking ordering of members, but
+ * it is necessary to accommodate the way the hardware wants the quad information to be
+ * sent to it. The attributes of the primitive can be better visualized with this order:
+ * - `pointA`, `pointB`, `pointC`, `pointD`
+ * - `uvA`, `uvB`, `uvC`, `uvD`
+ * - `clutIndex`, `tpage`
+ */
+struct TexturedQuad {
+    TexturedQuad() : command(0x2c000000) {}
+    TexturedQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
-    FlatTexturedQuad& setSemiTrans() {
+    TexturedQuad& setSemiTrans() {
         command |= 0x02000000;
         return *this;
     }
@@ -82,20 +106,28 @@ struct FlatTexturedQuad {
     ClutIndex clutIndex;
     Vertex pointB;
     UVCoords uvB;
-    TPage tpage;
+    TPageAttr tpage;
     Vertex pointC;
     UVCoordsPadded uvC;
     Vertex pointD;
     UVCoordsPadded uvD;
 };
-static_assert(sizeof(FlatTexturedQuad) == (sizeof(uint32_t) * 9), "FlatTexturedQuad is not 9 words");
+static_assert(sizeof(TexturedQuad) == (sizeof(uint32_t) * 9), "TexturedQuad is not 9 words");
 
+/**
+ * @brief A gouraud-shaded quad.
+ *
+ * @details This primitive will draw a gouraud-shaded quad. See `Quad` for more information
+ * about vertices and ordering. The color of the quad will be interpolated between the colors
+ * of its four vertices. Note that `colorA` can only be set using the constructor, or the
+ * `setColorA` method.
+ */
 struct GouraudQuad {
     GouraudQuad() : command(0x38000000) {}
     GouraudQuad(Color c) : command(0x38000000 | c.packed) {}
     GouraudQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x38000000 | c.packed| wasSemiTrans;
+        command = 0x38000000 | c.packed | wasSemiTrans;
         return *this;
     }
     GouraudQuad& setColorB(Color c) {
@@ -133,6 +165,21 @@ struct GouraudQuad {
 };
 static_assert(sizeof(GouraudQuad) == (sizeof(uint32_t) * 8), "GouraudQuad is not 8 words");
 
+/**
+ * @brief A textured, blended quad.
+ *
+ * @details This primitive will draw a textured quad with its texels blended with the interpolated
+ * color values of its vertices. See `Quad` for more information about vertices and ordering.
+ * The primitive has weird-looking ordering of members, but it is necessary to accommodate the
+ * way the hardware wants the quad information to be sent to it. The attributes of the primitive
+ * can be better visualized with this order:
+ * - `pointA`, `pointB`, `pointC`, `pointD`
+ * - `colorA`, `colorB`, `colorC`, `colorD`
+ * - `uvA`, `uvB`, `uvC`, `uvD`
+ * - `clutIndex`, `tpage`
+ * Note that `colorA` can only be set using the constructor, or the
+ * `setColorA` method.
+ */
 struct GouraudTexturedQuad {
     GouraudTexturedQuad() : command(0x3d000000) {}
     GouraudTexturedQuad(Color c) : command(0x3d000000 | c.packed) {}
@@ -172,7 +219,7 @@ struct GouraudTexturedQuad {
     Color colorB;
     Vertex pointB;
     UVCoords uvB;
-    TPage tpage;
+    TPageAttr tpage;
     Color colorC;
     Vertex pointC;
     UVCoordsPadded uvC;

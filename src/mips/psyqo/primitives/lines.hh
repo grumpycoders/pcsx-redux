@@ -34,6 +34,12 @@ namespace psyqo {
 
 namespace Prim {
 
+/**
+ * @brief The Line primitive.
+ *
+ * @details The Line primitive will draw a single, flat-colored segment. It
+ * will be drawn between the `pointA` and `pointB` vertices.
+ */
 struct Line {
     Line() : command(0x40000000) {}
     Line(Color c) : command(0x40000000 | c.packed) {}
@@ -60,6 +66,15 @@ struct Line {
 };
 static_assert(sizeof(Line) == sizeof(uint32_t) * 3, "Line is not 3 words");
 
+/**
+ * @brief The Gouraud-shaded Line primitive.
+ *
+ * @details The Line primitive will draw a single, gouraud-shaded segment. It
+ * will be drawn between the `pointA` and `pointB` vertices. The color of the
+ * segment will be interpolated between the `colorA` and `colorB` colors.
+ * Note that `colorA` can only be set using the constructor, or the
+ * `setColorA` method.
+ */
 struct GouraudLine {
     GouraudLine() : command(0x50000000) {}
     GouraudLine(Color c) : command(0x50000000 | c.packed) {}

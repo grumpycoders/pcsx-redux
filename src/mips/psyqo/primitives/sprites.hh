@@ -72,6 +72,15 @@ struct Sprite {
 };
 static_assert(sizeof(Sprite) == (sizeof(uint32_t) * 4), "Sprite is not 128 bits");
 
+/**
+ * @brief The 1x1 Sprite primitive.
+ *
+ * @details This primitive will draw a sprite of exactly 1 pixel. The `position` member
+ * describes the location within the screen where the sprite will be blitted. The
+ * `texInfo`member indicates where the source sprite is blitted from.
+ *
+ * The texture information needs to be specified with a TPage primitive beforehand.
+ */
 struct Sprite1x1 {
     static constexpr uint32_t BASE = 0b011'01'1 << 26;
     Sprite1x1() : command(BASE) {}
@@ -99,6 +108,15 @@ struct Sprite1x1 {
 };
 static_assert(sizeof(Sprite1x1) == (sizeof(uint32_t) * 3), "Sprite1x1 is not 3 words");
 
+/**
+ * @brief The 8x8 Sprite primitive.
+ *
+ * @details This primitive will draw a sprite of 8 by 8 pixels. The `position` member
+ * describes the location within the screen where the sprite will be blitted. The
+ * `texInfo`member indicates where the source sprite is blitted from.
+ *
+ * The texture information needs to be specified with a TPage primitive beforehand.
+ */
 struct Sprite8x8 {
     static constexpr uint32_t BASE = 0b011'10'1 << 26;
     Sprite8x8() : command(BASE) {}
@@ -126,6 +144,15 @@ struct Sprite8x8 {
 };
 static_assert(sizeof(Sprite8x8) == (sizeof(uint32_t) * 3), "Sprite8x8 is not 3 words");
 
+/**
+ * @brief The 16x16 Sprite primitive.
+ *
+ * @details This primitive will draw a sprite of 16 by 16 pixels. The `position` member
+ * describes the location within the screen where the sprite will be blitted. The
+ * `texInfo`member indicates where the source sprite is blitted from.
+ *
+ * The texture information needs to be specified with a TPage primitive beforehand.
+ */
 struct Sprite16x16 {
     static constexpr uint32_t BASE = 0b011'11'1 << 26;
     Sprite16x16() : command(BASE) {}

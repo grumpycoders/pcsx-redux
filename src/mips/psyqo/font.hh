@@ -72,7 +72,7 @@ class FontBase {
         Prim::Pixel clutWriter;
         Prim::FlushCache flushCache;
         Prim::Scissor enableScissor;
-        Prim::TexPage tpage;
+        Prim::TPage tpage;
     };
     typedef Fragments::FixedFragment<GlyphsFragmentPrologue, Prim::Sprite, 48> GlyphsFragment;
     virtual GlyphsFragment& getGlyphFragment(bool increment) = 0;

@@ -34,19 +34,25 @@ namespace psyqo {
 
 namespace Prim {
 
-struct FlatTriangle {
-    FlatTriangle() : command(0x20000000) {}
-    FlatTriangle(Color c) : command(0x20000000 | c.packed) {}
-    FlatTriangle& setColor(Color c) {
+/**
+ * @brief A flat-colored triangle.
+ *
+ * @details This primitive will draw a flat-colored triangle. It will be drawn
+ * between the `pointA`, `pointB`, and `pointC`.
+ */
+struct Triangle {
+    Triangle() : command(0x20000000) {}
+    Triangle(Color c) : command(0x20000000 | c.packed) {}
+    Triangle& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
         command = 0x20000000 | c.packed | wasSemiTrans;
         return *this;
     }
-    FlatTriangle& setOpaque() {
+    Triangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
-    FlatTriangle& setSemiTrans() {
+    Triangle& setSemiTrans() {
         command |= 0x02000000;
         return *this;
     }
@@ -59,15 +65,27 @@ struct FlatTriangle {
     Vertex pointB;
     Vertex pointC;
 };
-static_assert(sizeof(FlatTriangle) == (sizeof(uint32_t) * 4), "FlatTriangle is not 4 words");
+static_assert(sizeof(Triangle) == (sizeof(uint32_t) * 4), "Triangle is not 4 words");
 
-struct FlatTexturedTriangle {
-    FlatTexturedTriangle() : command(0x24000000) {}
-    FlatTexturedTriangle& setOpaque() {
+/**
+ * @brief A textured triangle.
+ *
+ * @details This primitive will draw a textured triangle. It will be drawn
+ * between the `pointA`, `pointB`, and `pointC` vertices. The primitive has
+ * weird-looking ordering of members, but it is necessary to accommodate the
+ * way the hardware wants the triangle information to be sent to it. The
+ * attributes of the primitive can be better visualized with this order:
+ * - `pointA`, `pointB`, `pointC`
+ * - `uvA`, `uvB`, `uvC`
+ * - `clutIndex`, `tpage`
+ */
+struct TexturedTriangle {
+    TexturedTriangle() : command(0x24000000) {}
+    TexturedTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
-    FlatTexturedTriangle& setSemiTrans() {
+    TexturedTriangle& setSemiTrans() {
         command |= 0x02000000;
         return *this;
     }
@@ -81,18 +99,26 @@ struct FlatTexturedTriangle {
     ClutIndex clutIndex;
     Vertex pointB;
     UVCoords uvB;
-    TPage tpage;
+    TPageAttr tpage;
     Vertex pointC;
     UVCoordsPadded uvC;
 };
-static_assert(sizeof(FlatTexturedTriangle) == (sizeof(uint32_t) * 7), "FlatTexturedTriangle is not 7 words");
+static_assert(sizeof(TexturedTriangle) == (sizeof(uint32_t) * 7), "TexturedTriangle is not 7 words");
 
+/**
+ * @brief A gouraud-shaded triangle.
+ *
+ * @details This primitive will draw a gouraud-shaded triangle. It will be drawn
+ * between the `pointA`, `pointB`, and `pointC`. Its color will be interpolated
+ * between the colors of its three vertices. Note that `colorA` can only be set
+ * using the constructor, or the `setColorA` method.
+ */
 struct GouraudTriangle {
     GouraudTriangle() : command(0x30000000) {}
     GouraudTriangle(Color c) : command(0x30000000 | c.packed) {}
     GouraudTriangle& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x30000000 | c.packed| wasSemiTrans;
+        command = 0x30000000 | c.packed | wasSemiTrans;
         return *this;
     }
     GouraudTriangle& setColorB(Color c) {
@@ -124,6 +150,20 @@ struct GouraudTriangle {
 };
 static_assert(sizeof(GouraudTriangle) == (sizeof(uint32_t) * 6), "GouraudTriangle is not 6 words");
 
+/**
+ * @brief A textured, blended triangle.
+ *
+ * @details This primitive will draw a textured triangle with its texels
+ * blended with the interpolated color values of its vertices. It will be draw
+ * between the `pointA`, `pointB`, and `pointC` vertices. The primitive has
+ * weird-looking ordering of members, but it is necessary to accommodate the
+ * way the hardware wants the triangle information to be sent to it. The
+ * attributes of the primitive can be better visualized with this order:
+ * - `pointA`, `pointB`, `pointC`
+ * - `colorA`, `colorB`, `colorC`
+ * - `uvA`, `uvB`, `uvC`
+ * - `clutIndex`, `tpage`
+ */
 struct GouraudTexturedTriangle {
     GouraudTexturedTriangle() : command(0x35000000) {}
     GouraudTexturedTriangle(Color c) : command(0x35000000 | c.packed) {}
@@ -159,7 +199,7 @@ struct GouraudTexturedTriangle {
     Color colorB;
     Vertex pointB;
     UVCoords uvB;
-    TPage tpage;
+    TPageAttr tpage;
     Color colorC;
     Vertex pointC;
     UVCoordsPadded uvC;

@@ -132,34 +132,47 @@ struct TexInfo {
 };
 static_assert(sizeof(TexInfo) == sizeof(uint32_t), "TexInfo is not 32 bits");
 
-struct TPage {
-    TPage& setPageX(uint8_t x) {
+/**
+ * @brief A primitive's tpage attribute.
+ *
+ * @details This shouldn't be used directly, but rather be part of another primitive.
+ * The binary representation is meant to be the same as the 16-bits tpage argument for
+ * GPU commands. See the `TPage` struct for actual usage, or the various triangle and
+ * quad primitives.
+ *
+ * When dealing with tpage attributes, it can be more efficient to create a new
+ * `TPageAttr` object on the stack, setting its properties, and then assigning it
+ * to the primitive's attribute, instead of directly manipulating the existing one,
+ * as the compiler will better optimize the former sequence of operations.
+ */
+struct TPageAttr {
+    TPageAttr& setPageX(uint8_t x) {
         info &= ~0x000f;
         x &= 0x000f;
         info |= x;
         return *this;
     }
-    TPage& setPageY(uint8_t y) {
+    TPageAttr& setPageY(uint8_t y) {
         info &= ~0x0010;
         y &= 0x0001;
         info |= y << 4;
         return *this;
     }
     enum SemiTrans { HalfBackAndHalfFront, FullBackAndFullFront, FullBackSubFullFront, FullBackAndQuarterFront };
-    TPage& set(SemiTrans trans) {
+    TPageAttr& set(SemiTrans trans) {
         info &= ~0x0060;
         uint32_t t = static_cast<uint32_t>(trans);
         info |= t << 5;
         return *this;
     }
     enum ColorMode { Tex4Bits, Tex8Bits, Tex16Bits };
-    TPage& set(ColorMode mode) {
+    TPageAttr& set(ColorMode mode) {
         info &= ~0x0180;
         uint32_t m = static_cast<uint32_t>(mode);
         info |= m << 7;
         return *this;
     }
-    TPage& setDithering(bool dithering) {
+    TPageAttr& setDithering(bool dithering) {
         if (dithering) {
             info |= 0x0200;
         } else {
@@ -167,41 +180,48 @@ struct TPage {
         }
         return *this;
     }
-    TPage& disableDisplayArea() {
+    TPageAttr& disableDisplayArea() {
         info &= ~0x0400;
         return *this;
     }
-    TPage& enableDisplayArea() {
+    TPageAttr& enableDisplayArea() {
         info |= 0x0400;
-        return *this;
-    }
-    TPage& disableTexture() {
-        info &= ~0x0800;
-        return *this;
-    }
-    TPage& enableTexture() {
-        info |= 0x0800;
         return *this;
     }
 
   private:
-    uint16_t info;
+    uint16_t info = 0;
 };
-static_assert(sizeof(TPage) == sizeof(uint16_t), "TPage is not 16 bits");
+static_assert(sizeof(TPageAttr) == sizeof(uint16_t), "TPageAttr is not 16 bits");
 
+/**
+ * @brief A primitive's page info attribute.
+ *
+ * @details This shouldn't be used directly, but rather be part of another primitive.
+ */
 struct PageInfo {
     uint8_t u;
     uint8_t v;
-    TPage tpage;
+    TPageAttr attr;
 };
 static_assert(sizeof(PageInfo) == sizeof(uint32_t), "PageInfo is not 32 bits");
 
+/**
+ * @brief A primitive's UV coordinates attribute.
+ *
+ * @details This shouldn't be used directly, but rather be part of another primitive.
+ */
 struct UVCoords {
     uint8_t u;
     uint8_t v;
 };
 static_assert(sizeof(UVCoords) == sizeof(uint16_t), "UVCoords is not 16 bits");
 
+/**
+ * @brief A primitive's UV coordinates attribute.
+ *
+ * @details This shouldn't be used directly, but rather be part of another primitive.
+ */
 struct UVCoordsPadded {
     uint8_t u;
     uint8_t v;

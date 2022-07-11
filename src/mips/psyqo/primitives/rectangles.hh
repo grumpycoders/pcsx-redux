@@ -34,6 +34,15 @@ namespace psyqo {
 
 namespace Prim {
 
+/**
+ * @brief The Rectangle primitive.
+ *
+ * @details This primitive will draw a rectangle of arbitrary size.
+ * The `position` member specifies the location within the screen where
+ * the top left corner of the rectangle will be rendered. The `size` member
+ * specifies the size of the rectangle. The color is specified by the
+ * constructor parameter, or the `setColor` method.
+ */
 struct Rectangle {
     static constexpr uint32_t BASE = 0b011'00'0 << 26;
     Rectangle() : command(BASE) {}
@@ -95,6 +104,14 @@ struct Pixel {
 };
 static_assert(sizeof(Pixel) == (sizeof(uint64_t)), "Pixel is not 64 bits");
 
+/**
+ * @brief The 8x8 Rectangle primitive.
+ *
+ * @details This primitive will draw a rectangle of 8 by 8 pixels.
+ * The `position` member specifies the location within the screen where
+ * the top left corner of the rectangle will be rendered. The color is
+ * specified by the constructor parameter, or the `setColor` method.
+ */
 struct Rectangle8x8 {
     static constexpr uint32_t BASE = 0b011'10'0 << 26;
     Rectangle8x8() : command(BASE) {}
@@ -121,6 +138,14 @@ struct Rectangle8x8 {
 };
 static_assert(sizeof(Rectangle8x8) == (sizeof(uint64_t)), "Rectangle8x8 is not 64 bits");
 
+/**
+ * @brief The 16x16 Rectangle primitive.
+ *
+ * @details This primitive will draw a rectangle of 16 by 16 pixels.
+ * The `position` member specifies the location within the screen where
+ * the top left corner of the rectangle will be rendered. The color is
+ * specified by the constructor parameter, or the `setColor` method.
+ */
 struct Rectangle16x16 {
     static constexpr uint32_t BASE = 0b011'11'0 << 26;
     Rectangle16x16() : command(BASE) {}

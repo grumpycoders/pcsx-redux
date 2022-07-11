@@ -45,14 +45,13 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
     auto size = m_size = {.w = 8, .h = 16};
     forEach([this, clutPosition](auto& fragment) {
         fragment.prologue.clutWriter.position = clutPosition;
-        psyqo::Prim::TPage tpage;
-        tpage.setPageX(15)
+        psyqo::Prim::TPageAttr attr;
+        attr.setPageX(15)
             .setPageY(1)
-            .set(psyqo::Prim::TPage::Tex4Bits)
+            .set(psyqo::Prim::TPageAttr::Tex4Bits)
             .setDithering(false)
-            .enableDisplayArea()
-            .enableTexture();
-        fragment.prologue.tpage.tpage = tpage;
+            .enableDisplayArea();
+        fragment.prologue.tpage.attr = attr;
         for (auto& p : fragment.primitives) {
             p.setColor({{.r = 0xff, .g = 0xff, .b = 0xff}});
             p.size = m_size;
