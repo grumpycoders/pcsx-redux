@@ -225,10 +225,10 @@ static __attribute__((always_inline)) int syscall_cdromGetStatus(uint8_t *ptr) {
     return ((int (*)(uint8_t *))0xa0)(ptr);
 }
 
-static __attribute__((always_inline)) int syscall_cdromRead(int count, char *buffer, uint32_t mode) {
+static __attribute__((always_inline)) int syscall_cdromRead(int count, void *buffer, uint32_t mode) {
     register int n asm("t1") = 0x7e;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((int (*)(int, char *, uint32_t))0xa0)(count, buffer, mode);
+    return ((int (*)(int, void *, uint32_t))0xa0)(count, buffer, mode);
 }
 
 static __attribute__((always_inline)) int syscall_cdromInnerInit() {

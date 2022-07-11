@@ -75,7 +75,7 @@ int cdromBlockReading(int count, int sector, char* buffer) {
             // which is 1) useless, since cyclesToWait never mutates
             // and 2) senseless as we're supposed to return the
             // number of sectors read.
-            // An optimzing compiler would cull it out anyway, so
+            // An optimizing compiler would cull it out anyway, so
             // it's no use letting it here.
             if (syscall_testEvent(g_cdEventDNE)) return count;
             if (syscall_testEvent(g_cdEventERR)) break;
