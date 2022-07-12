@@ -33,6 +33,8 @@ SOFTWARE.
 #include "psyqo/scene.hh"
 #include "psyqo/simplepad.hh"
 
+psyqo::SimplePad g_tetrisInput;
+
 namespace {
 
 class Tetris final : public psyqo::Application {
@@ -42,7 +44,6 @@ class Tetris final : public psyqo::Application {
     bool m_initialized = false;
 
   public:
-    psyqo::SimplePad m_input;
     psyqo::Font<> m_font;
 };
 
@@ -107,14 +108,14 @@ void Tetris::prepare() {
 void Tetris::createScene() {
     if (!m_initialized) {
         m_font.uploadSystemFont(gpu());
-        m_input.initialize();
+        g_tetrisInput.initialize();
         g_tetrisApplication = this;
     }
     pushScene(&s_splashScreen);
 }
 
 void SplashScreen::start(Scene::StartReason reason) {
-    s_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+    g_tetrisInput.setOnEvent([this](const psyqo::SimplePad::Event& event) {
         if (event.type == psyqo::SimplePad::Event::ButtonReleased) {
             if (event.button == psyqo::SimplePad::Button::Start) {
                 m_startPressed = true;
@@ -166,10 +167,10 @@ void SplashScreen::frame() {
     }
 }
 
-void SplashScreen::teardown(Scene::TearDownReason reason) { s_tetris.m_input.setOnEvent(nullptr); }
+void SplashScreen::teardown(Scene::TearDownReason reason) { g_tetrisInput.setOnEvent(nullptr); }
 
 void MainMenu::start(Scene::StartReason reason) {
-    s_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+    g_tetrisInput.setOnEvent([this](const psyqo::SimplePad::Event& event) {
         if (event.type == psyqo::SimplePad::Event::ButtonReleased) {
             switch (event.button) {
                 case psyqo::SimplePad::Button::Start:
@@ -230,10 +231,10 @@ void MainMenu::frame() {
     }
 }
 
-void MainMenu::teardown(Scene::TearDownReason reason) { s_tetris.m_input.setOnEvent(nullptr); }
+void MainMenu::teardown(Scene::TearDownReason reason) { g_tetrisInput.setOnEvent(nullptr); }
 
 void Credits::start(Scene::StartReason reason) {
-    s_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+    g_tetrisInput.setOnEvent([this](const psyqo::SimplePad::Event& event) {
         if (event.type == psyqo::SimplePad::Event::ButtonReleased) m_leave = true;
     });
 }
@@ -249,10 +250,10 @@ void Credits::frame() {
     }
 }
 
-void Credits::teardown(Scene::TearDownReason reason) { s_tetris.m_input.setOnEvent(nullptr); }
+void Credits::teardown(Scene::TearDownReason reason) { g_tetrisInput.setOnEvent(nullptr); }
 
 void Options::start(Scene::StartReason reason) {
-    s_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+    g_tetrisInput.setOnEvent([this](const psyqo::SimplePad::Event& event) {
         if (event.type == psyqo::SimplePad::Event::ButtonReleased) {
             switch (event.button) {
                 case psyqo::SimplePad::Button::Start:
@@ -274,6 +275,6 @@ void Options::menuDown() {}
 
 void Options::frame() { popScene(); }
 
-void Options::teardown(Scene::TearDownReason reason) { s_tetris.m_input.setOnEvent(nullptr); }
+void Options::teardown(Scene::TearDownReason reason) { g_tetrisInput.setOnEvent(nullptr); }
 
 int main() { return s_tetris.run(); }

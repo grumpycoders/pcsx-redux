@@ -74,7 +74,7 @@ class FontBase {
         Prim::Scissor enableScissor;
         Prim::TPage tpage;
     };
-    typedef Fragments::FixedFragment<GlyphsFragmentPrologue, Prim::Sprite, 48> GlyphsFragment;
+    typedef Fragments::FixedFragmentWithPrologue<GlyphsFragmentPrologue, Prim::Sprite, 48> GlyphsFragment;
     virtual GlyphsFragment& getGlyphFragment(bool increment) = 0;
     virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) = 0;
 

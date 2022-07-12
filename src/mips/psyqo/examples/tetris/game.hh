@@ -29,6 +29,7 @@ SOFTWARE.
 #include "psyqo/application.hh"
 #include "psyqo/primitives/common.hh"
 #include "psyqo/scene.hh"
+#include "psyqo/simplepad.hh"
 
 static constexpr psyqo::Color HIRED = {{.r = 240, .g = 0, .b = 0}};
 static constexpr psyqo::Color HIORANGE = {{.r = 240, .g = 160, .b = 0}};
@@ -52,9 +53,25 @@ static constexpr psyqo::Color BLACK = {{.r = 0, .g = 0, .b = 0}};
 
 extern psyqo::Application* g_tetrisApplication;
 extern const uint8_t PIECES[7][4][4][4];
+extern psyqo::SimplePad g_tetrisInput;
 
 class MainGame final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
     void frame() override;
     void teardown(Scene::TearDownReason reason) override;
+
+    void tick();
+    void createBlock();
+    void moveLeft();
+    void moveRight();
+    void rotateLeft();
+    void rotateRight();
+
+    unsigned m_timer;
+    uint32_t m_period;
+    uint32_t m_fastPeriod;
+    uint8_t m_currentBlock, m_blockX, m_blockY, m_blockRotation;
+    bool m_gameOver = false;
+    bool m_paused = false;
+    bool m_bottomHitOnce = false;
 };

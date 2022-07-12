@@ -66,9 +66,9 @@ namespace Fragments {
  */
 
 template <typename P, typename T, size_t N>
-struct FixedFragment {
+struct FixedFragmentWithPrologue {
     constexpr size_t maxSize() const { return N; }
-    FixedFragment() {
+    FixedFragmentWithPrologue() {
         static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(P) + sizeof(T) * N),
                       "Spurious padding in fixed fragment");
     }
@@ -77,6 +77,20 @@ struct FixedFragment {
     unsigned count;
     uint32_t head;
     P prologue;
+    eastl::array<T, N> primitives;
+};
+
+template <typename T, size_t N>
+struct FixedFragment {
+    constexpr size_t maxSize() const { return N; }
+    FixedFragment() {
+        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(T) * N),
+                      "Spurious padding in fixed fragment");
+    }
+    typedef T FragmentBaseType;
+    size_t getActualFragmentSize() const { return (sizeof(T) * count) / sizeof(uint32_t); }
+    unsigned count;
+    uint32_t head;
     eastl::array<T, N> primitives;
 };
 

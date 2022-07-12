@@ -49,10 +49,14 @@ uint32_t rand() {
 }
 
 uint32_t rand7() { return rand() % 7; }
+const psyqo::Color PIECES_COLORS[7] = {CYAN, YELLOW, PURPLE, BLUE, ORANGE, RED, GREEN};
+const psyqo::Color PIECES_HICOLORS[7] = {HICYAN, HIYELLOW, HIPURPLE, HIBLUE, HIORANGE, HIRED, HIGREEN};
 
 template <size_t COLUMNS, size_t ROWS>
 struct Playfield {
-    enum CellType : uint8_t { Empty, Red, Orange, Yellow, Green, Blue, Cyan, Purple };
+    static constexpr size_t Columns = COLUMNS;
+    static constexpr size_t Rows = ROWS;
+    enum CellType : uint8_t { Empty, Cyan, Yellow, Purple, Blue, Orange, Red, Green };
     static constexpr unsigned BLOCK_SIZE = 10;
     static constexpr unsigned SCREEN_WIDTH = 320;
     static constexpr unsigned SCREEN_HEIGHT = 240;
@@ -75,6 +79,29 @@ struct Playfield {
         }
     }
 
+    bool collision(unsigned block, unsigned x, unsigned y, unsigned rotation) {
+        for (size_t i = 0; i < 4; ++i) {
+            for (size_t j = 0; j < 4; ++j) {
+                if (PIECES[block - 1][rotation][i][j] == 1) {
+                    if ((x + i >= COLUMNS) || (y + j >= ROWS) || (m_cells[x + i][y + j] != Empty)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    void place(unsigned block, unsigned x, unsigned y, unsigned rotation) {
+        for (size_t i = 0; i < 4; ++i) {
+            for (size_t j = 0; j < 4; ++j) {
+                if (PIECES[block - 1][rotation][i][j] == 1) {
+                    m_cells[x + i][y + j] = CellType(block);
+                }
+            }
+        }
+    }
+
     struct Prologue {
         psyqo::Prim::Rectangle outerField;
         psyqo::Prim::Rectangle innerField;
@@ -84,7 +111,8 @@ struct Playfield {
         psyqo::Prim::Rectangle8x8 inner;
     };
 
-    psyqo::Fragments::FixedFragment<Prologue, Block, ROWS * COLUMNS> m_fieldFragment;
+    psyqo::Fragments::FixedFragmentWithPrologue<Prologue, Block, ROWS * COLUMNS> m_fieldFragment;
+    psyqo::Fragments::FixedFragment<Block, 4> m_blockFragment;
 
     Playfield() {
         m_fieldFragment.prologue.outerField.position.x = LEFT - 2;
@@ -100,9 +128,11 @@ struct Playfield {
         for (auto& block : m_fieldFragment.primitives) {
             block.outer.size.w = block.outer.size.h = BLOCK_SIZE;
         }
+        m_fieldFragment.count = 0;
+        m_blockFragment.count = 0;
     }
 
-    void updateFragment() {
+    void updateFieldFragment() {
         unsigned counter = 0;
         for (size_t x = 0; x < COLUMNS; ++x) {
             for (size_t y = 0; y < ROWS; ++y) {
@@ -153,7 +183,33 @@ struct Playfield {
         m_fieldFragment.count = counter;
     }
 
-    void render(psyqo::GPU& gpu, bool renderField = true) { gpu.sendFragment(m_fieldFragment); }
+    void updateBlockFragment(unsigned block, unsigned x, unsigned y, unsigned rotation) {
+        if (block == 0) {
+            m_blockFragment.count = 0;
+            return;
+        }
+        unsigned counter = 0;
+        for (size_t i = 0; i < 4; ++i) {
+            for (size_t j = 0; j < 4; ++j) {
+                if (PIECES[block - 1][rotation][i][j] == 1) {
+                    auto& blockFragment = m_blockFragment.primitives[counter];
+                    blockFragment.outer.position.x = LEFT + x * BLOCK_SIZE + i * BLOCK_SIZE;
+                    blockFragment.outer.position.y = TOP + y * BLOCK_SIZE + j * BLOCK_SIZE;
+                    blockFragment.inner.position.x = LEFT + x * BLOCK_SIZE + i * BLOCK_SIZE + 1;
+                    blockFragment.inner.position.y = TOP + y * BLOCK_SIZE + j * BLOCK_SIZE + 1;
+                    blockFragment.outer.setColor(PIECES_COLORS[block - 1]);
+                    blockFragment.inner.setColor(PIECES_HICOLORS[block - 1]);
+                    counter++;
+                }
+            }
+        }
+        m_blockFragment.count = counter;
+    }
+
+    void render(psyqo::GPU& gpu, bool renderField = true) {
+        gpu.sendFragment(m_fieldFragment);
+        gpu.sendFragment(m_blockFragment);
+    }
 
   private:
     CellType m_cells[COLUMNS][ROWS];
@@ -161,17 +217,95 @@ struct Playfield {
 
 Playfield<10, 20> s_playfield;
 
-const psyqo::Color PIECES_COLORS[7] = {CYAN, YELLOW, PURPLE, BLUE, ORANGE, RED, GREEN};
-const psyqo::Color PIECES_HICOLORS[7] = {HICYAN, HIYELLOW, HIPURPLE, HIBLUE, HIORANGE, HIRED, HIGREEN};
-
 }  // namespace
 
-void MainGame::start(Scene::StartReason reason) {
-    if (reason == Scene::StartReason::Create) {
-        s_seed = INITIAL_SEED * g_tetrisApplication->gpu().now();
-        s_playfield.clear();
-        s_playfield.updateFragment();
+void MainGame::tick() {
+    if (m_currentBlock == 0) {
+        createBlock();
+        if (s_playfield.collision(m_currentBlock, m_blockX, m_blockY, m_blockRotation)) {
+            m_gameOver = true;
+        }
+        s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
         return;
+    }
+    if (s_playfield.collision(m_currentBlock, m_blockX, m_blockY + 1, m_blockRotation)) {
+        if (m_bottomHitOnce) {
+            s_playfield.place(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+            m_bottomHitOnce = false;
+            m_currentBlock = 0;
+            g_tetrisApplication->gpu().changeTimerPeriod(m_timer, m_period);
+        } else {
+            m_bottomHitOnce = true;
+        }
+    } else {
+        m_blockY++;
+        s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+    }
+}
+
+void MainGame::createBlock() {
+    m_currentBlock = rand7() + 1;
+    m_blockX = s_playfield.Columns / 2;
+    m_blockY = 0;
+    m_blockRotation = 0;
+}
+
+void MainGame::moveLeft() {
+    if (s_playfield.collision(m_currentBlock, m_blockX - 1, m_blockY, m_blockRotation)) {
+        return;
+    }
+    m_blockX--;
+    s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+}
+
+void MainGame::moveRight() {
+    if (s_playfield.collision(m_currentBlock, m_blockX + 1, m_blockY, m_blockRotation)) {
+        return;
+    }
+    m_blockX++;
+    s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+}
+
+void MainGame::rotateLeft() {
+    unsigned rotation = m_blockRotation;
+    if (rotation == 0) {
+        rotation = 3;
+    } else {
+        rotation--;
+    }
+    if (s_playfield.collision(m_currentBlock, m_blockX, m_blockY, rotation)) {
+        return;
+    }
+    m_blockRotation = rotation;
+    s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+}
+
+void MainGame::rotateRight() {
+    unsigned rotation = m_blockRotation;
+    if (rotation == 3) {
+        rotation = 0;
+    } else {
+        rotation++;
+    }
+    if (s_playfield.collision(m_currentBlock, m_blockX, m_blockY, rotation)) {
+        return;
+    }
+    m_blockRotation = rotation;
+    s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+}
+
+void MainGame::start(Scene::StartReason reason) {
+    auto& gpu = g_tetrisApplication->gpu();
+    if (reason == Scene::StartReason::Create) {
+        s_seed = INITIAL_SEED * gpu.now();
+        s_playfield.clear();
+        s_playfield.updateFieldFragment();
+        m_period = 1'000'000;
+        m_currentBlock = 0;
+        m_timer = gpu.armPeriodicTimer(m_period, [this](uint32_t) { tick(); });
+        tick();
+    } else {
+        gpu.resumeTimer(m_timer);
     }
 }
 
@@ -179,6 +313,55 @@ void MainGame::frame() {
     auto& gpu = g_tetrisApplication->gpu();
     gpu.clear();
     s_playfield.render(gpu);
+    g_tetrisInput.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+        if (event.type == psyqo::SimplePad::Event::ButtonPressed) {
+            switch (event.button) {
+                case psyqo::SimplePad::Button::Left:
+                    moveLeft();
+                    break;
+                case psyqo::SimplePad::Button::Right:
+                    moveRight();
+                    break;
+                case psyqo::SimplePad::Button::Cross:
+                    rotateLeft();
+                    break;
+                case psyqo::SimplePad::Button::Up:
+                case psyqo::SimplePad::Button::Circle:
+                    rotateRight();
+                    break;
+                case psyqo::SimplePad::Button::Triangle:
+                    while (!s_playfield.collision(m_currentBlock - 1, m_blockX, m_blockY, m_blockRotation)) {
+                        m_blockY++;
+                    }
+                    m_blockY--;
+                    break;
+                case psyqo::SimplePad::Button::Down:
+                    g_tetrisApplication->gpu().changeTimerPeriod(m_timer, 100'000);
+                    break;
+                default:
+                    break;
+            }
+        } else if (event.type == psyqo::SimplePad::Event::ButtonReleased) {
+            switch (event.button) {
+                case psyqo::SimplePad::Button::Down:
+                    g_tetrisApplication->gpu().changeTimerPeriod(m_timer, m_period);
+                    break;
+                case psyqo::SimplePad::Button::Start:
+                    m_paused = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+    });
 }
 
-void MainGame::teardown(Scene::TearDownReason reason) {}
+void MainGame::teardown(Scene::TearDownReason reason) {
+    auto& gpu = g_tetrisApplication->gpu();
+    if (reason == Scene::TearDownReason::Destroy) {
+        gpu.cancelTimer(m_timer);
+    } else {
+        gpu.pauseTimer(m_timer);
+    }
+    g_tetrisInput.setOnEvent(nullptr);
+}
