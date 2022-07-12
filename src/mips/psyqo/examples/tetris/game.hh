@@ -30,22 +30,24 @@ SOFTWARE.
 #include "psyqo/primitives/common.hh"
 #include "psyqo/scene.hh"
 
-static constexpr psyqo::Color HIRED = {{.r = 120, .g = 0, .b = 0}};
-static constexpr psyqo::Color HIORANGE = {{.r = 120, .g = 80, .b = 0}};
-static constexpr psyqo::Color HIYELLOW = {{.r = 120, .g = 120, .b = 0}};
-static constexpr psyqo::Color HIGREEN = {{.r = 0, .g = 120, .b = 0}};
-static constexpr psyqo::Color HIBLUE = {{.r = 0, .g = 0, .b = 120}};
-static constexpr psyqo::Color HICYAN = {{.r = 0, .g = 120, .b = 120}};
-static constexpr psyqo::Color HIPURPLE = {{.r = 80, .g = 0, .b = 120}};
-static constexpr psyqo::Color RED = {{.r = 90, .g = 41, .b = 42}};
-static constexpr psyqo::Color ORANGE = {{.r = 105, .g = 80, .b = 52}};
-static constexpr psyqo::Color YELLOW = {{.r = 118, .g = 112, .b = 79}};
-static constexpr psyqo::Color GREEN = {{.r = 69, .g = 88, .b = 49}};
-static constexpr psyqo::Color BLUE = {{.r = 38, .g = 64, .b = 101}};
-static constexpr psyqo::Color CYAN = {{.r = 51, .g = 97, .b = 105}};
-static constexpr psyqo::Color PURPLE = {{.r = 103, .g = 69, .b = 101}};
+static constexpr psyqo::Color HIRED = {{.r = 240, .g = 0, .b = 0}};
+static constexpr psyqo::Color HIORANGE = {{.r = 240, .g = 160, .b = 0}};
+static constexpr psyqo::Color HIYELLOW = {{.r = 240, .g = 240, .b = 0}};
+static constexpr psyqo::Color HIGREEN = {{.r = 0, .g = 240, .b = 0}};
+static constexpr psyqo::Color HIBLUE = {{.r = 0, .g = 0, .b = 240}};
+static constexpr psyqo::Color HICYAN = {{.r = 0, .g = 240, .b = 240}};
+static constexpr psyqo::Color HIPURPLE = {{.r = 160, .g = 0, .b = 240}};
+static constexpr psyqo::Color RED = {{.r = 180, .g = 82, .b = 84}};
+static constexpr psyqo::Color ORANGE = {{.r = 210, .g = 160, .b = 104}};
+static constexpr psyqo::Color YELLOW = {{.r = 236, .g = 224, .b = 158}};
+static constexpr psyqo::Color GREEN = {{.r = 176, .g = 176, .b = 98}};
+static constexpr psyqo::Color BLUE = {{.r = 76, .g = 128, .b = 202}};
+static constexpr psyqo::Color CYAN = {{.r = 102, .g = 194, .b = 210}};
+static constexpr psyqo::Color PURPLE = {{.r = 206, .g = 176, .b = 202}};
 static constexpr psyqo::Color WHITE = {{.r = 255, .g = 255, .b = 255}};
-static constexpr psyqo::Color GREY = {{.r = 80, .g = 80, .b = 80}};
+static constexpr psyqo::Color GREY = {{.r = 160, .g = 160, .b = 160}};
+static constexpr psyqo::Color DARKGREY = {{.r = 80, .g = 80, .b = 80}};
+static constexpr psyqo::Color DARKERGREY = {{.r = 40, .g = 40, .b = 40}};
 static constexpr psyqo::Color BLACK = {{.r = 0, .g = 0, .b = 0}};
 
 extern psyqo::Application* g_tetrisApplication;

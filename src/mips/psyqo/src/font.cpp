@@ -127,6 +127,9 @@ void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color,
         f.texInfo = p;
     }
     fragment.count = i;
+    color.r >>= 1;
+    color.g >>= 1;
+    color.b >>= 1;
     fragment.prologue.clutWriter.setColor(color);
     gpu.getScissor(fragment.prologue.enableScissor);
     gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
@@ -160,6 +163,9 @@ void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, eastl::function
                               DMA::DmaCallback dmaCallback, const char* format, va_list ap) {
     auto& fragment = getGlyphFragment(false);
     fragment.count = 0;
+    color.r >>= 1;
+    color.g >>= 1;
+    color.b >>= 1;
     XPrintfInfo info{getGlyphFragment(false), gpu, pos, color, this};
     fragment.prologue.clutWriter.setColor(info.color);
     gpu.getScissor(fragment.prologue.enableScissor);
