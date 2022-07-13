@@ -28,8 +28,6 @@ SOFTWARE.
 
 #include "psyqo/fragments.hh"
 
-psyqo::Application* g_tetrisApplication = nullptr;
-
 namespace {
 
 static constexpr uint32_t INITIAL_SEED = 2891583007UL;
@@ -106,6 +104,32 @@ struct Playfield {
         }
     }
 
+    int removeLines() {
+        int lines = 0;
+        for (size_t y = 0; y < ROWS; y++) {
+            bool full = true;
+            for (size_t x = 0; x < COLUMNS; x++) {
+                if (m_cells[x][y] == Empty) {
+                    full = false;
+                    break;
+                }
+            }
+            if (full) {
+                for (size_t x = 0; x < COLUMNS; x++) {
+                    m_cells[x][y] = Empty;
+                }
+                for (size_t yy = y; yy > 0; yy--) {
+                    for (size_t x = 0; x < COLUMNS; x++) {
+                        m_cells[x][yy] = m_cells[x][yy - 1];
+                    }
+                }
+                y--;
+                lines++;
+            }
+        }
+        return lines;
+    }
+
     struct Prologue {
         psyqo::Prim::Rectangle outerField;
         psyqo::Prim::Rectangle innerField;
@@ -133,6 +157,8 @@ struct Playfield {
             block.outer.size.w = block.outer.size.h = BLOCK_SIZE;
         }
     }
+
+    void emptyFieldFragment() { m_fieldFragment.count = 0; }
 
     void updateFieldFragment() {
         unsigned counter = 0;
@@ -205,7 +231,7 @@ struct Playfield {
         m_blockFragment.count = counter;
     }
 
-    void render(psyqo::GPU& gpu, bool renderField = true) {
+    void render(psyqo::GPU& gpu) {
         gpu.sendFragment(m_fieldFragment);
         gpu.sendFragment(m_blockFragment);
     }
@@ -232,9 +258,25 @@ void MainGame::tick() {
     if (s_playfield.collision(m_currentBlock, m_blockX, m_blockY + 1, m_blockRotation)) {
         if (m_bottomHitOnce) {
             s_playfield.place(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+            int lines = s_playfield.removeLines();
+            switch (lines) {
+                case 1:
+                    m_score += 100;
+                    break;
+                case 2:
+                    m_score += 300;
+                    break;
+                case 3:
+                    m_score += 600;
+                    break;
+                case 4:
+                    m_score += 1000;
+                    break;
+            }
+            recomputePeriod();
             m_bottomHitOnce = false;
             m_currentBlock = 0;
-            g_tetrisApplication->gpu().changeTimerPeriod(m_timer, m_period);
+            g_tetris.gpu().changeTimerPeriod(m_timer, m_period);
             s_playfield.updateFieldFragment();
             s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
         } else {
@@ -251,6 +293,58 @@ void MainGame::createBlock() {
     m_blockX = s_playfield.Columns / 2 - 2;
     m_blockY = 0;
     m_blockRotation = 0;
+}
+
+void MainGame::recomputePeriod() {
+    int scoreRange = m_score / 20000;
+    if (scoreRange > 10) {
+        scoreRange = 10;
+    }
+    m_period = 1'000'000 - scoreRange * 100'000;
+}
+
+void MainGame::buttonEvent(const psyqo::SimplePad::Event& event) {
+    if (event.type == psyqo::SimplePad::Event::ButtonPressed) {
+        switch (event.button) {
+            case psyqo::SimplePad::Button::Left:
+                moveLeft();
+                break;
+            case psyqo::SimplePad::Button::Right:
+                moveRight();
+                break;
+            case psyqo::SimplePad::Button::Cross:
+                rotateLeft();
+                break;
+            case psyqo::SimplePad::Button::Up:
+            case psyqo::SimplePad::Button::Circle:
+                rotateRight();
+                break;
+            case psyqo::SimplePad::Button::Triangle:
+                while (!s_playfield.collision(m_currentBlock, m_blockX, m_blockY, m_blockRotation)) {
+                    m_blockY++;
+                }
+                m_blockY--;
+                g_tetris.gpu().changeTimerPeriod(m_timer, 0, true);
+                m_bottomHitOnce = true;
+                break;
+            case psyqo::SimplePad::Button::Down:
+                g_tetris.gpu().changeTimerPeriod(m_timer, 100'000, true);
+                break;
+            default:
+                break;
+        }
+    } else if (event.type == psyqo::SimplePad::Event::ButtonReleased) {
+        switch (event.button) {
+            case psyqo::SimplePad::Button::Down:
+                g_tetris.gpu().changeTimerPeriod(m_timer, m_period);
+                break;
+            case psyqo::SimplePad::Button::Start:
+                m_paused = true;
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 void MainGame::moveLeft() {
@@ -307,65 +401,31 @@ void MainGame::rotate(unsigned rotation) {
 }
 
 void MainGame::start(Scene::StartReason reason) {
-    auto& gpu = g_tetrisApplication->gpu();
+    auto& gpu = g_tetris.gpu();
     if (reason == Scene::StartReason::Create) {
         s_seed = INITIAL_SEED * gpu.now();
         s_playfield.clear();
         s_playfield.updateFieldFragment();
         m_period = 1'000'000;
+        m_score = 0;
         m_currentBlock = 0;
         m_timer = gpu.armPeriodicTimer(m_period, [this](uint32_t) { tick(); });
         tick();
     } else {
         gpu.resumeTimer(m_timer);
     }
-    g_tetrisInput.setOnEvent([this](const psyqo::SimplePad::Event& event) {
-        if (event.type == psyqo::SimplePad::Event::ButtonPressed) {
-            switch (event.button) {
-                case psyqo::SimplePad::Button::Left:
-                    moveLeft();
-                    break;
-                case psyqo::SimplePad::Button::Right:
-                    moveRight();
-                    break;
-                case psyqo::SimplePad::Button::Cross:
-                    rotateLeft();
-                    break;
-                case psyqo::SimplePad::Button::Up:
-                case psyqo::SimplePad::Button::Circle:
-                    rotateRight();
-                    break;
-                case psyqo::SimplePad::Button::Triangle:
-                    while (!s_playfield.collision(m_currentBlock, m_blockX, m_blockY, m_blockRotation)) {
-                        m_blockY++;
-                    }
-                    m_blockY--;
-                    break;
-                case psyqo::SimplePad::Button::Down:
-                    g_tetrisApplication->gpu().changeTimerPeriod(m_timer, 100'000);
-                    break;
-                default:
-                    break;
-            }
-        } else if (event.type == psyqo::SimplePad::Event::ButtonReleased) {
-            switch (event.button) {
-                case psyqo::SimplePad::Button::Down:
-                    g_tetrisApplication->gpu().changeTimerPeriod(m_timer, m_period);
-                    break;
-                case psyqo::SimplePad::Button::Start:
-                    m_paused = true;
-                    break;
-                default:
-                    break;
-            }
-        }
-    });
+    g_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) { buttonEvent(event); });
+}
+
+void MainGame::render() {
+    auto& gpu = g_tetris.gpu();
+    gpu.clear();
+    s_playfield.render(gpu);
+    g_tetris.m_font.printf(gpu, {.x = 0, .y = 0}, WHITE, "Score: %i", m_score);
 }
 
 void MainGame::frame() {
-    auto& gpu = g_tetrisApplication->gpu();
-    gpu.clear();
-    s_playfield.render(gpu);
+    render();
     if (m_gameOver) {
         m_gameOver = false;
         // popScene();
@@ -378,11 +438,11 @@ void MainGame::frame() {
 }
 
 void MainGame::teardown(Scene::TearDownReason reason) {
-    auto& gpu = g_tetrisApplication->gpu();
+    auto& gpu = g_tetris.gpu();
     if (reason == Scene::TearDownReason::Destroy) {
         gpu.cancelTimer(m_timer);
     } else {
         gpu.pauseTimer(m_timer);
     }
-    g_tetrisInput.setOnEvent(nullptr);
+    g_tetris.m_input.setOnEvent(nullptr);
 }

@@ -46,11 +46,7 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
     forEach([this, clutPosition](auto& fragment) {
         fragment.prologue.clutWriter.position = clutPosition;
         psyqo::Prim::TPageAttr attr;
-        attr.setPageX(15)
-            .setPageY(1)
-            .set(psyqo::Prim::TPageAttr::Tex4Bits)
-            .setDithering(false)
-            .enableDisplayArea();
+        attr.setPageX(15).setPageY(1).set(psyqo::Prim::TPageAttr::Tex4Bits).setDithering(false).enableDisplayArea();
         fragment.prologue.tpage.attr = attr;
         for (auto& p : fragment.primitives) {
             p.setColor({{.r = 0xff, .g = 0xff, .b = 0xff}});
@@ -107,9 +103,20 @@ void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color)
 
 void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
                             DMA::DmaCallback dmaCallback) {
+    auto& fragment = getGlyphFragment(false);
+    innerprint(fragment, gpu, text, pos, color);
+    gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
+}
+
+void psyqo::FontBase::chainprint(GPU& gpu, const char* text, Vertex pos, Color color) {
+    auto& fragment = getGlyphFragment(true);
+    innerprint(fragment, gpu, text, pos, color);
+    gpu.chain(fragment);
+}
+
+void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, const char* text, Vertex pos, Color color) {
     auto size = m_size;
     unsigned i;
-    auto& fragment = getGlyphFragment(false);
     auto maxSize = fragment.primitives.size();
 
     for (i = 0; i < maxSize; pos.x += size.w) {
@@ -132,7 +139,6 @@ void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color,
     color.b >>= 1;
     fragment.prologue.clutWriter.setColor(color);
     gpu.getScissor(fragment.prologue.enableScissor);
-    gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
 }
 
 void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, const char* format, va_list ap) {
@@ -149,6 +155,19 @@ void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, const char* for
     }
 }
 
+void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, eastl::function<void()>&& callback,
+                              DMA::DmaCallback dmaCallback, const char* format, va_list ap) {
+    auto& fragment = getGlyphFragment(false);
+    innervprintf(fragment, gpu, pos, color, format, ap);
+    gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
+}
+
+void psyqo::FontBase::chainvprintf(GPU& gpu, Vertex pos, Color color, const char* format, va_list ap) {
+    auto& fragment = getGlyphFragment(true);
+    innervprintf(fragment, gpu, pos, color, format, ap);
+    gpu.chain(fragment);
+}
+
 struct psyqo::FontBase::XPrintfInfo {
     psyqo::FontBase::GlyphsFragment& fragment;
     GPU& gpu;
@@ -159,9 +178,8 @@ struct psyqo::FontBase::XPrintfInfo {
 
 extern "C" int vxprintf(void (*func)(const char*, int, void*), void* arg, const char* format, va_list ap);
 
-void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, eastl::function<void()>&& callback,
-                              DMA::DmaCallback dmaCallback, const char* format, va_list ap) {
-    auto& fragment = getGlyphFragment(false);
+void psyqo::FontBase::innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex pos, Color color, const char* format,
+                                   va_list ap) {
     fragment.count = 0;
     color.r >>= 1;
     color.g >>= 1;
@@ -197,5 +215,4 @@ void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, eastl::function
             }
         },
         &info, format, ap);
-    gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
 }

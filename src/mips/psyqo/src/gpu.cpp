@@ -159,11 +159,12 @@ void psyqo::GPU::flip() {
                 auto &timer = *it;
                 if (timer.paused) continue;
                 if ((int32_t)(timer.deadline - currentTime) <= 0) {
+                    if (timer.periodic) {
+                        timer.deadline += timer.period;
+                    }
                     timer.callback(currentTime);
                     if (!timer.periodic) {
                         s_timers.erase(it);
-                    } else {
-                        timer.deadline += timer.period;
                     }
                     done = false;
                     break;
@@ -422,14 +423,18 @@ uintptr_t psyqo::GPU::armPeriodicTimer(uint32_t interval, eastl::function<void(u
     return reinterpret_cast<uintptr_t>(&s_timers.back());
 }
 
-void psyqo::GPU::changeTimerPeriod(uintptr_t id, uint32_t period) {
+void psyqo::GPU::changeTimerPeriod(uintptr_t id, uint32_t period, bool reset) {
     for (auto &timer : s_timers) {
         if (reinterpret_cast<uintptr_t>(&timer) != id) continue;
         if (timer.period == period) continue;
         if (!timer.periodic) continue;
-        int32_t diff = period - timer.period;
+        if (reset) {
+            timer.deadline = m_currentTime + period;
+        } else {
+            int32_t diff = period - timer.period;
+            timer.deadline += diff;
+        }
         timer.period = period;
-        timer.deadline += diff;
         return;
     }
 }

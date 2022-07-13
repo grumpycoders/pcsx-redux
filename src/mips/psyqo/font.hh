@@ -66,6 +66,15 @@ class FontBase {
     void vprintf(GPU& gpu, Vertex pos, Color color, eastl::function<void()>&& callback, DMA::DmaCallback dmaCallback,
                  const char* format, va_list ap);
 
+    void chainprint(GPU& gpu, const char* text, Vertex pos, Color color);
+    void chainprintf(GPU& gpu, Vertex pos, Color color, const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vprintf(gpu, pos, color, format, args);
+        va_end(args);
+    }
+    void chainvprintf(GPU& gpu, Vertex pos, Color color, const char* format, va_list ap);
+
   protected:
     struct GlyphsFragmentPrologue {
         Prim::Scissor disableScissor;
@@ -77,6 +86,9 @@ class FontBase {
     typedef Fragments::FixedFragmentWithPrologue<GlyphsFragmentPrologue, Prim::Sprite, 48> GlyphsFragment;
     virtual GlyphsFragment& getGlyphFragment(bool increment) = 0;
     virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) = 0;
+
+    void innerprint(GlyphsFragment& fragment, GPU& gpu, const char* text, Vertex pos, Color color);
+    void innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex pos, Color color, const char* format, va_list ap);
 
   private:
     struct XPrintfInfo;

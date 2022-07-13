@@ -29,6 +29,7 @@ SOFTWARE.
 #include <stdint.h>
 
 #include "psyqo/application.hh"
+#include "psyqo/font.hh"
 #include "psyqo/primitives/common.hh"
 #include "psyqo/scene.hh"
 #include "psyqo/simplepad.hh"
@@ -53,9 +54,20 @@ static constexpr psyqo::Color DARKGREY = {{.r = 80, .g = 80, .b = 80}};
 static constexpr psyqo::Color DARKERGREY = {{.r = 40, .g = 40, .b = 40}};
 static constexpr psyqo::Color BLACK = {{.r = 0, .g = 0, .b = 0}};
 
-extern psyqo::Application* g_tetrisApplication;
 extern const uint8_t PIECES[7][4][4][4];
-extern psyqo::SimplePad g_tetrisInput;
+
+class Tetris final : public psyqo::Application {
+    void prepare() override;
+    void createScene() override;
+
+    bool m_initialized = false;
+
+  public:
+    psyqo::SimplePad m_input;
+    psyqo::Font<> m_font;
+};
+
+extern Tetris g_tetris;
 
 class MainGame final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
@@ -65,14 +77,18 @@ class MainGame final : public psyqo::Scene {
     void tick();
     void buttonEvent(const psyqo::SimplePad::Event& event);
 
+    void render();
+
     void createBlock();
     void moveLeft();
     void moveRight();
     void rotateLeft();
     void rotateRight();
     void rotate(unsigned rotation);
+    void recomputePeriod();
 
     unsigned m_timer;
+    unsigned m_score;
     uint32_t m_period;
     uint32_t m_fastPeriod;
     uint8_t m_currentBlock, m_blockRotation;

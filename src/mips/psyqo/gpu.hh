@@ -349,14 +349,17 @@ class GPU {
      * @brief Changes the period of a periodic timer.
      *
      * @details This method will change the period of a periodic timer. The timer now will fire
-     * every `period` microseconds instead of its previous period. The next deadline for the timer
-     * will be adjusted according to the difference between the new period and the previous one.
-     * If the new period is shorter, and the deadline goes in the past, the timer will fire as soon
-     * as possible. This method has no effect if the timer is not periodic.
+     * every `period` microseconds instead of its previous period. When the `reset` argument is
+     * false, the next deadline for the timer will be adjusted according to the difference
+     * between the new period and the previous one. If the new period is shorter, and the
+     * deadline goes in the past, the timer will fire as soon as possible. When the `reset`
+     * argument is true, the new deadline will simply be set to the new `period`.
+     * This method has no effect if the timer is not periodic.
      * @param id The id of the timer to change.
      * @param period The new period of the timer.
+     * @param reset The timer's deadline will be adjusted to the new period if false.
      */
-    void changeTimerPeriod(uintptr_t id, uint32_t period);
+    void changeTimerPeriod(uintptr_t id, uint32_t period, bool reset = false);
 
     /**
      * @brief Pauses a timer.
