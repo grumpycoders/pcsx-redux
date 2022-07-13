@@ -26,6 +26,8 @@ SOFTWARE.
 
 #pragma once
 
+#include <stdint.h>
+
 #include "psyqo/application.hh"
 #include "psyqo/primitives/common.hh"
 #include "psyqo/scene.hh"
@@ -61,16 +63,20 @@ class MainGame final : public psyqo::Scene {
     void teardown(Scene::TearDownReason reason) override;
 
     void tick();
+    void buttonEvent(const psyqo::SimplePad::Event& event);
+
     void createBlock();
     void moveLeft();
     void moveRight();
     void rotateLeft();
     void rotateRight();
+    void rotate(unsigned rotation);
 
     unsigned m_timer;
     uint32_t m_period;
     uint32_t m_fastPeriod;
-    uint8_t m_currentBlock, m_blockX, m_blockY, m_blockRotation;
+    uint8_t m_currentBlock, m_blockRotation;
+    int8_t m_blockX, m_blockY;
     bool m_gameOver = false;
     bool m_paused = false;
     bool m_bottomHitOnce = false;

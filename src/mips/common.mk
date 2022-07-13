@@ -46,7 +46,8 @@ LDFLAGS_Release += -Os
 CPPFLAGS_LTO += -Os -flto
 LDFLAGS_LTO += -Os -flto
 
-CPPFLAGS_Debug += -Og
+CPPFLAGS_Debug += -O0
+CPPFLAGS_SmallDebug += -Og
 CPPFLAGS_Coverage += -Og
 
 LDFLAGS += -g

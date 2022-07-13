@@ -427,7 +427,7 @@ void psyqo::GPU::changeTimerPeriod(uintptr_t id, uint32_t period) {
         if (reinterpret_cast<uintptr_t>(&timer) != id) continue;
         if (timer.period == period) continue;
         if (!timer.periodic) continue;
-        int32_t diff = timer.period - period;
+        int32_t diff = period - timer.period;
         timer.period = period;
         timer.deadline += diff;
         return;
