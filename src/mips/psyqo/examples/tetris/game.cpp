@@ -28,6 +28,8 @@ SOFTWARE.
 
 #include "psyqo/fragments.hh"
 
+MainGame g_mainGame;
+
 namespace {
 
 static constexpr uint32_t INITIAL_SEED = 2891583007UL;
@@ -141,6 +143,8 @@ struct Playfield {
 
     psyqo::Fragments::FixedFragmentWithPrologue<Prologue, Block, ROWS * COLUMNS> m_fieldFragment;
     psyqo::Fragments::FixedFragment<psyqo::Prim::Rectangle8x8, 4> m_blockFragment;
+    unsigned m_oldFieldFragmentCount;
+    unsigned m_oldBlockFragmentCount;
 
     Playfield() {
         m_fieldFragment.prologue.outerField.position.x = LEFT - 2;
@@ -158,7 +162,17 @@ struct Playfield {
         }
     }
 
-    void emptyFieldFragment() { m_fieldFragment.count = 0; }
+    void emptyFragments() {
+        m_oldFieldFragmentCount = m_fieldFragment.count;
+        m_oldBlockFragmentCount = m_blockFragment.count;
+        m_fieldFragment.count = 0;
+        m_blockFragment.count = 0;
+    }
+
+    void restoreFragments() {
+        m_fieldFragment.count = m_oldFieldFragmentCount;
+        m_blockFragment.count = m_oldBlockFragmentCount;
+    }
 
     void updateFieldFragment() {
         unsigned counter = 0;
@@ -305,6 +319,9 @@ void MainGame::recomputePeriod() {
 
 void MainGame::buttonEvent(const psyqo::SimplePad::Event& event) {
     if (event.type == psyqo::SimplePad::Event::ButtonPressed) {
+        if (m_currentBlock == 0) {
+            return;
+        }
         switch (event.button) {
             case psyqo::SimplePad::Button::Left:
                 moveLeft();
@@ -424,16 +441,70 @@ void MainGame::render() {
     g_tetris.m_font.printf(gpu, {.x = 0, .y = 0}, WHITE, "Score: %i", m_score);
 }
 
+namespace {
+
+class Pause final : public psyqo::Scene {
+    void start(Scene::StartReason reason) override {
+        s_playfield.emptyFragments();
+        g_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+            if (event.type != psyqo::SimplePad::Event::ButtonReleased) return;
+            if (event.button == psyqo::SimplePad::Start) m_unpause = true;
+        });
+    }
+    void frame() override {
+        g_mainGame.render();
+        g_tetris.m_font.print(g_tetris.gpu(), "PAUSED", {.x = 0, .y = 2 * 16}, WHITE);
+        g_tetris.m_font.print(g_tetris.gpu(), "Press", {.x = 0, .y = 4 * 16}, WHITE);
+        g_tetris.m_font.print(g_tetris.gpu(), "Start", {.x = 0, .y = 5 * 16}, WHITE);
+        g_tetris.m_font.print(g_tetris.gpu(), "to unpause", {.x = 0, .y = 6 * 16}, WHITE);
+        if (m_unpause) {
+            m_unpause = false;
+            popScene();
+        }
+    }
+    void teardown(Scene::TearDownReason reason) override {
+        s_playfield.restoreFragments();
+        g_tetris.m_input.setOnEvent(nullptr);
+    }
+    bool m_unpause = false;
+};
+Pause s_pause;
+
+class GameOver final : public psyqo::Scene {
+    void start(Scene::StartReason reason) override {
+        g_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+            if (event.type != psyqo::SimplePad::Event::ButtonReleased) return;
+            if (event.button == psyqo::SimplePad::Start) m_unpause = true;
+        });
+    }
+    void frame() override {
+        g_mainGame.render();
+        g_tetris.m_font.print(g_tetris.gpu(), "GAME OVER", {.x = 0, .y = 2 * 16}, WHITE);
+        g_tetris.m_font.print(g_tetris.gpu(), "Press", {.x = 0, .y = 4 * 16}, WHITE);
+        g_tetris.m_font.print(g_tetris.gpu(), "Start", {.x = 0, .y = 5 * 16}, WHITE);
+        g_tetris.m_font.print(g_tetris.gpu(), "to exit", {.x = 0, .y = 6 * 16}, WHITE);
+        if (m_unpause) {
+            m_unpause = false;
+            popScene();
+            popScene();
+        }
+    }
+    void teardown(Scene::TearDownReason reason) override { g_tetris.m_input.setOnEvent(nullptr); }
+    bool m_unpause = false;
+};
+GameOver s_gameOver;
+
+}  // namespace
+
 void MainGame::frame() {
     render();
     if (m_gameOver) {
         m_gameOver = false;
-        // popScene();
-        // pushScene(s_gameOver);
+        pushScene(&s_gameOver);
     }
     if (m_paused) {
         m_paused = false;
-        // pushScene(s_pause);
+        pushScene(&s_pause);
     }
 }
 

@@ -66,18 +66,19 @@ class Tetris final : public psyqo::Application {
     psyqo::SimplePad m_input;
     psyqo::Font<> m_font;
 };
-
 extern Tetris g_tetris;
 
 class MainGame final : public psyqo::Scene {
+  public:
+    void render();
+
+  private:
     void start(Scene::StartReason reason) override;
     void frame() override;
     void teardown(Scene::TearDownReason reason) override;
 
     void tick();
     void buttonEvent(const psyqo::SimplePad::Event& event);
-
-    void render();
 
     void createBlock();
     void moveLeft();
@@ -97,3 +98,4 @@ class MainGame final : public psyqo::Scene {
     bool m_paused = false;
     bool m_bottomHitOnce = false;
 };
+extern MainGame g_mainGame;

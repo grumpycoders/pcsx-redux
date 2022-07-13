@@ -79,7 +79,6 @@ SplashScreen s_splashScreen;
 MainMenu s_mainMenu;
 Options s_options;
 Credits s_credits;
-MainGame s_mainGame;
 
 }  // namespace
 
@@ -205,7 +204,7 @@ void MainMenu::frame() {
         m_startPressed = false;
         switch (m_menuEntry) {
             case 0:
-                pushScene(&s_mainGame);
+                pushScene(&g_mainGame);
                 break;
             case 1:
                 pushScene(&s_options);
