@@ -603,7 +603,7 @@ void PCSX::OpenGL_GPU::vblank() {
     float height = m_displayArea.height / 512.0f;
 
     const auto tex = m_multisampled ? m_vramTextureNoMSAA.handle() : m_vramTexture.handle();
-    m_gui->m_offscreenShaderEditor.render(m_gui, tex, {0, 0}, {1, 1}, m_gui->getRenderSize());
+    m_gui->m_offscreenShaderEditor.render(m_gui, tex, {startX, startY}, {width, height}, m_gui->getRenderSize());
 }
 
 void PCSX::OpenGL_GPU::renderBatch() {
