@@ -261,6 +261,7 @@ void psyqo::GPU::getNextClear(Prim::FastFill &ff, Color bg) const {
 }
 
 void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect rect) {
+    if (rect.isEmpty()) return;
     bool done = false;
     uploadToVRAM(
         data, rect,
@@ -276,6 +277,11 @@ void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect rect) {
 
 void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect region, eastl::function<void()> &&callback,
                               DMA::DmaCallback dmaCallback) {
+    if (region.isEmpty()) {
+        Kernel::assert(dmaCallback == DMA::FROM_MAIN_LOOP, "Empty DMA transfer with ISR callback aren't supported");
+        Kernel::queueCallback(eastl::move(callback));
+        return;
+    }
     uintptr_t ptr = reinterpret_cast<uintptr_t>(data);
     Kernel::assert(!m_dmaCallback, "Only one GPU DMA transfer at a time is permitted");
     Kernel::assert((ptr & 3) == 0, "Unaligned DMA transfer");
