@@ -97,6 +97,7 @@ void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color)
         },
         DMA::FROM_ISR);
     while (!done) {
+        gpu.pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     }
 }
@@ -151,6 +152,7 @@ void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, const char* for
         },
         DMA::FROM_ISR, format, ap);
     while (!done) {
+        gpu.pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     }
 }

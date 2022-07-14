@@ -392,6 +392,8 @@ class GPU {
      */
     void cancelTimer(uintptr_t id);
 
+    void pumpCallbacks();
+
   private:
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,

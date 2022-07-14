@@ -144,37 +144,10 @@ eastl::fixed_list<Timer, 32> s_timers;
 }  // namespace
 
 void psyqo::GPU::flip() {
-    uint32_t lastHSyncCounter = m_lastHSyncCounter;
-    uint32_t lastNow = m_currentTime;
     do {
-        uint32_t hsyncCounter = COUNTERS[1].value;
-        if (hsyncCounter < lastHSyncCounter) {
-            hsyncCounter += 0x10000;
-        }
-        uint32_t currentTime = m_currentTime = lastNow + (hsyncCounter - lastHSyncCounter) * 64;
-        bool done = false;
-        while (!done) {
-            done = true;
-            for (auto it = s_timers.begin(); it != s_timers.end(); it++) {
-                auto &timer = *it;
-                if (timer.paused) continue;
-                if ((int32_t)(timer.deadline - currentTime) <= 0) {
-                    if (timer.periodic) {
-                        timer.deadline += timer.period;
-                    }
-                    timer.callback(currentTime);
-                    if (!timer.periodic) {
-                        s_timers.erase(it);
-                    }
-                    done = false;
-                    break;
-                }
-            }
-        }
-        Kernel::pumpCallbacks();
+        pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     } while ((m_previousFrameCount == m_frameCount) || (m_chainStatus == CHAIN_TRANSFERRING));
-    m_lastHSyncCounter = COUNTERS[1].value;
     m_chainStatus = CHAIN_IDLE;
     eastl::atomic_signal_fence(eastl::memory_order_release);
 
@@ -271,6 +244,7 @@ void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect rect) {
         },
         DMA::FROM_ISR);
     while (!done) {
+        pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     }
 }
@@ -328,6 +302,7 @@ void psyqo::GPU::sendFragment(const uint32_t *data, size_t count) {
         },
         DMA::FROM_ISR);
     while (!done) {
+        pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     }
 }
@@ -387,6 +362,7 @@ void psyqo::GPU::sendChain() {
         },
         DMA::FROM_ISR);
     while (!done) {
+        pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     }
 }
@@ -477,4 +453,34 @@ void psyqo::GPU::cancelTimer(uintptr_t id) {
         s_timers.erase(it);
         return;
     }
+}
+
+void psyqo::GPU::pumpCallbacks() {
+    uint32_t lastHSyncCounter = m_lastHSyncCounter;
+    uint32_t hsyncCounter = COUNTERS[1].value;
+    if (hsyncCounter < lastHSyncCounter) {
+        hsyncCounter += 0x10000;
+    }
+    uint32_t currentTime = m_currentTime = m_currentTime + (hsyncCounter - lastHSyncCounter) * 64;
+    bool done = false;
+    while (!done) {
+        done = true;
+        for (auto it = s_timers.begin(); it != s_timers.end(); it++) {
+            auto &timer = *it;
+            if (timer.paused) continue;
+            if ((int32_t)(timer.deadline - currentTime) <= 0) {
+                if (timer.periodic) {
+                    timer.deadline += timer.period;
+                }
+                timer.callback(currentTime);
+                if (!timer.periodic) {
+                    s_timers.erase(it);
+                }
+                done = false;
+                break;
+            }
+        }
+    }
+    Kernel::pumpCallbacks();
+    m_lastHSyncCounter = hsyncCounter;
 }
