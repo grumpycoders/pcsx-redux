@@ -78,6 +78,7 @@ struct Rect {
     union {
         Vertex b, size;
     };
+    bool isEmpty() { return (size.w == 0) && (size.h == 0); }
 };
 static_assert(sizeof(Rect) == sizeof(uint64_t), "Rect is not 64 bits");
 
