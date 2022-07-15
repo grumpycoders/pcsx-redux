@@ -24,43 +24,28 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include "gameover.hh"
 
-#include <stdint.h>
+#include "tetris.hh"
 
-#include "psyqo/scene.hh"
-#include "psyqo/simplepad.hh"
+void GameOver::start(Scene::StartReason reason) {
+    g_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+        if (event.type != psyqo::SimplePad::Event::ButtonReleased) return;
+        if (event.button == psyqo::SimplePad::Start) m_unpause = true;
+    });
+}
 
-class MainGame final : public psyqo::Scene {
-  public:
-    void render();
+void GameOver::frame() {
+    g_tetris.m_mainGame.render();
+    g_tetris.m_font.print(g_tetris.gpu(), "GAME OVER", {.x = 0, .y = 2 * 16}, WHITE);
+    g_tetris.m_font.print(g_tetris.gpu(), "Press", {.x = 0, .y = 4 * 16}, WHITE);
+    g_tetris.m_font.print(g_tetris.gpu(), "Start", {.x = 0, .y = 5 * 16}, WHITE);
+    g_tetris.m_font.print(g_tetris.gpu(), "to exit", {.x = 0, .y = 6 * 16}, WHITE);
+    if (m_unpause) {
+        m_unpause = false;
+        popScene();
+        popScene();
+    }
+}
 
-  private:
-    void start(Scene::StartReason reason) override;
-    void frame() override;
-    void teardown(Scene::TearDownReason reason) override;
-
-    void tick();
-    void buttonEvent(const psyqo::SimplePad::Event& event);
-
-    void createBlock();
-    void moveLeft();
-    void moveRight();
-    void rotateLeft();
-    void rotateRight();
-    void rotate(unsigned rotation);
-    void recomputePeriod();
-
-    unsigned m_timer;
-    unsigned m_score;
-    uint32_t m_period;
-    uint32_t m_fastPeriod;
-    uint8_t m_currentBlock, m_blockRotation;
-    int8_t m_blockX, m_blockY;
-    bool m_gameOver = false;
-    bool m_paused = false;
-    bool m_bottomHitOnce = false;
-    bool m_needsToUpdateFieldFragment = false;
-    bool m_needsToUpdateBlockFragment = false;
-};
-extern MainGame g_mainGame;
+void GameOver::teardown(Scene::TearDownReason reason) { g_tetris.m_input.setOnEvent(nullptr); }

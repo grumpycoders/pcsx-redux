@@ -26,41 +26,43 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
-
-#include "psyqo/scene.hh"
+#include "credits.hh"
+#include "game.hh"
+#include "gameover.hh"
+#include "mainmenu.hh"
+#include "options.hh"
+#include "pause.hh"
+#include "playfield.hh"
+#include "psyqo/application.hh"
+#include "psyqo/font.hh"
 #include "psyqo/simplepad.hh"
+#include "rand.hh"
+#include "splash.hh"
 
-class MainGame final : public psyqo::Scene {
+class Tetris final : public psyqo::Application {
+    void prepare() override;
+    void createScene() override;
+
+    bool m_initialized = false;
+
   public:
-    void render();
+    void renderTetrisLogo(psyqo::GPU& gpu);
+    psyqo::Color getBlink(psyqo::GPU& gpu, unsigned scale = 1);
 
-  private:
-    void start(Scene::StartReason reason) override;
-    void frame() override;
-    void teardown(Scene::TearDownReason reason) override;
+    psyqo::SimplePad m_input;
+    psyqo::Font<> m_font;
 
-    void tick();
-    void buttonEvent(const psyqo::SimplePad::Event& event);
+    Rand m_rand;
 
-    void createBlock();
-    void moveLeft();
-    void moveRight();
-    void rotateLeft();
-    void rotateRight();
-    void rotate(unsigned rotation);
-    void recomputePeriod();
+    SplashScreen m_splash;
+    MainMenu m_mainMenu;
+    Options m_options;
+    Credits m_credits;
+    MainGame m_mainGame;
+    Pause m_pause;
+    GameOver m_gameOver;
 
-    unsigned m_timer;
-    unsigned m_score;
-    uint32_t m_period;
-    uint32_t m_fastPeriod;
-    uint8_t m_currentBlock, m_blockRotation;
-    int8_t m_blockX, m_blockY;
-    bool m_gameOver = false;
-    bool m_paused = false;
-    bool m_bottomHitOnce = false;
-    bool m_needsToUpdateFieldFragment = false;
-    bool m_needsToUpdateBlockFragment = false;
+    Playfield<10, 20> m_playfield;
 };
-extern MainGame g_mainGame;
+
+extern Tetris g_tetris;

@@ -24,43 +24,31 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include "options.hh"
 
-#include <stdint.h>
+#include "tetris.hh"
 
-#include "psyqo/scene.hh"
-#include "psyqo/simplepad.hh"
+void Options::menuUp() {}
+void Options::menuDown() {}
 
-class MainGame final : public psyqo::Scene {
-  public:
-    void render();
+void Options::start(Scene::StartReason reason) {
+    g_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+        if (event.type == psyqo::SimplePad::Event::ButtonReleased) {
+            switch (event.button) {
+                case psyqo::SimplePad::Button::Start:
+                    m_startPressed = true;
+                    break;
+                case psyqo::SimplePad::Button::Up:
+                    menuUp();
+                    break;
+                case psyqo::SimplePad::Button::Down:
+                    menuDown();
+                    break;
+            }
+        }
+    });
+}
 
-  private:
-    void start(Scene::StartReason reason) override;
-    void frame() override;
-    void teardown(Scene::TearDownReason reason) override;
+void Options::frame() { popScene(); }
 
-    void tick();
-    void buttonEvent(const psyqo::SimplePad::Event& event);
-
-    void createBlock();
-    void moveLeft();
-    void moveRight();
-    void rotateLeft();
-    void rotateRight();
-    void rotate(unsigned rotation);
-    void recomputePeriod();
-
-    unsigned m_timer;
-    unsigned m_score;
-    uint32_t m_period;
-    uint32_t m_fastPeriod;
-    uint8_t m_currentBlock, m_blockRotation;
-    int8_t m_blockX, m_blockY;
-    bool m_gameOver = false;
-    bool m_paused = false;
-    bool m_bottomHitOnce = false;
-    bool m_needsToUpdateFieldFragment = false;
-    bool m_needsToUpdateBlockFragment = false;
-};
-extern MainGame g_mainGame;
+void Options::teardown(Scene::TearDownReason reason) { g_tetris.m_input.setOnEvent(nullptr); }

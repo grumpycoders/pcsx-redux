@@ -26,41 +26,11 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
-
 #include "psyqo/scene.hh"
-#include "psyqo/simplepad.hh"
 
-class MainGame final : public psyqo::Scene {
-  public:
-    void render();
-
-  private:
+class GameOver final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
     void frame() override;
     void teardown(Scene::TearDownReason reason) override;
-
-    void tick();
-    void buttonEvent(const psyqo::SimplePad::Event& event);
-
-    void createBlock();
-    void moveLeft();
-    void moveRight();
-    void rotateLeft();
-    void rotateRight();
-    void rotate(unsigned rotation);
-    void recomputePeriod();
-
-    unsigned m_timer;
-    unsigned m_score;
-    uint32_t m_period;
-    uint32_t m_fastPeriod;
-    uint8_t m_currentBlock, m_blockRotation;
-    int8_t m_blockX, m_blockY;
-    bool m_gameOver = false;
-    bool m_paused = false;
-    bool m_bottomHitOnce = false;
-    bool m_needsToUpdateFieldFragment = false;
-    bool m_needsToUpdateBlockFragment = false;
+    bool m_unpause = false;
 };
-extern MainGame g_mainGame;

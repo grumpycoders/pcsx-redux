@@ -24,7 +24,7 @@ SOFTWARE.
 
 */
 
-#include "game.hh"
+#include "pieces.hh"
 
 const uint8_t PIECES[7][4][4][4] = {
     {
