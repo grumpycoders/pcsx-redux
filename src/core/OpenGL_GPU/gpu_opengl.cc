@@ -258,7 +258,7 @@ int PCSX::OpenGL_GPU::init() {
                int clutIndex = (sample >> shift) & 0xf;
 
                ivec2 sampleCoords = ivec2(clutBase.x + clutIndex, clutBase.y);
-               FragColor = sampleVRAM(sampleCoords);
+               FragColor = texelFetch(u_vramTex, sampleCoords, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                BlendColor = FragColor.a >= 0.5 ? u_blendFactors : vec4(1.0, 1.0, 1.0, 0.0);
@@ -271,7 +271,7 @@ int PCSX::OpenGL_GPU::init() {
                int clutIndex = (sample >> shift) & 0xff;
 
                ivec2 sampleCoords = ivec2(clutBase.x + clutIndex, clutBase.y);
-               FragColor = sampleVRAM(sampleCoords);
+               FragColor = texelFetch(u_vramTex, sampleCoords, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
                BlendColor = FragColor.a >= 0.5 ? u_blendFactors : vec4(1.0, 1.0, 1.0, 0.0);

@@ -389,6 +389,8 @@ void PCSX::OpenGL_GPU::initCommands() {
         &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::TextureBlendFlat, Transparency::Opaque>;
     m_cmdFuncs[0x65] =
         &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Opaque>;
+    m_cmdFuncs[0x66] =
+        &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::TextureBlendFlat, Transparency::Transparent>;
     m_cmdFuncs[0x67] =
         &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Transparent>;
 
@@ -404,7 +406,10 @@ void PCSX::OpenGL_GPU::initCommands() {
 }
 
 void PCSX::OpenGL_GPU::cmdNop() {}
-void PCSX::OpenGL_GPU::cmdClearTexCache() { m_syncVRAM = true; }
+void PCSX::OpenGL_GPU::cmdClearTexCache() {
+    renderBatch();
+    m_syncVRAM = true;
+}
 
 void PCSX::OpenGL_GPU::cmdSetDrawMode() {
     m_rectTexpage = m_cmdFIFO[0] & 0x3fff;
