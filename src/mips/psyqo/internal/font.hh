@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-template <size_t Fragments>
+template <size_t N>
 class psyqo::Font : public psyqo::FontBase {
   public:
     virtual ~Font() {}
@@ -35,7 +35,7 @@ class psyqo::Font : public psyqo::FontBase {
     virtual GlyphsFragment& getGlyphFragment(bool increment) override {
         auto& fragment = m_fragments[m_index];
         if (increment) {
-            if (++m_index == Fragments) {
+            if (++m_index == N) {
                 m_index = 0;
             }
         }
@@ -46,6 +46,6 @@ class psyqo::Font : public psyqo::FontBase {
             cb(fragment);
         }
     }
-    eastl::array<GlyphsFragment, Fragments> m_fragments;
+    eastl::array<GlyphsFragment, N> m_fragments;
     unsigned m_index = 0;
 };
