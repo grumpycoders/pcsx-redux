@@ -43,8 +43,8 @@ void GameOver::frame() {
     g_tetris.m_font.print(g_tetris.gpu(), "to exit", {.x = 0, .y = 6 * 16}, WHITE);
     if (m_unpause) {
         m_unpause = false;
-        popScene();
-        popScene();
+        while (popScene())
+            ;
     }
 }
 

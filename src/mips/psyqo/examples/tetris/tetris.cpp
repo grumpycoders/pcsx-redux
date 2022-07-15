@@ -43,6 +43,7 @@ void Tetris::createScene() {
     if (!m_initialized) {
         m_font.uploadSystemFont(gpu());
         m_input.initialize();
+        m_initialized = true;
     }
     pushScene(&m_splash);
 }
