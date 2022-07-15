@@ -74,7 +74,7 @@ struct FixedFragmentWithPrologue {
     }
     typedef T FragmentBaseType;
     size_t getActualFragmentSize() const { return (sizeof(P) + sizeof(T) * count) / sizeof(uint32_t); }
-    unsigned count;
+    unsigned count = N;
     uint32_t head;
     P prologue;
     eastl::array<T, N> primitives;
@@ -89,7 +89,7 @@ struct FixedFragment {
     }
     typedef T FragmentBaseType;
     size_t getActualFragmentSize() const { return (sizeof(T) * count) / sizeof(uint32_t); }
-    unsigned count;
+    unsigned count = N;
     uint32_t head;
     eastl::array<T, N> primitives;
 };
