@@ -264,9 +264,9 @@ void MainGame::tick() {
         if (s_playfield.collision(m_currentBlock, m_blockX, m_blockY, m_blockRotation)) {
             m_gameOver = true;
             s_playfield.fillRandom();
-            s_playfield.updateFieldFragment();
+            m_needsToUpdateFieldFragment = true;
         }
-        s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+        m_needsToUpdateBlockFragment = true;
         return;
     }
     if (s_playfield.collision(m_currentBlock, m_blockX, m_blockY + 1, m_blockRotation)) {
@@ -291,14 +291,14 @@ void MainGame::tick() {
             m_bottomHitOnce = false;
             m_currentBlock = 0;
             g_tetris.gpu().changeTimerPeriod(m_timer, m_period);
-            s_playfield.updateFieldFragment();
-            s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+            m_needsToUpdateFieldFragment = true;
+            m_needsToUpdateBlockFragment = true;
         } else {
             m_bottomHitOnce = true;
         }
     } else {
         m_blockY++;
-        s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+        m_needsToUpdateBlockFragment = true;
     }
 }
 
@@ -369,7 +369,7 @@ void MainGame::moveLeft() {
         return;
     }
     m_blockX--;
-    s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+    m_needsToUpdateBlockFragment = true;
 }
 
 void MainGame::moveRight() {
@@ -377,7 +377,7 @@ void MainGame::moveRight() {
         return;
     }
     m_blockX++;
-    s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+    m_needsToUpdateBlockFragment = true;
 }
 
 void MainGame::rotateLeft() {
@@ -414,7 +414,7 @@ void MainGame::rotate(unsigned rotation) {
         m_blockX += shiftX;
     }
     m_blockRotation = rotation;
-    s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+    m_needsToUpdateBlockFragment = true;
 }
 
 void MainGame::start(Scene::StartReason reason) {
@@ -422,11 +422,12 @@ void MainGame::start(Scene::StartReason reason) {
     if (reason == Scene::StartReason::Create) {
         s_seed = INITIAL_SEED * gpu.now();
         s_playfield.clear();
-        s_playfield.updateFieldFragment();
         m_period = 1'000'000;
         m_score = 0;
         m_currentBlock = 0;
         m_timer = gpu.armPeriodicTimer(m_period, [this](uint32_t) { tick(); });
+        m_needsToUpdateBlockFragment = true;
+        m_needsToUpdateFieldFragment = true;
         tick();
     } else {
         gpu.resumeTimer(m_timer);
@@ -497,6 +498,14 @@ GameOver s_gameOver;
 }  // namespace
 
 void MainGame::frame() {
+    if (m_needsToUpdateFieldFragment) {
+        m_needsToUpdateFieldFragment = false;
+        s_playfield.updateFieldFragment();
+    }
+    if (m_needsToUpdateBlockFragment) {
+        m_needsToUpdateBlockFragment = false;
+        s_playfield.updateBlockFragment(m_currentBlock, m_blockX, m_blockY, m_blockRotation);
+    }
     render();
     if (m_gameOver) {
         m_gameOver = false;

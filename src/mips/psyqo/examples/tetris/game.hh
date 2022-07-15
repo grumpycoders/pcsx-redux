@@ -97,5 +97,7 @@ class MainGame final : public psyqo::Scene {
     bool m_gameOver = false;
     bool m_paused = false;
     bool m_bottomHitOnce = false;
+    bool m_needsToUpdateFieldFragment = false;
+    bool m_needsToUpdateBlockFragment = false;
 };
 extern MainGame g_mainGame;
