@@ -48,27 +48,27 @@ void Tetris::createScene() {
     pushScene(&m_splash);
 }
 
-void Tetris::renderTetrisLogo(psyqo::GPU& gpu) {
-    auto& font = g_tetris.m_font;
+void Tetris::renderTetrisLogo() {
+    auto& font = m_font;
 
-    font.print(gpu, "T", {{.x = 17 * 8, .y = 5 * 16}}, RED);
-    font.print(gpu, "E", {{.x = 18 * 8, .y = 5 * 16}}, ORANGE);
-    font.print(gpu, "T", {{.x = 19 * 8, .y = 5 * 16}}, YELLOW);
-    font.print(gpu, "R", {{.x = 20 * 8, .y = 5 * 16}}, GREEN);
-    font.print(gpu, "I", {{.x = 21 * 8, .y = 5 * 16}}, CYAN);
-    font.print(gpu, "S", {{.x = 22 * 8, .y = 5 * 16}}, PURPLE);
+    font.print(gpu(), "T", {{.x = 17 * 8, .y = 5 * 16}}, RED);
+    font.print(gpu(), "E", {{.x = 18 * 8, .y = 5 * 16}}, ORANGE);
+    font.print(gpu(), "T", {{.x = 19 * 8, .y = 5 * 16}}, YELLOW);
+    font.print(gpu(), "R", {{.x = 20 * 8, .y = 5 * 16}}, GREEN);
+    font.print(gpu(), "I", {{.x = 21 * 8, .y = 5 * 16}}, CYAN);
+    font.print(gpu(), "S", {{.x = 22 * 8, .y = 5 * 16}}, PURPLE);
 
-    font.print(gpu, "T", {{.x = 17 * 8 - 1, .y = 5 * 16 - 1}}, HIRED);
-    font.print(gpu, "E", {{.x = 18 * 8 - 1, .y = 5 * 16 - 1}}, HIORANGE);
-    font.print(gpu, "T", {{.x = 19 * 8 - 1, .y = 5 * 16 - 1}}, HIYELLOW);
-    font.print(gpu, "R", {{.x = 20 * 8 - 1, .y = 5 * 16 - 1}}, HIGREEN);
-    font.print(gpu, "I", {{.x = 21 * 8 - 1, .y = 5 * 16 - 1}}, HICYAN);
-    font.print(gpu, "S", {{.x = 22 * 8 - 1, .y = 5 * 16 - 1}}, HIPURPLE);
+    font.print(gpu(), "T", {{.x = 17 * 8 - 1, .y = 5 * 16 - 1}}, HIRED);
+    font.print(gpu(), "E", {{.x = 18 * 8 - 1, .y = 5 * 16 - 1}}, HIORANGE);
+    font.print(gpu(), "T", {{.x = 19 * 8 - 1, .y = 5 * 16 - 1}}, HIYELLOW);
+    font.print(gpu(), "R", {{.x = 20 * 8 - 1, .y = 5 * 16 - 1}}, HIGREEN);
+    font.print(gpu(), "I", {{.x = 21 * 8 - 1, .y = 5 * 16 - 1}}, HICYAN);
+    font.print(gpu(), "S", {{.x = 22 * 8 - 1, .y = 5 * 16 - 1}}, HIPURPLE);
 }
 
-psyqo::Color Tetris::getBlink(psyqo::GPU& gpu, unsigned scale) {
+psyqo::Color Tetris::getBlink(unsigned scale) {
     psyqo::Color c;
-    uint32_t time = scale * gpu.getFrameCount() / gpu.getRefreshRate();
+    uint32_t time = scale * gpu().getFrameCount() / gpu().getRefreshRate();
     if ((time & 1) == 0) {
         c = WHITE;
     } else {
