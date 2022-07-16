@@ -77,10 +77,9 @@ class FontBase {
 
   protected:
     struct GlyphsFragmentPrologue {
-        Prim::Scissor disableScissor;
-        Prim::Pixel clutWriter;
+        Prim::VRAMUpload upload;
+        uint32_t pixel;
         Prim::FlushCache flushCache;
-        Prim::Scissor enableScissor;
         Prim::TPage tpage;
     };
     typedef Fragments::FixedFragmentWithPrologue<GlyphsFragmentPrologue, Prim::Sprite, 48> GlyphsFragment;

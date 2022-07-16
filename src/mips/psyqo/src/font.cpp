@@ -33,7 +33,7 @@ SOFTWARE.
 #include "system-font.c"
 
 void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
-    Vertex clutPosition = {{.x = 961, .y = 464}};
+    const Vertex clutPosition = {{.x = 960, .y = 464}};
     Prim::ClutIndex clut(clutPosition);
     for (unsigned i = 0; i < 96; i++) {
         Prim::TexInfo texInfo = {.u = 0, .v = 208, .clut = clut};
@@ -44,7 +44,9 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
     }
     auto size = m_size = {{.w = 8, .h = 16}};
     forEach([this, clutPosition](auto& fragment) {
-        fragment.prologue.clutWriter.position = clutPosition;
+        fragment.prologue.upload.region.pos = clutPosition;
+        fragment.prologue.upload.region.size = {{.w = 2, .h = 1}};
+        fragment.prologue.pixel = 0x7fff0000;
         psyqo::Prim::TPageAttr attr;
         attr.setPageX(15).setPageY(1).set(psyqo::Prim::TPageAttr::Tex4Bits).setDithering(false).enableDisplayArea();
         fragment.prologue.tpage.attr = attr;
@@ -135,11 +137,11 @@ void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, const char*
         f.texInfo = p;
     }
     fragment.count = i;
-    color.r >>= 1;
-    color.g >>= 1;
-    color.b >>= 1;
-    fragment.prologue.clutWriter.setColor(color);
-    gpu.getScissor(fragment.prologue.enableScissor);
+    color.r >>= 4;
+    color.g >>= 4;
+    color.b >>= 4;
+    uint32_t pixel = color.r | (color.g << 5) | (color.b << 10);
+    fragment.prologue.pixel = pixel << 16;
 }
 
 void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, const char* format, va_list ap) {
@@ -174,7 +176,6 @@ struct psyqo::FontBase::XPrintfInfo {
     psyqo::FontBase::GlyphsFragment& fragment;
     GPU& gpu;
     psyqo::Vertex pos;
-    psyqo::Color color;
     psyqo::FontBase* self;
 };
 
@@ -183,12 +184,12 @@ extern "C" int vxprintf(void (*func)(const char*, int, void*), void* arg, const 
 void psyqo::FontBase::innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex pos, Color color, const char* format,
                                    va_list ap) {
     fragment.count = 0;
-    color.r >>= 1;
-    color.g >>= 1;
-    color.b >>= 1;
-    XPrintfInfo info{getGlyphFragment(false), gpu, pos, color, this};
-    fragment.prologue.clutWriter.setColor(info.color);
-    gpu.getScissor(fragment.prologue.enableScissor);
+    color.r >>= 4;
+    color.g >>= 4;
+    color.b >>= 4;
+    uint32_t pixel = color.r | (color.g << 5) | (color.b << 10);
+    fragment.prologue.pixel = pixel << 16;
+    XPrintfInfo info{getGlyphFragment(false), gpu, pos, this};
     vxprintf(
         [](const char* str, int len, void* info_) {
             auto& info = *static_cast<XPrintfInfo*>(info_);
@@ -196,7 +197,6 @@ void psyqo::FontBase::innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex po
             auto& primitives = info.fragment.primitives;
             auto maxSize = primitives.size();
             auto& pos = info.pos;
-            auto& color = info.color;
             auto self = info.self;
             unsigned i;
             for (i = 0; i < len; i++) {
