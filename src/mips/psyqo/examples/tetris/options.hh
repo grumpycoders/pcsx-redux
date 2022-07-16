@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include "psyqo/scene.hh"
 
+// The options scene is currently empty and a placeholder.
 class Options final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
     void frame() override;

@@ -28,9 +28,11 @@ SOFTWARE.
 
 #include "psyqo/scene.hh"
 
+// The game over scene. It is very similar to the `Pause` scene.
 class GameOver final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
     void frame() override;
     void teardown(Scene::TearDownReason reason) override;
+
     bool m_unpause = false;
 };

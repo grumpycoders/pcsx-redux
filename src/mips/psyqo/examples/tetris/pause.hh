@@ -28,9 +28,11 @@ SOFTWARE.
 
 #include "psyqo/scene.hh"
 
+// The pause scene. See the file pause.cpp for more information.
 class Pause final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
     void frame() override;
     void teardown(Scene::TearDownReason reason) override;
+
     bool m_unpause = false;
 };

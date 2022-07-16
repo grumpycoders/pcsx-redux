@@ -28,6 +28,10 @@ SOFTWARE.
 
 #include "psyqo/scene.hh"
 
+// This is a simple scene that will display the
+// logo, and wait for the user to press the start
+// button to go to the main menu. See the implementation
+// code in splash.cpp for details.
 class SplashScreen final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
     void frame() override;

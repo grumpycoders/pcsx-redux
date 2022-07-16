@@ -39,30 +39,58 @@ SOFTWARE.
 #include "rand.hh"
 #include "splash.hh"
 
+// This is our top application class. It's what will run as the software starts.
+// See tetris.cpp for details on the main function and the details on the
+// methods implementations.
+
 class Tetris final : public psyqo::Application {
+    // These two methods are called by the PSYQo framework.
     void prepare() override;
     void createScene() override;
 
+    // We keep track of how many times we've been called to
+    // avoid initializing the hardware multiple times.
     bool m_initialized = false;
 
   public:
+    // A helper used in multiple scenes to draw the main logo.
     void renderTetrisLogo();
+    // A helper used in multiple scenes to get a blinking color.
     psyqo::Color getBlink(unsigned scale = 1);
 
+    // We're going to use the SimplePad interface to handle the input.
     psyqo::SimplePad m_input;
+    // The font renderer. We instantiate it with the defaut amount of
+    // fragments, but we're not actually using that many.
     psyqo::Font<> m_font;
 
+    // Everything else here is the Tetris implementation details.
+
+    // We're going to use a global random number generator, stored here.
     Rand m_rand;
 
+    // The splash screen scene. It'll be the first thing to be displayed.
     SplashScreen m_splash;
+    // The main menu scene. It comes right after the splash screen.
     MainMenu m_mainMenu;
+    // The options scene. It's one of the main menu entries.
     Options m_options;
+    // The credits scene. It's one of the main menu entries.
     Credits m_credits;
+    // The main game. Started from the main scene. It's the most
+    // complex one in the whole example.
     MainGame m_mainGame;
+    // The pause scene. It will be pushed on top of the main game scene.
     Pause m_pause;
+    // The game over scene. It will be pushed on top of the main game scene.
     GameOver m_gameOver;
 
+    // This represents the global playfield state. It's a completely custom
+    // class, implemented in the playfield.hh file.
     Playfield<10, 20> m_playfield;
 };
 
+// We're only going to use a single global to hold everything. It'll
+// be defined in tetris.cpp, and this is its definition for all the
+// other modules in this project.
 extern Tetris g_tetris;

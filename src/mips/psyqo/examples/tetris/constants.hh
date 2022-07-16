@@ -30,6 +30,8 @@ SOFTWARE.
 
 #include "psyqo/primitives/common.hh"
 
+// This file holds all of the constants used throughout the example.
+
 static constexpr psyqo::Color HIRED = {{.r = 240, .g = 0, .b = 0}};
 static constexpr psyqo::Color HIORANGE = {{.r = 240, .g = 160, .b = 0}};
 static constexpr psyqo::Color HIYELLOW = {{.r = 240, .g = 240, .b = 0}};

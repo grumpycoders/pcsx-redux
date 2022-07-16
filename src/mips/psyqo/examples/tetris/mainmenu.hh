@@ -29,6 +29,10 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 #include "psyqo/scene.hh"
 
+// This is the main menu scene. It's a bit more complex than the others,
+// but still way less complex than the MainGame scene. It's keeping
+// track of the currently highlighted menu, and switches scenes
+// according to the button presses.
 class MainMenu final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
     void frame() override;

@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "pieces.hh"
 
+// See `pieces.hh` for the details. This is a simple look up table
+// for all possible tetris pieces.
 const uint8_t PIECES[7][4][4][4] = {
     {
         {

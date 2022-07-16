@@ -28,4 +28,9 @@ SOFTWARE.
 
 #include <stdint.h>
 
+// The tetromino shapes are defined with all their possible
+// rotations. The definition of this array is in the file `pieces.cpp`.
+// The first element of the array is the tetromino number, between
+// 0 and 6. The second and third elements are the y, x accessors in
+// a 4x4 matrix. The fourth element is the rotation number, between 0 and 3.
 extern const uint8_t PIECES[7][4][4][4];

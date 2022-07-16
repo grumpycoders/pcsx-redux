@@ -29,8 +29,10 @@ SOFTWARE.
 #include "constants.hh"
 #include "tetris.hh"
 
+// The Credits scene is empty for now and only a placeholder.
 void Credits::start(Scene::StartReason reason) {
     g_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
+        if (event.pad != psyqo::SimplePad::Pad::Pad1) return;
         if (event.type == psyqo::SimplePad::Event::ButtonReleased) m_leave = true;
     });
 }
