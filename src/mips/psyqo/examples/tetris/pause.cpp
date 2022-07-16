@@ -38,10 +38,10 @@ void Pause::start(Scene::StartReason reason) {
 }
 void Pause::frame() {
     g_tetris.m_mainGame.render();
-    g_tetris.m_font.print(g_tetris.gpu(), "PAUSED", {.x = 0, .y = 2 * 16}, WHITE);
-    g_tetris.m_font.print(g_tetris.gpu(), "Press", {.x = 0, .y = 4 * 16}, WHITE);
-    g_tetris.m_font.print(g_tetris.gpu(), "Start", {.x = 0, .y = 5 * 16}, WHITE);
-    g_tetris.m_font.print(g_tetris.gpu(), "to unpause", {.x = 0, .y = 6 * 16}, WHITE);
+    g_tetris.m_font.print(g_tetris.gpu(), "PAUSED", {{.x = 0, .y = 2 * 16}}, WHITE);
+    g_tetris.m_font.print(g_tetris.gpu(), "Press", {{.x = 0, .y = 4 * 16}}, WHITE);
+    g_tetris.m_font.print(g_tetris.gpu(), "Start", {{.x = 0, .y = 5 * 16}}, WHITE);
+    g_tetris.m_font.print(g_tetris.gpu(), "to unpause", {{.x = 0, .y = 6 * 16}}, WHITE);
     if (m_unpause) {
         m_unpause = false;
         popScene();

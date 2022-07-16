@@ -96,7 +96,7 @@ void PadTest::createScene() {
 // a matrix of characters instead.
 void PadTestScene::print(int x, int y, bool enabled, const char* text) {
     y += 2;
-    psyqo::Vertex pos = {.x = int16_t(x * 8), .y = int16_t(y * 16)};
+    psyqo::Vertex pos = {{.x = int16_t(x * 8), .y = int16_t(y * 16)}};
     // Doing these lazy initializations is great for readability and encapsulation,
     // but due to the way C++ works, it'll call into the C++ guard functions every
     // time the function gets called, which may be slower than it could if those

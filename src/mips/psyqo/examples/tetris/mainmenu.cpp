@@ -61,8 +61,8 @@ void MainMenu::menuDown() {
 void MainMenu::render(psyqo::GPU& gpu) {
     auto& font = g_tetris.m_font;
     gpu.clear();
-    g_tetris.renderTetrisLogo(gpu);
-    auto c = g_tetris.getBlink(gpu, 4);
+    g_tetris.renderTetrisLogo();
+    auto c = g_tetris.getBlink(4);
     font.print(gpu, "Start", {{.x = 140, .y = 8 * 16}}, m_menuEntry == 0 ? c : GREY);
     font.print(gpu, "Options", {{.x = 132, .y = 9 * 16}}, m_menuEntry == 1 ? c : GREY);
     font.print(gpu, "Credits", {{.x = 132, .y = 10 * 16}}, m_menuEntry == 2 ? c : GREY);

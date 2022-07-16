@@ -26,7 +26,7 @@ LDSCRIPTS = $(OVERLAYSCRIPT) $(LDSCRIPT) $(EXTRA_LDSCRIPT)
 
 USE_FUNCTION_SECTIONS ?= true
 
-ARCHFLAGS = -march=mips1 -mabi=32 -EL -fno-pic -mno-shared -mno-abicalls -mfp32
+ARCHFLAGS = -march=mips1 -mabi=32 -EL -fno-pic -mno-shared -mno-abicalls -mfp32 -mno-llsc
 ARCHFLAGS += -fno-stack-protector -nostdlib -ffreestanding
 ifeq ($(USE_FUNCTION_SECTIONS),true)
 CPPFLAGS += -ffunction-sections

@@ -209,7 +209,7 @@ void MainGame::render() {
     auto& gpu = g_tetris.gpu();
     gpu.clear();
     g_tetris.m_playfield.render(gpu);
-    g_tetris.m_font.printf(gpu, {.x = 0, .y = 0}, WHITE, "Score: %i", m_score);
+    g_tetris.m_font.printf(gpu, {{.x = 0, .y = 0}}, WHITE, "Score: %i", m_score);
 }
 
 void MainGame::frame() {

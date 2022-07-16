@@ -47,7 +47,7 @@ class Tetris final : public psyqo::Application {
 
   public:
     void renderTetrisLogo();
-    psyqo::Color getBlink(, unsigned scale = 1);
+    psyqo::Color getBlink(unsigned scale = 1);
 
     psyqo::SimplePad m_input;
     psyqo::Font<> m_font;

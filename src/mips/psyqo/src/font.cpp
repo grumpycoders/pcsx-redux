@@ -33,7 +33,7 @@ SOFTWARE.
 #include "system-font.c"
 
 void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
-    Vertex clutPosition = {.x = 961, .y = 464};
+    Vertex clutPosition = {{.x = 961, .y = 464}};
     Prim::ClutIndex clut(clutPosition);
     for (unsigned i = 0; i < 96; i++) {
         Prim::TexInfo texInfo = {.u = 0, .v = 208, .clut = clut};
@@ -42,7 +42,7 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
         texInfo.v += 16 * l;
         m_lut[i] = texInfo;
     }
-    auto size = m_size = {.w = 8, .h = 16};
+    auto size = m_size = {{.w = 8, .h = 16}};
     forEach([this, clutPosition](auto& fragment) {
         fragment.prologue.clutWriter.position = clutPosition;
         psyqo::Prim::TPageAttr attr;
@@ -54,7 +54,7 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
         }
     });
 
-    Rect region = {.pos = {.x = 960, .y = 464}, .size = {.w = 64, .h = 48}};
+    Rect region = {.pos = {{.x = 960, .y = 464}}, .size = {{.w = 64, .h = 48}}};
     Prim::VRAMUpload upload;
     upload.region = region;
     gpu.sendPrimitive(upload);

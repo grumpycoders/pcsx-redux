@@ -41,9 +41,9 @@ void SplashScreen::frame() {
     auto& gpu = g_tetris.gpu();
     auto& font = g_tetris.m_font;
     gpu.clear();
-    g_tetris.renderTetrisLogo(gpu);
+    g_tetris.renderTetrisLogo();
 
-    font.print(gpu, "Press start", {{.x = 115, .y = 7 * 16}}, g_tetris.getBlink(gpu));
+    font.print(gpu, "Press start", {{.x = 115, .y = 7 * 16}}, g_tetris.getBlink());
 
     if (m_startPressed) {
         m_startPressed = false;
