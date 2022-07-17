@@ -50,11 +50,30 @@ These scripts will behave like the `make` command, running in the same directory
 
 # Creating a project.
 
-The PSYQo library is designed to be used linked in with your own project. If you have your own build system, you simply need to build every `.cpp` file in the `src` directory. The root of the `psyqo` directory should be added to the include search path when compiling.
+The canonical method to use `PSYQo` is to use the [nugget](https://github.com/pcsx-redux/nugget) repository as a submodule for your own project, say in the `third_party` directory. You can create a `hello.cpp` file at the root of your directory that's a copy of [the example hello world](examples/hello/hello.cpp).
 
-There are some helpers to do this using `make`. The canonical method to use `PSYQo` is to use the [nugget](https://github.com/pcsx-redux/nugget) repository as a submodule for your own project, say in the `third_party` directory. You can create a `hello.cpp` file at the root of your directory that's a copy of [the example hello world](examples/hello/hello.cpp).
+Here's how to get all this going. The commands are aimed at Unix environments, but the spirit of what's going on should be very simple to understand for Windows too.
 
-Then, create a `Makefile` at the root of your project, which follows the following structure:
+First, let's create a folder for your project:
+
+```bash
+mkdir hello
+cd hello
+```
+
+Then, initialize the git repository:
+```bash
+git init
+```
+
+And then, let's add nugget as a submodule:
+```bash
+git submodule add https://github.com/pcsx-redux/nugget.git third_party/nugget
+```
+
+Now, download [the example hello world](examples/hello/hello.cpp) and drop it in your project folder.
+
+Finally, create a `Makefile` at the root of your project, which follows the following structure:
 
 ```makefile
 # The name of the binary to be created.
@@ -73,6 +92,6 @@ CXXFLAGS = -std=c++20
 include third_party/nugget/psyqo.mk
 ```
 
-Once done, you can simply run `make` (or use the `dockermake` script) in your project root to create the application.
+Once done, you can simply run `make` (or use the `dockermake` script) in your project root to create the application. This should create the binary called `hello.ps-exe`, which you can then run in the emulator of your choice, or on the real hardware using for example [unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) and [nops](https://github.com/JonathanDotCel/NOTPSXSerial).
 
 See the [examples](examples) directory for more complex project structures you can use. Since the examples are subfolders of the psyqo library, their `Makefile`s will have a different method to include the file `psyqo.mk`, but that's otherwise the only difference.
