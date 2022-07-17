@@ -28,14 +28,24 @@ SOFTWARE.
 
 #include "psyqo/scene.hh"
 
-// The options scene is currently empty and a placeholder.
+// The options scene is a simple menu to set the sound volumes.
 class Options final : public psyqo::Scene {
+  public:
+    Options() { m_musicVolume = 63; }
+
+  private:
     void start(Scene::StartReason reason) override;
     void frame() override;
     void teardown(Scene::TearDownReason reason) override;
 
     void menuUp();
     void menuDown();
+    void menuLeft();
+    void menuRight();
+    void menuSelect();
+    void menuBack();
 
-    bool m_startPressed = false;
+    unsigned m_menuEntry = 0;
+    unsigned m_musicVolume;
+    bool m_exitOptions = false;
 };

@@ -141,7 +141,7 @@ void MOD_SetMusicVolume(uint32_t musicVolume);
 // Plays an arbitrary note from the MOD's samples bank.
 // The volume will always be centered, so the sample will
 // be monaural. The voiceID ideally should be set to a
-// value that is less than MOD_Channels. Remember the PS1
+// value that is above MOD_Channels. Remember the PS1
 // has 24 channels total, so voiceID can be between 0 and 23.
 // The note is a value between 0 and 35. The exact note played
 // is on the normal 12-notes, C, C#, D, ... scale, and there
