@@ -55,11 +55,37 @@ namespace Fragments {
 /**
  * @brief A maximum fixed sized fragment of similar primitives.
  *
+ * @details This fragment is a simple sequence of identical primitives.
+ * The `count` field needs to be updated to reflect the actual number
+ * of primitives stored in the fragment's payload. The primitive type
+ * can be a compounded structure of multiple primitive types.
+ * @tparam T The primitive type.
+ * @tparam N The maximum number of primitives in the payload.
+ */
+
+template <typename T, size_t N>
+struct FixedFragment {
+    constexpr size_t maxSize() const { return N; }
+    FixedFragment() {
+        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(T) * N),
+                      "Spurious padding in fixed fragment");
+    }
+    typedef T FragmentBaseType;
+    size_t getActualFragmentSize() const { return (sizeof(T) * count) / sizeof(uint32_t); }
+    unsigned count = N;
+    uint32_t head;
+    eastl::array<T, N> primitives;
+};
+
+/**
+ * @brief A maximum fixed sized fragment of similar primitives.
+ *
  * @details This fragment contains a prologue, followed by a sequence of
  * identical primitives. The prologue typically is used to store a setup
  * for the rest of the primitives. The payload is a sequence of primitives
  * of identical type. The `count` field needs to be updated to reflect the
- * actual number of primitives stored in the fragment's payload.
+ * actual number of primitives stored in the fragment's payload. The primitive
+ * type can be a compounded structure of multiple primitive types.
  * @tparam P The prologue type.
  * @tparam T The primitive type.
  * @tparam N The maximum number of primitives in the payload.
@@ -77,20 +103,6 @@ struct FixedFragmentWithPrologue {
     unsigned count = N;
     uint32_t head;
     P prologue;
-    eastl::array<T, N> primitives;
-};
-
-template <typename T, size_t N>
-struct FixedFragment {
-    constexpr size_t maxSize() const { return N; }
-    FixedFragment() {
-        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(T) * N),
-                      "Spurious padding in fixed fragment");
-    }
-    typedef T FragmentBaseType;
-    size_t getActualFragmentSize() const { return (sizeof(T) * count) / sizeof(uint32_t); }
-    unsigned count = N;
-    uint32_t head;
     eastl::array<T, N> primitives;
 };
 

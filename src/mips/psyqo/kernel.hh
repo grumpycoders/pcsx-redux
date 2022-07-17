@@ -31,6 +31,15 @@ SOFTWARE.
 
 namespace psyqo {
 
+/**
+ * @brief The Kernel namespace for internal use.
+ *
+ * @details The Kernel namespace is technically for internal use
+ * only, but it is included in the public API for convenience.
+ * It contains various glue to the actual PS1 kernel, as well as
+ * some useful utility functions.
+ */
+
 namespace Kernel {
 
 namespace Internal {
@@ -43,12 +52,23 @@ static inline uint32_t getCop0Status() {
 static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(r)); }
 }  // namespace Internal
 
+/**
+ * @brief A faster version of `enterCriticalSection`.
+ *
+ * @details This function is technically equivalent to `enterCriticalSection`.
+ * @return false if the critical section was already entered, true otherwise.
+ */
 static inline bool fastEnterCriticalSection() {
     uint32_t sr = Internal::getCop0Status();
     Internal::setCop0Status(sr & ~0x401);
     return (sr & 0x401) == 0x401;
 }
 
+/**
+ * @brief A faster version of `leaveCriticalSection`.
+ *
+ * @details This function is technically equivalent to `leaveCriticalSection`.
+ */
 static inline void fastLeaveCriticalSection() {
     uint32_t sr = Internal::getCop0Status();
     sr |= 0x401;
@@ -66,25 +86,92 @@ enum class DMA : unsigned {
     Max,
 };
 
+/**
+ * @brief Stops the execution of the application.
+ */
 void abort(const char* msg);
+
+/**
+ * @brief A C++ wrapper around the `openEvent` syscall.
+ *
+ * @details This enables the application to register a C++ lambda
+ * for the kernel's OpenEvent call. This will allocate an internal
+ * slot, with currently no mechanism to free it. This means that
+ * calling `closeEvent` on the resulting event will leak resources.
+ */
 uint32_t openEvent(uint32_t classId, uint32_t spec, uint32_t mode, eastl::function<void()>&& lambda);
+
+/**
+ * @brief Sets an ISR callback for a given DMA channel.
+ *
+ * @details The PSYQo kernel registers a dispatcher interrupt
+ * handler for DMA interrupts, and this function registers a
+ * callback function for a given DMA channel. Multiple callbacks
+ * can be registered for a given channel. All the callbacks
+ * registered will be called sequentially during the dispatcher
+ * interrupt handler. Note this means the callbacks will be
+ * called from the interrupt handler, with the same restrictions
+ * as for any other interrupt handler.
+ * @return unsigned A slot id for the given callback.
+ */
 unsigned registerDmaEvent(DMA channel, eastl::function<void()>&& lambda);
+
+/**
+ * @brief Enables the given DMA channel.
+ *
+ * @param channel the DMA channel to enable.
+ * @param priority the priority of the channel.
+ */
 void enableDma(DMA channel, unsigned priority = 7);
+
+/**
+ * @brief Disables the given DMA channel.
+ * 
+ * @param channel the DMA channel to disable.
+ */
 void disableDma(DMA channel);
+
+/**
+ * @brief Frees the given DMA callback slot.
+ * 
+ * @param slot The slot to free, as returned by `registerDmaEvent`.
+ */
 void unregisterDmaEvent(unsigned slot);
 
+/**
+ * @brief Queues a callback to be called from the main thead.
+ *
+ * @details This function is used to queue a callback to be called
+ * from the main thread, during idle moments like various blocking
+ * operations. This variant is safe to call from the main thread
+ * only. Its usefulness from the main thread is limited, and could
+ * be considered the same as JavaScript's `process.nextTick()`,
+ * meaning it's a great way to avoid get out of a deep callstack.
+ */
 void queueCallback(eastl::function<void()>&& lambda);
+
+/**
+ * @brief Queues a callback to be called from the main thead.
+ *
+ * @details This function is used to queue a callback to be called
+ * from the main thead, during idle moments like various blocking
+ * operations. This variant is safe to call from an interrupt handler.
+ * This is how to idiomatically execute something safely from an
+ * an interrupt handler.
+ */
 void queueCallbackFromISR(eastl::function<void()>&& lambda);
 
-void pumpCallbacks();
-
 namespace Internal {
+void pumpCallbacks();
 void prepare();
 void addInitializer(eastl::function<void()>&& lambda);
 void addOnFrame(eastl::function<void()>&& lambda);
 void beginFrame();
 }  // namespace Internal
 
+/**
+ * @brief A simple `assert` macro.
+ */
 inline void assert(bool condition, const char* message) {
     if (!condition) abort(message);
 }

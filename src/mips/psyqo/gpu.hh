@@ -63,6 +63,8 @@ class GPU {
     enum class Interlace { PROGRESSIVE, INTERLACED };
     void initialize(const Configuration &config);
 
+    static constexpr uint32_t US_PER_HBLANK = 64;
+
     /**
      * @brief Returns the refresh rate of the GPU.
      *
@@ -337,7 +339,7 @@ class GPU {
      *
      * @details This method will create a periodic timer. The timer will fire every `period` microseconds.
      * See the `armTimer` method for more information about timers in general. Periodic timers
-     * will first fire at `now() + period` milliseconds, and then every `period` milliseconds thereafter.
+     * will first fire at `now() + period` microseconds, and then every `period` microseconds thereafter.
      * They will never be canceled automatically.
      * @param period The period of the timer in microseconds.
      * @param callback The callback function to be called when the timer expires.
@@ -392,6 +394,14 @@ class GPU {
      */
     void cancelTimer(uintptr_t id);
 
+    /**
+     * @brief Runs one round of event processing.
+     *
+     * @details While this method is technically for internal use, it is exposed here
+     * for convenience. It will run one round of event processing, including the
+     * processing of timers. This method should be called in a loop when waiting
+     * for other events to be processed.
+     */
     void pumpCallbacks();
 
   private:

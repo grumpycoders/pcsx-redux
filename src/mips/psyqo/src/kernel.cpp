@@ -38,8 +38,6 @@ SOFTWARE.
 #include "common/syscalls/syscalls.h"
 #include "common/util/encoder.hh"
 
-void abort();
-
 namespace {
 
 typedef void (*KernelEventFunction)();
@@ -71,15 +69,6 @@ KernelEventFunction allocateEventFunction(eastl::function<void()>&& lambda) {
     }
     psyqo::Kernel::abort("allocateEventFunction: no function slot available");
     return reinterpret_cast<void (*)()>(-1);
-}
-
-void freeEventFunction(void* function) {
-    Function* f = reinterpret_cast<Function*>(function);
-    unsigned slot = f - s_functions;
-    if ((slot >= SLOTS) || !s_functions[slot].lambda) {
-        psyqo::Kernel::abort("freeEventFunction: function wasn't previously allocated.");
-    }
-    s_functions[slot].lambda = nullptr;
 }
 
 }  // namespace
@@ -223,7 +212,7 @@ void psyqo::Kernel::queueCallbackFromISR(eastl::function<void()>&& lambda) {
     eastl::atomic_signal_fence(eastl::memory_order_release);
 }
 
-void psyqo::Kernel::pumpCallbacks() {
+void psyqo::Kernel::Internal::pumpCallbacks() {
     fastEnterCriticalSection();
     eastl::atomic_signal_fence(eastl::memory_order_acquire);
     while (!s_callbacks.empty()) {

@@ -461,7 +461,7 @@ void psyqo::GPU::pumpCallbacks() {
     if (hsyncCounter < lastHSyncCounter) {
         hsyncCounter += 0x10000;
     }
-    uint32_t currentTime = m_currentTime = m_currentTime + (hsyncCounter - lastHSyncCounter) * 64;
+    uint32_t currentTime = m_currentTime = m_currentTime + (hsyncCounter - lastHSyncCounter) * US_PER_HBLANK;
     bool done = false;
     while (!done) {
         done = true;
@@ -481,6 +481,6 @@ void psyqo::GPU::pumpCallbacks() {
             }
         }
     }
-    Kernel::pumpCallbacks();
+    Kernel::Internal::pumpCallbacks();
     m_lastHSyncCounter = hsyncCounter;
 }

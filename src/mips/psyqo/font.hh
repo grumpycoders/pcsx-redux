@@ -40,6 +40,14 @@ namespace psyqo {
 template <size_t Fragments = 16>
 class Font;
 
+/**
+ * @brief The Font drawing class.
+ *
+ * @details This class might be overhauled in the future as
+ * it's not fully featured yet. The goal is to provide a
+ * simple interface for drawing text on the screen.
+ * Currently only the internal system font is supported.
+ */
 class FontBase {
   public:
     virtual ~FontBase() {}
