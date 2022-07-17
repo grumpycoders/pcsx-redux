@@ -48,16 +48,10 @@ class VramExecutor : public PCSX::WebExecutor {
                 "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 1048576\r\n\r\n");
             static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
             uint16_t* pixels = (uint16_t*)malloc(texSize);
-            int oldTexture;
-            glFlush();
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
-            glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
-            glBindTexture(GL_TEXTURE_2D, oldTexture);
+            memcpy(pixels, PCSX::g_emulator->m_gpu->getVRAMuw(), texSize);
             PCSX::Slice slice;
             slice.acquire(pixels, texSize);
             client->write(std::move(slice));
-
             return true;
         } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
             auto vars = parseQuery(request.urlData.query);

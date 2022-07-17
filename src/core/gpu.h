@@ -80,6 +80,7 @@ class GPU {
 
     virtual void setDither(int setting) {}
     virtual uint8_t *getVRAM() { return nullptr; }
+    virtual uint16_t *getVRAMuw() { return nullptr; }
     virtual void clearVRAM() {}
 
     virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) {}

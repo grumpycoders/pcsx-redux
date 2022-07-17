@@ -54,6 +54,7 @@ class impl final : public GPU {
     virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_softPrim.m_useDither = setting; }
     virtual uint8_t *getVRAM() final { return psxVSecure; }
+    virtual uint16_t *getVRAMuw() final { return psxVuw; }
     virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) final override {
         auto ptr = psxVuw;
         ptr += y * 1024 + x;
