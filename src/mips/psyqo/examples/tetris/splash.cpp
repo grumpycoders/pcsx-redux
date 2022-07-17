@@ -64,6 +64,7 @@ void SplashScreen::frame() {
     if (m_startPressed) {
         m_startPressed = false;
         pushScene(&g_tetris.m_mainMenu);
+        g_tetris.m_sound.playClick();
     }
 }
 

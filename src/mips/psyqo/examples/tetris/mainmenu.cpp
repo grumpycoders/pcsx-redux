@@ -55,12 +55,14 @@ void MainMenu::menuUp() {
     if (m_menuEntry > 0) {
         m_menuEntry--;
     }
+    g_tetris.m_sound.playClick();
 }
 
 void MainMenu::menuDown() {
     if (m_menuEntry < 2) {
         m_menuEntry++;
     }
+    g_tetris.m_sound.playClick();
 }
 
 // We have a separate `render` method mainly to show that we can. There's no
@@ -86,6 +88,7 @@ void MainMenu::frame() {
     render(g_tetris.gpu());
 
     if (m_startPressed) {
+        g_tetris.m_sound.playClick();
         m_startPressed = false;
         // We simply select the proper scene to switch to here.
         switch (m_menuEntry) {

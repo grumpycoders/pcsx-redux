@@ -65,6 +65,7 @@ void MainGame::tick() {
                 m_score += 1000;
                 break;
         }
+        g_tetris.m_sound.playDrop(lines);
         // Maybe the score changed and we need to update the period of our timer.
         recomputePeriod();
         // We will have one tick without a block on the screen.
@@ -192,6 +193,7 @@ void MainGame::rotateLeft() {
         rotation--;
     }
     rotate(rotation);
+    g_tetris.m_sound.playFlip(-g_tetris.m_rand.rand<2>());
 }
 
 void MainGame::rotateRight() {
@@ -202,6 +204,7 @@ void MainGame::rotateRight() {
         rotation++;
     }
     rotate(rotation);
+    g_tetris.m_sound.playFlip(g_tetris.m_rand.rand<2>());
 }
 
 // When rotating, we try to jiggle the block around a bit to make it fit.

@@ -37,6 +37,7 @@ SOFTWARE.
 #include "psyqo/font.hh"
 #include "psyqo/simplepad.hh"
 #include "rand.hh"
+#include "sound.hh"
 #include "splash.hh"
 
 // This is our top application class. It's what will run as the software starts.
@@ -85,9 +86,16 @@ class Tetris final : public psyqo::Application {
     // The game over scene. It will be pushed on top of the main game scene.
     GameOver m_gameOver;
 
+    // The sound engine.
+    Sound m_sound;
+
     // This represents the global playfield state. It's a completely custom
     // class, implemented in the playfield.hh file.
     Playfield<10, 20> m_playfield;
+
+  private:
+    // The global timer used by the mod player.
+    unsigned m_musicTimer;
 };
 
 // We're only going to use a single global to hold everything. It'll

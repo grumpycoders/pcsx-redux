@@ -26,6 +26,12 @@ SOFTWARE.
 
 #include "tetris.hh"
 
+extern "C" {
+#include "modplayer/modplayer.h"
+}
+
+extern const struct MODFileFormat _binary_musix_oh_amiga_with_effects_hit_start;
+
 // Our global application object. This is the only global
 // object in this whole example. It will hold all of the
 // other necessary classes.
@@ -37,10 +43,11 @@ int main() { return g_tetris.run(); }
 
 // The `prepare` method will be called exactly once, and is
 // where we are supposed to initialize all of our objects.
-// Luckily, they all have pretty straightforward constructors,
+// Luckily, most have pretty straightforward constructors,
 // so we can rely on just that. The only thing we are going to
-// initialize is the GPU. This is the only hardware that is
-// allowed to be initialized by the `prepare` method.
+// initialize is the GPU and the SPU. This is the only hardware
+// that is allowed to be initialized by the `prepare` method
+// at this time.
 void Tetris::prepare() {
     psyqo::GPU::Configuration config;
     config.set(psyqo::GPU::Resolution::W320)
@@ -48,6 +55,22 @@ void Tetris::prepare() {
         .set(psyqo::GPU::ColorMode::C15BITS)
         .set(psyqo::GPU::Interlace::PROGRESSIVE);
     gpu().initialize(config);
+
+    // All of the music is done here, really.
+    // This may change later, as the mod player is still a piece of C code
+    // that needs to be updated.
+
+    // First, initialize the mod player.
+    MOD_Load(&_binary_musix_oh_amiga_with_effects_hit_start);
+    // Then, create a timer that will play the music.
+    // The internals of the MOD player will give us the number of hblanks
+    // to wait, so we need to convert that to microseconds.
+    m_musicTimer = gpu().armPeriodicTimer(MOD_hblanks * psyqo::GPU::US_PER_HBLANK, [this](uint32_t) {
+        MOD_Poll();
+        // There is no downside in changing the timer every time, in case the
+        // mod player wants to change the timing.
+        gpu().changeTimerPeriod(m_musicTimer, MOD_hblanks * psyqo::GPU::US_PER_HBLANK);
+    });
 }
 
 // The `createScene` method is called every time the root scene needs
