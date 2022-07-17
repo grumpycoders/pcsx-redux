@@ -29,7 +29,6 @@ SOFTWARE.
 #include "constants.hh"
 #include "tetris.hh"
 
-// The Credits scene is empty for now and only a placeholder.
 void Credits::start(Scene::StartReason reason) {
     g_tetris.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
         if (event.pad != psyqo::SimplePad::Pad::Pad1) return;
@@ -41,9 +40,16 @@ void Credits::frame() {
     auto& gpu = g_tetris.gpu();
     auto& font = g_tetris.m_font;
     gpu.clear();
-    font.print(gpu, "TBD", {{.x = 0, .y = 0}}, WHITE);
+    font.print(gpu, "Tetris PSYQo example", {{.x = 20 * 4, .y = 1 * 16}}, WHITE);
+    font.print(gpu, "PCSX-Redux project", {{.x = 22 * 4, .y = 2 * 16}}, WHITE);
+    font.print(gpu, "https://bit.ly/pcsx-redux", {{.x = 15 * 4, .y = 3 * 16}}, WHITE);
+
+    font.print(gpu, "Written by Nicolas 'Pixel' Noble", {{.x = 8 * 4, .y = 5 * 16}}, WHITE);
+    font.print(gpu, "Music by m0d", {{.x = 28 * 4, .y = 6 * 16}}, WHITE);
+    font.print(gpu, "Sound effects by Sickle", {{.x = 17 * 4, .y = 7 * 16}}, WHITE);
 
     if (m_leave) {
+        g_tetris.m_sound.playClick();
         m_leave = false;
         popScene();
     }

@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include "psyqo/scene.hh"
 
-// The Credits scene is empty for now and only a placeholder.
+// The Credits scene is simply a splash screen, really.
 class Credits final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
     void frame() override;
