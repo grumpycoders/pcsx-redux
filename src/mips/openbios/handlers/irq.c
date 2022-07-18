@@ -79,9 +79,7 @@ int __attribute__((section(".ramtext"))) enqueueIrqHandler(int priority) {
     return sysEnqIntRP(priority, &s_IRQHandlerInfo);
 }
 
-void __attribute__((section(".ramtext"))) setIrqAutoAck(uint32_t irq, int value) {
-    s_IRQsAutoAck[irq] = value;
-}
+void __attribute__((section(".ramtext"))) setIrqAutoAck(uint32_t irq, int value) { s_IRQsAutoAck[irq] = value; }
 
 static int s_timersAutoAck[4];
 

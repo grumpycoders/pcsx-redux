@@ -193,9 +193,7 @@ static inline uint32_t getCop0Status() {
     return r;
 }
 
-static inline void setCop0Status(uint32_t r) {
-    asm("mtc0 %0, $12 ; nop" : : "r"(r));
-}
+static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(r)); }
 
 static inline int fastEnterCriticalSection() {
     uint32_t sr = getCop0Status();

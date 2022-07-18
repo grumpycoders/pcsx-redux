@@ -82,9 +82,7 @@ static inline void sendGPUData(uint32_t data) {
     GPU_DATA = data;
 }
 
-static inline void sendGPUStatus(uint32_t status) {
-    GPU_STATUS = status;
-}
+static inline void sendGPUStatus(uint32_t status) { GPU_STATUS = status; }
 
 static inline uint32_t generateDisableDisplay() { return 0x03000001; }
 static inline uint32_t generateEnableDisplay() { return 0x03000000; }
