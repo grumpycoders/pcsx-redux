@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 struct Counter {
     uint16_t value;

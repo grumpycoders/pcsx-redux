@@ -1,0 +1,125 @@
+/*
+
+MIT License
+
+Copyright (c) 2022 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+#include "tetris.hh"
+
+extern "C" {
+#include "modplayer/modplayer.h"
+}
+
+extern const struct MODFileFormat _binary_musix_oh_amiga_with_effects_hit_start;
+
+// Our global application object. This is the only global
+// object in this whole example. It will hold all of the
+// other necessary classes.
+Tetris g_tetris;
+
+// Our main function. The only thing to do is to call `run` on
+// our Application object.
+int main() { return g_tetris.run(); }
+
+// The `prepare` method will be called exactly once, and is
+// where we are supposed to initialize all of our objects.
+// Luckily, most have pretty straightforward constructors,
+// so we can rely on just that. The only thing we are going to
+// initialize is the GPU and the SPU. This is the only hardware
+// that is allowed to be initialized by the `prepare` method
+// at this time.
+void Tetris::prepare() {
+    psyqo::GPU::Configuration config;
+    config.set(psyqo::GPU::Resolution::W320)
+        .set(psyqo::GPU::VideoMode::AUTO)
+        .set(psyqo::GPU::ColorMode::C15BITS)
+        .set(psyqo::GPU::Interlace::PROGRESSIVE);
+    gpu().initialize(config);
+
+    // All of the music is done here, really.
+    // This may change later, as the mod player is still a piece of C code
+    // that needs to be updated.
+
+    // First, initialize the mod player.
+    MOD_Load(&_binary_musix_oh_amiga_with_effects_hit_start);
+    // Then, create a timer that will play the music.
+    // The internals of the MOD player will give us the number of hblanks
+    // to wait, so we need to convert that to microseconds.
+    m_musicTimer = gpu().armPeriodicTimer(MOD_hblanks * psyqo::GPU::US_PER_HBLANK, [this](uint32_t) {
+        MOD_Poll();
+        // There is no downside in changing the timer every time, in case the
+        // mod player wants to change the timing.
+        gpu().changeTimerPeriod(m_musicTimer, MOD_hblanks * psyqo::GPU::US_PER_HBLANK);
+    });
+}
+
+// The `createScene` method is called every time the root scene needs
+// to be created. This is also where we have a chance to initialize
+// the rest of our hardware. We don't want to initialize the hardware
+// multiple times however, so we keep track of the fact that we've
+// initialized before through the `m_initialized` boolean.
+// The game over screen will pop all the scenes, so we will get
+// this method called multiple times.
+void Tetris::createScene() {
+    if (!m_initialized) {
+        m_font.uploadSystemFont(gpu());
+        m_input.initialize();
+        m_initialized = true;
+    }
+    // Our root scene is the splash screen. We'll push it
+    // unconditionally.
+    pushScene(&m_splash);
+}
+
+void Tetris::renderTetrisLogo() {
+    auto& font = m_font;
+
+    // All these are going to be blocking calls.
+    font.print(gpu(), "T", {{.x = 17 * 8, .y = 5 * 16}}, RED);
+    font.print(gpu(), "E", {{.x = 18 * 8, .y = 5 * 16}}, ORANGE);
+    font.print(gpu(), "T", {{.x = 19 * 8, .y = 5 * 16}}, YELLOW);
+    font.print(gpu(), "R", {{.x = 20 * 8, .y = 5 * 16}}, GREEN);
+    font.print(gpu(), "I", {{.x = 21 * 8, .y = 5 * 16}}, CYAN);
+    font.print(gpu(), "S", {{.x = 22 * 8, .y = 5 * 16}}, PURPLE);
+
+    font.print(gpu(), "T", {{.x = 17 * 8 - 1, .y = 5 * 16 - 1}}, HIRED);
+    font.print(gpu(), "E", {{.x = 18 * 8 - 1, .y = 5 * 16 - 1}}, HIORANGE);
+    font.print(gpu(), "T", {{.x = 19 * 8 - 1, .y = 5 * 16 - 1}}, HIYELLOW);
+    font.print(gpu(), "R", {{.x = 20 * 8 - 1, .y = 5 * 16 - 1}}, HIGREEN);
+    font.print(gpu(), "I", {{.x = 21 * 8 - 1, .y = 5 * 16 - 1}}, HICYAN);
+    font.print(gpu(), "S", {{.x = 22 * 8 - 1, .y = 5 * 16 - 1}}, HIPURPLE);
+}
+
+psyqo::Color Tetris::getBlink(unsigned scale) {
+    psyqo::Color c;
+    // This `time` variable will contain a number of seconds since
+    // the application was started, scaled to the specified value,
+    // so that we can use it to make the blinking effect.
+    uint32_t time = scale * gpu().getFrameCount() / gpu().getRefreshRate();
+    if ((time & 1) == 0) {
+        c = WHITE;
+    } else {
+        c = GREY;
+    }
+    return c;
+}

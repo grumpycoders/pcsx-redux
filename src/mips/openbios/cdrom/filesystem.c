@@ -28,9 +28,9 @@ SOFTWARE.
 
 #include <ctype.h>
 #include <memory.h>
+#include <stdint.h>
 #include <string.h>
 
-#include "common/compiler/stdint.h"
 #include "common/psxlibc/direntry.h"
 #include "common/psxlibc/stdio.h"
 #include "common/util/util.h"

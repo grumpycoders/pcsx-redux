@@ -24,10 +24,11 @@ SOFTWARE.
 
 */
 
+#include <stdint.h>
 #include <stdio.h>
 
-#include "common/compiler/stdint.h"
 #include "openbios/patches/hash.h"
+
 
 /* B0 */
 uint32_t generate_hash_patch_card_info_1(uint32_t mask, unsigned len);

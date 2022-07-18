@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 void GPU_dw(unsigned x, unsigned y, unsigned w, unsigned h, const void* src);
 void GPU_mem2vram();

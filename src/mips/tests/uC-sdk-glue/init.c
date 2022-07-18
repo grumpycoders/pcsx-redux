@@ -24,8 +24,42 @@ SOFTWARE.
 
 */
 
+#include <stdint.h>
+
 void cpu_early_init() {}
 
 void cpu_init() {}
 
 void cpu_late_init() {}
+
+static inline uint32_t getCop0Status() {
+    uint32_t r;
+    asm("mfc0 %0, $12 ; nop" : "=r"(r));
+    return r;
+}
+
+static inline void setCop0Status(uint32_t r) {
+    asm("mtc0 %0, $12 ; nop" : : "r"(r));
+}
+
+static inline int fastEnterCriticalSection() {
+    uint32_t sr = getCop0Status();
+    setCop0Status(sr & ~0x401);
+    return (sr & 0x401) == 0x401;
+}
+
+static inline void fastLeaveCriticalSection() {
+    uint32_t sr = getCop0Status();
+    sr |= 0x401;
+    setCop0Status(sr);
+}
+
+__attribute__((weak)) int8_t __sync_fetch_and_add_1(int8_t* ptr, int8_t arg) {
+    int needsToLeaveCS = fastEnterCriticalSection();
+    int8_t r = *ptr;
+    *ptr += arg;
+    if (needsToLeaveCS) {
+        fastLeaveCriticalSection();
+    }
+    return r;
+}
