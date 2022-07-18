@@ -96,6 +96,23 @@ Once done, you can simply run `make` (or use the `dockermake` script) in your pr
 
 See the [examples](examples) directory for more complex project structures you can use. Since the examples are subfolders of the psyqo library, their `Makefile`s will have a different method to include the file `psyqo.mk`, but that's otherwise the only difference.
 
+If a more complex build system is required, compiling PSYQo itself is very simple, and should be straightforward to integrate. Refer to the [Makefile](src/Makefile) for what to do exactly.
+
+# IDE integration
+The recommended IDE is (Visual Studio Code)[https://code.visualstudio.com/]. The (clangd)[https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd] extension is configured within PSYQo, and will provide valuable IDE features such as completion or code navigation. It is also possible to debug PSYQo binaries, using the [Native Debug](https://marketplace.visualstudio.com/items?itemName=webfreak.debug) extension. See the [PCSX-Redux's launch.json](https://github.com/grumpycoders/pcsx-redux/blob/main/.vscode/launch.json) for some examples.
+
+# Build options
+When using the `psyqo.mk` file, you can specify build options for the PSYQo library and your binary. It is possible to specify the following options:
+
+- `make BUILD=Release`  
+This is the default build, and will enable a release build of the library and your binary. It will be fast and small, but debugging will be hard.
+- `make BUILD=Debug`  
+This will enable a full debug build of the library and your binary. It will be slow and bloated, but debugging will be very easy.
+- `make BUILD=SmallDebug`  
+This will enable a debug build of the library and your binary with still some optimizations. Debugging is possible, but will be hindered at times. It is the best compromise if debugging is needed while retaining some speed and small code footprint.
+- `make BUILD=LTO`  
+This will enable a release build of the library and your binary with [LTO](https://gcc.gnu.org/wiki/LinkTimeOptimization) enabled. It will be really fast and really small, but debugging will be impossible.
+
 # Further reading
 Moving on to the [Concepts](CONCEPTS.md) page is the next step in understanding how the library functions. The library itself is also thoroughly documented, and the [nugget website](https://pcsx-redux.github.io/nugget/) has a render of the doxygen documentation.
 
