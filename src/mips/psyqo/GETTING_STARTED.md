@@ -9,10 +9,10 @@ sudo apt-get install -y make g++-mipsel-linux-gnu
 ```
 
 ### Arch derivatives:
-The `pcsx-redux-git` package can be installed from the AUR using your AUR helper of choice (e.g., paru):
+The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
 
 ```bash
-paru -S pcsx-redux-git
+trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
 ```
 
 ### All other flavors of Unix environments:
