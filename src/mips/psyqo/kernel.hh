@@ -126,14 +126,14 @@ void enableDma(DMA channel, unsigned priority = 7);
 
 /**
  * @brief Disables the given DMA channel.
- * 
+ *
  * @param channel the DMA channel to disable.
  */
 void disableDma(DMA channel);
 
 /**
  * @brief Frees the given DMA callback slot.
- * 
+ *
  * @param slot The slot to free, as returned by `registerDmaEvent`.
  */
 void unregisterDmaEvent(unsigned slot);

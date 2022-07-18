@@ -76,7 +76,6 @@ struct FastFill {
 };
 static_assert(sizeof(FastFill) == (sizeof(uint32_t) * 3), "FastFill is not 96 bits");
 
-
 }  // namespace Prim
 
 }  // namespace psyqo

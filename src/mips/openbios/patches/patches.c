@@ -33,7 +33,6 @@ SOFTWARE.
 #include "common/syscalls/syscalls.h"
 #include "openbios/patches/hash.h"
 
-
 int g_patch_permissive = 0;
 
 struct patch {

@@ -106,6 +106,6 @@ struct GouraudLine {
 };
 static_assert(sizeof(GouraudLine) == sizeof(uint32_t) * 4, "Line is not 4 words");
 
-} // namespace Prim
+}  // namespace Prim
 
-} // namespace psyqo
+}  // namespace psyqo

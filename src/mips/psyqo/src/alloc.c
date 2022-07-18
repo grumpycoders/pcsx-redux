@@ -253,5 +253,5 @@ void _ZdlPvj(void *ptr, unsigned int size) { base_free(ptr); }
 // void operator delete[](void*, unsigned int);
 void _ZdaPvj(void *ptr, unsigned int size) { base_free(ptr); }
 
-void* psyqo_heap_start() { return heap_base; }
-void* psyqo_heap_end() { return heap_end; }
+void *psyqo_heap_start() { return heap_base; }
+void *psyqo_heap_end() { return heap_end; }

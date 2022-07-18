@@ -176,8 +176,7 @@ class AssemblyExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
                 return true;
             }
-            if (function.compare("upload") == 0)
-            {
+            if (function.compare("upload") == 0) {
                 auto& body = request.body;
                 PCSX::IO<PCSX::File> file = new PCSX::BufferFile(std::move(body));
                 while (file && !file->failed() && !file->eof()) {
@@ -189,7 +188,8 @@ class AssemblyExecutor : public PCSX::WebExecutor {
                     auto addressStr = tokens[0];
                     auto name = tokens[1];
                     uint32_t address;
-                    auto result = std::from_chars(addressStr.data(), addressStr.data() + addressStr.size(), address, 16);
+                    auto result =
+                        std::from_chars(addressStr.data(), addressStr.data() + addressStr.size(), address, 16);
                     if (result.ec == std::errc::invalid_argument) continue;
 
                     cpu->m_symbols[address] = name;

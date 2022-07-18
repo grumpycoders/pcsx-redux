@@ -31,7 +31,6 @@ SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 
-
 int psxdummy() { return 0; }
 
 int psxtodigit(int c) {

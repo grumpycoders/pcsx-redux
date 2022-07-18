@@ -29,7 +29,6 @@ SOFTWARE.
 
 #include "openbios/patches/hash.h"
 
-
 /* B0 */
 uint32_t generate_hash_patch_card_info_1(uint32_t mask, unsigned len);
 uint32_t generate_mask_patch_card_info_1();
