@@ -93,9 +93,9 @@ int main() {
 
 When creating an application with multiple scenes, only the top scene on the stack will be active and drawn. When pushing and popping scenes, they will get notified of the change. When a scene becomes active, its `start` method will be called. When a scene becomes inactive, its `teardown` method will be called. Both methods have a `reason` argument, which can be used to determine the reason for the change.
 
-When a scene is started, it can be because it just got pushed to the stack (which is the `Create` reason), or because it became the top stack due to a call to `popScene` (which is the `Resume` reason).
+When a scene is started, it can be because it just got pushed to the stack (which is the `Create` reason), or because it became the top scene on the stack due to a call to `popScene` (which is the `Resume` reason).
 
-When a scene is teardown, it can be because it just got popped from the stack (which is the `Destroy` reason), or because a new scene arrive on top of the stack due to a call to `pushScene` (which is the `Pause` reason).
+When a scene is teardown, it can be because it just got popped from the stack (which is the `Destroy` reason), or because a new scene arrived on top of the stack due to a call to `pushScene` (which is the `Pause` reason).
 
 By encapsulating scene states that way, we can simplify the general approach of state transitions within the whole application.
 
