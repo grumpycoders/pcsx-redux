@@ -99,7 +99,7 @@ See the [examples](examples) directory for more complex project structures you c
 If a more complex build system is required, compiling PSYQo itself is very simple, and should be straightforward to integrate. Refer to the [Makefile](Makefile) for what to do exactly.
 
 # IDE integration
-The recommended IDE is (Visual Studio Code)[https://code.visualstudio.com/]. The (clangd)[https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd] extension is configured within PSYQo, and will provide valuable IDE features such as completion or code navigation. It is also possible to debug PSYQo binaries, using the [Native Debug](https://marketplace.visualstudio.com/items?itemName=webfreak.debug) extension. See the [PCSX-Redux's launch.json](https://github.com/grumpycoders/pcsx-redux/blob/main/.vscode/launch.json) for some examples.
+The recommended IDE is [Visual Studio Code](https://code.visualstudio.com/). The [clangd](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) extension is configured within PSYQo, and will provide valuable IDE features such as completion or code navigation. It is also possible to debug PSYQo binaries, using the [Native Debug](https://marketplace.visualstudio.com/items?itemName=webfreak.debug) extension. See the [PCSX-Redux's launch.json](https://github.com/grumpycoders/pcsx-redux/blob/main/.vscode/launch.json) for some examples.
 
 # Build options
 When using the `psyqo.mk` file, you can specify build options for the PSYQo library and your binary. It is possible to specify the following options:
