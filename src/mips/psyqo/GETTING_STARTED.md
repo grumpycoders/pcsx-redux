@@ -50,7 +50,7 @@ These scripts will behave like the `make` command, running in the same directory
 
 # Creating a project.
 
-The canonical method to use `PSYQo` is to use the [nugget](https://github.com/pcsx-redux/nugget) repository as a submodule for your own project, say in the `third_party` directory. You can create a `hello.cpp` file at the root of your directory that's a copy of [the example hello world](examples/hello/hello.cpp).
+The canonical method to use `PSYQo` is to use the [nugget](https://github.com/pcsx-redux/nugget) repository as a submodule for your own project, say in the `third_party` directory. You can create a `hello.cpp` file at the root of your directory that's a copy of [the example hello world](examples/hello/hello.cpp). Doing a simple code drop of the nugget repository is also acceptable.
 
 Here's how to get all this going. The commands are aimed at Unix environments, but the spirit of what's going on should be very simple to understand for Windows too.
 
@@ -95,3 +95,8 @@ include third_party/nugget/psyqo.mk
 Once done, you can simply run `make` (or use the `dockermake` script) in your project root to create the application. This should create the binary called `hello.ps-exe`, which you can then run in the emulator of your choice, or on the real hardware using for example [unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) and [nops](https://github.com/JonathanDotCel/NOTPSXSerial).
 
 See the [examples](examples) directory for more complex project structures you can use. Since the examples are subfolders of the psyqo library, their `Makefile`s will have a different method to include the file `psyqo.mk`, but that's otherwise the only difference.
+
+# Further reading
+Moving on to the [Concepts](CONCEPTS.md) page is the next step in understanding how the library functions. The library itself is also thoroughly documented, and the [nugget website](https://pcsx-redux.github.io/nugget/) has a render of the doxygen documentation.
+
+To discuss PlayStation1's development, hacking, and reverse engineering in general, please join the PSX.Dev Discord server: [![Discord](https://img.shields.io/discord/642647820683444236)](https://discord.gg/QByKPpH)

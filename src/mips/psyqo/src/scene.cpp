@@ -31,3 +31,5 @@ SOFTWARE.
 void psyqo::Scene::pushScene(Scene* scene) { m_parent->pushScene(scene); }
 
 psyqo::Scene* psyqo::Scene::popScene() { return m_parent->popScene(); }
+
+psyqo::GPU& psyqo::Scene::gpu() { return m_parent->gpu(); }

@@ -8,6 +8,7 @@ SRCS = \
 ../common/crt0/crt0cxx.s \
 ../common/crt0/cxxglue.c \
 ../common/syscalls/printf.s \
+src/alloc.c \
 src/application.cpp \
 src/font.cpp \
 src/gpu.cpp \

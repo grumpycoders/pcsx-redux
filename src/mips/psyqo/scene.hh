@@ -29,6 +29,7 @@ SOFTWARE.
 namespace psyqo {
 
 class Application;
+class GPU;
 
 /**
  * @brief The Scene class.
@@ -86,6 +87,11 @@ class Scene {
      * @brief Alias for `Application::popScene`.
      */
     Scene* popScene();
+
+    /**
+     * @brief Alias for `Application::gpu()`.
+     */
+    psyqo::GPU& gpu();
 
   private:
     Application* m_parent;

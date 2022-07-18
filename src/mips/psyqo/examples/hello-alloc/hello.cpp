@@ -30,12 +30,11 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 #include "psyqo/scene.hh"
 
+// This example is the same as the base hello world, except that
+// it's going to allocate memory instead of using static objects.
 namespace {
 
-// A PSYQo software needs to declare one `Application` object.
-// This is the one we're going to do for our hello world.
 class Hello final : public psyqo::Application {
-
     void prepare() override;
     void createScene() override;
 
@@ -43,20 +42,14 @@ class Hello final : public psyqo::Application {
     psyqo::Font<> m_font;
 };
 
-// And we need at least one scene to be created.
-// This is the one we're going to do for our hello world.
 class HelloScene final : public psyqo::Scene {
     void frame() override;
 
-    // We'll have some simple animation going on, so we
-    // need to keep track of our state here.
     uint8_t m_anim = 0;
     bool m_direction = true;
 };
 
-// We're instantiating the two objects above right now.
-Hello hello;
-HelloScene helloScene;
+Hello* hello = nullptr;
 
 }  // namespace
 
@@ -71,7 +64,7 @@ void Hello::prepare() {
 
 void Hello::createScene() {
     m_font.uploadSystemFont(gpu());
-    pushScene(&helloScene);
+    pushScene(new HelloScene);
 }
 
 void HelloScene::frame() {
@@ -82,7 +75,7 @@ void HelloScene::frame() {
     }
     psyqo::Color bg{{.r = 0, .g = 64, .b = 91}};
     bg.r = m_anim;
-    hello.gpu().clear(bg);
+    gpu().clear(bg);
     if (m_direction) {
         m_anim++;
     } else {
@@ -90,7 +83,10 @@ void HelloScene::frame() {
     }
 
     psyqo::Color c = {{.r = 255, .g = 255, .b = uint8_t(255 - m_anim)}};
-    hello.m_font.print(hello.gpu(), "Hello World!", {{.x = 16, .y = 32}}, c);
+    hello->m_font.print(gpu(), "Hello World!", {{.x = 16, .y = 32}}, c);
 }
 
-int main() { return hello.run(); }
+int main() {
+    hello = new Hello();
+    return hello->run();
+}
