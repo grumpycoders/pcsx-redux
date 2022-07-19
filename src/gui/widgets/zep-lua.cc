@@ -150,7 +150,7 @@ void PCSX::Widgets::ZepSyntax_Lua::UpdateSyntax() {
     m_processedChar = long(itrCurrent - buffer.begin());
 
     // Walk the buffer updating information about syntax coloring
-    while (itrCurrent != itrEnd) {
+    while (itrCurrent < itrEnd) {
         if (m_stop == true) {
             return;
         }
