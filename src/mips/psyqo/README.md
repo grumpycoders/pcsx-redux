@@ -4,7 +4,7 @@
 The PSYQo library is a object oriented C++ library for developing applications that run on the PlayStation 1. It is an opinionated yet lightweight and safe solution for modern development on the PS1.
 
 ## How?
-Please refer to the [Getting Started](GETTING_STARTED.md) and [Concepts](CONCEPTS.md) pages for more information. While the library makes heavy use of C++, the surface API only requires some basic knowledge of C++. Still, the user of the library is encouraged to get familiar with C++ concepts such as [classes](https://cplusplus.com/doc/tutorial/classes/), or [inheritance](https://cplusplus.com/doc/tutorial/inheritance/).
+Please refer to the [Getting Started](GETTING_STARTED.md) and [Concepts](CONCEPTS.md) pages for more information. While the library makes heavy use of C++, the surface API only requires some basic knowledge of C++. Still, the user of the library is encouraged to get familiar with C++ concepts such as [classes](https://cplusplus.com/doc/tutorial/classes/), [lambdas](https://en.cppreference.com/w/cpp/language/lambda), or [inheritance](https://cplusplus.com/doc/tutorial/inheritance/).
 
 The library makes uses of the [EASTL](https://github.com/electronicarts/EASTL), and is available to the user as a side effect. However, not all pieces of the library will be guaranteed to work properly at the moment. It has been modified to support the PlayStation1. The goal is still to get most of the EASTL working properly eventually.
 
