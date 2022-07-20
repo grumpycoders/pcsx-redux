@@ -1,3 +1,5 @@
+The library has only three mandatory classes, and everything else is optional. The library tries to heavily follow the "pay only what you use" pattern. As a result, aside from the `GPU` class, things like font drawing, cdrom access, or input processing have to be explicitly instantiated and initialized.
+
 # The `Application` class
 
 The PSYQo library wants to take control of the whole execution flow. In order to do so, it needs to first be provided with a derived instance of the `Application` class. The method to do so can simply done the following way:

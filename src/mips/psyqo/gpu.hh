@@ -319,15 +319,15 @@ class GPU {
      * @brief Creates a single-use timer.
      *
      * @details This method will create a single-use timer. The timer will fire after the specified
-     * deadline has passed. Timers will only fire during the idle period of the CPU, between calls
-     * to the `frame` method of the current scene. If the scene takes too long to complete,
-     * timers may significantly be delayed past their set deadline. The deadline can be computed
-     * based on the return value of the `now()` method. It is okay if the deadline rolls over
-     * their 32 bits span. Simply doing `gpu().now() + DELAY_IN_MICROSECONDS` will still work,
-     * as long as the delay isn't greater than 30 minutes. Single-use timers will automatically
-     * be disabled upon being fired, and their id will no longer be valid. The returned id is
-     * guaranteed to be unique across active timers, but may collision with the id of timers
-     * that got canceled or got disabled on their own.
+     * deadline has passed. Timers will only fire during the idle period of the CPU, for example
+     * during calls to `sendFragment`, or between calls to the `frame` method of the current scene.
+     * If the scene takes too long to compute, timers may significantly be delayed past their set
+     * deadline. The deadline can be computed based on the return value of the `now()` method. It
+     * is okay if the deadline rolls over their 32 bits span. Simply doing
+     * `gpu().now() + DELAY_IN_MICROSECONDS` will still work, as long as the delay isn't greater
+     * than 30 minutes. Single-use timers will automatically be disabled upon being fired, and
+     * their id will no longer be valid. The returned id is guaranteed to be unique across active
+     * timers, but may collision with the id of timers that got canceled or got disabled on their own.
      * @param deadline The deadline of the timer in microseconds.
      * @param callback The callback function to be called when the timer expires.
      * @return The id of the created timer.
