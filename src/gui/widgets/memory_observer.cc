@@ -184,7 +184,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
         }
 
         if (ImGui::BeginTabItem(_("Delta-over-time search"))) {
-            const auto stride = static_cast<uint8_t>(m_scanAlignment);
+            const auto stride = getStrideFromValueType(m_scanValueType);
 
             if (m_addressValuePairs.empty() && ImGui::Button(_("First scan"))) {
                 int memValue = 0;
@@ -225,13 +225,14 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                     const uint32_t mask = 0xffffffff ^ (0xff << leftShift);
                     const int byteToWrite = currentByte << leftShift;
                     memValue = (memValue & mask) | byteToWrite;
+                    memValue = getValueAsSelectedType(memValue);
                 }
             }
 
             if (!m_addressValuePairs.empty() && ImGui::Button(_("Next scan"))) {
                 auto doesntMatchCriterion = [this, memData, memSize, stride](const AddressValuePair& addressValuePair) {
                     const uint32_t address = addressValuePair.address;
-                    const int memValue = getMemValue(address, memData, memSize, memBase, stride);
+                    const int memValue = getValueAsSelectedType(getMemValue(address, memData, memSize, memBase, stride));
 
                     switch (m_scanType) {
                         case ScanType::ExactValue:
@@ -262,7 +263,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 } else {
                     for (auto& addressValuePair : m_addressValuePairs) {
                         addressValuePair.scannedValue =
-                            getMemValue(addressValuePair.address, memData, memSize, memBase, stride);
+                            getValueAsSelectedType(getMemValue(addressValuePair.address, memData, memSize, memBase, stride));
                     }
                 }
             }
@@ -275,14 +276,15 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             ImGui::Checkbox(_("Hex"), &m_hex);
             ImGui::InputInt(_("Value"), &m_value, 1, 100,
                             m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal);
+            m_value = getValueAsSelectedType(m_value);
 
-            const auto currentScanAlignment = magic_enum::enum_name(m_scanAlignment);
-            if (ImGui::BeginCombo(_("Scan alignment"), currentScanAlignment.data())) {
-                for (auto v : magic_enum::enum_values<ScanAlignment>()) {
-                    bool selected = (v == m_scanAlignment);
+            const auto currentScanValueType = magic_enum::enum_name(m_scanValueType);
+            if (ImGui::BeginCombo(_("Value type"), currentScanValueType.data())) {
+                for (auto v : magic_enum::enum_values<ScanValueType>()) {
+                    bool selected = (v == m_scanValueType);
                     auto name = magic_enum::enum_name(v);
                     if (ImGui::Selectable(name.data(), selected)) {
-                        m_scanAlignment = v;
+                        m_scanValueType = v;
                     }
                     if (selected) {
                         ImGui::SetItemDefaultFocus();
@@ -326,7 +328,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                         ImGui::TableSetColumnIndex(0);
                         ImGui::Text("%x", currentAddress);
                         ImGui::TableSetColumnIndex(1);
-                        ImGui::Text(valueDisplayFormat, getMemValue(currentAddress, memData, memSize, memBase, stride));
+                        ImGui::Text(valueDisplayFormat, getValueAsSelectedType(getMemValue(currentAddress, memData, memSize, memBase, stride)));
                         ImGui::TableSetColumnIndex(2);
                         ImGui::Text(valueDisplayFormat, addressValuePair.scannedValue);
                         ImGui::TableSetColumnIndex(3);
@@ -401,6 +403,48 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
     }
 
     ImGui::End();
+}
+
+uint8_t PCSX::Widgets::MemoryObserver::getStrideFromValueType(ScanValueType valueType) {
+    switch (valueType) {
+    case ScanValueType::Char:
+    case ScanValueType::Uchar:
+        return 1;
+    case ScanValueType::Short:
+    case ScanValueType::Ushort:
+        return 2;
+    case ScanValueType::Int:
+        return 4;
+    default:
+        assert(false);
+        return 1;
+    }
+}
+
+int PCSX::Widgets::MemoryObserver::getValueAsSelectedType(int memValue) {
+    switch (m_scanValueType) {
+        case ScanValueType::Char:
+            int8_t char_val;
+            memcpy(&char_val, &memValue, 1);
+            return char_val;
+        case ScanValueType::Uchar:
+            uint8_t uchar_val;
+            memcpy(&uchar_val, &memValue, 1);
+            return uchar_val;
+        case ScanValueType::Short:
+            short short_val;
+            memcpy(&short_val, &memValue, 2);
+            return short_val;
+        case ScanValueType::Ushort:
+            unsigned short ushort_val;
+            memcpy(&ushort_val, &memValue, 2);
+            return ushort_val;
+        case ScanValueType::Int:
+            return memValue;
+        default:
+            assert(false);
+            return memValue;
+    }
 }
 
 int PCSX::Widgets::MemoryObserver::getMemValue(uint32_t absoluteAddress, const uint8_t* memData, uint32_t memSize,

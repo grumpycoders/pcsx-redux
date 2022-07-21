@@ -77,7 +77,9 @@ class MemoryObserver {
         UnknownInitialValue
     };
 
-    enum class ScanAlignment : uint8_t { OneByte = 1, TwoBytes = 2, FourBytes = 4 };
+    enum class ScanValueType { Char, Uchar, Short, Ushort, Int };
+    static uint8_t getStrideFromValueType(ScanValueType valueType);
+    int getValueAsSelectedType(int memValue);
 
     struct AddressValuePair {
         uint32_t address = 0;
@@ -85,7 +87,7 @@ class MemoryObserver {
     };
 
     ScanType m_scanType = ScanType::ExactValue;
-    ScanAlignment m_scanAlignment = ScanAlignment::OneByte;
+    ScanValueType m_scanValueType = ScanValueType::Short;
     std::vector<AddressValuePair> m_addressValuePairs;
     bool m_hex = false;
     bool m_useSIMD = false;
