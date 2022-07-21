@@ -221,7 +221,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                     }
 
                     const uint8_t currentByte = memData[i];
-                    const uint8_t leftShift = 8 * (stride - 1 - i % stride);
+                    const uint8_t leftShift = 8 * (i % stride);
                     const uint32_t mask = 0xffffffff ^ (0xff << leftShift);
                     const int byteToWrite = currentByte << leftShift;
                     memValue = (memValue & mask) | byteToWrite;
@@ -410,7 +410,7 @@ int PCSX::Widgets::MemoryObserver::getMemValue(uint32_t absoluteAddress, const u
     assert(relativeAddress < memSize);
     for (uint32_t i = relativeAddress; i < relativeAddress + stride; ++i) {
         const uint8_t currentByte = memData[i];
-        const uint8_t leftShift = 8 * (stride - 1 - i % stride);
+        const uint8_t leftShift = 8 * (i % stride);
         const uint32_t mask = 0xffffffff ^ (0xff << leftShift);
         const int byteToWrite = currentByte << leftShift;
         memValue = (memValue & mask) | byteToWrite;
