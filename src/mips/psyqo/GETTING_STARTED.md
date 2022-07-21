@@ -44,7 +44,7 @@ mips install 12.1.0
 ```
 
 ## Docker
-For users who don't want to modify their environments, it is possible to use [Docker](https://www.docker.com/) to run the mips toolchain. There are to scripts provided at the root of this repository, called `dockermake.sh` for Unix users and `dockermake.bat` for Windows users.
+For users who don't want to modify their environments, it is possible to use [Docker](https://www.docker.com/) to run the mips toolchain. There are two scripts provided at the root of this repository, called `dockermake.sh` for Unix users and `dockermake.bat` for Windows users.
 
 These scripts will behave like the `make` command, running in the same directory where the command was run. It'll be in a Linux environment with an adequate mips toolchain to use.
 
