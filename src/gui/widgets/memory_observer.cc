@@ -416,8 +416,7 @@ uint8_t PCSX::Widgets::MemoryObserver::getStrideFromValueType(ScanValueType valu
     case ScanValueType::Int:
         return 4;
     default:
-        assert(false);
-        return 1;
+        throw std::runtime_error("Invalid value type.");
     }
 }
 
@@ -442,8 +441,7 @@ int PCSX::Widgets::MemoryObserver::getValueAsSelectedType(int memValue) {
         case ScanValueType::Int:
             return memValue;
         default:
-            assert(false);
-            return memValue;
+            throw std::runtime_error("Invalid value type.");
     }
 }
 
