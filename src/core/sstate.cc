@@ -266,6 +266,8 @@ bool PCSX::SaveStates::load(std::string_view data) {
     }
     g_emulator->m_callStacks->deserialize(&wrapper);
 
+    g_system->m_eventBus->signal(Events::ExecutionFlow::SaveStateLoaded{});
+
     return true;
 }
 

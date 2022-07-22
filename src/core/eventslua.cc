@@ -162,6 +162,8 @@ void PCSX::LuaBindings::open_events(Lua L) {
                 createListener<Events::ExecutionFlow::Run>(L);
             } else if (name == "ExecutionFlow::Reset") {
                 createListener<Events::ExecutionFlow::Reset>(L);
+            } else if (name == "ExecutionFlow::SaveStateLoaded") {
+                createListener<Events::ExecutionFlow::SaveStateLoaded>(L);
             } else if (name == "GUI::JumpToPC") {
                 createListener<Events::GUI::JumpToPC>(L);
             } else if (name == "GUI::JumpToMemory") {
