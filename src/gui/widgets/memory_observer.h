@@ -90,6 +90,7 @@ class MemoryObserver {
     ScanValueType m_scanValueType = ScanValueType::Short;
     std::vector<AddressValuePair> m_addressValuePairs;
     bool m_hex = false;
+    bool m_fixedPoint = false;
     bool m_useSIMD = false;
     int m_value = 0;
 
