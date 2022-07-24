@@ -176,7 +176,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("ShownAutoUpdateConfig"), false> SettingShownAutoUpdateConfig;
     typedef Setting<bool, TYPESTRING("AutoUpdate"), false> SettingAutoUpdate;
     typedef Setting<int, TYPESTRING("MSAA"), 1> SettingMSAA;
-    typedef Setting<bool, TYPESTRING("LinearFiltering"), false> SettingLinearFiltering;
+    typedef Setting<bool, TYPESTRING("LinearFiltering"), true> SettingLinearFiltering;
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
