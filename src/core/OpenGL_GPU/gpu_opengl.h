@@ -57,6 +57,7 @@ class OpenGL_GPU final : public GPU {
     virtual GLuint getVRAMTexture() final;
     virtual void setLinearFiltering(bool setting) final;
 
+private:
     // Actual emulation stuff
     using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
     struct Vertex {
@@ -144,7 +145,6 @@ class OpenGL_GPU final : public GPU {
 
     std::vector<Vertex> m_vertices;
     std::array<uint32_t, 16> m_cmdFIFO;
-    OpenGL::Rect m_displayArea;
     OpenGL::Rect m_scissorBox;
     int m_drawAreaLeft, m_drawAreaRight, m_drawAreaTop, m_drawAreaBottom;
 
@@ -178,7 +178,7 @@ class OpenGL_GPU final : public GPU {
     uint32_t m_vramReadBufferIndex = 0;
     uint32_t m_lastTexwindowSetting = 0;
     uint32_t m_lastDrawOffsetSetting = 0;
-    uint32_t m_lastDisplayMode = 0;
+    uint32_t m_drawMode;
 
     GP0Func m_cmdFuncs[256];
 

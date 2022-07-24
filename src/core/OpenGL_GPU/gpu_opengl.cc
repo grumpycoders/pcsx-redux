@@ -41,6 +41,7 @@ void PCSX::OpenGL_GPU::reset() {
     m_lastBlendingMode = -1;
     m_readingMode = TransferMode::CommandTransfer;
     m_writingMode = TransferMode::CommandTransfer;
+    m_drawMode = 0;
     m_rectTexpage = 0;
     m_remainingWords = 0;
     m_vramReadBufferSize = 0;
@@ -49,13 +50,13 @@ void PCSX::OpenGL_GPU::reset() {
     m_syncVRAM = true;
     m_vramReadBuffer.clear();
     m_vramWriteBuffer.clear();
-    m_displayArea.setEmpty();
     m_display.reset();
 
     m_drawAreaLeft = m_drawAreaTop = 0;
     m_drawAreaBottom = vramHeight;
     m_drawAreaRight = vramWidth;
     updateDrawArea();
+    updateDispArea();
 
     m_drawingOffset = OpenGL::ivec2({0, 0});
 
@@ -409,15 +410,28 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
     const uint32_t cmd = value >> 24;
     switch (cmd) {
         // Set display area start
-        case 5:
-            m_displayArea.x = value & 0x3ff;
-            m_displayArea.y = (value >> 10) & 0x1ff;
+        case 5: {
+            const int startX = value & 0x3fe;
+            const int startY = (value >> 10) & 0x1ff;
+
+            if (startX != m_display.start.x() || startY != m_display.start.y()) {
+                m_display.start.x() = startX;
+                m_display.start.y() = startY;
+                updateDispArea();
+            }
             break;
+        }
+        
         // Set display area width
         case 6: {
             const auto x1 = value & 0xfff;
             const auto x2 = (value >> 12) & 0xfff;
-            m_displayArea.width = 320;
+
+            if (x1 != m_display.x1 || x2 != m_display.x2) {
+                m_display.x1 = x1;
+                m_display.x2 = x2;
+                updateDispArea();
+            }
             break;
         }
 
@@ -425,7 +439,32 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
             const auto y1 = value & 0x3ff;
             const auto y2 = (value >> 10) & 0x3ff;
 
-            m_displayArea.height = y2 - y1;
+            if (y1 != m_display.y1 || y2 != m_display.y2) {
+                m_display.y1 = y1;
+                m_display.y2 = y2;
+                updateDispArea();
+            }
+            break;
+        }
+
+        case 8: {
+            const uint32_t newMode = value & 0xff;
+            
+            if (m_drawMode != newMode) {
+                m_drawMode = newMode;
+                m_display.pal = (newMode & 0x8) != 0;
+                m_display.interlace = (newMode & 0x20) != 0;
+
+                if (g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
+                    if (m_display.pal) {
+                        g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
+                    } else {
+                        g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
+                    }
+                }
+
+                updateDispArea();
+            }
             break;
         }
 
@@ -433,6 +472,34 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
             PCSX::g_system->printf("Unknown GP1 command: %02X\n", cmd);
             break;
     }
+}
+
+void PCSX::OpenGL_GPU::updateDispArea() {
+    static constexpr int dividers[] = {10, 7, 8, 7, 5, 7, 4, 7};
+    const auto divider = dividers[m_drawMode & 7];
+    const auto cyclesPerScanline = m_display.pal ? 3413 : 3406;
+    const auto totalScanlines = m_display.pal ? 314 : 263;
+
+    auto horRangeStart = std::min<int>(m_display.x1, cyclesPerScanline);
+    auto horRangeEnd = std::min<int>(m_display.x2, cyclesPerScanline);
+
+    // Rounding
+    horRangeStart = (horRangeStart / divider) * divider;
+    horRangeEnd = (horRangeEnd / divider) * divider;
+
+    const auto vertRangeStart = std::min<int>(m_display.y1, totalScanlines);
+    const auto vertRangeEnd = std::min<int>(m_display.y2, totalScanlines);
+    int height = (vertRangeEnd - vertRangeStart);
+    if (m_display.interlace) {
+        height *= 2;
+    }
+
+    // Calculate display width and round to 4 pixels
+    const uint32_t horizontalCycles = (horRangeEnd > horRangeStart) ? (horRangeEnd - horRangeStart) : 0;
+    const int width = ((horizontalCycles / divider) + 2) & ~3;
+
+    m_display.end.x() = m_display.start.x() + width;
+    m_display.end.y() = std::min<int>(totalScanlines, m_display.start.y() + height);
 }
 
 int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
@@ -530,9 +597,12 @@ bool PCSX::OpenGL_GPU::configure() {
 
 void PCSX::OpenGL_GPU::debug() {
     if (ImGui::Begin(_("OpenGL GPU Debugger"), &m_showDebug)) {
-        ImGui::Text(_("Display horizontal range: %d-%d"), m_displayArea.x, m_displayArea.x + m_displayArea.width);
-        ImGui::Text(_("Display vertical range: %d-%d"), m_displayArea.y, m_displayArea.y + m_displayArea.height);
+        const auto [width, height] = m_display.size();
+
+        ImGui::Text(_("Display horizontal range: %d-%d"), m_display.start.x(), m_display.end.x());
+        ImGui::Text(_("Display vertical range: %d-%d"), m_display.start.y(), m_display.end.y());
         ImGui::Text(_("Drawing area offset: (%d, %d)"), m_drawingOffset.x(), m_drawingOffset.y());
+        ImGui::Text(_("Resolution: %dx%d"), width, height);
 
         ImGui::ColorEdit3(_("Clear colour"), &m_clearColour[0]);
         if (ImGui::Button(_("Clear VRAM"))) {
@@ -613,13 +683,16 @@ void PCSX::OpenGL_GPU::vblank() {
     // TODO: Handle 24-bit display here.
     float xRatio = false ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
 
-    float startX = m_displayArea.x * xRatio;
-    float startY = m_displayArea.y / 512.0f;
-    float width = m_displayArea.width / 1024.0f;
-    float height = m_displayArea.height / 512.0f;
+    float startX = (float)m_display.start.x() * xRatio;
+    float startY = (float)m_display.start.y() / 512.0f;
+
+    auto [width, height] = m_display.size();
+    float normalizedWidth = (float)width / 1024.0f;
+    float normalizedHeight = (float)height / 512.0f;
 
     const auto tex = m_multisampled ? m_vramTextureNoMSAA.handle() : m_vramTexture.handle();
-    m_gui->m_offscreenShaderEditor.render(m_gui, tex, {startX, startY}, {width, height}, m_gui->getRenderSize());
+    m_gui->m_offscreenShaderEditor.render(m_gui, tex, {startX, startY}, {normalizedWidth, normalizedHeight},
+                                          m_gui->getRenderSize());
 }
 
 void PCSX::OpenGL_GPU::renderBatch() {

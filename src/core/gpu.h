@@ -34,21 +34,30 @@ class GUI;
 struct Display {
     using ivec2 = OpenGL::ivec2;
 
-    ivec2 m_start; // Starting coords
-    ivec2 m_end;   // Ending coords
-    bool m_rgb24;  // Is RGB24 mode enabled?
-    bool m_interlace;
+    ivec2 start; // Starting coords
+    ivec2 end;   // Ending coords
+    bool rgb24;  // Is RGB24 mode enabled?
+    bool interlace;
+    bool pal;
+
+    int x1, x2, y1, y2; // Display area range variables
 
     void reset() {
-        m_start = ivec2({0, 0});
-        m_end = ivec2({320, 240});
-        m_rgb24 = false;
-        m_interlace = false;
+        start = ivec2({0, 0});
+        end = ivec2({320, 240});
+        rgb24 = false;
+        interlace = false;
+        pal = false;
+
+        x1 = 0;
+        x2 = 0;
+        y1 = 0;
+        y2 = 0;
     }
 
     std::pair<int, int> size() {
-        const auto width = m_end.x() - m_start.y();
-        const auto height = m_end.y() - m_start.y();
+        const auto width = end.x() - start.x();
+        const auto height = end.y() - start.y();
         return {width, height};
     }
 };
