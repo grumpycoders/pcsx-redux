@@ -306,7 +306,12 @@ int PCSX::OpenGL_GPU::init() {
 }
 
 void PCSX::OpenGL_GPU::setLinearFiltering(bool setting) {
+    const auto filter = setting ? GL_LINEAR : GL_NEAREST;
+    const auto tex = getVRAMTexture();
 
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 }
 
 int PCSX::OpenGL_GPU::shutdown() {
@@ -508,7 +513,13 @@ bool PCSX::OpenGL_GPU::configure() {
             }
             ImGui::EndCombo();
         }
-
+        
+        if (ImGui::Checkbox(_("Use linear filtering (Makes graphics smoother but sometimes introduces artifacts)"),
+                            &m_linearFiltering)) {
+            changed = true;
+            g_emulator->settings.get<Emulator::SettingLinearFiltering>() = m_linearFiltering;
+            setLinearFiltering(m_linearFiltering);
+        }
         ImGui::Checkbox("Edit OpenGL GPU shaders", &m_shaderEditor.m_show);
         ImGui::End();
     }
