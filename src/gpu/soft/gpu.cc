@@ -350,9 +350,7 @@ int32_t PCSX::SoftGPU::impl::shutdown() {
     return 0;  // nothing to do
 }
 
-std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() {
-    return std::unique_ptr<PCSX::GPU>(new PCSX::SoftGPU::impl());
-}
+std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::GPU>(new PCSX::SoftGPU::impl()); }
 
 void PCSX::SoftGPU::impl::updateDisplay() {
     if (PSXDisplay.Disabled) {
@@ -1207,6 +1205,12 @@ bool PCSX::SoftGPU::impl::configure() {
             g_emulator->settings.get<Emulator::SettingDither>() = m_softPrim.m_useDither;
         }
 
+        if (ImGui::Checkbox(_("Use linear filtering (Makes graphics smoother but sometimes introduces artifacts)"),
+            &m_linearFiltering)) {
+            changed = true;
+            g_emulator->settings.get<Emulator::SettingLinearFiltering>() = m_linearFiltering;
+            setLinearFiltering(m_linearFiltering);
+        }
         ImGui::End();
     }
 
@@ -1215,7 +1219,9 @@ bool PCSX::SoftGPU::impl::configure() {
 
 void PCSX::SoftGPU::impl::debug() {
     if (ImGui::Begin(_("Soft GPU debugger"), &m_showDebug)) {
-        ImGui::Text(_("Debugging featurs are not supported when using the software renderer yet\nConsider enabling the OpenGL GPU option instead"));
+        ImGui::Text(
+            _("Debugging featurs are not supported when using the software renderer yet\nConsider enabling the OpenGL "
+              "GPU option instead"));
         ImGui::End();
     }
 }

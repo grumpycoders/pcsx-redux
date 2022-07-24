@@ -305,6 +305,10 @@ int PCSX::OpenGL_GPU::init() {
     return 0;
 }
 
+void PCSX::OpenGL_GPU::setLinearFiltering(bool setting) {
+
+}
+
 int PCSX::OpenGL_GPU::shutdown() {
     g_system->printf("TODO: shutdown\n");
     return 0;

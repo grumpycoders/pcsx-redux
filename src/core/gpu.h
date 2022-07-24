@@ -37,6 +37,8 @@ class GPU {
 
     bool m_showCfg = false;
     bool m_showDebug = false;
+    bool m_linearFiltering;
+
     virtual bool configure() = 0;
     virtual void debug() = 0;
     virtual ~GPU() {}
@@ -86,6 +88,7 @@ class GPU {
     virtual void reset() {}
     virtual void clearVRAM() {}
     virtual GLuint getVRAMTexture() { return 0; }
+    virtual void setLinearFiltering(bool setting) {}
 
     static std::unique_ptr<GPU> getSoft();
     static std::unique_ptr<GPU> getOpenGL();

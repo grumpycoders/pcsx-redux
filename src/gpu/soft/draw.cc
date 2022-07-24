@@ -211,6 +211,17 @@ void PCSX::SoftGPU::impl::clearVRAM() {
     glBindTexture(GL_TEXTURE_2D, oldTex);
 }
 
+void PCSX::SoftGPU::impl::setLinearFiltering(bool setting) {
+    const auto filter = setting ? GL_LINEAR : GL_NEAREST;
+    glBindTexture(GL_TEXTURE_2D, vramTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+
+    glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+}
+
 void PCSX::SoftGPU::impl::initDisplay() {
     glGenTextures(1, &vramTexture);
     glBindTexture(GL_TEXTURE_2D, vramTexture);

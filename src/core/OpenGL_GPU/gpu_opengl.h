@@ -55,6 +55,7 @@ class OpenGL_GPU final : public GPU {
     virtual void clearVRAM() final;
     virtual void reset() final;
     virtual GLuint getVRAMTexture() final;
+    virtual void setLinearFiltering(bool setting) final;
 
     // Actual emulation stuff
     using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function

@@ -57,6 +57,7 @@ class impl final : public GPU {
     virtual void clearVRAM() final;
     virtual void reset() final { clearVRAM(); }
     virtual GLuint getVRAMTexture() final { return m_vramTexture16; }
+    virtual void setLinearFiltering(bool setting) final;
 
     void updateDisplay();
     void initDisplay();

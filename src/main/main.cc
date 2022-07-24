@@ -276,6 +276,7 @@ int pcsxMain(int argc, char **argv) {
     emulator->m_gpu->open(s_gui);
     emulator->m_gpu->init();
     emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
+    emulator->m_gpu->setLinearFiltering(emuSettings.get<PCSX::Emulator::SettingLinearFiltering>());
     emulator->reset();
 
     if (args.get<bool>("run", false)) system->start();
