@@ -50,6 +50,7 @@ void PCSX::OpenGL_GPU::reset() {
     m_vramReadBuffer.clear();
     m_vramWriteBuffer.clear();
     m_displayArea.setEmpty();
+    m_display.reset();
 
     m_drawAreaLeft = m_drawAreaTop = 0;
     m_drawAreaBottom = vramHeight;

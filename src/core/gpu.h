@@ -20,6 +20,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 
 #include "core/psxemulator.h"
 #include "core/sstate.h"
@@ -28,6 +29,29 @@
 
 namespace PCSX {
 class GUI;
+
+// TODO: Use this in soft GPU
+struct Display {
+    using ivec2 = OpenGL::ivec2;
+
+    ivec2 m_start; // Starting coords
+    ivec2 m_end;   // Ending coords
+    bool m_rgb24;  // Is RGB24 mode enabled?
+    bool m_interlace;
+
+    void reset() {
+        m_start = ivec2({0, 0});
+        m_end = ivec2({320, 240});
+        m_rgb24 = false;
+        m_interlace = false;
+    }
+
+    std::pair<int, int> size() {
+        const auto width = m_end.x() - m_start.y();
+        const auto height = m_end.y() - m_start.y();
+        return {width, height};
+    }
+};
 
 class GPU {
   public:
@@ -38,6 +62,7 @@ class GPU {
     bool m_showCfg = false;
     bool m_showDebug = false;
     bool m_linearFiltering;
+    Display m_display;
 
     virtual bool configure() = 0;
     virtual void debug() = 0;

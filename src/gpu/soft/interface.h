@@ -55,7 +55,10 @@ class impl final : public GPU {
     virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_softPrim.m_useDither = setting; }
     virtual void clearVRAM() final;
-    virtual void reset() final { clearVRAM(); }
+    virtual void reset() final {
+        clearVRAM();
+        m_display.reset();
+    }
     virtual GLuint getVRAMTexture() final { return m_vramTexture16; }
     virtual void setLinearFiltering(bool setting) final;
 
