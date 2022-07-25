@@ -421,7 +421,7 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
             }
             break;
         }
-        
+
         // Set display area width
         case 6: {
             const auto x1 = value & 0xfff;
@@ -449,7 +449,7 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
 
         case 8: {
             const uint32_t newMode = value & 0xff;
-            
+
             if (m_drawMode != newMode) {
                 m_drawMode = newMode;
                 m_display.pal = (newMode & 0x8) != 0;
@@ -477,7 +477,7 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
 void PCSX::OpenGL_GPU::updateDispArea() {
     static constexpr int dividers[] = {10, 7, 8, 7, 5, 7, 4, 7};
     const auto divider = dividers[m_drawMode & 7];
-    const auto cyclesPerScanline = m_display.pal ? 3413 : 3406;
+    const auto cyclesPerScanline = m_display.pal ? 3406 : 3413;
     const auto totalScanlines = m_display.pal ? 314 : 263;
 
     auto horRangeStart = std::min<int>(m_display.x1, cyclesPerScanline);
@@ -489,7 +489,7 @@ void PCSX::OpenGL_GPU::updateDispArea() {
 
     const auto vertRangeStart = std::min<int>(m_display.y1, totalScanlines);
     const auto vertRangeEnd = std::min<int>(m_display.y2, totalScanlines);
-    int height = (vertRangeEnd - vertRangeStart);
+    int height = std::min<int>(totalScanlines, vertRangeEnd - vertRangeStart);
     if (m_display.interlace) {
         height *= 2;
     }
@@ -499,7 +499,7 @@ void PCSX::OpenGL_GPU::updateDispArea() {
     const int width = ((horizontalCycles / divider) + 2) & ~3;
 
     m_display.end.x() = m_display.start.x() + width;
-    m_display.end.y() = std::min<int>(totalScanlines, m_display.start.y() + height);
+    m_display.end.y() = m_display.start.y() + height;
 }
 
 int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
