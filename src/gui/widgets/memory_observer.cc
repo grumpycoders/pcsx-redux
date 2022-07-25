@@ -28,6 +28,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/system.h"
+#include "core/debug.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
@@ -308,14 +309,20 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 ImGui::EndCombo();
             }
 
-            if (ImGui::BeginTable(_("Found values"), 4, tableFlags)) {
+            if (!m_hex && stride > 1) {
+                ImGui::Checkbox(_("Display as fixed-point values"), &m_fixedPoint);
+            }
+
+            if (ImGui::BeginTable(_("Found values"), 6, tableFlags)) {
                 ImGui::TableSetupColumn(_("Address"));
                 ImGui::TableSetupColumn(_("Current value"));
                 ImGui::TableSetupColumn(_("Scanned value"));
                 ImGui::TableSetupColumn(_("Access"));
+                ImGui::TableSetupColumn(_("Read breakpoint"));
+                ImGui::TableSetupColumn(_("Write breakpoint"));
                 ImGui::TableHeadersRow();
 
-                const auto valueDisplayFormat = m_hex ? "%x" : "%i";
+                const auto valueDisplayFormat = m_hex ? "%x" : (m_fixedPoint && stride > 1) ? "%i.%i" : "%i";
 
                 ImGuiListClipper clipper;
                 clipper.Begin(m_addressValuePairs.size());
@@ -323,19 +330,41 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                     for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
                         const auto& addressValuePair = m_addressValuePairs[row];
                         const uint32_t currentAddress = addressValuePair.address;
+                        const auto memValue =
+                            getValueAsSelectedType(getMemValue(currentAddress, memData, memSize, memBase, stride));
+                        const auto scannedValue = addressValuePair.scannedValue;
+                        const bool displayAsFixedPoint = !m_hex && m_fixedPoint && stride > 1;
 
                         ImGui::TableNextRow();
                         ImGui::TableSetColumnIndex(0);
                         ImGui::Text("%x", currentAddress);
                         ImGui::TableSetColumnIndex(1);
-                        ImGui::Text(valueDisplayFormat, getValueAsSelectedType(getMemValue(currentAddress, memData, memSize, memBase, stride)));
+                        if (displayAsFixedPoint) {
+                            ImGui::Text(valueDisplayFormat, memValue >> 12, memValue & 0xfff);
+                        } else {
+                            ImGui::Text(valueDisplayFormat, memValue);
+                        }
                         ImGui::TableSetColumnIndex(2);
-                        ImGui::Text(valueDisplayFormat, addressValuePair.scannedValue);
+                        if (displayAsFixedPoint) {
+                            ImGui::Text(valueDisplayFormat, scannedValue >> 12, scannedValue & 0xfff);
+                        } else {
+                            ImGui::Text(valueDisplayFormat, scannedValue);
+                        }
                         ImGui::TableSetColumnIndex(3);
-                        auto buttonName = fmt::format(f_("Show in memory editor##{}"), row);
-                        if (ImGui::Button(buttonName.c_str())) {
+                        auto showInMemEditorButtonName = fmt::format(f_("Show in memory editor##{}"), row);
+                        if (ImGui::Button(showInMemEditorButtonName.c_str())) {
                             const uint32_t editorAddress = currentAddress - memBase;
                             g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, stride});
+                        }
+                        ImGui::TableSetColumnIndex(4);
+                        auto addReadBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}"), row);
+                        if (ImGui::Button(addReadBreakpointButtonName.c_str())) {
+                            g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Read, stride, _("Memory Observer"));
+                        }
+                        ImGui::TableSetColumnIndex(5);
+                        auto addWriteBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}"), row);
+                        if (ImGui::Button(addWriteBreakpointButtonName.c_str())) {
+                            g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Write, stride, _("Memory Observer"));
                         }
                     }
                 }
