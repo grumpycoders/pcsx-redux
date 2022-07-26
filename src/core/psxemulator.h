@@ -172,7 +172,7 @@ class Emulator {
     typedef Setting<int, TYPESTRING("Dither"), 2> SettingDither;
     typedef Setting<bool, TYPESTRING("ReportGLErrors"), false> SettingGLErrorReporting;
     typedef Setting<bool, TYPESTRING("FullCaching"), false> SettingFullCaching;
-    typedef Setting<bool, TYPESTRING("HardwareRenderer"), true> SettingHardwareRenderer;
+    typedef Setting<bool, TYPESTRING("HardwareRenderer"), false> SettingHardwareRenderer;
     typedef Setting<bool, TYPESTRING("ShownAutoUpdateConfig"), false> SettingShownAutoUpdateConfig;
     typedef Setting<bool, TYPESTRING("AutoUpdate"), false> SettingAutoUpdate;
     typedef Setting<int, TYPESTRING("MSAA"), 1> SettingMSAA;
