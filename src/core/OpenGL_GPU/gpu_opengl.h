@@ -185,7 +185,6 @@ private:
     void renderBatch();
     void clearVRAM(float r, float g, float b, float a = 1.0);
     void updateDrawArea();
-    void updateDispArea();
     void setScissorArea();
     void setDrawOffset(uint32_t cmd);
     void setTexWindow(uint32_t cmd);

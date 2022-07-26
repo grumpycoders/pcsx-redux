@@ -241,6 +241,7 @@
     <ClCompile Include="..\..\src\core\cheat.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
+    <ClCompile Include="..\..\src\core\display.cc" />
     <ClCompile Include="..\..\src\core\disr3000a.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\gte_x64.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc" />
@@ -289,6 +290,7 @@
     <ClInclude Include="..\..\src\core\coff.h" />
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
+    <ClInclude Include="..\..\src\core\display.h" />
     <ClInclude Include="..\..\src\core\disr3000a.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\profiler.h" />
