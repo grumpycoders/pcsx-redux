@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#include <EASTL/string.h>
+
 #include "common/syscalls/syscalls.h"
 #include "psyqo/application.hh"
 #include "psyqo/font.hh"
@@ -39,7 +41,9 @@ class Hello final : public psyqo::Application {
     void createScene() override;
 
   public:
+    Hello() : m_text("Hello World!") {}
     psyqo::Font<> m_font;
+    eastl::string m_text;
 };
 
 class HelloScene final : public psyqo::Scene {
@@ -83,7 +87,7 @@ void HelloScene::frame() {
     }
 
     psyqo::Color c = {{.r = 255, .g = 255, .b = uint8_t(255 - m_anim)}};
-    hello->m_font.print(gpu(), "Hello World!", {{.x = 16, .y = 32}}, c);
+    hello->m_font.print(gpu(), hello->m_text, {{.x = 16, .y = 32}}, c);
 }
 
 int main() {

@@ -21,11 +21,6 @@
 #include <EASTL/internal/config.h>
 #include <EASTL/type_traits.h>
 
-EA_DISABLE_ALL_VC_WARNINGS()
-#include <ctype.h>              // toupper, etc.
-#include <string.h>             // memset, etc.
-EA_RESTORE_ALL_VC_WARNINGS()
-
 namespace eastl
 {
 	///////////////////////////////////////////////////////////////////////////////
@@ -197,6 +192,22 @@ namespace eastl
 		}
 	#endif
 
+inline int islower(int c) { return c >= 'a' && c <= 'z'; }
+inline int isupper(int c) { return c >= 'A' && c <= 'Z'; }
+
+inline int toupper(int c) { return islower(c) ? c & ~0x20 : c; }
+inline int tolower(int c) { return isupper(c) ? c | 0x20 : c; }
+
+inline const void * memchr(const void * s_, int c, size_t n) {
+    const char * s = (const char *) s_;
+    size_t i;
+
+    for (i = 0; i < n; i++, s++)
+        if (*s == c)
+            return s;
+
+    return nullptr;
+}
 	///////////////////////////////////////////////////////////////////////////////
 	// 'char traits' functionality
 	//
@@ -230,7 +241,7 @@ namespace eastl
 
 	inline int Compare(const char* p1, const char* p2, size_t n)
 	{
-		return memcmp(p1, p2, n);
+		return __builtin_memcmp(p1, p2, n);
 	}
 
 
@@ -281,7 +292,7 @@ namespace eastl
 	template <typename T>
 	inline T* CharStringUninitializedCopy(const T* pSource, const T* pSourceEnd, T* pDestination)
 	{
-		memmove(pDestination, pSource, (size_t)(pSourceEnd - pSource) * sizeof(T));
+		__builtin_memmove(pDestination, pSource, (size_t)(pSourceEnd - pSource) * sizeof(T));
 		return pDestination + (pSourceEnd - pSource);
 	}
 
@@ -428,7 +439,7 @@ namespace eastl
 	inline char* CharStringUninitializedFillN(char* pDestination, size_t n, const char c)
 	{
 		if(n) // Some compilers (e.g. GCC 4.3+) generate a warning (which can't be disabled) if you call memset with a size of 0.
-			memset(pDestination, (uint8_t)c, (size_t)n);
+			__builtin_memset(pDestination, (uint8_t)c, (size_t)n);
 		return pDestination + n;
 	}
 
@@ -446,7 +457,7 @@ namespace eastl
 	inline char* CharTypeAssignN(char* pDestination, size_t n, char c)
 	{
 		if(n) // Some compilers (e.g. GCC 4.3+) generate a warning (which can't be disabled) if you call memset with a size of 0.
-			return (char*)memset(pDestination, c, (size_t)n);
+			return (char*)__builtin_memset(pDestination, c, (size_t)n);
 		return pDestination;
 	}
 

@@ -29,6 +29,7 @@ SOFTWARE.
 #include <EASTL/array.h>
 #include <EASTL/atomic.h>
 #include <EASTL/functional.h>
+#include <EASTL/string_view.h>
 #include <stdarg.h>
 
 #include "psyqo/fragments.hh"
@@ -54,6 +55,9 @@ class FontBase {
     // Blocking call that will unpack the built-in system font and upload it to vram at a fixed location.
     void uploadSystemFont(GPU& gpu);
 
+    void print(GPU& gpu, eastl::string_view text, Vertex pos, Color color);
+    void print(GPU& gpu, eastl::string_view text, Vertex pos, Color color, eastl::function<void()>&& callback,
+               DMA::DmaCallback dmaCallback);
     void print(GPU& gpu, const char* text, Vertex pos, Color color);
     void print(GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
                DMA::DmaCallback dmaCallback);
@@ -74,6 +78,7 @@ class FontBase {
     void vprintf(GPU& gpu, Vertex pos, Color color, eastl::function<void()>&& callback, DMA::DmaCallback dmaCallback,
                  const char* format, va_list ap);
 
+    void chainprint(GPU& gpu, eastl::string_view text, Vertex pos, Color color);
     void chainprint(GPU& gpu, const char* text, Vertex pos, Color color);
     void chainprintf(GPU& gpu, Vertex pos, Color color, const char* format, ...) {
         va_list args;
@@ -94,6 +99,7 @@ class FontBase {
     virtual GlyphsFragment& getGlyphFragment(bool increment) = 0;
     virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) = 0;
 
+    void innerprint(GlyphsFragment& fragment, GPU& gpu, eastl::string_view text, Vertex pos, Color color);
     void innerprint(GlyphsFragment& fragment, GPU& gpu, const char* text, Vertex pos, Color color);
     void innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex pos, Color color, const char* format, va_list ap);
 
