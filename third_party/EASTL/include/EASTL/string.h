@@ -101,16 +101,6 @@ EA_DISABLE_ALL_VC_WARNINGS()
 #include <stddef.h>             // size_t, ptrdiff_t, etc.
 #include <stdarg.h>             // vararg functionality.
 
-#include <stdlib.h>             // malloc, free.
-#include <stdio.h>              // snprintf, etc.
-#include <ctype.h>              // toupper, etc.
-
-EA_DISABLE_GCC_WARNING(-Wtype-limits)
-#include <wchar.h>
-EA_RESTORE_GCC_WARNING()
-
-#include <string.h> // strlen, etc.
-
 #if EASTL_EXCEPTIONS_ENABLED
 	#include <stdexcept> // std::out_of_range, std::length_error.
 #endif
@@ -2371,7 +2361,7 @@ namespace eastl
 
 		if(pBegin != pEnd)
 		{
-			memmove(const_cast<value_type*>(pBegin), pEnd, (size_t)((internalLayout().EndPtr() - pEnd) + 1) * sizeof(value_type));
+			__builtin_memmove(const_cast<value_type*>(pBegin), pEnd, (size_t)((internalLayout().EndPtr() - pEnd) + 1) * sizeof(value_type));
 			const size_type n = (size_type)(pEnd - pBegin);
 			internalLayout().SetSize(internalLayout().GetSize() - n);
 		}
