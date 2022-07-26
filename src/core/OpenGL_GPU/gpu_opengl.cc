@@ -476,7 +476,8 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
 
 void PCSX::OpenGL_GPU::updateDispArea() {
     static constexpr int dividers[] = {10, 7, 8, 7, 5, 7, 4, 7};
-    const auto divider = dividers[m_drawMode & 7];
+    const auto horizontalRes = ((m_drawMode >> 6) & 1) | ((m_drawMode & 3) << 1);
+    const auto divider = dividers[horizontalRes];
     const auto cyclesPerScanline = m_display.pal ? 3406 : 3413;
     const auto totalScanlines = m_display.pal ? 314 : 263;
 
