@@ -197,6 +197,13 @@ void PCSX::SoftGPU::impl::doBufferSwap() {
     float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
     float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
 
+    // Temporary workaround until we make our Display struct work with the sw backend
+    // Trim 1 pixel from the height and width when linear filtering is on to avoid artifacts due to wrong sampling
+    if (m_linearFiltering) {
+        width -= 1.f / 1024.f;
+        height -= 1.f / 512.f;
+    }
+
     m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {startX, startY}, {width, height}, m_gui->getRenderSize());
     m_gui->flip();
 }
