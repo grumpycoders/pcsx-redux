@@ -77,27 +77,26 @@ static inline void waitGPU() {
         ;
 }
 
-static inline void sendGPUData(uint32_t status) {
+static inline void sendGPUData(uint32_t data) {
     waitGPU();
-    GPU_DATA = status;
+    GPU_DATA = data;
 }
 
-static inline void sendGPUStatus(uint32_t status) {
-    waitGPU();
-    GPU_STATUS = status;
-}
+static inline void sendGPUStatus(uint32_t status) { GPU_STATUS = status; }
 
 static inline uint32_t generateDisableDisplay() { return 0x03000001; }
 static inline uint32_t generateEnableDisplay() { return 0x03000000; }
 static inline void disableDisplay() { sendGPUStatus(generateDisableDisplay()); }
 static inline void enableDisplay() { sendGPUStatus(generateEnableDisplay()); }
 
-static inline uint32_t generateDisplayMode(struct DisplayModeConfig* config) {
+static inline uint32_t generateDisplayMode(const struct DisplayModeConfig* config) {
     return 0x08000000 | (config->hResolution << 0) | (config->vResolution << 2) | (config->videoMode << 3) |
            (config->colorDepth << 4) | (config->videoInterlace << 5) | (config->hResolutionExtended << 6);
 }
 
-static inline void setDisplayMode(struct DisplayModeConfig* config) { sendGPUStatus(generateDisplayMode(config)); }
+static inline void setDisplayMode(const struct DisplayModeConfig* config) {
+    sendGPUStatus(generateDisplayMode(config));
+}
 
 static inline uint32_t generateDisplayArea(int16_t x, int16_t y) { return 0x05000000 | x | (y << 10); }
 static inline void setDisplayArea(int16_t x, int16_t y) { sendGPUStatus(generateDisplayArea(x, y)); }
@@ -111,10 +110,10 @@ static inline uint32_t generateVerticalRange(int16_t y1, int16_t y2) { return 0x
 static inline void setVerticalRange(int16_t y1, int16_t y2) { sendGPUStatus(generateVerticalRange(y1, y2)); }
 
 union Color {
-    uint32_t packed;
     struct {
         uint8_t r, g, b;
     };
+    uint32_t packed;
 };
 
 struct FastFill {
@@ -122,7 +121,7 @@ struct FastFill {
     int16_t x, y, w, h;
 };
 
-static inline void fastFill(struct FastFill* ff) {
+static inline void fastFill(const struct FastFill* ff) {
     waitGPU();
     GPU_DATA = 0x02000000 | ff->c.r | ff->c.g << 8 | ff->c.b << 16;
     GPU_DATA = ff->x | ff->y << 16;
@@ -136,7 +135,7 @@ static inline void setDrawingArea(int16_t x1, int16_t y1, int16_t x2, int16_t y2
     sendGPUData(generateDrawingAreaEnd(x2, y2));
 }
 
-static inline uint32_t generateDrawingOffset(int16_t x, int16_t y) { return 0xe5000000 | x | y << 10; }
+static inline uint32_t generateDrawingOffset(int16_t x, int16_t y) { return 0xe5000000 | x | y << 11; }
 static inline void setDrawingOffset(int16_t x, int16_t y) { sendGPUData(generateDrawingOffset(x, y)); }
 
 enum Shading {
@@ -173,11 +172,11 @@ struct GPUPolygonCommand {
     union Color color;
 };
 
-static inline uint32_t generatePolygonCommand(struct GPUPolygonCommand* c) {
+static inline uint32_t generatePolygonCommand(const struct GPUPolygonCommand* c) {
     return 0x20000000 | c->shading << 28 | c->verticesCount << 27 | c->textured << 26 | c->transparency << 25 |
            c->blending << 24 | c->color.b << 16 | c->color.g << 8 | c->color.r;
 }
-static inline void startPolygonCommand(struct GPUPolygonCommand* c) { sendGPUData(generatePolygonCommand(c)); }
+static inline void startPolygonCommand(const struct GPUPolygonCommand* c) { sendGPUData(generatePolygonCommand(c)); }
 
 enum LineStyle {
     POLY_OFF = 0,
@@ -191,8 +190,11 @@ struct GPULineCommand {
     union Color color;
 };
 
-static inline uint32_t generateLineCommand(struct GPULineCommand* c) {
+static inline uint32_t generateLineCommand(const struct GPULineCommand* c) {
     return 0x40000000 | c->shading << 28 | c->lineStyle << 27 | c->transparency << 25 | c->color.b << 16 |
            c->color.g << 8 | c->color.r;
 }
-static inline void startLineCommand(struct GPULineCommand* c) { sendGPUData(generateLineCommand(c)); }
+static inline void startLineCommand(const struct GPULineCommand* c) { sendGPUData(generateLineCommand(c)); }
+
+static inline uint32_t generateFlushGPUCache() { return 0x01000000; }
+static inline void flushGPUCache() { sendGPUData(generateFlushGPUCache()); }

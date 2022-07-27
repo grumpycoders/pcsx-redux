@@ -27,8 +27,8 @@ SOFTWARE.
 #include "common/hardware/irq.h"
 
 #include <memory.h>
+#include <stdint.h>
 
-#include "common/compiler/stdint.h"
 #include "common/hardware/hwregs.h"
 #include "common/psxlibc/handlers.h"
 #include "common/psxlibc/string.h"
@@ -78,6 +78,8 @@ int __attribute__((section(".ramtext"))) enqueueIrqHandler(int priority) {
 
     return sysEnqIntRP(priority, &s_IRQHandlerInfo);
 }
+
+void __attribute__((section(".ramtext"))) setIrqAutoAck(uint32_t irq, int value) { s_IRQsAutoAck[irq] = value; }
 
 static int s_timersAutoAck[4];
 

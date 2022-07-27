@@ -27,8 +27,8 @@ SOFTWARE.
 #include "openbios/tty/tty.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
-#include "common/compiler/stdint.h"
 #include "common/hardware/hwregs.h"
 #include "common/hardware/util.h"
 #include "common/psxlibc/circularbuffer.h"

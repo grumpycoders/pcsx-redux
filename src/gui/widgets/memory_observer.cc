@@ -28,6 +28,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/system.h"
+#include "core/debug.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
@@ -184,7 +185,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
         }
 
         if (ImGui::BeginTabItem(_("Delta-over-time search"))) {
-            const auto stride = static_cast<uint8_t>(m_scanAlignment);
+            const auto stride = getStrideFromValueType(m_scanValueType);
 
             if (m_addressValuePairs.empty() && ImGui::Button(_("First scan"))) {
                 int memValue = 0;
@@ -221,17 +222,18 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                     }
 
                     const uint8_t currentByte = memData[i];
-                    const uint8_t leftShift = 8 * (stride - 1 - i % stride);
+                    const uint8_t leftShift = 8 * (i % stride);
                     const uint32_t mask = 0xffffffff ^ (0xff << leftShift);
                     const int byteToWrite = currentByte << leftShift;
                     memValue = (memValue & mask) | byteToWrite;
+                    memValue = getValueAsSelectedType(memValue);
                 }
             }
 
             if (!m_addressValuePairs.empty() && ImGui::Button(_("Next scan"))) {
                 auto doesntMatchCriterion = [this, memData, memSize, stride](const AddressValuePair& addressValuePair) {
                     const uint32_t address = addressValuePair.address;
-                    const int memValue = getMemValue(address, memData, memSize, memBase, stride);
+                    const int memValue = getValueAsSelectedType(getMemValue(address, memData, memSize, memBase, stride));
 
                     switch (m_scanType) {
                         case ScanType::ExactValue:
@@ -262,7 +264,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 } else {
                     for (auto& addressValuePair : m_addressValuePairs) {
                         addressValuePair.scannedValue =
-                            getMemValue(addressValuePair.address, memData, memSize, memBase, stride);
+                            getValueAsSelectedType(getMemValue(addressValuePair.address, memData, memSize, memBase, stride));
                     }
                 }
             }
@@ -275,14 +277,15 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             ImGui::Checkbox(_("Hex"), &m_hex);
             ImGui::InputInt(_("Value"), &m_value, 1, 100,
                             m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal);
+            m_value = getValueAsSelectedType(m_value);
 
-            const auto currentScanAlignment = magic_enum::enum_name(m_scanAlignment);
-            if (ImGui::BeginCombo(_("Scan alignment"), currentScanAlignment.data())) {
-                for (auto v : magic_enum::enum_values<ScanAlignment>()) {
-                    bool selected = (v == m_scanAlignment);
+            const auto currentScanValueType = magic_enum::enum_name(m_scanValueType);
+            if (ImGui::BeginCombo(_("Value type"), currentScanValueType.data())) {
+                for (auto v : magic_enum::enum_values<ScanValueType>()) {
+                    bool selected = (v == m_scanValueType);
                     auto name = magic_enum::enum_name(v);
                     if (ImGui::Selectable(name.data(), selected)) {
-                        m_scanAlignment = v;
+                        m_scanValueType = v;
                     }
                     if (selected) {
                         ImGui::SetItemDefaultFocus();
@@ -306,14 +309,20 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 ImGui::EndCombo();
             }
 
-            if (ImGui::BeginTable(_("Found values"), 4, tableFlags)) {
+            if (!m_hex && stride > 1) {
+                ImGui::Checkbox(_("Display as fixed-point values"), &m_fixedPoint);
+            }
+
+            if (ImGui::BeginTable(_("Found values"), 6, tableFlags)) {
                 ImGui::TableSetupColumn(_("Address"));
                 ImGui::TableSetupColumn(_("Current value"));
                 ImGui::TableSetupColumn(_("Scanned value"));
                 ImGui::TableSetupColumn(_("Access"));
+                ImGui::TableSetupColumn(_("Read breakpoint"));
+                ImGui::TableSetupColumn(_("Write breakpoint"));
                 ImGui::TableHeadersRow();
 
-                const auto valueDisplayFormat = m_hex ? "%x" : "%i";
+                const auto valueDisplayFormat = m_hex ? "%x" : (m_fixedPoint && stride > 1) ? "%i.%i" : "%i";
 
                 ImGuiListClipper clipper;
                 clipper.Begin(m_addressValuePairs.size());
@@ -321,19 +330,41 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                     for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
                         const auto& addressValuePair = m_addressValuePairs[row];
                         const uint32_t currentAddress = addressValuePair.address;
+                        const auto memValue =
+                            getValueAsSelectedType(getMemValue(currentAddress, memData, memSize, memBase, stride));
+                        const auto scannedValue = addressValuePair.scannedValue;
+                        const bool displayAsFixedPoint = !m_hex && m_fixedPoint && stride > 1;
 
                         ImGui::TableNextRow();
                         ImGui::TableSetColumnIndex(0);
                         ImGui::Text("%x", currentAddress);
                         ImGui::TableSetColumnIndex(1);
-                        ImGui::Text(valueDisplayFormat, getMemValue(currentAddress, memData, memSize, memBase, stride));
+                        if (displayAsFixedPoint) {
+                            ImGui::Text(valueDisplayFormat, memValue >> 12, memValue & 0xfff);
+                        } else {
+                            ImGui::Text(valueDisplayFormat, memValue);
+                        }
                         ImGui::TableSetColumnIndex(2);
-                        ImGui::Text(valueDisplayFormat, addressValuePair.scannedValue);
+                        if (displayAsFixedPoint) {
+                            ImGui::Text(valueDisplayFormat, scannedValue >> 12, scannedValue & 0xfff);
+                        } else {
+                            ImGui::Text(valueDisplayFormat, scannedValue);
+                        }
                         ImGui::TableSetColumnIndex(3);
-                        auto buttonName = fmt::format(f_("Show in memory editor##{}"), row);
-                        if (ImGui::Button(buttonName.c_str())) {
+                        auto showInMemEditorButtonName = fmt::format(f_("Show in memory editor##{}"), row);
+                        if (ImGui::Button(showInMemEditorButtonName.c_str())) {
                             const uint32_t editorAddress = currentAddress - memBase;
                             g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, stride});
+                        }
+                        ImGui::TableSetColumnIndex(4);
+                        auto addReadBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}"), row);
+                        if (ImGui::Button(addReadBreakpointButtonName.c_str())) {
+                            g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Read, stride, _("Memory Observer"));
+                        }
+                        ImGui::TableSetColumnIndex(5);
+                        auto addWriteBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}"), row);
+                        if (ImGui::Button(addWriteBreakpointButtonName.c_str())) {
+                            g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Write, stride, _("Memory Observer"));
                         }
                     }
                 }
@@ -403,6 +434,46 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
     ImGui::End();
 }
 
+uint8_t PCSX::Widgets::MemoryObserver::getStrideFromValueType(ScanValueType valueType) {
+    switch (valueType) {
+    case ScanValueType::Char:
+    case ScanValueType::Uchar:
+        return 1;
+    case ScanValueType::Short:
+    case ScanValueType::Ushort:
+        return 2;
+    case ScanValueType::Int:
+        return 4;
+    default:
+        throw std::runtime_error("Invalid value type.");
+    }
+}
+
+int PCSX::Widgets::MemoryObserver::getValueAsSelectedType(int memValue) {
+    switch (m_scanValueType) {
+        case ScanValueType::Char:
+            int8_t char_val;
+            memcpy(&char_val, &memValue, 1);
+            return char_val;
+        case ScanValueType::Uchar:
+            uint8_t uchar_val;
+            memcpy(&uchar_val, &memValue, 1);
+            return uchar_val;
+        case ScanValueType::Short:
+            short short_val;
+            memcpy(&short_val, &memValue, 2);
+            return short_val;
+        case ScanValueType::Ushort:
+            unsigned short ushort_val;
+            memcpy(&ushort_val, &memValue, 2);
+            return ushort_val;
+        case ScanValueType::Int:
+            return memValue;
+        default:
+            throw std::runtime_error("Invalid value type.");
+    }
+}
+
 int PCSX::Widgets::MemoryObserver::getMemValue(uint32_t absoluteAddress, const uint8_t* memData, uint32_t memSize,
                                                uint32_t memBase, uint8_t stride) {
     int memValue = 0;
@@ -410,7 +481,7 @@ int PCSX::Widgets::MemoryObserver::getMemValue(uint32_t absoluteAddress, const u
     assert(relativeAddress < memSize);
     for (uint32_t i = relativeAddress; i < relativeAddress + stride; ++i) {
         const uint8_t currentByte = memData[i];
-        const uint8_t leftShift = 8 * (stride - 1 - i % stride);
+        const uint8_t leftShift = 8 * (i % stride);
         const uint32_t mask = 0xffffffff ^ (0xff << leftShift);
         const int byteToWrite = currentByte << leftShift;
         memValue = (memValue & mask) | byteToWrite;

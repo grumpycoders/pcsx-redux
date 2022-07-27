@@ -33,7 +33,10 @@ the existing libc. Properly filling in portions of the required ABI, while
 avoiding the bits that won't work can be tricky, but is doable. Using a
 freestanding compiler won't have the libstdc++, and this wouldn't work. */
 
+#include <stdatomic.h>
 #include <stddef.h>
+
+#include "common/hardware/pcsxhw.h"
 
 typedef void (*fptr)();
 
@@ -66,7 +69,8 @@ void cxxmain() {
     main();
 }
 
-void abort() {
+__attribute__((weak)) void abort() {
+    pcsx_debugbreak();
     // TODO: make this better
     while (1)
         ;
@@ -124,3 +128,126 @@ __attribute__((section(".preinit_array"))) static fptr pi_heap[] = {
 };
 
 */
+
+// we're not going to care about exit cleanup
+__attribute__((weak)) void __cxa_atexit(void (*func)(void*), void* arg, void* dso_handle) {}
+
+// no, we're not going to have shared libraries
+__attribute__((weak)) void* __dso_handle = NULL;
+
+__attribute__((weak)) void* memcpy(void* s1_, const void* s2_, size_t n) {
+    uint8_t* s1 = (uint8_t*)s1_;
+    const uint8_t* s2 = (uint8_t*)s2_;
+    size_t i;
+
+    for (i = 0; i < n; i++) *s1++ = *s2++;
+
+    return s1_;
+}
+
+__attribute__((weak)) void* memmove(void* s1_, const void* s2_, size_t n) {
+    uint8_t* s1 = (uint8_t*)s1_;
+    const uint8_t* s2 = (uint8_t*)s2_;
+    size_t i;
+
+    if (s1 < s2) {
+        for (i = 0; i < n; i++) *s1++ = *s2++;
+    } else if (s1 > s2) {
+        s1 += n;
+        s2 += n;
+        for (i = 0; i < n; i++) *--s1 = *--s2;
+    }
+
+    return s1_;
+}
+
+__attribute__((weak)) int memcmp(const void* s1_, const void* s2_, size_t n) {
+    uint8_t* s1 = (uint8_t*)s1_;
+    const uint8_t* s2 = (uint8_t*)s2_;
+    size_t i;
+
+    for (i = 0; i < n; i++, s1++, s2++) {
+        if (*s1 < *s2) {
+            return -1;
+        } else if (*s1 > *s2) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+__attribute__((weak)) void* memset(void* s_, int c, size_t n) {
+    uint8_t* s = (uint8_t*)s_;
+    size_t i;
+
+    for (i = 0; i < n; i++) *s++ = (uint8_t)c;
+
+    return s_;
+}
+
+/* Some helpers to make sure we're not going to be preempted during object creation */
+static inline uint32_t getCop0Status() {
+    uint32_t r;
+    asm("mfc0 %0, $12 ; nop" : "=r"(r));
+    return r;
+}
+
+static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(r)); }
+
+static inline int fastEnterCriticalSection() {
+    uint32_t sr = getCop0Status();
+    setCop0Status(sr & ~0x401);
+    return (sr & 0x401) == 0x401;
+}
+
+static inline void fastLeaveCriticalSection() {
+    uint32_t sr = getCop0Status();
+    sr |= 0x401;
+    setCop0Status(sr);
+}
+
+/* In order to support inline object construction, we need to define at least
+   these two functions that gcc is going to call. The guard object is technically
+   a 64 bits value, but we're going to use it as an array of 2 32 bits values.
+
+   The value is supposed to be initialized at 0 on process startup.
+
+   Our first 32 bits value will be used as the full construction indicator.
+
+   The second 32 bits value will be used as a marker to indicate the object is
+   under construction, and do the multithreaded guard.
+
+   The function is supposed to return 1 if the object requires to be constructed,
+   or 0 if it was already constructed. We're also going to do some small amount
+   of work to guard against "multithreaded" construction, although this really
+   shouldn't happen, so we're simply going to abort in this case.
+*/
+__attribute__((weak)) int __cxa_guard_acquire(uint32_t* guardObject) {
+    atomic_signal_fence(memory_order_consume);
+    int needsToLeaveCS = fastEnterCriticalSection();
+    // Object was already constructed, go ahead.
+    if (guardObject[0]) {
+        if (needsToLeaveCS) fastLeaveCriticalSection();
+        atomic_signal_fence(memory_order_release);
+        return 0;
+    }
+
+    // Object isn't already under construction, go ahead.
+    if (guardObject[1] == 0) {
+        guardObject[1] = 1;
+        if (needsToLeaveCS) fastLeaveCriticalSection();
+        atomic_signal_fence(memory_order_release);
+        return 1;
+    }
+
+    abort();
+}
+
+__attribute__((weak)) void __cxa_guard_release(uint32_t* guardObject) {
+    // Our object got constructed
+    guardObject[0] = 1;
+    // And is no longer under construction
+    guardObject[1] = 0;
+    atomic_signal_fence(memory_order_release);
+}

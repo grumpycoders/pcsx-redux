@@ -131,6 +131,11 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 	ImGui::BeginChild("##scrolling", ImVec2(0, -footer_height), false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav);
 	ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
+	// Draw vertical separator
+	ImVec2 window_pos = ImGui::GetWindowPos();
+	if (OptShowAscii)
+		draw_list->AddLine(ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y), ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
+
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
@@ -157,11 +162,6 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 		else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_LeftArrow)) && (ptrdiff_t)DataEditingAddr > (ptrdiff_t)0) { data_editing_addr_next = DataEditingAddr - 1; }
 		else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_RightArrow)) && (ptrdiff_t)DataEditingAddr < (ptrdiff_t)mem_size - 1) { data_editing_addr_next = DataEditingAddr + 1; }
 	}
-
-	// Draw vertical separator
-	ImVec2 window_pos = ImGui::GetWindowPos();
-	if (OptShowAscii)
-		draw_list->AddLine(ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y), ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
 
 	const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
 	const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;

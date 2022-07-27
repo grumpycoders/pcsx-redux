@@ -26,6 +26,6 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 extern uint8_t g_readBuffer[2048];

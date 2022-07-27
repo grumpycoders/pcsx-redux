@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 static inline uint32_t djbProcess(uint32_t hash, const char str[], unsigned n) {
     return n ? djbProcess(((hash << 5) + hash) ^ str[0], str + 1, n - 1) : hash;

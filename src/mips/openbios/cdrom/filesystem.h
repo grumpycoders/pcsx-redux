@@ -26,7 +26,8 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
 #include "common/psxlibc/direntry.h"
 #include "common/psxlibc/stdio.h"
 

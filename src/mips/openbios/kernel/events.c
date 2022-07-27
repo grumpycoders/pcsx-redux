@@ -27,8 +27,8 @@ SOFTWARE.
 #include "openbios/kernel/events.h"
 
 #include <stdatomic.h>
+#include <stdint.h>
 
-#include "common/compiler/stdint.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/kernel/globals.h"

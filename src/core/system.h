@@ -79,6 +79,7 @@ struct Pause {
 struct Reset {
     bool hard = false;
 };
+struct SaveStateLoaded {};
 }  // namespace ExecutionFlow
 namespace GUI {
 struct JumpToPC {

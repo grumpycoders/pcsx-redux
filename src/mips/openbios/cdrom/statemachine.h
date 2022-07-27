@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
 int cdromSeekL(uint8_t *msf);
 int cdromGetStatus(uint8_t *responsePtr);
