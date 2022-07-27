@@ -118,6 +118,13 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - Dynamic Recompiler (x86-32, x86-64, experimental arm64 support)
 - interpreted CPU
 - software GPU
+- OpenGL GPU (highly experimental, still in active development)
+- support for visual enhancements:
+  - Linear and nearest neighbour filtering (Software and OpenGL renderer)
+  - Rendering in true colour (Results in better colours, OpenGL renderer only)
+  - Antialiasing (Implemented via MSAA, OpenGL renderer only)
+  - Ability to optionally render polygons as wireframe or as vertices (Helps with debugging, OpenGL renderer only)
+  - Hopefully more to come in the feature, such as upscaling, integer scaling, PGXP, and more
 - VRAM viewer and debugger
 - fully featured MIPS debugger
 - memory cards
@@ -131,7 +138,7 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - save states
 
 ### What still requires some work?
-- GLSL GPU
+- fix remaining OpenGL renderer bugs (No mask bit emulation, missing commands, etc) and add more graphics enhancements
 - proper SPU multithreaded code
 - better customization
 - more generic dynarec
