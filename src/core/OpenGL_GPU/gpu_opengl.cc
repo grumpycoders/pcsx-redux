@@ -352,7 +352,7 @@ void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) {
             *destination++ = m_vramReadBuffer[m_vramReadBufferIndex++];
             m_vramReadBufferSize--;
         } else {
-            //g_system->printf("Don't know how to handle this GPUREAD read :(\n");
+            //g_system->printf("Unimplemented GPUREAD read :(\n");
             return;
         }
     }
@@ -479,7 +479,7 @@ bool PCSX::OpenGL_GPU::configure() {
             m_blendFactorsLoc = OpenGL::uniformLocation(m_program, "u_blendFactors");
 
             const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
-            glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
+            glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently bound texture
 
             setDrawOffset(m_lastDrawOffsetSetting);
             setTexWindowUnchecked(m_lastTexwindowSetting);

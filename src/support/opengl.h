@@ -19,10 +19,8 @@
 
 #pragma once
 #include <array>
-#include <cassert>
-#include <functional>
+#include <cstdio>
 #include <initializer_list>
-#include <iostream>
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
@@ -218,6 +216,7 @@ struct Shader {
 
     Shader() {}
     Shader(const std::string_view source, ShaderType type) { create(source, static_cast<GLenum>(type)); }
+    ~Shader() { glDeleteShader(m_handle); }
 
     // Returns whether compilation failed or not
     bool create(const std::string_view source, GLenum type) {
@@ -269,6 +268,7 @@ struct Program {
 
         return m_handle != 0;
     }
+    ~Program() { glDeleteProgram(m_handle); }
 
     GLuint handle() { return m_handle; }
     bool exists() { return m_handle != 0; }
