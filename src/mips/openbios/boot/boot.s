@@ -217,6 +217,9 @@ stop:
     .type _cartBoot, @function
 
 _cartBoot:
+    /* place a rough breakpoint at 0x314, which will capture
+       the memcpy call writing the A0 table, after it's done
+       copying the flushCache pointer in memory */
     lui   $t0, 0b1100101010000000
     li    $t1, 0x0314
     li    $t2, 0xffff
@@ -237,11 +240,19 @@ _cartBoot:
     sw    $t4, 0x50($0)
     /* ironically, what we just did technically requires
        calling flushCache, but since our whole point here
-       is to grab its pointer, we obviously cannot */
+       is to grab its pointer, we obviously cannot, and
+       we're going to rely on determinicity instead, which
+       means some emulators may break on this  */
     jr    $ra
     sw    $t5, 0x54($0)
 
 cartBootCop0Hook:
+    /* and finally, store the flushCache pointer at
+       address 0x5c, where hopefully nobody will write to,
+       so we can jump back to it from our thunk, before
+       jumping to _reset, in order to proceed with the
+       normal boot process - don't forget to disable the
+       breakpoint otherwise we'll be in trouble */
     lw    $t0, 0x310($0)
     la    $t1, _reset
     sw    $t0, 0x5c($0)
