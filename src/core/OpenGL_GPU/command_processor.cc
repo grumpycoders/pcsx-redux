@@ -442,7 +442,7 @@ void PCSX::OpenGL_GPU::cmdSetTexWindow() {
 }
 
 void PCSX::OpenGL_GPU::cmdSetDrawMask() {
-    PCSX::g_system->printf("Unimplemented set draw mask command: %08X\n", m_cmdFIFO[0]);
+    //PCSX::g_system->printf("Unimplemented set draw mask command: %08X\n", m_cmdFIFO[0]);
 }
 
 void PCSX::OpenGL_GPU::cmdSetDrawAreaTopLeft() {
@@ -565,4 +565,6 @@ void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
     }
 }
 
-void PCSX::OpenGL_GPU::cmdUnimplemented() { PCSX::g_system->printf("Unknown GP0 command: %02X\n", m_cmdFIFO[0] >> 24); }
+void PCSX::OpenGL_GPU::cmdUnimplemented() {
+    //PCSX::g_system->printf("Unknown GP0 command: %02X\n", m_cmdFIFO[0] >> 24);
+}

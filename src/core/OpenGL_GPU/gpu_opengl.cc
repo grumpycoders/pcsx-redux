@@ -320,7 +320,7 @@ void PCSX::OpenGL_GPU::setLinearFiltering(bool setting) {
 }
 
 int PCSX::OpenGL_GPU::shutdown() {
-    g_system->printf("TODO: shutdown\n");
+    g_system->printf("Unimplemented OpenGL GPU function: shutdown\n");
     return 0;
 }
 
@@ -330,7 +330,7 @@ int PCSX::OpenGL_GPU::open(GUI* gui) {
 }
 
 int PCSX::OpenGL_GPU::close() {
-    g_system->printf("TODO: close\n");
+    g_system->printf("Unimplemented OpenGL GPU function: close\n");
     return 0;
 }
 
@@ -352,7 +352,7 @@ void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) {
             *destination++ = m_vramReadBuffer[m_vramReadBufferIndex++];
             m_vramReadBufferSize--;
         } else {
-            g_system->printf("Don't know how to handle this GPUREAD read :(\n");
+            //g_system->printf("Don't know how to handle this GPUREAD read :(\n");
             return;
         }
     }
@@ -437,7 +437,7 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
             break;
 
         default:
-            PCSX::g_system->printf("Unknown GP1 command: %02X\n", cmd);
+            //PCSX::g_system->printf("Unknown GP1 command: %02X\n", cmd);
             break;
     }
 }
@@ -522,7 +522,7 @@ bool PCSX::OpenGL_GPU::configure() {
             ImGui::EndCombo();
         }
         
-        if (ImGui::Checkbox(_("Use linear filtering (Makes graphics smoother but sometimes introduces artifacts)"),
+        if (ImGui::Checkbox(_("Use linear filtering"),
                             &m_linearFiltering)) {
             changed = true;
             g_emulator->settings.get<Emulator::SettingLinearFiltering>() = m_linearFiltering;
@@ -652,7 +652,9 @@ void PCSX::OpenGL_GPU::renderBatch() {
     }
 }
 
-void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("TODO: save\n"); }
+void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) {
+    g_system->printf("Unimplemented OpenGL GPU function: save\n");
+}
 
 void PCSX::OpenGL_GPU::load(const SaveStates::GPU& gpu) { g_system->printf("TODO: load\n"); }
 
@@ -664,6 +666,10 @@ PCSX::GPU::ScreenShot PCSX::OpenGL_GPU::takeScreenShot() {
     return ss;
 }
 
-void PCSX::OpenGL_GPU::startDump() { g_system->printf("TODO: startDump\n"); }
+void PCSX::OpenGL_GPU::startDump() {
+    g_system->printf("Unimplemented OpenGL GPU function: startDump\n");
+}
 
-void PCSX::OpenGL_GPU::stopDump() { g_system->printf("TODO: stopDump\n"); }
+void PCSX::OpenGL_GPU::stopDump() {
+    g_system->printf("Unimplemented OpenGL GPU function: stopDump\n"); 
+}

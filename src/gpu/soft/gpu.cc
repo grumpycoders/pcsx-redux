@@ -1205,8 +1205,7 @@ bool PCSX::SoftGPU::impl::configure() {
             g_emulator->settings.get<Emulator::SettingDither>() = m_softPrim.m_useDither;
         }
 
-        if (ImGui::Checkbox(_("Use linear filtering (Makes graphics smoother but sometimes introduces artifacts)"),
-            &m_linearFiltering)) {
+        if (ImGui::Checkbox(_("Use linear filtering"), &m_linearFiltering)) {
             changed = true;
             g_emulator->settings.get<Emulator::SettingLinearFiltering>() = m_linearFiltering;
             setLinearFiltering(m_linearFiltering);
