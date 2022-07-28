@@ -131,6 +131,7 @@ private:
     OpenGL::VertexBuffer m_vbo;
     OpenGL::Framebuffer m_fbo;
     OpenGL::Texture m_vramTexture;
+    OpenGL::Texture m_blankTexture; // Black texture to display when the display is off
 
     // We need non-MSAA copies of our texture & FBO when using multisampling
     OpenGL::Texture m_vramTextureNoMSAA;
@@ -163,6 +164,10 @@ private:
     GLint m_drawingOffsetLoc;
     GLint m_texWindowLoc;
     GLint m_blendFactorsLoc;
+    // The handle of the texture to actually display on screen.
+    // The handle of either m_vramTexture, m_vramTextureNoMSAA or m_blankTexture
+    // Depending on whether the display and MSAA are enabled
+    GLuint m_displayTexture;
 
     int m_FIFOIndex;
     int m_cmd;
@@ -189,6 +194,7 @@ private:
     void setDrawOffset(uint32_t cmd);
     void setTexWindow(uint32_t cmd);
     void setTexWindowUnchecked(uint32_t cmd);
+    void setDisplayEnable(bool setting);
 
     enum class RectSize {
         Variable, Rect1, Rect8, Rect16

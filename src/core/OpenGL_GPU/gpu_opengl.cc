@@ -62,6 +62,7 @@ void PCSX::OpenGL_GPU::reset() {
     setDrawOffset(0x00000000);
     setTexWindowUnchecked(0x00000000);
     setBlendFactors(0.0, 0.0);
+    setDisplayEnable(false);
 
     clearVRAM();
 }
@@ -132,7 +133,18 @@ int PCSX::OpenGL_GPU::init() {
         throw std::runtime_error("Non-complete framebuffer");
     }
 
+    // Create a plain black texture for when the display is disabled
+    // Since GL can automatically repeat textures for us, we can create a tiny texture for this
+    OpenGL::Framebuffer dummyFBO;
+    m_blankTexture.create(8, 8, GL_RGBA8);
+    dummyFBO.createWithDrawTexture(m_blankTexture); // Create FBO and bind our texture to it
+    dummyFBO.bind(OpenGL::DrawFramebuffer);
+    
+    // Clear the texture and remove FBO
+    OpenGL::setClearColor(0.0, 0.0, 0.0, 1.0);
+    OpenGL::clearColor();
     OpenGL::bindScreenFramebuffer();
+
     // Without manually setting alignment, texture uploads in eg the BIOS will break if the width/x coord are odd
     // TODO: Find efficient method to handle this
     glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
@@ -415,7 +427,15 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
         // Reset GPU. TODO: This should perform some more operations
         case 0:
             m_display.reset();
+            setDisplayEnable(false);
             break;
+
+        // Enable/Disable display
+        case 3: {
+            const bool enabled = (value & 1) == 0;
+            setDisplayEnable(enabled);
+            break;
+        }
 
         // Set display area start
         case 5:
@@ -629,8 +649,7 @@ void PCSX::OpenGL_GPU::vblank() {
     float width = m_display.m_sizeNormalized.x();
     float height = m_display.m_sizeNormalized.y();
 
-    const auto tex = m_multisampled ? m_vramTextureNoMSAA.handle() : m_vramTexture.handle();
-    m_gui->m_offscreenShaderEditor.render(m_gui, tex, {startX, startY}, {width, height},
+    m_gui->m_offscreenShaderEditor.render(m_gui, m_displayTexture, {startX, startY}, {width, height},
                                           m_gui->getRenderSize());
 }
 
@@ -649,6 +668,15 @@ void PCSX::OpenGL_GPU::renderBatch() {
         m_vbo.bufferVertsSub(&m_vertices[0], m_vertexCount);
         OpenGL::draw(OpenGL::Triangles, m_vertexCount);
         m_vertexCount = 0;
+    }
+}
+
+void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
+    m_display.m_enabled = setting;
+    if (!setting) {
+        m_displayTexture = m_blankTexture.handle();
+    } else {
+        m_displayTexture = m_multisampled ? m_vramTextureNoMSAA.handle() : m_vramTexture.handle();
     }
 }
 

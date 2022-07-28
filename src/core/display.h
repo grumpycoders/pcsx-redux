@@ -35,6 +35,7 @@ struct Display {
     bool m_rgb24;   // Is RGB24 mode enabled?
     bool m_interlace;
     bool m_pal;
+    bool m_enabled;
     bool m_linearFiltering = true;
 
     int x1, x2, y1, y2;  // Display area range variables

@@ -26,6 +26,7 @@ void PCSX::Display::reset() {
     x2 = 0x200 + 256 * 10;
     y1 = 0x10;
     y2 = 0x10 + 0x240;
+    m_enabled = false;
     setMode(0);
     setDisplayStart(0);
     updateDispArea();
