@@ -97,9 +97,7 @@
 //
 //*************************************************************************//
 
-#include "gpu/soft/draw.h"
-
-#include <stdint.h>
+#include <cstdint>
 
 #include "GL/gl3w.h"
 #include "gpu/soft/externals.h"
@@ -116,16 +114,6 @@ PCSX::GUI *m_gui;
 bool bVsync_Key = false;
 
 static const unsigned int pitch = 4096;
-
-void DoClearScreenBuffer() {
-    glClearColor(1, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-}
-
-void DoClearFrontBuffer() {
-    glClearColor(1, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-}
 
 void ShowGunCursor(unsigned char *surf) {
     uint16_t dx = (uint16_t)PreviousPSXDisplay.Range.x1;

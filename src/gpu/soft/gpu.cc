@@ -123,7 +123,6 @@
 
 #include "core/debug.h"
 #include "core/psxemulator.h"
-#include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
@@ -354,8 +353,9 @@ std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::G
 
 void PCSX::SoftGPU::impl::updateDisplay() {
     if (PSXDisplay.Disabled) {
-        DoClearFrontBuffer();  // -> clear frontbuffer
-        return;                // -> and bye
+        glClearColor(1, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);  // -> clear frontbuffer
+        return;                        // -> and bye
     }
 
     doBufferSwap();
@@ -394,7 +394,8 @@ void ChangeDispOffsetsX() {
 
             PreviousPSXDisplay.Range.x1 += (int16_t)(lx - l);
         }
-        DoClearScreenBuffer();
+        glClearColor(1, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     bDoVSyncUpdate = true;
@@ -436,7 +437,8 @@ void ChangeDispOffsetsY() {
         PreviousPSXDisplay.Range.y0 = 0;
 
     if (iO != PreviousPSXDisplay.Range.y0) {
-        DoClearScreenBuffer();
+        glClearColor(1, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 }
 

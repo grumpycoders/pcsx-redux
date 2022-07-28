@@ -84,7 +84,6 @@
 #include "gpu/soft/prim.h"
 
 #include "core/psxemulator.h"
-#include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/soft.h"

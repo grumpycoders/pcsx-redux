@@ -135,7 +135,7 @@ private:
     // We need non-MSAA copies of our texture & FBO when using multisampling
     OpenGL::Texture m_vramTextureNoMSAA;
     OpenGL::Framebuffer m_fboNoMSAA;
-    Widgets::ShaderEditor m_shaderEditor = {"hw renderer"};
+    Widgets::ShaderEditor m_shaderEditor = {"hw-renderer"};
     
     // For CPU->VRAM texture transfers
     OpenGL::Texture m_sampleTexture;
