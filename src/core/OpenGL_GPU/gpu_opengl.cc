@@ -141,6 +141,7 @@ int PCSX::OpenGL_GPU::init() {
     dummyFBO.bind(OpenGL::DrawFramebuffer);
     
     // Clear the texture and remove FBO
+    OpenGL::setViewport(8, 8);
     OpenGL::setClearColor(0.0, 0.0, 0.0, 1.0);
     OpenGL::clearColor();
     OpenGL::bindScreenFramebuffer();
