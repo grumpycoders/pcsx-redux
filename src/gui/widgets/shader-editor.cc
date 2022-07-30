@@ -38,13 +38,10 @@ static const GLchar *const c_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
 layout (location = 0) in vec2 Position;
 layout (location = 1) in vec2 UV;
-layout (location = 2) in vec4 Color;
 uniform mat4 u_projMatrix;
 out vec2 Frag_UV;
-out vec4 Frag_Color;
 void main() {
     Frag_UV = UV;
-    Frag_Color = Color;
     gl_Position = u_projMatrix * vec4(Position.xy, 0, 1);
 }
 )";
@@ -54,10 +51,9 @@ static const GLchar *const c_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
 uniform sampler2D Texture;
 in vec2 Frag_UV;
-in vec4 Frag_Color;
 layout (location = 0) out vec4 Out_Color;
 void main() {
-    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);
+    Out_Color = texture(Texture, Frag_UV.st);
     Out_Color.a = 1.0;
 }
 )";
@@ -165,6 +161,15 @@ void PCSX::Widgets::ShaderEditor::setDefaults() {
 void PCSX::Widgets::ShaderEditor::init() {
     glGenVertexArrays(1, &m_vao);
     glGenBuffers(1, &m_vbo);
+
+    m_quadVertices[0].positions[0] = -1.0;
+    m_quadVertices[0].positions[1] = -1.0;
+    m_quadVertices[1].positions[0] = 1.0;
+    m_quadVertices[1].positions[1] = -1.0;
+    m_quadVertices[2].positions[0] = -1.0;
+    m_quadVertices[2].positions[1] = 1.0;
+    m_quadVertices[3].positions[0] = 1.0;
+    m_quadVertices[3].positions[1] = 1.0;
 }
 
 std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
@@ -706,63 +711,28 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
 
     glBindVertexArray(m_vao);
     glUseProgram(m_shaderProgram);
-    struct VertexData {
-        float positions[3];
-        float textures[2];
-        float color[4];
-    };
 
-    VertexData quadVertices[4];
+    m_quadVertices[0].textures[0] = srcLoc.x;
+    m_quadVertices[0].textures[1] = srcLoc.y;
 
-    quadVertices[0].positions[0] = -1.0;
-    quadVertices[0].positions[1] = -1.0;
-    quadVertices[0].positions[2] = 0.0;
-    quadVertices[0].textures[0] = srcLoc.x;
-    quadVertices[0].textures[1] = srcLoc.y;
-    quadVertices[0].color[0] = 1.0;
-    quadVertices[0].color[1] = 1.0;
-    quadVertices[0].color[2] = 1.0;
-    quadVertices[0].color[3] = 1.0;
+    m_quadVertices[1].textures[0] = srcLoc.x + srcSize.x;
+    m_quadVertices[1].textures[1] = srcLoc.y;
 
-    quadVertices[1].positions[0] = 1.0;
-    quadVertices[1].positions[1] = -1.0;
-    quadVertices[1].positions[2] = 0.0;
-    quadVertices[1].textures[0] = srcLoc.x + srcSize.x;
-    quadVertices[1].textures[1] = srcLoc.y;
-    quadVertices[1].color[0] = 1.0;
-    quadVertices[1].color[1] = 1.0;
-    quadVertices[1].color[2] = 1.0;
-    quadVertices[1].color[3] = 1.0;
+    m_quadVertices[2].textures[0] = srcLoc.x;
+    m_quadVertices[2].textures[1] = srcLoc.y + srcSize.y;
 
-    quadVertices[2].positions[0] = -1.0;
-    quadVertices[2].positions[1] = 1.0;
-    quadVertices[2].positions[2] = 0.0;
-    quadVertices[2].textures[0] = srcLoc.x;
-    quadVertices[2].textures[1] = srcLoc.y + srcSize.y;
-    quadVertices[2].color[0] = 1.0;
-    quadVertices[2].color[1] = 1.0;
-    quadVertices[2].color[2] = 1.0;
-    quadVertices[2].color[3] = 1.0;
-
-    quadVertices[3].positions[0] = 1.0;
-    quadVertices[3].positions[1] = 1.0;
-    quadVertices[3].positions[2] = 0.0;
-    quadVertices[3].textures[0] = srcLoc.x + srcSize.x;
-    quadVertices[3].textures[1] = srcLoc.y + srcSize.y;
-    quadVertices[3].color[0] = 1.0;
-    quadVertices[3].color[1] = 1.0;
-    quadVertices[3].color[2] = 1.0;
-    quadVertices[3].color[3] = 1.0;
+    m_quadVertices[3].textures[0] = srcLoc.x + srcSize.x;
+    m_quadVertices[3].textures[1] = srcLoc.y + srcSize.y;
 
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 4, &quadVertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 4, &m_quadVertices[0], GL_STATIC_DRAW);
     glDisable(GL_DEPTH_TEST);
 
     if (m_setupVAO) {
         m_setupVAO = false;
         int loc = glGetAttribLocation(m_shaderProgram, "Position");
         if (loc >= 0) {
-            glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+            glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData),
                                   (void *)&((VertexData *)nullptr)->positions);
             glEnableVertexAttribArray(loc);
         }
@@ -771,13 +741,6 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
         if (loc >= 0) {
             glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData),
                                   (void *)&((VertexData *)nullptr)->textures);
-            glEnableVertexAttribArray(loc);
-        }
-
-        loc = glGetAttribLocation(m_shaderProgram, "Color");
-        if (loc >= 0) {
-            glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData),
-                                  (void *)&((VertexData *)nullptr)->color);
             glEnableVertexAttribArray(loc);
         }
     }

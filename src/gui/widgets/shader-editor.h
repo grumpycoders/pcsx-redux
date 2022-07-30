@@ -95,6 +95,13 @@ class ShaderEditor {
     GLint m_imguiProgram = 0;
 
     GUI* m_cachedGui = nullptr;
+    
+    struct VertexData {
+        float positions[2];
+        float textures[2];
+    };
+
+    VertexData m_quadVertices[4];
 };
 
 }  // namespace Widgets

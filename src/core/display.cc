@@ -46,9 +46,8 @@ void PCSX::Display::setDisplayStart(uint32_t command) {
             startX += 1;
             startY += 1;
         }
-        float xRatio = m_rgb24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
 
-        m_startNormalized.x() = (float)startX * xRatio;
+        m_startNormalized.x() = (float)startX / 1024.f;
         m_startNormalized.y() = (float)startY / 512.f;
     }
 }
@@ -81,6 +80,7 @@ void PCSX::Display::setMode(uint32_t command) {
     if (m_drawMode != newMode) {
         m_drawMode = newMode;
         m_pal = (newMode & 0x8) != 0;
+        m_rgb24 = (newMode & 0x10) != 0;
         m_interlace = (newMode & 0x20) != 0;
 
         if (g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
@@ -123,26 +123,21 @@ void PCSX::Display::updateDispArea() {
     // Store the true, unedited dimensions in m_size
     m_size.x() = width;
     m_size.y() = height;
-    int startX = m_start.x();
 
     // Adjust dimensions before normalizing if we have linear filtering on
     if (m_linearFiltering) {
-        width -= 1;
-        height -= 1;
-        startX += 1;
+        width -= 2;
+        height -= 2;
     }
     m_sizeNormalized.x() = (float)width / 1024.f;
     m_sizeNormalized.y() = (float)height / 512.f;
-
-    float xRatio = m_rgb24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
-    m_startNormalized.x() = (float)startX * xRatio;
 }
 
 void PCSX::Display::setLinearFiltering(bool setting) {
     m_linearFiltering = setting;
     // If linear filtering is on, crop 1 row from the top & bottom, and 1 column from the left & right
-    const int width = m_size.x() - ((setting) ? 1 : 0);
-    const int height = m_size.y() - ((setting) ? 1 : 0);
+    const int width = m_size.x() - ((setting) ? 2 : 0);
+    const int height = m_size.y() - ((setting) ? 2 : 0);
     const int startX = m_start.x() + ((setting) ? 1 : 0);
     const int startY = m_start.y() + ((setting) ? 1 : 0);
 
