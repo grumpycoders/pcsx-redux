@@ -613,7 +613,7 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
             Lorg.pop();
         }
     }
-    
+
     drawList->AddCallback(
         [](const ImDrawList *parentList, const ImDrawCmd *cmd) {
             ShaderEditor *that = reinterpret_cast<ShaderEditor *>(cmd->UserCallbackData);
@@ -745,24 +745,12 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
         }
     }
 
-    GLfloat currentProjection[4][4];
-
-    currentProjection[0][0] = 1.0f;
-    currentProjection[0][1] = 0.0f;
-    currentProjection[0][2] = 0.0f;
-    currentProjection[0][3] = 0.0f;
-    currentProjection[1][0] = 0.0f;
-    currentProjection[1][1] = 1.0f;
-    currentProjection[1][2] = 0.0f;
-    currentProjection[1][3] = 0.0f;
-    currentProjection[2][0] = 0.0f;
-    currentProjection[2][1] = 0.0f;
-    currentProjection[2][2] = 1.0f;
-    currentProjection[2][3] = 0.0f;
-    currentProjection[3][0] = 0.0f;
-    currentProjection[3][1] = 0.0f;
-    currentProjection[3][2] = 0.0f;
-    currentProjection[3][3] = 1.0f;
+    static constexpr float currentProjection[4][4] = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    };
     glUniformMatrix4fv(m_shaderProjMtxLoc, 1, GL_FALSE, &currentProjection[0][0]);
 
     glBindTexture(GL_TEXTURE_2D, textureID);
