@@ -69,7 +69,7 @@ static_assert(sizeof(Vertex) == sizeof(uint32_t), "Vertex is not 32 bits");
  *
  * Using C++ list-initializations, one can create a rectangle directly using such syntax:
  *
- *    `Rect{a. = {.x = 18, .y = 42}, .b = {}};`
+ *    `Rect{.a = {.x = 18, .y = 42}, .b = {}};`
  */
 struct Rect {
     union {
