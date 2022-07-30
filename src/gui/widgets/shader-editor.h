@@ -27,6 +27,7 @@
 #include "GL/gl3w.h"
 #include "gui/widgets/zep.h"
 #include "lua/luawrapper.h"
+#include "support/opengl.h"
 
 namespace PCSX {
 
@@ -88,8 +89,8 @@ class ShaderEditor {
     static lua_Number s_index;
     const lua_Number m_index;
 
-    GLuint m_vao = 0;
-    GLuint m_vbo = 0;
+    OpenGL::VertexArray m_vao;
+    OpenGL::VertexBuffer m_vbo = 0;
     GLint m_imguiProjMtxLoc = -1;  // -1 = not found
     GLint m_shaderProjMtxLoc = -1;
     GLint m_imguiProgram = 0;

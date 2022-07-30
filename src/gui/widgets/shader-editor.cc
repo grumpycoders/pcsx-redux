@@ -102,6 +102,51 @@ function BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, 
 end
 )";
 
+static const GLchar *const c_24bppConversionFragShader = GL_SHADER_VERSION R"(
+uniform sampler2D Texture;
+in vec2 Frag_UV;
+in vec4 Frag_Color;
+layout (location = 0) out vec4 Out_Color;
+
+uniform vec2 u_startCoords;
+
+int floatToU5(float f) {
+    return int(floor(f * 31.0 + 0.5));
+ }
+
+uint sample16(ivec2 coords) {
+    vec4 colour = texelFetch(Texture, coords, 0);
+    int r = floatToU5(colour.r);
+    int g = floatToU5(colour.g);
+    int b = floatToU5(colour.b);
+    int msb = int(ceil(colour.a)) << 15;
+    return uint(r | (g << 5) | (b << 10) | msb);
+}
+
+void main() {
+    ivec2 iUV = ivec2(floor((Frag_UV * vec2(1024.f, 512.f))));
+    ivec2 startCoords = (iUV.x >= 512) ? ivec2(512, 0) : ivec2(0); // TODO: uniform
+    ivec2 icoords = iUV - startCoords;
+
+    int x = startCoords.x + (icoords.x * 3) / 2;
+    int y = startCoords.y + icoords.y;
+    iUV = ivec2(x, y);
+
+    const ivec2 size = ivec2(1023, 511);
+
+    uint s0 = sample16(iUV & size);
+    uint s1 = sample16((iUV + ivec2(1, 0)) & size);
+
+    uint fullSample = ((s1 << 16) | s0) >> ((icoords.x & 1) * 8);
+    uint r = fullSample & 0xffu;
+    uint g = (fullSample >> 8u) & 0xffu;
+    uint b = (fullSample >> 16u) & 0xffu;
+
+    vec3 col = vec3(ivec3(r, g, b)) / 255.0;
+    Out_Color = vec4(col, 1.0);
+}
+)";
+
 PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::string_view &dVS,
                                           const std::string_view &dPS, const std::string_view &dL)
     : m_baseFilename(base), m_index(++s_index) {
@@ -145,8 +190,6 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
 }
 
 PCSX::Widgets::ShaderEditor::~ShaderEditor() {
-    glDeleteVertexArrays(1, &m_vao);
-    glDeleteBuffers(1, &m_vbo);
     if (m_shaderProgram != 0) {
         glDeleteProgram(m_shaderProgram);
     }
@@ -159,8 +202,8 @@ void PCSX::Widgets::ShaderEditor::setDefaults() {
 }
 
 void PCSX::Widgets::ShaderEditor::init() {
-    glGenVertexArrays(1, &m_vao);
-    glGenBuffers(1, &m_vbo);
+    m_vao.create();
+    m_vbo.createFixedSize(sizeof(VertexData) * 4, GL_STATIC_DRAW);
 
     m_quadVertices[0].positions[0] = -1.0;
     m_quadVertices[0].positions[1] = -1.0;
@@ -709,7 +752,7 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
         return;
     }
 
-    glBindVertexArray(m_vao);
+    m_vao.bind();
     glUseProgram(m_shaderProgram);
 
     m_quadVertices[0].textures[0] = srcLoc.x;
@@ -724,8 +767,8 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
     m_quadVertices[3].textures[0] = srcLoc.x + srcSize.x;
     m_quadVertices[3].textures[1] = srcLoc.y + srcSize.y;
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 4, &m_quadVertices[0], GL_STATIC_DRAW);
+    m_vbo.bind();
+    m_vbo.bufferVertsSub(m_quadVertices, 4);
     glDisable(GL_DEPTH_TEST);
 
     if (m_setupVAO) {
