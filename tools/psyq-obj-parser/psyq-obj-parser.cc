@@ -226,7 +226,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
     vprint(":: Reading signature.\n");
     std::string signature = file->readString(3);
     if (signature != "LNK") {
-        fmt::print("Wrong signature: {}\n", signature);
+        fmt::print(stderr, "Wrong signature: {}\n", signature);
         return nullptr;
     }
     vprint(" --> Signature ok.\n");
@@ -235,7 +235,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
     uint8_t version = file->byte();
     vprint("{}\n", version);
     if (version != 2) {
-        fmt::print("Unknown version {}\n", version);
+        fmt::print(stderr, "Unknown version {}\n", version);
         return nullptr;
     }
 
@@ -365,7 +365,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 section->name = name;
                 ret->sections.insert(sectionIndex, section);
                 if ((alignment - 1) & alignment) {
-                    fmt::print("Section alignment {} isn't a power of two.\n", alignment);
+                    fmt::print(stderr, "Section alignment {} isn't a power of two.\n", alignment);
                     return nullptr;
                 }
                 break;
@@ -393,11 +393,11 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 uint8_t type = file->read<uint8_t>();
                 vprint("Program type {}\n", type);
                 if (type != 7) {
-                    fmt::print("Unknown program type {}.\n", type);
+                    fmt::print(stderr, "Unknown program type {}.\n", type);
                     return nullptr;
                 }
                 if (ret->gotProgramSeven) {
-                    fmt::print("Already got program type.\n");
+                    fmt::print(stderr, "Already got program type.\n");
                     return nullptr;
                 }
                 ret->gotProgramSeven = true;
@@ -416,7 +416,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 symbol->name = name;
                 auto section = ret->sections.find(sectionIndex);
                 if (section == ret->sections.end()) {
-                    fmt::print("Section {} not found for {}.\n", sectionIndex, name);
+                    fmt::print(stderr, "Section {} not found for {}.\n", sectionIndex, name);
                     return nullptr;
                 }
 
@@ -526,13 +526,13 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 break;
             }
             default: {
-                fmt::print("Unknown opcode {}.\n", opcode);
+                fmt::print(stderr, "Unknown opcode {}.\n", opcode);
                 return nullptr;
             }
         }
     }
 
-    fmt::print("Got actual end of file before EOF command.\n");
+    fmt::print(stderr, "Got actual end of file before EOF command.\n");
 
     return nullptr;
 }
@@ -622,7 +622,7 @@ std::unique_ptr<PsyqLnkFile::Expression> PsyqLnkFile::Expression::parse(PCSX::IO
             break;
         }
         default: {
-            fmt::print("Unknown expression type {}\n", exprOp);
+            fmt::print(stderr, "Unknown expression type {}\n", exprOp);
             return nullptr;
         }
     }
@@ -1169,12 +1169,12 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
     for (auto& input : inputs) {
         PCSX::IO<PCSX::File> file(new PCSX::PosixFile(input));
         if (file->failed()) {
-            fmt::print("Unable to open file: {}\n", input);
-            ret = -1;
+            fmt::print(stderr, "Unable to open file: {}\n", input);
+            ret = -2;
         } else {
             auto psyq = PsyqLnkFile::parse(file, verbose);
             if (!psyq) {
-                ret = -1;
+                ret = -3;
             } else {
                 if (args.get<bool>("d").value_or(false)) {
                     fmt::print(":: Displaying {}\n", input);
@@ -1188,7 +1188,8 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
                     if (success) {
                         fmt::print(":: Conversion completed.\n");
                     } else {
-                        fmt::print(":: Conversion failed: {}\n", psyq->elfConversionError);
+                        fmt::print(stderr, ":: Conversion failed: {}\n", psyq->elfConversionError);
+                        ret = -4;
                     }
                 }
             }

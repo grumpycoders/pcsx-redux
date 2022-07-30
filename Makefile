@@ -275,8 +275,9 @@ pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
-psyq-obj-parser: $(SUPPORT_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO
+PSYQ_OBJ_PARSER_OBJECTS := src/support/file.o third_party/fmt/src/format.o
+psyq-obj-parser: $(PSYQ_OBJ_PARSER_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
+	$(LD) -o $@ $(PSYQ_OBJ_PARSER_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO -static
 
 ps1-packer: $(SUPPORT_OBJECTS) tools/ps1-packer/ps1-packer.cc
 	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/ps1-packer/ps1-packer.cc
