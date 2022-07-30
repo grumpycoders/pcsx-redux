@@ -49,6 +49,8 @@ void PCSX::Pads::init() {
             return ret;
         },
         "gamecontrollerdb.txt", "resources", std::filesystem::path("third_party") / "SDL_GameControllerDB");
+    reset();
+    map();
 }
 
 PCSX::Pads::Pads() : m_listener(g_system->m_eventBus) {
@@ -85,6 +87,11 @@ void PCSX::Pads::Pad::reset() {
     m_currentByte = 0;
     m_data.buttonStatus = 0xffff;
     m_data.overrides = 0xffff;
+}
+
+void PCSX::Pads::map() {
+    m_pads[0].map();
+    m_pads[1].map();
 }
 
 void PCSX::Pads::Pad::map() {
@@ -704,6 +711,7 @@ bool PCSX::Pads::Pad::configure() {
             if (ImGui::Selectable(gamepadName.c_str())) {
                 changed = true;
                 id = i;
+                map();
             }
         }
 
