@@ -24,8 +24,8 @@
 
 #include "core/display.h"
 #include "core/psxemulator.h"
+#include "core/psxmem.h"
 #include "core/sstate.h"
-#include "support/opengl.h"
 #include "support/slice.h"
 
 namespace PCSX {
@@ -33,9 +33,14 @@ class GUI;
 
 class GPU {
   public:
-    int gpuReadStatus();
+    uint32_t gpuReadStatus();
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
+
+    // These functions do not touch GPUSTAT. GPU backends should mirror the IRQ status into GPUSTAT
+    // when readStatus is called
+    void requestIRQ1() { psxHu32ref(0x1070) |= SWAP_LEu32(0x2); }
+    void acknowledgeIRQ1() { psxHu32ref(0x1070) &= ~SWAP_LEu32(0x2); }
 
     bool m_showCfg = false;
     bool m_showDebug = false;

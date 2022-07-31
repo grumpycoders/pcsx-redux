@@ -737,14 +737,6 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             break;
         case 0x1f801810:
             PSXHW_LOG("GPU DATA 32bit write %x (CMD/MSB %x)\n", value, value >> 24);
-            // 0x1F means irq request, so fulfill it here because plugin can't and won't
-            // Probably no need to send this to plugin in first place...
-            // MML/Tronbonne is known to use this.
-            // TODO FIFO is not implemented properly so commands are not exact
-            // and thus we rely on hack that counter/cdrom irqs are enabled at same time
-            if (PCSX::g_emulator->config().HackFix && SWAP_LEu32(value) == 0x1f00000 && (psxHu32ref(0x1070) & 0x44)) {
-                setIrq(0x01);
-            }
             PCSX::g_emulator->m_gpu->writeData(value);
             break;
         case 0x1f801814:

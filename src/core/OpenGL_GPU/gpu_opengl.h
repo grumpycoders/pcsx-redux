@@ -262,6 +262,7 @@ private:
     void cmdFillRect();
     void cmdCopyRectToVRAM();
     void cmdCopyRectFromVRAM();
+    void cmdRequestIRQ() { requestIRQ1(); }
     void cmdSetDrawMode();
     void cmdSetTexWindow();
     void cmdSetDrawAreaTopLeft();

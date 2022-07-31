@@ -342,6 +342,7 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x00] = &OpenGL_GPU::cmdNop;
     m_cmdFuncs[0x01] = &OpenGL_GPU::cmdClearTexCache;
     m_cmdFuncs[0x02] = &OpenGL_GPU::cmdFillRect;
+    m_cmdFuncs[0x1F] = &OpenGL_GPU::cmdRequestIRQ;
     m_cmdFuncs[0xE1] = &OpenGL_GPU::cmdSetDrawMode;
     m_cmdFuncs[0xE2] = &OpenGL_GPU::cmdSetTexWindow;
     m_cmdFuncs[0xE3] = &OpenGL_GPU::cmdSetDrawAreaTopLeft;

@@ -429,6 +429,11 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
         case 0:
             m_display.reset();
             setDisplayEnable(false);
+            acknowledgeIRQ1();
+            break;
+
+        case 2:
+            acknowledgeIRQ1();
             break;
 
         // Enable/Disable display
