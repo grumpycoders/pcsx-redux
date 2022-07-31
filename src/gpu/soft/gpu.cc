@@ -750,12 +750,10 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
 
             return;
 
-        // ask about GPU version and other stuff
+        // Ask about GPU version and other stuff
+        // We currently only emulate the old GPU version of this command
         case 0x10:
-
-            gdata &= 0xff;
-
-            switch (gdata) {
+            switch (gdata & 0x7) {
                 case 0x02:
                     lGPUdataRet = lGPUInfoVals[INFO_TW];  // tw infos
                     return;
@@ -766,18 +764,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
                     lGPUdataRet = lGPUInfoVals[INFO_DRAWEND];  // draw end
                     return;
                 case 0x05:
-                case 0x06:
                     lGPUdataRet = lGPUInfoVals[INFO_DRAWOFF];  // draw offset
-                    return;
-                case 0x07:
-                    if (dwGPUVersion == 2)
-                        lGPUdataRet = 0x01;
-                    else
-                        lGPUdataRet = 0x02;  // gpu type
-                    return;
-                case 0x08:
-                case 0x0F:  // some bios addr?
-                    lGPUdataRet = 0xBFC03720;
                     return;
             }
             return;
