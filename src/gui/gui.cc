@@ -1680,7 +1680,7 @@ void PCSX::GUI::interruptsScaler() {
     if (!m_showInterruptsScaler) return;
     static const char* names[] = {
         "SIO",
-        "SIO1"
+        "SIO1",
         "CDR",
         "CDR Read",
         "GPU DMA",
