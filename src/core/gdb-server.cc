@@ -34,10 +34,19 @@ const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 
 PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
-        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServer>() &&
-            (m_serverStatus != SERVER_STARTED)) {
-            startServer(g_system->getLoop(), g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                                 .get<Emulator::DebugSettings::GdbServerPort>());
+        auto& args = g_system->getArgs();
+        auto& settings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
+        if (args.get<bool>("gdb", false)) {
+            settings.get<Emulator::DebugSettings::GdbServer>() = true;
+        }
+        if (args.get<bool>("no-gdb", false)) {
+            settings.get<Emulator::DebugSettings::GdbServer>() = false;
+        }
+        if (args.get<int>("gdb-port").has_value()) {
+            settings.get<Emulator::DebugSettings::GdbServerPort>() = args.get<int>("gdb-port").value();
+        }
+        if (settings.get<Emulator::DebugSettings::GdbServer>() && (m_serverStatus != SERVER_STARTED)) {
+            startServer(g_system->getLoop(), settings.get<Emulator::DebugSettings::GdbServerPort>());
         }
     });
     m_listener.listen<Events::Quitting>([this](const auto& event) {
