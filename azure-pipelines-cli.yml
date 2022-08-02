@@ -1,0 +1,86 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-2022'
+
+variables:
+  solution: 'vsprojects/pcsx-redux.sln'
+  buildConfiguration: 'ReleaseCLI'
+
+steps:
+- checkout: self
+  submodules: recursive
+- task: NuGetToolInstaller@1
+
+- task: NuGetCommand@2
+  inputs:
+    restoreSolution: '$(solution)'
+
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      wget https://christiansoltenborn.gallerycdn.vsassets.io/extensions/christiansoltenborn/googletestadapter/0.17.1.1389/1571333606547/GoogleTestAdapter-0.17.1.vsix -OutFile GoogleTestAdapter-0.17.1.zip
+
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: 'GoogleTestAdapter-0.17.1.zip'
+    destinationFolder: 'GoogleTestAdapter'
+    cleanDestinationFolder: true
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      LICENSE
+      i18n/*.po
+    TargetFolder: '$(build.artifactStagingDirectory)/assets'
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      third_party/noto/*
+    TargetFolder: '$(build.artifactStagingDirectory)/assets/fonts'
+    FlattenFolders: true
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      third_party/SDL_GameControllerDB/gamecontrollerdb.txt
+    TargetFolder: '$(build.artifactStagingDirectory)/assets'
+    FlattenFolders: true
+
+- task: VSBuild@1
+  inputs:
+    solution: '$(solution)'
+    platform: 'x64'
+    maximumCpuCount: false
+    configuration: '$(buildConfiguration)'
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      vsprojects/x64/ReleaseWithClangCL/pcsx-redux.exe
+      vsprojects/x64/ReleaseWithClangCL/*.dll
+    TargetFolder: '$(build.artifactStagingDirectory)/binaries'
+
+- task: VSTest@2
+  inputs:
+    testSelector: 'testAssemblies'
+    testAssemblyVer2: |
+      **\*.exe
+      !**\pcsxrunner.exe
+      !**\pcsx-redux-wrapper.exe
+      !**\pcsx-redux.exe
+      !**\psyq-obj-parser.exe
+      !**\ps1-packer.exe
+      !third_party\**\*.exe
+    searchFolder: '$(System.DefaultWorkingDirectory)'
+    pathtoCustomTestAdapters: 'GoogleTestAdapter'
+    codeCoverageEnabled: True
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
