@@ -70,7 +70,7 @@ steps:
     testAssemblyVer2: |
       **\*.exe
       !**\pcsxrunner.exe
-      !**\pcsx-redux-wrapper.exe
+      !**\pcsx-wrapper.exe
       !**\pcsx-redux.exe
       !**\psyq-obj-parser.exe
       !**\ps1-packer.exe
