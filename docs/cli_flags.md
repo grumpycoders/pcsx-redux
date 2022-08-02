@@ -26,6 +26,9 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-dynarec` | Use the dynamic recompiler CPU core. |
 | `-debugger` | Activates the debugger. Will change the saved setting. |
 | `-no-debugger` | Deactivates the debugger. Will change the saved setting. |
+| `-gdb` | Activates the gdb server. Will change the saved setting. |
+| `-no-gdb` | Deactivates the gdb server. Will change the saved setting. |
+| `-gdb-port` | Sets the TCP port the gdb server is listening on. Will change the saved setting. |
 | `-trace` | Activates the CPU trace logging. Will change the saved setting. |
 | `-no-trace` | Deactivates the CPU trace logging. Will change the saved setting. |
 | `-no-gui-log` | Fully disables logs to be sent to the GUI. |
