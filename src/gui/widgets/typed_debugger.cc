@@ -155,19 +155,25 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
     ImGui::TableNextRow();
     ImGui::TableNextColumn();  // Name.
     if (node->children.size() > 0) {
+        const bool isPointer = node->type.back() == '*';
+        uint32_t startAddress = currentAddress;
+        if (isPointer) {
+            memcpy(&startAddress, memData + currentAddress - memBase, 4);
+        }
+
         bool open = ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_SpanFullWidth);
         ImGui::TableNextColumn();  // Type.
         ImGui::TextUnformatted(node->type.c_str());
         ImGui::TableNextColumn();  // Size.
-        ImGui::TextDisabled("--");
+        ImGui::Text("%zu", node->size);
         ImGui::TableNextColumn();  // Value.
-        ImGui::TextDisabled("--");
+        if (isPointer) {
+            ImGui::Text("0x%2x", startAddress);
+        } else {
+            ImGui::TextDisabled("--");
+        }
         ImGui::TableNextColumn();  // Breakpoints.
         if (open) {
-            uint32_t startAddress = currentAddress;
-            if (node->name.back() == '*') {
-                memcpy(&startAddress, memData + currentAddress - memBase, 4);
-            }
             uint32_t accumulated_offset = 0;
             for (int child_n = 0; child_n < node->children.size(); child_n++) {
                 displayNode(&node->children[child_n], startAddress + accumulated_offset, memBase, memData, memSize,
