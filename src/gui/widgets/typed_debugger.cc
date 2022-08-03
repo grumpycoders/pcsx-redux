@@ -147,18 +147,29 @@ void populate(WatchTreeNode* node,
     }
 }
 
+void printNodeDebugInformation(WatchTreeNode* node) {
+    printf("node->name: %s\n", node->name.c_str());
+    printf("node->type: %s\n", node->type.c_str());
+    printf("node->size: %zu\n", node->size);
+    printf("node->children.size(): %zu\n", node->children.size());
+}
+
 // @todo: sort out IDs for identically named nodes to sort out multiple subtrees being opened in the case of repeated
 // function breakpoints and arrays.
 void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32_t currentAddress,
                                                const uint32_t memBase, uint8_t* memData, uint32_t memSize,
-                                               bool watchView) {
+                                               bool watchView, bool addressOfPointer) {
+    printNodeDebugInformation(node);
+    printf("currentAddress: 0x%2x\n", currentAddress);
+
     ImGui::TableNextRow();
-    ImGui::TableNextColumn();  // Name.
-    if (node->children.size() > 0) {
+    ImGui::TableNextColumn();         // Name.
+    if (node->children.size() > 0) {  // If this is a struct, array or already populated pointer, display children.
         const bool isPointer = node->type.back() == '*';
         uint32_t startAddress = currentAddress;
-        if (isPointer) {
-            memcpy(&startAddress, memData + currentAddress - memBase, 4);
+        if (isPointer && !addressOfPointer) {
+            const uint32_t offset = currentAddress - memBase;
+            memcpy(&startAddress, memData + offset, 4);
         }
 
         bool open = ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_SpanFullWidth);
@@ -173,16 +184,22 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TextDisabled("--");
         }
         ImGui::TableNextColumn();  // Breakpoints.
+        if (!watchView) {
+            auto addToWatchButtonName = fmt::format(f_("Add to Watch tab##{}"), currentAddress);
+            if (ImGui::Button(addToWatchButtonName.c_str())) {
+                m_displayedWatchData.push_back({currentAddress, addressOfPointer, *node});
+            }
+        }
         if (open) {
             uint32_t accumulated_offset = 0;
             for (int child_n = 0; child_n < node->children.size(); child_n++) {
                 displayNode(&node->children[child_n], startAddress + accumulated_offset, memBase, memData, memSize,
-                            watchView);
+                            watchView, addressOfPointer);
                 accumulated_offset += node->children[child_n].size;
             }
             ImGui::TreePop();
         }
-    } else if (node->type.back() == '*') {
+    } else if (node->type.back() == '*') {  // If this is an unpopulated pointer, populate it.
         if (currentAddress < 0x80000000 || currentAddress >= 0x80000000 + memSize) {
             ImGui::TableNextColumn();  // Type.
             ImGui::TextUnformatted("@todo: display scratchpad values.");
@@ -196,7 +213,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         node->type = pointedToType;
         populate(node, m_structs);
         node->type = pointerType;
-    } else {
+    } else {  // This is a primitive.
         ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
                                                   ImGuiTreeNodeFlags_NoTreePushOnOpen |
                                                   ImGuiTreeNodeFlags_SpanFullWidth);
@@ -364,11 +381,6 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                     ImGui::TreePop();
                 }
             }
-        } else {
-            auto addToWatchButtonName = fmt::format(f_("Add to Watch tab##{}"), currentAddress);
-            if (ImGui::Button(addToWatchButtonName.c_str())) {
-                m_displayedWatchData.push_back(*node);
-            }
         }
     }
 }
@@ -415,7 +427,8 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                     ImGui::TableNextColumn();  // Value.
                     ImGui::TableNextColumn();  // Breakpoints.
                     for (auto& argData : functionData.argData) {
-                        displayNode(&argData.node, argData.address, memBase, memData, memSize, false);
+                        displayNode(&argData.node, argData.address, memBase, memData, memSize, false,
+                                    argData.addressOfPointer);
                     }
                 }
                 ImGui::EndTable();
@@ -482,7 +495,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
                                 WatchTreeNode argNode{arg.type, arg.name, arg.size};
                                 populate(&argNode, m_structs);
-                                bpData.argData.push_back({reg_value, argNode});
+                                bpData.argData.push_back({reg_value, true, argNode});
                             }
 
                             m_displayedFunctionData.push_back(bpData);
@@ -541,7 +554,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                     root_node.size += field.size;
                 }
                 populate(&root_node, m_structs);
-                m_displayedWatchData.push_back(root_node);
+                m_displayedWatchData.push_back({data_input_value, false, root_node});
             }
             if (ImGui::Button(_("Clear"))) {
                 m_displayedWatchData.clear();
@@ -558,8 +571,9 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 ImGui::TableSetupColumn(_("Breakpoints"), ImGuiTableColumnFlags_NoHide);
                 ImGui::TableHeadersRow();
 
-                for (auto& node : m_displayedWatchData) {
-                    displayNode(&node, data_input_value, memBase, memData, memSize, true);
+                for (auto& addressNodePair : m_displayedWatchData) {
+                    displayNode(&addressNodePair.node, addressNodePair.address, memBase, memData, memSize, true,
+                                addressNodePair.addressOfPointer);
                 }
 
                 ImGui::EndTable();

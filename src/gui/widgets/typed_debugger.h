@@ -45,12 +45,20 @@ struct ReadWriteLogEntry {
     AccessType accessType;
 };
 
+// A WatchTreeNode contains the information necessary for displaying a type hierarchy in a tree.
 struct WatchTreeNode {
     std::string type;
     std::string name;
     size_t size;
     std::vector<WatchTreeNode> children;
     std::vector<ReadWriteLogEntry> logEntries;
+};
+
+// For an explanation of the meaning of addressOfPointer, see declaration of displayNode().
+struct AddressNodeTuple {
+    uint32_t address;
+    bool addressOfPointer;
+    WatchTreeNode node;
 };
 
 namespace PCSX {
@@ -77,21 +85,19 @@ class TypedDebugger {
     using structFields = std::vector<GhidraData>;
     std::unordered_map<std::string, structFields> m_structs;
 
-    std::vector<WatchTreeNode> m_displayedWatchData;
-
-    struct AddressNodePair {
-        uint32_t address;
-        WatchTreeNode node;
-    };
+    std::vector<AddressNodeTuple> m_displayedWatchData;
 
     struct FunctionBreakpointData {
         std::string functionName;
-        std::vector<AddressNodePair> argData;
+        std::vector<AddressNodeTuple> argData;
     };
     std::vector<FunctionBreakpointData> m_displayedFunctionData;
 
+    // The last parameter, addressOfPointer, is used for pointer nodes:
+    // - if it is true, then currentAddress is the address of the pointer that *stores* the pointee address;
+    // - if not, then currentAddress *is* the pointee address.
     void displayNode(WatchTreeNode* node, const uint32_t currentAddress, const uint32_t memBase, uint8_t* memData,
-                     uint32_t memSize, bool watchView);
+                     uint32_t memSize, bool watchView, bool addressOfPointer);
 };
 
 }  // namespace Widgets
