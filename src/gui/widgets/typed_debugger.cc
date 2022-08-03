@@ -160,6 +160,8 @@ void populate(WatchTreeNode* node,
     }
 }
 
+bool isInRAM(uint32_t address, uint32_t memSize) { return address >= 0x80000000 && address <= 0x80000000 + memSize; }
+
 void printNodeDebugInformation(WatchTreeNode* node) {
     printf("node->name: %s\n", node->name.c_str());
     printf("node->type: %s\n", node->type.c_str());
@@ -167,8 +169,8 @@ void printNodeDebugInformation(WatchTreeNode* node) {
     printf("node->children.size(): %zu\n", node->children.size());
 }
 
-// @todo: sort out IDs for identically named nodes to sort out multiple subtrees being opened in the case of repeated
-// function breakpoints and arrays.
+// @todo: sort out IDs for identically named nodes to sort out multiple subtrees being opened in the case of
+// repeated function breakpoints and arrays.
 void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32_t currentAddress,
                                                const uint32_t memBase, uint8_t* memData, uint32_t memSize,
                                                bool watchView, bool addressOfPointer) {
@@ -234,7 +236,32 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TableNextColumn();  // Breakpoints.
             return;
         }
-        if (currentAddress < 0x80000000 || currentAddress >= 0x80000000 + memSize) {
+        if (strcmp(node->type.c_str(), "char *") == 0) {
+            const bool pointsToString = isInRAM(startAddress, memSize);
+            auto* str = pointsToString ? (char*)memData + startAddress - memBase : nullptr;
+            const auto strLength = pointsToString ? strlen(str) + 1 : 0;
+            ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
+                                                      ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                                      ImGuiTreeNodeFlags_SpanFullWidth);
+            ImGui::TableNextColumn();  // Type.
+            ImGui::TextUnformatted("char *");
+            ImGui::TableNextColumn();  // Size.
+            ImGui::Text("4 (string: %zu)", strLength);
+            ImGui::TableNextColumn();  // Value.
+            if (pointsToString) {
+                ImGui::Text("%s", str);
+                ImGui::SameLine();
+                auto showMemButtonName = fmt::format(f_("Show in memory editor##{}"), currentAddress);
+                if (ImGui::Button(showMemButtonName.c_str())) {
+                    const uint32_t editorAddress = startAddress - memBase;
+                    g_system->m_eventBus->signal(
+                        PCSX::Events::GUI::JumpToMemory{editorAddress, static_cast<unsigned>(strLength)});
+                }
+            }
+            ImGui::TableNextColumn();  // Breakpoints.
+            return;
+        }
+        if (!isInRAM(currentAddress, memSize)) {
             ImGui::TableNextColumn();  // Type.
             ImGui::TextUnformatted("@todo: display scratchpad values.");
             ImGui::TableNextColumn();  // Size.
@@ -251,7 +278,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
                                                   ImGuiTreeNodeFlags_NoTreePushOnOpen |
                                                   ImGuiTreeNodeFlags_SpanFullWidth);
-        if (currentAddress < 0x80000000 || currentAddress >= 0x80000000 + memSize) {
+        if (!isInRAM(currentAddress, memSize)) {
             ImGui::TableNextColumn();  // Type.
             ImGui::TextUnformatted("@todo: display register values.");
             ImGui::TableNextColumn();  // Size.
@@ -268,37 +295,45 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         uint8_t* mem_value = memData + basic_offset;
         static char s[64];
         const auto* node_type = node->type.c_str();
+        static int step = 1;
+        static int step_fast = 100;
         if (strcmp(node_type, "char") == 0) {
             int8_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%c (0x%2x) \n", field_value, field_value);
-            ImGui::DragScalar(s, ImGuiDataType_S8, mem_value);
+            ImGui::InputScalar(s, ImGuiDataType_S8, mem_value, &step, &step_fast, "%c",
+                               ImGuiInputTextFlags_EnterReturnsTrue);
         } else if (strcmp(node_type, "uchar") == 0 || strcmp(node_type, "u_char") == 0) {
             uint8_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
-            sprintf(s, "%c (0x%2x) \n", field_value, field_value);
-            ImGui::DragScalar(s, ImGuiDataType_U8, mem_value);
+            sprintf(s, "%u (0x%2x) \n", field_value, field_value);
+            ImGui::InputScalar(s, ImGuiDataType_U8, mem_value, &step, &step_fast, "%u",
+                               ImGuiInputTextFlags_EnterReturnsTrue);
         } else if (strcmp(node_type, "short") == 0) {
             int16_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
-            sprintf(s, "%i (0x%2x) \n", field_value, field_value);
-            ImGui::DragScalar(s, ImGuiDataType_S16, mem_value);
+            sprintf(s, "%hi (0x%2x) \n", field_value, field_value);
+            ImGui::InputScalar(s, ImGuiDataType_S16, mem_value, &step, &step_fast, "%hi",
+                               ImGuiInputTextFlags_EnterReturnsTrue);
         } else if (strcmp(node_type, "ushort") == 0 || strcmp(node_type, "u_short") == 0) {
             uint16_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
-            sprintf(s, "%i (0x%2x) \n", field_value, field_value);
-            ImGui::DragScalar(s, ImGuiDataType_U16, mem_value);
+            sprintf(s, "%hu (0x%2x) \n", field_value, field_value);
+            ImGui::InputScalar(s, ImGuiDataType_U16, mem_value, &step, &step_fast, "%hu",
+                               ImGuiInputTextFlags_EnterReturnsTrue);
         } else if (strcmp(node_type, "int") == 0 || strcmp(node_type, "long") == 0) {
             int32_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%i (0x%2x) \n", field_value, field_value);
-            ImGui::DragScalar(s, ImGuiDataType_S32, mem_value);
+            ImGui::InputScalar(s, ImGuiDataType_S32, mem_value, &step, &step_fast, "%i",
+                               ImGuiInputTextFlags_EnterReturnsTrue);
         } else if (strcmp(node_type, "uint") == 0 || strcmp(node_type, "ulong") == 0 ||
                    strcmp(node_type, "u_long") == 0) {
             uint32_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
-            sprintf(s, "%i (0x%2x) \n", field_value, field_value);
-            ImGui::DragScalar(s, ImGuiDataType_U32, mem_value);
+            sprintf(s, "%u (0x%2x) \n", field_value, field_value);
+            ImGui::InputScalar(s, ImGuiDataType_U32, mem_value, &step, &step_fast, "%u",
+                               ImGuiInputTextFlags_EnterReturnsTrue);
         } else {
             sprintf(s, "\t> cannot yet print out member %s of type %s\n", node->name.c_str(), node_type);
         }
@@ -606,8 +641,8 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
             gui->useMonoFont();
             if (ImGui::BeginTable(_("WatchTable"), 5, treeTableFlags)) {
-                // The first column will use the default _WidthStretch when ScrollX is Off and _WidthFixed when ScrollX
-                // is On
+                // The first column will use the default _WidthStretch when ScrollX is Off and _WidthFixed when
+                // ScrollX is On
                 ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
                 ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
                 ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
