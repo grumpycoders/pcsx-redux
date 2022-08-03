@@ -105,6 +105,7 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
         switch (importType) {
             case ImportType::DataTypes:
                 m_structs[name] = fields;
+                m_typeNames.push_back(name);
                 break;
             case ImportType::Functions:
                 m_functions[address] = func;
@@ -112,6 +113,18 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
             default:
                 break;
         }
+    }
+
+    if (importType == ImportType::DataTypes) {
+        std::sort(m_typeNames.begin(), m_typeNames.end(), [](std::string left, std::string right) {
+            for (auto& letter : left) {
+                letter = tolower(letter);
+            }
+            for (auto& letter : right) {
+                letter = tolower(letter);
+            }
+            return left.compare(right) < 0;
+        });
     }
 }
 
@@ -563,14 +576,24 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
             unsigned int data_input_value = 0;
             sscanf(DataInputBuf.c_str(), "%X", &data_input_value);
 
-            // @todo: https://github.com/ocornut/imgui/issues/1658
-            static char type[40];
-            ImGui::InputText("##type_name", type, textFlags);
+            static const char* type = nullptr;
+            if (ImGui::BeginCombo("##combo", type)) {
+                for (const auto& typeName : m_typeNames) {
+                    bool isSelected = (type == typeName.c_str());
+                    if (ImGui::Selectable(typeName.c_str(), isSelected)) {
+                        type = typeName.c_str();
+                    }
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
 
             if (ImGui::Button("Add") && m_structs.contains(type)) {
                 WatchTreeNode root_node;
                 root_node.type = type;
-                root_node.name = "root";
+                root_node.name = type;
                 for (const auto& field : m_structs[type]) {
                     root_node.size += field.size;
                 }

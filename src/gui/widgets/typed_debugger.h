@@ -84,6 +84,7 @@ class TypedDebugger {
     // Structures.
     using structFields = std::vector<GhidraData>;
     std::unordered_map<std::string, structFields> m_structs;
+    std::vector<std::string> m_typeNames;
 
     std::vector<AddressNodeTuple> m_displayedWatchData;
 
