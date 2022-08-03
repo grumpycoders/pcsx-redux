@@ -277,10 +277,11 @@ void PCSX::GUI::init() {
         }
     });
 
-    glfwSetErrorCallback(
-        [](int error, const char* description) { fprintf(stderr, "Glfw Error %d: %s\n", error, description); });
+    glfwSetErrorCallback([](int error, const char* description) {
+        g_system->log(LogClass::UI, "Glfw Error %d: %s\n", error, description);
+    });
     if (!glfwInit()) {
-        abort();
+        throw std::runtime_error("Failed to initialize GLFW");
     }
 
     m_listener.listen<Events::Quitting>([this](const auto& event) { saveCfg(); });
@@ -303,9 +304,11 @@ void PCSX::GUI::init() {
     m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
 
     if (!m_window) {
+        g_system->log(LogClass::UI, "GLFW failed to create window with OpenGL profile 3.2, retrying with 3.0");
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
         m_hasCoreProfile = false;
 
