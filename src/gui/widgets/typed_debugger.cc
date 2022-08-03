@@ -163,14 +163,16 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
     printf("currentAddress: 0x%2x\n", currentAddress);
 
     ImGui::TableNextRow();
-    ImGui::TableNextColumn();         // Name.
+    ImGui::TableNextColumn();  // Name.
+                               //
+    const bool isPointer = node->type.back() == '*';
+    uint32_t startAddress = currentAddress;
+    if (isPointer && !addressOfPointer) {
+        const uint32_t offset = currentAddress - memBase;
+        memcpy(&startAddress, memData + offset, 4);
+    }
+
     if (node->children.size() > 0) {  // If this is a struct, array or already populated pointer, display children.
-        const bool isPointer = node->type.back() == '*';
-        uint32_t startAddress = currentAddress;
-        if (isPointer && !addressOfPointer) {
-            const uint32_t offset = currentAddress - memBase;
-            memcpy(&startAddress, memData + offset, 4);
-        }
 
         bool open = ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_SpanFullWidth);
         ImGui::TableNextColumn();  // Type.
@@ -200,6 +202,25 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TreePop();
         }
     } else if (node->type.back() == '*') {  // If this is an unpopulated pointer, populate it.
+        if (strcmp(node->type.c_str(), "void *") == 0) {
+            ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
+                                                      ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                                      ImGuiTreeNodeFlags_SpanFullWidth);
+            ImGui::TableNextColumn();  // Type.
+            ImGui::TextUnformatted("void *");
+            ImGui::TableNextColumn();  // Size.
+            ImGui::TextUnformatted("4");
+            ImGui::TableNextColumn();  // Value.
+            ImGui::Text("0x%2x", startAddress);
+            ImGui::SameLine();
+            auto showMemButtonName = fmt::format(f_("Show in memory editor##{}"), currentAddress);
+            if (ImGui::Button(showMemButtonName.c_str())) {
+                const uint32_t editorAddress = startAddress - memBase;
+                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
+            }
+            ImGui::TableNextColumn();  // Breakpoints.
+            return;
+        }
         if (currentAddress < 0x80000000 || currentAddress >= 0x80000000 + memSize) {
             ImGui::TableNextColumn();  // Type.
             ImGui::TextUnformatted("@todo: display scratchpad values.");
