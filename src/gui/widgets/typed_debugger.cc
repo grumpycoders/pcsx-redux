@@ -467,9 +467,9 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
     const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
-    static ImGuiTableFlags treeTableFlags = ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
-                                            ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
-                                            ImGuiTableFlags_NoBordersInBody;
+    static ImGuiTableFlags treeTableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_BordersV |
+                                            ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_Resizable |
+                                            ImGuiTableFlags_RowBg | ImGuiTableFlags_NoBordersInBody;
 
     if (ImGui::BeginTabBar(_("TypedDebuggerTabBar"))) {
         if (ImGui::BeginTabItem(_("Functions"))) {
@@ -500,6 +500,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                                     argData.addressOfPointer);
                     }
                 }
+                ImGui::SetScrollHereY(1.0f);
                 ImGui::EndTable();
             }
             ImGui::PopFont();
@@ -641,8 +642,6 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
             gui->useMonoFont();
             if (ImGui::BeginTable(_("WatchTable"), 5, treeTableFlags)) {
-                // The first column will use the default _WidthStretch when ScrollX is Off and _WidthFixed when
-                // ScrollX is On
                 ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
                 ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
                 ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
