@@ -295,45 +295,63 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         uint8_t* mem_value = memData + basic_offset;
         static char s[64];
         const auto* node_type = node->type.c_str();
-        static int step = 1;
-        static int step_fast = 100;
+        static int8_t step = 1;
+        static int8_t step_fast = 100;
         if (strcmp(node_type, "char") == 0) {
             int8_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%c (0x%2x) \n", field_value, field_value);
-            ImGui::InputScalar(s, ImGuiDataType_S8, mem_value, &step, &step_fast, "%c",
-                               ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::Text("Value: %s", s);
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S8, &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                memcpy(mem_value, &m_newValue, node->size);
+                m_newValue = 0;
+            }
         } else if (strcmp(node_type, "uchar") == 0 || strcmp(node_type, "u_char") == 0) {
             uint8_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%u (0x%2x) \n", field_value, field_value);
-            ImGui::InputScalar(s, ImGuiDataType_U8, mem_value, &step, &step_fast, "%u",
-                               ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::Text("Value: %s", s);
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U8, &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                memcpy(mem_value, &m_newValue, node->size);
+                m_newValue = 0;
+            }
         } else if (strcmp(node_type, "short") == 0) {
             int16_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%hi (0x%2x) \n", field_value, field_value);
-            ImGui::InputScalar(s, ImGuiDataType_S16, mem_value, &step, &step_fast, "%hi",
-                               ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::Text("Value: %s", s);
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S16, &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                memcpy(mem_value, &m_newValue, node->size);
+                m_newValue = 0;
+            }
         } else if (strcmp(node_type, "ushort") == 0 || strcmp(node_type, "u_short") == 0) {
             uint16_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%hu (0x%2x) \n", field_value, field_value);
-            ImGui::InputScalar(s, ImGuiDataType_U16, mem_value, &step, &step_fast, "%hu",
-                               ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::Text("Value: %s", s);
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U16, &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                memcpy(mem_value, &m_newValue, node->size);
+                m_newValue = 0;
+            }
         } else if (strcmp(node_type, "int") == 0 || strcmp(node_type, "long") == 0) {
             int32_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%i (0x%2x) \n", field_value, field_value);
-            ImGui::InputScalar(s, ImGuiDataType_S32, mem_value, &step, &step_fast, "%i",
-                               ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::Text("Value: %s", s);
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S32, &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                memcpy(mem_value, &m_newValue, node->size);
+                m_newValue = 0;
+            }
         } else if (strcmp(node_type, "uint") == 0 || strcmp(node_type, "ulong") == 0 ||
                    strcmp(node_type, "u_long") == 0) {
             uint32_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%u (0x%2x) \n", field_value, field_value);
-            ImGui::InputScalar(s, ImGuiDataType_U32, mem_value, &step, &step_fast, "%u",
-                               ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::Text("Value: %s", s);
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U32, &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                memcpy(mem_value, &m_newValue, node->size);
+                m_newValue = 0;
+            }
         } else {
             sprintf(s, "\t> cannot yet print out member %s of type %s\n", node->name.c_str(), node_type);
         }
@@ -371,15 +389,13 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                             accessType = ReadWriteLogEntry::AccessType::Write;
                         }
 
-                        static std::unordered_map<uint32_t, std::string> cache;
-
-                        if (cache.contains(pc)) {
-                            funcName = cache[pc];
+                        if (m_instructionAddressToFunctionMap.contains(pc)) {
+                            funcName = m_instructionAddressToFunctionMap[pc];
                         } else {
                             for (size_t i = 0; i < m_addresses.size() - 1; ++i) {
                                 if (pc >= m_addresses[i] && pc < m_addresses[i + 1]) {
                                     const auto knownAddress = m_addresses[i];
-                                    cache[pc] = m_functions[knownAddress].name;
+                                    m_instructionAddressToFunctionMap[pc] = m_functions[knownAddress].name;
                                     break;
                                 }
                             }
@@ -480,10 +496,10 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
             gui->useMonoFont();
             ImVec2 outerSize{0.f, TEXT_BASE_HEIGHT * 30.f};
             if (ImGui::BeginTable(_("FunctionBreakpoints"), 5, treeTableFlags, outerSize)) {
-                ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
-                ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
-                ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
-                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
+                ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 40.0f);
+                ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 30.0f);
+                ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 10.0f);
+                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 50.0f);
                 ImGui::TableSetupColumn(_("Breakpoints"), ImGuiTableColumnFlags_NoHide);
                 ImGui::TableHeadersRow();
 
@@ -642,10 +658,10 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
             gui->useMonoFont();
             if (ImGui::BeginTable(_("WatchTable"), 5, treeTableFlags)) {
-                ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
-                ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
-                ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
-                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 18.0f);
+                ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 40.0f);
+                ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 30.0f);
+                ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 10.0f);
+                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 50.0f);
                 ImGui::TableSetupColumn(_("Breakpoints"), ImGuiTableColumnFlags_NoHide);
                 ImGui::TableHeadersRow();
 

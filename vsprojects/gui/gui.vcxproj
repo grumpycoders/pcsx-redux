@@ -253,6 +253,7 @@
     <ClCompile Include="..\..\src\gui\widgets\luainspector.cc" />
     <ClCompile Include="..\..\src\gui\widgets\memcard_manager.cc" />
     <ClCompile Include="..\..\src\gui\widgets\memory_observer.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\shader-editor.cc" />
     <ClCompile Include="..\..\src\gui\widgets\sio1.cc" />
@@ -278,6 +279,7 @@
     <ClInclude Include="..\..\src\gui\widgets\luainspector.h" />
     <ClInclude Include="..\..\src\gui\widgets\memcard_manager.h" />
     <ClInclude Include="..\..\src\gui\widgets\memory_observer.h" />
+    <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h" />
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />
     <ClInclude Include="..\..\src\gui\widgets\shader-editor.h" />
     <ClInclude Include="..\..\src\gui\widgets\sio1.h" />

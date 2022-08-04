@@ -87,6 +87,7 @@ class TypedDebugger {
     std::vector<std::string> m_typeNames;
 
     std::vector<AddressNodeTuple> m_displayedWatchData;
+    uint32_t m_newValue = 0;
 
     struct FunctionBreakpointData {
         std::string functionName;
@@ -99,6 +100,8 @@ class TypedDebugger {
     // - if not, then currentAddress *is* the pointee address.
     void displayNode(WatchTreeNode* node, const uint32_t currentAddress, const uint32_t memBase, uint8_t* memData,
                      uint32_t memSize, bool watchView, bool addressOfPointer);
+    std::unordered_map<uint32_t, std::string> m_instructionAddressToFunctionMap;
+
 };
 
 }  // namespace Widgets
