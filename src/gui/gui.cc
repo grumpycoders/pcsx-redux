@@ -304,7 +304,8 @@ void PCSX::GUI::init() {
     m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
 
     if (!m_window) {
-        g_system->log(LogClass::UI, "GLFW failed to create window with OpenGL profile 3.2, retrying with 3.0");
+        g_system->log(LogClass::UI,
+                      "GLFW failed to create window with OpenGL core profile 3.2, retrying with any 3.0 profile");
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
@@ -436,6 +437,7 @@ void PCSX::GUI::init() {
 
     if (glDebugMessageCallback && g_emulator->settings.get<Emulator::SettingGLErrorReporting>()) {
         m_reportGLErrors = true;
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glEnable(GL_DEBUG_OUTPUT);
         glDebugMessageCallback(
             [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
