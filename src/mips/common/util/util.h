@@ -29,16 +29,8 @@ SOFTWARE.
 #include <stdint.h>
 
 static __inline__ uint32_t readUnaligned(const void *in, int pos) {
-    const uint8_t *buffer = (uint8_t *)in;
-    uint32_t r = 0;
-    pos += 4;
-    r <<= 8;
-    r += buffer[--pos];
-    r <<= 8;
-    r += buffer[--pos];
-    r <<= 8;
-    r += buffer[--pos];
-    r <<= 8;
-    r += buffer[--pos];
+    const uint8_t *buffer = (const uint8_t *)in;
+    uint32_t r;
+    __builtin_memcpy(&r, buffer + pos, sizeof(uint32_t));
     return r;
 }

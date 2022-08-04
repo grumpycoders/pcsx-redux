@@ -13,6 +13,7 @@ Debug/
 Release/
 ReleaseWithTracy/
 ReleaseWithClangCL/
+ReleaseCLI/
 Enabled/
 Disabled/
 

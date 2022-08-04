@@ -51,6 +51,9 @@ static std::pair<int, std::string> loopMain(int argc, char **argv) {
 // header first. Yes, I know it's wrong, blame Microsoft.
 #include <shellapi.h>
 
+static void Complain(const char *msg) { MessageBoxA(nullptr, msg, "Error", MB_ICONERROR | MB_OK); }
+
+#ifndef PCSX_CLI
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
                       _In_ int nCmdShow) {
     LPWSTR *argvw;
@@ -82,15 +85,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     if (!errorMsg.empty()) {
         r = -1;
         fprintf(stderr, "%s\n", errorMsg.c_str());
-
-        MessageBoxA(nullptr, errorMsg.c_str(), "Error", MB_ICONERROR | MB_OK);
+        Complain(errorMsg.c_str());
     }
 
     for (int i = 0; i < argc; i++) free(argv[i]);
     free(argv);
     return r;
 }
+#endif
 #else
+#ifndef PCSX_CLI
 #if defined(__APPLE__) && defined(__MACH__)
 extern "C" void Complain(const char* msg);
 #else
@@ -120,7 +124,11 @@ static void Complain(const char* msg) {
     return;
 }
 #endif
-int main(int argc, char** argv) {
+#endif
+#endif
+
+#if (!defined(_WIN32) && !defined(_WIN64)) || defined(PCSX_CLI)
+int main(int argc, char **argv) {
     auto [r, errorMsg] = loopMain(argc, argv);
 
     if (errorMsg.empty()) return r;

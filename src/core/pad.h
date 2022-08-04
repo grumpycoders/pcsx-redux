@@ -64,6 +64,7 @@ class Pads {
 
     void scanGamepads();
     void reset();
+    void map();
 
     void setLua(Lua L);
 

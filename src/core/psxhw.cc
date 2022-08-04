@@ -69,8 +69,9 @@ void PCSX::HW::reset() {
 
 uint8_t PCSX::HW::read8(uint32_t add) {
     uint8_t hard;
+    uint32_t hwadd = add & 0x1fffffff;
 
-    switch (add & 0x1fffffff) {
+    switch (hwadd) {
         case 0x1f801040:
             hard = PCSX::g_emulator->m_sio->read8();
             break;
@@ -123,7 +124,7 @@ uint8_t PCSX::HW::read8(uint32_t add) {
             hard = 0x58;
             break;
         default:
-            hard = psxHu8(add);
+            hard = psxHu8(hwadd);
             PSXHW_LOG("*Unknown 8bit read at address %x\n", add);
             return hard;
     }
@@ -134,8 +135,9 @@ uint8_t PCSX::HW::read8(uint32_t add) {
 
 uint16_t PCSX::HW::read16(uint32_t add) {
     uint16_t hard;
+    uint32_t hwadd = add & 0x1fffffff;
 
-    switch (add & 0x1fffffff) {
+    switch (hwadd) {
         case 0x1f801070:
             PSXHW_LOG("IREG 16bit read %x\n", psxHu16(0x1070));
             return psxHu16(0x1070);
@@ -241,7 +243,7 @@ uint16_t PCSX::HW::read16(uint32_t add) {
             break;
 
         default:
-            if (add >= 0x1f801c00 && add < 0x1f801e00) {
+            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {
                 hard = PCSX::g_emulator->m_spu->readRegister(add);
             } else {
                 hard = psxHu16(add);
@@ -256,8 +258,9 @@ uint16_t PCSX::HW::read16(uint32_t add) {
 
 uint32_t PCSX::HW::read32(uint32_t add) {
     uint32_t hard;
+    uint32_t hwadd = add & 0x1fffffff;
 
-    switch (add & 0x1fffffff) {
+    switch (hwadd) {
         case 0x1f801040:
             hard = PCSX::g_emulator->m_sio->read8();
             hard |= PCSX::g_emulator->m_sio->read8() << 8;
@@ -368,7 +371,7 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             break;
 
         default:
-            hard = psxHu32(add);
+            hard = psxHu32(hwadd);
             PSXHW_LOG("*Unknown 32bit read at address %x (0x%8.8lx)\n", add, hard);
             return hard;
     }
@@ -378,8 +381,9 @@ uint32_t PCSX::HW::read32(uint32_t add) {
 
 void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
     uint8_t value = (uint8_t)rawvalue;
+    uint32_t hwadd = add & 0x1fffffff;
 
-    switch (add & 0x1fffffff) {
+    switch (hwadd) {
         case 0x1f801040:
             PCSX::g_emulator->m_sio->write8(value);
             break;
@@ -429,28 +433,29 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             break;
 
         default:
-            if (addressInRegisterSpace(add)) {
-                psxHu32ref(add) = rawvalue;
+            if (addressInRegisterSpace(hwadd)) {
+                psxHu32ref(hwadd) = rawvalue;
                 PSXHW_LOG("*Unknown 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
             } else {
-                psxHu8ref(add) = value;
+                psxHu8ref(hwadd) = value;
                 PSXHW_LOG("*Unknown 8bit write at address %x value %x\n", add, value);
             }
             return;
     }
-    if (addressInRegisterSpace(add)) {
-        psxHu32ref(add) = value;
+    if (addressInRegisterSpace(hwadd)) {
+        psxHu32ref(hwadd) = value;
         PSXHW_LOG("*Known 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
     } else {
-        psxHu8ref(add) = value;
+        psxHu8ref(hwadd) = value;
         PSXHW_LOG("*Known 8bit write at address %x value %x\n", add, value);
     }
 }
 
 void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
     uint16_t value = (uint16_t)rawvalue;
+    uint32_t hwadd = add & 0x1fffffff;
 
-    switch (add & 0x1fffffff) {
+    switch (hwadd) {
         case 0x1f801040:
             PCSX::g_emulator->m_sio->write8((uint8_t)value);
             PCSX::g_emulator->m_sio->write8((uint8_t)(value >> 8));
@@ -546,25 +551,25 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             break;
 
         default:
-            if (add >= 0x1f801c00 && add < 0x1f801e00) {
+            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {
                 PCSX::g_emulator->m_spu->writeRegister(add, value);
                 break;
             }
 
-            if (addressInRegisterSpace(add)) {
-                psxHu32ref(add) = SWAP_LEu32(rawvalue);
+            if (addressInRegisterSpace(hwadd)) {
+                psxHu32ref(hwadd) = SWAP_LEu32(rawvalue);
                 PSXHW_LOG("*Unknown 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
             } else {
-                psxHu16ref(add) = SWAP_LEu16(value);
+                psxHu16ref(hwadd) = SWAP_LEu16(value);
                 PSXHW_LOG("*Unknown 16bit write at address %x value %x\n", add, value);
             }
             return;
     }
-    if (addressInRegisterSpace(add)) {
-        psxHu32ref(add) = SWAP_LEu32(rawvalue);
+    if (addressInRegisterSpace(hwadd)) {
+        psxHu32ref(hwadd) = SWAP_LEu32(rawvalue);
         PSXHW_LOG("*Known 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
     } else {
-        psxHu16ref(add) = SWAP_LEu16(value);
+        psxHu16ref(hwadd) = SWAP_LEu16(value);
         PSXHW_LOG("*Known 16bit write at address %x value %x\n", add, value);
     }
 }
@@ -601,7 +606,9 @@ inline void PCSX::HW::dma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     }
 
 void PCSX::HW::write32(uint32_t add, uint32_t value) {
-    switch (add & 0x1fffffff) {
+    uint32_t hwadd = add & 0x1fffffff;
+
+    switch (hwadd) {
         case 0x1f801040:
             PCSX::g_emulator->m_sio->write8((uint8_t)value);
             PCSX::g_emulator->m_sio->write8((uint8_t)((value & 0xff) >> 8));
@@ -733,7 +740,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             }
         case 0x1f801014:
             PSXHW_LOG("SPU delay [0x1014] write32: %8.8lx\n", value);
-            psxHu32ref(add) = SWAP_LEu32(value);
+            psxHu32ref(hwadd) = SWAP_LEu32(value);
             break;
         case 0x1f801810:
             PSXHW_LOG("GPU DATA 32bit write %x (CMD/MSB %x)\n", value, value >> 24);
@@ -791,20 +798,16 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             g_system->message("%s", PSXM(value));
             break;
         default:
-            // Dukes of Hazard 2 - car engine noise
-            if (add >= 0x1f801c00 && add < 0x1f801e00) {
-                PCSX::g_emulator->m_spu->writeRegister(add, value & 0xffff);
-                add += 2;
-                value >>= 16;
-
-                if (add >= 0x1f801c00 && add < 0x1f801e00) PCSX::g_emulator->m_spu->writeRegister(add, value & 0xffff);
+            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {
+                write16(add, value & 0xffff);
+                write16(add + 2, value >> 16);
                 break;
             }
 
-            psxHu32ref(add) = SWAP_LEu32(value);
+            psxHu32ref(hwadd) = SWAP_LEu32(value);
             PSXHW_LOG("*Unknown 32bit write at address %x value %x\n", add, value);
             return;
     }
-    psxHu32ref(add) = SWAP_LEu32(value);
+    psxHu32ref(hwadd) = SWAP_LEu32(value);
     PSXHW_LOG("*Known 32bit write at address %x value %x\n", add, value);
 }

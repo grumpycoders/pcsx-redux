@@ -275,10 +275,11 @@ void PCSX::GUI::init() {
         }
     });
 
-    glfwSetErrorCallback(
-        [](int error, const char* description) { fprintf(stderr, "Glfw Error %d: %s\n", error, description); });
+    glfwSetErrorCallback([](int error, const char* description) {
+        g_system->log(LogClass::UI, "Glfw Error %d: %s\n", error, description);
+    });
     if (!glfwInit()) {
-        abort();
+        throw std::runtime_error("Failed to initialize GLFW");
     }
 
     m_listener.listen<Events::Quitting>([this](const auto& event) { saveCfg(); });
@@ -301,9 +302,12 @@ void PCSX::GUI::init() {
     m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
 
     if (!m_window) {
+        g_system->log(LogClass::UI,
+                      "GLFW failed to create window with OpenGL core profile 3.2, retrying with any 3.0 profile");
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
         m_hasCoreProfile = false;
 
@@ -431,6 +435,7 @@ void PCSX::GUI::init() {
 
     if (glDebugMessageCallback && g_emulator->settings.get<Emulator::SettingGLErrorReporting>()) {
         m_reportGLErrors = true;
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glEnable(GL_DEBUG_OUTPUT);
         GLDEBUGPROC callback = [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                                   const GLchar* message, const void* userParam) {
@@ -448,10 +453,6 @@ void PCSX::GUI::init() {
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
     glGenTextures(2, m_offscreenTextures);
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
@@ -591,12 +592,10 @@ void PCSX::GUI::startFrame() {
         normalizeDimensions(m_renderSize, renderRatio);
 
         // Reset texture and framebuffer storage
-        for (int i = 0; i < 2; i++) {
-            glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        }
+        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[0]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[1]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
         if (m_clearTextures) {
             const auto allocSize = static_cast<size_t>(std::ceil(m_renderSize.x * m_renderSize.y * sizeof(uint32_t)));
@@ -699,11 +698,25 @@ void PCSX::GUI::startFrame() {
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
 
 void PCSX::GUI::flip() {
-    const GLuint texture = m_offscreenTextures[m_currentTexture];
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
+    GLuint texture = m_offscreenTextures[m_currentTexture];
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+
+    // this call seems to sometime fails when the window is minimized...?
+    glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    glClearColor(0, 0, 0, 0);
+    glClearDepthf(0.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
 }
 
@@ -1674,7 +1687,7 @@ void PCSX::GUI::interruptsScaler() {
     if (!m_showInterruptsScaler) return;
     static const char* names[] = {
         "SIO",
-        "SIO1"
+        "SIO1",
         "CDR",
         "CDR Read",
         "GPU DMA",
