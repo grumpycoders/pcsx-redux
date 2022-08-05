@@ -144,7 +144,8 @@ void populate(WatchTreeNode* node,
         const auto type = matches[1].str();
         const auto num_children = std::stoul(matches[2].str());
         for (size_t i = 0; i < num_children; ++i) {
-            WatchTreeNode newNode{type, node->name, node->size / num_children};
+            WatchTreeNode newNode{type, std::string(node->name + "[" + std::to_string(i) + "]"),
+                                  node->size / num_children};
             node->children.push_back(newNode);
             populate(&node->children.back(), structs_info);
         }
@@ -188,7 +189,6 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
     }
 
     if (node->children.size() > 0) {  // If this is a struct, array or already populated pointer, display children.
-
         bool open = ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_SpanFullWidth);
         ImGui::TableNextColumn();  // Type.
         ImGui::TextUnformatted(node->type.c_str());
@@ -302,7 +302,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%c (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
-            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S8, &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S8,
+                                   &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -311,7 +312,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%u (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
-            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U8, &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U8,
+                                   &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -320,7 +322,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%hi (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
-            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S16, &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S16,
+                                   &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -329,7 +332,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%hu (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
-            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U16, &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U16,
+                                   &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -338,7 +342,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%i (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
-            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S32, &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S32,
+                                   &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -348,7 +353,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             memcpy(&field_value, mem_value, node->size);
             sprintf(s, "%u (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
-            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U32, &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U32,
+                                   &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }

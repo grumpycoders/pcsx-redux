@@ -49,7 +49,7 @@ struct ReadWriteLogEntry {
 struct WatchTreeNode {
     std::string type;
     std::string name;
-    size_t size;
+    size_t size = 0;
     std::vector<WatchTreeNode> children;
     std::vector<ReadWriteLogEntry> logEntries;
 };
