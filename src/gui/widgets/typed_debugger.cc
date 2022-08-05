@@ -291,7 +291,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();  // Name.
-                               //
+    std::string nameColumnString = fmt::format(f_("{}\t@ {:#x}"), node->name, currentAddress);
+
     const bool isPointer = node->type.back() == '*';
     uint32_t startAddress = currentAddress;
     if (isPointer && !addressOfPointer) {
@@ -300,7 +301,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
     }
 
     if (node->children.size() > 0) {  // If this is a struct, array or already populated pointer, display children.
-        bool open = ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_SpanFullWidth);
+        bool open = ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_SpanFullWidth);
         ImGui::TableNextColumn();  // Type.
         ImGui::TextUnformatted(node->type.c_str());
         ImGui::TableNextColumn();  // Size.
@@ -331,9 +332,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         }
     } else if (node->type.back() == '*') {  // If this is an unpopulated pointer, populate it.
         if (strcmp(node->type.c_str(), "void *") == 0) {
-            ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
-                                                      ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                                      ImGuiTreeNodeFlags_SpanFullWidth);
+            ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
+                                                            ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                                            ImGuiTreeNodeFlags_SpanFullWidth);
             ImGui::TableNextColumn();  // Type.
             ImGui::TextUnformatted("void *");
             ImGui::TableNextColumn();  // Size.
@@ -356,9 +357,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             const bool pointsToString = isInRAM(startAddress, memSize);
             auto* str = pointsToString ? (char*)memData + startAddress - memBase : nullptr;
             const auto strLength = pointsToString ? strlen(str) + 1 : 0;
-            ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
-                                                      ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                                      ImGuiTreeNodeFlags_SpanFullWidth);
+            ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
+                                                            ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                                            ImGuiTreeNodeFlags_SpanFullWidth);
             ImGui::TableNextColumn();  // Type.
             ImGui::TextUnformatted("char *");
             ImGui::TableNextColumn();  // Size.
@@ -394,9 +395,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         populate(node, m_structs);
         node->type = pointerType;
     } else {  // This is a primitive.
-        ImGui::TreeNodeEx(node->name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
-                                                  ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                                  ImGuiTreeNodeFlags_SpanFullWidth);
+        ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
+                                                        ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                                        ImGuiTreeNodeFlags_SpanFullWidth);
         if (!isInRAM(currentAddress, memSize)) {
             ImGui::TableNextColumn();  // Type.
             ImGui::TextUnformatted("@todo: display register values.");
