@@ -64,7 +64,7 @@ private:
         OpenGL::ivec2 positions;
         uint32_t colour;
         uint16_t texpage;
-        uint16_t clut = 0;
+        uint16_t clut;
         OpenGL::Vector<uint16_t, 2> uv;
 
         // We use bit 15 of the texpage attribute (normally unused) to indicate an untextured prim.
