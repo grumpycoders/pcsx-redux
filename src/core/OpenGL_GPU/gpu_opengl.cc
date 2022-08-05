@@ -316,6 +316,7 @@ int PCSX::OpenGL_GPU::init() {
 
     reset();
     initCommands();
+    startFrame();
     return 0;
 }
 
