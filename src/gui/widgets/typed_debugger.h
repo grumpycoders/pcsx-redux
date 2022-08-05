@@ -100,8 +100,9 @@ class TypedDebugger {
     // - if not, then currentAddress *is* the pointee address.
     void displayNode(WatchTreeNode* node, const uint32_t currentAddress, const uint32_t memBase, uint8_t* memData,
                      uint32_t memSize, bool watchView, bool addressOfPointer);
+    void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address, uint8_t* memData,
+                                  const uint32_t memBase);
     std::unordered_map<uint32_t, std::string> m_instructionAddressToFunctionMap;
-
 };
 
 }  // namespace Widgets

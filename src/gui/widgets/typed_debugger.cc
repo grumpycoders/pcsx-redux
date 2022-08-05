@@ -170,8 +170,117 @@ void printNodeDebugInformation(WatchTreeNode* node) {
     printf("node->children.size(): %zu\n", node->children.size());
 }
 
-// @todo: sort out IDs for identically named nodes to sort out multiple subtrees being opened in the case of
-// repeated function breakpoints and arrays.
+void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node, const uint32_t address,
+                                                            uint8_t* memData, const uint32_t memBase) {
+    auto readBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}{}"), node->name.c_str(), address);
+    if (ImGui::Button(readBreakpointButtonName.c_str())) {
+        PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Read, node->size,
+                                                 _("Typed Debugger"));
+    }
+    ImGui::SameLine();
+    auto writeBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}{}"), node->name.c_str(), address);
+    if (ImGui::Button(writeBreakpointButtonName.c_str())) {
+        PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Write, node->size,
+                                                 _("Typed Debugger"));
+    }
+    ImGui::SameLine();
+    auto logReadsWritesButtonName = fmt::format(f_("Log reads and writes##{}{}"), node->name.c_str(), address);
+    if (ImGui::Button(logReadsWritesButtonName.c_str())) {
+        PCSX::Debug::BreakpointInvoker logReadsWritesInvoker =
+            [this, node](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
+                if (!node) {
+                    return false;
+                }
+
+                const auto& pc = g_emulator->m_cpu->m_regs.pc;
+                std::string funcName;
+                ReadWriteLogEntry::AccessType accessType;
+
+                if (strcmp(cause, "Read") == 0) {
+                    accessType = ReadWriteLogEntry::AccessType::Read;
+                }
+                if (strcmp(cause, "Write") == 0) {
+                    accessType = ReadWriteLogEntry::AccessType::Write;
+                }
+
+                if (m_instructionAddressToFunctionMap.contains(pc)) {
+                    funcName = m_instructionAddressToFunctionMap[pc];
+                } else {
+                    for (size_t i = 0; i < m_addresses.size() - 1; ++i) {
+                        if (pc >= m_addresses[i] && pc < m_addresses[i + 1]) {
+                            const auto knownAddress = m_addresses[i];
+                            m_instructionAddressToFunctionMap[pc] = m_functions[knownAddress].name;
+                            break;
+                        }
+                    }
+                    return true;
+                }
+
+                bool found = false;
+                for (auto& logEntry : node->logEntries) {
+                    if (logEntry.instructionAddress == pc) {
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    ReadWriteLogEntry newLogEntry{pc, funcName, accessType};
+                    node->logEntries.push_back(newLogEntry);
+                };
+                return true;
+            };
+
+        PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Read, node->size, _("Read"),
+                                                 logReadsWritesInvoker);
+        PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Write, node->size, _("Write"),
+                                                 logReadsWritesInvoker);
+    }
+
+    if (node->logEntries.size() > 0) {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();  // Name.
+        bool open = ImGui::TreeNodeEx(fmt::format(f_("Display log entries##{}{}"), node->name.c_str(), address).c_str(),
+                                      ImGuiTreeNodeFlags_SpanFullWidth);
+        ImGui::TableNextColumn();  // Type.
+        ImGui::TextDisabled("--");
+        ImGui::TableNextColumn();  // Size.
+        ImGui::TextDisabled("--");
+        ImGui::TableNextColumn();  // Value.
+        ImGui::TextDisabled("--");
+        ImGui::TableNextColumn();  // Breakpoints.
+        if (open) {
+            uint32_t accumulated_offset = 0;
+            for (const auto& logEntry : node->logEntries) {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();  // Name.
+                ImGui::TextUnformatted(logEntry.functionName.c_str());
+                ImGui::TableNextColumn();  // Type.
+                ImGui::TextUnformatted(magic_enum::enum_name(logEntry.accessType).data());
+                ImGui::TableNextColumn();  // Size.
+                const auto instructionAddress = logEntry.instructionAddress;
+                const bool functionToggledOff = m_toggledInstructions.contains(instructionAddress);
+                auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), instructionAddress)
+                                                           : fmt::format(f_("Disable##{}"), instructionAddress);
+                if (ImGui::Button(toggleButtonName.c_str())) {
+                    auto* instructionMem = memData + instructionAddress - memBase;
+                    if (functionToggledOff) {
+                        memcpy(instructionMem, m_toggledInstructions[instructionAddress].data(), 4);
+                        m_toggledInstructions.erase(instructionAddress);
+                    } else {
+                        uint8_t instructions[4];
+                        memcpy(instructions, instructionMem, 4);
+                        m_toggledInstructions[instructionAddress] = std::to_array(instructions);
+                        static constexpr uint8_t nop[4] = {0x00, 0x00, 0x00, 0x00};
+                        memcpy(instructionMem, nop, 4);
+                    }
+                }
+                ImGui::TableNextColumn();  // Value.
+                ImGui::TableNextColumn();  // Access.
+            }
+            ImGui::TreePop();
+        }
+    }
+}
+
 void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32_t currentAddress,
                                                const uint32_t memBase, uint8_t* memData, uint32_t memSize,
                                                bool watchView, bool addressOfPointer) {
@@ -201,7 +310,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TextDisabled("--");
         }
         ImGui::TableNextColumn();  // Breakpoints.
-        if (!watchView) {
+        if (watchView) {
+            displayBreakpointOptions(node, currentAddress, memData, memBase);
+        } else {
             auto addToWatchButtonName = fmt::format(f_("Add to Watch tab##{}"), currentAddress);
             if (ImGui::Button(addToWatchButtonName.c_str())) {
                 m_displayedWatchData.push_back({currentAddress, addressOfPointer, *node});
@@ -234,6 +345,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
             }
             ImGui::TableNextColumn();  // Breakpoints.
+            if (watchView) {
+                displayBreakpointOptions(node, currentAddress, memData, memBase);
+            }
             return;
         }
         if (strcmp(node->type.c_str(), "char *") == 0) {
@@ -259,6 +373,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                 }
             }
             ImGui::TableNextColumn();  // Breakpoints.
+            if (watchView) {
+                displayBreakpointOptions(node, currentAddress, memData, memBase);
+            }
             return;
         }
         if (!isInRAM(currentAddress, memSize)) {
@@ -363,115 +480,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         }
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
-            auto readBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}"), currentAddress);
-            if (ImGui::Button(readBreakpointButtonName.c_str())) {
-                PCSX::g_emulator->m_debug->addBreakpoint(currentAddress, PCSX::Debug::BreakpointType::Read, node->size,
-                                                         _("Typed Debugger"));
-            }
-            ImGui::SameLine();
-            auto writeBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}"), currentAddress);
-            if (ImGui::Button(writeBreakpointButtonName.c_str())) {
-                PCSX::g_emulator->m_debug->addBreakpoint(currentAddress, PCSX::Debug::BreakpointType::Write, node->size,
-                                                         _("Typed Debugger"));
-            }
-            ImGui::SameLine();
-            auto logReadsWritesButtonName = fmt::format(f_("Log reads and writes##{}"), currentAddress);
-            if (ImGui::Button(logReadsWritesButtonName.c_str())) {
-                PCSX::Debug::BreakpointInvoker logReadsWritesInvoker =
-                    [this, node, memData, memBase](const PCSX::Debug::Breakpoint* self, uint32_t address,
-                                                   unsigned width, const char* cause) {
-                        if (!node) {
-                            return false;
-                        }
-
-                        const auto& pc = g_emulator->m_cpu->m_regs.pc;
-                        std::string funcName;
-                        ReadWriteLogEntry::AccessType accessType;
-
-                        if (strcmp(cause, "Read") == 0) {
-                            accessType = ReadWriteLogEntry::AccessType::Read;
-                        }
-                        if (strcmp(cause, "Write") == 0) {
-                            accessType = ReadWriteLogEntry::AccessType::Write;
-                        }
-
-                        if (m_instructionAddressToFunctionMap.contains(pc)) {
-                            funcName = m_instructionAddressToFunctionMap[pc];
-                        } else {
-                            for (size_t i = 0; i < m_addresses.size() - 1; ++i) {
-                                if (pc >= m_addresses[i] && pc < m_addresses[i + 1]) {
-                                    const auto knownAddress = m_addresses[i];
-                                    m_instructionAddressToFunctionMap[pc] = m_functions[knownAddress].name;
-                                    break;
-                                }
-                            }
-                            return true;
-                        }
-
-                        bool found = false;
-                        for (auto& logEntry : node->logEntries) {
-                            if (logEntry.instructionAddress == pc) {
-                                found = true;
-                            }
-                        }
-                        if (!found) {
-                            ReadWriteLogEntry newLogEntry{pc, funcName, accessType};
-                            node->logEntries.push_back(newLogEntry);
-                        };
-                        return true;
-                    };
-
-                PCSX::g_emulator->m_debug->addBreakpoint(currentAddress, PCSX::Debug::BreakpointType::Read, node->size,
-                                                         _("Read"), logReadsWritesInvoker);
-                PCSX::g_emulator->m_debug->addBreakpoint(currentAddress, PCSX::Debug::BreakpointType::Write, node->size,
-                                                         _("Write"), logReadsWritesInvoker);
-            }
-
-            if (node->logEntries.size() > 0) {
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();  // Name.
-                bool open = ImGui::TreeNodeEx(fmt::format(f_("Display log entries##{}"), node->name).c_str(),
-                                              ImGuiTreeNodeFlags_SpanFullWidth);
-                ImGui::TableNextColumn();  // Type.
-                ImGui::TextDisabled("--");
-                ImGui::TableNextColumn();  // Size.
-                ImGui::TextDisabled("--");
-                ImGui::TableNextColumn();  // Value.
-                ImGui::TextDisabled("--");
-                ImGui::TableNextColumn();  // Breakpoints.
-                if (open) {
-                    uint32_t accumulated_offset = 0;
-                    for (const auto& logEntry : node->logEntries) {
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();  // Name.
-                        ImGui::TextUnformatted(logEntry.functionName.c_str());
-                        ImGui::TableNextColumn();  // Type.
-                        ImGui::TextUnformatted(magic_enum::enum_name(logEntry.accessType).data());
-                        ImGui::TableNextColumn();  // Size.
-                        const auto instructionAddress = logEntry.instructionAddress;
-                        const bool functionToggledOff = m_toggledInstructions.contains(instructionAddress);
-                        auto toggleButtonName = functionToggledOff
-                                                    ? fmt::format(f_("Re-enable##{}"), instructionAddress)
-                                                    : fmt::format(f_("Disable##{}"), instructionAddress);
-                        if (ImGui::Button(toggleButtonName.c_str())) {
-                            auto* instructionMem = memData + instructionAddress - memBase;
-                            if (functionToggledOff) {
-                                memcpy(instructionMem, m_toggledInstructions[instructionAddress].data(), 4);
-                                m_toggledInstructions.erase(instructionAddress);
-                            } else {
-                                uint8_t instructions[4];
-                                memcpy(instructions, instructionMem, 4);
-                                m_toggledInstructions[instructionAddress] = std::to_array(instructions);
-                                static constexpr uint8_t nop[4] = {0x00, 0x00, 0x00, 0x00};
-                                memcpy(instructionMem, nop, 4);
-                            }
-                        }
-                        ImGui::TableNextColumn();  // Value.
-                        ImGui::TableNextColumn();  // Access.
-                    }
-                    ImGui::TreePop();
-                }
-            }
+            displayBreakpointOptions(node, currentAddress, memData, memBase);
         }
     }
 }
