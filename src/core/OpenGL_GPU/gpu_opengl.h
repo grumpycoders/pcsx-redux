@@ -64,11 +64,13 @@ private:
         OpenGL::ivec2 positions;
         uint32_t colour;
         uint16_t texpage;
-        uint16_t clut;
+        uint16_t clut = 0;
         OpenGL::Vector<uint16_t, 2> uv;
 
         // We use bit 15 of the texpage attribute (normally unused) to indicate an untextured prim.
         static constexpr uint16_t c_untexturedPrimitiveTexpage = 0x8000;
+
+        Vertex() : Vertex(0, 0, 0) {}
 
         Vertex(uint32_t x, uint32_t y, uint32_t col) {
             positions.x() = int(x) << 21 >> 21;
