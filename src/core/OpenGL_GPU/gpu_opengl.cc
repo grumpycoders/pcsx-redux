@@ -48,8 +48,6 @@ void PCSX::OpenGL_GPU::reset() {
     m_FIFOIndex = 0;
     m_vertexCount = 0;
     m_syncVRAM = true;
-    m_vramReadBuffer.clear();
-    m_vramWriteBuffer.clear();
     m_display.reset();
 
     m_drawAreaLeft = m_drawAreaTop = 0;
@@ -85,9 +83,9 @@ void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 // Do not forget to call this with an active OpenGL context.
 int PCSX::OpenGL_GPU::init() {
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
-    m_vertices.reserve(vertexBufferSize);
-    m_vramReadBuffer.reserve(vramWidth * vramHeight);
-    m_vramWriteBuffer.reserve(vramWidth * vramHeight);
+    m_vertices.resize(vertexBufferSize);
+    m_vramReadBuffer.resize(vramWidth * vramHeight);
+    m_vramWriteBuffer.resize(vramWidth * vramHeight);
 
     m_vbo.createFixedSize(sizeof(Vertex) * vertexBufferSize, GL_STREAM_DRAW);
     m_vbo.bind();
