@@ -250,13 +250,16 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
         if (open) {
             uint32_t accumulated_offset = 0;
             for (const auto& logEntry : node->logEntries) {
+                const auto instructionAddress = logEntry.instructionAddress;
+
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();  // Name.
                 ImGui::TextUnformatted(logEntry.functionName.c_str());
                 ImGui::TableNextColumn();  // Type.
-                ImGui::TextUnformatted(magic_enum::enum_name(logEntry.accessType).data());
+                ImGui::Text("0x%2x", instructionAddress);
                 ImGui::TableNextColumn();  // Size.
-                const auto instructionAddress = logEntry.instructionAddress;
+                ImGui::TextUnformatted(magic_enum::enum_name(logEntry.accessType).data());
+                ImGui::TableNextColumn();  // Value.
                 const bool functionToggledOff = m_toggledInstructions.contains(instructionAddress);
                 auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), instructionAddress)
                                                            : fmt::format(f_("Disable##{}"), instructionAddress);
@@ -273,7 +276,6 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                         memcpy(instructionMem, nop, 4);
                     }
                 }
-                ImGui::TableNextColumn();  // Value.
                 ImGui::TableNextColumn();  // Access.
             }
             ImGui::TreePop();
