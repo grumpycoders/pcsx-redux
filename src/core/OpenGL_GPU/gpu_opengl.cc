@@ -423,8 +423,6 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
 
 // GP1 command writes
 void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
-    renderBatch();
-
     const uint32_t cmd = value >> 24;
     switch (cmd) {
         // Reset GPU. TODO: This should perform some more operations
