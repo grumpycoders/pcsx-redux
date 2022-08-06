@@ -21,7 +21,9 @@
 #include <array>
 #include <cstdio>
 #include <initializer_list>
+#include <optional>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -30,6 +32,26 @@
 
 namespace PCSX {
 namespace OpenGL {
+
+class [[nodiscard]] Status : private std::optional<std::string> {
+  public:
+    Status(const Status&) = default;
+    Status(Status&&) = default;
+    bool isOk() { return !has_value(); }
+    const std::string& getError() {
+        if (has_value()) {
+            return value();
+        }
+        static std::string noError("No error");
+        return noError;
+    }
+    static Status makeOk() { return Status(); }
+    static Status makeError(std::string_view message) { return Status(message); }
+
+  private:
+    Status() {}
+    Status(std::string_view message) : std::optional<std::string>(message) {}
+};
 
 // Workaround for using static_assert inside constexpr if
 // https://stackoverflow.com/questions/53945490/how-to-assert-that-a-constexpr-if-else-clause-never-happen
@@ -219,7 +241,7 @@ struct Shader {
     ~Shader() { glDeleteShader(m_handle); }
 
     // Returns whether compilation failed or not
-    bool create(const std::string_view source, GLenum type) {
+    Status create(const std::string_view source, GLenum type) {
         m_handle = glCreateShader(type);
         const GLchar* const sources[1] = {source.data()};
 
@@ -229,15 +251,18 @@ struct Shader {
         GLint success;
         glGetShaderiv(m_handle, GL_COMPILE_STATUS, &success);
         if (!success) {
-            char buf[4096];
-            glGetShaderInfoLog(m_handle, 4096, nullptr, buf);
-            fprintf(stderr, "Failed to compile shader\nError: %s\n", buf);
+            GLint length;
+            glGetShaderiv(m_handle, GL_INFO_LOG_LENGTH, &length);
+            std::string msg(length + 1, 0);
+            glGetShaderInfoLog(m_handle, length, &length, msg.data());
+            msg.resize(length);
             glDeleteShader(m_handle);
 
             m_handle = 0;
+            return Status::makeError("Failed to compile shader: " + msg);
         }
 
-        return m_handle != 0;
+        return Status::makeOk();
     }
 
     GLuint handle() { return m_handle; }
@@ -247,7 +272,7 @@ struct Shader {
 struct Program {
     GLuint m_handle = 0;
 
-    bool create(std::initializer_list<std::reference_wrapper<Shader>> shaders) {
+    Status create(std::initializer_list<std::reference_wrapper<Shader>> shaders) {
         m_handle = glCreateProgram();
         for (const auto& shader : shaders) {
             glAttachShader(m_handle, shader.get().handle());
@@ -258,15 +283,18 @@ struct Program {
         glGetProgramiv(m_handle, GL_LINK_STATUS, &success);
 
         if (!success) {
-            char buf[4096];
-            glGetProgramInfoLog(m_handle, 4096, nullptr, buf);
-            fprintf(stderr, "Failed to link program\nError: %s\n", buf);
+            GLint length;
+            glGetProgramiv(m_handle, GL_INFO_LOG_LENGTH, &length);
+            std::string msg(length + 1, 0);
+            glGetProgramInfoLog(m_handle, length, &length, msg.data());
+            msg.resize(length);
             glDeleteProgram(m_handle);
 
             m_handle = 0;
+            return Status::makeError("Failed to compile shader: " + msg);
         }
 
-        return m_handle != 0;
+        return Status::makeOk();
     }
     ~Program() { glDeleteProgram(m_handle); }
 
