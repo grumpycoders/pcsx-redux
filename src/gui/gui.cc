@@ -1520,7 +1520,12 @@ this setting may not have any effect for you.)"));
         ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
-        changed |= ImGui::Checkbox(_("OpenGL GPU"), &settings.get<Emulator::SettingHardwareRenderer>().value);
+        changed |= ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
+        ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
+This is not recommended for normal use at the moment,
+as it is not fully implemented yet. It is recommended
+to use the software renderer instead. Requires a restart
+when changing this setting.)"));
 
         if (memChanged) {
             changed = true;
