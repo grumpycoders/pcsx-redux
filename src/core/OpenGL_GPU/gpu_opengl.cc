@@ -58,6 +58,7 @@ void PCSX::OpenGL_GPU::reset() {
 
     m_drawingOffset = OpenGL::ivec2({0, 0});
 
+    m_program.use();
     setDrawOffset(0x00000000);
     setTexWindowUnchecked(0x00000000);
     setBlendFactors(0.0, 0.0);
