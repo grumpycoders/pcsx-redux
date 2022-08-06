@@ -315,7 +315,7 @@ int PCSX::OpenGL_GPU::init() {
 
     reset();
     initCommands();
-    startFrame();
+    setOpenGLContext();
     return 0;
 }
 
@@ -582,8 +582,8 @@ void PCSX::OpenGL_GPU::debug() {
     }
 }
 
-// Called at the start of a frame
-void PCSX::OpenGL_GPU::startFrame() {
+// Called at the start of a UI frame to restore context
+void PCSX::OpenGL_GPU::setOpenGLContext() {
     m_vbo.bind();
     m_vao.bind();
     m_fbo.bind(OpenGL::DrawAndReadFramebuffer);

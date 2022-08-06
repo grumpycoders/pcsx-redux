@@ -1910,7 +1910,7 @@ void PCSX::GUI::update(bool vsync) {
     // At all times, either the emulated GPU core or the GUI have full control of the host GPU & the GL context
     // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
     // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.
-    g_emulator->m_gpu->startFrame();
+    g_emulator->m_gpu->setOpenGLContext();
     if (vsync && m_breakOnVSync) {
         g_system->pause();
     }
