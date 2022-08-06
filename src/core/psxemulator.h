@@ -171,6 +171,7 @@ class Emulator {
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     typedef Setting<int, TYPESTRING("Dither"), 2> SettingDither;
     typedef Setting<bool, TYPESTRING("ReportGLErrors"), false> SettingGLErrorReporting;
+    typedef Setting<int, TYPESTRING("ReportGLErrorsSeverity"), 1> SettingGLErrorReportingSeverity;
     typedef Setting<bool, TYPESTRING("FullCaching"), false> SettingFullCaching;
     typedef Setting<bool, TYPESTRING("HardwareRenderer"), false> SettingHardwareRenderer;
     typedef Setting<bool, TYPESTRING("ShownAutoUpdateConfig"), false> SettingShownAutoUpdateConfig;
@@ -182,8 +183,8 @@ class Emulator {
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
              SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
              SettingMcd2Inserted, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither, SettingGLErrorReporting,
-             SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA,
-             SettingLinearFiltering>
+             SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
+             SettingAutoUpdate, SettingMSAA, SettingLinearFiltering>
         settings;
     class PcsxConfig {
       public:

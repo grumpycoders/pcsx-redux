@@ -42,7 +42,7 @@ class OpenGL_GPU final : public GPU {
     virtual void writeDataMem(uint32_t *source, int size) final;
     virtual void writeStatus(uint32_t value) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
-    virtual void startFrame() final;
+    virtual void setOpenGLContext() final;
     virtual void vblank() final;
     virtual bool configure() final;
     virtual void debug() final;
@@ -55,7 +55,7 @@ class OpenGL_GPU final : public GPU {
     virtual void clearVRAM() final;
     virtual void reset() final;
     virtual GLuint getVRAMTexture() final;
-    virtual void setLinearFiltering(bool setting) final;
+    virtual void setLinearFiltering() final;
 
 private:
     // Actual emulation stuff

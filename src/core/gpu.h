@@ -44,7 +44,6 @@ class GPU {
 
     bool m_showCfg = false;
     bool m_showDebug = false;
-    bool m_linearFiltering;
     Display m_display;
 
     virtual bool configure() = 0;
@@ -72,7 +71,7 @@ class GPU {
     virtual void writeDataMem(uint32_t *pMem, int iSize) = 0;
     virtual void writeStatus(uint32_t gdata) = 0;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
-    virtual void startFrame() {}
+    virtual void setOpenGLContext() {}
     virtual void save(SaveStates::GPU &gpu) = 0;
     virtual void load(const SaveStates::GPU &gpu) = 0;
 
@@ -96,7 +95,7 @@ class GPU {
     virtual void reset() {}
     virtual void clearVRAM() {}
     virtual GLuint getVRAMTexture() { return 0; }
-    virtual void setLinearFiltering(bool setting) {}
+    virtual void setLinearFiltering() {}
 
     static std::unique_ptr<GPU> getSoft();
     static std::unique_ptr<GPU> getOpenGL();

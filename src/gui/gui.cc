@@ -187,36 +187,84 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
 
 void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                                 const GLchar* message) {
-    static std::map<GLenum, std::string_view> sourceToString = {
-        {GL_DEBUG_SOURCE_API, "API"},
-        {GL_DEBUG_SOURCE_WINDOW_SYSTEM, "Window System"},
-        {GL_DEBUG_SOURCE_SHADER_COMPILER, "Shader Compiler"},
-        {GL_DEBUG_SOURCE_THIRD_PARTY, "Third Party"},
-        {GL_DEBUG_SOURCE_APPLICATION, "Application"},
-        {GL_DEBUG_SOURCE_OTHER, "Other"},
+    const auto severityFilter = g_emulator->settings.get<Emulator::SettingGLErrorReportingSeverity>().value;
+    switch (severity) {
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            if (severityFilter >= 3) return;
+            break;
+        case GL_DEBUG_SEVERITY_LOW:
+            if (severityFilter >= 2) return;
+            break;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            if (severityFilter >= 1) return;
+            break;
+    }
+    static auto sourceToString = [](GLenum source) -> const char* {
+        switch (source) {
+            case GL_DEBUG_SOURCE_API:
+                return "API";
+            case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+                return "Window System";
+            case GL_DEBUG_SOURCE_SHADER_COMPILER:
+                return "Shader Compiler";
+            case GL_DEBUG_SOURCE_THIRD_PARTY:
+                return "Third Party";
+            case GL_DEBUG_SOURCE_APPLICATION:
+                return "Application";
+            case GL_DEBUG_SOURCE_OTHER:
+                return "Other";
+            default:
+                return "Unknown";
+        }
     };
-    static std::map<GLenum, std::string_view> typeToString = {
-        {GL_DEBUG_TYPE_ERROR, "Error"},
-        {GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR, "Deprecated Behavior"},
-        {GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR, "Undefined Behavior"},
-        {GL_DEBUG_TYPE_PORTABILITY, "Portability"},
-        {GL_DEBUG_TYPE_PERFORMANCE, "Performance"},
-        {GL_DEBUG_TYPE_OTHER, "Other"},
-        {GL_DEBUG_TYPE_MARKER, "Marker"},
-        {GL_DEBUG_TYPE_PUSH_GROUP, "{push}"},
-        {GL_DEBUG_TYPE_POP_GROUP, "{pop}"},
+
+    static auto typeToString = [](GLenum type) -> const char* {
+        switch (type) {
+            case GL_DEBUG_TYPE_ERROR:
+                return "Error";
+            case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+                return "Deprecated Behavior";
+            case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+                return "Undefined Behavior";
+            case GL_DEBUG_TYPE_PORTABILITY:
+                return "Portability";
+            case GL_DEBUG_TYPE_PERFORMANCE:
+                return "Performance";
+            case GL_DEBUG_TYPE_MARKER:
+                return "Marker";
+            case GL_DEBUG_TYPE_PUSH_GROUP:
+                return "Push Group";
+            case GL_DEBUG_TYPE_POP_GROUP:
+                return "Pop Group";
+            case GL_DEBUG_TYPE_OTHER:
+                return "Other";
+            default:
+                return "Unknown";
+        }
     };
-    static std::map<GLenum, std::string_view> severityToString = {
-        {GL_DEBUG_SEVERITY_HIGH, "high"},
-        {GL_DEBUG_SEVERITY_MEDIUM, "medium"},
-        {GL_DEBUG_SEVERITY_LOW, "low"},
+    static auto severityToString = [](GLenum severity) -> const char* {
+        switch (severity) {
+            case GL_DEBUG_SEVERITY_HIGH:
+                return "High";
+            case GL_DEBUG_SEVERITY_MEDIUM:
+                return "Medium";
+            case GL_DEBUG_SEVERITY_LOW:
+                return "Low";
+            case GL_DEBUG_SEVERITY_NOTIFICATION:
+                return "Notification";
+            default:
+                return "Unknown";
+        }
     };
     std::string fullmessage =
-        fmt::format("Got OpenGL callback from \"{}\", type \"{}\", severity {}: {}", sourceToString[source],
-                    typeToString[type], severityToString[severity], message);
+        fmt::format("Got OpenGL callback from \"{}\", type \"{}\", severity {}: {}\n", sourceToString(source),
+                    typeToString(type), severityToString(severity), message);
     if (m_onlyLogGLErrors) {
         m_glErrors.push_back(std::move(fullmessage));
     } else {
+#ifdef _WIN32
+        if (IsDebuggerPresent()) __debugbreak();
+#endif
         g_system->log(LogClass::UI, std::move(fullmessage));
         if (type == GL_DEBUG_TYPE_ERROR) throw std::runtime_error("Got an OpenGL error");
     }
@@ -303,7 +351,7 @@ void PCSX::GUI::init() {
 
     if (!m_window) {
         g_system->log(LogClass::UI,
-                      "GLFW failed to create window with OpenGL core profile 3.2, retrying with any 3.0 profile");
+                      "GLFW failed to create window with OpenGL core profile 3.2, retrying with any 3.0 profile\n");
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
@@ -926,8 +974,8 @@ void PCSX::GUI::endFrame() {
                     ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, &m_disassembly.m_show);
                 } else {
                     ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, false, false);
-                    ShowHelpMarker(
-                        _(R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
+                    ShowHelpMarker(_(
+                        R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
 in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 }
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
@@ -1472,7 +1520,12 @@ this setting may not have any effect for you.)"));
         ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
-        changed |= ImGui::Checkbox(_("OpenGL GPU"), &settings.get<Emulator::SettingHardwareRenderer>().value);
+        changed |= ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
+        ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
+This is not recommended for normal use at the moment,
+as it is not fully implemented yet. It is recommended
+to use the software renderer instead. Requires a restart
+when changing this setting.)"));
 
         if (memChanged) {
             changed = true;
@@ -1808,24 +1861,25 @@ bool PCSX::GUI::about() {
                 } else {
                     ImGui::TextUnformatted(_("OpenGL error reporting: disabled"));
                     if (!glDebugMessageCallback) {
-                        ShowHelpMarker(_(
-                            "OpenGL error reporting has been disabled because your OpenGL driver is too old. Error "
-                            "reporting requires at least OpenGL 4.3. Please update your graphics drivers, or contact "
-                            "your GPU vendor for correct OpenGL drivers. Disabled OpenGL error reporting won't have a "
-                            "negative impact on the performances of this software, but user code such as the shader "
-                            "editor won't be able to properly report problems accurately."));
+                        ShowHelpMarker(
+                            _("OpenGL error reporting has been disabled because your OpenGL driver is too old. Error "
+                              "reporting requires at least OpenGL 4.3. Please update your graphics drivers, or "
+                              "contact your GPU vendor for up to date OpenGL drivers. Disabled OpenGL error reporting "
+                              "won't have a negative impact on the performances of this software, but user code such "
+                              "as the shader editor won't be able to properly report problems accurately."));
                     }
                 }
 
-                if (glDebugMessageCallback) {
-                    changed |= ImGui::Checkbox(_("Enable OpenGL error reporting"),
-                                               &g_emulator->settings.get<Emulator::SettingGLErrorReporting>().value);
+                changed |= ImGui::Checkbox(_("Enable OpenGL error reporting"),
+                                           &g_emulator->settings.get<Emulator::SettingGLErrorReporting>().value);
+                changed |= ImGui::SliderInt(
+                    _("OpenGL error reporting severity"),
+                    &g_emulator->settings.get<Emulator::SettingGLErrorReportingSeverity>().value, 0, 3);
 
-                    ShowHelpMarker(
-                        _("OpenGL error reporting is necessary for properly reporting OpenGL problems. "
-                          "However it requires OpenGL 4.3+ and might have performance repercussions on "
-                          "some PCs. (Requires reboot)"));
-                }
+                ShowHelpMarker(
+                    _("OpenGL error reporting is necessary for properly reporting OpenGL problems. "
+                      "However it requires OpenGL 4.3+ and might have performance repercussions on "
+                      "some computers. (Requires a restart of the emulator)"));
                 ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
                 someString(_("Vendor"), GL_VENDOR);
                 someString(_("Renderer"), GL_RENDERER);
@@ -1856,7 +1910,7 @@ void PCSX::GUI::update(bool vsync) {
     // At all times, either the emulated GPU core or the GUI have full control of the host GPU & the GL context
     // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
     // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.
-    g_emulator->m_gpu->startFrame();
+    g_emulator->m_gpu->setOpenGLContext();
     if (vsync && m_breakOnVSync) {
         g_system->pause();
     }

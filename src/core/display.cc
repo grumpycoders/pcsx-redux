@@ -42,7 +42,7 @@ void PCSX::Display::setDisplayStart(uint32_t command) {
         m_start.y() = startY;
 
         // Adjust dimensions before normalizing if we have linear filtering on
-        if (m_linearFiltering) {
+        if (g_emulator->settings.get<Emulator::SettingLinearFiltering>()) {
             startX += 1;
             startY += 1;
         }
@@ -125,7 +125,7 @@ void PCSX::Display::updateDispArea() {
     m_size.y() = height;
 
     // Adjust dimensions before normalizing if we have linear filtering on
-    if (m_linearFiltering) {
+    if (g_emulator->settings.get<Emulator::SettingLinearFiltering>()) {
         width -= 2;
         height -= 2;
     }
@@ -133,8 +133,8 @@ void PCSX::Display::updateDispArea() {
     m_sizeNormalized.y() = (float)height / 512.f;
 }
 
-void PCSX::Display::setLinearFiltering(bool setting) {
-    m_linearFiltering = setting;
+void PCSX::Display::setLinearFiltering() {
+    auto setting = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value;
     // If linear filtering is on, crop 1 row from the top & bottom, and 1 column from the left & right
     const int width = m_size.x() - ((setting) ? 2 : 0);
     const int height = m_size.y() - ((setting) ? 2 : 0);

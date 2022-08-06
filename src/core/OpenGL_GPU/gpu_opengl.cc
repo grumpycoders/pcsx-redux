@@ -58,6 +58,7 @@ void PCSX::OpenGL_GPU::reset() {
 
     m_drawingOffset = OpenGL::ivec2({0, 0});
 
+    m_program.use();
     setDrawOffset(0x00000000);
     setTexWindowUnchecked(0x00000000);
     setBlendFactors(0.0, 0.0);
@@ -86,7 +87,7 @@ int PCSX::OpenGL_GPU::init() {
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.resize(vertexBufferSize);
     m_vramReadBuffer.resize(vramWidth * vramHeight);
-    m_vramWriteBuffer.resize(vramWidth * vramHeight);
+    m_vramWriteBuffer.reserve(vramWidth * vramHeight);
 
     m_vbo.createFixedSize(sizeof(Vertex) * vertexBufferSize, GL_STREAM_DRAW);
     m_vbo.bind();
@@ -315,11 +316,12 @@ int PCSX::OpenGL_GPU::init() {
 
     reset();
     initCommands();
-    startFrame();
+    setOpenGLContext();
     return 0;
 }
 
-void PCSX::OpenGL_GPU::setLinearFiltering(bool setting) {
+void PCSX::OpenGL_GPU::setLinearFiltering() {
+    auto setting = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value;
     const auto filter = setting ? GL_LINEAR : GL_NEAREST;
     const auto tex = getVRAMTexture();
 
@@ -329,7 +331,7 @@ void PCSX::OpenGL_GPU::setLinearFiltering(bool setting) {
     // This function is used for texture initialization so might as well define our wrapping rules too
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    m_display.setLinearFiltering(setting);
+    m_display.setLinearFiltering();
 }
 
 int PCSX::OpenGL_GPU::shutdown() {
@@ -547,12 +549,11 @@ bool PCSX::OpenGL_GPU::configure() {
             }
             ImGui::EndCombo();
         }
-        
+
         if (ImGui::Checkbox(_("Use linear filtering"),
-                            &m_linearFiltering)) {
+                            &g_emulator->settings.get<Emulator::SettingLinearFiltering>().value)) {
             changed = true;
-            g_emulator->settings.get<Emulator::SettingLinearFiltering>() = m_linearFiltering;
-            setLinearFiltering(m_linearFiltering);
+            setLinearFiltering();
         }
         ImGui::Checkbox("Edit OpenGL GPU shaders", &m_shaderEditor.m_show);
         ImGui::End();
@@ -582,8 +583,8 @@ void PCSX::OpenGL_GPU::debug() {
     }
 }
 
-// Called at the start of a frame
-void PCSX::OpenGL_GPU::startFrame() {
+// Called at the start of a UI frame to restore context
+void PCSX::OpenGL_GPU::setOpenGLContext() {
     m_vbo.bind();
     m_vao.bind();
     m_fbo.bind(OpenGL::DrawAndReadFramebuffer);

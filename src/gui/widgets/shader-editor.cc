@@ -38,10 +38,13 @@ static const GLchar *const c_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
 layout (location = 0) in vec2 Position;
 layout (location = 1) in vec2 UV;
+layout (location = 2) in vec4 Color;
 uniform mat4 u_projMatrix;
 out vec2 Frag_UV;
+out vec4 Frag_Color;
 void main() {
     Frag_UV = UV;
+    Frag_Color = Color;
     gl_Position = u_projMatrix * vec4(Position.xy, 0, 1);
 }
 )";
@@ -51,9 +54,10 @@ static const GLchar *const c_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
 uniform sampler2D Texture;
 in vec2 Frag_UV;
+in vec4 Frag_Color;
 layout (location = 0) out vec4 Out_Color;
 void main() {
-    Out_Color = texture(Texture, Frag_UV.st);
+    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);
     Out_Color.a = 1.0;
 }
 )";
@@ -784,6 +788,13 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
         if (loc >= 0) {
             glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData),
                                   (void *)&((VertexData *)nullptr)->textures);
+            glEnableVertexAttribArray(loc);
+        }
+
+        loc = glGetAttribLocation(m_shaderProgram, "Color");
+        if (loc >= 0) {
+            glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                                  (void *)&((VertexData *)nullptr)->color);
             glEnableVertexAttribArray(loc);
         }
     }

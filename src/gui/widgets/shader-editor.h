@@ -96,10 +96,11 @@ class ShaderEditor {
     GLint m_imguiProgram = 0;
 
     GUI* m_cachedGui = nullptr;
-    
+
     struct VertexData {
         float positions[2];
         float textures[2];
+        float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     };
 
     VertexData m_quadVertices[4];
