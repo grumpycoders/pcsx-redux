@@ -102,11 +102,6 @@ class SystemImpl final : public PCSX::System {
         // debugger or UI is requesting a reset
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
         PCSX::g_emulator->reset();
-
-        // Upon hard-reset, clear the VRAM texture displayed by the VRAM viewers as well
-        s_gui->bindVRAMTexture();
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV,
-                        PCSX::g_emulator->m_gpu->getVRAM());
     }
 
     virtual void close() final override {
@@ -220,8 +215,6 @@ int pcsxMain(int argc, char **argv) {
         emuSettings.get<PCSX::Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
     }
 
-    emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
-
     auto argPath1 = args.get<std::string>("memcard1");
     auto argPath2 = args.get<std::string>("memcard2");
     if (argPath1.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd1>().value = argPath1.value();
@@ -276,14 +269,15 @@ int pcsxMain(int argc, char **argv) {
 
     emulator->setLua();
     s_gui->setLua(*emulator->m_lua);
-    emulator->m_gpu->init();
     emulator->m_spu->init();
     emulator->m_spu->setLua(*emulator->m_lua);
-
-    emulator->m_gpu->open(s_gui);
     emulator->m_spu->open();
 
     emulator->init();
+    emulator->m_gpu->open(s_gui);
+    emulator->m_gpu->init();
+    emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
+    emulator->m_gpu->setLinearFiltering();
     emulator->reset();
 
     if (args.get<bool>("run", false)) system->start();

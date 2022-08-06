@@ -241,6 +241,7 @@
     <ClCompile Include="..\..\src\core\cheat.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
+    <ClCompile Include="..\..\src\core\display.cc" />
     <ClCompile Include="..\..\src\core\disr3000a.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\gte_x64.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc" />
@@ -257,6 +258,8 @@
     <ClCompile Include="..\..\src\core\kernellog.cc" />
     <ClCompile Include="..\..\src\core\luaiso.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
+    <ClCompile Include="..\..\src\core\OpenGL_GPU\command_processor.cc" />
+    <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc" />
     <ClCompile Include="..\..\src\core\pad.cc" />
     <ClCompile Include="..\..\src\core\pcsxlua.cc" />
     <ClCompile Include="..\..\src\core\pgxp_cpu.cc" />
@@ -287,6 +290,7 @@
     <ClInclude Include="..\..\src\core\coff.h" />
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
+    <ClInclude Include="..\..\src\core\display.h" />
     <ClInclude Include="..\..\src\core\disr3000a.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\profiler.h" />
@@ -300,7 +304,7 @@
     <ClInclude Include="..\..\src\core\logger.h" />
     <ClInclude Include="..\..\src\core\luaiso.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
-    <ClInclude Include="..\..\src\core\misc.h" />
+    <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h" />
     <ClInclude Include="..\..\src\core\pad.h" />
     <ClInclude Include="..\..\src\core\pcsxlua.h" />
     <ClInclude Include="..\..\src\core\pgxp_cpu.h" />

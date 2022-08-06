@@ -19,22 +19,35 @@
 
 #pragma once
 
+#include <memory>
+#include <utility>
+
+#include "core/display.h"
 #include "core/psxemulator.h"
+#include "core/psxmem.h"
 #include "core/sstate.h"
 #include "support/slice.h"
 
 namespace PCSX {
-
 class GUI;
 
 class GPU {
   public:
-    int gpuReadStatus();
+    uint32_t gpuReadStatus();
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
 
-    bool m_showCfg;
+    // These functions do not touch GPUSTAT. GPU backends should mirror the IRQ status into GPUSTAT
+    // when readStatus is called
+    void requestIRQ1() { psxHu32ref(0x1070) |= SWAP_LEu32(0x2); }
+    void acknowledgeIRQ1() { psxHu32ref(0x1070) &= ~SWAP_LEu32(0x2); }
+
+    bool m_showCfg = false;
+    bool m_showDebug = false;
+    Display m_display;
+
     virtual bool configure() = 0;
+    virtual void debug() = 0;
     virtual ~GPU() {}
 
   private:
@@ -45,10 +58,10 @@ class GPU {
     uint32_t gpuDmaChainSize(uint32_t addr);
 
   public:
-    virtual int32_t init() = 0;
-    virtual int32_t shutdown() = 0;
-    virtual int32_t open(GUI *) = 0;
-    virtual int32_t close() = 0;
+    virtual int init() = 0;
+    virtual int shutdown() = 0;
+    virtual int open(GUI *) = 0;
+    virtual int close() = 0;
     virtual uint32_t readData() = 0;
     virtual void startDump() = 0;
     virtual void stopDump() = 0;
@@ -58,7 +71,7 @@ class GPU {
     virtual void writeDataMem(uint32_t *pMem, int iSize) = 0;
     virtual void writeStatus(uint32_t gdata) = 0;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
-    virtual void updateLace() = 0;
+    virtual void setOpenGLContext() {}
     virtual void save(SaveStates::GPU &gpu) = 0;
     virtual void load(const SaveStates::GPU &gpu) = 0;
 
@@ -68,7 +81,7 @@ class GPU {
     virtual int32_t getScreenPic(unsigned char *pMem) { return -1; }
     virtual int32_t showScreenPic(unsigned char *pMem) { return -1; }
     virtual void clearDynarec(void (*callback)(void)) {}
-    virtual void vBlank() {}
+    virtual void vblank() {}
     virtual void visualVibration(uint32_t iSmall, uint32_t iBig) {}
     virtual void cursor(int player, int x, int y) {}
     virtual void addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {}
@@ -79,8 +92,13 @@ class GPU {
     virtual void about(void) {}
 
     virtual void setDither(int setting) {}
-    virtual uint8_t *getVRAM() { return nullptr; }
+    virtual void reset() {}
     virtual void clearVRAM() {}
+    virtual GLuint getVRAMTexture() { return 0; }
+    virtual void setLinearFiltering() {}
+
+    static std::unique_ptr<GPU> getSoft();
+    static std::unique_ptr<GPU> getOpenGL();
 
     virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) {}
 

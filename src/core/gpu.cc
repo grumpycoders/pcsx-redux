@@ -81,17 +81,13 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     return size;
 }
 
-int PCSX::GPU::gpuReadStatus() {
-    int hard;
-
-    // GPU plugin
-    hard = readStatus();
+uint32_t PCSX::GPU::gpuReadStatus() {
+    uint32_t ret = readStatus(); // Get status from GPU core
 
     // Gameshark Lite - wants to see VRAM busy
     // - Must enable GPU 'Fake Busy States' hack
-    if ((hard & GPUSTATUS_IDLE) == 0) hard &= ~GPUSTATUS_READYFORVRAM;
-
-    return hard;
+    if ((ret & GPUSTATUS_IDLE) == 0) ret &= ~GPUSTATUS_READYFORVRAM;
+    return ret;
 }
 
 void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU

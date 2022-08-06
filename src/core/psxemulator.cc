@@ -54,7 +54,6 @@ PCSX::Emulator::Emulator()
       m_cdrom(PCSX::CDRom::factory()),
       m_cheats(new PCSX::Cheats()),
       m_mdec(new PCSX::MDEC()),
-      m_gpu(new PCSX::SoftGPU::impl()),
       m_gdbServer(new PCSX::GdbServer()),
       m_webServer(new PCSX::WebServer()),
       m_sio1(new PCSX::SIO1()),
@@ -103,7 +102,19 @@ PCSX::Emulator::~Emulator() {
 int PCSX::Emulator::init() {
     assert(g_system);
     if (m_mem->init() == -1) return -1;
-    int ret = PCSX::R3000Acpu::psxInit();
+    int ret = R3000Acpu::psxInit();
+
+    const auto& args = g_system->getArgs();
+
+    if (args.get<bool>("openglgpu")) {
+        settings.get<SettingHardwareRenderer>() = true;
+    }
+    if (args.get<bool>("softgpu")) {
+        settings.get<SettingHardwareRenderer>() = false;
+    }
+
+    m_gpu = settings.get<SettingHardwareRenderer>() ? GPU::getOpenGL() : GPU::getSoft();
+
     setPGXPMode(m_config.PGXP_Mode);
     m_pads->init();
     return ret;
@@ -115,7 +126,7 @@ void PCSX::Emulator::reset() {
     m_mem->reset();
     m_spu->resetCaptureBuffer();
     m_cpu->psxReset();
-    m_gpu->clearVRAM();
+    m_gpu->reset();
     m_pads->shutdown();
     m_pads->init();
     m_pads->reset();
@@ -134,6 +145,7 @@ void PCSX::Emulator::shutdown() {
 }
 
 void PCSX::Emulator::vsync() {
+    m_gpu->vblank();
     g_system->m_eventBus->signal<Events::GPU::VSync>({});
     g_system->update(true);
     m_cheats->ApplyCheats();

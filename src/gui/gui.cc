@@ -113,8 +113,6 @@ extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
 
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
 
-void PCSX::GUI::bindVRAMTexture() { glBindTexture(GL_TEXTURE_2D, m_VRAMTexture); }
-
 void PCSX::GUI::setFullscreen(bool fullscreen) {
     m_fullscreen = fullscreen;
     if (fullscreen) {
@@ -483,29 +481,21 @@ void PCSX::GUI::init() {
     glfwSetJoystickCallback([](int jid, int event) { PCSX::g_emulator->m_pads->scanGamepads(); });
     ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
 
-    if (glDebugMessageCallback && g_emulator->settings.get<Emulator::SettingGLErrorReporting>()) {
+    if (glDebugMessageCallback &&
+        (g_emulator->settings.get<Emulator::SettingGLErrorReporting>() || m_args.get<bool>("testmode", false))) {
         m_reportGLErrors = true;
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glEnable(GL_DEBUG_OUTPUT);
-        glDebugMessageCallback(
-            [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
-               GLvoid* userParam) {
-                GUI* self = reinterpret_cast<GUI*>(userParam);
-                self->glErrorCallback(source, type, id, severity, length, message);
-            },
-            this);
+        GLDEBUGPROC callback = [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+                                  const GLchar* message, const void* userParam) {
+            GUI* self = reinterpret_cast<GUI*>(const_cast<void*>(userParam));
+            self->glErrorCallback(source, type, id, severity, length, message);
+        };
+        glDebugMessageCallback(callback, this);
     } else {
         g_system->log(LogClass::UI,
                       _("Warning: OpenGL error reporting disabled. See About dialog for more information.\n"));
     }
-    glGenTextures(1, &m_VRAMTexture);
-    glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
-    g_system->m_eventBus->signal(Events::CreatedVRAMTexture{m_VRAMTexture});
 
     glDisable(GL_CULL_FACE);
     // offscreen stuff
@@ -1025,6 +1015,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
+                ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator->m_gpu->m_showDebug);
+                ImGui::Separator();
                 ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Start GPU dump"))) {
@@ -1107,11 +1099,11 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-    if (m_mainVRAMviewer.m_show) m_mainVRAMviewer.draw(this, m_VRAMTexture);
-    if (m_clutVRAMviewer.m_show) m_clutVRAMviewer.draw(this, m_VRAMTexture);
+    if (m_mainVRAMviewer.m_show) m_mainVRAMviewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
+    if (m_clutVRAMviewer.m_show) m_clutVRAMviewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
     for (auto& viewer : m_VRAMviewers) {
         if (viewer.m_show) {
-            viewer.draw(this, m_VRAMTexture);
+            viewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
         }
     }
 
@@ -1221,11 +1213,13 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_sio1.draw(this, &PCSX::g_emulator->m_sio1->m_regs, _("SIO1 Debug"));
     }
 
-    PCSX::g_emulator->m_spu->debug();
-    changed |= PCSX::g_emulator->m_spu->configure();
-    changed |= PCSX::g_emulator->m_gpu->configure();
-    changed |= PCSX::g_emulator->m_pads->configure(this);
+    g_emulator->m_spu->debug();
+    changed |= g_emulator->m_spu->configure();
+    changed |= g_emulator->m_pads->configure(this);
     changed |= configure();
+
+    if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
+    if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
@@ -1526,6 +1520,12 @@ this setting may not have any effect for you.)"));
         ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
+        changed |= ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
+        ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
+This is not recommended for normal use at the moment,
+as it is not fully implemented yet. It is recommended
+to use the software renderer instead. Requires a restart
+when changing this setting.)"));
 
         if (memChanged) {
             changed = true;
@@ -1904,9 +1904,16 @@ bool PCSX::GUI::about() {
 }
 
 void PCSX::GUI::update(bool vsync) {
+    glDisable(GL_SCISSOR_TEST);
     endFrame();
     startFrame();
-    if (vsync && m_breakOnVSync) g_system->pause();
+    // At all times, either the emulated GPU core or the GUI have full control of the host GPU & the GL context
+    // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
+    // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.
+    g_emulator->m_gpu->setOpenGLContext();
+    if (vsync && m_breakOnVSync) {
+        g_system->pause();
+    }
 }
 
 void PCSX::GUI::shellReached() {

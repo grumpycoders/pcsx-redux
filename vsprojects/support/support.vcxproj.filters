@@ -33,6 +33,9 @@
     <ClInclude Include="..\..\src\support\list.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\support\opengl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\support\protobuf.h">
       <Filter>Header Files</Filter>
     </ClInclude>

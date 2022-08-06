@@ -123,7 +123,6 @@
 
 #include "core/debug.h"
 #include "core/psxemulator.h"
-#include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
@@ -153,7 +152,7 @@ char szDebugText[512];
 uint32_t ulStatusControl[256];
 
 static uint32_t gpuDataM[256];
-static unsigned char gpuCommand = 0;
+static uint8_t gpuCommand = 0;
 static int32_t gpuDataC = 0;
 static int32_t gpuDataP = 0;
 
@@ -334,7 +333,7 @@ int32_t PCSX::SoftGPU::impl::init() {
 int32_t PCSX::SoftGPU::impl::open(GUI *gui) {
     m_gui = gui;
     bDoVSyncUpdate = true;
-    InitDisplay();
+    initDisplay();
 
     return 0;
 }
@@ -350,13 +349,16 @@ int32_t PCSX::SoftGPU::impl::shutdown() {
     return 0;  // nothing to do
 }
 
-void updateDisplay() {
+std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::GPU>(new PCSX::SoftGPU::impl()); }
+
+void PCSX::SoftGPU::impl::updateDisplay() {
     if (PSXDisplay.Disabled) {
-        DoClearFrontBuffer();  // -> clear frontbuffer
-        return;                // -> and bye
+        glClearColor(1, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);  // -> clear frontbuffer
+        return;                        // -> and bye
     }
 
-    DoBufferSwap();
+    doBufferSwap();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -392,7 +394,8 @@ void ChangeDispOffsetsX() {
 
             PreviousPSXDisplay.Range.x1 += (int16_t)(lx - l);
         }
-        DoClearScreenBuffer();
+        glClearColor(1, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     bDoVSyncUpdate = true;
@@ -434,7 +437,8 @@ void ChangeDispOffsetsY() {
         PreviousPSXDisplay.Range.y0 = 0;
 
     if (iO != PreviousPSXDisplay.Range.y0) {
-        DoClearScreenBuffer();
+        glClearColor(1, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 }
 
@@ -495,11 +499,7 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
     ptCursorPoint[iPlayer].y = y;
 }
 
-////////////////////////////////////////////////////////////////////////
-// update lace is called every VSync
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::impl::updateLace() {
+void PCSX::SoftGPU::impl::vblank() {
     if (m_dumpFile) {
         uint32_t data = 0x02000000;
         fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
@@ -575,8 +575,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
     ulStatusControl[lCommand] = gdata;  // store command for freezing
 
     switch (lCommand) {
-        //--------------------------------------------------//
-        // reset gpu
+        // Reset gpu
         case 0x00:
             memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
             lGPUstatusRet = 0x14802000;
@@ -584,10 +583,16 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
             DataWriteMode = DataReadMode = DR_NORMAL;
             PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
             m_softPrim.reset();
+            acknowledgeIRQ1();
             PSXDisplay.RGB24 = false;
             PSXDisplay.Interlaced = false;
             return;
-        //--------------------------------------------------//
+
+        // Acknowledge IRQ1
+        case 0x02:
+            acknowledgeIRQ1();
+            return;
+
         // dis/enable display
         case 0x03:
 
@@ -600,7 +605,6 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
                 lGPUstatusRet &= ~GPUSTATUS_DISPLAYDISABLED;
             return;
 
-        //--------------------------------------------------//
         // setting transfer mode
         case 0x04:
             gdata &= 0x03;  // Only want the lower two bits
@@ -612,24 +616,11 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
             lGPUstatusRet |= (gdata << 29);       // Set the DMA bits according to the received data
 
             return;
-        //--------------------------------------------------//
+
         // setting display position
         case 0x05: {
             PreviousPSXDisplay.DisplayPosition.x = PSXDisplay.DisplayPosition.x;
             PreviousPSXDisplay.DisplayPosition.y = PSXDisplay.DisplayPosition.y;
-
-            ////////
-            /*
-                 PSXDisplay.DisplayPosition.y = (int16_t)((gdata>>10)&0x3ff);
-                 if (PSXDisplay.DisplayPosition.y & 0x200)
-                  PSXDisplay.DisplayPosition.y |= 0xfffffc00;
-                 if(PSXDisplay.DisplayPosition.y<0)
-                  {
-                   PreviousPSXDisplay.DisplayModeNew.y=PSXDisplay.DisplayPosition.y/PSXDisplay.Double;
-                   PSXDisplay.DisplayPosition.y=0;
-                  }
-                 else PreviousPSXDisplay.DisplayModeNew.y=0;
-            */
 
             // new
             if (iGPUHeight == 1024) {
@@ -673,19 +664,16 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
             }
         }
             return;
-        //--------------------------------------------------//
+
         // setting width
         case 0x06:
 
             PSXDisplay.Range.x0 = (int16_t)(gdata & 0x7ff);
             PSXDisplay.Range.x1 = (int16_t)((gdata >> 12) & 0xfff);
-
             PSXDisplay.Range.x1 -= PSXDisplay.Range.x0;
-
             ChangeDispOffsetsX();
-
             return;
-        //--------------------------------------------------//
+
         // setting height
         case 0x07: {
             PSXDisplay.Range.y0 = (int16_t)(gdata & 0x3ff);
@@ -704,7 +692,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
             }
             return;
         }
-        //--------------------------------------------------//
+
         // setting display infos
         case 0x08:
 
@@ -761,13 +749,11 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
             updateDisplayIfChanged();
 
             return;
-        //--------------------------------------------------//
-        // ask about GPU version and other stuff
+
+        // Ask about GPU version and other stuff
+        // We currently only emulate the old GPU version of this command
         case 0x10:
-
-            gdata &= 0xff;
-
-            switch (gdata) {
+            switch (gdata & 0x7) {
                 case 0x02:
                     lGPUdataRet = lGPUInfoVals[INFO_TW];  // tw infos
                     return;
@@ -778,22 +764,10 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
                     lGPUdataRet = lGPUInfoVals[INFO_DRAWEND];  // draw end
                     return;
                 case 0x05:
-                case 0x06:
                     lGPUdataRet = lGPUInfoVals[INFO_DRAWOFF];  // draw offset
-                    return;
-                case 0x07:
-                    if (dwGPUVersion == 2)
-                        lGPUdataRet = 0x01;
-                    else
-                        lGPUdataRet = 0x02;  // gpu type
-                    return;
-                case 0x08:
-                case 0x0F:  // some bios addr?
-                    lGPUdataRet = 0xBFC03720;
                     return;
             }
             return;
-            //--------------------------------------------------//
     }
 }
 
@@ -999,7 +973,7 @@ void PCSX::SoftGPU::impl::stopDump() {
 
 void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
     ZoneScoped;
-    unsigned char command;
+    uint8_t command;
     uint32_t gdata = 0;
     int i = 0;
 
@@ -1074,7 +1048,7 @@ ENDVRAM:
             i++;
 
             if (gpuDataC == 0) {
-                command = (unsigned char)((gdata >> 24) & 0xff);
+                command = (uint8_t)((gdata >> 24) & 0xff);
 
                 // if(command>=0xb0 && command<0xc0) auxprintf("b0 %x!!!!!!!!!\n",command);
 
@@ -1097,7 +1071,7 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                m_softPrim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
+                m_softPrim.callFunc(gpuCommand, (uint8_t *)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;
@@ -1195,7 +1169,6 @@ void PCSX::SoftGPU::impl::load(const SaveStates::GPU &gpu) {
 void GPUsetfix(uint32_t dwFixBits) { dwEmuFixes = dwFixBits; }
 
 bool PCSX::SoftGPU::impl::configure() {
-    if (!m_showCfg) return false;
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
@@ -1208,8 +1181,21 @@ bool PCSX::SoftGPU::impl::configure() {
             g_emulator->settings.get<Emulator::SettingDither>() = m_softPrim.m_useDither;
         }
 
+        if (ImGui::Checkbox(_("Use linear filtering"), &g_emulator->settings.get<Emulator::SettingLinearFiltering>().value)) {
+            changed = true;
+            setLinearFiltering();
+        }
         ImGui::End();
     }
 
     return changed;
+}
+
+void PCSX::SoftGPU::impl::debug() {
+    if (ImGui::Begin(_("Soft GPU debugger"), &m_showDebug)) {
+        ImGui::Text(
+            _("Debugging featurs are not supported when using the software renderer yet\nConsider enabling the OpenGL "
+              "GPU option instead"));
+        ImGui::End();
+    }
 }

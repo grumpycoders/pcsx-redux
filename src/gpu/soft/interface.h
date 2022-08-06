@@ -47,13 +47,25 @@ class impl final : public GPU {
     virtual void writeDataMem(uint32_t *pMem, int iSize) final;
     virtual void writeStatus(uint32_t gdata) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
-    virtual void updateLace() final;
+    virtual void vblank() final;
     virtual bool configure() final;
+    virtual void debug() final;
 
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_softPrim.m_useDither = setting; }
-    virtual uint8_t *getVRAM() final { return psxVSecure; }
+    virtual void clearVRAM() final;
+    virtual void reset() final {
+        clearVRAM();
+        m_display.reset();
+    }
+    virtual GLuint getVRAMTexture() final { return m_vramTexture16; }
+    virtual void setLinearFiltering() final;
+
+    void updateDisplay();
+    void initDisplay();
+    void doBufferSwap();
+
     virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) final override {
         auto ptr = psxVuw;
         ptr += y * 1024 + x;
@@ -63,9 +75,7 @@ class impl final : public GPU {
             pixels += w;
         }
     }
-    virtual void clearVRAM() final {
-        std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
-    }  // Clear VRAM to 0s
+
     virtual ScreenShot takeScreenShot() override {
         ScreenShot ss;
         auto startX = PSXDisplay.DisplayPosition.x;
@@ -101,6 +111,7 @@ class impl final : public GPU {
     }
     SoftPrim m_softPrim;
     void *m_dumpFile = nullptr;
+    GLuint m_vramTexture16;
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram

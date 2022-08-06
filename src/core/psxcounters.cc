@@ -202,11 +202,7 @@ void PCSX::Counters::update() {
 
         // Trigger VBlank IRQ when VBlank starts
         if (m_hSyncCount == VBlankStart[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
-            PCSX::g_emulator->m_gpu->vBlank();
             setIrq(0x01);
-
-            // Update lace. (calculated at calculateHsync() on init/defreeze)
-            PCSX::g_emulator->m_gpu->updateLace();
             PCSX::g_emulator->vsync();
         }
 

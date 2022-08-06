@@ -97,14 +97,13 @@
 //
 //*************************************************************************//
 
-#include "gpu/soft/draw.h"
-
-#include <stdint.h>
+#include <cstdint>
 
 #include "GL/gl3w.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/prim.h"
+#include "gpu/soft/interface.h"
 #include "gui/gui.h"
 
 int iFastFwd = 0;
@@ -115,16 +114,6 @@ PCSX::GUI *m_gui;
 bool bVsync_Key = false;
 
 static const unsigned int pitch = 4096;
-
-void DoClearScreenBuffer() {
-    glClearColor(1, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-}
-
-void DoClearFrontBuffer() {
-    glClearColor(1, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-}
 
 void ShowGunCursor(unsigned char *surf) {
     uint16_t dx = (uint16_t)PreviousPSXDisplay.Range.x1;
@@ -177,8 +166,8 @@ void ShowGunCursor(unsigned char *surf) {
 
 static GLuint vramTexture = 0;
 
-void DoBufferSwap() {
-    GLuint textureID = m_gui->getVRAMTexture();
+void PCSX::SoftGPU::impl::doBufferSwap() {
+    GLuint textureID = m_vramTexture16;
     m_gui->setViewport();
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
@@ -196,17 +185,54 @@ void DoBufferSwap() {
     float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
     float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
 
+    // Temporary workaround until we make our Display struct work with the sw backend
+    // Trim 1 pixel from the height and width when linear filtering is on to avoid artifacts due to wrong sampling
+    if (g_emulator->settings.get<Emulator::SettingLinearFiltering>()) {
+        width -= 1.f / 1024.f;
+        height -= 1.f / 512.f;
+    }
+
     m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {startX, startY}, {width, height}, m_gui->getRenderSize());
     m_gui->flip();
 }
 
-void InitDisplay() {
+void PCSX::SoftGPU::impl::clearVRAM() {
+    // Cache previously binded texture
+    const auto oldTex = OpenGL::getTex2D();
+    std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
+
+    glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVSecure);
+    glBindTexture(GL_TEXTURE_2D, oldTex);
+}
+
+void PCSX::SoftGPU::impl::setLinearFiltering() {
+    const auto filter = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value ? GL_LINEAR : GL_NEAREST;
+    glBindTexture(GL_TEXTURE_2D, vramTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+
+    glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+}
+
+void PCSX::SoftGPU::impl::initDisplay() {
     glGenTextures(1, &vramTexture);
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glGenTextures(1, &m_vramTexture16);
+    glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    m_gui->signalVRAMTextureCreated(m_vramTexture16);
 }

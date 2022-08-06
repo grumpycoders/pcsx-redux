@@ -165,8 +165,6 @@ class GUI final {
     void close();
     void update(bool vsync = false);
     void flip();
-    void bindVRAMTexture();
-    GLuint getVRAMTexture() { return m_VRAMTexture; }
     void setViewport();
     void setFullscreen(bool fullscreen);
     void setRawMouseMotion(bool value);
@@ -250,6 +248,9 @@ class GUI final {
     }
 
     const ImVec2 &getRenderSize() { return m_renderSize; }
+    void signalVRAMTextureCreated(GLuint tex) {
+        g_system->m_eventBus->signal(Events::CreatedVRAMTexture{tex});
+    }
 
   private:
     GLFWwindow *m_window = nullptr;

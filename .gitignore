@@ -87,6 +87,9 @@ output.json
 output.frag
 output.lua
 output.vert
+hw-renderer.frag
+hw-renderer.lua
+hw-renderer.vert
 vram-viewer.frag
 vram-viewer.lua
 vram-viewer.vert
