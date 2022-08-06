@@ -370,6 +370,7 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x34] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendGouraud, Transparency::Opaque>;
     m_cmdFuncs[0x35] = &OpenGL_GPU::drawTriTextured<Shading::RawTextureGouraud, Transparency::Opaque>;
     m_cmdFuncs[0x36] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendGouraud, Transparency::Transparent>;
+    m_cmdFuncs[0x37] = &OpenGL_GPU::drawTriTextured<Shading::RawTextureGouraud, Transparency::Transparent>;
     
     m_cmdFuncs[0x38] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Opaque>;
     m_cmdFuncs[0x3A] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Transparent>;
@@ -402,7 +403,11 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x75] = &OpenGL_GPU::drawRectTextured<RectSize::Rect8, Shading::RawTexture, Transparency::Opaque>;
     m_cmdFuncs[0x7C] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::TextureBlendFlat, Transparency::Opaque>;
     m_cmdFuncs[0x7D] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::RawTexture, Transparency::Opaque>;
+    m_cmdFuncs[0x7E] =
+        &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::TextureBlendFlat, Transparency::Transparent>;
+    m_cmdFuncs[0x7F] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::RawTexture, Transparency::Transparent>;
 
+    m_cmdFuncs[0x80] = &OpenGL_GPU::cmdCopyRectVRAMToVRAM;
     m_cmdFuncs[0xA0] = &OpenGL_GPU::cmdCopyRectToVRAM;
     m_cmdFuncs[0xC0] = &OpenGL_GPU::cmdCopyRectFromVRAM;
 }
@@ -565,6 +570,28 @@ void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
         glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &m_vramReadBuffer[0]);
         m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
     }
+}
+
+void PCSX::OpenGL_GPU::cmdCopyRectVRAMToVRAM() {
+    renderBatch();
+    const uint32_t srcCoords = m_cmdFIFO[1];
+    const uint32_t destCoords = m_cmdFIFO[2];
+    const uint32_t res = m_cmdFIFO[3];
+
+    // TODO: Sanitize this
+    const auto srcX = srcCoords & 0x3ff;
+    const auto srcY = (srcCoords >> 16) & 0x1ff;
+    const auto destX = destCoords & 0x3ff;
+    const auto destY = (destCoords >> 16) & 0x1ff;
+
+    uint32_t width = res & 0xffff;
+    uint32_t height = res >> 16;
+
+    width = ((width - 1) & 0x3ff) + 1;
+    height = ((height - 1) & 0x1ff) + 1;
+
+    glBlitFramebuffer(srcX, srcY, srcX + width, srcY + height, destX, destY, destX + width, destY + height,
+                      GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
 
 void PCSX::OpenGL_GPU::cmdUnimplemented() {
