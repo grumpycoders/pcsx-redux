@@ -87,6 +87,7 @@ class TypedDebugger {
     std::vector<std::string> m_typeNames;
 
     std::vector<AddressNodeTuple> m_displayedWatchData;
+    bool m_hex = false;
     uint32_t m_newValue = 0;
 
     struct FunctionBreakpointData {

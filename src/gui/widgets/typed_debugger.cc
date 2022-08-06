@@ -295,13 +295,25 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
 
     const bool isPointer = node->type.back() == '*';
     uint32_t startAddress = currentAddress;
-    if (isPointer && !addressOfPointer) {
+    if (isPointer && !addressOfPointer && isInRAM(currentAddress, memSize)) {
         const uint32_t offset = currentAddress - memBase;
         memcpy(&startAddress, memData + offset, 4);
     }
 
     if (node->children.size() > 0) {  // If this is a struct, array or already populated pointer, display children.
-        bool open = ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_SpanFullWidth);
+        const bool isExpandable =
+            (!isPointer || isInRAM(startAddress, memSize));  // Don't allow expanding a null pointer.
+        const auto additionalTreeFlags =
+            isExpandable ? ImGuiTreeNodeFlags_None
+                         : (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+
+        // We need
+        // 	&& isExpandable
+        // because TreeNodeEx() always returns true for a non-expandable and therefore non-pushed tree, which would lead
+        // us to try to pop a tree we haven't pushed.
+        bool open =
+            ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_SpanFullWidth | additionalTreeFlags) &&
+            isExpandable;
         ImGui::TableNextColumn();  // Type.
         ImGui::TextUnformatted(node->type.c_str());
         ImGui::TableNextColumn();  // Size.
@@ -417,13 +429,16 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         const auto* node_type = node->type.c_str();
         static int8_t step = 1;
         static int8_t step_fast = 100;
+        const auto signedFormat = m_hex ? "%x" : "%d";
+        const auto unsignedFormat = m_hex ? "%x" : "%u";
         if (strcmp(node_type, "char") == 0) {
             int8_t field_value = 0;
             memcpy(&field_value, mem_value, node->size);
-            sprintf(s, "%c (0x%2x) \n", field_value, field_value);
+            sprintf(s, "%d (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
             if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S8,
-                                   &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                                   &m_newValue, &step, &step_fast, signedFormat,
+                                   ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -433,7 +448,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             sprintf(s, "%u (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
             if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U8,
-                                   &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                                   &m_newValue, &step, &step_fast, unsignedFormat,
+                                   ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -443,7 +459,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             sprintf(s, "%hi (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
             if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S16,
-                                   &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                                   &m_newValue, &step, &step_fast, signedFormat,
+                                   ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -453,7 +470,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             sprintf(s, "%hu (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
             if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U16,
-                                   &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                                   &m_newValue, &step, &step_fast, unsignedFormat,
+                                   ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -463,7 +481,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             sprintf(s, "%i (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
             if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_S32,
-                                   &m_newValue, &step, &step_fast, "%d", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                                   &m_newValue, &step, &step_fast, signedFormat,
+                                   ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -474,7 +493,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             sprintf(s, "%u (0x%2x) \n", field_value, field_value);
             ImGui::Text("Value: %s", s);
             if (ImGui::InputScalar(fmt::format(f_("New value##{}"), currentAddress).c_str(), ImGuiDataType_U32,
-                                   &m_newValue, &step, &step_fast, "%u", ImGuiInputTextFlags_EnterReturnsTrue)) {
+                                   &m_newValue, &step, &step_fast, unsignedFormat,
+                                   ImGuiInputTextFlags_EnterReturnsTrue)) {
                 memcpy(mem_value, &m_newValue, node->size);
                 m_newValue = 0;
             }
@@ -642,12 +662,12 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                                             ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CallbackAlways;
 
             static std::string DataInputBuf;
-            ImGui::InputText("##data", &DataInputBuf, textFlags);
+            ImGui::InputText("Address##data", &DataInputBuf, textFlags);
             unsigned int data_input_value = 0;
             sscanf(DataInputBuf.c_str(), "%X", &data_input_value);
 
             static const char* type = nullptr;
-            if (ImGui::BeginCombo("##combo", type)) {
+            if (ImGui::BeginCombo("Type##combo", type)) {
                 for (const auto& typeName : m_typeNames) {
                     bool isSelected = (type == typeName.c_str());
                     if (ImGui::Selectable(typeName.c_str(), isSelected)) {
@@ -660,19 +680,33 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 ImGui::EndCombo();
             }
 
-            if (ImGui::Button("Add") && m_structs.contains(type)) {
+            static bool createArray;
+            ImGui::Checkbox("Array", &createArray);
+
+            static int number = 1;
+            if (createArray) {
+                ImGui::InputInt("Number", &number);
+            } else {
+                number = 1;
+            }
+
+            if (number > 0 && ImGui::Button("Add") && m_structs.contains(type)) {
                 WatchTreeNode root_node;
-                root_node.type = type;
-                root_node.name = type;
+                const auto inputType = createArray ? fmt::format(f_("{}[{}]"), type, number) : type;
+                root_node.type = inputType;
+                root_node.name = inputType;
                 for (const auto& field : m_structs[type]) {
                     root_node.size += field.size;
                 }
+                root_node.size *= number;
                 populate(&root_node, m_structs);
                 m_displayedWatchData.push_back({data_input_value, false, root_node});
             }
             if (ImGui::Button(_("Clear"))) {
                 m_displayedWatchData.clear();
             }
+
+            ImGui::Checkbox("Input in hexadecimal", &m_hex);
 
             gui->useMonoFont();
             if (ImGui::BeginTable(_("WatchTable"), 5, treeTableFlags)) {
