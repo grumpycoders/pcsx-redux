@@ -96,7 +96,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 #else
 #ifndef PCSX_CLI
 #if defined(__APPLE__) && defined(__MACH__)
-extern "C" void Complain(const char* msg);
+extern "C" void Complain(const char *msg);
 #else
 #include <X11/Xlib.h>
 #include <stdlib.h>

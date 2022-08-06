@@ -26,13 +26,13 @@ struct Display {
     using ivec2 = OpenGL::ivec2;
     using vec2 = OpenGL::vec2;
 
-    ivec2 m_start;  // Starting coords of the display area
-    ivec2 m_size;   // Width and height of the display area
-    vec2 m_startNormalized; // Starting coords of the display area normalized in the [0, 1] range
-    vec2 m_sizeNormalized;  // Width and height of the display area normalized in the [0, 1] range
+    ivec2 m_start;           // Starting coords of the display area
+    ivec2 m_size;            // Width and height of the display area
+    vec2 m_startNormalized;  // Starting coords of the display area normalized in the [0, 1] range
+    vec2 m_sizeNormalized;   // Width and height of the display area normalized in the [0, 1] range
 
     uint32_t m_drawMode;
-    bool m_rgb24;   // Is RGB24 mode enabled?
+    bool m_rgb24;  // Is RGB24 mode enabled?
     bool m_interlace;
     bool m_pal;
     bool m_enabled;

@@ -248,9 +248,7 @@ class GUI final {
     }
 
     const ImVec2 &getRenderSize() { return m_renderSize; }
-    void signalVRAMTextureCreated(GLuint tex) {
-        g_system->m_eventBus->signal(Events::CreatedVRAMTexture{tex});
-    }
+    void signalVRAMTextureCreated(GLuint tex) { g_system->m_eventBus->signal(Events::CreatedVRAMTexture{tex}); }
 
   private:
     GLFWwindow *m_window = nullptr;

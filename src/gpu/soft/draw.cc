@@ -102,8 +102,8 @@
 #include "GL/gl3w.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
-#include "gpu/soft/prim.h"
 #include "gpu/soft/interface.h"
+#include "gpu/soft/prim.h"
 #include "gui/gui.h"
 
 int iFastFwd = 0;
