@@ -320,7 +320,8 @@ int PCSX::OpenGL_GPU::init() {
     return 0;
 }
 
-void PCSX::OpenGL_GPU::setLinearFiltering(bool setting) {
+void PCSX::OpenGL_GPU::setLinearFiltering() {
+    auto setting = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value;
     const auto filter = setting ? GL_LINEAR : GL_NEAREST;
     const auto tex = getVRAMTexture();
 
@@ -330,7 +331,7 @@ void PCSX::OpenGL_GPU::setLinearFiltering(bool setting) {
     // This function is used for texture initialization so might as well define our wrapping rules too
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    m_display.setLinearFiltering(setting);
+    m_display.setLinearFiltering();
 }
 
 int PCSX::OpenGL_GPU::shutdown() {
@@ -548,12 +549,11 @@ bool PCSX::OpenGL_GPU::configure() {
             }
             ImGui::EndCombo();
         }
-        
+
         if (ImGui::Checkbox(_("Use linear filtering"),
-                            &m_linearFiltering)) {
+                            &g_emulator->settings.get<Emulator::SettingLinearFiltering>().value)) {
             changed = true;
-            g_emulator->settings.get<Emulator::SettingLinearFiltering>() = m_linearFiltering;
-            setLinearFiltering(m_linearFiltering);
+            setLinearFiltering();
         }
         ImGui::Checkbox("Edit OpenGL GPU shaders", &m_shaderEditor.m_show);
         ImGui::End();

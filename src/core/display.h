@@ -36,7 +36,6 @@ struct Display {
     bool m_interlace;
     bool m_pal;
     bool m_enabled;
-    bool m_linearFiltering = true;
 
     int x1, x2, y1, y2;  // Display area range variables
 
@@ -45,7 +44,7 @@ struct Display {
     void setHorizontalRange(uint32_t command);
     void setVerticalRange(uint32_t command);
     void setMode(uint32_t command);
-    void setLinearFiltering(bool setting);
+    void setLinearFiltering();
     void updateDispArea();
 };
 

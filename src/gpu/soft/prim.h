@@ -54,7 +54,6 @@ class SoftPrim : public SoftRenderer {
     }
 
     int m_useDither = 0;
-    bool m_linearFiltering = false;
 
   private:
     int32_t GlobalTextREST;

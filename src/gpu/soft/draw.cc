@@ -187,7 +187,7 @@ void PCSX::SoftGPU::impl::doBufferSwap() {
 
     // Temporary workaround until we make our Display struct work with the sw backend
     // Trim 1 pixel from the height and width when linear filtering is on to avoid artifacts due to wrong sampling
-    if (m_linearFiltering) {
+    if (g_emulator->settings.get<Emulator::SettingLinearFiltering>()) {
         width -= 1.f / 1024.f;
         height -= 1.f / 512.f;
     }
@@ -206,8 +206,8 @@ void PCSX::SoftGPU::impl::clearVRAM() {
     glBindTexture(GL_TEXTURE_2D, oldTex);
 }
 
-void PCSX::SoftGPU::impl::setLinearFiltering(bool setting) {
-    const auto filter = setting ? GL_LINEAR : GL_NEAREST;
+void PCSX::SoftGPU::impl::setLinearFiltering() {
+    const auto filter = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value ? GL_LINEAR : GL_NEAREST;
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);

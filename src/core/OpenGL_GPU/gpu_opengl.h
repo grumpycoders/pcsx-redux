@@ -55,7 +55,7 @@ class OpenGL_GPU final : public GPU {
     virtual void clearVRAM() final;
     virtual void reset() final;
     virtual GLuint getVRAMTexture() final;
-    virtual void setLinearFiltering(bool setting) final;
+    virtual void setLinearFiltering() final;
 
 private:
     // Actual emulation stuff

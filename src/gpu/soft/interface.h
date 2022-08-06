@@ -60,7 +60,7 @@ class impl final : public GPU {
         m_display.reset();
     }
     virtual GLuint getVRAMTexture() final { return m_vramTexture16; }
-    virtual void setLinearFiltering(bool setting) final;
+    virtual void setLinearFiltering() final;
 
     void updateDisplay();
     void initDisplay();
