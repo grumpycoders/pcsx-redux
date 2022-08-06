@@ -57,7 +57,7 @@ class OpenGL_GPU final : public GPU {
     virtual GLuint getVRAMTexture() final;
     virtual void setLinearFiltering() final;
 
-private:
+  private:
     // Actual emulation stuff
     using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
     struct Vertex {
@@ -88,7 +88,7 @@ private:
             texpage = c_untexturedPrimitiveTexpage;
         }
 
-        Vertex(uint32_t position, uint32_t col, uint16_t clut, uint16_t texpage,  uint32_t texcoords)
+        Vertex(uint32_t position, uint32_t col, uint16_t clut, uint16_t texpage, uint32_t texcoords)
             : colour(col), clut(clut), texpage(texpage) {
             const int x = position & 0xffff;
             const int y = (position >> 16) & 0xffff;
@@ -133,13 +133,13 @@ private:
     OpenGL::VertexBuffer m_vbo;
     OpenGL::Framebuffer m_fbo;
     OpenGL::Texture m_vramTexture;
-    OpenGL::Texture m_blankTexture; // Black texture to display when the display is off
+    OpenGL::Texture m_blankTexture;  // Black texture to display when the display is off
 
     // We need non-MSAA copies of our texture & FBO when using multisampling
     OpenGL::Texture m_vramTextureNoMSAA;
     OpenGL::Framebuffer m_fboNoMSAA;
     Widgets::ShaderEditor m_shaderEditor = {"hw-renderer"};
-    
+
     // For CPU->VRAM texture transfers
     OpenGL::Texture m_sampleTexture;
     OpenGL::Rect m_vramTransferRect;
@@ -180,7 +180,7 @@ private:
     bool m_updateDrawOffset = false;
     bool m_syncVRAM = true;
     bool m_drawnStuff = false;
-    uint32_t m_rectTexpage = 0; // Rects have their own texpage settings
+    uint32_t m_rectTexpage = 0;  // Rects have their own texpage settings
     uint32_t m_vramReadBufferSize = 0;
     uint32_t m_vramReadBufferIndex = 0;
     uint32_t m_lastTexwindowSetting = 0;
@@ -198,21 +198,15 @@ private:
     void setTexWindowUnchecked(uint32_t cmd);
     void setDisplayEnable(bool setting);
 
-    enum class RectSize {
-        Variable, Rect1, Rect8, Rect16
-    };
+    enum class RectSize { Variable, Rect1, Rect8, Rect16 };
 
     // For untextured primitives, there's flat and gouraud shading.
-    // For textured primitives, RawTexture and RawTextureGouraud work the same way, except the latter has unused colour parameters
-    // RawTextureGouraud is used a lot by some games, like Castlevania
-    // TextureBlendFlat is texture blending with a flat colour, TextureBlendGouraud is texture blending with a gouraud shaded colour
-    enum class Shading {
-        Flat, Gouraud, RawTexture, RawTextureGouraud, TextureBlendFlat, TextureBlendGouraud
-    };
+    // For textured primitives, RawTexture and RawTextureGouraud work the same way, except the latter has unused colour
+    // parameters RawTextureGouraud is used a lot by some games, like Castlevania TextureBlendFlat is texture blending
+    // with a flat colour, TextureBlendGouraud is texture blending with a gouraud shaded colour
+    enum class Shading { Flat, Gouraud, RawTexture, RawTextureGouraud, TextureBlendFlat, TextureBlendGouraud };
 
-    enum class Transparency {
-        Opaque, Transparent
-    };
+    enum class Transparency { Opaque, Transparent };
 
     // 0: Back / 2 + Front / 2
     // 1: Back + Front

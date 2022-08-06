@@ -25,10 +25,10 @@
 
 #include <magic_enum/include/magic_enum.hpp>
 
+#include "core/debug.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/system.h"
-#include "core/debug.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
@@ -233,7 +233,8 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             if (!m_addressValuePairs.empty() && ImGui::Button(_("Next scan"))) {
                 auto doesntMatchCriterion = [this, memData, memSize, stride](const AddressValuePair& addressValuePair) {
                     const uint32_t address = addressValuePair.address;
-                    const int memValue = getValueAsSelectedType(getMemValue(address, memData, memSize, memBase, stride));
+                    const int memValue =
+                        getValueAsSelectedType(getMemValue(address, memData, memSize, memBase, stride));
 
                     switch (m_scanType) {
                         case ScanType::ExactValue:
@@ -263,8 +264,8 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                     m_scanType = ScanType::ExactValue;
                 } else {
                     for (auto& addressValuePair : m_addressValuePairs) {
-                        addressValuePair.scannedValue =
-                            getValueAsSelectedType(getMemValue(addressValuePair.address, memData, memSize, memBase, stride));
+                        addressValuePair.scannedValue = getValueAsSelectedType(
+                            getMemValue(addressValuePair.address, memData, memSize, memBase, stride));
                     }
                 }
             }
@@ -359,12 +360,14 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                         ImGui::TableSetColumnIndex(4);
                         auto addReadBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}"), row);
                         if (ImGui::Button(addReadBreakpointButtonName.c_str())) {
-                            g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Read, stride, _("Memory Observer"));
+                            g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Read, stride,
+                                                               _("Memory Observer"));
                         }
                         ImGui::TableSetColumnIndex(5);
                         auto addWriteBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}"), row);
                         if (ImGui::Button(addWriteBreakpointButtonName.c_str())) {
-                            g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Write, stride, _("Memory Observer"));
+                            g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Write, stride,
+                                                               _("Memory Observer"));
                         }
                     }
                 }
@@ -436,16 +439,16 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
 uint8_t PCSX::Widgets::MemoryObserver::getStrideFromValueType(ScanValueType valueType) {
     switch (valueType) {
-    case ScanValueType::Char:
-    case ScanValueType::Uchar:
-        return 1;
-    case ScanValueType::Short:
-    case ScanValueType::Ushort:
-        return 2;
-    case ScanValueType::Int:
-        return 4;
-    default:
-        throw std::runtime_error("Invalid value type.");
+        case ScanValueType::Char:
+        case ScanValueType::Uchar:
+            return 1;
+        case ScanValueType::Short:
+        case ScanValueType::Ushort:
+            return 2;
+        case ScanValueType::Int:
+            return 4;
+        default:
+            throw std::runtime_error("Invalid value type.");
     }
 }
 

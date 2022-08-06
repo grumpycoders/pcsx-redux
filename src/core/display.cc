@@ -16,9 +16,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
+#include "core/display.h"
+
 #include <algorithm>
 
-#include "core/display.h"
 #include "core/psxemulator.h"
 
 void PCSX::Display::reset() {
