@@ -86,7 +86,7 @@ int PCSX::OpenGL_GPU::init() {
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.resize(vertexBufferSize);
     m_vramReadBuffer.resize(vramWidth * vramHeight);
-    m_vramWriteBuffer.resize(vramWidth * vramHeight);
+    m_vramWriteBuffer.reserve(vramWidth * vramHeight);
 
     m_vbo.createFixedSize(sizeof(Vertex) * vertexBufferSize, GL_STREAM_DRAW);
     m_vbo.bind();
