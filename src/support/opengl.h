@@ -20,6 +20,7 @@
 #pragma once
 #include <array>
 #include <cstdio>
+#include <functional>
 #include <initializer_list>
 #include <optional>
 #include <stdexcept>
