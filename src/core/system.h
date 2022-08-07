@@ -144,16 +144,6 @@ class System {
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
     bool emergencyExit() { return m_emergencyExit; }
-    void start() {
-        if (m_running) return;
-        m_running = true;
-        m_eventBus->signal(Events::ExecutionFlow::Run{});
-    }
-    void stop() {
-        if (!m_running) return;
-        m_running = false;
-        m_eventBus->signal(Events::ExecutionFlow::Pause{});
-    }
     void pause(bool exception = false) {
         if (!m_running) return;
         m_running = false;

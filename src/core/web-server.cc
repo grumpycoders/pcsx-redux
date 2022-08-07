@@ -268,7 +268,7 @@ class FlowExecutor : public PCSX::WebExecutor {
             }
             std::string function = ifunction->second;
             if (function.compare("start") == 0) {
-                PCSX::g_system->start();
+                PCSX::g_system->resume();
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
                 return true;
             }

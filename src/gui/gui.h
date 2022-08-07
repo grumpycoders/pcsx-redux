@@ -380,7 +380,7 @@ class GUI final {
             filename = newfilename;
             pauseAfterLoad = !g_system->running();
             if (!empty()) {
-                g_system->start();
+                g_system->resume();
             }
         }
         PCSX::u8string &&get() { return std::move(filename); }

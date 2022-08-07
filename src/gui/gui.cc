@@ -898,7 +898,7 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Emulation"))) {
                 if (ImGui::MenuItem(_("Start"), "F5", nullptr, !g_system->running())) {
-                    g_system->start();
+                    g_system->resume();
                 }
                 if (ImGui::MenuItem(_("Pause"), "F6", nullptr, g_system->running())) {
                     g_system->pause();
