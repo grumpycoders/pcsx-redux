@@ -71,9 +71,7 @@ void PCSX::OpenGL_GPU::setBlendingModeFromTexpage(uint32_t texpage) {
                 OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
                 setBlendFactors(1.0, 1.0);
                 break;
-            case 2:  //  B - F
-                OpenGL::setBlendEquation(OpenGL::BlendEquation::ReverseSub, OpenGL::BlendEquation::Add);
-                setBlendFactors(1.0, 1.0);
+            case 2:  // B - F. We special handle this in the renderBatch() function
                 break;
             case 3:  // B + F/4
                 OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);

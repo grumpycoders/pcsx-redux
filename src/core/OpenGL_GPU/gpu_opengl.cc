@@ -678,7 +678,6 @@ void PCSX::OpenGL_GPU::renderBatch() {
             // Draw opaque only
             OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
             setBlendFactors(0.0, 1.0);
-            glUniform4f(m_blendFactorsIfOpaqueLoc, 1.0, 1.0, 1.0, 0.0);
             OpenGL::draw(OpenGL::Triangles, m_vertexCount);
 
             // Draw transparent only
