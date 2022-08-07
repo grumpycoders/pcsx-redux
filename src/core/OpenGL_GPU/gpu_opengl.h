@@ -166,6 +166,7 @@ private:
     GLint m_drawingOffsetLoc;
     GLint m_texWindowLoc;
     GLint m_blendFactorsLoc;
+    GLint m_blendFactorsIfOpaqueLoc;
     // The handle of the texture to actually display on screen.
     // The handle of either m_vramTexture, m_vramTextureNoMSAA or m_blankTexture
     // Depending on whether the display and MSAA are enabled
@@ -253,7 +254,7 @@ private:
     void setTransparency();
 
     void setBlendingModeFromTexpage(uint32_t texpage);
-    void setBlendFactors(float destFactor, float sourceFactor);
+    void setBlendFactors(float sourceFactor, float destFactor);
 
     // GP0/GP1 command funcs
     void initCommands();

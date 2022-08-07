@@ -77,18 +77,18 @@ void PCSX::OpenGL_GPU::setBlendingModeFromTexpage(uint32_t texpage) {
                 break;
             case 3:  // B + F/4
                 OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
-                setBlendFactors(1.0, 0.25);
+                setBlendFactors(0.25, 1.0);
                 break;
         }
     }
 }
 
-void PCSX::OpenGL_GPU::setBlendFactors(float destFactor, float sourceFactor) {
-    if (m_blendFactors.x() != destFactor || m_blendFactors.y() != sourceFactor) {
-        m_blendFactors.x() = destFactor;
-        m_blendFactors.y() = sourceFactor;
+void PCSX::OpenGL_GPU::setBlendFactors(float sourceFactor, float destFactor) {
+    if (m_blendFactors.x() != sourceFactor || m_blendFactors.y() != destFactor) {
+        m_blendFactors.x() = sourceFactor;
+        m_blendFactors.y() = destFactor;
 
-        glUniform4f(m_blendFactorsLoc, destFactor, destFactor, destFactor, sourceFactor);
+        glUniform4f(m_blendFactorsLoc, sourceFactor, sourceFactor, sourceFactor, destFactor);
     }
 }
 
@@ -591,9 +591,9 @@ void PCSX::OpenGL_GPU::cmdCopyRectVRAMToVRAM() {
     height = ((height - 1) & 0x1ff) + 1;
 
     glBlitFramebuffer(srcX, srcY, srcX + width, srcY + height, destX, destY, destX + width, destY + height,
-                      GL_COLOR_BUFFER_BIT, GL_LINEAR);
+                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
 void PCSX::OpenGL_GPU::cmdUnimplemented() {
-    //PCSX::g_system->printf("Unknown GP0 command: %02X\n", m_cmdFIFO[0] >> 24);
+    PCSX::g_system->printf("Unknown GP0 command: %02X\n", m_cmdFIFO[0] >> 24);
 }
