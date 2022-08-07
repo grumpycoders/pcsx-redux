@@ -124,7 +124,7 @@ void DynaRecCPU::signalShellReached(DynaRecCPU* that) {
 
 void DynaRecCPU::error() {
     PCSX::g_system->hardReset();
-    PCSX::g_system->stop();
+    PCSX::g_system->pause();
     PCSX::g_system->message("Unrecoverable error while running recompiler\nProgram counter: %08X\n", m_pc);
 }
 
