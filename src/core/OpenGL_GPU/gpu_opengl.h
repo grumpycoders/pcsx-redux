@@ -34,8 +34,6 @@ class OpenGL_GPU final : public GPU {
     virtual int open(GUI *) final;
     virtual int close() final;
     virtual uint32_t readData() final;
-    virtual void startDump() final;
-    virtual void stopDump() final;
     virtual void readDataMem(uint32_t *dest, int size) final;
     virtual uint32_t readStatus() final;
     virtual void writeData(uint32_t value) final;
@@ -47,10 +45,6 @@ class OpenGL_GPU final : public GPU {
     virtual bool configure() final;
     virtual void debug() final;
 
-    virtual void save(SaveStates::GPU &gpu) final;
-    virtual ScreenShot takeScreenShot() final;
-
-    virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_useDither = setting; }
     virtual void clearVRAM() final;
     virtual void reset() final;

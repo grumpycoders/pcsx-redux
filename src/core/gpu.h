@@ -64,8 +64,8 @@ class GPU {
     virtual int open(GUI *) = 0;
     virtual int close() = 0;
     virtual uint32_t readData() = 0;
-    virtual void startDump() = 0;
-    virtual void stopDump() = 0;
+    virtual void startDump() { throw std::runtime_error("Not yet implemented"); }
+    virtual void stopDump() { throw std::runtime_error("Not yet implemented"); }
     virtual void readDataMem(uint32_t *pMem, int iSize) = 0;
     virtual uint32_t readStatus() = 0;
     virtual void writeData(uint32_t gdata) = 0;
@@ -73,8 +73,8 @@ class GPU {
     virtual void writeStatus(uint32_t gdata) = 0;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
     virtual void setOpenGLContext() {}
-    virtual void save(SaveStates::GPU &gpu) = 0;
-    virtual void load(const SaveStates::GPU &gpu) = 0;
+    virtual void save(SaveStates::GPU &gpu) { throw std::runtime_error("Not yet implemented"); }
+    virtual void load(const SaveStates::GPU &gpu) { throw std::runtime_error("Not yet implemented"); }
 
     virtual void vblank() = 0;
     virtual void addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {
@@ -104,7 +104,7 @@ class GPU {
         uint16_t width, height;
         enum { BPP_16, BPP_24 } bpp;
     };
-    virtual ScreenShot takeScreenShot() = 0;
+    virtual ScreenShot takeScreenShot() { throw std::runtime_error("Not yet implemented"); }
 };
 
 }  // namespace PCSX
