@@ -20,6 +20,7 @@
 #pragma once
 
 #include <memory>
+#include <stdexcept>
 #include <utility>
 
 #include "core/display.h"
@@ -63,8 +64,8 @@ class GPU {
     virtual int open(GUI *) = 0;
     virtual int close() = 0;
     virtual uint32_t readData() = 0;
-    virtual void startDump() = 0;
-    virtual void stopDump() = 0;
+    virtual void startDump() { throw std::runtime_error("Not yet implemented"); }
+    virtual void stopDump() { throw std::runtime_error("Not yet implemented"); }
     virtual void readDataMem(uint32_t *pMem, int iSize) = 0;
     virtual uint32_t readStatus() = 0;
     virtual void writeData(uint32_t gdata) = 0;
@@ -72,42 +73,38 @@ class GPU {
     virtual void writeStatus(uint32_t gdata) = 0;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
     virtual void setOpenGLContext() {}
-    virtual void save(SaveStates::GPU &gpu) = 0;
-    virtual void load(const SaveStates::GPU &gpu) = 0;
+    virtual void save(SaveStates::GPU &gpu) { throw std::runtime_error("Not yet implemented"); }
+    virtual void load(const SaveStates::GPU &gpu) { throw std::runtime_error("Not yet implemented"); }
 
-    virtual void displayText(char *pText) { PCSX::g_system->printf("%s\n", pText); }
-    virtual void makeSnapshot(void) {}
-    virtual void toggleDebug(void) {}
-    virtual int32_t getScreenPic(unsigned char *pMem) { return -1; }
-    virtual int32_t showScreenPic(unsigned char *pMem) { return -1; }
-    virtual void clearDynarec(void (*callback)(void)) {}
-    virtual void vblank() {}
-    virtual void visualVibration(uint32_t iSmall, uint32_t iBig) {}
-    virtual void cursor(int player, int x, int y) {}
-    virtual void addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {}
-    virtual void setSpeed(float newSpeed) {}
+    virtual void vblank() = 0;
+    virtual void addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {
+        throw std::runtime_error("Not yet implemented");
+    }
     virtual void pgxpMemory(unsigned int addr, unsigned char *pVRAM) {}
-    virtual void pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
-    virtual int32_t test(void) { return 0; }
-    virtual void about(void) {}
+    virtual void pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {
+        throw std::runtime_error("Not yet implemented");
+    }
 
-    virtual void setDither(int setting) {}
-    virtual void reset() {}
-    virtual void clearVRAM() {}
-    virtual GLuint getVRAMTexture() { return 0; }
-    virtual void setLinearFiltering() {}
+    virtual void setDither(int setting) = 0;
+    virtual void reset() = 0;
+    virtual void clearVRAM() = 0;
+    virtual GLuint getVRAMTexture() = 0;
+    virtual void setLinearFiltering() = 0;
 
     static std::unique_ptr<GPU> getSoft();
     static std::unique_ptr<GPU> getOpenGL();
 
-    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) {}
+    virtual Slice getVRAM() { throw std::runtime_error("Not yet implemented"); }
+    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) {
+        throw std::runtime_error("Not yet implemented");
+    }
 
     struct ScreenShot {
         Slice data;
         uint16_t width, height;
         enum { BPP_16, BPP_24 } bpp;
     };
-    virtual ScreenShot takeScreenShot() = 0;
+    virtual ScreenShot takeScreenShot() { throw std::runtime_error("Not yet implemented"); }
 };
 
 }  // namespace PCSX

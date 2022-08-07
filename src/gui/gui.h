@@ -248,7 +248,6 @@ class GUI final {
     }
 
     const ImVec2 &getRenderSize() { return m_renderSize; }
-    void signalVRAMTextureCreated(GLuint tex) { g_system->m_eventBus->signal(Events::CreatedVRAMTexture{tex}); }
 
   private:
     GLFWwindow *m_window = nullptr;
@@ -380,7 +379,7 @@ class GUI final {
             filename = newfilename;
             pauseAfterLoad = !g_system->running();
             if (!empty()) {
-                g_system->start();
+                g_system->resume();
             }
         }
         PCSX::u8string &&get() { return std::move(filename); }

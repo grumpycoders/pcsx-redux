@@ -66,6 +66,12 @@ class impl final : public GPU {
     void initDisplay();
     void doBufferSwap();
 
+    virtual Slice getVRAM() final override {
+        Slice ret;
+        ret.borrow(psxVuw, 1024 * 512 * 2);
+        return ret;
+    }
+
     virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) final override {
         auto ptr = psxVuw;
         ptr += y * 1024 + x;

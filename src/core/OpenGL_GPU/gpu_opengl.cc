@@ -119,12 +119,10 @@ int PCSX::OpenGL_GPU::init() {
         m_vramTextureNoMSAA.create(vramWidth, vramHeight, GL_RGBA8);
         m_fboNoMSAA.createWithTexture(m_vramTextureNoMSAA);
         m_multisampled = true;
-        m_gui->signalVRAMTextureCreated(m_vramTextureNoMSAA.handle());
     } else {
         m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
         m_fbo.createWithTexture(m_vramTexture);
         m_multisampled = false;
-        m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
     }
 
     m_sampleTexture.create(vramWidth, vramHeight, GL_RGBA8);
@@ -687,19 +685,3 @@ void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
         m_displayTexture = m_multisampled ? m_vramTextureNoMSAA.handle() : m_vramTexture.handle();
     }
 }
-
-void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) { g_system->printf("Unimplemented OpenGL GPU function: save\n"); }
-
-void PCSX::OpenGL_GPU::load(const SaveStates::GPU& gpu) { g_system->printf("TODO: load\n"); }
-
-PCSX::GPU::ScreenShot PCSX::OpenGL_GPU::takeScreenShot() {
-    ScreenShot ss;
-    ss.width = 0;
-    ss.height = 0;
-    ss.data.acquire(nullptr, 0);
-    return ss;
-}
-
-void PCSX::OpenGL_GPU::startDump() { g_system->printf("Unimplemented OpenGL GPU function: startDump\n"); }
-
-void PCSX::OpenGL_GPU::stopDump() { g_system->printf("Unimplemented OpenGL GPU function: stopDump\n"); }
