@@ -90,9 +90,6 @@ struct JumpToMemory {
     unsigned size;
 };
 }  // namespace GUI
-struct CreatedVRAMTexture {
-    unsigned int id;
-};
 struct Keyboard {
     int key, scancode, action, mods;
 };

@@ -119,12 +119,10 @@ int PCSX::OpenGL_GPU::init() {
         m_vramTextureNoMSAA.create(vramWidth, vramHeight, GL_RGBA8);
         m_fboNoMSAA.createWithTexture(m_vramTextureNoMSAA);
         m_multisampled = true;
-        m_gui->signalVRAMTextureCreated(m_vramTextureNoMSAA.handle());
     } else {
         m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
         m_fbo.createWithTexture(m_vramTexture);
         m_multisampled = false;
-        m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
     }
 
     m_sampleTexture.create(vramWidth, vramHeight, GL_RGBA8);
