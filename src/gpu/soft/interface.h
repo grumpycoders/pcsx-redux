@@ -30,10 +30,8 @@ class GUI;
 namespace SoftGPU {
 
 class impl final : public GPU {
-    virtual int32_t init() final;
+    virtual int32_t init(GUI *) final;
     virtual int32_t shutdown() final;
-    virtual int32_t open(GUI *) final;
-    virtual int32_t close() final;
     virtual uint32_t readData() final {
         uint32_t l;
         readDataMem(&l, 1);

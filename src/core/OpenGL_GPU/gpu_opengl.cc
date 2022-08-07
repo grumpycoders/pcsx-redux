@@ -83,7 +83,8 @@ void PCSX::OpenGL_GPU::clearVRAM(float r, float g, float b, float a) {
 void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 
 // Do not forget to call this with an active OpenGL context.
-int PCSX::OpenGL_GPU::init() {
+int PCSX::OpenGL_GPU::init(GUI* gui) {
+    m_gui = gui;
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.resize(vertexBufferSize);
     m_vramReadBuffer.resize(vramWidth * vramHeight);
@@ -332,20 +333,7 @@ void PCSX::OpenGL_GPU::setLinearFiltering() {
     m_display.setLinearFiltering();
 }
 
-int PCSX::OpenGL_GPU::shutdown() {
-    g_system->printf("Unimplemented OpenGL GPU function: shutdown\n");
-    return 0;
-}
-
-int PCSX::OpenGL_GPU::open(GUI* gui) {
-    m_gui = gui;
-    return 0;
-}
-
-int PCSX::OpenGL_GPU::close() {
-    g_system->printf("Unimplemented OpenGL GPU function: close\n");
-    return 0;
-}
+int PCSX::OpenGL_GPU::shutdown() { return 0; }
 
 uint32_t PCSX::OpenGL_GPU::readStatus() {
     return 0b01011110100000000000000000000000;

@@ -276,7 +276,11 @@ extern "C" void softGPUmakeSnapshot() {
     DoTextSnapShot(snapshotnr);
 }
 
-int32_t PCSX::SoftGPU::impl::init() {
+int32_t PCSX::SoftGPU::impl::init(GUI *gui) {
+    m_gui = gui;
+    bDoVSyncUpdate = true;
+    initDisplay();
+
     memset(ulStatusControl, 0, 256 * sizeof(uint32_t));  // init save state scontrol field
 
     szDebugText[0] = 0;  // init debug text buffer
@@ -325,28 +329,13 @@ int32_t PCSX::SoftGPU::impl::init() {
     lGPUstatusRet = 0x14802000;
     GPUIsIdle;
     GPUIsReadyForCommands;
-    bDoVSyncUpdate = true;
 
     return 0;
 }
-
-int32_t PCSX::SoftGPU::impl::open(GUI *gui) {
-    m_gui = gui;
-    bDoVSyncUpdate = true;
-    initDisplay();
-
-    return 0;
-}
-
-int32_t PCSX::SoftGPU::impl::close() { return 0; }
-
-////////////////////////////////////////////////////////////////////////
-// I shot the sheriff
-////////////////////////////////////////////////////////////////////////
 
 int32_t PCSX::SoftGPU::impl::shutdown() {
     delete[] psxVSecure;
-    return 0;  // nothing to do
+    return 0;
 }
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::GPU>(new PCSX::SoftGPU::impl()); }
@@ -354,8 +343,8 @@ std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::G
 void PCSX::SoftGPU::impl::updateDisplay() {
     if (PSXDisplay.Disabled) {
         glClearColor(1, 0, 0, 0);
-        glClear(GL_COLOR_BUFFER_BIT);  // -> clear frontbuffer
-        return;                        // -> and bye
+        glClear(GL_COLOR_BUFFER_BIT);
+        return;
     }
 
     doBufferSwap();

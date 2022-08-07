@@ -29,10 +29,8 @@
 namespace PCSX {
 class OpenGL_GPU final : public GPU {
     // Interface functions
-    virtual int init() final;
+    virtual int init(GUI *) final;
     virtual int shutdown() final;
-    virtual int open(GUI *) final;
-    virtual int close() final;
     virtual uint32_t readData() final;
     virtual void readDataMem(uint32_t *dest, int size) final;
     virtual uint32_t readStatus() final;
