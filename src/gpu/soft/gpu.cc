@@ -1,115 +1,21 @@
 /***************************************************************************
-                          gpu.c  -  description
-                             -------------------
-    begin                : Sun Oct 28 2001
-    copyright            : (C) 2001 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2008/05/17 - Pete
-// - added GPUvisualVibration and "visual rumble" stuff
-//
-// 2008/02/03 - Pete
-// - added GPUsetframelimit and GPUsetfix ("fake gpu busy states")
-//
-// 2007/11/03 - Pete
-// - new way to create save state picture (Vista)
-//
-// 2004/01/31 - Pete
-// - added zn bits
-//
-// 2003/01/04 - Pete
-// - the odd/even bit hack (CronoCross status screen) is now a special game fix
-//
-// 2003/01/04 - Pete
-// - fixed wrapped y display position offset - Legend of Legaia
-//
-// 2002/11/24 - Pete
-// - added new frameskip func support
-//
-// 2002/11/02 - Farfetch'd & Pete
-// - changed the y display pos handling
-//
-// 2002/10/03 - Farfetch'd & Pete
-// - added all kind of tiny stuff (gpureset, gpugetinfo, dmachain align, polylines...)
-//
-// 2002/10/03 - Pete
-// - fixed gpuwritedatamem & now doing every data processing with it
-//
-// 2002/08/31 - Pete
-// - delayed odd/even toggle for FF8 intro scanlines
-//
-// 2002/08/03 - Pete
-// - "Sprite 1" command count added
-//
-// 2002/08/03 - Pete
-// - handles "screen disable" correctly
-//
-// 2002/07/28 - Pete
-// - changed dmachain handler (monkey hero)
-//
-// 2002/06/15 - Pete
-// - removed dmachain fixes, added dma endless loop detection instead
-//
-// 2002/05/31 - Lewpy
-// - Win95/NT "disable screensaver" fix
-//
-// 2002/05/30 - Pete
-// - dmawrite/read wrap around
-//
-// 2002/05/15 - Pete
-// - Added dmachain "0" check game fix
-//
-// 2002/04/20 - linuzappz
-// - added iFastFwd stuff
-//
-// 2002/02/18 - linuzappz
-// - Added DGA2 support to PIC stuff
-//
-// 2002/02/10 - Pete
-// - Added dmacheck for The Mummy and T'ai Fu
-//
-// 2002/01/13 - linuzappz
-// - Added timing in the GPUdisplayText func
-//
-// 2002/01/06 - lu
-// - Added some #ifdef for the linux configurator
-//
-// 2002/01/05 - Pete
-// - fixed unwanted screen clearing on horizontal centering (causing
-//   flickering in linux version)
-//
-// 2001/12/10 - Pete
-// - fix for Grandia in ChangeDispOffsetsX
-//
-// 2001/12/05 - syo (syo68k@geocities.co.jp)
-// - added disable screen saver for "stop screen saver" option
-//
-// 2001/11/20 - linuzappz
-// - added Soft and About DlgProc calls in GPUconfigure and
-//   GPUabout, for linux
-//
-// 2001/11/09 - Darko Matesic
-// - added recording frame in updateLace and stop recording
-//   in GPUclose (if it is still recording)
-//
-// 2001/10/28 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include <algorithm>
 #include <cstdint>
