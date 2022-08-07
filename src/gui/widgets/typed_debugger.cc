@@ -25,7 +25,6 @@
 #include <regex>
 #include <sstream>
 
-#include "core/debug.h"
 #include "core/psxemulator.h"
 #include "core/system.h"
 #include "gui/gui.h"
@@ -174,14 +173,16 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                                                             uint8_t* memData, const uint32_t memBase) {
     auto readBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}{}"), node->name.c_str(), address);
     if (ImGui::Button(readBreakpointButtonName.c_str())) {
-        PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Read, node->size,
-                                                 _("Typed Debugger"));
+        auto* newBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Read,
+                                                                       node->size, _("Typed Debugger"));
+        m_watchBreakpoints.push_back(newBreakpoint);
     }
     ImGui::SameLine();
     auto writeBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}{}"), node->name.c_str(), address);
     if (ImGui::Button(writeBreakpointButtonName.c_str())) {
-        PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Write, node->size,
-                                                 _("Typed Debugger"));
+        auto* newBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Write,
+                                                                       node->size, _("Typed Debugger"));
+        m_watchBreakpoints.push_back(newBreakpoint);
     }
     ImGui::SameLine();
     auto logReadsWritesButtonName = fmt::format(f_("Log reads and writes##{}{}"), node->name.c_str(), address);
@@ -229,10 +230,12 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 return true;
             };
 
-        PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Read, node->size, _("Read"),
-                                                 logReadsWritesInvoker);
-        PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Write, node->size, _("Write"),
-                                                 logReadsWritesInvoker);
+        auto* newReadBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(
+            address, PCSX::Debug::BreakpointType::Read, node->size, _("Read"), logReadsWritesInvoker);
+        auto* newWriteBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(
+            address, PCSX::Debug::BreakpointType::Write, node->size, _("Write"), logReadsWritesInvoker);
+        m_watchBreakpoints.push_back(newReadBreakpoint);
+        m_watchBreakpoints.push_back(newWriteBreakpoint);
     }
 
     if (node->logEntries.size() > 0) {
@@ -685,11 +688,13 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
             static int number = 1;
             if (createArray) {
+                ImGui::SameLine();
                 ImGui::InputInt("Number", &number);
             } else {
                 number = 1;
             }
 
+            ImGui::SameLine();
             if (number > 0 && ImGui::Button("Add") && m_structs.contains(type)) {
                 WatchTreeNode root_node;
                 const auto inputType = createArray ? fmt::format(f_("{}[{}]"), type, number) : type;
@@ -702,8 +707,13 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 populate(&root_node, m_structs);
                 m_displayedWatchData.push_back({data_input_value, false, root_node});
             }
+            ImGui::SameLine();
             if (ImGui::Button(_("Clear"))) {
                 m_displayedWatchData.clear();
+                for (const auto* bp : m_watchBreakpoints) {
+                    g_emulator->m_debug->removeBreakpoint(bp);
+                }
+                m_watchBreakpoints.clear();
             }
 
             ImGui::Checkbox("Input in hexadecimal", &m_hex);

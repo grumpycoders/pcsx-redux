@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "core/debug.h"
 #include "imgui.h"
 
 struct GhidraData {
@@ -104,6 +105,7 @@ class TypedDebugger {
     void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address, uint8_t* memData,
                                   const uint32_t memBase);
     std::unordered_map<uint32_t, std::string> m_instructionAddressToFunctionMap;
+    std::vector<PCSX::Debug::Breakpoint*> m_watchBreakpoints;
 };
 
 }  // namespace Widgets
