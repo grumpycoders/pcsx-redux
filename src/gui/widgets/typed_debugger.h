@@ -22,10 +22,12 @@
 
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include "core/debug.h"
 #include "imgui.h"
+#include "support/eventbus.h"
 
 struct GhidraData {
     std::string type;
@@ -62,6 +64,13 @@ struct AddressNodeTuple {
     WatchTreeNode node;
 };
 
+struct RegisterValue {
+    uint32_t value;
+    std::string type;
+    std::string name;
+    size_t size = 0;
+};
+
 namespace PCSX {
 class GUI;
 namespace Widgets {
@@ -91,9 +100,15 @@ class TypedDebugger {
     bool m_hex = false;
     uint32_t m_newValue = 0;
 
+    // Returns the name of the function from which the instruction at the given address was emitted if found, an empty
+    // string otherwise.
+    std::string getFunctionNameFromInstructionAddress(uint32_t address);
+    std::unordered_map<uint32_t, std::string> m_instructionAddressToFunctionMap;
+
     struct FunctionBreakpointData {
         std::string functionName;
-        std::vector<AddressNodeTuple> argData;
+        using ArgumentData = std::variant<AddressNodeTuple, RegisterValue>;
+        std::vector<ArgumentData> argData;
     };
     std::vector<FunctionBreakpointData> m_displayedFunctionData;
 
@@ -102,10 +117,12 @@ class TypedDebugger {
     // - if not, then currentAddress *is* the pointee address.
     void displayNode(WatchTreeNode* node, const uint32_t currentAddress, const uint32_t memBase, uint8_t* memData,
                      uint32_t memSize, bool watchView, bool addressOfPointer);
+    void printValue(const char* type, void* address, bool editable);
     void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address, uint8_t* memData,
                                   const uint32_t memBase);
-    std::unordered_map<uint32_t, std::string> m_instructionAddressToFunctionMap;
     std::vector<PCSX::Debug::Breakpoint*> m_watchBreakpoints;
+
+    EventBus::Listener m_listener;
 };
 
 }  // namespace Widgets
