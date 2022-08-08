@@ -696,7 +696,7 @@ PCSX::Slice PCSX::OpenGL_GPU::getVRAM() {
     glFlush();
     const auto oldTex = OpenGL::getTex2D();
     glBindTexture(GL_TEXTURE_2D, getVRAMTexture());
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, pixels);
     glBindTexture(GL_TEXTURE_2D, oldTex);
 
     Slice slice;
