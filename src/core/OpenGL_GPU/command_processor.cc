@@ -372,6 +372,7 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x37] = &OpenGL_GPU::drawTriTextured<Shading::RawTextureGouraud, Transparency::Transparent>;
     
     m_cmdFuncs[0x38] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x39] = m_cmdFuncs[0x38];  // Duplicate
     m_cmdFuncs[0x3A] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Transparent>;
     m_cmdFuncs[0x3B] = m_cmdFuncs[0x3A]; // Duplicate
 
