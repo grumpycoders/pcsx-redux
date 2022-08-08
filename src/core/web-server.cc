@@ -46,17 +46,7 @@ class VramExecutor : public PCSX::WebExecutor {
         if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
             client->write(
                 "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 1048576\r\n\r\n");
-            static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
-            uint16_t* pixels = (uint16_t*)malloc(texSize);
-            int oldTexture;
-            glFlush();
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
-            glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
-            glBindTexture(GL_TEXTURE_2D, oldTexture);
-            PCSX::Slice slice;
-            slice.acquire(pixels, texSize);
-            client->write(std::move(slice));
+            client->write(PCSX::g_emulator->m_gpu->getVRAM());
 
             return true;
         } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
@@ -94,13 +84,8 @@ class VramExecutor : public PCSX::WebExecutor {
         return false;
     }
 
-    PCSX::EventBus::Listener m_listener;
-    unsigned int m_VRAMTexture;
-
   public:
-    VramExecutor() : m_listener(PCSX::g_system->m_eventBus) {
-        m_listener.listen<PCSX::Events::CreatedVRAMTexture>([this](const auto& event) { m_VRAMTexture = event.id; });
-    }
+    VramExecutor() {}
     virtual ~VramExecutor() = default;
 };
 
@@ -268,7 +253,7 @@ class FlowExecutor : public PCSX::WebExecutor {
             }
             std::string function = ifunction->second;
             if (function.compare("start") == 0) {
-                PCSX::g_system->start();
+                PCSX::g_system->resume();
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
                 return true;
             }

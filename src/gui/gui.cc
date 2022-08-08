@@ -898,7 +898,7 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Emulation"))) {
                 if (ImGui::MenuItem(_("Start"), "F5", nullptr, !g_system->running())) {
-                    g_system->start();
+                    g_system->resume();
                 }
                 if (ImGui::MenuItem(_("Pause"), "F6", nullptr, g_system->running())) {
                     g_system->pause();
@@ -1520,7 +1520,8 @@ this setting may not have any effect for you.)"));
         ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
-        changed |= ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
+        changed |=
+            ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
         ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
 This is not recommended for normal use at the moment,
 as it is not fully implemented yet. It is recommended
@@ -1740,20 +1741,8 @@ of the emulator to take effect.)");
 void PCSX::GUI::interruptsScaler() {
     if (!m_showInterruptsScaler) return;
     static const char* names[] = {
-        "SIO",
-        "SIO1",
-        "CDR",
-        "CDR Read",
-        "GPU DMA",
-        "MDEC Out DMA",
-        "SPU DMA",
-        "GPU Busy",
-        "MDEC In DMA",
-        "GPU OTC DMA",
-        "CDR DMA",
-        "SPU",
-        "CDR Decoded Buffer",
-        "CDR Lid Seek",
+        "SIO",      "SIO1",        "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",
+        "GPU Busy", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek",
         "CDR Play",
     };
     if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {

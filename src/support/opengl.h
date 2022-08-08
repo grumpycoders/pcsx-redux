@@ -20,6 +20,7 @@
 #pragma once
 #include <array>
 #include <cstdio>
+#include <functional>
 #include <initializer_list>
 #include <optional>
 #include <stdexcept>
@@ -36,7 +37,7 @@ namespace OpenGL {
 class [[nodiscard]] Status : private std::optional<std::string> {
   public:
     Status(const Status&) = default;
-    Status(Status&&) = default;
+    Status(Status &&) = default;
     bool isOk() { return !has_value(); }
     const std::string& getError() {
         if (has_value()) {

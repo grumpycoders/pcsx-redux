@@ -102,8 +102,8 @@
 #include "GL/gl3w.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
-#include "gpu/soft/prim.h"
 #include "gpu/soft/interface.h"
+#include "gpu/soft/prim.h"
 #include "gui/gui.h"
 
 int iFastFwd = 0;
@@ -233,6 +233,4 @@ void PCSX::SoftGPU::impl::initDisplay() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    m_gui->signalVRAMTextureCreated(m_vramTexture16);
 }

@@ -1,5 +1,6 @@
-#include "gpu_opengl.h"
 #include <cmath>
+
+#include "gpu_opengl.h"
 
 // The number of 32-bit parameters for each GP0 command (discounting the command word)
 static constexpr int c_paramCount[256] = {
@@ -308,13 +309,13 @@ void PCSX::OpenGL_GPU::drawLineInternal(const LinePoint& p1, const LinePoint& p2
         m_vertices[m_vertexCount++] = Vertex(x1, y1, p1.colour);
     } else {
         int xOffset, yOffset;
-        if (absDx > absDy) { // x-major line
+        if (absDx > absDy) {  // x-major line
             xOffset = 0;
             yOffset = 1;
 
             // Align line depending on whether dx is positive or not
             dx > 0 ? x2++ : x1++;
-        } else { // y-major line
+        } else {  // y-major line
             xOffset = 1;
             yOffset = 0;
 
@@ -356,13 +357,13 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x27] = &OpenGL_GPU::drawTriTextured<Shading::RawTexture, Transparency::Transparent>;
 
     m_cmdFuncs[0x28] = &OpenGL_GPU::drawQuad<Shading::Flat, Transparency::Opaque>;
-    m_cmdFuncs[0x29] = m_cmdFuncs[0x28]; // Duplicate
+    m_cmdFuncs[0x29] = m_cmdFuncs[0x28];  // Duplicate
     m_cmdFuncs[0x2A] = &OpenGL_GPU::drawQuad<Shading::Flat, Transparency::Transparent>;
     m_cmdFuncs[0x2C] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendFlat, Transparency::Opaque>;
     m_cmdFuncs[0x2D] = &OpenGL_GPU::drawQuadTextured<Shading::RawTexture, Transparency::Opaque>;
     m_cmdFuncs[0x2E] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendFlat, Transparency::Transparent>;
     m_cmdFuncs[0x2F] = &OpenGL_GPU::drawQuadTextured<Shading::RawTexture, Transparency::Transparent>;
-    
+
     m_cmdFuncs[0x30] = &OpenGL_GPU::drawTri<Shading::Gouraud, Transparency::Opaque>;
     m_cmdFuncs[0x32] = &OpenGL_GPU::drawTri<Shading::Gouraud, Transparency::Transparent>;
     m_cmdFuncs[0x34] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendGouraud, Transparency::Opaque>;
@@ -388,8 +389,7 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x62] = &OpenGL_GPU::drawRect<RectSize::Variable, Transparency::Transparent>;
     m_cmdFuncs[0x64] =
         &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::TextureBlendFlat, Transparency::Opaque>;
-    m_cmdFuncs[0x65] =
-        &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Opaque>;
+    m_cmdFuncs[0x65] = &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Opaque>;
     m_cmdFuncs[0x66] =
         &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::TextureBlendFlat, Transparency::Transparent>;
     m_cmdFuncs[0x67] =
@@ -416,9 +416,7 @@ void PCSX::OpenGL_GPU::cmdClearTexCache() {
     m_syncVRAM = true;
 }
 
-void PCSX::OpenGL_GPU::cmdSetDrawMode() {
-    m_rectTexpage = m_cmdFIFO[0] & 0x3fff;
-}
+void PCSX::OpenGL_GPU::cmdSetDrawMode() { m_rectTexpage = m_cmdFIFO[0] & 0x3fff; }
 
 // Set texture window, regardless of whether the window config changed
 void PCSX::OpenGL_GPU::setTexWindowUnchecked(uint32_t cmd) {
@@ -442,12 +440,10 @@ void PCSX::OpenGL_GPU::setTexWindow(uint32_t cmd) {
     }
 }
 
-void PCSX::OpenGL_GPU::cmdSetTexWindow() {
-    setTexWindow(m_cmdFIFO[0]);
-}
+void PCSX::OpenGL_GPU::cmdSetTexWindow() { setTexWindow(m_cmdFIFO[0]); }
 
 void PCSX::OpenGL_GPU::cmdSetDrawMask() {
-    //PCSX::g_system->printf("Unimplemented set draw mask command: %08X\n", m_cmdFIFO[0]);
+    // PCSX::g_system->printf("Unimplemented set draw mask command: %08X\n", m_cmdFIFO[0]);
 }
 
 void PCSX::OpenGL_GPU::cmdSetDrawAreaTopLeft() {
@@ -466,17 +462,17 @@ void PCSX::OpenGL_GPU::cmdSetDrawAreaBottomRight() {
     updateDrawArea();
 }
 
-void PCSX::OpenGL_GPU::setDrawOffset(uint32_t cmd) { 
+void PCSX::OpenGL_GPU::setDrawOffset(uint32_t cmd) {
     m_updateDrawOffset = false;
-    m_lastDrawOffsetSetting = cmd & 0x3fffff; // Discard the bits we don't care about
-    
+    m_lastDrawOffsetSetting = cmd & 0x3fffff;  // Discard the bits we don't care about
+
     // Offset is a signed number in [-1024, 1023]
     const auto offsetX = (int32_t)cmd << 21 >> 21;
     const auto offsetY = (int32_t)cmd << 10 >> 21;
 
     m_drawingOffset.x() = offsetX;
     m_drawingOffset.y() = offsetY;
-    
+
     // The 0.5 offsets help fix some holes in rendering, in places like the PS logo
     // TODO: This might not work when upscaling?
     float adjustedOffsets[2] = {static_cast<float>(offsetX) + 0.5f, static_cast<float>(offsetY) - 0.5f};
@@ -485,7 +481,7 @@ void PCSX::OpenGL_GPU::setDrawOffset(uint32_t cmd) {
 
 void PCSX::OpenGL_GPU::cmdSetDrawOffset() {
     renderBatch();
-    const uint32_t word = m_cmdFIFO[0] & 0x3fffff; // Discard the bits we don't care about
+    const uint32_t word = m_cmdFIFO[0] & 0x3fffff;  // Discard the bits we don't care about
 
     // Queue a draw offset update if it changed
     if (word != m_lastDrawOffsetSetting) {

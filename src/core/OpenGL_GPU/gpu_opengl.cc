@@ -119,12 +119,10 @@ int PCSX::OpenGL_GPU::init() {
         m_vramTextureNoMSAA.create(vramWidth, vramHeight, GL_RGBA8);
         m_fboNoMSAA.createWithTexture(m_vramTextureNoMSAA);
         m_multisampled = true;
-        m_gui->signalVRAMTextureCreated(m_vramTextureNoMSAA.handle());
     } else {
         m_vramTexture.create(vramWidth, vramHeight, GL_RGBA8);
         m_fbo.createWithTexture(m_vramTexture);
         m_multisampled = false;
-        m_gui->signalVRAMTextureCreated(m_vramTexture.handle());
     }
 
     m_sampleTexture.create(vramWidth, vramHeight, GL_RGBA8);
@@ -137,9 +135,9 @@ int PCSX::OpenGL_GPU::init() {
     // Since GL can automatically repeat textures for us, we can create a tiny texture for this
     OpenGL::Framebuffer dummyFBO;
     m_blankTexture.create(8, 8, GL_RGBA8);
-    dummyFBO.createWithDrawTexture(m_blankTexture); // Create FBO and bind our texture to it
+    dummyFBO.createWithDrawTexture(m_blankTexture);  // Create FBO and bind our texture to it
     dummyFBO.bind(OpenGL::DrawFramebuffer);
-    
+
     // Clear the texture and remove FBO
     OpenGL::setViewport(8, 8);
     OpenGL::setClearColor(0.0, 0.0, 0.0, 1.0);
@@ -155,7 +153,7 @@ int PCSX::OpenGL_GPU::init() {
         #version 330 core
 
         // inPos: The vertex position.
-        // inColor: The colour in BGR888. Top 8 bits are garbage and are trimmed by the vertex shader to conserve CPU time 
+        // inColor: The colour in BGR888. Top 8 bits are garbage and are trimmed by the vertex shader to conserve CPU time
         // inClut: The CLUT (palette) for textured primitives
         // inTexpage: The texpage. We use bit 15 for indicating an untextured primitive (1 = untextured). This
         // lets us batch untextured and textured primitives together. Bit 15 is unused by hardware, so this is a possible optimization
@@ -173,7 +171,7 @@ int PCSX::OpenGL_GPU::init() {
         flat out ivec2 texpageBase;
         flat out int texMode;
 
-        // We always apply a 0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies 
+        // We always apply a 0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies
         uniform vec2 u_vertexOffsets = vec2(+0.5, -0.5);
 
         void main() {
@@ -191,7 +189,7 @@ int PCSX::OpenGL_GPU::init() {
            float green = float((inColor >> 8u) & 0xffu);
            float blue = float((inColor >> 16u) & 0xffu);
            vec3 color = vec3(red, green, blue);
-           
+
            gl_Position = vec4(xx, yy, 1.0, 1.0);
            vertexColor = vec4(color / 255.0, 1.0);
 
@@ -219,7 +217,7 @@ int PCSX::OpenGL_GPU::init() {
         // BlendColor: Contains blending coefficients
         layout(location = 0, index = 0) out vec4 FragColor;
         layout(location = 0, index = 1) out vec4 BlendColor;
-    
+
         // Tex window uniform format
         // x, y components: masks to & coords with
         // z, w components: masks to | coords with
@@ -247,7 +245,7 @@ int PCSX::OpenGL_GPU::init() {
         }
 
         // Apply texture blending
-	    // Formula for RGB8 colours: col1 * col2 / 128
+            // Formula for RGB8 colours: col1 * col2 / 128
         vec4 texBlend(vec4 colour1, vec4 colour2) {
             vec4 ret = (colour1 * colour2) / (128.0 / 255.0);
             ret.a = 1.0;
@@ -267,7 +265,7 @@ int PCSX::OpenGL_GPU::init() {
 
            if (texMode == 0) { // 4bpp texture
                ivec2 texelCoord = ivec2(UV.x >> 2, UV.y) + texpageBase;
-               
+
                int sample = sample16(texelCoord);
                int shift = (UV.x & 3) << 2;
                int clutIndex = (sample >> shift) & 0xf;
@@ -280,7 +278,7 @@ int PCSX::OpenGL_GPU::init() {
                FragColor = texBlend(FragColor, vertexColor);
            } else if (texMode == 1) { // 8bpp texture
                ivec2 texelCoord = ivec2(UV.x >> 1, UV.y) + texpageBase;
-               
+
                int sample = sample16(texelCoord);
                int shift = (UV.x & 1) << 3;
                int clutIndex = (sample >> shift) & 0xff;
@@ -369,7 +367,7 @@ void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) {
             *destination++ = m_vramReadBuffer[m_vramReadBufferIndex++];
             m_vramReadBufferSize--;
         } else {
-            //g_system->printf("Unimplemented GPUREAD read :(\n");
+            // g_system->printf("Unimplemented GPUREAD read :(\n");
             return;
         }
     }
@@ -465,7 +463,7 @@ void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
             break;
 
         default:
-            //PCSX::g_system->printf("Unknown GP1 command: %02X\n", cmd);
+            // PCSX::g_system->printf("Unknown GP1 command: %02X\n", cmd);
             break;
     }
 }
@@ -634,14 +632,15 @@ void PCSX::OpenGL_GPU::vblank() {
     if (m_polygonMode != OpenGL::FillPoly) {
         OpenGL::setFillMode(OpenGL::FillPoly);
     }
-    
-    // Disable scissor before passing the GPU to the frontend. This is also necessary as scissor testing affects glBlitFramebuffer
+
+    // Disable scissor before passing the GPU to the frontend. This is also necessary as scissor testing affects
+    // glBlitFramebuffer
     OpenGL::disableScissor();
     if (m_lastTransparency == Transparency::Transparent) {
         m_lastTransparency = Transparency::Opaque;
         OpenGL::disableBlend();
     }
-    
+
     // We can't draw the MSAA texture directly. So if we're using MSAA, we copy the texture to a non-MSAA texture.
     if (m_multisampled) {
         m_fbo.bind(OpenGL::ReadFramebuffer);
@@ -701,26 +700,4 @@ void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
     } else {
         m_displayTexture = m_multisampled ? m_vramTextureNoMSAA.handle() : m_vramTexture.handle();
     }
-}
-
-void PCSX::OpenGL_GPU::save(SaveStates::GPU& gpu) {
-    g_system->printf("Unimplemented OpenGL GPU function: save\n");
-}
-
-void PCSX::OpenGL_GPU::load(const SaveStates::GPU& gpu) { g_system->printf("TODO: load\n"); }
-
-PCSX::GPU::ScreenShot PCSX::OpenGL_GPU::takeScreenShot() {
-    ScreenShot ss;
-    ss.width = 0;
-    ss.height = 0;
-    ss.data.acquire(nullptr, 0);
-    return ss;
-}
-
-void PCSX::OpenGL_GPU::startDump() {
-    g_system->printf("Unimplemented OpenGL GPU function: startDump\n");
-}
-
-void PCSX::OpenGL_GPU::stopDump() {
-    g_system->printf("Unimplemented OpenGL GPU function: stopDump\n"); 
 }

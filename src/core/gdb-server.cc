@@ -718,7 +718,7 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
             } else if (words[1] == "shellhalt") {
                 writeEscaped("Emulation running until shell\n");
                 m_waitingForShell = true;
-                g_system->start();
+                g_system->resume();
                 // let's not reply to gdb just yet, until we've reached the shell
                 // and are ready to load a binary.
                 return;

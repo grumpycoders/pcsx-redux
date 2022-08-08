@@ -1181,7 +1181,8 @@ bool PCSX::SoftGPU::impl::configure() {
             g_emulator->settings.get<Emulator::SettingDither>() = m_softPrim.m_useDither;
         }
 
-        if (ImGui::Checkbox(_("Use linear filtering"), &g_emulator->settings.get<Emulator::SettingLinearFiltering>().value)) {
+        if (ImGui::Checkbox(_("Use linear filtering"),
+                            &g_emulator->settings.get<Emulator::SettingLinearFiltering>().value)) {
             changed = true;
             setLinearFiltering();
         }

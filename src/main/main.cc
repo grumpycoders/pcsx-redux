@@ -280,7 +280,7 @@ int pcsxMain(int argc, char **argv) {
     emulator->m_gpu->setLinearFiltering();
     emulator->reset();
 
-    if (args.get<bool>("run", false)) system->start();
+    if (args.get<bool>("run", false)) system->resume();
     s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
     if (s_gui->m_exeToLoad.empty()) s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("exe", "").c_str()));
 
