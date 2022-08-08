@@ -83,7 +83,8 @@ void PCSX::OpenGL_GPU::clearVRAM(float r, float g, float b, float a) {
 void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 
 // Do not forget to call this with an active OpenGL context.
-int PCSX::OpenGL_GPU::init() {
+int PCSX::OpenGL_GPU::init(GUI* gui) {
+    m_gui = gui;
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.resize(vertexBufferSize);
     m_vramReadBuffer.resize(vramWidth * vramHeight);
@@ -334,20 +335,7 @@ void PCSX::OpenGL_GPU::setLinearFiltering() {
     m_display.setLinearFiltering();
 }
 
-int PCSX::OpenGL_GPU::shutdown() {
-    g_system->printf("Unimplemented OpenGL GPU function: shutdown\n");
-    return 0;
-}
-
-int PCSX::OpenGL_GPU::open(GUI* gui) {
-    m_gui = gui;
-    return 0;
-}
-
-int PCSX::OpenGL_GPU::close() {
-    g_system->printf("Unimplemented OpenGL GPU function: close\n");
-    return 0;
-}
+int PCSX::OpenGL_GPU::shutdown() { return 0; }
 
 uint32_t PCSX::OpenGL_GPU::readStatus() {
     return 0b01011110100000000000000000000000;
@@ -422,7 +410,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
 }
 
 // GP1 command writes
-void PCSX::OpenGL_GPU::writeStatus(uint32_t value) {
+void PCSX::OpenGL_GPU::writeStatusInternal(uint32_t value) {
     const uint32_t cmd = value >> 24;
     switch (cmd) {
         // Reset GPU. TODO: This should perform some more operations
@@ -700,4 +688,26 @@ void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
     } else {
         m_displayTexture = m_multisampled ? m_vramTextureNoMSAA.handle() : m_vramTexture.handle();
     }
+}
+
+PCSX::Slice PCSX::OpenGL_GPU::getVRAM() {
+    static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
+    uint16_t* pixels = (uint16_t*)malloc(texSize);
+    glFlush();
+    const auto oldTex = OpenGL::getTex2D();
+    glBindTexture(GL_TEXTURE_2D, getVRAMTexture());
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
+    glBindTexture(GL_TEXTURE_2D, oldTex);
+
+    Slice slice;
+    slice.acquire(pixels, texSize);
+    return slice;
+}
+
+void PCSX::OpenGL_GPU::partialUpdateVRAM(int x, int y, int w, int h, const uint16_t* pixels) {
+    const auto oldTex = OpenGL::getTex2D();
+    glBindTexture(GL_TEXTURE_2D, getVRAMTexture());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, pixels);
+    glBindTexture(GL_TEXTURE_2D, oldTex);
+    m_syncVRAM = true;
 }

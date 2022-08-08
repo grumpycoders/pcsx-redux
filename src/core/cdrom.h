@@ -29,6 +29,7 @@
 #include "core/psxhw.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
 #include "core/system.h"
 
 namespace PCSX {

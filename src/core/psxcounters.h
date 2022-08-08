@@ -22,9 +22,10 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sstate.h"
 
 namespace PCSX {
+
+struct SaveStateWrapper;
 
 class Counters {
   private:
@@ -98,8 +99,8 @@ class Counters {
     uint32_t readMode(uint32_t index);
     uint32_t readTarget(uint32_t index);
 
-    void save(PCSX::SaveStates::Counters &counters);
-    void load(const PCSX::SaveStates::Counters &counters);
+    void serialize(SaveStateWrapper *);
+    void deserialize(const SaveStateWrapper *);
 };
 
 }  // namespace PCSX

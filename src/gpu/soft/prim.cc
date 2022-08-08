@@ -1,85 +1,21 @@
 /***************************************************************************
-                          prim.c  -  description
-                             -------------------
-    begin                : Sun Oct 28 2001
-    copyright            : (C) 2001 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2004/01/31 - Pete
-// - added zn bits and two zn cheats (TileS & move image - 2004/03/13)
-//
-// 2003/07/22 - Pete
-// - added sprite x coord wrap (skullmonkey) - new: sprite y coord wrap as well
-//
-// 2002/12/14 - Pete
-// - added dithering flag
-//
-// 2002/10/03 - Farfetch'd & Pete
-// - changed: polylines, 11 bit coords, polygon discarding, BlkFill align, mask bits
-//
-// 2002/09/19 - Farfetch'd
-// - STP: read control register is now masked correctly with 0x3
-//
-// 2002/08/16 - Pete
-// - additional mask bit handling for sprites (Alone in the Dark 4 & FF6)
-//
-// 2002/08/10 - Lewpy & E}I{
-// - correct TW coord adjustment (RRT4)
-//
-// 2002/07/22 - Pete
-// - problem with the "2002/05/19 fixed mdec mask bit problem in FF9" fixed (hopefully)
-//
-// 2002/06/04 - Lewpy
-// - new line drawing funcs
-//
-// 2002/05/19 - Pete
-// - mdec mask bit problem in FF9 fixed
-//
-// 2002/05/14 - Pete
-// - new coord check
-//
-// 2002/03/29 - Pete
-// - tex window coord adjustment - thanx to E}I{
-// - faster generic coord check - thanx to E}I{
-// - StoreImage wrap (Devilsummoner Soul Hackers)
-//
-// 2002/03/27 - Pete
-// - improved sprite texture wrapping func on _very_ big sprites
-//
-// 2002/02/23 - Pete
-// - added Lunar "ignore blending color" fix
-//
-// 2002/02/12 - Pete
-// - removed "no sprite transparency" and "black poly" fixes
-//
-// 2002/02/10 - Pete
-// - additional Load/MoveImage checks for a few FF9/BOF4 effects
-//
-// 2001/12/10 - Pete
-// - additional coord checks for Nascar and SF2 (and more...?)
-//
-// 2001/11/08 - Linuzappz
-// - BGR24to16 converted to nasm, C version still works: define __i386_
-//   to use the asm version
-//
-// 2001/10/28 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include "gpu/soft/prim.h"
 

@@ -274,8 +274,7 @@ int pcsxMain(int argc, char **argv) {
     emulator->m_spu->open();
 
     emulator->init();
-    emulator->m_gpu->open(s_gui);
-    emulator->m_gpu->init();
+    emulator->m_gpu->init(s_gui);
     emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
     emulator->m_gpu->setLinearFiltering();
     emulator->reset();
@@ -290,7 +289,6 @@ int pcsxMain(int argc, char **argv) {
     {
         Cleaner cleaner([&emulator, &system, &exitCode]() {
             emulator->m_spu->close();
-            emulator->m_gpu->close();
             emulator->m_cdrom->clearIso();
 
             emulator->m_cpu->psxShutdown();

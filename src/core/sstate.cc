@@ -174,11 +174,11 @@ std::string PCSX::SaveStates::save() {
     state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v3";
     state.get<SaveStateInfoField>().get<Version>().value = 3;
 
-    g_emulator->m_gpu->save(state.get<GPUField>());
+    g_emulator->m_gpu->serialize(&wrapper);
     g_emulator->m_spu->save(state.get<SPUField>());
 
-    g_emulator->m_counters->save(state.get<CountersField>());
-    g_emulator->m_mdec->save(state.get<MDECField>());
+    g_emulator->m_counters->serialize(&wrapper);
+    g_emulator->m_mdec->serialize(&wrapper);
 
     g_emulator->m_cpu->listAllPCdevFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
         state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
@@ -209,6 +209,64 @@ void PCSX::CallStacks::serialize(SaveStateWrapper* w) {
     w->state.get<SaveStates::CallStacksField>().get<CallStacksCurrentSP>().value = m_currentSP;
 }
 
+static void setU32(uint8_t* ptr, uint32_t value) {
+    ptr[0] = value & 0xff;
+    ptr[1] = (value >> 8) & 0xff;
+    ptr[2] = (value >> 16) & 0xff;
+    ptr[3] = (value >> 24) & 0xff;
+}
+
+void PCSX::GPU::serialize(SaveStateWrapper* w) {
+    using namespace SaveStates;
+    auto& gpu = w->state.get<GPUField>();
+    gpu.get<GPUStatus>() = readStatus();
+    gpu.get<GPUVRam>().copyFrom(getVRAM().data<uint8_t>());
+    gpu.get<GPUControl>().allocate();
+    const auto control = gpu.get<GPUControl>().value;
+
+    for (unsigned i = 0; i < 256; i++) {
+        setU32(control + i * 4, m_statusControl[i]);
+    }
+}
+
+void PCSX::MDEC::serialize(SaveStateWrapper* w) {
+    using namespace SaveStates;
+    uint8_t* base = (uint8_t*)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
+    auto& mdecSave = w->state.get<MDECField>();
+
+    mdecSave.get<MDECReg0>().value = mdec.reg0;
+    mdecSave.get<MDECReg1>().value = mdec.reg1;
+    mdecSave.get<MDECRl>().value = reinterpret_cast<uint8_t*>(mdec.rl) - base;
+    mdecSave.get<MDECRlEnd>().value = reinterpret_cast<uint8_t*>(mdec.rl_end) - base;
+    mdecSave.get<MDECBlockBufferPos>().value = mdec.block_buffer_pos ? mdec.block_buffer_pos - base : 0;
+    mdecSave.get<MDECBlockBuffer>().copyFrom(mdec.block_buffer);
+    mdecSave.get<MDECDMAADR>().value = mdec.pending_dma1.adr;
+    mdecSave.get<MDECDMABCR>().value = mdec.pending_dma1.bcr;
+    mdecSave.get<MDECDMACHCR>().value = mdec.pending_dma1.chcr;
+    for (unsigned i = 0; i < 64; i++) {
+        mdecSave.get<MDECIQY>().value[i].value = iq_y[i];
+        mdecSave.get<MDECIQUV>().value[i].value = iq_uv[i];
+    }
+}
+
+void PCSX::Counters::serialize(SaveStateWrapper* w) {
+    using namespace SaveStates;
+    auto& counters = w->state.get<CountersField>();
+    for (unsigned i = 0; i < CounterQuantity; i++) {
+        counters.get<Rcnts>().value[i].get<RcntMode>().value = m_rcnts[i].mode;
+        counters.get<Rcnts>().value[i].get<RcntTarget>().value = m_rcnts[i].target;
+        counters.get<Rcnts>().value[i].get<RcntRate>().value = m_rcnts[i].rate;
+        counters.get<Rcnts>().value[i].get<RcntIRQ>().value = m_rcnts[i].irq;
+        counters.get<Rcnts>().value[i].get<RcntCounterState>().value = m_rcnts[i].counterState;
+        counters.get<Rcnts>().value[i].get<RcntIRQState>().value = m_rcnts[i].irqState;
+        counters.get<Rcnts>().value[i].get<RcntCycle>().value = m_rcnts[i].cycle;
+        counters.get<Rcnts>().value[i].get<RcntCycleStart>().value = m_rcnts[i].cycleStart;
+    }
+    counters.get<HSyncCount>().value = m_hSyncCount;
+    counters.get<SPUSyncCountdown>().value = m_spuSyncCountdown;
+    counters.get<PSXNextCounter>().value = m_psxNextCounter;
+}
+
 bool PCSX::SaveStates::load(std::string_view data) {
     SaveState state = constructSaveState();
 
@@ -231,12 +289,12 @@ bool PCSX::SaveStates::load(std::string_view data) {
     // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits
     // So we just force-align it here, since it's never meant to be misaligned
     g_emulator->m_cpu->m_regs.pc &= ~3;
-    g_emulator->m_gpu->load(state.get<GPUField>());
+    g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
     g_emulator->m_cdrom->load();
 
-    g_emulator->m_counters->load(state.get<CountersField>());
-    g_emulator->m_mdec->load(state.get<MDECField>());
+    g_emulator->m_counters->deserialize(&wrapper);
+    g_emulator->m_mdec->deserialize(&wrapper);
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
@@ -275,7 +333,7 @@ void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
     using namespace SaveStates;
     m_callstacks.destroyAll();
 
-    auto& callstacks = w->state.get<SaveStates::CallStacksField>().get<CallStacksMessageField>().value;
+    auto& callstacks = w->state.get<CallStacksField>().get<CallStacksMessageField>().value;
     m_current = nullptr;
 
     for (auto& sscallstack : callstacks) {
@@ -300,4 +358,84 @@ void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
     }
 
     m_currentSP = w->state.get<SaveStates::CallStacksField>().get<CallStacksCurrentSP>().value;
+}
+
+static uint32_t getU32(const uint8_t* ptr) { return ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24); }
+
+void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
+    using namespace SaveStates;
+    reset();
+    auto& gpu = w->state.get<GPUField>();
+    restoreStatus(gpu.get<GPUStatus>().value);
+    if (gpu.get<GPUVRam>().value) {
+        partialUpdateVRAM(0, 0, 1024, 512, reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
+    } else {
+        clearVRAM();
+    }
+    const auto control = gpu.get<GPUControl>().value;
+
+    for (unsigned i = 0; i < 256; i++) {
+        m_statusControl[i] = getU32(control + i * 4);
+    }
+
+    writeStatus(m_statusControl[0]);
+    writeStatus(m_statusControl[1]);
+    writeStatus(m_statusControl[2]);
+    writeStatus(m_statusControl[3]);
+    writeStatus(m_statusControl[8]);  // try to repair things
+    writeStatus(m_statusControl[6]);
+    writeStatus(m_statusControl[7]);
+    writeStatus(m_statusControl[5]);
+    writeStatus(m_statusControl[4]);
+}
+
+void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
+    using namespace SaveStates;
+    uint8_t* base = (uint8_t*)&g_emulator->m_mem->m_psxM[0x100000];
+    auto& mdecSave = w->state.get<MDECField>();
+
+    mdec.reg0 = mdecSave.get<MDECReg0>().value;
+    mdec.reg1 = mdecSave.get<MDECReg1>().value;
+    mdec.rl = reinterpret_cast<uint16_t*>(mdecSave.get<MDECRl>().value + base);
+    mdec.rl_end = reinterpret_cast<uint16_t*>(mdecSave.get<MDECRlEnd>().value + base);
+    const auto& pos = mdecSave.get<MDECBlockBufferPos>().value;
+    mdec.block_buffer_pos = pos ? pos + base : nullptr;
+    mdecSave.get<MDECBlockBuffer>().copyTo(mdec.block_buffer);
+    mdec.pending_dma1.adr = mdecSave.get<MDECDMAADR>().value;
+    mdec.pending_dma1.bcr = mdecSave.get<MDECDMABCR>().value;
+    mdec.pending_dma1.chcr = mdecSave.get<MDECDMACHCR>().value;
+    for (unsigned i = 0; i < 64; i++) {
+        iq_y[i] = mdecSave.get<MDECIQY>().value[i].value;
+        iq_uv[i] = mdecSave.get<MDECIQUV>().value[i].value;
+    }
+}
+
+void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
+    using namespace SaveStates;
+    auto& counters = w->state.get<CountersField>();
+    for (unsigned i = 0; i < CounterQuantity; i++) {
+        m_rcnts[i].mode = counters.get<Rcnts>().value[i].get<RcntMode>().value;
+        m_rcnts[i].target = counters.get<Rcnts>().value[i].get<RcntTarget>().value;
+        m_rcnts[i].rate = counters.get<Rcnts>().value[i].get<RcntRate>().value;
+        m_rcnts[i].irq = counters.get<Rcnts>().value[i].get<RcntIRQ>().value;
+        m_rcnts[i].counterState = counters.get<Rcnts>().value[i].get<RcntCounterState>().value;
+        m_rcnts[i].irqState = counters.get<Rcnts>().value[i].get<RcntIRQState>().value;
+        m_rcnts[i].cycle = counters.get<Rcnts>().value[i].get<RcntCycle>().value;
+        m_rcnts[i].cycleStart = counters.get<Rcnts>().value[i].get<RcntCycleStart>().value;
+    }
+    m_hSyncCount = counters.get<HSyncCount>().value;
+    m_spuSyncCountdown = counters.get<SPUSyncCountdown>().value;
+    m_psxNextCounter = counters.get<PSXNextCounter>().value;
+
+    calculateHsync();
+    // iCB: recalculate target count in case overclock is changed
+    m_rcnts[3].target =
+        (g_emulator->m_psxClockSpeed / (FrameRate[g_emulator->settings.get<Emulator::SettingVideo>()] *
+                                        m_HSyncTotal[g_emulator->settings.get<Emulator::SettingVideo>()]));
+    if (m_rcnts[1].rate != 1)
+        m_rcnts[1].rate =
+            (g_emulator->m_psxClockSpeed / (FrameRate[g_emulator->settings.get<Emulator::SettingVideo>()] *
+                                            m_HSyncTotal[g_emulator->settings.get<Emulator::SettingVideo>()]));
+
+    m_audioFrames = g_emulator->m_spu->getCurrentFrames();
 }
