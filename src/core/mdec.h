@@ -23,9 +23,10 @@
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
-#include "core/sstate.h"
 
 namespace PCSX {
+
+struct SaveStateWrapper;
 
 class MDEC {
   public:
@@ -42,8 +43,8 @@ class MDEC {
     static const unsigned DSIZE = 8;
     static const unsigned DSIZE2 = DSIZE * DSIZE;
 
-    void save(SaveStates::MDEC &mdecSave);
-    void load(const SaveStates::MDEC &mdecSave);
+    void serialize(SaveStateWrapper *);
+    void deserialize(const SaveStateWrapper *);
 
   private:
     /* memory speed is 1 byte per MDEC_BIAS psx clock
