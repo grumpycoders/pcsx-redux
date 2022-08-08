@@ -55,7 +55,6 @@ int32_t lGPUstatusRet;
 char szDispBuf[64];
 char szMenuBuf[36];
 char szDebugText[512];
-uint32_t ulStatusControl[256];
 
 static uint32_t gpuDataM[256];
 static uint8_t gpuCommand = 0;
@@ -82,112 +81,10 @@ int iFakePrimBusy = 0;
 int iRumbleVal = 0;
 int iRumbleTime = 0;
 
-// Snapshot func
-char *pGetConfigInfos(int iCfg) {
-    char *pB = (char *)malloc(32767);
-
-    return pB;
-}
-
-void DoTextSnapShot(int iNum) {
-    FILE *txtfile;
-    char szTxt[256];
-    char *pB;
-
-#ifdef _WIN32
-    sprintf(szTxt, "SNAP\\PEOPSSOFT%03d.txt", iNum);
-#else
-    sprintf(szTxt, "%s/peopssoft%03d.txt", getenv("HOME"), iNum);
-#endif
-
-    if ((txtfile = fopen(szTxt, "wb")) == nullptr) return;
-    //----------------------------------------------------//
-    pB = pGetConfigInfos(0);
-    if (pB) {
-        fwrite(pB, strlen(pB), 1, txtfile);
-        free(pB);
-    }
-    fclose(txtfile);
-}
-
-// snapshot of whole vram
-extern "C" void softGPUmakeSnapshot() {
-    FILE *bmpfile;
-    char filename[256];
-    unsigned char header[0x36];
-    int32_t size, height;
-    unsigned char line[1024 * 3];
-    int16_t i, j;
-    unsigned char empty[2] = {0, 0};
-    uint16_t color;
-    uint32_t snapshotnr = 0;
-
-    height = iGPUHeight;
-
-    size = height * 1024 * 3 + 0x38;
-
-    // fill in proper values for BMP
-
-    // hardcoded BMP header
-    memset(header, 0, 0x36);
-    header[0] = 'B';
-    header[1] = 'M';
-    header[2] = size & 0xff;
-    header[3] = (size >> 8) & 0xff;
-    header[4] = (size >> 16) & 0xff;
-    header[5] = (size >> 24) & 0xff;
-    header[0x0a] = 0x36;
-    header[0x0e] = 0x28;
-    header[0x12] = 1024 % 256;
-    header[0x13] = 1024 / 256;
-    header[0x16] = height % 256;
-    header[0x17] = height / 256;
-    header[0x1a] = 0x01;
-    header[0x1c] = 0x18;
-    header[0x26] = 0x12;
-    header[0x27] = 0x0B;
-    header[0x2A] = 0x12;
-    header[0x2B] = 0x0B;
-
-    // increment snapshot value & try to get filename
-    do {
-        snapshotnr++;
-#ifdef _WIN32
-        sprintf(filename, "SNAP\\PEOPSSOFT%03d.bmp", snapshotnr);
-#else
-        sprintf(filename, "%s/peopssoft%03d.bmp", getenv("HOME"), snapshotnr);
-#endif
-
-        bmpfile = fopen(filename, "rb");
-        if (bmpfile == nullptr) break;
-        fclose(bmpfile);
-    } while (true);
-
-    // try opening new snapshot file
-    if ((bmpfile = fopen(filename, "wb")) == nullptr) return;
-
-    fwrite(header, 0x36, 1, bmpfile);
-    for (i = height - 1; i >= 0; i--) {
-        for (j = 0; j < 1024; j++) {
-            color = psxVuw[i * 1024 + j];
-            line[j * 3 + 2] = (color << 3) & 0xf1;
-            line[j * 3 + 1] = (color >> 2) & 0xf1;
-            line[j * 3 + 0] = (color >> 7) & 0xf1;
-        }
-        fwrite(line, 1024 * 3, 1, bmpfile);
-    }
-    fwrite(empty, 0x2, 1, bmpfile);
-    fclose(bmpfile);
-
-    DoTextSnapShot(snapshotnr);
-}
-
 int32_t PCSX::SoftGPU::impl::init(GUI *gui) {
     m_gui = gui;
     bDoVSyncUpdate = true;
     initDisplay();
-
-    memset(ulStatusControl, 0, 256 * sizeof(uint32_t));  // init save state scontrol field
 
     szDebugText[0] = 0;  // init debug text buffer
 
@@ -368,32 +265,6 @@ void updateDisplayIfChanged() {
     ChangeDispOffsetsX();
 }
 
-// TOGGLE FULLSCREEN - WINDOW
-void ChangeWindowMode() {
-    iWindowMode = !iWindowMode;
-    bChangeWinMode = false;
-    bDoVSyncUpdate = true;
-}
-
-////////////////////////////////////////////////////////////////////////
-// gun cursor func: player=0-7, x=0-511, y=0-255
-////////////////////////////////////////////////////////////////////////
-
-extern "C" void softGPUcursor(int iPlayer, int x, int y) {
-    if (iPlayer < 0) return;
-    if (iPlayer > 7) return;
-
-    usCursorActive |= (1 << iPlayer);
-
-    if (x < 0) x = 0;
-    if (x > 511) x = 511;
-    if (y < 0) y = 0;
-    if (y > 255) y = 255;
-
-    ptCursorPoint[iPlayer].x = x;
-    ptCursorPoint[iPlayer].y = y;
-}
-
 void PCSX::SoftGPU::impl::vblank() {
     if (m_dumpFile) {
         uint32_t data = 0x02000000;
@@ -455,9 +326,13 @@ uint32_t PCSX::SoftGPU::impl::readStatus() {
     return lGPUstatusRet;
 }
 
+void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) {
+    lGPUstatusRet = status;
+}
+
 // processes data send to GPU status register
 // these are always single packet commands.
-void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
+void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
     ZoneScoped;
     if (m_dumpFile) {
         uint32_t data = 0x01000001;
@@ -466,8 +341,6 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
     }
 
     uint32_t lCommand = (gdata >> 24) & 0xff;
-
-    ulStatusControl[lCommand] = gdata;  // store command for freezing
 
     switch (lCommand) {
         // Reset gpu
@@ -839,6 +712,7 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
+#if 0
 void PCSX::SoftGPU::impl::startDump() {
     if (m_dumpFile) return;
     m_dumpFile = fopen("gpu.dump", "wb");
@@ -859,6 +733,7 @@ void PCSX::SoftGPU::impl::startDump() {
     fwrite(&ulStatusControl[5], sizeof(ulStatusControl[5]), 1, (FILE *)m_dumpFile);
     fwrite(&ulStatusControl[4], sizeof(ulStatusControl[4]), 1, (FILE *)m_dumpFile);
 }
+#endif
 
 void PCSX::SoftGPU::impl::stopDump() {
     if (!m_dumpFile) return;
@@ -1036,32 +911,6 @@ int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 
     return 0;
 }
-
-void PCSX::SoftGPU::impl::save(SaveStates::GPU &gpu) {
-    gpu.get<SaveStates::GPUStatus>().value = lGPUstatusRet;
-    gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t *>(ulStatusControl));
-    gpu.get<SaveStates::GPUVRam>().copyFrom(psxVub);
-}
-
-void PCSX::SoftGPU::impl::load(const SaveStates::GPU &gpu) {
-    lGPUstatusRet = gpu.get<SaveStates::GPUStatus>().value;
-    gpu.get<SaveStates::GPUControl>().copyTo(reinterpret_cast<uint8_t *>(ulStatusControl));
-    gpu.get<SaveStates::GPUVRam>().copyTo(psxVub);
-
-    // RESET TEXTURE STORE HERE, IF YOU USE SOMETHING LIKE THAT
-
-    writeStatus(ulStatusControl[0]);
-    writeStatus(ulStatusControl[1]);
-    writeStatus(ulStatusControl[2]);
-    writeStatus(ulStatusControl[3]);
-    writeStatus(ulStatusControl[8]);  // try to repair things
-    writeStatus(ulStatusControl[6]);
-    writeStatus(ulStatusControl[7]);
-    writeStatus(ulStatusControl[5]);
-    writeStatus(ulStatusControl[4]);
-}
-
-void GPUsetfix(uint32_t dwFixBits) { dwEmuFixes = dwFixBits; }
 
 bool PCSX::SoftGPU::impl::configure() {
     bool changed = false;

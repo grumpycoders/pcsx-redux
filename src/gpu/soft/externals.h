@@ -158,7 +158,6 @@ extern bool bChangeWinMode;
 extern int32_t lSelectedSlot;
 extern uint32_t dwLaceCnt;
 extern uint32_t lGPUInfoVals[];
-extern uint32_t ulStatusControl[];
 extern int iRumbleVal;
 extern int iRumbleTime;
 extern int GlobalTextIL;

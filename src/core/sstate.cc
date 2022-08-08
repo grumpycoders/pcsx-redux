@@ -174,7 +174,7 @@ std::string PCSX::SaveStates::save() {
     state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v3";
     state.get<SaveStateInfoField>().get<Version>().value = 3;
 
-    g_emulator->m_gpu->save(state.get<GPUField>());
+    g_emulator->m_gpu->serialize(&wrapper);
     g_emulator->m_spu->save(state.get<SPUField>());
 
     g_emulator->m_counters->save(state.get<CountersField>());
@@ -209,6 +209,26 @@ void PCSX::CallStacks::serialize(SaveStateWrapper* w) {
     w->state.get<SaveStates::CallStacksField>().get<CallStacksCurrentSP>().value = m_currentSP;
 }
 
+static void setU32(uint8_t* ptr, uint32_t value) {
+    ptr[0] = value & 0xff;
+    ptr[1] = (value >> 8) & 0xff;
+    ptr[2] = (value >> 16) & 0xff;
+    ptr[3] = (value >> 24) & 0xff;
+}
+
+void PCSX::GPU::serialize(SaveStateWrapper* w) {
+    using namespace SaveStates;
+    auto& gpu = w->state.get<GPUField>();
+    gpu.get<GPUStatus>() = readStatus();
+    gpu.get<GPUVRam>().copyFrom(getVRAM().data<uint8_t>());
+    gpu.get<GPUControl>().allocate();
+    const auto control = gpu.get<GPUControl>().value;
+
+    for (unsigned i = 0; i < 256; i++) {
+        setU32(control + i * 4, m_statusControl[i]);
+    }
+}
+
 bool PCSX::SaveStates::load(std::string_view data) {
     SaveState state = constructSaveState();
 
@@ -231,7 +251,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits
     // So we just force-align it here, since it's never meant to be misaligned
     g_emulator->m_cpu->m_regs.pc &= ~3;
-    g_emulator->m_gpu->load(state.get<GPUField>());
+    g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
     g_emulator->m_cdrom->load();
 
@@ -275,7 +295,7 @@ void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
     using namespace SaveStates;
     m_callstacks.destroyAll();
 
-    auto& callstacks = w->state.get<SaveStates::CallStacksField>().get<CallStacksMessageField>().value;
+    auto& callstacks = w->state.get<CallStacksField>().get<CallStacksMessageField>().value;
     m_current = nullptr;
 
     for (auto& sscallstack : callstacks) {
@@ -300,4 +320,33 @@ void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
     }
 
     m_currentSP = w->state.get<SaveStates::CallStacksField>().get<CallStacksCurrentSP>().value;
+}
+
+static uint32_t getU32(const uint8_t* ptr) { return ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24); }
+
+void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
+    using namespace SaveStates;
+    reset();
+    auto& gpu = w->state.get<GPUField>();
+    restoreStatus(gpu.get<GPUStatus>().value);
+    if (gpu.get<GPUVRam>().value) {
+        partialUpdateVRAM(0, 0, 1024, 512, reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
+    } else {
+        clearVRAM();
+    }
+    const auto control = gpu.get<GPUControl>().value;
+
+    for (unsigned i = 0; i < 256; i++) {
+        m_statusControl[i] = getU32(control + i * 4);
+    }
+
+    writeStatus(m_statusControl[0]);
+    writeStatus(m_statusControl[1]);
+    writeStatus(m_statusControl[2]);
+    writeStatus(m_statusControl[3]);
+    writeStatus(m_statusControl[8]);  // try to repair things
+    writeStatus(m_statusControl[6]);
+    writeStatus(m_statusControl[7]);
+    writeStatus(m_statusControl[5]);
+    writeStatus(m_statusControl[4]);
 }

@@ -117,7 +117,6 @@ void PCSX::SoftGPU::impl::doBufferSwap() {
 }
 
 void PCSX::SoftGPU::impl::clearVRAM() {
-    // Cache previously binded texture
     const auto oldTex = OpenGL::getTex2D();
     std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
 

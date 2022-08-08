@@ -37,20 +37,17 @@ class impl final : public GPU {
         readDataMem(&l, 1);
         return lGPUdataRet;
     }
-    virtual void startDump() final;
     virtual void stopDump() final;
     virtual void readDataMem(uint32_t *pMem, int iSize) final;
     virtual uint32_t readStatus() final;
     virtual void writeData(uint32_t gdata) final { writeDataMem(&gdata, 1); }
     virtual void writeDataMem(uint32_t *pMem, int iSize) final;
-    virtual void writeStatus(uint32_t gdata) final;
+    virtual void writeStatusInternal(uint32_t gdata) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void vblank() final;
     virtual bool configure() final;
     virtual void debug() final;
 
-    virtual void save(SaveStates::GPU &gpu) final;
-    virtual void load(const SaveStates::GPU &gpu) final;
     virtual void setDither(int setting) final { m_softPrim.m_useDither = setting; }
     virtual void clearVRAM() final;
     virtual void reset() final {
@@ -59,6 +56,8 @@ class impl final : public GPU {
     }
     virtual GLuint getVRAMTexture() final { return m_vramTexture16; }
     virtual void setLinearFiltering() final;
+
+    virtual void restoreStatus(uint32_t status) final;
 
     void updateDisplay();
     void initDisplay();
