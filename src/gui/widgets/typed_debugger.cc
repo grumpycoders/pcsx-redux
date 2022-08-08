@@ -186,6 +186,15 @@ void printNodeDebugInformation(WatchTreeNode* node) {
     printf("node->children.size(): %zu\n", node->children.size());
 }
 
+bool equals(const char* lhs, const char* rhs) { return strcmp(lhs, rhs) == 0; }
+
+bool isPrimitive(const char* type) {
+    // Don't test against "char" since char* is handled specially.
+    return equals(type, "uchar") || equals(type, "u_char") || equals(type, "short") || equals(type, "ushort") ||
+           equals(type, "u_short") || equals(type, "int") || equals(type, "long") || equals(type, "uint") ||
+           equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long");
+}
+
 void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node, const uint32_t address,
                                                             uint8_t* memData, const uint32_t memBase) {
     auto readBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}{}"), node->name.c_str(), address);
@@ -214,10 +223,10 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 std::string funcName;
                 ReadWriteLogEntry::AccessType accessType;
 
-                if (strcmp(cause, "Read") == 0) {
+                if (equals(cause, "Read")) {
                     accessType = ReadWriteLogEntry::AccessType::Read;
                 }
-                if (strcmp(cause, "Write") == 0) {
+                if (equals(cause, "Write")) {
                     accessType = ReadWriteLogEntry::AccessType::Write;
                 }
 
@@ -320,6 +329,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
     ImGui::TableNextColumn();  // Name.
     std::string nameColumnString = fmt::format(f_("{}\t@ {:#x}"), node->name, currentAddress);
 
+    const char* nodeType = node->type.c_str();
     const bool isPointer = node->type.back() == '*';
     uint32_t startAddress = currentAddress;
     if (isPointer && !addressOfPointer && isInRAM(currentAddress, memSize)) {
@@ -369,13 +379,15 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             }
             ImGui::TreePop();
         }
-    } else if (node->type.back() == '*') {  // If this is an unpopulated pointer, populate it.
-        if (strcmp(node->type.c_str(), "void *") == 0) {
+    } else if (isPointer) {  // If this is an unpopulated pointer, populate it.
+        // @todo: for pointers to non-char primitives, offer the option of displaying them as an array of a given number
+        // of elements.
+        if (isPrimitive(node->type.substr(0, node->type.find(' ')).c_str()) || equals(nodeType, "void *")) {
             ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
                                                             ImGuiTreeNodeFlags_NoTreePushOnOpen |
                                                             ImGuiTreeNodeFlags_SpanFullWidth);
             ImGui::TableNextColumn();  // Type.
-            ImGui::TextUnformatted("void *");
+            ImGui::TextUnformatted(nodeType);
             ImGui::TableNextColumn();  // Size.
             ImGui::TextUnformatted("4");
             ImGui::TableNextColumn();  // Value.
@@ -392,7 +404,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             }
             return;
         }
-        if (strcmp(node->type.c_str(), "char *") == 0) {
+        if (equals(nodeType, "char *")) {
             const bool pointsToString = isInRAM(startAddress, memSize);
             auto* str = pointsToString ? (char*)memData + startAddress - memBase : nullptr;
             const auto strLength = pointsToString ? strlen(str) + 1 : 0;
@@ -468,7 +480,7 @@ void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address, b
     static int8_t step_fast = 100;
     const auto signedFormat = m_hex ? "%x" : "%d";
     const auto unsignedFormat = m_hex ? "%x" : "%u";
-    if (strcmp(type, "char") == 0) {
+    if (equals(type, "char")) {
         int8_t field_value = 0;
         memcpy(&field_value, address, 1);
         sprintf(s, "%d (0x%2x) \n", field_value, field_value);
@@ -479,7 +491,7 @@ void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address, b
             memcpy(address, &m_newValue, 1);
             m_newValue = 0;
         }
-    } else if (strcmp(type, "uchar") == 0 || strcmp(type, "u_char") == 0) {
+    } else if (equals(type, "uchar") || equals(type, "u_char")) {
         uint8_t field_value = 0;
         memcpy(&field_value, address, 1);
         sprintf(s, "%u (0x%2x) \n", field_value, field_value);
@@ -490,7 +502,7 @@ void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address, b
             memcpy(address, &m_newValue, 1);
             m_newValue = 0;
         }
-    } else if (strcmp(type, "short") == 0) {
+    } else if (equals(type, "short")) {
         int16_t field_value = 0;
         memcpy(&field_value, address, 2);
         sprintf(s, "%hi (0x%2x) \n", field_value, field_value);
@@ -501,7 +513,7 @@ void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address, b
             memcpy(address, &m_newValue, 2);
             m_newValue = 0;
         }
-    } else if (strcmp(type, "ushort") == 0 || strcmp(type, "u_short") == 0) {
+    } else if (equals(type, "ushort") || equals(type, "u_short")) {
         uint16_t field_value = 0;
         memcpy(&field_value, address, 2);
         sprintf(s, "%hu (0x%2x) \n", field_value, field_value);
@@ -512,7 +524,7 @@ void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address, b
             memcpy(address, &m_newValue, 2);
             m_newValue = 0;
         }
-    } else if (strcmp(type, "int") == 0 || strcmp(type, "long") == 0) {
+    } else if (equals(type, "int") || equals(type, "long")) {
         int32_t field_value = 0;
         memcpy(&field_value, address, 4);
         sprintf(s, "%i (0x%2x) \n", field_value, field_value);
@@ -523,7 +535,7 @@ void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address, b
             memcpy(address, &m_newValue, 4);
             m_newValue = 0;
         }
-    } else if (strcmp(type, "uint") == 0 || strcmp(type, "ulong") == 0 || strcmp(type, "u_long") == 0) {
+    } else if (equals(type, "uint") || equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long")) {
         uint32_t field_value = 0;
         memcpy(&field_value, address, 4);
         sprintf(s, "%u (0x%2x) \n", field_value, field_value);
