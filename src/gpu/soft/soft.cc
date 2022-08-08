@@ -1,74 +1,21 @@
 /***************************************************************************
-                          soft.c  -  description
-                             -------------------
-    begin                : Sun Oct 28 2001
-    copyright            : (C) 2001 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2005/06/11 - Pete
-// - added y sprite mirror
-//
-// 2005/04/15 - Pete
-// - gamefix 0x200 controls g-shaded quads now
-//
-// 2005/04/12 - Pete
-// - 25% blending mode 3
-//
-// 2004/02/01 - Pete
-// - added ZN stuff... Tekken "IL" texture decoding infos kindly given by smf from the MAME team
-//
-// 2003/08/30 - Pete
-// - added game fix 0x100 (dark forces)
-//
-// 2002/10/03 - Farfetch'd & Pete
-// - changed: mask bit handling
-//
-// 2002/06/04 - Lewpy
-// - new line drawing funcs
-//
-// 2002/05/24 - Pete
-// - added additional handling for tex quads to avoid texture distortions
-//
-// 2002/05/14 - Pete
-// - redone all texture window funcs... much faster now
-//
-// 2002/05/12 - Pete
-// - Mask bit fix on non-textured/sprite prims
-//
-// 2002/03/27 - Pete
-// - doom adjustment
-//
-// 2002/02/12 - Pete
-// - removed "no sprite transparency" fix
-//
-// 2001/12/14 - Pete
-// - added support for 15 bit texture window primitives
-//
-// 2001/12/10 - Pete
-// - fixed a mask bit bug in drawPoly4F, causing troubles in MGS
-//
-// 2001/11/08 - Linuzappz
-// - shl10idiv converted to nasm, C version still works :define __i386_
-//   to use the asm version
-//
-// 2001/10/28 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include "gpu/soft/soft.h"
 

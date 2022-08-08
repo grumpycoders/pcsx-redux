@@ -1,101 +1,21 @@
 /***************************************************************************
-                          draw.c  -  description
-                             -------------------
-    begin                : Sun Oct 28 2001
-    copyright            : (C) 2001 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2008/05/17 - Pete
-// - added "visual rumble" stuff to buffer swap func
-//
-// 2007/10/27 - MxC
-// - added HQ2X/HQ3X MMX versions, and fixed stretching
-//
-// 2005/06/11 - MxC
-// - added HQ2X,HQ3X,Scale3X screen filters
-//
-// 2004/01/31 - Pete
-// - added zn stuff
-//
-// 2003/01/31 - stsp
-// - added zn stuff
-//
-// 2003/12/30 - Stefan Sperling <stsp@guerila.com>
-// - improved XF86VM fullscreen switching a little (refresh frequency issues).
-//
-// 2002/12/30 - Pete
-// - added Scale2x display mode - Scale2x (C) 2002 Andrea Mazzoleni - http://scale2x.sourceforge.net
-//
-// 2002/12/29 - Pete
-// - added gun cursor display
-//
-// 2002/12/21 - linuzappz
-// - some more messages for DGA2 errors
-// - improved XStretch funcs a little
-// - fixed non-streched modes for DGA2
-//
-// 2002/11/10 - linuzappz
-// - fixed 5bit masks for 2xSai/etc
-//
-// 2002/11/06 - Pete
-// - added 2xSai, Super2xSaI, SuperEagle
-//
-// 2002/08/09 - linuzappz
-// - added DrawString calls for DGA2 (FPS display)
-//
-// 2002/03/10 - lu
-// - Initial SDL-only blitting function
-// - Initial SDL stretch function (using an undocumented SDL 1.2 func)
-// - Boht are triggered by -D_SDL -D_SDL2
-//
-// 2002/02/18 - linuzappz
-// - NoStretch, PIC and Scanlines support for DGA2 (32bit modes untested)
-// - Fixed PIC colors in CreatePic for 16/15 bit modes
-//
-// 2002/02/17 - linuzappz
-// - Added DGA2 support, support only with no strecthing disabled (also no FPS display)
-//
-// 2002/01/13 - linuzappz
-// - Added timing for the szDebugText (to 2 secs)
-//
-// 2002/01/05 - Pete
-// - fixed linux stretch centering (no more garbled screens)
-//
-// 2001/12/30 - Pete
-// - Added linux fullscreen desktop switching (non-SDL version, define USE_XF86VM in Makefile)
-//
-// 2001/12/19 - syo
-// - support refresh rate change
-// - added  wait VSYNC
-//
-// 2001/12/16 - Pete
-// - Added Windows FPSE RGB24 mode switch
-//
-// 2001/12/05 - syo (syo68k@geocities.co.jp)
-// - modified for "Use system memory" option
-//   (Pete: fixed "system memory" save state pic surface)
-//
-// 2001/11/11 - lu
-// - SDL additions
-//
-// 2001/10/28 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include <cstdint>
 
@@ -197,7 +117,6 @@ void PCSX::SoftGPU::impl::doBufferSwap() {
 }
 
 void PCSX::SoftGPU::impl::clearVRAM() {
-    // Cache previously binded texture
     const auto oldTex = OpenGL::getTex2D();
     std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
 

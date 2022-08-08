@@ -29,16 +29,14 @@
 namespace PCSX {
 class OpenGL_GPU final : public GPU {
     // Interface functions
-    virtual int init() final;
+    virtual int init(GUI *) final;
     virtual int shutdown() final;
-    virtual int open(GUI *) final;
-    virtual int close() final;
     virtual uint32_t readData() final;
     virtual void readDataMem(uint32_t *dest, int size) final;
     virtual uint32_t readStatus() final;
     virtual void writeData(uint32_t value) final;
     virtual void writeDataMem(uint32_t *source, int size) final;
-    virtual void writeStatus(uint32_t value) final;
+    virtual void writeStatusInternal(uint32_t value) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void setOpenGLContext() final;
     virtual void vblank() final;
@@ -50,6 +48,9 @@ class OpenGL_GPU final : public GPU {
     virtual void reset() final;
     virtual GLuint getVRAMTexture() final;
     virtual void setLinearFiltering() final;
+    virtual Slice getVRAM() final;
+    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) final;
+    virtual void restoreStatus(uint32_t status) { m_gpustat = status; }
 
   private:
     // Actual emulation stuff

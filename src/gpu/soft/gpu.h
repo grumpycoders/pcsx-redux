@@ -1,33 +1,23 @@
 /***************************************************************************
-                          gpu.h  -  description
-                             -------------------
-    begin                : Sun Oct 28 2001
-    copyright            : (C) 2001 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-//*************************************************************************//
-// History of changes:
-//
-// 2001/10/28 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
-
-#ifndef _GPU_INTERNALS_H
-#define _GPU_INTERNALS_H
-
-/////////////////////////////////////////////////////////////////////////////
+#pragma once
 
 #define OPAQUEON 10
 #define OPAQUEOFF 11
@@ -42,25 +32,7 @@
 #define KEY_BADTEXTURES 128
 #define KEY_CHECKTHISOUT 256
 
-#ifndef _FPSE
 #define RED(x) (x & 0xff)
 #define BLUE(x) ((x >> 16) & 0xff)
 #define GREEN(x) ((x >> 8) & 0xff)
 #define COLOR(x) (x & 0xffffff)
-#else
-#define BLUE(x) (x & 0xff)
-#define RED(x) ((x >> 16) & 0xff)
-#define GREEN(x) ((x >> 8) & 0xff)
-#define COLOR(x) (x & 0xffffff)
-#endif
-
-/////////////////////////////////////////////////////////////////////////////
-
-void updateDisplay(void);
-void SetAutoFrameCap(void);
-void SetFixes(void);
-bool configure();
-
-/////////////////////////////////////////////////////////////////////////////
-
-#endif  // _GPU_INTERNALS_H

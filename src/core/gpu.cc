@@ -172,3 +172,11 @@ void PCSX::GPU::gpuInterrupt() {
     HW_DMA2_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT<2>();
 }
+
+void PCSX::GPU::writeStatus(uint32_t status) {
+    uint32_t cmd = (status >> 24) & 0xff;
+
+    m_statusControl[cmd] = status;
+    
+    writeStatusInternal(status);
+}

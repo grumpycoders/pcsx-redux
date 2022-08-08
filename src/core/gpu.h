@@ -26,11 +26,11 @@
 #include "core/display.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
-#include "core/sstate.h"
 #include "support/slice.h"
 
 namespace PCSX {
 class GUI;
+struct SaveStateWrapper;
 
 class GPU {
   public:
@@ -51,6 +51,9 @@ class GPU {
     virtual void debug() = 0;
     virtual ~GPU() {}
 
+    void serialize(SaveStateWrapper *);
+    void deserialize(const SaveStateWrapper *);
+
   private:
     // Taken from PEOPS SOFTGPU
     uint32_t s_lUsedAddr[3];
@@ -59,10 +62,8 @@ class GPU {
     uint32_t gpuDmaChainSize(uint32_t addr);
 
   public:
-    virtual int init() = 0;
+    virtual int init(GUI *) = 0;
     virtual int shutdown() = 0;
-    virtual int open(GUI *) = 0;
-    virtual int close() = 0;
     virtual uint32_t readData() = 0;
     virtual void startDump() { throw std::runtime_error("Not yet implemented"); }
     virtual void stopDump() { throw std::runtime_error("Not yet implemented"); }
@@ -70,11 +71,12 @@ class GPU {
     virtual uint32_t readStatus() = 0;
     virtual void writeData(uint32_t gdata) = 0;
     virtual void writeDataMem(uint32_t *pMem, int iSize) = 0;
-    virtual void writeStatus(uint32_t gdata) = 0;
+    void writeStatus(uint32_t gdata);
+    virtual void writeStatusInternal(uint32_t gdata) = 0;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
     virtual void setOpenGLContext() {}
-    virtual void save(SaveStates::GPU &gpu) { throw std::runtime_error("Not yet implemented"); }
-    virtual void load(const SaveStates::GPU &gpu) { throw std::runtime_error("Not yet implemented"); }
+    
+    virtual void restoreStatus(uint32_t status) = 0;
 
     virtual void vblank() = 0;
     virtual void addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {
@@ -94,10 +96,8 @@ class GPU {
     static std::unique_ptr<GPU> getSoft();
     static std::unique_ptr<GPU> getOpenGL();
 
-    virtual Slice getVRAM() { throw std::runtime_error("Not yet implemented"); }
-    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) {
-        throw std::runtime_error("Not yet implemented");
-    }
+    virtual Slice getVRAM() = 0;
+    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) = 0;
 
     struct ScreenShot {
         Slice data;
@@ -105,6 +105,9 @@ class GPU {
         enum { BPP_16, BPP_24 } bpp;
     };
     virtual ScreenShot takeScreenShot() { throw std::runtime_error("Not yet implemented"); }
+
+  private:
+    uint32_t m_statusControl[256];
 };
 
 }  // namespace PCSX

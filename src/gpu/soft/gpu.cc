@@ -1,115 +1,21 @@
 /***************************************************************************
-                          gpu.c  -  description
-                             -------------------
-    begin                : Sun Oct 28 2001
-    copyright            : (C) 2001 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2008/05/17 - Pete
-// - added GPUvisualVibration and "visual rumble" stuff
-//
-// 2008/02/03 - Pete
-// - added GPUsetframelimit and GPUsetfix ("fake gpu busy states")
-//
-// 2007/11/03 - Pete
-// - new way to create save state picture (Vista)
-//
-// 2004/01/31 - Pete
-// - added zn bits
-//
-// 2003/01/04 - Pete
-// - the odd/even bit hack (CronoCross status screen) is now a special game fix
-//
-// 2003/01/04 - Pete
-// - fixed wrapped y display position offset - Legend of Legaia
-//
-// 2002/11/24 - Pete
-// - added new frameskip func support
-//
-// 2002/11/02 - Farfetch'd & Pete
-// - changed the y display pos handling
-//
-// 2002/10/03 - Farfetch'd & Pete
-// - added all kind of tiny stuff (gpureset, gpugetinfo, dmachain align, polylines...)
-//
-// 2002/10/03 - Pete
-// - fixed gpuwritedatamem & now doing every data processing with it
-//
-// 2002/08/31 - Pete
-// - delayed odd/even toggle for FF8 intro scanlines
-//
-// 2002/08/03 - Pete
-// - "Sprite 1" command count added
-//
-// 2002/08/03 - Pete
-// - handles "screen disable" correctly
-//
-// 2002/07/28 - Pete
-// - changed dmachain handler (monkey hero)
-//
-// 2002/06/15 - Pete
-// - removed dmachain fixes, added dma endless loop detection instead
-//
-// 2002/05/31 - Lewpy
-// - Win95/NT "disable screensaver" fix
-//
-// 2002/05/30 - Pete
-// - dmawrite/read wrap around
-//
-// 2002/05/15 - Pete
-// - Added dmachain "0" check game fix
-//
-// 2002/04/20 - linuzappz
-// - added iFastFwd stuff
-//
-// 2002/02/18 - linuzappz
-// - Added DGA2 support to PIC stuff
-//
-// 2002/02/10 - Pete
-// - Added dmacheck for The Mummy and T'ai Fu
-//
-// 2002/01/13 - linuzappz
-// - Added timing in the GPUdisplayText func
-//
-// 2002/01/06 - lu
-// - Added some #ifdef for the linux configurator
-//
-// 2002/01/05 - Pete
-// - fixed unwanted screen clearing on horizontal centering (causing
-//   flickering in linux version)
-//
-// 2001/12/10 - Pete
-// - fix for Grandia in ChangeDispOffsetsX
-//
-// 2001/12/05 - syo (syo68k@geocities.co.jp)
-// - added disable screen saver for "stop screen saver" option
-//
-// 2001/11/20 - linuzappz
-// - added Soft and About DlgProc calls in GPUconfigure and
-//   GPUabout, for linux
-//
-// 2001/11/09 - Darko Matesic
-// - added recording frame in updateLace and stop recording
-//   in GPUclose (if it is still recording)
-//
-// 2001/10/28 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include <algorithm>
 #include <cstdint>
@@ -149,7 +55,6 @@ int32_t lGPUstatusRet;
 char szDispBuf[64];
 char szMenuBuf[36];
 char szDebugText[512];
-uint32_t ulStatusControl[256];
 
 static uint32_t gpuDataM[256];
 static uint8_t gpuCommand = 0;
@@ -176,108 +81,10 @@ int iFakePrimBusy = 0;
 int iRumbleVal = 0;
 int iRumbleTime = 0;
 
-// Snapshot func
-char *pGetConfigInfos(int iCfg) {
-    char *pB = (char *)malloc(32767);
-
-    return pB;
-}
-
-void DoTextSnapShot(int iNum) {
-    FILE *txtfile;
-    char szTxt[256];
-    char *pB;
-
-#ifdef _WIN32
-    sprintf(szTxt, "SNAP\\PEOPSSOFT%03d.txt", iNum);
-#else
-    sprintf(szTxt, "%s/peopssoft%03d.txt", getenv("HOME"), iNum);
-#endif
-
-    if ((txtfile = fopen(szTxt, "wb")) == nullptr) return;
-    //----------------------------------------------------//
-    pB = pGetConfigInfos(0);
-    if (pB) {
-        fwrite(pB, strlen(pB), 1, txtfile);
-        free(pB);
-    }
-    fclose(txtfile);
-}
-
-// snapshot of whole vram
-extern "C" void softGPUmakeSnapshot() {
-    FILE *bmpfile;
-    char filename[256];
-    unsigned char header[0x36];
-    int32_t size, height;
-    unsigned char line[1024 * 3];
-    int16_t i, j;
-    unsigned char empty[2] = {0, 0};
-    uint16_t color;
-    uint32_t snapshotnr = 0;
-
-    height = iGPUHeight;
-
-    size = height * 1024 * 3 + 0x38;
-
-    // fill in proper values for BMP
-
-    // hardcoded BMP header
-    memset(header, 0, 0x36);
-    header[0] = 'B';
-    header[1] = 'M';
-    header[2] = size & 0xff;
-    header[3] = (size >> 8) & 0xff;
-    header[4] = (size >> 16) & 0xff;
-    header[5] = (size >> 24) & 0xff;
-    header[0x0a] = 0x36;
-    header[0x0e] = 0x28;
-    header[0x12] = 1024 % 256;
-    header[0x13] = 1024 / 256;
-    header[0x16] = height % 256;
-    header[0x17] = height / 256;
-    header[0x1a] = 0x01;
-    header[0x1c] = 0x18;
-    header[0x26] = 0x12;
-    header[0x27] = 0x0B;
-    header[0x2A] = 0x12;
-    header[0x2B] = 0x0B;
-
-    // increment snapshot value & try to get filename
-    do {
-        snapshotnr++;
-#ifdef _WIN32
-        sprintf(filename, "SNAP\\PEOPSSOFT%03d.bmp", snapshotnr);
-#else
-        sprintf(filename, "%s/peopssoft%03d.bmp", getenv("HOME"), snapshotnr);
-#endif
-
-        bmpfile = fopen(filename, "rb");
-        if (bmpfile == nullptr) break;
-        fclose(bmpfile);
-    } while (true);
-
-    // try opening new snapshot file
-    if ((bmpfile = fopen(filename, "wb")) == nullptr) return;
-
-    fwrite(header, 0x36, 1, bmpfile);
-    for (i = height - 1; i >= 0; i--) {
-        for (j = 0; j < 1024; j++) {
-            color = psxVuw[i * 1024 + j];
-            line[j * 3 + 2] = (color << 3) & 0xf1;
-            line[j * 3 + 1] = (color >> 2) & 0xf1;
-            line[j * 3 + 0] = (color >> 7) & 0xf1;
-        }
-        fwrite(line, 1024 * 3, 1, bmpfile);
-    }
-    fwrite(empty, 0x2, 1, bmpfile);
-    fclose(bmpfile);
-
-    DoTextSnapShot(snapshotnr);
-}
-
-int32_t PCSX::SoftGPU::impl::init() {
-    memset(ulStatusControl, 0, 256 * sizeof(uint32_t));  // init save state scontrol field
+int32_t PCSX::SoftGPU::impl::init(GUI *gui) {
+    m_gui = gui;
+    bDoVSyncUpdate = true;
+    initDisplay();
 
     szDebugText[0] = 0;  // init debug text buffer
 
@@ -325,28 +132,13 @@ int32_t PCSX::SoftGPU::impl::init() {
     lGPUstatusRet = 0x14802000;
     GPUIsIdle;
     GPUIsReadyForCommands;
-    bDoVSyncUpdate = true;
 
     return 0;
 }
-
-int32_t PCSX::SoftGPU::impl::open(GUI *gui) {
-    m_gui = gui;
-    bDoVSyncUpdate = true;
-    initDisplay();
-
-    return 0;
-}
-
-int32_t PCSX::SoftGPU::impl::close() { return 0; }
-
-////////////////////////////////////////////////////////////////////////
-// I shot the sheriff
-////////////////////////////////////////////////////////////////////////
 
 int32_t PCSX::SoftGPU::impl::shutdown() {
     delete[] psxVSecure;
-    return 0;  // nothing to do
+    return 0;
 }
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::GPU>(new PCSX::SoftGPU::impl()); }
@@ -354,8 +146,8 @@ std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::G
 void PCSX::SoftGPU::impl::updateDisplay() {
     if (PSXDisplay.Disabled) {
         glClearColor(1, 0, 0, 0);
-        glClear(GL_COLOR_BUFFER_BIT);  // -> clear frontbuffer
-        return;                        // -> and bye
+        glClear(GL_COLOR_BUFFER_BIT);
+        return;
     }
 
     doBufferSwap();
@@ -473,32 +265,6 @@ void updateDisplayIfChanged() {
     ChangeDispOffsetsX();
 }
 
-// TOGGLE FULLSCREEN - WINDOW
-void ChangeWindowMode() {
-    iWindowMode = !iWindowMode;
-    bChangeWinMode = false;
-    bDoVSyncUpdate = true;
-}
-
-////////////////////////////////////////////////////////////////////////
-// gun cursor func: player=0-7, x=0-511, y=0-255
-////////////////////////////////////////////////////////////////////////
-
-extern "C" void softGPUcursor(int iPlayer, int x, int y) {
-    if (iPlayer < 0) return;
-    if (iPlayer > 7) return;
-
-    usCursorActive |= (1 << iPlayer);
-
-    if (x < 0) x = 0;
-    if (x > 511) x = 511;
-    if (y < 0) y = 0;
-    if (y > 255) y = 255;
-
-    ptCursorPoint[iPlayer].x = x;
-    ptCursorPoint[iPlayer].y = y;
-}
-
 void PCSX::SoftGPU::impl::vblank() {
     if (m_dumpFile) {
         uint32_t data = 0x02000000;
@@ -560,9 +326,13 @@ uint32_t PCSX::SoftGPU::impl::readStatus() {
     return lGPUstatusRet;
 }
 
+void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) {
+    lGPUstatusRet = status;
+}
+
 // processes data send to GPU status register
 // these are always single packet commands.
-void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
+void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
     ZoneScoped;
     if (m_dumpFile) {
         uint32_t data = 0x01000001;
@@ -571,8 +341,6 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata) {
     }
 
     uint32_t lCommand = (gdata >> 24) & 0xff;
-
-    ulStatusControl[lCommand] = gdata;  // store command for freezing
 
     switch (lCommand) {
         // Reset gpu
@@ -944,6 +712,7 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
+#if 0
 void PCSX::SoftGPU::impl::startDump() {
     if (m_dumpFile) return;
     m_dumpFile = fopen("gpu.dump", "wb");
@@ -964,6 +733,7 @@ void PCSX::SoftGPU::impl::startDump() {
     fwrite(&ulStatusControl[5], sizeof(ulStatusControl[5]), 1, (FILE *)m_dumpFile);
     fwrite(&ulStatusControl[4], sizeof(ulStatusControl[4]), 1, (FILE *)m_dumpFile);
 }
+#endif
 
 void PCSX::SoftGPU::impl::stopDump() {
     if (!m_dumpFile) return;
@@ -1141,32 +911,6 @@ int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 
     return 0;
 }
-
-void PCSX::SoftGPU::impl::save(SaveStates::GPU &gpu) {
-    gpu.get<SaveStates::GPUStatus>().value = lGPUstatusRet;
-    gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t *>(ulStatusControl));
-    gpu.get<SaveStates::GPUVRam>().copyFrom(psxVub);
-}
-
-void PCSX::SoftGPU::impl::load(const SaveStates::GPU &gpu) {
-    lGPUstatusRet = gpu.get<SaveStates::GPUStatus>().value;
-    gpu.get<SaveStates::GPUControl>().copyTo(reinterpret_cast<uint8_t *>(ulStatusControl));
-    gpu.get<SaveStates::GPUVRam>().copyTo(psxVub);
-
-    // RESET TEXTURE STORE HERE, IF YOU USE SOMETHING LIKE THAT
-
-    writeStatus(ulStatusControl[0]);
-    writeStatus(ulStatusControl[1]);
-    writeStatus(ulStatusControl[2]);
-    writeStatus(ulStatusControl[3]);
-    writeStatus(ulStatusControl[8]);  // try to repair things
-    writeStatus(ulStatusControl[6]);
-    writeStatus(ulStatusControl[7]);
-    writeStatus(ulStatusControl[5]);
-    writeStatus(ulStatusControl[4]);
-}
-
-void GPUsetfix(uint32_t dwFixBits) { dwEmuFixes = dwFixBits; }
 
 bool PCSX::SoftGPU::impl::configure() {
     bool changed = false;
