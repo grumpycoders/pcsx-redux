@@ -225,6 +225,7 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
         uniform ivec4 u_texWindow;
         uniform sampler2D u_vramTex;
         uniform vec4 u_blendFactors;
+        uniform vec4 u_blendFactorsIfOpaque = vec4(1.0, 1.0, 1.0, 0.0);
 
         int floatToU5(float f) {
             return int(floor(f * 31.0 + 0.5));
@@ -274,7 +275,7 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
                FragColor = texelFetch(u_vramTex, sampleCoords, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
-               BlendColor = FragColor.a >= 0.5 ? u_blendFactors : vec4(1.0, 1.0, 1.0, 0.0);
+               BlendColor = FragColor.a >= 0.5 ? u_blendFactors : u_blendFactorsIfOpaque;
                FragColor = texBlend(FragColor, vertexColor);
            } else if (texMode == 1) { // 8bpp texture
                ivec2 texelCoord = ivec2(UV.x >> 1, UV.y) + texpageBase;
@@ -287,7 +288,7 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
                FragColor = texelFetch(u_vramTex, sampleCoords, 0);
 
                if (FragColor.rgb == vec3(0.0, 0.0, 0.0)) discard;
-               BlendColor = FragColor.a >= 0.5 ? u_blendFactors : vec4(1.0, 1.0, 1.0, 0.0);
+               BlendColor = FragColor.a >= 0.5 ? u_blendFactors : u_blendFactorsIfOpaque;
                FragColor = texBlend(FragColor, vertexColor);
            } else { // Texture depth 2 and 3 both indicate 16bpp textures
                ivec2 texelCoord = UV + texpageBase;
@@ -309,6 +310,7 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
     m_texWindowLoc = OpenGL::uniformLocation(m_program, "u_texWindow");
     m_blendFactorsLoc = OpenGL::uniformLocation(m_program, "u_blendFactors");
+    m_blendFactorsIfOpaqueLoc = OpenGL::uniformLocation(m_program, "u_blendFactorsIfOpaque");
 
     const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
     glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
@@ -409,8 +411,6 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
 
 // GP1 command writes
 void PCSX::OpenGL_GPU::writeStatusInternal(uint32_t value) {
-    renderBatch();
-
     const uint32_t cmd = value >> 24;
     switch (cmd) {
         // Reset GPU. TODO: This should perform some more operations
@@ -491,6 +491,7 @@ bool PCSX::OpenGL_GPU::configure() {
             m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
             m_texWindowLoc = OpenGL::uniformLocation(m_program, "u_texWindow");
             m_blendFactorsLoc = OpenGL::uniformLocation(m_program, "u_blendFactors");
+            m_blendFactorsIfOpaqueLoc = OpenGL::uniformLocation(m_program, "u_blendFactorsIfOpaque");
 
             const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
             glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently bound texture
@@ -658,9 +659,24 @@ void PCSX::OpenGL_GPU::renderBatch() {
             m_updateDrawOffset = false;
             setDrawOffset(m_lastDrawOffsetSetting);
         }
-
         m_vbo.bufferVertsSub(&m_vertices[0], m_vertexCount);
-        OpenGL::draw(OpenGL::Triangles, m_vertexCount);
+        
+        if (m_lastBlendingMode == 2) {
+            // Draw opaque only
+            OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
+            setBlendFactors(0.0, 1.0);
+            OpenGL::draw(OpenGL::Triangles, m_vertexCount);
+
+            // Draw transparent only
+            OpenGL::setBlendEquation(OpenGL::BlendEquation::ReverseSub, OpenGL::BlendEquation::Add);
+            setBlendFactors(1.0, 1.0);
+            glUniform4f(m_blendFactorsIfOpaqueLoc, 0.0, 0.0, 0.0, 1.0);
+            OpenGL::draw(OpenGL::Triangles, m_vertexCount);
+
+            glUniform4f(m_blendFactorsIfOpaqueLoc, 1.0, 1.0, 1.0, 0.0);
+        } else {
+            OpenGL::draw(OpenGL::Triangles, m_vertexCount);
+        }
         m_vertexCount = 0;
     }
 }
@@ -680,7 +696,7 @@ PCSX::Slice PCSX::OpenGL_GPU::getVRAM() {
     glFlush();
     const auto oldTex = OpenGL::getTex2D();
     glBindTexture(GL_TEXTURE_2D, getVRAMTexture());
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, pixels);
     glBindTexture(GL_TEXTURE_2D, oldTex);
 
     Slice slice;
