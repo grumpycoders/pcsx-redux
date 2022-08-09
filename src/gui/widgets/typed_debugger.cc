@@ -37,11 +37,11 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
     while (std::getline(file, line)) {
         // For data types.
         std::string name;
-        std::vector<GhidraData> fields;
+        std::vector<FieldOrArgumentData> fields;
 
         // For functions.
         uint32_t address;
-        GhidraFunction func;
+        DebuggerFunction func;
 
         std::stringstream ss(line);
         std::string s;
@@ -51,7 +51,7 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
             if (line_parts_counter == 0) {
                 switch (importType) {
                     case ImportType::DataTypes:
-                        // @todo: check whether this is robust in dealing with typedefs.
+                        // @todo: implement robust typedef handling.
                         if (s.front() == '_') {
                             s.erase(0, 1);
                         }
@@ -61,7 +61,7 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
                         break;
                     case ImportType::Functions:
                         address = std::stoul(s, nullptr, 16);
-                        m_addresses.push_back(address);
+                        m_functionAddresses.push_back(address);
                         ++line_parts_counter;
                         continue;
                         break;
@@ -75,7 +75,7 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
                 continue;
             }
 
-            GhidraData data;
+            FieldOrArgumentData data;
             const std::regex data_regex(R"(([\w\s\*\[\]]+),(\w+),(\d+))");
             std::smatch matches;
             if (std::regex_match(s, matches, data_regex)) {
@@ -128,30 +128,36 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
 }
 
 PCSX::Widgets::TypedDebugger::TypedDebugger(bool& show) : m_show(show), m_listener(g_system->m_eventBus) {
-    import("data_types_redux.txt", ImportType::DataTypes);
-    import("funcs_redux.txt", ImportType::Functions);
-
     m_listener.listen<PCSX::Events::ExecutionFlow::Reset>([this](const auto& event) {
+        m_displayedWatchData.clear();
         for (const auto* bp : m_watchBreakpoints) {
             g_emulator->m_debug->removeBreakpoint(bp);
         }
         m_watchBreakpoints.clear();
+        m_disabledInstructions.clear();
+
         m_displayedFunctionData.clear();
-        m_displayedWatchData.clear();
-        m_toggledFunctions.clear();
-        m_toggledInstructions.clear();
+        for (const auto* bp : m_functionBreakpoints) {
+            g_emulator->m_debug->removeBreakpoint(bp);
+        }
+        m_functionBreakpoints.clear();
+        m_disabledFunctions.clear();
     });
     m_listener.listen<PCSX::Events::ExecutionFlow::SaveStateLoaded>([this](const auto& event) {
         for (const auto* bp : m_watchBreakpoints) {
             g_emulator->m_debug->removeBreakpoint(bp);
         }
         m_watchBreakpoints.clear();
+        for (const auto* bp : m_functionBreakpoints) {
+            g_emulator->m_debug->removeBreakpoint(bp);
+        }
+        m_functionBreakpoints.clear();
     });
 }
 
 // Populates a node according to its type.
 void populate(WatchTreeNode* node,
-              std::unordered_map<std::string, PCSX::Widgets::TypedDebugger::structFields>& structs_info) {
+              std::unordered_map<std::string, PCSX::Widgets::TypedDebugger::StructFields>& structs_info) {
     const auto type = node->type;
 
     const std::regex array_regex(R"((.*)\[(\d+)\])");
@@ -201,13 +207,6 @@ uint8_t* getMemoryPointerFor(uint32_t address, uint32_t& outMemBase) {
     return nullptr;
 }
 
-void printNodeDebugInformation(WatchTreeNode* node) {
-    printf("node->name: %s\n", node->name.c_str());
-    printf("node->type: %s\n", node->type.c_str());
-    printf("node->size: %zu\n", node->size);
-    printf("node->children.size(): %zu\n", node->children.size());
-}
-
 bool equals(const char* lhs, const char* rhs) { return strcmp(lhs, rhs) == 0; }
 
 bool isPrimitive(const char* type) {
@@ -219,21 +218,21 @@ bool isPrimitive(const char* type) {
 
 void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node, const uint32_t address,
                                                             uint8_t* memData, const uint32_t memBase) {
-    auto readBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}{}"), node->name.c_str(), address);
+    const auto readBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}{}"), node->name.c_str(), address);
     if (ImGui::Button(readBreakpointButtonName.c_str())) {
         auto* newBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Read,
                                                                        node->size, _("Typed Debugger"));
         m_watchBreakpoints.push_back(newBreakpoint);
     }
     ImGui::SameLine();
-    auto writeBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}{}"), node->name.c_str(), address);
+    const auto writeBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}{}"), node->name.c_str(), address);
     if (ImGui::Button(writeBreakpointButtonName.c_str())) {
         auto* newBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Write,
                                                                        node->size, _("Typed Debugger"));
         m_watchBreakpoints.push_back(newBreakpoint);
     }
     ImGui::SameLine();
-    auto logReadsWritesButtonName = fmt::format(f_("Log reads and writes##{}{}"), node->name.c_str(), address);
+    const auto logReadsWritesButtonName = fmt::format(f_("Log reads and writes##{}{}"), node->name.c_str(), address);
     if (ImGui::Button(logReadsWritesButtonName.c_str())) {
         PCSX::Debug::BreakpointInvoker logReadsWritesInvoker =
             [this, node](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
@@ -242,31 +241,21 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 }
 
                 const auto pc = g_emulator->m_cpu->m_regs.pc;
-                std::string funcName;
-                ReadWriteLogEntry::AccessType accessType;
-
-                if (equals(cause, "Read")) {
-                    accessType = ReadWriteLogEntry::AccessType::Read;
-                }
-                if (equals(cause, "Write")) {
-                    accessType = ReadWriteLogEntry::AccessType::Write;
-                }
-
-                funcName = getFunctionNameFromInstructionAddress(pc);
+                std::string funcName = getFunctionNameFromInstructionAddress(pc);
                 if (funcName.empty()) {
-                    return true;
+                    funcName = "overlay?";
                 }
+                ReadWriteLogEntry::AccessType accessType =
+                    equals(cause, "Read") ? ReadWriteLogEntry::AccessType::Read : ReadWriteLogEntry::AccessType::Write;
 
-                bool found = false;
                 for (const auto& logEntry : node->logEntries) {
                     if (logEntry.instructionAddress == pc) {
-                        found = true;
+                        return true;
                     }
                 }
-                if (!found) {
-                    ReadWriteLogEntry newLogEntry{pc, funcName, accessType};
-                    node->logEntries.push_back(newLogEntry);
-                };
+
+                ReadWriteLogEntry newLogEntry{pc, funcName, accessType};
+                node->logEntries.push_back(newLogEntry);
                 return true;
             };
 
@@ -303,18 +292,18 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 ImGui::TableNextColumn();  // Size.
                 ImGui::TextUnformatted(magic_enum::enum_name(logEntry.accessType).data());
                 ImGui::TableNextColumn();  // Value.
-                const bool functionToggledOff = m_toggledInstructions.contains(instructionAddress);
+                const bool functionToggledOff = m_disabledInstructions.contains(instructionAddress);
                 auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), instructionAddress)
                                                            : fmt::format(f_("Disable##{}"), instructionAddress);
                 if (ImGui::Button(toggleButtonName.c_str())) {
                     auto* instructionMem = memData + instructionAddress - memBase;
                     if (functionToggledOff) {
-                        memcpy(instructionMem, m_toggledInstructions[instructionAddress].data(), 4);
-                        m_toggledInstructions.erase(instructionAddress);
+                        memcpy(instructionMem, m_disabledInstructions[instructionAddress].data(), 4);
+                        m_disabledInstructions.erase(instructionAddress);
                     } else {
                         uint8_t instructions[4];
                         memcpy(instructions, instructionMem, 4);
-                        m_toggledInstructions[instructionAddress] = std::to_array(instructions);
+                        m_disabledInstructions[instructionAddress] = std::to_array(instructions);
                         static constexpr uint8_t nop[4] = {0x00, 0x00, 0x00, 0x00};
                         memcpy(instructionMem, nop, 4);
                     }
@@ -330,9 +319,9 @@ std::string PCSX::Widgets::TypedDebugger::getFunctionNameFromInstructionAddress(
     if (m_instructionAddressToFunctionMap.contains(address)) {
         return m_instructionAddressToFunctionMap[address];
     } else {
-        for (size_t i = 0; i < m_addresses.size() - 1; ++i) {
-            if (address >= m_addresses[i] && address < m_addresses[i + 1]) {
-                const auto knownAddress = m_addresses[i];
+        for (size_t i = 0; i < m_functionAddresses.size() - 1; ++i) {
+            if (address >= m_functionAddresses[i] && address < m_functionAddresses[i + 1]) {
+                const auto knownAddress = m_functionAddresses[i];
                 m_instructionAddressToFunctionMap[address] = m_functions[knownAddress].name;
                 return m_instructionAddressToFunctionMap[address];
             }
@@ -345,8 +334,6 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                                                bool addressOfPointer) {
     uint32_t memBase;
     uint8_t* memData = getMemoryPointerFor(currentAddress, memBase);
-    printNodeDebugInformation(node);
-    printf("currentAddress: 0x%2x\n", currentAddress);
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();  // Name.
@@ -402,20 +389,20 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TreePop();
         }
     } else if (isPointer) {  // If this is an unpopulated pointer, populate it.
+        ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
+                                                        ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                                        ImGuiTreeNodeFlags_SpanFullWidth);
+        ImGui::TableNextColumn();  // Type.
+        ImGui::TextUnformatted(nodeType);
         // @todo: for pointers to non-char primitives, offer the option of displaying them as an array of a given number
         // of elements.
         if (isPrimitive(node->type.substr(0, node->type.find(' ')).c_str()) || equals(nodeType, "void *")) {
-            ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
-                                                            ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                                            ImGuiTreeNodeFlags_SpanFullWidth);
-            ImGui::TableNextColumn();  // Type.
-            ImGui::TextUnformatted(nodeType);
             ImGui::TableNextColumn();  // Size.
             ImGui::TextUnformatted("4");
             ImGui::TableNextColumn();  // Value.
             ImGui::Text("0x%2x", startAddress);
             ImGui::SameLine();
-            auto showMemButtonName = fmt::format(f_("Show in memory editor##{}"), currentAddress);
+            const auto showMemButtonName = fmt::format(f_("Show in memory editor##{}"), currentAddress);
             if (ImGui::Button(showMemButtonName.c_str())) {
                 const uint32_t editorAddress = startAddress - memBase;
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
@@ -430,18 +417,14 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             const bool pointsToString = (memData != nullptr);
             auto* str = pointsToString ? (char*)memData + startAddress - memBase : nullptr;
             const auto strLength = pointsToString ? strlen(str) + 1 : 0;
-            ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
-                                                            ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                                            ImGuiTreeNodeFlags_SpanFullWidth);
-            ImGui::TableNextColumn();  // Type.
-            ImGui::TextUnformatted("char *");
+
             ImGui::TableNextColumn();  // Size.
             ImGui::Text("4 (string: %zu)", strLength);
             ImGui::TableNextColumn();  // Value.
             if (pointsToString) {
                 ImGui::Text("%s", str);
                 ImGui::SameLine();
-                auto showMemButtonName = fmt::format(f_("Show in memory editor##{}"), currentAddress);
+                const auto showMemButtonName = fmt::format(f_("Show in memory editor##{}"), currentAddress);
                 if (ImGui::Button(showMemButtonName.c_str())) {
                     const uint32_t editorAddress = startAddress - memBase;
                     g_system->m_eventBus->signal(
@@ -480,7 +463,6 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
 }
 
 void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address, bool editable) {
-    printf("printValue(%s, %p, %s\n", type, address, editable ? "true" : "false");
     static char s[64];
     static int8_t step = 1;
     static int8_t step_fast = 100;
@@ -563,6 +545,64 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
         return;
     }
 
+    bool showImportDataTypesFileDialog = false;
+    if (m_structs.empty()) {
+        ImGui::TextUnformatted(
+            "Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a "
+            "redux_data_types.txt file in its folder, or from any text file where each line specifies the data type's "
+            "name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose elements "
+            "are separated by commas. As an example:\n");
+        gui->useMonoFont();
+        ImGui::TextUnformatted("CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n");
+        ImGui::PopFont();
+        ImGui::TextUnformatted("Arrays are specified as\n");
+        gui->useMonoFont();
+        ImGui::TextUnformatted("type[number]\n");
+        ImGui::PopFont();
+        ImGui::TextUnformatted("and pointers as\n");
+        gui->useMonoFont();
+        ImGui::TextUnformatted("type *");
+        ImGui::PopFont();
+        showImportDataTypesFileDialog = ImGui::Button(_("Import data types"));
+        if (showImportDataTypesFileDialog) {
+            m_importDataTypesFileDialog.openDialog();
+        }
+        if (m_importDataTypesFileDialog.draw()) {
+            std::vector<PCSX::u8string> fileToOpen = m_importDataTypesFileDialog.selected();
+            if (!fileToOpen.empty()) {
+                import(reinterpret_cast<const char*>(fileToOpen[0].c_str()), ImportType::DataTypes);
+            }
+        }
+    }
+
+    bool showImportFunctionsFileDialog = false;
+    if (m_functions.empty()) {
+        ImGui::TextUnformatted(
+            "Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a "
+            "redux_funcs.txt file in its folder, or from any text file where each line specifies the function address, "
+            "name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples whose "
+            "elements are separated by commas. As an example:\n");
+        gui->useMonoFont();
+        ImGui::TextUnformatted("800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n");
+        ImGui::PopFont();
+        ImGui::TextUnformatted("Arrays and pointers are specified as for data types.\n");
+        showImportFunctionsFileDialog = ImGui::Button(_("Import functions"));
+        if (showImportFunctionsFileDialog) {
+            m_importFunctionsFileDialog.openDialog();
+        }
+        if (m_importFunctionsFileDialog.draw()) {
+            std::vector<PCSX::u8string> fileToOpen = m_importFunctionsFileDialog.selected();
+            if (!fileToOpen.empty()) {
+                import(reinterpret_cast<const char*>(fileToOpen[0].c_str()), ImportType::Functions);
+            }
+        }
+    }
+
+    if (m_structs.empty() || m_functions.empty()) {
+        ImGui::End();
+        return;
+    }
+
     uint8_t* const memData = g_emulator->m_mem->m_psxM;
     const uint32_t memSize = 1024 * 1024 * (g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
     constexpr uint32_t memBase = 0x80000000;
@@ -575,180 +615,6 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                                             ImGuiTableFlags_RowBg | ImGuiTableFlags_NoBordersInBody;
 
     if (ImGui::BeginTabBar(_("TypedDebuggerTabBar"))) {
-        if (ImGui::BeginTabItem(_("Functions"))) {
-            if (ImGui::Button(_("Clear log"))) {
-                m_displayedFunctionData.clear();
-            }
-            if (m_toggledFunctions.size() > 0) {
-                ImGui::SameLine();
-                if (ImGui::Button(_("Restore disabled functions"))) {
-                    for (const auto& function : m_toggledFunctions) {
-                        const auto functionAddress = function.first;
-                        const auto& instructionsToRestore = function.second;
-                        memcpy(memData + functionAddress - memBase, instructionsToRestore.data(), 8);
-                    }
-                    m_toggledFunctions.clear();
-                }
-            }
-
-            gui->useMonoFont();
-            ImVec2 outerSize{0.f, TEXT_BASE_HEIGHT * 30.f};
-            if (ImGui::BeginTable(_("FunctionBreakpoints"), 5, treeTableFlags, outerSize)) {
-                ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 40.0f);
-                ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 30.0f);
-                ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 10.0f);
-                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 50.0f);
-                ImGui::TableSetupColumn(_("Breakpoints"), ImGuiTableColumnFlags_NoHide);
-                ImGui::TableHeadersRow();
-
-                for (auto& functionData : m_displayedFunctionData) {
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();  // Name.
-                    const std::string nameColumnString =
-                        fmt::format(f_("{}\t(called from {}\t@ {:#x})"), functionData.functionName,
-                                    functionData.calleeName, functionData.calleeAddress);
-                    ImGui::TextUnformatted(nameColumnString.c_str());
-                    ImGui::TableNextColumn();  // Type.
-                    ImGui::TableNextColumn();  // Size.
-                    ImGui::TableNextColumn();  // Value.
-                    ImGui::TableNextColumn();  // Breakpoints.
-                    for (auto& argData : functionData.argData) {
-                        if (auto* addressNodeTuple = std::get_if<AddressNodeTuple>(&argData)) {
-                            displayNode(&addressNodeTuple->node, addressNodeTuple->address, false,
-                                        addressNodeTuple->addressOfPointer);
-                        } else if (auto* registerValue = std::get_if<RegisterValue>(&argData)) {
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();  // Name.
-                            ImGui::TreeNodeEx(registerValue->name.c_str(), ImGuiTreeNodeFlags_Leaf |
-                                                                               ImGuiTreeNodeFlags_Bullet |
-                                                                               ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                                                               ImGuiTreeNodeFlags_SpanFullWidth);
-                            ImGui::TableNextColumn();  // Type.
-                            ImGui::TextUnformatted(registerValue->type.c_str());
-                            ImGui::TableNextColumn();  // Size.
-                            ImGui::Text("%zu", registerValue->size);
-                            ImGui::TableNextColumn();  // Value.
-                            printValue(registerValue->type.c_str(), &registerValue->value, false);
-                            ImGui::TableNextColumn();  // Breakpoints.
-                        } else {
-                            assert(false);
-                        }
-                    }
-                    ImGui::Separator();
-                }
-                ImGui::EndTable();
-            }
-            ImGui::PopFont();
-
-            static ImGuiTableFlags functionTableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
-                                                        ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
-                                                        ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
-                                                        ImGuiTableFlags_Hideable;
-
-            gui->useMonoFont();
-            if (ImGui::BeginTable(_("Functions"), 4, functionTableFlags)) {
-                ImGui::TableSetupColumn(_("Address"));
-                ImGui::TableSetupColumn(_("Name"));
-                ImGui::TableSetupColumn(_("Breakpoints"));
-                ImGui::TableSetupColumn(_("Toggle"));
-                ImGui::TableHeadersRow();
-
-                ImGuiListClipper clipper;
-                clipper.Begin(m_addresses.size());
-                while (clipper.Step()) {
-                    for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
-                        const auto currentAddress = m_addresses[row];
-
-                        ImGui::TableNextRow();
-                        ImGui::TableSetColumnIndex(0);
-                        ImGui::Text("0x%2x", currentAddress);
-                        ImGui::TableSetColumnIndex(1);
-                        ImGui::Text("%s", m_functions[currentAddress].name.c_str());
-                        ImGui::TableSetColumnIndex(2);
-                        auto breakpointButtonName = fmt::format(f_("Add breakpoint##{}"), row);
-                        PCSX::Debug::BreakpointInvoker invoker = [this, memBase, memData, memSize, currentAddress](
-                                                                     const PCSX::Debug::Breakpoint* self,
-                                                                     uint32_t address, unsigned width,
-                                                                     const char* cause) {
-                            address += memBase;
-                            const auto& func = m_functions[address];
-
-                            FunctionBreakpointData bpData;
-                            bpData.functionName = func.name;
-
-                            // Log arguments.
-                            const auto& regs = g_emulator->m_cpu->m_regs.GPR.n;
-                            for (int i = 0; i < std::min(size_t{4}, func.arguments.size()); ++i) {
-                                const auto& arg = func.arguments[i];
-                                uint32_t reg_value = 0;
-                                switch (i) {
-                                    case 0:
-                                        reg_value = regs.a0;
-                                        break;
-                                    case 1:
-                                        reg_value = regs.a1;
-                                        break;
-                                    case 2:
-                                        reg_value = regs.a2;
-                                        break;
-                                    case 3:
-                                        reg_value = regs.a3;
-                                        break;
-                                    default:
-                                        assert(false);
-                                }
-
-                                if (arg.type.back() == '*') {
-                                    WatchTreeNode argNode{arg.type, arg.name, arg.size};
-                                    populate(&argNode, m_structs);
-                                    bpData.argData.push_back(AddressNodeTuple{reg_value, false, argNode});
-                                } else {
-                                    bpData.argData.push_back(RegisterValue{reg_value, arg.type, arg.name, arg.size});
-                                }
-                            }
-
-                            const auto ra = g_emulator->m_cpu->m_regs.GPR.n.ra;
-                            std::string calleeName = getFunctionNameFromInstructionAddress(ra);
-                            if (calleeName.empty()) {
-                                calleeName = "overlay?";
-                            }
-                            bpData.calleeName = calleeName;
-                            bpData.calleeAddress = ra;
-
-                            m_displayedFunctionData.push_back(bpData);
-
-                            g_system->pause();
-                            return true;
-                        };
-                        if (ImGui::Button(breakpointButtonName.c_str())) {
-                            g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Exec, 4,
-                                                               _("Typed Debugger"), invoker);
-                        }
-                        ImGui::TableSetColumnIndex(3);
-                        const bool functionToggledOff = m_toggledFunctions.contains(currentAddress);
-                        auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), row)
-                                                                   : fmt::format(f_("Disable##{}"), row);
-                        if (ImGui::Button(toggleButtonName.c_str())) {
-                            auto* functionMem = memData + currentAddress - memBase;
-                            if (functionToggledOff) {
-                                memcpy(functionMem, m_toggledFunctions[currentAddress].data(), 8);
-                                m_toggledFunctions.erase(currentAddress);
-                            } else {
-                                uint8_t instructions[8];
-                                memcpy(instructions, functionMem, 8);
-                                m_toggledFunctions[currentAddress] = std::to_array(instructions);
-                                static constexpr uint8_t jr_ra[8] = {0x08, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x00};
-                                memcpy(functionMem, jr_ra, 8);
-                            }
-                        }
-                    }
-                }
-                ImGui::EndTable();
-            }
-            ImGui::PopFont();
-            ImGui::EndTabItem();
-        }
-
         if (ImGui::BeginTabItem(_("Watch"))) {
             ImGuiInputTextFlags textFlags = ImGuiInputTextFlags_CharsHexadecimal |
                                             ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll |
@@ -805,15 +671,24 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 }
                 m_watchBreakpoints.clear();
             }
-            if (m_toggledInstructions.size() > 0) {
+            if (m_watchBreakpoints.size() > 0) {
+                ImGui::SameLine();
+                if (ImGui::Button(_("Clear breakpoints"))) {
+                    for (const auto* bp : m_watchBreakpoints) {
+                        g_emulator->m_debug->removeBreakpoint(bp);
+                    }
+                    m_watchBreakpoints.clear();
+                }
+            }
+            if (m_disabledInstructions.size() > 0) {
                 ImGui::SameLine();
                 if (ImGui::Button(_("Restore disabled instructions"))) {
-                    for (const auto& instruction : m_toggledInstructions) {
+                    for (const auto& instruction : m_disabledInstructions) {
                         const auto instructionAddress = instruction.first;
                         const auto& instructions = instruction.second;
                         memcpy(memData + instructionAddress - memBase, instructions.data(), 4);
                     }
-                    m_toggledInstructions.clear();
+                    m_disabledInstructions.clear();
                 }
             }
 
@@ -832,6 +707,190 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                     displayNode(&addressNodePair.node, addressNodePair.address, true, addressNodePair.addressOfPointer);
                 }
 
+                ImGui::EndTable();
+            }
+            ImGui::PopFont();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem(_("Functions"))) {
+            if (ImGui::Button(_("Clear log"))) {
+                m_displayedFunctionData.clear();
+            }
+            if (m_functionBreakpoints.size() > 0) {
+                ImGui::SameLine();
+                if (ImGui::Button(_("Clear breakpoints"))) {
+                    for (const auto* bp : m_functionBreakpoints) {
+                        g_emulator->m_debug->removeBreakpoint(bp);
+                    }
+                    m_functionBreakpoints.clear();
+                }
+            }
+            if (m_disabledFunctions.size() > 0) {
+                ImGui::SameLine();
+                if (ImGui::Button(_("Restore disabled functions"))) {
+                    for (const auto& function : m_disabledFunctions) {
+                        const auto functionAddress = function.first;
+                        const auto& instructionsToRestore = function.second;
+                        memcpy(memData + functionAddress - memBase, instructionsToRestore.data(), 8);
+                    }
+                    m_disabledFunctions.clear();
+                }
+            }
+
+            gui->useMonoFont();
+            ImVec2 outerSize{0.f, TEXT_BASE_HEIGHT * 30.f};
+            if (ImGui::BeginTable(_("FunctionBreakpoints"), 5, treeTableFlags, outerSize)) {
+                ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 40.0f);
+                ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 30.0f);
+                ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 10.0f);
+                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 50.0f);
+                ImGui::TableSetupColumn(_("Breakpoints"), ImGuiTableColumnFlags_NoHide);
+                ImGui::TableHeadersRow();
+
+                for (auto& functionData : m_displayedFunctionData) {
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();  // Name.
+                    const std::string nameColumnString =
+                        fmt::format(f_("{}\t(called from {}\t@ {:#x})"), functionData.functionName,
+                                    functionData.callerName, functionData.callerAddress);
+                    ImGui::TextUnformatted(nameColumnString.c_str());
+                    ImGui::TableNextColumn();  // Type.
+                    ImGui::TableNextColumn();  // Size.
+                    ImGui::TableNextColumn();  // Value.
+                    ImGui::TableNextColumn();  // Breakpoints.
+                    for (auto& argData : functionData.argData) {
+                        if (auto* addressNodeTuple = std::get_if<AddressNodeTuple>(&argData)) {
+                            displayNode(&addressNodeTuple->node, addressNodeTuple->address, false,
+                                        addressNodeTuple->addressOfPointer);
+                        } else if (auto* registerValue = std::get_if<RegisterValue>(&argData)) {
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();  // Name.
+                            ImGui::TreeNodeEx(registerValue->name.c_str(), ImGuiTreeNodeFlags_Leaf |
+                                                                               ImGuiTreeNodeFlags_Bullet |
+                                                                               ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                                                               ImGuiTreeNodeFlags_SpanFullWidth);
+                            ImGui::TableNextColumn();  // Type.
+                            ImGui::TextUnformatted(registerValue->type.c_str());
+                            ImGui::TableNextColumn();  // Size.
+                            ImGui::Text("%zu", registerValue->size);
+                            ImGui::TableNextColumn();  // Value.
+                            printValue(registerValue->type.c_str(), &registerValue->value, false);
+                            ImGui::TableNextColumn();  // Breakpoints.
+                        } else {
+                            assert(false);
+                        }
+                    }
+                    ImGui::Separator();
+                }
+                ImGui::EndTable();
+            }
+            ImGui::PopFont();
+
+            static ImGuiTableFlags functionTableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
+                                                        ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
+                                                        ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
+                                                        ImGuiTableFlags_Hideable;
+
+            gui->useMonoFont();
+            if (ImGui::BeginTable(_("Functions"), 4, functionTableFlags)) {
+                ImGui::TableSetupColumn(_("Address"));
+                ImGui::TableSetupColumn(_("Name"));
+                ImGui::TableSetupColumn(_("Breakpoints"));
+                ImGui::TableSetupColumn(_("Toggle"));
+                ImGui::TableHeadersRow();
+
+                ImGuiListClipper clipper;
+                clipper.Begin(m_functionAddresses.size());
+                while (clipper.Step()) {
+                    for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
+                        const auto currentAddress = m_functionAddresses[row];
+
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("0x%2x", currentAddress);
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::Text("%s", m_functions[currentAddress].name.c_str());
+                        ImGui::TableSetColumnIndex(2);
+                        auto breakpointButtonName = fmt::format(f_("Add breakpoint##{}"), row);
+                        PCSX::Debug::BreakpointInvoker invoker = [this, memBase, memData, memSize, currentAddress](
+                                                                     const PCSX::Debug::Breakpoint* self,
+                                                                     uint32_t address, unsigned width,
+                                                                     const char* cause) {
+                            address += memBase;
+                            const auto& func = m_functions[address];
+
+                            FunctionBreakpointData bpData;
+                            bpData.functionName = func.name;
+
+                            // Log arguments.
+                            const auto& regs = g_emulator->m_cpu->m_regs.GPR.n;
+                            for (int i = 0; i < std::min(size_t{4}, func.arguments.size()); ++i) {
+                                const auto& arg = func.arguments[i];
+                                uint32_t reg_value = 0;
+                                switch (i) {
+                                    case 0:
+                                        reg_value = regs.a0;
+                                        break;
+                                    case 1:
+                                        reg_value = regs.a1;
+                                        break;
+                                    case 2:
+                                        reg_value = regs.a2;
+                                        break;
+                                    case 3:
+                                        reg_value = regs.a3;
+                                        break;
+                                    default:
+                                        assert(false);
+                                }
+
+                                if (arg.type.back() == '*') {
+                                    WatchTreeNode argNode{arg.type, arg.name, arg.size};
+                                    populate(&argNode, m_structs);
+                                    bpData.argData.push_back(AddressNodeTuple{reg_value, false, argNode});
+                                } else {
+                                    bpData.argData.push_back(RegisterValue{reg_value, arg.type, arg.name, arg.size});
+                                }
+                            }
+
+                            const auto ra = g_emulator->m_cpu->m_regs.GPR.n.ra;
+                            std::string callerName = getFunctionNameFromInstructionAddress(ra);
+                            if (callerName.empty()) {
+                                callerName = "overlay?";
+                            }
+                            bpData.callerName = callerName;
+                            bpData.callerAddress = ra;
+
+                            m_displayedFunctionData.push_back(bpData);
+
+                            g_system->pause();
+                            return true;
+                        };
+                        if (ImGui::Button(breakpointButtonName.c_str())) {
+                            auto* newBreakpoint = g_emulator->m_debug->addBreakpoint(
+                                currentAddress, Debug::BreakpointType::Exec, 4, _("Typed Debugger"), invoker);
+                            m_functionBreakpoints.push_back(newBreakpoint);
+                        }
+                        ImGui::TableSetColumnIndex(3);
+                        const bool functionToggledOff = m_disabledFunctions.contains(currentAddress);
+                        auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), row)
+                                                                   : fmt::format(f_("Disable##{}"), row);
+                        if (ImGui::Button(toggleButtonName.c_str())) {
+                            auto* functionMem = memData + currentAddress - memBase;
+                            if (functionToggledOff) {
+                                memcpy(functionMem, m_disabledFunctions[currentAddress].data(), 8);
+                                m_disabledFunctions.erase(currentAddress);
+                            } else {
+                                uint8_t instructions[8];
+                                memcpy(instructions, functionMem, 8);
+                                m_disabledFunctions[currentAddress] = std::to_array(instructions);
+                                static constexpr uint8_t jr_ra[8] = {0x08, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x00};
+                                memcpy(functionMem, jr_ra, 8);
+                            }
+                        }
+                    }
+                }
                 ImGui::EndTable();
             }
             ImGui::PopFont();

@@ -26,22 +26,20 @@
 #include <vector>
 
 #include "core/debug.h"
+#include "gui/widgets/filedialog.h"
 #include "imgui.h"
 #include "support/eventbus.h"
 
-struct GhidraData {
+// Represents the type-name-size tuple for either a struct field or a function argument.
+struct FieldOrArgumentData {
     std::string type;
     std::string name;
     size_t size;
 };
 
-struct GhidraFunction {
-    std::string name;
-    std::vector<GhidraData> arguments;
-};
-
+// Information about a read/write instruction, including the name of the function from which it was emitted.
 struct ReadWriteLogEntry {
-    enum class AccessType { Read = 0x1, Write = 0x2 };
+    enum class AccessType { Read, Write };
 
     uint32_t instructionAddress;
     std::string functionName;
@@ -64,6 +62,12 @@ struct AddressNodeTuple {
     WatchTreeNode node;
 };
 
+struct DebuggerFunction {
+    std::string name;
+    std::vector<FieldOrArgumentData> arguments;
+};
+
+// Represents a value stored in a register, as opposed to one stored at an address in memory.
 struct RegisterValue {
     uint32_t value;
     std::string type;
@@ -81,38 +85,59 @@ class TypedDebugger {
     bool& m_show;
     TypedDebugger(bool& show);
 
+    /**
+     * Data importation.
+     */
+
+    Widgets::FileDialog m_importDataTypesFileDialog = {[]() { return _("Import data types"); }};
+    Widgets::FileDialog m_importFunctionsFileDialog = {[]() { return _("Import functions"); }};
     enum class ImportType { DataTypes, Functions };
     void import(const char* filename, const ImportType& importType);
 
-    // Functions.
-    // Redundancy so we can have both in-order traversal and fast O(1) lookup.
-    std::vector<uint32_t> m_addresses;
-    std::unordered_map<uint32_t, GhidraFunction> m_functions;
-    std::unordered_map<uint32_t, std::array<uint8_t, 8>> m_toggledFunctions;
-    std::unordered_map<uint32_t, std::array<uint8_t, 4>> m_toggledInstructions;
+    /**
+     * Data types.
+     */
 
-    // Structures.
-    using structFields = std::vector<GhidraData>;
-    std::unordered_map<std::string, structFields> m_structs;
+    using StructFields = std::vector<FieldOrArgumentData>;
+    std::unordered_map<std::string, StructFields> m_structs;
     std::vector<std::string> m_typeNames;
 
+    /**
+     * Watch.
+     */
+
     std::vector<AddressNodeTuple> m_displayedWatchData;
+    std::vector<PCSX::Debug::Breakpoint*> m_watchBreakpoints;
+    std::unordered_map<uint32_t, std::array<uint8_t, 4>> m_disabledInstructions;
     bool m_hex = false;
     uint32_t m_newValue = 0;
+
+    /**
+     * Functions.
+     */
+
+    std::vector<uint32_t> m_functionAddresses;
+    std::unordered_map<uint32_t, DebuggerFunction> m_functions;
+
+    struct FunctionBreakpointData {
+        std::string functionName;
+        std::string callerName;
+        uint32_t callerAddress;
+        using ArgumentData = std::variant<AddressNodeTuple, RegisterValue>;
+        std::vector<ArgumentData> argData;
+    };
+    std::vector<FunctionBreakpointData> m_displayedFunctionData;
+    std::vector<PCSX::Debug::Breakpoint*> m_functionBreakpoints;
+    std::unordered_map<uint32_t, std::array<uint8_t, 8>> m_disabledFunctions;
 
     // Returns the name of the function from which the instruction at the given address was emitted if found, an empty
     // string otherwise.
     std::string getFunctionNameFromInstructionAddress(uint32_t address);
     std::unordered_map<uint32_t, std::string> m_instructionAddressToFunctionMap;
 
-    struct FunctionBreakpointData {
-        std::string functionName;
-        std::string calleeName;
-        uint32_t calleeAddress;
-        using ArgumentData = std::variant<AddressNodeTuple, RegisterValue>;
-        std::vector<ArgumentData> argData;
-    };
-    std::vector<FunctionBreakpointData> m_displayedFunctionData;
+    /**
+     * Display.
+     */
 
     // The last parameter, addressOfPointer, is used for pointer nodes:
     // - if it is true, then currentAddress is the address of the pointer that *stores* the pointee address;
@@ -121,7 +146,10 @@ class TypedDebugger {
     void printValue(const char* type, void* address, bool editable);
     void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address, uint8_t* memData,
                                   const uint32_t memBase);
-    std::vector<PCSX::Debug::Breakpoint*> m_watchBreakpoints;
+
+    /**
+     * Event handling.
+     */
 
     EventBus::Listener m_listener;
 };
