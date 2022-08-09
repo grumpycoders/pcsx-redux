@@ -120,6 +120,7 @@ class TypedDebugger {
     std::unordered_map<uint32_t, DebuggerFunction> m_functions;
 
     struct FunctionBreakpointData {
+        uint32_t id;
         std::string functionName;
         std::string callerName;
         uint32_t callerAddress;
@@ -142,7 +143,7 @@ class TypedDebugger {
     // The last parameter, addressOfPointer, is used for pointer nodes:
     // - if it is true, then currentAddress is the address of the pointer that *stores* the pointee address;
     // - if not, then currentAddress *is* the pointee address.
-    void displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView, bool addressOfPointer);
+    void displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView, bool addressOfPointer, uint32_t extraImGuiId = 0);
     void printValue(const char* type, void* address, bool editable);
     void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address, uint8_t* memData,
                                   const uint32_t memBase);

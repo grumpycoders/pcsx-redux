@@ -45,10 +45,9 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
 
         std::stringstream ss(line);
         std::string s;
-        int line_parts_counter = 0;
+        int linePartsCounter = 0;
         while (std::getline(ss, s, ';')) {
-            // Line.
-            if (line_parts_counter == 0) {
+            if (linePartsCounter == 0) {
                 switch (importType) {
                     case ImportType::DataTypes:
                         // @todo: implement robust typedef handling.
@@ -56,22 +55,22 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
                             s.erase(0, 1);
                         }
                         name = s;
-                        ++line_parts_counter;
+                        ++linePartsCounter;
                         continue;
                         break;
                     case ImportType::Functions:
                         address = std::stoul(s, nullptr, 16);
                         m_functionAddresses.push_back(address);
-                        ++line_parts_counter;
+                        ++linePartsCounter;
                         continue;
                         break;
                     default:
                         break;
                 }
             }
-            if (importType == ImportType::Functions && line_parts_counter == 1) {
+            if (importType == ImportType::Functions && linePartsCounter == 1) {
                 func.name = s;
-                ++line_parts_counter;
+                ++linePartsCounter;
                 continue;
             }
 
@@ -91,9 +90,9 @@ void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType
                 case ImportType::Functions:
                     func.arguments.push_back(data);
 
-                    ++line_parts_counter;
-                    // Address + name + 4 args = 6.
-                    if (line_parts_counter == 6) {
+                    ++linePartsCounter;
+                    // Address + name + 4 arguments = 6.
+                    if (linePartsCounter == 6) {
                         break;
                     }
                     break;
@@ -143,16 +142,6 @@ PCSX::Widgets::TypedDebugger::TypedDebugger(bool& show) : m_show(show), m_listen
         m_functionBreakpoints.clear();
         m_disabledFunctions.clear();
     });
-    m_listener.listen<PCSX::Events::ExecutionFlow::SaveStateLoaded>([this](const auto& event) {
-        for (const auto* bp : m_watchBreakpoints) {
-            g_emulator->m_debug->removeBreakpoint(bp);
-        }
-        m_watchBreakpoints.clear();
-        for (const auto* bp : m_functionBreakpoints) {
-            g_emulator->m_debug->removeBreakpoint(bp);
-        }
-        m_functionBreakpoints.clear();
-    });
 }
 
 // Populates a node according to its type.
@@ -160,21 +149,21 @@ void populate(WatchTreeNode* node,
               std::unordered_map<std::string, PCSX::Widgets::TypedDebugger::StructFields>& structs_info) {
     const auto type = node->type;
 
-    const std::regex array_regex(R"((.*)\[(\d+)\])");
+    const std::regex arrayRegex(R"((.*)\[(\d+)\])");
     std::smatch matches;
-    if (std::regex_match(type, matches, array_regex)) {
+    if (std::regex_match(type, matches, arrayRegex)) {
         const auto type = matches[1].str();
-        const auto num_children = std::stoul(matches[2].str());
-        for (size_t i = 0; i < num_children; ++i) {
+        const auto numChildren = std::stoul(matches[2].str());
+        for (size_t i = 0; i < numChildren; ++i) {
             WatchTreeNode newNode{type, std::string(node->name + "[" + std::to_string(i) + "]"),
-                                  node->size / num_children};
+                                  node->size / numChildren};
             node->children.push_back(newNode);
             populate(&node->children.back(), structs_info);
         }
     } else if (structs_info.contains(type)) {
-        size_t num_children = structs_info[type].size();
+        const size_t numChildren = structs_info[type].size();
 
-        for (size_t i = 0; i < num_children; ++i) {
+        for (size_t i = 0; i < numChildren; ++i) {
             const auto& field = structs_info[type][i];
             WatchTreeNode newNode{field.type, field.name, field.size};
             node->children.push_back(newNode);
@@ -280,7 +269,7 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
         ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Breakpoints.
         if (open) {
-            uint32_t accumulated_offset = 0;
+            uint32_t accumulatedOffset = 0;
             for (const auto& logEntry : node->logEntries) {
                 const auto instructionAddress = logEntry.instructionAddress;
 
@@ -331,13 +320,13 @@ std::string PCSX::Widgets::TypedDebugger::getFunctionNameFromInstructionAddress(
 }
 
 void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView,
-                                               bool addressOfPointer) {
+                                               bool addressOfPointer, uint32_t extraImGuiId) {
     uint32_t memBase;
     uint8_t* memData = getMemoryPointerFor(currentAddress, memBase);
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();  // Name.
-    std::string nameColumnString = fmt::format(f_("{}\t@ {:#x}"), node->name, currentAddress);
+    std::string nameColumnString = fmt::format(f_("{}\t@ {:#x}##{}"), node->name, currentAddress, extraImGuiId);
 
     const char* nodeType = node->type.c_str();
     const bool isPointer = node->type.back() == '*';
@@ -375,16 +364,16 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         if (watchView) {
             displayBreakpointOptions(node, currentAddress, memData, memBase);
         } else if (isInRAM(currentAddress)) {
-            auto addToWatchButtonName = fmt::format(f_("Add to Watch tab##{}"), currentAddress);
+            auto addToWatchButtonName = fmt::format(f_("Add to Watch tab##{}{}"), currentAddress, extraImGuiId);
             if (ImGui::Button(addToWatchButtonName.c_str())) {
                 m_displayedWatchData.push_back({currentAddress, addressOfPointer, *node});
             }
         }
         if (open) {
-            uint32_t accumulated_offset = 0;
+            uint32_t accumulatedOffset = 0;
             for (int child_n = 0; child_n < node->children.size(); child_n++) {
-                displayNode(&node->children[child_n], startAddress + accumulated_offset, watchView, true);
-                accumulated_offset += node->children[child_n].size;
+                displayNode(&node->children[child_n], startAddress + accumulatedOffset, watchView, true);
+                accumulatedOffset += node->children[child_n].size;
             }
             ImGui::TreePop();
         }
@@ -402,7 +391,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TableNextColumn();  // Value.
             ImGui::Text("0x%2x", startAddress);
             ImGui::SameLine();
-            const auto showMemButtonName = fmt::format(f_("Show in memory editor##{}"), currentAddress);
+            const auto showMemButtonName = fmt::format(f_("Show in memory editor##{}{}"), currentAddress, extraImGuiId);
             if (ImGui::Button(showMemButtonName.c_str())) {
                 const uint32_t editorAddress = startAddress - memBase;
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
@@ -424,7 +413,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             if (pointsToString) {
                 ImGui::Text("%s", str);
                 ImGui::SameLine();
-                const auto showMemButtonName = fmt::format(f_("Show in memory editor##{}"), currentAddress);
+                const auto showMemButtonName =
+                    fmt::format(f_("Show in memory editor##{}{}"), currentAddress, extraImGuiId);
                 if (ImGui::Button(showMemButtonName.c_str())) {
                     const uint32_t editorAddress = startAddress - memBase;
                     g_system->m_eventBus->signal(
@@ -452,9 +442,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::Text("%zu", node->size);
         ImGui::TableNextColumn();  // Value.
         const auto basic_offset = startAddress - memBase;
-        uint8_t* mem_value = memData + basic_offset;
-        const auto* node_type = node->type.c_str();
-        printValue(node_type, mem_value, true);
+        uint8_t* memValue = memData + basic_offset;
+        const auto* nodeType = node->type.c_str();
+        printValue(nodeType, memValue, true);
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
             displayBreakpointOptions(node, currentAddress, memData, memBase);
@@ -464,73 +454,73 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
 
 void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address, bool editable) {
     static char s[64];
-    static int8_t step = 1;
-    static int8_t step_fast = 100;
+    static const int8_t step = 1;
+    static const int8_t stepFast = 100;
     const auto signedFormat = m_hex ? "%x" : "%d";
     const auto unsignedFormat = m_hex ? "%x" : "%u";
     if (equals(type, "char")) {
-        int8_t field_value = 0;
-        memcpy(&field_value, address, 1);
-        sprintf(s, "%d (0x%2x) \n", field_value, field_value);
+        int8_t fieldValue = 0;
+        memcpy(&fieldValue, address, 1);
+        sprintf(s, "%d (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
         if (editable &&
             ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S8, &m_newValue, &step,
-                               &step_fast, signedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                               &stepFast, signedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
             memcpy(address, &m_newValue, 1);
             m_newValue = 0;
         }
     } else if (equals(type, "uchar") || equals(type, "u_char")) {
-        uint8_t field_value = 0;
-        memcpy(&field_value, address, 1);
-        sprintf(s, "%u (0x%2x) \n", field_value, field_value);
+        uint8_t fieldValue = 0;
+        memcpy(&fieldValue, address, 1);
+        sprintf(s, "%u (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
         if (editable &&
             ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U8, &m_newValue, &step,
-                               &step_fast, unsignedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                               &stepFast, unsignedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
             memcpy(address, &m_newValue, 1);
             m_newValue = 0;
         }
     } else if (equals(type, "short")) {
-        int16_t field_value = 0;
-        memcpy(&field_value, address, 2);
-        sprintf(s, "%hi (0x%2x) \n", field_value, field_value);
+        int16_t fieldValue = 0;
+        memcpy(&fieldValue, address, 2);
+        sprintf(s, "%hi (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
         if (editable &&
             ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S16, &m_newValue, &step,
-                               &step_fast, signedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                               &stepFast, signedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
             memcpy(address, &m_newValue, 2);
             m_newValue = 0;
         }
     } else if (equals(type, "ushort") || equals(type, "u_short")) {
-        uint16_t field_value = 0;
-        memcpy(&field_value, address, 2);
-        sprintf(s, "%hu (0x%2x) \n", field_value, field_value);
+        uint16_t fieldValue = 0;
+        memcpy(&fieldValue, address, 2);
+        sprintf(s, "%hu (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
         if (editable &&
             ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U16, &m_newValue, &step,
-                               &step_fast, unsignedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                               &stepFast, unsignedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
             memcpy(address, &m_newValue, 2);
             m_newValue = 0;
         }
     } else if (equals(type, "int") || equals(type, "long")) {
-        int32_t field_value = 0;
-        memcpy(&field_value, address, 4);
-        sprintf(s, "%i (0x%2x) \n", field_value, field_value);
+        int32_t fieldValue = 0;
+        memcpy(&fieldValue, address, 4);
+        sprintf(s, "%i (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
         if (editable &&
             ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S32, &m_newValue, &step,
-                               &step_fast, signedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                               &stepFast, signedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
             memcpy(address, &m_newValue, 4);
             m_newValue = 0;
         }
     } else if (equals(type, "uint") || equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long")) {
-        uint32_t field_value = 0;
-        memcpy(&field_value, address, 4);
-        sprintf(s, "%u (0x%2x) \n", field_value, field_value);
+        uint32_t fieldValue = 0;
+        memcpy(&fieldValue, address, 4);
+        sprintf(s, "%u (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
         if (editable &&
             ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U32, &m_newValue, &step,
-                               &step_fast, unsignedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                               &stepFast, unsignedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
             memcpy(address, &m_newValue, 4);
             m_newValue = 0;
         }
@@ -547,11 +537,11 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
     bool showImportDataTypesFileDialog = false;
     if (m_structs.empty()) {
-        ImGui::TextUnformatted(
+        ImGui::TextWrapped(
             "Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a "
             "redux_data_types.txt file in its folder, or from any text file where each line specifies the data type's "
             "name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose elements "
-            "are separated by commas. As an example:\n");
+            "are separated by commas. For example:\n");
         gui->useMonoFont();
         ImGui::TextUnformatted("CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n");
         ImGui::PopFont();
@@ -577,11 +567,11 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
     bool showImportFunctionsFileDialog = false;
     if (m_functions.empty()) {
-        ImGui::TextUnformatted(
+        ImGui::TextWrapped(
             "Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a "
             "redux_funcs.txt file in its folder, or from any text file where each line specifies the function address, "
             "name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples whose "
-            "elements are separated by commas. As an example:\n");
+            "elements are separated by commas. For example:\n");
         gui->useMonoFont();
         ImGui::TextUnformatted("800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n");
         ImGui::PopFont();
@@ -620,10 +610,10 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                                             ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll |
                                             ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CallbackAlways;
 
-            static std::string DataInputBuf;
-            ImGui::InputText("Address##data", &DataInputBuf, textFlags);
-            unsigned int data_input_value = 0;
-            sscanf(DataInputBuf.c_str(), "%X", &data_input_value);
+            static std::string addressInputBuffer;
+            ImGui::InputText("Address##data", &addressInputBuffer, textFlags);
+            unsigned int addressInputValue = 0;
+            sscanf(addressInputBuffer.c_str(), "%X", &addressInputValue);
 
             static const char* type = nullptr;
             if (ImGui::BeginCombo("Type##combo", type)) {
@@ -642,26 +632,26 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
             static bool createArray;
             ImGui::Checkbox("Array", &createArray);
 
-            static int number = 1;
+            static int numberToCreate = 1;
             if (createArray) {
                 ImGui::SameLine();
-                ImGui::InputInt("Number", &number);
+                ImGui::InputInt("Number", &numberToCreate);
             } else {
-                number = 1;
+                numberToCreate = 1;
             }
 
             ImGui::SameLine();
-            if (number > 0 && ImGui::Button("Add") && m_structs.contains(type)) {
-                WatchTreeNode root_node;
-                const auto inputType = createArray ? fmt::format(f_("{}[{}]"), type, number) : type;
-                root_node.type = inputType;
-                root_node.name = inputType;
+            if (numberToCreate > 0 && ImGui::Button("Add") && m_structs.contains(type)) {
+                WatchTreeNode rootNode;
+                const auto inputType = createArray ? fmt::format(f_("{}[{}]"), type, numberToCreate) : type;
+                rootNode.type = inputType;
+                rootNode.name = inputType;
                 for (const auto& field : m_structs[type]) {
-                    root_node.size += field.size;
+                    rootNode.size += field.size;
                 }
-                root_node.size *= number;
-                populate(&root_node, m_structs);
-                m_displayedWatchData.push_back({data_input_value, true, root_node});
+                rootNode.size *= numberToCreate;
+                populate(&rootNode, m_structs);
+                m_displayedWatchData.push_back({addressInputValue, true, rootNode});
             }
             ImGui::SameLine();
             if (ImGui::Button(_("Clear"))) {
@@ -752,8 +742,8 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn();  // Name.
                     const std::string nameColumnString =
-                        fmt::format(f_("{}\t(called from {}\t@ {:#x})"), functionData.functionName,
-                                    functionData.callerName, functionData.callerAddress);
+                        fmt::format(f_("{}\t(called from {}\t@ {:#x})##{}"), functionData.functionName,
+                                    functionData.callerName, functionData.callerAddress, functionData.id);
                     ImGui::TextUnformatted(nameColumnString.c_str());
                     ImGui::TableNextColumn();  // Type.
                     ImGui::TableNextColumn();  // Size.
@@ -762,7 +752,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                     for (auto& argData : functionData.argData) {
                         if (auto* addressNodeTuple = std::get_if<AddressNodeTuple>(&argData)) {
                             displayNode(&addressNodeTuple->node, addressNodeTuple->address, false,
-                                        addressNodeTuple->addressOfPointer);
+                                        addressNodeTuple->addressOfPointer, functionData.id);
                         } else if (auto* registerValue = std::get_if<RegisterValue>(&argData)) {
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();  // Name.
@@ -821,10 +811,12 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                             const auto& func = m_functions[address];
 
                             FunctionBreakpointData bpData;
+                            static uint32_t id = 0;
+                            bpData.id = id++;
                             bpData.functionName = func.name;
 
-                            // Log arguments.
                             const auto& regs = g_emulator->m_cpu->m_regs.GPR.n;
+                            // @todo: handle arguments passed on the stack.
                             for (int i = 0; i < std::min(size_t{4}, func.arguments.size()); ++i) {
                                 const auto& arg = func.arguments[i];
                                 uint32_t reg_value = 0;
