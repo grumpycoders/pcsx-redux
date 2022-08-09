@@ -89,7 +89,7 @@ hello.cpp \
 CXXFLAGS = -std=c++20
 
 # This will activate the PSYQo library and the rest of the toolchain.
-include third_party/nugget/psyqo.mk
+include third_party/nugget/psyqo/psyqo.mk
 ```
 
 Once done, you can simply run `make` (or use the `dockermake` script) in your project root to create the application. This should create the binary called `hello.ps-exe`, which you can then run in the emulator of your choice, or on the real hardware using for example [unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) and [nops](https://github.com/JonathanDotCel/NOTPSXSerial).
