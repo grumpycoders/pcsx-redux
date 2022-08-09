@@ -177,7 +177,29 @@ void populate(WatchTreeNode* node,
     }
 }
 
-bool isInRAM(uint32_t address, uint32_t memSize) { return address >= 0x80000000 && address <= 0x80000000 + memSize; }
+bool isInRAM(uint32_t address) {
+    uint32_t memBase = 0x80000000;
+    uint32_t memSize = 1024 * 1024 * (PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
+    return address >= memBase && address < memBase + memSize;
+}
+
+// Returns the appropriate pointer if the given address is in RAM or in the scratchpad, in which case the memory base
+// address is stored in outMemBase; otherwise, a null pointer is returned and no value is assigned to MemBase.
+uint8_t* getMemoryPointerFor(uint32_t address, uint32_t& outMemBase) {
+    if (isInRAM(address)) {
+        outMemBase = 0x80000000;
+        return PCSX::g_emulator->m_mem->m_psxM;
+    }
+
+    const uint32_t memBase = 0x1f800000;
+    const uint32_t memSize = 1024;
+    if (address >= memBase && address < memBase + memSize) {
+        outMemBase = memBase;
+        return PCSX::g_emulator->m_mem->m_psxH;
+    }
+
+    return nullptr;
+}
 
 void printNodeDebugInformation(WatchTreeNode* node) {
     printf("node->name: %s\n", node->name.c_str());
@@ -319,9 +341,10 @@ std::string PCSX::Widgets::TypedDebugger::getFunctionNameFromInstructionAddress(
     return std::string();
 }
 
-void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32_t currentAddress,
-                                               const uint32_t memBase, uint8_t* memData, uint32_t memSize,
-                                               bool watchView, bool addressOfPointer) {
+void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView,
+                                               bool addressOfPointer) {
+    uint32_t memBase;
+    uint8_t* memData = getMemoryPointerFor(currentAddress, memBase);
     printNodeDebugInformation(node);
     printf("currentAddress: 0x%2x\n", currentAddress);
 
@@ -332,14 +355,14 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
     const char* nodeType = node->type.c_str();
     const bool isPointer = node->type.back() == '*';
     uint32_t startAddress = currentAddress;
-    if (isPointer && !addressOfPointer && isInRAM(currentAddress, memSize)) {
+    if (isPointer && addressOfPointer && memData) {
         const uint32_t offset = currentAddress - memBase;
         memcpy(&startAddress, memData + offset, 4);
     }
+    memData = getMemoryPointerFor(startAddress, memBase);
 
     if (node->children.size() > 0) {  // If this is a struct, array or already populated pointer, display children.
-        const bool isExpandable =
-            (!isPointer || isInRAM(startAddress, memSize));  // Don't allow expanding a null pointer.
+        const bool isExpandable = (!isPointer || memData);  // Don't allow expanding a null pointer.
         const auto additionalTreeFlags =
             isExpandable ? ImGuiTreeNodeFlags_None
                          : (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
@@ -364,7 +387,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
             displayBreakpointOptions(node, currentAddress, memData, memBase);
-        } else {
+        } else if (isInRAM(currentAddress)) {
             auto addToWatchButtonName = fmt::format(f_("Add to Watch tab##{}"), currentAddress);
             if (ImGui::Button(addToWatchButtonName.c_str())) {
                 m_displayedWatchData.push_back({currentAddress, addressOfPointer, *node});
@@ -373,8 +396,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         if (open) {
             uint32_t accumulated_offset = 0;
             for (int child_n = 0; child_n < node->children.size(); child_n++) {
-                displayNode(&node->children[child_n], startAddress + accumulated_offset, memBase, memData, memSize,
-                            watchView, addressOfPointer);
+                displayNode(&node->children[child_n], startAddress + accumulated_offset, watchView, true);
                 accumulated_offset += node->children[child_n].size;
             }
             ImGui::TreePop();
@@ -405,7 +427,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             return;
         }
         if (equals(nodeType, "char *")) {
-            const bool pointsToString = isInRAM(startAddress, memSize);
+            const bool pointsToString = (memData != nullptr);
             auto* str = pointsToString ? (char*)memData + startAddress - memBase : nullptr;
             const auto strLength = pointsToString ? strlen(str) + 1 : 0;
             ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
@@ -432,14 +454,6 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             }
             return;
         }
-        if (!isInRAM(currentAddress, memSize)) {
-            ImGui::TableNextColumn();  // Type.
-            ImGui::TextUnformatted("@todo: display scratchpad values.");
-            ImGui::TableNextColumn();  // Size.
-            ImGui::TableNextColumn();  // Value.
-            ImGui::TableNextColumn();  // Breakpoints.
-            return;
-        }
         const auto pointerType = node->type;
         const auto pointedToType = node->type.substr(0, node->type.size() - 2);
         node->type = pointedToType;
@@ -449,20 +463,12 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
                                                         ImGuiTreeNodeFlags_NoTreePushOnOpen |
                                                         ImGuiTreeNodeFlags_SpanFullWidth);
-        if (!isInRAM(currentAddress, memSize)) {
-            ImGui::TableNextColumn();  // Type.
-            ImGui::TextUnformatted("@todo: display register values.");
-            ImGui::TableNextColumn();  // Size.
-            ImGui::TableNextColumn();  // Value.
-            ImGui::TableNextColumn();  // Breakpoints.
-            return;
-        }
         ImGui::TableNextColumn();  // Type.
         ImGui::TextUnformatted(node->type.c_str());
         ImGui::TableNextColumn();  // Size.
         ImGui::Text("%zu", node->size);
         ImGui::TableNextColumn();  // Value.
-        const auto basic_offset = currentAddress - memBase;
+        const auto basic_offset = startAddress - memBase;
         uint8_t* mem_value = memData + basic_offset;
         const auto* node_type = node->type.c_str();
         printValue(node_type, mem_value, true);
@@ -573,13 +579,16 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
             if (ImGui::Button(_("Clear log"))) {
                 m_displayedFunctionData.clear();
             }
-            if (m_toggledFunctions.size() > 0 && ImGui::Button(_("Restore disabled functions"))) {
-                for (const auto& function : m_toggledFunctions) {
-                    const auto functionAddress = function.first;
-                    const auto& instructionsToRestore = function.second;
-                    memcpy(memData + functionAddress - memBase, instructionsToRestore.data(), 8);
+            if (m_toggledFunctions.size() > 0) {
+                ImGui::SameLine();
+                if (ImGui::Button(_("Restore disabled functions"))) {
+                    for (const auto& function : m_toggledFunctions) {
+                        const auto functionAddress = function.first;
+                        const auto& instructionsToRestore = function.second;
+                        memcpy(memData + functionAddress - memBase, instructionsToRestore.data(), 8);
+                    }
+                    m_toggledFunctions.clear();
                 }
-                m_toggledFunctions.clear();
             }
 
             gui->useMonoFont();
@@ -595,14 +604,9 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 for (auto& functionData : m_displayedFunctionData) {
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn();  // Name.
-                    const auto& functionName = functionData.functionName;
-                    const auto ra = g_emulator->m_cpu->m_regs.GPR.n.ra;
-                    std::string calleeName = getFunctionNameFromInstructionAddress(ra);
-                    if (calleeName.empty()) {
-                        calleeName = "overlay?";
-                    }
                     const std::string nameColumnString =
-                        fmt::format(f_("{}\t(called from {}\t@ {:#x})"), functionName, calleeName, ra);
+                        fmt::format(f_("{}\t(called from {}\t@ {:#x})"), functionData.functionName,
+                                    functionData.calleeName, functionData.calleeAddress);
                     ImGui::TextUnformatted(nameColumnString.c_str());
                     ImGui::TableNextColumn();  // Type.
                     ImGui::TableNextColumn();  // Size.
@@ -610,8 +614,8 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                     ImGui::TableNextColumn();  // Breakpoints.
                     for (auto& argData : functionData.argData) {
                         if (auto* addressNodeTuple = std::get_if<AddressNodeTuple>(&argData)) {
-                            displayNode(&addressNodeTuple->node, addressNodeTuple->address, memBase, memData, memSize,
-                                        false, addressNodeTuple->addressOfPointer);
+                            displayNode(&addressNodeTuple->node, addressNodeTuple->address, false,
+                                        addressNodeTuple->addressOfPointer);
                         } else if (auto* registerValue = std::get_if<RegisterValue>(&argData)) {
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();  // Name.
@@ -697,11 +701,19 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                                 if (arg.type.back() == '*') {
                                     WatchTreeNode argNode{arg.type, arg.name, arg.size};
                                     populate(&argNode, m_structs);
-                                    bpData.argData.push_back(AddressNodeTuple{reg_value, true, argNode});
+                                    bpData.argData.push_back(AddressNodeTuple{reg_value, false, argNode});
                                 } else {
                                     bpData.argData.push_back(RegisterValue{reg_value, arg.type, arg.name, arg.size});
                                 }
                             }
+
+                            const auto ra = g_emulator->m_cpu->m_regs.GPR.n.ra;
+                            std::string calleeName = getFunctionNameFromInstructionAddress(ra);
+                            if (calleeName.empty()) {
+                                calleeName = "overlay?";
+                            }
+                            bpData.calleeName = calleeName;
+                            bpData.calleeAddress = ra;
 
                             m_displayedFunctionData.push_back(bpData);
 
@@ -783,7 +795,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 }
                 root_node.size *= number;
                 populate(&root_node, m_structs);
-                m_displayedWatchData.push_back({data_input_value, false, root_node});
+                m_displayedWatchData.push_back({data_input_value, true, root_node});
             }
             ImGui::SameLine();
             if (ImGui::Button(_("Clear"))) {
@@ -793,13 +805,16 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 }
                 m_watchBreakpoints.clear();
             }
-            if (m_toggledInstructions.size() > 0 && ImGui::Button(_("Restore disabled instructions"))) {
-                for (const auto& instruction : m_toggledInstructions) {
-                    const auto instructionAddress = instruction.first;
-                    const auto& instructions = instruction.second;
-                    memcpy(memData + instructionAddress - memBase, instructions.data(), 4);
+            if (m_toggledInstructions.size() > 0) {
+                ImGui::SameLine();
+                if (ImGui::Button(_("Restore disabled instructions"))) {
+                    for (const auto& instruction : m_toggledInstructions) {
+                        const auto instructionAddress = instruction.first;
+                        const auto& instructions = instruction.second;
+                        memcpy(memData + instructionAddress - memBase, instructions.data(), 4);
+                    }
+                    m_toggledInstructions.clear();
                 }
-                m_toggledInstructions.clear();
             }
 
             ImGui::Checkbox("Input in hexadecimal", &m_hex);
@@ -814,8 +829,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 ImGui::TableHeadersRow();
 
                 for (auto& addressNodePair : m_displayedWatchData) {
-                    displayNode(&addressNodePair.node, addressNodePair.address, memBase, memData, memSize, true,
-                                addressNodePair.addressOfPointer);
+                    displayNode(&addressNodePair.node, addressNodePair.address, true, addressNodePair.addressOfPointer);
                 }
 
                 ImGui::EndTable();
