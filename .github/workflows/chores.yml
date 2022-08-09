@@ -89,4 +89,4 @@ jobs:
       run: |
         git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
         git remote add nugget https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git
-        git push https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git main
+        git push --force https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git main
