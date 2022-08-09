@@ -178,13 +178,14 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("AutoUpdate"), false> SettingAutoUpdate;
     typedef Setting<int, TYPESTRING("MSAA"), 1> SettingMSAA;
     typedef Setting<bool, TYPESTRING("LinearFiltering"), true> SettingLinearFiltering;
+    typedef Setting<bool, TYPESTRING("KioskMode"), false> SettingKioskMode;
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
              SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
              SettingMcd2Inserted, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither, SettingGLErrorReporting,
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
-             SettingAutoUpdate, SettingMSAA, SettingLinearFiltering>
+             SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode>
         settings;
     class PcsxConfig {
       public:
