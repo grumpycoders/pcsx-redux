@@ -100,12 +100,14 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     const bool oneInput = inputs.size() == 1;
     const bool shell = args.get<bool>("shell").value_or(false);
     const bool booty = args.get<bool>("booty").value_or(false);
+    const bool raw = args.get<bool>("raw").value_or(false);
     if (asksForHelp || !oneInput || !hasOutput) {
         fmt::print(R"(
 Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
   input.ps-exe      mandatory: specify the input ps-exe file.
   -o output.ps-exe  mandatory: name of the output file.
   -h                displays this help information and exit.
+  -raw              output raw file instead of a ps-exe.
   -tload            force loading at this address instead of doing in-place.
   -shell            adds a kernel reset stub; see documentation for details.
   -booty            outputs a counter-booty payload.
@@ -299,7 +301,7 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
         header.pop_back();
         pushBytes(header, jr(Reg::RA));
         pushBytes(header, last);
-    } else {
+    } else if (!raw) {
         pushBytes(header, PSEXE);
         pushBytes<uint32_t>(header, 0);
         pushBytes<uint32_t>(header, 0);

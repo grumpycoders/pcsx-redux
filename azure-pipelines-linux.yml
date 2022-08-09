@@ -15,6 +15,11 @@ steps:
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
+    arguments: 'ps1-packer'
+
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
     arguments: '-C src/mips/openbios -j'
 
 - task: CopyFiles@2
@@ -27,12 +32,12 @@ steps:
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j clean'
+    arguments: '-C src/mips/openbios -j deepclean'
 
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j BOOT=cart'
+    arguments: '-C src/mips/openbios -j BOOT=cart PACK_SHELL=true'
 
 - task: Bash@3
   inputs:
@@ -51,24 +56,30 @@ steps:
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j clean'
+    arguments: '-C src/mips/openbios -j deepclean'
 
 - task: Bash@3
   inputs:
     targetType: 'inline'
     script: |
-      wget https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/download/8.0.I/UNIROM_BOOTDISC_8.0.I.zip
+      wget https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/download/8.0.J/UNIROM_BOOTDISC_8.0.J.zip
 
 - task: ExtractFiles@1
   inputs:
-    archiveFilePatterns: 'UNIROM_BOOTDISC_8.0.I.zip'
+    archiveFilePatterns: 'UNIROM_BOOTDISC_8.0.J.zip'
     destinationFolder: 'unirom'
     cleanDestinationFolder: true
 
 - task: Bash@3
   inputs:
+    targetType: 'inline'
+    script: |
+      ./ps1-packer unirom/stuff/unirom_b.exe -o unirom_packed.exe
+
+- task: Bash@3
+  inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j FASTBOOT=true EMBED_PSEXE=../../../unirom/stuff/unirom_b.exe'
+    arguments: '-C src/mips/openbios -j FASTBOOT=true EMBED_PSEXE=../../../unirom_packed.exe'
 
 - task: Bash@3
   inputs:
@@ -87,12 +98,12 @@ steps:
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j clean'
+    arguments: '-C src/mips/openbios -j deepclean'
 
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j FASTBOOT=true EMBED_PSEXE=../../../unirom/stuff/unirom_b.exe BOOT=cart'
+    arguments: '-C src/mips/openbios -j FASTBOOT=true EMBED_PSEXE=../../../unirom_packed.exe BOOT=cart'
 
 - task: Bash@3
   inputs:
@@ -111,7 +122,7 @@ steps:
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j clean'
+    arguments: '-C src/mips/openbios -j deepclean'
 
 - task: Bash@3
   inputs:
@@ -135,7 +146,7 @@ steps:
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j clean'
+    arguments: '-C src/mips/openbios -j deepclean'
 
 - task: Bash@3
   inputs:

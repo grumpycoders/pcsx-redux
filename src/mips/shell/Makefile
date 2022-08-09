@@ -1,5 +1,13 @@
 TARGET = shell
+ifeq ($(PACK_SHELL),true)
+TYPE = ps-exe
+
+shell.bin: shell.ps-exe
+	../../../ps1-packer shell.ps-exe -tload 0x80030000 -raw -o shell.bin
+else
 TYPE = bin
+LDSCRIPT = shell.ld
+endif
 
 SRCS = \
 ../common/crt0/crt0.s \
@@ -13,8 +21,6 @@ main.c \
 math.c \
 spu.c \
 ../modplayer/modplayer.c \
-
-LDSCRIPT = shell.ld
 
 include ../common.mk
 
