@@ -149,7 +149,7 @@ ifeq ($(CROSS),arm64)
         CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
-SUPPORT_SRCS := $(call rwildcard,src/support/,*.cc)
+SUPPORT_SRCS := src/support/file.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
@@ -160,7 +160,6 @@ OBJECTS += third_party/luajit/src/libluajit.a
 
 SUPPORT_OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SUPPORT_SRCS)))
 SUPPORT_OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS)))
-SUPPORT_OBJECTS += third_party/luajit/src/libluajit.a
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
 IMGUI_OBJECTS := $(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS)))
 VIXL_OBJECTS := $(patsubst %.cc,%.o,$(filter %.cc,$(VIXL_SRCS)))
@@ -275,12 +274,11 @@ pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
-PSYQ_OBJ_PARSER_OBJECTS := src/support/file.o third_party/fmt/src/format.o
-psyq-obj-parser: $(PSYQ_OBJ_PARSER_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
-	$(LD) -o $@ $(PSYQ_OBJ_PARSER_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO -static
+psyq-obj-parser: $(SUPPORT_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
+	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO -static
 
 ps1-packer: $(SUPPORT_OBJECTS) tools/ps1-packer/ps1-packer.cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/ps1-packer/ps1-packer.cc
+	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/ps1-packer/ps1-packer.cc -static
 
 .PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage
 

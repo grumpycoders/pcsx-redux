@@ -33,7 +33,7 @@ TLOAD_ADDR = DEFINED(TLOAD_ADDR) ? TLOAD_ADDR : 0x80010000;
 
 MEMORY {
     loader      : ORIGIN = (TLOAD_ADDR - 0x800), LENGTH = 2048
-    ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
+    ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - (TLOAD_ADDR - 0x80000000)
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
