@@ -30,51 +30,6 @@
 #include "imgui.h"
 #include "support/eventbus.h"
 
-// Represents the type-name-size tuple for either a struct field or a function argument.
-struct FieldOrArgumentData {
-    std::string type;
-    std::string name;
-    size_t size;
-};
-
-// Information about a read/write instruction, including the name of the function from which it was emitted.
-struct ReadWriteLogEntry {
-    enum class AccessType { Read, Write };
-
-    uint32_t instructionAddress;
-    std::string functionName;
-    AccessType accessType;
-};
-
-// A WatchTreeNode contains the information necessary for displaying a type hierarchy in a tree.
-struct WatchTreeNode {
-    std::string type;
-    std::string name;
-    size_t size = 0;
-    std::vector<WatchTreeNode> children;
-    std::vector<ReadWriteLogEntry> logEntries;
-};
-
-// For an explanation of the meaning of addressOfPointer, see declaration of displayNode().
-struct AddressNodeTuple {
-    uint32_t address;
-    bool addressOfPointer;
-    WatchTreeNode node;
-};
-
-struct DebuggerFunction {
-    std::string name;
-    std::vector<FieldOrArgumentData> arguments;
-};
-
-// Represents a value stored in a register, as opposed to one stored at an address in memory.
-struct RegisterValue {
-    uint32_t value;
-    std::string type;
-    std::string name;
-    size_t size = 0;
-};
-
 namespace PCSX {
 class GUI;
 namespace Widgets {
@@ -85,6 +40,7 @@ class TypedDebugger {
     bool& m_show;
     TypedDebugger(bool& show);
 
+  private:
     /**
      * Data importation.
      */
@@ -92,13 +48,65 @@ class TypedDebugger {
     Widgets::FileDialog m_importDataTypesFileDialog = {[]() { return _("Import data types"); }};
     Widgets::FileDialog m_importFunctionsFileDialog = {[]() { return _("Import functions"); }};
     enum class ImportType { DataTypes, Functions };
-    void import(const char* filename, const ImportType& importType);
+    void import(std::string_view filename, ImportType importType);
+
+    /**
+     * Class structs.
+     */
+
+    // Represents the type-name-size tuple for either a struct field or a function argument.
+    struct FieldOrArgumentData {
+        std::string type;
+        std::string name;
+        size_t size;
+    };
+
+    // Information about a read/write instruction, including the name of the function from which it was emitted.
+    struct ReadWriteLogEntry {
+        enum class AccessType { Read, Write };
+
+        uint32_t instructionAddress;
+        std::string functionName;
+        AccessType accessType;
+    };
+
+    // A WatchTreeNode contains the information necessary for displaying a type hierarchy in a tree.
+    struct WatchTreeNode {
+        std::string type;
+        std::string name;
+        size_t size = 0;
+        std::vector<WatchTreeNode> children;
+        std::vector<ReadWriteLogEntry> logEntries;
+    };
+
+    using StructFields = std::vector<FieldOrArgumentData>;
+    // Populates a node according to its type.
+    void populate(WatchTreeNode* node, std::unordered_map<std::string, StructFields>& structs_info);
+
+    // For an explanation of the meaning of addressOfPointer, see declaration of displayNode().
+    struct AddressNodeTuple {
+        uint32_t address;
+        bool addressOfPointer;
+        WatchTreeNode node;
+    };
+
+    struct DebuggerFunction {
+        std::string name;
+        std::vector<FieldOrArgumentData> arguments;
+    };
+
+    // Represents a value stored in a register, as opposed to one stored at an address in memory.
+    struct RegisterValue {
+        uint32_t value;
+        std::string type;
+        std::string name;
+        size_t size = 0;
+    };
 
     /**
      * Data types.
      */
 
-    using StructFields = std::vector<FieldOrArgumentData>;
     std::unordered_map<std::string, StructFields> m_structs;
     std::vector<std::string> m_typeNames;
 
@@ -143,7 +151,8 @@ class TypedDebugger {
     // The last parameter, addressOfPointer, is used for pointer nodes:
     // - if it is true, then currentAddress is the address of the pointer that *stores* the pointee address;
     // - if not, then currentAddress *is* the pointee address.
-    void displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView, bool addressOfPointer, uint32_t extraImGuiId = 0);
+    void displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView, bool addressOfPointer,
+                     uint32_t extraImGuiId = 0);
     void printValue(const char* type, void* address, bool editable);
     void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address, uint8_t* memData,
                                   const uint32_t memBase);

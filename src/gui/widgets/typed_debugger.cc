@@ -31,8 +31,8 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
-void PCSX::Widgets::TypedDebugger::import(const char* filename, const ImportType& importType) {
-    std::ifstream file(filename);
+void PCSX::Widgets::TypedDebugger::import(std::string_view fileContents, ImportType importType) {
+    std::istringstream file(std::string(fileContents), std::ios_base::in);
     std::string line;
     while (std::getline(file, line)) {
         // For data types.
@@ -144,9 +144,8 @@ PCSX::Widgets::TypedDebugger::TypedDebugger(bool& show) : m_show(show), m_listen
     });
 }
 
-// Populates a node according to its type.
-void populate(WatchTreeNode* node,
-              std::unordered_map<std::string, PCSX::Widgets::TypedDebugger::StructFields>& structs_info) {
+void PCSX::Widgets::TypedDebugger::populate(WatchTreeNode* node,
+                                            std::unordered_map<std::string, StructFields>& structs_info) {
     const auto type = node->type;
 
     const std::regex arrayRegex(R"((.*)\[(\d+)\])");
@@ -172,7 +171,7 @@ void populate(WatchTreeNode* node,
     }
 }
 
-bool isInRAM(uint32_t address) {
+static bool isInRAM(uint32_t address) {
     uint32_t memBase = 0x80000000;
     uint32_t memSize = 1024 * 1024 * (PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
     return address >= memBase && address < memBase + memSize;
@@ -180,7 +179,7 @@ bool isInRAM(uint32_t address) {
 
 // Returns the appropriate pointer if the given address is in RAM or in the scratchpad, in which case the memory base
 // address is stored in outMemBase; otherwise, a null pointer is returned and no value is assigned to MemBase.
-uint8_t* getMemoryPointerFor(uint32_t address, uint32_t& outMemBase) {
+static uint8_t* getMemoryPointerFor(uint32_t address, uint32_t& outMemBase) {
     if (isInRAM(address)) {
         outMemBase = 0x80000000;
         return PCSX::g_emulator->m_mem->m_psxM;
@@ -196,9 +195,9 @@ uint8_t* getMemoryPointerFor(uint32_t address, uint32_t& outMemBase) {
     return nullptr;
 }
 
-bool equals(const char* lhs, const char* rhs) { return strcmp(lhs, rhs) == 0; }
+static bool equals(const char* lhs, const char* rhs) { return strcmp(lhs, rhs) == 0; }
 
-bool isPrimitive(const char* type) {
+static bool isPrimitive(const char* type) {
     // Don't test against "char" since char* is handled specially.
     return equals(type, "uchar") || equals(type, "u_char") || equals(type, "short") || equals(type, "ushort") ||
            equals(type, "u_short") || equals(type, "int") || equals(type, "long") || equals(type, "uint") ||
@@ -560,7 +559,10 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
         if (m_importDataTypesFileDialog.draw()) {
             std::vector<PCSX::u8string> fileToOpen = m_importDataTypesFileDialog.selected();
             if (!fileToOpen.empty()) {
-                import(reinterpret_cast<const char*>(fileToOpen[0].c_str()), ImportType::DataTypes);
+                std::ifstream file(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+                std::stringstream fileContents;
+                fileContents << file.rdbuf();
+                import(fileContents.str(), ImportType::DataTypes);
             }
         }
     }
@@ -583,7 +585,10 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
         if (m_importFunctionsFileDialog.draw()) {
             std::vector<PCSX::u8string> fileToOpen = m_importFunctionsFileDialog.selected();
             if (!fileToOpen.empty()) {
-                import(reinterpret_cast<const char*>(fileToOpen[0].c_str()), ImportType::Functions);
+                std::ifstream file(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+                std::stringstream fileContents;
+                fileContents << file.rdbuf();
+                import(fileContents.str(), ImportType::Functions);
             }
         }
     }
