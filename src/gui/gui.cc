@@ -1195,15 +1195,15 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_memoryObserver.draw(_("Memory Observer"));
     }
 
-    changed |= about();
-    interruptsScaler();
+    if (m_showAbout) changed |= about();
+    if (m_showInterruptsScaler) interruptsScaler();
 
-    if (m_outputShaderEditor.draw(this, _("Output Video"))) {
+    if (m_outputShaderEditor.m_show && m_outputShaderEditor.draw(this, _("Output Video"))) {
         // maybe throttle this?
         m_outputShaderEditor.compile(this);
     }
 
-    if (m_offscreenShaderEditor.draw(this, _("Offscreen Render"))) {
+    if (m_offscreenShaderEditor.m_show && m_offscreenShaderEditor.draw(this, _("Offscreen Render"))) {
         // maybe throttle this?
         m_offscreenShaderEditor.compile(this);
     }
@@ -1211,11 +1211,11 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_sio1.m_show) {
         m_sio1.draw(this, &PCSX::g_emulator->m_sio1->m_regs, _("SIO1 Debug"));
     }
-
+    
+    if (m_showCfg) changed |= configure();
+    if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();
     g_emulator->m_spu->debug();
-    changed |= g_emulator->m_spu->configure();
     changed |= g_emulator->m_pads->configure(this);
-    changed |= configure();
 
     if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
     if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
@@ -1480,7 +1480,6 @@ bool PCSX::GUI::configure() {
     bool showDynarecWarning = false;
     auto& settings = g_emulator->settings;
     auto& debugSettings = settings.get<Emulator::SettingDebugSettings>();
-    if (!m_showCfg) return false;
 
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_FirstUseEver);
@@ -1738,7 +1737,6 @@ of the emulator to take effect.)");
 }
 
 void PCSX::GUI::interruptsScaler() {
-    if (!m_showInterruptsScaler) return;
     static const char* names[] = {
         "SIO",      "SIO1",        "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",
         "GPU Busy", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek",
@@ -1784,7 +1782,6 @@ bool PCSX::GUI::showThemes() {
 }
 
 bool PCSX::GUI::about() {
-    if (!m_showAbout) return false;
     bool changed = false;
 
     ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);

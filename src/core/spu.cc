@@ -17,10 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-/*
- * Sound (SPU) functions.
- */
-
 #include "core/spu.h"
 
 #include "core/r3000a.h"
