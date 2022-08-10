@@ -532,6 +532,27 @@ void PCSX::GUI::init() {
     m_hwrEditor.show = false;
     m_biosEditor.title = []() { return _("BIOS"); };
     m_biosEditor.show = false;
+    m_vramEditor.title = []() { return _("VRAM"); };
+    m_vramEditor.editor.WriteFn = [](uint8_t* data, size_t offset, uint8_t writtenByte) {
+        constexpr size_t vramWidth = 1024;
+        constexpr size_t stride = vramWidth * sizeof(uint16_t); // Number of bytes per line of VRAM
+
+        // x and y coordinates of pixel
+        const auto x = (offset % stride) / sizeof(uint16_t);
+        const auto y = offset / stride;
+        const bool offsetIsOdd = (offset & 1) == 1;
+        const auto maskedOffset = offset & ~1;
+        uint16_t newPixel;
+
+        if (offsetIsOdd) {
+            newPixel = (writtenByte << 8) | data[maskedOffset];
+        } else {
+            newPixel = writtenByte | (data[maskedOffset] << 8);
+        }
+
+        g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
+    };
+    m_vramEditor.show = false;
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
@@ -988,6 +1009,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     m_scratchPadEditor.MenuItem();
                     m_hwrEditor.MenuItem();
                     m_biosEditor.MenuItem();
+                    m_vramEditor.MenuItem();
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
@@ -1142,32 +1164,42 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             if (editor.show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(PCSX::g_emulator->m_mem->m_psxM, 8 * 1024 * 1024, 0x80000000);
+                editor.draw(g_emulator->m_mem->m_psxM, 8 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
         if (m_parallelPortEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(PCSX::g_emulator->m_mem->m_psxP, 64 * 1024, 0x1f000000);
+            m_parallelPortEditor.draw(g_emulator->m_mem->m_psxP, 64 * 1024, 0x1f000000);
         }
         counter++;
         if (m_scratchPadEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(PCSX::g_emulator->m_mem->m_psxH, 1024, 0x1f800000);
+            m_scratchPadEditor.draw(g_emulator->m_mem->m_psxH, 1024, 0x1f800000);
         }
         counter++;
         if (m_hwrEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(PCSX::g_emulator->m_mem->m_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(g_emulator->m_mem->m_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(PCSX::g_emulator->m_mem->m_psxR, 512 * 1024, 0xbfc00000);
+            m_biosEditor.draw(g_emulator->m_mem->m_psxR, 512 * 1024, 0xbfc00000);
+        }
+        counter++;
+        if (m_vramEditor.show) {
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
+
+            // This const_cast is disgusting but we only use it to satisfy the type system
+            // The slice data is indeed treated as read-only
+            const Slice vram = g_emulator->m_gpu->getVRAM();
+            m_vramEditor.draw(const_cast<void*>(vram.data()), vram.size());
         }
     }
 

@@ -296,6 +296,7 @@ class GUI final {
     MemoryEditorWrapper m_scratchPadEditor = {this};
     MemoryEditorWrapper m_hwrEditor = {this};
     MemoryEditorWrapper m_biosEditor = {this};
+    MemoryEditorWrapper m_vramEditor = {this};
     Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
     Widgets::MemcardManager m_memcardManager = {settings.get<ShowMemcardManager>().value};
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
