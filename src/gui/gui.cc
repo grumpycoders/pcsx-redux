@@ -478,7 +478,6 @@ void PCSX::GUI::init() {
         glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
-    glfwSetJoystickCallback([](int jid, int event) { PCSX::g_emulator->m_pads->scanGamepads(); });
     ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
 
     if (glDebugMessageCallback &&

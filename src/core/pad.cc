@@ -32,8 +32,15 @@
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
 
+static PCSX::Pads* s_pads = nullptr;
+
 void PCSX::Pads::init() {
     scanGamepads();
+    s_pads = this;
+    glfwSetJoystickCallback([](int jid, int event) {
+        s_pads->scanGamepads();
+        s_pads->map();
+    });
     g_system->findResource(
         [](const std::filesystem::path& filename) -> bool {
             IO<File> database(new PosixFile(filename));
@@ -51,6 +58,11 @@ void PCSX::Pads::init() {
         "gamecontrollerdb.txt", "resources", std::filesystem::path("third_party") / "SDL_GameControllerDB");
     reset();
     map();
+}
+
+void PCSX::Pads::shutdown() {
+    glfwSetJoystickCallback(nullptr);
+    s_pads = nullptr;
 }
 
 PCSX::Pads::Pads() : m_listener(g_system->m_eventBus) {
@@ -898,7 +910,7 @@ void PCSX::Pads::setLua(Lua L) {
     L.pop();
     L.pop();
 
-    L.getfieldtable("SIO1");
+    L.getfieldtable("SIO0");
     L.getfieldtable("slots");
 
     // pads callbacks

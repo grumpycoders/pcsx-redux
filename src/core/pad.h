@@ -52,7 +52,7 @@ class Pads {
 
     Pads();
     void init();
-    void shutdown() {}
+    void shutdown();
     uint8_t startPoll(Port port);
     uint8_t poll(uint8_t value, Port port, uint32_t &padState);
 
