@@ -44,8 +44,9 @@ class TypedDebugger {
     /**
      * Data importation.
      */
-
+    std::vector<PCSX::u8string> m_dataTypesFile;
     Widgets::FileDialog m_importDataTypesFileDialog = {[]() { return _("Import data types"); }};
+    std::vector<PCSX::u8string> m_functionsFile;
     Widgets::FileDialog m_importFunctionsFileDialog = {[]() { return _("Import functions"); }};
     enum class ImportType { DataTypes, Functions };
     void import(std::string_view filename, ImportType importType);
@@ -153,7 +154,8 @@ class TypedDebugger {
     // - if not, then currentAddress *is* the pointee address.
     void displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView, bool addressOfPointer,
                      uint32_t extraImGuiId = 0);
-    void printValue(const char* type, void* address, bool editable);
+    void printValue(const char* type, void* address);
+    void displayNewValueInput(const char* type, void* address);
     void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address, uint8_t* memData,
                                   const uint32_t memBase);
 

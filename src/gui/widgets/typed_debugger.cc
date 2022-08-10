@@ -142,6 +142,25 @@ PCSX::Widgets::TypedDebugger::TypedDebugger(bool& show) : m_show(show), m_listen
         m_functionBreakpoints.clear();
         m_disabledFunctions.clear();
     });
+
+    m_listener.listen<PCSX::Events::ExecutionFlow::SaveStateLoaded>([this](const auto& event) {
+        // When loading a savestate, ensure instructions and functions that have been toggled off are disabled, just in
+        // case they weren't when the savestate was created.
+        uint8_t* const memData = g_emulator->m_mem->m_psxM;
+        constexpr uint32_t memBase = 0x80000000;
+
+        for (const auto& disabledInstruction : m_disabledInstructions) {
+            const auto instructionAddress = disabledInstruction.first;
+            constexpr uint8_t nop[4] = {0x00, 0x00, 0x00, 0x00};
+            memcpy(memData + instructionAddress - memBase, nop, 4);
+        }
+
+        for (const auto& disabledFunction : m_disabledFunctions) {
+            const auto functionAddress = disabledFunction.first;
+            constexpr uint8_t jr_ra[8] = {0x08, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x00};
+            memcpy(memData + functionAddress - memBase, jr_ra, 8);
+        }
+    });
 }
 
 void PCSX::Widgets::TypedDebugger::populate(WatchTreeNode* node,
@@ -266,6 +285,8 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
         ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Value.
         ImGui::TextDisabled("--");
+        ImGui::TableNextColumn();  // New value.
+        ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Breakpoints.
         if (open) {
             uint32_t accumulatedOffset = 0;
@@ -292,11 +313,13 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                         uint8_t instructions[4];
                         memcpy(instructions, instructionMem, 4);
                         m_disabledInstructions[instructionAddress] = std::to_array(instructions);
-                        static constexpr uint8_t nop[4] = {0x00, 0x00, 0x00, 0x00};
+                        constexpr uint8_t nop[4] = {0x00, 0x00, 0x00, 0x00};
                         memcpy(instructionMem, nop, 4);
                     }
                 }
-                ImGui::TableNextColumn();  // Access.
+                ImGui::TableNextColumn();  // New value.
+                ImGui::TextDisabled("--");
+                ImGui::TableNextColumn();  // Breakpoints.
             }
             ImGui::TreePop();
         }
@@ -359,6 +382,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         } else {
             ImGui::TextDisabled("--");
         }
+        ImGui::TableNextColumn();  // New value.
+        ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
             displayBreakpointOptions(node, currentAddress, memData, memBase);
@@ -382,8 +407,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                                                         ImGuiTreeNodeFlags_SpanFullWidth);
         ImGui::TableNextColumn();  // Type.
         ImGui::TextUnformatted(nodeType);
-        // @todo: for pointers to non-char primitives, offer the option of displaying them as an array of a given number
-        // of elements.
+        // @todo: for pointers to non-char primitives, offer the option of displaying them as an array of a given
+        // number of elements.
         if (isPrimitive(node->type.substr(0, node->type.find(' ')).c_str()) || equals(nodeType, "void *")) {
             ImGui::TableNextColumn();  // Size.
             ImGui::TextUnformatted("4");
@@ -395,6 +420,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                 const uint32_t editorAddress = startAddress - memBase;
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
             }
+            ImGui::TableNextColumn();  // New value.
+            ImGui::TextDisabled("--");
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
                 displayBreakpointOptions(node, currentAddress, memData, memBase);
@@ -420,6 +447,8 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                         PCSX::Events::GUI::JumpToMemory{editorAddress, static_cast<unsigned>(strLength)});
                 }
             }
+            ImGui::TableNextColumn();  // New value.
+            ImGui::TextDisabled("--");
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
                 displayBreakpointOptions(node, currentAddress, memData, memBase);
@@ -443,7 +472,10 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         const auto basic_offset = startAddress - memBase;
         uint8_t* memValue = memData + basic_offset;
         const auto* nodeType = node->type.c_str();
-        printValue(nodeType, memValue, true);
+        printValue(nodeType, memValue);
+        ImGui::TableNextColumn();  // New value.
+        displayNewValueInput(nodeType, memValue);
+        ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
             displayBreakpointOptions(node, currentAddress, memData, memBase);
@@ -451,80 +483,83 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
     }
 }
 
-void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address, bool editable) {
+void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address) {
     static char s[64];
-    static const int8_t step = 1;
-    static const int8_t stepFast = 100;
-    const auto signedFormat = m_hex ? "%x" : "%d";
-    const auto unsignedFormat = m_hex ? "%x" : "%u";
     if (equals(type, "char")) {
         int8_t fieldValue = 0;
         memcpy(&fieldValue, address, 1);
         sprintf(s, "%d (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
-        if (editable &&
-            ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S8, &m_newValue, &step,
-                               &stepFast, signedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            memcpy(address, &m_newValue, 1);
-            m_newValue = 0;
-        }
     } else if (equals(type, "uchar") || equals(type, "u_char")) {
         uint8_t fieldValue = 0;
         memcpy(&fieldValue, address, 1);
         sprintf(s, "%u (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
-        if (editable &&
-            ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U8, &m_newValue, &step,
-                               &stepFast, unsignedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            memcpy(address, &m_newValue, 1);
-            m_newValue = 0;
-        }
     } else if (equals(type, "short")) {
         int16_t fieldValue = 0;
         memcpy(&fieldValue, address, 2);
         sprintf(s, "%hi (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
-        if (editable &&
-            ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S16, &m_newValue, &step,
-                               &stepFast, signedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            memcpy(address, &m_newValue, 2);
-            m_newValue = 0;
-        }
     } else if (equals(type, "ushort") || equals(type, "u_short")) {
         uint16_t fieldValue = 0;
         memcpy(&fieldValue, address, 2);
         sprintf(s, "%hu (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
-        if (editable &&
-            ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U16, &m_newValue, &step,
-                               &stepFast, unsignedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            memcpy(address, &m_newValue, 2);
-            m_newValue = 0;
-        }
     } else if (equals(type, "int") || equals(type, "long")) {
         int32_t fieldValue = 0;
         memcpy(&fieldValue, address, 4);
         sprintf(s, "%i (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
-        if (editable &&
-            ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S32, &m_newValue, &step,
-                               &stepFast, signedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            memcpy(address, &m_newValue, 4);
-            m_newValue = 0;
-        }
     } else if (equals(type, "uint") || equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long")) {
         uint32_t fieldValue = 0;
         memcpy(&fieldValue, address, 4);
         sprintf(s, "%u (0x%2x) \n", fieldValue, fieldValue);
         ImGui::Text("Value: %s", s);
-        if (editable &&
-            ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U32, &m_newValue, &step,
-                               &stepFast, unsignedFormat, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            memcpy(address, &m_newValue, 4);
-            m_newValue = 0;
-        }
     } else {
         sprintf(s, "\t> cannot yet print out value of type %s\n", type);
+    }
+}
+
+void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, void* address) {
+    static char s[64];
+    static const int8_t step = 1;
+    static const int8_t stepFast = 100;
+    const auto signedFormat = m_hex ? "%x" : "%d";
+    const auto unsignedFormat = m_hex ? "%x" : "%u";
+    const auto inputFlags = ImGuiInputTextFlags_EnterReturnsTrue |
+                            (m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal);
+    if (equals(type, "char")) {
+        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S8, &m_newValue, &step,
+                               &stepFast, signedFormat, inputFlags)) {
+            memcpy(address, &m_newValue, 1);
+        }
+    } else if (equals(type, "uchar") || equals(type, "u_char")) {
+        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U8, &m_newValue, &step,
+                               &stepFast, unsignedFormat, inputFlags)) {
+            memcpy(address, &m_newValue, 1);
+        }
+    } else if (equals(type, "short")) {
+        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S16, &m_newValue, &step,
+                               &stepFast, signedFormat, inputFlags)) {
+            memcpy(address, &m_newValue, 2);
+        }
+    } else if (equals(type, "ushort") || equals(type, "u_short")) {
+        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U16, &m_newValue, &step,
+                               &stepFast, unsignedFormat, inputFlags)) {
+            memcpy(address, &m_newValue, 2);
+        }
+    } else if (equals(type, "int") || equals(type, "long")) {
+        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S32, &m_newValue, &step,
+                               &stepFast, signedFormat, inputFlags)) {
+            memcpy(address, &m_newValue, 4);
+        }
+    } else if (equals(type, "uint") || equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long")) {
+        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U32, &m_newValue, &step,
+                               &stepFast, unsignedFormat, inputFlags)) {
+            memcpy(address, &m_newValue, 4);
+        }
+    } else {
+        sprintf(s, "\t> cannot yet input value of type %s\n", type);
     }
 }
 
@@ -537,9 +572,12 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     bool showImportDataTypesFileDialog = false;
     if (m_structs.empty()) {
         ImGui::TextWrapped(
-            "Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a "
-            "redux_data_types.txt file in its folder, or from any text file where each line specifies the data type's "
-            "name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose elements "
+            "Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will "
+            "generate a "
+            "redux_data_types.txt file in its folder, or from any text file where each line specifies the data "
+            "type's "
+            "name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose "
+            "elements "
             "are separated by commas. For example:\n");
         gui->useMonoFont();
         ImGui::TextUnformatted("CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n");
@@ -557,9 +595,9 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
             m_importDataTypesFileDialog.openDialog();
         }
         if (m_importDataTypesFileDialog.draw()) {
-            std::vector<PCSX::u8string> fileToOpen = m_importDataTypesFileDialog.selected();
-            if (!fileToOpen.empty()) {
-                std::ifstream file(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+            m_dataTypesFile = m_importDataTypesFileDialog.selected();
+            if (!m_dataTypesFile.empty()) {
+                std::ifstream file(reinterpret_cast<const char*>(m_dataTypesFile[0].c_str()));
                 std::stringstream fileContents;
                 fileContents << file.rdbuf();
                 import(fileContents.str(), ImportType::DataTypes);
@@ -570,8 +608,10 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     bool showImportFunctionsFileDialog = false;
     if (m_functions.empty()) {
         ImGui::TextWrapped(
-            "Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a "
-            "redux_funcs.txt file in its folder, or from any text file where each line specifies the function address, "
+            "Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate "
+            "a "
+            "redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
+            "address, "
             "name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples whose "
             "elements are separated by commas. For example:\n");
         gui->useMonoFont();
@@ -583,9 +623,9 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
             m_importFunctionsFileDialog.openDialog();
         }
         if (m_importFunctionsFileDialog.draw()) {
-            std::vector<PCSX::u8string> fileToOpen = m_importFunctionsFileDialog.selected();
-            if (!fileToOpen.empty()) {
-                std::ifstream file(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+            m_functionsFile = m_importFunctionsFileDialog.selected();
+            if (!m_functionsFile.empty()) {
+                std::ifstream file(reinterpret_cast<const char*>(m_functionsFile[0].c_str()));
                 std::stringstream fileContents;
                 fileContents << file.rdbuf();
                 import(fileContents.str(), ImportType::Functions);
@@ -597,6 +637,30 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
         ImGui::End();
         return;
     }
+
+    const auto showReimportButton = [this](const char* buttonText, const std::vector<PCSX::u8string>& fileToOpen,
+                                           ImportType importType) {
+        if (ImGui::Button(buttonText)) {
+            if (!fileToOpen.empty()) {
+                if (importType == ImportType::DataTypes) {
+                    m_structs.clear();
+                    m_typeNames.clear();
+                } else {
+                    m_functionAddresses.clear();
+                    m_functions.clear();
+                    m_instructionAddressToFunctionMap.clear();
+                }
+                std::ifstream file(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+                std::stringstream fileContents;
+                fileContents << file.rdbuf();
+                import(fileContents.str(), importType);
+            }
+        }
+    };
+
+    showReimportButton(_("Reimport data types from updated file"), m_dataTypesFile, ImportType::DataTypes);
+    ImGui::SameLine();
+    showReimportButton(_("Reimport functions from updated file"), m_functionsFile, ImportType::Functions);
 
     uint8_t* const memData = g_emulator->m_mem->m_psxM;
     const uint32_t memSize = 1024 * 1024 * (g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
@@ -690,11 +754,12 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
             ImGui::Checkbox("Input in hexadecimal", &m_hex);
 
             gui->useMonoFont();
-            if (ImGui::BeginTable(_("WatchTable"), 5, treeTableFlags)) {
+            if (ImGui::BeginTable(_("WatchTable"), 6, treeTableFlags)) {
                 ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 40.0f);
                 ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 30.0f);
                 ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 10.0f);
-                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 50.0f);
+                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 25.0f);
+                ImGui::TableSetupColumn(_("New value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 50.0f);
                 ImGui::TableSetupColumn(_("Breakpoints"), ImGuiTableColumnFlags_NoHide);
                 ImGui::TableHeadersRow();
 
@@ -735,11 +800,12 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
             gui->useMonoFont();
             ImVec2 outerSize{0.f, TEXT_BASE_HEIGHT * 30.f};
-            if (ImGui::BeginTable(_("FunctionBreakpoints"), 5, treeTableFlags, outerSize)) {
+            if (ImGui::BeginTable(_("FunctionBreakpoints"), 6, treeTableFlags, outerSize)) {
                 ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 40.0f);
                 ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 30.0f);
                 ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 10.0f);
-                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 50.0f);
+                ImGui::TableSetupColumn(_("Value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 25.0f);
+                ImGui::TableSetupColumn(_("New value"), ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 50.0f);
                 ImGui::TableSetupColumn(_("Breakpoints"), ImGuiTableColumnFlags_NoHide);
                 ImGui::TableHeadersRow();
 
@@ -753,6 +819,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                     ImGui::TableNextColumn();  // Type.
                     ImGui::TableNextColumn();  // Size.
                     ImGui::TableNextColumn();  // Value.
+                    ImGui::TableNextColumn();  // New value.
                     ImGui::TableNextColumn();  // Breakpoints.
                     for (auto& argData : functionData.argData) {
                         if (auto* addressNodeTuple = std::get_if<AddressNodeTuple>(&argData)) {
@@ -770,7 +837,8 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                             ImGui::TableNextColumn();  // Size.
                             ImGui::Text("%zu", registerValue->size);
                             ImGui::TableNextColumn();  // Value.
-                            printValue(registerValue->type.c_str(), &registerValue->value, false);
+                            printValue(registerValue->type.c_str(), &registerValue->value);
+                            ImGui::TableNextColumn();  // New value.
                             ImGui::TableNextColumn();  // Breakpoints.
                         } else {
                             assert(false);
@@ -882,7 +950,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                                 uint8_t instructions[8];
                                 memcpy(instructions, functionMem, 8);
                                 m_disabledFunctions[currentAddress] = std::to_array(instructions);
-                                static constexpr uint8_t jr_ra[8] = {0x08, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x00};
+                                constexpr uint8_t jr_ra[8] = {0x08, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x00};
                                 memcpy(functionMem, jr_ra, 8);
                             }
                         }
