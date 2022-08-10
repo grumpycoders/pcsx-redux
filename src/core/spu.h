@@ -27,18 +27,6 @@
 #include "json.hpp"
 #include "lua/luawrapper.h"
 
-/*
-#define H_SPUirqAddr 0x0da4
-#define H_SPUaddr 0x0da6
-#define H_SPUdata 0x0da8
-#define H_SPUctrl 0x0daa
-#define H_SPUstat 0x0dae
-#define H_SPUon1 0x0d88
-#define H_SPUon2 0x0d8a
-#define H_SPUoff1 0x0d8c
-#define H_SPUoff2 0x0d8e
-*/
-
 namespace PCSX {
 
 class SPUInterface {

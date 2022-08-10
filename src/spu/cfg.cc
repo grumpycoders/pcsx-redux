@@ -34,7 +34,6 @@ static void ShowHelpMarker(const char *desc) {
 }
 
 bool PCSX::SPU::impl::configure() {
-    if (!m_showCfg) return false;
     ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(550, 220), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(_("SPU configuration"), &m_showCfg)) {

@@ -403,7 +403,6 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
 }
 
 bool PCSX::Widgets::ShaderEditor::draw(GUI *gui, const char *title) {
-    if (!m_show) return false;
     if (!ImGui::Begin(title, &m_show)) return false;
     ImGui::Checkbox(_("Auto reload"), &m_autoreload);
     ImGui::SameLine();
