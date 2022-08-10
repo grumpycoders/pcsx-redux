@@ -40,7 +40,7 @@ Because Apple is being Apple, after installing the Application from the dmg file
 xattr -r -d com.apple.quarantine /path/to/PCSX-Redux.app
 ```
 
-If anyone has the means and the will to understand the derpiness of MacOS to debug this one, please feel free to send a pull request, or to open a detailled issue describing the root cause of this problem.
+If anyone has the means and the will to understand the derpiness of MacOS to debug this one, please feel free to send a pull request, or to open a detailed issue describing the root cause of this problem.
 
 ## How?
 The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows. The code now comes in two big parts: the emulator itself, and [OpenBIOS](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/openbios), which can be used as an alternative to the retail, copyright protected BIOS.
