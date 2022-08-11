@@ -570,6 +570,7 @@ void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
 
 void PCSX::OpenGL_GPU::cmdCopyRectVRAMToVRAM() {
     renderBatch();
+    OpenGL::disableScissor(); // We disable scissor testing because it affects glBlitFramebuffer
     const uint32_t srcCoords = m_cmdFIFO[1];
     const uint32_t destCoords = m_cmdFIFO[2];
     const uint32_t res = m_cmdFIFO[3];
@@ -588,8 +589,9 @@ void PCSX::OpenGL_GPU::cmdCopyRectVRAMToVRAM() {
 
     glBlitFramebuffer(srcX, srcY, srcX + width, srcY + height, destX, destY, destX + width, destY + height,
                       GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    OpenGL::enableScissor();
 }
 
 void PCSX::OpenGL_GPU::cmdUnimplemented() {
-    PCSX::g_system->printf("Unknown GP0 command: %02X\n", m_cmdFIFO[0] >> 24);
+    // PCSX::g_system->printf("Unknown GP0 command: %02X\n", m_cmdFIFO[0] >> 24);
 }
