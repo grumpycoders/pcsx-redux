@@ -481,7 +481,7 @@ int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
 bool PCSX::OpenGL_GPU::configure() {
     bool changed = false;
 
-    if (m_shaderEditor.draw(m_gui, "Hardware renderer shader editor")) {
+    if (m_shaderEditor.m_show && m_shaderEditor.draw(m_gui, "Hardware renderer shader editor")) {
         const auto program = m_shaderEditor.compile(m_gui);
         if (program.has_value()) {
             m_program.m_handle = program.value();
@@ -495,6 +495,9 @@ bool PCSX::OpenGL_GPU::configure() {
 
             const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
             glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently bound texture
+            glUniform4f(m_blendFactorsIfOpaqueLoc, 1.0, 1.0, 1.0, 0.0);
+            glUniform4f(m_blendFactorsLoc, m_blendFactors.x(), m_blendFactors.x(), m_blendFactors.x(),
+                        m_blendFactors.y());
 
             setDrawOffset(m_lastDrawOffsetSetting);
             setTexWindowUnchecked(m_lastTexwindowSetting);
