@@ -720,6 +720,10 @@ void PCSX::GUI::startFrame() {
     // this call seems to sometime fails when the window is minimized...?
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
 
+    //If kiosk mode is enabled, ignore hotkeys
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKioskMode>().value)
+        return;
+
     // Check hotkeys (TODO: Make configurable)
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) {
         m_showMenu = !m_showMenu;
