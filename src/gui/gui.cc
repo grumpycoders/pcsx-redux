@@ -397,6 +397,7 @@ void PCSX::GUI::init() {
         io.IniFilename = nullptr;
         std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator->settings;
+        const bool resetUI = m_args.get<bool>("resetui", false);
         json j;
         bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
         if (cfg.is_open() && !safeMode) {
@@ -404,7 +405,7 @@ void PCSX::GUI::init() {
                 cfg >> j;
             } catch (...) {
             }
-            if ((j.count("imgui") == 1) && j["imgui"].is_string()) {
+            if (!resetUI && (j.count("imgui") == 1) && j["imgui"].is_string()) {
                 std::string imguicfg = j["imgui"];
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
@@ -420,11 +421,15 @@ void PCSX::GUI::init() {
 
             auto& windowSizeX = settings.get<WindowSizeX>();
             auto& windowSizeY = settings.get<WindowSizeY>();
-            if (!windowSizeX) {
-                windowSizeX = 1280;
+            if (!windowSizeX || resetUI) {
+                windowSizeX.reset();
             }
-            if (!windowSizeY) {
-                windowSizeY = 800;
+            if (!windowSizeY || resetUI) {
+                windowSizeY.reset();
+            }
+            if (resetUI) {
+                settings.get<WindowPosX>().reset();
+                settings.get<WindowPosY>().reset();
             }
 
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
@@ -535,7 +540,7 @@ void PCSX::GUI::init() {
     m_vramEditor.title = []() { return _("VRAM"); };
     m_vramEditor.editor.WriteFn = [](uint8_t* data, size_t offset, uint8_t writtenByte) {
         constexpr size_t vramWidth = 1024;
-        constexpr size_t stride = vramWidth * sizeof(uint16_t); // Number of bytes per line of VRAM
+        constexpr size_t stride = vramWidth * sizeof(uint16_t);  // Number of bytes per line of VRAM
 
         // x and y coordinates of pixel
         const auto x = (offset % stride) / sizeof(uint16_t);
@@ -720,9 +725,8 @@ void PCSX::GUI::startFrame() {
     // this call seems to sometime fails when the window is minimized...?
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
 
-    //If kiosk mode is enabled, ignore hotkeys
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKioskMode>().value)
-        return;
+    // If kiosk mode is enabled, ignore hotkeys
+    if (g_emulator->settings.get<Emulator::SettingKioskMode>().value) return;
 
     // Check hotkeys (TODO: Make configurable)
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) {
@@ -1247,7 +1251,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_sio1.m_show) {
         m_sio1.draw(this, &PCSX::g_emulator->m_sio1->m_regs, _("SIO1 Debug"));
     }
-    
+
     if (m_showCfg) changed |= configure();
     if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();
     g_emulator->m_spu->debug();
