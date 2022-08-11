@@ -81,7 +81,7 @@ class Debug {
 
       private:
         bool trigger(uint32_t address, unsigned width, const char* cause) {
-            if (m_enabled) return m_invoker(this, address, width, cause);
+            if (m_enabled) return m_invoker(this, address, width, strlen(cause) > 0 ? cause : m_source.c_str());
             return true;
         }
 

@@ -51,6 +51,7 @@
 #include "support/settings.h"
 #include "support/version.h"
 #include "widgets/memory_observer.h"
+#include "widgets/typed_debugger.h"
 
 #if defined(__APPLE__)
 #define GL_SHADER_VERSION "#version 410\n"
@@ -79,6 +80,7 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowVRAMViewer3")> ShowVRAMViewer3;
     typedef Setting<bool, TYPESTRING("ShowVRAMViewer4")> ShowVRAMViewer4;
     typedef Setting<bool, TYPESTRING("ShowMemoryObserver")> ShowMemoryObserver;
+    typedef Setting<bool, TYPESTRING("ShowTypedDebugger")> ShowTypedDebugger;
     typedef Setting<bool, TYPESTRING("ShowMemcardManager")> ShowMemcardManager;
     typedef Setting<bool, TYPESTRING("ShowRegisters")> ShowRegisters;
     typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
@@ -100,9 +102,10 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
-             ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowMemcardManager,
-             ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents, ShowKernelLog, ShowCallstacks,
-             ShowSIO1, MainFontSize, MonoFontSize, GUITheme, EnableRawMouseMotion, WidescreenRatio>
+             ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
+             ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
+             ShowKernelLog, ShowCallstacks, ShowSIO1, MainFontSize, MonoFontSize, GUITheme, EnableRawMouseMotion,
+             WidescreenRatio>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -298,6 +301,7 @@ class GUI final {
     MemoryEditorWrapper m_biosEditor = {this};
     MemoryEditorWrapper m_vramEditor = {this};
     Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
+    Widgets::TypedDebugger m_typedDebugger = {settings.get<ShowTypedDebugger>().value};
     Widgets::MemcardManager m_memcardManager = {settings.get<ShowMemcardManager>().value};
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
     Widgets::Assembly m_assembly = {settings.get<ShowAssembly>().value};
