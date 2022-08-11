@@ -343,23 +343,23 @@ struct VertexBuffer {
     }
 };
 
-static void setClearColor(float val) { glClearColor(val, val, val, val); }
-static void setClearColor(float r, float g, float b, float a) { glClearColor(r, g, b, a); }
-static void setClearDepth(float depth) { glClearDepthf(depth); }
-static void clearColor() { glClear(GL_COLOR_BUFFER_BIT); }
-static void clearDepth() { glClear(GL_DEPTH_BUFFER_BIT); }
-static void clearColorAndDepth() { glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); }
+static inline void setClearColor(float val) { glClearColor(val, val, val, val); }
+static inline void setClearColor(float r, float g, float b, float a) { glClearColor(r, g, b, a); }
+static inline void setClearDepth(float depth) { glClearDepthf(depth); }
+static inline void clearColor() { glClear(GL_COLOR_BUFFER_BIT); }
+static inline void clearDepth() { glClear(GL_DEPTH_BUFFER_BIT); }
+static inline void clearColorAndDepth() { glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); }
 
-static void setViewport(GLsizei width, GLsizei height) { glViewport(0, 0, width, height); }
-static void setViewport(GLsizei x, GLsizei y, GLsizei width, GLsizei height) { glViewport(x, y, width, height); }
-static void setScissor(GLsizei width, GLsizei height) { glScissor(0, 0, width, height); }
-static void setScissor(GLsizei x, GLsizei y, GLsizei width, GLsizei height) { glScissor(x, y, width, height); }
+static inline void setViewport(GLsizei width, GLsizei height) { glViewport(0, 0, width, height); }
+static inline void setViewport(GLsizei x, GLsizei y, GLsizei width, GLsizei height) { glViewport(x, y, width, height); }
+static inline void setScissor(GLsizei width, GLsizei height) { glScissor(0, 0, width, height); }
+static inline void setScissor(GLsizei x, GLsizei y, GLsizei width, GLsizei height) { glScissor(x, y, width, height); }
 
-static void bindScreenFramebuffer() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
-static void enableScissor() { glEnable(GL_SCISSOR_TEST); }
-static void disableScissor() { glDisable(GL_SCISSOR_TEST); }
-static void enableBlend() { glEnable(GL_BLEND); }
-static void disableBlend() { glDisable(GL_BLEND); }
+static inline void bindScreenFramebuffer() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
+static inline void enableScissor() { glEnable(GL_SCISSOR_TEST); }
+static inline void disableScissor() { glDisable(GL_SCISSOR_TEST); }
+static inline void enableBlend() { glEnable(GL_BLEND); }
+static inline void disableBlend() { glDisable(GL_BLEND); }
 
 enum Primitives {
     Triangle = GL_TRIANGLES,
@@ -375,16 +375,16 @@ enum Primitives {
     Points = Point
 };
 
-static void draw(Primitives prim, GLsizei vertexCount) { glDrawArrays(static_cast<GLenum>(prim), 0, vertexCount); }
-static void draw(Primitives prim, GLint first, GLsizei vertexCount) {
+static inline void draw(Primitives prim, GLsizei vertexCount) { glDrawArrays(static_cast<GLenum>(prim), 0, vertexCount); }
+static inline void draw(Primitives prim, GLint first, GLsizei vertexCount) {
     glDrawArrays(static_cast<GLenum>(prim), first, vertexCount);
 }
 
 enum FillMode { DrawPoints = GL_POINT, DrawWire = GL_LINE, FillPoly = GL_FILL };
 
-static void setFillMode(GLenum mode) { glPolygonMode(GL_FRONT_AND_BACK, mode); }
-static void setFillMode(FillMode mode) { glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode)); }
-static void drawWireframe() { setFillMode(DrawWire); }
+static inline void setFillMode(GLenum mode) { glPolygonMode(GL_FRONT_AND_BACK, mode); }
+static inline void setFillMode(FillMode mode) { glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode)); }
+static inline void drawWireframe() { setFillMode(DrawWire); }
 
 template <typename T>
 T get(GLenum query) {
@@ -404,20 +404,20 @@ T get(GLenum query) {
     return ret;
 }
 
-static bool isEnabled(GLenum query) { return glIsEnabled(query) != GL_FALSE; }
+static inline bool isEnabled(GLenum query) { return glIsEnabled(query) != GL_FALSE; }
 
-static GLint getDrawFramebuffer() { return get<GLint>(GL_DRAW_FRAMEBUFFER_BINDING); }
-static GLint maxSamples() { return get<GLint>(GL_MAX_INTEGER_SAMPLES); }
-static GLint getTex2D() { return get<GLint>(GL_TEXTURE_BINDING_2D); }
-static GLint getProgram() { return get<GLint>(GL_CURRENT_PROGRAM); }
-static bool scissorEnabled() { return isEnabled(GL_SCISSOR_TEST); }
+static inline GLint getDrawFramebuffer() { return get<GLint>(GL_DRAW_FRAMEBUFFER_BINDING); }
+static inline GLint maxSamples() { return get<GLint>(GL_MAX_INTEGER_SAMPLES); }
+static inline GLint getTex2D() { return get<GLint>(GL_TEXTURE_BINDING_2D); }
+static inline GLint getProgram() { return get<GLint>(GL_CURRENT_PROGRAM); }
+static inline bool scissorEnabled() { return isEnabled(GL_SCISSOR_TEST); }
 
-static bool versionSupported(int major, int minor) { return gl3wIsSupported(major, minor); }
+static inline bool versionSupported(int major, int minor) { return gl3wIsSupported(major, minor); }
 
-[[nodiscard]] static GLint uniformLocation(GLuint program, const char* name) {
+[[nodiscard]] static inline GLint uniformLocation(GLuint program, const char* name) {
     return glGetUniformLocation(program, name);
 }
-[[nodiscard]] static GLint uniformLocation(Program& program, const char* name) {
+[[nodiscard]] static inline GLint uniformLocation(Program& program, const char* name) {
     return glGetUniformLocation(program.handle(), name);
 }
 
@@ -429,12 +429,12 @@ enum BlendEquation {
     Max = GL_MAX
 };
 
-static void setBlendColor(float r, float g, float b, float a = 1.0) { glBlendColor(r, g, b, a); }
-static void setBlendEquation(BlendEquation eq) { glBlendEquation(eq); }
-static void setBlendEquation(BlendEquation eq1, BlendEquation eq2) { glBlendEquationSeparate(eq1, eq2); }
+static inline void setBlendColor(float r, float g, float b, float a = 1.0) { glBlendColor(r, g, b, a); }
+static inline void setBlendEquation(BlendEquation eq) { glBlendEquation(eq); }
+static inline void setBlendEquation(BlendEquation eq1, BlendEquation eq2) { glBlendEquationSeparate(eq1, eq2); }
 
-static void setBlendFactor(GLenum fac1, GLenum fac2) { glBlendFunc(fac1, fac2); }
-static void setBlendFactor(GLenum fac1, GLenum fac2, GLenum fac3, GLenum fac4) {
+static inline void setBlendFactor(GLenum fac1, GLenum fac2) { glBlendFunc(fac1, fac2); }
+static inline void setBlendFactor(GLenum fac1, GLenum fac2, GLenum fac3, GLenum fac4) {
     glBlendFuncSeparate(fac1, fac2, fac3, fac4);
 }
 
