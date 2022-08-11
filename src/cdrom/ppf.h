@@ -74,7 +74,7 @@ class PPF {
     struct Patch : public Patches::Node {
         std::list<std::pair<uint32_t, std::string>> data;
         Patch() = default;
-        Patch(const Patch &) = default;
+        Patch(const Patch &) = delete;
         Patch(Patch &&) = default;
         ~Patch() = default;
     };
