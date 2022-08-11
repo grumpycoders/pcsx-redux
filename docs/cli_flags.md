@@ -22,6 +22,9 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-pcdrv` | Enable the pcdrv device interface. (Access PC filesystem through SIO). |
 | `-pcdrvbase` | Specify base directory for pcdrv. |
 | `-safe` | Resets configuration to defaults. |
+| `-resetui` | Resets the UI to its defaults. |
+| `-kiosk` | Enables kiosk mode, disabling UI interaction. Will change the saved setting. |
+| `-no-kiosk` | Disables kiosk mode, allowing the user to interact with the UI. Will change the saved setting. |
 | `-interpreter` | Use the interpreter CPU core. |
 | `-dynarec` | Use the dynamic recompiler CPU core. |
 | `-debugger` | Activates the debugger. Will change the saved setting. |
