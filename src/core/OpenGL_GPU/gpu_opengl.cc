@@ -626,6 +626,7 @@ void PCSX::OpenGL_GPU::vblank() {
     OpenGL::disableScissor();
     if (m_lastTransparency == Transparency::Transparent) {
         m_lastTransparency = Transparency::Opaque;
+        m_lastBlendingMode = -1;
         OpenGL::disableBlend();
     }
 
@@ -661,6 +662,7 @@ void PCSX::OpenGL_GPU::renderBatch() {
         }
         m_vbo.bufferVertsSub(&m_vertices[0], m_vertexCount);
         
+        // Special handling if we're using subtractive blending
         if (m_lastBlendingMode == 2) {
             // Draw opaque only
             OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
