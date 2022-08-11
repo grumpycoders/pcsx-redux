@@ -51,6 +51,7 @@ steps:
     FlattenFolders: true
 
 - task: VSBuild@1
+  timeoutInMinutes: 90
   inputs:
     solution: '$(solution)'
     platform: 'x64'
@@ -65,6 +66,7 @@ steps:
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
 - task: VSTest@2
+  timeoutInMinutes: 10
   inputs:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
