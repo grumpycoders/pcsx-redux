@@ -27,9 +27,11 @@
 
 #include "core/psxemulator.h"
 #include "core/system.h"
+#include "fmt/format.h"
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
+#include "mips/common/util/encoder.hh"
 
 void PCSX::Widgets::TypedDebugger::import(std::string_view fileContents, ImportType importType) {
     std::istringstream file(std::string(fileContents), std::ios_base::in);
@@ -75,9 +77,9 @@ void PCSX::Widgets::TypedDebugger::import(std::string_view fileContents, ImportT
             }
 
             FieldOrArgumentData data;
-            const std::regex data_regex(R"(([\w\s\*\[\]]+),(\w+),(\d+))");
+            const std::regex dataRegex(R"(([\w\s\*\[\]]+),(\w+),(\d+))");
             std::smatch matches;
-            if (std::regex_match(s, matches, data_regex)) {
+            if (std::regex_match(s, matches, dataRegex)) {
                 data.type = matches[1].str();
                 data.name = matches[2].str();
                 data.size = std::stoul(matches[3].str());
@@ -114,14 +116,19 @@ void PCSX::Widgets::TypedDebugger::import(std::string_view fileContents, ImportT
     }
 
     if (importType == ImportType::DataTypes) {
-        std::sort(m_typeNames.begin(), m_typeNames.end(), [](std::string left, std::string right) {
-            for (auto& letter : left) {
-                letter = tolower(letter);
+        std::sort(m_typeNames.begin(), m_typeNames.end(), [](const std::string& left, const std::string& right) {
+            const auto leftSize = left.size();
+            const auto rightSize = right.size();
+            for (size_t i = 0; i < std::min(leftSize, rightSize); ++i) {
+                const auto lowerLeft = std::tolower(left[i]);
+                const auto lowerRight = std::tolower(right[i]);
+                if (lowerLeft < lowerRight) {
+                    return true;
+                } else if (lowerLeft > lowerRight) {
+                    return false;
+                }
             }
-            for (auto& letter : right) {
-                letter = tolower(letter);
-            }
-            return left.compare(right) < 0;
+            return leftSize < rightSize;
         });
     }
 }
@@ -151,20 +158,20 @@ PCSX::Widgets::TypedDebugger::TypedDebugger(bool& show) : m_show(show), m_listen
 
         for (const auto& disabledInstruction : m_disabledInstructions) {
             const auto instructionAddress = disabledInstruction.first;
-            constexpr uint8_t nop[4] = {0x00, 0x00, 0x00, 0x00};
-            memcpy(memData + instructionAddress - memBase, nop, 4);
+            constexpr uint32_t nop = Mips::Encoder::nop();
+            memcpy(memData + instructionAddress - memBase, &nop, 4);
         }
 
         for (const auto& disabledFunction : m_disabledFunctions) {
             const auto functionAddress = disabledFunction.first;
-            constexpr uint8_t jr_ra[8] = {0x08, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x00};
+            using namespace Mips::Encoder;
+            constexpr uint32_t jr_ra[2] = {jr(Reg::RA), nop()};
             memcpy(memData + functionAddress - memBase, jr_ra, 8);
         }
     });
 }
 
-void PCSX::Widgets::TypedDebugger::populate(WatchTreeNode* node,
-                                            std::unordered_map<std::string, StructFields>& structs_info) {
+void PCSX::Widgets::TypedDebugger::populate(WatchTreeNode* node) {
     const auto type = node->type;
 
     const std::regex arrayRegex(R"((.*)\[(\d+)\])");
@@ -176,16 +183,16 @@ void PCSX::Widgets::TypedDebugger::populate(WatchTreeNode* node,
             WatchTreeNode newNode{type, std::string(node->name + "[" + std::to_string(i) + "]"),
                                   node->size / numChildren};
             node->children.push_back(newNode);
-            populate(&node->children.back(), structs_info);
+            populate(&node->children.back());
         }
-    } else if (structs_info.contains(type)) {
-        const size_t numChildren = structs_info[type].size();
+    } else if (m_structs.contains(type)) {
+        const size_t numChildren = m_structs[type].size();
 
         for (size_t i = 0; i < numChildren; ++i) {
-            const auto& field = structs_info[type][i];
+            const auto& field = m_structs[type][i];
             WatchTreeNode newNode{field.type, field.name, field.size};
             node->children.push_back(newNode);
-            populate(&node->children.back(), structs_info);
+            populate(&node->children.back());
         }
     }
 }
@@ -248,7 +255,7 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 }
 
                 const auto pc = g_emulator->m_cpu->m_regs.pc;
-                std::string funcName = getFunctionNameFromInstructionAddress(pc);
+                std::string_view funcName = getFunctionNameFromInstructionAddress(pc);
                 if (funcName.empty()) {
                     funcName = "overlay?";
                 }
@@ -261,7 +268,7 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                     }
                 }
 
-                ReadWriteLogEntry newLogEntry{pc, funcName, accessType};
+                ReadWriteLogEntry newLogEntry{pc, funcName.data(), accessType};
                 node->logEntries.push_back(newLogEntry);
                 return true;
             };
@@ -297,7 +304,7 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 ImGui::TableNextColumn();  // Name.
                 ImGui::TextUnformatted(logEntry.functionName.c_str());
                 ImGui::TableNextColumn();  // Type.
-                ImGui::Text("0x%2x", instructionAddress);
+                ImGui::Text("0x%x", instructionAddress);
                 ImGui::TableNextColumn();  // Size.
                 ImGui::TextUnformatted(magic_enum::enum_name(logEntry.accessType).data());
                 ImGui::TableNextColumn();  // Value.
@@ -313,8 +320,8 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                         uint8_t instructions[4];
                         memcpy(instructions, instructionMem, 4);
                         m_disabledInstructions[instructionAddress] = std::to_array(instructions);
-                        constexpr uint8_t nop[4] = {0x00, 0x00, 0x00, 0x00};
-                        memcpy(instructionMem, nop, 4);
+                        constexpr uint32_t nop = Mips::Encoder::nop();
+                        memcpy(instructionMem, &nop, 4);
                     }
                 }
                 ImGui::TableNextColumn();  // New value.
@@ -326,7 +333,7 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
     }
 }
 
-std::string PCSX::Widgets::TypedDebugger::getFunctionNameFromInstructionAddress(uint32_t address) {
+std::string_view PCSX::Widgets::TypedDebugger::getFunctionNameFromInstructionAddress(uint32_t address) {
     if (m_instructionAddressToFunctionMap.contains(address)) {
         return m_instructionAddressToFunctionMap[address];
     } else {
@@ -338,7 +345,7 @@ std::string PCSX::Widgets::TypedDebugger::getFunctionNameFromInstructionAddress(
             }
         }
     }
-    return std::string();
+    return std::string_view();
 }
 
 void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView,
@@ -378,7 +385,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::Text("%zu", node->size);
         ImGui::TableNextColumn();  // Value.
         if (isPointer) {
-            ImGui::Text("0x%2x", startAddress);
+            ImGui::Text("0x%x", startAddress);
         } else {
             ImGui::TextDisabled("--");
         }
@@ -413,7 +420,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TableNextColumn();  // Size.
             ImGui::TextUnformatted("4");
             ImGui::TableNextColumn();  // Value.
-            ImGui::Text("0x%2x", startAddress);
+            ImGui::Text("0x%x", startAddress);
             ImGui::SameLine();
             const auto showMemButtonName = fmt::format(f_("Show in memory editor##{}{}"), currentAddress, extraImGuiId);
             if (ImGui::Button(showMemButtonName.c_str())) {
@@ -458,7 +465,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         const auto pointerType = node->type;
         const auto pointedToType = node->type.substr(0, node->type.size() - 2);
         node->type = pointedToType;
-        populate(node, m_structs);
+        populate(node);
         node->type = pointerType;
     } else {  // This is a primitive.
         ImGui::TreeNodeEx(nameColumnString.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
@@ -488,35 +495,29 @@ void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address) {
     if (equals(type, "char")) {
         int8_t fieldValue = 0;
         memcpy(&fieldValue, address, 1);
-        sprintf(s, "%d (0x%2x) \n", fieldValue, fieldValue);
-        ImGui::Text("Value: %s", s);
+        ImGui::Text("Value: %d (0x%x)", fieldValue, fieldValue);
     } else if (equals(type, "uchar") || equals(type, "u_char")) {
         uint8_t fieldValue = 0;
         memcpy(&fieldValue, address, 1);
-        sprintf(s, "%u (0x%2x) \n", fieldValue, fieldValue);
-        ImGui::Text("Value: %s", s);
+        ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
     } else if (equals(type, "short")) {
         int16_t fieldValue = 0;
         memcpy(&fieldValue, address, 2);
-        sprintf(s, "%hi (0x%2x) \n", fieldValue, fieldValue);
-        ImGui::Text("Value: %s", s);
+        ImGui::Text("Value: %hi (0x%x)", fieldValue, fieldValue);
     } else if (equals(type, "ushort") || equals(type, "u_short")) {
         uint16_t fieldValue = 0;
         memcpy(&fieldValue, address, 2);
-        sprintf(s, "%hu (0x%2x) \n", fieldValue, fieldValue);
-        ImGui::Text("Value: %s", s);
+        ImGui::Text("Value: %hu (0x%x)", fieldValue, fieldValue);
     } else if (equals(type, "int") || equals(type, "long")) {
         int32_t fieldValue = 0;
         memcpy(&fieldValue, address, 4);
-        sprintf(s, "%i (0x%2x) \n", fieldValue, fieldValue);
-        ImGui::Text("Value: %s", s);
+        ImGui::Text("Value: %i (0x%x)", fieldValue, fieldValue);
     } else if (equals(type, "uint") || equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long")) {
         uint32_t fieldValue = 0;
         memcpy(&fieldValue, address, 4);
-        sprintf(s, "%u (0x%2x) \n", fieldValue, fieldValue);
-        ImGui::Text("Value: %s", s);
+        ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
     } else {
-        sprintf(s, "\t> cannot yet print out value of type %s\n", type);
+        ImGui::Text("Cannot yet print out value of type %s", type);
     }
 }
 
@@ -559,7 +560,7 @@ void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, void* 
             memcpy(address, &m_newValue, 4);
         }
     } else {
-        sprintf(s, "\t> cannot yet input value of type %s\n", type);
+        ImGui::Text("Cannot yet input value of type %s", type);
     }
 }
 
@@ -573,12 +574,9 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     if (m_structs.empty()) {
         ImGui::TextWrapped(
             "Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will "
-            "generate a "
-            "redux_data_types.txt file in its folder, or from any text file where each line specifies the data "
-            "type's "
-            "name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose "
-            "elements "
-            "are separated by commas. For example:\n");
+            "generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the "
+            "data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples "
+            "whose elements are separated by commas. For example:\n");
         gui->useMonoFont();
         ImGui::TextUnformatted("CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n");
         ImGui::PopFont();
@@ -609,11 +607,9 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     if (m_functions.empty()) {
         ImGui::TextWrapped(
             "Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate "
-            "a "
-            "redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
-            "address, "
-            "name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples whose "
-            "elements are separated by commas. For example:\n");
+            "a redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
+            "address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples "
+            "whose elements are separated by commas. For example:\n");
         gui->useMonoFont();
         ImGui::TextUnformatted("800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n");
         ImGui::PopFont();
@@ -654,6 +650,32 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 std::stringstream fileContents;
                 fileContents << file.rdbuf();
                 import(fileContents.str(), importType);
+
+                if (importType == ImportType::DataTypes) {
+                    // Refresh displayed Watch data.
+                    for (auto& data : m_displayedWatchData) {
+                        printf("Refreshing node of type %s at address %x", data.node.type.c_str(), data.address);
+                        // Refresh size.
+                        const std::regex arrayRegex(R"((.*)\[(\d+)\])");
+                        std::smatch matches;
+                        auto type = data.node.type;
+                        size_t numberOfElements = 1;
+                        if (std::regex_match(data.node.type, matches, arrayRegex)) {
+                            type = matches[1].str();
+                            numberOfElements = std::stoul(matches[2].str());
+                        }
+
+                        data.node.size = 0;
+                        for (const auto& field : m_structs[type]) {
+                            data.node.size += field.size;
+                        }
+                        data.node.size *= numberOfElements;
+
+                        // Refresh children.
+                        data.node.children.clear();
+                        populate(&data.node);
+                    }
+                }
             }
         }
     };
@@ -719,7 +741,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                     rootNode.size += field.size;
                 }
                 rootNode.size *= numberToCreate;
-                populate(&rootNode, m_structs);
+                populate(&rootNode);
                 m_displayedWatchData.push_back({addressInputValue, true, rootNode});
             }
             ImGui::SameLine();
@@ -871,7 +893,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
                         ImGui::TableNextRow();
                         ImGui::TableSetColumnIndex(0);
-                        ImGui::Text("0x%2x", currentAddress);
+                        ImGui::Text("0x%x", currentAddress);
                         ImGui::TableSetColumnIndex(1);
                         ImGui::Text("%s", m_functions[currentAddress].name.c_str());
                         ImGui::TableSetColumnIndex(2);
@@ -912,7 +934,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
                                 if (arg.type.back() == '*') {
                                     WatchTreeNode argNode{arg.type, arg.name, arg.size};
-                                    populate(&argNode, m_structs);
+                                    populate(&argNode);
                                     bpData.argData.push_back(AddressNodeTuple{reg_value, false, argNode});
                                 } else {
                                     bpData.argData.push_back(RegisterValue{reg_value, arg.type, arg.name, arg.size});
@@ -920,7 +942,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                             }
 
                             const auto ra = g_emulator->m_cpu->m_regs.GPR.n.ra;
-                            std::string callerName = getFunctionNameFromInstructionAddress(ra);
+                            std::string_view callerName = getFunctionNameFromInstructionAddress(ra);
                             if (callerName.empty()) {
                                 callerName = "overlay?";
                             }
@@ -950,7 +972,8 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                                 uint8_t instructions[8];
                                 memcpy(instructions, functionMem, 8);
                                 m_disabledFunctions[currentAddress] = std::to_array(instructions);
-                                constexpr uint8_t jr_ra[8] = {0x08, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x00};
+                                using namespace Mips::Encoder;
+                                constexpr uint32_t jr_ra[2] = {jr(Reg::RA), nop()};
                                 memcpy(functionMem, jr_ra, 8);
                             }
                         }

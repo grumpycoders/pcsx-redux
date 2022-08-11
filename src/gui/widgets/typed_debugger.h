@@ -82,7 +82,7 @@ class TypedDebugger {
 
     using StructFields = std::vector<FieldOrArgumentData>;
     // Populates a node according to its type.
-    void populate(WatchTreeNode* node, std::unordered_map<std::string, StructFields>& structs_info);
+    void populate(WatchTreeNode* node);
 
     // For an explanation of the meaning of addressOfPointer, see declaration of displayNode().
     struct AddressNodeTuple {
@@ -142,7 +142,7 @@ class TypedDebugger {
 
     // Returns the name of the function from which the instruction at the given address was emitted if found, an empty
     // string otherwise.
-    std::string getFunctionNameFromInstructionAddress(uint32_t address);
+    std::string_view getFunctionNameFromInstructionAddress(uint32_t address);
     std::unordered_map<uint32_t, std::string> m_instructionAddressToFunctionMap;
 
     /**
