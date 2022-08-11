@@ -46,6 +46,7 @@ void PCSX::OpenGL_GPU::setTransparency() {
     if (m_lastTransparency != setting) {
         renderBatch();
         if constexpr (setting == Transparency::Opaque) {
+            m_lastBlendingMode = -1;
             OpenGL::disableBlend();
         } else {
             OpenGL::enableBlend();
@@ -59,8 +60,8 @@ void PCSX::OpenGL_GPU::setBlendingModeFromTexpage(uint32_t texpage) {
     const auto newBlendingMode = (texpage >> 5) & 3;
 
     if (m_lastBlendingMode != newBlendingMode) {
+        renderBatch(); // This must be executed before we set the new blend mode
         m_lastBlendingMode = newBlendingMode;
-        renderBatch();
         OpenGL::setBlendFactor(GL_SRC1_COLOR, GL_SRC1_ALPHA, GL_ONE, GL_ZERO);
 
         switch (newBlendingMode) {
