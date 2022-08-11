@@ -70,10 +70,13 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
         IO<File> in(zip.openFile(name));
         Slice data = in->read(in->size());
         out->write(std::move(data));
-        script->writeString("Move-Item -Force -Path \"");
+        script->writeString("Copy-Item -Force -Path \"");
         script->writeString(out->filename().string());
         script->writeString("\" -Destination \"");
         script->writeString((binDir / name).string());
+        script->writeString("\"\n");
+        script->writeString("Remove-Item -Path \"");
+        script->writeString(out->filename().string());
         script->writeString("\"\n");
     });
 
