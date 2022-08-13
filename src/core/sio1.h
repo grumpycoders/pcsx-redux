@@ -78,7 +78,7 @@ class SIO1 {
             sio1StateMachine();
         } else {
             if (m_sio1fifo->size() >= 1) {
-                scheduleInterrupt(m_cycleCount);
+                receiveCallback();
             }
         }
     }
