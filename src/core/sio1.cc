@@ -316,5 +316,5 @@ void PCSX::SIO1::calcCycleCount() {
     int reload = m_reloadFactor[m_regs.mode & 0x3];
     if (m_regs.baud * reload <= 0) return;
     m_baudRate = g_emulator->m_psxClockSpeed / (m_regs.baud * reload);
-    m_cycleCount = g_emulator->m_psxClockSpeed / m_baudRate * 8;
+    m_cycleCount = g_emulator->m_psxClockSpeed / (m_baudRate * 8);
 }
