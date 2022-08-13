@@ -134,7 +134,7 @@ void PCSX::SIO1::interrupt() {
     if (!m_sio1fifo || m_sio1fifo->eof()) return;
     if (m_sio1Mode == SIO1Mode::Raw) {
         if (m_sio1fifo->size() >= 1) {
-            scheduleInterrupt(m_cycleCount);
+            receiveCallback();
         }
     }
     if (m_sio1fifo.isA<Fifo>()) {
@@ -316,5 +316,5 @@ void PCSX::SIO1::calcCycleCount() {
     int reload = m_reloadFactor[m_regs.mode & 0x3];
     if (m_regs.baud * reload <= 0) return;
     m_baudRate = g_emulator->m_psxClockSpeed / (m_regs.baud * reload);
-    m_cycleCount = g_emulator->m_psxClockSpeed / m_baudRate * 8;
+    m_cycleCount = g_emulator->m_psxClockSpeed / (m_baudRate * 8);
 }

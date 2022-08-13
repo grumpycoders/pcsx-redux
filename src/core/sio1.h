@@ -72,6 +72,17 @@ class SIO1 {
     SIO1Mode getSIO1Mode() { return m_sio1Mode; }
     void interrupt();
 
+    void poll() {
+        if (fifoError()) return;
+        if (m_sio1Mode == SIO1Mode::Protobuf) {
+            sio1StateMachine();
+        } else {
+            if (m_sio1fifo->size() >= 1) {
+                receiveCallback();
+            }
+        }
+    }
+
     void reset() {
         if (m_sio1fifo.isA<Fifo>()) m_sio1fifo.asA<Fifo>()->reset();
         m_regs.data = 0;
