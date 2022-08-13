@@ -197,7 +197,7 @@ void PCSX::Counters::update() {
 
         // SIO1 callback on hsync to process data
         if (m_pollSIO1) {
-            PCSX::g_emulator->m_sio1->sio1StateMachine();
+            PCSX::g_emulator->m_sio1->poll();
         }
 
         // Trigger VBlank IRQ when VBlank starts

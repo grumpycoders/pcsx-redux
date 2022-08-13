@@ -46,8 +46,8 @@ void PCSX::SIO1Server::startServer(uv_loop_t* loop, int port) {
         g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Raw;
     } else {
         g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Protobuf;
-        g_emulator->m_counters->m_pollSIO1 = true;
     }
+    g_emulator->m_counters->m_pollSIO1 = true;
 
     m_serverStatus = SIO1ServerStatus::SERVER_STARTED;
     m_fifoListener.start(port, loop, &m_async, [this](auto fifo) {
