@@ -373,7 +373,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                          : (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
 
         // We need
-        // 	&& isExpandable
+        //      && isExpandable
         // because TreeNodeEx() always returns true for a non-expandable and therefore non-pushed tree, which would
         // lead us to try to pop a tree we haven't pushed.
         bool open =

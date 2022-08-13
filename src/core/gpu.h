@@ -75,7 +75,7 @@ class GPU {
     virtual void writeStatusInternal(uint32_t gdata) = 0;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
     virtual void setOpenGLContext() {}
-    
+
     virtual void restoreStatus(uint32_t status) = 0;
 
     virtual void vblank() = 0;

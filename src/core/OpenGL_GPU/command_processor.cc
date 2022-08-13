@@ -60,7 +60,7 @@ void PCSX::OpenGL_GPU::setBlendingModeFromTexpage(uint32_t texpage) {
     const auto newBlendingMode = (texpage >> 5) & 3;
 
     if (m_lastBlendingMode != newBlendingMode) {
-        renderBatch(); // This must be executed before we set the new blend mode
+        renderBatch();  // This must be executed before we set the new blend mode
         m_lastBlendingMode = newBlendingMode;
         OpenGL::setBlendFactor(GL_SRC1_COLOR, GL_SRC1_ALPHA, GL_ONE, GL_ZERO);
 
@@ -371,11 +371,11 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0x35] = &OpenGL_GPU::drawTriTextured<Shading::RawTextureGouraud, Transparency::Opaque>;
     m_cmdFuncs[0x36] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendGouraud, Transparency::Transparent>;
     m_cmdFuncs[0x37] = &OpenGL_GPU::drawTriTextured<Shading::RawTextureGouraud, Transparency::Transparent>;
-    
+
     m_cmdFuncs[0x38] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Opaque>;
     m_cmdFuncs[0x39] = m_cmdFuncs[0x38];  // Duplicate
     m_cmdFuncs[0x3A] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Transparent>;
-    m_cmdFuncs[0x3B] = m_cmdFuncs[0x3A]; // Duplicate
+    m_cmdFuncs[0x3B] = m_cmdFuncs[0x3A];  // Duplicate
 
     m_cmdFuncs[0x3C] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendGouraud, Transparency::Opaque>;
     m_cmdFuncs[0x3D] = &OpenGL_GPU::drawQuadTextured<Shading::RawTextureGouraud, Transparency::Opaque>;
@@ -570,7 +570,7 @@ void PCSX::OpenGL_GPU::cmdCopyRectFromVRAM() {
 
 void PCSX::OpenGL_GPU::cmdCopyRectVRAMToVRAM() {
     renderBatch();
-    OpenGL::disableScissor(); // We disable scissor testing because it affects glBlitFramebuffer
+    OpenGL::disableScissor();  // We disable scissor testing because it affects glBlitFramebuffer
     const uint32_t srcCoords = m_cmdFIFO[1];
     const uint32_t destCoords = m_cmdFIFO[2];
     const uint32_t res = m_cmdFIFO[3];

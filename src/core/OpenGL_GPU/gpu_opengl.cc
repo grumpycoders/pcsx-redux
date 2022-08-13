@@ -664,7 +664,7 @@ void PCSX::OpenGL_GPU::renderBatch() {
             setDrawOffset(m_lastDrawOffsetSetting);
         }
         m_vbo.bufferVertsSub(&m_vertices[0], m_vertexCount);
-        
+
         // Special handling if we're using subtractive blending
         if (m_lastBlendingMode == 2) {
             // Draw opaque only

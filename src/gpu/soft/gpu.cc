@@ -326,9 +326,7 @@ uint32_t PCSX::SoftGPU::impl::readStatus() {
     return lGPUstatusRet;
 }
 
-void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) {
-    lGPUstatusRet = status;
-}
+void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) { lGPUstatusRet = status; }
 
 // processes data send to GPU status register
 // these are always single packet commands.
