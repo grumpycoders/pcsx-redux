@@ -134,7 +134,7 @@ void PCSX::SIO1::interrupt() {
     if (!m_sio1fifo || m_sio1fifo->eof()) return;
     if (m_sio1Mode == SIO1Mode::Raw) {
         if (m_sio1fifo->size() >= 1) {
-            scheduleInterrupt(m_cycleCount);
+            receiveCallback();
         }
     }
     if (m_sio1fifo.isA<Fifo>()) {
