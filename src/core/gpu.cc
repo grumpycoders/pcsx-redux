@@ -177,6 +177,6 @@ void PCSX::GPU::writeStatus(uint32_t status) {
     uint32_t cmd = (status >> 24) & 0xff;
 
     m_statusControl[cmd] = status;
-    
+
     writeStatusInternal(status);
 }

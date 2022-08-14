@@ -375,7 +375,9 @@ enum Primitives {
     Points = Point
 };
 
-static inline void draw(Primitives prim, GLsizei vertexCount) { glDrawArrays(static_cast<GLenum>(prim), 0, vertexCount); }
+static inline void draw(Primitives prim, GLsizei vertexCount) {
+    glDrawArrays(static_cast<GLenum>(prim), 0, vertexCount);
+}
 static inline void draw(Primitives prim, GLint first, GLsizei vertexCount) {
     glDrawArrays(static_cast<GLenum>(prim), first, vertexCount);
 }
