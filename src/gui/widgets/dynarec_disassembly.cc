@@ -19,7 +19,7 @@
 
 #include "gui/widgets/dynarec_disassembly.h"
 
-#include <capstone/capstone.h>
+#include <capstone.h>
 
 #include <cinttypes>
 #include <fstream>
