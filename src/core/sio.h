@@ -82,6 +82,40 @@ class SIO {
         MCD_READWRITE_STATE_IDLE = 0,
         MCD_READWRITE_STATE_READ = 1,
         MCD_READWRITE_STATE_WRITE = 2,
+        MCD_READWRITE_STATE_GET_DIR_INDEX = 3,
+    };
+    enum MCD_Commands : uint8_t {
+        MCD_Access = 0x81,  // Memory Card Select
+        MCD_Read = 0x52,    // Read Command
+        MCD_GetID = 0x53,   // Get ID Command
+        MCD_Write = 0x57,   // Write Command
+        MCD_None = 0x00,    // No command, idle state
+        MCD_Error = 0xFF,   // Bad command
+
+        // PocketStation command extensions
+        MCD_
+    };
+    enum MCD_Responses : uint8_t {
+        MCD_IdleHighZ = 0xFF,           // High default state
+        MCD_Dummy = 0x00,               // Filler Data
+        MCD_ID1 = 0x5A,                 // Memory Card ID1
+        MCD_ID2 = 0x5D,                 // Memory Card ID2
+        MCD_CommandAcknowledge1 = 0x5C,  // Command Acknowledge 1
+        MCD_CommandAcknowledge2 = 0x5D,  // Command Acknowledge 2
+        MCD_GoodReadWrite = 0x47,        // Good Read/Write
+        MCD_BadChecksum = 0x4E,          // Bad Checksum during Write
+        MCD_BadSector = 0xFF,            // Bad Memory Card Sector
+    };
+    enum PAD_Commands : uint8_t {
+        PAD_Access = 0x01,  // Pad Select
+        PAD_Read = 0x42,    // Read Command
+        PAD_None = 0x00,    // No command, idle state
+        PAD_Error = 0xFF    // Bad command
+    };
+    enum SIO_Selected : uint16_t {
+        Port1 = 0x0002,
+        Port2 = 0x2002,
+        PortMask = 0x2002,
     };
     uint8_t m_mcdAddrHigh, m_mcdAddrLow;
     bool m_wasMcd1Inserted = false;

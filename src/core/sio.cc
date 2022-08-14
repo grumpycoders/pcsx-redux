@@ -54,11 +54,11 @@ void PCSX::SIO::writePad(uint8_t value) {
 
             m_padState = PAD_STATE_READ_DATA;
             m_bufferIndex = 1;
-            switch (m_ctrlReg & 0x2002) {
-                case 0x0002:
+            switch (m_ctrlReg & SIO_Selected::PortMask) {
+                case SIO_Selected::Port1:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
                     break;
-                case 0x2002:
+                case SIO_Selected::Port2:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
                     break;
             }
@@ -71,11 +71,11 @@ void PCSX::SIO::writePad(uint8_t value) {
             return;
         case PAD_STATE_READ_DATA:
             m_bufferIndex++;
-            switch (m_ctrlReg & 0x2002) {
-                case 0x0002:
+            switch (m_ctrlReg & SIO_Selected::PortMask) {
+                case SIO_Selected::Port1:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
                     break;
-                case 0x2002:
+                case SIO_Selected::Port2:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
                     break;
             }
@@ -99,10 +99,10 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             }
             m_bufferIndex = 1;
             switch (value) {
-                case 'R':
+                case MCD_Commands::MCD_Read:
                     m_mcdReadWriteState = MCD_READWRITE_STATE_READ;
                     break;
-                case 'W':
+                case MCD_Commands::MCD_Write:
                     m_mcdReadWriteState = MCD_READWRITE_STATE_WRITE;
                     break;
                 default:
@@ -111,11 +111,11 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             return;
         case MCD_STATE_READ_ADDR_HIGH:
             scheduleInterrupt(SIO_CYCLES);
-            m_mcdAddrHigh = value;
-            *m_buffer = 0;
-            m_bufferIndex = 0;
-            m_maxBufferIndex = 1;
-            m_mcdState = MCD_STATE_READ_ADDR_LOW;
+                m_mcdAddrHigh = value;
+                *m_buffer = 0;
+                m_bufferIndex = 0;
+                m_maxBufferIndex = 1;
+                m_mcdState = MCD_STATE_READ_ADDR_LOW;
             return;
         case MCD_STATE_READ_ADDR_LOW:
             scheduleInterrupt(SIO_CYCLES);
@@ -130,15 +130,15 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             m_bufferIndex = 0;
             switch (m_mcdReadWriteState) {
                 case MCD_READWRITE_STATE_READ:
-                    m_buffer[0] = 0x5c;
-                    m_buffer[1] = 0x5d;
+                    m_buffer[0] = MCD_Responses::MCD_CommandAcknowledge1;
+                    m_buffer[1] = MCD_Responses::MCD_CommandAcknowledge2;
                     m_buffer[2] = m_mcdAddrHigh;
                     m_buffer[3] = m_mcdAddrLow;
-                    switch (m_ctrlReg & 0x2002) {
-                        case 0x0002:
+                    switch (m_ctrlReg & SIO_Selected::PortMask) {
+                        case SIO_Selected::Port1:
                             memcpy(&m_buffer[4], g_mcd1Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                             break;
-                        case 0x2002:
+                        case SIO_Selected::Port2:
                             memcpy(&m_buffer[4], g_mcd2Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                             break;
                     }
@@ -147,15 +147,15 @@ void PCSX::SIO::writeMcd(uint8_t value) {
                         for (int i = 2; i < 128 + 4; i++) xorsum ^= m_buffer[i];
                         m_buffer[132] = xorsum;
                     }
-                    m_buffer[133] = 0x47;
+                    m_buffer[133] = MCD_Responses::MCD_GoodReadWrite;
                     m_maxBufferIndex = 133;
                     break;
                 case MCD_READWRITE_STATE_WRITE:
                     m_buffer[0] = m_mcdAddrLow;
                     m_buffer[1] = value;
-                    m_buffer[129] = 0x5c;
-                    m_buffer[130] = 0x5d;
-                    m_buffer[131] = 0x47;
+                    m_buffer[129] = MCD_Responses::MCD_CommandAcknowledge1;
+                    m_buffer[130] = MCD_Responses::MCD_CommandAcknowledge2;
+                    m_buffer[131] = MCD_Responses::MCD_GoodReadWrite;
                     m_maxBufferIndex = 131;
                     break;
             }
@@ -182,14 +182,14 @@ void PCSX::SIO::write8(uint8_t value) {
         return;
     }
     switch (value) {
-        case 0x01:                  // start pad
+        case PAD_Commands::PAD_Access:  // start pad
             m_statusReg |= RX_RDY;  // Transfer is Ready
 
-            switch (m_ctrlReg & 0x2002) {
-                case 0x0002:
+            switch (m_ctrlReg & SIO_Selected::PortMask) {
+                case SIO_Selected::Port1:
                     m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port1);
                     break;
-                case 0x2002:
+                case SIO_Selected::Port2:
                     m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port2);
                     break;
             }
@@ -199,29 +199,32 @@ void PCSX::SIO::write8(uint8_t value) {
             m_padState = PAD_STATE_READ_COMMAND;
             scheduleInterrupt(SIO_CYCLES);
             return;
-        case 0x81:  // start memcard
+        case MCD_Commands::MCD_Access:  // start memcard
                     // case 0x82: case 0x83: case 0x84: // Multitap memcard access
             m_statusReg |= RX_RDY;
 
             std::memset(m_buffer, 0, 4);
-            if ((m_ctrlReg & 0x2002) == 0x0002) {
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
-                    m_buffer[1] = m_wasMcd1Inserted ? 0 : MCDST_CHANGED;
-                    m_buffer[2] = 0x5a;
-                    m_buffer[3] = 0x5d;
-                    m_wasMcd1Inserted = true;
-                } else {
-                    m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
-                }
-            } else if ((m_ctrlReg & 0x2002) == 0x2002) {
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
-                    m_buffer[1] = m_wasMcd2Inserted ? 0 : MCDST_CHANGED;
-                    m_buffer[2] = 0x5a;
-                    m_buffer[3] = 0x5d;
-                    m_wasMcd2Inserted = true;
-                } else {
-                    m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
-                }
+            switch (m_ctrlReg & SIO_Selected::PortMask) {
+                case SIO_Selected::Port1:
+                    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
+                        m_buffer[1] = m_wasMcd1Inserted ? 0 : MCDST_CHANGED;
+                        m_buffer[2] = MCD_Responses::MCD_ID1;
+                        m_buffer[3] = MCD_Responses::MCD_ID2;
+                        m_wasMcd1Inserted = true;
+                    } else {
+                        m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
+                    }
+                    break;
+                case SIO_Selected::Port2:
+                    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
+                        m_buffer[1] = m_wasMcd2Inserted ? 0 : MCDST_CHANGED;
+                        m_buffer[2] = MCD_Responses::MCD_ID1;
+                        m_buffer[3] = MCD_Responses::MCD_ID2;
+                        m_wasMcd2Inserted = true;
+                    } else {
+                        m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
+                    }
+                    break;
             }
 
             m_bufferIndex = 0;
@@ -267,15 +270,15 @@ uint8_t PCSX::SIO::read8() {
             if (m_mcdState == MCD_STATE_READWRITE_DATA) {
                 m_mcdState = MCD_STATE_IDLE;
                 if (m_mcdReadWriteState == MCD_READWRITE_STATE_WRITE) {
-                    switch (m_ctrlReg & 0x2002) {
-                        case 0x0002:
+                    switch (m_ctrlReg & SIO_Selected::PortMask) {
+                        case SIO_Selected::Port1:
                             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
                                 memcpy(g_mcd1Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
                                 saveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
                                         g_mcd1Data, (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                             }
                             break;
-                        case 0x2002:
+                        case SIO_Selected::Port2:
                             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
                                 memcpy(g_mcd2Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
                                 saveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str(),
