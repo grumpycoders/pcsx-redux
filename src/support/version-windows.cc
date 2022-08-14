@@ -89,7 +89,7 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     script->close();
 
     std::string cmd;
-    cmd = "cmd.exe /c powershell.exe -ExecutionPolicy Bypass -windowstyle hidden -file ";
+    cmd = "cmd.exe /c powershell.exe -ExecutionPolicy Bypass -file ";
     cmd += (tmp / "pcsx-redux-update.ps1").string();
 #ifdef UNICODE
     int needed;
