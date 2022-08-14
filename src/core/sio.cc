@@ -111,11 +111,11 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             return;
         case MCD_STATE_READ_ADDR_HIGH:
             scheduleInterrupt(SIO_CYCLES);
-                m_mcdAddrHigh = value;
-                *m_buffer = 0;
-                m_bufferIndex = 0;
-                m_maxBufferIndex = 1;
-                m_mcdState = MCD_STATE_READ_ADDR_LOW;
+            m_mcdAddrHigh = value;
+            *m_buffer = 0;
+            m_bufferIndex = 0;
+            m_maxBufferIndex = 1;
+            m_mcdState = MCD_STATE_READ_ADDR_LOW;
             return;
         case MCD_STATE_READ_ADDR_LOW:
             scheduleInterrupt(SIO_CYCLES);
