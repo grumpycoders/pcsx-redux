@@ -85,7 +85,6 @@ class SIO {
         MCD_READWRITE_STATE_GET_DIR_INDEX = 3,
     };
     enum MCD_Commands : uint8_t {
-        MCD_Access = 0x81,  // Memory Card Select
         MCD_Read = 0x52,    // Read Command
         MCD_GetID = 0x53,   // Get ID Command
         MCD_Write = 0x57,   // Write Command
@@ -93,7 +92,7 @@ class SIO {
         MCD_Error = 0xFF,   // Bad command
 
         // PocketStation command extensions
-        MCD_
+        
     };
     enum MCD_Responses : uint8_t {
         MCD_IdleHighZ = 0xFF,           // High default state
@@ -107,10 +106,15 @@ class SIO {
         MCD_BadSector = 0xFF,            // Bad Memory Card Sector
     };
     enum PAD_Commands : uint8_t {
-        PAD_Access = 0x01,  // Pad Select
         PAD_Read = 0x42,    // Read Command
         PAD_None = 0x00,    // No command, idle state
         PAD_Error = 0xFF    // Bad command
+    };
+    enum SIO_Commands : uint8_t {
+        SIO_Idle = 0x00,    // No device selected yet
+        PAD_Access = 0x01,  // Pad Select
+        NY_Access = 0x21,   // Net Yaroze Select
+        MCD_Access = 0x81,  // Memory Card Select
     };
     enum SIO_Selected : uint16_t {
         Port1 = 0x0002,

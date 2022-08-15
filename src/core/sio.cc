@@ -182,7 +182,7 @@ void PCSX::SIO::write8(uint8_t value) {
         return;
     }
     switch (value) {
-        case PAD_Commands::PAD_Access:  // start pad
+        case SIO_Commands::PAD_Access:  // start pad
             m_statusReg |= RX_RDY;  // Transfer is Ready
 
             switch (m_ctrlReg & SIO_Selected::PortMask) {
@@ -199,7 +199,7 @@ void PCSX::SIO::write8(uint8_t value) {
             m_padState = PAD_STATE_READ_COMMAND;
             scheduleInterrupt(SIO_CYCLES);
             return;
-        case MCD_Commands::MCD_Access:  // start memcard
+        case SIO_Commands::MCD_Access:  // start memcard
                     // case 0x82: case 0x83: case 0x84: // Multitap memcard access
             m_statusReg |= RX_RDY;
 
