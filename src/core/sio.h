@@ -85,14 +85,22 @@ class SIO {
         MCD_READWRITE_STATE_GET_DIR_INDEX = 3,
     };
     enum MCD_Commands : uint8_t {
-        MCD_Read = 0x52,    // Read Command
-        MCD_GetID = 0x53,   // Get ID Command
-        MCD_Write = 0x57,   // Write Command
-        MCD_None = 0x00,    // No command, idle state
-        MCD_Error = 0xFF,   // Bad command
+        MCD_Read = 0x52,   // Read Command
+        MCD_GetID = 0x53,  // Get ID Command
+        MCD_Write = 0x57,  // Write Command
+        MCD_None = 0x00,   // No command, idle state
+        MCD_Error = 0xFF,  // Bad command
 
         // PocketStation command extensions
-        
+        PS_ChangeFuncValue = 0x50,  // Change a FUNC 03h related value or so
+        PS_GetID = 0x58,            // Get an ID or Version value or so
+        PS_PrepFileExec = 0x59,     // Prepare File Execution with Dir_index, and Parameter
+        PS_GetDirIndex = 0x5A,      // Get Dir_index, ComFlags, F_SN, Date, and Time
+        PS_ExecXferPSToPSX = 0x5B,  // Execute Function and transfer data from Pocketstation to PSX
+        PS_ExecXferPSXToPS = 0x5C,  // Execute Function and transfer data from PSX to Pocketstation
+        PS_ExecCustom = 0x5D,       // Execute Custom Download Notification Function   ;via SWI 01h with r0=3
+        PS_GetComFlagsHi = 0x5E,    // Get-and-Send ComFlags.bit1,3,2
+        PS_GetComFlagsLo = 0x5F,    // Get-and-Send ComFlags.bit0
     };
     enum MCD_Responses : uint8_t {
         MCD_IdleHighZ = 0xFF,           // High default state
