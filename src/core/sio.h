@@ -56,6 +56,8 @@ class SIO {
         MCDST_CHANGED = 0x08,
     };
 
+    uint8_t last_byte;
+
     static const size_t BUFFER_SIZE = 0x1010;
 
     uint8_t m_buffer[BUFFER_SIZE];
@@ -84,12 +86,12 @@ class SIO {
         MCD_READWRITE_STATE_WRITE = 2,
         MCD_READWRITE_STATE_GET_DIR_INDEX = 3,
     };
-    enum MCD_Commands : uint8_t {
-        MCD_Read = 0x52,   // Read Command
-        MCD_GetID = 0x53,  // Get ID Command
-        MCD_Write = 0x57,  // Write Command
-        MCD_None = 0x00,   // No command, idle state
-        MCD_Error = 0xFF,  // Bad command
+    enum class MCD_Commands : uint8_t {
+        Read = 0x52,   // Read Command
+        GetID = 0x53,  // Get ID Command
+        Write = 0x57,  // Write Command
+        None = 0x00,   // No command, idle state
+        Error = 0xFF,  // Bad command
 
         // PocketStation command extensions
         PS_ChangeFuncValue = 0x50,  // Change a FUNC 03h related value or so
@@ -102,27 +104,28 @@ class SIO {
         PS_GetComFlagsHi = 0x5E,    // Get-and-Send ComFlags.bit1,3,2
         PS_GetComFlagsLo = 0x5F,    // Get-and-Send ComFlags.bit0
     };
-    enum MCD_Responses : uint8_t {
-        MCD_IdleHighZ = 0xFF,           // High default state
-        MCD_Dummy = 0x00,               // Filler Data
-        MCD_ID1 = 0x5A,                 // Memory Card ID1
-        MCD_ID2 = 0x5D,                 // Memory Card ID2
-        MCD_CommandAcknowledge1 = 0x5C,  // Command Acknowledge 1
-        MCD_CommandAcknowledge2 = 0x5D,  // Command Acknowledge 2
-        MCD_GoodReadWrite = 0x47,        // Good Read/Write
-        MCD_BadChecksum = 0x4E,          // Bad Checksum during Write
-        MCD_BadSector = 0xFF,            // Bad Memory Card Sector
+    enum class MCD_Responses : uint8_t {
+        IdleHighZ = 0xFF,           // High default state
+        Dummy = 0x00,               // Filler Data
+        ID1 = 0x5A,                 // Memory Card ID1
+        ID2 = 0x5D,                 // Memory Card ID2
+        CommandAcknowledge1 = 0x5C,  // Command Acknowledge 1
+        CommandAcknowledge2 = 0x5D,  // Command Acknowledge 2
+        GoodReadWrite = 0x47,        // Good Read/Write
+        BadChecksum = 0x4E,          // Bad Checksum during Write
+        BadSector = 0xFF,            // Bad Memory Card Sector
     };
-    enum PAD_Commands : uint8_t {
-        PAD_Read = 0x42,    // Read Command
-        PAD_None = 0x00,    // No command, idle state
-        PAD_Error = 0xFF    // Bad command
+    enum class PAD_Commands : uint8_t {
+        Read = 0x42,    // Read Command
+        None = 0x00,    // No command, idle state
+        Error = 0xFF    // Bad command
     };
-    enum SIO_Commands : uint8_t {
-        SIO_Idle = 0x00,    // No device selected yet
-        PAD_Access = 0x01,  // Pad Select
-        NY_Access = 0x21,   // Net Yaroze Select
-        MCD_Access = 0x81,  // Memory Card Select
+    enum class SIO_Device : uint8_t {
+        None = 0x00,        // No device selected yet
+        PAD = 0x01,         // Pad Select
+        NetYaroze = 0x21,   // Net Yaroze Select
+        MemoryCard = 0x81,  // Memory Card Select
+        Ignore = 0xFF,      // Ignore incoming commands
     };
     enum SIO_Selected : uint16_t {
         Port1 = 0x0002,
@@ -133,6 +136,8 @@ class SIO {
     bool m_wasMcd1Inserted = false;
     bool m_wasMcd2Inserted = false;
     uint32_t m_padState;
+
+    uint8_t current_device = static_cast<uint8_t>(SIO_Device::None);
 
     inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
