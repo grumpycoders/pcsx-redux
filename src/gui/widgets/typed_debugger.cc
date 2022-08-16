@@ -239,8 +239,7 @@ static bool isPrimitive(const char* type) {
            equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long");
 }
 
-void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node, const uint32_t address,
-                                                            uint8_t* memData, const uint32_t memBase) {
+void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node, const uint32_t address) {
     PCSX::Debug::BreakpointInvoker logReadsWritesInvoker =
         [this, node](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
             if (!node) {
@@ -330,7 +329,7 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), instructionAddress)
                                                            : fmt::format(f_("Disable##{}"), instructionAddress);
                 if (ImGui::Button(toggleButtonName.c_str())) {
-                    auto* instructionMem = memData + instructionAddress - memBase;
+                    auto* instructionMem = g_emulator->m_mem->m_psxM + instructionAddress - 0x80000000;
                     if (functionToggledOff) {
                         memcpy(instructionMem, m_disabledInstructions[instructionAddress].data(), 4);
                         m_disabledInstructions.erase(instructionAddress);
@@ -411,7 +410,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
-            displayBreakpointOptions(node, currentAddress, memData, memBase);
+            displayBreakpointOptions(node, currentAddress);
         } else if (isInRAM(currentAddress)) {
             auto addToWatchButtonName = fmt::format(f_("Add to Watch tab##{}{}"), currentAddress, extraImGuiId);
             if (ImGui::Button(addToWatchButtonName.c_str())) {
@@ -449,7 +448,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TextDisabled("--");
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
-                displayBreakpointOptions(node, currentAddress, memData, memBase);
+                displayBreakpointOptions(node, currentAddress);
             }
             return;
         }
@@ -476,7 +475,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TextDisabled("--");
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
-                displayBreakpointOptions(node, currentAddress, memData, memBase);
+                displayBreakpointOptions(node, currentAddress);
             }
             return;
         }
@@ -503,7 +502,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
-            displayBreakpointOptions(node, currentAddress, memData, memBase);
+            displayBreakpointOptions(node, currentAddress);
         }
     }
 }
