@@ -329,7 +329,7 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), instructionAddress)
                                                            : fmt::format(f_("Disable##{}"), instructionAddress);
                 if (ImGui::Button(toggleButtonName.c_str())) {
-                    auto* instructionMem = g_emulator->m_mem->m_psxM + instructionAddress - 0x80000000;
+                    auto* instructionMem = PSXM(instructionAddress & 0xffffff);
                     if (functionToggledOff) {
                         memcpy(instructionMem, m_disabledInstructions[instructionAddress].data(), 4);
                         m_disabledInstructions.erase(instructionAddress);
@@ -980,7 +980,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                         auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), row)
                                                                    : fmt::format(f_("Disable##{}"), row);
                         if (ImGui::Button(toggleButtonName.c_str())) {
-                            auto* functionMem = memData + currentAddress - memBase;
+                            auto* functionMem = PSXM(currentAddress & 0xffffff);
                             if (functionToggledOff) {
                                 memcpy(functionMem, m_disabledFunctions[currentAddress].data(), 8);
                                 m_disabledFunctions.erase(currentAddress);
