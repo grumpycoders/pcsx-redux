@@ -45,7 +45,7 @@ void PCSX::SIO::reset() {
     m_bufferIndex = 0;
     m_mcdState = MCD_STATE_IDLE;
     m_mcdReadWriteState = MCD_READWRITE_STATE_IDLE;
-    current_device = static_cast<uint8_t>(SIO_Device::None);
+    current_device = SIO_Device::None;
 }
 
 void PCSX::SIO::writePad(uint8_t value) {
@@ -120,8 +120,8 @@ void PCSX::SIO::writeMcd(uint8_t value) {
                 case SIO_Selected::Port1:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
                         m_buffer[1] = m_wasMcd1Inserted ? 0 : MCDST_CHANGED;
-                        m_buffer[2] = static_cast<uint8_t>(MCD_Responses::ID1);
-                        m_buffer[3] = static_cast<uint8_t>(MCD_Responses::ID2);
+                        m_buffer[2] = MCD_Responses::ID1;
+                        m_buffer[3] = MCD_Responses::ID2;
                         m_wasMcd1Inserted = true;
                     } else {
                         m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
@@ -130,8 +130,8 @@ void PCSX::SIO::writeMcd(uint8_t value) {
                 case SIO_Selected::Port2:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
                         m_buffer[1] = m_wasMcd2Inserted ? 0 : MCDST_CHANGED;
-                        m_buffer[2] = static_cast<uint8_t>(MCD_Responses::ID1);
-                        m_buffer[3] = static_cast<uint8_t>(MCD_Responses::ID2);
+                        m_buffer[2] = MCD_Responses::ID1;
+                        m_buffer[3] = MCD_Responses::ID2;
                         m_wasMcd2Inserted = true;
                     } else {
                         m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
@@ -154,10 +154,10 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             }
             m_bufferIndex = 1;
             switch (value) {
-                case static_cast<uint8_t>(MCD_Commands::Read):
+                case MCD_Commands::Read:
                     m_mcdReadWriteState = MCD_READWRITE_STATE_READ;
                     break;
-                case static_cast<uint8_t>(MCD_Commands::Write):
+                case MCD_Commands::Write:
                     m_mcdReadWriteState = MCD_READWRITE_STATE_WRITE;
                     break;
                 default:
@@ -185,8 +185,8 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             m_bufferIndex = 0;
             switch (m_mcdReadWriteState) {
                 case MCD_READWRITE_STATE_READ:
-                    m_buffer[0] = static_cast<uint8_t>(MCD_Responses::CommandAcknowledge1);
-                    m_buffer[1] = static_cast<uint8_t>(MCD_Responses::CommandAcknowledge2);
+                    m_buffer[0] = MCD_Responses::CommandAcknowledge1;
+                    m_buffer[1] = MCD_Responses::CommandAcknowledge2;
                     m_buffer[2] = m_mcdAddrHigh;
                     m_buffer[3] = m_mcdAddrLow;
                     switch (m_ctrlReg & SIO_Selected::PortMask) {
@@ -202,15 +202,15 @@ void PCSX::SIO::writeMcd(uint8_t value) {
                         for (int i = 2; i < 128 + 4; i++) xorsum ^= m_buffer[i];
                         m_buffer[132] = xorsum;
                     }
-                    m_buffer[133] = static_cast<uint8_t>(MCD_Responses::GoodReadWrite);
+                    m_buffer[133] = MCD_Responses::GoodReadWrite;
                     m_maxBufferIndex = 133;
                     break;
                 case MCD_READWRITE_STATE_WRITE:
                     m_buffer[0] = m_mcdAddrLow;
                     m_buffer[1] = value;
-                    m_buffer[129] = static_cast<uint8_t>(MCD_Responses::CommandAcknowledge1);
-                    m_buffer[130] = static_cast<uint8_t>(MCD_Responses::CommandAcknowledge2);
-                    m_buffer[131] = static_cast<uint8_t>(MCD_Responses::GoodReadWrite);
+                    m_buffer[129] = MCD_Responses::CommandAcknowledge1;
+                    m_buffer[130] = MCD_Responses::CommandAcknowledge2;
+                    m_buffer[131] = MCD_Responses::GoodReadWrite;
                     m_maxBufferIndex = 131;
                     break;
             }
@@ -229,22 +229,22 @@ void PCSX::SIO::writeMcd(uint8_t value) {
 void PCSX::SIO::write8(uint8_t value) {
     SIO0_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
 
-    if (current_device == static_cast<uint8_t>(SIO_Device::None)) {
+    if (current_device == SIO_Device::None) {
         current_device = value;
     }
 
     switch (current_device) {
-        case static_cast<uint8_t>(SIO_Device::PAD):
+        case SIO_Device::PAD:
             // Pad Process events
             writePad(value);
             break;
 
-        case static_cast<uint8_t>(SIO_Device::MemoryCard):
+        case SIO_Device::MemoryCard:
             writeMcd(value);
             break;
 
         default:
-            current_device = static_cast<uint8_t>(SIO_Device::Ignore);
+            current_device = SIO_Device::Ignore;
             m_mcdState = MCD_STATE_IDLE;
             m_padState = PAD_STATE_IDLE;
             m_statusReg |= RX_RDY;
@@ -265,7 +265,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_bufferIndex = 0;
         m_statusReg = TX_RDY | TX_EMPTY;
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
-        current_device = static_cast<uint8_t>(SIO_Device::None);
+        current_device = SIO_Device::None;
     }
 }
 

@@ -86,51 +86,61 @@ class SIO {
         MCD_READWRITE_STATE_WRITE = 2,
         MCD_READWRITE_STATE_GET_DIR_INDEX = 3,
     };
-    enum class MCD_Commands : uint8_t {
-        Read = 0x52,   // Read Command
-        GetID = 0x53,  // Get ID Command
-        Write = 0x57,  // Write Command
-        None = 0x00,   // No command, idle state
-        Error = 0xFF,  // Bad command
+    struct MCD_Commands {
+        enum : uint8_t {
+            Read = 0x52,   // Read Command
+            GetID = 0x53,  // Get ID Command
+            Write = 0x57,  // Write Command
+            None = 0x00,   // No command, idle state
+            Error = 0xFF,  // Bad command
 
-        // PocketStation command extensions
-        PS_ChangeFuncValue = 0x50,  // Change a FUNC 03h related value or so
-        PS_GetID = 0x58,            // Get an ID or Version value or so
-        PS_PrepFileExec = 0x59,     // Prepare File Execution with Dir_index, and Parameter
-        PS_GetDirIndex = 0x5A,      // Get Dir_index, ComFlags, F_SN, Date, and Time
-        PS_ExecXferPSToPSX = 0x5B,  // Execute Function and transfer data from Pocketstation to PSX
-        PS_ExecXferPSXToPS = 0x5C,  // Execute Function and transfer data from PSX to Pocketstation
-        PS_ExecCustom = 0x5D,       // Execute Custom Download Notification Function   ;via SWI 01h with r0=3
-        PS_GetComFlagsHi = 0x5E,    // Get-and-Send ComFlags.bit1,3,2
-        PS_GetComFlagsLo = 0x5F,    // Get-and-Send ComFlags.bit0
+            // PocketStation command extensions
+            PS_ChangeFuncValue = 0x50,  // Change a FUNC 03h related value or so
+            PS_GetID = 0x58,            // Get an ID or Version value or so
+            PS_PrepFileExec = 0x59,     // Prepare File Execution with Dir_index, and Parameter
+            PS_GetDirIndex = 0x5A,      // Get Dir_index, ComFlags, F_SN, Date, and Time
+            PS_ExecXferPSToPSX = 0x5B,  // Execute Function and transfer data from Pocketstation to PSX
+            PS_ExecXferPSXToPS = 0x5C,  // Execute Function and transfer data from PSX to Pocketstation
+            PS_ExecCustom = 0x5D,       // Execute Custom Download Notification Function   ;via SWI 01h with r0=3
+            PS_GetComFlagsHi = 0x5E,    // Get-and-Send ComFlags.bit1,3,2
+            PS_GetComFlagsLo = 0x5F,    // Get-and-Send ComFlags.bit0
+        };
     };
-    enum class MCD_Responses : uint8_t {
-        IdleHighZ = 0xFF,           // High default state
-        Dummy = 0x00,               // Filler Data
-        ID1 = 0x5A,                 // Memory Card ID1
-        ID2 = 0x5D,                 // Memory Card ID2
-        CommandAcknowledge1 = 0x5C,  // Command Acknowledge 1
-        CommandAcknowledge2 = 0x5D,  // Command Acknowledge 2
-        GoodReadWrite = 0x47,        // Good Read/Write
-        BadChecksum = 0x4E,          // Bad Checksum during Write
-        BadSector = 0xFF,            // Bad Memory Card Sector
+    struct MCD_Responses {
+        enum : uint8_t {
+            IdleHighZ = 0xFF,            // High default state
+            Dummy = 0x00,                // Filler Data
+            ID1 = 0x5A,                  // Memory Card ID1
+            ID2 = 0x5D,                  // Memory Card ID2
+            CommandAcknowledge1 = 0x5C,  // Command Acknowledge 1
+            CommandAcknowledge2 = 0x5D,  // Command Acknowledge 2
+            GoodReadWrite = 0x47,        // Good Read/Write
+            BadChecksum = 0x4E,          // Bad Checksum during Write
+            BadSector = 0xFF,            // Bad Memory Card Sector
+        };
     };
-    enum class PAD_Commands : uint8_t {
-        Read = 0x42,    // Read Command
-        None = 0x00,    // No command, idle state
-        Error = 0xFF    // Bad command
+    struct PAD_Commands {
+        enum : uint8_t {
+            Read = 0x42,    // Read Command
+            None = 0x00,    // No command, idle state
+            Error = 0xFF    // Bad command
+        };
     };
-    enum class SIO_Device : uint8_t {
-        None = 0x00,        // No device selected yet
-        PAD = 0x01,         // Pad Select
-        NetYaroze = 0x21,   // Net Yaroze Select
-        MemoryCard = 0x81,  // Memory Card Select
-        Ignore = 0xFF,      // Ignore incoming commands
+    struct SIO_Device {
+        enum : uint8_t {
+            None = 0x00,        // No device selected yet
+            PAD = 0x01,         // Pad Select
+            NetYaroze = 0x21,   // Net Yaroze Select
+            MemoryCard = 0x81,  // Memory Card Select
+            Ignore = 0xFF,      // Ignore incoming commands
+        };
     };
-    enum SIO_Selected : uint16_t {
-        Port1 = 0x0002,
-        Port2 = 0x2002,
-        PortMask = 0x2002,
+    struct SIO_Selected {
+        enum : uint16_t {
+            Port1 = 0x0002,
+            Port2 = 0x2002,
+            PortMask = 0x2002,
+        };
     };
     uint8_t m_mcdAddrHigh, m_mcdAddrLow;
     bool m_wasMcd1Inserted = false;
