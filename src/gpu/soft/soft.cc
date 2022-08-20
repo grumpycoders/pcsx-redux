@@ -227,15 +227,15 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol_Dither(uint16_t *pdest
         b = ((XCOL2D(*pdest)) << 3);
         g = ((XCOL3D(*pdest)) << 3);
 
-        if (GlobalTextABR == 0) {
+        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             r = (r >> 1) + (m1 >> 1);
             b = (b >> 1) + (m2 >> 1);
             g = (g >> 1) + (m3 >> 1);
-        } else if (GlobalTextABR == 1) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r += m1;
             b += m2;
             g += m3;
-        } else if (GlobalTextABR == 2) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r -= m1;
             b -= m2;
             g -= m3;
@@ -274,7 +274,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(uint16_t *pdest, uint1
     if (DrawSemiTrans) {
         int32_t r, g, b;
 
-        if (GlobalTextABR == 0) {
+        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             *pdest = ((((*pdest) & 0x7bde) >> 1) + (((color)&0x7bde) >> 1)) | sSetMask;  // 0x8000;
             return;
             /*
@@ -282,11 +282,11 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(uint16_t *pdest, uint1
                  b=(XCOL2(*pdest)>>1)+((XCOL2(color))>>1);
                  g=(XCOL3(*pdest)>>1)+((XCOL3(color))>>1);
             */
-        } else if (GlobalTextABR == 1) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((XCOL1(color)));
             b = (XCOL2(*pdest)) + ((XCOL2(color)));
             g = (XCOL3(*pdest)) + ((XCOL3(color)));
-        } else if (GlobalTextABR == 2) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r = (XCOL1(*pdest)) - ((XCOL1(color)));
             b = (XCOL2(*pdest)) - ((XCOL2(color)));
             g = (XCOL3(*pdest)) - ((XCOL3(color)));
@@ -320,7 +320,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(uint32_t *pdest, uin
     if (DrawSemiTrans) {
         int32_t r, g, b;
 
-        if (GlobalTextABR == 0) {
+        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             if (!bCheckMask) {
                 *pdest = ((((*pdest) & 0x7bde7bde) >> 1) + (((color)&0x7bde7bde) >> 1)) | lSetMask;  // 0x80008000;
                 return;
@@ -328,11 +328,11 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(uint32_t *pdest, uin
             r = (X32ACOL1(*pdest) >> 1) + ((X32ACOL1(color)) >> 1);
             b = (X32ACOL2(*pdest) >> 1) + ((X32ACOL2(color)) >> 1);
             g = (X32ACOL3(*pdest) >> 1) + ((X32ACOL3(color)) >> 1);
-        } else if (GlobalTextABR == 1) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (X32COL1(*pdest)) + ((X32COL1(color)));
             b = (X32COL2(*pdest)) + ((X32COL2(color)));
             g = (X32COL3(*pdest)) + ((X32COL3(color)));
-        } else if (GlobalTextABR == 2) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             int32_t sr, sb, sg, src, sbc, sgc, c;
             src = XCOL1(color);
             sbc = XCOL2(color);
@@ -410,7 +410,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(uint16_t *pdest, ui
     l = sSetMask | (color & 0x8000);
 
     if (DrawSemiTrans && (color & 0x8000)) {
-        if (GlobalTextABR == 0) {
+        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             uint16_t d;
             d = ((*pdest) & 0x7bde) >> 1;
             color = ((color)&0x7bde) >> 1;
@@ -423,11 +423,11 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(uint16_t *pdest, ui
                  b=(XCOL2(*pdest)>>1)+((((XCOL2(color))>>1)* g_m2)>>7);
                  g=(XCOL3(*pdest)>>1)+((((XCOL3(color))>>1)* g_m3)>>7);
             */
-        } else if (GlobalTextABR == 1) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((((XCOL1(color))) * g_m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color))) * g_m2) >> 7);
             g = (XCOL3(*pdest)) + ((((XCOL3(color))) * g_m3) >> 7);
-        } else if (GlobalTextABR == 2) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r = (XCOL1(*pdest)) - ((((XCOL1(color))) * g_m1) >> 7);
             b = (XCOL2(*pdest)) - ((((XCOL2(color))) * g_m2) >> 7);
             g = (XCOL3(*pdest)) - ((((XCOL3(color))) * g_m3) >> 7);
@@ -492,7 +492,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(uint16_t *pdest
     l = sSetMask | (color & 0x8000);
 
     if (DrawSemiTrans && (color & 0x8000)) {
-        if (GlobalTextABR == 0) {
+        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             uint16_t d;
             d = ((*pdest) & 0x7bde) >> 1;
             color = ((color)&0x7bde) >> 1;
@@ -505,11 +505,11 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(uint16_t *pdest
                  b=(XCOL2(*pdest)>>1)+((((XCOL2(color))>>1)* g_m2)>>7);
                  g=(XCOL3(*pdest)>>1)+((((XCOL3(color))>>1)* g_m3)>>7);
             */
-        } else if (GlobalTextABR == 1) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((((XCOL1(color))) * g_m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color))) * g_m2) >> 7);
             g = (XCOL3(*pdest)) + ((((XCOL3(color))) * g_m3) >> 7);
-        } else if (GlobalTextABR == 2) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r = (XCOL1(*pdest)) - ((((XCOL1(color))) * g_m1) >> 7);
             b = (XCOL2(*pdest)) - ((((XCOL2(color))) * g_m2) >> 7);
             g = (XCOL3(*pdest)) - ((((XCOL3(color))) * g_m3) >> 7);
@@ -550,15 +550,15 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(uint32_t *pdest, 
     l = lSetMask | (color & 0x80008000);
 
     if (DrawSemiTrans && (color & 0x80008000)) {
-        if (GlobalTextABR == 0) {
+        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * g_m1)) & 0xFF00FF00) >> 8);
             b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * g_m2)) & 0xFF00FF00) >> 8);
             g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * g_m3)) & 0xFF00FF00) >> 8);
-        } else if (GlobalTextABR == 1) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (X32COL1(*pdest)) + (((((X32COL1(color))) * g_m1) & 0xFF80FF80) >> 7);
             b = (X32COL2(*pdest)) + (((((X32COL2(color))) * g_m2) & 0xFF80FF80) >> 7);
             g = (X32COL3(*pdest)) + (((((X32COL3(color))) * g_m3) & 0xFF80FF80) >> 7);
-        } else if (GlobalTextABR == 2) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             int32_t t;
             r = (((((X32COL1(color))) * g_m1) & 0xFF80FF80) >> 7);
             t = (*pdest & 0x001f0000) - (r & 0x003f0000);
@@ -678,15 +678,15 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(uint32_t *pde
     if (color == 0) return;
 
     if (DrawSemiTrans && (color & 0x80008000)) {
-        if (GlobalTextABR == 0) {
+        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * g_m1)) & 0xFF00FF00) >> 8);
             b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * g_m2)) & 0xFF00FF00) >> 8);
             g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * g_m3)) & 0xFF00FF00) >> 8);
-        } else if (GlobalTextABR == 1) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (X32COL1(*pdest)) + (((((X32COL1(color))) * g_m1) & 0xFF80FF80) >> 7);
             b = (X32COL2(*pdest)) + (((((X32COL2(color))) * g_m2) & 0xFF80FF80) >> 7);
             g = (X32COL3(*pdest)) + (((((X32COL3(color))) * g_m3) & 0xFF80FF80) >> 7);
-        } else if (GlobalTextABR == 2) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             int32_t t;
             r = (((((X32COL1(color))) * g_m1) & 0xFF80FF80) >> 7);
             t = (*pdest & 0x001f0000) - (r & 0x003f0000);
@@ -787,15 +787,15 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_Dither(uint16_t *p
         b = ((XCOL2D(*pdest)) << 3);
         g = ((XCOL3D(*pdest)) << 3);
 
-        if (GlobalTextABR == 0) {
+        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             r = (r >> 1) + (m1 >> 1);
             b = (b >> 1) + (m2 >> 1);
             g = (g >> 1) + (m3 >> 1);
-        } else if (GlobalTextABR == 1) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r += m1;
             b += m2;
             g += m3;
-        } else if (GlobalTextABR == 2) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r -= m1;
             b -= m2;
             g -= m3;
@@ -840,7 +840,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(uint16_t *pdest, u
     l = sSetMask | (color & 0x8000);
 
     if (DrawSemiTrans && (color & 0x8000)) {
-        if (GlobalTextABR == 0) {
+        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             uint16_t d;
             d = ((*pdest) & 0x7bde) >> 1;
             color = ((color)&0x7bde) >> 1;
@@ -852,11 +852,11 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(uint16_t *pdest, u
                  b=(XCOL2(*pdest)>>1)+((((XCOL2(color))>>1)* m2)>>7);
                  g=(XCOL3(*pdest)>>1)+((((XCOL3(color))>>1)* m3)>>7);
             */
-        } else if (GlobalTextABR == 1) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((((XCOL1(color))) * m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color))) * m2) >> 7);
             g = (XCOL3(*pdest)) + ((((XCOL3(color))) * m3) >> 7);
-        } else if (GlobalTextABR == 2) {
+        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r = (XCOL1(*pdest)) - ((((XCOL1(color))) * m1) >> 7);
             b = (XCOL2(*pdest)) - ((((XCOL2(color))) * m2) >> 7);
             g = (XCOL3(*pdest)) - ((((XCOL3(color))) * m3) >> 7);
@@ -7148,8 +7148,8 @@ inline bool PCSX::SoftGPU::SoftRenderer::IsNoRect() {
 void PCSX::SoftGPU::SoftRenderer::drawPoly3FT(unsigned char *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
 
-    if (GlobalTextIL && GlobalTextTP < 2) {
-        if (GlobalTextTP == 0)
+    if (GlobalTextIL && GlobalTextTP != GPU::TexDepth::Tex16Bits) {
+        if (GlobalTextTP == GPU::TexDepth::Tex4Bits)
             drawPoly3TEx4_IL(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                              (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
                              ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
@@ -7165,19 +7165,19 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3FT(unsigned char *baseAddr) {
     if (!bUsingTWin && !(dwActFixes & 0x100)) {
         switch (GlobalTextTP)  // depending on texture mode
         {
-            case 0:
+            case GPU::TexDepth::Tex4Bits:
                 drawPoly3TEx4(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                               (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
                               ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                               ((gpuData[2] >> 22) & iGPUHeightMask));
                 return;
-            case 1:
+            case GPU::TexDepth::Tex8Bits:
                 drawPoly3TEx8(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                               (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
                               ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                               ((gpuData[2] >> 22) & iGPUHeightMask));
                 return;
-            case 2:
+            case GPU::TexDepth::Tex16Bits:
                 drawPoly3TD(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                             (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
                             ((gpuData[6] >> 8) & 0x000000ff));
@@ -7188,19 +7188,19 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3FT(unsigned char *baseAddr) {
 
     switch (GlobalTextTP)  // depending on texture mode
     {
-        case 0:
+        case GPU::TexDepth::Tex4Bits:
             drawPoly3TEx4_TW(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                              (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
                              ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                              ((gpuData[2] >> 22) & iGPUHeightMask));
             return;
-        case 1:
+        case GPU::TexDepth::Tex8Bits:
             drawPoly3TEx8_TW(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                              (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
                              ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                              ((gpuData[2] >> 22) & iGPUHeightMask));
             return;
-        case 2:
+        case GPU::TexDepth::Tex16Bits:
             drawPoly3TD_TW(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                            (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
                            ((gpuData[6] >> 8) & 0x000000ff));
@@ -7213,8 +7213,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3FT(unsigned char *baseAddr) {
 void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
 
-    if (GlobalTextIL && GlobalTextTP < 2) {
-        if (GlobalTextTP == 0)
+    if (GlobalTextIL && GlobalTextTP != GPU::TexDepth::Tex16Bits) {
+        if (GlobalTextTP == GPU::TexDepth::Tex4Bits)
             drawPoly4TEx4_IL(
                 lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                 (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
@@ -7233,7 +7233,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
 #ifdef POLYQUAD3GT
         if (IsNoRect()) {
             switch (GlobalTextTP) {
-                case 0:
+                case GPU::TexDepth::Tex4Bits:
                     drawPoly4TEx4_TRI(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                                       ((gpuData[2] >> 8) & 0x000000ff), (gpuData[4] & 0x000000ff),
                                       ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
@@ -7241,7 +7241,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
                                       ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                                       ((gpuData[2] >> 22) & iGPUHeightMask));
                     return;
-                case 1:
+                case GPU::TexDepth::Tex8Bits:
                     drawPoly4TEx8_TRI(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                                       ((gpuData[2] >> 8) & 0x000000ff), (gpuData[4] & 0x000000ff),
                                       ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
@@ -7249,7 +7249,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
                                       ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                                       ((gpuData[2] >> 22) & iGPUHeightMask));
                     return;
-                case 2:
+                case GPU::TexDepth::Tex16Bits:
                     drawPoly4TD_TRI(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                                     ((gpuData[2] >> 8) & 0x000000ff), (gpuData[4] & 0x000000ff),
                                     ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
@@ -7262,21 +7262,21 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
 #endif
 
         switch (GlobalTextTP) {
-            case 0:  // grandia investigations needed
+            case GPU::TexDepth::Tex4Bits:  // grandia investigations needed
                 drawPoly4TEx4(
                     lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                     (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                     ((gpuData[8] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff), ((gpuData[6] >> 8) & 0x000000ff),
                     ((gpuData[2] >> 12) & 0x3f0), ((gpuData[2] >> 22) & iGPUHeightMask));
                 return;
-            case 1:
+            case GPU::TexDepth::Tex8Bits:
                 drawPoly4TEx8(
                     lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                     (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                     ((gpuData[8] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff), ((gpuData[6] >> 8) & 0x000000ff),
                     ((gpuData[2] >> 12) & 0x3f0), ((gpuData[2] >> 22) & iGPUHeightMask));
                 return;
-            case 2:
+            case GPU::TexDepth::Tex16Bits:
                 drawPoly4TD(
                     lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                     (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
@@ -7287,21 +7287,21 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
     }
 
     switch (GlobalTextTP) {
-        case 0:
+        case GPU::TexDepth::Tex4Bits:
             drawPoly4TEx4_TW(
                 lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                 (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                 ((gpuData[8] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff), ((gpuData[6] >> 8) & 0x000000ff),
                 ((gpuData[2] >> 12) & 0x3f0), ((gpuData[2] >> 22) & iGPUHeightMask));
             return;
-        case 1:
+        case GPU::TexDepth::Tex8Bits:
             drawPoly4TEx8_TW(
                 lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                 (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                 ((gpuData[8] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff), ((gpuData[6] >> 8) & 0x000000ff),
                 ((gpuData[2] >> 12) & 0x3f0), ((gpuData[2] >> 22) & iGPUHeightMask));
             return;
-        case 2:
+        case GPU::TexDepth::Tex16Bits:
             drawPoly4TD_TW(
                 lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                 (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
@@ -7315,8 +7315,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
 void PCSX::SoftGPU::SoftRenderer::drawPoly3GT(unsigned char *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
 
-    if (GlobalTextIL && GlobalTextTP < 2) {
-        if (GlobalTextTP == 0)
+    if (GlobalTextIL && GlobalTextTP < GPU::TexDepth::Tex16Bits) {
+        if (GlobalTextTP == GPU::TexDepth::Tex4Bits)
             drawPoly3TGEx4_IL(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                               (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                               ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
@@ -7331,21 +7331,21 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3GT(unsigned char *baseAddr) {
 
     if (!bUsingTWin) {
         switch (GlobalTextTP) {
-            case 0:
+            case GPU::TexDepth::Tex4Bits:
                 drawPoly3TGEx4(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff),
                                ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
                                ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                                ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                                ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6]);
                 return;
-            case 1:
+            case GPU::TexDepth::Tex8Bits:
                 drawPoly3TGEx8(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff),
                                ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
                                ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                                ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                                ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6]);
                 return;
-            case 2:
+            case GPU::TexDepth::Tex16Bits:
                 drawPoly3TGD(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                              (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                              ((gpuData[8] >> 8) & 0x000000ff), gpuData[0], gpuData[3], gpuData[6]);
@@ -7355,19 +7355,19 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3GT(unsigned char *baseAddr) {
     }
 
     switch (GlobalTextTP) {
-        case 0:
+        case GPU::TexDepth::Tex4Bits:
             drawPoly3TGEx4_TW(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                               (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                               ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                               ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6]);
             return;
-        case 1:
+        case GPU::TexDepth::Tex8Bits:
             drawPoly3TGEx8_TW(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                               (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                               ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                               ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6]);
             return;
-        case 2:
+        case GPU::TexDepth::Tex16Bits:
             drawPoly3TGD_TW(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                             (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
                             ((gpuData[8] >> 8) & 0x000000ff), gpuData[0], gpuData[3], gpuData[6]);
@@ -7380,8 +7380,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3GT(unsigned char *baseAddr) {
 void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
 
-    if (GlobalTextIL && GlobalTextTP < 2) {
-        if (GlobalTextTP == 0)
+    if (GlobalTextIL && GlobalTextTP != GPU::TexDepth::Tex16Bits) {
+        if (GlobalTextTP == GPU::TexDepth::Tex4Bits)
             drawPoly4TGEx4_TRI_IL(
                 lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
                 (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
@@ -7402,7 +7402,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
 #ifdef POLYQUAD3GT
         if (IsNoRect()) {
             switch (GlobalTextTP) {
-                case 0:
+                case GPU::TexDepth::Tex4Bits:
                     drawPoly4TGEx4_TRI(
                         lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                         ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff),
@@ -7411,7 +7411,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
                         ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6], gpuData[9]);
 
                     return;
-                case 1:
+                case GPU::TexDepth::Tex8Bits:
                     drawPoly4TGEx8_TRI(
                         lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                         ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff),
@@ -7419,7 +7419,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
                         ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                         ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6], gpuData[9]);
                     return;
-                case 2:
+                case GPU::TexDepth::Tex16Bits:
                     drawPoly4TGD_TRI(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                                      ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
                                      ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
@@ -7432,7 +7432,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
 #endif
 
         switch (GlobalTextTP) {
-            case 0:
+            case GPU::TexDepth::Tex4Bits:
                 drawPoly4TGEx4(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                                ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
                                ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
@@ -7441,7 +7441,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
                                ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6], gpuData[9]);
 
                 return;
-            case 1:
+            case GPU::TexDepth::Tex8Bits:
                 drawPoly4TGEx8(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                                ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
                                ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
@@ -7449,7 +7449,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
                                ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                                ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6], gpuData[9]);
                 return;
-            case 2:
+            case GPU::TexDepth::Tex16Bits:
                 drawPoly4TGD(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                              ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
                              ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
@@ -7461,7 +7461,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
     }
 
     switch (GlobalTextTP) {
-        case 0:
+        case GPU::TexDepth::Tex4Bits:
             drawPoly4TGEx4_TW(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                               ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
                               ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
@@ -7469,7 +7469,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
                               ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                               ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6], gpuData[9]);
             return;
-        case 1:
+        case GPU::TexDepth::Tex8Bits:
             drawPoly4TGEx8_TW(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                               ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
                               ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
@@ -7477,7 +7477,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
                               ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
                               ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6], gpuData[9]);
             return;
-        case 2:
+        case GPU::TexDepth::Tex16Bits:
             drawPoly4TGD_TW(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
                             ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
                             ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
@@ -7510,15 +7510,15 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteTWin(unsigned char *baseAddr
     ty2 = ty3 = ty0 + h;
 
     switch (GlobalTextTP) {
-        case 0:
+        case GPU::TexDepth::Tex4Bits:
             drawPoly4TEx4_TW_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
                                ((gpuData[2] >> 12) & 0x3f0), ((gpuData[2] >> 22) & iGPUHeightMask));
             return;
-        case 1:
+        case GPU::TexDepth::Tex8Bits:
             drawPoly4TEx8_TW_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
                                ((gpuData[2] >> 12) & 0x3f0), ((gpuData[2] >> 22) & iGPUHeightMask));
             return;
-        case 2:
+        case GPU::TexDepth::Tex16Bits:
             drawPoly4TD_TW_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3);
             return;
     }
@@ -7586,7 +7586,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteMirror(unsigned char *baseAd
         lYDir = 1;
 
     switch (GlobalTextTP) {
-        case 0:  // texture is 4-bit
+        case GPU::TexDepth::Tex4Bits:  // texture is 4-bit
 
             sprtW = sprtW / 2;
             textX0 = (GlobalTextAddrX << 1) + (textX0 >> 1);
@@ -7601,7 +7601,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteMirror(unsigned char *baseAd
                 }
             return;
 
-        case 1:
+        case GPU::TexDepth::Tex8Bits:
 
             clutP >>= 1;
             for (sprCY = 0; sprCY < sprtH; sprCY++)
@@ -7613,7 +7613,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteMirror(unsigned char *baseAd
                 }
             return;
 
-        case 2:
+        case GPU::TexDepth::Tex16Bits:
 
             for (sprCY = 0; sprCY < sprtH; sprCY++)
                 for (sprCX = 0; sprCX < sprtW; sprCX++) {
@@ -7651,7 +7651,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite_IL(unsigned char *baseAddr,
 
     // Pete is too lazy to make a faster version ;)
 
-    if (GlobalTextTP == 0)
+    if (GlobalTextTP == GPU::TexDepth::Tex4Bits)
         drawPoly4TEx4_IL(sprtX, sprtY, sprtX, sprtH, sprtW, sprtH, sprtW, sprtY, tx, ty, tx, tdy, tdx, tdy, tdx, ty,
                          (gpuData[2] >> 12) & 0x3f0, ((gpuData[2] >> 22) & iGPUHeightMask));
 
@@ -7671,7 +7671,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, in
     unsigned char *pV;
     bool bWT, bWS;
 
-    if (GlobalTextIL && GlobalTextTP < 2) {
+    if (GlobalTextIL && GlobalTextTP != GPU::TexDepth::Tex16Bits) {
         DrawSoftwareSprite_IL(baseAddr, w, h, tx, ty);
         return;
     }
@@ -7728,7 +7728,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, in
     bWS = false;
 
     switch (GlobalTextTP) {
-        case 0:
+        case GPU::TexDepth::Tex4Bits:
 
             if (textX0 & 1) {
                 bWS = true;
@@ -7795,7 +7795,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, in
             }
             return;
 
-        case 1:
+        case GPU::TexDepth::Tex8Bits:
             clutP >>= 1;
             sprtW--;
             textX0 += (GlobalTextAddrX << 1) + (textY0 << 11);
@@ -7832,7 +7832,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, in
             }
             return;
 
-        case 2:
+        case GPU::TexDepth::Tex16Bits:
 
             textX0 += (GlobalTextAddrX) + (textY0 << 10);
             sprtW--;

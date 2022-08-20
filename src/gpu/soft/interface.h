@@ -30,17 +30,11 @@ class GUI;
 namespace SoftGPU {
 
 class impl final : public GPU {
-    virtual int32_t init(GUI *) final;
+    virtual int32_t initBackend(GUI *) final;
     virtual int32_t shutdown() final;
-    virtual uint32_t readData() final {
-        uint32_t l;
-        readDataMem(&l, 1);
-        return lGPUdataRet;
-    }
     virtual void stopDump() final;
     virtual void readDataMem(uint32_t *pMem, int iSize) final;
     virtual uint32_t readStatus() final;
-    virtual void writeData(uint32_t gdata) final { writeDataMem(&gdata, 1); }
     virtual void writeDataMem(uint32_t *pMem, int iSize) final;
     virtual void writeStatusInternal(uint32_t gdata) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
@@ -115,6 +109,9 @@ class impl final : public GPU {
     SoftPrim m_softPrim;
     void *m_dumpFile = nullptr;
     GLuint m_vramTexture16;
+    GLuint m_vramTexture24;
+
+    GUI *m_gui;
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram
@@ -164,6 +161,78 @@ class impl final : public GPU {
     //    int iFakePrimBusy = 0;
     //    int iRumbleVal = 0;
     //    int iRumbleTime = 0;
+
+    void write0(FastFill *) override;
+
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+
+    void write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *) override;
+    void write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *) override;
+    void write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *) override;
+    void write0(Line<Shading::Flat, LineType::Poly, Blend::Semi> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Simple, Blend::Off> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Simple, Blend::Semi> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) override;
+
+    void write0(Rect<Size::Variable, Textured::No, Blend::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::No, Blend::Semi> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Off> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Semi> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Off> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Semi> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Off> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Semi> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Off> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Semi> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Off> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Semi> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Off> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) override;
+
+    void write0(BlitVramVram *) override;
+    void write0(BlitRamVram *) override;
+    void write0(BlitVramRam *) override;
+
+    void write0(TPage *) override;
+    void write0(TWindow *) override;
+    void write0(DrawingAreaStart *) override;
+    void write0(DrawingAreaEnd *) override;
+    void write0(DrawingOffset *) override;
+    void write0(MaskBit *) override;
 };
 
 }  // namespace SoftGPU

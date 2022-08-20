@@ -92,7 +92,7 @@ void PCSX::OpenGL_GPU::setBlendFactors(float sourceFactor, float destFactor) {
     }
 }
 
-template <PCSX::OpenGL_GPU::Shading shading, PCSX::OpenGL_GPU::Transparency transparency, int firstVertex>
+template <PCSX::OpenGL_GPU::GLShading shading, PCSX::OpenGL_GPU::Transparency transparency, int firstVertex>
 void PCSX::OpenGL_GPU::drawTri() {
     if (m_vertexCount + 3 >= vertexBufferSize) renderBatch();
 
@@ -104,7 +104,7 @@ void PCSX::OpenGL_GPU::drawTri() {
         }
     }
 
-    if constexpr (shading == Shading::Flat) {
+    if constexpr (shading == GLShading::Flat) {
         const uint32_t colour = m_cmdFIFO[0];
         m_vertices[m_vertexCount++] = Vertex(m_cmdFIFO[firstVertex + 1], colour);
         m_vertices[m_vertexCount++] = Vertex(m_cmdFIFO[firstVertex + 2], colour);
@@ -118,13 +118,13 @@ void PCSX::OpenGL_GPU::drawTri() {
     }
 }
 
-template <PCSX::OpenGL_GPU::Shading shading, PCSX::OpenGL_GPU::Transparency transparency>
+template <PCSX::OpenGL_GPU::GLShading shading, PCSX::OpenGL_GPU::Transparency transparency>
 void PCSX::OpenGL_GPU::drawQuad() {
     drawTri<shading, transparency, 0>();
     drawTri<shading, transparency, 1>();
 }
 
-template <PCSX::OpenGL_GPU::Shading shading, PCSX::OpenGL_GPU::Transparency transparency, int firstVertex>
+template <PCSX::OpenGL_GPU::GLShading shading, PCSX::OpenGL_GPU::Transparency transparency, int firstVertex>
 void PCSX::OpenGL_GPU::drawTriTextured() {
     if (m_vertexCount + 3 >= vertexBufferSize) renderBatch();
 
@@ -132,14 +132,15 @@ void PCSX::OpenGL_GPU::drawTriTextured() {
     if constexpr (firstVertex == 0) {
         setTransparency<transparency>();
         if constexpr (transparency == Transparency::Transparent) {
-            const uint32_t texpage =
-                (shading == Shading::RawTexture || shading == Shading::TextureBlendFlat) ? m_cmdFIFO[4] : m_cmdFIFO[5];
+            const uint32_t texpage = (shading == GLShading::RawTexture || shading == GLShading::TextureBlendFlat)
+                                         ? m_cmdFIFO[4]
+                                         : m_cmdFIFO[5];
             setBlendingModeFromTexpage(texpage >> 16);
         }
     }
 
-    if constexpr (shading == Shading::RawTexture || shading == Shading::TextureBlendFlat) {
-        const uint32_t colour = shading == Shading::RawTexture ? c_rawTextureBlendColour : m_cmdFIFO[0];
+    if constexpr (shading == GLShading::RawTexture || shading == GLShading::TextureBlendFlat) {
+        const uint32_t colour = shading == GLShading::RawTexture ? c_rawTextureBlendColour : m_cmdFIFO[0];
         const uint32_t clut = m_cmdFIFO[2] >> 16;
         const uint32_t texpage = (m_cmdFIFO[4] >> 16) & 0x3fff;
 
@@ -153,7 +154,7 @@ void PCSX::OpenGL_GPU::drawTriTextured() {
         const uint32_t texpage = (m_cmdFIFO[5] >> 16) & 0x3fff;
 
         for (int i = firstVertex; i < firstVertex + 3; i++) {
-            const auto colour = shading == Shading::TextureBlendGouraud ? m_cmdFIFO[i * 3] : c_rawTextureBlendColour;
+            const auto colour = shading == GLShading::TextureBlendGouraud ? m_cmdFIFO[i * 3] : c_rawTextureBlendColour;
             const auto pos = m_cmdFIFO[i * 3 + 1];
             const auto uv = m_cmdFIFO[i * 3 + 2];
             m_vertices[m_vertexCount++] = Vertex(pos, colour, clut, texpage, uv);
@@ -161,7 +162,7 @@ void PCSX::OpenGL_GPU::drawTriTextured() {
     }
 }
 
-template <PCSX::OpenGL_GPU::Shading shading, PCSX::OpenGL_GPU::Transparency transparency>
+template <PCSX::OpenGL_GPU::GLShading shading, PCSX::OpenGL_GPU::Transparency transparency>
 void PCSX::OpenGL_GPU::drawQuadTextured() {
     drawTriTextured<shading, transparency, 0>();
     drawTriTextured<shading, transparency, 1>();
@@ -207,7 +208,7 @@ void PCSX::OpenGL_GPU::drawRect() {
     m_vertices[m_vertexCount++] = Vertex(x, y, colour);
 }
 
-template <PCSX::OpenGL_GPU::RectSize size, PCSX::OpenGL_GPU::Shading shading,
+template <PCSX::OpenGL_GPU::RectSize size, PCSX::OpenGL_GPU::GLShading shading,
           PCSX::OpenGL_GPU::Transparency transparency>
 void PCSX::OpenGL_GPU::drawRectTextured() {
     if (m_vertexCount + 6 >= vertexBufferSize) {
@@ -221,7 +222,7 @@ void PCSX::OpenGL_GPU::drawRectTextured() {
 
     int height, width;
 
-    const uint32_t colour = shading == Shading::RawTexture ? c_rawTextureBlendColour : m_cmdFIFO[0];
+    const uint32_t colour = shading == GLShading::RawTexture ? c_rawTextureBlendColour : m_cmdFIFO[0];
     const uint32_t pos = m_cmdFIFO[1];
 
     const uint32_t clut = m_cmdFIFO[2] >> 16;
@@ -254,7 +255,7 @@ void PCSX::OpenGL_GPU::drawRectTextured() {
     m_vertices[m_vertexCount++] = Vertex(x, y, colour, clut, texpage, u, v);
 }
 
-template <PCSX::OpenGL_GPU::Shading shading, PCSX::OpenGL_GPU::Transparency transparency>
+template <PCSX::OpenGL_GPU::GLShading shading, PCSX::OpenGL_GPU::Transparency transparency>
 void PCSX::OpenGL_GPU::drawLine() {
     setTransparency<transparency>();
     if constexpr (transparency == Transparency::Transparent) {
@@ -262,7 +263,7 @@ void PCSX::OpenGL_GPU::drawLine() {
     }
 
     LinePoint p1, p2;
-    if constexpr (shading == Shading::Flat) {
+    if constexpr (shading == GLShading::Flat) {
         p1.colour = m_cmdFIFO[0];
         p1.coords = m_cmdFIFO[1];
 
@@ -350,62 +351,65 @@ void PCSX::OpenGL_GPU::initCommands() {
     m_cmdFuncs[0xE5] = &OpenGL_GPU::cmdSetDrawOffset;
     m_cmdFuncs[0xE6] = &OpenGL_GPU::cmdSetDrawMask;
 
-    m_cmdFuncs[0x20] = &OpenGL_GPU::drawTri<Shading::Flat, Transparency::Opaque>;
-    m_cmdFuncs[0x22] = &OpenGL_GPU::drawTri<Shading::Flat, Transparency::Transparent>;
-    m_cmdFuncs[0x24] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendFlat, Transparency::Opaque>;
-    m_cmdFuncs[0x25] = &OpenGL_GPU::drawTriTextured<Shading::RawTexture, Transparency::Opaque>;
-    m_cmdFuncs[0x26] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendFlat, Transparency::Transparent>;
-    m_cmdFuncs[0x27] = &OpenGL_GPU::drawTriTextured<Shading::RawTexture, Transparency::Transparent>;
+    m_cmdFuncs[0x20] = &OpenGL_GPU::drawTri<GLShading::Flat, Transparency::Opaque>;
+    m_cmdFuncs[0x22] = &OpenGL_GPU::drawTri<GLShading::Flat, Transparency::Transparent>;
+    m_cmdFuncs[0x24] = &OpenGL_GPU::drawTriTextured<GLShading::TextureBlendFlat, Transparency::Opaque>;
+    m_cmdFuncs[0x25] = &OpenGL_GPU::drawTriTextured<GLShading::RawTexture, Transparency::Opaque>;
+    m_cmdFuncs[0x26] = &OpenGL_GPU::drawTriTextured<GLShading::TextureBlendFlat, Transparency::Transparent>;
+    m_cmdFuncs[0x27] = &OpenGL_GPU::drawTriTextured<GLShading::RawTexture, Transparency::Transparent>;
 
-    m_cmdFuncs[0x28] = &OpenGL_GPU::drawQuad<Shading::Flat, Transparency::Opaque>;
+    m_cmdFuncs[0x28] = &OpenGL_GPU::drawQuad<GLShading::Flat, Transparency::Opaque>;
     m_cmdFuncs[0x29] = m_cmdFuncs[0x28];  // Duplicate
-    m_cmdFuncs[0x2A] = &OpenGL_GPU::drawQuad<Shading::Flat, Transparency::Transparent>;
-    m_cmdFuncs[0x2C] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendFlat, Transparency::Opaque>;
-    m_cmdFuncs[0x2D] = &OpenGL_GPU::drawQuadTextured<Shading::RawTexture, Transparency::Opaque>;
-    m_cmdFuncs[0x2E] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendFlat, Transparency::Transparent>;
-    m_cmdFuncs[0x2F] = &OpenGL_GPU::drawQuadTextured<Shading::RawTexture, Transparency::Transparent>;
+    m_cmdFuncs[0x2A] = &OpenGL_GPU::drawQuad<GLShading::Flat, Transparency::Transparent>;
+    m_cmdFuncs[0x2C] = &OpenGL_GPU::drawQuadTextured<GLShading::TextureBlendFlat, Transparency::Opaque>;
+    m_cmdFuncs[0x2D] = &OpenGL_GPU::drawQuadTextured<GLShading::RawTexture, Transparency::Opaque>;
+    m_cmdFuncs[0x2E] = &OpenGL_GPU::drawQuadTextured<GLShading::TextureBlendFlat, Transparency::Transparent>;
+    m_cmdFuncs[0x2F] = &OpenGL_GPU::drawQuadTextured<GLShading::RawTexture, Transparency::Transparent>;
 
-    m_cmdFuncs[0x30] = &OpenGL_GPU::drawTri<Shading::Gouraud, Transparency::Opaque>;
-    m_cmdFuncs[0x32] = &OpenGL_GPU::drawTri<Shading::Gouraud, Transparency::Transparent>;
-    m_cmdFuncs[0x34] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendGouraud, Transparency::Opaque>;
-    m_cmdFuncs[0x35] = &OpenGL_GPU::drawTriTextured<Shading::RawTextureGouraud, Transparency::Opaque>;
-    m_cmdFuncs[0x36] = &OpenGL_GPU::drawTriTextured<Shading::TextureBlendGouraud, Transparency::Transparent>;
-    m_cmdFuncs[0x37] = &OpenGL_GPU::drawTriTextured<Shading::RawTextureGouraud, Transparency::Transparent>;
+    m_cmdFuncs[0x30] = &OpenGL_GPU::drawTri<GLShading::Gouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x32] = &OpenGL_GPU::drawTri<GLShading::Gouraud, Transparency::Transparent>;
+    m_cmdFuncs[0x34] = &OpenGL_GPU::drawTriTextured<GLShading::TextureBlendGouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x35] = &OpenGL_GPU::drawTriTextured<GLShading::RawTextureGouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x36] = &OpenGL_GPU::drawTriTextured<GLShading::TextureBlendGouraud, Transparency::Transparent>;
+    m_cmdFuncs[0x37] = &OpenGL_GPU::drawTriTextured<GLShading::RawTextureGouraud, Transparency::Transparent>;
 
-    m_cmdFuncs[0x38] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x38] = &OpenGL_GPU::drawQuad<GLShading::Gouraud, Transparency::Opaque>;
     m_cmdFuncs[0x39] = m_cmdFuncs[0x38];  // Duplicate
-    m_cmdFuncs[0x3A] = &OpenGL_GPU::drawQuad<Shading::Gouraud, Transparency::Transparent>;
+    m_cmdFuncs[0x3A] = &OpenGL_GPU::drawQuad<GLShading::Gouraud, Transparency::Transparent>;
     m_cmdFuncs[0x3B] = m_cmdFuncs[0x3A];  // Duplicate
 
-    m_cmdFuncs[0x3C] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendGouraud, Transparency::Opaque>;
-    m_cmdFuncs[0x3D] = &OpenGL_GPU::drawQuadTextured<Shading::RawTextureGouraud, Transparency::Opaque>;
-    m_cmdFuncs[0x3E] = &OpenGL_GPU::drawQuadTextured<Shading::TextureBlendGouraud, Transparency::Transparent>;
-    m_cmdFuncs[0x3F] = &OpenGL_GPU::drawQuadTextured<Shading::RawTextureGouraud, Transparency::Transparent>;
+    m_cmdFuncs[0x3C] = &OpenGL_GPU::drawQuadTextured<GLShading::TextureBlendGouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x3D] = &OpenGL_GPU::drawQuadTextured<GLShading::RawTextureGouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x3E] = &OpenGL_GPU::drawQuadTextured<GLShading::TextureBlendGouraud, Transparency::Transparent>;
+    m_cmdFuncs[0x3F] = &OpenGL_GPU::drawQuadTextured<GLShading::RawTextureGouraud, Transparency::Transparent>;
 
-    m_cmdFuncs[0x40] = &OpenGL_GPU::drawLine<Shading::Flat, Transparency::Opaque>;
-    m_cmdFuncs[0x42] = &OpenGL_GPU::drawLine<Shading::Flat, Transparency::Transparent>;
-    m_cmdFuncs[0x50] = &OpenGL_GPU::drawLine<Shading::Gouraud, Transparency::Opaque>;
-    m_cmdFuncs[0x52] = &OpenGL_GPU::drawLine<Shading::Gouraud, Transparency::Transparent>;
+    m_cmdFuncs[0x40] = &OpenGL_GPU::drawLine<GLShading::Flat, Transparency::Opaque>;
+    m_cmdFuncs[0x42] = &OpenGL_GPU::drawLine<GLShading::Flat, Transparency::Transparent>;
+    m_cmdFuncs[0x50] = &OpenGL_GPU::drawLine<GLShading::Gouraud, Transparency::Opaque>;
+    m_cmdFuncs[0x52] = &OpenGL_GPU::drawLine<GLShading::Gouraud, Transparency::Transparent>;
 
     m_cmdFuncs[0x60] = &OpenGL_GPU::drawRect<RectSize::Variable, Transparency::Opaque>;
     m_cmdFuncs[0x62] = &OpenGL_GPU::drawRect<RectSize::Variable, Transparency::Transparent>;
     m_cmdFuncs[0x64] =
-        &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::TextureBlendFlat, Transparency::Opaque>;
-    m_cmdFuncs[0x65] = &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Opaque>;
+        &OpenGL_GPU::drawRectTextured<RectSize::Variable, GLShading::TextureBlendFlat, Transparency::Opaque>;
+    m_cmdFuncs[0x65] = &OpenGL_GPU::drawRectTextured<RectSize::Variable, GLShading::RawTexture, Transparency::Opaque>;
     m_cmdFuncs[0x66] =
-        &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::TextureBlendFlat, Transparency::Transparent>;
+        &OpenGL_GPU::drawRectTextured<RectSize::Variable, GLShading::TextureBlendFlat, Transparency::Transparent>;
     m_cmdFuncs[0x67] =
-        &OpenGL_GPU::drawRectTextured<RectSize::Variable, Shading::RawTexture, Transparency::Transparent>;
+        &OpenGL_GPU::drawRectTextured<RectSize::Variable, GLShading::RawTexture, Transparency::Transparent>;
 
     m_cmdFuncs[0x68] = &OpenGL_GPU::drawRect<RectSize::Rect1, Transparency::Opaque>;
     m_cmdFuncs[0x70] = &OpenGL_GPU::drawRect<RectSize::Rect8, Transparency::Opaque>;
-    m_cmdFuncs[0x74] = &OpenGL_GPU::drawRectTextured<RectSize::Rect8, Shading::TextureBlendFlat, Transparency::Opaque>;
-    m_cmdFuncs[0x75] = &OpenGL_GPU::drawRectTextured<RectSize::Rect8, Shading::RawTexture, Transparency::Opaque>;
-    m_cmdFuncs[0x7C] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::TextureBlendFlat, Transparency::Opaque>;
-    m_cmdFuncs[0x7D] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::RawTexture, Transparency::Opaque>;
+    m_cmdFuncs[0x74] =
+        &OpenGL_GPU::drawRectTextured<RectSize::Rect8, GLShading::TextureBlendFlat, Transparency::Opaque>;
+    m_cmdFuncs[0x75] = &OpenGL_GPU::drawRectTextured<RectSize::Rect8, GLShading::RawTexture, Transparency::Opaque>;
+    m_cmdFuncs[0x7C] =
+        &OpenGL_GPU::drawRectTextured<RectSize::Rect16, GLShading::TextureBlendFlat, Transparency::Opaque>;
+    m_cmdFuncs[0x7D] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, GLShading::RawTexture, Transparency::Opaque>;
     m_cmdFuncs[0x7E] =
-        &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::TextureBlendFlat, Transparency::Transparent>;
-    m_cmdFuncs[0x7F] = &OpenGL_GPU::drawRectTextured<RectSize::Rect16, Shading::RawTexture, Transparency::Transparent>;
+        &OpenGL_GPU::drawRectTextured<RectSize::Rect16, GLShading::TextureBlendFlat, Transparency::Transparent>;
+    m_cmdFuncs[0x7F] =
+        &OpenGL_GPU::drawRectTextured<RectSize::Rect16, GLShading::RawTexture, Transparency::Transparent>;
 
     m_cmdFuncs[0x80] = &OpenGL_GPU::cmdCopyRectVRAMToVRAM;
     m_cmdFuncs[0xA0] = &OpenGL_GPU::cmdCopyRectToVRAM;

@@ -51,9 +51,9 @@ inline void PCSX::SoftGPU::SoftPrim::UpdateGlobalTP(uint16_t gdata) {
         if (dwGPUVersion == 2) {
             GlobalTextAddrY = ((gdata & 0x60) << 3);
             GlobalTextIL = (gdata & 0x2000) >> 13;
-            GlobalTextABR = (uint16_t)((gdata >> 7) & 0x3);
-            GlobalTextTP = (gdata >> 9) & 0x3;
-            if (GlobalTextTP == 3) GlobalTextTP = 2;
+            // GlobalTextABR = (uint16_t)((gdata >> 7) & 0x3);
+            // GlobalTextTP = (gdata >> 9) & 0x3;
+            // if (GlobalTextTP == 3) GlobalTextTP = 2;
             usMirror = 0;
             lGPUstatusRet = (lGPUstatusRet & 0xffffe000) | (gdata & 0x1fff);
 
@@ -81,11 +81,11 @@ inline void PCSX::SoftGPU::SoftPrim::UpdateGlobalTP(uint16_t gdata) {
             iDither = 0;
     }
 
-    GlobalTextTP = (gdata >> 7) & 0x3;  // tex mode (4,8,15)
+    // GlobalTextTP = (gdata >> 7) & 0x3;  // tex mode (4,8,15)
 
-    if (GlobalTextTP == 3) GlobalTextTP = 2;  // seen in Wild9 :(
+    // if (GlobalTextTP == 3) GlobalTextTP = 2;  // seen in Wild9 :(
 
-    GlobalTextABR = (gdata >> 5) & 0x3;  // blend mode
+    // GlobalTextABR = (gdata >> 5) & 0x3;  // blend mode
 
     lGPUstatusRet &= ~0x07ff;           // Clear the necessary bits
     lGPUstatusRet |= (gdata & 0x07ff);  // set the necessary bits
@@ -319,6 +319,28 @@ void PCSX::SoftGPU::SoftPrim::cmdTexturePage(uint8_t *baseAddr) {
 
     UpdateGlobalTP((uint16_t)gdata);
     GlobalTextREST = (gdata & 0x00ffffff) >> 9;
+}
+
+void PCSX::SoftGPU::SoftPrim::texturePage(GPU::TPage *prim) {
+    GlobalTextAddrX = prim->tx << 6;
+    GlobalTextAddrY = prim->ty << 8;
+
+    if (m_useDither == 2) {
+        iDither = 2;
+    } else {
+        if (prim->dither) {
+            iDither = m_useDither;
+        } else {
+            iDither = 0;
+        }
+    }
+
+    GlobalTextTP = prim->texDepth;
+
+    GlobalTextABR = prim->blendFunction;
+
+    lGPUstatusRet &= ~0x07ff;               // Clear the necessary bits
+    lGPUstatusRet |= (prim->raw & 0x07ff);  // set the necessary bits
 }
 
 ////////////////////////////////////////////////////////////////////////

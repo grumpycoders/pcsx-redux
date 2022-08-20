@@ -114,13 +114,6 @@ namespace PCSX {
 class GUI;
 }
 
-extern PCSX::GUI *m_gui;
-extern bool bVsync_Key;
-
-extern int iFastFwd;
-extern PSXPoint_t ptCursorPoint[];
-extern uint16_t usCursorActive;
-
 // prim.cc
 
 extern uint32_t dwCfgFixes;

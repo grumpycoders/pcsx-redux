@@ -29,12 +29,10 @@
 namespace PCSX {
 class OpenGL_GPU final : public GPU {
     // Interface functions
-    virtual int init(GUI *) final;
+    virtual int initBackend(GUI *) final;
     virtual int shutdown() final;
-    virtual uint32_t readData() final;
     virtual void readDataMem(uint32_t *dest, int size) final;
     virtual uint32_t readStatus() final;
-    virtual void writeData(uint32_t value) final;
     virtual void writeDataMem(uint32_t *source, int size) final;
     virtual void writeStatusInternal(uint32_t value) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
@@ -200,7 +198,7 @@ class OpenGL_GPU final : public GPU {
     // For textured primitives, RawTexture and RawTextureGouraud work the same way, except the latter has unused colour
     // parameters RawTextureGouraud is used a lot by some games, like Castlevania TextureBlendFlat is texture blending
     // with a flat colour, TextureBlendGouraud is texture blending with a gouraud shaded colour
-    enum class Shading { Flat, Gouraud, RawTexture, RawTextureGouraud, TextureBlendFlat, TextureBlendGouraud };
+    enum class GLShading { Flat, Gouraud, RawTexture, RawTextureGouraud, TextureBlendFlat, TextureBlendGouraud };
 
     enum class Transparency { Opaque, Transparent };
 
@@ -216,25 +214,25 @@ class OpenGL_GPU final : public GPU {
     // And 0x808080 as the blend colour
     static constexpr uint32_t c_rawTextureBlendColour = 0x808080;
 
-    template <Shading shading, Transparency transparency, int firstVertex = 0>
+    template <GLShading shading, Transparency transparency, int firstVertex = 0>
     void drawTri();
 
-    template <Shading shading, Transparency transparency>
+    template <GLShading shading, Transparency transparency>
     void drawQuad();
 
-    template <Shading shading, Transparency transparency, int firstVertex = 0>
+    template <GLShading shading, Transparency transparency, int firstVertex = 0>
     void drawTriTextured();
 
-    template <Shading shading, Transparency transparency>
+    template <GLShading shading, Transparency transparency>
     void drawQuadTextured();
 
     template <RectSize size, Transparency transparency>
     void drawRect();
 
-    template <RectSize size, Shading shading, Transparency transparency>
+    template <RectSize size, GLShading shading, Transparency transparency>
     void drawRectTextured();
 
-    template <Shading shading, Transparency transparency>
+    template <GLShading shading, Transparency transparency>
     void drawLine();
 
     void drawLineInternal(const LinePoint &p1, const LinePoint &p2);
@@ -263,5 +261,78 @@ class OpenGL_GPU final : public GPU {
     void cmdSetDrawOffset();
     void cmdSetDrawMask();
     void cmdNop();
+
+    void write0(FastFill *) override;
+
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+
+    void write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *) override;
+    void write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *) override;
+    void write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *) override;
+    void write0(Line<Shading::Flat, LineType::Poly, Blend::Semi> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Simple, Blend::Off> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Simple, Blend::Semi> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) override;
+
+    void write0(Rect<Size::Variable, Textured::No, Blend::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::No, Blend::Semi> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Off> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Semi> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Off> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Semi> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Off> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Semi> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Off> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Semi> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Off> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Semi> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Off> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) override;
+
+    void write0(BlitVramVram *) override;
+    void write0(BlitRamVram *) override;
+    void write0(BlitVramRam *) override;
+
+    void write0(TPage *) override;
+    void write0(TWindow *) override;
+    void write0(DrawingAreaStart *) override;
+    void write0(DrawingAreaEnd *) override;
+    void write0(DrawingOffset *) override;
+    void write0(MaskBit *) override;
 };
+
 }  // namespace PCSX

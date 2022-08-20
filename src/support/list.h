@@ -34,8 +34,8 @@ class List final {
     class Node {
       public:
         Node() {}
-        Node(const Node&) = delete;
-        Node& operator=(const Node&) = delete;
+        Node(const Node&) {}
+        Node& operator=(const Node&) { unlink(); }
         Node(Node&& src) {
             m_prev = src.m_prev;
             m_next = src.m_next;

@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 
+#include "core/gpu.h"
 #include "gpu/soft/externals.h"
 
 namespace PCSX {
@@ -41,8 +42,8 @@ class SoftRenderer {
 
     int32_t GlobalTextAddrX;
     int32_t GlobalTextAddrY;
-    int32_t GlobalTextTP;
-    int32_t GlobalTextABR;
+    GPU::TexDepth GlobalTextTP;
+    GPU::BlendFunction GlobalTextABR;
 
     bool bCheckMask = false;
     uint16_t sSetMask = 0;

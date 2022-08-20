@@ -83,7 +83,7 @@ void PCSX::OpenGL_GPU::clearVRAM(float r, float g, float b, float a) {
 void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 
 // Do not forget to call this with an active OpenGL context.
-int PCSX::OpenGL_GPU::init(GUI* gui) {
+int PCSX::OpenGL_GPU::initBackend(GUI *gui) {
     m_gui = gui;
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.resize(vertexBufferSize);
@@ -150,7 +150,7 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
     glPixelStorei(GL_PACK_ALIGNMENT, 2);
 
-    static const char* vertSource = R"(
+    static const char *vertSource = R"(
         #version 330 core
 
         // inPos: The vertex position.
@@ -205,7 +205,7 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
         }
     )";
 
-    static const char* fragSource = R"(
+    static const char *fragSource = R"(
         #version 330 core
         in vec4 vertexColor;
         in vec2 texCoords;
@@ -342,13 +342,7 @@ uint32_t PCSX::OpenGL_GPU::readStatus() {
     // return m_gpustat;
 }
 
-uint32_t PCSX::OpenGL_GPU::readData() {
-    uint32_t ret;
-    readDataMem(&ret, 1);
-    return ret;
-}
-
-void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) {
+void PCSX::OpenGL_GPU::readDataMem(uint32_t *destination, int size) {
     for (int i = 0; i < size; i++) {
         if (m_readingMode == TransferMode::VRAMTransfer) {
             if (m_vramReadBufferSize == 1) m_readingMode = TransferMode::CommandTransfer;
@@ -361,9 +355,7 @@ void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) {
     }
 }
 
-void PCSX::OpenGL_GPU::writeData(uint32_t value) { writeDataMem(&value, 1); }
-
-void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
+void PCSX::OpenGL_GPU::writeDataMem(uint32_t *source, int size) {
     ZoneScoped;  // Let Tracy do its thing
 
     while (size) {
@@ -456,7 +448,7 @@ void PCSX::OpenGL_GPU::writeStatusInternal(uint32_t value) {
     }
 }
 
-int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
+int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t *baseAddr, uint32_t addr) {
     int counter = 0;
     do {
         // if (iGPUHeight == 512) addr &= 0x1FFFFC;
@@ -506,7 +498,7 @@ bool PCSX::OpenGL_GPU::configure() {
     }
 
     if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
-        static const char* polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
+        static const char *polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
         constexpr OpenGL::FillMode polygonModes[] = {OpenGL::FillPoly, OpenGL::DrawWire, OpenGL::DrawPoints};
 
         if (ImGui::BeginCombo(_("Polygon rendering mode"), polygonModeNames[m_polygonModeIndex])) {
@@ -697,7 +689,7 @@ void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
 
 PCSX::Slice PCSX::OpenGL_GPU::getVRAM() {
     static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
-    uint16_t* pixels = (uint16_t*)malloc(texSize);
+    uint16_t *pixels = (uint16_t *)malloc(texSize);
     glFlush();
     const auto oldTex = OpenGL::getTex2D();
     glBindTexture(GL_TEXTURE_2D, getVRAMTexture());
@@ -709,10 +701,82 @@ PCSX::Slice PCSX::OpenGL_GPU::getVRAM() {
     return slice;
 }
 
-void PCSX::OpenGL_GPU::partialUpdateVRAM(int x, int y, int w, int h, const uint16_t* pixels) {
+void PCSX::OpenGL_GPU::partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) {
     const auto oldTex = OpenGL::getTex2D();
     glBindTexture(GL_TEXTURE_2D, getVRAMTexture());
     glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, pixels);
     glBindTexture(GL_TEXTURE_2D, oldTex);
     m_syncVRAM = true;
 }
+
+void PCSX::OpenGL_GPU::write0(FastFill *) {}
+
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) {}
+
+void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Poly, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) {}
+
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::Yes, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::Yes, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::No, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::No, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::Yes, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::Yes, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Semi> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Off> *) {}
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) {}
+
+void PCSX::OpenGL_GPU::write0(BlitVramVram *) {}
+void PCSX::OpenGL_GPU::write0(BlitRamVram *) {}
+void PCSX::OpenGL_GPU::write0(BlitVramRam *) {}
+
+void PCSX::OpenGL_GPU::write0(TPage *) {}
+void PCSX::OpenGL_GPU::write0(TWindow *) {}
+void PCSX::OpenGL_GPU::write0(DrawingAreaStart *) {}
+void PCSX::OpenGL_GPU::write0(DrawingAreaEnd *) {}
+void PCSX::OpenGL_GPU::write0(DrawingOffset *) {}
+void PCSX::OpenGL_GPU::write0(MaskBit *) {}

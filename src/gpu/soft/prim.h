@@ -21,6 +21,7 @@
 
 #include <cstdint>
 
+#include "core/gpu.h"
 #include "core/psxmem.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/soft.h"
@@ -42,8 +43,8 @@ class SoftPrim : public SoftRenderer {
     inline void reset() {
         GlobalTextAddrX = 0;
         GlobalTextAddrY = 0;
-        GlobalTextTP = 0;
-        GlobalTextABR = 0;
+        GlobalTextTP = GPU::TexDepth::Tex4Bits;
+        GlobalTextABR = GPU::BlendFunction::HalfBackAndHalfFront;
         bUsingTWin = false;
         usMirror = 0;
         drawX = drawY = 0;
@@ -110,6 +111,9 @@ class SoftPrim : public SoftRenderer {
     bool CheckCoord2();
 
     int32_t lLowerpart;
+
+  public:
+    void texturePage(GPU::TPage *prim);
 };
 
 }  // namespace SoftGPU

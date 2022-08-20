@@ -26,76 +26,20 @@
 #include "gpu/soft/prim.h"
 #include "gui/gui.h"
 
-int iFastFwd = 0;
-PSXPoint_t ptCursorPoint[8];
-uint16_t usCursorActive = 0;
-
-PCSX::GUI *m_gui;
-bool bVsync_Key = false;
-
 static const unsigned int pitch = 4096;
 
-void ShowGunCursor(unsigned char *surf) {
-    uint16_t dx = (uint16_t)PreviousPSXDisplay.Range.x1;
-    uint16_t dy = (uint16_t)PreviousPSXDisplay.DisplayMode.y;
-    int x, y, iPlayer, sx, ex, sy, ey;
-
-    if (PreviousPSXDisplay.Range.y0)  // centering needed?
-    {
-        surf += PreviousPSXDisplay.Range.y0 * pitch;
-        dy -= PreviousPSXDisplay.Range.y0;
-    }
-
-    const uint32_t crCursorColor32[8] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffff00ff,
-                                         0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
-
-    surf += PreviousPSXDisplay.Range.x0 << 2;  // -> add x left border
-
-    for (iPlayer = 0; iPlayer < 8; iPlayer++)  // -> loop all possible players
-    {
-        if (usCursorActive & (1 << iPlayer))  // -> player active?
-        {
-            const int ty = (ptCursorPoint[iPlayer].y * dy) / 256;  // -> calculate the cursor pos in the current display
-            const int tx = (ptCursorPoint[iPlayer].x * dx) / 512;
-            sx = tx - 5;
-            if (sx < 0) {
-                if (sx & 1)
-                    sx = 1;
-                else
-                    sx = 0;
-            }
-            sy = ty - 5;
-            if (sy < 0) {
-                if (sy & 1)
-                    sy = 1;
-                else
-                    sy = 0;
-            }
-            ex = tx + 6;
-            if (ex > dx) ex = dx;
-            ey = ty + 6;
-            if (ey > dy) ey = dy;
-
-            for (x = tx, y = sy; y < ey; y += 2)  // -> do dotted y line
-                *((uint32_t *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
-            for (y = ty, x = sx; x < ex; x += 2)  // -> do dotted x line
-                *((uint32_t *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
-        }
-    }
-}
-
-static GLuint vramTexture = 0;
-
 void PCSX::SoftGPU::impl::doBufferSwap() {
-    GLuint textureID = m_vramTexture16;
     m_gui->setViewport();
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
+    GLuint textureID;
 
     if (PSXDisplay.RGB24) {
-        textureID = vramTexture;
-        glBindTexture(GL_TEXTURE_2D, vramTexture);
+        textureID = m_vramTexture24;
+        glBindTexture(GL_TEXTURE_2D, textureID);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, psxVuw);
+    } else {
+        textureID = m_vramTexture16;
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
     }
 
     float xRatio = PSXDisplay.RGB24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
@@ -127,7 +71,7 @@ void PCSX::SoftGPU::impl::clearVRAM() {
 
 void PCSX::SoftGPU::impl::setLinearFiltering() {
     const auto filter = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value ? GL_LINEAR : GL_NEAREST;
-    glBindTexture(GL_TEXTURE_2D, vramTexture);
+    glBindTexture(GL_TEXTURE_2D, m_vramTexture24);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 
@@ -137,8 +81,8 @@ void PCSX::SoftGPU::impl::setLinearFiltering() {
 }
 
 void PCSX::SoftGPU::impl::initDisplay() {
-    glGenTextures(1, &vramTexture);
-    glBindTexture(GL_TEXTURE_2D, vramTexture);
+    glGenTextures(1, &m_vramTexture24);
+    glBindTexture(GL_TEXTURE_2D, m_vramTexture24);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
