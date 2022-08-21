@@ -399,16 +399,6 @@ void PCSX::WebServer::closeCB(uv_handle_t* handle) {
     self->m_serverStatus = SERVER_STOPPED;
 }
 
-void PCSX::WebServer::onNewConnection(int status) {
-    if (status < 0) return;
-    WebClient* client = new WebClient(this);
-    if (client->accept(&m_server)) {
-        m_clients.push_back(client);
-    } else {
-        delete client;
-    }
-}
-
 struct PCSX::WebClient::WebClientImpl {
     struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
         WriteRequest() {}
@@ -764,3 +754,13 @@ bool PCSX::WebClient::accept(uv_tcp_t* srv) { return m_impl->accept(srv); }
 void PCSX::WebClient::write(Slice&& slice) { m_impl->write(std::move(slice)); }
 void PCSX::WebClient::write(std::string&& str) { m_impl->write(std::move(str)); }
 void PCSX::WebClient::write(const std::string& str) { m_impl->write(str); }
+
+void PCSX::WebServer::onNewConnection(int status) {
+    if (status < 0) return;
+    WebClient* client = new WebClient(this);
+    if (client->accept(&m_server)) {
+        m_clients.push_back(client);
+    } else {
+        delete client;
+    }
+}
