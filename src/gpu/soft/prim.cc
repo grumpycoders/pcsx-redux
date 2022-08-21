@@ -321,28 +321,6 @@ void PCSX::SoftGPU::SoftPrim::cmdTexturePage(uint8_t *baseAddr) {
     GlobalTextREST = (gdata & 0x00ffffff) >> 9;
 }
 
-void PCSX::SoftGPU::SoftPrim::texturePage(GPU::TPage *prim) {
-    GlobalTextAddrX = prim->tx << 6;
-    GlobalTextAddrY = prim->ty << 8;
-
-    if (m_useDither == 2) {
-        iDither = 2;
-    } else {
-        if (prim->dither) {
-            iDither = m_useDither;
-        } else {
-            iDither = 0;
-        }
-    }
-
-    GlobalTextTP = prim->texDepth;
-
-    GlobalTextABR = prim->blendFunction;
-
-    lGPUstatusRet &= ~0x07ff;               // Clear the necessary bits
-    lGPUstatusRet |= (prim->raw & 0x07ff);  // set the necessary bits
-}
-
 ////////////////////////////////////////////////////////////////////////
 // cmd: turn on/off texture window
 ////////////////////////////////////////////////////////////////////////
@@ -1675,3 +1653,98 @@ const PCSX::SoftGPU::SoftPrim::func_t PCSX::SoftGPU::SoftPrim::skip[256] = {
     &SoftPrim::primNI,           &SoftPrim::primNI,
     &SoftPrim::primNI,           &SoftPrim::primNI,  // fc
 };
+
+void PCSX::SoftGPU::SoftPrim::texturePage(GPU::TPage *prim) {
+    GlobalTextAddrX = prim->tx << 6;
+    GlobalTextAddrY = prim->ty << 8;
+
+    if (m_useDither == 2) {
+        iDither = 2;
+    } else {
+        if (prim->dither) {
+            iDither = m_useDither;
+        } else {
+            iDither = 0;
+        }
+    }
+
+    GlobalTextTP = prim->texDepth;
+
+    GlobalTextABR = prim->blendFunction;
+
+    lGPUstatusRet &= ~0x07ff;               // Clear the necessary bits
+    lGPUstatusRet |= (prim->raw & 0x07ff);  // set the necessary bits
+}
+
+void PCSX::SoftGPU::SoftPrim::twindow(GPU::TWindow *prim) {
+    uint32_t YAlign, XAlign;
+
+    lGPUInfoVals[INFO_TW] = prim->raw & 0xfffff;
+
+    // Texture window size is determined by the least bit set of the relevant 5 bits
+    if (prim->y & 0x01) {
+        TWin.Position.y1 = 8;  // xxxx1
+    } else if (prim->y & 0x02) {
+        TWin.Position.y1 = 16;  // xxx10
+    } else if (prim->y & 0x04) {
+        TWin.Position.y1 = 32;  // xx100
+    } else if (prim->y & 0x08) {
+        TWin.Position.y1 = 64;  // x1000
+    } else if (prim->y & 0x10) {
+        TWin.Position.y1 = 128;  // 10000
+    } else {
+        TWin.Position.y1 = 256;  // 00000
+    }
+
+    if (prim->x & 0x01) {
+        TWin.Position.x1 = 8;  // xxxx1
+    } else if (prim->x & 0x02) {
+        TWin.Position.x1 = 16;  // xxx10
+    } else if (prim->x & 0x04) {
+        TWin.Position.x1 = 32;  // xx100
+    } else if (prim->x & 0x08) {
+        TWin.Position.x1 = 64;  // x1000
+    } else if (prim->x & 0x10) {
+        TWin.Position.x1 = 128;  // 10000
+    } else {
+        TWin.Position.x1 = 256;  // 00000
+    }
+
+    // Re-calculate the bit field, because we can't trust what is passed in the data
+    YAlign = (uint32_t)(32 - (TWin.Position.y1 >> 3));
+    XAlign = (uint32_t)(32 - (TWin.Position.x1 >> 3));
+
+    // Absolute position of the start of the texture window
+    TWin.Position.y0 = (int16_t)((prim->h & YAlign) << 3);
+    TWin.Position.x0 = (int16_t)((prim->w & XAlign) << 3);
+
+    if ((TWin.Position.x0 == 0 && TWin.Position.y0 == 0 && TWin.Position.x1 == 0 && TWin.Position.y1 == 0) ||
+        (TWin.Position.x1 == 256 && TWin.Position.y1 == 256)) {
+        // tw turned off
+        bUsingTWin = false;  // -> just do it
+    } else {
+        // otherwise
+        bUsingTWin = true;  // -> tw turned on
+    }
+}
+
+void PCSX::SoftGPU::SoftPrim::drawingAreaStart(GPU::DrawingAreaStart *prim) {
+    drawX = prim->x;
+    drawY = prim->y;
+
+    lGPUInfoVals[INFO_DRAWSTART] = prim->raw & 0xfffff;
+}
+
+void PCSX::SoftGPU::SoftPrim::drawingAreaEnd(GPU::DrawingAreaEnd *prim) {
+    drawW = prim->x;
+    drawH = prim->y;
+
+    lGPUInfoVals[INFO_DRAWEND] = prim->raw & 0xfffff;
+}
+
+void PCSX::SoftGPU::SoftPrim::drawingOffset(GPU::DrawingOffset *prim) {
+    PSXDisplay.DrawOffset.x = prim->x;
+    PSXDisplay.DrawOffset.y = prim->y;
+
+    lGPUInfoVals[INFO_DRAWOFF] = prim->raw & 0x3fffff;
+}

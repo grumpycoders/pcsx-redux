@@ -1072,12 +1072,9 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(BlitRamVram *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(BlitVramRam *) { __debugbreak(); }
 
-void PCSX::SoftGPU::impl::write0(TPage *prim) {
-    __debugbreak();
-    m_softPrim.texturePage(prim);
-}
-void PCSX::SoftGPU::impl::write0(TWindow *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(DrawingAreaStart *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(DrawingAreaEnd *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(DrawingOffset *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(TPage *prim) { m_softPrim.texturePage(prim); }
+void PCSX::SoftGPU::impl::write0(TWindow *prim) { m_softPrim.twindow(prim); }
+void PCSX::SoftGPU::impl::write0(DrawingAreaStart *prim) { m_softPrim.drawingAreaStart(prim); }
+void PCSX::SoftGPU::impl::write0(DrawingAreaEnd *prim) { m_softPrim.drawingAreaEnd(prim); }
+void PCSX::SoftGPU::impl::write0(DrawingOffset *prim) { m_softPrim.drawingOffset(prim); }
 void PCSX::SoftGPU::impl::write0(MaskBit *) { __debugbreak(); }

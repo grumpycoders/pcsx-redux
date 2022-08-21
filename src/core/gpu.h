@@ -312,6 +312,7 @@ class GPU {
         TWindow(TWindow &&other) = default;
         TWindow &operator=(const TWindow &other) = default;
         unsigned x, y, w, h;
+        uint32_t raw;
     };
 
     struct DrawingAreaStart : public Logged {
@@ -320,6 +321,7 @@ class GPU {
         DrawingAreaStart(DrawingAreaStart &&other) = default;
         DrawingAreaStart &operator=(const DrawingAreaStart &other) = default;
         unsigned x, y;
+        uint32_t raw;
     };
 
     struct DrawingAreaEnd : public Logged {
@@ -328,6 +330,7 @@ class GPU {
         DrawingAreaEnd(DrawingAreaEnd &&other) = default;
         DrawingAreaEnd &operator=(const DrawingAreaEnd &other) = default;
         unsigned x, y;
+        uint32_t raw;
     };
 
     struct DrawingOffset : public Logged {
@@ -336,6 +339,7 @@ class GPU {
         DrawingOffset(DrawingOffset &&other) = default;
         DrawingOffset &operator=(const DrawingOffset &other) = default;
         int x, y;
+        uint32_t raw;
     };
 
     struct MaskBit : public Logged {

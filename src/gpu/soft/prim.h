@@ -114,6 +114,10 @@ class SoftPrim : public SoftRenderer {
 
   public:
     void texturePage(GPU::TPage *prim);
+    void twindow(GPU::TWindow *prim);
+    void drawingAreaStart(GPU::DrawingAreaStart *prim);
+    void drawingAreaEnd(GPU::DrawingAreaEnd *prim);
+    void drawingOffset(GPU::DrawingOffset *prim);
 };
 
 }  // namespace SoftGPU

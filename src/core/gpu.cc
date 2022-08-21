@@ -754,16 +754,22 @@ PCSX::GPU::TWindow::TWindow(uint32_t value) {
     y = (value >> 5) & 0x1f;
     w = (value >> 10) & 0x1f;
     h = (value >> 15) & 0x1f;
+
+    raw = value;
 }
 
 PCSX::GPU::DrawingAreaStart::DrawingAreaStart(uint32_t value) {
     x = value & 0x3ff;
     y = (value >> 10) & 0x1ff;
+
+    raw = value;
 }
 
 PCSX::GPU::DrawingAreaEnd::DrawingAreaEnd(uint32_t value) {
     x = value & 0x3ff;
     y = (value >> 10) & 0x1ff;
+
+    raw = value;
 }
 
 PCSX::GPU::DrawingOffset::DrawingOffset(uint32_t value) {
@@ -771,6 +777,8 @@ PCSX::GPU::DrawingOffset::DrawingOffset(uint32_t value) {
     int uy = (value >> 11) & 0x7ff;
     x = signExtend<int, 11>(ux);
     y = signExtend<int, 11>(uy);
+
+    raw = value;
 }
 
 PCSX::GPU::MaskBit::MaskBit(uint32_t value) {
