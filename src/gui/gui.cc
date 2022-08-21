@@ -292,8 +292,19 @@ end)(jit.status()))
     L.settable();
     L.pop();
     L.pop();
-    m_offscreenShaderEditor.compile(this);
-    m_outputShaderEditor.compile(this);
+    auto offscreenStatus = m_offscreenShaderEditor.compile(this);
+    auto outputStatus = m_outputShaderEditor.compile(this);
+    if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+        m_offscreenShaderEditor.setFallbacks();
+        m_outputShaderEditor.setFallbacks();
+        offscreenStatus = m_offscreenShaderEditor.compile(this);
+        outputStatus = m_outputShaderEditor.compile(this);
+    }
+    if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+        g_system->log(LogClass::UI, "Failed to compile output shaders. You won't be able to see anything");
+        g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
+        g_system->log(LogClass::UI, "%s", outputStatus.getError());
+    }
 }
 
 void PCSX::GUI::init() {
@@ -483,7 +494,7 @@ void PCSX::GUI::init() {
         glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
-    ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
+    ImGui_ImplOpenGL3_Init(nullptr);
 
     if (glDebugMessageCallback &&
         (g_emulator->settings.get<Emulator::SettingGLErrorReporting>() || m_args.get<bool>("testmode", false))) {
@@ -953,22 +964,49 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::BeginMenu(_("Shader presets"))) {
                     if (ImGui::MenuItem(_("Default shader"))) {
                         m_offscreenShaderEditor.setDefaults();
-                        m_offscreenShaderEditor.compile(this);
-                        m_offscreenShaderEditor.reset(this);
+                        auto offscreenStatus = m_offscreenShaderEditor.compile(this);
                         m_outputShaderEditor.setDefaults();
-                        m_outputShaderEditor.compile(this);
+                        auto outputStatus = m_outputShaderEditor.compile(this);
+
+                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+                            m_offscreenShaderEditor.setFallbacks();
+                            m_outputShaderEditor.setFallbacks();
+                            offscreenStatus = m_offscreenShaderEditor.compile(this);
+                            outputStatus = m_outputShaderEditor.compile(this);
+                        }
+                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+                            g_system->log(LogClass::UI,
+                                          "Failed to compile output shaders. You won't be able to see anything");
+                            g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
+                            g_system->log(LogClass::UI, "%s", outputStatus.getError());
+                        }
+
+                        m_offscreenShaderEditor.reset(this);
                         m_outputShaderEditor.reset(this);
                     }
                     if (ImGui::MenuItem(_("CRT-lottes shader"))) {
                         m_offscreenShaderEditor.setText(Shaders::CrtLottes::Offscreen::vert().data(),
                                                         Shaders::CrtLottes::Offscreen::frag().data(),
                                                         Shaders::CrtLottes::Offscreen::lua().data());
-                        m_offscreenShaderEditor.compile(this);
-                        m_offscreenShaderEditor.reset(this);
+                        auto offscreenStatus = m_offscreenShaderEditor.compile(this);
                         m_outputShaderEditor.setText(Shaders::CrtLottes::Output::vert().data(),
                                                      Shaders::CrtLottes::Output::frag().data(),
                                                      Shaders::CrtLottes::Output::lua().data());
-                        m_outputShaderEditor.compile(this);
+                        auto outputStatus = m_outputShaderEditor.compile(this);
+
+                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+                            m_offscreenShaderEditor.setFallbacks();
+                            m_outputShaderEditor.setFallbacks();
+                            offscreenStatus = m_offscreenShaderEditor.compile(this);
+                            outputStatus = m_outputShaderEditor.compile(this);
+                        }
+                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+                            g_system->log(LogClass::UI,
+                                          "Failed to compile output shaders. You won't be able to see anything");
+                            g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
+                            g_system->log(LogClass::UI, "%s", outputStatus.getError());
+                        }
+                        m_offscreenShaderEditor.reset(this);
                         m_outputShaderEditor.reset(this);
                     }
                     ImGui::EndMenu();

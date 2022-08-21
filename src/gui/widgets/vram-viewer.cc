@@ -194,10 +194,10 @@ void main() {
 )";
 
 void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
-    auto ret = m_editor.compile(gui, {"i_position", "i_texUV"});
-    if (!ret.has_value()) return;
+    auto status = m_editor.compile(gui, {"i_position", "i_texUV"});
+    if (!status.isOk()) return;
 
-    m_shaderProgram = ret.value();
+    m_shaderProgram = m_editor.getProgram();
     m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "u_vramTexture");
     m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
     m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "u_hovered");
