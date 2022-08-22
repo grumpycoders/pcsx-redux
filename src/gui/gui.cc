@@ -494,7 +494,10 @@ void PCSX::GUI::init() {
         glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
-    ImGui_ImplOpenGL3_Init(nullptr);
+    // Some bad GPU drivers (*cough* Intel) don't like mixed shaders versions,
+    // and will silently fail to execute them.
+    // This is just a bad heuristic to try and keep it the same version.
+    ImGui_ImplOpenGL3_Init(m_hasCoreProfile ? GL_SHADER_VERSION : nullptr);
 
     if (glDebugMessageCallback &&
         (g_emulator->settings.get<Emulator::SettingGLErrorReporting>() || m_args.get<bool>("testmode", false))) {
