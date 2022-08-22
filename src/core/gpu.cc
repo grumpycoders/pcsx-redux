@@ -59,8 +59,8 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(uint32
             m_state = READ_XY;
             return;
             case READ_XY:
-                x[m_count] = GPU::signExtend<int, 16>(value & 0xffff);
-                y[m_count] = GPU::signExtend<int, 16>(value >> 16);
+                x[m_count] = GPU::signExtend<int, 11>(value & 0xffff);
+                y[m_count] = GPU::signExtend<int, 11>(value >> 16);
                 if (textured == Textured::Yes) {
                     m_state = READ_UV;
                     return;
@@ -101,8 +101,8 @@ void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
                 return;
             case READ_XY:
                 if ((value & 0xf000f000) == 0x50005000) break;
-                x.push_back(GPU::signExtend<int, 16>(value & 0xffff));
-                y.push_back(GPU::signExtend<int, 16>(value >> 16));
+                x.push_back(GPU::signExtend<int, 11>(value & 0xffff));
+                y.push_back(GPU::signExtend<int, 11>(value >> 16));
                 if constexpr (shading == Shading::Flat) {
                     colors.push_back(colors[0]);
                 } else {
@@ -118,8 +118,8 @@ void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
                     m_state = READ_XY;
                     return;
                 case READ_XY:
-                    x[m_count] = GPU::signExtend<int, 16>(value & 0xffff);
-                    y[m_count] = GPU::signExtend<int, 16>(value >> 16);
+                    x[m_count] = GPU::signExtend<int, 11>(value & 0xffff);
+                    y[m_count] = GPU::signExtend<int, 11>(value >> 16);
                     if constexpr (shading == Shading::Flat) {
                         colors[m_count] = colors[0];
                     } else {
@@ -147,8 +147,8 @@ void GPU::Rect<size, textured, blend>::processWrite(uint32_t value) {
             m_state = READ_XY1;
             return;
         case READ_XY1:
-            x1 = GPU::signExtend<int, 16>(value & 0xffff);
-            y1 = GPU::signExtend<int, 16>(value >> 16);
+            x1 = GPU::signExtend<int, 11>(value & 0xffff);
+            y1 = GPU::signExtend<int, 11>(value >> 16);
             if (textured == Textured::Yes) {
                 m_state = READ_UV;
                 return;
