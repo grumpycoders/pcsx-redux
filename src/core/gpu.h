@@ -28,6 +28,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "magic_enum/include/magic_enum.hpp"
+#include "support/file.h"
 #include "support/list.h"
 #include "support/slice.h"
 
@@ -45,7 +46,7 @@ class GPU {
         return t.value = value;
     }
 
-    uint32_t gpuReadStatus();
+    uint32_t readStatus();
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
 
@@ -81,10 +82,10 @@ class GPU {
     virtual void stopDump() { throw std::runtime_error("Not yet implemented"); }
     virtual void readDataMem(uint32_t *pMem, int iSize) = 0;
     uint32_t readData();
-    virtual uint32_t readStatus() = 0;
+    virtual uint32_t readStatusInternal() = 0;
     void writeData(uint32_t gdata);
     void directDMAWrite(const uint32_t *feed, int transferSize, uint32_t hwAddr);
-    void directDMARead(uint32_t *feed, int transferSize, uint32_t hwAddr);
+    void directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr);
     void chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr);
     virtual void writeDataMem(uint32_t *pMem, int iSize) = 0;
     void writeStatus(uint32_t gdata);
@@ -360,7 +361,11 @@ class GPU {
     BlitVramVram m_blitVramVram = {this};
     BlitRamVram m_blitRamVram = {this};
     BlitVramRam m_blitVramRam = {this};
+
     Command *m_processor = &m_defaultProcessor;
+
+    IO<Fifo> m_readFifo = new Fifo();
+    Slice m_vramReadSlice;
 
     virtual void write0(FastFill *) = 0;
 
@@ -424,8 +429,6 @@ class GPU {
     virtual void write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) = 0;
 
     virtual void write0(BlitVramVram *) = 0;
-    virtual void write0(BlitRamVram *) = 0;
-    virtual void write0(BlitVramRam *) = 0;
 
     virtual void write0(TPage *) = 0;
     virtual void write0(TWindow *) = 0;

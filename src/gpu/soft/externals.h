@@ -153,7 +153,6 @@ extern uint32_t dwLaceCnt;
 extern uint32_t lGPUInfoVals[];
 extern int iRumbleVal;
 extern int iRumbleTime;
-extern int GlobalTextIL;
 
 constexpr uint32_t dwGPUVersion = 0;
 constexpr int iGPUHeight = 512;

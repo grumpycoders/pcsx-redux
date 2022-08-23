@@ -47,30 +47,7 @@ static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
 inline void PCSX::SoftGPU::SoftPrim::UpdateGlobalTP(uint16_t gdata) {
     GlobalTextAddrX = (gdata << 6) & 0x3c0;  // texture addr
 
-    if (iGPUHeight == 1024) {
-        if (dwGPUVersion == 2) {
-            GlobalTextAddrY = ((gdata & 0x60) << 3);
-            GlobalTextIL = (gdata & 0x2000) >> 13;
-            // GlobalTextABR = (uint16_t)((gdata >> 7) & 0x3);
-            // GlobalTextTP = (gdata >> 9) & 0x3;
-            // if (GlobalTextTP == 3) GlobalTextTP = 2;
-            usMirror = 0;
-            lGPUstatusRet = (lGPUstatusRet & 0xffffe000) | (gdata & 0x1fff);
-
-            // tekken dithering? right now only if dithering is forced by user
-            if (m_useDither == 2)
-                iDither = 2;
-            else
-                iDither = 0;
-
-            return;
-        } else {
-            GlobalTextAddrY = (uint16_t)(((gdata << 4) & 0x100) | ((gdata >> 2) & 0x200));
-        }
-    } else
-        GlobalTextAddrY = (gdata << 4) & 0x100;
-
-    usMirror = gdata & 0x3000;
+    GlobalTextAddrY = (gdata << 4) & 0x100;
 
     if (m_useDither == 2) {
         iDither = 2;
@@ -369,15 +346,6 @@ void PCSX::SoftGPU::SoftPrim::cmdTextureWindow(uint8_t *baseAddr) {
 
     TWin.Position.y0 = (int16_t)(((gdata >> 15) & YAlign) << 3);
     TWin.Position.x0 = (int16_t)(((gdata >> 10) & XAlign) << 3);
-
-    if ((TWin.Position.x0 == 0 &&  // tw turned off
-         TWin.Position.y0 == 0 && TWin.Position.x1 == 0 && TWin.Position.y1 == 0) ||
-        (TWin.Position.x1 == 256 && TWin.Position.y1 == 256)) {
-        bUsingTWin = false;  // -> just do it
-    } else                   // otherwise
-    {
-        bUsingTWin = true;  // -> tw turned on
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -738,12 +706,7 @@ void PCSX::SoftGPU::SoftPrim::primSprt8(uint8_t *baseAddr) {
 
     SetRenderMode(gpuData[0]);
 
-    if (bUsingTWin)
-        DrawSoftwareSpriteTWin(baseAddr, 8, 8);
-    else if (usMirror)
-        DrawSoftwareSpriteMirror(baseAddr, 8, 8);
-    else
-        DrawSoftwareSprite(baseAddr, 8, 8, baseAddr[8], baseAddr[9]);
+    DrawSoftwareSprite(baseAddr, 8, 8);
 
     bDoVSyncUpdate = true;
 }
@@ -763,106 +726,13 @@ void PCSX::SoftGPU::SoftPrim::primSprt16(uint8_t *baseAddr) {
 
     SetRenderMode(gpuData[0]);
 
-    if (bUsingTWin)
-        DrawSoftwareSpriteTWin(baseAddr, 16, 16);
-    else if (usMirror)
-        DrawSoftwareSpriteMirror(baseAddr, 16, 16);
-    else
-        DrawSoftwareSprite(baseAddr, 16, 16, baseAddr[8], baseAddr[9]);
+    DrawSoftwareSprite(baseAddr, 16, 16);
 
     bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: free-size sprite (textured rect)
-////////////////////////////////////////////////////////////////////////
-
-// func used on texture coord wrap
-void PCSX::SoftGPU::SoftPrim::primSprtSRest(uint8_t *baseAddr, uint16_t type) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
-    uint16_t sTypeRest = 0;
-
-    int16_t s;
-    int16_t sX = sgpuData[2];
-    int16_t sY = sgpuData[3];
-    int16_t sW = sgpuData[6] & 0x3ff;
-    int16_t sH = sgpuData[7] & 0x1ff;
-    int16_t tX = baseAddr[8];
-    int16_t tY = baseAddr[9];
-
-    switch (type) {
-        case 1:
-            s = 256 - baseAddr[8];
-            sW -= s;
-            sX += s;
-            tX = 0;
-            break;
-        case 2:
-            s = 256 - baseAddr[9];
-            sH -= s;
-            sY += s;
-            tY = 0;
-            break;
-        case 3:
-            s = 256 - baseAddr[8];
-            sW -= s;
-            sX += s;
-            tX = 0;
-            s = 256 - baseAddr[9];
-            sH -= s;
-            sY += s;
-            tY = 0;
-            break;
-        case 4:
-            s = 512 - baseAddr[8];
-            sW -= s;
-            sX += s;
-            tX = 0;
-            break;
-        case 5:
-            s = 512 - baseAddr[9];
-            sH -= s;
-            sY += s;
-            tY = 0;
-            break;
-        case 6:
-            s = 512 - baseAddr[8];
-            sW -= s;
-            sX += s;
-            tX = 0;
-            s = 512 - baseAddr[9];
-            sH -= s;
-            sY += s;
-            tY = 0;
-            break;
-    }
-
-    SetRenderMode(gpuData[0]);
-
-    if (tX + sW > 256) {
-        sW = 256 - tX;
-        sTypeRest += 1;
-    }
-    if (tY + sH > 256) {
-        sH = 256 - tY;
-        sTypeRest += 2;
-    }
-
-    lx0 = sX;
-    ly0 = sY;
-
-    if (!(dwActFixes & 8)) AdjustCoord1();
-
-    DrawSoftwareSprite(baseAddr, sW, sH, tX, tY);
-
-    if (sTypeRest && type < 4) {
-        if (sTypeRest & 1 && type == 1) primSprtSRest(baseAddr, 4);
-        if (sTypeRest & 2 && type == 2) primSprtSRest(baseAddr, 5);
-        if (sTypeRest == 3 && type == 3) primSprtSRest(baseAddr, 6);
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primSprtS(uint8_t *baseAddr) {
@@ -880,32 +750,7 @@ void PCSX::SoftGPU::SoftPrim::primSprtS(uint8_t *baseAddr) {
 
     SetRenderMode(gpuData[0]);
 
-    if (bUsingTWin)
-        DrawSoftwareSpriteTWin(baseAddr, sW, sH);
-    else if (usMirror)
-        DrawSoftwareSpriteMirror(baseAddr, sW, sH);
-    else {
-        uint16_t sTypeRest = 0;
-        int16_t tX = baseAddr[8];
-        int16_t tY = baseAddr[9];
-
-        if (tX + sW > 256) {
-            sW = 256 - tX;
-            sTypeRest += 1;
-        }
-        if (tY + sH > 256) {
-            sH = 256 - tY;
-            sTypeRest += 2;
-        }
-
-        DrawSoftwareSprite(baseAddr, sW, sH, tX, tY);
-
-        if (sTypeRest) {
-            if (sTypeRest & 1) primSprtSRest(baseAddr, 1);
-            if (sTypeRest & 2) primSprtSRest(baseAddr, 2);
-            if (sTypeRest == 3) primSprtSRest(baseAddr, 3);
-        }
-    }
+    DrawSoftwareSprite(baseAddr, sW, sH);
 
     bDoVSyncUpdate = true;
 }
@@ -1717,15 +1562,6 @@ void PCSX::SoftGPU::SoftPrim::twindow(GPU::TWindow *prim) {
     // Absolute position of the start of the texture window
     TWin.Position.y0 = (int16_t)((prim->h & YAlign) << 3);
     TWin.Position.x0 = (int16_t)((prim->w & XAlign) << 3);
-
-    if ((TWin.Position.x0 == 0 && TWin.Position.y0 == 0 && TWin.Position.x1 == 0 && TWin.Position.y1 == 0) ||
-        (TWin.Position.x1 == 256 && TWin.Position.y1 == 256)) {
-        // tw turned off
-        bUsingTWin = false;  // -> just do it
-    } else {
-        // otherwise
-        bUsingTWin = true;  // -> tw turned on
-    }
 }
 
 void PCSX::SoftGPU::SoftPrim::drawingAreaStart(GPU::DrawingAreaStart *prim) {
@@ -1747,4 +1583,22 @@ void PCSX::SoftGPU::SoftPrim::drawingOffset(GPU::DrawingOffset *prim) {
     PSXDisplay.DrawOffset.y = prim->y;
 
     lGPUInfoVals[INFO_DRAWOFF] = prim->raw & 0x3fffff;
+}
+
+void PCSX::SoftGPU::SoftPrim::maskBit(GPU::MaskBit *prim) {
+    lGPUstatusRet &= ~0x1800;
+
+    if (prim->set) {
+        sSetMask = 0x8000;
+        lSetMask = 0x80008000;
+        lGPUstatusRet |= 0x0800;
+    } else {
+        sSetMask = 0;
+        lSetMask = 0;
+    }
+
+    if (prim->check) {
+        lGPUstatusRet |= 0x1000;
+    }
+    bCheckMask = prim->check;
 }

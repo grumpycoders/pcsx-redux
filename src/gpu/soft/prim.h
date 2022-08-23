@@ -30,8 +30,7 @@ namespace PCSX {
 
 namespace SoftGPU {
 
-class SoftPrim : public SoftRenderer {
-  public:
+struct SoftPrim : public SoftRenderer {
     inline void callFunc(uint8_t cmd, uint8_t *baseAddr) {
         if (!bSkipNextFrame) {
             (*this.*(funcs[cmd]))(baseAddr);
@@ -45,8 +44,6 @@ class SoftPrim : public SoftRenderer {
         GlobalTextAddrY = 0;
         GlobalTextTP = GPU::TexDepth::Tex4Bits;
         GlobalTextABR = GPU::BlendFunction::HalfBackAndHalfFront;
-        bUsingTWin = false;
-        usMirror = 0;
         drawX = drawY = 0;
         drawW = drawH = 0;
         bCheckMask = false;
@@ -56,7 +53,6 @@ class SoftPrim : public SoftRenderer {
 
     int m_useDither = 0;
 
-  private:
     int32_t GlobalTextREST;
 
     typedef void (SoftPrim::*func_t)(uint8_t *);
@@ -78,7 +74,6 @@ class SoftPrim : public SoftRenderer {
     void primTile16(uint8_t *baseAddr);
     void primSprt8(uint8_t *baseAddr);
     void primSprt16(uint8_t *baseAddr);
-    void primSprtSRest(uint8_t *baseAddr, uint16_t type);
     void primSprtS(uint8_t *baseAddr);
     void primPolyF4(uint8_t *baseAddr);
     void primPolyG4(uint8_t *baseAddr);
@@ -118,6 +113,7 @@ class SoftPrim : public SoftRenderer {
     void drawingAreaStart(GPU::DrawingAreaStart *prim);
     void drawingAreaEnd(GPU::DrawingAreaEnd *prim);
     void drawingOffset(GPU::DrawingOffset *prim);
+    void maskBit(GPU::MaskBit *prim);
 };
 
 }  // namespace SoftGPU

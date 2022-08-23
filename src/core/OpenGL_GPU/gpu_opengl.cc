@@ -337,7 +337,7 @@ void PCSX::OpenGL_GPU::setLinearFiltering() {
 
 int PCSX::OpenGL_GPU::shutdown() { return 0; }
 
-uint32_t PCSX::OpenGL_GPU::readStatus() {
+uint32_t PCSX::OpenGL_GPU::readStatusInternal() {
     return 0b01011110100000000000000000000000;
     // return m_gpustat;
 }
@@ -771,8 +771,6 @@ void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Off> *) {}
 void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) {}
 
 void PCSX::OpenGL_GPU::write0(BlitVramVram *) {}
-void PCSX::OpenGL_GPU::write0(BlitRamVram *) {}
-void PCSX::OpenGL_GPU::write0(BlitVramRam *) {}
 
 void PCSX::OpenGL_GPU::write0(TPage *) {}
 void PCSX::OpenGL_GPU::write0(TWindow *) {}

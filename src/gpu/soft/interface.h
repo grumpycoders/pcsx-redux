@@ -34,7 +34,7 @@ class impl final : public GPU {
     virtual int32_t shutdown() final;
     virtual void stopDump() final;
     virtual void readDataMem(uint32_t *pMem, int iSize) final;
-    virtual uint32_t readStatus() final;
+    virtual uint32_t readStatusInternal() final;
     virtual void writeDataMem(uint32_t *pMem, int iSize) final;
     virtual void writeStatusInternal(uint32_t gdata) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
@@ -224,8 +224,6 @@ class impl final : public GPU {
     void write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) override;
 
     void write0(BlitVramVram *) override;
-    void write0(BlitRamVram *) override;
-    void write0(BlitVramRam *) override;
 
     void write0(TPage *) override;
     void write0(TWindow *) override;

@@ -93,6 +93,7 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(uint32
 
 template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
 void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
+    __debugbreak();
     if constexpr (lineType == LineType::Poly) {
         switch (m_state) {
             case READ_COLOR:
@@ -176,8 +177,8 @@ void GPU::Rect<size, textured, blend>::processWrite(uint32_t value) {
                 m_state = READ_XY2;
                 return;
                 case READ_XY2:
-                    x2 = GPU::signExtend<int, 16>(value & 0xffff);
-                    y2 = GPU::signExtend<int, 16>(value >> 16);
+                    x2 = GPU::signExtend<int, 11>(value & 0xffff);
+                    y2 = GPU::signExtend<int, 11>(value >> 16);
             }
     }
     m_state = READ_COLOR;
@@ -454,12 +455,15 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     return size;
 }
 
-uint32_t PCSX::GPU::gpuReadStatus() {
-    uint32_t ret = readStatus();  // Get status from GPU core
+uint32_t PCSX::GPU::readStatus() {
+    uint32_t ret = readStatusInternal();  // Get status from GPU core
 
-    // Gameshark Lite - wants to see VRAM busy
-    // - Must enable GPU 'Fake Busy States' hack
+// Gameshark Lite - wants to see VRAM busy
+// - Must enable GPU 'Fake Busy States' hack
+#if 0
     if ((ret & GPUSTATUS_IDLE) == 0) ret &= ~GPUSTATUS_READYFORVRAM;
+#endif
+    if (m_readFifo->size() != 0) ret |= GPUSTATUS_READYFORVRAM;
     return ret;
 }
 
@@ -554,7 +558,9 @@ void PCSX::GPU::writeStatus(uint32_t status) {
     writeStatusInternal(status);
 }
 
-uint32_t PCSX::GPU::readData() { return 0; }
+uint32_t PCSX::GPU::readData() {
+    return m_readFifo.asA<File>()->read<uint32_t>();
+}
 
 void PCSX::GPU::writeData(uint32_t value) { m_processor->processWrite(value); }
 
@@ -564,7 +570,10 @@ void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t 
     }
 }
 
-void PCSX::GPU::directDMARead(uint32_t *feed, int transferSize, uint32_t hwAddr) {}
+void PCSX::GPU::directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr) {
+    __debugbreak();
+    m_readFifo->read(dest, transferSize * 4);
+}
 
 void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
     uint32_t addr = hwAddr;
@@ -580,7 +589,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
 
         // # 32-bit blocks to transfer
         uint32_t size = psxMu8(addr + 3);
-        uint32_t *feed = (uint32_t *)PSXM(addr & 0x1fffff);
+        uint32_t *feed = (uint32_t *)PSXM((addr + 4) & 0x1fffff);
         while (size--) {
             m_processor->processWrite(*feed++);
         }
@@ -681,6 +690,7 @@ void PCSX::GPU::Command::processWrite(uint32_t value) {
 }
 
 void PCSX::GPU::FastFill::processWrite(uint32_t value) {
+    __debugbreak();
     switch (m_state) {
         case READ_COLOR:
             color = value;
@@ -706,17 +716,21 @@ void PCSX::GPU::BlitRamVram::processWrite(uint32_t value) {
     size_t size;
     switch (m_state) {
         case READ_COMMAND:
+            m_state = READ_XY;
             return;
         case READ_XY:
-            x = signExtend<int, 16>(value & 0xffff);
-            y = signExtend<int, 16>(value >> 16);
+            x = signExtend<int, 11>(value & 0xffff);
+            y = signExtend<int, 11>(value >> 16);
+            m_state = READ_HW;
             return;
         case READ_HW:
-            w = signExtend<int, 16>(value & 0xffff);
-            h = signExtend<int, 16>(value >> 16);
+            w = signExtend<int, 11>(value & 0xffff);
+            h = signExtend<int, 11>(value >> 16);
             size = (w * h + 1) / 2;
+            size *= 4;
             m_data.clear();
             m_data.reserve(size * 4);
+            m_state = READ_PIXELS;
             return;
         case READ_PIXELS:
             m_data.push_back((value >> 0) & 0xff);
@@ -724,16 +738,42 @@ void PCSX::GPU::BlitRamVram::processWrite(uint32_t value) {
             m_data.push_back((value >> 16) & 0xff);
             m_data.push_back((value >> 24) & 0xff);
             size = (w * h + 1) / 2;
+            size *= 4;
             if (m_data.size() == size) {
                 m_state = READ_COMMAND;
                 m_gpu->m_defaultProcessor.setActive();
-                m_gpu->write0(this);
+                m_gpu->partialUpdateVRAM(x, y, w, h, reinterpret_cast<uint16_t *>(m_data.data()));
             }
             return;
     }
 }
 
-void PCSX::GPU::BlitVramRam::processWrite(uint32_t value) { __debugbreak(); }
+void PCSX::GPU::BlitVramRam::processWrite(uint32_t value) {
+    switch (m_state) {
+        case READ_COMMAND:
+            m_gpu->m_readFifo->reset();
+            m_state = READ_XY;
+            return;
+        case READ_XY:
+            x = signExtend<int, 11>(value & 0xffff);
+            y = signExtend<int, 11>(value >> 16);
+            m_state = READ_HW;
+            return;
+        case READ_HW:
+            w = signExtend<int, 11>(value & 0xffff);
+            h = signExtend<int, 11>(value >> 16);
+            m_state = READ_COMMAND;
+            m_gpu->m_defaultProcessor.setActive();
+            m_gpu->m_vramReadSlice = m_gpu->getVRAM();
+            for (auto l = y; l < y + h; l++) {
+                const uint16_t *line = m_gpu->m_vramReadSlice.data<uint16_t>() + (l * 1024) + x;
+                Slice slice;
+                slice.borrow(m_gpu->m_vramReadSlice, (l * 1024 + x) * 2, w * 2);
+                m_gpu->m_readFifo->pushSlice(std::move(slice));
+            }
+            return;
+    }
+}
 
 PCSX::GPU::TPage::TPage(uint32_t value) {
     raw = value;

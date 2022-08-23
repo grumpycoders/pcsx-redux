@@ -48,7 +48,6 @@ uint16_t *psxVuw_eom;
 int16_t *psxVsw;
 uint32_t *psxVul;
 int32_t *psxVsl;
-int GlobalTextIL = 0;
 
 // GPU globals
 int32_t lGPUstatusRet;
@@ -296,7 +295,7 @@ void PCSX::SoftGPU::impl::vblank() {
 // process read request from GPU status register
 ////////////////////////////////////////////////////////////////////////
 
-uint32_t PCSX::SoftGPU::impl::readStatus() {
+uint32_t PCSX::SoftGPU::impl::readStatusInternal() {
     if (dwActFixes & 1) {
         static int iNumRead = 0;  // odd/even hack
         if ((iNumRead++) == 2) {
@@ -389,13 +388,7 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
             PreviousPSXDisplay.DisplayPosition.y = PSXDisplay.DisplayPosition.y;
 
             // new
-            if (iGPUHeight == 1024) {
-                if (dwGPUVersion == 2)
-                    PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 12) & 0x3ff);
-                else
-                    PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x3ff);
-            } else
-                PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x1ff);
+            PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x1ff);
 
             // store the same val in some helper var, we need it on later compares
             PreviousPSXDisplay.DisplayModeNew.x = PSXDisplay.DisplayPosition.y;
@@ -969,9 +962,27 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, 
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) {
     __debugbreak();
 }
-void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) {
-    __debugbreak();
+
+void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) {
+    m_softPrim.lx0 = prim->x[0];
+    m_softPrim.ly0 = prim->y[0];
+    m_softPrim.lx1 = prim->x[1];
+    m_softPrim.ly1 = prim->y[1];
+    m_softPrim.lx2 = prim->x[2];
+    m_softPrim.ly2 = prim->y[2];
+    m_softPrim.lx3 = prim->x[3];
+    m_softPrim.ly3 = prim->y[3];
+
+    if (m_softPrim.CheckCoord4()) return;
+
+    m_softPrim.offsetPSX4();
+    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+
+    m_softPrim.drawPoly4F(prim->colors[0]);
+
+    bDoVSyncUpdate = true;
 }
+
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) {
     __debugbreak();
 }
@@ -993,9 +1004,25 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes,
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) {
     __debugbreak();
 }
-void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) {
-    __debugbreak();
+
+void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) {
+    m_softPrim.lx0 = prim->x[0];
+    m_softPrim.ly0 = prim->y[0];
+    m_softPrim.lx1 = prim->x[1];
+    m_softPrim.ly1 = prim->y[1];
+    m_softPrim.lx2 = prim->x[2];
+    m_softPrim.ly2 = prim->y[2];
+
+    if (m_softPrim.CheckCoord3()) return;
+
+    m_softPrim.offsetPSX3();
+    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+
+    m_softPrim.drawPoly3G(prim->colors[0], prim->colors[1], prim->colors[2]);
+
+    bDoVSyncUpdate = true;
 }
+
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) {
     __debugbreak();
 }
@@ -1017,9 +1044,27 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Ye
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) {
     __debugbreak();
 }
-void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) {
-    __debugbreak();
+
+void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) {
+    m_softPrim.lx0 = prim->x[0];
+    m_softPrim.ly0 = prim->y[0];
+    m_softPrim.lx1 = prim->x[1];
+    m_softPrim.ly1 = prim->y[1];
+    m_softPrim.lx2 = prim->x[2];
+    m_softPrim.ly2 = prim->y[2];
+    m_softPrim.lx3 = prim->x[3];
+    m_softPrim.ly3 = prim->y[3];
+
+    if (m_softPrim.CheckCoord4()) return;
+
+    m_softPrim.offsetPSX4();
+    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+
+    m_softPrim.drawPoly4G(prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+
+    bDoVSyncUpdate = true;
 }
+
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) {
     __debugbreak();
 }
@@ -1053,7 +1098,9 @@ void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::S
 
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off> *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *) { __debugbreak(); }
+
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *prim) { __debugbreak(); }
+
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi> *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Off> *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Semi> *) { __debugbreak(); }
@@ -1069,12 +1116,10 @@ void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Off> *) {
 void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) { __debugbreak(); }
 
 void PCSX::SoftGPU::impl::write0(BlitVramVram *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(BlitRamVram *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(BlitVramRam *) { __debugbreak(); }
 
 void PCSX::SoftGPU::impl::write0(TPage *prim) { m_softPrim.texturePage(prim); }
 void PCSX::SoftGPU::impl::write0(TWindow *prim) { m_softPrim.twindow(prim); }
 void PCSX::SoftGPU::impl::write0(DrawingAreaStart *prim) { m_softPrim.drawingAreaStart(prim); }
 void PCSX::SoftGPU::impl::write0(DrawingAreaEnd *prim) { m_softPrim.drawingAreaEnd(prim); }
 void PCSX::SoftGPU::impl::write0(DrawingOffset *prim) { m_softPrim.drawingOffset(prim); }
-void PCSX::SoftGPU::impl::write0(MaskBit *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(MaskBit *prim) { m_softPrim.maskBit(prim); }
