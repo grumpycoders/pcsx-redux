@@ -185,7 +185,7 @@ PCSX = {
         return Support.File._createSliceWrapper(slice)
     end,
     loadSaveState = function(obj)
-        if typeof(obj) ~= 'table' then error('loadSaveState: requires an object as input') end
+        if type(obj) ~= 'table' then error('loadSaveState: requires an object as input') end
         if obj._type == 'Slice' then
             C.loadSaveStateFromSlice(obj._wrapper)
         elseif obj._type == 'File' then
