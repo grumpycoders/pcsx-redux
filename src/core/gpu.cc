@@ -71,7 +71,7 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(uint32
                             value >>= 16;
                             if (m_count == 0) {
                                 clutX = value & 0x3f;
-                                clutY = (value >> 6) & 0x7f;
+                                clutY = (value >> 6) & 0x1ff;
                             } else if (m_count == 1) {
                                 texturePageX = value & 0x0f;
                                 texturePageY = (value >> 4) & 1;
@@ -145,11 +145,11 @@ void GPU::Rect<size, textured, blend>::processWrite(uint32_t value) {
             if constexpr (textured == Textured::No) {
                 color = value;
             }
-            m_state = READ_XY1;
+            m_state = READ_XY;
             return;
-        case READ_XY1:
-            x1 = GPU::signExtend<int, 11>(value & 0xffff);
-            y1 = GPU::signExtend<int, 11>(value >> 16);
+        case READ_XY:
+            x = GPU::signExtend<int, 11>(value & 0xffff);
+            y = GPU::signExtend<int, 11>(value >> 16);
             if (textured == Textured::Yes) {
                 m_state = READ_UV;
                 return;
@@ -159,26 +159,26 @@ void GPU::Rect<size, textured, blend>::processWrite(uint32_t value) {
                         v = (value >> 8) & 0xff;
                         value >>= 16;
                         clutX = value & 0x3f;
-                        clutY = (value >> 6) & 0x7f;
+                        clutY = (value >> 6) & 0x1ff;
                     }
             }
             if constexpr (size == Size::S1) {
-                x2 = x1 + 1;
-                y2 = y1 + 1;
+                h = 1;
+                w = 1;
             } else if constexpr (size == Size::S8) {
-                x2 = x1 + 8;
-                y2 = y1 + 8;
+                h = 8;
+                w = 8;
             } else if constexpr (size == Size::S16) {
-                x2 = x1 + 16;
-                y2 = y1 + 16;
+                h = 16;
+                w = 16;
             }
 
             if (size == Size::Variable) {
-                m_state = READ_XY2;
+                m_state = READ_HW;
                 return;
-                case READ_XY2:
-                    x2 = GPU::signExtend<int, 11>(value & 0xffff);
-                    y2 = GPU::signExtend<int, 11>(value >> 16);
+                case READ_HW:
+                    w = GPU::signExtend<int, 11>(value & 0xffff);
+                    h = GPU::signExtend<int, 11>(value >> 16);
             }
     }
     m_state = READ_COLOR;
@@ -558,9 +558,7 @@ void PCSX::GPU::writeStatus(uint32_t status) {
     writeStatusInternal(status);
 }
 
-uint32_t PCSX::GPU::readData() {
-    return m_readFifo.asA<File>()->read<uint32_t>();
-}
+uint32_t PCSX::GPU::readData() { return m_readFifo.asA<File>()->read<uint32_t>(); }
 
 void PCSX::GPU::writeData(uint32_t value) { m_processor->processWrite(value); }
 
@@ -571,7 +569,6 @@ void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t 
 }
 
 void PCSX::GPU::directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr) {
-    __debugbreak();
     m_readFifo->read(dest, transferSize * 4);
 }
 
@@ -690,7 +687,6 @@ void PCSX::GPU::Command::processWrite(uint32_t value) {
 }
 
 void PCSX::GPU::FastFill::processWrite(uint32_t value) {
-    __debugbreak();
     switch (m_state) {
         case READ_COLOR:
             color = value;
@@ -706,6 +702,7 @@ void PCSX::GPU::FastFill::processWrite(uint32_t value) {
             h = value >> 16;
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
+            m_gpu->write0(this);
             break;
     }
 }

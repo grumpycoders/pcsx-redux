@@ -239,7 +239,7 @@ class GPU {
         void processWrite(uint32_t value) override;
 
         struct Empty {};
-        int x1, y1, x2, y2;
+        int x, y, w, h;
         typedef std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
         [[no_unique_address]] std::conditional<textured == Textured::No, uint32_t, Empty>::type color;
         [[no_unique_address]] TextureUnitType u;
@@ -248,7 +248,7 @@ class GPU {
         [[no_unique_address]] TextureUnitType clutY;
 
       private:
-        enum { READ_COLOR, READ_XY1, READ_UV, READ_XY2 } m_state = READ_COLOR;
+        enum { READ_COLOR, READ_XY, READ_UV, READ_HW } m_state = READ_COLOR;
     };
 
     struct BlitVramVram final : public Command, public Logged {

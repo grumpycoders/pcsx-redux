@@ -936,7 +936,30 @@ void PCSX::SoftGPU::impl::debug() {
     }
 }
 
-void PCSX::SoftGPU::impl::write0(FastFill *) {}
+static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
+    return (uint16_t)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
+}
+
+void PCSX::SoftGPU::impl::write0(FastFill *prim) {
+    int16_t sX = prim->x;
+    int16_t sY = prim->y;
+    int16_t sW = prim->w;
+    int16_t sH = prim->h;
+
+    sW = (sW + 15) & ~15;
+
+    // Increase H & W if they are one int16_t of full values, because they never can be full values
+    if (sH >= 1023) sH = 1024;
+    if (sW >= 1023) sW = 1024;
+
+    // x and y of end pos
+    sW += sX;
+    sH += sY;
+
+    m_softPrim.FillSoftwareArea(sX, sY, sW, sH, BGR24to16(prim->color));
+
+    bDoVSyncUpdate = true;
+}
 
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) {
     __debugbreak();
@@ -1099,7 +1122,48 @@ void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::S
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off> *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi> *) { __debugbreak(); }
 
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *prim) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *prim) {
+    int16_t w, h;
+
+    int16_t sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3;
+    int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
+
+    sx0 = m_softPrim.lx0 = prim->x;
+    sy0 = m_softPrim.ly0 = prim->y;
+
+    w = prim->w;
+    h = prim->h;
+
+    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+
+    m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
+
+    sx0 = sx3 = sx0 + PSXDisplay.DrawOffset.x;
+    sx1 = sx2 = sx0 + w;
+    sy0 = sy1 = sy0 + PSXDisplay.DrawOffset.y;
+    sy2 = sy3 = sy0 + h;
+
+    tx0 = tx3 = prim->u;
+    tx1 = tx2 = tx0 + w;
+    ty0 = ty1 = prim->v;
+    ty2 = ty3 = ty0 + h;
+
+    switch (m_softPrim.GlobalTextTP) {
+        case GPU::TexDepth::Tex4Bits:
+            m_softPrim.drawPoly4TEx4_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
+                                       prim->clutX * 16, prim->clutY);
+            return;
+        case GPU::TexDepth::Tex8Bits:
+            m_softPrim.drawPoly4TEx8_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
+                                       prim->clutX * 16, prim->clutY);
+            return;
+        case GPU::TexDepth::Tex16Bits:
+            m_softPrim.drawPoly4TD_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3);
+            return;
+    }
+
+    bDoVSyncUpdate = true;
+}
 
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi> *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Off> *) { __debugbreak(); }
