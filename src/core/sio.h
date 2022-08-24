@@ -21,6 +21,7 @@
 
 #include <string>
 
+#include "core/memorycard.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -29,7 +30,11 @@
 namespace PCSX {
 
 class SIO {
+  protected:
+    
   private:
+    MemoryCard m_memoryCard;
+    //= {this};
     enum {
         // Status Flags
         TX_RDY = 0x0001,
@@ -121,9 +126,9 @@ class SIO {
     };
     struct PAD_Commands {
         enum : uint8_t {
-            Read = 0x42,    // Read Command
-            None = 0x00,    // No command, idle state
-            Error = 0xFF    // Bad command
+            Read = 0x42,  // Read Command
+            None = 0x00,  // No command, idle state
+            Error = 0xFF  // Bad command
         };
     };
     struct SIO_Device {
@@ -149,6 +154,10 @@ class SIO {
 
     uint8_t current_device = static_cast<uint8_t>(SIO_Device::None);
 
+    uint8_t data_in;
+    uint8_t data_out;
+    uint8_t delayed_out;
+
     inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
 #if 0
@@ -160,6 +169,8 @@ class SIO {
     void writePad(uint8_t value);
     void writeMcd(uint8_t value);
 
+    //friend MemoryCard;
+    
   public:
     SIO();
     static const size_t MCD_SECT_SIZE = 8 * 16;
@@ -190,6 +201,8 @@ class SIO {
     void saveMcd(int mcd);
     void CreateMcd(const PCSX::u8string mcd);
     void ConvertMcd(const PCSX::u8string mcd, const char *data);
+
+    void ACK() { scheduleInterrupt(m_baudReg * 8); }
 
     struct McdBlock {
         McdBlock() { reset(); }
