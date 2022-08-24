@@ -1049,19 +1049,19 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes,
         case GPU::TexDepth::Tex4Bits:
             m_softPrim.drawPoly4TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
                                      m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16,
                                      prim->clutY);
             return;
         case GPU::TexDepth::Tex8Bits:
             m_softPrim.drawPoly4TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
                                      m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16,
                                      prim->clutY);
             return;
         case GPU::TexDepth::Tex16Bits:
             m_softPrim.drawPoly4TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
                                    m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                   prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3]);
+                                   prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2]);
             return;
     }
     bDoVSyncUpdate = true;
@@ -1101,19 +1101,19 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes,
         case GPU::TexDepth::Tex4Bits:
             m_softPrim.drawPoly4TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
                                      m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16,
                                      prim->clutY);
             return;
         case GPU::TexDepth::Tex8Bits:
             m_softPrim.drawPoly4TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
                                      m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16,
                                      prim->clutY);
             return;
         case GPU::TexDepth::Tex16Bits:
             m_softPrim.drawPoly4TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
                                    m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                   prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3]);
+                                   prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2]);
             return;
     }
     bDoVSyncUpdate = true;
@@ -1149,23 +1149,24 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes,
         m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
     }
 
+    // CURSOR DERP
     switch (m_softPrim.GlobalTextTP) {
         case GPU::TexDepth::Tex4Bits:
             m_softPrim.drawPoly4TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
                                      m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16,
                                      prim->clutY);
             return;
         case GPU::TexDepth::Tex8Bits:
             m_softPrim.drawPoly4TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
                                      m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16,
                                      prim->clutY);
             return;
         case GPU::TexDepth::Tex16Bits:
             m_softPrim.drawPoly4TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
                                    m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                   prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3]);
+                                   prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2]);
             return;
     }
     bDoVSyncUpdate = true;
