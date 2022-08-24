@@ -304,7 +304,9 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
     m_shaderEditor.init();
     m_shaderEditor.reset(m_gui);
     m_shaderEditor.setText(vertSource, fragSource, "");
-    m_program.m_handle = m_shaderEditor.compile(m_gui).value();
+    auto status = m_shaderEditor.compile(m_gui);
+    if (!status.isOk()) return -1;
+    m_program.m_handle = m_shaderEditor.getProgram();
 
     m_program.use();
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
@@ -482,9 +484,9 @@ bool PCSX::OpenGL_GPU::configure() {
     bool changed = false;
 
     if (m_shaderEditor.m_show && m_shaderEditor.draw(m_gui, "Hardware renderer shader editor")) {
-        const auto program = m_shaderEditor.compile(m_gui);
-        if (program.has_value()) {
-            m_program.m_handle = program.value();
+        const auto status = m_shaderEditor.compile(m_gui);
+        if (status.isOk()) {
+            m_program.m_handle = m_shaderEditor.getProgram();
             const auto lastProgram = OpenGL::getProgram();
 
             m_program.use();

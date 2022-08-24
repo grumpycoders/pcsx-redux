@@ -30,8 +30,38 @@
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "lua/luawrapper.h"
+#include "support/opengl.h"
 
 lua_Number PCSX::Widgets::ShaderEditor::s_index = 0;
+
+static const GLchar *const c_fallbackVertexShader = R"(#version 130
+// This is the fallback vertex shader. If you see this, your GPU didn't like the version 300 es one.
+precision highp float;
+in vec2 Position;
+in vec2 UV;
+in vec4 Color;
+uniform mat4 u_projMatrix;
+out vec2 Frag_UV;
+out vec4 Frag_Color;
+void main() {
+    Frag_UV = UV;
+    Frag_Color = Color;
+    gl_Position = u_projMatrix * vec4(Position.xy, 0, 1);
+}
+)";
+
+static const GLchar *const c_fallbackPixelShader = R"(#version 130
+// This is the fallback pixel shader. If you see this, your GPU didn't like the version 300 es one.
+precision highp float;
+uniform sampler2D Texture;
+in vec2 Frag_UV;
+in vec4 Frag_Color;
+out vec4 Out_Color;
+void main() {
+    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);
+    Out_Color.a = 1.0;
+}
+)";
 
 static const GLchar *const c_defaultVertexShader = GL_SHADER_VERSION R"(
 // The Vertex Shader isn't necessarily very useful, but is still provided here.
@@ -205,6 +235,12 @@ void PCSX::Widgets::ShaderEditor::setDefaults() {
     m_luaEditor.setText(c_defaultLuaInvoker);
 }
 
+void PCSX::Widgets::ShaderEditor::setFallbacks() {
+    m_vertexShaderEditor.setText(c_fallbackVertexShader);
+    m_pixelShaderEditor.setText(c_fallbackPixelShader);
+    m_luaEditor.setText(c_defaultLuaInvoker);
+}
+
 void PCSX::Widgets::ShaderEditor::init() {
     m_vao.create();
     m_vbo.createFixedSize(sizeof(VertexData) * 4, GL_STATIC_DRAW);
@@ -219,8 +255,8 @@ void PCSX::Widgets::ShaderEditor::init() {
     m_quadVertices[3].positions[1] = 1.0;
 }
 
-std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
-                                                           const std::vector<std::string_view> &mandatoryAttributes) {
+PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
+                                                          const std::vector<std::string_view> &mandatoryAttributes) {
     m_setupVAO = true;
     m_shaderProjMtxLoc = -1;
     GLint status = 0;
@@ -243,7 +279,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
 
         free(log);
         glDeleteShader(vertexShader);
-        return std::nullopt;
+        return OpenGL::Status::makeError(m_errorMessage);
     }
 
     GLuint pixelShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -265,7 +301,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
         free(log);
         glDeleteShader(vertexShader);
         glDeleteShader(pixelShader);
-        return std::nullopt;
+        return OpenGL::Status::makeError(m_errorMessage);
     }
 
     GLuint shaderProgram = glCreateProgram();
@@ -288,7 +324,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
         glDeleteProgram(shaderProgram);
         glDeleteShader(vertexShader);
         glDeleteShader(pixelShader);
-        return std::nullopt;
+        return OpenGL::Status::makeError(m_errorMessage);
     }
 
     for (auto attrib : mandatoryAttributes) {
@@ -298,7 +334,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
             glDeleteProgram(shaderProgram);
             glDeleteShader(vertexShader);
             glDeleteShader(pixelShader);
-            return std::nullopt;
+            return OpenGL::Status::makeError(m_errorMessage);
         }
     }
 
@@ -399,7 +435,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     }
     m_shaderProgram = shaderProgram;
     m_shaderProjMtxLoc = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
-    return shaderProgram;
+    return OpenGL::Status::makeOk();
 }
 
 bool PCSX::Widgets::ShaderEditor::draw(GUI *gui, const char *title) {

@@ -115,7 +115,7 @@ local sliceMeta = {
 }
 
 local function createSliceWrapper(wrapper)
-    local slice = { _wrapper = wrapper }
+    local slice = { _wrapper = wrapper, _type = 'Slice' }
     setmetatable(slice, sliceMeta)
     return slice
 end
@@ -280,6 +280,7 @@ local int64_t = ffi.typeof('int64_t[1]');
 local function createFileWrapper(wrapper)
     local file = {
         _wrapper = wrapper,
+        _type = 'File',
         close = function(self) C.closeFile(self._wrapper) end,
         read = read,
         readAt = readAt,
