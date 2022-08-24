@@ -175,13 +175,13 @@ class GPU {
         enum { READ_COLOR, READ_XY, READ_WH } m_state = READ_COLOR;
     };
 
-    template <Shading shading, Shape shape, Textured textured, Blend blend, Modulation modulation>
+    template <Shading shading_, Shape shape_, Textured textured_, Blend blend_, Modulation modulation_>
     struct Poly final : public Command, public Logged {
-        static constexpr Shading shading = shading;
-        static constexpr Shape shape = shape;
-        static constexpr Textured textured = textured;
-        static constexpr Blend blend = blend;
-        static constexpr Modulation modulation = modulation;
+        static constexpr Shading shading = shading_;
+        static constexpr Shape shape = shape_;
+        static constexpr Textured textured = textured_;
+        static constexpr Blend blend = blend_;
+        static constexpr Modulation modulation = modulation_;
         static constexpr unsigned count = shape == Shape::Tri ? 3 : 4;
 
         Poly() {}
@@ -206,11 +206,11 @@ class GPU {
         enum { READ_COLOR, READ_XY, READ_UV } m_state = READ_COLOR;
     };
 
-    template <Shading shading, LineType lineType, Blend blend>
+    template <Shading shading_, LineType lineType_, Blend blend_>
     struct Line final : public Command, public Logged {
-        static constexpr Shading shading = shading;
-        static constexpr LineType lineType = lineType;
-        static constexpr Blend blend = blend;
+        static constexpr Shading shading = shading_;
+        static constexpr LineType lineType = lineType_;
+        static constexpr Blend blend = blend_;
 
         Line() {
             if constexpr (lineType == LineType::Simple) m_count = 0;
@@ -229,11 +229,12 @@ class GPU {
         enum { READ_COLOR, READ_XY } m_state = READ_COLOR;
     };
 
-    template <Size size, Textured textured, Blend blend>
+    template <Size size_, Textured textured_, Blend blend_, Modulation modulation_>
     struct Rect final : public Command, public Logged {
-        static constexpr Size size = size;
-        static constexpr Textured textured = textured;
-        static constexpr Blend blend = blend;
+        static constexpr Size size = size_;
+        static constexpr Textured textured = textured_;
+        static constexpr Blend blend = blend_;
+        static constexpr Modulation modulation = modulation_;
 
         Rect() {}
         void processWrite(uint32_t value) override;
@@ -241,7 +242,8 @@ class GPU {
         struct Empty {};
         int x, y, w, h;
         typedef std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
-        [[no_unique_address]] std::conditional<textured == Textured::No, uint32_t, Empty>::type color;
+        [[no_unique_address]] std::conditional<(textured == Textured::No) || (modulation == Modulation::On), uint32_t,
+                                               Empty>::type color;
         [[no_unique_address]] TextureUnitType u;
         [[no_unique_address]] TextureUnitType v;
         [[no_unique_address]] TextureUnitType clutX;
@@ -411,22 +413,38 @@ class GPU {
     virtual void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) = 0;
     virtual void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) = 0;
 
-    virtual void write0(Rect<Size::Variable, Textured::No, Blend::Off> *) = 0;
-    virtual void write0(Rect<Size::Variable, Textured::No, Blend::Semi> *) = 0;
-    virtual void write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *) = 0;
-    virtual void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi> *) = 0;
-    virtual void write0(Rect<Size::S1, Textured::No, Blend::Off> *) = 0;
-    virtual void write0(Rect<Size::S1, Textured::No, Blend::Semi> *) = 0;
-    virtual void write0(Rect<Size::S1, Textured::Yes, Blend::Off> *) = 0;
-    virtual void write0(Rect<Size::S1, Textured::Yes, Blend::Semi> *) = 0;
-    virtual void write0(Rect<Size::S8, Textured::No, Blend::Off> *) = 0;
-    virtual void write0(Rect<Size::S8, Textured::No, Blend::Semi> *) = 0;
-    virtual void write0(Rect<Size::S8, Textured::Yes, Blend::Off> *) = 0;
-    virtual void write0(Rect<Size::S8, Textured::Yes, Blend::Semi> *) = 0;
-    virtual void write0(Rect<Size::S16, Textured::No, Blend::Off> *) = 0;
-    virtual void write0(Rect<Size::S16, Textured::No, Blend::Semi> *) = 0;
-    virtual void write0(Rect<Size::S16, Textured::Yes, Blend::Off> *) = 0;
-    virtual void write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) = 0;
+    virtual void write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::Off> *) = 0;
+    virtual void write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *) = 0;
+    virtual void write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *) = 0;
 
     virtual void write0(BlitVramVram *) = 0;
 

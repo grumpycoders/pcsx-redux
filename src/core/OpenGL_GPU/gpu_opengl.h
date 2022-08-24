@@ -29,26 +29,26 @@
 namespace PCSX {
 class OpenGL_GPU final : public GPU {
     // Interface functions
-    virtual int initBackend(GUI *) final;
-    virtual int shutdown() final;
-    virtual void readDataMem(uint32_t *dest, int size) final;
-    virtual uint32_t readStatusInternal() final;
-    virtual void writeDataMem(uint32_t *source, int size) final;
-    virtual void writeStatusInternal(uint32_t value) final;
-    virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
-    virtual void setOpenGLContext() final;
-    virtual void vblank() final;
-    virtual bool configure() final;
-    virtual void debug() final;
+    int initBackend(GUI *) override;
+    int shutdown() override;
+    void readDataMem(uint32_t *dest, int size) override;
+    uint32_t readStatusInternal() override;
+    void writeDataMem(uint32_t *source, int size) override;
+    void writeStatusInternal(uint32_t value) override;
+    int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) override;
+    void setOpenGLContext() override;
+    void vblank() override;
+    bool configure() override;
+    void debug() override;
 
-    virtual void setDither(int setting) final { m_useDither = setting; }
-    virtual void clearVRAM() final;
-    virtual void reset() final;
-    virtual GLuint getVRAMTexture() final;
-    virtual void setLinearFiltering() final;
-    virtual Slice getVRAM() final;
-    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) final;
-    virtual void restoreStatus(uint32_t status) { m_gpustat = status; }
+    void setDither(int setting) override { m_useDither = setting; }
+    void clearVRAM() override;
+    void reset() override;
+    GLuint getVRAMTexture() override;
+    void setLinearFiltering() override;
+    Slice getVRAM() override;
+    void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) override;
+    void restoreStatus(uint32_t status) { m_gpustat = status; }
 
   private:
     // Actual emulation stuff
@@ -306,22 +306,38 @@ class OpenGL_GPU final : public GPU {
     void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) override;
     void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) override;
 
-    void write0(Rect<Size::Variable, Textured::No, Blend::Off> *) override;
-    void write0(Rect<Size::Variable, Textured::No, Blend::Semi> *) override;
-    void write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *) override;
-    void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi> *) override;
-    void write0(Rect<Size::S1, Textured::No, Blend::Off> *) override;
-    void write0(Rect<Size::S1, Textured::No, Blend::Semi> *) override;
-    void write0(Rect<Size::S1, Textured::Yes, Blend::Off> *) override;
-    void write0(Rect<Size::S1, Textured::Yes, Blend::Semi> *) override;
-    void write0(Rect<Size::S8, Textured::No, Blend::Off> *) override;
-    void write0(Rect<Size::S8, Textured::No, Blend::Semi> *) override;
-    void write0(Rect<Size::S8, Textured::Yes, Blend::Off> *) override;
-    void write0(Rect<Size::S8, Textured::Yes, Blend::Semi> *) override;
-    void write0(Rect<Size::S16, Textured::No, Blend::Off> *) override;
-    void write0(Rect<Size::S16, Textured::No, Blend::Semi> *) override;
-    void write0(Rect<Size::S16, Textured::Yes, Blend::Off> *) override;
-    void write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) override;
+    void write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *) override;
 
     void write0(BlitVramVram *) override;
 

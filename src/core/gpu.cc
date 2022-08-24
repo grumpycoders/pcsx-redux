@@ -138,11 +138,11 @@ void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
     m_gpu->write0(this);
 }
 
-template <GPU::Size size, GPU::Textured textured, GPU::Blend blend>
-void GPU::Rect<size, textured, blend>::processWrite(uint32_t value) {
+template <GPU::Size size, GPU::Textured textured, GPU::Blend blend, GPU::Modulation modulation>
+void GPU::Rect<size, textured, blend, modulation>::processWrite(uint32_t value) {
     switch (m_state) {
         case READ_COLOR:
-            if constexpr (textured == Textured::No) {
+            if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
                 color = value;
             }
             m_state = READ_XY;
@@ -188,38 +188,38 @@ void GPU::Rect<size, textured, blend>::processWrite(uint32_t value) {
 
 namespace {
 
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_poly00;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_poly01;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_poly02;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_poly03;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_poly04;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_poly05;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_poly06;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_poly07;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_poly08;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_poly09;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_poly0a;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_poly0b;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_poly0c;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_poly0d;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_poly0e;
-GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_poly0f;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_poly10;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_poly11;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_poly12;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_poly13;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_poly14;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_poly15;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_poly16;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_poly17;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_poly18;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_poly19;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_poly1a;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_poly1b;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_poly1c;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_poly1d;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_poly1e;
-GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_poly1f;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_poly00;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_poly01;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_poly02;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_poly03;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_poly04;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_poly05;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_poly06;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_poly07;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_poly08;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_poly09;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_poly0a;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_poly0b;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_poly0c;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_poly0d;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_poly0e;
+GPU::Poly<GPU::Shading::Flat, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_poly0f;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_poly10;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_poly11;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_poly12;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_poly13;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_poly14;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_poly15;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_poly16;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Tri, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_poly17;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_poly18;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_poly19;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_poly1a;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_poly1b;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_poly1c;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_poly1d;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_poly1e;
+GPU::Poly<GPU::Shading::Gouraud, GPU::Shape::Quad, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_poly1f;
 
 GPU::Line<GPU::Shading::Flat, GPU::LineType::Simple, GPU::Blend::Off> s_line0;
 GPU::Line<GPU::Shading::Flat, GPU::LineType::Simple, GPU::Blend::Semi> s_line1;
@@ -230,22 +230,38 @@ GPU::Line<GPU::Shading::Gouraud, GPU::LineType::Simple, GPU::Blend::Semi> s_line
 GPU::Line<GPU::Shading::Gouraud, GPU::LineType::Poly, GPU::Blend::Off> s_line6;
 GPU::Line<GPU::Shading::Gouraud, GPU::LineType::Poly, GPU::Blend::Semi> s_line7;
 
-GPU::Rect<GPU::Size::Variable, GPU::Textured::No, GPU::Blend::Off> s_rect00;
-GPU::Rect<GPU::Size::Variable, GPU::Textured::No, GPU::Blend::Semi> s_rect01;
-GPU::Rect<GPU::Size::Variable, GPU::Textured::Yes, GPU::Blend::Off> s_rect02;
-GPU::Rect<GPU::Size::Variable, GPU::Textured::Yes, GPU::Blend::Semi> s_rect03;
-GPU::Rect<GPU::Size::S1, GPU::Textured::No, GPU::Blend::Off> s_rect04;
-GPU::Rect<GPU::Size::S1, GPU::Textured::No, GPU::Blend::Semi> s_rect05;
-GPU::Rect<GPU::Size::S1, GPU::Textured::Yes, GPU::Blend::Off> s_rect06;
-GPU::Rect<GPU::Size::S1, GPU::Textured::Yes, GPU::Blend::Semi> s_rect07;
-GPU::Rect<GPU::Size::S8, GPU::Textured::No, GPU::Blend::Off> s_rect08;
-GPU::Rect<GPU::Size::S8, GPU::Textured::No, GPU::Blend::Semi> s_rect09;
-GPU::Rect<GPU::Size::S8, GPU::Textured::Yes, GPU::Blend::Off> s_rect0a;
-GPU::Rect<GPU::Size::S8, GPU::Textured::Yes, GPU::Blend::Semi> s_rect0b;
-GPU::Rect<GPU::Size::S16, GPU::Textured::No, GPU::Blend::Off> s_rect0c;
-GPU::Rect<GPU::Size::S16, GPU::Textured::No, GPU::Blend::Semi> s_rect0d;
-GPU::Rect<GPU::Size::S16, GPU::Textured::Yes, GPU::Blend::Off> s_rect0e;
-GPU::Rect<GPU::Size::S16, GPU::Textured::Yes, GPU::Blend::Semi> s_rect0f;
+GPU::Rect<GPU::Size::Variable, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_rect00;
+GPU::Rect<GPU::Size::Variable, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_rect01;
+GPU::Rect<GPU::Size::Variable, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_rect02;
+GPU::Rect<GPU::Size::Variable, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_rect03;
+GPU::Rect<GPU::Size::Variable, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_rect04;
+GPU::Rect<GPU::Size::Variable, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_rect05;
+GPU::Rect<GPU::Size::Variable, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_rect06;
+GPU::Rect<GPU::Size::Variable, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_rect07;
+GPU::Rect<GPU::Size::S1, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_rect08;
+GPU::Rect<GPU::Size::S1, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_rect09;
+GPU::Rect<GPU::Size::S1, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_rect0a;
+GPU::Rect<GPU::Size::S1, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_rect0b;
+GPU::Rect<GPU::Size::S1, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_rect0c;
+GPU::Rect<GPU::Size::S1, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_rect0d;
+GPU::Rect<GPU::Size::S1, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_rect0e;
+GPU::Rect<GPU::Size::S1, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_rect0f;
+GPU::Rect<GPU::Size::S8, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_rect10;
+GPU::Rect<GPU::Size::S8, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_rect11;
+GPU::Rect<GPU::Size::S8, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_rect12;
+GPU::Rect<GPU::Size::S8, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_rect13;
+GPU::Rect<GPU::Size::S8, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_rect14;
+GPU::Rect<GPU::Size::S8, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_rect15;
+GPU::Rect<GPU::Size::S8, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_rect16;
+GPU::Rect<GPU::Size::S8, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_rect17;
+GPU::Rect<GPU::Size::S16, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::On> s_rect18;
+GPU::Rect<GPU::Size::S16, GPU::Textured::No, GPU::Blend::Off, GPU::Modulation::Off> s_rect19;
+GPU::Rect<GPU::Size::S16, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::On> s_rect1a;
+GPU::Rect<GPU::Size::S16, GPU::Textured::No, GPU::Blend::Semi, GPU::Modulation::Off> s_rect1b;
+GPU::Rect<GPU::Size::S16, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::On> s_rect1c;
+GPU::Rect<GPU::Size::S16, GPU::Textured::Yes, GPU::Blend::Off, GPU::Modulation::Off> s_rect1d;
+GPU::Rect<GPU::Size::S16, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::On> s_rect1e;
+GPU::Rect<GPU::Size::S16, GPU::Textured::Yes, GPU::Blend::Semi, GPU::Modulation::Off> s_rect1f;
 
 }  // namespace
 
@@ -319,37 +335,37 @@ PCSX::GPU::GPU() {
     m_lines[0x1f] = &s_line7;
 
     m_rects[0x00] = &s_rect00;
-    m_rects[0x01] = &s_rect00;
-    m_rects[0x02] = &s_rect01;
-    m_rects[0x03] = &s_rect01;
-    m_rects[0x04] = &s_rect02;
-    m_rects[0x05] = &s_rect02;
-    m_rects[0x06] = &s_rect03;
-    m_rects[0x07] = &s_rect03;
-    m_rects[0x08] = &s_rect04;
-    m_rects[0x09] = &s_rect04;
-    m_rects[0x0a] = &s_rect05;
-    m_rects[0x0b] = &s_rect05;
-    m_rects[0x0c] = &s_rect06;
-    m_rects[0x0d] = &s_rect06;
-    m_rects[0x0e] = &s_rect07;
-    m_rects[0x0f] = &s_rect07;
-    m_rects[0x10] = &s_rect08;
-    m_rects[0x11] = &s_rect08;
-    m_rects[0x12] = &s_rect09;
-    m_rects[0x13] = &s_rect09;
-    m_rects[0x14] = &s_rect0a;
-    m_rects[0x15] = &s_rect0a;
-    m_rects[0x16] = &s_rect0b;
-    m_rects[0x17] = &s_rect0b;
-    m_rects[0x18] = &s_rect0c;
-    m_rects[0x19] = &s_rect0c;
-    m_rects[0x1a] = &s_rect0d;
-    m_rects[0x1b] = &s_rect0d;
-    m_rects[0x1c] = &s_rect0e;
-    m_rects[0x1d] = &s_rect0e;
-    m_rects[0x1e] = &s_rect0f;
-    m_rects[0x1f] = &s_rect0f;
+    m_rects[0x01] = &s_rect01;
+    m_rects[0x02] = &s_rect02;
+    m_rects[0x03] = &s_rect03;
+    m_rects[0x04] = &s_rect04;
+    m_rects[0x05] = &s_rect05;
+    m_rects[0x06] = &s_rect06;
+    m_rects[0x07] = &s_rect07;
+    m_rects[0x08] = &s_rect08;
+    m_rects[0x09] = &s_rect09;
+    m_rects[0x0a] = &s_rect0a;
+    m_rects[0x0b] = &s_rect0b;
+    m_rects[0x0c] = &s_rect0c;
+    m_rects[0x0d] = &s_rect0d;
+    m_rects[0x0e] = &s_rect0e;
+    m_rects[0x0f] = &s_rect0f;
+    m_rects[0x10] = &s_rect10;
+    m_rects[0x11] = &s_rect11;
+    m_rects[0x12] = &s_rect12;
+    m_rects[0x13] = &s_rect13;
+    m_rects[0x14] = &s_rect14;
+    m_rects[0x15] = &s_rect15;
+    m_rects[0x16] = &s_rect16;
+    m_rects[0x17] = &s_rect17;
+    m_rects[0x18] = &s_rect18;
+    m_rects[0x19] = &s_rect19;
+    m_rects[0x1a] = &s_rect1a;
+    m_rects[0x1b] = &s_rect1b;
+    m_rects[0x1c] = &s_rect1c;
+    m_rects[0x1d] = &s_rect1d;
+    m_rects[0x1e] = &s_rect1e;
+    m_rects[0x1f] = &s_rect1f;
 }
 
 int PCSX::GPU::init(GUI *gui) {

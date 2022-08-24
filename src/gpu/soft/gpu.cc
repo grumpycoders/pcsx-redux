@@ -987,6 +987,10 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, 
 }
 
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) {
+    __debugbreak();
+}
+
+void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *prim) {
     m_softPrim.lx0 = prim->x[0];
     m_softPrim.ly0 = prim->y[0];
     m_softPrim.lx1 = prim->x[1];
@@ -1005,22 +1009,41 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, 
 
     bDoVSyncUpdate = true;
 }
-
-void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) {
-    __debugbreak();
-}
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) {
     __debugbreak();
 }
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *) {
     __debugbreak();
 }
-void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *) {
+void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *prim) {
+    m_softPrim.lx0 = prim->x[0];
+    m_softPrim.ly0 = prim->y[0];
+    m_softPrim.lx1 = prim->x[1];
+    m_softPrim.ly1 = prim->y[1];
+    m_softPrim.lx2 = prim->x[2];
+    m_softPrim.ly2 = prim->y[2];
+    m_softPrim.lx3 = prim->x[3];
+    m_softPrim.ly3 = prim->y[3];
+#if 0
+    lLowerpart = gpuData[4] >> 16;
+    UpdateGlobalTP((uint16_t)lLowerpart);
+
+    if (m_softPrim.CheckCoord4()) return;
+
+    m_softPrim.offsetPSX4();
+
+    SetRenderMode(gpuData[0]);
+
+    drawPoly4FT(baseAddr);
+#endif
+    __debugbreak();
+    bDoVSyncUpdate = true;
+}
+
+void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *prim) {
     __debugbreak();
 }
-void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *) {
-    __debugbreak();
-}
+
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) {
     __debugbreak();
 }
@@ -1029,6 +1052,10 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes,
 }
 
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) {
+    __debugbreak();
+}
+
+void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *prim) {
     m_softPrim.lx0 = prim->x[0];
     m_softPrim.ly0 = prim->y[0];
     m_softPrim.lx1 = prim->x[1];
@@ -1044,10 +1071,6 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No
     m_softPrim.drawPoly3G(prim->colors[0], prim->colors[1], prim->colors[2]);
 
     bDoVSyncUpdate = true;
-}
-
-void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) {
-    __debugbreak();
 }
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) {
     __debugbreak();
@@ -1069,6 +1092,10 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Ye
 }
 
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) {
+    __debugbreak();
+}
+
+void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *prim) {
     m_softPrim.lx0 = prim->x[0];
     m_softPrim.ly0 = prim->y[0];
     m_softPrim.lx1 = prim->x[1];
@@ -1086,10 +1113,6 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::N
     m_softPrim.drawPoly4G(prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
 
     bDoVSyncUpdate = true;
-}
-
-void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) {
-    __debugbreak();
 }
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) {
     __debugbreak();
@@ -1119,10 +1142,30 @@ void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Simple, Blend:
 void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) { __debugbreak(); }
 
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *prim) {
+    __debugbreak();
+}
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *) {
+    __debugbreak();
+}
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::Off> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::On> *) { __debugbreak(); }
 
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off> *prim) {
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::On> *prim) {
     int16_t w, h;
 
     int16_t sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3;
@@ -1136,7 +1179,13 @@ void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off>
 
     m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
 
-    m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
+    if constexpr (prim->modulation == Modulation::On) {
+        m_softPrim.g_m1 = (prim->color >> 0) & 0xff;
+        m_softPrim.g_m2 = (prim->color >> 8) & 0xff;
+        m_softPrim.g_m3 = (prim->color >> 16) & 0xff;
+    } else {
+        m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
+    }
 
     sx0 = sx3 = sx0 + PSXDisplay.DrawOffset.x;
     sx1 = sx2 = sx0 + w;
@@ -1165,19 +1214,19 @@ void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off>
     bDoVSyncUpdate = true;
 }
 
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Off> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Semi> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Off> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Semi> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Off> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Semi> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Off> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Semi> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Off> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Semi> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Off> *) { __debugbreak(); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Semi> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *) { __debugbreak(); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *) { __debugbreak(); }
 
 void PCSX::SoftGPU::impl::write0(BlitVramVram *) { __debugbreak(); }
 
