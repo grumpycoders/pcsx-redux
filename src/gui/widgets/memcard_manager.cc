@@ -36,7 +36,7 @@ void PCSX::Widgets::MemcardManager::initTextures() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
         if (!m_drawPocketstationIcons) {
-            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 16, 16);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 16, 16, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
         } else {
             glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 32, 32);
         }

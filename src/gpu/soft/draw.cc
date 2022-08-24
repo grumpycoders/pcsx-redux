@@ -139,7 +139,7 @@ void PCSX::SoftGPU::impl::setLinearFiltering() {
 void PCSX::SoftGPU::impl::initDisplay() {
     glGenTextures(1, &vramTexture);
     glBindTexture(GL_TEXTURE_2D, vramTexture);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -147,7 +147,7 @@ void PCSX::SoftGPU::impl::initDisplay() {
 
     glGenTextures(1, &m_vramTexture16);
     glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

@@ -816,6 +816,7 @@ void DynaRecCPU::recLWL() {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0x00FFFFFF00000018, 0x0000FFFF00000010, 0x000000FF00000008, 0};
+    maybeCancelDelayedLoad(_Rt_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
@@ -908,6 +909,7 @@ void DynaRecCPU::recLWR() {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0, 0xFF00000000000008, 0xFFFF000000000010, 0xFFFFFF0000000018};
+    maybeCancelDelayedLoad(_Rt_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
