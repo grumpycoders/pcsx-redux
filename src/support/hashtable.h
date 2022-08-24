@@ -45,7 +45,10 @@ class HashTable final {
       public:
         Node() {}
         Node(const Node&) {}
-        Node& operator=(const Node&) { unlink(); }
+        Node& operator=(const Node&) {
+            unlink();
+            return *this;
+        }
         Node(Node&& src) = delete;
         virtual ~Node() { unlink(); }
         bool isLinked() const { return m_parent; }

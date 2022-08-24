@@ -73,13 +73,8 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(uint32
                                 clutX = value & 0x3f;
                                 clutY = (value >> 6) & 0x1ff;
                             } else if (m_count == 1) {
-                                texturePageX = value & 0x0f;
-                                texturePageY = (value >> 4) & 1;
-                                if constexpr (blend == Blend::Semi) {
-                                    blendFunction = magic_enum::enum_cast<BlendFunction>((value >> 5) & 3).value();
-                                }
-                                texDepth = magic_enum::enum_cast<TexDepth>((value >> 7) & 3).value();
-                                texDisable = (value >> 11) & 1;
+                                value &= 0b0000100111111111;
+                                tpage = TPage(value);
                             }
                         }
                 }

@@ -1024,29 +1024,153 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes,
     m_softPrim.ly2 = prim->y[2];
     m_softPrim.lx3 = prim->x[3];
     m_softPrim.ly3 = prim->y[3];
-#if 0
-    lLowerpart = gpuData[4] >> 16;
-    UpdateGlobalTP((uint16_t)lLowerpart);
 
-    if (m_softPrim.CheckCoord4()) return;
+    if constexpr (prim->textured == Textured::Yes) {
+        if (m_softPrim.iDither) {
+            prim->tpage.dither = true;
+            prim->tpage.raw |= 0x200;
+        }
+        m_softPrim.texturePage(&prim->tpage);
+    }
 
     m_softPrim.offsetPSX4();
 
-    SetRenderMode(gpuData[0]);
+    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
 
-    drawPoly4FT(baseAddr);
-#endif
-    __debugbreak();
+    if constexpr (prim->modulation == Modulation::On) {
+        m_softPrim.g_m1 = (prim->colors[0] >> 0) & 0xff;
+        m_softPrim.g_m2 = (prim->colors[0] >> 8) & 0xff;
+        m_softPrim.g_m3 = (prim->colors[0] >> 16) & 0xff;
+    } else {
+        m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
+    }
+
+    switch (m_softPrim.GlobalTextTP) {
+        case GPU::TexDepth::Tex4Bits:
+            m_softPrim.drawPoly4TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
+                                     m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->clutY);
+            return;
+        case GPU::TexDepth::Tex8Bits:
+            m_softPrim.drawPoly4TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
+                                     m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->clutY);
+            return;
+        case GPU::TexDepth::Tex16Bits:
+            m_softPrim.drawPoly4TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
+                                   m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                   prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3]);
+            return;
+    }
     bDoVSyncUpdate = true;
 }
 
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *prim) {
-    __debugbreak();
+    m_softPrim.lx0 = prim->x[0];
+    m_softPrim.ly0 = prim->y[0];
+    m_softPrim.lx1 = prim->x[1];
+    m_softPrim.ly1 = prim->y[1];
+    m_softPrim.lx2 = prim->x[2];
+    m_softPrim.ly2 = prim->y[2];
+    m_softPrim.lx3 = prim->x[3];
+    m_softPrim.ly3 = prim->y[3];
+
+    if constexpr (prim->textured == Textured::Yes) {
+        if (m_softPrim.iDither) {
+            prim->tpage.dither = true;
+            prim->tpage.raw |= 0x200;
+        }
+        m_softPrim.texturePage(&prim->tpage);
+    }
+
+    m_softPrim.offsetPSX4();
+
+    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+
+    if constexpr (prim->modulation == Modulation::On) {
+        m_softPrim.g_m1 = (prim->colors[0] >> 0) & 0xff;
+        m_softPrim.g_m2 = (prim->colors[0] >> 8) & 0xff;
+        m_softPrim.g_m3 = (prim->colors[0] >> 16) & 0xff;
+    } else {
+        m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
+    }
+
+    switch (m_softPrim.GlobalTextTP) {
+        case GPU::TexDepth::Tex4Bits:
+            m_softPrim.drawPoly4TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
+                                     m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->clutY);
+            return;
+        case GPU::TexDepth::Tex8Bits:
+            m_softPrim.drawPoly4TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
+                                     m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->clutY);
+            return;
+        case GPU::TexDepth::Tex16Bits:
+            m_softPrim.drawPoly4TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
+                                   m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                   prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3]);
+            return;
+    }
+    bDoVSyncUpdate = true;
 }
 
-void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) {
-    __debugbreak();
+void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *prim) {
+    m_softPrim.lx0 = prim->x[0];
+    m_softPrim.ly0 = prim->y[0];
+    m_softPrim.lx1 = prim->x[1];
+    m_softPrim.ly1 = prim->y[1];
+    m_softPrim.lx2 = prim->x[2];
+    m_softPrim.ly2 = prim->y[2];
+    m_softPrim.lx3 = prim->x[3];
+    m_softPrim.ly3 = prim->y[3];
+
+    if constexpr (prim->textured == Textured::Yes) {
+        if (m_softPrim.iDither) {
+            prim->tpage.dither = true;
+            prim->tpage.raw |= 0x200;
+        }
+        m_softPrim.texturePage(&prim->tpage);
+    }
+
+    m_softPrim.offsetPSX4();
+
+    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+
+    if constexpr (prim->modulation == Modulation::On) {
+        m_softPrim.g_m1 = (prim->colors[0] >> 0) & 0xff;
+        m_softPrim.g_m2 = (prim->colors[0] >> 8) & 0xff;
+        m_softPrim.g_m3 = (prim->colors[0] >> 16) & 0xff;
+    } else {
+        m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
+    }
+
+    switch (m_softPrim.GlobalTextTP) {
+        case GPU::TexDepth::Tex4Bits:
+            m_softPrim.drawPoly4TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
+                                     m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->clutY);
+            return;
+        case GPU::TexDepth::Tex8Bits:
+            m_softPrim.drawPoly4TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
+                                     m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                     prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3], prim->clutX * 16,
+                                     prim->clutY);
+            return;
+        case GPU::TexDepth::Tex16Bits:
+            m_softPrim.drawPoly4TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx3,
+                                   m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                   prim->v[1], prim->u[2], prim->v[2], prim->u[3], prim->v[3]);
+            return;
+    }
+    bDoVSyncUpdate = true;
 }
+
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) {
     __debugbreak();
 }
@@ -1145,7 +1269,47 @@ void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::S
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *) { __debugbreak(); }
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *prim) {
-    __debugbreak();
+    int16_t w, h;
+
+    int16_t sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3;
+    int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
+
+    sx0 = m_softPrim.lx0 = prim->x;
+    sy0 = m_softPrim.ly0 = prim->y;
+
+    w = prim->w;
+    h = prim->h;
+
+    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+
+    // constexpr derp?
+    m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
+
+    sx0 = sx3 = sx0 + PSXDisplay.DrawOffset.x;
+    sx1 = sx2 = sx0 + w;
+    sy0 = sy1 = sy0 + PSXDisplay.DrawOffset.y;
+    sy2 = sy3 = sy0 + h;
+
+    tx0 = tx3 = prim->u;
+    tx1 = tx2 = tx0 + w;
+    ty0 = ty1 = prim->v;
+    ty2 = ty3 = ty0 + h;
+
+    switch (m_softPrim.GlobalTextTP) {
+        case GPU::TexDepth::Tex4Bits:
+            m_softPrim.drawPoly4TEx4_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
+                                       prim->clutX * 16, prim->clutY);
+            return;
+        case GPU::TexDepth::Tex8Bits:
+            m_softPrim.drawPoly4TEx8_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
+                                       prim->clutX * 16, prim->clutY);
+            return;
+        case GPU::TexDepth::Tex16Bits:
+            m_softPrim.drawPoly4TD_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3);
+            return;
+    }
+
+    bDoVSyncUpdate = true;
 }
 void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *) {
     __debugbreak();

@@ -35,7 +35,10 @@ class List final {
       public:
         Node() {}
         Node(const Node&) {}
-        Node& operator=(const Node&) { unlink(); }
+        Node& operator=(const Node&) {
+            unlink();
+            return *this;
+        }
         Node(Node&& src) {
             m_prev = src.m_prev;
             m_next = src.m_next;
