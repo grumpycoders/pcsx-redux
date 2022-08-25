@@ -102,7 +102,6 @@ void PCSX::SIO::writePad(uint8_t value) {
 
             if (m_bufferIndex == m_maxBufferIndex) {
                 m_padState = PAD_STATE_IDLE;
-                //current_device = SIO_Device::None;
                 return;
             }
             scheduleInterrupt(SIO_CYCLES);
@@ -123,12 +122,18 @@ void PCSX::SIO::write8(uint8_t value) {
         case SIO_Device::PAD:
             // Pad Process events
             writePad(value);
+            if (m_bufferIndex > m_maxBufferIndex) {
+                data_out = 0xFF; 
+            } else {
+                data_out = m_buffer[m_bufferIndex];
+            }
             break;
 
-        case SIO_Device::MemoryCard:
+         case SIO_Device::MemoryCard:
             switch (m_ctrlReg & SIO_Selected::PortMask) {
                 case SIO_Selected::Port1:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
+                        data_out = delayed_out;
                         delayed_out = m_memoryCard[0].ProcessEvents(value);
                     } else {
                         current_device = SIO_Device::Ignore;
@@ -137,6 +142,7 @@ void PCSX::SIO::write8(uint8_t value) {
 
                 case SIO_Selected::Port2:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
+                        data_out = delayed_out;
                         delayed_out = m_memoryCard[1].ProcessEvents(value);
                     } else {
                         current_device = SIO_Device::Ignore;
@@ -147,13 +153,12 @@ void PCSX::SIO::write8(uint8_t value) {
 
         case SIO_Device::Ignore:
         default:
-            current_device = SIO_Device::Ignore;
             m_padState = PAD_STATE_IDLE;
             m_memoryCard[0].Deselect();
             m_memoryCard[1].Deselect();
             m_statusReg |= RX_RDY;
-            scheduleInterrupt(SIO_CYCLES);
-            data_out = 0xFF;
+            //scheduleInterrupt(SIO_CYCLES);
+            //data_out = 0xFF;
     }
 }
 
@@ -185,34 +190,7 @@ uint8_t PCSX::SIO::read8() {
     if ((m_statusReg & RX_RDY) /* && (m_ctrlReg & RX_PERM)*/) {
         //      m_statusReg &= ~RX_OVERRUN;
 
-        switch (current_device) {
-            case SIO_Device::PAD:
-                ret = m_buffer[m_bufferIndex];
-                if (m_bufferIndex == m_maxBufferIndex) {
-                    m_statusReg &= ~RX_RDY;  // Receive is not Ready now
-                    if (m_padState == PAD_STATE_READ_DATA) m_padState = PAD_STATE_IDLE;
-                    current_device = SIO_Device::Ignore;
-                }
-                break;
-
-             case SIO_Device::MemoryCard:
-                switch (m_ctrlReg & SIO_Selected::PortMask) {
-                    case SIO_Selected::Port1:
-                        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
-                            ret = data_out;
-                            data_out = delayed_out;
-                        }
-                        break;
-
-                    case SIO_Selected::Port2:
-                        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
-                            ret = data_out;
-                            data_out = delayed_out;
-                        }
-                        break;
-                }
-                break;
-        }
+        ret = data_out;
     }
 
     SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_statusReg,
