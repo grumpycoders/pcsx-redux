@@ -98,7 +98,12 @@ PCSX::Slice* createSaveState() {
     return new PCSX::Slice(std::move(ss));
 }
 
-void loadSaveState(PCSX::Slice* data) { PCSX::SaveStates::load(data->asStringView()); }
+void loadSaveStateFromSlice(PCSX::Slice* data) { PCSX::SaveStates::load(data->asStringView()); }
+
+void loadSaveStateFromFile(PCSX::LuaFFI::LuaFile* file) {
+    auto data = file->file->readAt(file->file->size(), 0);
+    PCSX::SaveStates::load(data.asStringView());
+}
 
 }  // namespace
 
@@ -134,7 +139,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, jumpToMemory);
     REGISTER(L, takeScreenShot);
     REGISTER(L, createSaveState);
-    REGISTER(L, loadSaveState);
+    REGISTER(L, loadSaveStateFromSlice);
+    REGISTER(L, loadSaveStateFromFile);
     L.settable();
     L.pop();
 }

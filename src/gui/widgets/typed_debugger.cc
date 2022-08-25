@@ -177,11 +177,20 @@ void PCSX::Widgets::TypedDebugger::populate(WatchTreeNode* node) {
     const std::regex arrayRegex(R"((.*)\[(\d+)\])");
     std::smatch matches;
     if (std::regex_match(type, matches, arrayRegex)) {
-        const auto type = matches[1].str();
+        const auto elementType = matches[1].str();
         const auto numChildren = std::stoul(matches[2].str());
+
+        size_t elementSize = 0;
+        if (m_structs.contains(elementType)) {
+            for (const auto& field : m_structs[elementType]) {
+                elementSize += field.size;
+            }
+        } else {
+            elementSize = node->size / numChildren;
+        }
+
         for (size_t i = 0; i < numChildren; ++i) {
-            WatchTreeNode newNode{type, std::string(node->name + "[" + std::to_string(i) + "]"),
-                                  node->size / numChildren};
+            WatchTreeNode newNode{elementType, std::string(node->name + "[" + std::to_string(i) + "]"), elementSize};
             node->children.push_back(newNode);
             populate(&node->children.back());
         }
@@ -230,55 +239,63 @@ static bool isPrimitive(const char* type) {
            equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long");
 }
 
-void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node, const uint32_t address,
-                                                            uint8_t* memData, const uint32_t memBase) {
-    const auto readBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}{}"), node->name.c_str(), address);
-    if (ImGui::Button(readBreakpointButtonName.c_str())) {
-        auto* newBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Read,
-                                                                       node->size, _("Typed Debugger"));
-        m_watchBreakpoints.push_back(newBreakpoint);
-    }
-    ImGui::SameLine();
-    const auto writeBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}{}"), node->name.c_str(), address);
-    if (ImGui::Button(writeBreakpointButtonName.c_str())) {
-        auto* newBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(address, PCSX::Debug::BreakpointType::Write,
-                                                                       node->size, _("Typed Debugger"));
-        m_watchBreakpoints.push_back(newBreakpoint);
-    }
-    ImGui::SameLine();
+void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node, const uint32_t address) {
+    PCSX::Debug::BreakpointInvoker logReadsWritesInvoker =
+        [this, node](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
+            if (!node) {
+                return false;
+            }
+
+            const auto pc = g_emulator->m_cpu->m_regs.pc;
+            std::string_view funcName = getFunctionNameFromInstructionAddress(pc);
+            if (funcName.empty()) {
+                funcName = "Overlay?";
+            }
+            ReadWriteLogEntry::AccessType accessType = (equals(cause, "Read") || equals(cause, "ReadPause"))
+                                                           ? ReadWriteLogEntry::AccessType::Read
+                                                           : ReadWriteLogEntry::AccessType::Write;
+
+            const bool pause = equals(cause, "ReadPause") || equals(cause, "WritePause");
+            for (const auto& logEntry : node->logEntries) {
+                if (logEntry.instructionAddress == pc) {
+                    if (pause) {
+                        g_system->pause();
+                    }
+                    return true;
+                }
+            }
+
+            ReadWriteLogEntry newLogEntry{pc, funcName.data(), accessType};
+            node->logEntries.push_back(newLogEntry);
+
+            if (pause) {
+                g_system->pause();
+            }
+            return true;
+        };
+
     const auto logReadsWritesButtonName = fmt::format(f_("Log reads and writes##{}{}"), node->name.c_str(), address);
     if (ImGui::Button(logReadsWritesButtonName.c_str())) {
-        PCSX::Debug::BreakpointInvoker logReadsWritesInvoker =
-            [this, node](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
-                if (!node) {
-                    return false;
-                }
-
-                const auto pc = g_emulator->m_cpu->m_regs.pc;
-                std::string_view funcName = getFunctionNameFromInstructionAddress(pc);
-                if (funcName.empty()) {
-                    funcName = "overlay?";
-                }
-                ReadWriteLogEntry::AccessType accessType =
-                    equals(cause, "Read") ? ReadWriteLogEntry::AccessType::Read : ReadWriteLogEntry::AccessType::Write;
-
-                for (const auto& logEntry : node->logEntries) {
-                    if (logEntry.instructionAddress == pc) {
-                        return true;
-                    }
-                }
-
-                ReadWriteLogEntry newLogEntry{pc, funcName.data(), accessType};
-                node->logEntries.push_back(newLogEntry);
-                return true;
-            };
-
         auto* newReadBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(
             address, PCSX::Debug::BreakpointType::Read, node->size, _("Read"), logReadsWritesInvoker);
         auto* newWriteBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(
             address, PCSX::Debug::BreakpointType::Write, node->size, _("Write"), logReadsWritesInvoker);
         m_watchBreakpoints.push_back(newReadBreakpoint);
         m_watchBreakpoints.push_back(newWriteBreakpoint);
+    }
+    ImGui::SameLine();
+    const auto readBreakpointButtonName = fmt::format(f_("Add read breakpoint##{}{}"), node->name.c_str(), address);
+    if (ImGui::Button(readBreakpointButtonName.c_str())) {
+        auto* newBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(
+            address, PCSX::Debug::BreakpointType::Read, node->size, _("ReadPause"), logReadsWritesInvoker);
+        m_watchBreakpoints.push_back(newBreakpoint);
+    }
+    ImGui::SameLine();
+    const auto writeBreakpointButtonName = fmt::format(f_("Add write breakpoint##{}{}"), node->name.c_str(), address);
+    if (ImGui::Button(writeBreakpointButtonName.c_str())) {
+        auto* newBreakpoint = PCSX::g_emulator->m_debug->addBreakpoint(
+            address, PCSX::Debug::BreakpointType::Write, node->size, _("WritePause"), logReadsWritesInvoker);
+        m_watchBreakpoints.push_back(newBreakpoint);
     }
 
     if (node->logEntries.size() > 0) {
@@ -312,7 +329,7 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), instructionAddress)
                                                            : fmt::format(f_("Disable##{}"), instructionAddress);
                 if (ImGui::Button(toggleButtonName.c_str())) {
-                    auto* instructionMem = memData + instructionAddress - memBase;
+                    auto* instructionMem = PSXM(instructionAddress & 0xffffff);
                     if (functionToggledOff) {
                         memcpy(instructionMem, m_disabledInstructions[instructionAddress].data(), 4);
                         m_disabledInstructions.erase(instructionAddress);
@@ -393,7 +410,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
-            displayBreakpointOptions(node, currentAddress, memData, memBase);
+            displayBreakpointOptions(node, currentAddress);
         } else if (isInRAM(currentAddress)) {
             auto addToWatchButtonName = fmt::format(f_("Add to Watch tab##{}{}"), currentAddress, extraImGuiId);
             if (ImGui::Button(addToWatchButtonName.c_str())) {
@@ -431,7 +448,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TextDisabled("--");
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
-                displayBreakpointOptions(node, currentAddress, memData, memBase);
+                displayBreakpointOptions(node, currentAddress);
             }
             return;
         }
@@ -458,7 +475,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
             ImGui::TextDisabled("--");
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
-                displayBreakpointOptions(node, currentAddress, memData, memBase);
+                displayBreakpointOptions(node, currentAddress);
             }
             return;
         }
@@ -485,7 +502,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
-            displayBreakpointOptions(node, currentAddress, memData, memBase);
+            displayBreakpointOptions(node, currentAddress);
         }
     }
 }
@@ -654,18 +671,17 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                 if (importType == ImportType::DataTypes) {
                     // Refresh displayed Watch data.
                     for (auto& data : m_displayedWatchData) {
-                        printf("Refreshing node of type %s at address %x", data.node.type.c_str(), data.address);
                         // Refresh size.
                         const std::regex arrayRegex(R"((.*)\[(\d+)\])");
                         std::smatch matches;
                         auto type = data.node.type;
                         size_t numberOfElements = 1;
-                        if (std::regex_match(data.node.type, matches, arrayRegex)) {
+                        if (std::regex_match(type, matches, arrayRegex)) {
                             type = matches[1].str();
                             numberOfElements = std::stoul(matches[2].str());
                         }
 
-                        data.node.size = 0;
+                        data.node.size = type.back() == '*' ? 4 : 0;
                         for (const auto& field : m_structs[type]) {
                             data.node.size += field.size;
                         }
@@ -944,7 +960,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                             const auto ra = g_emulator->m_cpu->m_regs.GPR.n.ra;
                             std::string_view callerName = getFunctionNameFromInstructionAddress(ra);
                             if (callerName.empty()) {
-                                callerName = "overlay?";
+                                callerName = "Overlay?";
                             }
                             bpData.callerName = callerName;
                             bpData.callerAddress = ra;
@@ -964,7 +980,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                         auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), row)
                                                                    : fmt::format(f_("Disable##{}"), row);
                         if (ImGui::Button(toggleButtonName.c_str())) {
-                            auto* functionMem = memData + currentAddress - memBase;
+                            auto* functionMem = PSXM(currentAddress & 0xffffff);
                             if (functionToggledOff) {
                                 memcpy(functionMem, m_disabledFunctions[currentAddress].data(), 8);
                                 m_disabledFunctions.erase(currentAddress);

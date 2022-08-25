@@ -79,7 +79,8 @@ typedef struct {
 LuaScreenShot takeScreenShot();
 
 LuaSlice* createSaveState();
-void loadSaveState(LuaSlice*);
+void loadSaveStateFromSlice(LuaSlice*);
+void luaSaveStateFromFile(LuaFile*);
 ]]
 
 local C = ffi.load 'PCSX'
@@ -183,7 +184,16 @@ PCSX = {
         local slice = C.createSaveState()
         return Support.File._createSliceWrapper(slice)
     end,
-    loadSaveState = function(slice) C.loadSaveState(slice._wrapper) end,
+    loadSaveState = function(obj)
+        if type(obj) ~= 'table' then error('loadSaveState: requires an object as input') end
+        if obj._type == 'Slice' then
+            C.loadSaveStateFromSlice(obj._wrapper)
+        elseif obj._type == 'File' then
+            C.loadSaveStateFromFile(obj._wrapper)
+        else
+            error('loadSaveState: requires a Slice or File as input')
+        end
+    end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end

@@ -39,8 +39,9 @@ class ShaderEditor {
   public:
     ShaderEditor(const std::string& base, const std::string_view& dVS = "", const std::string_view& dPS = "",
                  const std::string_view& dL = "");
-    [[nodiscard]] std::optional<GLuint> compile(GUI* gui,
-                                                const std::vector<std::string_view>& mandatoryAttributes = {});
+    OpenGL::Status compile(GUI* gui, const std::vector<std::string_view>& mandatoryAttributes = {});
+    bool isProgramCompiled() { return m_shaderProgram != 0; }
+    GLuint getProgram() { return m_shaderProgram; }
 
     ~ShaderEditor();
 
@@ -53,6 +54,7 @@ class ShaderEditor {
     }
 
     void setDefaults();
+    void setFallbacks();
     void init();
     void reset(GUI*);
 

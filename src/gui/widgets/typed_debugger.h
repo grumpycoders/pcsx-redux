@@ -156,8 +156,7 @@ class TypedDebugger {
                      uint32_t extraImGuiId = 0);
     void printValue(const char* type, void* address);
     void displayNewValueInput(const char* type, void* address);
-    void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address, uint8_t* memData,
-                                  const uint32_t memBase);
+    void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address);
 
     /**
      * Event handling.
