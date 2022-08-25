@@ -990,64 +990,118 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
         m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
     }
 
-    if constexpr (textured == Textured::Yes) {
-        if (m_softPrim.iDither) {
-            prim->tpage.dither = true;
-            prim->tpage.raw |= 0x200;
-        }
-        m_softPrim.texturePage(&prim->tpage);
-        if constexpr (shape == Shape::Quad) {
-            switch (m_softPrim.GlobalTextTP) {
-                case GPU::TexDepth::Tex4Bits:
-                    m_softPrim.drawPoly4TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                             m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0],
-                                             prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
-                                             prim->v[2], prim->clutX * 16, prim->clutY);
-                    break;
-                case GPU::TexDepth::Tex8Bits:
-                    m_softPrim.drawPoly4TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                             m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0],
-                                             prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
-                                             prim->v[2], prim->clutX * 16, prim->clutY);
-                    break;
-                case GPU::TexDepth::Tex16Bits:
-                    m_softPrim.drawPoly4TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                           m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2, prim->u[0],
-                                           prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
-                                           prim->v[2]);
-                    break;
+    if constexpr (shading == Shading::Flat) {
+        if constexpr (textured == Textured::Yes) {
+            if (m_softPrim.iDither) {
+                prim->tpage.dither = true;
+                prim->tpage.raw |= 0x200;
+            }
+            m_softPrim.texturePage(&prim->tpage);
+            if constexpr (shape == Shape::Quad) {
+                switch (m_softPrim.GlobalTextTP) {
+                    case GPU::TexDepth::Tex4Bits:
+                        m_softPrim.drawPoly4TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                 m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
+                                                 prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3],
+                                                 prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
+                        break;
+                    case GPU::TexDepth::Tex8Bits:
+                        m_softPrim.drawPoly4TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                 m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
+                                                 prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3],
+                                                 prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
+                        break;
+                    case GPU::TexDepth::Tex16Bits:
+                        m_softPrim.drawPoly4TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                               m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
+                                               prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3],
+                                               prim->u[2], prim->v[2]);
+                        break;
+                }
+            } else {
+                switch (m_softPrim.GlobalTextTP) {
+                    case GPU::TexDepth::Tex4Bits:
+                        m_softPrim.drawPoly3TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                 m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                                 prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
+                        break;
+                    case GPU::TexDepth::Tex8Bits:
+                        m_softPrim.drawPoly3TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                 m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                                 prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
+                        break;
+                    case GPU::TexDepth::Tex16Bits:
+                        m_softPrim.drawPoly3TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                               m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                               prim->v[1], prim->u[2], prim->v[2]);
+                        break;
+                }
             }
         } else {
-            switch (m_softPrim.GlobalTextTP) {
-                case GPU::TexDepth::Tex4Bits:
-                    m_softPrim.drawPoly3TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                             m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                             prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
-                    break;
-                case GPU::TexDepth::Tex8Bits:
-                    m_softPrim.drawPoly3TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                             m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                             prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
-                    break;
-                case GPU::TexDepth::Tex16Bits:
-                    m_softPrim.drawPoly3TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                           m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                           prim->v[1], prim->u[2], prim->v[2]);
-                    break;
+            if constexpr (shape == Shape::Quad) {
+                m_softPrim.drawPoly4F(prim->colors[0]);
+            } else {
+                m_softPrim.drawPoly3F(prim->colors[0]);
             }
         }
     } else {
-        if constexpr (shape == Shape::Quad) {
-            if constexpr (shading == Shading::Gouraud) {
-                m_softPrim.drawPoly4G(prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+        if constexpr (textured == Textured::Yes) {
+            if (m_softPrim.iDither) {
+                prim->tpage.dither = true;
+                prim->tpage.raw |= 0x200;
+            }
+            m_softPrim.texturePage(&prim->tpage);
+            if constexpr (shape == Shape::Quad) {
+                switch (m_softPrim.GlobalTextTP) {
+                    case GPU::TexDepth::Tex4Bits:
+                        m_softPrim.drawPoly4TGEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                  m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
+                                                  prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3],
+                                                  prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
+                                                  prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                        break;
+                    case GPU::TexDepth::Tex8Bits:
+                        m_softPrim.drawPoly4TGEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                  m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
+                                                  prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3],
+                                                  prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
+                                                  prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                        break;
+                    case GPU::TexDepth::Tex16Bits:
+                        m_softPrim.drawPoly4TGD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
+                                                prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3],
+                                                prim->u[2], prim->v[2], prim->colors[0], prim->colors[1],
+                                                prim->colors[2], prim->colors[3]);
+                        break;
+                }
             } else {
-                m_softPrim.drawPoly4F(prim->colors[0]);
+                switch (m_softPrim.GlobalTextTP) {
+                    case GPU::TexDepth::Tex4Bits:
+                        m_softPrim.drawPoly3TGEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                  m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                                  prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
+                                                  prim->colors[0], prim->colors[1], prim->colors[2]);
+                        break;
+                    case GPU::TexDepth::Tex8Bits:
+                        m_softPrim.drawPoly3TGEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                  m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                                  prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
+                                                  prim->colors[0], prim->colors[1], prim->colors[2]);
+                        break;
+                    case GPU::TexDepth::Tex16Bits:
+                        m_softPrim.drawPoly3TGD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
+                                                m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
+                                                prim->v[1], prim->u[2], prim->v[2], prim->colors[0], prim->colors[1],
+                                                prim->colors[2]);
+                        break;
+                }
             }
         } else {
-            if constexpr (shading == Shading::Gouraud) {
-                m_softPrim.drawPoly3G(prim->colors[0], prim->colors[1], prim->colors[2]);
+            if constexpr (shape == Shape::Quad) {
+                m_softPrim.drawPoly4G(prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
             } else {
-                m_softPrim.drawPoly3F(prim->colors[0]);
+                m_softPrim.drawPoly3G(prim->colors[0], prim->colors[1], prim->colors[2]);
             }
         }
     }
