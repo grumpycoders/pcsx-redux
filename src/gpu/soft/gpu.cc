@@ -1108,6 +1108,57 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
     bDoVSyncUpdate = true;
 }
 
+static const int CHKMAX_X = 1024;
+static const int CHKMAX_Y = 512;
+
+static constexpr inline bool CheckCoordL(int16_t slx0, int16_t sly0, int16_t slx1, int16_t sly1) {
+    if (slx0 < 0) {
+        if ((slx1 - slx0) > CHKMAX_X) return true;
+    }
+    if (slx1 < 0) {
+        if ((slx0 - slx1) > CHKMAX_X) return true;
+    }
+    if (sly0 < 0) {
+        if ((sly1 - sly0) > CHKMAX_Y) return true;
+    }
+    if (sly1 < 0) {
+        if ((sly0 - sly1) > CHKMAX_Y) return true;
+    }
+
+    return false;
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
+    auto count = prim->colors.size();
+    if (count < 2) return;
+
+    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+
+    for (unsigned i = 1; i < count; i++) {
+        auto x0 = prim->x[i - 1];
+        auto x1 = prim->x[i];
+        auto y0 = prim->y[i - 1];
+        auto y1 = prim->y[i];
+        auto c0 = prim->colors[i - 1];
+        auto c1 = prim->colors[i];
+
+        if (CheckCoordL(x0, y0, x1, y1)) continue;
+        m_softPrim.ly0 = y0;
+        m_softPrim.lx0 = x0;
+        m_softPrim.ly1 = y1;
+        m_softPrim.lx1 = x1;
+
+        m_softPrim.offsetPSX2();
+        if constexpr (shading == Shading::Gouraud) {
+            m_softPrim.DrawSoftwareLineShade(c0, c1);
+        } else {
+            m_softPrim.DrawSoftwareLineFlat(c0);
+        }
+    }
+    bDoVSyncUpdate = true;
+}
+
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim) {
     int16_t w, h;
@@ -1249,14 +1300,14 @@ void impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi
     polyExec(prim);
 }
 
-void impl::write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *) { __debugbreak(); }
-void impl::write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *) { __debugbreak(); }
-void impl::write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *) { __debugbreak(); }
-void impl::write0(Line<Shading::Flat, LineType::Poly, Blend::Semi> *) { __debugbreak(); }
-void impl::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Off> *) { __debugbreak(); }
-void impl::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Semi> *) { __debugbreak(); }
-void impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) { __debugbreak(); }
-void impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) { __debugbreak(); }
+void impl::write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *prim) { lineExec(prim); }
+void impl::write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *prim) { lineExec(prim); }
+void impl::write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *prim) { lineExec(prim); }
+void impl::write0(Line<Shading::Flat, LineType::Poly, Blend::Semi> *prim) { lineExec(prim); }
+void impl::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Off> *prim) { lineExec(prim); }
+void impl::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Semi> *prim) { lineExec(prim); }
+void impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *prim) { lineExec(prim); }
+void impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *prim) { lineExec(prim); }
 
 void impl::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
 void impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
