@@ -364,65 +364,9 @@ PCSX::GPU::GPU() {
 }
 
 int PCSX::GPU::init(GUI *gui) {
-    s_poly00.setGPU(this);
-    s_poly01.setGPU(this);
-    s_poly02.setGPU(this);
-    s_poly03.setGPU(this);
-    s_poly04.setGPU(this);
-    s_poly05.setGPU(this);
-    s_poly06.setGPU(this);
-    s_poly07.setGPU(this);
-    s_poly08.setGPU(this);
-    s_poly09.setGPU(this);
-    s_poly0a.setGPU(this);
-    s_poly0b.setGPU(this);
-    s_poly0c.setGPU(this);
-    s_poly0d.setGPU(this);
-    s_poly0e.setGPU(this);
-    s_poly0f.setGPU(this);
-    s_poly10.setGPU(this);
-    s_poly11.setGPU(this);
-    s_poly12.setGPU(this);
-    s_poly13.setGPU(this);
-    s_poly14.setGPU(this);
-    s_poly15.setGPU(this);
-    s_poly16.setGPU(this);
-    s_poly17.setGPU(this);
-    s_poly18.setGPU(this);
-    s_poly19.setGPU(this);
-    s_poly1a.setGPU(this);
-    s_poly1b.setGPU(this);
-    s_poly1c.setGPU(this);
-    s_poly1d.setGPU(this);
-    s_poly1e.setGPU(this);
-    s_poly1f.setGPU(this);
-
-    s_line0.setGPU(this);
-    s_line1.setGPU(this);
-    s_line2.setGPU(this);
-    s_line3.setGPU(this);
-    s_line4.setGPU(this);
-    s_line5.setGPU(this);
-    s_line6.setGPU(this);
-    s_line7.setGPU(this);
-
-    s_rect00.setGPU(this);
-    s_rect01.setGPU(this);
-    s_rect02.setGPU(this);
-    s_rect03.setGPU(this);
-    s_rect04.setGPU(this);
-    s_rect05.setGPU(this);
-    s_rect06.setGPU(this);
-    s_rect07.setGPU(this);
-    s_rect08.setGPU(this);
-    s_rect09.setGPU(this);
-    s_rect0a.setGPU(this);
-    s_rect0b.setGPU(this);
-    s_rect0c.setGPU(this);
-    s_rect0d.setGPU(this);
-    s_rect0e.setGPU(this);
-    s_rect0f.setGPU(this);
-
+    for (auto poly : m_polygons) poly->setGPU(this);
+    for (auto line : m_lines) line->setGPU(this);
+    for (auto rect : m_rects) rect->setGPU(this);
     return initBackend(gui);
 }
 
@@ -730,8 +674,8 @@ void PCSX::GPU::BlitVramVram::processWrite(uint32_t value) {
             m_state = READ_DST_XY;
             return;
         case READ_DST_XY:
-            sX = signExtend<int, 11>(value & 0xffff);
-            sY = signExtend<int, 11>(value >> 16);
+            dX = signExtend<int, 11>(value & 0xffff);
+            dY = signExtend<int, 11>(value >> 16);
             m_state = READ_HW;
             return;
         case READ_HW:
@@ -798,7 +742,6 @@ void PCSX::GPU::BlitVramRam::processWrite(uint32_t value) {
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->m_vramReadSlice = m_gpu->getVRAM();
             for (auto l = y; l < y + h; l++) {
-                const uint16_t *line = m_gpu->m_vramReadSlice.data<uint16_t>() + (l * 1024) + x;
                 Slice slice;
                 slice.borrow(m_gpu->m_vramReadSlice, (l * 1024 + x) * 2, w * 2);
                 m_gpu->m_readFifo->pushSlice(std::move(slice));
@@ -856,4 +799,43 @@ PCSX::GPU::DrawingOffset::DrawingOffset(uint32_t value) {
 PCSX::GPU::MaskBit::MaskBit(uint32_t value) {
     set = value & 1;
     check = (value >> 1) & 1;
+}
+
+void PCSX::GPU::write0(BlitVramVram *prim) {
+    auto inSlice = getVRAM();
+
+    auto sX = prim->sX;
+    auto sY = prim->sY;
+    auto dX = prim->dX;
+    auto dY = prim->dY;
+    auto w = prim->w;
+    auto h = prim->h;
+
+    if (sX > 1024) {
+        w -= sX - 1024;
+        sX = 1024;
+    }
+    if (sY > 512) {
+        h -= sY - 512;
+        sY = 512;
+    }
+    if (dX > 1024) {
+        w -= dX - 1024;
+        dX = 1024;
+    }
+    if (dY > 512) {
+        h -= dY - 512;
+        dY = 512;
+    }
+
+    if ((w == 0) || (h == 0)) return;
+
+    std::vector<uint16_t> rect;
+    rect.resize(h * w);
+    for (auto l = 0; l < h; l++) {
+        Slice slice;
+        slice.borrow(inSlice, ((l + sY) * 1024 + sX) * sizeof(uint16_t), w * sizeof(uint16_t));
+        memcpy(rect.data() + l * w, slice.data(), slice.size());
+    }
+    partialUpdateVRAM(dX, dY, w, h, rect.data());
 }

@@ -442,7 +442,7 @@ class GPU {
     virtual void write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *) = 0;
     virtual void write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *) = 0;
 
-    virtual void write0(BlitVramVram *) = 0;
+    virtual void write0(BlitVramVram *);
 
     virtual void write0(TPage *) = 0;
     virtual void write0(TWindow *) = 0;

@@ -164,6 +164,8 @@ class impl final : public GPU {
 
     void write0(FastFill *) override;
 
+    template <Shading shading, Shape shape, Textured textured, Blend blend, Modulation modulation>
+    void polyExec(Poly<shading, shape, textured, blend, modulation> *);
     void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) override;
     void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) override;
     void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) override;
@@ -197,6 +199,8 @@ class impl final : public GPU {
     void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
     void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) override;
 
+    template <Shading shading, LineType lineType, Blend blend>
+    void lineExec(Line<shading, lineType, blend> *);
     void write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *) override;
     void write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *) override;
     void write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *) override;
@@ -206,6 +210,8 @@ class impl final : public GPU {
     void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) override;
     void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) override;
 
+    template <Size size, Textured textured, Blend blend, Modulation modulation>
+    void rectExec(Rect<size, textured, blend, modulation> *);
     void write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *) override;
     void write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *) override;
     void write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *) override;
