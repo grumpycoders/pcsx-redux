@@ -718,7 +718,31 @@ void PCSX::GPU::FastFill::processWrite(uint32_t value) {
     }
 }
 
-void PCSX::GPU::BlitVramVram::processWrite(uint32_t value) { __debugbreak(); }
+void PCSX::GPU::BlitVramVram::processWrite(uint32_t value) {
+    size_t size;
+    switch (m_state) {
+        case READ_COMMAND:
+            m_state = READ_SRC_XY;
+            return;
+        case READ_SRC_XY:
+            sX = signExtend<int, 11>(value & 0xffff);
+            sY = signExtend<int, 11>(value >> 16);
+            m_state = READ_DST_XY;
+            return;
+        case READ_DST_XY:
+            sX = signExtend<int, 11>(value & 0xffff);
+            sY = signExtend<int, 11>(value >> 16);
+            m_state = READ_HW;
+            return;
+        case READ_HW:
+            w = signExtend<int, 11>(value & 0xffff);
+            h = signExtend<int, 11>(value >> 16);
+            m_state = READ_COMMAND;
+            m_gpu->m_defaultProcessor.setActive();
+            m_gpu->write0(this);
+            return;
+    }
+}
 
 void PCSX::GPU::BlitRamVram::processWrite(uint32_t value) {
     size_t size;

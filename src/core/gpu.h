@@ -152,7 +152,7 @@ class GPU {
     enum class Shape { Tri, Quad };
     enum class Textured { No, Yes };
     enum class Blend { Off, Semi };
-    enum class Modulation { Off, On };
+    enum class Modulation { On, Off };
     enum class LineType { Simple, Poly };
     enum class Size { Variable, S1, S8, S16 };
 
