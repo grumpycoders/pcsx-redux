@@ -21,7 +21,9 @@
 
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
-#include "core/sio.h"
+//#include "core/sio.h"
+
+class SIO;
 
 namespace PCSX {
 class MemoryCard {
@@ -141,11 +143,10 @@ class MemoryCard {
   public:
     MemoryCard() : m_sio(nullptr) {}
     MemoryCard(SIO *parent) : m_sio(parent) {}
-    void ACK() { /*
-        m_sio->ACK();*/
-    }
+
+    void ACK();
     void Deselect();
-    void LoadMcd(int mcd, const PCSX::u8string str);
+    void LoadMcd(const PCSX::u8string str);
     void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
     void saveMcd(int mcd);
     uint8_t ProcessEvents(uint8_t value);

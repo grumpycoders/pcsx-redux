@@ -31,10 +31,9 @@ namespace PCSX {
 
 class SIO {
   protected:
+    MemoryCard m_memoryCard[2] = {this, this};
     
   private:
-    MemoryCard m_memoryCard;
-    //= {this};
     enum {
         // Status Flags
         TX_RDY = 0x0001,
@@ -169,7 +168,7 @@ class SIO {
     void writePad(uint8_t value);
     void writeMcd(uint8_t value);
 
-    //friend MemoryCard;
+    friend MemoryCard;
     
   public:
     SIO();
@@ -191,7 +190,6 @@ class SIO {
     uint16_t readCtrl16();
     uint16_t readBaud16();
 
-    void netError();
     void interrupt();
     void reset();
 

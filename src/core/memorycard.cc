@@ -5,6 +5,9 @@
 #include "core/sio.h"
 #include "support/sjis_conv.h"
 
+
+void PCSX::MemoryCard::ACK() { m_sio->ACK(); }
+
 void PCSX::MemoryCard::Deselect() { GoIdle(); }
 
 uint8_t PCSX::MemoryCard::ProcessEvents(uint8_t value) {
@@ -14,6 +17,7 @@ uint8_t PCSX::MemoryCard::ProcessEvents(uint8_t value) {
         case Commands::None:
             current_command = value;
             data_out = flag;
+            ACK();
             break;
 
         case Commands::Access:
@@ -192,7 +196,7 @@ uint8_t PCSX::MemoryCard::TickWriteCommand(uint8_t value) {
         default:
             if (command_ticks >= 5 && command_ticks <= 132) {
                 // Store data
-                g_mcdData[sector_offset + (command_ticks - 5)] = value;
+                g_mcdData[sector_offset] = value;
                 // Calculate checksum
                 checksum_out ^= value;
                 // Reply with (pre)
@@ -207,18 +211,16 @@ uint8_t PCSX::MemoryCard::TickWriteCommand(uint8_t value) {
     }
 
     command_ticks++;
+    ACK();
 
     return data_out;
 }
 
-void PCSX::MemoryCard::LoadMcd(int mcd, const PCSX::u8string str) {
-    char *data = nullptr;
+void PCSX::MemoryCard::LoadMcd(const PCSX::u8string str) {
+    char *data = g_mcdData;
     const char *fname = reinterpret_cast<const char *>(str.c_str());
 
-    if (mcd == 1) {
-        data = g_mcdData;
-        flag = Flags::DirectoryUnread;
-    }
+    flag = Flags::DirectoryUnread;
 
     FILE *f = fopen(fname, "rb");
     if (f == nullptr) {
