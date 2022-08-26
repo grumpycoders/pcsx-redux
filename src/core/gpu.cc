@@ -88,7 +88,6 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(uint32
 
 template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
 void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
-    __debugbreak();
     if constexpr (lineType == LineType::Poly) {
         switch (m_state) {
             case READ_COLOR:
