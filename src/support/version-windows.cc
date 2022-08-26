@@ -44,7 +44,7 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     script->writeString("Write-Host \"Waiting for PCSX-Redux to close in order to self-update...\"\n");
     script->writeString("Wait-Process -Id ");
     script->writeString(std::to_string(GetCurrentProcessId()));
-    script->writeString("\n");
+    script->writeString(" -ErrorAction SilentlyContinue\n");
     script->writeString("Remove-Item -Path \"");
     script->writeString(tmp.string());
     script->writeString("pcsx-redux-update.started\"\n");
@@ -89,7 +89,7 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     script->close();
 
     std::string cmd;
-    cmd = "cmd.exe /c powershell.exe -ExecutionPolicy Bypass -windowstyle hidden -file ";
+    cmd = "cmd.exe /c powershell.exe -ExecutionPolicy Bypass -file ";
     cmd += (tmp / "pcsx-redux-update.ps1").string();
 #ifdef UNICODE
     int needed;
