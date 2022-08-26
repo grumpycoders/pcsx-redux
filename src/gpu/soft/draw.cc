@@ -26,8 +26,6 @@
 #include "gpu/soft/soft.h"
 #include "gui/gui.h"
 
-static const unsigned int pitch = 4096;
-
 void PCSX::SoftGPU::impl::doBufferSwap() {
     m_gui->setViewport();
     GLuint textureID;
