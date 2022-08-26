@@ -272,14 +272,9 @@ class GPU {
         MaskBit &operator=(const MaskBit &other) = default;
         bool set, check;
     };
-
-    template <Shading shading_, Shape shape_, Textured textured_, Blend blend_, Modulation modulation_>
+    
+    template <Shading shading, Shape shape, Textured textured, Blend blend, Modulation modulation>
     struct Poly final : public Command, public Logged {
-        static constexpr Shading shading = shading_;
-        static constexpr Shape shape = shape_;
-        static constexpr Textured textured = textured_;
-        static constexpr Blend blend = blend_;
-        static constexpr Modulation modulation = modulation_;
         static constexpr unsigned count = shape == Shape::Tri ? 3 : 4;
 
         Poly() {}
@@ -287,56 +282,48 @@ class GPU {
         uint32_t colors[count];
         int x[count], y[count];
         struct Empty {};
-        typedef std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
         [[no_unique_address]] TextureUnitType u[count];
         [[no_unique_address]] TextureUnitType v[count];
         [[no_unique_address]] TextureUnitType clutX;
         [[no_unique_address]] TextureUnitType clutY;
-        [[no_unique_address]] std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
+        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
 
       private:
         unsigned m_count = 0;
         enum { READ_COLOR, READ_XY, READ_UV } m_state = READ_COLOR;
     };
-
-    template <Shading shading_, LineType lineType_, Blend blend_>
+    
+    template <Shading shading, LineType lineType, Blend blend>
     struct Line final : public Command, public Logged {
-        static constexpr Shading shading = shading_;
-        static constexpr LineType lineType = lineType_;
-        static constexpr Blend blend = blend_;
-
         Line() {
             if constexpr (lineType == LineType::Simple) m_count = 0;
         }
         void processWrite(uint32_t value) override;
 
         template <typename T>
-        using Storage = std::conditional<lineType == LineType::Poly, std::vector<T>, std::array<T, 2>>::type;
+        using Storage = typename std::conditional<lineType == LineType::Poly, std::vector<T>, std::array<T, 2>>::type;
 
         Storage<int> x, y;
         Storage<uint32_t> colors;
 
       private:
         struct Empty {};
-        [[no_unique_address]] std::conditional<lineType == LineType::Simple, unsigned, Empty>::type m_count;
+        [[no_unique_address]] typename std::conditional<lineType == LineType::Simple, unsigned, Empty>::type m_count;
         enum { READ_COLOR, READ_XY } m_state = READ_COLOR;
     };
 
-    template <Size size_, Textured textured_, Blend blend_, Modulation modulation_>
+    template <Size size, Textured textured, Blend blend, Modulation modulation>
     struct Rect final : public Command, public Logged {
-        static constexpr Size size = size_;
-        static constexpr Textured textured = textured_;
-        static constexpr Blend blend = blend_;
-        static constexpr Modulation modulation = modulation_;
-
         Rect() {}
         void processWrite(uint32_t value) override;
 
         struct Empty {};
         int x, y, w, h;
-        typedef std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
-        [[no_unique_address]] std::conditional<(textured == Textured::No) || (modulation == Modulation::On), uint32_t,
-                                               Empty>::type color;
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
+        [[no_unique_address]]
+        typename std::conditional<(textured == Textured::No) || (modulation == Modulation::On), uint32_t, Empty>::type
+            color;
         [[no_unique_address]] TextureUnitType u;
         [[no_unique_address]] TextureUnitType v;
         [[no_unique_address]] TextureUnitType clutX;

@@ -47,7 +47,7 @@ namespace PCSX {
 template <GPU::Shading shading, GPU::Shape shape, GPU::Textured textured, GPU::Blend blend, GPU::Modulation modulation>
 void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(uint32_t value) {
     switch (m_state) {
-        for (m_count = 0; m_count < count; m_count++) {
+        for (/* m_count = 0 */; m_count < count; m_count++) {
             if (shading == Shading::Gouraud) {
                 m_state = READ_COLOR;
                 return;
@@ -107,7 +107,7 @@ void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
         }
     } else {
         switch (m_state) {
-            for (m_count = 0; m_count < 2; m_count++) {
+            for (/* m_count = 0 */; m_count < 2; m_count++) {
                 case READ_COLOR:
                     colors[m_count] = value;
                     m_state = READ_XY;

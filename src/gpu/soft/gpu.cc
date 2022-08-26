@@ -711,7 +711,7 @@ void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
     auto count = prim->colors.size();
     if (count < 2) return;
 
-    m_softRenderer.DrawSemiTrans = prim->blend == Blend::Semi;
+    m_softRenderer.DrawSemiTrans = blend == Blend::Semi;
 
     for (unsigned i = 1; i < count; i++) {
         auto x0 = prim->x[i - 1];
@@ -755,9 +755,9 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
         w = h = 16;
     }
 
-    m_softRenderer.DrawSemiTrans = prim->blend == Blend::Semi;
+    m_softRenderer.DrawSemiTrans = blend == Blend::Semi;
 
-    if constexpr (prim->modulation == Modulation::On) {
+    if constexpr (modulation == Modulation::On) {
         m_softRenderer.g_m1 = (prim->color >> 0) & 0xff;
         m_softRenderer.g_m2 = (prim->color >> 8) & 0xff;
         m_softRenderer.g_m3 = (prim->color >> 16) & 0xff;
