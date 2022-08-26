@@ -32,7 +32,7 @@
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
-#include "gpu/soft/prim.h"
+#include "gpu/soft/soft.h"
 #include "imgui.h"
 #include "tracy/Tracy.hpp"
 
@@ -51,44 +51,20 @@ int32_t *psxVsl;
 
 // GPU globals
 int32_t lGPUstatusRet;
-char szDispBuf[64];
-char szMenuBuf[36];
-char szDebugText[512];
 
-static uint32_t gpuDataM[256];
-static uint8_t gpuCommand = 0;
-static int32_t gpuDataC = 0;
-static int32_t gpuDataP = 0;
-
-VRAMLoad_t VRAMWrite;
-VRAMLoad_t VRAMRead;
-DATAREGISTERMODES DataWriteMode;
-DATAREGISTERMODES DataReadMode;
-
-bool bSkipNextFrame = false;
-uint32_t dwLaceCnt = 0;
-int iColDepth;
-int iWindowMode;
 int16_t sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
 PSXDisplay_t PSXDisplay;
 PSXDisplay_t PreviousPSXDisplay;
-int32_t lSelectedSlot = 0;
-bool bChangeWinMode = false;
 bool bDoLazyUpdate = false;
 uint32_t lGPUInfoVals[16];
-int iFakePrimBusy = 0;
-int iRumbleVal = 0;
-int iRumbleTime = 0;
 
 int32_t PCSX::SoftGPU::impl::initBackend(GUI *gui) {
     m_gui = gui;
     bDoVSyncUpdate = true;
     initDisplay();
 
-    szDebugText[0] = 0;  // init debug text buffer
-
-    psxVSecure = new uint8_t[(iGPUHeight * 2) * 1024 +
-                             (1024 * 1024)]();  // always alloc one extra MB for soft drawing funcs security
+    // always alloc one extra MB for soft drawing funcs security
+    psxVSecure = new uint8_t[(iGPUHeight * 2) * 1024 + (1024 * 1024)]();
     if (!psxVSecure) return -1;
 
     //!!! ATTENTION !!!
@@ -120,12 +96,6 @@ int32_t PCSX::SoftGPU::impl::initBackend(GUI *gui) {
     PreviousPSXDisplay.DisplayModeNew.y = 0;
     PSXDisplay.Double = 1;
     lGPUdataRet = 0x400;
-
-    DataWriteMode = DR_NORMAL;
-
-    // Reset transfer values, to prevent mis-transfer of data
-    memset(&VRAMWrite, 0, sizeof(VRAMLoad_t));
-    memset(&VRAMRead, 0, sizeof(VRAMLoad_t));
 
     // device initialised already !
     lGPUstatusRet = 0x14802000;
@@ -269,7 +239,7 @@ void PCSX::SoftGPU::impl::vblank() {
         uint32_t data = 0x02000000;
         fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
     }
-    if (!(dwActFixes & 1)) lGPUstatusRet ^= 0x80000000;  // odd/even bit
+    lGPUstatusRet ^= 0x80000000;  // odd/even bit
 
     if (PSXDisplay.Interlaced)  // interlaced mode?
     {
@@ -278,14 +248,8 @@ void PCSX::SoftGPU::impl::vblank() {
         }
     } else  // non-interlaced?
     {
-        if (dwActFixes & 64)  // lazy screen update fix
-        {
-            if (bDoLazyUpdate) updateDisplay();
-            bDoLazyUpdate = false;
-        } else {
-            // some primitives drawn?
-            if (bDoVSyncUpdate) updateDisplay();  // -> update display
-        }
+        // some primitives drawn?
+        if (bDoVSyncUpdate) updateDisplay();  // -> update display
     }
 
     bDoVSyncUpdate = false;  // vsync done
@@ -295,35 +259,7 @@ void PCSX::SoftGPU::impl::vblank() {
 // process read request from GPU status register
 ////////////////////////////////////////////////////////////////////////
 
-uint32_t PCSX::SoftGPU::impl::readStatusInternal() {
-    if (dwActFixes & 1) {
-        static int iNumRead = 0;  // odd/even hack
-        if ((iNumRead++) == 2) {
-            iNumRead = 0;
-            lGPUstatusRet ^= 0x80000000;  // interlaced bit toggle... we do it on every 3 read status... needed by some
-                                          // games (like ChronoCross) with old epsxe versions (1.5.2 and older)
-        }
-    }
-
-    // if(GetAsyncKeyState(VK_SHIFT)&32768) auxprintf("1 %08x\n",lGPUstatusRet);
-
-    if (iFakePrimBusy)  // 27.10.2007 - PETE : emulating some 'busy' while drawing... pfff
-    {
-        iFakePrimBusy--;
-
-        if (iFakePrimBusy & 1)  // we do a busy-idle-busy-idle sequence after/while drawing prims
-        {
-            GPUIsBusy;
-            GPUIsNotReadyForCommands;
-        } else {
-            GPUIsIdle;
-            GPUIsReadyForCommands;
-        }
-        //   auxprintf("2 %08x\n",lGPUstatusRet);
-    }
-
-    return lGPUstatusRet;
-}
+uint32_t PCSX::SoftGPU::impl::readStatusInternal() { return lGPUstatusRet; }
 
 void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) { lGPUstatusRet = status; }
 
@@ -345,9 +281,8 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
             memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
             lGPUstatusRet = 0x14802000;
             PSXDisplay.Disabled = 1;
-            DataWriteMode = DataReadMode = DR_NORMAL;
             PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
-            m_softPrim.reset();
+            m_softRenderer.reset();
             acknowledgeIRQ1();
             PSXDisplay.RGB24 = false;
             PSXDisplay.Interlaced = false;
@@ -374,9 +309,6 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
         case 0x04:
             gdata &= 0x03;  // Only want the lower two bits
 
-            DataWriteMode = DataReadMode = DR_NORMAL;
-            if (gdata == 0x02) DataWriteMode = DR_VRAMTRANSFER;
-            if (gdata == 0x03) DataReadMode = DR_VRAMTRANSFER;
             lGPUstatusRet &= ~GPUSTATUS_DMABITS;  // Clear the current settings of the DMA bits
             lGPUstatusRet |= (gdata << 29);       // Set the DMA bits according to the received data
 
@@ -416,11 +348,6 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
                 PreviousPSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y + PreviousPSXDisplay.DisplayModeNew.y;
 
             bDoVSyncUpdate = true;
-
-            if (!(PSXDisplay.Interlaced))  // stupid frame skipping option
-            {
-                if (dwActFixes & 64) bDoLazyUpdate = true;
-            }
         }
             return;
 
@@ -530,329 +457,6 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
     }
 }
 
-// vram read/write helpers, needed by LEWPY's optimized vram read/write :)
-
-__inline void FinishedVRAMWrite() {
-    /*
-    // NEWX
-     if(!PSXDisplay.Interlaced && g_useFrameSkip)            // stupid frame skipping
-      {
-       VRAMWrite.Width +=VRAMWrite.x;
-       VRAMWrite.Height+=VRAMWrite.y;
-       if(VRAMWrite.x<PSXDisplay.DisplayEnd.x &&
-          VRAMWrite.Width >=PSXDisplay.DisplayPosition.x &&
-          VRAMWrite.y<PSXDisplay.DisplayEnd.y &&
-          VRAMWrite.Height>=PSXDisplay.DisplayPosition.y)
-        updateDisplay();
-      }
-    */
-
-    // Set register to NORMAL operation
-    DataWriteMode = DR_NORMAL;
-    // Reset transfer values, to prevent mis-transfer of data
-    VRAMWrite.x = 0;
-    VRAMWrite.y = 0;
-    VRAMWrite.Width = 0;
-    VRAMWrite.Height = 0;
-    VRAMWrite.ColsRemaining = 0;
-    VRAMWrite.RowsRemaining = 0;
-}
-
-__inline void FinishedVRAMRead() {
-    // Set register to NORMAL operation
-    DataReadMode = DR_NORMAL;
-    // Reset transfer values, to prevent mis-transfer of data
-    VRAMRead.x = 0;
-    VRAMRead.y = 0;
-    VRAMRead.Width = 0;
-    VRAMRead.Height = 0;
-    VRAMRead.ColsRemaining = 0;
-    VRAMRead.RowsRemaining = 0;
-
-    // Indicate GPU is no longer ready for VRAM data in the STATUS REGISTER
-    lGPUstatusRet &= ~GPUSTATUS_READYFORVRAM;
-}
-
-// core read from vram
-void PCSX::SoftGPU::impl::readDataMem(uint32_t *pMem, int iSize) {
-    if (DataReadMode != DR_VRAMTRANSFER) return;
-
-    GPUIsBusy;
-
-    // adjust read ptr, if necessary
-    while (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
-    while (VRAMRead.ImagePtr < psxVuw) VRAMRead.ImagePtr += iGPUHeight * 1024;
-
-    for (int i = 0; i < iSize; i++) {
-        // do 2 seperate 16bit reads for compatibility (wrap issues)
-        if ((VRAMRead.ColsRemaining > 0) && (VRAMRead.RowsRemaining > 0)) {
-            // lower 16 bit
-            lGPUdataRet = (uint32_t)*VRAMRead.ImagePtr;
-
-            VRAMRead.ImagePtr++;
-            if (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
-            VRAMRead.RowsRemaining--;
-
-            if (VRAMRead.RowsRemaining <= 0) {
-                VRAMRead.RowsRemaining = VRAMRead.Width;
-                VRAMRead.ColsRemaining--;
-                VRAMRead.ImagePtr += 1024 - VRAMRead.Width;
-                if (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
-            }
-
-            // higher 16 bit (always, even if it's an odd width)
-            lGPUdataRet |= (uint32_t)(*VRAMRead.ImagePtr) << 16;
-
-            *pMem++ = lGPUdataRet;
-
-            if (VRAMRead.ColsRemaining <= 0) {
-                FinishedVRAMRead();
-                goto ENDREAD;
-            }
-
-            VRAMRead.ImagePtr++;
-            if (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
-            VRAMRead.RowsRemaining--;
-            if (VRAMRead.RowsRemaining <= 0) {
-                VRAMRead.RowsRemaining = VRAMRead.Width;
-                VRAMRead.ColsRemaining--;
-                VRAMRead.ImagePtr += 1024 - VRAMRead.Width;
-                if (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
-            }
-            if (VRAMRead.ColsRemaining <= 0) {
-                FinishedVRAMRead();
-                goto ENDREAD;
-            }
-        } else {
-            FinishedVRAMRead();
-            goto ENDREAD;
-        }
-    }
-
-ENDREAD:
-    GPUIsIdle;
-}
-
-// processes data send to GPU data register
-// extra table entries for fixing polyline troubles
-const unsigned char primTableCX[256] = {
-    // 00
-    0, 0, 3, 0, 0, 0, 0, 0,
-    // 08
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 10
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 18
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 20
-    4, 4, 4, 4, 7, 7, 7, 7,
-    // 28
-    5, 5, 5, 5, 9, 9, 9, 9,
-    // 30
-    6, 6, 6, 6, 9, 9, 9, 9,
-    // 38
-    8, 8, 8, 8, 12, 12, 12, 12,
-    // 40
-    3, 3, 3, 3, 0, 0, 0, 0,
-    // 48
-    //  5,5,5,5,6,6,6,6,    // FLINE
-    254, 254, 254, 254, 254, 254, 254, 254,
-    // 50
-    4, 4, 4, 4, 0, 0, 0, 0,
-    // 58
-    //  7,7,7,7,9,9,9,9,    // GLINE
-    255, 255, 255, 255, 255, 255, 255, 255,
-    // 60
-    3, 3, 3, 3, 4, 4, 4, 4,
-    // 68
-    2, 2, 2, 2, 3, 3, 3, 3,  // 3=SPRITE1???
-                             // 70
-    2, 2, 2, 2, 3, 3, 3, 3,
-    // 78
-    2, 2, 2, 2, 3, 3, 3, 3,
-    // 80
-    4, 0, 0, 0, 0, 0, 0, 0,
-    // 88
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 90
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 98
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // a0
-    3, 0, 0, 0, 0, 0, 0, 0,
-    // a8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // b0
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // b8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // c0
-    3, 0, 0, 0, 0, 0, 0, 0,
-    // c8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // d0
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // d8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // e0
-    0, 1, 1, 1, 1, 1, 1, 0,
-    // e8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // f0
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // f8
-    0, 0, 0, 0, 0, 0, 0, 0};
-
-#if 0
-void PCSX::SoftGPU::impl::startDump() {
-    if (m_dumpFile) return;
-    m_dumpFile = fopen("gpu.dump", "wb");
-    fwrite(psxVuw, 1024, 1024, (FILE *)m_dumpFile);
-    uint32_t data = 0;
-    fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
-    data = 0xffffffff;
-    fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
-    data = 0x01000009;
-    fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
-    fwrite(&ulStatusControl[0], sizeof(ulStatusControl[0]), 1, (FILE *)m_dumpFile);
-    fwrite(&ulStatusControl[1], sizeof(ulStatusControl[1]), 1, (FILE *)m_dumpFile);
-    fwrite(&ulStatusControl[2], sizeof(ulStatusControl[2]), 1, (FILE *)m_dumpFile);
-    fwrite(&ulStatusControl[3], sizeof(ulStatusControl[3]), 1, (FILE *)m_dumpFile);
-    fwrite(&ulStatusControl[8], sizeof(ulStatusControl[8]), 1, (FILE *)m_dumpFile);
-    fwrite(&ulStatusControl[6], sizeof(ulStatusControl[6]), 1, (FILE *)m_dumpFile);
-    fwrite(&ulStatusControl[7], sizeof(ulStatusControl[7]), 1, (FILE *)m_dumpFile);
-    fwrite(&ulStatusControl[5], sizeof(ulStatusControl[5]), 1, (FILE *)m_dumpFile);
-    fwrite(&ulStatusControl[4], sizeof(ulStatusControl[4]), 1, (FILE *)m_dumpFile);
-}
-#endif
-
-void PCSX::SoftGPU::impl::stopDump() {
-    if (!m_dumpFile) return;
-    fclose((FILE *)m_dumpFile);
-    m_dumpFile = nullptr;
-}
-
-void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
-    ZoneScoped;
-    uint8_t command;
-    uint32_t gdata = 0;
-    int i = 0;
-
-    if (m_dumpFile) {
-        uint32_t data;
-        data = iSize;
-        fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
-        fwrite(pMem, 4, iSize, (FILE *)m_dumpFile);
-    }
-
-    GPUIsBusy;
-    GPUIsNotReadyForCommands;
-
-STARTVRAM:
-
-    if (DataWriteMode == DR_VRAMTRANSFER) {
-        bool bFinished = false;
-
-        // make sure we are in vram
-        while (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
-        while (VRAMWrite.ImagePtr < psxVuw) VRAMWrite.ImagePtr += iGPUHeight * 1024;
-
-        // now do the loop
-        while (VRAMWrite.ColsRemaining > 0) {
-            while (VRAMWrite.RowsRemaining > 0) {
-                if (i >= iSize) {
-                    goto ENDVRAM;
-                }
-                i++;
-
-                gdata = *pMem++;
-
-                *VRAMWrite.ImagePtr++ = (uint16_t)gdata;
-                if (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
-                VRAMWrite.RowsRemaining--;
-
-                if (VRAMWrite.RowsRemaining <= 0) {
-                    VRAMWrite.ColsRemaining--;
-                    if (VRAMWrite.ColsRemaining <= 0)  // last pixel is odd width
-                    {
-                        gdata = (gdata & 0xFFFF) | (((uint32_t)(*VRAMWrite.ImagePtr)) << 16);
-                        FinishedVRAMWrite();
-                        bDoVSyncUpdate = true;
-                        goto ENDVRAM;
-                    }
-                    VRAMWrite.RowsRemaining = VRAMWrite.Width;
-                    VRAMWrite.ImagePtr += 1024 - VRAMWrite.Width;
-                }
-
-                *VRAMWrite.ImagePtr++ = (uint16_t)(gdata >> 16);
-                if (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
-                VRAMWrite.RowsRemaining--;
-            }
-
-            VRAMWrite.RowsRemaining = VRAMWrite.Width;
-            VRAMWrite.ColsRemaining--;
-            VRAMWrite.ImagePtr += 1024 - VRAMWrite.Width;
-            bFinished = true;
-        }
-
-        FinishedVRAMWrite();
-        if (bFinished) bDoVSyncUpdate = true;
-    }
-
-ENDVRAM:
-
-    if (DataWriteMode == DR_NORMAL) {
-        for (; i < iSize;) {
-            if (DataWriteMode == DR_VRAMTRANSFER) goto STARTVRAM;
-
-            gdata = *pMem++;
-            i++;
-
-            if (gpuDataC == 0) {
-                command = (uint8_t)((gdata >> 24) & 0xff);
-
-                // if(command>=0xb0 && command<0xc0) auxprintf("b0 %x!!!!!!!!!\n",command);
-
-                if (primTableCX[command]) {
-                    gpuDataC = primTableCX[command];
-                    gpuCommand = command;
-                    gpuDataM[0] = gdata;
-                    gpuDataP = 1;
-                } else
-                    continue;
-            } else {
-                gpuDataM[gpuDataP] = gdata;
-                if (gpuDataC > 128) {
-                    if ((gpuDataC == 254 && gpuDataP >= 3) || (gpuDataC == 255 && gpuDataP >= 4 && !(gpuDataP & 1))) {
-                        if ((gpuDataM[gpuDataP] & 0xF000F000) == 0x50005000) gpuDataP = gpuDataC - 1;
-                    }
-                }
-                gpuDataP++;
-            }
-
-            if (gpuDataP == gpuDataC) {
-                gpuDataC = gpuDataP = 0;
-                m_softPrim.callFunc(gpuCommand, (uint8_t *)gpuDataM);
-
-                if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
-                    iFakePrimBusy = 4;
-            }
-        }
-    }
-
-    lGPUdataRet = gdata;
-
-    GPUIsReadyForCommands;
-    GPUIsIdle;
-}
-
-void SetFixes() {
-    if (dwActFixes & 0x02)
-        sDispWidths[4] = 384;
-    else
-        sDispWidths[4] = 368;
-}
-
 // process gpu commands
 uint32_t lUsedAddr[3];
 
@@ -868,41 +472,6 @@ __inline bool CheckForEndlessLoop(uint32_t laddr) {
     return false;
 }
 
-int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
-    uint32_t dmaMem;
-    unsigned char *baseAddrB;
-    int16_t count;
-    unsigned int DMACommandCounter = 0;
-
-    GPUIsBusy;
-
-    lUsedAddr[0] = lUsedAddr[1] = lUsedAddr[2] = 0xffffff;
-
-    baseAddrB = (unsigned char *)baseAddrL;
-
-    do {
-        if (iGPUHeight == 512) addr &= 0x1FFFFC;
-        if (DMACommandCounter++ > 2000000) break;
-        if (::CheckForEndlessLoop(addr)) break;
-
-        count = baseAddrB[addr + 3];
-
-        dmaMem = addr + 4;
-
-        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-            g_emulator->m_debug->checkDMAread(2, addr, (count + 1) * 4);
-        }
-        if (count > 0) writeDataMem(&baseAddrL[dmaMem >> 2], count);
-
-        addr = baseAddrL[addr >> 2] & 0xffffff;
-    } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
-                                   // 0xFF'FFFF any pointer with bit 23 set will do.
-
-    GPUIsIdle;
-
-    return 0;
-}
-
 bool PCSX::SoftGPU::impl::configure() {
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
@@ -911,9 +480,9 @@ bool PCSX::SoftGPU::impl::configure() {
                                          "Always dither g-shaded polygons (slowest)"};
 
     if (ImGui::Begin(_("Soft GPU configuration"), &m_showCfg)) {
-        if (ImGui::Combo("Dithering", &m_softPrim.m_useDither, ditherValues, 3)) {
+        if (ImGui::Combo("Dithering", &m_softRenderer.m_useDither, ditherValues, 3)) {
             changed = true;
-            g_emulator->settings.get<Emulator::SettingDither>() = m_softPrim.m_useDither;
+            g_emulator->settings.get<Emulator::SettingDither>() = m_softRenderer.m_useDither;
         }
 
         if (ImGui::Checkbox(_("Use linear filtering"),
@@ -956,7 +525,7 @@ void PCSX::SoftGPU::impl::write0(FastFill *prim) {
     sW += sX;
     sH += sY;
 
-    m_softPrim.FillSoftwareArea(sX, sY, sW, sH, BGR24to16(prim->color));
+    m_softRenderer.FillSoftwareArea(sX, sY, sW, sH, BGR24to16(prim->color));
 
     bDoVSyncUpdate = true;
 }
@@ -964,144 +533,153 @@ void PCSX::SoftGPU::impl::write0(FastFill *prim) {
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
 void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulation> *prim) {
-    m_softPrim.lx0 = prim->x[0];
-    m_softPrim.ly0 = prim->y[0];
-    m_softPrim.lx1 = prim->x[1];
-    m_softPrim.ly1 = prim->y[1];
-    m_softPrim.lx2 = prim->x[2];
-    m_softPrim.ly2 = prim->y[2];
+    m_softRenderer.lx0 = prim->x[0];
+    m_softRenderer.ly0 = prim->y[0];
+    m_softRenderer.lx1 = prim->x[1];
+    m_softRenderer.ly1 = prim->y[1];
+    m_softRenderer.lx2 = prim->x[2];
+    m_softRenderer.ly2 = prim->y[2];
     if constexpr (shape == Shape::Quad) {
-        m_softPrim.lx3 = prim->x[3];
-        m_softPrim.ly3 = prim->y[3];
-        if (m_softPrim.CheckCoord4()) return;
-        m_softPrim.offsetPSX4();
+        m_softRenderer.lx3 = prim->x[3];
+        m_softRenderer.ly3 = prim->y[3];
+        if (m_softRenderer.CheckCoord4()) return;
+        m_softRenderer.offsetPSX4();
     } else {
-        if (m_softPrim.CheckCoord3()) return;
-        m_softPrim.offsetPSX3();
+        if (m_softRenderer.CheckCoord3()) return;
+        m_softRenderer.offsetPSX3();
     }
 
-    m_softPrim.DrawSemiTrans = blend == Blend::Semi;
+    m_softRenderer.DrawSemiTrans = blend == Blend::Semi;
 
     if constexpr (modulation == Modulation::On) {
-        m_softPrim.g_m1 = (prim->colors[0] >> 0) & 0xff;
-        m_softPrim.g_m2 = (prim->colors[0] >> 8) & 0xff;
-        m_softPrim.g_m3 = (prim->colors[0] >> 16) & 0xff;
+        m_softRenderer.g_m1 = (prim->colors[0] >> 0) & 0xff;
+        m_softRenderer.g_m2 = (prim->colors[0] >> 8) & 0xff;
+        m_softRenderer.g_m3 = (prim->colors[0] >> 16) & 0xff;
     } else {
-        m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
+        m_softRenderer.g_m1 = m_softRenderer.g_m2 = m_softRenderer.g_m3 = 128;
     }
 
     if constexpr (shading == Shading::Flat) {
         if constexpr (textured == Textured::Yes) {
-            if (m_softPrim.iDither) {
+            if (m_softRenderer.iDither) {
                 prim->tpage.dither = true;
                 prim->tpage.raw |= 0x200;
             }
-            m_softPrim.texturePage(&prim->tpage);
+            m_softRenderer.texturePage(&prim->tpage);
             if constexpr (shape == Shape::Quad) {
-                switch (m_softPrim.GlobalTextTP) {
+                switch (m_softRenderer.GlobalTextTP) {
                     case GPU::TexDepth::Tex4Bits:
-                        m_softPrim.drawPoly4TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                 m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
-                                                 prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3],
-                                                 prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
+                        m_softRenderer.drawPoly4TEx4(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                     m_softRenderer.ly1, m_softRenderer.lx3, m_softRenderer.ly3,
+                                                     m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0], prim->v[0],
+                                                     prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
+                                                     prim->v[2], prim->clutX * 16, prim->clutY);
                         break;
                     case GPU::TexDepth::Tex8Bits:
-                        m_softPrim.drawPoly4TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                 m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
-                                                 prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3],
-                                                 prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
+                        m_softRenderer.drawPoly4TEx8(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                     m_softRenderer.ly1, m_softRenderer.lx3, m_softRenderer.ly3,
+                                                     m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0], prim->v[0],
+                                                     prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
+                                                     prim->v[2], prim->clutX * 16, prim->clutY);
                         break;
                     case GPU::TexDepth::Tex16Bits:
-                        m_softPrim.drawPoly4TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                               m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
-                                               prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3],
-                                               prim->u[2], prim->v[2]);
+                        m_softRenderer.drawPoly4TD(
+                            m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1, m_softRenderer.ly1,
+                            m_softRenderer.lx3, m_softRenderer.ly3, m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0],
+                            prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2]);
                         break;
                 }
             } else {
-                switch (m_softPrim.GlobalTextTP) {
+                switch (m_softRenderer.GlobalTextTP) {
                     case GPU::TexDepth::Tex4Bits:
-                        m_softPrim.drawPoly3TEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                 m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                                 prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
+                        m_softRenderer.drawPoly3TEx4(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                     m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
+                                                     prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
+                                                     prim->v[2], prim->clutX * 16, prim->clutY);
                         break;
                     case GPU::TexDepth::Tex8Bits:
-                        m_softPrim.drawPoly3TEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                 m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                                 prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
+                        m_softRenderer.drawPoly3TEx8(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                     m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
+                                                     prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
+                                                     prim->v[2], prim->clutX * 16, prim->clutY);
                         break;
                     case GPU::TexDepth::Tex16Bits:
-                        m_softPrim.drawPoly3TD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                               m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                               prim->v[1], prim->u[2], prim->v[2]);
+                        m_softRenderer.drawPoly3TD(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                   m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
+                                                   prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
+                                                   prim->v[2]);
                         break;
                 }
             }
         } else {
             if constexpr (shape == Shape::Quad) {
-                m_softPrim.drawPoly4F(prim->colors[0]);
+                m_softRenderer.drawPoly4F(prim->colors[0]);
             } else {
-                m_softPrim.drawPoly3F(prim->colors[0]);
+                m_softRenderer.drawPoly3F(prim->colors[0]);
             }
         }
     } else {
         if constexpr (textured == Textured::Yes) {
-            if (m_softPrim.iDither) {
+            if (m_softRenderer.iDither) {
                 prim->tpage.dither = true;
                 prim->tpage.raw |= 0x200;
             }
-            m_softPrim.texturePage(&prim->tpage);
+            m_softRenderer.texturePage(&prim->tpage);
             if constexpr (shape == Shape::Quad) {
-                switch (m_softPrim.GlobalTextTP) {
+                switch (m_softRenderer.GlobalTextTP) {
                     case GPU::TexDepth::Tex4Bits:
-                        m_softPrim.drawPoly4TGEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                  m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
-                                                  prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3],
-                                                  prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
-                                                  prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                        m_softRenderer.drawPoly4TGEx4(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                      m_softRenderer.ly1, m_softRenderer.lx3, m_softRenderer.ly3,
+                                                      m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0], prim->v[0],
+                                                      prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
+                                                      prim->v[2], prim->clutX * 16, prim->clutY, prim->colors[0],
+                                                      prim->colors[1], prim->colors[2], prim->colors[3]);
                         break;
                     case GPU::TexDepth::Tex8Bits:
-                        m_softPrim.drawPoly4TGEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                  m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
-                                                  prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3],
-                                                  prim->v[3], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
-                                                  prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                        m_softRenderer.drawPoly4TGEx8(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                      m_softRenderer.ly1, m_softRenderer.lx3, m_softRenderer.ly3,
+                                                      m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0], prim->v[0],
+                                                      prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
+                                                      prim->v[2], prim->clutX * 16, prim->clutY, prim->colors[0],
+                                                      prim->colors[1], prim->colors[2], prim->colors[3]);
                         break;
                     case GPU::TexDepth::Tex16Bits:
-                        m_softPrim.drawPoly4TGD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                m_softPrim.lx3, m_softPrim.ly3, m_softPrim.lx2, m_softPrim.ly2,
-                                                prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3],
-                                                prim->u[2], prim->v[2], prim->colors[0], prim->colors[1],
-                                                prim->colors[2], prim->colors[3]);
+                        m_softRenderer.drawPoly4TGD(
+                            m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1, m_softRenderer.ly1,
+                            m_softRenderer.lx3, m_softRenderer.ly3, m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0],
+                            prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                            prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
                         break;
                 }
             } else {
-                switch (m_softPrim.GlobalTextTP) {
+                switch (m_softRenderer.GlobalTextTP) {
                     case GPU::TexDepth::Tex4Bits:
-                        m_softPrim.drawPoly3TGEx4(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                  m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                                  prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
-                                                  prim->colors[0], prim->colors[1], prim->colors[2]);
+                        m_softRenderer.drawPoly3TGEx4(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                      m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
+                                                      prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
+                                                      prim->v[2], prim->clutX * 16, prim->clutY, prim->colors[0],
+                                                      prim->colors[1], prim->colors[2]);
                         break;
                     case GPU::TexDepth::Tex8Bits:
-                        m_softPrim.drawPoly3TGEx8(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                  m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                                  prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
-                                                  prim->colors[0], prim->colors[1], prim->colors[2]);
+                        m_softRenderer.drawPoly3TGEx8(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                      m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
+                                                      prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
+                                                      prim->v[2], prim->clutX * 16, prim->clutY, prim->colors[0],
+                                                      prim->colors[1], prim->colors[2]);
                         break;
                     case GPU::TexDepth::Tex16Bits:
-                        m_softPrim.drawPoly3TGD(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                                m_softPrim.lx2, m_softPrim.ly2, prim->u[0], prim->v[0], prim->u[1],
-                                                prim->v[1], prim->u[2], prim->v[2], prim->colors[0], prim->colors[1],
-                                                prim->colors[2]);
+                        m_softRenderer.drawPoly3TGD(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                                    m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
+                                                    prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
+                                                    prim->v[2], prim->colors[0], prim->colors[1], prim->colors[2]);
                         break;
                 }
             }
         } else {
             if constexpr (shape == Shape::Quad) {
-                m_softPrim.drawPoly4G(prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                m_softRenderer.drawPoly4G(prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
             } else {
-                m_softPrim.drawPoly3G(prim->colors[0], prim->colors[1], prim->colors[2]);
+                m_softRenderer.drawPoly3G(prim->colors[0], prim->colors[1], prim->colors[2]);
             }
         }
     }
@@ -1133,7 +711,7 @@ void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
     auto count = prim->colors.size();
     if (count < 2) return;
 
-    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+    m_softRenderer.DrawSemiTrans = prim->blend == Blend::Semi;
 
     for (unsigned i = 1; i < count; i++) {
         auto x0 = prim->x[i - 1];
@@ -1144,16 +722,16 @@ void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
         auto c1 = prim->colors[i];
 
         if (CheckCoordL(x0, y0, x1, y1)) continue;
-        m_softPrim.ly0 = y0;
-        m_softPrim.lx0 = x0;
-        m_softPrim.ly1 = y1;
-        m_softPrim.lx1 = x1;
+        m_softRenderer.ly0 = y0;
+        m_softRenderer.lx0 = x0;
+        m_softRenderer.ly1 = y1;
+        m_softRenderer.lx1 = x1;
 
-        m_softPrim.offsetPSX2();
+        m_softRenderer.offsetPSX2();
         if constexpr (shading == Shading::Gouraud) {
-            m_softPrim.DrawSoftwareLineShade(c0, c1);
+            m_softRenderer.DrawSoftwareLineShade(c0, c1);
         } else {
-            m_softPrim.DrawSoftwareLineFlat(c0);
+            m_softRenderer.DrawSoftwareLineFlat(c0);
         }
     }
     bDoVSyncUpdate = true;
@@ -1163,8 +741,8 @@ template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend b
 void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim) {
     int16_t w, h;
 
-    m_softPrim.lx0 = prim->x;
-    m_softPrim.ly0 = prim->y;
+    m_softRenderer.lx0 = prim->x;
+    m_softRenderer.ly0 = prim->y;
 
     if constexpr (size == Size::Variable) {
         w = prim->w;
@@ -1177,20 +755,20 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
         w = h = 16;
     }
 
-    m_softPrim.DrawSemiTrans = prim->blend == Blend::Semi;
+    m_softRenderer.DrawSemiTrans = prim->blend == Blend::Semi;
 
     if constexpr (prim->modulation == Modulation::On) {
-        m_softPrim.g_m1 = (prim->color >> 0) & 0xff;
-        m_softPrim.g_m2 = (prim->color >> 8) & 0xff;
-        m_softPrim.g_m3 = (prim->color >> 16) & 0xff;
+        m_softRenderer.g_m1 = (prim->color >> 0) & 0xff;
+        m_softRenderer.g_m2 = (prim->color >> 8) & 0xff;
+        m_softRenderer.g_m3 = (prim->color >> 16) & 0xff;
     } else {
-        m_softPrim.g_m1 = m_softPrim.g_m2 = m_softPrim.g_m3 = 128;
+        m_softRenderer.g_m1 = m_softRenderer.g_m2 = m_softRenderer.g_m3 = 128;
     }
 
-    m_softPrim.lx1 = m_softPrim.lx2 = m_softPrim.lx0 + w + PSXDisplay.DrawOffset.x;
-    m_softPrim.lx0 = m_softPrim.lx3 = m_softPrim.lx0 + PSXDisplay.DrawOffset.x;
-    m_softPrim.ly2 = m_softPrim.ly3 = m_softPrim.ly0 + h + PSXDisplay.DrawOffset.y;
-    m_softPrim.ly0 = m_softPrim.ly1 = m_softPrim.ly0 + PSXDisplay.DrawOffset.y;
+    m_softRenderer.lx1 = m_softRenderer.lx2 = m_softRenderer.lx0 + w + PSXDisplay.DrawOffset.x;
+    m_softRenderer.lx0 = m_softRenderer.lx3 = m_softRenderer.lx0 + PSXDisplay.DrawOffset.x;
+    m_softRenderer.ly2 = m_softRenderer.ly3 = m_softRenderer.ly0 + h + PSXDisplay.DrawOffset.y;
+    m_softRenderer.ly0 = m_softRenderer.ly1 = m_softRenderer.ly0 + PSXDisplay.DrawOffset.y;
 
     if constexpr (textured == Textured::Yes) {
         int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
@@ -1199,26 +777,28 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
         ty0 = ty1 = prim->v;
         ty2 = ty3 = ty0 + h;
 
-        switch (m_softPrim.GlobalTextTP) {
+        switch (m_softRenderer.GlobalTextTP) {
             case GPU::TexDepth::Tex4Bits:
-                m_softPrim.drawPoly4TEx4_S(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                           m_softPrim.lx2, m_softPrim.ly2, m_softPrim.lx3, m_softPrim.ly3, tx0, ty0,
-                                           tx1, ty1, tx2, ty2, tx3, ty3, prim->clutX * 16, prim->clutY);
+                m_softRenderer.drawPoly4TEx4_S(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                               m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
+                                               m_softRenderer.lx3, m_softRenderer.ly3, tx0, ty0, tx1, ty1, tx2, ty2,
+                                               tx3, ty3, prim->clutX * 16, prim->clutY);
                 break;
             case GPU::TexDepth::Tex8Bits:
-                m_softPrim.drawPoly4TEx8_S(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1,
-                                           m_softPrim.lx2, m_softPrim.ly2, m_softPrim.lx3, m_softPrim.ly3, tx0, ty0,
-                                           tx1, ty1, tx2, ty2, tx3, ty3, prim->clutX * 16, prim->clutY);
+                m_softRenderer.drawPoly4TEx8_S(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
+                                               m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
+                                               m_softRenderer.lx3, m_softRenderer.ly3, tx0, ty0, tx1, ty1, tx2, ty2,
+                                               tx3, ty3, prim->clutX * 16, prim->clutY);
                 break;
             case GPU::TexDepth::Tex16Bits:
-                m_softPrim.drawPoly4TD_S(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx1, m_softPrim.ly1, m_softPrim.lx2,
-                                         m_softPrim.ly2, m_softPrim.lx3, m_softPrim.ly3, tx0, ty0, tx1, ty1, tx2, ty2,
-                                         tx3, ty3);
+                m_softRenderer.drawPoly4TD_S(
+                    m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1, m_softRenderer.ly1, m_softRenderer.lx2,
+                    m_softRenderer.ly2, m_softRenderer.lx3, m_softRenderer.ly3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3);
                 break;
         }
     } else {
-        m_softPrim.FillSoftwareAreaTrans(m_softPrim.lx0, m_softPrim.ly0, m_softPrim.lx2, m_softPrim.ly2,
-                                         BGR24to16(prim->color));
+        m_softRenderer.FillSoftwareAreaTrans(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx2,
+                                             m_softRenderer.ly2, BGR24to16(prim->color));
     }
 
     bDoVSyncUpdate = true;
@@ -1412,9 +992,9 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
     bDoVSyncUpdate = true;
 }
 
-void PCSX::SoftGPU::impl::write0(TPage *prim) { m_softPrim.texturePage(prim); }
-void PCSX::SoftGPU::impl::write0(TWindow *prim) { m_softPrim.twindow(prim); }
-void PCSX::SoftGPU::impl::write0(DrawingAreaStart *prim) { m_softPrim.drawingAreaStart(prim); }
-void PCSX::SoftGPU::impl::write0(DrawingAreaEnd *prim) { m_softPrim.drawingAreaEnd(prim); }
-void PCSX::SoftGPU::impl::write0(DrawingOffset *prim) { m_softPrim.drawingOffset(prim); }
-void PCSX::SoftGPU::impl::write0(MaskBit *prim) { m_softPrim.maskBit(prim); }
+void PCSX::SoftGPU::impl::write0(TPage *prim) { m_softRenderer.texturePage(prim); }
+void PCSX::SoftGPU::impl::write0(TWindow *prim) { m_softRenderer.twindow(prim); }
+void PCSX::SoftGPU::impl::write0(DrawingAreaStart *prim) { m_softRenderer.drawingAreaStart(prim); }
+void PCSX::SoftGPU::impl::write0(DrawingAreaEnd *prim) { m_softRenderer.drawingAreaEnd(prim); }
+void PCSX::SoftGPU::impl::write0(DrawingOffset *prim) { m_softRenderer.drawingOffset(prim); }
+void PCSX::SoftGPU::impl::write0(MaskBit *prim) { m_softRenderer.maskBit(prim); }

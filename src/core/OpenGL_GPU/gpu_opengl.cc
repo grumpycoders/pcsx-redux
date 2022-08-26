@@ -342,6 +342,7 @@ uint32_t PCSX::OpenGL_GPU::readStatusInternal() {
     // return m_gpustat;
 }
 
+#if 0
 void PCSX::OpenGL_GPU::readDataMem(uint32_t *destination, int size) {
     for (int i = 0; i < size; i++) {
         if (m_readingMode == TransferMode::VRAMTransfer) {
@@ -400,6 +401,7 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t *source, int size) {
         }
     }
 }
+#endif
 
 // GP1 command writes
 void PCSX::OpenGL_GPU::writeStatusInternal(uint32_t value) {
@@ -448,6 +450,7 @@ void PCSX::OpenGL_GPU::writeStatusInternal(uint32_t value) {
     }
 }
 
+#if 0
 int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t *baseAddr, uint32_t addr) {
     int counter = 0;
     do {
@@ -469,6 +472,7 @@ int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t *baseAddr, uint32_t addr) {
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
     return 0;
 }
+#endif
 
 bool PCSX::OpenGL_GPU::configure() {
     bool changed = false;

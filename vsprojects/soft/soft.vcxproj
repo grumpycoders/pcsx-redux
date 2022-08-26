@@ -238,14 +238,12 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\gpu\soft\draw.cc" />
     <ClCompile Include="..\..\src\gpu\soft\gpu.cc" />
-    <ClCompile Include="..\..\src\gpu\soft\prim.cc" />
     <ClCompile Include="..\..\src\gpu\soft\soft.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gpu\soft\externals.h" />
     <ClInclude Include="..\..\src\gpu\soft\gpu.h" />
     <ClInclude Include="..\..\src\gpu\soft\interface.h" />
-    <ClInclude Include="..\..\src\gpu\soft\prim.h" />
     <ClInclude Include="..\..\src\gpu\soft\soft.h" />
   </ItemGroup>
   <ItemGroup>

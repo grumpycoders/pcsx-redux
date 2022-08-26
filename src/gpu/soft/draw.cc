@@ -23,7 +23,7 @@
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
-#include "gpu/soft/prim.h"
+#include "gpu/soft/soft.h"
 #include "gui/gui.h"
 
 static const unsigned int pitch = 4096;

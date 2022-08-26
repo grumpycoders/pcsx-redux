@@ -31,11 +31,8 @@ class OpenGL_GPU final : public GPU {
     // Interface functions
     int initBackend(GUI *) override;
     int shutdown() override;
-    void readDataMem(uint32_t *dest, int size) override;
     uint32_t readStatusInternal() override;
-    void writeDataMem(uint32_t *source, int size) override;
     void writeStatusInternal(uint32_t value) override;
-    int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) override;
     void setOpenGLContext() override;
     void vblank() override;
     bool configure() override;

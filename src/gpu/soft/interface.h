@@ -21,7 +21,7 @@
 
 #include "core/gpu.h"
 #include "gpu/soft/externals.h"
-#include "gpu/soft/prim.h"
+#include "gpu/soft/soft.h"
 
 namespace PCSX {
 
@@ -32,17 +32,13 @@ namespace SoftGPU {
 class impl final : public GPU {
     int32_t initBackend(GUI *) override;
     int32_t shutdown() override;
-    void stopDump() override;
-    void readDataMem(uint32_t *pMem, int iSize) override;
     uint32_t readStatusInternal() override;
-    void writeDataMem(uint32_t *pMem, int iSize) override;
     void writeStatusInternal(uint32_t gdata) override;
-    int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) override;
     void vblank() override;
     bool configure() override;
     void debug() override;
 
-    void setDither(int setting) override { m_softPrim.m_useDither = setting; }
+    void setDither(int setting) override { m_softRenderer.m_useDither = setting; }
     void clearVRAM() override;
     void reset() override {
         clearVRAM();
@@ -106,61 +102,14 @@ class impl final : public GPU {
 
         return ss;
     }
-    SoftPrim m_softPrim;
+    SoftRenderer m_softRenderer;
     void *m_dumpFile = nullptr;
     GLuint m_vramTexture16;
     GLuint m_vramTexture24;
 
     GUI *m_gui;
 
-    ////////////////////////////////////////////////////////////////////////
-    // memory image of the PSX vram
-    ////////////////////////////////////////////////////////////////////////
-
-    //    unsigned char *psxVSecure;
-    //    unsigned char *psxVub;
-    //    signed char *psxVsb;
-    //    uint16_t *psxVuw;
-    //    uint16_t *psxVuw_eom;
-    //    int16_t *psxVsw;
-    //    uint32_t *psxVul;
-    //    int32_t *psxVsl;
-
-    ////////////////////////////////////////////////////////////////////////
-    // GPU globals
-    ////////////////////////////////////////////////////////////////////////
-
     int32_t lGPUdataRet;
-    //    int32_t lGPUstatusRet;
-    //    char szDispBuf[64];
-    //    char szMenuBuf[36];
-    //    char szDebugText[512];
-    //    uint32_t ulStatusControl[256];
-
-    //    uint32_t gpuDataM[256];
-    //    unsigned char gpuCommand = 0;
-    //    int32_t gpuDataC = 0;
-    //    int32_t gpuDataP = 0;
-
-    //    VRAMLoad_t VRAMWrite;
-    //    VRAMLoad_t VRAMRead;
-    //    DATAREGISTERMODES DataWriteMode;
-    //    DATAREGISTERMODES DataReadMode;
-
-    //    bool bSkipNextFrame = false;
-    //    DWORD dwLaceCnt = 0;
-    //    int iColDepth;
-    //    int iWindowMode;
-    //    int16_t sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
-    //    PSXDisplay_t PSXDisplay;
-    //    PSXDisplay_t PreviousPSXDisplay;
-    //    int32_t lSelectedSlot = 0;
-    //    bool bChangeWinMode = false;
-    //    bool bDoLazyUpdate = false;
-    //    uint32_t lGPUInfoVals[16];
-    //    int iFakePrimBusy = 0;
-    //    int iRumbleVal = 0;
-    //    int iRumbleTime = 0;
 
     void write0(FastFill *) override;
 

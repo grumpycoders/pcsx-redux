@@ -30,11 +30,6 @@
 #define SEMITRANSBIT(x) ((x >> 25) & 0x1)
 #define PSXRGB(r, g, b) ((g << 10) | (b << 5) | r)
 
-#define DATAREGISTERMODES uint16_t
-
-#define DR_NORMAL 0
-#define DR_VRAMTRANSFER 1
-
 #define GPUSTATUS_ODDLINES 0x80000000
 #define GPUSTATUS_DMABITS 0x60000000  // Two bits
 #define GPUSTATUS_READYFORCOMMANDS 0x10000000
@@ -108,37 +103,15 @@ struct PSXDisplay_t {
     PSXRect_t Range;
 };
 
-// draw.cc
-
 namespace PCSX {
 class GUI;
 }
 
-// prim.cc
-
-extern uint32_t dwCfgFixes;
-extern uint32_t dwActFixes;
-extern uint32_t dwEmuFixes;
-extern int iUseFixes;
 extern bool bDoVSyncUpdate;
 
-// gpu.cc
-extern VRAMLoad_t VRAMWrite;
-extern VRAMLoad_t VRAMRead;
-extern DATAREGISTERMODES DataWriteMode;
-extern DATAREGISTERMODES DataReadMode;
-extern int iColDepth;
-extern int iWindowMode;
-extern char szDispBuf[];
-extern char szMenuBuf[];
-extern char szDebugText[];
-extern int16_t sDispWidths[];
-extern bool bDebugText;
 extern PSXDisplay_t PSXDisplay;
 extern PSXDisplay_t PreviousPSXDisplay;
-extern bool bSkipNextFrame;
 extern int32_t lGPUstatusRet;
-extern int32_t drawingLines;
 extern unsigned char *psxVSecure;
 extern unsigned char *psxVub;
 extern signed char *psxVsb;
@@ -147,14 +120,8 @@ extern int16_t *psxVsw;
 extern uint32_t *psxVul;
 extern int32_t *psxVsl;
 extern uint16_t *psxVuw_eom;
-extern bool bChangeWinMode;
-extern int32_t lSelectedSlot;
-extern uint32_t dwLaceCnt;
 extern uint32_t lGPUInfoVals[];
-extern int iRumbleVal;
-extern int iRumbleTime;
 
 constexpr uint32_t dwGPUVersion = 0;
 constexpr int iGPUHeight = 512;
 constexpr int iGPUHeightMask = 511;
-constexpr int iTileCheat = 0;

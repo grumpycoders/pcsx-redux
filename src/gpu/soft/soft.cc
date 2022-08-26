@@ -22,34 +22,8 @@
 #include <algorithm>
 
 #include "gpu/soft/externals.h"
-
-//#define VC_INLINE
 #include "gpu/soft/gpu.h"
-#include "gpu/soft/prim.h"
-
-////////////////////////////////////////////////////////////////////////////////////
-// "NO EDGE BUFFER" POLY VERSION... FUNCS BASED ON FATMAP.TXT FROM MRI / Doomsday
-////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////
-// defines
-////////////////////////////////////////////////////////////////////////////////////
-
-// switches for painting textured quads as 2 triangles (small glitches, but better shading!)
-// can be toggled by game fix 0x200 in version 1.17 anyway, so let the defines enabled!
-
-#define POLYQUAD3
-#define POLYQUAD3GT
-
-// fast solid loops... a bit more additional code, of course
-
-#define FASTSOLID
-
-// psx blending mode 3 with 25% incoming color (instead 50% without the define)
-
-#define HALFBRIGHTMODE3
-
-// color decode defines
+#include "gpu/soft/soft.h"
 
 #define XCOL1(x) (x & 0x1f)
 #define XCOL2(x) (x & 0x3e0)
@@ -79,75 +53,206 @@
 
 #define XPSXCOL(r, g, b) ((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f))
 
+uint32_t dwActFixes = 0;
+bool bDoVSyncUpdate = false;
+static const int CHKMAX_X = 1024;
+static const int CHKMAX_Y = 512;
+
 ////////////////////////////////////////////////////////////////////////
-// POLYGON OFFSET FUNCS
+// special checks... nascar, syphon filter 2, mgs
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::offsetPSXLine(void) {
-    int16_t x0, x1, y0, y1, dx, dy;
-    float px, py;
+// xenogears FT4: not removed correctly right now... the tri 0,1,2
+// should get removed, the tri 1,2,3 should stay... pfff
 
-    x0 = lx0 + 1 + PSXDisplay.DrawOffset.x;
-    x1 = lx1 + 1 + PSXDisplay.DrawOffset.x;
-    y0 = ly0 + 1 + PSXDisplay.DrawOffset.y;
-    y1 = ly1 + 1 + PSXDisplay.DrawOffset.y;
+// x -466 1023 180 1023
+// y   20 -228 222 -100
 
-    dx = x1 - x0;
-    dy = y1 - y0;
+// 0 __1
+//  . . .
+//   2___3
 
-    // tricky line width without sqrt
-
-    if (dx >= 0) {
-        if (dy >= 0) {
-            px = 0.5f;
-            if (dx > dy)
-                py = -0.5f;
-            else if (dx < dy)
-                py = 0.5f;
-            else
-                py = 0.0f;
-        } else {
-            py = -0.5f;
-            dy = -dy;
-            if (dx > dy)
-                px = 0.5f;
-            else if (dx < dy)
-                px = -0.5f;
-            else
-                px = 0.0f;
+bool PCSX::SoftGPU::SoftRenderer::CheckCoord4() {
+    if (lx0 < 0) {
+        if (((lx1 - lx0) > CHKMAX_X) || ((lx2 - lx0) > CHKMAX_X)) {
+            if (lx3 < 0) {
+                if ((lx1 - lx3) > CHKMAX_X) return true;
+                if ((lx2 - lx3) > CHKMAX_X) return true;
+            }
         }
-    } else {
-        if (dy >= 0) {
-            py = 0.5f;
-            dx = -dx;
-            if (dx > dy)
-                px = -0.5f;
-            else if (dx < dy)
-                px = 0.5f;
-            else
-                px = 0.0f;
-        } else {
-            px = -0.5f;
-            if (dx > dy)
-                py = -0.5f;
-            else if (dx < dy)
-                py = 0.5f;
-            else
-                py = 0.0f;
+    }
+    if (lx1 < 0) {
+        if ((lx0 - lx1) > CHKMAX_X) return true;
+        if ((lx2 - lx1) > CHKMAX_X) return true;
+        if ((lx3 - lx1) > CHKMAX_X) return true;
+    }
+    if (lx2 < 0) {
+        if ((lx0 - lx2) > CHKMAX_X) return true;
+        if ((lx1 - lx2) > CHKMAX_X) return true;
+        if ((lx3 - lx2) > CHKMAX_X) return true;
+    }
+    if (lx3 < 0) {
+        if (((lx1 - lx3) > CHKMAX_X) || ((lx2 - lx3) > CHKMAX_X)) {
+            if (lx0 < 0) {
+                if ((lx1 - lx0) > CHKMAX_X) return true;
+                if ((lx2 - lx0) > CHKMAX_X) return true;
+            }
         }
     }
 
-    lx0 = (int16_t)((float)x0 - px);
-    lx3 = (int16_t)((float)x0 + py);
+    if (ly0 < 0) {
+        if ((ly1 - ly0) > CHKMAX_Y) return true;
+        if ((ly2 - ly0) > CHKMAX_Y) return true;
+    }
+    if (ly1 < 0) {
+        if ((ly0 - ly1) > CHKMAX_Y) return true;
+        if ((ly2 - ly1) > CHKMAX_Y) return true;
+        if ((ly3 - ly1) > CHKMAX_Y) return true;
+    }
+    if (ly2 < 0) {
+        if ((ly0 - ly2) > CHKMAX_Y) return true;
+        if ((ly1 - ly2) > CHKMAX_Y) return true;
+        if ((ly3 - ly2) > CHKMAX_Y) return true;
+    }
+    if (ly3 < 0) {
+        if ((ly1 - ly3) > CHKMAX_Y) return true;
+        if ((ly2 - ly3) > CHKMAX_Y) return true;
+    }
 
-    ly0 = (int16_t)((float)y0 - py);
-    ly3 = (int16_t)((float)y0 - px);
+    return false;
+}
 
-    lx1 = (int16_t)((float)x1 - py);
-    lx2 = (int16_t)((float)x1 + px);
+bool PCSX::SoftGPU::SoftRenderer::CheckCoord3() {
+    if (lx0 < 0) {
+        if ((lx1 - lx0) > CHKMAX_X) return true;
+        if ((lx2 - lx0) > CHKMAX_X) return true;
+    }
+    if (lx1 < 0) {
+        if ((lx0 - lx1) > CHKMAX_X) return true;
+        if ((lx2 - lx1) > CHKMAX_X) return true;
+    }
+    if (lx2 < 0) {
+        if ((lx0 - lx2) > CHKMAX_X) return true;
+        if ((lx1 - lx2) > CHKMAX_X) return true;
+    }
+    if (ly0 < 0) {
+        if ((ly1 - ly0) > CHKMAX_Y) return true;
+        if ((ly2 - ly0) > CHKMAX_Y) return true;
+    }
+    if (ly1 < 0) {
+        if ((ly0 - ly1) > CHKMAX_Y) return true;
+        if ((ly2 - ly1) > CHKMAX_Y) return true;
+    }
+    if (ly2 < 0) {
+        if ((ly0 - ly2) > CHKMAX_Y) return true;
+        if ((ly1 - ly2) > CHKMAX_Y) return true;
+    }
 
-    ly1 = (int16_t)((float)y1 + px);
-    ly2 = (int16_t)((float)y1 + py);
+    return false;
+}
+
+void PCSX::SoftGPU::SoftRenderer::texturePage(GPU::TPage *prim) {
+    GlobalTextAddrX = prim->tx << 6;
+    GlobalTextAddrY = prim->ty << 8;
+
+    if (m_useDither == 2) {
+        iDither = 2;
+    } else {
+        if (prim->dither) {
+            iDither = m_useDither;
+        } else {
+            iDither = 0;
+        }
+    }
+
+    GlobalTextTP = prim->texDepth;
+
+    GlobalTextABR = prim->blendFunction;
+
+    lGPUstatusRet &= ~0x07ff;               // Clear the necessary bits
+    lGPUstatusRet |= (prim->raw & 0x07ff);  // set the necessary bits
+}
+
+void PCSX::SoftGPU::SoftRenderer::twindow(GPU::TWindow *prim) {
+    uint32_t YAlign, XAlign;
+
+    lGPUInfoVals[INFO_TW] = prim->raw & 0xfffff;
+
+    // Texture window size is determined by the least bit set of the relevant 5 bits
+    if (prim->y & 0x01) {
+        TWin.Position.y1 = 8;  // xxxx1
+    } else if (prim->y & 0x02) {
+        TWin.Position.y1 = 16;  // xxx10
+    } else if (prim->y & 0x04) {
+        TWin.Position.y1 = 32;  // xx100
+    } else if (prim->y & 0x08) {
+        TWin.Position.y1 = 64;  // x1000
+    } else if (prim->y & 0x10) {
+        TWin.Position.y1 = 128;  // 10000
+    } else {
+        TWin.Position.y1 = 256;  // 00000
+    }
+
+    if (prim->x & 0x01) {
+        TWin.Position.x1 = 8;  // xxxx1
+    } else if (prim->x & 0x02) {
+        TWin.Position.x1 = 16;  // xxx10
+    } else if (prim->x & 0x04) {
+        TWin.Position.x1 = 32;  // xx100
+    } else if (prim->x & 0x08) {
+        TWin.Position.x1 = 64;  // x1000
+    } else if (prim->x & 0x10) {
+        TWin.Position.x1 = 128;  // 10000
+    } else {
+        TWin.Position.x1 = 256;  // 00000
+    }
+
+    // Re-calculate the bit field, because we can't trust what is passed in the data
+    YAlign = (uint32_t)(32 - (TWin.Position.y1 >> 3));
+    XAlign = (uint32_t)(32 - (TWin.Position.x1 >> 3));
+
+    // Absolute position of the start of the texture window
+    TWin.Position.y0 = (int16_t)((prim->h & YAlign) << 3);
+    TWin.Position.x0 = (int16_t)((prim->w & XAlign) << 3);
+}
+
+void PCSX::SoftGPU::SoftRenderer::drawingAreaStart(GPU::DrawingAreaStart *prim) {
+    drawX = prim->x;
+    drawY = prim->y;
+
+    lGPUInfoVals[INFO_DRAWSTART] = prim->raw & 0xfffff;
+}
+
+void PCSX::SoftGPU::SoftRenderer::drawingAreaEnd(GPU::DrawingAreaEnd *prim) {
+    drawW = prim->x;
+    drawH = prim->y;
+
+    lGPUInfoVals[INFO_DRAWEND] = prim->raw & 0xfffff;
+}
+
+void PCSX::SoftGPU::SoftRenderer::drawingOffset(GPU::DrawingOffset *prim) {
+    PSXDisplay.DrawOffset.x = prim->x;
+    PSXDisplay.DrawOffset.y = prim->y;
+
+    lGPUInfoVals[INFO_DRAWOFF] = prim->raw & 0x3fffff;
+}
+
+void PCSX::SoftGPU::SoftRenderer::maskBit(GPU::MaskBit *prim) {
+    lGPUstatusRet &= ~0x1800;
+
+    if (prim->set) {
+        sSetMask = 0x8000;
+        lSetMask = 0x80008000;
+        lGPUstatusRet |= 0x0800;
+    } else {
+        sSetMask = 0;
+        lSetMask = 0;
+    }
+
+    if (prim->check) {
+        lGPUstatusRet |= 0x1000;
+    }
+    bCheckMask = prim->check;
 }
 
 void PCSX::SoftGPU::SoftRenderer::offsetPSX2(void) {
@@ -177,17 +282,9 @@ void PCSX::SoftGPU::SoftRenderer::offsetPSX4(void) {
     ly3 += PSXDisplay.DrawOffset.y;
 }
 
-/////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
-// PER PIXEL FUNCS
-////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
-
 static const unsigned char dithertable[16] = {7, 0, 6, 1, 2, 5, 3, 4, 1, 6, 0, 7, 4, 3, 5, 2};
 
-void Dither16(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) {
+static inline void dither16(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) {
     unsigned char coeff;
     unsigned char rlow, glow, blow;
     int x, y;
@@ -217,7 +314,7 @@ void Dither16(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol_Dither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3) {
+void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol_Dither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3) {
     int32_t r, g, b;
 
     if (bCheckMask && *pdest & 0x8000) return;
@@ -243,15 +340,9 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol_Dither(uint16_t *pdest
             if (b & 0x80000000) b = 0;
             if (g & 0x80000000) g = 0;
         } else {
-#ifdef HALFBRIGHTMODE3
             r += (m1 >> 2);
             b += (m2 >> 2);
             g += (m3 >> 2);
-#else
-            r += (m1 >> 1);
-            b += (m2 >> 1);
-            g += (m3 >> 1);
-#endif
         }
     } else {
         r = m1;
@@ -263,12 +354,12 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol_Dither(uint16_t *pdest
     if (b & 0x7FFFFF00) b = 0xff;
     if (g & 0x7FFFFF00) g = 0xff;
 
-    Dither16(pdest, r, b, g, sSetMask);
+    dither16(pdest, r, b, g, sSetMask);
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(uint16_t *pdest, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(uint16_t *pdest, uint16_t color) {
     if (bCheckMask && *pdest & 0x8000) return;
 
     if (DrawSemiTrans) {
@@ -277,11 +368,6 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(uint16_t *pdest, uint1
         if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             *pdest = ((((*pdest) & 0x7bde) >> 1) + (((color)&0x7bde) >> 1)) | sSetMask;  // 0x8000;
             return;
-            /*
-                 r=(XCOL1(*pdest)>>1)+((XCOL1(color))>>1);
-                 b=(XCOL2(*pdest)>>1)+((XCOL2(color))>>1);
-                 g=(XCOL3(*pdest)>>1)+((XCOL3(color))>>1);
-            */
         } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((XCOL1(color)));
             b = (XCOL2(*pdest)) + ((XCOL2(color)));
@@ -294,15 +380,9 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(uint16_t *pdest, uint1
             if (b & 0x80000000) b = 0;
             if (g & 0x80000000) g = 0;
         } else {
-#ifdef HALFBRIGHTMODE3
             r = (XCOL1(*pdest)) + ((XCOL1(color)) >> 2);
             b = (XCOL2(*pdest)) + ((XCOL2(color)) >> 2);
             g = (XCOL3(*pdest)) + ((XCOL3(color)) >> 2);
-#else
-            r = (XCOL1(*pdest)) + ((XCOL1(color)) >> 1);
-            b = (XCOL2(*pdest)) + ((XCOL2(color)) >> 1);
-            g = (XCOL3(*pdest)) + ((XCOL3(color)) >> 1);
-#endif
         }
 
         if (r & 0x7FFFFFE0) r = 0x1f;
@@ -310,13 +390,14 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(uint16_t *pdest, uint1
         if (g & 0x7FFF8000) g = 0x7c00;
 
         *pdest = (XPSXCOL(r, g, b)) | sSetMask;  // 0x8000;
-    } else
+    } else {
         *pdest = color | sSetMask;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(uint32_t *pdest, uint32_t color) {
+void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(uint32_t *pdest, uint32_t color) {
     if (DrawSemiTrans) {
         int32_t r, g, b;
 
@@ -358,15 +439,9 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(uint32_t *pdest, uin
             b |= sb >> 5;
             g |= sg >> 10;
         } else {
-#ifdef HALFBRIGHTMODE3
             r = (X32COL1(*pdest)) + ((X32BCOL1(color)) >> 2);
             b = (X32COL2(*pdest)) + ((X32BCOL2(color)) >> 2);
             g = (X32COL3(*pdest)) + ((X32BCOL3(color)) >> 2);
-#else
-            r = (X32COL1(*pdest)) + ((X32ACOL1(color)) >> 1);
-            b = (X32COL2(*pdest)) + ((X32ACOL2(color)) >> 1);
-            g = (X32COL3(*pdest)) + ((X32ACOL3(color)) >> 1);
-#endif
         }
 
         if (r & 0x7FE00000) r = 0x1f0000 | (r & 0xFFFF);
@@ -399,7 +474,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(uint32_t *pdest, uin
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(uint16_t *pdest, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(uint16_t *pdest, uint16_t color) {
     int32_t r, g, b;
     uint16_t l;
 
@@ -417,12 +492,6 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(uint16_t *pdest, ui
             r = (XCOL1(d)) + ((((XCOL1(color))) * g_m1) >> 7);
             b = (XCOL2(d)) + ((((XCOL2(color))) * g_m2) >> 7);
             g = (XCOL3(d)) + ((((XCOL3(color))) * g_m3) >> 7);
-
-            /*
-                 r=(XCOL1(*pdest)>>1)+((((XCOL1(color))>>1)* g_m1)>>7);
-                 b=(XCOL2(*pdest)>>1)+((((XCOL2(color))>>1)* g_m2)>>7);
-                 g=(XCOL3(*pdest)>>1)+((((XCOL3(color))>>1)* g_m3)>>7);
-            */
         } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((((XCOL1(color))) * g_m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color))) * g_m2) >> 7);
@@ -435,15 +504,9 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(uint16_t *pdest, ui
             if (b & 0x80000000) b = 0;
             if (g & 0x80000000) g = 0;
         } else {
-#ifdef HALFBRIGHTMODE3
             r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 2) * g_m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 2) * g_m2) >> 7);
             g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 2) * g_m3) >> 7);
-#else
-            r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 1) * g_m1) >> 7);
-            b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 1) * g_m2) >> 7);
-            g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 1) * g_m3) >> 7);
-#endif
         }
     } else {
         r = ((XCOL1(color)) * g_m1) >> 7;
@@ -481,7 +544,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_S(uint16_t *pdest, 
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(uint16_t *pdest, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(uint16_t *pdest, uint16_t color) {
     int32_t r, g, b;
     uint16_t l;
 
@@ -499,12 +562,6 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(uint16_t *pdest
             r = (XCOL1(d)) + ((((XCOL1(color))) * g_m1) >> 7);
             b = (XCOL2(d)) + ((((XCOL2(color))) * g_m2) >> 7);
             g = (XCOL3(d)) + ((((XCOL3(color))) * g_m3) >> 7);
-
-            /*
-                 r=(XCOL1(*pdest)>>1)+((((XCOL1(color))>>1)* g_m1)>>7);
-                 b=(XCOL2(*pdest)>>1)+((((XCOL2(color))>>1)* g_m2)>>7);
-                 g=(XCOL3(*pdest)>>1)+((((XCOL3(color))>>1)* g_m3)>>7);
-            */
         } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((((XCOL1(color))) * g_m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color))) * g_m2) >> 7);
@@ -517,15 +574,9 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(uint16_t *pdest
             if (b & 0x80000000) b = 0;
             if (g & 0x80000000) g = 0;
         } else {
-#ifdef HALFBRIGHTMODE3
             r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 2) * g_m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 2) * g_m2) >> 7);
             g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 2) * g_m3) >> 7);
-#else
-            r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 1) * g_m1) >> 7);
-            b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 1) * g_m2) >> 7);
-            g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 1) * g_m3) >> 7);
-#endif
         }
     } else {
         r = ((XCOL1(color)) * g_m1) >> 7;
@@ -542,7 +593,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(uint16_t *pdest
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(uint32_t *pdest, uint32_t color) {
+void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(uint32_t *pdest, uint32_t color) {
     int32_t r, g, b, l;
 
     if (color == 0) return;
@@ -581,15 +632,9 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(uint32_t *pdest, 
             if (g & 0x80000000) g = 0;
             g |= t;
         } else {
-#ifdef HALFBRIGHTMODE3
             r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * g_m1) & 0xFF80FF80) >> 7);
             b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * g_m2) & 0xFF80FF80) >> 7);
             g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * g_m3) & 0xFF80FF80) >> 7);
-#else
-            r = (X32COL1(*pdest)) + (((((X32ACOL1(color)) >> 1) * g_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32ACOL2(color)) >> 1) * g_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32ACOL3(color)) >> 1) * g_m3) & 0xFF80FF80) >> 7);
-#endif
         }
 
         if (!(color & 0x8000)) {
@@ -642,7 +687,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(uint32_t *pdest, 
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_S(uint32_t *pdest, uint32_t color) {
+void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_S(uint32_t *pdest, uint32_t color) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -672,7 +717,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_S(uint32_t *pdest
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(uint32_t *pdest, uint32_t color) {
+void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(uint32_t *pdest, uint32_t color) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -709,15 +754,9 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(uint32_t *pde
             if (g & 0x80000000) g = 0;
             g |= t;
         } else {
-#ifdef HALFBRIGHTMODE3
             r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * g_m1) & 0xFF80FF80) >> 7);
             b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * g_m2) & 0xFF80FF80) >> 7);
             g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * g_m3) & 0xFF80FF80) >> 7);
-#else
-            r = (X32COL1(*pdest)) + (((((X32ACOL1(color)) >> 1) * g_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32ACOL2(color)) >> 1) * g_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32ACOL3(color)) >> 1) * g_m3) & 0xFF80FF80) >> 7);
-#endif
         }
 
         if (!(color & 0x8000)) {
@@ -770,8 +809,8 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(uint32_t *pde
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_Dither(uint16_t *pdest, uint16_t color, int32_t m1,
-                                                                     int32_t m2, int32_t m3) {
+void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_Dither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2,
+                                                              int32_t m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -803,15 +842,9 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_Dither(uint16_t *p
             if (b & 0x80000000) b = 0;
             if (g & 0x80000000) g = 0;
         } else {
-#ifdef HALFBRIGHTMODE3
             r += (m1 >> 2);
             b += (m2 >> 2);
             g += (m3 >> 2);
-#else
-            r += (m1 >> 1);
-            b += (m2 >> 1);
-            g += (m3 >> 1);
-#endif
         }
     } else {
         r = m1;
@@ -823,13 +856,13 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_Dither(uint16_t *p
     if (b & 0x7FFFFF00) b = 0xff;
     if (g & 0x7FFFFF00) g = 0xff;
 
-    Dither16(pdest, r, b, g, sSetMask | (color & 0x8000));
+    dither16(pdest, r, b, g, sSetMask | (color & 0x8000));
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2,
-                                                              int16_t m3) {
+void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2,
+                                                       int16_t m3) {
     int32_t r, g, b;
     uint16_t l;
 
@@ -847,11 +880,6 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(uint16_t *pdest, u
             r = (XCOL1(d)) + ((((XCOL1(color))) * m1) >> 7);
             b = (XCOL2(d)) + ((((XCOL2(color))) * m2) >> 7);
             g = (XCOL3(d)) + ((((XCOL3(color))) * m3) >> 7);
-            /*
-                 r=(XCOL1(*pdest)>>1)+((((XCOL1(color))>>1)* m1)>>7);
-                 b=(XCOL2(*pdest)>>1)+((((XCOL2(color))>>1)* m2)>>7);
-                 g=(XCOL3(*pdest)>>1)+((((XCOL3(color))>>1)* m3)>>7);
-            */
         } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((((XCOL1(color))) * m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color))) * m2) >> 7);
@@ -864,15 +892,9 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(uint16_t *pdest, u
             if (b & 0x80000000) b = 0;
             if (g & 0x80000000) g = 0;
         } else {
-#ifdef HALFBRIGHTMODE3
             r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 2) * m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 2) * m2) >> 7);
             g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 2) * m3) >> 7);
-#else
-            r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 1) * m1) >> 7);
-            b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 1) * m2) >> 7);
-            g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 1) * m3) >> 7);
-#endif
         }
     } else {
         r = ((XCOL1(color)) * m1) >> 7;
@@ -941,8 +963,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX32_S(uint32_t *pdes
 // FILL FUNCS
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1,  // FILL AREA TRANS
-                                                        int16_t y1, uint16_t col) {
+void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col) {
     int16_t j, i, dx, dy;
 
     if (y0 > y1) return;
@@ -967,31 +988,15 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(int16_t x0, int16_t y0, 
     dx = x1 - x0;
     dy = y1 - y0;
 
-    if (dx == 1 && dy == 1 && x0 == 1020 && y0 == 511)  // special fix for pinball game... emu protection???
-    {
-        /*
-        m->v 1020 511 1 1
-        writedatamem 0x00000000 1
-        tile1 newcol 7fff (orgcol 0xffffff), oldvram 0
-        v->m 1020 511 1 1
-        readdatamem 0x00007fff 1
-        m->v 1020 511 1 1
-        writedatamem 0x00000000 1
-        tile1 newcol 8000 (orgcol 0xffffff), oldvram 0
-        v->m 1020 511 1 1
-        readdatamem 0x00008000 1
-        */
-
+    if (dx == 1 && dy == 1 && x0 == 1020 && y0 == 511) {
+        // interlace hack - fix me
         static int iCheat = 0;
         col += iCheat;
-        if (iCheat == 1)
-            iCheat = 0;
-        else
-            iCheat = 1;
+        iCheat ^= 1;
     }
 
-    if (dx & 1)  // slow fill
-    {
+    if (dx & 1) {
+        // slow fill
         uint16_t *DSTPtr;
         uint16_t LineOffset;
         DSTPtr = psxVuw + (1024 * y0) + x0;
@@ -1000,8 +1005,8 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(int16_t x0, int16_t y0, 
             for (j = 0; j < dx; j++) GetShadeTransCol(DSTPtr++, col);
             DSTPtr += LineOffset;
         }
-    } else  // fast fill
-    {
+    } else {
+        // fast fill
         uint32_t *DSTPtr;
         uint16_t LineOffset;
         uint32_t lcol = lSetMask | (((uint32_t)(col)) << 16) | col;
@@ -1025,9 +1030,7 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(int16_t x0, int16_t y0, 
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::FillSoftwareArea(int16_t x0, int16_t y0, int16_t x1,  // FILL AREA (BLK FILL)
-                                                   int16_t y1, uint16_t col)            // no draw area check here!
-{
+void PCSX::SoftGPU::SoftRenderer::FillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col) {
     int16_t j, i, dx, dy;
 
     if (y0 > y1) return;
@@ -1160,8 +1163,8 @@ static inline bool NextRow_F(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                         int16_t y3) {
+bool PCSX::SoftGPU::SoftRenderer::SetupSections_F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                  int16_t y3) {
     soft_vertex *v1, *v2, *v3;
     int height, int32_test;
 
@@ -1278,12 +1281,8 @@ static inline int LeftSection_G(void) {
 
 static inline bool NextRow_G(void) {
     if (--left_section_height <= 0) {
-        if (--left_section <= 0) {
-            return true;
-        }
-        if (LeftSection_G() <= 0) {
-            return true;
-        }
+        if (--left_section <= 0) return true;
+        if (LeftSection_G() <= 0) return true;
     } else {
         left_x += delta_left_x;
         left_R += delta_left_R;
@@ -1292,12 +1291,8 @@ static inline bool NextRow_G(void) {
     }
 
     if (--right_section_height <= 0) {
-        if (--right_section <= 0) {
-            return true;
-        }
-        if (RightSection_G() <= 0) {
-            return true;
-        }
+        if (--right_section <= 0) return true;
+        if (RightSection_G() <= 0) return true;
     } else {
         right_x += delta_right_x;
     }
@@ -1306,8 +1301,8 @@ static inline bool NextRow_G(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_G(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                         int16_t y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
+bool PCSX::SoftGPU::SoftRenderer::SetupSections_G(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                  int16_t y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     soft_vertex *v1, *v2, *v3;
     int height, int32_test, temp;
 
@@ -1347,14 +1342,10 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_G(int16_t x1, int16_t y1,
     }
 
     height = v3->y - v1->y;
-    if (height == 0) {
-        return false;
-    }
+    if (height == 0) return false;
     temp = (((v2->y - v1->y) << 16) / height);
     int32_test = temp * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
-    if (int32_test == 0) {
-        return false;
-    }
+    if (int32_test == 0) return false;
 
     if (int32_test < 0) {
         right_array[0] = v3;
@@ -1399,7 +1390,6 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_G(int16_t x1, int16_t y1,
 }
 
 ////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
 
 static inline int RightSection_FT(void) {
     soft_vertex *v1 = right_array[right_section];
@@ -1438,12 +1428,8 @@ static inline int LeftSection_FT(void) {
 
 static inline bool NextRow_FT(void) {
     if (--left_section_height <= 0) {
-        if (--left_section <= 0) {
-            return true;
-        }
-        if (LeftSection_FT() <= 0) {
-            return true;
-        }
+        if (--left_section <= 0) return true;
+        if (LeftSection_FT() <= 0) return true;
     } else {
         left_x += delta_left_x;
         left_u += delta_left_u;
@@ -1451,12 +1437,8 @@ static inline bool NextRow_FT(void) {
     }
 
     if (--right_section_height <= 0) {
-        if (--right_section <= 0) {
-            return true;
-        }
-        if (RightSection_FT() <= 0) {
-            return true;
-        }
+        if (--right_section <= 0) return true;
+        if (RightSection_FT() <= 0) return true;
     } else {
         right_x += delta_right_x;
     }
@@ -1465,9 +1447,9 @@ static inline bool NextRow_FT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                          int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2,
-                                                          int16_t ty2, int16_t tx3, int16_t ty3) {
+bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                   int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
+                                                   int16_t tx3, int16_t ty3) {
     soft_vertex *v1, *v2, *v3;
     int height, int32_test, temp;
 
@@ -1504,16 +1486,12 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT(int16_t x1, int16_t y1
     }
 
     height = v3->y - v1->y;
-    if (height == 0) {
-        return false;
-    }
+    if (height == 0) return false;
 
     temp = (((v2->y - v1->y) << 16) / height);
     int32_test = temp * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
 
-    if (int32_test == 0) {
-        return false;
-    }
+    if (int32_test == 0) return false;
 
     if (int32_test < 0) {
         right_array[0] = v3;
@@ -1552,21 +1530,6 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT(int16_t x1, int16_t y1
 
     delta_right_u = shl10idiv(temp * ((v3->u - v1->u) >> 10) + ((v1->u - v2->u) << 6), int32_test);
     delta_right_v = shl10idiv(temp * ((v3->v - v1->v) >> 10) + ((v1->v - v2->v) << 6), int32_test);
-
-    /*
-    Mmm... adjust neg tex deltas... will sometimes cause slight
-    texture distortions
-
-     int32_test>>=16;
-     if(int32_test)
-      {
-       if(int32_test<0) int32_test=-int32_test;
-       if(delta_right_u<0)
-        delta_right_u-=delta_right_u/int32_test;
-       if(delta_right_v<0)
-        delta_right_v-=delta_right_v/int32_test;
-      }
-    */
 
     return true;
 }
@@ -1618,12 +1581,8 @@ static inline int LeftSection_GT(void) {
 
 static inline bool NextRow_GT(void) {
     if (--left_section_height <= 0) {
-        if (--left_section <= 0) {
-            return true;
-        }
-        if (LeftSection_GT() <= 0) {
-            return true;
-        }
+        if (--left_section <= 0) return true;
+        if (LeftSection_GT() <= 0) return true;
     } else {
         left_x += delta_left_x;
         left_u += delta_left_u;
@@ -1634,12 +1593,8 @@ static inline bool NextRow_GT(void) {
     }
 
     if (--right_section_height <= 0) {
-        if (--right_section <= 0) {
-            return true;
-        }
-        if (RightSection_GT() <= 0) {
-            return true;
-        }
+        if (--right_section <= 0) return true;
+        if (RightSection_GT() <= 0) return true;
     } else {
         right_x += delta_right_x;
     }
@@ -1648,10 +1603,9 @@ static inline bool NextRow_GT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                          int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2,
-                                                          int16_t ty2, int16_t tx3, int16_t ty3, int32_t rgb1,
-                                                          int32_t rgb2, int32_t rgb3) {
+bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                   int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
+                                                   int16_t tx3, int16_t ty3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     soft_vertex *v1, *v2, *v3;
     int height, int32_test, temp;
 
@@ -1699,16 +1653,12 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT(int16_t x1, int16_t y1
     }
 
     height = v3->y - v1->y;
-    if (height == 0) {
-        return false;
-    }
+    if (height == 0) return false;
 
     temp = (((v2->y - v1->y) << 16) / height);
     int32_test = temp * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
 
-    if (int32_test == 0) {
-        return false;
-    }
+    if (int32_test == 0) return false;
 
     if (int32_test < 0) {
         right_array[0] = v3;
@@ -1753,20 +1703,6 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT(int16_t x1, int16_t y1
     delta_right_u = shl10idiv(temp * ((v3->u - v1->u) >> 10) + ((v1->u - v2->u) << 6), int32_test);
     delta_right_v = shl10idiv(temp * ((v3->v - v1->v) >> 10) + ((v1->v - v2->v) << 6), int32_test);
 
-    /*
-    Mmm... adjust neg tex deltas... will sometimes cause slight
-    texture distortions
-     int32_test>>=16;
-     if(int32_test)
-      {
-       if(int32_test<0) int32_test=-int32_test;
-       if(delta_right_u<0)
-        delta_right_u-=delta_right_u/int32_test;
-       if(delta_right_v<0)
-        delta_right_v-=delta_right_v/int32_test;
-      }
-    */
-
     return true;
 }
 
@@ -1780,9 +1716,7 @@ static inline int RightSection_F4(void) {
     int height = v2->y - v1->y;
     right_section_height = height;
     right_x = v1->x;
-    if (height == 0) {
-        return 0;
-    }
+    if (height == 0) return 0;
     delta_right_x = (v2->x - v1->x) / height;
 
     return height;
@@ -1797,9 +1731,7 @@ static inline int LeftSection_F4(void) {
     int height = v2->y - v1->y;
     left_section_height = height;
     left_x = v1->x;
-    if (height == 0) {
-        return 0;
-    }
+    if (height == 0) return 0;
     delta_left_x = (v2->x - v1->x) / height;
 
     return height;
@@ -1809,19 +1741,21 @@ static inline int LeftSection_F4(void) {
 
 static inline bool NextRow_F4(void) {
     if (--left_section_height <= 0) {
-        if (--left_section > 0)
+        if (--left_section > 0) {
             while (LeftSection_F4() <= 0) {
                 if (--left_section <= 0) break;
             }
+        }
     } else {
         left_x += delta_left_x;
     }
 
     if (--right_section_height <= 0) {
-        if (--right_section > 0)
+        if (--right_section > 0) {
             while (RightSection_F4() <= 0) {
                 if (--right_section <= 0) break;
             }
+        }
     } else {
         right_x += delta_right_x;
     }
@@ -1830,8 +1764,8 @@ static inline bool NextRow_F4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_F4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                          int16_t y3, int16_t x4, int16_t y4) {
+bool PCSX::SoftGPU::SoftRenderer::SetupSections_F4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                   int16_t y3, int16_t x4, int16_t y4) {
     soft_vertex *v1, *v2, *v3, *v4;
     int height, width, int32_test1, int32_test2;
 
@@ -1885,10 +1819,10 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_F4(int16_t x1, int16_t y1
     int32_test1 = (((v2->y - v1->y) << 16) / height) * width + (v1->x - v2->x);
     int32_test2 = (((v3->y - v1->y) << 16) / height) * width + (v1->x - v3->x);
 
-    if (int32_test1 < 0)  // 2 is right
-    {
-        if (int32_test2 < 0)  // 3 is right
-        {
+    if (int32_test1 < 0) {
+        // 2 is right
+        if (int32_test2 < 0) {
+            // 3 is right
             left_array[0] = v4;
             left_array[1] = v1;
             left_section = 1;
@@ -1997,9 +1931,7 @@ static inline int RightSection_FT4(void) {
     right_x = v1->x;
     right_u = v1->u;
     right_v = v1->v;
-    if (height == 0) {
-        return 0;
-    }
+    if (height == 0) return 0;
     delta_right_x = (v2->x - v1->x) / height;
     delta_right_u = (v2->u - v1->u) / height;
     delta_right_v = (v2->v - v1->v) / height;
@@ -2018,9 +1950,7 @@ static inline int LeftSection_FT4(void) {
     left_x = v1->x;
     left_u = v1->u;
     left_v = v1->v;
-    if (height == 0) {
-        return 0;
-    }
+    if (height == 0) return 0;
     delta_left_x = (v2->x - v1->x) / height;
     delta_left_u = (v2->u - v1->u) / height;
     delta_left_v = (v2->v - v1->v) / height;
@@ -2032,10 +1962,11 @@ static inline int LeftSection_FT4(void) {
 
 static inline bool NextRow_FT4(void) {
     if (--left_section_height <= 0) {
-        if (--left_section > 0)
+        if (--left_section > 0) {
             while (LeftSection_FT4() <= 0) {
                 if (--left_section <= 0) break;
             }
+        }
     } else {
         left_x += delta_left_x;
         left_u += delta_left_u;
@@ -2043,10 +1974,11 @@ static inline bool NextRow_FT4(void) {
     }
 
     if (--right_section_height <= 0) {
-        if (--right_section > 0)
+        if (--right_section > 0) {
             while (RightSection_FT4() <= 0) {
                 if (--right_section <= 0) break;
             }
+        }
     } else {
         right_x += delta_right_x;
         right_u += delta_right_u;
@@ -2057,10 +1989,10 @@ static inline bool NextRow_FT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                           int16_t y3, int16_t x4, int16_t y4, int16_t tx1, int16_t ty1,
-                                                           int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                                                           int16_t tx4, int16_t ty4) {
+bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                    int16_t y3, int16_t x4, int16_t y4, int16_t tx1, int16_t ty1,
+                                                    int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
+                                                    int16_t ty4) {
     soft_vertex *v1, *v2, *v3, *v4;
     int height, width, int32_test1, int32_test2;
 
@@ -2125,10 +2057,10 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT4(int16_t x1, int16_t y
     int32_test1 = (((v2->y - v1->y) << 16) / height) * width + (v1->x - v2->x);
     int32_test2 = (((v3->y - v1->y) << 16) / height) * width + (v1->x - v3->x);
 
-    if (int32_test1 < 0)  // 2 is right
-    {
-        if (int32_test2 < 0)  // 3 is right
-        {
+    if (int32_test1 < 0) {
+        // 2 is right
+        if (int32_test2 < 0) {
+            // 3 is right
             left_array[0] = v4;
             left_array[1] = v1;
             left_section = 1;
@@ -2241,9 +2173,7 @@ static inline int RightSection_GT4(void) {
     right_G = v1->G;
     right_B = v1->B;
 
-    if (height == 0) {
-        return 0;
-    }
+    if (height == 0) return 0;
     delta_right_x = (v2->x - v1->x) / height;
     delta_right_u = (v2->u - v1->u) / height;
     delta_right_v = (v2->v - v1->v) / height;
@@ -2269,9 +2199,7 @@ static inline int LeftSection_GT4(void) {
     left_G = v1->G;
     left_B = v1->B;
 
-    if (height == 0) {
-        return 0;
-    }
+    if (height == 0) return 0;
     delta_left_x = (v2->x - v1->x) / height;
     delta_left_u = (v2->u - v1->u) / height;
     delta_left_v = (v2->v - v1->v) / height;
@@ -2286,10 +2214,11 @@ static inline int LeftSection_GT4(void) {
 
 static inline bool NextRow_GT4(void) {
     if (--left_section_height <= 0) {
-        if (--left_section > 0)
+        if (--left_section > 0) {
             while (LeftSection_GT4() <= 0) {
                 if (--left_section <= 0) break;
             }
+        }
     } else {
         left_x += delta_left_x;
         left_u += delta_left_u;
@@ -2300,10 +2229,11 @@ static inline bool NextRow_GT4(void) {
     }
 
     if (--right_section_height <= 0) {
-        if (--right_section > 0)
+        if (--right_section > 0) {
             while (RightSection_GT4() <= 0) {
                 if (--right_section <= 0) break;
             }
+        }
     } else {
         right_x += delta_right_x;
         right_u += delta_right_u;
@@ -2317,11 +2247,11 @@ static inline bool NextRow_GT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                           int16_t y3, int16_t x4, int16_t y4, int16_t tx1, int16_t ty1,
-                                                           int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                                                           int16_t tx4, int16_t ty4, int32_t rgb1, int32_t rgb2,
-                                                           int32_t rgb3, int32_t rgb4) {
+bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                    int16_t y3, int16_t x4, int16_t y4, int16_t tx1, int16_t ty1,
+                                                    int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
+                                                    int16_t ty4, int32_t rgb1, int32_t rgb2, int32_t rgb3,
+                                                    int32_t rgb4) {
     soft_vertex *v1, *v2, *v3, *v4;
     int height, width, int32_test1, int32_test2;
 
@@ -2398,10 +2328,10 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT4(int16_t x1, int16_t y
     int32_test1 = (((v2->y - v1->y) << 16) / height) * width + (v1->x - v2->x);
     int32_test2 = (((v3->y - v1->y) << 16) / height) * width + (v1->x - v3->x);
 
-    if (int32_test1 < 0)  // 2 is right
-    {
-        if (int32_test2 < 0)  // 3 is right
-        {
+    if (int32_test1 < 0) {
+        // 2 is right
+        if (int32_test2 < 0) {
+            // 3 is right
             left_array[0] = v4;
             left_array[1] = v1;
             left_section = 1;
@@ -2510,8 +2440,8 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT4(int16_t x1, int16_t y
 // POLY 3/4 FLAT SHADED
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                     int16_t y3, int32_t rgb) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                              int32_t rgb) {
     int i, j, xmin, xmax, ymin, ymax;
     uint16_t color;
     uint32_t lcolor;
@@ -2530,10 +2460,9 @@ inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int
     color = ((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3);
     lcolor = lSetMask | (((uint32_t)(color)) << 16) | color;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_F()) return;
-
-#ifdef FASTSOLID
+    }
 
     if (!bCheckMask && !DrawSemiTrans) {
         color |= sSetMask;
@@ -2552,8 +2481,6 @@ inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = left_x >> 16;
@@ -2574,74 +2501,9 @@ inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int
 
 void PCSX::SoftGPU::SoftRenderer::drawPoly3F(int32_t rgb) { drawPoly3Fi(lx0, ly0, lx1, ly1, lx2, ly2, rgb); }
 
-#ifdef POLYQUAD3FS
-
-void drawPoly4F_TRI(int32_t rgb) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly4F(int32_t rgb) {
     drawPoly3Fi(lx1, ly1, lx3, ly3, lx2, ly2, rgb);
     drawPoly3Fi(lx0, ly0, lx1, ly1, lx2, ly2, rgb);
-}
-
-#endif
-
-// more exact:
-
-void PCSX::SoftGPU::SoftRenderer::drawPoly4F(int32_t rgb) {
-    int i, j, xmin, xmax, ymin, ymax;
-    uint16_t color;
-    uint32_t lcolor;
-
-    if (lx0 > drawW && lx1 > drawW && lx2 > drawW && lx3 > drawW) return;
-    if (ly0 > drawH && ly1 > drawH && ly2 > drawH && ly3 > drawH) return;
-    if (lx0 < drawX && lx1 < drawX && lx2 < drawX && lx3 < drawX) return;
-    if (ly0 < drawY && ly1 < drawY && ly2 < drawY && ly3 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
-
-    if (!SetupSections_F4(lx0, ly0, lx1, ly1, lx2, ly2, lx3, ly3)) return;
-
-    ymax = Ymax;
-
-    for (ymin = Ymin; ymin < drawY; ymin++)
-        if (NextRow_F4()) return;
-
-    color = ((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3);
-    lcolor = lSetMask | (((uint32_t)(color)) << 16) | color;
-
-#ifdef FASTSOLID
-
-    if (!bCheckMask && !DrawSemiTrans) {
-        color |= sSetMask;
-        for (i = ymin; i <= ymax; i++) {
-            xmin = left_x >> 16;
-            if (drawX > xmin) xmin = drawX;
-            xmax = (right_x >> 16) - 1;
-            if (drawW < xmax) xmax = drawW;
-
-            for (j = xmin; j < xmax; j += 2) {
-                *((uint32_t *)&psxVuw[(i << 10) + j]) = lcolor;
-            }
-            if (j == xmax) psxVuw[(i << 10) + j] = color;
-
-            if (NextRow_F4()) return;
-        }
-        return;
-    }
-
-#endif
-
-    for (i = ymin; i <= ymax; i++) {
-        xmin = left_x >> 16;
-        if (drawX > xmin) xmin = drawX;
-        xmax = (right_x >> 16) - 1;
-        if (drawW < xmax) xmax = drawW;
-
-        for (j = xmin; j < xmax; j += 2) {
-            GetShadeTransCol32((uint32_t *)&psxVuw[(i << 10) + j], lcolor);
-        }
-        if (j == xmax) GetShadeTransCol(&psxVuw[(i << 10) + j], color);
-
-        if (NextRow_F4()) return;
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -2666,8 +2528,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_FT()) return;
+    }
 
     clutP = (clY << 10) + clX;
 
@@ -2678,8 +2541,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
     difX2 = difX << 1;
     difY = delta_right_v;
     difY2 = difY << 1;
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -2724,14 +2585,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
                     GetTextureTransColG_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
                 }
             }
-            if (NextRow_FT()) {
-                return;
-            }
+            if (NextRow_FT()) return;
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -2773,9 +2630,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
                 GetTextureTransColG(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
             }
         }
-        if (NextRow_FT()) {
-            return;
-        }
+        if (NextRow_FT()) return;
     }
 }
 
@@ -2802,15 +2657,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_FT4()) return;
+    }
 
     clutP = (clY << 10) + clX;
 
     YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
     YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0 >> 1);
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -2864,8 +2718,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -2941,15 +2793,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_FT4()) return;
+    }
 
     clutP = (clY << 10) + clX;
 
     YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
     YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0 >> 1);
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3003,8 +2854,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -3078,8 +2927,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_FT()) return;
+    }
 
     clutP = (clY << 10) + clX;
 
@@ -3090,8 +2940,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
     difX2 = difX << 1;
     difY = delta_right_v;
     difY2 = difY << 1;
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3129,14 +2977,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
                     GetTextureTransColG_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
                 }
             }
-            if (NextRow_FT()) {
-                return;
-            }
+            if (NextRow_FT()) return;
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -3171,9 +3015,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
                 GetTextureTransColG(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
             }
         }
-        if (NextRow_FT()) {
-            return;
-        }
+        if (NextRow_FT()) return;
     }
 }
 
@@ -3200,15 +3042,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_FT4()) return;
+    }
 
     clutP = (clY << 10) + clX;
 
     YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
     YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0);
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3255,8 +3096,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -3325,15 +3164,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_FT4()) return;
+    }
 
     clutP = (clY << 10) + clX;
 
     YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
     YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0);
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3380,8 +3218,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -3449,15 +3285,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_FT()) return;
+    }
 
     difX = delta_right_u;
     difX2 = difX << 1;
     difY = delta_right_v;
     difY2 = difY << 1;
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3490,20 +3325,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
                     posX += difX2;
                     posY += difY2;
                 }
-                if (j == xmax)
+                if (j == xmax) {
                     GetTextureTransColG_S(
                         &psxVuw[(i << 10) + j],
                         psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
                                ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                }
             }
-            if (NextRow_FT()) {
-                return;
-            }
+            if (NextRow_FT()) return;
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -3534,15 +3366,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
                 posX += difX2;
                 posY += difY2;
             }
-            if (j == xmax)
+            if (j == xmax) {
                 GetTextureTransColG(
                     &psxVuw[(i << 10) + j],
                     psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
                            ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+            }
         }
-        if (NextRow_FT()) {
-            return;
-        }
+        if (NextRow_FT()) return;
     }
 }
 
@@ -3567,10 +3398,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_FT4()) return;
-
-#ifdef FASTSOLID
+    }
 
     if (!bCheckMask && !DrawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3611,18 +3441,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
                     posX += difX2;
                     posY += difY2;
                 }
-                if (j == xmax)
+                if (j == xmax) {
                     GetTextureTransColG_S(
                         &psxVuw[(i << 10) + j],
                         psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
                                ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                }
             }
             if (NextRow_FT4()) return;
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -3661,11 +3490,12 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
                 posX += difX2;
                 posY += difY2;
             }
-            if (j == xmax)
+            if (j == xmax) {
                 GetTextureTransColG(
                     &psxVuw[(i << 10) + j],
                     psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
                            ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+            }
         }
         if (NextRow_FT4()) return;
     }
@@ -3692,10 +3522,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_FT4()) return;
-
-#ifdef FASTSOLID
+    }
 
     if (!bCheckMask && !DrawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3736,18 +3565,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
                     posX += difX2;
                     posY += difY2;
                 }
-                if (j == xmax)
+                if (j == xmax) {
                     GetTextureTransColG_S(
                         &psxVuw[(i << 10) + j],
                         psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
                                ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                }
             }
             if (NextRow_FT4()) return;
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -3786,11 +3614,12 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
                 posX += difX2;
                 posY += difY2;
             }
-            if (j == xmax)
+            if (j == xmax) {
                 GetTextureTransColG_SPR(
                     &psxVuw[(i << 10) + j],
                     psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
                            ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+            }
         }
         if (NextRow_FT4()) return;
     }
@@ -3800,8 +3629,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
 // POLY 3/4 G-SHADED
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                     int16_t y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                              int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     int i, j, xmin, xmax, ymin, ymax;
     int32_t cR1, cG1, cB1;
     int32_t difR, difB, difG, difR2, difB2, difG2;
@@ -3817,8 +3646,9 @@ inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_G()) return;
+    }
 
     difR = delta_right_R;
     difG = delta_right_G;
@@ -3826,8 +3656,6 @@ inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int
     difR2 = difR << 1;
     difG2 = difG << 1;
     difB2 = difB << 1;
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans && iDither != 2) {
         for (i = ymin; i <= ymax; i++) {
@@ -3859,16 +3687,15 @@ inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int
                     cG1 += difG2;
                     cB1 += difB2;
                 }
-                if (j == xmax)
+                if (j == xmax) {
                     psxVuw[(i << 10) + j] =
                         (((cR1 >> 9) & 0x7c00) | ((cG1 >> 14) & 0x03e0) | ((cB1 >> 19) & 0x001f)) | sSetMask;
+                }
             }
             if (NextRow_G()) return;
         }
         return;
     }
-
-#endif
 
     if (iDither == 2)
         for (i = ymin; i <= ymax; i++) {
@@ -3968,8 +3795,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_GT()) return;
+    }
 
     clutP = (clY << 10) + clX;
 
@@ -3987,8 +3815,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
     difX2 = difX << 1;
     difY = delta_right_v;
     difY2 = difY << 1;
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans && !iDither) {
         for (i = ymin; i <= ymax; i++) {
@@ -4041,14 +3867,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
                                            (cR1 >> 16));
                 }
             }
-            if (NextRow_GT()) {
-                return;
-            }
+            if (NextRow_GT()) return;
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -4077,12 +3899,13 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
                 tC1 =
                     psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1))];
                 tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                if (iDither)
+                if (iDither) {
                     GetTextureTransColGX_Dither(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
                                                 (cR1 >> 16));
-                else
+                } else {
                     GetTextureTransColGX(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
                                          (cR1 >> 16));
+                }
                 posX += difX;
                 posY += difY;
                 cR1 += difR;
@@ -4090,9 +3913,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
                 cB1 += difB;
             }
         }
-        if (NextRow_GT()) {
-            return;
-        }
+        if (NextRow_GT()) return;
     }
 }
 
@@ -4132,8 +3953,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_GT()) return;
+    }
 
     clutP = (clY << 10) + clX;
 
@@ -4150,8 +3972,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
     difX2 = difX << 1;
     difY = delta_right_v;
     difY2 = difY << 1;
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans && !iDither) {
         for (i = ymin; i <= ymax; i++) {
@@ -4199,14 +4019,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
                                            (cR1 >> 16));
                 }
             }
-            if (NextRow_GT()) {
-                return;
-            }
+            if (NextRow_GT()) return;
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -4233,12 +4049,13 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
             for (j = xmin; j <= xmax; j++) {
                 tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
                                                   ((posX >> 16) % TWin.Position.x1))];
-                if (iDither)
+                if (iDither) {
                     GetTextureTransColGX_Dither(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
                                                 (cR1 >> 16));
-                else
+                } else {
                     GetTextureTransColGX(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
                                          (cR1 >> 16));
+                }
                 posX += difX;
                 posY += difY;
                 cR1 += difR;
@@ -4246,9 +4063,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
                 cB1 += difB;
             }
         }
-        if (NextRow_GT()) {
-            return;
-        }
+        if (NextRow_GT()) return;
     }
 }
 
@@ -4285,8 +4100,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
 
     ymax = Ymax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++)
+    for (ymin = Ymin; ymin < drawY; ymin++) {
         if (NextRow_GT()) return;
+    }
 
     difR = delta_right_R;
     difG = delta_right_G;
@@ -4298,8 +4114,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
     difX2 = difX << 1;
     difY = delta_right_v;
     difY2 = difY << 1;
-
-#ifdef FASTSOLID
 
     if (!bCheckMask && !DrawSemiTrans && !iDither) {
         for (i = ymin; i <= ymax; i++) {
@@ -4342,21 +4156,18 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
                     cG1 += difG2;
                     cB1 += difB2;
                 }
-                if (j == xmax)
+                if (j == xmax) {
                     GetTextureTransColGX_S(
                         &psxVuw[(i << 10) + j],
                         psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
                                ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0],
                         (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
+                }
             }
-            if (NextRow_GT()) {
-                return;
-            }
+            if (NextRow_GT()) return;
         }
         return;
     }
-
-#endif
 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
@@ -4381,18 +4192,19 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
             }
 
             for (j = xmin; j <= xmax; j++) {
-                if (iDither)
+                if (iDither) {
                     GetTextureTransColGX_Dither(
                         &psxVuw[(i << 10) + j],
                         psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
                                ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0],
                         (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
-                else
+                } else {
                     GetTextureTransColGX(
                         &psxVuw[(i << 10) + j],
                         psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
                                ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0],
                         (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
+                }
                 posX += difX;
                 posY += difY;
                 cR1 += difR;
@@ -4400,9 +4212,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
                 cB1 += difB;
             }
         }
-        if (NextRow_GT()) {
-            return;
-        }
+        if (NextRow_GT()) return;
     }
 }
 
@@ -4414,192 +4224,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TGD(int16_t x1, int16_t y1, int16_t x
                                                int32_t col1, int32_t col2, int32_t col3, int32_t col4) {
     drawPoly3TGD(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, col2, col4, col3);
     drawPoly3TGD(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, col1, col2, col3);
-}
-
-////////////////////////////////////////////////////////////////////////
-
-/*
-// no real rect test, but it does its job the way I need it
-static inline bool IsNoRect(void)
-{
- if(lx0==lx1 && lx2==lx3) return false;
- if(lx0==lx2 && lx1==lx3) return false;
- if(lx0==lx3 && lx1==lx2) return false;
- return true;
-}
-*/
-
-// real rect test
-inline bool PCSX::SoftGPU::SoftRenderer::IsNoRect() {
-    if (!(dwActFixes & 0x200)) return false;
-
-    if (ly0 == ly1) {
-        if (lx1 == lx3 && ly3 == ly2 && lx2 == lx0) return false;
-        if (lx1 == lx2 && ly2 == ly3 && lx3 == lx0) return false;
-        return true;
-    }
-
-    if (ly0 == ly2) {
-        if (lx2 == lx3 && ly3 == ly1 && lx1 == lx0) return false;
-        if (lx2 == lx1 && ly1 == ly3 && lx3 == lx0) return false;
-        return true;
-    }
-
-    if (ly0 == ly3) {
-        if (lx3 == lx2 && ly2 == ly1 && lx1 == lx0) return false;
-        if (lx3 == lx1 && ly1 == ly2 && lx2 == lx0) return false;
-        return true;
-    }
-    return true;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::drawPoly3FT(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-
-    switch (GlobalTextTP) {
-        case GPU::TexDepth::Tex4Bits:
-            drawPoly3TEx4(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
-                          (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
-                          ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
-                          ((gpuData[2] >> 22) & iGPUHeightMask));
-            return;
-        case GPU::TexDepth::Tex8Bits:
-            drawPoly3TEx8(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
-                          (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
-                          ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
-                          ((gpuData[2] >> 22) & iGPUHeightMask));
-            return;
-        case GPU::TexDepth::Tex16Bits:
-            drawPoly3TD(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
-                        (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
-                        ((gpuData[6] >> 8) & 0x000000ff));
-            return;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-
-    switch (GlobalTextTP) {
-        case GPU::TexDepth::Tex4Bits:
-            drawPoly4TEx4(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
-                          ((gpuData[2] >> 8) & 0x000000ff), (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff),
-                          (gpuData[8] & 0x000000ff), ((gpuData[8] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
-                          ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
-                          ((gpuData[2] >> 22) & iGPUHeightMask));
-            return;
-        case GPU::TexDepth::Tex8Bits:
-            drawPoly4TEx8(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
-                          ((gpuData[2] >> 8) & 0x000000ff), (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff),
-                          (gpuData[8] & 0x000000ff), ((gpuData[8] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
-                          ((gpuData[6] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
-                          ((gpuData[2] >> 22) & iGPUHeightMask));
-            return;
-        case GPU::TexDepth::Tex16Bits:
-            drawPoly4TD(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
-                        ((gpuData[2] >> 8) & 0x000000ff), (gpuData[4] & 0x000000ff), ((gpuData[4] >> 8) & 0x000000ff),
-                        (gpuData[8] & 0x000000ff), ((gpuData[8] >> 8) & 0x000000ff), (gpuData[6] & 0x000000ff),
-                        ((gpuData[6] >> 8) & 0x000000ff));
-            return;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::drawPoly3GT(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-
-    switch (GlobalTextTP) {
-        case GPU::TexDepth::Tex4Bits:
-            drawPoly3TGEx4(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
-                           (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
-                           ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
-                           ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6]);
-            return;
-        case GPU::TexDepth::Tex8Bits:
-            drawPoly3TGEx8(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
-                           (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
-                           ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
-                           ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6]);
-            return;
-        case GPU::TexDepth::Tex16Bits:
-            drawPoly3TGD(lx0, ly0, lx1, ly1, lx2, ly2, (gpuData[2] & 0x000000ff), ((gpuData[2] >> 8) & 0x000000ff),
-                         (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
-                         ((gpuData[8] >> 8) & 0x000000ff), gpuData[0], gpuData[3], gpuData[6]);
-            return;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-
-    switch (GlobalTextTP) {
-        case GPU::TexDepth::Tex4Bits:
-            drawPoly4TGEx4(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
-                           ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
-                           ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
-                           ((gpuData[11] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
-                           ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
-                           ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6], gpuData[9]);
-            return;
-        case GPU::TexDepth::Tex8Bits:
-            drawPoly4TGEx8(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
-                           ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff),
-                           ((gpuData[5] >> 8) & 0x000000ff), (gpuData[11] & 0x000000ff),
-                           ((gpuData[11] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
-                           ((gpuData[8] >> 8) & 0x000000ff), ((gpuData[2] >> 12) & 0x3f0),
-                           ((gpuData[2] >> 22) & iGPUHeightMask), gpuData[0], gpuData[3], gpuData[6], gpuData[9]);
-            return;
-        case GPU::TexDepth::Tex16Bits:
-            drawPoly4TGD(lx0, ly0, lx1, ly1, lx3, ly3, lx2, ly2, (gpuData[2] & 0x000000ff),
-                         ((gpuData[2] >> 8) & 0x000000ff), (gpuData[5] & 0x000000ff), ((gpuData[5] >> 8) & 0x000000ff),
-                         (gpuData[11] & 0x000000ff), ((gpuData[11] >> 8) & 0x000000ff), (gpuData[8] & 0x000000ff),
-                         ((gpuData[8] >> 8) & 0x000000ff), gpuData[0], gpuData[3], gpuData[6], gpuData[9]);
-            return;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
-// SPRITE FUNCS
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, int32_t w, int32_t h) {
-    uint32_t *gpuData = (uint32_t *)baseAddr;
-    int16_t sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3;
-    int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
-
-    sx0 = lx0;
-    sy0 = ly0;
-
-    sx0 = sx3 = sx0 + PSXDisplay.DrawOffset.x;
-    sx1 = sx2 = sx0 + w;
-    sy0 = sy1 = sy0 + PSXDisplay.DrawOffset.y;
-    sy2 = sy3 = sy0 + h;
-
-    tx0 = tx3 = gpuData[2] & 0xff;
-    tx1 = tx2 = tx0 + w;
-    ty0 = ty1 = (gpuData[2] >> 8) & 0xff;
-    ty2 = ty3 = ty0 + h;
-
-    switch (GlobalTextTP) {
-        case GPU::TexDepth::Tex4Bits:
-            drawPoly4TEx4_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
-                            ((gpuData[2] >> 12) & 0x3f0), ((gpuData[2] >> 22) & iGPUHeightMask));
-            return;
-        case GPU::TexDepth::Tex8Bits:
-            drawPoly4TEx8_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
-                            ((gpuData[2] >> 12) & 0x3f0), ((gpuData[2] >> 22) & iGPUHeightMask));
-            return;
-        case GPU::TexDepth::Tex16Bits:
-            drawPoly4TD_S(sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3);
-            return;
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -4633,9 +4257,11 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Shade(int x0, int y0, int x1, int y1
     incrE = 2 * dy;         /* incr. used for move to E */
     incrSE = 2 * (dy - dx); /* incr. used for move to SE */
 
-    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH))
+    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
         GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
+    }
+
     while (x0 < x1) {
         if (d <= 0) {
             d = d + incrE; /* Choose E */
@@ -4649,9 +4275,10 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Shade(int x0, int y0, int x1, int y1
         g0 += dg;
         b0 += db;
 
-        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH))
+        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
             GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
                              (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
+        }
     }
 }
 
@@ -4686,9 +4313,11 @@ void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Shade(int x0, int y0, int x1, int y1
     incrS = 2 * dx;         /* incr. used for move to S */
     incrSE = 2 * (dx - dy); /* incr. used for move to SE */
 
-    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH))
+    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
         GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
+    }
+
     while (y0 < y1) {
         if (d <= 0) {
             d = d + incrS; /* Choose S */
@@ -4702,9 +4331,10 @@ void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Shade(int x0, int y0, int x1, int y1
         g0 += dg;
         b0 += db;
 
-        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH))
+        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
             GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
                              (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
+        }
     }
 }
 
@@ -4739,9 +4369,11 @@ void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Shade(int x0, int y0, int x1, int y1
     incrN = 2 * dx;         /* incr. used for move to N */
     incrNE = 2 * (dx - dy); /* incr. used for move to NE */
 
-    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH))
+    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
         GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
+    }
+
     while (y0 > y1) {
         if (d <= 0) {
             d = d + incrN; /* Choose N */
@@ -4755,9 +4387,10 @@ void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Shade(int x0, int y0, int x1, int y1
         g0 += dg;
         b0 += db;
 
-        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH))
+        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
             GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
                              (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
+        }
     }
 }
 
@@ -4792,9 +4425,11 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Shade(int x0, int y0, int x1, int y1
     incrE = 2 * dy;         /* incr. used for move to E */
     incrNE = 2 * (dy - dx); /* incr. used for move to NE */
 
-    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH))
+    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
         GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
+    }
+
     while (x0 < x1) {
         if (d <= 0) {
             d = d + incrE; /* Choose E */
@@ -4808,9 +4443,10 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Shade(int x0, int y0, int x1, int y1
         g0 += dg;
         b0 += db;
 
-        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH))
+        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
             GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
                              (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
+        }
     }
 }
 
@@ -4904,7 +4540,7 @@ void PCSX::SoftGPU::SoftRenderer::HorzLineShade(int y, int x0, int x1, uint32_t 
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Flat(int x0, int y0, int x1, int y1, uint16_t colour) {
+void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrE, incrSE, d, x, y;
 
     dx = x1 - x0;
@@ -4914,7 +4550,10 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Flat(int x0, int y0, int x1, int y1,
     incrSE = 2 * (dy - dx); /* incr. used for move to SE */
     x = x0;
     y = y0;
-    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
+        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    }
+
     while (x < x1) {
         if (d <= 0) {
             d = d + incrE; /* Choose E */
@@ -4924,14 +4563,15 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Flat(int x0, int y0, int x1, int y1,
             x++;
             y++;
         }
-        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH))
-            GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
+            GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Flat(int x0, int y0, int x1, int y1, uint16_t colour) {
+void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrS, incrSE, d, x, y;
 
     dx = x1 - x0;
@@ -4941,7 +4581,10 @@ void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Flat(int x0, int y0, int x1, int y1,
     incrSE = 2 * (dx - dy); /* incr. used for move to SE */
     x = x0;
     y = y0;
-    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
+        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    }
+
     while (y < y1) {
         if (d <= 0) {
             d = d + incrS; /* Choose S */
@@ -4951,14 +4594,15 @@ void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Flat(int x0, int y0, int x1, int y1,
             x++;
             y++;
         }
-        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH))
-            GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
+            GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Flat(int x0, int y0, int x1, int y1, uint16_t colour) {
+void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrN, incrNE, d, x, y;
 
     dx = x1 - x0;
@@ -4968,7 +4612,10 @@ void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Flat(int x0, int y0, int x1, int y1,
     incrNE = 2 * (dx - dy); /* incr. used for move to NE */
     x = x0;
     y = y0;
-    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
+        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    }
+
     while (y > y1) {
         if (d <= 0) {
             d = d + incrN; /* Choose N */
@@ -4978,14 +4625,15 @@ void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Flat(int x0, int y0, int x1, int y1,
             x++;
             y--;
         }
-        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH))
-            GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
+            GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t colour) {
+void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrE, incrNE, d, x, y;
 
     dx = x1 - x0;
@@ -4995,7 +4643,10 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Flat(int x0, int y0, int x1, int y1,
     incrNE = 2 * (dy - dx); /* incr. used for move to NE */
     x = x0;
     y = y0;
-    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
+        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    }
+
     while (x < x1) {
         if (d <= 0) {
             d = d + incrE; /* Choose E */
@@ -5005,33 +4656,38 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Flat(int x0, int y0, int x1, int y1,
             x++;
             y--;
         }
-        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH))
-            GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
+            GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::VertLineFlat(int x, int y0, int y1, uint16_t colour) {
+void PCSX::SoftGPU::SoftRenderer::VertLineFlat(int x, int y0, int y1, uint16_t color) {
     int y;
 
     if (y0 < drawY) y0 = drawY;
 
     if (y1 > drawH) y1 = drawH;
 
-    for (y = y0; y <= y1; y++) GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+    for (y = y0; y <= y1; y++) {
+        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::HorzLineFlat(int y, int x0, int x1, uint16_t colour) {
+void PCSX::SoftGPU::SoftRenderer::HorzLineFlat(int y, int x0, int x1, uint16_t color) {
     int x;
 
     if (x0 < drawX) x0 = drawX;
 
     if (x1 > drawW) x1 = drawW;
 
-    for (x = x0; x <= x1; x++) GetShadeTransCol(&psxVuw[(y << 10) + x], colour);
+    for (x = x0; x <= x1; x++) {
+        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -5057,15 +4713,17 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineShade(int32_t rgb0, int32_t rg
     dy = y1 - y0;
 
     if (dx == 0) {
-        if (dy > 0)
+        if (dy > 0) {
             VertLineShade(x0, y0, y1, rgb0, rgb1);
-        else
+        } else {
             VertLineShade(x0, y1, y0, rgb1, rgb0);
+        }
     } else if (dy == 0) {
-        if (dx > 0)
+        if (dx > 0) {
             HorzLineShade(y0, x0, x1, rgb0, rgb1);
-        else
+        } else {
             HorzLineShade(y0, x1, x0, rgb1, rgb0);
+        }
     } else {
         if (dx < 0) {
             xt = x0;
@@ -5084,14 +4742,16 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineShade(int32_t rgb0, int32_t rg
         m = dy / dx;
 
         if (m >= 0) {
-            if (m > 1)
+            if (m > 1) {
                 Line_S_SE_Shade(x0, y0, x1, y1, rgb0, rgb1);
-            else
+            } else {
                 Line_E_SE_Shade(x0, y0, x1, y1, rgb0, rgb1);
-        } else if (m < -1)
+            }
+        } else if (m < -1) {
             Line_N_NE_Shade(x0, y0, x1, y1, rgb0, rgb1);
-        else
+        } else {
             Line_E_NE_Shade(x0, y0, x1, y1, rgb0, rgb1);
+        }
     }
 }
 
@@ -5100,7 +4760,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineShade(int32_t rgb0, int32_t rg
 void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineFlat(int32_t rgb) {
     int16_t x0, y0, x1, y1, xt, yt;
     double m, dy, dx;
-    uint16_t colour = 0;
+    uint16_t color = 0;
 
     if (lx0 > drawW && lx1 > drawW) return;
     if (ly0 > drawH && ly1 > drawH) return;
@@ -5109,7 +4769,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineFlat(int32_t rgb) {
     if (drawY >= drawH) return;
     if (drawX >= drawW) return;
 
-    colour = ((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3);
+    color = ((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3);
 
     x0 = lx0;
     y0 = ly0;
@@ -5120,17 +4780,19 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineFlat(int32_t rgb) {
     dy = y1 - y0;
 
     if (dx == 0) {
-        if (dy == 0)
+        if (dy == 0) {
             return;  // Nothing to draw
-        else if (dy > 0)
-            VertLineFlat(x0, y0, y1, colour);
-        else
-            VertLineFlat(x0, y1, y0, colour);
+        } else if (dy > 0) {
+            VertLineFlat(x0, y0, y1, color);
+        } else {
+            VertLineFlat(x0, y1, y0, color);
+        }
     } else if (dy == 0) {
-        if (dx > 0)
-            HorzLineFlat(y0, x0, x1, colour);
-        else
-            HorzLineFlat(y0, x1, x0, colour);
+        if (dx > 0) {
+            HorzLineFlat(y0, x0, x1, color);
+        } else {
+            HorzLineFlat(y0, x1, x0, color);
+        }
     } else {
         if (dx < 0) {
             xt = x0;
@@ -5147,14 +4809,16 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineFlat(int32_t rgb) {
         m = dy / dx;
 
         if (m >= 0) {
-            if (m > 1)
-                Line_S_SE_Flat(x0, y0, x1, y1, colour);
-            else
-                Line_E_SE_Flat(x0, y0, x1, y1, colour);
-        } else if (m < -1)
-            Line_N_NE_Flat(x0, y0, x1, y1, colour);
-        else
-            Line_E_NE_Flat(x0, y0, x1, y1, colour);
+            if (m > 1) {
+                Line_S_SE_Flat(x0, y0, x1, y1, color);
+            } else {
+                Line_E_SE_Flat(x0, y0, x1, y1, color);
+            }
+        } else if (m < -1) {
+            Line_N_NE_Flat(x0, y0, x1, y1, color);
+        } else {
+            Line_E_NE_Flat(x0, y0, x1, y1, color);
+        }
     }
 }
 

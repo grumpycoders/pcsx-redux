@@ -78,19 +78,16 @@ class GPU {
     int init(GUI *);
     virtual int initBackend(GUI *) = 0;
     virtual int shutdown() = 0;
-    virtual void startDump() { throw std::runtime_error("Not yet implemented"); }
-    virtual void stopDump() { throw std::runtime_error("Not yet implemented"); }
-    virtual void readDataMem(uint32_t *pMem, int iSize) = 0;
+    void startDump() { throw std::runtime_error("Not yet implemented"); }
+    void stopDump() { throw std::runtime_error("Not yet implemented"); }
     uint32_t readData();
     virtual uint32_t readStatusInternal() = 0;
     void writeData(uint32_t gdata);
     void directDMAWrite(const uint32_t *feed, int transferSize, uint32_t hwAddr);
     void directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr);
     void chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr);
-    virtual void writeDataMem(uint32_t *pMem, int iSize) = 0;
     void writeStatus(uint32_t gdata);
     virtual void writeStatusInternal(uint32_t gdata) = 0;
-    virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
     virtual void setOpenGLContext() {}
 
     virtual void restoreStatus(uint32_t status) = 0;

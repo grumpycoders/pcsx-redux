@@ -29,6 +29,32 @@ namespace PCSX {
 namespace SoftGPU {
 
 struct SoftRenderer {
+    inline void reset() {
+        GlobalTextAddrX = 0;
+        GlobalTextAddrY = 0;
+        GlobalTextTP = GPU::TexDepth::Tex4Bits;
+        GlobalTextABR = GPU::BlendFunction::HalfBackAndHalfFront;
+        drawX = drawY = 0;
+        drawW = drawH = 0;
+        bCheckMask = false;
+        sSetMask = 0;
+        lSetMask = 0;
+    }
+
+    int m_useDither = 0;
+
+    int32_t GlobalTextREST;
+
+    bool CheckCoord4();
+    bool CheckCoord3();
+
+    void texturePage(GPU::TPage *prim);
+    void twindow(GPU::TWindow *prim);
+    void drawingAreaStart(GPU::DrawingAreaStart *prim);
+    void drawingAreaEnd(GPU::DrawingAreaEnd *prim);
+    void drawingOffset(GPU::DrawingOffset *prim);
+    void maskBit(GPU::MaskBit *prim);
+    
     TWin_t TWin;
     int iDither = 0;
     int drawX, drawY, drawW, drawH;
@@ -46,7 +72,6 @@ struct SoftRenderer {
     uint16_t sSetMask = 0;
     uint32_t lSetMask = 0;
 
-    void offsetPSXLine();
     void offsetPSX2();
     void offsetPSX3();
     void offsetPSX4();
@@ -57,18 +82,11 @@ struct SoftRenderer {
     void drawPoly4G(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
     void drawPoly3F(int32_t rgb);
     void drawPoly4F(int32_t rgb);
-    void drawPoly4FT(unsigned char *baseAddr);
-    void drawPoly4GT(unsigned char *baseAddr);
-    void drawPoly3FT(unsigned char *baseAddr);
-    void drawPoly3GT(unsigned char *baseAddr);
-    void DrawSoftwareSprite(unsigned char *baseAddr, int32_t w, int32_t h);
     void DrawSoftwareLineShade(int32_t rgb0, int32_t rgb1);
     void DrawSoftwareLineFlat(int32_t rgb);
 
     int16_t Ymin;
     int16_t Ymax;
-
-    bool IsNoRect();
 
     bool SetupSections_F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3);
     bool SetupSections_G(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1,

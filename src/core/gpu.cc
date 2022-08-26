@@ -374,10 +374,11 @@ inline bool PCSX::GPU::CheckForEndlessLoop(uint32_t laddr) {
     if (laddr == s_lUsedAddr[1]) return true;
     if (laddr == s_lUsedAddr[2]) return true;
 
-    if (laddr < s_lUsedAddr[0])
+    if (laddr < s_lUsedAddr[0]) {
         s_lUsedAddr[1] = laddr;
-    else
+    } else {
         s_lUsedAddr[2] = laddr;
+    }
 
     s_lUsedAddr[0] = laddr;
 
