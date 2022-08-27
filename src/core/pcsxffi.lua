@@ -80,7 +80,7 @@ LuaScreenShot takeScreenShot();
 
 LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
-void luaSaveStateFromFile(LuaFile*);
+void loadSaveStateFromFile(LuaFile*);
 ]]
 
 local C = ffi.load 'PCSX'
