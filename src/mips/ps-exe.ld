@@ -157,7 +157,6 @@ SECTIONS {
 
     __data_start = .;
     .data : {
-        *(.a0table)
         *(.data .data.* .gnu.linkonce.d.*)
         *(.data1)
         *(.sdata .sdata.* .gnu.linkonce.s.*)

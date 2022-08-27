@@ -177,6 +177,8 @@ SECTIONS {
         *(.ramtext)
         *(.data .data.* .gnu.linkonce.d.*)
         *(.data1)
+        *(.sdata .sdata.* .gnu.linkonce.s.*)
+        *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
         *(.got.plt)
         *(.got)
         . = ALIGN(32);
