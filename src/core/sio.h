@@ -76,53 +76,6 @@ class SIO {
     uint32_t m_maxBufferIndex;
     uint32_t m_bufferIndex;
     uint32_t m_mcdState, m_mcdReadWriteState;
-    enum {
-        MCD_STATE_IDLE = 0,
-        MCD_STATE_READ_COMMAND = 1,
-        MCD_STATE_READ_ADDR_HIGH = 2,
-        MCD_STATE_READ_ADDR_LOW = 3,
-        MCD_STATE_READ_ACK = 4,
-        MCD_STATE_READWRITE_DATA = 5,
-    };
-    enum {
-        MCD_READWRITE_STATE_IDLE = 0,
-        MCD_READWRITE_STATE_READ = 1,
-        MCD_READWRITE_STATE_WRITE = 2,
-        MCD_READWRITE_STATE_GET_DIR_INDEX = 3,
-    };
-    struct MCD_Commands {
-        enum : uint8_t {
-            Read = 0x52,   // Read Command
-            GetID = 0x53,  // Get ID Command
-            Write = 0x57,  // Write Command
-            None = 0x00,   // No command, idle state
-            Error = 0xFF,  // Bad command
-
-            // PocketStation command extensions
-            PS_ChangeFuncValue = 0x50,  // Change a FUNC 03h related value or so
-            PS_GetID = 0x58,            // Get an ID or Version value or so
-            PS_PrepFileExec = 0x59,     // Prepare File Execution with Dir_index, and Parameter
-            PS_GetDirIndex = 0x5A,      // Get Dir_index, ComFlags, F_SN, Date, and Time
-            PS_ExecXferPSToPSX = 0x5B,  // Execute Function and transfer data from Pocketstation to PSX
-            PS_ExecXferPSXToPS = 0x5C,  // Execute Function and transfer data from PSX to Pocketstation
-            PS_ExecCustom = 0x5D,       // Execute Custom Download Notification Function   ;via SWI 01h with r0=3
-            PS_GetComFlagsHi = 0x5E,    // Get-and-Send ComFlags.bit1,3,2
-            PS_GetComFlagsLo = 0x5F,    // Get-and-Send ComFlags.bit0
-        };
-    };
-    struct MCD_Responses {
-        enum : uint8_t {
-            IdleHighZ = 0xFF,            // High default state
-            Dummy = 0x00,                // Filler Data
-            ID1 = 0x5A,                  // Memory Card ID1
-            ID2 = 0x5D,                  // Memory Card ID2
-            CommandAcknowledge1 = 0x5C,  // Command Acknowledge 1
-            CommandAcknowledge2 = 0x5D,  // Command Acknowledge 2
-            GoodReadWrite = 0x47,        // Good Read/Write
-            BadChecksum = 0x4E,          // Bad Checksum during Write
-            BadSector = 0xFF,            // Bad Memory Card Sector
-        };
-    };
     struct PAD_Commands {
         enum : uint8_t {
             Read = 0x42,  // Read Command
@@ -166,7 +119,6 @@ class SIO {
 #endif
     }
     void writePad(uint8_t value);
-    void writeMcd(uint8_t value);
 
     friend MemoryCard;
     

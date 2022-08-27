@@ -38,7 +38,7 @@ class MemoryCard {
 
         // PocketStation command extensions
         PS_ChangeFuncValue = 0x50,  // Change a FUNC 03h related value or so
-        PS_GetID = 0x58,            // Get an ID or Version value or so
+        PS_GetVersion = 0x58,       // Get an ID or Version value or so
         PS_PrepFileExec = 0x59,     // Prepare File Execution with Dir_index, and Parameter
         PS_GetDirIndex = 0x5A,      // Get Dir_index, ComFlags, F_SN, Date, and Time
         PS_ExecXferPSToPSX = 0x5B,  // Execute Function and transfer data from Pocketstation to PSX
@@ -111,6 +111,9 @@ class MemoryCard {
 
     SIO * m_sio;
 
+    // PocketStation Specific
+    uint16_t PS_DirectoryIndex;
+
     void GoIdle() {
         current_command = Commands::None;
         command_ticks = 0;
@@ -152,6 +155,9 @@ class MemoryCard {
     uint8_t ProcessEvents(uint8_t value);
     uint8_t TickReadCommand(uint8_t value);
     uint8_t TickWriteCommand(uint8_t value);
+
+    uint8_t TickPS_GetDirIndex(uint8_t value);
+    uint8_t TickPS_GetVersion(uint8_t value);
 };
 
 }  // namespace PCSX

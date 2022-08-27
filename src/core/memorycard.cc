@@ -22,6 +22,12 @@ uint8_t PCSX::MemoryCard::ProcessEvents(uint8_t value) {
 
         case Commands::Access:
             switch (value) {
+
+                case Commands::PS_GetVersion:
+                //case Commands::PS_ChangeFuncValue:
+                case Commands::PS_GetDirIndex:
+                    //if (!Settings_blah_blah_PSExtensionsEnabled) { GoIdle(); return Responses::IdleHighZ; }
+
                 case Commands::Read:
                 case Commands::Write:
                 case Commands::GetID:
@@ -41,6 +47,14 @@ uint8_t PCSX::MemoryCard::ProcessEvents(uint8_t value) {
 
         case Commands::Write:
             data_out = TickWriteCommand(value);
+            break;
+
+        case Commands::PS_GetVersion:
+            data_out = TickPS_GetVersion(value);
+            break;
+
+        case Commands::PS_GetDirIndex:
+            data_out = TickPS_GetDirIndex(value);
             break;
 
         case Commands::GetID:  // Un-implemented, need data capture
@@ -208,6 +222,127 @@ uint8_t PCSX::MemoryCard::TickWriteCommand(uint8_t value) {
             }
 
             break;
+    }
+
+    command_ticks++;
+    ACK();
+
+    return data_out;
+}
+
+uint8_t PCSX::MemoryCard::TickPS_GetDirIndex(uint8_t value) {
+    uint8_t data_out = Responses::IdleHighZ;
+
+    switch (command_ticks) {
+            // 81 | 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            //         12 00 00 01 01 01 01 13 11 4F 41 20 01 99 19 27 30 09 04
+        case 0:  // 5A
+            data_out = 0x12;
+            break;
+
+        case 1:  //
+            data_out = 0x00;
+            break;
+
+        case 2:  //
+            data_out = 0x00;
+            break;
+
+        case 3:  //
+            data_out = 0x01;
+            break;
+
+        case 4:  //
+            data_out = 0x01;
+            break;
+
+        case 5:  //
+            data_out = 0x01;
+            break;
+
+        case 6:  //
+            data_out = 0x01;
+            break;
+
+        case 7:  //
+            data_out = 0x13;
+            break;
+
+        case 8:  //
+            data_out = 0x11;
+            break;
+
+        case 9:  //
+            data_out = 0x4F;
+            break;
+
+        case 10:  //
+            data_out = 0x41;
+            break;
+
+        case 11:  //
+            data_out = 0x20;
+            break;
+
+        case 12:  //
+            data_out = 0x01;
+            break;
+
+        case 13:  //
+            data_out = 0x99;
+            break;
+
+        case 14:  //
+            data_out = 0x19;
+            break;
+
+        case 15:  //
+            data_out = 0x27;
+            break;
+
+        case 16:  //
+            data_out = 0x30;
+            break;
+
+        case 17:  //
+            data_out = 0x09;
+            break;
+
+        case 18:  //
+            data_out = 0x04;
+            break;
+
+        default:
+            return Responses::CommandAcknowledge1;
+            GoIdle();
+    }
+
+    command_ticks++;
+    ACK();
+
+    return data_out;
+}
+
+uint8_t PCSX::MemoryCard::TickPS_GetVersion(uint8_t value) {
+    uint8_t data_out = Responses::IdleHighZ;
+
+    switch (command_ticks) {
+
+        case 0:  // 58
+            data_out = 0x02;
+            break;
+
+        case 1:  //
+            data_out = 0x01;
+            break;
+
+        case 2:  //
+            data_out = 0x01;
+            break;
+
+        default:
+            return Responses::CommandAcknowledge1;
+            GoIdle();
     }
 
     command_ticks++;

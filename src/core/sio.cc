@@ -44,10 +44,8 @@ void PCSX::SIO::reset() {
     m_ctrlReg = 0;
     m_baudReg = 0;
     m_bufferIndex = 0;
-    //m_mcdState = MCD_STATE_IDLE;
     m_memoryCard[0].Deselect();
     m_memoryCard[1].Deselect();
-    //m_mcdReadWriteState = MCD_READWRITE_STATE_IDLE;
     current_device = SIO_Device::None;    
 }
 
@@ -110,7 +108,7 @@ void PCSX::SIO::writePad(uint8_t value) {
 }
 
 void PCSX::SIO::write8(uint8_t value) {
-    SIO0_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
+    SIO0_LOG("sio write8 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
 
     if (current_device == SIO_Device::None) {
         current_device = value;
@@ -157,8 +155,7 @@ void PCSX::SIO::write8(uint8_t value) {
             m_memoryCard[0].Deselect();
             m_memoryCard[1].Deselect();
             m_statusReg |= RX_RDY;
-            //scheduleInterrupt(SIO_CYCLES);
-            //data_out = 0xFF;
+            data_out = 0xFF;
     }
 }
 
@@ -167,12 +164,11 @@ void PCSX::SIO::writeStatus16(uint16_t value) {}
 void PCSX::SIO::writeMode16(uint16_t value) { m_modeReg = value; }
 
 void PCSX::SIO::writeCtrl16(uint16_t value) {
-    SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
+    SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
     m_ctrlReg = value & ~RESET_ERR;
     if (value & RESET_ERR) m_statusReg &= ~IRQ;
     if ((m_ctrlReg & SIO_RESET) || (!m_ctrlReg)) {
         m_padState = PAD_STATE_IDLE;
-        //m_mcdState = MCD_STATE_IDLE;
         m_memoryCard[0].Deselect();
         m_memoryCard[1].Deselect();
         m_bufferIndex = 0;
