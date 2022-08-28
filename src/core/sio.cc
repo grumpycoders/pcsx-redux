@@ -133,6 +133,10 @@ void PCSX::SIO::write8(uint8_t value) {
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
                         data_out = delayed_out;
                         delayed_out = m_memoryCard[0].ProcessEvents(value);
+                        if (m_memoryCard[0].DataChanged()) {                               
+                            m_memoryCard[0].Commit(
+                                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str());
+                        }
                     } else {
                         current_device = SIO_Device::Ignore;
                     }
@@ -142,6 +146,10 @@ void PCSX::SIO::write8(uint8_t value) {
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
                         data_out = delayed_out;
                         delayed_out = m_memoryCard[1].ProcessEvents(value);
+                        if (m_memoryCard[1].DataChanged()) {
+                            m_memoryCard[1].Commit(
+                                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
+                        }
                     } else {
                         current_device = SIO_Device::Ignore;
                     }
@@ -236,288 +244,6 @@ void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
     m_memoryCard[1].LoadMcd(mcd2);
     //LoadMcd(1, mcd1);
     //LoadMcd(2, mcd2);
-}
-
-void PCSX::SIO::saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
-    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    FILE *f = fopen(fname, "r+b");
-
-    if (f != nullptr) {
-        struct stat buf;
-
-        if (stat(fname, &buf) != -1) {
-            if (buf.st_size == MCD_SIZE + 64)
-                fseek(f, adr + 64, SEEK_SET);
-            else if (buf.st_size == MCD_SIZE + 3904)
-                fseek(f, adr + 3904, SEEK_SET);
-            else
-                fseek(f, adr, SEEK_SET);
-        } else
-            fseek(f, adr, SEEK_SET);
-
-        fwrite(data + adr, 1, size, f);
-        fclose(f);
-        PCSX::g_system->printf(_("Saving memory card %s\n"), fname);
-        return;
-    }
-
-#if 0
-    // try to create it again if we can't open it
-    f = fopen(mcd, "wb");
-    if (f != NULL) {
-        fwrite(data, 1, MCD_SIZE, f);
-        fclose(f);
-    }
-#endif
-
-    ConvertMcd(mcd, data);
-}
-
-void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
-    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    struct stat buf;
-    int s = MCD_SIZE;
-
-    const auto f = fopen(fname, "wb");
-    if (f == nullptr) return;
-
-    if (stat(fname, &buf) != -1) {
-        if ((buf.st_size == MCD_SIZE + 3904) || strstr(fname, ".gme")) {
-            s = s + 3904;
-            fputc('1', f);
-            s--;
-            fputc('2', f);
-            s--;
-            fputc('3', f);
-            s--;
-            fputc('-', f);
-            s--;
-            fputc('4', f);
-            s--;
-            fputc('5', f);
-            s--;
-            fputc('6', f);
-            s--;
-            fputc('-', f);
-            s--;
-            fputc('S', f);
-            s--;
-            fputc('T', f);
-            s--;
-            fputc('D', f);
-            s--;
-            for (int i = 0; i < 7; i++) {
-                fputc(0, f);
-                s--;
-            }
-            fputc(1, f);
-            s--;
-            fputc(0, f);
-            s--;
-            fputc(1, f);
-            s--;
-            fputc('M', f);
-            s--;
-            fputc('Q', f);
-            s--;
-            for (int i = 0; i < 14; i++) {
-                fputc(0xa0, f);
-                s--;
-            }
-            fputc(0, f);
-            s--;
-            fputc(0xff, f);
-            while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        } else if ((buf.st_size == MCD_SIZE + 64) || strstr(fname, ".mem") || strstr(fname, ".vgs")) {
-            s = s + 64;
-            fputc('V', f);
-            s--;
-            fputc('g', f);
-            s--;
-            fputc('s', f);
-            s--;
-            fputc('M', f);
-            s--;
-            for (int i = 0; i < 3; i++) {
-                fputc(1, f);
-                s--;
-                fputc(0, f);
-                s--;
-                fputc(0, f);
-                s--;
-                fputc(0, f);
-                s--;
-            }
-            fputc(0, f);
-            s--;
-            fputc(2, f);
-            while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        }
-    }
-    fputc('M', f);
-    s--;
-    fputc('C', f);
-    s--;
-    while (s-- > (MCD_SIZE - 127)) fputc(0, f);
-    fputc(0xe, f);
-    s--;
-
-    for (int i = 0; i < 15; i++) {  // 15 blocks
-        fputc(0xa0, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        for (int j = 0; j < 117; j++) {
-            fputc(0x00, f);
-            s--;
-        }
-        fputc(0xa0, f);
-        s--;
-    }
-
-    for (int i = 0; i < 20; i++) {
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        for (int j = 0; j < 118; j++) {
-            fputc(0x00, f);
-            s--;
-        }
-    }
-
-    while ((s--) >= 0) fputc(0, f);
-
-    fclose(f);
-}
-
-void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
-    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    int s = MCD_SIZE;
-
-    if (strstr(fname, ".gme")) {
-        auto f = fopen(fname, "wb");
-        if (f != nullptr) {
-            fwrite(data - 3904, 1, MCD_SIZE + 3904, f);
-            fclose(f);
-        }
-        f = fopen(fname, "r+");
-        s = s + 3904;
-        fputc('1', f);
-        s--;
-        fputc('2', f);
-        s--;
-        fputc('3', f);
-        s--;
-        fputc('-', f);
-        s--;
-        fputc('4', f);
-        s--;
-        fputc('5', f);
-        s--;
-        fputc('6', f);
-        s--;
-        fputc('-', f);
-        s--;
-        fputc('S', f);
-        s--;
-        fputc('T', f);
-        s--;
-        fputc('D', f);
-        s--;
-        for (int i = 0; i < 7; i++) {
-            fputc(0, f);
-            s--;
-        }
-        fputc(1, f);
-        s--;
-        fputc(0, f);
-        s--;
-        fputc(1, f);
-        s--;
-        fputc('M', f);
-        s--;
-        fputc('Q', f);
-        s--;
-        for (int i = 0; i < 14; i++) {
-            fputc(0xa0, f);
-            s--;
-        }
-        fputc(0, f);
-        s--;
-        fputc(0xff, f);
-        while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        fclose(f);
-    } else if (strstr(fname, ".mem") || strstr(fname, ".vgs")) {
-        auto f = fopen(fname, "wb");
-        if (f != nullptr) {
-            fwrite(data - 64, 1, MCD_SIZE + 64, f);
-            fclose(f);
-        }
-        f = fopen(fname, "r+");
-        s = s + 64;
-        fputc('V', f);
-        s--;
-        fputc('g', f);
-        s--;
-        fputc('s', f);
-        s--;
-        fputc('M', f);
-        s--;
-        for (int i = 0; i < 3; i++) {
-            fputc(1, f);
-            s--;
-            fputc(0, f);
-            s--;
-            fputc(0, f);
-            s--;
-            fputc(0, f);
-            s--;
-        }
-        fputc(0, f);
-        s--;
-        fputc(2, f);
-        while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        fclose(f);
-    } else {
-        const auto f = fopen(fname, "wb");
-        if (f != nullptr) {
-            fwrite(data, 1, MCD_SIZE, f);
-            fclose(f);
-        }
-    }
 }
 
 void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
@@ -653,9 +379,9 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
 char *PCSX::SIO::getMcdData(int mcd) {
     switch (mcd) {
         case 1:
-            return g_mcd1Data;
+            return m_memoryCard[0].getMcdData();
         case 2:
-            return g_mcd2Data;
+            return m_memoryCard[1].getMcdData();
         default:
             throw std::runtime_error("Attempt to access invalid memory card");
             return nullptr;
@@ -766,16 +492,15 @@ bool PCSX::SIO::copyMcdFile(McdBlock block) {
 // Back up the entire memory card to a file
 // mcd: The memory card to back up (1 or 2)
 void PCSX::SIO::saveMcd(int mcd) {
-    const auto data = getMcdData(mcd);
     switch (mcd) {
         case 1: {
             const auto path = g_emulator->settings.get<Emulator::SettingMcd1>().string();
-            saveMcd(path, data, 0, MCD_SIZE);
+            m_memoryCard[0].saveMcd(path);
             break;
         }
         case 2: {
             const auto path = g_emulator->settings.get<Emulator::SettingMcd2>().string();
-            saveMcd(path, data, 0, MCD_SIZE);
+            m_memoryCard[1].saveMcd(path);
             break;
         }
     }

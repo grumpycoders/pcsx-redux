@@ -106,6 +106,7 @@ class MemoryCard {
     uint32_t command_ticks = 0;
     uint8_t current_command = Commands::None;
     uint8_t flag = Flags::DirectoryUnread;
+    bool saved_local = false;
     uint16_t sector = 0;
     uint32_t sector_offset = 0;
 
@@ -122,36 +123,21 @@ class MemoryCard {
 
     void CreateMcd(const PCSX::u8string mcd);
     void ConvertMcd(const PCSX::u8string mcd, const char *data);
-    void getMcdBlockInfo(int mcd, int block, McdBlock &info);
-    void eraseMcdFile(const McdBlock &block);
-    void eraseMcdFile(int mcd, int block) {
-        McdBlock info;
-        getMcdBlockInfo(mcd, block, info);
-        eraseMcdFile(info);
-    }
-    static constexpr int otherMcd(int mcd) {
-        if ((mcd != 1) && (mcd != 2)) throw std::runtime_error("Bad memory card number");
-        if (mcd == 1) return 2;
-        return 1;
-    }
-    static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
-    unsigned getFreeSpace(int mcd);
-    unsigned getFileBlockCount(McdBlock block);
-    int findFirstFree(int mcd);
-    bool copyMcdFile(McdBlock block);
-    char *getMcdData(int mcd);
-    char *getMcdData(const McdBlock &block) { return getMcdData(block.mcd); }
-    inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle); }
+    char *getMcdData() { return g_mcdData; }
+
+    friend class SIO;
 
   public:
     MemoryCard() : m_sio(nullptr) {}
     MemoryCard(SIO *parent) : m_sio(parent) {}
 
     void ACK();
+    void Commit(const PCSX::u8string path);
+    bool DataChanged() { return !saved_local; }
     void Deselect();
     void LoadMcd(const PCSX::u8string str);
     void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
-    void saveMcd(int mcd);
+    void saveMcd(const PCSX::u8string path) { saveMcd(path, g_mcdData, 0, MCD_SIZE); }
     uint8_t ProcessEvents(uint8_t value);
     uint8_t TickReadCommand(uint8_t value);
     uint8_t TickWriteCommand(uint8_t value);

@@ -145,13 +145,8 @@ class SIO {
     void interrupt();
     void reset();
 
-    void LoadMcd(int mcd, const PCSX::u8string str);
     void LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);
-    void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
     void saveMcd(int mcd);
-    void CreateMcd(const PCSX::u8string mcd);
-    void ConvertMcd(const PCSX::u8string mcd, const char *data);
-
     void ACK() { scheduleInterrupt(m_baudReg * 8); }
 
     struct McdBlock {
