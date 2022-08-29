@@ -20,7 +20,7 @@
 #pragma once
 
 #include "core/gpu.h"
-#include "gpu/soft/externals.h"
+#include "gpu/soft/definitions.h"
 #include "gpu/soft/soft.h"
 
 namespace PCSX {
@@ -29,7 +29,7 @@ class GUI;
 
 namespace SoftGPU {
 
-class impl final : public GPU {
+class impl final : public GPU, public SoftRenderer {
     int32_t initBackend(GUI *) override;
     int32_t shutdown() override;
     uint32_t readStatusInternal() override;
@@ -38,7 +38,7 @@ class impl final : public GPU {
     bool configure() override;
     void debug() override;
 
-    void setDither(int setting) override { m_softRenderer.m_useDither = setting; }
+    void setDither(int setting) override { m_useDither = setting; }
     void clearVRAM() override;
     void reset() override {
         clearVRAM();
@@ -53,14 +53,18 @@ class impl final : public GPU {
     void initDisplay();
     void doBufferSwap();
 
+    void changeDispOffsetsX();
+    void changeDispOffsetsY();
+    void updateDisplayIfChanged();
+
     Slice getVRAM() override {
         Slice ret;
-        ret.borrow(psxVuw, 1024 * 512 * 2);
+        ret.borrow(m_vram16, 1024 * 512 * 2);
         return ret;
     }
 
     void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) override {
-        auto ptr = psxVuw;
+        auto ptr = m_vram16;
         ptr += y * 1024 + x;
         for (int i = 0; i < h; i++) {
             std::memcpy(ptr, pixels, w * sizeof(uint16_t));
@@ -69,47 +73,18 @@ class impl final : public GPU {
         }
     }
 
-    ScreenShot takeScreenShot() override {
-        ScreenShot ss;
-        auto startX = PSXDisplay.DisplayPosition.x;
-        auto startY = PSXDisplay.DisplayPosition.y;
-        auto width = PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x;
-        auto height = PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y;
-        ss.width = width;
-        ss.height = height;
-        unsigned factor = PSXDisplay.RGB24 ? 3 : 2;
-        ss.bpp = PSXDisplay.RGB24 ? ScreenShot::BPP_24 : ScreenShot::BPP_16;
-        unsigned size = width * height * factor;
-        char *pixels = reinterpret_cast<char *>(malloc(size));
-        ss.data.acquire(pixels, size);
-        if (PSXDisplay.RGB24) {
-            auto ptr = psxVSecure;
-            ptr += (startY * 1024 + startX) * 3;
-            for (int i = 0; i < height; i++) {
-                std::memcpy(pixels, ptr, width * 3);
-                ptr += 1024 * 3;
-                pixels += width * 3;
-            }
-        } else {
-            auto ptr = psxVuw;
-            ptr += startY * 1024 + startX;
-            for (int i = 0; i < height; i++) {
-                std::memcpy(pixels, ptr, width * sizeof(uint16_t));
-                ptr += 1024;
-                pixels += width * 2;
-            }
-        }
-
-        return ss;
-    }
-    SoftRenderer m_softRenderer;
+    ScreenShot takeScreenShot() override;
     void *m_dumpFile = nullptr;
     GLuint m_vramTexture16;
     GLuint m_vramTexture24;
 
     GUI *m_gui;
 
-    int32_t lGPUdataRet;
+    int32_t m_dataRet;
+    bool m_doVSyncUpdate = false;
+    PSXDisplay_t m_previousDisplay;
+    unsigned char *m_allocatedVRAM;
+    static constexpr int16_t s_displayWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
 
     void write0(FastFill *) override;
 

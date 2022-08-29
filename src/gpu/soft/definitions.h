@@ -46,11 +46,11 @@
 #define GPUSTATUS_DRAWINGALLOWED 0x00000400
 #define GPUSTATUS_DITHER 0x00000200
 
-#define GPUIsBusy (lGPUstatusRet &= ~GPUSTATUS_IDLE)
-#define GPUIsIdle (lGPUstatusRet |= GPUSTATUS_IDLE)
+#define GPUIsBusy (m_statusRet &= ~GPUSTATUS_IDLE)
+#define GPUIsIdle (m_statusRet |= GPUSTATUS_IDLE)
 
-#define GPUIsNotReadyForCommands (lGPUstatusRet &= ~GPUSTATUS_READYFORCOMMANDS)
-#define GPUIsReadyForCommands (lGPUstatusRet |= GPUSTATUS_READYFORCOMMANDS)
+#define GPUIsNotReadyForCommands (m_statusRet &= ~GPUSTATUS_READYFORCOMMANDS)
+#define GPUIsReadyForCommands (m_statusRet |= GPUSTATUS_READYFORCOMMANDS)
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -81,7 +81,7 @@ struct PSXRect_t {
     int16_t y1;
 };
 
-struct TWin_t {
+struct TextureWindow {
     PSXRect_t Position;
 };
 
@@ -103,25 +103,5 @@ struct PSXDisplay_t {
     PSXRect_t Range;
 };
 
-namespace PCSX {
-class GUI;
-}
-
-extern bool bDoVSyncUpdate;
-
-extern PSXDisplay_t PSXDisplay;
-extern PSXDisplay_t PreviousPSXDisplay;
-extern int32_t lGPUstatusRet;
-extern unsigned char *psxVSecure;
-extern unsigned char *psxVub;
-extern signed char *psxVsb;
-extern uint16_t *psxVuw;
-extern int16_t *psxVsw;
-extern uint32_t *psxVul;
-extern int32_t *psxVsl;
-extern uint16_t *psxVuw_eom;
-extern uint32_t lGPUInfoVals[];
-
-constexpr uint32_t dwGPUVersion = 0;
-constexpr int iGPUHeight = 512;
-constexpr int iGPUHeightMask = 511;
+constexpr int GPU_HEIGHT = 512;
+constexpr int GPU_HEIGHT_MASK = 511;

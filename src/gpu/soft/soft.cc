@@ -21,7 +21,7 @@
 
 #include <algorithm>
 
-#include "gpu/soft/externals.h"
+#include "gpu/soft/definitions.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/soft.h"
 
@@ -54,7 +54,6 @@
 #define XPSXCOL(r, g, b) ((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f))
 
 uint32_t dwActFixes = 0;
-bool bDoVSyncUpdate = false;
 static const int CHKMAX_X = 1024;
 static const int CHKMAX_Y = 512;
 
@@ -72,224 +71,224 @@ static const int CHKMAX_Y = 512;
 //  . . .
 //   2___3
 
-bool PCSX::SoftGPU::SoftRenderer::CheckCoord4() {
-    if (lx0 < 0) {
-        if (((lx1 - lx0) > CHKMAX_X) || ((lx2 - lx0) > CHKMAX_X)) {
-            if (lx3 < 0) {
-                if ((lx1 - lx3) > CHKMAX_X) return true;
-                if ((lx2 - lx3) > CHKMAX_X) return true;
+bool PCSX::SoftGPU::SoftRenderer::checkCoord4() {
+    if (m_x0 < 0) {
+        if (((m_x1 - m_x0) > CHKMAX_X) || ((m_x2 - m_x0) > CHKMAX_X)) {
+            if (m_x3 < 0) {
+                if ((m_x1 - m_x3) > CHKMAX_X) return true;
+                if ((m_x2 - m_x3) > CHKMAX_X) return true;
             }
         }
     }
-    if (lx1 < 0) {
-        if ((lx0 - lx1) > CHKMAX_X) return true;
-        if ((lx2 - lx1) > CHKMAX_X) return true;
-        if ((lx3 - lx1) > CHKMAX_X) return true;
+    if (m_x1 < 0) {
+        if ((m_x0 - m_x1) > CHKMAX_X) return true;
+        if ((m_x2 - m_x1) > CHKMAX_X) return true;
+        if ((m_x3 - m_x1) > CHKMAX_X) return true;
     }
-    if (lx2 < 0) {
-        if ((lx0 - lx2) > CHKMAX_X) return true;
-        if ((lx1 - lx2) > CHKMAX_X) return true;
-        if ((lx3 - lx2) > CHKMAX_X) return true;
+    if (m_x2 < 0) {
+        if ((m_x0 - m_x2) > CHKMAX_X) return true;
+        if ((m_x1 - m_x2) > CHKMAX_X) return true;
+        if ((m_x3 - m_x2) > CHKMAX_X) return true;
     }
-    if (lx3 < 0) {
-        if (((lx1 - lx3) > CHKMAX_X) || ((lx2 - lx3) > CHKMAX_X)) {
-            if (lx0 < 0) {
-                if ((lx1 - lx0) > CHKMAX_X) return true;
-                if ((lx2 - lx0) > CHKMAX_X) return true;
+    if (m_x3 < 0) {
+        if (((m_x1 - m_x3) > CHKMAX_X) || ((m_x2 - m_x3) > CHKMAX_X)) {
+            if (m_x0 < 0) {
+                if ((m_x1 - m_x0) > CHKMAX_X) return true;
+                if ((m_x2 - m_x0) > CHKMAX_X) return true;
             }
         }
     }
 
-    if (ly0 < 0) {
-        if ((ly1 - ly0) > CHKMAX_Y) return true;
-        if ((ly2 - ly0) > CHKMAX_Y) return true;
+    if (m_y0 < 0) {
+        if ((m_y1 - m_y0) > CHKMAX_Y) return true;
+        if ((m_y2 - m_y0) > CHKMAX_Y) return true;
     }
-    if (ly1 < 0) {
-        if ((ly0 - ly1) > CHKMAX_Y) return true;
-        if ((ly2 - ly1) > CHKMAX_Y) return true;
-        if ((ly3 - ly1) > CHKMAX_Y) return true;
+    if (m_y1 < 0) {
+        if ((m_y0 - m_y1) > CHKMAX_Y) return true;
+        if ((m_y2 - m_y1) > CHKMAX_Y) return true;
+        if ((m_y3 - m_y1) > CHKMAX_Y) return true;
     }
-    if (ly2 < 0) {
-        if ((ly0 - ly2) > CHKMAX_Y) return true;
-        if ((ly1 - ly2) > CHKMAX_Y) return true;
-        if ((ly3 - ly2) > CHKMAX_Y) return true;
+    if (m_y2 < 0) {
+        if ((m_y0 - m_y2) > CHKMAX_Y) return true;
+        if ((m_y1 - m_y2) > CHKMAX_Y) return true;
+        if ((m_y3 - m_y2) > CHKMAX_Y) return true;
     }
-    if (ly3 < 0) {
-        if ((ly1 - ly3) > CHKMAX_Y) return true;
-        if ((ly2 - ly3) > CHKMAX_Y) return true;
+    if (m_y3 < 0) {
+        if ((m_y1 - m_y3) > CHKMAX_Y) return true;
+        if ((m_y2 - m_y3) > CHKMAX_Y) return true;
     }
 
     return false;
 }
 
-bool PCSX::SoftGPU::SoftRenderer::CheckCoord3() {
-    if (lx0 < 0) {
-        if ((lx1 - lx0) > CHKMAX_X) return true;
-        if ((lx2 - lx0) > CHKMAX_X) return true;
+bool PCSX::SoftGPU::SoftRenderer::checkCoord3() {
+    if (m_x0 < 0) {
+        if ((m_x1 - m_x0) > CHKMAX_X) return true;
+        if ((m_x2 - m_x0) > CHKMAX_X) return true;
     }
-    if (lx1 < 0) {
-        if ((lx0 - lx1) > CHKMAX_X) return true;
-        if ((lx2 - lx1) > CHKMAX_X) return true;
+    if (m_x1 < 0) {
+        if ((m_x0 - m_x1) > CHKMAX_X) return true;
+        if ((m_x2 - m_x1) > CHKMAX_X) return true;
     }
-    if (lx2 < 0) {
-        if ((lx0 - lx2) > CHKMAX_X) return true;
-        if ((lx1 - lx2) > CHKMAX_X) return true;
+    if (m_x2 < 0) {
+        if ((m_x0 - m_x2) > CHKMAX_X) return true;
+        if ((m_x1 - m_x2) > CHKMAX_X) return true;
     }
-    if (ly0 < 0) {
-        if ((ly1 - ly0) > CHKMAX_Y) return true;
-        if ((ly2 - ly0) > CHKMAX_Y) return true;
+    if (m_y0 < 0) {
+        if ((m_y1 - m_y0) > CHKMAX_Y) return true;
+        if ((m_y2 - m_y0) > CHKMAX_Y) return true;
     }
-    if (ly1 < 0) {
-        if ((ly0 - ly1) > CHKMAX_Y) return true;
-        if ((ly2 - ly1) > CHKMAX_Y) return true;
+    if (m_y1 < 0) {
+        if ((m_y0 - m_y1) > CHKMAX_Y) return true;
+        if ((m_y2 - m_y1) > CHKMAX_Y) return true;
     }
-    if (ly2 < 0) {
-        if ((ly0 - ly2) > CHKMAX_Y) return true;
-        if ((ly1 - ly2) > CHKMAX_Y) return true;
+    if (m_y2 < 0) {
+        if ((m_y0 - m_y2) > CHKMAX_Y) return true;
+        if ((m_y1 - m_y2) > CHKMAX_Y) return true;
     }
 
     return false;
 }
 
 void PCSX::SoftGPU::SoftRenderer::texturePage(GPU::TPage *prim) {
-    GlobalTextAddrX = prim->tx << 6;
-    GlobalTextAddrY = prim->ty << 8;
+    m_lobalTextAddrX = prim->tx << 6;
+    m_globalTextAddrY = prim->ty << 8;
 
     if (m_useDither == 2) {
-        iDither = 2;
+        m_ditherMode = 2;
     } else {
         if (prim->dither) {
-            iDither = m_useDither;
+            m_ditherMode = m_useDither;
         } else {
-            iDither = 0;
+            m_ditherMode = 0;
         }
     }
 
-    GlobalTextTP = prim->texDepth;
+    m_globalTextTP = prim->texDepth;
 
-    GlobalTextABR = prim->blendFunction;
+    m_globalTextABR = prim->blendFunction;
 
-    lGPUstatusRet &= ~0x07ff;               // Clear the necessary bits
-    lGPUstatusRet |= (prim->raw & 0x07ff);  // set the necessary bits
+    m_statusRet &= ~0x07ff;               // Clear the necessary bits
+    m_statusRet |= (prim->raw & 0x07ff);  // set the necessary bits
 }
 
 void PCSX::SoftGPU::SoftRenderer::twindow(GPU::TWindow *prim) {
     uint32_t YAlign, XAlign;
 
-    lGPUInfoVals[INFO_TW] = prim->raw & 0xfffff;
+    m_infoVals[INFO_TW] = prim->raw & 0xfffff;
 
     // Texture window size is determined by the least bit set of the relevant 5 bits
     if (prim->y & 0x01) {
-        TWin.Position.y1 = 8;  // xxxx1
+        m_textureWindow.Position.y1 = 8;  // xxxx1
     } else if (prim->y & 0x02) {
-        TWin.Position.y1 = 16;  // xxx10
+        m_textureWindow.Position.y1 = 16;  // xxx10
     } else if (prim->y & 0x04) {
-        TWin.Position.y1 = 32;  // xx100
+        m_textureWindow.Position.y1 = 32;  // xx100
     } else if (prim->y & 0x08) {
-        TWin.Position.y1 = 64;  // x1000
+        m_textureWindow.Position.y1 = 64;  // x1000
     } else if (prim->y & 0x10) {
-        TWin.Position.y1 = 128;  // 10000
+        m_textureWindow.Position.y1 = 128;  // 10000
     } else {
-        TWin.Position.y1 = 256;  // 00000
+        m_textureWindow.Position.y1 = 256;  // 00000
     }
 
     if (prim->x & 0x01) {
-        TWin.Position.x1 = 8;  // xxxx1
+        m_textureWindow.Position.x1 = 8;  // xxxx1
     } else if (prim->x & 0x02) {
-        TWin.Position.x1 = 16;  // xxx10
+        m_textureWindow.Position.x1 = 16;  // xxx10
     } else if (prim->x & 0x04) {
-        TWin.Position.x1 = 32;  // xx100
+        m_textureWindow.Position.x1 = 32;  // xx100
     } else if (prim->x & 0x08) {
-        TWin.Position.x1 = 64;  // x1000
+        m_textureWindow.Position.x1 = 64;  // x1000
     } else if (prim->x & 0x10) {
-        TWin.Position.x1 = 128;  // 10000
+        m_textureWindow.Position.x1 = 128;  // 10000
     } else {
-        TWin.Position.x1 = 256;  // 00000
+        m_textureWindow.Position.x1 = 256;  // 00000
     }
 
     // Re-calculate the bit field, because we can't trust what is passed in the data
-    YAlign = (uint32_t)(32 - (TWin.Position.y1 >> 3));
-    XAlign = (uint32_t)(32 - (TWin.Position.x1 >> 3));
+    YAlign = (uint32_t)(32 - (m_textureWindow.Position.y1 >> 3));
+    XAlign = (uint32_t)(32 - (m_textureWindow.Position.x1 >> 3));
 
     // Absolute position of the start of the texture window
-    TWin.Position.y0 = (int16_t)((prim->h & YAlign) << 3);
-    TWin.Position.x0 = (int16_t)((prim->w & XAlign) << 3);
+    m_textureWindow.Position.y0 = (int16_t)((prim->h & YAlign) << 3);
+    m_textureWindow.Position.x0 = (int16_t)((prim->w & XAlign) << 3);
 }
 
 void PCSX::SoftGPU::SoftRenderer::drawingAreaStart(GPU::DrawingAreaStart *prim) {
-    drawX = prim->x;
-    drawY = prim->y;
+    m_drawX = prim->x;
+    m_drawY = prim->y;
 
-    lGPUInfoVals[INFO_DRAWSTART] = prim->raw & 0xfffff;
+    m_infoVals[INFO_DRAWSTART] = prim->raw & 0xfffff;
 }
 
 void PCSX::SoftGPU::SoftRenderer::drawingAreaEnd(GPU::DrawingAreaEnd *prim) {
-    drawW = prim->x;
-    drawH = prim->y;
+    m_drawW = prim->x;
+    m_drawH = prim->y;
 
-    lGPUInfoVals[INFO_DRAWEND] = prim->raw & 0xfffff;
+    m_infoVals[INFO_DRAWEND] = prim->raw & 0xfffff;
 }
 
 void PCSX::SoftGPU::SoftRenderer::drawingOffset(GPU::DrawingOffset *prim) {
-    PSXDisplay.DrawOffset.x = prim->x;
-    PSXDisplay.DrawOffset.y = prim->y;
+    m_softDisplay.DrawOffset.x = prim->x;
+    m_softDisplay.DrawOffset.y = prim->y;
 
-    lGPUInfoVals[INFO_DRAWOFF] = prim->raw & 0x3fffff;
+    m_infoVals[INFO_DRAWOFF] = prim->raw & 0x3fffff;
 }
 
 void PCSX::SoftGPU::SoftRenderer::maskBit(GPU::MaskBit *prim) {
-    lGPUstatusRet &= ~0x1800;
+    m_statusRet &= ~0x1800;
 
     if (prim->set) {
-        sSetMask = 0x8000;
-        lSetMask = 0x80008000;
-        lGPUstatusRet |= 0x0800;
+        m_setMask16 = 0x8000;
+        m_setMask32 = 0x80008000;
+        m_statusRet |= 0x0800;
     } else {
-        sSetMask = 0;
-        lSetMask = 0;
+        m_setMask16 = 0;
+        m_setMask32 = 0;
     }
 
     if (prim->check) {
-        lGPUstatusRet |= 0x1000;
+        m_statusRet |= 0x1000;
     }
-    bCheckMask = prim->check;
+    m_checkMask = prim->check;
 }
 
-void PCSX::SoftGPU::SoftRenderer::offsetPSX2(void) {
-    lx0 += PSXDisplay.DrawOffset.x;
-    ly0 += PSXDisplay.DrawOffset.y;
-    lx1 += PSXDisplay.DrawOffset.x;
-    ly1 += PSXDisplay.DrawOffset.y;
+void PCSX::SoftGPU::SoftRenderer::applyOffset2(void) {
+    m_x0 += m_softDisplay.DrawOffset.x;
+    m_y0 += m_softDisplay.DrawOffset.y;
+    m_x1 += m_softDisplay.DrawOffset.x;
+    m_y1 += m_softDisplay.DrawOffset.y;
 }
 
-void PCSX::SoftGPU::SoftRenderer::offsetPSX3(void) {
-    lx0 += PSXDisplay.DrawOffset.x;
-    ly0 += PSXDisplay.DrawOffset.y;
-    lx1 += PSXDisplay.DrawOffset.x;
-    ly1 += PSXDisplay.DrawOffset.y;
-    lx2 += PSXDisplay.DrawOffset.x;
-    ly2 += PSXDisplay.DrawOffset.y;
+void PCSX::SoftGPU::SoftRenderer::applyOffset3(void) {
+    m_x0 += m_softDisplay.DrawOffset.x;
+    m_y0 += m_softDisplay.DrawOffset.y;
+    m_x1 += m_softDisplay.DrawOffset.x;
+    m_y1 += m_softDisplay.DrawOffset.y;
+    m_x2 += m_softDisplay.DrawOffset.x;
+    m_y2 += m_softDisplay.DrawOffset.y;
 }
 
-void PCSX::SoftGPU::SoftRenderer::offsetPSX4(void) {
-    lx0 += PSXDisplay.DrawOffset.x;
-    ly0 += PSXDisplay.DrawOffset.y;
-    lx1 += PSXDisplay.DrawOffset.x;
-    ly1 += PSXDisplay.DrawOffset.y;
-    lx2 += PSXDisplay.DrawOffset.x;
-    ly2 += PSXDisplay.DrawOffset.y;
-    lx3 += PSXDisplay.DrawOffset.x;
-    ly3 += PSXDisplay.DrawOffset.y;
+void PCSX::SoftGPU::SoftRenderer::applyOffset4(void) {
+    m_x0 += m_softDisplay.DrawOffset.x;
+    m_y0 += m_softDisplay.DrawOffset.y;
+    m_x1 += m_softDisplay.DrawOffset.x;
+    m_y1 += m_softDisplay.DrawOffset.y;
+    m_x2 += m_softDisplay.DrawOffset.x;
+    m_y2 += m_softDisplay.DrawOffset.y;
+    m_x3 += m_softDisplay.DrawOffset.x;
+    m_y3 += m_softDisplay.DrawOffset.y;
 }
 
-static const unsigned char dithertable[16] = {7, 0, 6, 1, 2, 5, 3, 4, 1, 6, 0, 7, 4, 3, 5, 2};
+static constexpr unsigned char dithertable[16] = {7, 0, 6, 1, 2, 5, 3, 4, 1, 6, 0, 7, 4, 3, 5, 2};
 
-static inline void dither16(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) {
+void PCSX::SoftGPU::SoftRenderer::applyDither(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) {
     unsigned char coeff;
     unsigned char rlow, glow, blow;
     int x, y;
 
-    x = pdest - psxVuw;
+    x = pdest - m_vram16;
     y = x >> 10;
     x -= (y << 10);
 
@@ -314,25 +313,25 @@ static inline void dither16(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b,
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol_Dither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3) {
+void PCSX::SoftGPU::SoftRenderer::getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3) {
     int32_t r, g, b;
 
-    if (bCheckMask && *pdest & 0x8000) return;
+    if (m_checkMask && *pdest & 0x8000) return;
 
-    if (DrawSemiTrans) {
+    if (m_drawSemiTrans) {
         r = ((XCOL1D(*pdest)) << 3);
         b = ((XCOL2D(*pdest)) << 3);
         g = ((XCOL3D(*pdest)) << 3);
 
-        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
+        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             r = (r >> 1) + (m1 >> 1);
             b = (b >> 1) + (m2 >> 1);
             g = (g >> 1) + (m3 >> 1);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r += m1;
             b += m2;
             g += m3;
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r -= m1;
             b -= m2;
             g -= m3;
@@ -354,25 +353,25 @@ void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol_Dither(uint16_t *pdest, int32
     if (b & 0x7FFFFF00) b = 0xff;
     if (g & 0x7FFFFF00) g = 0xff;
 
-    dither16(pdest, r, b, g, sSetMask);
+    applyDither(pdest, r, b, g, m_setMask16);
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(uint16_t *pdest, uint16_t color) {
-    if (bCheckMask && *pdest & 0x8000) return;
+void PCSX::SoftGPU::SoftRenderer::getShadeTransCol(uint16_t *pdest, uint16_t color) {
+    if (m_checkMask && *pdest & 0x8000) return;
 
-    if (DrawSemiTrans) {
+    if (m_drawSemiTrans) {
         int32_t r, g, b;
 
-        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
-            *pdest = ((((*pdest) & 0x7bde) >> 1) + (((color)&0x7bde) >> 1)) | sSetMask;  // 0x8000;
+        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
+            *pdest = ((((*pdest) & 0x7bde) >> 1) + (((color)&0x7bde) >> 1)) | m_setMask16;  // 0x8000;
             return;
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((XCOL1(color)));
             b = (XCOL2(*pdest)) + ((XCOL2(color)));
             g = (XCOL3(*pdest)) + ((XCOL3(color)));
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r = (XCOL1(*pdest)) - ((XCOL1(color)));
             b = (XCOL2(*pdest)) - ((XCOL2(color)));
             g = (XCOL3(*pdest)) - ((XCOL3(color)));
@@ -389,31 +388,31 @@ void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(uint16_t *pdest, uint16_t col
         if (b & 0x7FFFFC00) b = 0x3e0;
         if (g & 0x7FFF8000) g = 0x7c00;
 
-        *pdest = (XPSXCOL(r, g, b)) | sSetMask;  // 0x8000;
+        *pdest = (XPSXCOL(r, g, b)) | m_setMask16;  // 0x8000;
     } else {
-        *pdest = color | sSetMask;
+        *pdest = color | m_setMask16;
     }
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(uint32_t *pdest, uint32_t color) {
-    if (DrawSemiTrans) {
+void PCSX::SoftGPU::SoftRenderer::getShadeTransCol32(uint32_t *pdest, uint32_t color) {
+    if (m_drawSemiTrans) {
         int32_t r, g, b;
 
-        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
-            if (!bCheckMask) {
-                *pdest = ((((*pdest) & 0x7bde7bde) >> 1) + (((color)&0x7bde7bde) >> 1)) | lSetMask;  // 0x80008000;
+        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
+            if (!m_checkMask) {
+                *pdest = ((((*pdest) & 0x7bde7bde) >> 1) + (((color)&0x7bde7bde) >> 1)) | m_setMask32;  // 0x80008000;
                 return;
             }
             r = (X32ACOL1(*pdest) >> 1) + ((X32ACOL1(color)) >> 1);
             b = (X32ACOL2(*pdest) >> 1) + ((X32ACOL2(color)) >> 1);
             g = (X32ACOL3(*pdest) >> 1) + ((X32ACOL3(color)) >> 1);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (X32COL1(*pdest)) + ((X32COL1(color)));
             b = (X32COL2(*pdest)) + ((X32COL2(color)));
             g = (X32COL3(*pdest)) + ((X32COL3(color)));
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             int32_t sr, sb, sg, src, sbc, sgc, c;
             src = XCOL1(color);
             sbc = XCOL2(color);
@@ -451,67 +450,67 @@ void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(uint32_t *pdest, uint32_t c
         if (g & 0x7FE00000) g = 0x1f0000 | (g & 0xFFFF);
         if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
 
-        if (bCheckMask) {
+        if (m_checkMask) {
             uint32_t ma = *pdest;
-            *pdest = (X32PSXCOL(r, g, b)) | lSetMask;  // 0x80008000;
+            *pdest = (X32PSXCOL(r, g, b)) | m_setMask32;  // 0x80008000;
             if (ma & 0x80000000) *pdest = (ma & 0xFFFF0000) | (*pdest & 0xFFFF);
             if (ma & 0x00008000) *pdest = (ma & 0xFFFF) | (*pdest & 0xFFFF0000);
             return;
         }
-        *pdest = (X32PSXCOL(r, g, b)) | lSetMask;  // 0x80008000;
+        *pdest = (X32PSXCOL(r, g, b)) | m_setMask32;  // 0x80008000;
     } else {
-        if (bCheckMask) {
+        if (m_checkMask) {
             uint32_t ma = *pdest;
-            *pdest = color | lSetMask;  // 0x80008000;
+            *pdest = color | m_setMask32;  // 0x80008000;
             if (ma & 0x80000000) *pdest = (ma & 0xFFFF0000) | (*pdest & 0xFFFF);
             if (ma & 0x00008000) *pdest = (ma & 0xFFFF) | (*pdest & 0xFFFF0000);
             return;
         }
 
-        *pdest = color | lSetMask;  // 0x80008000;
+        *pdest = color | m_setMask32;  // 0x80008000;
     }
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(uint16_t *pdest, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::getTextureTransColShade(uint16_t *pdest, uint16_t color) {
     int32_t r, g, b;
     uint16_t l;
 
     if (color == 0) return;
 
-    if (bCheckMask && *pdest & 0x8000) return;
+    if (m_checkMask && *pdest & 0x8000) return;
 
-    l = sSetMask | (color & 0x8000);
+    l = m_setMask16 | (color & 0x8000);
 
-    if (DrawSemiTrans && (color & 0x8000)) {
-        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
+    if (m_drawSemiTrans && (color & 0x8000)) {
+        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             uint16_t d;
             d = ((*pdest) & 0x7bde) >> 1;
             color = ((color)&0x7bde) >> 1;
-            r = (XCOL1(d)) + ((((XCOL1(color))) * g_m1) >> 7);
-            b = (XCOL2(d)) + ((((XCOL2(color))) * g_m2) >> 7);
-            g = (XCOL3(d)) + ((((XCOL3(color))) * g_m3) >> 7);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
-            r = (XCOL1(*pdest)) + ((((XCOL1(color))) * g_m1) >> 7);
-            b = (XCOL2(*pdest)) + ((((XCOL2(color))) * g_m2) >> 7);
-            g = (XCOL3(*pdest)) + ((((XCOL3(color))) * g_m3) >> 7);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
-            r = (XCOL1(*pdest)) - ((((XCOL1(color))) * g_m1) >> 7);
-            b = (XCOL2(*pdest)) - ((((XCOL2(color))) * g_m2) >> 7);
-            g = (XCOL3(*pdest)) - ((((XCOL3(color))) * g_m3) >> 7);
+            r = (XCOL1(d)) + ((((XCOL1(color))) * m_m1) >> 7);
+            b = (XCOL2(d)) + ((((XCOL2(color))) * m_m2) >> 7);
+            g = (XCOL3(d)) + ((((XCOL3(color))) * m_m3) >> 7);
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
+            r = (XCOL1(*pdest)) + ((((XCOL1(color))) * m_m1) >> 7);
+            b = (XCOL2(*pdest)) + ((((XCOL2(color))) * m_m2) >> 7);
+            g = (XCOL3(*pdest)) + ((((XCOL3(color))) * m_m3) >> 7);
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
+            r = (XCOL1(*pdest)) - ((((XCOL1(color))) * m_m1) >> 7);
+            b = (XCOL2(*pdest)) - ((((XCOL2(color))) * m_m2) >> 7);
+            g = (XCOL3(*pdest)) - ((((XCOL3(color))) * m_m3) >> 7);
             if (r & 0x80000000) r = 0;
             if (b & 0x80000000) b = 0;
             if (g & 0x80000000) g = 0;
         } else {
-            r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 2) * g_m1) >> 7);
-            b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 2) * g_m2) >> 7);
-            g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 2) * g_m3) >> 7);
+            r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 2) * m_m1) >> 7);
+            b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 2) * m_m2) >> 7);
+            g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 2) * m_m3) >> 7);
         }
     } else {
-        r = ((XCOL1(color)) * g_m1) >> 7;
-        b = ((XCOL2(color)) * g_m2) >> 7;
-        g = ((XCOL3(color)) * g_m3) >> 7;
+        r = ((XCOL1(color)) * m_m1) >> 7;
+        b = ((XCOL2(color)) * m_m2) >> 7;
+        g = ((XCOL3(color)) * m_m3) >> 7;
     }
 
     if (r & 0x7FFFFFE0) r = 0x1f;
@@ -523,17 +522,17 @@ void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(uint16_t *pdest, uint16_t 
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_S(uint16_t *pdest, uint16_t color) {
+inline void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeSolid(uint16_t *pdest, uint16_t color) {
     int32_t r, g, b;
     uint16_t l;
 
     if (color == 0) return;
 
-    l = sSetMask | (color & 0x8000);
+    l = m_setMask16 | (color & 0x8000);
 
-    r = ((XCOL1(color)) * g_m1) >> 7;
-    b = ((XCOL2(color)) * g_m2) >> 7;
-    g = ((XCOL3(color)) * g_m3) >> 7;
+    r = ((XCOL1(color)) * m_m1) >> 7;
+    b = ((XCOL2(color)) * m_m2) >> 7;
+    g = ((XCOL3(color)) * m_m3) >> 7;
 
     if (r & 0x7FFFFFE0) r = 0x1f;
     if (b & 0x7FFFFC00) b = 0x3e0;
@@ -544,44 +543,44 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_S(uint16_t *pdest, 
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(uint16_t *pdest, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeSemi(uint16_t *pdest, uint16_t color) {
     int32_t r, g, b;
     uint16_t l;
 
     if (color == 0) return;
 
-    if (bCheckMask && *pdest & 0x8000) return;
+    if (m_checkMask && *pdest & 0x8000) return;
 
-    l = sSetMask | (color & 0x8000);
+    l = m_setMask16 | (color & 0x8000);
 
-    if (DrawSemiTrans && (color & 0x8000)) {
-        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
+    if (m_drawSemiTrans && (color & 0x8000)) {
+        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             uint16_t d;
             d = ((*pdest) & 0x7bde) >> 1;
             color = ((color)&0x7bde) >> 1;
-            r = (XCOL1(d)) + ((((XCOL1(color))) * g_m1) >> 7);
-            b = (XCOL2(d)) + ((((XCOL2(color))) * g_m2) >> 7);
-            g = (XCOL3(d)) + ((((XCOL3(color))) * g_m3) >> 7);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
-            r = (XCOL1(*pdest)) + ((((XCOL1(color))) * g_m1) >> 7);
-            b = (XCOL2(*pdest)) + ((((XCOL2(color))) * g_m2) >> 7);
-            g = (XCOL3(*pdest)) + ((((XCOL3(color))) * g_m3) >> 7);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
-            r = (XCOL1(*pdest)) - ((((XCOL1(color))) * g_m1) >> 7);
-            b = (XCOL2(*pdest)) - ((((XCOL2(color))) * g_m2) >> 7);
-            g = (XCOL3(*pdest)) - ((((XCOL3(color))) * g_m3) >> 7);
+            r = (XCOL1(d)) + ((((XCOL1(color))) * m_m1) >> 7);
+            b = (XCOL2(d)) + ((((XCOL2(color))) * m_m2) >> 7);
+            g = (XCOL3(d)) + ((((XCOL3(color))) * m_m3) >> 7);
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
+            r = (XCOL1(*pdest)) + ((((XCOL1(color))) * m_m1) >> 7);
+            b = (XCOL2(*pdest)) + ((((XCOL2(color))) * m_m2) >> 7);
+            g = (XCOL3(*pdest)) + ((((XCOL3(color))) * m_m3) >> 7);
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
+            r = (XCOL1(*pdest)) - ((((XCOL1(color))) * m_m1) >> 7);
+            b = (XCOL2(*pdest)) - ((((XCOL2(color))) * m_m2) >> 7);
+            g = (XCOL3(*pdest)) - ((((XCOL3(color))) * m_m3) >> 7);
             if (r & 0x80000000) r = 0;
             if (b & 0x80000000) b = 0;
             if (g & 0x80000000) g = 0;
         } else {
-            r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 2) * g_m1) >> 7);
-            b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 2) * g_m2) >> 7);
-            g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 2) * g_m3) >> 7);
+            r = (XCOL1(*pdest)) + ((((XCOL1(color)) >> 2) * m_m1) >> 7);
+            b = (XCOL2(*pdest)) + ((((XCOL2(color)) >> 2) * m_m2) >> 7);
+            g = (XCOL3(*pdest)) + ((((XCOL3(color)) >> 2) * m_m3) >> 7);
         }
     } else {
-        r = ((XCOL1(color)) * g_m1) >> 7;
-        b = ((XCOL2(color)) * g_m2) >> 7;
-        g = ((XCOL3(color)) * g_m3) >> 7;
+        r = ((XCOL1(color)) * m_m1) >> 7;
+        b = ((XCOL2(color)) * m_m2) >> 7;
+        g = ((XCOL3(color)) * m_m3) >> 7;
     }
 
     if (r & 0x7FFFFFE0) r = 0x1f;
@@ -593,65 +592,65 @@ void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(uint16_t *pdest, uint1
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(uint32_t *pdest, uint32_t color) {
+void PCSX::SoftGPU::SoftRenderer::getTextureTransColShade32(uint32_t *pdest, uint32_t color) {
     int32_t r, g, b, l;
 
     if (color == 0) return;
 
-    l = lSetMask | (color & 0x80008000);
+    l = m_setMask32 | (color & 0x80008000);
 
-    if (DrawSemiTrans && (color & 0x80008000)) {
-        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
-            r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * g_m1)) & 0xFF00FF00) >> 8);
-            b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * g_m2)) & 0xFF00FF00) >> 8);
-            g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * g_m3)) & 0xFF00FF00) >> 8);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
-            r = (X32COL1(*pdest)) + (((((X32COL1(color))) * g_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32COL2(color))) * g_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32COL3(color))) * g_m3) & 0xFF80FF80) >> 7);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
+    if (m_drawSemiTrans && (color & 0x80008000)) {
+        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
+            r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * m_m1)) & 0xFF00FF00) >> 8);
+            b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * m_m2)) & 0xFF00FF00) >> 8);
+            g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * m_m3)) & 0xFF00FF00) >> 8);
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
+            r = (X32COL1(*pdest)) + (((((X32COL1(color))) * m_m1) & 0xFF80FF80) >> 7);
+            b = (X32COL2(*pdest)) + (((((X32COL2(color))) * m_m2) & 0xFF80FF80) >> 7);
+            g = (X32COL3(*pdest)) + (((((X32COL3(color))) * m_m3) & 0xFF80FF80) >> 7);
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             int32_t t;
-            r = (((((X32COL1(color))) * g_m1) & 0xFF80FF80) >> 7);
+            r = (((((X32COL1(color))) * m_m1) & 0xFF80FF80) >> 7);
             t = (*pdest & 0x001f0000) - (r & 0x003f0000);
             if (t & 0x80000000) t = 0;
             r = (*pdest & 0x0000001f) - (r & 0x0000003f);
             if (r & 0x80000000) r = 0;
             r |= t;
 
-            b = (((((X32COL2(color))) * g_m2) & 0xFF80FF80) >> 7);
+            b = (((((X32COL2(color))) * m_m2) & 0xFF80FF80) >> 7);
             t = ((*pdest >> 5) & 0x001f0000) - (b & 0x003f0000);
             if (t & 0x80000000) t = 0;
             b = ((*pdest >> 5) & 0x0000001f) - (b & 0x0000003f);
             if (b & 0x80000000) b = 0;
             b |= t;
 
-            g = (((((X32COL3(color))) * g_m3) & 0xFF80FF80) >> 7);
+            g = (((((X32COL3(color))) * m_m3) & 0xFF80FF80) >> 7);
             t = ((*pdest >> 10) & 0x001f0000) - (g & 0x003f0000);
             if (t & 0x80000000) t = 0;
             g = ((*pdest >> 10) & 0x0000001f) - (g & 0x0000003f);
             if (g & 0x80000000) g = 0;
             g |= t;
         } else {
-            r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * g_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * g_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * g_m3) & 0xFF80FF80) >> 7);
+            r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * m_m1) & 0xFF80FF80) >> 7);
+            b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * m_m2) & 0xFF80FF80) >> 7);
+            g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * m_m3) & 0xFF80FF80) >> 7);
         }
 
         if (!(color & 0x8000)) {
-            r = (r & 0xffff0000) | ((((X32COL1(color)) * g_m1) & 0x0000FF80) >> 7);
-            b = (b & 0xffff0000) | ((((X32COL2(color)) * g_m2) & 0x0000FF80) >> 7);
-            g = (g & 0xffff0000) | ((((X32COL3(color)) * g_m3) & 0x0000FF80) >> 7);
+            r = (r & 0xffff0000) | ((((X32COL1(color)) * m_m1) & 0x0000FF80) >> 7);
+            b = (b & 0xffff0000) | ((((X32COL2(color)) * m_m2) & 0x0000FF80) >> 7);
+            g = (g & 0xffff0000) | ((((X32COL3(color)) * m_m3) & 0x0000FF80) >> 7);
         }
         if (!(color & 0x80000000)) {
-            r = (r & 0xffff) | ((((X32COL1(color)) * g_m1) & 0xFF800000) >> 7);
-            b = (b & 0xffff) | ((((X32COL2(color)) * g_m2) & 0xFF800000) >> 7);
-            g = (g & 0xffff) | ((((X32COL3(color)) * g_m3) & 0xFF800000) >> 7);
+            r = (r & 0xffff) | ((((X32COL1(color)) * m_m1) & 0xFF800000) >> 7);
+            b = (b & 0xffff) | ((((X32COL2(color)) * m_m2) & 0xFF800000) >> 7);
+            g = (g & 0xffff) | ((((X32COL3(color)) * m_m3) & 0xFF800000) >> 7);
         }
 
     } else {
-        r = (((X32COL1(color)) * g_m1) & 0xFF80FF80) >> 7;
-        b = (((X32COL2(color)) * g_m2) & 0xFF80FF80) >> 7;
-        g = (((X32COL3(color)) * g_m3) & 0xFF80FF80) >> 7;
+        r = (((X32COL1(color)) * m_m1) & 0xFF80FF80) >> 7;
+        b = (((X32COL2(color)) * m_m2) & 0xFF80FF80) >> 7;
+        g = (((X32COL3(color)) * m_m3) & 0xFF80FF80) >> 7;
     }
 
     if (r & 0x7FE00000) r = 0x1f0000 | (r & 0xFFFF);
@@ -661,7 +660,7 @@ void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(uint32_t *pdest, uint32_
     if (g & 0x7FE00000) g = 0x1f0000 | (g & 0xFFFF);
     if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
 
-    if (bCheckMask) {
+    if (m_checkMask) {
         uint32_t ma = *pdest;
 
         *pdest = (X32PSXCOL(r, g, b)) | l;
@@ -687,14 +686,14 @@ void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(uint32_t *pdest, uint32_
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_S(uint32_t *pdest, uint32_t color) {
+void PCSX::SoftGPU::SoftRenderer::getTextureTransColShade32Solid(uint32_t *pdest, uint32_t color) {
     int32_t r, g, b;
 
     if (color == 0) return;
 
-    r = (((X32COL1(color)) * g_m1) & 0xFF80FF80) >> 7;
-    b = (((X32COL2(color)) * g_m2) & 0xFF80FF80) >> 7;
-    g = (((X32COL3(color)) * g_m3) & 0xFF80FF80) >> 7;
+    r = (((X32COL1(color)) * m_m1) & 0xFF80FF80) >> 7;
+    b = (((X32COL2(color)) * m_m2) & 0xFF80FF80) >> 7;
+    g = (((X32COL3(color)) * m_m3) & 0xFF80FF80) >> 7;
 
     if (r & 0x7FE00000) r = 0x1f0000 | (r & 0xFFFF);
     if (r & 0x7FE0) r = 0x1f | (r & 0xFFFF0000);
@@ -704,76 +703,76 @@ void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_S(uint32_t *pdest, uint3
     if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
 
     if ((color & 0xffff) == 0) {
-        *pdest = (*pdest & 0xffff) | (((X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000)) & 0xffff0000);
+        *pdest = (*pdest & 0xffff) | (((X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000)) & 0xffff0000);
         return;
     }
     if ((color & 0xffff0000) == 0) {
-        *pdest = (*pdest & 0xffff0000) | (((X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000)) & 0xffff);
+        *pdest = (*pdest & 0xffff0000) | (((X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000)) & 0xffff);
         return;
     }
 
-    *pdest = (X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000);
+    *pdest = (X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000);
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(uint32_t *pdest, uint32_t color) {
+void PCSX::SoftGPU::SoftRenderer::getTextureTransColG32Semi(uint32_t *pdest, uint32_t color) {
     int32_t r, g, b;
 
     if (color == 0) return;
 
-    if (DrawSemiTrans && (color & 0x80008000)) {
-        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
-            r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * g_m1)) & 0xFF00FF00) >> 8);
-            b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * g_m2)) & 0xFF00FF00) >> 8);
-            g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * g_m3)) & 0xFF00FF00) >> 8);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
-            r = (X32COL1(*pdest)) + (((((X32COL1(color))) * g_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32COL2(color))) * g_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32COL3(color))) * g_m3) & 0xFF80FF80) >> 7);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
+    if (m_drawSemiTrans && (color & 0x80008000)) {
+        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
+            r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * m_m1)) & 0xFF00FF00) >> 8);
+            b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * m_m2)) & 0xFF00FF00) >> 8);
+            g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * m_m3)) & 0xFF00FF00) >> 8);
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
+            r = (X32COL1(*pdest)) + (((((X32COL1(color))) * m_m1) & 0xFF80FF80) >> 7);
+            b = (X32COL2(*pdest)) + (((((X32COL2(color))) * m_m2) & 0xFF80FF80) >> 7);
+            g = (X32COL3(*pdest)) + (((((X32COL3(color))) * m_m3) & 0xFF80FF80) >> 7);
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             int32_t t;
-            r = (((((X32COL1(color))) * g_m1) & 0xFF80FF80) >> 7);
+            r = (((((X32COL1(color))) * m_m1) & 0xFF80FF80) >> 7);
             t = (*pdest & 0x001f0000) - (r & 0x003f0000);
             if (t & 0x80000000) t = 0;
             r = (*pdest & 0x0000001f) - (r & 0x0000003f);
             if (r & 0x80000000) r = 0;
             r |= t;
 
-            b = (((((X32COL2(color))) * g_m2) & 0xFF80FF80) >> 7);
+            b = (((((X32COL2(color))) * m_m2) & 0xFF80FF80) >> 7);
             t = ((*pdest >> 5) & 0x001f0000) - (b & 0x003f0000);
             if (t & 0x80000000) t = 0;
             b = ((*pdest >> 5) & 0x0000001f) - (b & 0x0000003f);
             if (b & 0x80000000) b = 0;
             b |= t;
 
-            g = (((((X32COL3(color))) * g_m3) & 0xFF80FF80) >> 7);
+            g = (((((X32COL3(color))) * m_m3) & 0xFF80FF80) >> 7);
             t = ((*pdest >> 10) & 0x001f0000) - (g & 0x003f0000);
             if (t & 0x80000000) t = 0;
             g = ((*pdest >> 10) & 0x0000001f) - (g & 0x0000003f);
             if (g & 0x80000000) g = 0;
             g |= t;
         } else {
-            r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * g_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * g_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * g_m3) & 0xFF80FF80) >> 7);
+            r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * m_m1) & 0xFF80FF80) >> 7);
+            b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * m_m2) & 0xFF80FF80) >> 7);
+            g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * m_m3) & 0xFF80FF80) >> 7);
         }
 
         if (!(color & 0x8000)) {
-            r = (r & 0xffff0000) | ((((X32COL1(color)) * g_m1) & 0x0000FF80) >> 7);
-            b = (b & 0xffff0000) | ((((X32COL2(color)) * g_m2) & 0x0000FF80) >> 7);
-            g = (g & 0xffff0000) | ((((X32COL3(color)) * g_m3) & 0x0000FF80) >> 7);
+            r = (r & 0xffff0000) | ((((X32COL1(color)) * m_m1) & 0x0000FF80) >> 7);
+            b = (b & 0xffff0000) | ((((X32COL2(color)) * m_m2) & 0x0000FF80) >> 7);
+            g = (g & 0xffff0000) | ((((X32COL3(color)) * m_m3) & 0x0000FF80) >> 7);
         }
         if (!(color & 0x80000000)) {
-            r = (r & 0xffff) | ((((X32COL1(color)) * g_m1) & 0xFF800000) >> 7);
-            b = (b & 0xffff) | ((((X32COL2(color)) * g_m2) & 0xFF800000) >> 7);
-            g = (g & 0xffff) | ((((X32COL3(color)) * g_m3) & 0xFF800000) >> 7);
+            r = (r & 0xffff) | ((((X32COL1(color)) * m_m1) & 0xFF800000) >> 7);
+            b = (b & 0xffff) | ((((X32COL2(color)) * m_m2) & 0xFF800000) >> 7);
+            g = (g & 0xffff) | ((((X32COL3(color)) * m_m3) & 0xFF800000) >> 7);
         }
 
     } else {
-        r = (((X32COL1(color)) * g_m1) & 0xFF80FF80) >> 7;
-        b = (((X32COL2(color)) * g_m2) & 0xFF80FF80) >> 7;
-        g = (((X32COL3(color)) * g_m3) & 0xFF80FF80) >> 7;
+        r = (((X32COL1(color)) * m_m1) & 0xFF80FF80) >> 7;
+        b = (((X32COL2(color)) * m_m2) & 0xFF80FF80) >> 7;
+        g = (((X32COL3(color)) * m_m3) & 0xFF80FF80) >> 7;
     }
 
     if (r & 0x7FE00000) r = 0x1f0000 | (r & 0xFFFF);
@@ -783,10 +782,10 @@ void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(uint32_t *pdest, uin
     if (g & 0x7FE00000) g = 0x1f0000 | (g & 0xFFFF);
     if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
 
-    if (bCheckMask) {
+    if (m_checkMask) {
         uint32_t ma = *pdest;
 
-        *pdest = (X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000);
+        *pdest = (X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000);
 
         if ((color & 0xffff) == 0) *pdest = (ma & 0xffff) | (*pdest & 0xffff0000);
         if ((color & 0xffff0000) == 0) *pdest = (ma & 0xffff0000) | (*pdest & 0xffff);
@@ -796,45 +795,45 @@ void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(uint32_t *pdest, uin
         return;
     }
     if ((color & 0xffff) == 0) {
-        *pdest = (*pdest & 0xffff) | (((X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000)) & 0xffff0000);
+        *pdest = (*pdest & 0xffff) | (((X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000)) & 0xffff0000);
         return;
     }
     if ((color & 0xffff0000) == 0) {
-        *pdest = (*pdest & 0xffff0000) | (((X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000)) & 0xffff);
+        *pdest = (*pdest & 0xffff0000) | (((X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000)) & 0xffff);
         return;
     }
 
-    *pdest = (X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000);
+    *pdest = (X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000);
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_Dither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2,
-                                                              int32_t m3) {
+void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeXDither(uint16_t *pdest, uint16_t color, int32_t m1,
+                                                                 int32_t m2, int32_t m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
 
-    if (bCheckMask && *pdest & 0x8000) return;
+    if (m_checkMask && *pdest & 0x8000) return;
 
     m1 = (((XCOL1D(color))) * m1) >> 4;
     m2 = (((XCOL2D(color))) * m2) >> 4;
     m3 = (((XCOL3D(color))) * m3) >> 4;
 
-    if (DrawSemiTrans && (color & 0x8000)) {
+    if (m_drawSemiTrans && (color & 0x8000)) {
         r = ((XCOL1D(*pdest)) << 3);
         b = ((XCOL2D(*pdest)) << 3);
         g = ((XCOL3D(*pdest)) << 3);
 
-        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
+        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             r = (r >> 1) + (m1 >> 1);
             b = (b >> 1) + (m2 >> 1);
             g = (g >> 1) + (m3 >> 1);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r += m1;
             b += m2;
             g += m3;
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r -= m1;
             b -= m2;
             g -= m3;
@@ -856,35 +855,35 @@ void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_Dither(uint16_t *pdest, u
     if (b & 0x7FFFFF00) b = 0xff;
     if (g & 0x7FFFFF00) g = 0xff;
 
-    dither16(pdest, r, b, g, sSetMask | (color & 0x8000));
+    applyDither(pdest, r, b, g, m_setMask16 | (color & 0x8000));
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2,
-                                                       int16_t m3) {
+void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2,
+                                                           int16_t m3) {
     int32_t r, g, b;
     uint16_t l;
 
     if (color == 0) return;
 
-    if (bCheckMask && *pdest & 0x8000) return;
+    if (m_checkMask && *pdest & 0x8000) return;
 
-    l = sSetMask | (color & 0x8000);
+    l = m_setMask16 | (color & 0x8000);
 
-    if (DrawSemiTrans && (color & 0x8000)) {
-        if (GlobalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
+    if (m_drawSemiTrans && (color & 0x8000)) {
+        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             uint16_t d;
             d = ((*pdest) & 0x7bde) >> 1;
             color = ((color)&0x7bde) >> 1;
             r = (XCOL1(d)) + ((((XCOL1(color))) * m1) >> 7);
             b = (XCOL2(d)) + ((((XCOL2(color))) * m2) >> 7);
             g = (XCOL3(d)) + ((((XCOL3(color))) * m3) >> 7);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((((XCOL1(color))) * m1) >> 7);
             b = (XCOL2(*pdest)) + ((((XCOL2(color))) * m2) >> 7);
             g = (XCOL3(*pdest)) + ((((XCOL3(color))) * m3) >> 7);
-        } else if (GlobalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
+        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             r = (XCOL1(*pdest)) - ((((XCOL1(color))) * m1) >> 7);
             b = (XCOL2(*pdest)) - ((((XCOL2(color))) * m2) >> 7);
             g = (XCOL3(*pdest)) - ((((XCOL3(color))) * m3) >> 7);
@@ -911,8 +910,8 @@ void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(uint16_t *pdest, uint16_t
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_S(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2,
-                                                                int16_t m3) {
+inline void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeXSolid(uint16_t *pdest, uint16_t color, int16_t m1,
+                                                                       int16_t m2, int16_t m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -925,13 +924,13 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_S(uint16_t *pdest,
     if (b & 0x7FFFFC00) b = 0x3e0;
     if (g & 0x7FFF8000) g = 0x7c00;
 
-    *pdest = (XPSXCOL(r, g, b)) | sSetMask | (color & 0x8000);
+    *pdest = (XPSXCOL(r, g, b)) | m_setMask16 | (color & 0x8000);
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX32_S(uint32_t *pdest, uint32_t color, int16_t m1,
-                                                                  int16_t m2, int16_t m3) {
+inline void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeX32Solid(uint32_t *pdest, uint32_t color, int16_t m1,
+                                                                         int16_t m2, int16_t m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -948,41 +947,41 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX32_S(uint32_t *pdes
     if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
 
     if ((color & 0xffff) == 0) {
-        *pdest = (*pdest & 0xffff) | (((X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000)) & 0xffff0000);
+        *pdest = (*pdest & 0xffff) | (((X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000)) & 0xffff0000);
         return;
     }
     if ((color & 0xffff0000) == 0) {
-        *pdest = (*pdest & 0xffff0000) | (((X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000)) & 0xffff);
+        *pdest = (*pdest & 0xffff0000) | (((X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000)) & 0xffff);
         return;
     }
 
-    *pdest = (X32PSXCOL(r, g, b)) | lSetMask | (color & 0x80008000);
+    *pdest = (X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000);
 }
 
 ////////////////////////////////////////////////////////////////////////
 // FILL FUNCS
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col) {
+void PCSX::SoftGPU::SoftRenderer::fillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col) {
     int16_t j, i, dx, dy;
 
     if (y0 > y1) return;
     if (x0 > x1) return;
 
-    if (x1 < drawX) return;
-    if (y1 < drawY) return;
-    if (x0 > drawW) return;
-    if (y0 > drawH) return;
+    if (x1 < m_drawX) return;
+    if (y1 < m_drawY) return;
+    if (x0 > m_drawW) return;
+    if (y0 > m_drawH) return;
 
-    x1 = std::min(x1, static_cast<int16_t>(drawW + 1));
-    y1 = std::min(y1, static_cast<int16_t>(drawH + 1));
-    x0 = std::max(x0, static_cast<int16_t>(drawX));
-    y0 = std::max(y0, static_cast<int16_t>(drawY));
+    x1 = std::min(x1, static_cast<int16_t>(m_drawW + 1));
+    y1 = std::min(y1, static_cast<int16_t>(m_drawH + 1));
+    x0 = std::max(x0, static_cast<int16_t>(m_drawX));
+    y0 = std::max(y0, static_cast<int16_t>(m_drawY));
 
-    if (y0 >= iGPUHeight) return;
+    if (y0 >= GPU_HEIGHT) return;
     if (x0 > 1023) return;
 
-    if (y1 > iGPUHeight) y1 = iGPUHeight;
+    if (y1 > GPU_HEIGHT) y1 = GPU_HEIGHT;
     if (x1 > 1024) x1 = 1024;
 
     dx = x1 - x0;
@@ -999,29 +998,29 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(int16_t x0, int16_t y0, 
         // slow fill
         uint16_t *DSTPtr;
         uint16_t LineOffset;
-        DSTPtr = psxVuw + (1024 * y0) + x0;
+        DSTPtr = m_vram16 + (1024 * y0) + x0;
         LineOffset = 1024 - dx;
         for (i = 0; i < dy; i++) {
-            for (j = 0; j < dx; j++) GetShadeTransCol(DSTPtr++, col);
+            for (j = 0; j < dx; j++) getShadeTransCol(DSTPtr++, col);
             DSTPtr += LineOffset;
         }
     } else {
         // fast fill
         uint32_t *DSTPtr;
         uint16_t LineOffset;
-        uint32_t lcol = lSetMask | (((uint32_t)(col)) << 16) | col;
+        uint32_t lcol = m_setMask32 | (((uint32_t)(col)) << 16) | col;
         dx >>= 1;
-        DSTPtr = (uint32_t *)(psxVuw + (1024 * y0) + x0);
+        DSTPtr = (uint32_t *)(m_vram16 + (1024 * y0) + x0);
         LineOffset = 512 - dx;
 
-        if (!bCheckMask && !DrawSemiTrans) {
+        if (!m_checkMask && !m_drawSemiTrans) {
             for (i = 0; i < dy; i++) {
                 for (j = 0; j < dx; j++) *DSTPtr++ = lcol;
                 DSTPtr += LineOffset;
             }
         } else {
             for (i = 0; i < dy; i++) {
-                for (j = 0; j < dx; j++) GetShadeTransCol32(DSTPtr++, lcol);
+                for (j = 0; j < dx; j++) getShadeTransCol32(DSTPtr++, lcol);
                 DSTPtr += LineOffset;
             }
         }
@@ -1030,16 +1029,16 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(int16_t x0, int16_t y0, 
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::FillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col) {
+void PCSX::SoftGPU::SoftRenderer::fillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col) {
     int16_t j, i, dx, dy;
 
     if (y0 > y1) return;
     if (x0 > x1) return;
 
-    if (y0 >= iGPUHeight) return;
+    if (y0 >= GPU_HEIGHT) return;
     if (x0 > 1023) return;
 
-    if (y1 > iGPUHeight) y1 = iGPUHeight;
+    if (y1 > GPU_HEIGHT) y1 = GPU_HEIGHT;
     if (x1 > 1024) x1 = 1024;
 
     dx = x1 - x0;
@@ -1048,7 +1047,7 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareArea(int16_t x0, int16_t y0, int16
         uint16_t *DSTPtr;
         uint16_t LineOffset;
 
-        DSTPtr = psxVuw + (1024 * y0) + x0;
+        DSTPtr = m_vram16 + (1024 * y0) + x0;
         LineOffset = 1024 - dx;
 
         for (i = 0; i < dy; i++) {
@@ -1061,7 +1060,7 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareArea(int16_t x0, int16_t y0, int16
         uint32_t lcol = (((int32_t)col) << 16) | col;
 
         dx >>= 1;
-        DSTPtr = (uint32_t *)(psxVuw + (1024 * y0) + x0);
+        DSTPtr = (uint32_t *)(m_vram16 + (1024 * y0) + x0);
         LineOffset = 512 - dx;
 
         for (i = 0; i < dy; i++) {
@@ -1163,8 +1162,8 @@ static inline bool NextRow_F(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-bool PCSX::SoftGPU::SoftRenderer::SetupSections_F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                  int16_t y3) {
+bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlat3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                     int16_t y3) {
     soft_vertex *v1, *v2, *v3;
     int height, int32_test;
 
@@ -1233,8 +1232,8 @@ bool PCSX::SoftGPU::SoftRenderer::SetupSections_F(int16_t x1, int16_t y1, int16_
         }
     }
 
-    Ymin = v1->y;
-    Ymax = std::min(v3->y - 1, drawH);
+    m_yMin = v1->y;
+    m_yMax = std::min(v3->y - 1, m_drawH);
 
     return true;
 }
@@ -1301,8 +1300,8 @@ static inline bool NextRow_G(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-bool PCSX::SoftGPU::SoftRenderer::SetupSections_G(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                  int16_t y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
+bool PCSX::SoftGPU::SoftRenderer::setupSectionsShade3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                      int16_t y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     soft_vertex *v1, *v2, *v3;
     int height, int32_test, temp;
 
@@ -1379,8 +1378,8 @@ bool PCSX::SoftGPU::SoftRenderer::SetupSections_G(int16_t x1, int16_t y1, int16_
         if (int32_test < 0x1000) int32_test = 0x1000;
     }
 
-    Ymin = v1->y;
-    Ymax = std::min(v3->y - 1, drawH);
+    m_yMin = v1->y;
+    m_yMax = std::min(v3->y - 1, m_drawH);
 
     delta_right_R = shl10idiv(temp * ((v3->R - v1->R) >> 10) + ((v1->R - v2->R) << 6), int32_test);
     delta_right_G = shl10idiv(temp * ((v3->G - v1->G) >> 10) + ((v1->G - v2->G) << 6), int32_test);
@@ -1447,9 +1446,9 @@ static inline bool NextRow_FT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                   int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
-                                                   int16_t tx3, int16_t ty3) {
+bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlatTextured3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                             int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2,
+                                                             int16_t ty2, int16_t tx3, int16_t ty3) {
     soft_vertex *v1, *v2, *v3;
     int height, int32_test, temp;
 
@@ -1525,8 +1524,8 @@ bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT(int16_t x1, int16_t y1, int16
         if (int32_test < 0x1000) int32_test = 0x1000;
     }
 
-    Ymin = v1->y;
-    Ymax = std::min(v3->y - 1, drawH);
+    m_yMin = v1->y;
+    m_yMax = std::min(v3->y - 1, m_drawH);
 
     delta_right_u = shl10idiv(temp * ((v3->u - v1->u) >> 10) + ((v1->u - v2->u) << 6), int32_test);
     delta_right_v = shl10idiv(temp * ((v3->v - v1->v) >> 10) + ((v1->v - v2->v) << 6), int32_test);
@@ -1603,9 +1602,10 @@ static inline bool NextRow_GT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                   int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
-                                                   int16_t tx3, int16_t ty3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
+bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_t y1, int16_t x2, int16_t y2,
+                                                              int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
+                                                              int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
+                                                              int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     soft_vertex *v1, *v2, *v3;
     int height, int32_test, temp;
 
@@ -1693,8 +1693,8 @@ bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT(int16_t x1, int16_t y1, int16
         if (int32_test < 0x1000) int32_test = 0x1000;
     }
 
-    Ymin = v1->y;
-    Ymax = std::min(v3->y - 1, drawH);
+    m_yMin = v1->y;
+    m_yMax = std::min(v3->y - 1, m_drawH);
 
     delta_right_R = shl10idiv(temp * ((v3->R - v1->R) >> 10) + ((v1->R - v2->R) << 6), int32_test);
     delta_right_G = shl10idiv(temp * ((v3->G - v1->G) >> 10) + ((v1->G - v2->G) << 6), int32_test);
@@ -1737,35 +1737,8 @@ static inline int LeftSection_F4(void) {
     return height;
 }
 
-////////////////////////////////////////////////////////////////////////
-
-static inline bool NextRow_F4(void) {
-    if (--left_section_height <= 0) {
-        if (--left_section > 0) {
-            while (LeftSection_F4() <= 0) {
-                if (--left_section <= 0) break;
-            }
-        }
-    } else {
-        left_x += delta_left_x;
-    }
-
-    if (--right_section_height <= 0) {
-        if (--right_section > 0) {
-            while (RightSection_F4() <= 0) {
-                if (--right_section <= 0) break;
-            }
-        }
-    } else {
-        right_x += delta_right_x;
-    }
-    return false;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-bool PCSX::SoftGPU::SoftRenderer::SetupSections_F4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                   int16_t y3, int16_t x4, int16_t y4) {
+bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlat4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                     int16_t y3, int16_t x4, int16_t y4) {
     soft_vertex *v1, *v2, *v3, *v4;
     int height, width, int32_test1, int32_test2;
 
@@ -1913,8 +1886,8 @@ bool PCSX::SoftGPU::SoftRenderer::SetupSections_F4(int16_t x1, int16_t y1, int16
         if (--right_section <= 0) break;
     }
 
-    Ymin = v1->y;
-    Ymax = std::min(v4->y - 1, drawH);
+    m_yMin = v1->y;
+    m_yMax = std::min(v4->y - 1, m_drawH);
 
     return true;
 }
@@ -1989,10 +1962,10 @@ static inline bool NextRow_FT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                    int16_t y3, int16_t x4, int16_t y4, int16_t tx1, int16_t ty1,
-                                                    int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                                                    int16_t ty4) {
+bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlatTextured4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                             int16_t y3, int16_t x4, int16_t y4, int16_t tx1,
+                                                             int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                                             int16_t ty3, int16_t tx4, int16_t ty4) {
     soft_vertex *v1, *v2, *v3, *v4;
     int height, width, int32_test1, int32_test2;
 
@@ -2151,8 +2124,8 @@ bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT4(int16_t x1, int16_t y1, int1
         if (--right_section <= 0) break;
     }
 
-    Ymin = v1->y;
-    Ymax = std::min(v4->y - 1, drawH);
+    m_yMin = v1->y;
+    m_yMax = std::min(v4->y - 1, m_drawH);
 
     return true;
 }
@@ -2212,46 +2185,11 @@ static inline int LeftSection_GT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool NextRow_GT4(void) {
-    if (--left_section_height <= 0) {
-        if (--left_section > 0) {
-            while (LeftSection_GT4() <= 0) {
-                if (--left_section <= 0) break;
-            }
-        }
-    } else {
-        left_x += delta_left_x;
-        left_u += delta_left_u;
-        left_v += delta_left_v;
-        left_R += delta_left_R;
-        left_G += delta_left_G;
-        left_B += delta_left_B;
-    }
-
-    if (--right_section_height <= 0) {
-        if (--right_section > 0) {
-            while (RightSection_GT4() <= 0) {
-                if (--right_section <= 0) break;
-            }
-        }
-    } else {
-        right_x += delta_right_x;
-        right_u += delta_right_u;
-        right_v += delta_right_v;
-        right_R += delta_right_R;
-        right_G += delta_right_G;
-        right_B += delta_right_B;
-    }
-    return false;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                    int16_t y3, int16_t x4, int16_t y4, int16_t tx1, int16_t ty1,
-                                                    int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                                                    int16_t ty4, int32_t rgb1, int32_t rgb2, int32_t rgb3,
-                                                    int32_t rgb4) {
+bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_t y1, int16_t x2, int16_t y2,
+                                                              int16_t x3, int16_t y3, int16_t x4, int16_t y4,
+                                                              int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
+                                                              int16_t tx3, int16_t ty3, int16_t tx4, int16_t ty4,
+                                                              int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4) {
     soft_vertex *v1, *v2, *v3, *v4;
     int height, width, int32_test1, int32_test2;
 
@@ -2422,8 +2360,8 @@ bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT4(int16_t x1, int16_t y1, int1
         if (--right_section <= 0) break;
     }
 
-    Ymin = v1->y;
-    Ymax = std::min(v4->y - 1, drawH);
+    m_yMin = v1->y;
+    m_yMax = std::min(v4->y - 1, m_drawH);
 
     return true;
 }
@@ -2446,36 +2384,36 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2
     uint16_t color;
     uint32_t lcolor;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_F(x1, y1, x2, y2, x3, y3)) return;
+    if (!setupSectionsFlat3(x1, y1, x2, y2, x3, y3)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
     color = ((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3);
-    lcolor = lSetMask | (((uint32_t)(color)) << 16) | color;
+    lcolor = m_setMask32 | (((uint32_t)(color)) << 16) | color;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_F()) return;
     }
 
-    if (!bCheckMask && !DrawSemiTrans) {
-        color |= sSetMask;
+    if (!m_checkMask && !m_drawSemiTrans) {
+        color |= m_setMask16;
         for (i = ymin; i <= ymax; i++) {
             xmin = left_x >> 16;
-            if (drawX > xmin) xmin = drawX;
+            if (m_drawX > xmin) xmin = m_drawX;
             xmax = (right_x >> 16) - 1;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                *((uint32_t *)&psxVuw[(i << 10) + j]) = lcolor;
+                *((uint32_t *)&m_vram16[(i << 10) + j]) = lcolor;
             }
-            if (j == xmax) psxVuw[(i << 10) + j] = color;
+            if (j == xmax) m_vram16[(i << 10) + j] = color;
 
             if (NextRow_F()) return;
         }
@@ -2484,14 +2422,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2
 
     for (i = ymin; i <= ymax; i++) {
         xmin = left_x >> 16;
-        if (drawX > xmin) xmin = drawX;
+        if (m_drawX > xmin) xmin = m_drawX;
         xmax = (right_x >> 16) - 1;
-        if (drawW < xmax) xmax = drawW;
+        if (m_drawW < xmax) xmax = m_drawW;
 
         for (j = xmin; j < xmax; j += 2) {
-            GetShadeTransCol32((uint32_t *)&psxVuw[(i << 10) + j], lcolor);
+            getShadeTransCol32((uint32_t *)&m_vram16[(i << 10) + j], lcolor);
         }
-        if (j == xmax) GetShadeTransCol(&psxVuw[(i << 10) + j], color);
+        if (j == xmax) getShadeTransCol(&m_vram16[(i << 10) + j], color);
 
         if (NextRow_F()) return;
     }
@@ -2499,11 +2437,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::drawPoly3F(int32_t rgb) { drawPoly3Fi(lx0, ly0, lx1, ly1, lx2, ly2, rgb); }
+void PCSX::SoftGPU::SoftRenderer::drawPolyFlat3(int32_t rgb) { drawPoly3Fi(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb); }
 
-void PCSX::SoftGPU::SoftRenderer::drawPoly4F(int32_t rgb) {
-    drawPoly3Fi(lx1, ly1, lx3, ly3, lx2, ly2, rgb);
-    drawPoly3Fi(lx0, ly0, lx1, ly1, lx2, ly2, rgb);
+void PCSX::SoftGPU::SoftRenderer::drawPolyFlat4(int32_t rgb) {
+    drawPoly3Fi(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, rgb);
+    drawPoly3Fi(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -2517,72 +2455,72 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
     int32_t clutP;
     int16_t tC1, tC2;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_FT(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3)) return;
+    if (!setupSectionsFlatTextured3(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_FT()) return;
     }
 
     clutP = (clY << 10) + clX;
 
-    YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
-    YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0 >> 1);
+    YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
+    YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0 >> 1);
 
     difX = delta_right_u;
     difX2 = difX << 1;
     difY = delta_right_v;
     difY2 = difY << 1;
 
-    if (!bCheckMask && !DrawSemiTrans) {
+    if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16);  //-1; //!!!!!!!!!!!!!!!!
             if (xmax > xmin) xmax--;
 
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
                 posX = left_u;
                 posY = left_v;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
-                    XAdjust = (posX >> 16) % TWin.Position.x1;
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                    XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                       (XAdjust >> 1))];
                     tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                    XAdjust = ((posX + difX) >> 16) % TWin.Position.x1;
-                    tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      (XAdjust >> 1))];
+                    XAdjust = ((posX + difX) >> 16) % m_textureWindow.Position.x1;
+                    tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + (XAdjust >> 1))];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
-                                            psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                    getTextureTransColShade32Solid((uint32_t *)&m_vram16[(i << 10) + j],
+                                                   m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
 
                     posX += difX2;
                     posY += difY2;
                 }
                 if (j == xmax) {
-                    XAdjust = (posX >> 16) % TWin.Position.x1;
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                    XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                       (XAdjust >> 1))];
                     tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                    GetTextureTransColG_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                    getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
             if (NextRow_FT()) return;
@@ -2593,41 +2531,41 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
         xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!!
-        if (drawW < xmax) xmax = drawW;
+        if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
             posX = left_u;
             posY = left_v;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
             }
 
             for (j = xmin; j < xmax; j += 2) {
-                XAdjust = (posX >> 16) % TWin.Position.x1;
-                tC1 =
-                    psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1))];
-                tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                XAdjust = ((posX + difX) >> 16) % TWin.Position.x1;
-                tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                   (XAdjust >> 1))];
+                tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
+                XAdjust = ((posX + difX) >> 16) % m_textureWindow.Position.x1;
+                tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                  YAdjust + (XAdjust >> 1))];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
-                                      psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                getTextureTransColShade32((uint32_t *)&m_vram16[(i << 10) + j],
+                                          m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
 
                 posX += difX2;
                 posY += difY2;
             }
             if (j == xmax) {
-                XAdjust = (posX >> 16) % TWin.Position.x1;
-                tC1 =
-                    psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1))];
+                XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                  (XAdjust >> 1))];
                 tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                GetTextureTransColG(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                getTextureTransColShade(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
         if (NextRow_FT()) return;
@@ -2646,27 +2584,27 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
     int32_t posX, posY, YAdjust, clutP, XAdjust;
     int16_t tC1, tC2;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX && x4 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY && y4 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW && x4 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH && y4 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX && x4 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY && y4 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_FT4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
+    if (!setupSectionsFlatTextured4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_FT4()) return;
     }
 
     clutP = (clY << 10) + clX;
 
-    YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
-    YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0 >> 1);
+    YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
+    YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0 >> 1);
 
-    if (!bCheckMask && !DrawSemiTrans) {
+    if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16);
@@ -2682,36 +2620,36 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                 }
                 xmax--;
-                if (drawW < xmax) xmax = drawW;
+                if (m_drawW < xmax) xmax = m_drawW;
 
                 for (j = xmin; j < xmax; j += 2) {
-                    XAdjust = (posX >> 16) % TWin.Position.x1;
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                    XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                       (XAdjust >> 1))];
                     tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                    XAdjust = ((posX + difX) >> 16) % TWin.Position.x1;
-                    tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      (XAdjust >> 1))];
+                    XAdjust = ((posX + difX) >> 16) % m_textureWindow.Position.x1;
+                    tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + (XAdjust >> 1))];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
-                                            psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                    getTextureTransColShade32Solid((uint32_t *)&m_vram16[(i << 10) + j],
+                                                   m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
                 }
                 if (j == xmax) {
-                    XAdjust = (posX >> 16) % TWin.Position.x1;
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                    XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                       (XAdjust >> 1))];
                     tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                    GetTextureTransColG_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                    getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
             if (NextRow_FT4()) return;
@@ -2734,36 +2672,36 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
             difX2 = difX << 1;
             difY2 = difY << 1;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
             }
             xmax--;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                XAdjust = (posX >> 16) % TWin.Position.x1;
-                tC1 =
-                    psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1))];
-                tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                XAdjust = ((posX + difX) >> 16) % TWin.Position.x1;
-                tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                   (XAdjust >> 1))];
+                tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
+                XAdjust = ((posX + difX) >> 16) % m_textureWindow.Position.x1;
+                tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                  YAdjust + (XAdjust >> 1))];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
-                                      psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                getTextureTransColShade32((uint32_t *)&m_vram16[(i << 10) + j],
+                                          m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
             }
             if (j == xmax) {
-                XAdjust = (posX >> 16) % TWin.Position.x1;
-                tC1 =
-                    psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1))];
+                XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                  (XAdjust >> 1))];
                 tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                GetTextureTransColG(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                getTextureTransColShade(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
         if (NextRow_FT4()) return;
@@ -2782,27 +2720,27 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
     int32_t posX, posY, YAdjust, clutP, XAdjust;
     int16_t tC1, tC2;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX && x4 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY && y4 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW && x4 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH && y4 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX && x4 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY && y4 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_FT4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
+    if (!setupSectionsFlatTextured4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_FT4()) return;
     }
 
     clutP = (clY << 10) + clX;
 
-    YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
-    YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0 >> 1);
+    YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
+    YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0 >> 1);
 
-    if (!bCheckMask && !DrawSemiTrans) {
+    if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16);
@@ -2818,36 +2756,36 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                 }
                 xmax--;
-                if (drawW < xmax) xmax = drawW;
+                if (m_drawW < xmax) xmax = m_drawW;
 
                 for (j = xmin; j < xmax; j += 2) {
-                    XAdjust = (posX >> 16) % TWin.Position.x1;
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                    XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                       (XAdjust >> 1))];
                     tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                    XAdjust = ((posX + difX) >> 16) % TWin.Position.x1;
-                    tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      (XAdjust >> 1))];
+                    XAdjust = ((posX + difX) >> 16) % m_textureWindow.Position.x1;
+                    tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + (XAdjust >> 1))];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
-                                            psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                    getTextureTransColShade32Solid((uint32_t *)&m_vram16[(i << 10) + j],
+                                                   m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
                 }
                 if (j == xmax) {
-                    XAdjust = (posX >> 16) % TWin.Position.x1;
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                    XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                       (XAdjust >> 1))];
                     tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                    GetTextureTransColG_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                    getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
             if (NextRow_FT4()) return;
@@ -2870,36 +2808,36 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
             difX2 = difX << 1;
             difY2 = difY << 1;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
             }
             xmax--;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                XAdjust = (posX >> 16) % TWin.Position.x1;
-                tC1 =
-                    psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1))];
-                tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                XAdjust = ((posX + difX) >> 16) % TWin.Position.x1;
-                tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                   (XAdjust >> 1))];
+                tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
+                XAdjust = ((posX + difX) >> 16) % m_textureWindow.Position.x1;
+                tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                  YAdjust + (XAdjust >> 1))];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                GetTextureTransColG32_SPR((uint32_t *)&psxVuw[(i << 10) + j],
-                                          psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                getTextureTransColG32Semi((uint32_t *)&m_vram16[(i << 10) + j],
+                                          m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
             }
             if (j == xmax) {
-                XAdjust = (posX >> 16) % TWin.Position.x1;
-                tC1 =
-                    psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1))];
+                XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                  (XAdjust >> 1))];
                 tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                GetTextureTransColG_SPR(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                getTextureTransColShadeSemi(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
         if (NextRow_FT4()) return;
@@ -2916,65 +2854,65 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
     int32_t posX, posY, YAdjust, clutP;
     int16_t tC1, tC2;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_FT(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3)) return;
+    if (!setupSectionsFlatTextured3(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_FT()) return;
     }
 
     clutP = (clY << 10) + clX;
 
-    YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
-    YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0);
+    YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
+    YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0);
 
     difX = delta_right_u;
     difX2 = difX << 1;
     difY = delta_right_v;
     difY2 = difY << 1;
 
-    if (!bCheckMask && !DrawSemiTrans) {
+    if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16);  //-1; //!!!!!!!!!!!!!!!!
             if (xmax > xmin) xmax--;
 
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
                 posX = left_u;
                 posY = left_v;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      ((posX >> 16) % TWin.Position.x1))];
-                    tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      (((posX + difX) >> 16) % TWin.Position.x1))];
-                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
-                                            psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                      ((posX >> 16) % m_textureWindow.Position.x1))];
+                    tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + (((posX + difX) >> 16) % m_textureWindow.Position.x1))];
+                    getTextureTransColShade32Solid((uint32_t *)&m_vram16[(i << 10) + j],
+                                                   m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
                 }
 
                 if (j == xmax) {
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      ((posX >> 16) % TWin.Position.x1))];
-                    GetTextureTransColG_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                      ((posX >> 16) % m_textureWindow.Position.x1))];
+                    getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
             if (NextRow_FT()) return;
@@ -2985,34 +2923,34 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
         xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!
-        if (drawW < xmax) xmax = drawW;
+        if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
             posX = left_u;
             posY = left_v;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
             }
 
             for (j = xmin; j < xmax; j += 2) {
-                tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  ((posX >> 16) % TWin.Position.x1))];
-                tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  (((posX + difX) >> 16) % TWin.Position.x1))];
-                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
-                                      psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                  ((posX >> 16) % m_textureWindow.Position.x1))];
+                tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                  YAdjust + (((posX + difX) >> 16) % m_textureWindow.Position.x1))];
+                getTextureTransColShade32((uint32_t *)&m_vram16[(i << 10) + j],
+                                          m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
             }
 
             if (j == xmax) {
-                tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  ((posX >> 16) % TWin.Position.x1))];
-                GetTextureTransColG(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                  ((posX >> 16) % m_textureWindow.Position.x1))];
+                getTextureTransColShade(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
         if (NextRow_FT()) return;
@@ -3031,27 +2969,27 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
     int32_t posX, posY, YAdjust, clutP;
     int16_t tC1, tC2;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX && x4 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY && y4 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW && x4 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH && y4 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX && x4 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY && y4 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_FT4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
+    if (!setupSectionsFlatTextured4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_FT4()) return;
     }
 
     clutP = (clY << 10) + clX;
 
-    YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
-    YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0);
+    YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
+    YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0);
 
-    if (!bCheckMask && !DrawSemiTrans) {
+    if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16);
@@ -3067,29 +3005,29 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                 }
                 xmax--;
-                if (drawW < xmax) xmax = drawW;
+                if (m_drawW < xmax) xmax = m_drawW;
 
                 for (j = xmin; j < xmax; j += 2) {
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      ((posX >> 16) % TWin.Position.x1))];
-                    tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      (((posX + difX) >> 16) % TWin.Position.x1))];
-                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
-                                            psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                      ((posX >> 16) % m_textureWindow.Position.x1))];
+                    tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + (((posX + difX) >> 16) % m_textureWindow.Position.x1))];
+                    getTextureTransColShade32Solid((uint32_t *)&m_vram16[(i << 10) + j],
+                                                   m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
                 }
                 if (j == xmax) {
-                    tC1 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      ((posX >> 16) % TWin.Position.x1))];
-                    GetTextureTransColG_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                    tC1 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + ((posX >> 16) % m_textureWindow.Position.x1))];
+                    getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
             if (NextRow_FT4()) return;
@@ -3112,29 +3050,29 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
             difX2 = difX << 1;
             difY2 = difY << 1;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
             }
             xmax--;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  ((posX >> 16) % TWin.Position.x1))];
-                tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  (((posX + difX) >> 16) % TWin.Position.x1))];
-                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
-                                      psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                  ((posX >> 16) % m_textureWindow.Position.x1))];
+                tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                  YAdjust + (((posX + difX) >> 16) % m_textureWindow.Position.x1))];
+                getTextureTransColShade32((uint32_t *)&m_vram16[(i << 10) + j],
+                                          m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
             }
             if (j == xmax) {
-                tC1 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  ((posX >> 16) % TWin.Position.x1))];
-                GetTextureTransColG(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                tC1 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                  YAdjust + ((posX >> 16) % m_textureWindow.Position.x1))];
+                getTextureTransColShade(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
         if (NextRow_FT4()) return;
@@ -3153,27 +3091,27 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
     int32_t posX, posY, YAdjust, clutP;
     int16_t tC1, tC2;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX && x4 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY && y4 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW && x4 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH && y4 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX && x4 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY && y4 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_FT4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
+    if (!setupSectionsFlatTextured4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_FT4()) return;
     }
 
     clutP = (clY << 10) + clX;
 
-    YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
-    YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0);
+    YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
+    YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0);
 
-    if (!bCheckMask && !DrawSemiTrans) {
+    if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16);
@@ -3189,29 +3127,29 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                 }
                 xmax--;
-                if (drawW < xmax) xmax = drawW;
+                if (m_drawW < xmax) xmax = m_drawW;
 
                 for (j = xmin; j < xmax; j += 2) {
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      ((posX >> 16) % TWin.Position.x1))];
-                    tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      (((posX + difX) >> 16) % TWin.Position.x1))];
-                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
-                                            psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                      ((posX >> 16) % m_textureWindow.Position.x1))];
+                    tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + (((posX + difX) >> 16) % m_textureWindow.Position.x1))];
+                    getTextureTransColShade32Solid((uint32_t *)&m_vram16[(i << 10) + j],
+                                                   m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
                 }
                 if (j == xmax) {
-                    tC1 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      ((posX >> 16) % TWin.Position.x1))];
-                    GetTextureTransColG_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                    tC1 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + ((posX >> 16) % m_textureWindow.Position.x1))];
+                    getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
             if (NextRow_FT4()) return;
@@ -3234,29 +3172,29 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
             difX2 = difX << 1;
             difY2 = difY << 1;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
             }
             xmax--;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  ((posX >> 16) % TWin.Position.x1))];
-                tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  (((posX + difX) >> 16) % TWin.Position.x1))];
-                GetTextureTransColG32_SPR((uint32_t *)&psxVuw[(i << 10) + j],
-                                          psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16);
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                  ((posX >> 16) % m_textureWindow.Position.x1))];
+                tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                  YAdjust + (((posX + difX) >> 16) % m_textureWindow.Position.x1))];
+                getTextureTransColG32Semi((uint32_t *)&m_vram16[(i << 10) + j],
+                                          m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
             }
             if (j == xmax) {
-                tC1 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  ((posX >> 16) % TWin.Position.x1))];
-                GetTextureTransColG_SPR(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1]);
+                tC1 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                  YAdjust + ((posX >> 16) % m_textureWindow.Position.x1))];
+                getTextureTransColShadeSemi(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
         if (NextRow_FT4()) return;
@@ -3274,18 +3212,18 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
     int32_t difX, difY, difX2, difY2;
     int32_t posX, posY;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_FT(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3)) return;
+    if (!setupSectionsFlatTextured3(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_FT()) return;
     }
 
@@ -3294,42 +3232,48 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
     difY = delta_right_v;
     difY2 = difY << 1;
 
-    if (!bCheckMask && !DrawSemiTrans) {
+    if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
                 posX = left_u;
                 posY = left_v;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
-                    GetTextureTransColG32_S(
-                        (uint32_t *)&psxVuw[(i << 10) + j],
-                        (((int32_t)
-                              psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
-                                      << 10) +
-                                     (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
+                    getTextureTransColShade32Solid(
+                        (uint32_t *)&m_vram16[(i << 10) + j],
+                        (((int32_t)m_vram16[(((((posY + difY) >> 16) % m_textureWindow.Position.y1) +
+                                              m_globalTextAddrY + m_textureWindow.Position.y0)
+                                             << 10) +
+                                            (((posX + difX) >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                            m_textureWindow.Position.x0])
                          << 16) |
-                            psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                                   (((posX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                            m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) + m_globalTextAddrY +
+                                       m_textureWindow.Position.y0)
+                                      << 10) +
+                                     (((posX) >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                     m_textureWindow.Position.x0]);
 
                     posX += difX2;
                     posY += difY2;
                 }
                 if (j == xmax) {
-                    GetTextureTransColG_S(
-                        &psxVuw[(i << 10) + j],
-                        psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                               ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                    getTextureTransColShadeSolid(&m_vram16[(i << 10) + j],
+                                                 m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                            m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                           << 10) +
+                                                          ((posX >> 16) % m_textureWindow.Position.x1) +
+                                                          m_lobalTextAddrX + m_textureWindow.Position.x0]);
                 }
             }
             if (NextRow_FT()) return;
@@ -3340,37 +3284,43 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
         xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!
-        if (drawW < xmax) xmax = drawW;
+        if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
             posX = left_u;
             posY = left_v;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
             }
 
             for (j = xmin; j < xmax; j += 2) {
-                GetTextureTransColG32(
-                    (uint32_t *)&psxVuw[(i << 10) + j],
-                    (((int32_t)psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
-                                       << 10) +
-                                      (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
-                     << 16) |
-                        psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                               (((posX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                getTextureTransColShade32((uint32_t *)&m_vram16[(i << 10) + j],
+                                          (((int32_t)m_vram16[(((((posY + difY) >> 16) % m_textureWindow.Position.y1) +
+                                                                m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                               << 10) +
+                                                              (((posX + difX) >> 16) % m_textureWindow.Position.x1) +
+                                                              m_lobalTextAddrX + m_textureWindow.Position.x0])
+                                           << 16) |
+                                              m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                         m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                        << 10) +
+                                                       (((posX) >> 16) % m_textureWindow.Position.x1) +
+                                                       m_lobalTextAddrX + m_textureWindow.Position.x0]);
 
                 posX += difX2;
                 posY += difY2;
             }
             if (j == xmax) {
-                GetTextureTransColG(
-                    &psxVuw[(i << 10) + j],
-                    psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                           ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                getTextureTransColShade(&m_vram16[(i << 10) + j],
+                                        m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) + m_globalTextAddrY +
+                                                   m_textureWindow.Position.y0)
+                                                  << 10) +
+                                                 ((posX >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                                 m_textureWindow.Position.x0]);
             }
         }
         if (NextRow_FT()) return;
@@ -3387,22 +3337,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
     int32_t difX, difY, difX2, difY2;
     int32_t posX, posY;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX && x4 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY && y4 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW && x4 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH && y4 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX && x4 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY && y4 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_FT4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
+    if (!setupSectionsFlatTextured4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_FT4()) return;
     }
 
-    if (!bCheckMask && !DrawSemiTrans) {
+    if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16);
@@ -3418,34 +3368,38 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                 }
                 xmax--;
-                if (drawW < xmax) xmax = drawW;
+                if (m_drawW < xmax) xmax = m_drawW;
 
                 for (j = xmin; j < xmax; j += 2) {
-                    GetTextureTransColG32_S(
-                        (uint32_t *)&psxVuw[(i << 10) + j],
-                        (((int32_t)
-                              psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
-                                      << 10) +
-                                     (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
+                    getTextureTransColShade32Solid(
+                        (uint32_t *)&m_vram16[(i << 10) + j],
+                        (((int32_t)m_vram16[(((((posY + difY) >> 16) % m_textureWindow.Position.y1) +
+                                              m_globalTextAddrY + m_textureWindow.Position.y0)
+                                             << 10) +
+                                            (((posX + difX) >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                            m_textureWindow.Position.x0])
                          << 16) |
-                            psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY) << 10) + TWin.Position.y0 +
-                                   ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                            m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) + m_globalTextAddrY) << 10) +
+                                     m_textureWindow.Position.y0 + ((posX >> 16) % m_textureWindow.Position.x1) +
+                                     m_lobalTextAddrX + m_textureWindow.Position.x0]);
 
                     posX += difX2;
                     posY += difY2;
                 }
                 if (j == xmax) {
-                    GetTextureTransColG_S(
-                        &psxVuw[(i << 10) + j],
-                        psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                               ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                    getTextureTransColShadeSolid(&m_vram16[(i << 10) + j],
+                                                 m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                            m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                           << 10) +
+                                                          ((posX >> 16) % m_textureWindow.Position.x1) +
+                                                          m_lobalTextAddrX + m_textureWindow.Position.x0]);
                 }
             }
             if (NextRow_FT4()) return;
@@ -3468,33 +3422,39 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
             difX2 = difX << 1;
             difY2 = difY << 1;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
             }
             xmax--;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                GetTextureTransColG32(
-                    (uint32_t *)&psxVuw[(i << 10) + j],
-                    (((int32_t)psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
-                                       << 10) +
-                                      (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
-                     << 16) |
-                        psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                               ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                getTextureTransColShade32((uint32_t *)&m_vram16[(i << 10) + j],
+                                          (((int32_t)m_vram16[(((((posY + difY) >> 16) % m_textureWindow.Position.y1) +
+                                                                m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                               << 10) +
+                                                              (((posX + difX) >> 16) % m_textureWindow.Position.x1) +
+                                                              m_lobalTextAddrX + m_textureWindow.Position.x0])
+                                           << 16) |
+                                              m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                         m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                        << 10) +
+                                                       ((posX >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                                       m_textureWindow.Position.x0]);
 
                 posX += difX2;
                 posY += difY2;
             }
             if (j == xmax) {
-                GetTextureTransColG(
-                    &psxVuw[(i << 10) + j],
-                    psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                           ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                getTextureTransColShade(&m_vram16[(i << 10) + j],
+                                        m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) + m_globalTextAddrY +
+                                                   m_textureWindow.Position.y0)
+                                                  << 10) +
+                                                 ((posX >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                                 m_textureWindow.Position.x0]);
             }
         }
         if (NextRow_FT4()) return;
@@ -3511,22 +3471,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
     int32_t difX, difY, difX2, difY2;
     int32_t posX, posY;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX && x4 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY && y4 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW && x4 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH && y4 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX && x4 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY && y4 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_FT4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
+    if (!setupSectionsFlatTextured4(x1, y1, x2, y2, x3, y3, x4, y4, tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_FT4()) return;
     }
 
-    if (!bCheckMask && !DrawSemiTrans) {
+    if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16);
@@ -3542,34 +3502,38 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                 }
                 xmax--;
-                if (drawW < xmax) xmax = drawW;
+                if (m_drawW < xmax) xmax = m_drawW;
 
                 for (j = xmin; j < xmax; j += 2) {
-                    GetTextureTransColG32_S(
-                        (uint32_t *)&psxVuw[(i << 10) + j],
-                        (((int32_t)
-                              psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
-                                      << 10) +
-                                     (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
+                    getTextureTransColShade32Solid(
+                        (uint32_t *)&m_vram16[(i << 10) + j],
+                        (((int32_t)m_vram16[(((((posY + difY) >> 16) % m_textureWindow.Position.y1) +
+                                              m_globalTextAddrY + m_textureWindow.Position.y0)
+                                             << 10) +
+                                            (((posX + difX) >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                            m_textureWindow.Position.x0])
                          << 16) |
-                            psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY) << 10) + TWin.Position.y0 +
-                                   ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                            m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) + m_globalTextAddrY) << 10) +
+                                     m_textureWindow.Position.y0 + ((posX >> 16) % m_textureWindow.Position.x1) +
+                                     m_lobalTextAddrX + m_textureWindow.Position.x0]);
 
                     posX += difX2;
                     posY += difY2;
                 }
                 if (j == xmax) {
-                    GetTextureTransColG_S(
-                        &psxVuw[(i << 10) + j],
-                        psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                               ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                    getTextureTransColShadeSolid(&m_vram16[(i << 10) + j],
+                                                 m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                            m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                           << 10) +
+                                                          ((posX >> 16) % m_textureWindow.Position.x1) +
+                                                          m_lobalTextAddrX + m_textureWindow.Position.x0]);
                 }
             }
             if (NextRow_FT4()) return;
@@ -3592,33 +3556,39 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
             difX2 = difX << 1;
             difY2 = difY << 1;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
             }
             xmax--;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                GetTextureTransColG32_SPR(
-                    (uint32_t *)&psxVuw[(i << 10) + j],
-                    (((int32_t)psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
-                                       << 10) +
-                                      (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
-                     << 16) |
-                        psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                               ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                getTextureTransColG32Semi((uint32_t *)&m_vram16[(i << 10) + j],
+                                          (((int32_t)m_vram16[(((((posY + difY) >> 16) % m_textureWindow.Position.y1) +
+                                                                m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                               << 10) +
+                                                              (((posX + difX) >> 16) % m_textureWindow.Position.x1) +
+                                                              m_lobalTextAddrX + m_textureWindow.Position.x0])
+                                           << 16) |
+                                              m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                         m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                        << 10) +
+                                                       ((posX >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                                       m_textureWindow.Position.x0]);
 
                 posX += difX2;
                 posY += difY2;
             }
             if (j == xmax) {
-                GetTextureTransColG_SPR(
-                    &psxVuw[(i << 10) + j],
-                    psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                           ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0]);
+                getTextureTransColShadeSemi(&m_vram16[(i << 10) + j],
+                                            m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                       m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                      << 10) +
+                                                     ((posX >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                                     m_textureWindow.Position.x0]);
             }
         }
         if (NextRow_FT4()) return;
@@ -3635,18 +3605,18 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
     int32_t cR1, cG1, cB1;
     int32_t difR, difB, difG, difR2, difB2, difG2;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_G(x1, y1, x2, y2, x3, y3, rgb1, rgb2, rgb3)) return;
+    if (!setupSectionsShade3(x1, y1, x2, y2, x3, y3, rgb1, rgb2, rgb3)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_G()) return;
     }
 
@@ -3657,39 +3627,39 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
     difG2 = difG << 1;
     difB2 = difB << 1;
 
-    if (!bCheckMask && !DrawSemiTrans && iDither != 2) {
+    if (!m_checkMask && !m_drawSemiTrans && m_ditherMode != 2) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16) - 1;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
                 cR1 = left_R;
                 cG1 = left_G;
                 cB1 = left_B;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     cR1 += j * difR;
                     cG1 += j * difG;
                     cB1 += j * difB;
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
-                    *((uint32_t *)&psxVuw[(i << 10) + j]) =
+                    *((uint32_t *)&m_vram16[(i << 10) + j]) =
                         ((((cR1 + difR) << 7) & 0x7c000000) | (((cG1 + difG) << 2) & 0x03e00000) |
                          (((cB1 + difB) >> 3) & 0x001f0000) | (((cR1) >> 9) & 0x7c00) | (((cG1) >> 14) & 0x03e0) |
                          (((cB1) >> 19) & 0x001f)) |
-                        lSetMask;
+                        m_setMask32;
 
                     cR1 += difR2;
                     cG1 += difG2;
                     cB1 += difB2;
                 }
                 if (j == xmax) {
-                    psxVuw[(i << 10) + j] =
-                        (((cR1 >> 9) & 0x7c00) | ((cG1 >> 14) & 0x03e0) | ((cB1 >> 19) & 0x001f)) | sSetMask;
+                    m_vram16[(i << 10) + j] =
+                        (((cR1 >> 9) & 0x7c00) | ((cG1 >> 14) & 0x03e0) | ((cB1 >> 19) & 0x001f)) | m_setMask16;
                 }
             }
             if (NextRow_G()) return;
@@ -3697,27 +3667,27 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
         return;
     }
 
-    if (iDither == 2)
+    if (m_ditherMode == 2)
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16) - 1;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
                 cR1 = left_R;
                 cG1 = left_G;
                 cB1 = left_B;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     cR1 += j * difR;
                     cG1 += j * difG;
                     cB1 += j * difB;
                 }
 
                 for (j = xmin; j <= xmax; j++) {
-                    GetShadeTransCol_Dither(&psxVuw[(i << 10) + j], (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
+                    getShadeTransColDither(&m_vram16[(i << 10) + j], (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
 
                     cR1 += difR;
                     cG1 += difG;
@@ -3730,23 +3700,23 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16) - 1;
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
                 cR1 = left_R;
                 cG1 = left_G;
                 cB1 = left_B;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     cR1 += j * difR;
                     cG1 += j * difG;
                     cB1 += j * difB;
                 }
 
                 for (j = xmin; j <= xmax; j++) {
-                    GetShadeTransCol(&psxVuw[(i << 10) + j],
+                    getShadeTransCol(&m_vram16[(i << 10) + j],
                                      ((cR1 >> 9) & 0x7c00) | ((cG1 >> 14) & 0x03e0) | ((cB1 >> 19) & 0x001f));
 
                     cR1 += difR;
@@ -3760,15 +3730,15 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::drawPoly3G(int32_t rgb1, int32_t rgb2, int32_t rgb3) {
-    drawPoly3Gi(lx0, ly0, lx1, ly1, lx2, ly2, rgb1, rgb2, rgb3);
+void PCSX::SoftGPU::SoftRenderer::drawPolyShade3(int32_t rgb1, int32_t rgb2, int32_t rgb3) {
+    drawPoly3Gi(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
 }
 
 // draw two g-shaded tris for right psx shading emulation
 
-void PCSX::SoftGPU::SoftRenderer::drawPoly4G(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4) {
-    drawPoly3Gi(lx1, ly1, lx3, ly3, lx2, ly2, rgb2, rgb4, rgb3);
-    drawPoly3Gi(lx0, ly0, lx1, ly1, lx2, ly2, rgb1, rgb2, rgb3);
+void PCSX::SoftGPU::SoftRenderer::drawPolyShade4(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4) {
+    drawPoly3Gi(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, rgb2, rgb4, rgb3);
+    drawPoly3Gi(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -3784,25 +3754,25 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
     int32_t posX, posY, YAdjust, clutP, XAdjust;
     int16_t tC1, tC2;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_GT(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3)) return;
+    if (!setupSectionsShadeTextured3(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_GT()) return;
     }
 
     clutP = (clY << 10) + clX;
 
-    YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
-    YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0 >> 1);
+    YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
+    YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0 >> 1);
 
     difR = delta_right_R;
     difG = delta_right_G;
@@ -3816,11 +3786,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
     difY = delta_right_v;
     difY2 = difY << 1;
 
-    if (!bCheckMask && !DrawSemiTrans && !iDither) {
+    if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
             xmin = ((left_x) >> 16);
             xmax = ((right_x) >> 16) - 1;  //!!!!!!!!!!!!!
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
                 posX = left_u;
@@ -3829,9 +3799,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
                 cG1 = left_G;
                 cB1 = left_B;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                     cR1 += j * difR;
@@ -3840,18 +3810,19 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
-                    XAdjust = (posX >> 16) % TWin.Position.x1;
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                    XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                       (XAdjust >> 1))];
                     tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                    XAdjust = ((posX + difX) >> 16) % TWin.Position.x1;
-                    tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      (XAdjust >> 1))];
+                    XAdjust = ((posX + difX) >> 16) % m_textureWindow.Position.x1;
+                    tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + (XAdjust >> 1))];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
-                    GetTextureTransColGX32_S(
-                        (uint32_t *)&psxVuw[(i << 10) + j], psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16,
-                        (cB1 >> 16) | ((cB1 + difB) & 0xff0000), (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
-                        (cR1 >> 16) | ((cR1 + difR) & 0xff0000));
+                    getTextureTransColShadeX32Solid((uint32_t *)&m_vram16[(i << 10) + j],
+                                                    m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16,
+                                                    (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
+                                                    (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
+                                                    (cR1 >> 16) | ((cR1 + difR) & 0xff0000));
                     posX += difX2;
                     posY += difY2;
                     cR1 += difR2;
@@ -3859,12 +3830,12 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
                     cB1 += difB2;
                 }
                 if (j == xmax) {
-                    XAdjust = (posX >> 16) % TWin.Position.x1;
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
+                    XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
                                                       (XAdjust >> 1))];
                     tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                    GetTextureTransColGX_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
-                                           (cR1 >> 16));
+                    getTextureTransColShadeXSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1], (cB1 >> 16),
+                                                  (cG1 >> 16), (cR1 >> 16));
                 }
             }
             if (NextRow_GT()) return;
@@ -3875,7 +3846,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
         xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!
-        if (drawW < xmax) xmax = drawW;
+        if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
             posX = left_u;
@@ -3884,9 +3855,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
             cG1 = left_G;
             cB1 = left_B;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
                 cR1 += j * difR;
@@ -3895,16 +3866,16 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
             }
 
             for (j = xmin; j <= xmax; j++) {
-                XAdjust = (posX >> 16) % TWin.Position.x1;
-                tC1 =
-                    psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1))];
+                XAdjust = (posX >> 16) % m_textureWindow.Position.x1;
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                  (XAdjust >> 1))];
                 tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                if (iDither) {
-                    GetTextureTransColGX_Dither(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
-                                                (cR1 >> 16));
+                if (m_ditherMode) {
+                    getTextureTransColShadeXDither(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1], (cB1 >> 16),
+                                                   (cG1 >> 16), (cR1 >> 16));
                 } else {
-                    GetTextureTransColGX(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
-                                         (cR1 >> 16));
+                    getTextureTransColShadeX(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
+                                             (cR1 >> 16));
                 }
                 posX += difX;
                 posY += difY;
@@ -3942,25 +3913,25 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
     int32_t posX, posY, YAdjust, clutP;
     int16_t tC1, tC2;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_GT(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3)) return;
+    if (!setupSectionsShadeTextured3(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_GT()) return;
     }
 
     clutP = (clY << 10) + clX;
 
-    YAdjust = ((GlobalTextAddrY) << 11) + (GlobalTextAddrX << 1);
-    YAdjust += (TWin.Position.y0 << 11) + (TWin.Position.x0);
+    YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
+    YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0);
 
     difR = delta_right_R;
     difG = delta_right_G;
@@ -3973,11 +3944,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
     difY = delta_right_v;
     difY2 = difY << 1;
 
-    if (!bCheckMask && !DrawSemiTrans && !iDither) {
+    if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16) - 1;  // !!!!!!!!!!!!!
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
                 posX = left_u;
@@ -3986,9 +3957,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
                 cG1 = left_G;
                 cB1 = left_B;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                     cR1 += j * difR;
@@ -3997,15 +3968,16 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      ((posX >> 16) % TWin.Position.x1))];
-                    tC2 = psxVub[static_cast<int32_t>(((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      (((posX + difX) >> 16) % TWin.Position.x1))];
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                      ((posX >> 16) % m_textureWindow.Position.x1))];
+                    tC2 = m_vram[static_cast<int32_t>(((((posY + difY) >> 16) % m_textureWindow.Position.y1) << 11) +
+                                                      YAdjust + (((posX + difX) >> 16) % m_textureWindow.Position.x1))];
 
-                    GetTextureTransColGX32_S(
-                        (uint32_t *)&psxVuw[(i << 10) + j], psxVuw[clutP + tC1] | ((int32_t)psxVuw[clutP + tC2]) << 16,
-                        (cB1 >> 16) | ((cB1 + difB) & 0xff0000), (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
-                        (cR1 >> 16) | ((cR1 + difR) & 0xff0000));
+                    getTextureTransColShadeX32Solid((uint32_t *)&m_vram16[(i << 10) + j],
+                                                    m_vram16[clutP + tC1] | ((int32_t)m_vram16[clutP + tC2]) << 16,
+                                                    (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
+                                                    (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
+                                                    (cR1 >> 16) | ((cR1 + difR) & 0xff0000));
                     posX += difX2;
                     posY += difY2;
                     cR1 += difR2;
@@ -4013,10 +3985,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
                     cB1 += difB2;
                 }
                 if (j == xmax) {
-                    tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                      ((posX >> 16) % TWin.Position.x1))];
-                    GetTextureTransColGX_S(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
-                                           (cR1 >> 16));
+                    tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                      ((posX >> 16) % m_textureWindow.Position.x1))];
+                    getTextureTransColShadeXSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1], (cB1 >> 16),
+                                                  (cG1 >> 16), (cR1 >> 16));
                 }
             }
             if (NextRow_GT()) return;
@@ -4027,7 +3999,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
         xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!!!!!!!
-        if (drawW < xmax) xmax = drawW;
+        if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
             posX = left_u;
@@ -4036,9 +4008,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
             cG1 = left_G;
             cB1 = left_B;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
                 cR1 += j * difR;
@@ -4047,14 +4019,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
             }
 
             for (j = xmin; j <= xmax; j++) {
-                tC1 = psxVub[static_cast<int32_t>((((posY >> 16) % TWin.Position.y1) << 11) + YAdjust +
-                                                  ((posX >> 16) % TWin.Position.x1))];
-                if (iDither) {
-                    GetTextureTransColGX_Dither(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
-                                                (cR1 >> 16));
+                tC1 = m_vram[static_cast<int32_t>((((posY >> 16) % m_textureWindow.Position.y1) << 11) + YAdjust +
+                                                  ((posX >> 16) % m_textureWindow.Position.x1))];
+                if (m_ditherMode) {
+                    getTextureTransColShadeXDither(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1], (cB1 >> 16),
+                                                   (cG1 >> 16), (cR1 >> 16));
                 } else {
-                    GetTextureTransColGX(&psxVuw[(i << 10) + j], psxVuw[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
-                                         (cR1 >> 16));
+                    getTextureTransColShadeX(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
+                                             (cR1 >> 16));
                 }
                 posX += difX;
                 posY += difY;
@@ -4089,18 +4061,18 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
     int32_t difX, difY, difX2, difY2;
     int32_t posX, posY;
 
-    if (x1 > drawW && x2 > drawW && x3 > drawW) return;
-    if (y1 > drawH && y2 > drawH && y3 > drawH) return;
-    if (x1 < drawX && x2 < drawX && x3 < drawX) return;
-    if (y1 < drawY && y2 < drawY && y3 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (x1 > m_drawW && x2 > m_drawW && x3 > m_drawW) return;
+    if (y1 > m_drawH && y2 > m_drawH && y3 > m_drawH) return;
+    if (x1 < m_drawX && x2 < m_drawX && x3 < m_drawX) return;
+    if (y1 < m_drawY && y2 < m_drawY && y3 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    if (!SetupSections_GT(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3)) return;
+    if (!setupSectionsShadeTextured3(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3)) return;
 
-    ymax = Ymax;
+    ymax = m_yMax;
 
-    for (ymin = Ymin; ymin < drawY; ymin++) {
+    for (ymin = m_yMin; ymin < m_drawY; ymin++) {
         if (NextRow_GT()) return;
     }
 
@@ -4115,11 +4087,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
     difY = delta_right_v;
     difY2 = difY << 1;
 
-    if (!bCheckMask && !DrawSemiTrans && !iDither) {
+    if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (left_x >> 16);
             xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!!!!
-            if (drawW < xmax) xmax = drawW;
+            if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
                 posX = left_u;
@@ -4128,9 +4100,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
                 cG1 = left_G;
                 cB1 = left_B;
 
-                if (xmin < drawX) {
-                    j = drawX - xmin;
-                    xmin = drawX;
+                if (xmin < m_drawX) {
+                    j = m_drawX - xmin;
+                    xmin = m_drawX;
                     posX += j * difX;
                     posY += j * difY;
                     cR1 += j * difR;
@@ -4139,15 +4111,19 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
-                    GetTextureTransColGX32_S(
-                        (uint32_t *)&psxVuw[(i << 10) + j],
-                        (((int32_t)
-                              psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
-                                      << 10) +
-                                     (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
+                    getTextureTransColShadeX32Solid(
+                        (uint32_t *)&m_vram16[(i << 10) + j],
+                        (((int32_t)m_vram16[(((((posY + difY) >> 16) % m_textureWindow.Position.y1) +
+                                              m_globalTextAddrY + m_textureWindow.Position.y0)
+                                             << 10) +
+                                            (((posX + difX) >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                            m_textureWindow.Position.x0])
                          << 16) |
-                            psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                                   (((posX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0],
+                            m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) + m_globalTextAddrY +
+                                       m_textureWindow.Position.y0)
+                                      << 10) +
+                                     (((posX) >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                     m_textureWindow.Position.x0],
                         (cB1 >> 16) | ((cB1 + difB) & 0xff0000), (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
                         (cR1 >> 16) | ((cR1 + difR) & 0xff0000));
                     posX += difX2;
@@ -4157,11 +4133,13 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
                     cB1 += difB2;
                 }
                 if (j == xmax) {
-                    GetTextureTransColGX_S(
-                        &psxVuw[(i << 10) + j],
-                        psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                               ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0],
-                        (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
+                    getTextureTransColShadeXSolid(&m_vram16[(i << 10) + j],
+                                                  m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                             m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                            << 10) +
+                                                           ((posX >> 16) % m_textureWindow.Position.x1) +
+                                                           m_lobalTextAddrX + m_textureWindow.Position.x0],
+                                                  (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
                 }
             }
             if (NextRow_GT()) return;
@@ -4172,7 +4150,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
     for (i = ymin; i <= ymax; i++) {
         xmin = (left_x >> 16);
         xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!!
-        if (drawW < xmax) xmax = drawW;
+        if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
             posX = left_u;
@@ -4181,9 +4159,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
             cG1 = left_G;
             cB1 = left_B;
 
-            if (xmin < drawX) {
-                j = drawX - xmin;
-                xmin = drawX;
+            if (xmin < m_drawX) {
+                j = m_drawX - xmin;
+                xmin = m_drawX;
                 posX += j * difX;
                 posY += j * difY;
                 cR1 += j * difR;
@@ -4192,18 +4170,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
             }
 
             for (j = xmin; j <= xmax; j++) {
-                if (iDither) {
-                    GetTextureTransColGX_Dither(
-                        &psxVuw[(i << 10) + j],
-                        psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                               ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0],
-                        (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
+                if (m_ditherMode) {
+                    getTextureTransColShadeXDither(&m_vram16[(i << 10) + j],
+                                                   m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                              m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                             << 10) +
+                                                            ((posX >> 16) % m_textureWindow.Position.x1) +
+                                                            m_lobalTextAddrX + m_textureWindow.Position.x0],
+                                                   (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
                 } else {
-                    GetTextureTransColGX(
-                        &psxVuw[(i << 10) + j],
-                        psxVuw[((((posY >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0) << 10) +
-                               ((posX >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0],
-                        (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
+                    getTextureTransColShadeX(&m_vram16[(i << 10) + j],
+                                             m_vram16[((((posY >> 16) % m_textureWindow.Position.y1) +
+                                                        m_globalTextAddrY + m_textureWindow.Position.y0)
+                                                       << 10) +
+                                                      ((posX >> 16) % m_textureWindow.Position.x1) + m_lobalTextAddrX +
+                                                      m_textureWindow.Position.x0],
+                                             (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
                 }
                 posX += difX;
                 posY += difY;
@@ -4228,7 +4210,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TGD(int16_t x1, int16_t y1, int16_t x
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
+void PCSX::SoftGPU::SoftRenderer::line_E_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
     int dx, dy, incrE, incrSE, d;
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
@@ -4257,8 +4239,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Shade(int x0, int y0, int x1, int y1
     incrE = 2 * dy;         /* incr. used for move to E */
     incrSE = 2 * (dy - dx); /* incr. used for move to SE */
 
-    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
-        GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
+    if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
+        getShadeTransCol(&m_vram16[(y0 << 10) + x0],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
     }
 
@@ -4275,8 +4257,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Shade(int x0, int y0, int x1, int y1
         g0 += dg;
         b0 += db;
 
-        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
-            GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
+        if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
+            getShadeTransCol(&m_vram16[(y0 << 10) + x0],
                              (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
         }
     }
@@ -4284,7 +4266,7 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Shade(int x0, int y0, int x1, int y1
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
+void PCSX::SoftGPU::SoftRenderer::line_S_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
     int dx, dy, incrS, incrSE, d;
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
@@ -4313,8 +4295,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Shade(int x0, int y0, int x1, int y1
     incrS = 2 * dx;         /* incr. used for move to S */
     incrSE = 2 * (dx - dy); /* incr. used for move to SE */
 
-    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
-        GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
+    if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
+        getShadeTransCol(&m_vram16[(y0 << 10) + x0],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
     }
 
@@ -4331,8 +4313,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Shade(int x0, int y0, int x1, int y1
         g0 += dg;
         b0 += db;
 
-        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
-            GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
+        if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
+            getShadeTransCol(&m_vram16[(y0 << 10) + x0],
                              (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
         }
     }
@@ -4340,7 +4322,7 @@ void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Shade(int x0, int y0, int x1, int y1
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
+void PCSX::SoftGPU::SoftRenderer::line_N_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
     int dx, dy, incrN, incrNE, d;
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
@@ -4369,8 +4351,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Shade(int x0, int y0, int x1, int y1
     incrN = 2 * dx;         /* incr. used for move to N */
     incrNE = 2 * (dx - dy); /* incr. used for move to NE */
 
-    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
-        GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
+    if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
+        getShadeTransCol(&m_vram16[(y0 << 10) + x0],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
     }
 
@@ -4387,8 +4369,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Shade(int x0, int y0, int x1, int y1
         g0 += dg;
         b0 += db;
 
-        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
-            GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
+        if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
+            getShadeTransCol(&m_vram16[(y0 << 10) + x0],
                              (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
         }
     }
@@ -4396,7 +4378,7 @@ void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Shade(int x0, int y0, int x1, int y1
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
+void PCSX::SoftGPU::SoftRenderer::line_E_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
     int dx, dy, incrE, incrNE, d;
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
@@ -4425,8 +4407,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Shade(int x0, int y0, int x1, int y1
     incrE = 2 * dy;         /* incr. used for move to E */
     incrNE = 2 * (dy - dx); /* incr. used for move to NE */
 
-    if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
-        GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
+    if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
+        getShadeTransCol(&m_vram16[(y0 << 10) + x0],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
     }
 
@@ -4443,8 +4425,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Shade(int x0, int y0, int x1, int y1
         g0 += dg;
         b0 += db;
 
-        if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
-            GetShadeTransCol(&psxVuw[(y0 << 10) + x0],
+        if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
+            getShadeTransCol(&m_vram16[(y0 << 10) + x0],
                              (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
         }
     }
@@ -4452,7 +4434,7 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Shade(int x0, int y0, int x1, int y1
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::VertLineShade(int x, int y0, int y1, uint32_t rgb0, uint32_t rgb1) {
+void PCSX::SoftGPU::SoftRenderer::vertLineShade(int x, int y0, int y1, uint32_t rgb0, uint32_t rgb1) {
     int y, dy;
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
@@ -4476,17 +4458,17 @@ void PCSX::SoftGPU::SoftRenderer::VertLineShade(int x, int y0, int y1, uint32_t 
         db = ((int32_t)b1 - (int32_t)b0);
     }
 
-    if (y0 < drawY) {
-        r0 += dr * (drawY - y0);
-        g0 += dg * (drawY - y0);
-        b0 += db * (drawY - y0);
-        y0 = drawY;
+    if (y0 < m_drawY) {
+        r0 += dr * (m_drawY - y0);
+        g0 += dg * (m_drawY - y0);
+        b0 += db * (m_drawY - y0);
+        y0 = m_drawY;
     }
 
-    if (y1 > drawH) y1 = drawH;
+    if (y1 > m_drawH) y1 = m_drawH;
 
     for (y = y0; y <= y1; y++) {
-        GetShadeTransCol(&psxVuw[(y << 10) + x],
+        getShadeTransCol(&m_vram16[(y << 10) + x],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
         r0 += dr;
         g0 += dg;
@@ -4496,7 +4478,7 @@ void PCSX::SoftGPU::SoftRenderer::VertLineShade(int x, int y0, int y1, uint32_t 
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::HorzLineShade(int y, int x0, int x1, uint32_t rgb0, uint32_t rgb1) {
+void PCSX::SoftGPU::SoftRenderer::horzLineShade(int y, int x0, int x1, uint32_t rgb0, uint32_t rgb1) {
     int x, dx;
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
@@ -4520,17 +4502,17 @@ void PCSX::SoftGPU::SoftRenderer::HorzLineShade(int y, int x0, int x1, uint32_t 
         db = ((int32_t)b1 - (int32_t)b0);
     }
 
-    if (x0 < drawX) {
-        r0 += dr * (drawX - x0);
-        g0 += dg * (drawX - x0);
-        b0 += db * (drawX - x0);
-        x0 = drawX;
+    if (x0 < m_drawX) {
+        r0 += dr * (m_drawX - x0);
+        g0 += dg * (m_drawX - x0);
+        b0 += db * (m_drawX - x0);
+        x0 = m_drawX;
     }
 
-    if (x1 > drawW) x1 = drawW;
+    if (x1 > m_drawW) x1 = m_drawW;
 
     for (x = x0; x <= x1; x++) {
-        GetShadeTransCol(&psxVuw[(y << 10) + x],
+        getShadeTransCol(&m_vram16[(y << 10) + x],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
         r0 += dr;
         g0 += dg;
@@ -4540,7 +4522,7 @@ void PCSX::SoftGPU::SoftRenderer::HorzLineShade(int y, int x0, int x1, uint32_t 
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::line_E_SE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrE, incrSE, d, x, y;
 
     dx = x1 - x0;
@@ -4550,8 +4532,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Flat(int x0, int y0, int x1, int y1,
     incrSE = 2 * (dy - dx); /* incr. used for move to SE */
     x = x0;
     y = y0;
-    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
-        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    if ((x >= m_drawX) && (x < m_drawW) && (y >= m_drawY) && (y < m_drawH)) {
+        getShadeTransCol(&m_vram16[(y << 10) + x], color);
     }
 
     while (x < x1) {
@@ -4563,15 +4545,15 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Flat(int x0, int y0, int x1, int y1,
             x++;
             y++;
         }
-        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
-            GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        if ((x >= m_drawX) && (x < m_drawW) && (y >= m_drawY) && (y < m_drawH)) {
+            getShadeTransCol(&m_vram16[(y << 10) + x], color);
         }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::line_S_SE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrS, incrSE, d, x, y;
 
     dx = x1 - x0;
@@ -4581,8 +4563,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Flat(int x0, int y0, int x1, int y1,
     incrSE = 2 * (dx - dy); /* incr. used for move to SE */
     x = x0;
     y = y0;
-    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
-        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    if ((x >= m_drawX) && (x < m_drawW) && (y >= m_drawY) && (y < m_drawH)) {
+        getShadeTransCol(&m_vram16[(y << 10) + x], color);
     }
 
     while (y < y1) {
@@ -4594,15 +4576,15 @@ void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Flat(int x0, int y0, int x1, int y1,
             x++;
             y++;
         }
-        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
-            GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        if ((x >= m_drawX) && (x < m_drawW) && (y >= m_drawY) && (y < m_drawH)) {
+            getShadeTransCol(&m_vram16[(y << 10) + x], color);
         }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::line_N_NE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrN, incrNE, d, x, y;
 
     dx = x1 - x0;
@@ -4612,8 +4594,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Flat(int x0, int y0, int x1, int y1,
     incrNE = 2 * (dx - dy); /* incr. used for move to NE */
     x = x0;
     y = y0;
-    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
-        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    if ((x >= m_drawX) && (x < m_drawW) && (y >= m_drawY) && (y < m_drawH)) {
+        getShadeTransCol(&m_vram16[(y << 10) + x], color);
     }
 
     while (y > y1) {
@@ -4625,15 +4607,15 @@ void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Flat(int x0, int y0, int x1, int y1,
             x++;
             y--;
         }
-        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
-            GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        if ((x >= m_drawX) && (x < m_drawW) && (y >= m_drawY) && (y < m_drawH)) {
+            getShadeTransCol(&m_vram16[(y << 10) + x], color);
         }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrE, incrNE, d, x, y;
 
     dx = x1 - x0;
@@ -4643,8 +4625,8 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Flat(int x0, int y0, int x1, int y1,
     incrNE = 2 * (dy - dx); /* incr. used for move to NE */
     x = x0;
     y = y0;
-    if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
-        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+    if ((x >= m_drawX) && (x < m_drawW) && (y >= m_drawY) && (y < m_drawH)) {
+        getShadeTransCol(&m_vram16[(y << 10) + x], color);
     }
 
     while (x < x1) {
@@ -4656,73 +4638,73 @@ void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Flat(int x0, int y0, int x1, int y1,
             x++;
             y--;
         }
-        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
-            GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        if ((x >= m_drawX) && (x < m_drawW) && (y >= m_drawY) && (y < m_drawH)) {
+            getShadeTransCol(&m_vram16[(y << 10) + x], color);
         }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::VertLineFlat(int x, int y0, int y1, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::vertLineFlat(int x, int y0, int y1, uint16_t color) {
     int y;
 
-    if (y0 < drawY) y0 = drawY;
+    if (y0 < m_drawY) y0 = m_drawY;
 
-    if (y1 > drawH) y1 = drawH;
+    if (y1 > m_drawH) y1 = m_drawH;
 
     for (y = y0; y <= y1; y++) {
-        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        getShadeTransCol(&m_vram16[(y << 10) + x], color);
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::HorzLineFlat(int y, int x0, int x1, uint16_t color) {
+void PCSX::SoftGPU::SoftRenderer::horzLineFlat(int y, int x0, int x1, uint16_t color) {
     int x;
 
-    if (x0 < drawX) x0 = drawX;
+    if (x0 < m_drawX) x0 = m_drawX;
 
-    if (x1 > drawW) x1 = drawW;
+    if (x1 > m_drawW) x1 = m_drawW;
 
     for (x = x0; x <= x1; x++) {
-        GetShadeTransCol(&psxVuw[(y << 10) + x], color);
+        getShadeTransCol(&m_vram16[(y << 10) + x], color);
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
 /* Bresenham Line drawing function */
-void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineShade(int32_t rgb0, int32_t rgb1) {
+void PCSX::SoftGPU::SoftRenderer::drawSoftwareLineShade(int32_t rgb0, int32_t rgb1) {
     int16_t x0, y0, x1, y1, xt, yt;
     double m, dy, dx;
 
-    if (lx0 > drawW && lx1 > drawW) return;
-    if (ly0 > drawH && ly1 > drawH) return;
-    if (lx0 < drawX && lx1 < drawX) return;
-    if (ly0 < drawY && ly1 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (m_x0 > m_drawW && m_x1 > m_drawW) return;
+    if (m_y0 > m_drawH && m_y1 > m_drawH) return;
+    if (m_x0 < m_drawX && m_x1 < m_drawX) return;
+    if (m_y0 < m_drawY && m_y1 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
-    x0 = lx0;
-    y0 = ly0;
-    x1 = lx1;
-    y1 = ly1;
+    x0 = m_x0;
+    y0 = m_y0;
+    x1 = m_x1;
+    y1 = m_y1;
 
     dx = x1 - x0;
     dy = y1 - y0;
 
     if (dx == 0) {
         if (dy > 0) {
-            VertLineShade(x0, y0, y1, rgb0, rgb1);
+            vertLineShade(x0, y0, y1, rgb0, rgb1);
         } else {
-            VertLineShade(x0, y1, y0, rgb1, rgb0);
+            vertLineShade(x0, y1, y0, rgb1, rgb0);
         }
     } else if (dy == 0) {
         if (dx > 0) {
-            HorzLineShade(y0, x0, x1, rgb0, rgb1);
+            horzLineShade(y0, x0, x1, rgb0, rgb1);
         } else {
-            HorzLineShade(y0, x1, x0, rgb1, rgb0);
+            horzLineShade(y0, x1, x0, rgb1, rgb0);
         }
     } else {
         if (dx < 0) {
@@ -4743,38 +4725,38 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineShade(int32_t rgb0, int32_t rg
 
         if (m >= 0) {
             if (m > 1) {
-                Line_S_SE_Shade(x0, y0, x1, y1, rgb0, rgb1);
+                line_S_SE_Shade(x0, y0, x1, y1, rgb0, rgb1);
             } else {
-                Line_E_SE_Shade(x0, y0, x1, y1, rgb0, rgb1);
+                line_E_SE_Shade(x0, y0, x1, y1, rgb0, rgb1);
             }
         } else if (m < -1) {
-            Line_N_NE_Shade(x0, y0, x1, y1, rgb0, rgb1);
+            line_N_NE_Shade(x0, y0, x1, y1, rgb0, rgb1);
         } else {
-            Line_E_NE_Shade(x0, y0, x1, y1, rgb0, rgb1);
+            line_E_NE_Shade(x0, y0, x1, y1, rgb0, rgb1);
         }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineFlat(int32_t rgb) {
+void PCSX::SoftGPU::SoftRenderer::drawSoftwareLineFlat(int32_t rgb) {
     int16_t x0, y0, x1, y1, xt, yt;
     double m, dy, dx;
     uint16_t color = 0;
 
-    if (lx0 > drawW && lx1 > drawW) return;
-    if (ly0 > drawH && ly1 > drawH) return;
-    if (lx0 < drawX && lx1 < drawX) return;
-    if (ly0 < drawY && ly1 < drawY) return;
-    if (drawY >= drawH) return;
-    if (drawX >= drawW) return;
+    if (m_x0 > m_drawW && m_x1 > m_drawW) return;
+    if (m_y0 > m_drawH && m_y1 > m_drawH) return;
+    if (m_x0 < m_drawX && m_x1 < m_drawX) return;
+    if (m_y0 < m_drawY && m_y1 < m_drawY) return;
+    if (m_drawY >= m_drawH) return;
+    if (m_drawX >= m_drawW) return;
 
     color = ((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3);
 
-    x0 = lx0;
-    y0 = ly0;
-    x1 = lx1;
-    y1 = ly1;
+    x0 = m_x0;
+    y0 = m_y0;
+    x1 = m_x1;
+    y1 = m_y1;
 
     dx = x1 - x0;
     dy = y1 - y0;
@@ -4783,15 +4765,15 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineFlat(int32_t rgb) {
         if (dy == 0) {
             return;  // Nothing to draw
         } else if (dy > 0) {
-            VertLineFlat(x0, y0, y1, color);
+            vertLineFlat(x0, y0, y1, color);
         } else {
-            VertLineFlat(x0, y1, y0, color);
+            vertLineFlat(x0, y1, y0, color);
         }
     } else if (dy == 0) {
         if (dx > 0) {
-            HorzLineFlat(y0, x0, x1, color);
+            horzLineFlat(y0, x0, x1, color);
         } else {
-            HorzLineFlat(y0, x1, x0, color);
+            horzLineFlat(y0, x1, x0, color);
         }
     } else {
         if (dx < 0) {
@@ -4810,14 +4792,14 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineFlat(int32_t rgb) {
 
         if (m >= 0) {
             if (m > 1) {
-                Line_S_SE_Flat(x0, y0, x1, y1, color);
+                line_S_SE_Flat(x0, y0, x1, y1, color);
             } else {
-                Line_E_SE_Flat(x0, y0, x1, y1, color);
+                line_E_SE_Flat(x0, y0, x1, y1, color);
             }
         } else if (m < -1) {
-            Line_N_NE_Flat(x0, y0, x1, y1, color);
+            line_N_NE_Flat(x0, y0, x1, y1, color);
         } else {
-            Line_E_NE_Flat(x0, y0, x1, y1, color);
+            line_E_NE_Flat(x0, y0, x1, y1, color);
         }
     }
 }

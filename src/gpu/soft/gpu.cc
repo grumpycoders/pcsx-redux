@@ -29,76 +29,47 @@
 
 #include "core/debug.h"
 #include "core/psxemulator.h"
-#include "gpu/soft/externals.h"
+#include "gpu/soft/definitions.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
 #include "gpu/soft/soft.h"
 #include "imgui.h"
 #include "tracy/Tracy.hpp"
 
-////////////////////////////////////////////////////////////////////////
-// memory image of the PSX vram
-////////////////////////////////////////////////////////////////////////
-
-unsigned char *psxVSecure;
-unsigned char *psxVub;
-signed char *psxVsb;
-uint16_t *psxVuw;
-uint16_t *psxVuw_eom;
-int16_t *psxVsw;
-uint32_t *psxVul;
-int32_t *psxVsl;
-
-// GPU globals
-int32_t lGPUstatusRet;
-
-int16_t sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
-PSXDisplay_t PSXDisplay;
-PSXDisplay_t PreviousPSXDisplay;
-bool bDoLazyUpdate = false;
-uint32_t lGPUInfoVals[16];
-
 int32_t PCSX::SoftGPU::impl::initBackend(GUI *gui) {
     m_gui = gui;
-    bDoVSyncUpdate = true;
+    m_doVSyncUpdate = true;
     initDisplay();
 
     // always alloc one extra MB for soft drawing funcs security
-    psxVSecure = new uint8_t[(iGPUHeight * 2) * 1024 + (1024 * 1024)]();
-    if (!psxVSecure) return -1;
+    m_allocatedVRAM = new uint8_t[(GPU_HEIGHT * 2) * 1024 + (1024 * 1024)]();
+    if (!m_allocatedVRAM) return -1;
 
     //!!! ATTENTION !!!
-    psxVub = psxVSecure + 512 * 1024;  // security offset into double sized psx vram!
+    m_vram = m_allocatedVRAM + 512 * 1024;  // security offset into double sized psx vram!
+    m_vram16 = (uint16_t *)m_vram;
 
-    psxVsb = (signed char *)psxVub;  // different ways of accessing PSX VRAM
-    psxVsw = (int16_t *)psxVub;
-    psxVsl = (int32_t *)psxVub;
-    psxVuw = (uint16_t *)psxVub;
-    psxVul = (uint32_t *)psxVub;
+    memset(m_infoVals, 0x00, 16 * sizeof(uint32_t));
 
-    psxVuw_eom = psxVuw + 1024 * iGPUHeight;  // pre-calc of end of vram
-
-    memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
-
-    PSXDisplay.RGB24 = false;  // init some stuff
-    PSXDisplay.Interlaced = false;
-    PSXDisplay.DrawOffset.x = 0;
-    PSXDisplay.DrawOffset.y = 0;
-    PSXDisplay.DisplayMode.x = 320;
-    PSXDisplay.DisplayMode.y = 240;
-    PreviousPSXDisplay.DisplayMode.x = 320;
-    PreviousPSXDisplay.DisplayMode.y = 240;
-    PSXDisplay.Disabled = false;
-    PreviousPSXDisplay.Range.x0 = 0;
-    PreviousPSXDisplay.Range.y0 = 0;
-    PSXDisplay.Range.x0 = 0;
-    PSXDisplay.Range.x1 = 0;
-    PreviousPSXDisplay.DisplayModeNew.y = 0;
-    PSXDisplay.Double = 1;
-    lGPUdataRet = 0x400;
+    m_softDisplay.RGB24 = false;  // init some stuff
+    m_softDisplay.Interlaced = false;
+    m_softDisplay.DrawOffset.x = 0;
+    m_softDisplay.DrawOffset.y = 0;
+    m_softDisplay.DisplayMode.x = 320;
+    m_softDisplay.DisplayMode.y = 240;
+    m_previousDisplay.DisplayMode.x = 320;
+    m_previousDisplay.DisplayMode.y = 240;
+    m_softDisplay.Disabled = false;
+    m_previousDisplay.Range.x0 = 0;
+    m_previousDisplay.Range.y0 = 0;
+    m_softDisplay.Range.x0 = 0;
+    m_softDisplay.Range.x1 = 0;
+    m_previousDisplay.DisplayModeNew.y = 0;
+    m_softDisplay.Double = 1;
+    m_dataRet = 0x400;
 
     // device initialised already !
-    lGPUstatusRet = 0x14802000;
+    m_statusRet = 0x14802000;
     GPUIsIdle;
     GPUIsReadyForCommands;
 
@@ -106,14 +77,14 @@ int32_t PCSX::SoftGPU::impl::initBackend(GUI *gui) {
 }
 
 int32_t PCSX::SoftGPU::impl::shutdown() {
-    delete[] psxVSecure;
+    delete[] m_allocatedVRAM;
     return 0;
 }
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::GPU>(new PCSX::SoftGPU::impl()); }
 
 void PCSX::SoftGPU::impl::updateDisplay() {
-    if (PSXDisplay.Disabled) {
+    if (m_softDisplay.Disabled) {
         glClearColor(1, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
         return;
@@ -126,78 +97,81 @@ void PCSX::SoftGPU::impl::updateDisplay() {
 // roughly emulated screen centering bits... not complete !!!
 ////////////////////////////////////////////////////////////////////////
 
-void ChangeDispOffsetsX() {
-    if (!PSXDisplay.Range.x1) return;
+void PCSX::SoftGPU::impl::changeDispOffsetsX() {
+    if (!m_softDisplay.Range.x1) return;
 
-    int32_t l = PreviousPSXDisplay.DisplayMode.x;
+    int32_t l = m_previousDisplay.DisplayMode.x;
 
-    l *= (int32_t)PSXDisplay.Range.x1;
+    l *= (int32_t)m_softDisplay.Range.x1;
     l /= 2560;
     int32_t lx = l;
     l &= 0xfffffff8;
 
-    if (l == PreviousPSXDisplay.Range.y1) return;  // abusing range.y1 for
-    PreviousPSXDisplay.Range.y1 = (int16_t)l;      // storing last x range and test
+    if (l == m_previousDisplay.Range.y1) return;  // abusing range.y1 for
+    m_previousDisplay.Range.y1 = (int16_t)l;      // storing last x range and test
 
-    if (lx >= PreviousPSXDisplay.DisplayMode.x) {
-        PreviousPSXDisplay.Range.x1 = (int16_t)PreviousPSXDisplay.DisplayMode.x;
-        PreviousPSXDisplay.Range.x0 = 0;
+    if (lx >= m_previousDisplay.DisplayMode.x) {
+        m_previousDisplay.Range.x1 = (int16_t)m_previousDisplay.DisplayMode.x;
+        m_previousDisplay.Range.x0 = 0;
     } else {
-        PreviousPSXDisplay.Range.x1 = (int16_t)l;
+        m_previousDisplay.Range.x1 = (int16_t)l;
 
-        PreviousPSXDisplay.Range.x0 = (PSXDisplay.Range.x0 - 500) / 8;
+        m_previousDisplay.Range.x0 = (m_softDisplay.Range.x0 - 500) / 8;
 
-        if (PreviousPSXDisplay.Range.x0 < 0) PreviousPSXDisplay.Range.x0 = 0;
+        if (m_previousDisplay.Range.x0 < 0) m_previousDisplay.Range.x0 = 0;
 
-        if ((PreviousPSXDisplay.Range.x0 + lx) > PreviousPSXDisplay.DisplayMode.x) {
-            PreviousPSXDisplay.Range.x0 = (int16_t)(PreviousPSXDisplay.DisplayMode.x - lx);
-            PreviousPSXDisplay.Range.x0 += 2;  //???
+        if ((m_previousDisplay.Range.x0 + lx) > m_previousDisplay.DisplayMode.x) {
+            m_previousDisplay.Range.x0 = (int16_t)(m_previousDisplay.DisplayMode.x - lx);
+            m_previousDisplay.Range.x0 += 2;  //???
 
-            PreviousPSXDisplay.Range.x1 += (int16_t)(lx - l);
+            m_previousDisplay.Range.x1 += (int16_t)(lx - l);
         }
         glClearColor(1, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    bDoVSyncUpdate = true;
+    m_doVSyncUpdate = true;
 }
 
-void ChangeDispOffsetsY() {
-    int iT, iO = PreviousPSXDisplay.Range.y0;
-    int iOldYOffset = PreviousPSXDisplay.DisplayModeNew.y;
+void PCSX::SoftGPU::impl::changeDispOffsetsY() {
+    int iT, iO = m_previousDisplay.Range.y0;
+    int iOldYOffset = m_previousDisplay.DisplayModeNew.y;
 
-    if ((PreviousPSXDisplay.DisplayModeNew.x + PSXDisplay.DisplayModeNew.y) > iGPUHeight) {
-        int dy1 = iGPUHeight - PreviousPSXDisplay.DisplayModeNew.x;
-        int dy2 = (PreviousPSXDisplay.DisplayModeNew.x + PSXDisplay.DisplayModeNew.y) - iGPUHeight;
+    if ((m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) > GPU_HEIGHT) {
+        int dy1 = GPU_HEIGHT - m_previousDisplay.DisplayModeNew.x;
+        int dy2 = (m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) - GPU_HEIGHT;
 
         if (dy1 >= dy2) {
-            PreviousPSXDisplay.DisplayModeNew.y = -dy2;
+            m_previousDisplay.DisplayModeNew.y = -dy2;
         } else {
-            PSXDisplay.DisplayPosition.y = 0;
-            PreviousPSXDisplay.DisplayModeNew.y = -dy1;
+            m_softDisplay.DisplayPosition.y = 0;
+            m_previousDisplay.DisplayModeNew.y = -dy1;
         }
-    } else
-        PreviousPSXDisplay.DisplayModeNew.y = 0;
-
-    if (PreviousPSXDisplay.DisplayModeNew.y != iOldYOffset)  // if old offset!=new offset: recalc height
-    {
-        PSXDisplay.Height = PSXDisplay.Range.y1 - PSXDisplay.Range.y0 + PreviousPSXDisplay.DisplayModeNew.y;
-        PSXDisplay.DisplayModeNew.y = PSXDisplay.Height * PSXDisplay.Double;
+    } else {
+        m_previousDisplay.DisplayModeNew.y = 0;
     }
 
-    if (PSXDisplay.PAL)
+    if (m_previousDisplay.DisplayModeNew.y != iOldYOffset) {
+        // if old offset!=new offset: recalc height
+        m_softDisplay.Height = m_softDisplay.Range.y1 - m_softDisplay.Range.y0 + m_previousDisplay.DisplayModeNew.y;
+        m_softDisplay.DisplayModeNew.y = m_softDisplay.Height * m_softDisplay.Double;
+    }
+
+    if (m_softDisplay.PAL) {
         iT = 48;
-    else
+    } else {
         iT = 28;
+    }
 
-    if (PSXDisplay.Range.y0 >= iT) {
-        PreviousPSXDisplay.Range.y0 = (int16_t)((PSXDisplay.Range.y0 - iT - 4) * PSXDisplay.Double);
-        if (PreviousPSXDisplay.Range.y0 < 0) PreviousPSXDisplay.Range.y0 = 0;
-        PSXDisplay.DisplayModeNew.y += PreviousPSXDisplay.Range.y0;
-    } else
-        PreviousPSXDisplay.Range.y0 = 0;
+    if (m_softDisplay.Range.y0 >= iT) {
+        m_previousDisplay.Range.y0 = (int16_t)((m_softDisplay.Range.y0 - iT - 4) * m_softDisplay.Double);
+        if (m_previousDisplay.Range.y0 < 0) m_previousDisplay.Range.y0 = 0;
+        m_softDisplay.DisplayModeNew.y += m_previousDisplay.Range.y0;
+    } else {
+        m_previousDisplay.Range.y0 = 0;
+    }
 
-    if (iO != PreviousPSXDisplay.Range.y0) {
+    if (iO != m_previousDisplay.Range.y0) {
         glClearColor(1, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
     }
@@ -207,31 +181,33 @@ void ChangeDispOffsetsY() {
 // check if update needed
 ////////////////////////////////////////////////////////////////////////
 
-void updateDisplayIfChanged() {
-    if ((PSXDisplay.DisplayMode.y == PSXDisplay.DisplayModeNew.y) &&
-        (PSXDisplay.DisplayMode.x == PSXDisplay.DisplayModeNew.x)) {
-        if ((PSXDisplay.RGB24 == PSXDisplay.RGB24New) && (PSXDisplay.Interlaced == PSXDisplay.InterlacedNew)) return;
+void PCSX::SoftGPU::impl::updateDisplayIfChanged() {
+    if ((m_softDisplay.DisplayMode.y == m_softDisplay.DisplayModeNew.y) &&
+        (m_softDisplay.DisplayMode.x == m_softDisplay.DisplayModeNew.x)) {
+        if ((m_softDisplay.RGB24 == m_softDisplay.RGB24New) &&
+            (m_softDisplay.Interlaced == m_softDisplay.InterlacedNew))
+            return;
     }
 
-    PSXDisplay.RGB24 = PSXDisplay.RGB24New;  // get new infos
+    m_softDisplay.RGB24 = m_softDisplay.RGB24New;  // get new infos
 
-    PSXDisplay.DisplayMode.y = PSXDisplay.DisplayModeNew.y;
-    PSXDisplay.DisplayMode.x = PSXDisplay.DisplayModeNew.x;
-    PreviousPSXDisplay.DisplayMode.x =            // previous will hold
-        std::min(640, PSXDisplay.DisplayMode.x);  // max 640x512... that's
-    PreviousPSXDisplay.DisplayMode.y =            // the size of my
-        std::min(512, PSXDisplay.DisplayMode.y);  // back buffer surface
-    PSXDisplay.Interlaced = PSXDisplay.InterlacedNew;
+    m_softDisplay.DisplayMode.y = m_softDisplay.DisplayModeNew.y;
+    m_softDisplay.DisplayMode.x = m_softDisplay.DisplayModeNew.x;
+    m_previousDisplay.DisplayMode.x =                // previous will hold
+        std::min(640, m_softDisplay.DisplayMode.x);  // max 640x512... that's
+    m_previousDisplay.DisplayMode.y =                // the size of my
+        std::min(512, m_softDisplay.DisplayMode.y);  // back buffer surface
+    m_softDisplay.Interlaced = m_softDisplay.InterlacedNew;
 
-    PSXDisplay.DisplayEnd.x =  // calc end of display
-        PSXDisplay.DisplayPosition.x + PSXDisplay.DisplayMode.x;
-    PSXDisplay.DisplayEnd.y =
-        PSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y + PreviousPSXDisplay.DisplayModeNew.y;
-    PreviousPSXDisplay.DisplayEnd.x = PreviousPSXDisplay.DisplayPosition.x + PSXDisplay.DisplayMode.x;
-    PreviousPSXDisplay.DisplayEnd.y =
-        PreviousPSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y + PreviousPSXDisplay.DisplayModeNew.y;
+    m_softDisplay.DisplayEnd.x =  // calc end of display
+        m_softDisplay.DisplayPosition.x + m_softDisplay.DisplayMode.x;
+    m_softDisplay.DisplayEnd.y =
+        m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y + m_previousDisplay.DisplayModeNew.y;
+    m_previousDisplay.DisplayEnd.x = m_previousDisplay.DisplayPosition.x + m_softDisplay.DisplayMode.x;
+    m_previousDisplay.DisplayEnd.y =
+        m_previousDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y + m_previousDisplay.DisplayModeNew.y;
 
-    ChangeDispOffsetsX();
+    changeDispOffsetsX();
 }
 
 void PCSX::SoftGPU::impl::vblank() {
@@ -239,29 +215,25 @@ void PCSX::SoftGPU::impl::vblank() {
         uint32_t data = 0x02000000;
         fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
     }
-    lGPUstatusRet ^= 0x80000000;  // odd/even bit
+    m_statusRet ^= 0x80000000;  // odd/even bit
 
-    if (PSXDisplay.Interlaced)  // interlaced mode?
-    {
-        if (bDoVSyncUpdate && PSXDisplay.DisplayMode.x > 0 && PSXDisplay.DisplayMode.y > 0) {
+    if (m_softDisplay.Interlaced) {
+        // interlaced mode?
+        if (m_doVSyncUpdate && m_softDisplay.DisplayMode.x > 0 && m_softDisplay.DisplayMode.y > 0) {
             updateDisplay();
         }
-    } else  // non-interlaced?
-    {
+    } else {
+        // non-interlaced?
         // some primitives drawn?
-        if (bDoVSyncUpdate) updateDisplay();  // -> update display
+        if (m_doVSyncUpdate) updateDisplay();  // -> update display
     }
 
-    bDoVSyncUpdate = false;  // vsync done
+    m_doVSyncUpdate = false;  // vsync done
 }
 
-////////////////////////////////////////////////////////////////////////
-// process read request from GPU status register
-////////////////////////////////////////////////////////////////////////
+uint32_t PCSX::SoftGPU::impl::readStatusInternal() { return m_statusRet; }
 
-uint32_t PCSX::SoftGPU::impl::readStatusInternal() { return lGPUstatusRet; }
-
-void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) { lGPUstatusRet = status; }
+void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) { m_statusRet = status; }
 
 // processes data send to GPU status register
 // these are always single packet commands.
@@ -278,14 +250,14 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
     switch (lCommand) {
         // Reset gpu
         case 0x00:
-            memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
-            lGPUstatusRet = 0x14802000;
-            PSXDisplay.Disabled = 1;
-            PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
-            m_softRenderer.reset();
+            memset(m_infoVals, 0x00, 16 * sizeof(uint32_t));
+            m_statusRet = 0x14802000;
+            m_softDisplay.Disabled = 1;
+            m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
+            reset();
             acknowledgeIRQ1();
-            PSXDisplay.RGB24 = false;
-            PSXDisplay.Interlaced = false;
+            m_softDisplay.RGB24 = false;
+            m_softDisplay.Interlaced = false;
             return;
 
         // Acknowledge IRQ1
@@ -296,83 +268,85 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
         // dis/enable display
         case 0x03:
 
-            PreviousPSXDisplay.Disabled = PSXDisplay.Disabled;
-            PSXDisplay.Disabled = (gdata & 1);
+            m_previousDisplay.Disabled = m_softDisplay.Disabled;
+            m_softDisplay.Disabled = (gdata & 1);
 
-            if (PSXDisplay.Disabled)
-                lGPUstatusRet |= GPUSTATUS_DISPLAYDISABLED;
-            else
-                lGPUstatusRet &= ~GPUSTATUS_DISPLAYDISABLED;
+            if (m_softDisplay.Disabled) {
+                m_statusRet |= GPUSTATUS_DISPLAYDISABLED;
+            } else {
+                m_statusRet &= ~GPUSTATUS_DISPLAYDISABLED;
+            }
             return;
 
         // setting transfer mode
         case 0x04:
             gdata &= 0x03;  // Only want the lower two bits
 
-            lGPUstatusRet &= ~GPUSTATUS_DMABITS;  // Clear the current settings of the DMA bits
-            lGPUstatusRet |= (gdata << 29);       // Set the DMA bits according to the received data
+            m_statusRet &= ~GPUSTATUS_DMABITS;  // Clear the current settings of the DMA bits
+            m_statusRet |= (gdata << 29);       // Set the DMA bits according to the received data
 
             return;
 
         // setting display position
         case 0x05: {
-            PreviousPSXDisplay.DisplayPosition.x = PSXDisplay.DisplayPosition.x;
-            PreviousPSXDisplay.DisplayPosition.y = PSXDisplay.DisplayPosition.y;
+            m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
+            m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
 
             // new
-            PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x1ff);
+            m_softDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x1ff);
 
             // store the same val in some helper var, we need it on later compares
-            PreviousPSXDisplay.DisplayModeNew.x = PSXDisplay.DisplayPosition.y;
+            m_previousDisplay.DisplayModeNew.x = m_softDisplay.DisplayPosition.y;
 
-            if ((PSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y) > iGPUHeight) {
-                int dy1 = iGPUHeight - PSXDisplay.DisplayPosition.y;
-                int dy2 = (PSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y) - iGPUHeight;
+            if ((m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) > GPU_HEIGHT) {
+                int dy1 = GPU_HEIGHT - m_softDisplay.DisplayPosition.y;
+                int dy2 = (m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) - GPU_HEIGHT;
 
                 if (dy1 >= dy2) {
-                    PreviousPSXDisplay.DisplayModeNew.y = -dy2;
+                    m_previousDisplay.DisplayModeNew.y = -dy2;
                 } else {
-                    PSXDisplay.DisplayPosition.y = 0;
-                    PreviousPSXDisplay.DisplayModeNew.y = -dy1;
+                    m_softDisplay.DisplayPosition.y = 0;
+                    m_previousDisplay.DisplayModeNew.y = -dy1;
                 }
-            } else
-                PreviousPSXDisplay.DisplayModeNew.y = 0;
+            } else {
+                m_previousDisplay.DisplayModeNew.y = 0;
+            }
             // eon
 
-            PSXDisplay.DisplayPosition.x = (int16_t)(gdata & 0x3ff);
-            PSXDisplay.DisplayEnd.x = PSXDisplay.DisplayPosition.x + PSXDisplay.DisplayMode.x;
-            PSXDisplay.DisplayEnd.y =
-                PSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y + PreviousPSXDisplay.DisplayModeNew.y;
-            PreviousPSXDisplay.DisplayEnd.x = PreviousPSXDisplay.DisplayPosition.x + PSXDisplay.DisplayMode.x;
-            PreviousPSXDisplay.DisplayEnd.y =
-                PreviousPSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y + PreviousPSXDisplay.DisplayModeNew.y;
+            m_softDisplay.DisplayPosition.x = (int16_t)(gdata & 0x3ff);
+            m_softDisplay.DisplayEnd.x = m_softDisplay.DisplayPosition.x + m_softDisplay.DisplayMode.x;
+            m_softDisplay.DisplayEnd.y =
+                m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y + m_previousDisplay.DisplayModeNew.y;
+            m_previousDisplay.DisplayEnd.x = m_previousDisplay.DisplayPosition.x + m_softDisplay.DisplayMode.x;
+            m_previousDisplay.DisplayEnd.y =
+                m_previousDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y + m_previousDisplay.DisplayModeNew.y;
 
-            bDoVSyncUpdate = true;
-        }
+            m_doVSyncUpdate = true;
             return;
+        }
 
         // setting width
         case 0x06:
 
-            PSXDisplay.Range.x0 = (int16_t)(gdata & 0x7ff);
-            PSXDisplay.Range.x1 = (int16_t)((gdata >> 12) & 0xfff);
-            PSXDisplay.Range.x1 -= PSXDisplay.Range.x0;
-            ChangeDispOffsetsX();
+            m_softDisplay.Range.x0 = (int16_t)(gdata & 0x7ff);
+            m_softDisplay.Range.x1 = (int16_t)((gdata >> 12) & 0xfff);
+            m_softDisplay.Range.x1 -= m_softDisplay.Range.x0;
+            changeDispOffsetsX();
             return;
 
         // setting height
         case 0x07: {
-            PSXDisplay.Range.y0 = (int16_t)(gdata & 0x3ff);
-            PSXDisplay.Range.y1 = (int16_t)((gdata >> 10) & 0x3ff);
+            m_softDisplay.Range.y0 = (int16_t)(gdata & 0x3ff);
+            m_softDisplay.Range.y1 = (int16_t)((gdata >> 10) & 0x3ff);
 
-            PreviousPSXDisplay.Height = PSXDisplay.Height;
+            m_previousDisplay.Height = m_softDisplay.Height;
 
-            PSXDisplay.Height = PSXDisplay.Range.y1 - PSXDisplay.Range.y0 + PreviousPSXDisplay.DisplayModeNew.y;
+            m_softDisplay.Height = m_softDisplay.Range.y1 - m_softDisplay.Range.y0 + m_previousDisplay.DisplayModeNew.y;
 
-            if (PreviousPSXDisplay.Height != PSXDisplay.Height) {
-                PSXDisplay.DisplayModeNew.y = PSXDisplay.Height * PSXDisplay.Double;
+            if (m_previousDisplay.Height != m_softDisplay.Height) {
+                m_softDisplay.DisplayModeNew.y = m_softDisplay.Height * m_softDisplay.Double;
 
-                ChangeDispOffsetsY();
+                changeDispOffsetsY();
 
                 updateDisplayIfChanged();
             }
@@ -382,55 +356,60 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
         // setting display infos
         case 0x08:
 
-            PSXDisplay.DisplayModeNew.x = sDispWidths[(gdata & 0x03) | ((gdata & 0x40) >> 4)];
+            m_softDisplay.DisplayModeNew.x = s_displayWidths[(gdata & 0x03) | ((gdata & 0x40) >> 4)];
 
-            if (gdata & 0x04)
-                PSXDisplay.Double = 2;
-            else
-                PSXDisplay.Double = 1;
+            if (gdata & 0x04) {
+                m_softDisplay.Double = 2;
+            } else {
+                m_softDisplay.Double = 1;
+            }
 
-            PSXDisplay.DisplayModeNew.y = PSXDisplay.Height * PSXDisplay.Double;
+            m_softDisplay.DisplayModeNew.y = m_softDisplay.Height * m_softDisplay.Double;
 
-            ChangeDispOffsetsY();
+            changeDispOffsetsY();
 
-            PSXDisplay.PAL = (gdata & 0x08) ? true : false;            // if 1 - PAL mode, else NTSC
-            PSXDisplay.RGB24New = (gdata & 0x10) ? true : false;       // if 1 - TrueColor
-            PSXDisplay.InterlacedNew = (gdata & 0x20) ? true : false;  // if 1 - Interlace
+            m_softDisplay.PAL = (gdata & 0x08) ? true : false;            // if 1 - PAL mode, else NTSC
+            m_softDisplay.RGB24New = (gdata & 0x10) ? true : false;       // if 1 - TrueColor
+            m_softDisplay.InterlacedNew = (gdata & 0x20) ? true : false;  // if 1 - Interlace
 
             if (g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
-                if (PSXDisplay.PAL) {
+                if (m_softDisplay.PAL) {
                     g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
                 } else {
                     g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
                 }
             }
 
-            lGPUstatusRet &= ~GPUSTATUS_WIDTHBITS;                               // Clear the width bits
-            lGPUstatusRet |= (((gdata & 0x03) << 17) | ((gdata & 0x40) << 10));  // Set the width bits
+            m_statusRet &= ~GPUSTATUS_WIDTHBITS;                               // Clear the width bits
+            m_statusRet |= (((gdata & 0x03) << 17) | ((gdata & 0x40) << 10));  // Set the width bits
 
-            if (PSXDisplay.InterlacedNew) {
-                if (!PSXDisplay.Interlaced) {
-                    PreviousPSXDisplay.DisplayPosition.x = PSXDisplay.DisplayPosition.x;
-                    PreviousPSXDisplay.DisplayPosition.y = PSXDisplay.DisplayPosition.y;
+            if (m_softDisplay.InterlacedNew) {
+                if (!m_softDisplay.Interlaced) {
+                    m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
+                    m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
                 }
-                lGPUstatusRet |= GPUSTATUS_INTERLACED;
-            } else
-                lGPUstatusRet &= ~GPUSTATUS_INTERLACED;
+                m_statusRet |= GPUSTATUS_INTERLACED;
+            } else {
+                m_statusRet &= ~GPUSTATUS_INTERLACED;
+            }
 
-            if (PSXDisplay.PAL)
-                lGPUstatusRet |= GPUSTATUS_PAL;
-            else
-                lGPUstatusRet &= ~GPUSTATUS_PAL;
+            if (m_softDisplay.PAL) {
+                m_statusRet |= GPUSTATUS_PAL;
+            } else {
+                m_statusRet &= ~GPUSTATUS_PAL;
+            }
 
-            if (PSXDisplay.Double == 2)
-                lGPUstatusRet |= GPUSTATUS_DOUBLEHEIGHT;
-            else
-                lGPUstatusRet &= ~GPUSTATUS_DOUBLEHEIGHT;
+            if (m_softDisplay.Double == 2) {
+                m_statusRet |= GPUSTATUS_DOUBLEHEIGHT;
+            } else {
+                m_statusRet &= ~GPUSTATUS_DOUBLEHEIGHT;
+            }
 
-            if (PSXDisplay.RGB24New)
-                lGPUstatusRet |= GPUSTATUS_RGB24;
-            else
-                lGPUstatusRet &= ~GPUSTATUS_RGB24;
+            if (m_softDisplay.RGB24New) {
+                m_statusRet |= GPUSTATUS_RGB24;
+            } else {
+                m_statusRet &= ~GPUSTATUS_RGB24;
+            }
 
             updateDisplayIfChanged();
 
@@ -441,16 +420,16 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
         case 0x10:
             switch (gdata & 0x7) {
                 case 0x02:
-                    lGPUdataRet = lGPUInfoVals[INFO_TW];  // tw infos
+                    m_dataRet = m_infoVals[INFO_TW];  // tw infos
                     return;
                 case 0x03:
-                    lGPUdataRet = lGPUInfoVals[INFO_DRAWSTART];  // draw start
+                    m_dataRet = m_infoVals[INFO_DRAWSTART];  // draw start
                     return;
                 case 0x04:
-                    lGPUdataRet = lGPUInfoVals[INFO_DRAWEND];  // draw end
+                    m_dataRet = m_infoVals[INFO_DRAWEND];  // draw end
                     return;
                 case 0x05:
-                    lGPUdataRet = lGPUInfoVals[INFO_DRAWOFF];  // draw offset
+                    m_dataRet = m_infoVals[INFO_DRAWOFF];  // draw offset
                     return;
             }
             return;
@@ -460,14 +439,15 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
 // process gpu commands
 uint32_t lUsedAddr[3];
 
-__inline bool CheckForEndlessLoop(uint32_t laddr) {
+inline bool CheckForEndlessLoop(uint32_t laddr) {
     if (laddr == lUsedAddr[1]) return true;
     if (laddr == lUsedAddr[2]) return true;
 
-    if (laddr < lUsedAddr[0])
+    if (laddr < lUsedAddr[0]) {
         lUsedAddr[1] = laddr;
-    else
+    } else {
         lUsedAddr[2] = laddr;
+    }
     lUsedAddr[0] = laddr;
     return false;
 }
@@ -480,9 +460,9 @@ bool PCSX::SoftGPU::impl::configure() {
                                          "Always dither g-shaded polygons (slowest)"};
 
     if (ImGui::Begin(_("Soft GPU configuration"), &m_showCfg)) {
-        if (ImGui::Combo("Dithering", &m_softRenderer.m_useDither, ditherValues, 3)) {
+        if (ImGui::Combo("Dithering", &m_useDither, ditherValues, 3)) {
             changed = true;
-            g_emulator->settings.get<Emulator::SettingDither>() = m_softRenderer.m_useDither;
+            g_emulator->settings.get<Emulator::SettingDither>() = m_useDither;
         }
 
         if (ImGui::Checkbox(_("Use linear filtering"),
@@ -525,169 +505,145 @@ void PCSX::SoftGPU::impl::write0(FastFill *prim) {
     sW += sX;
     sH += sY;
 
-    m_softRenderer.FillSoftwareArea(sX, sY, sW, sH, BGR24to16(prim->color));
+    fillSoftwareArea(sX, sY, sW, sH, BGR24to16(prim->color));
 
-    bDoVSyncUpdate = true;
+    m_doVSyncUpdate = true;
 }
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
 void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulation> *prim) {
-    m_softRenderer.lx0 = prim->x[0];
-    m_softRenderer.ly0 = prim->y[0];
-    m_softRenderer.lx1 = prim->x[1];
-    m_softRenderer.ly1 = prim->y[1];
-    m_softRenderer.lx2 = prim->x[2];
-    m_softRenderer.ly2 = prim->y[2];
+    m_x0 = prim->x[0];
+    m_y0 = prim->y[0];
+    m_x1 = prim->x[1];
+    m_y1 = prim->y[1];
+    m_x2 = prim->x[2];
+    m_y2 = prim->y[2];
     if constexpr (shape == Shape::Quad) {
-        m_softRenderer.lx3 = prim->x[3];
-        m_softRenderer.ly3 = prim->y[3];
-        if (m_softRenderer.CheckCoord4()) return;
-        m_softRenderer.offsetPSX4();
+        m_x3 = prim->x[3];
+        m_y3 = prim->y[3];
+        if (checkCoord4()) return;
+        applyOffset4();
     } else {
-        if (m_softRenderer.CheckCoord3()) return;
-        m_softRenderer.offsetPSX3();
+        if (checkCoord3()) return;
+        applyOffset3();
     }
 
-    m_softRenderer.DrawSemiTrans = blend == Blend::Semi;
+    m_drawSemiTrans = blend == Blend::Semi;
 
     if constexpr (modulation == Modulation::On) {
-        m_softRenderer.g_m1 = (prim->colors[0] >> 0) & 0xff;
-        m_softRenderer.g_m2 = (prim->colors[0] >> 8) & 0xff;
-        m_softRenderer.g_m3 = (prim->colors[0] >> 16) & 0xff;
+        m_m1 = (prim->colors[0] >> 0) & 0xff;
+        m_m2 = (prim->colors[0] >> 8) & 0xff;
+        m_m3 = (prim->colors[0] >> 16) & 0xff;
     } else {
-        m_softRenderer.g_m1 = m_softRenderer.g_m2 = m_softRenderer.g_m3 = 128;
+        m_m1 = m_m2 = m_m3 = 128;
     }
 
     if constexpr (shading == Shading::Flat) {
         if constexpr (textured == Textured::Yes) {
-            if (m_softRenderer.iDither) {
+            if (m_ditherMode) {
                 prim->tpage.dither = true;
                 prim->tpage.raw |= 0x200;
             }
-            m_softRenderer.texturePage(&prim->tpage);
+            texturePage(&prim->tpage);
             if constexpr (shape == Shape::Quad) {
-                switch (m_softRenderer.GlobalTextTP) {
+                switch (m_globalTextTP) {
                     case GPU::TexDepth::Tex4Bits:
-                        m_softRenderer.drawPoly4TEx4(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                     m_softRenderer.ly1, m_softRenderer.lx3, m_softRenderer.ly3,
-                                                     m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0], prim->v[0],
-                                                     prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
-                                                     prim->v[2], prim->clutX * 16, prim->clutY);
+                        drawPoly4TEx4(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                      prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                                      prim->clutX * 16, prim->clutY);
                         break;
                     case GPU::TexDepth::Tex8Bits:
-                        m_softRenderer.drawPoly4TEx8(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                     m_softRenderer.ly1, m_softRenderer.lx3, m_softRenderer.ly3,
-                                                     m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0], prim->v[0],
-                                                     prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
-                                                     prim->v[2], prim->clutX * 16, prim->clutY);
+                        drawPoly4TEx8(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                      prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                                      prim->clutX * 16, prim->clutY);
                         break;
                     case GPU::TexDepth::Tex16Bits:
-                        m_softRenderer.drawPoly4TD(
-                            m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1, m_softRenderer.ly1,
-                            m_softRenderer.lx3, m_softRenderer.ly3, m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0],
-                            prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2]);
+                        drawPoly4TD(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                    prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2]);
                         break;
                 }
             } else {
-                switch (m_softRenderer.GlobalTextTP) {
+                switch (m_globalTextTP) {
                     case GPU::TexDepth::Tex4Bits:
-                        m_softRenderer.drawPoly3TEx4(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                     m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
-                                                     prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
-                                                     prim->v[2], prim->clutX * 16, prim->clutY);
+                        drawPoly3TEx4(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                      prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
                         break;
                     case GPU::TexDepth::Tex8Bits:
-                        m_softRenderer.drawPoly3TEx8(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                     m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
-                                                     prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
-                                                     prim->v[2], prim->clutX * 16, prim->clutY);
+                        drawPoly3TEx8(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                      prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY);
                         break;
                     case GPU::TexDepth::Tex16Bits:
-                        m_softRenderer.drawPoly3TD(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                   m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
-                                                   prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
-                                                   prim->v[2]);
+                        drawPoly3TD(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1], prim->v[1],
+                                    prim->u[2], prim->v[2]);
                         break;
                 }
             }
         } else {
             if constexpr (shape == Shape::Quad) {
-                m_softRenderer.drawPoly4F(prim->colors[0]);
+                drawPolyFlat4(prim->colors[0]);
             } else {
-                m_softRenderer.drawPoly3F(prim->colors[0]);
+                drawPolyFlat3(prim->colors[0]);
             }
         }
     } else {
         if constexpr (textured == Textured::Yes) {
-            if (m_softRenderer.iDither) {
+            if (m_ditherMode) {
                 prim->tpage.dither = true;
                 prim->tpage.raw |= 0x200;
             }
-            m_softRenderer.texturePage(&prim->tpage);
+            texturePage(&prim->tpage);
             if constexpr (shape == Shape::Quad) {
-                switch (m_softRenderer.GlobalTextTP) {
+                switch (m_globalTextTP) {
                     case GPU::TexDepth::Tex4Bits:
-                        m_softRenderer.drawPoly4TGEx4(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                      m_softRenderer.ly1, m_softRenderer.lx3, m_softRenderer.ly3,
-                                                      m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0], prim->v[0],
-                                                      prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
-                                                      prim->v[2], prim->clutX * 16, prim->clutY, prim->colors[0],
-                                                      prim->colors[1], prim->colors[2], prim->colors[3]);
+                        drawPoly4TGEx4(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                       prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                                       prim->clutX * 16, prim->clutY, prim->colors[0], prim->colors[1], prim->colors[2],
+                                       prim->colors[3]);
                         break;
                     case GPU::TexDepth::Tex8Bits:
-                        m_softRenderer.drawPoly4TGEx8(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                      m_softRenderer.ly1, m_softRenderer.lx3, m_softRenderer.ly3,
-                                                      m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0], prim->v[0],
-                                                      prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
-                                                      prim->v[2], prim->clutX * 16, prim->clutY, prim->colors[0],
-                                                      prim->colors[1], prim->colors[2], prim->colors[3]);
+                        drawPoly4TGEx8(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                       prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                                       prim->clutX * 16, prim->clutY, prim->colors[0], prim->colors[1], prim->colors[2],
+                                       prim->colors[3]);
                         break;
                     case GPU::TexDepth::Tex16Bits:
-                        m_softRenderer.drawPoly4TGD(
-                            m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1, m_softRenderer.ly1,
-                            m_softRenderer.lx3, m_softRenderer.ly3, m_softRenderer.lx2, m_softRenderer.ly2, prim->u[0],
-                            prim->v[0], prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                            prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                        drawPoly4TGD(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                     prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->colors[0],
+                                     prim->colors[1], prim->colors[2], prim->colors[3]);
                         break;
                 }
             } else {
-                switch (m_softRenderer.GlobalTextTP) {
+                switch (m_globalTextTP) {
                     case GPU::TexDepth::Tex4Bits:
-                        m_softRenderer.drawPoly3TGEx4(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                      m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
-                                                      prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
-                                                      prim->v[2], prim->clutX * 16, prim->clutY, prim->colors[0],
-                                                      prim->colors[1], prim->colors[2]);
+                        drawPoly3TGEx4(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                       prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
+                                       prim->colors[0], prim->colors[1], prim->colors[2]);
                         break;
                     case GPU::TexDepth::Tex8Bits:
-                        m_softRenderer.drawPoly3TGEx8(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                      m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
-                                                      prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
-                                                      prim->v[2], prim->clutX * 16, prim->clutY, prim->colors[0],
-                                                      prim->colors[1], prim->colors[2]);
+                        drawPoly3TGEx8(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                       prim->v[1], prim->u[2], prim->v[2], prim->clutX * 16, prim->clutY,
+                                       prim->colors[0], prim->colors[1], prim->colors[2]);
                         break;
                     case GPU::TexDepth::Tex16Bits:
-                        m_softRenderer.drawPoly3TGD(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                                    m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
-                                                    prim->u[0], prim->v[0], prim->u[1], prim->v[1], prim->u[2],
-                                                    prim->v[2], prim->colors[0], prim->colors[1], prim->colors[2]);
+                        drawPoly3TGD(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1], prim->v[1],
+                                     prim->u[2], prim->v[2], prim->colors[0], prim->colors[1], prim->colors[2]);
                         break;
                 }
             }
         } else {
             if constexpr (shape == Shape::Quad) {
-                m_softRenderer.drawPoly4G(prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                drawPolyShade4(prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
             } else {
-                m_softRenderer.drawPoly3G(prim->colors[0], prim->colors[1], prim->colors[2]);
+                drawPolyShade3(prim->colors[0], prim->colors[1], prim->colors[2]);
             }
         }
     }
-    bDoVSyncUpdate = true;
+    m_doVSyncUpdate = true;
 }
 
-static const int CHKMAX_X = 1024;
-static const int CHKMAX_Y = 512;
+static constexpr int CHKMAX_X = 1024;
+static constexpr int CHKMAX_Y = 512;
 
 static constexpr inline bool CheckCoordL(int16_t slx0, int16_t sly0, int16_t slx1, int16_t sly1) {
     if (slx0 < 0) {
@@ -711,7 +667,7 @@ void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
     auto count = prim->colors.size();
     if (count < 2) return;
 
-    m_softRenderer.DrawSemiTrans = blend == Blend::Semi;
+    m_drawSemiTrans = blend == Blend::Semi;
 
     for (unsigned i = 1; i < count; i++) {
         auto x0 = prim->x[i - 1];
@@ -722,27 +678,27 @@ void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
         auto c1 = prim->colors[i];
 
         if (CheckCoordL(x0, y0, x1, y1)) continue;
-        m_softRenderer.ly0 = y0;
-        m_softRenderer.lx0 = x0;
-        m_softRenderer.ly1 = y1;
-        m_softRenderer.lx1 = x1;
+        m_y0 = y0;
+        m_x0 = x0;
+        m_y1 = y1;
+        m_x1 = x1;
 
-        m_softRenderer.offsetPSX2();
+        applyOffset2();
         if constexpr (shading == Shading::Gouraud) {
-            m_softRenderer.DrawSoftwareLineShade(c0, c1);
+            drawSoftwareLineShade(c0, c1);
         } else {
-            m_softRenderer.DrawSoftwareLineFlat(c0);
+            drawSoftwareLineFlat(c0);
         }
     }
-    bDoVSyncUpdate = true;
+    m_doVSyncUpdate = true;
 }
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim) {
     int16_t w, h;
 
-    m_softRenderer.lx0 = prim->x;
-    m_softRenderer.ly0 = prim->y;
+    m_x0 = prim->x;
+    m_y0 = prim->y;
 
     if constexpr (size == Size::Variable) {
         w = prim->w;
@@ -755,20 +711,20 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
         w = h = 16;
     }
 
-    m_softRenderer.DrawSemiTrans = blend == Blend::Semi;
+    m_drawSemiTrans = blend == Blend::Semi;
 
     if constexpr (modulation == Modulation::On) {
-        m_softRenderer.g_m1 = (prim->color >> 0) & 0xff;
-        m_softRenderer.g_m2 = (prim->color >> 8) & 0xff;
-        m_softRenderer.g_m3 = (prim->color >> 16) & 0xff;
+        m_m1 = (prim->color >> 0) & 0xff;
+        m_m2 = (prim->color >> 8) & 0xff;
+        m_m3 = (prim->color >> 16) & 0xff;
     } else {
-        m_softRenderer.g_m1 = m_softRenderer.g_m2 = m_softRenderer.g_m3 = 128;
+        m_m1 = m_m2 = m_m3 = 128;
     }
 
-    m_softRenderer.lx1 = m_softRenderer.lx2 = m_softRenderer.lx0 + w + PSXDisplay.DrawOffset.x;
-    m_softRenderer.lx0 = m_softRenderer.lx3 = m_softRenderer.lx0 + PSXDisplay.DrawOffset.x;
-    m_softRenderer.ly2 = m_softRenderer.ly3 = m_softRenderer.ly0 + h + PSXDisplay.DrawOffset.y;
-    m_softRenderer.ly0 = m_softRenderer.ly1 = m_softRenderer.ly0 + PSXDisplay.DrawOffset.y;
+    m_x1 = m_x2 = m_x0 + w + m_softDisplay.DrawOffset.x;
+    m_x0 = m_x3 = m_x0 + m_softDisplay.DrawOffset.x;
+    m_y2 = m_y3 = m_y0 + h + m_softDisplay.DrawOffset.y;
+    m_y0 = m_y1 = m_y0 + m_softDisplay.DrawOffset.y;
 
     if constexpr (textured == Textured::Yes) {
         int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
@@ -777,31 +733,24 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
         ty0 = ty1 = prim->v;
         ty2 = ty3 = ty0 + h;
 
-        switch (m_softRenderer.GlobalTextTP) {
+        switch (m_globalTextTP) {
             case GPU::TexDepth::Tex4Bits:
-                m_softRenderer.drawPoly4TEx4_S(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                               m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
-                                               m_softRenderer.lx3, m_softRenderer.ly3, tx0, ty0, tx1, ty1, tx2, ty2,
-                                               tx3, ty3, prim->clutX * 16, prim->clutY);
+                drawPoly4TEx4_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
+                                prim->clutX * 16, prim->clutY);
                 break;
             case GPU::TexDepth::Tex8Bits:
-                m_softRenderer.drawPoly4TEx8_S(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1,
-                                               m_softRenderer.ly1, m_softRenderer.lx2, m_softRenderer.ly2,
-                                               m_softRenderer.lx3, m_softRenderer.ly3, tx0, ty0, tx1, ty1, tx2, ty2,
-                                               tx3, ty3, prim->clutX * 16, prim->clutY);
+                drawPoly4TEx8_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
+                                prim->clutX * 16, prim->clutY);
                 break;
             case GPU::TexDepth::Tex16Bits:
-                m_softRenderer.drawPoly4TD_S(
-                    m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx1, m_softRenderer.ly1, m_softRenderer.lx2,
-                    m_softRenderer.ly2, m_softRenderer.lx3, m_softRenderer.ly3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3);
+                drawPoly4TD_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3);
                 break;
         }
     } else {
-        m_softRenderer.FillSoftwareAreaTrans(m_softRenderer.lx0, m_softRenderer.ly0, m_softRenderer.lx2,
-                                             m_softRenderer.ly2, BGR24to16(prim->color));
+        fillSoftwareAreaTrans(m_x0, m_y0, m_x2, m_y2, BGR24to16(prim->color));
     }
 
-    bDoVSyncUpdate = true;
+    m_doVSyncUpdate = true;
 }
 
 namespace PCSX::SoftGPU {
@@ -938,17 +887,17 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
     if (imageSX <= 0) return;
     if (imageSY <= 0) return;
 
-    if ((imageY0 + imageSY) > iGPUHeight || (imageX0 + imageSX) > 1024 || (imageY1 + imageSY) > iGPUHeight ||
+    if ((imageY0 + imageSY) > GPU_HEIGHT || (imageX0 + imageSX) > 1024 || (imageY1 + imageSY) > GPU_HEIGHT ||
         (imageX1 + imageSX) > 1024) {
         int i, j;
         for (j = 0; j < imageSY; j++) {
             for (i = 0; i < imageSX; i++) {
-                psxVuw[(1024 * ((imageY1 + j) & iGPUHeightMask)) + ((imageX1 + i) & 0x3ff)] =
-                    psxVuw[(1024 * ((imageY0 + j) & iGPUHeightMask)) + ((imageX0 + i) & 0x3ff)];
+                m_vram16[(1024 * ((imageY1 + j) & GPU_HEIGHT_MASK)) + ((imageX1 + i) & 0x3ff)] =
+                    m_vram16[(1024 * ((imageY0 + j) & GPU_HEIGHT_MASK)) + ((imageX0 + i) & 0x3ff)];
             }
         }
 
-        bDoVSyncUpdate = true;
+        m_doVSyncUpdate = true;
 
         return;
     }
@@ -958,8 +907,8 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
         uint16_t *SRCPtr, *DSTPtr;
         uint16_t LineOffset;
 
-        SRCPtr = psxVuw + (1024 * imageY0) + imageX0;
-        DSTPtr = psxVuw + (1024 * imageY1) + imageX1;
+        SRCPtr = m_vram16 + (1024 * imageY0) + imageX0;
+        DSTPtr = m_vram16 + (1024 * imageY1) + imageX1;
 
         LineOffset = 1024 - imageSX;
 
@@ -974,8 +923,8 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
         uint16_t LineOffset;
         int dx = imageSX >> 1;
 
-        SRCPtr = (uint32_t *)(psxVuw + (1024 * imageY0) + imageX0);
-        DSTPtr = (uint32_t *)(psxVuw + (1024 * imageY1) + imageX1);
+        SRCPtr = (uint32_t *)(m_vram16 + (1024 * imageY0) + imageX0);
+        DSTPtr = (uint32_t *)(m_vram16 + (1024 * imageY1) + imageX1);
 
         LineOffset = 512 - dx;
 
@@ -989,12 +938,46 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
     imageSX += imageX1;
     imageSY += imageY1;
 
-    bDoVSyncUpdate = true;
+    m_doVSyncUpdate = true;
 }
 
-void PCSX::SoftGPU::impl::write0(TPage *prim) { m_softRenderer.texturePage(prim); }
-void PCSX::SoftGPU::impl::write0(TWindow *prim) { m_softRenderer.twindow(prim); }
-void PCSX::SoftGPU::impl::write0(DrawingAreaStart *prim) { m_softRenderer.drawingAreaStart(prim); }
-void PCSX::SoftGPU::impl::write0(DrawingAreaEnd *prim) { m_softRenderer.drawingAreaEnd(prim); }
-void PCSX::SoftGPU::impl::write0(DrawingOffset *prim) { m_softRenderer.drawingOffset(prim); }
-void PCSX::SoftGPU::impl::write0(MaskBit *prim) { m_softRenderer.maskBit(prim); }
+void PCSX::SoftGPU::impl::write0(TPage *prim) { texturePage(prim); }
+void PCSX::SoftGPU::impl::write0(TWindow *prim) { twindow(prim); }
+void PCSX::SoftGPU::impl::write0(DrawingAreaStart *prim) { drawingAreaStart(prim); }
+void PCSX::SoftGPU::impl::write0(DrawingAreaEnd *prim) { drawingAreaEnd(prim); }
+void PCSX::SoftGPU::impl::write0(DrawingOffset *prim) { drawingOffset(prim); }
+void PCSX::SoftGPU::impl::write0(MaskBit *prim) { maskBit(prim); }
+
+PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
+    ScreenShot ss;
+    auto startX = m_softDisplay.DisplayPosition.x;
+    auto startY = m_softDisplay.DisplayPosition.y;
+    auto width = m_softDisplay.DisplayEnd.x - m_softDisplay.DisplayPosition.x;
+    auto height = m_softDisplay.DisplayEnd.y - m_softDisplay.DisplayPosition.y;
+    ss.width = width;
+    ss.height = height;
+    unsigned factor = m_softDisplay.RGB24 ? 3 : 2;
+    ss.bpp = m_softDisplay.RGB24 ? ScreenShot::BPP_24 : ScreenShot::BPP_16;
+    unsigned size = width * height * factor;
+    char *pixels = reinterpret_cast<char *>(malloc(size));
+    ss.data.acquire(pixels, size);
+    if (m_softDisplay.RGB24) {
+        auto ptr = m_allocatedVRAM;
+        ptr += (startY * 1024 + startX) * 3;
+        for (int i = 0; i < height; i++) {
+            std::memcpy(pixels, ptr, width * 3);
+            ptr += 1024 * 3;
+            pixels += width * 3;
+        }
+    } else {
+        auto ptr = m_vram16;
+        ptr += startY * 1024 + startX;
+        for (int i = 0; i < height; i++) {
+            std::memcpy(pixels, ptr, width * sizeof(uint16_t));
+            ptr += 1024;
+            pixels += width * 2;
+        }
+    }
+
+    return ss;
+}

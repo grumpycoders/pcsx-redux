@@ -53,7 +53,7 @@
 #include "core/web-server.h"
 #include "flags.h"
 #include "fmt/chrono.h"
-#include "gpu/soft/externals.h"
+#include "gpu/soft/definitions.h"
 #include "gui/gui.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"

@@ -20,7 +20,7 @@
 #include <cstdint>
 
 #include "GL/gl3w.h"
-#include "gpu/soft/externals.h"
+#include "gpu/soft/definitions.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
 #include "gpu/soft/soft.h"
@@ -30,22 +30,22 @@ void PCSX::SoftGPU::impl::doBufferSwap() {
     m_gui->setViewport();
     GLuint textureID;
 
-    if (PSXDisplay.RGB24) {
+    if (m_softDisplay.RGB24) {
         textureID = m_vramTexture24;
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, psxVuw);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, m_vram16);
     } else {
         textureID = m_vramTexture16;
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, m_vram16);
     }
 
-    float xRatio = PSXDisplay.RGB24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
+    float xRatio = m_softDisplay.RGB24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
 
-    float startX = PSXDisplay.DisplayPosition.x * xRatio;
-    float startY = PSXDisplay.DisplayPosition.y / 512.0f;
-    float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
-    float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
+    float startX = m_softDisplay.DisplayPosition.x * xRatio;
+    float startY = m_softDisplay.DisplayPosition.y / 512.0f;
+    float width = (m_softDisplay.DisplayEnd.x - m_softDisplay.DisplayPosition.x) / 1024.0f;
+    float height = (m_softDisplay.DisplayEnd.y - m_softDisplay.DisplayPosition.y) / 512.0f;
 
     // Temporary workaround until we make our Display struct work with the sw backend
     // Trim 1 pixel from the height and width when linear filtering is on to avoid artifacts due to wrong sampling
@@ -60,10 +60,10 @@ void PCSX::SoftGPU::impl::doBufferSwap() {
 
 void PCSX::SoftGPU::impl::clearVRAM() {
     const auto oldTex = OpenGL::getTex2D();
-    std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
+    std::memset(m_allocatedVRAM, 0x00, (GPU_HEIGHT * 2) * 1024 + (1024 * 1024));
 
     glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVSecure);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, m_allocatedVRAM);
     glBindTexture(GL_TEXTURE_2D, oldTex);
 }
 

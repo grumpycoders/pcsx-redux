@@ -22,7 +22,7 @@
 #include <stdint.h>
 
 #include "core/gpu.h"
-#include "gpu/soft/externals.h"
+#include "gpu/soft/definitions.h"
 
 namespace PCSX {
 
@@ -30,23 +30,21 @@ namespace SoftGPU {
 
 struct SoftRenderer {
     inline void reset() {
-        GlobalTextAddrX = 0;
-        GlobalTextAddrY = 0;
-        GlobalTextTP = GPU::TexDepth::Tex4Bits;
-        GlobalTextABR = GPU::BlendFunction::HalfBackAndHalfFront;
-        drawX = drawY = 0;
-        drawW = drawH = 0;
-        bCheckMask = false;
-        sSetMask = 0;
-        lSetMask = 0;
+        m_lobalTextAddrX = 0;
+        m_globalTextAddrY = 0;
+        m_globalTextTP = GPU::TexDepth::Tex4Bits;
+        m_globalTextABR = GPU::BlendFunction::HalfBackAndHalfFront;
+        m_drawX = m_drawY = 0;
+        m_drawW = m_drawH = 0;
+        m_checkMask = false;
+        m_setMask16 = 0;
+        m_setMask32 = 0;
     }
 
     int m_useDither = 0;
 
-    int32_t GlobalTextREST;
-
-    bool CheckCoord4();
-    bool CheckCoord3();
+    bool checkCoord4();
+    bool checkCoord3();
 
     void texturePage(GPU::TPage *prim);
     void twindow(GPU::TWindow *prim);
@@ -54,70 +52,78 @@ struct SoftRenderer {
     void drawingAreaEnd(GPU::DrawingAreaEnd *prim);
     void drawingOffset(GPU::DrawingOffset *prim);
     void maskBit(GPU::MaskBit *prim);
-    
-    TWin_t TWin;
-    int iDither = 0;
-    int drawX, drawY, drawW, drawH;
 
-    bool DrawSemiTrans = false;
-    int16_t g_m1 = 255, g_m2 = 255, g_m3 = 255;
-    int16_t ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords
+    TextureWindow m_textureWindow;
+    int m_ditherMode = 0;
+    int m_drawX, m_drawY, m_drawW, m_drawH;
 
-    int32_t GlobalTextAddrX;
-    int32_t GlobalTextAddrY;
-    GPU::TexDepth GlobalTextTP;
-    GPU::BlendFunction GlobalTextABR;
+    bool m_drawSemiTrans = false;
+    int16_t m_m1 = 255, m_m2 = 255, m_m3 = 255;
+    int16_t m_y0, m_x0, m_y1, m_x1, m_y2, m_x2, m_y3, m_x3;  // global psx vertex coords
 
-    bool bCheckMask = false;
-    uint16_t sSetMask = 0;
-    uint32_t lSetMask = 0;
+    int32_t m_lobalTextAddrX;
+    int32_t m_globalTextAddrY;
+    GPU::TexDepth m_globalTextTP;
+    GPU::BlendFunction m_globalTextABR;
 
-    void offsetPSX2();
-    void offsetPSX3();
-    void offsetPSX4();
+    bool m_checkMask = false;
+    uint16_t m_setMask16 = 0;
+    uint32_t m_setMask32 = 0;
+    int32_t m_statusRet;
+    uint32_t m_infoVals[16];
+    PSXDisplay_t m_softDisplay;
+    uint8_t *m_vram;
+    uint16_t *m_vram16;
 
-    void FillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
-    void FillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
-    void drawPoly3G(int32_t rgb1, int32_t rgb2, int32_t rgb3);
-    void drawPoly4G(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
-    void drawPoly3F(int32_t rgb);
-    void drawPoly4F(int32_t rgb);
-    void DrawSoftwareLineShade(int32_t rgb0, int32_t rgb1);
-    void DrawSoftwareLineFlat(int32_t rgb);
+    void applyOffset2();
+    void applyOffset3();
+    void applyOffset4();
 
-    int16_t Ymin;
-    int16_t Ymax;
+    void applyDither(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b, uint16_t sM);
 
-    bool SetupSections_F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3);
-    bool SetupSections_G(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1,
-                         int32_t rgb2, int32_t rgb3);
-    bool SetupSections_FT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3);
-    bool SetupSections_GT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int32_t rgb1, int32_t rgb2,
-                          int32_t rgb3);
-    bool SetupSections_F4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                          int16_t y4);
-    bool SetupSections_FT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                           int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                           int16_t tx4, int16_t ty4);
-    bool SetupSections_GT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                           int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                           int16_t tx4, int16_t ty4, int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
+    void fillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
+    void fillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
+    void drawPolyShade3(int32_t rgb1, int32_t rgb2, int32_t rgb3);
+    void drawPolyShade4(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
+    void drawPolyFlat3(int32_t rgb);
+    void drawPolyFlat4(int32_t rgb);
+    void drawSoftwareLineShade(int32_t rgb0, int32_t rgb1);
+    void drawSoftwareLineFlat(int32_t rgb);
 
-    void GetShadeTransCol_Dither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
-    void GetShadeTransCol(uint16_t *pdest, uint16_t color);
-    void GetShadeTransCol32(uint32_t *pdest, uint32_t color);
-    void GetTextureTransColG(uint16_t *pdest, uint16_t color);
-    void GetTextureTransColG_S(uint16_t *pdest, uint16_t color);
-    void GetTextureTransColG_SPR(uint16_t *pdest, uint16_t color);
-    void GetTextureTransColG32(uint32_t *pdest, uint32_t color);
-    void GetTextureTransColG32_S(uint32_t *pdest, uint32_t color);
-    void GetTextureTransColG32_SPR(uint32_t *pdest, uint32_t color);
-    void GetTextureTransColGX_Dither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
-    void GetTextureTransColGX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
-    void GetTextureTransColGX_S(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
-    void GetTextureTransColGX32_S(uint32_t *pdest, uint32_t color, int16_t m1, int16_t m2, int16_t m3);
+    int16_t m_yMin;
+    int16_t m_yMax;
+
+    bool setupSectionsFlat3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3);
+    bool setupSectionsShade3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1,
+                             int32_t rgb2, int32_t rgb3);
+    bool setupSectionsFlatTextured3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
+                                    int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3);
+    bool setupSectionsShadeTextured3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                     int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
+                                     int32_t rgb1, int32_t rgb2, int32_t rgb3);
+    bool setupSectionsFlat4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
+                            int16_t y4);
+    bool setupSectionsFlatTextured4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
+                                    int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                    int16_t ty3, int16_t tx4, int16_t ty4);
+    bool setupSectionsShadeTextured4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
+                                     int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                     int16_t ty3, int16_t tx4, int16_t ty4, int32_t rgb1, int32_t rgb2, int32_t rgb3,
+                                     int32_t rgb4);
+
+    void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
+    void getShadeTransCol(uint16_t *pdest, uint16_t color);
+    void getShadeTransCol32(uint32_t *pdest, uint32_t color);
+    void getTextureTransColShade(uint16_t *pdest, uint16_t color);
+    void getTextureTransColShadeSolid(uint16_t *pdest, uint16_t color);
+    void getTextureTransColShadeSemi(uint16_t *pdest, uint16_t color);
+    void getTextureTransColShade32(uint32_t *pdest, uint32_t color);
+    void getTextureTransColShade32Solid(uint32_t *pdest, uint32_t color);
+    void getTextureTransColG32Semi(uint32_t *pdest, uint32_t color);
+    void getTextureTransColShadeXDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
+    void getTextureTransColShadeX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
+    void getTextureTransColShadeXSolid(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
+    void getTextureTransColShadeX32Solid(uint32_t *pdest, uint32_t color, int16_t m1, int16_t m2, int16_t m3);
     void drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb);
     void drawPoly3TEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                        int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
@@ -162,18 +168,18 @@ struct SoftRenderer {
     void drawPoly4TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                       int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
                       int16_t ty4, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
-    void Line_E_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
-    void Line_S_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
-    void Line_N_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
-    void Line_E_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
-    void VertLineShade(int x, int y0, int y1, uint32_t rgb0, uint32_t rgb1);
-    void HorzLineShade(int y, int x0, int x1, uint32_t rgb0, uint32_t rgb1);
-    void Line_E_SE_Flat(int x0, int y0, int x1, int y1, uint16_t colour);
-    void Line_S_SE_Flat(int x0, int y0, int x1, int y1, uint16_t colour);
-    void Line_N_NE_Flat(int x0, int y0, int x1, int y1, uint16_t colour);
-    void Line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t colour);
-    void VertLineFlat(int x, int y0, int y1, uint16_t colour);
-    void HorzLineFlat(int y, int x0, int x1, uint16_t colour);
+    void line_E_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
+    void line_S_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
+    void line_N_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
+    void line_E_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
+    void vertLineShade(int x, int y0, int y1, uint32_t rgb0, uint32_t rgb1);
+    void horzLineShade(int y, int x0, int x1, uint32_t rgb0, uint32_t rgb1);
+    void line_E_SE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
+    void line_S_SE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
+    void line_N_NE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
+    void line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
+    void vertLineFlat(int x, int y0, int y1, uint16_t col);
+    void horzLineFlat(int y, int x0, int x1, uint16_t col);
 };
 
 }  // namespace SoftGPU
