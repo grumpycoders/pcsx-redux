@@ -87,7 +87,6 @@ class GPU {
     void directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr);
     void chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr);
     void writeStatus(uint32_t gdata);
-    virtual void writeStatusInternal(uint32_t gdata) = 0;
     virtual void setOpenGLContext() {}
 
     virtual void restoreStatus(uint32_t status) = 0;
@@ -272,7 +271,7 @@ class GPU {
         MaskBit &operator=(const MaskBit &other) = default;
         bool set, check;
     };
-    
+
     template <Shading shading, Shape shape, Textured textured, Blend blend, Modulation modulation>
     struct Poly final : public Command, public Logged {
         static constexpr unsigned count = shape == Shape::Tri ? 3 : 4;
@@ -293,7 +292,7 @@ class GPU {
         unsigned m_count = 0;
         enum { READ_COLOR, READ_XY, READ_UV } m_state = READ_COLOR;
     };
-    
+
     template <Shading shading, LineType lineType, Blend blend>
     struct Line final : public Command, public Logged {
         Line() {
@@ -331,6 +330,71 @@ class GPU {
 
       private:
         enum { READ_COLOR, READ_XY, READ_UV, READ_HW } m_state = READ_COLOR;
+    };
+
+    struct CtrlReset : public Logged {};
+    struct CtrlClearFifo : public Logged {};
+    struct CtrlIrqAck : public Logged {};
+    struct CtrlDisplayEnable : public Logged {
+        CtrlDisplayEnable(uint32_t value) : enable((value & 1) == 0) {}
+        CtrlDisplayEnable(const CtrlDisplayEnable &other) = default;
+        CtrlDisplayEnable(CtrlDisplayEnable &&other) = default;
+        CtrlDisplayEnable &operator=(const CtrlDisplayEnable &other) = default;
+        bool enable;
+    };
+    struct CtrlDmaSetting : public Logged {
+        CtrlDmaSetting(uint32_t value) : dma(magic_enum::enum_cast<Dma>(value & 3).value()) {}
+        CtrlDmaSetting(const CtrlDmaSetting &other) = default;
+        CtrlDmaSetting(CtrlDmaSetting &&other) = default;
+        CtrlDmaSetting &operator=(const CtrlDmaSetting &other) = default;
+        enum class Dma { Off, FifoQuery, Write, Read } dma;
+    };
+    struct CtrlDisplayStart : public Logged {
+        CtrlDisplayStart(uint32_t value) : x(value & 0x3ff), y((value >> 10) & 0x1ff) {}
+        CtrlDisplayStart(const CtrlDisplayStart &other) = default;
+        CtrlDisplayStart(CtrlDisplayStart &&other) = default;
+        CtrlDisplayStart &operator=(const CtrlDisplayStart &other) = default;
+        unsigned x, y;
+    };
+    struct CtrlHorizontalDisplayRange : public Logged {
+        CtrlHorizontalDisplayRange(uint32_t value) : x0(value & 0xfff), x1((value >> 12) & 0xfff) {}
+        CtrlHorizontalDisplayRange(const CtrlHorizontalDisplayRange &other) = default;
+        CtrlHorizontalDisplayRange(CtrlHorizontalDisplayRange &&other) = default;
+        CtrlHorizontalDisplayRange &operator=(const CtrlHorizontalDisplayRange &other) = default;
+        unsigned x0, x1;
+    };
+    struct CtrlVerticalDisplayRange : public Logged {
+        CtrlVerticalDisplayRange(uint32_t value) : y0(value & 0x3ff), y1((value >> 10) & 0x3ff) {}
+        CtrlVerticalDisplayRange(const CtrlVerticalDisplayRange &other) = default;
+        CtrlVerticalDisplayRange(CtrlVerticalDisplayRange &&other) = default;
+        CtrlVerticalDisplayRange &operator=(const CtrlVerticalDisplayRange &other) = default;
+        unsigned y0, y1;
+    };
+    struct CtrlDisplayMode : public Logged {
+        CtrlDisplayMode(uint32_t value);
+        CtrlDisplayMode(const CtrlDisplayMode &other) = default;
+        CtrlDisplayMode(CtrlDisplayMode &&other) = default;
+        CtrlDisplayMode &operator=(const CtrlDisplayMode &other) = default;
+        uint32_t widthRaw;
+        enum { HR_256, HR_320, HR_512, HR_640, HR_368, HR_384 } hres;
+        enum { VR_240, VR_480 } vres;
+        enum { VM_NTSC, VM_PAL } mode;
+        enum { CD_15BITS, CD_24BITS } depth;
+        bool interlace;
+    };
+    struct CtrlQuery : public Logged {
+        CtrlQuery(uint32_t value) : query(value & 0x07) {}
+        CtrlQuery(const CtrlQuery &other) = default;
+        CtrlQuery(CtrlQuery &&other) = default;
+        CtrlQuery &operator=(const CtrlQuery &other) = default;
+        enum QueryType { TextureWindow, DrawAreaStart, DrawAreaEnd, DrawOffset, Unknown };
+        QueryType type() {
+            if ((query <= 1) || (query >= 6)) {
+                return Unknown;
+            }
+            return magic_enum::enum_cast<QueryType>((query - 2) & 3).value();
+        }
+        uint8_t query;
     };
 
   private:
@@ -434,6 +498,17 @@ class GPU {
     virtual void write0(DrawingAreaEnd *) = 0;
     virtual void write0(DrawingOffset *) = 0;
     virtual void write0(MaskBit *) = 0;
+
+    virtual void write1(CtrlReset *) = 0;
+    virtual void write1(CtrlClearFifo *) = 0;
+    virtual void write1(CtrlIrqAck *) = 0;
+    virtual void write1(CtrlDisplayEnable *) = 0;
+    virtual void write1(CtrlDmaSetting *) = 0;
+    virtual void write1(CtrlDisplayStart *) = 0;
+    virtual void write1(CtrlHorizontalDisplayRange *) = 0;
+    virtual void write1(CtrlVerticalDisplayRange *) = 0;
+    virtual void write1(CtrlDisplayMode *) = 0;
+    virtual void write1(CtrlQuery *) = 0;
 };
 
 }  // namespace PCSX

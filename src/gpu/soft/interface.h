@@ -32,7 +32,6 @@ class impl final : public GPU, public SoftRenderer {
     int32_t initBackend(GUI *) override;
     int32_t shutdown() override;
     uint32_t readStatusInternal() override;
-    void writeStatusInternal(uint32_t gdata) override;
     void vblank() override;
     bool configure() override;
     void debug() override;
@@ -73,7 +72,6 @@ class impl final : public GPU, public SoftRenderer {
     }
 
     ScreenShot takeScreenShot() override;
-    void *m_dumpFile = nullptr;
     GLuint m_vramTexture16;
     GLuint m_vramTexture24;
 
@@ -83,7 +81,7 @@ class impl final : public GPU, public SoftRenderer {
     bool m_doVSyncUpdate = false;
     SoftDisplay m_previousDisplay;
     unsigned char *m_allocatedVRAM;
-    static constexpr int16_t s_displayWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
+    static constexpr int16_t s_displayWidths[] = {256, 320, 512, 640, 368, 384};
 
     void write0(FastFill *) override;
 
@@ -176,6 +174,17 @@ class impl final : public GPU, public SoftRenderer {
     void write0(DrawingAreaEnd *) override;
     void write0(DrawingOffset *) override;
     void write0(MaskBit *) override;
+
+    void write1(CtrlReset *) override;
+    void write1(CtrlClearFifo *) override;
+    void write1(CtrlIrqAck *) override;
+    void write1(CtrlDisplayEnable *) override;
+    void write1(CtrlDmaSetting *) override;
+    void write1(CtrlDisplayStart *) override;
+    void write1(CtrlHorizontalDisplayRange *) override;
+    void write1(CtrlVerticalDisplayRange *) override;
+    void write1(CtrlDisplayMode *) override;
+    void write1(CtrlQuery *) override;
 };
 
 }  // namespace SoftGPU

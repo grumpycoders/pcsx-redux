@@ -503,10 +503,59 @@ void PCSX::GPU::gpuInterrupt() {
 
 void PCSX::GPU::writeStatus(uint32_t status) {
     uint32_t cmd = (status >> 24) & 0xff;
+    bool gotUnknown = false;
 
     m_statusControl[cmd] = status;
 
-    writeStatusInternal(status);
+    switch (cmd) {
+        case 0: {
+            m_readFifo->reset();
+            CtrlReset ctrlReset;
+            write1(&ctrlReset);
+        } break;
+        case 1: {
+            CtrlClearFifo ctrlClearFifo;
+            write1(&ctrlClearFifo);
+        } break;
+        case 2: {
+            CtrlIrqAck ctrlIrqAck;
+            write1(&ctrlIrqAck);
+        } break;
+        case 3: {
+            CtrlDisplayEnable ctrlDisplayEnable(status);
+            write1(&ctrlDisplayEnable);
+        } break;
+        case 4: {
+            CtrlDmaSetting ctrlDmaSetting(status);
+            write1(&ctrlDmaSetting);
+        } break;
+        case 5: {
+            CtrlDisplayStart ctrlDisplayStart(status);
+            write1(&ctrlDisplayStart);
+        } break;
+        case 6: {
+            CtrlHorizontalDisplayRange ctrlHorizontalDisplayRange(status);
+            write1(&ctrlHorizontalDisplayRange);
+        } break;
+        case 7: {
+            CtrlVerticalDisplayRange ctrlVerticalDisplayRange(status);
+            write1(&ctrlVerticalDisplayRange);
+        } break;
+        case 8: {
+            CtrlDisplayMode ctrlDisplayMode(status);
+            write1(&ctrlDisplayMode);
+        } break;
+        case 16: {
+            CtrlQuery ctrlQuery(status);
+            write1(&ctrlQuery);
+        } break;
+        default:
+            gotUnknown = true;
+            break;
+    }
+
+    if (gotUnknown) {
+    }
 }
 
 uint32_t PCSX::GPU::readData() { return m_readFifo.asA<File>()->read<uint32_t>(); }
@@ -834,4 +883,30 @@ void PCSX::GPU::write0(BlitVramVram *prim) {
         memcpy(rect.data() + l * w, slice.data(), slice.size());
     }
     partialUpdateVRAM(dX, dY, w, h, rect.data());
+}
+
+PCSX::GPU::CtrlDisplayMode::CtrlDisplayMode(uint32_t value) {
+    if ((value >> 6) & 1) {
+        switch (value & 3) {
+            case 0:
+                hres = HR_368;
+                break;
+            case 1:
+                hres = HR_384;
+                break;
+            case 2:
+                hres = HR_512;
+                break;
+            case 3:
+                hres = HR_640;
+                break;
+        }
+    } else {
+        hres = magic_enum::enum_cast<decltype(hres)>(value & 3).value();
+    }
+    vres = magic_enum::enum_cast<decltype(vres)>((value >> 2) & 1).value();
+    mode = magic_enum::enum_cast<decltype(mode)>((value >> 3) & 1).value();
+    depth = magic_enum::enum_cast<decltype(depth)>((value >> 4) & 1).value();
+    interlace = (value >> 5) & 1;
+    widthRaw = ((value >> 6) & 1) | ((value & 3) << 1);
 }

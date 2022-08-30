@@ -21,7 +21,6 @@
 
 #include <algorithm>
 
-#include "gpu/soft/gpu.h"
 #include "gpu/soft/soft.h"
 
 #define XCOL1(x) (x & 0x1f)

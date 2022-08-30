@@ -403,7 +403,6 @@ void PCSX::OpenGL_GPU::writeDataMem(uint32_t *source, int size) {
         }
     }
 }
-#endif
 
 // GP1 command writes
 void PCSX::OpenGL_GPU::writeStatusInternal(uint32_t value) {
@@ -452,7 +451,6 @@ void PCSX::OpenGL_GPU::writeStatusInternal(uint32_t value) {
     }
 }
 
-#if 0
 int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t *baseAddr, uint32_t addr) {
     int counter = 0;
     do {
@@ -799,3 +797,14 @@ void PCSX::OpenGL_GPU::write0(DrawingAreaStart *) {}
 void PCSX::OpenGL_GPU::write0(DrawingAreaEnd *) {}
 void PCSX::OpenGL_GPU::write0(DrawingOffset *) {}
 void PCSX::OpenGL_GPU::write0(MaskBit *) {}
+
+void PCSX::OpenGL_GPU::write1(CtrlReset *) {}
+void PCSX::OpenGL_GPU::write1(CtrlClearFifo *) {}
+void PCSX::OpenGL_GPU::write1(CtrlIrqAck *) {}
+void PCSX::OpenGL_GPU::write1(CtrlDisplayEnable *) {}
+void PCSX::OpenGL_GPU::write1(CtrlDmaSetting *) {}
+void PCSX::OpenGL_GPU::write1(CtrlDisplayStart *) {}
+void PCSX::OpenGL_GPU::write1(CtrlHorizontalDisplayRange *) {}
+void PCSX::OpenGL_GPU::write1(CtrlVerticalDisplayRange *) {}
+void PCSX::OpenGL_GPU::write1(CtrlDisplayMode *) {}
+void PCSX::OpenGL_GPU::write1(CtrlQuery *) {}

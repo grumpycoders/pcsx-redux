@@ -32,7 +32,6 @@ class OpenGL_GPU final : public GPU {
     int initBackend(GUI *) override;
     int shutdown() override;
     uint32_t readStatusInternal() override;
-    void writeStatusInternal(uint32_t value) override;
     void setOpenGLContext() override;
     void vblank() override;
     bool configure() override;
@@ -344,6 +343,17 @@ class OpenGL_GPU final : public GPU {
     void write0(DrawingAreaEnd *) override;
     void write0(DrawingOffset *) override;
     void write0(MaskBit *) override;
+
+    void write1(CtrlReset *) override;
+    void write1(CtrlClearFifo *) override;
+    void write1(CtrlIrqAck *) override;
+    void write1(CtrlDisplayEnable *) override;
+    void write1(CtrlDmaSetting *) override;
+    void write1(CtrlDisplayStart *) override;
+    void write1(CtrlHorizontalDisplayRange *) override;
+    void write1(CtrlVerticalDisplayRange *) override;
+    void write1(CtrlDisplayMode *) override;
+    void write1(CtrlQuery *) override;
 };
 
 }  // namespace PCSX

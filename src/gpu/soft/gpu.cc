@@ -29,7 +29,6 @@
 
 #include "core/debug.h"
 #include "core/psxemulator.h"
-#include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
 #include "gpu/soft/soft.h"
 #include "imgui.h"
@@ -223,10 +222,6 @@ void PCSX::SoftGPU::impl::updateDisplayIfChanged() {
 }
 
 void PCSX::SoftGPU::impl::vblank() {
-    if (m_dumpFile) {
-        uint32_t data = 0x02000000;
-        fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
-    }
     m_statusRet ^= 0x80000000;  // odd/even bit
 
     if (m_softDisplay.Interlaced) {
@@ -247,214 +242,9 @@ uint32_t PCSX::SoftGPU::impl::readStatusInternal() { return m_statusRet; }
 
 void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) { m_statusRet = status; }
 
-// processes data send to GPU status register
-// these are always single packet commands.
-void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
-    ZoneScoped;
-    if (m_dumpFile) {
-        uint32_t data = 0x01000001;
-        fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
-        fwrite(&gdata, sizeof(gdata), 1, (FILE *)m_dumpFile);
-    }
-
-    uint32_t lCommand = (gdata >> 24) & 0xff;
-
-    switch (lCommand) {
-        // Reset gpu
-        case 0x00:
-            m_textureWindowRaw = 0;
-            m_drawingStartRaw = 0;
-            m_drawingEndRaw = 0;
-            m_drawingOffsetRaw = 0;
-            m_statusRet = 0x14802000;
-            m_softDisplay.Disabled = 1;
-            m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
-            reset();
-            acknowledgeIRQ1();
-            m_softDisplay.RGB24 = false;
-            m_softDisplay.Interlaced = false;
-            return;
-
-        // Acknowledge IRQ1
-        case 0x02:
-            acknowledgeIRQ1();
-            return;
-
-        // dis/enable display
-        case 0x03:
-
-            m_previousDisplay.Disabled = m_softDisplay.Disabled;
-            m_softDisplay.Disabled = (gdata & 1);
-
-            if (m_softDisplay.Disabled) {
-                m_statusRet |= GPUSTATUS_DISPLAYDISABLED;
-            } else {
-                m_statusRet &= ~GPUSTATUS_DISPLAYDISABLED;
-            }
-            return;
-
-        // setting transfer mode
-        case 0x04:
-            gdata &= 0x03;  // Only want the lower two bits
-
-            m_statusRet &= ~GPUSTATUS_DMABITS;  // Clear the current settings of the DMA bits
-            m_statusRet |= (gdata << 29);       // Set the DMA bits according to the received data
-
-            return;
-
-        // setting display position
-        case 0x05: {
-            m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
-            m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
-
-            // new
-            m_softDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x1ff);
-
-            // store the same val in some helper var, we need it on later compares
-            m_previousDisplay.DisplayModeNew.x = m_softDisplay.DisplayPosition.y;
-
-            if ((m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) > GPU_HEIGHT) {
-                int dy1 = GPU_HEIGHT - m_softDisplay.DisplayPosition.y;
-                int dy2 = (m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) - GPU_HEIGHT;
-
-                if (dy1 >= dy2) {
-                    m_previousDisplay.DisplayModeNew.y = -dy2;
-                } else {
-                    m_softDisplay.DisplayPosition.y = 0;
-                    m_previousDisplay.DisplayModeNew.y = -dy1;
-                }
-            } else {
-                m_previousDisplay.DisplayModeNew.y = 0;
-            }
-            // eon
-
-            m_softDisplay.DisplayPosition.x = (int16_t)(gdata & 0x3ff);
-            m_softDisplay.DisplayEnd.x = m_softDisplay.DisplayPosition.x + m_softDisplay.DisplayMode.x;
-            m_softDisplay.DisplayEnd.y =
-                m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y + m_previousDisplay.DisplayModeNew.y;
-            m_previousDisplay.DisplayEnd.x = m_previousDisplay.DisplayPosition.x + m_softDisplay.DisplayMode.x;
-            m_previousDisplay.DisplayEnd.y =
-                m_previousDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y + m_previousDisplay.DisplayModeNew.y;
-
-            m_doVSyncUpdate = true;
-            return;
-        }
-
-        // setting width
-        case 0x06:
-
-            m_softDisplay.Range.x0 = (int16_t)(gdata & 0x7ff);
-            m_softDisplay.Range.x1 = (int16_t)((gdata >> 12) & 0xfff);
-            m_softDisplay.Range.x1 -= m_softDisplay.Range.x0;
-            changeDispOffsetsX();
-            return;
-
-        // setting height
-        case 0x07: {
-            m_softDisplay.Range.y0 = (int16_t)(gdata & 0x3ff);
-            m_softDisplay.Range.y1 = (int16_t)((gdata >> 10) & 0x3ff);
-
-            m_previousDisplay.Height = m_softDisplay.Height;
-
-            m_softDisplay.Height = m_softDisplay.Range.y1 - m_softDisplay.Range.y0 + m_previousDisplay.DisplayModeNew.y;
-
-            if (m_previousDisplay.Height != m_softDisplay.Height) {
-                m_softDisplay.DisplayModeNew.y = m_softDisplay.Height * m_softDisplay.Double;
-
-                changeDispOffsetsY();
-
-                updateDisplayIfChanged();
-            }
-            return;
-        }
-
-        // setting display infos
-        case 0x08:
-
-            m_softDisplay.DisplayModeNew.x = s_displayWidths[(gdata & 0x03) | ((gdata & 0x40) >> 4)];
-
-            if (gdata & 0x04) {
-                m_softDisplay.Double = 2;
-            } else {
-                m_softDisplay.Double = 1;
-            }
-
-            m_softDisplay.DisplayModeNew.y = m_softDisplay.Height * m_softDisplay.Double;
-
-            changeDispOffsetsY();
-
-            m_softDisplay.PAL = (gdata & 0x08) ? true : false;            // if 1 - PAL mode, else NTSC
-            m_softDisplay.RGB24New = (gdata & 0x10) ? true : false;       // if 1 - TrueColor
-            m_softDisplay.InterlacedNew = (gdata & 0x20) ? true : false;  // if 1 - Interlace
-
-            if (g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
-                if (m_softDisplay.PAL) {
-                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
-                } else {
-                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
-                }
-            }
-
-            m_statusRet &= ~GPUSTATUS_WIDTHBITS;                               // Clear the width bits
-            m_statusRet |= (((gdata & 0x03) << 17) | ((gdata & 0x40) << 10));  // Set the width bits
-
-            if (m_softDisplay.InterlacedNew) {
-                if (!m_softDisplay.Interlaced) {
-                    m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
-                    m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
-                }
-                m_statusRet |= GPUSTATUS_INTERLACED;
-            } else {
-                m_statusRet &= ~GPUSTATUS_INTERLACED;
-            }
-
-            if (m_softDisplay.PAL) {
-                m_statusRet |= GPUSTATUS_PAL;
-            } else {
-                m_statusRet &= ~GPUSTATUS_PAL;
-            }
-
-            if (m_softDisplay.Double == 2) {
-                m_statusRet |= GPUSTATUS_DOUBLEHEIGHT;
-            } else {
-                m_statusRet &= ~GPUSTATUS_DOUBLEHEIGHT;
-            }
-
-            if (m_softDisplay.RGB24New) {
-                m_statusRet |= GPUSTATUS_RGB24;
-            } else {
-                m_statusRet &= ~GPUSTATUS_RGB24;
-            }
-
-            updateDisplayIfChanged();
-
-            return;
-
-        // Ask about GPU version and other stuff
-        // We currently only emulate the old GPU version of this command
-        case 0x10:
-            switch (gdata & 0x7) {
-                case 0x02:
-                    m_dataRet = m_textureWindowRaw;  // tw infos
-                    return;
-                case 0x03:
-                    m_dataRet = m_drawingStartRaw;  // draw start
-                    return;
-                case 0x04:
-                    m_dataRet = m_drawingEndRaw;  // draw end
-                    return;
-                case 0x05:
-                    m_dataRet = m_drawingOffsetRaw;  // draw offset
-                    return;
-            }
-            return;
-    }
-}
-
-// process gpu commands
-uint32_t lUsedAddr[3];
-
 inline bool CheckForEndlessLoop(uint32_t laddr) {
+    static uint32_t lUsedAddr[3];
+
     if (laddr == lUsedAddr[1]) return true;
     if (laddr == lUsedAddr[2]) return true;
 
@@ -994,4 +784,174 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
     }
 
     return ss;
+}
+
+void PCSX::SoftGPU::impl::write1(CtrlReset *) {
+    m_textureWindowRaw = 0;
+    m_drawingStartRaw = 0;
+    m_drawingEndRaw = 0;
+    m_drawingOffsetRaw = 0;
+    m_statusRet = 0x14802000;
+    m_softDisplay.Disabled = 1;
+    m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
+    reset();
+    acknowledgeIRQ1();
+    m_softDisplay.RGB24 = false;
+    m_softDisplay.Interlaced = false;
+}
+
+void PCSX::SoftGPU::impl::write1(CtrlClearFifo *) {}
+
+void PCSX::SoftGPU::impl::write1(CtrlIrqAck *) { acknowledgeIRQ1(); }
+
+void PCSX::SoftGPU::impl::write1(CtrlDisplayEnable *ctrl) {
+    m_previousDisplay.Disabled = m_softDisplay.Disabled;
+    m_softDisplay.Disabled = !ctrl->enable;
+
+    if (m_softDisplay.Disabled) {
+        m_statusRet |= GPUSTATUS_DISPLAYDISABLED;
+    } else {
+        m_statusRet &= ~GPUSTATUS_DISPLAYDISABLED;
+    }
+}
+
+void PCSX::SoftGPU::impl::write1(CtrlDmaSetting *ctrl) {
+    m_statusRet &= ~GPUSTATUS_DMABITS;
+    m_statusRet |= magic_enum::enum_integer(ctrl->dma) << 29;
+}
+
+void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
+    m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
+    m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
+
+    // new
+    m_softDisplay.DisplayPosition.y = ctrl->y;
+
+    // store the same val in some helper var, we need it on later compares
+    m_previousDisplay.DisplayModeNew.x = m_softDisplay.DisplayPosition.y;
+
+    if ((m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) > GPU_HEIGHT) {
+        int dy1 = GPU_HEIGHT - m_softDisplay.DisplayPosition.y;
+        int dy2 = (m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) - GPU_HEIGHT;
+
+        if (dy1 >= dy2) {
+            m_previousDisplay.DisplayModeNew.y = -dy2;
+        } else {
+            m_softDisplay.DisplayPosition.y = 0;
+            m_previousDisplay.DisplayModeNew.y = -dy1;
+        }
+    } else {
+        m_previousDisplay.DisplayModeNew.y = 0;
+    }
+    // eon
+
+    m_softDisplay.DisplayPosition.x = ctrl->x;
+    m_softDisplay.DisplayEnd.x = m_softDisplay.DisplayPosition.x + m_softDisplay.DisplayMode.x;
+    m_softDisplay.DisplayEnd.y =
+        m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y + m_previousDisplay.DisplayModeNew.y;
+    m_previousDisplay.DisplayEnd.x = m_previousDisplay.DisplayPosition.x + m_softDisplay.DisplayMode.x;
+    m_previousDisplay.DisplayEnd.y =
+        m_previousDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y + m_previousDisplay.DisplayModeNew.y;
+
+    m_doVSyncUpdate = true;
+}
+
+void PCSX::SoftGPU::impl::write1(CtrlHorizontalDisplayRange *ctrl) {
+    m_softDisplay.Range.x0 = ctrl->x0;
+    m_softDisplay.Range.x1 = ctrl->x1;
+    m_softDisplay.Range.x1 -= m_softDisplay.Range.x0;
+    changeDispOffsetsX();
+}
+
+void PCSX::SoftGPU::impl::write1(CtrlVerticalDisplayRange *ctrl) {
+    m_softDisplay.Range.y0 = ctrl->y0;
+    m_softDisplay.Range.y1 = ctrl->y1;
+
+    m_previousDisplay.Height = m_softDisplay.Height;
+
+    m_softDisplay.Height = m_softDisplay.Range.y1 - m_softDisplay.Range.y0 + m_previousDisplay.DisplayModeNew.y;
+
+    if (m_previousDisplay.Height != m_softDisplay.Height) {
+        m_softDisplay.DisplayModeNew.y = m_softDisplay.Height * m_softDisplay.Double;
+
+        changeDispOffsetsY();
+
+        updateDisplayIfChanged();
+    }
+}
+
+void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
+    m_softDisplay.DisplayModeNew.x = s_displayWidths[magic_enum::enum_integer(ctrl->hres)];
+
+    if (ctrl->vres == CtrlDisplayMode::VR_480) {
+        m_softDisplay.Double = 2;
+    } else {
+        m_softDisplay.Double = 1;
+    }
+
+    m_softDisplay.DisplayModeNew.y = m_softDisplay.Height * m_softDisplay.Double;
+
+    changeDispOffsetsY();
+
+    m_softDisplay.PAL = ctrl->mode == CtrlDisplayMode::VM_PAL;
+    m_softDisplay.RGB24New = ctrl->depth == CtrlDisplayMode::CD_24BITS;
+    m_softDisplay.InterlacedNew = ctrl->interlace;
+
+    if (g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
+        if (m_softDisplay.PAL) {
+            g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
+        } else {
+            g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
+        }
+    }
+
+    m_statusRet &= ~GPUSTATUS_WIDTHBITS;
+    m_statusRet |= ctrl->widthRaw << 16;
+
+    if (m_softDisplay.InterlacedNew) {
+        if (!m_softDisplay.Interlaced) {
+            m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
+            m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
+        }
+        m_statusRet |= GPUSTATUS_INTERLACED;
+    } else {
+        m_statusRet &= ~GPUSTATUS_INTERLACED;
+    }
+
+    if (m_softDisplay.PAL) {
+        m_statusRet |= GPUSTATUS_PAL;
+    } else {
+        m_statusRet &= ~GPUSTATUS_PAL;
+    }
+
+    if (m_softDisplay.Double == 2) {
+        m_statusRet |= GPUSTATUS_DOUBLEHEIGHT;
+    } else {
+        m_statusRet &= ~GPUSTATUS_DOUBLEHEIGHT;
+    }
+
+    if (m_softDisplay.RGB24New) {
+        m_statusRet |= GPUSTATUS_RGB24;
+    } else {
+        m_statusRet &= ~GPUSTATUS_RGB24;
+    }
+
+    updateDisplayIfChanged();
+}
+
+void PCSX::SoftGPU::impl::write1(CtrlQuery *ctrl) {
+    switch (ctrl->type()) {
+        case CtrlQuery::TextureWindow:
+            m_dataRet = m_textureWindowRaw;
+            return;
+        case CtrlQuery::DrawAreaStart:
+            m_dataRet = m_drawingStartRaw;
+            return;
+        case CtrlQuery::DrawAreaEnd:
+            m_dataRet = m_drawingEndRaw;
+            return;
+        case CtrlQuery::DrawOffset:
+            m_dataRet = m_drawingOffsetRaw;
+            return;
+    }
 }

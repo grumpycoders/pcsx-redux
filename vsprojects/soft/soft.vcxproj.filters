@@ -26,9 +26,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\gpu\soft\gpu.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\gpu\soft\soft.h">
       <Filter>Header Files</Filter>
     </ClInclude>
