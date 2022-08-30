@@ -20,7 +20,6 @@
 #pragma once
 
 #include "core/gpu.h"
-#include "gpu/soft/definitions.h"
 #include "gpu/soft/soft.h"
 
 namespace PCSX {
@@ -82,7 +81,7 @@ class impl final : public GPU, public SoftRenderer {
 
     int32_t m_dataRet;
     bool m_doVSyncUpdate = false;
-    PSXDisplay_t m_previousDisplay;
+    SoftDisplay m_previousDisplay;
     unsigned char *m_allocatedVRAM;
     static constexpr int16_t s_displayWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
 

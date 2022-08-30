@@ -20,7 +20,6 @@
 #include <cstdint>
 
 #include "GL/gl3w.h"
-#include "gpu/soft/definitions.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
 #include "gpu/soft/soft.h"

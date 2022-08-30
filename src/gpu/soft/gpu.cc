@@ -29,12 +29,21 @@
 
 #include "core/debug.h"
 #include "core/psxemulator.h"
-#include "gpu/soft/definitions.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
 #include "gpu/soft/soft.h"
 #include "imgui.h"
 #include "tracy/Tracy.hpp"
+
+#define GPUSTATUS_DMABITS 0x60000000  // Two bits
+#define GPUSTATUS_READYFORCOMMANDS 0x10000000
+#define GPUSTATUS_IDLE 0x04000000
+#define GPUSTATUS_DISPLAYDISABLED 0x00800000
+#define GPUSTATUS_INTERLACED 0x00400000
+#define GPUSTATUS_RGB24 0x00200000
+#define GPUSTATUS_PAL 0x00100000
+#define GPUSTATUS_DOUBLEHEIGHT 0x00080000
+#define GPUSTATUS_WIDTHBITS 0x00070000  // Three bits
 
 int32_t PCSX::SoftGPU::impl::initBackend(GUI *gui) {
     m_gui = gui;
@@ -49,7 +58,10 @@ int32_t PCSX::SoftGPU::impl::initBackend(GUI *gui) {
     m_vram = m_allocatedVRAM + 512 * 1024;  // security offset into double sized psx vram!
     m_vram16 = (uint16_t *)m_vram;
 
-    memset(m_infoVals, 0x00, 16 * sizeof(uint32_t));
+    m_textureWindowRaw = 0;
+    m_drawingStartRaw = 0;
+    m_drawingEndRaw = 0;
+    m_drawingOffsetRaw = 0;
 
     m_softDisplay.RGB24 = false;  // init some stuff
     m_softDisplay.Interlaced = false;
@@ -70,8 +82,8 @@ int32_t PCSX::SoftGPU::impl::initBackend(GUI *gui) {
 
     // device initialised already !
     m_statusRet = 0x14802000;
-    GPUIsIdle;
-    GPUIsReadyForCommands;
+    m_statusRet |= GPUSTATUS_IDLE;
+    m_statusRet |= GPUSTATUS_READYFORCOMMANDS;
 
     return 0;
 }
@@ -250,7 +262,10 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
     switch (lCommand) {
         // Reset gpu
         case 0x00:
-            memset(m_infoVals, 0x00, 16 * sizeof(uint32_t));
+            m_textureWindowRaw = 0;
+            m_drawingStartRaw = 0;
+            m_drawingEndRaw = 0;
+            m_drawingOffsetRaw = 0;
             m_statusRet = 0x14802000;
             m_softDisplay.Disabled = 1;
             m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
@@ -420,16 +435,16 @@ void PCSX::SoftGPU::impl::writeStatusInternal(uint32_t gdata) {
         case 0x10:
             switch (gdata & 0x7) {
                 case 0x02:
-                    m_dataRet = m_infoVals[INFO_TW];  // tw infos
+                    m_dataRet = m_textureWindowRaw;  // tw infos
                     return;
                 case 0x03:
-                    m_dataRet = m_infoVals[INFO_DRAWSTART];  // draw start
+                    m_dataRet = m_drawingStartRaw;  // draw start
                     return;
                 case 0x04:
-                    m_dataRet = m_infoVals[INFO_DRAWEND];  // draw end
+                    m_dataRet = m_drawingEndRaw;  // draw end
                     return;
                 case 0x05:
-                    m_dataRet = m_infoVals[INFO_DRAWOFF];  // draw offset
+                    m_dataRet = m_drawingOffsetRaw;  // draw offset
                     return;
             }
             return;

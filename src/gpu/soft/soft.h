@@ -22,7 +22,6 @@
 #include <stdint.h>
 
 #include "core/gpu.h"
-#include "gpu/soft/definitions.h"
 
 namespace PCSX {
 
@@ -53,9 +52,51 @@ struct SoftRenderer {
     void drawingOffset(GPU::DrawingOffset *prim);
     void maskBit(GPU::MaskBit *prim);
 
+    struct Point {
+        int32_t x;
+        int32_t y;
+    };
+
+    struct ShortPoint {
+        int16_t x;
+        int16_t y;
+    };
+
+    struct SoftRect {
+        int16_t x0;
+        int16_t x1;
+        int16_t y0;
+        int16_t y1;
+    };
+
+    struct SoftDisplay {
+        Point DisplayModeNew;
+        Point DisplayMode;
+        Point DisplayPosition;
+        Point DisplayEnd;
+
+        int32_t Double;
+        int32_t Height;
+        int32_t PAL;
+        int32_t InterlacedNew;
+        int32_t Interlaced;
+        int32_t RGB24New;
+        int32_t RGB24;
+        ShortPoint DrawOffset;
+        int32_t Disabled;
+        SoftRect Range;
+    };
+
+    struct TextureWindow {
+        SoftRect Position;
+    };
+
     TextureWindow m_textureWindow;
     int m_ditherMode = 0;
     int m_drawX, m_drawY, m_drawW, m_drawH;
+
+    static constexpr int GPU_HEIGHT = 512;
+    static constexpr int GPU_HEIGHT_MASK = 511;
 
     bool m_drawSemiTrans = false;
     int16_t m_m1 = 255, m_m2 = 255, m_m3 = 255;
@@ -70,8 +111,11 @@ struct SoftRenderer {
     uint16_t m_setMask16 = 0;
     uint32_t m_setMask32 = 0;
     int32_t m_statusRet;
-    uint32_t m_infoVals[16];
-    PSXDisplay_t m_softDisplay;
+    uint32_t m_textureWindowRaw;
+    uint32_t m_drawingStartRaw;
+    uint32_t m_drawingEndRaw;
+    uint32_t m_drawingOffsetRaw;
+    SoftDisplay m_softDisplay;
     uint8_t *m_vram;
     uint16_t *m_vram16;
 
@@ -180,6 +224,49 @@ struct SoftRenderer {
     void line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
     void vertLineFlat(int x, int y0, int y1, uint16_t col);
     void horzLineFlat(int y, int x0, int x1, uint16_t col);
+
+  private:
+    int rightSectionFlat3();
+    int leftSectionFlat3();
+    bool nextRowFlat3();
+    int rightSectionShade3();
+    int leftSectionShade3();
+    bool nextRowShade3();
+    int rightSectionFlatTextured3();
+    int leftSectionFlatTextured3();
+    bool nextRowFlatTextured3();
+    int rightSectionShadeTextured3();
+    int leftSectionShadeTextured3();
+    bool nextRowShadeTextured3();
+    int rightSectionFlat4();
+    int leftSectionFlat4();
+    int rightSectionFlatTextured4();
+    int leftSectionFlatTextured4();
+    bool nextRowFlatTextured4();
+    int rightSectionShadeTextured4();
+    int leftSectionShadeTextured4();
+    struct SoftVertex {
+        int x, y;
+        int u, v;
+        int32_t R, G, B;
+    };
+
+    SoftVertex m_vtx[4];
+    SoftVertex *m_leftArray[4], *m_rightArray[4];
+    int m_leftSection, m_rightSection;
+    int m_leftSectionHeight, m_rightSectionHeight;
+    int m_leftX, m_deltaLeftX, m_rightX, m_deltaRightX;
+    int m_leftU, m_deltaLeftU, m_leftV, m_deltaLeftV;
+    int m_rightU, m_deltaRightU, m_rightV, m_deltaRightV;
+    int m_leftR, deltaLeftR, m_rightR, m_deltaRightR;
+    int m_leftG, m_deltaLeftG, m_rightG, m_deltaRightG;
+    int m_leftB, m_deltaLeftB, m_rightB, m_deltaRightB;
+
+    static constexpr inline int shl10idiv(int x, int y) {
+        int64_t bi = x;
+        bi <<= 10;
+        return bi / y;
+    }
 };
 
 }  // namespace SoftGPU

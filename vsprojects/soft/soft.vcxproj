@@ -241,7 +241,6 @@
     <ClCompile Include="..\..\src\gpu\soft\soft.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\gpu\soft\definitions.h" />
     <ClInclude Include="..\..\src\gpu\soft\gpu.h" />
     <ClInclude Include="..\..\src\gpu\soft\interface.h" />
     <ClInclude Include="..\..\src\gpu\soft\soft.h" />

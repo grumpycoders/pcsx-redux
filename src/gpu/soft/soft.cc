@@ -21,7 +21,6 @@
 
 #include <algorithm>
 
-#include "gpu/soft/definitions.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/soft.h"
 
@@ -53,9 +52,8 @@
 
 #define XPSXCOL(r, g, b) ((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f))
 
-uint32_t dwActFixes = 0;
-static const int CHKMAX_X = 1024;
-static const int CHKMAX_Y = 512;
+static constexpr int CHKMAX_X = 1024;
+static constexpr int CHKMAX_Y = 512;
 
 ////////////////////////////////////////////////////////////////////////
 // special checks... nascar, syphon filter 2, mgs
@@ -175,7 +173,7 @@ void PCSX::SoftGPU::SoftRenderer::texturePage(GPU::TPage *prim) {
 void PCSX::SoftGPU::SoftRenderer::twindow(GPU::TWindow *prim) {
     uint32_t YAlign, XAlign;
 
-    m_infoVals[INFO_TW] = prim->raw & 0xfffff;
+    m_textureWindowRaw = prim->raw & 0xfffff;
 
     // Texture window size is determined by the least bit set of the relevant 5 bits
     if (prim->y & 0x01) {
@@ -219,21 +217,21 @@ void PCSX::SoftGPU::SoftRenderer::drawingAreaStart(GPU::DrawingAreaStart *prim) 
     m_drawX = prim->x;
     m_drawY = prim->y;
 
-    m_infoVals[INFO_DRAWSTART] = prim->raw & 0xfffff;
+    m_drawingStartRaw = prim->raw & 0xfffff;
 }
 
 void PCSX::SoftGPU::SoftRenderer::drawingAreaEnd(GPU::DrawingAreaEnd *prim) {
     m_drawW = prim->x;
     m_drawH = prim->y;
 
-    m_infoVals[INFO_DRAWEND] = prim->raw & 0xfffff;
+    m_drawingEndRaw = prim->raw & 0xfffff;
 }
 
 void PCSX::SoftGPU::SoftRenderer::drawingOffset(GPU::DrawingOffset *prim) {
     m_softDisplay.DrawOffset.x = prim->x;
     m_softDisplay.DrawOffset.y = prim->y;
 
-    m_infoVals[INFO_DRAWOFF] = prim->raw & 0x3fffff;
+    m_drawingOffsetRaw = prim->raw & 0x3fffff;
 }
 
 void PCSX::SoftGPU::SoftRenderer::maskBit(GPU::MaskBit *prim) {
@@ -254,14 +252,14 @@ void PCSX::SoftGPU::SoftRenderer::maskBit(GPU::MaskBit *prim) {
     m_checkMask = prim->check;
 }
 
-void PCSX::SoftGPU::SoftRenderer::applyOffset2(void) {
+void PCSX::SoftGPU::SoftRenderer::applyOffset2() {
     m_x0 += m_softDisplay.DrawOffset.x;
     m_y0 += m_softDisplay.DrawOffset.y;
     m_x1 += m_softDisplay.DrawOffset.x;
     m_y1 += m_softDisplay.DrawOffset.y;
 }
 
-void PCSX::SoftGPU::SoftRenderer::applyOffset3(void) {
+void PCSX::SoftGPU::SoftRenderer::applyOffset3() {
     m_x0 += m_softDisplay.DrawOffset.x;
     m_y0 += m_softDisplay.DrawOffset.y;
     m_x1 += m_softDisplay.DrawOffset.x;
@@ -270,7 +268,7 @@ void PCSX::SoftGPU::SoftRenderer::applyOffset3(void) {
     m_y2 += m_softDisplay.DrawOffset.y;
 }
 
-void PCSX::SoftGPU::SoftRenderer::applyOffset4(void) {
+void PCSX::SoftGPU::SoftRenderer::applyOffset4() {
     m_x0 += m_softDisplay.DrawOffset.x;
     m_y0 += m_softDisplay.DrawOffset.y;
     m_x1 += m_softDisplay.DrawOffset.x;
@@ -281,18 +279,18 @@ void PCSX::SoftGPU::SoftRenderer::applyOffset4(void) {
     m_y3 += m_softDisplay.DrawOffset.y;
 }
 
-static constexpr unsigned char dithertable[16] = {7, 0, 6, 1, 2, 5, 3, 4, 1, 6, 0, 7, 4, 3, 5, 2};
+static constexpr uint8_t s_dithertable[16] = {7, 0, 6, 1, 2, 5, 3, 4, 1, 6, 0, 7, 4, 3, 5, 2};
 
 void PCSX::SoftGPU::SoftRenderer::applyDither(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) {
-    unsigned char coeff;
-    unsigned char rlow, glow, blow;
+    uint8_t coeff;
+    uint8_t rlow, glow, blow;
     int x, y;
 
     x = pdest - m_vram16;
     y = x >> 10;
     x -= (y << 10);
 
-    coeff = dithertable[(y & 3) * 4 + (x & 3)];
+    coeff = s_dithertable[(y & 3) * 4 + (x & 3)];
 
     rlow = r & 7;
     glow = g & 7;
@@ -1078,84 +1076,57 @@ void PCSX::SoftGPU::SoftRenderer::fillSoftwareArea(int16_t x0, int16_t y0, int16
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct SOFTVTAG {
-    int x, y;
-    int u, v;
-    int32_t R, G, B;
-} soft_vertex;
-
-static soft_vertex vtx[4];
-static soft_vertex *left_array[4], *right_array[4];
-static int left_section, right_section;
-static int left_section_height, right_section_height;
-static int left_x, delta_left_x, right_x, delta_right_x;
-static int left_u, delta_left_u, left_v, delta_left_v;
-static int right_u, delta_right_u, right_v, delta_right_v;
-static int left_R, delta_left_R, right_R, delta_right_R;
-static int left_G, delta_left_G, right_G, delta_right_G;
-static int left_B, delta_left_B, right_B, delta_right_B;
-
-static constexpr inline int shl10idiv(int x, int y) {
-    int64_t bi = x;
-    bi <<= 10;
-    return bi / y;
-}
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-
-static inline int RightSection_F(void) {
-    soft_vertex *v1 = right_array[right_section];
-    soft_vertex *v2 = right_array[right_section - 1];
+int PCSX::SoftGPU::SoftRenderer::rightSectionFlat3() {
+    SoftVertex *v1 = m_rightArray[m_rightSection];
+    SoftVertex *v2 = m_rightArray[m_rightSection - 1];
 
     int height = v2->y - v1->y;
     if (height == 0) return 0;
-    delta_right_x = (v2->x - v1->x) / height;
-    right_x = v1->x;
+    m_deltaRightX = (v2->x - v1->x) / height;
+    m_rightX = v1->x;
 
-    right_section_height = height;
+    m_rightSectionHeight = height;
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline int LeftSection_F(void) {
-    soft_vertex *v1 = left_array[left_section];
-    soft_vertex *v2 = left_array[left_section - 1];
+int PCSX::SoftGPU::SoftRenderer::leftSectionFlat3() {
+    SoftVertex *v1 = m_leftArray[m_leftSection];
+    SoftVertex *v2 = m_leftArray[m_leftSection - 1];
 
     int height = v2->y - v1->y;
     if (height == 0) return 0;
-    delta_left_x = (v2->x - v1->x) / height;
-    left_x = v1->x;
+    m_deltaLeftX = (v2->x - v1->x) / height;
+    m_leftX = v1->x;
 
-    left_section_height = height;
+    m_leftSectionHeight = height;
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool NextRow_F(void) {
-    if (--left_section_height <= 0) {
-        if (--left_section <= 0) {
+bool PCSX::SoftGPU::SoftRenderer::nextRowFlat3() {
+    if (--m_leftSectionHeight <= 0) {
+        if (--m_leftSection <= 0) {
             return true;
         }
-        if (LeftSection_F() <= 0) {
+        if (leftSectionFlat3() <= 0) {
             return true;
         }
     } else {
-        left_x += delta_left_x;
+        m_leftX += m_deltaLeftX;
     }
 
-    if (--right_section_height <= 0) {
-        if (--right_section <= 0) {
+    if (--m_rightSectionHeight <= 0) {
+        if (--m_rightSection <= 0) {
             return true;
         }
-        if (RightSection_F() <= 0) {
+        if (rightSectionFlat3() <= 0) {
             return true;
         }
     } else {
-        right_x += delta_right_x;
+        m_rightX += m_deltaRightX;
     }
     return false;
 }
@@ -1164,31 +1135,31 @@ static inline bool NextRow_F(void) {
 
 bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlat3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
                                                      int16_t y3) {
-    soft_vertex *v1, *v2, *v3;
+    SoftVertex *v1, *v2, *v3;
     int height, int32_test;
 
-    v1 = vtx;
+    v1 = m_vtx;
     v1->x = x1 << 16;
     v1->y = y1;
-    v2 = vtx + 1;
+    v2 = m_vtx + 1;
     v2->x = x2 << 16;
     v2->y = y2;
-    v3 = vtx + 2;
+    v3 = m_vtx + 2;
     v3->x = x3 << 16;
     v3->y = y3;
 
     if (v1->y > v2->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v2;
         v2 = v;
     }
     if (v1->y > v3->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v3;
         v3 = v;
     }
     if (v2->y > v3->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v3;
         v3 = v;
     }
@@ -1203,32 +1174,32 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlat3(int16_t x1, int16_t y1, int
     }
 
     if (int32_test < 0) {
-        right_array[0] = v3;
-        right_array[1] = v2;
-        right_array[2] = v1;
-        right_section = 2;
-        left_array[0] = v3;
-        left_array[1] = v1;
-        left_section = 1;
+        m_rightArray[0] = v3;
+        m_rightArray[1] = v2;
+        m_rightArray[2] = v1;
+        m_rightSection = 2;
+        m_leftArray[0] = v3;
+        m_leftArray[1] = v1;
+        m_leftSection = 1;
 
-        if (LeftSection_F() <= 0) return false;
-        if (RightSection_F() <= 0) {
-            right_section--;
-            if (RightSection_F() <= 0) return false;
+        if (leftSectionFlat3() <= 0) return false;
+        if (rightSectionFlat3() <= 0) {
+            m_rightSection--;
+            if (rightSectionFlat3() <= 0) return false;
         }
     } else {
-        left_array[0] = v3;
-        left_array[1] = v2;
-        left_array[2] = v1;
-        left_section = 2;
-        right_array[0] = v3;
-        right_array[1] = v1;
-        right_section = 1;
+        m_leftArray[0] = v3;
+        m_leftArray[1] = v2;
+        m_leftArray[2] = v1;
+        m_leftSection = 2;
+        m_rightArray[0] = v3;
+        m_rightArray[1] = v1;
+        m_rightSection = 1;
 
-        if (RightSection_F() <= 0) return false;
-        if (LeftSection_F() <= 0) {
-            left_section--;
-            if (LeftSection_F() <= 0) return false;
+        if (rightSectionFlat3() <= 0) return false;
+        if (leftSectionFlat3() <= 0) {
+            m_leftSection--;
+            if (leftSectionFlat3() <= 0) return false;
         }
     }
 
@@ -1241,59 +1212,59 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlat3(int16_t x1, int16_t y1, int
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-static inline int RightSection_G(void) {
-    soft_vertex *v1 = right_array[right_section];
-    soft_vertex *v2 = right_array[right_section - 1];
+int PCSX::SoftGPU::SoftRenderer::rightSectionShade3() {
+    SoftVertex *v1 = m_rightArray[m_rightSection];
+    SoftVertex *v2 = m_rightArray[m_rightSection - 1];
 
     int height = v2->y - v1->y;
     if (height == 0) return 0;
-    delta_right_x = (v2->x - v1->x) / height;
-    right_x = v1->x;
+    m_deltaRightX = (v2->x - v1->x) / height;
+    m_rightX = v1->x;
 
-    right_section_height = height;
+    m_rightSectionHeight = height;
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline int LeftSection_G(void) {
-    soft_vertex *v1 = left_array[left_section];
-    soft_vertex *v2 = left_array[left_section - 1];
+int PCSX::SoftGPU::SoftRenderer::leftSectionShade3() {
+    SoftVertex *v1 = m_leftArray[m_leftSection];
+    SoftVertex *v2 = m_leftArray[m_leftSection - 1];
 
     int height = v2->y - v1->y;
     if (height == 0) return 0;
-    delta_left_x = (v2->x - v1->x) / height;
-    left_x = v1->x;
+    m_deltaLeftX = (v2->x - v1->x) / height;
+    m_leftX = v1->x;
 
-    delta_left_R = ((v2->R - v1->R)) / height;
-    left_R = v1->R;
-    delta_left_G = ((v2->G - v1->G)) / height;
-    left_G = v1->G;
-    delta_left_B = ((v2->B - v1->B)) / height;
-    left_B = v1->B;
+    deltaLeftR = ((v2->R - v1->R)) / height;
+    m_leftR = v1->R;
+    m_deltaLeftG = ((v2->G - v1->G)) / height;
+    m_leftG = v1->G;
+    m_deltaLeftB = ((v2->B - v1->B)) / height;
+    m_leftB = v1->B;
 
-    left_section_height = height;
+    m_leftSectionHeight = height;
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool NextRow_G(void) {
-    if (--left_section_height <= 0) {
-        if (--left_section <= 0) return true;
-        if (LeftSection_G() <= 0) return true;
+bool PCSX::SoftGPU::SoftRenderer::nextRowShade3() {
+    if (--m_leftSectionHeight <= 0) {
+        if (--m_leftSection <= 0) return true;
+        if (leftSectionShade3() <= 0) return true;
     } else {
-        left_x += delta_left_x;
-        left_R += delta_left_R;
-        left_G += delta_left_G;
-        left_B += delta_left_B;
+        m_leftX += m_deltaLeftX;
+        m_leftR += deltaLeftR;
+        m_leftG += m_deltaLeftG;
+        m_leftB += m_deltaLeftB;
     }
 
-    if (--right_section_height <= 0) {
-        if (--right_section <= 0) return true;
-        if (RightSection_G() <= 0) return true;
+    if (--m_rightSectionHeight <= 0) {
+        if (--m_rightSection <= 0) return true;
+        if (rightSectionShade3() <= 0) return true;
     } else {
-        right_x += delta_right_x;
+        m_rightX += m_deltaRightX;
     }
     return false;
 }
@@ -1302,22 +1273,22 @@ static inline bool NextRow_G(void) {
 
 bool PCSX::SoftGPU::SoftRenderer::setupSectionsShade3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
                                                       int16_t y3, int32_t rgb1, int32_t rgb2, int32_t rgb3) {
-    soft_vertex *v1, *v2, *v3;
+    SoftVertex *v1, *v2, *v3;
     int height, int32_test, temp;
 
-    v1 = vtx;
+    v1 = m_vtx;
     v1->x = x1 << 16;
     v1->y = y1;
     v1->R = (rgb1)&0x00ff0000;
     v1->G = (rgb1 << 8) & 0x00ff0000;
     v1->B = (rgb1 << 16) & 0x00ff0000;
-    v2 = vtx + 1;
+    v2 = m_vtx + 1;
     v2->x = x2 << 16;
     v2->y = y2;
     v2->R = (rgb2)&0x00ff0000;
     v2->G = (rgb2 << 8) & 0x00ff0000;
     v2->B = (rgb2 << 16) & 0x00ff0000;
-    v3 = vtx + 2;
+    v3 = m_vtx + 2;
     v3->x = x3 << 16;
     v3->y = y3;
     v3->R = (rgb3)&0x00ff0000;
@@ -1325,17 +1296,17 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShade3(int16_t x1, int16_t y1, in
     v3->B = (rgb3 << 16) & 0x00ff0000;
 
     if (v1->y > v2->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v2;
         v2 = v;
     }
     if (v1->y > v3->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v3;
         v3 = v;
     }
     if (v2->y > v3->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v3;
         v3 = v;
     }
@@ -1347,33 +1318,33 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShade3(int16_t x1, int16_t y1, in
     if (int32_test == 0) return false;
 
     if (int32_test < 0) {
-        right_array[0] = v3;
-        right_array[1] = v2;
-        right_array[2] = v1;
-        right_section = 2;
-        left_array[0] = v3;
-        left_array[1] = v1;
-        left_section = 1;
+        m_rightArray[0] = v3;
+        m_rightArray[1] = v2;
+        m_rightArray[2] = v1;
+        m_rightSection = 2;
+        m_leftArray[0] = v3;
+        m_leftArray[1] = v1;
+        m_leftSection = 1;
 
-        if (LeftSection_G() <= 0) return false;
-        if (RightSection_G() <= 0) {
-            right_section--;
-            if (RightSection_G() <= 0) return false;
+        if (leftSectionShade3() <= 0) return false;
+        if (rightSectionShade3() <= 0) {
+            m_rightSection--;
+            if (rightSectionShade3() <= 0) return false;
         }
         if (int32_test > -0x1000) int32_test = -0x1000;
     } else {
-        left_array[0] = v3;
-        left_array[1] = v2;
-        left_array[2] = v1;
-        left_section = 2;
-        right_array[0] = v3;
-        right_array[1] = v1;
-        right_section = 1;
+        m_leftArray[0] = v3;
+        m_leftArray[1] = v2;
+        m_leftArray[2] = v1;
+        m_leftSection = 2;
+        m_rightArray[0] = v3;
+        m_rightArray[1] = v1;
+        m_rightSection = 1;
 
-        if (RightSection_G() <= 0) return false;
-        if (LeftSection_G() <= 0) {
-            left_section--;
-            if (LeftSection_G() <= 0) return false;
+        if (rightSectionShade3() <= 0) return false;
+        if (leftSectionShade3() <= 0) {
+            m_leftSection--;
+            if (leftSectionShade3() <= 0) return false;
         }
         if (int32_test < 0x1000) int32_test = 0x1000;
     }
@@ -1381,65 +1352,65 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShade3(int16_t x1, int16_t y1, in
     m_yMin = v1->y;
     m_yMax = std::min(v3->y - 1, m_drawH);
 
-    delta_right_R = shl10idiv(temp * ((v3->R - v1->R) >> 10) + ((v1->R - v2->R) << 6), int32_test);
-    delta_right_G = shl10idiv(temp * ((v3->G - v1->G) >> 10) + ((v1->G - v2->G) << 6), int32_test);
-    delta_right_B = shl10idiv(temp * ((v3->B - v1->B) >> 10) + ((v1->B - v2->B) << 6), int32_test);
+    m_deltaRightR = shl10idiv(temp * ((v3->R - v1->R) >> 10) + ((v1->R - v2->R) << 6), int32_test);
+    m_deltaRightG = shl10idiv(temp * ((v3->G - v1->G) >> 10) + ((v1->G - v2->G) << 6), int32_test);
+    m_deltaRightB = shl10idiv(temp * ((v3->B - v1->B) >> 10) + ((v1->B - v2->B) << 6), int32_test);
 
     return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline int RightSection_FT(void) {
-    soft_vertex *v1 = right_array[right_section];
-    soft_vertex *v2 = right_array[right_section - 1];
+int PCSX::SoftGPU::SoftRenderer::rightSectionFlatTextured3() {
+    SoftVertex *v1 = m_rightArray[m_rightSection];
+    SoftVertex *v2 = m_rightArray[m_rightSection - 1];
 
     int height = v2->y - v1->y;
     if (height == 0) return 0;
-    delta_right_x = (v2->x - v1->x) / height;
-    right_x = v1->x;
+    m_deltaRightX = (v2->x - v1->x) / height;
+    m_rightX = v1->x;
 
-    right_section_height = height;
+    m_rightSectionHeight = height;
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline int LeftSection_FT(void) {
-    soft_vertex *v1 = left_array[left_section];
-    soft_vertex *v2 = left_array[left_section - 1];
+int PCSX::SoftGPU::SoftRenderer::leftSectionFlatTextured3() {
+    SoftVertex *v1 = m_leftArray[m_leftSection];
+    SoftVertex *v2 = m_leftArray[m_leftSection - 1];
 
     int height = v2->y - v1->y;
     if (height == 0) return 0;
-    delta_left_x = (v2->x - v1->x) / height;
-    left_x = v1->x;
+    m_deltaLeftX = (v2->x - v1->x) / height;
+    m_leftX = v1->x;
 
-    delta_left_u = ((v2->u - v1->u)) / height;
-    left_u = v1->u;
-    delta_left_v = ((v2->v - v1->v)) / height;
-    left_v = v1->v;
+    m_deltaLeftU = ((v2->u - v1->u)) / height;
+    m_leftU = v1->u;
+    m_deltaLeftV = ((v2->v - v1->v)) / height;
+    m_leftV = v1->v;
 
-    left_section_height = height;
+    m_leftSectionHeight = height;
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool NextRow_FT(void) {
-    if (--left_section_height <= 0) {
-        if (--left_section <= 0) return true;
-        if (LeftSection_FT() <= 0) return true;
+bool PCSX::SoftGPU::SoftRenderer::nextRowFlatTextured3() {
+    if (--m_leftSectionHeight <= 0) {
+        if (--m_leftSection <= 0) return true;
+        if (leftSectionFlatTextured3() <= 0) return true;
     } else {
-        left_x += delta_left_x;
-        left_u += delta_left_u;
-        left_v += delta_left_v;
+        m_leftX += m_deltaLeftX;
+        m_leftU += m_deltaLeftU;
+        m_leftV += m_deltaLeftV;
     }
 
-    if (--right_section_height <= 0) {
-        if (--right_section <= 0) return true;
-        if (RightSection_FT() <= 0) return true;
+    if (--m_rightSectionHeight <= 0) {
+        if (--m_rightSection <= 0) return true;
+        if (rightSectionFlatTextured3() <= 0) return true;
     } else {
-        right_x += delta_right_x;
+        m_rightX += m_deltaRightX;
     }
     return false;
 }
@@ -1449,37 +1420,37 @@ static inline bool NextRow_FT(void) {
 bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlatTextured3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
                                                              int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2,
                                                              int16_t ty2, int16_t tx3, int16_t ty3) {
-    soft_vertex *v1, *v2, *v3;
+    SoftVertex *v1, *v2, *v3;
     int height, int32_test, temp;
 
-    v1 = vtx;
+    v1 = m_vtx;
     v1->x = x1 << 16;
     v1->y = y1;
     v1->u = tx1 << 16;
     v1->v = ty1 << 16;
-    v2 = vtx + 1;
+    v2 = m_vtx + 1;
     v2->x = x2 << 16;
     v2->y = y2;
     v2->u = tx2 << 16;
     v2->v = ty2 << 16;
-    v3 = vtx + 2;
+    v3 = m_vtx + 2;
     v3->x = x3 << 16;
     v3->y = y3;
     v3->u = tx3 << 16;
     v3->v = ty3 << 16;
 
     if (v1->y > v2->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v2;
         v2 = v;
     }
     if (v1->y > v3->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v3;
         v3 = v;
     }
     if (v2->y > v3->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v3;
         v3 = v;
     }
@@ -1493,33 +1464,33 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlatTextured3(int16_t x1, int16_t
     if (int32_test == 0) return false;
 
     if (int32_test < 0) {
-        right_array[0] = v3;
-        right_array[1] = v2;
-        right_array[2] = v1;
-        right_section = 2;
-        left_array[0] = v3;
-        left_array[1] = v1;
-        left_section = 1;
+        m_rightArray[0] = v3;
+        m_rightArray[1] = v2;
+        m_rightArray[2] = v1;
+        m_rightSection = 2;
+        m_leftArray[0] = v3;
+        m_leftArray[1] = v1;
+        m_leftSection = 1;
 
-        if (LeftSection_FT() <= 0) return false;
-        if (RightSection_FT() <= 0) {
-            right_section--;
-            if (RightSection_FT() <= 0) return false;
+        if (leftSectionFlatTextured3() <= 0) return false;
+        if (rightSectionFlatTextured3() <= 0) {
+            m_rightSection--;
+            if (rightSectionFlatTextured3() <= 0) return false;
         }
         if (int32_test > -0x1000) int32_test = -0x1000;
     } else {
-        left_array[0] = v3;
-        left_array[1] = v2;
-        left_array[2] = v1;
-        left_section = 2;
-        right_array[0] = v3;
-        right_array[1] = v1;
-        right_section = 1;
+        m_leftArray[0] = v3;
+        m_leftArray[1] = v2;
+        m_leftArray[2] = v1;
+        m_leftSection = 2;
+        m_rightArray[0] = v3;
+        m_rightArray[1] = v1;
+        m_rightSection = 1;
 
-        if (RightSection_FT() <= 0) return false;
-        if (LeftSection_FT() <= 0) {
-            left_section--;
-            if (LeftSection_FT() <= 0) return false;
+        if (rightSectionFlatTextured3() <= 0) return false;
+        if (leftSectionFlatTextured3() <= 0) {
+            m_leftSection--;
+            if (leftSectionFlatTextured3() <= 0) return false;
         }
         if (int32_test < 0x1000) int32_test = 0x1000;
     }
@@ -1527,8 +1498,8 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlatTextured3(int16_t x1, int16_t
     m_yMin = v1->y;
     m_yMax = std::min(v3->y - 1, m_drawH);
 
-    delta_right_u = shl10idiv(temp * ((v3->u - v1->u) >> 10) + ((v1->u - v2->u) << 6), int32_test);
-    delta_right_v = shl10idiv(temp * ((v3->v - v1->v) >> 10) + ((v1->v - v2->v) << 6), int32_test);
+    m_deltaRightU = shl10idiv(temp * ((v3->u - v1->u) >> 10) + ((v1->u - v2->u) << 6), int32_test);
+    m_deltaRightV = shl10idiv(temp * ((v3->v - v1->v) >> 10) + ((v1->v - v2->v) << 6), int32_test);
 
     return true;
 }
@@ -1536,66 +1507,66 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlatTextured3(int16_t x1, int16_t
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-static inline int RightSection_GT(void) {
-    soft_vertex *v1 = right_array[right_section];
-    soft_vertex *v2 = right_array[right_section - 1];
+int PCSX::SoftGPU::SoftRenderer::rightSectionShadeTextured3() {
+    SoftVertex *v1 = m_rightArray[m_rightSection];
+    SoftVertex *v2 = m_rightArray[m_rightSection - 1];
 
     int height = v2->y - v1->y;
     if (height == 0) return 0;
-    delta_right_x = (v2->x - v1->x) / height;
-    right_x = v1->x;
+    m_deltaRightX = (v2->x - v1->x) / height;
+    m_rightX = v1->x;
 
-    right_section_height = height;
+    m_rightSectionHeight = height;
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline int LeftSection_GT(void) {
-    soft_vertex *v1 = left_array[left_section];
-    soft_vertex *v2 = left_array[left_section - 1];
+int PCSX::SoftGPU::SoftRenderer::leftSectionShadeTextured3() {
+    SoftVertex *v1 = m_leftArray[m_leftSection];
+    SoftVertex *v2 = m_leftArray[m_leftSection - 1];
 
     int height = v2->y - v1->y;
     if (height == 0) return 0;
-    delta_left_x = (v2->x - v1->x) / height;
-    left_x = v1->x;
+    m_deltaLeftX = (v2->x - v1->x) / height;
+    m_leftX = v1->x;
 
-    delta_left_u = ((v2->u - v1->u)) / height;
-    left_u = v1->u;
-    delta_left_v = ((v2->v - v1->v)) / height;
-    left_v = v1->v;
+    m_deltaLeftU = ((v2->u - v1->u)) / height;
+    m_leftU = v1->u;
+    m_deltaLeftV = ((v2->v - v1->v)) / height;
+    m_leftV = v1->v;
 
-    delta_left_R = ((v2->R - v1->R)) / height;
-    left_R = v1->R;
-    delta_left_G = ((v2->G - v1->G)) / height;
-    left_G = v1->G;
-    delta_left_B = ((v2->B - v1->B)) / height;
-    left_B = v1->B;
+    deltaLeftR = ((v2->R - v1->R)) / height;
+    m_leftR = v1->R;
+    m_deltaLeftG = ((v2->G - v1->G)) / height;
+    m_leftG = v1->G;
+    m_deltaLeftB = ((v2->B - v1->B)) / height;
+    m_leftB = v1->B;
 
-    left_section_height = height;
+    m_leftSectionHeight = height;
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool NextRow_GT(void) {
-    if (--left_section_height <= 0) {
-        if (--left_section <= 0) return true;
-        if (LeftSection_GT() <= 0) return true;
+bool PCSX::SoftGPU::SoftRenderer::nextRowShadeTextured3() {
+    if (--m_leftSectionHeight <= 0) {
+        if (--m_leftSection <= 0) return true;
+        if (leftSectionShadeTextured3() <= 0) return true;
     } else {
-        left_x += delta_left_x;
-        left_u += delta_left_u;
-        left_v += delta_left_v;
-        left_R += delta_left_R;
-        left_G += delta_left_G;
-        left_B += delta_left_B;
+        m_leftX += m_deltaLeftX;
+        m_leftU += m_deltaLeftU;
+        m_leftV += m_deltaLeftV;
+        m_leftR += deltaLeftR;
+        m_leftG += m_deltaLeftG;
+        m_leftB += m_deltaLeftB;
     }
 
-    if (--right_section_height <= 0) {
-        if (--right_section <= 0) return true;
-        if (RightSection_GT() <= 0) return true;
+    if (--m_rightSectionHeight <= 0) {
+        if (--m_rightSection <= 0) return true;
+        if (rightSectionShadeTextured3() <= 0) return true;
     } else {
-        right_x += delta_right_x;
+        m_rightX += m_deltaRightX;
     }
     return false;
 }
@@ -1606,10 +1577,10 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
                                                               int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                                                               int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
                                                               int32_t rgb1, int32_t rgb2, int32_t rgb3) {
-    soft_vertex *v1, *v2, *v3;
+    SoftVertex *v1, *v2, *v3;
     int height, int32_test, temp;
 
-    v1 = vtx;
+    v1 = m_vtx;
     v1->x = x1 << 16;
     v1->y = y1;
     v1->u = tx1 << 16;
@@ -1618,7 +1589,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
     v1->G = (rgb1 << 8) & 0x00ff0000;
     v1->B = (rgb1 << 16) & 0x00ff0000;
 
-    v2 = vtx + 1;
+    v2 = m_vtx + 1;
     v2->x = x2 << 16;
     v2->y = y2;
     v2->u = tx2 << 16;
@@ -1627,7 +1598,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
     v2->G = (rgb2 << 8) & 0x00ff0000;
     v2->B = (rgb2 << 16) & 0x00ff0000;
 
-    v3 = vtx + 2;
+    v3 = m_vtx + 2;
     v3->x = x3 << 16;
     v3->y = y3;
     v3->u = tx3 << 16;
@@ -1637,17 +1608,17 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
     v3->B = (rgb3 << 16) & 0x00ff0000;
 
     if (v1->y > v2->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v2;
         v2 = v;
     }
     if (v1->y > v3->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v3;
         v3 = v;
     }
     if (v2->y > v3->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v3;
         v3 = v;
     }
@@ -1661,34 +1632,34 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
     if (int32_test == 0) return false;
 
     if (int32_test < 0) {
-        right_array[0] = v3;
-        right_array[1] = v2;
-        right_array[2] = v1;
-        right_section = 2;
-        left_array[0] = v3;
-        left_array[1] = v1;
-        left_section = 1;
+        m_rightArray[0] = v3;
+        m_rightArray[1] = v2;
+        m_rightArray[2] = v1;
+        m_rightSection = 2;
+        m_leftArray[0] = v3;
+        m_leftArray[1] = v1;
+        m_leftSection = 1;
 
-        if (LeftSection_GT() <= 0) return false;
-        if (RightSection_GT() <= 0) {
-            right_section--;
-            if (RightSection_GT() <= 0) return false;
+        if (leftSectionShadeTextured3() <= 0) return false;
+        if (rightSectionShadeTextured3() <= 0) {
+            m_rightSection--;
+            if (rightSectionShadeTextured3() <= 0) return false;
         }
 
         if (int32_test > -0x1000) int32_test = -0x1000;
     } else {
-        left_array[0] = v3;
-        left_array[1] = v2;
-        left_array[2] = v1;
-        left_section = 2;
-        right_array[0] = v3;
-        right_array[1] = v1;
-        right_section = 1;
+        m_leftArray[0] = v3;
+        m_leftArray[1] = v2;
+        m_leftArray[2] = v1;
+        m_leftSection = 2;
+        m_rightArray[0] = v3;
+        m_rightArray[1] = v1;
+        m_rightSection = 1;
 
-        if (RightSection_GT() <= 0) return false;
-        if (LeftSection_GT() <= 0) {
-            left_section--;
-            if (LeftSection_GT() <= 0) return false;
+        if (rightSectionShadeTextured3() <= 0) return false;
+        if (leftSectionShadeTextured3() <= 0) {
+            m_leftSection--;
+            if (leftSectionShadeTextured3() <= 0) return false;
         }
         if (int32_test < 0x1000) int32_test = 0x1000;
     }
@@ -1696,12 +1667,12 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
     m_yMin = v1->y;
     m_yMax = std::min(v3->y - 1, m_drawH);
 
-    delta_right_R = shl10idiv(temp * ((v3->R - v1->R) >> 10) + ((v1->R - v2->R) << 6), int32_test);
-    delta_right_G = shl10idiv(temp * ((v3->G - v1->G) >> 10) + ((v1->G - v2->G) << 6), int32_test);
-    delta_right_B = shl10idiv(temp * ((v3->B - v1->B) >> 10) + ((v1->B - v2->B) << 6), int32_test);
+    m_deltaRightR = shl10idiv(temp * ((v3->R - v1->R) >> 10) + ((v1->R - v2->R) << 6), int32_test);
+    m_deltaRightG = shl10idiv(temp * ((v3->G - v1->G) >> 10) + ((v1->G - v2->G) << 6), int32_test);
+    m_deltaRightB = shl10idiv(temp * ((v3->B - v1->B) >> 10) + ((v1->B - v2->B) << 6), int32_test);
 
-    delta_right_u = shl10idiv(temp * ((v3->u - v1->u) >> 10) + ((v1->u - v2->u) << 6), int32_test);
-    delta_right_v = shl10idiv(temp * ((v3->v - v1->v) >> 10) + ((v1->v - v2->v) << 6), int32_test);
+    m_deltaRightU = shl10idiv(temp * ((v3->u - v1->u) >> 10) + ((v1->u - v2->u) << 6), int32_test);
+    m_deltaRightV = shl10idiv(temp * ((v3->v - v1->v) >> 10) + ((v1->v - v2->v) << 6), int32_test);
 
     return true;
 }
@@ -1709,79 +1680,79 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-static inline int RightSection_F4(void) {
-    soft_vertex *v1 = right_array[right_section];
-    soft_vertex *v2 = right_array[right_section - 1];
+int PCSX::SoftGPU::SoftRenderer::rightSectionFlat4() {
+    SoftVertex *v1 = m_rightArray[m_rightSection];
+    SoftVertex *v2 = m_rightArray[m_rightSection - 1];
 
     int height = v2->y - v1->y;
-    right_section_height = height;
-    right_x = v1->x;
+    m_rightSectionHeight = height;
+    m_rightX = v1->x;
     if (height == 0) return 0;
-    delta_right_x = (v2->x - v1->x) / height;
+    m_deltaRightX = (v2->x - v1->x) / height;
 
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline int LeftSection_F4(void) {
-    soft_vertex *v1 = left_array[left_section];
-    soft_vertex *v2 = left_array[left_section - 1];
+int PCSX::SoftGPU::SoftRenderer::leftSectionFlat4() {
+    SoftVertex *v1 = m_leftArray[m_leftSection];
+    SoftVertex *v2 = m_leftArray[m_leftSection - 1];
 
     int height = v2->y - v1->y;
-    left_section_height = height;
-    left_x = v1->x;
+    m_leftSectionHeight = height;
+    m_leftX = v1->x;
     if (height == 0) return 0;
-    delta_left_x = (v2->x - v1->x) / height;
+    m_deltaLeftX = (v2->x - v1->x) / height;
 
     return height;
 }
 
 bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlat4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
                                                      int16_t y3, int16_t x4, int16_t y4) {
-    soft_vertex *v1, *v2, *v3, *v4;
+    SoftVertex *v1, *v2, *v3, *v4;
     int height, width, int32_test1, int32_test2;
 
-    v1 = vtx;
+    v1 = m_vtx;
     v1->x = x1 << 16;
     v1->y = y1;
-    v2 = vtx + 1;
+    v2 = m_vtx + 1;
     v2->x = x2 << 16;
     v2->y = y2;
-    v3 = vtx + 2;
+    v3 = m_vtx + 2;
     v3->x = x3 << 16;
     v3->y = y3;
-    v4 = vtx + 3;
+    v4 = m_vtx + 3;
     v4->x = x4 << 16;
     v4->y = y4;
 
     if (v1->y > v2->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v2;
         v2 = v;
     }
     if (v1->y > v3->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v3;
         v3 = v;
     }
     if (v1->y > v4->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v4;
         v4 = v;
     }
     if (v2->y > v3->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v3;
         v3 = v;
     }
     if (v2->y > v4->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v4;
         v4 = v;
     }
     if (v3->y > v4->y) {
-        soft_vertex *v = v3;
+        SoftVertex *v = v3;
         v3 = v4;
         v4 = v;
     }
@@ -1796,94 +1767,94 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlat4(int16_t x1, int16_t y1, int
         // 2 is right
         if (int32_test2 < 0) {
             // 3 is right
-            left_array[0] = v4;
-            left_array[1] = v1;
-            left_section = 1;
+            m_leftArray[0] = v4;
+            m_leftArray[1] = v1;
+            m_leftSection = 1;
 
             height = v3->y - v1->y;
             if (height == 0) height = 1;
             int32_test1 = (((v2->y - v1->y) << 16) / height) * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
             if (int32_test1 >= 0) {
-                right_array[0] = v4;  //  1
-                right_array[1] = v3;  //     3
-                right_array[2] = v1;  //  4
-                right_section = 2;
+                m_rightArray[0] = v4;  //  1
+                m_rightArray[1] = v3;  //     3
+                m_rightArray[2] = v1;  //  4
+                m_rightSection = 2;
             } else {
                 height = v4->y - v2->y;
                 if (height == 0) height = 1;
                 int32_test1 = (((v3->y - v2->y) << 16) / height) * ((v4->x - v2->x) >> 16) + (v2->x - v3->x);
                 if (int32_test1 >= 0) {
-                    right_array[0] = v4;  //  1
-                    right_array[1] = v2;  //     2
-                    right_array[2] = v1;  //  4
-                    right_section = 2;
+                    m_rightArray[0] = v4;  //  1
+                    m_rightArray[1] = v2;  //     2
+                    m_rightArray[2] = v1;  //  4
+                    m_rightSection = 2;
                 } else {
-                    right_array[0] = v4;  //  1
-                    right_array[1] = v3;  //     2
-                    right_array[2] = v2;  //     3
-                    right_array[3] = v1;  //  4
-                    right_section = 3;
+                    m_rightArray[0] = v4;  //  1
+                    m_rightArray[1] = v3;  //     2
+                    m_rightArray[2] = v2;  //     3
+                    m_rightArray[3] = v1;  //  4
+                    m_rightSection = 3;
                 }
             }
         } else {
-            left_array[0] = v4;
-            left_array[1] = v3;   //    1
-            left_array[2] = v1;   //      2
-            left_section = 2;     //  3
-            right_array[0] = v4;  //    4
-            right_array[1] = v2;
-            right_array[2] = v1;
-            right_section = 2;
+            m_leftArray[0] = v4;
+            m_leftArray[1] = v3;   //    1
+            m_leftArray[2] = v1;   //      2
+            m_leftSection = 2;     //  3
+            m_rightArray[0] = v4;  //    4
+            m_rightArray[1] = v2;
+            m_rightArray[2] = v1;
+            m_rightSection = 2;
         }
     } else {
         if (int32_test2 < 0) {
-            left_array[0] = v4;  //    1
-            left_array[1] = v2;  //  2
-            left_array[2] = v1;  //      3
-            left_section = 2;    //    4
-            right_array[0] = v4;
-            right_array[1] = v3;
-            right_array[2] = v1;
-            right_section = 2;
+            m_leftArray[0] = v4;  //    1
+            m_leftArray[1] = v2;  //  2
+            m_leftArray[2] = v1;  //      3
+            m_leftSection = 2;    //    4
+            m_rightArray[0] = v4;
+            m_rightArray[1] = v3;
+            m_rightArray[2] = v1;
+            m_rightSection = 2;
         } else {
-            right_array[0] = v4;
-            right_array[1] = v1;
-            right_section = 1;
+            m_rightArray[0] = v4;
+            m_rightArray[1] = v1;
+            m_rightSection = 1;
 
             height = v3->y - v1->y;
             if (height == 0) height = 1;
             int32_test1 = (((v2->y - v1->y) << 16) / height) * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
             if (int32_test1 < 0) {
-                left_array[0] = v4;  //    1
-                left_array[1] = v3;  //  3
-                left_array[2] = v1;  //    4
-                left_section = 2;
+                m_leftArray[0] = v4;  //    1
+                m_leftArray[1] = v3;  //  3
+                m_leftArray[2] = v1;  //    4
+                m_leftSection = 2;
             } else {
                 height = v4->y - v2->y;
                 if (height == 0) height = 1;
                 int32_test1 = (((v3->y - v2->y) << 16) / height) * ((v4->x - v2->x) >> 16) + (v2->x - v3->x);
                 if (int32_test1 < 0) {
-                    left_array[0] = v4;  //    1
-                    left_array[1] = v2;  //  2
-                    left_array[2] = v1;  //    4
-                    left_section = 2;
+                    m_leftArray[0] = v4;  //    1
+                    m_leftArray[1] = v2;  //  2
+                    m_leftArray[2] = v1;  //    4
+                    m_leftSection = 2;
                 } else {
-                    left_array[0] = v4;  //    1
-                    left_array[1] = v3;  //  2
-                    left_array[2] = v2;  //  3
-                    left_array[3] = v1;  //     4
-                    left_section = 3;
+                    m_leftArray[0] = v4;  //    1
+                    m_leftArray[1] = v3;  //  2
+                    m_leftArray[2] = v2;  //  3
+                    m_leftArray[3] = v1;  //     4
+                    m_leftSection = 3;
                 }
             }
         }
     }
 
-    while (LeftSection_F4() <= 0) {
-        if (--left_section <= 0) break;
+    while (leftSectionFlat4() <= 0) {
+        if (--m_leftSection <= 0) break;
     }
 
-    while (RightSection_F4() <= 0) {
-        if (--right_section <= 0) break;
+    while (rightSectionFlat4() <= 0) {
+        if (--m_rightSection <= 0) break;
     }
 
     m_yMin = v1->y;
@@ -1895,67 +1866,67 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlat4(int16_t x1, int16_t y1, int
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-static inline int RightSection_FT4(void) {
-    soft_vertex *v1 = right_array[right_section];
-    soft_vertex *v2 = right_array[right_section - 1];
+int PCSX::SoftGPU::SoftRenderer::rightSectionFlatTextured4() {
+    SoftVertex *v1 = m_rightArray[m_rightSection];
+    SoftVertex *v2 = m_rightArray[m_rightSection - 1];
 
     int height = v2->y - v1->y;
-    right_section_height = height;
-    right_x = v1->x;
-    right_u = v1->u;
-    right_v = v1->v;
+    m_rightSectionHeight = height;
+    m_rightX = v1->x;
+    m_rightU = v1->u;
+    m_rightV = v1->v;
     if (height == 0) return 0;
-    delta_right_x = (v2->x - v1->x) / height;
-    delta_right_u = (v2->u - v1->u) / height;
-    delta_right_v = (v2->v - v1->v) / height;
+    m_deltaRightX = (v2->x - v1->x) / height;
+    m_deltaRightU = (v2->u - v1->u) / height;
+    m_deltaRightV = (v2->v - v1->v) / height;
 
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline int LeftSection_FT4(void) {
-    soft_vertex *v1 = left_array[left_section];
-    soft_vertex *v2 = left_array[left_section - 1];
+int PCSX::SoftGPU::SoftRenderer::leftSectionFlatTextured4() {
+    SoftVertex *v1 = m_leftArray[m_leftSection];
+    SoftVertex *v2 = m_leftArray[m_leftSection - 1];
 
     int height = v2->y - v1->y;
-    left_section_height = height;
-    left_x = v1->x;
-    left_u = v1->u;
-    left_v = v1->v;
+    m_leftSectionHeight = height;
+    m_leftX = v1->x;
+    m_leftU = v1->u;
+    m_leftV = v1->v;
     if (height == 0) return 0;
-    delta_left_x = (v2->x - v1->x) / height;
-    delta_left_u = (v2->u - v1->u) / height;
-    delta_left_v = (v2->v - v1->v) / height;
+    m_deltaLeftX = (v2->x - v1->x) / height;
+    m_deltaLeftU = (v2->u - v1->u) / height;
+    m_deltaLeftV = (v2->v - v1->v) / height;
 
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool NextRow_FT4(void) {
-    if (--left_section_height <= 0) {
-        if (--left_section > 0) {
-            while (LeftSection_FT4() <= 0) {
-                if (--left_section <= 0) break;
+bool PCSX::SoftGPU::SoftRenderer::nextRowFlatTextured4() {
+    if (--m_leftSectionHeight <= 0) {
+        if (--m_leftSection > 0) {
+            while (leftSectionFlatTextured4() <= 0) {
+                if (--m_leftSection <= 0) break;
             }
         }
     } else {
-        left_x += delta_left_x;
-        left_u += delta_left_u;
-        left_v += delta_left_v;
+        m_leftX += m_deltaLeftX;
+        m_leftU += m_deltaLeftU;
+        m_leftV += m_deltaLeftV;
     }
 
-    if (--right_section_height <= 0) {
-        if (--right_section > 0) {
-            while (RightSection_FT4() <= 0) {
-                if (--right_section <= 0) break;
+    if (--m_rightSectionHeight <= 0) {
+        if (--m_rightSection > 0) {
+            while (rightSectionFlatTextured4() <= 0) {
+                if (--m_rightSection <= 0) break;
             }
         }
     } else {
-        right_x += delta_right_x;
-        right_u += delta_right_u;
-        right_v += delta_right_v;
+        m_rightX += m_deltaRightX;
+        m_rightU += m_deltaRightU;
+        m_rightV += m_deltaRightV;
     }
     return false;
 }
@@ -1966,60 +1937,60 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlatTextured4(int16_t x1, int16_t
                                                              int16_t y3, int16_t x4, int16_t y4, int16_t tx1,
                                                              int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
                                                              int16_t ty3, int16_t tx4, int16_t ty4) {
-    soft_vertex *v1, *v2, *v3, *v4;
+    SoftVertex *v1, *v2, *v3, *v4;
     int height, width, int32_test1, int32_test2;
 
-    v1 = vtx;
+    v1 = m_vtx;
     v1->x = x1 << 16;
     v1->y = y1;
     v1->u = tx1 << 16;
     v1->v = ty1 << 16;
 
-    v2 = vtx + 1;
+    v2 = m_vtx + 1;
     v2->x = x2 << 16;
     v2->y = y2;
     v2->u = tx2 << 16;
     v2->v = ty2 << 16;
 
-    v3 = vtx + 2;
+    v3 = m_vtx + 2;
     v3->x = x3 << 16;
     v3->y = y3;
     v3->u = tx3 << 16;
     v3->v = ty3 << 16;
 
-    v4 = vtx + 3;
+    v4 = m_vtx + 3;
     v4->x = x4 << 16;
     v4->y = y4;
     v4->u = tx4 << 16;
     v4->v = ty4 << 16;
 
     if (v1->y > v2->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v2;
         v2 = v;
     }
     if (v1->y > v3->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v3;
         v3 = v;
     }
     if (v1->y > v4->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v4;
         v4 = v;
     }
     if (v2->y > v3->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v3;
         v3 = v;
     }
     if (v2->y > v4->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v4;
         v4 = v;
     }
     if (v3->y > v4->y) {
-        soft_vertex *v = v3;
+        SoftVertex *v = v3;
         v3 = v4;
         v4 = v;
     }
@@ -2034,94 +2005,94 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlatTextured4(int16_t x1, int16_t
         // 2 is right
         if (int32_test2 < 0) {
             // 3 is right
-            left_array[0] = v4;
-            left_array[1] = v1;
-            left_section = 1;
+            m_leftArray[0] = v4;
+            m_leftArray[1] = v1;
+            m_leftSection = 1;
 
             height = v3->y - v1->y;
             if (height == 0) height = 1;
             int32_test1 = (((v2->y - v1->y) << 16) / height) * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
             if (int32_test1 >= 0) {
-                right_array[0] = v4;  //  1
-                right_array[1] = v3;  //     3
-                right_array[2] = v1;  //  4
-                right_section = 2;
+                m_rightArray[0] = v4;  //  1
+                m_rightArray[1] = v3;  //     3
+                m_rightArray[2] = v1;  //  4
+                m_rightSection = 2;
             } else {
                 height = v4->y - v2->y;
                 if (height == 0) height = 1;
                 int32_test1 = (((v3->y - v2->y) << 16) / height) * ((v4->x - v2->x) >> 16) + (v2->x - v3->x);
                 if (int32_test1 >= 0) {
-                    right_array[0] = v4;  //  1
-                    right_array[1] = v2;  //     2
-                    right_array[2] = v1;  //  4
-                    right_section = 2;
+                    m_rightArray[0] = v4;  //  1
+                    m_rightArray[1] = v2;  //     2
+                    m_rightArray[2] = v1;  //  4
+                    m_rightSection = 2;
                 } else {
-                    right_array[0] = v4;  //  1
-                    right_array[1] = v3;  //     2
-                    right_array[2] = v2;  //     3
-                    right_array[3] = v1;  //  4
-                    right_section = 3;
+                    m_rightArray[0] = v4;  //  1
+                    m_rightArray[1] = v3;  //     2
+                    m_rightArray[2] = v2;  //     3
+                    m_rightArray[3] = v1;  //  4
+                    m_rightSection = 3;
                 }
             }
         } else {
-            left_array[0] = v4;
-            left_array[1] = v3;   //    1
-            left_array[2] = v1;   //      2
-            left_section = 2;     //  3
-            right_array[0] = v4;  //    4
-            right_array[1] = v2;
-            right_array[2] = v1;
-            right_section = 2;
+            m_leftArray[0] = v4;
+            m_leftArray[1] = v3;   //    1
+            m_leftArray[2] = v1;   //      2
+            m_leftSection = 2;     //  3
+            m_rightArray[0] = v4;  //    4
+            m_rightArray[1] = v2;
+            m_rightArray[2] = v1;
+            m_rightSection = 2;
         }
     } else {
         if (int32_test2 < 0) {
-            left_array[0] = v4;  //    1
-            left_array[1] = v2;  //  2
-            left_array[2] = v1;  //      3
-            left_section = 2;    //    4
-            right_array[0] = v4;
-            right_array[1] = v3;
-            right_array[2] = v1;
-            right_section = 2;
+            m_leftArray[0] = v4;  //    1
+            m_leftArray[1] = v2;  //  2
+            m_leftArray[2] = v1;  //      3
+            m_leftSection = 2;    //    4
+            m_rightArray[0] = v4;
+            m_rightArray[1] = v3;
+            m_rightArray[2] = v1;
+            m_rightSection = 2;
         } else {
-            right_array[0] = v4;
-            right_array[1] = v1;
-            right_section = 1;
+            m_rightArray[0] = v4;
+            m_rightArray[1] = v1;
+            m_rightSection = 1;
 
             height = v3->y - v1->y;
             if (height == 0) height = 1;
             int32_test1 = (((v2->y - v1->y) << 16) / height) * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
             if (int32_test1 < 0) {
-                left_array[0] = v4;  //    1
-                left_array[1] = v3;  //  3
-                left_array[2] = v1;  //    4
-                left_section = 2;
+                m_leftArray[0] = v4;  //    1
+                m_leftArray[1] = v3;  //  3
+                m_leftArray[2] = v1;  //    4
+                m_leftSection = 2;
             } else {
                 height = v4->y - v2->y;
                 if (height == 0) height = 1;
                 int32_test1 = (((v3->y - v2->y) << 16) / height) * ((v4->x - v2->x) >> 16) + (v2->x - v3->x);
                 if (int32_test1 < 0) {
-                    left_array[0] = v4;  //    1
-                    left_array[1] = v2;  //  2
-                    left_array[2] = v1;  //    4
-                    left_section = 2;
+                    m_leftArray[0] = v4;  //    1
+                    m_leftArray[1] = v2;  //  2
+                    m_leftArray[2] = v1;  //    4
+                    m_leftSection = 2;
                 } else {
-                    left_array[0] = v4;  //    1
-                    left_array[1] = v3;  //  2
-                    left_array[2] = v2;  //  3
-                    left_array[3] = v1;  //     4
-                    left_section = 3;
+                    m_leftArray[0] = v4;  //    1
+                    m_leftArray[1] = v3;  //  2
+                    m_leftArray[2] = v2;  //  3
+                    m_leftArray[3] = v1;  //     4
+                    m_leftSection = 3;
                 }
             }
         }
     }
 
-    while (LeftSection_FT4() <= 0) {
-        if (--left_section <= 0) break;
+    while (leftSectionFlatTextured4() <= 0) {
+        if (--m_leftSection <= 0) break;
     }
 
-    while (RightSection_FT4() <= 0) {
-        if (--right_section <= 0) break;
+    while (rightSectionFlatTextured4() <= 0) {
+        if (--m_rightSection <= 0) break;
     }
 
     m_yMin = v1->y;
@@ -2133,52 +2104,52 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsFlatTextured4(int16_t x1, int16_t
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-static inline int RightSection_GT4(void) {
-    soft_vertex *v1 = right_array[right_section];
-    soft_vertex *v2 = right_array[right_section - 1];
+int PCSX::SoftGPU::SoftRenderer::rightSectionShadeTextured4() {
+    SoftVertex *v1 = m_rightArray[m_rightSection];
+    SoftVertex *v2 = m_rightArray[m_rightSection - 1];
 
     int height = v2->y - v1->y;
-    right_section_height = height;
-    right_x = v1->x;
-    right_u = v1->u;
-    right_v = v1->v;
-    right_R = v1->R;
-    right_G = v1->G;
-    right_B = v1->B;
+    m_rightSectionHeight = height;
+    m_rightX = v1->x;
+    m_rightU = v1->u;
+    m_rightV = v1->v;
+    m_rightR = v1->R;
+    m_rightG = v1->G;
+    m_rightB = v1->B;
 
     if (height == 0) return 0;
-    delta_right_x = (v2->x - v1->x) / height;
-    delta_right_u = (v2->u - v1->u) / height;
-    delta_right_v = (v2->v - v1->v) / height;
-    delta_right_R = (v2->R - v1->R) / height;
-    delta_right_G = (v2->G - v1->G) / height;
-    delta_right_B = (v2->B - v1->B) / height;
+    m_deltaRightX = (v2->x - v1->x) / height;
+    m_deltaRightU = (v2->u - v1->u) / height;
+    m_deltaRightV = (v2->v - v1->v) / height;
+    m_deltaRightR = (v2->R - v1->R) / height;
+    m_deltaRightG = (v2->G - v1->G) / height;
+    m_deltaRightB = (v2->B - v1->B) / height;
 
     return height;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline int LeftSection_GT4(void) {
-    soft_vertex *v1 = left_array[left_section];
-    soft_vertex *v2 = left_array[left_section - 1];
+int PCSX::SoftGPU::SoftRenderer::leftSectionShadeTextured4() {
+    SoftVertex *v1 = m_leftArray[m_leftSection];
+    SoftVertex *v2 = m_leftArray[m_leftSection - 1];
 
     int height = v2->y - v1->y;
-    left_section_height = height;
-    left_x = v1->x;
-    left_u = v1->u;
-    left_v = v1->v;
-    left_R = v1->R;
-    left_G = v1->G;
-    left_B = v1->B;
+    m_leftSectionHeight = height;
+    m_leftX = v1->x;
+    m_leftU = v1->u;
+    m_leftV = v1->v;
+    m_leftR = v1->R;
+    m_leftG = v1->G;
+    m_leftB = v1->B;
 
     if (height == 0) return 0;
-    delta_left_x = (v2->x - v1->x) / height;
-    delta_left_u = (v2->u - v1->u) / height;
-    delta_left_v = (v2->v - v1->v) / height;
-    delta_left_R = (v2->R - v1->R) / height;
-    delta_left_G = (v2->G - v1->G) / height;
-    delta_left_B = (v2->B - v1->B) / height;
+    m_deltaLeftX = (v2->x - v1->x) / height;
+    m_deltaLeftU = (v2->u - v1->u) / height;
+    m_deltaLeftV = (v2->v - v1->v) / height;
+    deltaLeftR = (v2->R - v1->R) / height;
+    m_deltaLeftG = (v2->G - v1->G) / height;
+    m_deltaLeftB = (v2->B - v1->B) / height;
 
     return height;
 }
@@ -2190,10 +2161,10 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
                                                               int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
                                                               int16_t tx3, int16_t ty3, int16_t tx4, int16_t ty4,
                                                               int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4) {
-    soft_vertex *v1, *v2, *v3, *v4;
+    SoftVertex *v1, *v2, *v3, *v4;
     int height, width, int32_test1, int32_test2;
 
-    v1 = vtx;
+    v1 = m_vtx;
     v1->x = x1 << 16;
     v1->y = y1;
     v1->u = tx1 << 16;
@@ -2202,7 +2173,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
     v1->G = (rgb1 << 8) & 0x00ff0000;
     v1->B = (rgb1 << 16) & 0x00ff0000;
 
-    v2 = vtx + 1;
+    v2 = m_vtx + 1;
     v2->x = x2 << 16;
     v2->y = y2;
     v2->u = tx2 << 16;
@@ -2211,7 +2182,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
     v2->G = (rgb2 << 8) & 0x00ff0000;
     v2->B = (rgb2 << 16) & 0x00ff0000;
 
-    v3 = vtx + 2;
+    v3 = m_vtx + 2;
     v3->x = x3 << 16;
     v3->y = y3;
     v3->u = tx3 << 16;
@@ -2220,7 +2191,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
     v3->G = (rgb3 << 8) & 0x00ff0000;
     v3->B = (rgb3 << 16) & 0x00ff0000;
 
-    v4 = vtx + 3;
+    v4 = m_vtx + 3;
     v4->x = x4 << 16;
     v4->y = y4;
     v4->u = tx4 << 16;
@@ -2230,32 +2201,32 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
     v4->B = (rgb4 << 16) & 0x00ff0000;
 
     if (v1->y > v2->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v2;
         v2 = v;
     }
     if (v1->y > v3->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v3;
         v3 = v;
     }
     if (v1->y > v4->y) {
-        soft_vertex *v = v1;
+        SoftVertex *v = v1;
         v1 = v4;
         v4 = v;
     }
     if (v2->y > v3->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v3;
         v3 = v;
     }
     if (v2->y > v4->y) {
-        soft_vertex *v = v2;
+        SoftVertex *v = v2;
         v2 = v4;
         v4 = v;
     }
     if (v3->y > v4->y) {
-        soft_vertex *v = v3;
+        SoftVertex *v = v3;
         v3 = v4;
         v4 = v;
     }
@@ -2270,94 +2241,94 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
         // 2 is right
         if (int32_test2 < 0) {
             // 3 is right
-            left_array[0] = v4;
-            left_array[1] = v1;
-            left_section = 1;
+            m_leftArray[0] = v4;
+            m_leftArray[1] = v1;
+            m_leftSection = 1;
 
             height = v3->y - v1->y;
             if (height == 0) height = 1;
             int32_test1 = (((v2->y - v1->y) << 16) / height) * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
             if (int32_test1 >= 0) {
-                right_array[0] = v4;  //  1
-                right_array[1] = v3;  //     3
-                right_array[2] = v1;  //  4
-                right_section = 2;
+                m_rightArray[0] = v4;  //  1
+                m_rightArray[1] = v3;  //     3
+                m_rightArray[2] = v1;  //  4
+                m_rightSection = 2;
             } else {
                 height = v4->y - v2->y;
                 if (height == 0) height = 1;
                 int32_test1 = (((v3->y - v2->y) << 16) / height) * ((v4->x - v2->x) >> 16) + (v2->x - v3->x);
                 if (int32_test1 >= 0) {
-                    right_array[0] = v4;  //  1
-                    right_array[1] = v2;  //     2
-                    right_array[2] = v1;  //  4
-                    right_section = 2;
+                    m_rightArray[0] = v4;  //  1
+                    m_rightArray[1] = v2;  //     2
+                    m_rightArray[2] = v1;  //  4
+                    m_rightSection = 2;
                 } else {
-                    right_array[0] = v4;  //  1
-                    right_array[1] = v3;  //     2
-                    right_array[2] = v2;  //     3
-                    right_array[3] = v1;  //  4
-                    right_section = 3;
+                    m_rightArray[0] = v4;  //  1
+                    m_rightArray[1] = v3;  //     2
+                    m_rightArray[2] = v2;  //     3
+                    m_rightArray[3] = v1;  //  4
+                    m_rightSection = 3;
                 }
             }
         } else {
-            left_array[0] = v4;
-            left_array[1] = v3;   //    1
-            left_array[2] = v1;   //      2
-            left_section = 2;     //  3
-            right_array[0] = v4;  //    4
-            right_array[1] = v2;
-            right_array[2] = v1;
-            right_section = 2;
+            m_leftArray[0] = v4;
+            m_leftArray[1] = v3;   //    1
+            m_leftArray[2] = v1;   //      2
+            m_leftSection = 2;     //  3
+            m_rightArray[0] = v4;  //    4
+            m_rightArray[1] = v2;
+            m_rightArray[2] = v1;
+            m_rightSection = 2;
         }
     } else {
         if (int32_test2 < 0) {
-            left_array[0] = v4;  //    1
-            left_array[1] = v2;  //  2
-            left_array[2] = v1;  //      3
-            left_section = 2;    //    4
-            right_array[0] = v4;
-            right_array[1] = v3;
-            right_array[2] = v1;
-            right_section = 2;
+            m_leftArray[0] = v4;  //    1
+            m_leftArray[1] = v2;  //  2
+            m_leftArray[2] = v1;  //      3
+            m_leftSection = 2;    //    4
+            m_rightArray[0] = v4;
+            m_rightArray[1] = v3;
+            m_rightArray[2] = v1;
+            m_rightSection = 2;
         } else {
-            right_array[0] = v4;
-            right_array[1] = v1;
-            right_section = 1;
+            m_rightArray[0] = v4;
+            m_rightArray[1] = v1;
+            m_rightSection = 1;
 
             height = v3->y - v1->y;
             if (height == 0) height = 1;
             int32_test1 = (((v2->y - v1->y) << 16) / height) * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
             if (int32_test1 < 0) {
-                left_array[0] = v4;  //    1
-                left_array[1] = v3;  //  3
-                left_array[2] = v1;  //    4
-                left_section = 2;
+                m_leftArray[0] = v4;  //    1
+                m_leftArray[1] = v3;  //  3
+                m_leftArray[2] = v1;  //    4
+                m_leftSection = 2;
             } else {
                 height = v4->y - v2->y;
                 if (height == 0) height = 1;
                 int32_test1 = (((v3->y - v2->y) << 16) / height) * ((v4->x - v2->x) >> 16) + (v2->x - v3->x);
                 if (int32_test1 < 0) {
-                    left_array[0] = v4;  //    1
-                    left_array[1] = v2;  //  2
-                    left_array[2] = v1;  //    4
-                    left_section = 2;
+                    m_leftArray[0] = v4;  //    1
+                    m_leftArray[1] = v2;  //  2
+                    m_leftArray[2] = v1;  //    4
+                    m_leftSection = 2;
                 } else {
-                    left_array[0] = v4;  //    1
-                    left_array[1] = v3;  //  2
-                    left_array[2] = v2;  //  3
-                    left_array[3] = v1;  //     4
-                    left_section = 3;
+                    m_leftArray[0] = v4;  //    1
+                    m_leftArray[1] = v3;  //  2
+                    m_leftArray[2] = v2;  //  3
+                    m_leftArray[3] = v1;  //     4
+                    m_leftSection = 3;
                 }
             }
         }
     }
 
-    while (LeftSection_GT4() <= 0) {
-        if (--left_section <= 0) break;
+    while (leftSectionShadeTextured4() <= 0) {
+        if (--m_leftSection <= 0) break;
     }
 
-    while (RightSection_GT4() <= 0) {
-        if (--right_section <= 0) break;
+    while (rightSectionShadeTextured4() <= 0) {
+        if (--m_rightSection <= 0) break;
     }
 
     m_yMin = v1->y;
@@ -2399,15 +2370,15 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2
     lcolor = m_setMask32 | (((uint32_t)(color)) << 16) | color;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_F()) return;
+        if (nextRowFlat3()) return;
     }
 
     if (!m_checkMask && !m_drawSemiTrans) {
         color |= m_setMask16;
         for (i = ymin; i <= ymax; i++) {
-            xmin = left_x >> 16;
+            xmin = m_leftX >> 16;
             if (m_drawX > xmin) xmin = m_drawX;
-            xmax = (right_x >> 16) - 1;
+            xmax = (m_rightX >> 16) - 1;
             if (m_drawW < xmax) xmax = m_drawW;
 
             for (j = xmin; j < xmax; j += 2) {
@@ -2415,15 +2386,15 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2
             }
             if (j == xmax) m_vram16[(i << 10) + j] = color;
 
-            if (NextRow_F()) return;
+            if (nextRowFlat3()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = left_x >> 16;
+        xmin = m_leftX >> 16;
         if (m_drawX > xmin) xmin = m_drawX;
-        xmax = (right_x >> 16) - 1;
+        xmax = (m_rightX >> 16) - 1;
         if (m_drawW < xmax) xmax = m_drawW;
 
         for (j = xmin; j < xmax; j += 2) {
@@ -2431,7 +2402,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2
         }
         if (j == xmax) getShadeTransCol(&m_vram16[(i << 10) + j], color);
 
-        if (NextRow_F()) return;
+        if (nextRowFlat3()) return;
     }
 }
 
@@ -2467,7 +2438,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_FT()) return;
+        if (nextRowFlatTextured3()) return;
     }
 
     clutP = (clY << 10) + clX;
@@ -2475,22 +2446,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
     YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
     YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0 >> 1);
 
-    difX = delta_right_u;
+    difX = m_deltaRightU;
     difX2 = difX << 1;
-    difY = delta_right_v;
+    difY = m_deltaRightV;
     difY2 = difY << 1;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16);  //-1; //!!!!!!!!!!!!!!!!
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16);  //-1; //!!!!!!!!!!!!!!!!
             if (xmax > xmin) xmax--;
 
             if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
+                posX = m_leftU;
+                posY = m_leftV;
 
                 if (xmin < m_drawX) {
                     j = m_drawX - xmin;
@@ -2523,19 +2494,19 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
                     getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
-            if (NextRow_FT()) return;
+            if (nextRowFlatTextured3()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!!
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16) - 1;  //!!!!!!!!!!!!!!!!!!
         if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
+            posX = m_leftU;
+            posY = m_leftV;
 
             if (xmin < m_drawX) {
                 j = m_drawX - xmin;
@@ -2568,7 +2539,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
                 getTextureTransColShade(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
-        if (NextRow_FT()) return;
+        if (nextRowFlatTextured3()) return;
     }
 }
 
@@ -2596,7 +2567,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 
     clutP = (clY << 10) + clX;
@@ -2606,17 +2577,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16);
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16);
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
+                posX = m_leftU;
+                posY = m_leftV;
 
                 num = (xmax - xmin);
                 if (num == 0) num = 1;
-                difX = (right_u - posX) / num;
-                difY = (right_v - posY) / num;
+                difX = (m_rightU - posX) / num;
+                difY = (m_rightV - posY) / num;
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
@@ -2652,23 +2623,23 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
                     getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
-            if (NextRow_FT4()) return;
+            if (nextRowFlatTextured4()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16);
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16);
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
+            posX = m_leftU;
+            posY = m_leftV;
 
             num = (xmax - xmin);
             if (num == 0) num = 1;
-            difX = (right_u - posX) / num;
-            difY = (right_v - posY) / num;
+            difX = (m_rightU - posX) / num;
+            difY = (m_rightV - posY) / num;
             difX2 = difX << 1;
             difY2 = difY << 1;
 
@@ -2704,7 +2675,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
                 getTextureTransColShade(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 }
 
@@ -2732,7 +2703,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 
     clutP = (clY << 10) + clX;
@@ -2742,17 +2713,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16);
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16);
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
+                posX = m_leftU;
+                posY = m_leftV;
 
                 num = (xmax - xmin);
                 if (num == 0) num = 1;
-                difX = (right_u - posX) / num;
-                difY = (right_v - posY) / num;
+                difX = (m_rightU - posX) / num;
+                difY = (m_rightV - posY) / num;
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
@@ -2788,23 +2759,23 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
                     getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
-            if (NextRow_FT4()) return;
+            if (nextRowFlatTextured4()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16);
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16);
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
+            posX = m_leftU;
+            posY = m_leftV;
 
             num = (xmax - xmin);
             if (num == 0) num = 1;
-            difX = (right_u - posX) / num;
-            difY = (right_v - posY) / num;
+            difX = (m_rightU - posX) / num;
+            difY = (m_rightV - posY) / num;
             difX2 = difX << 1;
             difY2 = difY << 1;
 
@@ -2840,7 +2811,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
                 getTextureTransColShadeSemi(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 }
 
@@ -2866,7 +2837,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_FT()) return;
+        if (nextRowFlatTextured3()) return;
     }
 
     clutP = (clY << 10) + clX;
@@ -2874,22 +2845,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
     YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
     YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0);
 
-    difX = delta_right_u;
+    difX = m_deltaRightU;
     difX2 = difX << 1;
-    difY = delta_right_v;
+    difY = m_deltaRightV;
     difY2 = difY << 1;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16);  //-1; //!!!!!!!!!!!!!!!!
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16);  //-1; //!!!!!!!!!!!!!!!!
             if (xmax > xmin) xmax--;
 
             if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
+                posX = m_leftU;
+                posY = m_leftV;
 
                 if (xmin < m_drawX) {
                     j = m_drawX - xmin;
@@ -2915,19 +2886,19 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
                     getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
-            if (NextRow_FT()) return;
+            if (nextRowFlatTextured3()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16) - 1;  //!!!!!!!!!!!!!!!!!
         if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
+            posX = m_leftU;
+            posY = m_leftV;
 
             if (xmin < m_drawX) {
                 j = m_drawX - xmin;
@@ -2953,7 +2924,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
                 getTextureTransColShade(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
-        if (NextRow_FT()) return;
+        if (nextRowFlatTextured3()) return;
     }
 }
 
@@ -2981,7 +2952,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 
     clutP = (clY << 10) + clX;
@@ -2991,17 +2962,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16);
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16);
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
+                posX = m_leftU;
+                posY = m_leftV;
 
                 num = (xmax - xmin);
                 if (num == 0) num = 1;
-                difX = (right_u - posX) / num;
-                difY = (right_v - posY) / num;
+                difX = (m_rightU - posX) / num;
+                difY = (m_rightV - posY) / num;
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
@@ -3030,23 +3001,23 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
                     getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
-            if (NextRow_FT4()) return;
+            if (nextRowFlatTextured4()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16);
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16);
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
+            posX = m_leftU;
+            posY = m_leftV;
 
             num = (xmax - xmin);
             if (num == 0) num = 1;
-            difX = (right_u - posX) / num;
-            difY = (right_v - posY) / num;
+            difX = (m_rightU - posX) / num;
+            difY = (m_rightV - posY) / num;
             difX2 = difX << 1;
             difY2 = difY << 1;
 
@@ -3075,7 +3046,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
                 getTextureTransColShade(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 }
 
@@ -3103,7 +3074,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 
     clutP = (clY << 10) + clX;
@@ -3113,17 +3084,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16);
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16);
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
+                posX = m_leftU;
+                posY = m_leftV;
 
                 num = (xmax - xmin);
                 if (num == 0) num = 1;
-                difX = (right_u - posX) / num;
-                difY = (right_v - posY) / num;
+                difX = (m_rightU - posX) / num;
+                difY = (m_rightV - posY) / num;
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
@@ -3152,23 +3123,23 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
                     getTextureTransColShadeSolid(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
                 }
             }
-            if (NextRow_FT4()) return;
+            if (nextRowFlatTextured4()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16);
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16);
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
+            posX = m_leftU;
+            posY = m_leftV;
 
             num = (xmax - xmin);
             if (num == 0) num = 1;
-            difX = (right_u - posX) / num;
-            difY = (right_v - posY) / num;
+            difX = (m_rightU - posX) / num;
+            difY = (m_rightV - posY) / num;
             difX2 = difX << 1;
             difY2 = difY << 1;
 
@@ -3197,7 +3168,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
                 getTextureTransColShadeSemi(&m_vram16[(i << 10) + j], m_vram16[clutP + tC1]);
             }
         }
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 }
 
@@ -3224,23 +3195,23 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_FT()) return;
+        if (nextRowFlatTextured3()) return;
     }
 
-    difX = delta_right_u;
+    difX = m_deltaRightU;
     difX2 = difX << 1;
-    difY = delta_right_v;
+    difY = m_deltaRightV;
     difY2 = difY << 1;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16) - 1;  //!!!!!!!!!!!!!
             if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
+                posX = m_leftU;
+                posY = m_leftV;
 
                 if (xmin < m_drawX) {
                     j = m_drawX - xmin;
@@ -3276,19 +3247,19 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
                                                           m_lobalTextAddrX + m_textureWindow.Position.x0]);
                 }
             }
-            if (NextRow_FT()) return;
+            if (nextRowFlatTextured3()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16) - 1;  //!!!!!!!!!!!!!!
         if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
+            posX = m_leftU;
+            posY = m_leftV;
 
             if (xmin < m_drawX) {
                 j = m_drawX - xmin;
@@ -3323,7 +3294,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
                                                  m_textureWindow.Position.x0]);
             }
         }
-        if (NextRow_FT()) return;
+        if (nextRowFlatTextured3()) return;
     }
 }
 
@@ -3349,22 +3320,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16);
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16);
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
+                posX = m_leftU;
+                posY = m_leftV;
 
                 num = (xmax - xmin);
                 if (num == 0) num = 1;
-                difX = (right_u - posX) / num;
-                difY = (right_v - posY) / num;
+                difX = (m_rightU - posX) / num;
+                difY = (m_rightV - posY) / num;
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
@@ -3402,23 +3373,23 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
                                                           m_lobalTextAddrX + m_textureWindow.Position.x0]);
                 }
             }
-            if (NextRow_FT4()) return;
+            if (nextRowFlatTextured4()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16);
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16);
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
+            posX = m_leftU;
+            posY = m_leftV;
 
             num = (xmax - xmin);
             if (num == 0) num = 1;
-            difX = (right_u - posX) / num;
-            difY = (right_v - posY) / num;
+            difX = (m_rightU - posX) / num;
+            difY = (m_rightV - posY) / num;
             difX2 = difX << 1;
             difY2 = difY << 1;
 
@@ -3457,7 +3428,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
                                                  m_textureWindow.Position.x0]);
             }
         }
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 }
 
@@ -3483,22 +3454,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16);
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16);
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
+                posX = m_leftU;
+                posY = m_leftV;
 
                 num = (xmax - xmin);
                 if (num == 0) num = 1;
-                difX = (right_u - posX) / num;
-                difY = (right_v - posY) / num;
+                difX = (m_rightU - posX) / num;
+                difY = (m_rightV - posY) / num;
                 difX2 = difX << 1;
                 difY2 = difY << 1;
 
@@ -3536,23 +3507,23 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
                                                           m_lobalTextAddrX + m_textureWindow.Position.x0]);
                 }
             }
-            if (NextRow_FT4()) return;
+            if (nextRowFlatTextured4()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16);
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16);
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
+            posX = m_leftU;
+            posY = m_leftV;
 
             num = (xmax - xmin);
             if (num == 0) num = 1;
-            difX = (right_u - posX) / num;
-            difY = (right_v - posY) / num;
+            difX = (m_rightU - posX) / num;
+            difY = (m_rightV - posY) / num;
             difX2 = difX << 1;
             difY2 = difY << 1;
 
@@ -3591,7 +3562,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
                                                      m_textureWindow.Position.x0]);
             }
         }
-        if (NextRow_FT4()) return;
+        if (nextRowFlatTextured4()) return;
     }
 }
 
@@ -3617,26 +3588,26 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_G()) return;
+        if (nextRowShade3()) return;
     }
 
-    difR = delta_right_R;
-    difG = delta_right_G;
-    difB = delta_right_B;
+    difR = m_deltaRightR;
+    difG = m_deltaRightG;
+    difB = m_deltaRightB;
     difR2 = difR << 1;
     difG2 = difG << 1;
     difB2 = difB << 1;
 
     if (!m_checkMask && !m_drawSemiTrans && m_ditherMode != 2) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16) - 1;
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16) - 1;
             if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
-                cR1 = left_R;
-                cG1 = left_G;
-                cB1 = left_B;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < m_drawX) {
                     j = m_drawX - xmin;
@@ -3662,21 +3633,21 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
                         (((cR1 >> 9) & 0x7c00) | ((cG1 >> 14) & 0x03e0) | ((cB1 >> 19) & 0x001f)) | m_setMask16;
                 }
             }
-            if (NextRow_G()) return;
+            if (nextRowShade3()) return;
         }
         return;
     }
 
     if (m_ditherMode == 2)
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16) - 1;
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16) - 1;
             if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
-                cR1 = left_R;
-                cG1 = left_G;
-                cB1 = left_B;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < m_drawX) {
                     j = m_drawX - xmin;
@@ -3694,18 +3665,18 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
                     cB1 += difB;
                 }
             }
-            if (NextRow_G()) return;
+            if (nextRowShade3()) return;
         }
     else
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16) - 1;
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16) - 1;
             if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
-                cR1 = left_R;
-                cG1 = left_G;
-                cB1 = left_B;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < m_drawX) {
                     j = m_drawX - xmin;
@@ -3724,7 +3695,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
                     cB1 += difB;
                 }
             }
-            if (NextRow_G()) return;
+            if (nextRowShade3()) return;
         }
 }
 
@@ -3766,7 +3737,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_GT()) return;
+        if (nextRowShadeTextured3()) return;
     }
 
     clutP = (clY << 10) + clX;
@@ -3774,30 +3745,30 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
     YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
     YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0 >> 1);
 
-    difR = delta_right_R;
-    difG = delta_right_G;
-    difB = delta_right_B;
+    difR = m_deltaRightR;
+    difG = m_deltaRightG;
+    difB = m_deltaRightB;
     difR2 = difR << 1;
     difG2 = difG << 1;
     difB2 = difB << 1;
 
-    difX = delta_right_u;
+    difX = m_deltaRightU;
     difX2 = difX << 1;
-    difY = delta_right_v;
+    difY = m_deltaRightV;
     difY2 = difY << 1;
 
     if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = ((left_x) >> 16);
-            xmax = ((right_x) >> 16) - 1;  //!!!!!!!!!!!!!
+            xmin = ((m_leftX) >> 16);
+            xmax = ((m_rightX) >> 16) - 1;  //!!!!!!!!!!!!!
             if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
-                cR1 = left_R;
-                cG1 = left_G;
-                cB1 = left_B;
+                posX = m_leftU;
+                posY = m_leftV;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < m_drawX) {
                     j = m_drawX - xmin;
@@ -3838,22 +3809,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
                                                   (cG1 >> 16), (cR1 >> 16));
                 }
             }
-            if (NextRow_GT()) return;
+            if (nextRowShadeTextured3()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16) - 1;  //!!!!!!!!!!!!!!!!
         if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
-            cR1 = left_R;
-            cG1 = left_G;
-            cB1 = left_B;
+            posX = m_leftU;
+            posY = m_leftV;
+            cR1 = m_leftR;
+            cG1 = m_leftG;
+            cB1 = m_leftB;
 
             if (xmin < m_drawX) {
                 j = m_drawX - xmin;
@@ -3884,7 +3855,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
                 cB1 += difB;
             }
         }
-        if (NextRow_GT()) return;
+        if (nextRowShadeTextured3()) return;
     }
 }
 
@@ -3925,7 +3896,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_GT()) return;
+        if (nextRowShadeTextured3()) return;
     }
 
     clutP = (clY << 10) + clX;
@@ -3933,29 +3904,29 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
     YAdjust = ((m_globalTextAddrY) << 11) + (m_lobalTextAddrX << 1);
     YAdjust += (m_textureWindow.Position.y0 << 11) + (m_textureWindow.Position.x0);
 
-    difR = delta_right_R;
-    difG = delta_right_G;
-    difB = delta_right_B;
+    difR = m_deltaRightR;
+    difG = m_deltaRightG;
+    difB = m_deltaRightB;
     difR2 = difR << 1;
     difG2 = difG << 1;
     difB2 = difB << 1;
-    difX = delta_right_u;
+    difX = m_deltaRightU;
     difX2 = difX << 1;
-    difY = delta_right_v;
+    difY = m_deltaRightV;
     difY2 = difY << 1;
 
     if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16) - 1;  // !!!!!!!!!!!!!
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16) - 1;  // !!!!!!!!!!!!!
             if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
-                cR1 = left_R;
-                cG1 = left_G;
-                cB1 = left_B;
+                posX = m_leftU;
+                posY = m_leftV;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < m_drawX) {
                     j = m_drawX - xmin;
@@ -3991,22 +3962,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
                                                   (cG1 >> 16), (cR1 >> 16));
                 }
             }
-            if (NextRow_GT()) return;
+            if (nextRowShadeTextured3()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!!!!!!!
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16) - 1;  //!!!!!!!!!!!!!!!!!!!!!!!
         if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
-            cR1 = left_R;
-            cG1 = left_G;
-            cB1 = left_B;
+            posX = m_leftU;
+            posY = m_leftV;
+            cR1 = m_leftR;
+            cG1 = m_leftG;
+            cB1 = m_leftB;
 
             if (xmin < m_drawX) {
                 j = m_drawX - xmin;
@@ -4035,7 +4006,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
                 cB1 += difB;
             }
         }
-        if (NextRow_GT()) return;
+        if (nextRowShadeTextured3()) return;
     }
 }
 
@@ -4073,32 +4044,32 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
     ymax = m_yMax;
 
     for (ymin = m_yMin; ymin < m_drawY; ymin++) {
-        if (NextRow_GT()) return;
+        if (nextRowShadeTextured3()) return;
     }
 
-    difR = delta_right_R;
-    difG = delta_right_G;
-    difB = delta_right_B;
+    difR = m_deltaRightR;
+    difG = m_deltaRightG;
+    difB = m_deltaRightB;
     difR2 = difR << 1;
     difG2 = difG << 1;
     difB2 = difB << 1;
-    difX = delta_right_u;
+    difX = m_deltaRightU;
     difX2 = difX << 1;
-    difY = delta_right_v;
+    difY = m_deltaRightV;
     difY2 = difY << 1;
 
     if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
-            xmin = (left_x >> 16);
-            xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!!!!
+            xmin = (m_leftX >> 16);
+            xmax = (m_rightX >> 16) - 1;  //!!!!!!!!!!!!!!!!!!!!
             if (m_drawW < xmax) xmax = m_drawW;
 
             if (xmax >= xmin) {
-                posX = left_u;
-                posY = left_v;
-                cR1 = left_R;
-                cG1 = left_G;
-                cB1 = left_B;
+                posX = m_leftU;
+                posY = m_leftV;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < m_drawX) {
                     j = m_drawX - xmin;
@@ -4142,22 +4113,22 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
                                                   (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
                 }
             }
-            if (NextRow_GT()) return;
+            if (nextRowShadeTextured3()) return;
         }
         return;
     }
 
     for (i = ymin; i <= ymax; i++) {
-        xmin = (left_x >> 16);
-        xmax = (right_x >> 16) - 1;  //!!!!!!!!!!!!!!!!!!
+        xmin = (m_leftX >> 16);
+        xmax = (m_rightX >> 16) - 1;  //!!!!!!!!!!!!!!!!!!
         if (m_drawW < xmax) xmax = m_drawW;
 
         if (xmax >= xmin) {
-            posX = left_u;
-            posY = left_v;
-            cR1 = left_R;
-            cG1 = left_G;
-            cB1 = left_B;
+            posX = m_leftU;
+            posY = m_leftV;
+            cR1 = m_leftR;
+            cG1 = m_leftG;
+            cB1 = m_leftB;
 
             if (xmin < m_drawX) {
                 j = m_drawX - xmin;
@@ -4194,7 +4165,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
                 cB1 += difB;
             }
         }
-        if (NextRow_GT()) return;
+        if (nextRowShadeTextured3()) return;
     }
 }
 
