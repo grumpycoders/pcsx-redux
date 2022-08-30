@@ -665,7 +665,6 @@ static constexpr inline bool CheckCoordL(int16_t slx0, int16_t sly0, int16_t slx
 template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
 void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
     auto count = prim->colors.size();
-    if (count < 2) return;
 
     m_drawSemiTrans = blend == Blend::Semi;
 

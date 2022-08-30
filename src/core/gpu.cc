@@ -89,21 +89,22 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(uint32
 template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
 void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
     if constexpr (lineType == LineType::Poly) {
-        switch (m_state) {
-            case READ_COLOR:
-                colors.push_back(value);
-                m_state = READ_XY;
-                return;
-            case READ_XY:
-                if ((value & 0xf000f000) == 0x50005000) break;
-                x.push_back(GPU::signExtend<int, 11>(value & 0xffff));
-                y.push_back(GPU::signExtend<int, 11>(value >> 16));
-                if constexpr (shading == Shading::Flat) {
-                    colors.push_back(colors[0]);
-                } else {
-                    m_state = READ_COLOR;
+        if ((value & 0xf000f000) != 0x50005000) {
+            switch (m_state) {
+                case READ_COLOR:
+                    colors.push_back(value);
+                    m_state = READ_XY;
                     return;
-                }
+                case READ_XY:
+                    if constexpr (shading == Shading::Flat) {
+                        if (x.size() != 0) colors.push_back(colors[0]);
+                    } else {
+                        m_state = READ_COLOR;
+                    }
+                    x.push_back(GPU::signExtend<int, 11>(value & 0xffff));
+                    y.push_back(GPU::signExtend<int, 11>(value >> 16));
+                    return;
+            }
         }
     } else {
         switch (m_state) {
@@ -129,7 +130,16 @@ void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
     }
     m_state = READ_COLOR;
     m_gpu->m_defaultProcessor.setActive();
-    m_gpu->write0(this);
+    if (colors.size() >= 2) {
+        m_gpu->write0(this);
+    } else {
+        // derp, invalid
+    }
+    if constexpr (lineType == LineType::Poly) {
+        colors.clear();
+        x.clear();
+        y.clear();
+    }
 }
 
 template <GPU::Size size, GPU::Textured textured, GPU::Blend blend, GPU::Modulation modulation>
