@@ -56,6 +56,7 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(uint32
                             v[m_count] = (value >> 8) & 0xff;
                             value >>= 16;
                             if (m_count == 0) {
+                                clutraw = value;
                                 clutX = value & 0x3f;
                                 clutY = (value >> 6) & 0x1ff;
                             } else if (m_count == 1) {
@@ -148,6 +149,7 @@ void GPU::Rect<size, textured, blend, modulation>::processWrite(uint32_t value) 
                         u = value & 0xff;
                         v = (value >> 8) & 0xff;
                         value >>= 16;
+                        clutraw = value;
                         clutX = value & 0x3f;
                         clutY = (value >> 6) & 0x1ff;
                     }
@@ -609,42 +611,44 @@ void PCSX::GPU::Command::processWrite(uint32_t value) {
     switch (cmdType) {
         case 0:  // GPU command
             switch (command) {
-                case 0x01:  // clear cache
-                    break;
-                case 0x02:  // fast fill
+                case 0x01: {  // clear cache
+                    ClearCache prim;
+                    m_gpu->write0(&prim);
+                } break;
+                case 0x02: {  // fast fill
                     m_gpu->m_fastFill.setActive();
                     m_gpu->m_fastFill.processWrite(color);
-                    break;
-                default:
+                } break;
+                default: {
                     gotUnknown = true;
-                    break;
+                } break;
             }
             break;
-        case 1:  // Polygon primitive
+        case 1: {  // Polygon primitive
             m_gpu->m_polygons[command]->setActive();
             m_gpu->m_processor->processWrite(packetInfo);
-            break;
-        case 2:  // Line primitive
+        } break;
+        case 2: {  // Line primitive
             m_gpu->m_lines[command]->setActive();
             m_gpu->m_processor->processWrite(packetInfo);
-            break;
-        case 3:  // Rectangle primitive
+        } break;
+        case 3: {  // Rectangle primitive
             m_gpu->m_rects[command]->setActive();
             m_gpu->m_processor->processWrite(packetInfo);
-            break;
-        case 4:  // Move data in VRAM
+        } break;
+        case 4: {  // Move data in VRAM
             m_gpu->m_blitVramVram.setActive();
             m_gpu->m_processor->processWrite(packetInfo);
-            break;
-        case 5:  // Write data to VRAM
+        } break;
+        case 5: {  // Write data to VRAM
             m_gpu->m_blitRamVram.setActive();
             m_gpu->m_processor->processWrite(packetInfo);
-            break;
-        case 6:  // Read data from VRAM
+        } break;
+        case 6: {  // Read data from VRAM
             m_gpu->m_blitVramRam.setActive();
             m_gpu->m_processor->processWrite(packetInfo);
-            break;
-        case 7:  // Environment command
+        } break;
+        case 7: {  // Environment command
             switch (command) {
                 case 1: {  // tpage
                     TPage tpage(packetInfo);
@@ -680,7 +684,7 @@ void PCSX::GPU::Command::processWrite(uint32_t value) {
                     gotUnknown = true;
                 } break;
             }
-            break;
+        } break;
     }
     if (gotUnknown) {
     }

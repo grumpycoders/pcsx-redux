@@ -34,7 +34,7 @@
 #include "imgui.h"
 #include "tracy/Tracy.hpp"
 
-#define GPUSTATUS_DMABITS 0x60000000  // Two bits
+#define GPUSTATUS_DMABITS 0x60000000
 #define GPUSTATUS_READYFORCOMMANDS 0x10000000
 #define GPUSTATUS_IDLE 0x04000000
 #define GPUSTATUS_DISPLAYDISABLED 0x00800000
@@ -42,7 +42,7 @@
 #define GPUSTATUS_RGB24 0x00200000
 #define GPUSTATUS_PAL 0x00100000
 #define GPUSTATUS_DOUBLEHEIGHT 0x00080000
-#define GPUSTATUS_WIDTHBITS 0x00070000  // Three bits
+#define GPUSTATUS_WIDTHBITS 0x00070000
 
 int32_t PCSX::SoftGPU::impl::initBackend(GUI *gui) {
     m_gui = gui;
@@ -242,21 +242,6 @@ uint32_t PCSX::SoftGPU::impl::readStatusInternal() { return m_statusRet; }
 
 void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) { m_statusRet = status; }
 
-inline bool CheckForEndlessLoop(uint32_t laddr) {
-    static uint32_t lUsedAddr[3];
-
-    if (laddr == lUsedAddr[1]) return true;
-    if (laddr == lUsedAddr[2]) return true;
-
-    if (laddr < lUsedAddr[0]) {
-        lUsedAddr[1] = laddr;
-    } else {
-        lUsedAddr[2] = laddr;
-    }
-    lUsedAddr[0] = laddr;
-    return false;
-}
-
 bool PCSX::SoftGPU::impl::configure() {
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
@@ -293,6 +278,8 @@ void PCSX::SoftGPU::impl::debug() {
 static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
     return (uint16_t)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
 }
+
+void PCSX::SoftGPU::impl::write0(ClearCache *) {}
 
 void PCSX::SoftGPU::impl::write0(FastFill *prim) {
     int16_t sX = prim->x;

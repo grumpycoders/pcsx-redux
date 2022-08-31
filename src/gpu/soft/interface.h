@@ -83,6 +83,7 @@ class impl final : public GPU, public SoftRenderer {
     unsigned char *m_allocatedVRAM;
     static constexpr int16_t s_displayWidths[] = {256, 320, 512, 640, 368, 384};
 
+    void write0(ClearCache *) override;
     void write0(FastFill *) override;
 
     template <Shading shading, Shape shape, Textured textured, Blend blend, Modulation modulation>

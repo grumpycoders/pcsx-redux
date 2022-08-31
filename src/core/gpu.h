@@ -24,12 +24,12 @@
 #include <type_traits>
 #include <utility>
 
-#include "core/display.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
 #include "support/list.h"
+#include "support/opengl.h"
 #include "support/slice.h"
 
 namespace PCSX {
@@ -57,8 +57,6 @@ class GPU {
 
     bool m_showCfg = false;
     bool m_showDebug = false;
-    Display m_display;
-
     virtual bool configure() = 0;
     virtual void debug() = 0;
     virtual ~GPU() {}
@@ -159,6 +157,8 @@ class GPU {
         FullBackAndQuarterFront
     };
     enum class TexDepth { Tex4Bits, Tex8Bits, Tex16Bits };
+
+    struct ClearCache final : public Logged {};
 
     struct FastFill final : public Command, public Logged {
         FastFill(GPU *parent) : Command(parent) {}
@@ -287,6 +287,7 @@ class GPU {
         [[no_unique_address]] TextureUnitType clutX;
         [[no_unique_address]] TextureUnitType clutY;
         [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
+        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
 
       private:
         unsigned m_count = 0;
@@ -327,6 +328,7 @@ class GPU {
         [[no_unique_address]] TextureUnitType v;
         [[no_unique_address]] TextureUnitType clutX;
         [[no_unique_address]] TextureUnitType clutY;
+        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
 
       private:
         enum { READ_COLOR, READ_XY, READ_UV, READ_HW } m_state = READ_COLOR;
@@ -371,10 +373,15 @@ class GPU {
         unsigned y0, y1;
     };
     struct CtrlDisplayMode : public Logged {
+        CtrlDisplayMode() : CtrlDisplayMode(0) {}
         CtrlDisplayMode(uint32_t value);
         CtrlDisplayMode(const CtrlDisplayMode &other) = default;
         CtrlDisplayMode(CtrlDisplayMode &&other) = default;
         CtrlDisplayMode &operator=(const CtrlDisplayMode &other) = default;
+        bool equals(const CtrlDisplayMode &other) const {
+            return (hres == other.hres) && (vres == other.vres) && (mode == other.mode) && (depth == other.depth) &&
+                   (interlace == other.interlace);
+        }
         uint32_t widthRaw;
         enum { HR_256, HR_320, HR_512, HR_640, HR_368, HR_384 } hres;
         enum { VR_240, VR_480 } vres;
@@ -396,6 +403,29 @@ class GPU {
         }
         uint8_t query;
     };
+    struct Display {
+        using ivec2 = OpenGL::ivec2;
+        using vec2 = OpenGL::vec2;
+
+        ivec2 start;           // Starting coords of the display area
+        ivec2 size;            // Width and height of the display area
+        vec2 startNormalized;  // Starting coords of the display area normalized in the [0, 1] range
+        vec2 sizeNormalized;   // Width and height of the display area normalized in the [0, 1] range
+
+        CtrlDisplayMode info;
+        bool enabled;
+
+        int x1, x2, y1, y2;  // Display area range variables
+
+        void reset();
+        void set(CtrlDisplayStart *);
+        void set(CtrlHorizontalDisplayRange *);
+        void set(CtrlVerticalDisplayRange *);
+        void set(CtrlDisplayMode *);
+        void setLinearFiltering();
+        void updateDispArea();
+    };
+    Display m_display;
 
   private:
     Command m_defaultProcessor = {this};
@@ -413,6 +443,7 @@ class GPU {
     IO<Fifo> m_readFifo = new Fifo();
     Slice m_vramReadSlice;
 
+    virtual void write0(ClearCache *) = 0;
     virtual void write0(FastFill *) = 0;
 
     virtual void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) = 0;
