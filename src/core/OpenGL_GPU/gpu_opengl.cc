@@ -867,102 +867,39 @@ void PCSX::OpenGL_GPU::rectExec(Rect<size, textured, blend, modulation> *prim) {
     }
 }
 
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *prim) {
-    polyExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *prim) {
-    polyExec(prim);
-}
+// clang-format off
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
 
 void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *prim) { lineExec(prim); }
 void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *prim) { lineExec(prim); }
@@ -974,15 +911,9 @@ void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off>
 void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *prim) { lineExec(prim); }
 
 void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
-void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *prim) {
-    rectExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *prim) {
-    rectExec(prim);
-}
-void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *prim) {
-    rectExec(prim);
-}
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
@@ -998,9 +929,7 @@ void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modula
 void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
-void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::On> *prim) {
-    rectExec(prim);
-}
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
@@ -1013,6 +942,7 @@ void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulati
 void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
+// clang-format on
 
 void PCSX::OpenGL_GPU::write1(CtrlReset *) {
     // TODO: This should perform some more operations

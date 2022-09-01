@@ -1,20 +1,21 @@
-/*  Copyright (c) 2010, shalma.
- *  Portions Copyright (c) 2002, Pete Bernert.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+/***************************************************************************
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
 
 #include "core/gpu.h"
 
@@ -30,58 +31,68 @@
 
 namespace PCSX {
 
+// clang-format off
+// clang-format doesn't understand duff's device pattern...
 template <GPU::Shading shading, GPU::Shape shape, GPU::Textured textured, GPU::Blend blend, GPU::Modulation modulation>
-void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(uint32_t value) {
+void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer &buf) {
+    uint32_t value = buf.get();
     switch (m_state) {
         for (/* m_count = 0 */; m_count < count; m_count++) {
             if (shading == Shading::Gouraud) {
                 m_state = READ_COLOR;
-                return;
-                case READ_COLOR:
-                    colors[m_count] = value;
+                if (buf.isEmpty()) return;
+                value = buf.get();
+                [[fallthrough]];
+        case READ_COLOR:
+                colors[m_count] = value & 0xffffff;
             } else {
                 colors[m_count] = colors[0];
             }
             m_state = READ_XY;
-            return;
-            case READ_XY:
-                x[m_count] = GPU::signExtend<int, 11>(value & 0xffff);
-                y[m_count] = GPU::signExtend<int, 11>(value >> 16);
-                if (textured == Textured::Yes) {
-                    m_state = READ_UV;
-                    return;
-                    case READ_UV:
-                        if constexpr (textured == Textured::Yes) {
-                            u[m_count] = value & 0xff;
-                            v[m_count] = (value >> 8) & 0xff;
-                            value >>= 16;
-                            if (m_count == 0) {
-                                clutraw = value;
-                                clutX = value & 0x3f;
-                                clutY = (value >> 6) & 0x1ff;
-                            } else if (m_count == 1) {
-                                value &= 0b0000100111111111;
-                                tpage = TPage(value);
-                            }
-                        }
+            if (buf.isEmpty()) return;
+            value = buf.get();
+            [[fallthrough]];
+        case READ_XY:
+            x[m_count] = GPU::signExtend<int, 11>(value & 0xffff);
+            y[m_count] = GPU::signExtend<int, 11>(value >> 16);
+            if (textured == Textured::Yes) {
+                m_state = READ_UV;
+                if (buf.isEmpty()) return;
+                value = buf.get();
+                [[fallthrough]];
+        case READ_UV:
+                if constexpr (textured == Textured::Yes) {
+                    u[m_count] = value & 0xff;
+                    v[m_count] = (value >> 8) & 0xff;
+                    value >>= 16;
+                    if (m_count == 0) {
+                        clutraw = value;
+                    } else if (m_count == 1) {
+                        value &= 0b0000100111111111;
+                        tpage = TPage(value);
+                    }
                 }
+            }
         }
-        m_count = 0;
-        m_state = READ_COLOR;
-        m_gpu->m_defaultProcessor.setActive();
-        m_gpu->write0(this);
     }
+    m_count = 0;
+    m_state = READ_COLOR;
+    m_gpu->m_defaultProcessor.setActive();
+    m_gpu->write0(this);
 }
 
 template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
-void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
+void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
+    uint32_t value = buf.get();
     if constexpr (lineType == LineType::Poly) {
         if ((value & 0xf000f000) != 0x50005000) {
             switch (m_state) {
                 case READ_COLOR:
-                    colors.push_back(value);
+                    colors.push_back(value & 0xffffff);
                     m_state = READ_XY;
-                    return;
+                    if (buf.isEmpty()) return;
+                    value = buf.get();
+                    [[fallthrough]];
                 case READ_XY:
                     if constexpr (shading == Shading::Flat) {
                         if (x.size() != 0) colors.push_back(colors[0]);
@@ -90,25 +101,30 @@ void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
                     }
                     x.push_back(GPU::signExtend<int, 11>(value & 0xffff));
                     y.push_back(GPU::signExtend<int, 11>(value >> 16));
-                    return;
+                    if (buf.isEmpty()) return;
+                    value = buf.get();
             }
         }
     } else {
         switch (m_state) {
             for (/* m_count = 0 */; m_count < 2; m_count++) {
-                case READ_COLOR:
-                    colors[m_count] = value;
-                    m_state = READ_XY;
-                    return;
-                case READ_XY:
-                    x[m_count] = GPU::signExtend<int, 11>(value & 0xffff);
-                    y[m_count] = GPU::signExtend<int, 11>(value >> 16);
-                    if constexpr (shading == Shading::Flat) {
-                        colors[m_count] = colors[0];
-                    } else {
-                        m_state = READ_COLOR;
-                    }
-                    return;
+                [[fallthrough]];
+            case READ_COLOR:
+                colors[m_count] = value & 0xffffff;
+                m_state = READ_XY;
+                if (buf.isEmpty()) return;
+                value = buf.get();
+                [[fallthrough]];
+            case READ_XY:
+                x[m_count] = GPU::signExtend<int, 11>(value & 0xffff);
+                y[m_count] = GPU::signExtend<int, 11>(value >> 16);
+                if constexpr (shading == Shading::Flat) {
+                    colors[m_count] = colors[0];
+                } else {
+                    m_state = READ_COLOR;
+                }
+                if (buf.isEmpty()) return;
+                value = buf.get();
             }
         }
     }
@@ -130,29 +146,32 @@ void GPU::Line<shading, lineType, blend>::processWrite(uint32_t value) {
 }
 
 template <GPU::Size size, GPU::Textured textured, GPU::Blend blend, GPU::Modulation modulation>
-void GPU::Rect<size, textured, blend, modulation>::processWrite(uint32_t value) {
+void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer &buf) {
+    uint32_t value = buf.get();
     switch (m_state) {
         case READ_COLOR:
             if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
-                color = value;
+                color = value & 0xffffff;
             }
             m_state = READ_XY;
-            return;
+            if (buf.isEmpty()) return;
+            value = buf.get();
+            [[fallthrough]];
         case READ_XY:
             x = GPU::signExtend<int, 11>(value & 0xffff);
             y = GPU::signExtend<int, 11>(value >> 16);
             if (textured == Textured::Yes) {
                 m_state = READ_UV;
-                return;
-                case READ_UV:
-                    if constexpr (textured == Textured::Yes) {
-                        u = value & 0xff;
-                        v = (value >> 8) & 0xff;
-                        value >>= 16;
-                        clutraw = value;
-                        clutX = value & 0x3f;
-                        clutY = (value >> 6) & 0x1ff;
-                    }
+                if (buf.isEmpty()) return;
+                value = buf.get();
+                [[fallthrough]];
+        case READ_UV:
+                if constexpr (textured == Textured::Yes) {
+                    u = value & 0xff;
+                    v = (value >> 8) & 0xff;
+                    value >>= 16;
+                    clutraw = value;
+                }
             }
             if constexpr (size == Size::S1) {
                 h = 1;
@@ -167,16 +186,19 @@ void GPU::Rect<size, textured, blend, modulation>::processWrite(uint32_t value) 
 
             if (size == Size::Variable) {
                 m_state = READ_HW;
-                return;
-                case READ_HW:
-                    w = GPU::signExtend<int, 11>(value & 0xffff);
-                    h = GPU::signExtend<int, 11>(value >> 16);
+                if (buf.isEmpty()) return;
+                value = buf.get();
+                [[fallthrough]];
+        case READ_HW:
+                w = GPU::signExtend<int, 11>(value & 0xffff);
+                h = GPU::signExtend<int, 11>(value >> 16);
             }
     }
     m_state = READ_COLOR;
     m_gpu->m_defaultProcessor.setActive();
     m_gpu->write0(this);
 }
+// clang-format on
 
 namespace {
 
@@ -368,16 +390,16 @@ int PCSX::GPU::init(GUI *gui) {
 }
 
 inline bool PCSX::GPU::CheckForEndlessLoop(uint32_t laddr) {
-    if (laddr == s_lUsedAddr[1]) return true;
-    if (laddr == s_lUsedAddr[2]) return true;
+    if (laddr == s_usedAddr[1]) return true;
+    if (laddr == s_usedAddr[2]) return true;
 
-    if (laddr < s_lUsedAddr[0]) {
-        s_lUsedAddr[1] = laddr;
+    if (laddr < s_usedAddr[0]) {
+        s_usedAddr[1] = laddr;
     } else {
-        s_lUsedAddr[2] = laddr;
+        s_usedAddr[2] = laddr;
     }
 
-    s_lUsedAddr[0] = laddr;
+    s_usedAddr[0] = laddr;
 
     return false;
 }
@@ -386,7 +408,7 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     uint32_t size;
     uint32_t DMACommandCounter = 0;
 
-    s_lUsedAddr[0] = s_lUsedAddr[1] = s_lUsedAddr[2] = 0xffffff;
+    s_usedAddr[0] = s_usedAddr[1] = s_usedAddr[2] = 0xffffff;
 
     // initial linked list s_ptr (word)
     size = 1;
@@ -562,11 +584,15 @@ void PCSX::GPU::writeStatus(uint32_t status) {
 
 uint32_t PCSX::GPU::readData() { return m_readFifo.asA<File>()->read<uint32_t>(); }
 
-void PCSX::GPU::writeData(uint32_t value) { m_processor->processWrite(value); }
+void PCSX::GPU::writeData(uint32_t value) {
+    Buffer buf(value);
+    m_processor->processWrite(buf);
+}
 
 void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t hwAddr) {
-    while (transferSize--) {
-        m_processor->processWrite(*feed++);
+    Buffer buf(feed, transferSize);
+    while (!buf.isEmpty()) {
+        m_processor->processWrite(buf);
     }
 }
 
@@ -578,7 +604,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
     uint32_t addr = hwAddr;
     uint32_t DMACommandCounter = 0;
 
-    s_lUsedAddr[0] = s_lUsedAddr[1] = s_lUsedAddr[2] = 0xffffff;
+    s_usedAddr[0] = s_usedAddr[1] = s_usedAddr[2] = 0xffffff;
 
     do {
         addr &= 0x1ffffc;
@@ -587,10 +613,11 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
         if (CheckForEndlessLoop(addr)) break;
 
         // # 32-bit blocks to transfer
-        uint32_t size = psxMu8(addr + 3);
+        uint32_t transferSize = psxMu8(addr + 3);
         uint32_t *feed = (uint32_t *)PSXM((addr + 4) & 0x1fffff);
-        while (size--) {
-            m_processor->processWrite(*feed++);
+        Buffer buf(feed, transferSize);
+        while (!buf.isEmpty()) {
+            m_processor->processWrite(buf);
         }
 
         // next 32-bit pointer
@@ -599,134 +626,149 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
 }
 
-void PCSX::GPU::Command::processWrite(uint32_t value) {
-    bool gotUnknown = false;
-    const uint8_t cmdType = value >> 29;           // 3 topmost bits = command "type"
-    const uint8_t command = (value >> 24) & 0x1f;  // 5 next bits = "command", which may be a bitfield
+void PCSX::GPU::Command::processWrite(Buffer &buf) {
+    while (!buf.isEmpty()) {
+        uint32_t value = buf.get();
+        bool gotUnknown = false;
+        const uint8_t cmdType = value >> 29;           // 3 topmost bits = command "type"
+        const uint8_t command = (value >> 24) & 0x1f;  // 5 next bits = "command", which may be a bitfield
 
-    const uint32_t packetInfo = value & 0xffffff;
-    const uint32_t color = packetInfo;
-    GPU::Logged *logged = nullptr;
+        const uint32_t packetInfo = value & 0xffffff;
+        GPU::Logged *logged = nullptr;
 
-    switch (cmdType) {
-        case 0:  // GPU command
-            switch (command) {
-                case 0x01: {  // clear cache
-                    ClearCache prim;
-                    m_gpu->write0(&prim);
-                } break;
-                case 0x02: {  // fast fill
-                    m_gpu->m_fastFill.setActive();
-                    m_gpu->m_fastFill.processWrite(color);
-                } break;
-                default: {
-                    gotUnknown = true;
-                } break;
-            }
-            break;
-        case 1: {  // Polygon primitive
-            m_gpu->m_polygons[command]->setActive();
-            m_gpu->m_processor->processWrite(packetInfo);
-        } break;
-        case 2: {  // Line primitive
-            m_gpu->m_lines[command]->setActive();
-            m_gpu->m_processor->processWrite(packetInfo);
-        } break;
-        case 3: {  // Rectangle primitive
-            m_gpu->m_rects[command]->setActive();
-            m_gpu->m_processor->processWrite(packetInfo);
-        } break;
-        case 4: {  // Move data in VRAM
-            m_gpu->m_blitVramVram.setActive();
-            m_gpu->m_processor->processWrite(packetInfo);
-        } break;
-        case 5: {  // Write data to VRAM
-            m_gpu->m_blitRamVram.setActive();
-            m_gpu->m_processor->processWrite(packetInfo);
-        } break;
-        case 6: {  // Read data from VRAM
-            m_gpu->m_blitVramRam.setActive();
-            m_gpu->m_processor->processWrite(packetInfo);
-        } break;
-        case 7: {  // Environment command
-            switch (command) {
-                case 1: {  // tpage
-                    TPage tpage(packetInfo);
-                    logged = &tpage;
-                    m_gpu->write0(&tpage);
-                } break;
-                case 2: {  // twindow
-                    TWindow twindow(packetInfo);
-                    logged = &twindow;
-                    m_gpu->write0(&twindow);
-                } break;
-                case 3: {  // drawing area top left
-                    DrawingAreaStart start(packetInfo);
-                    logged = &start;
-                    m_gpu->write0(&start);
-                } break;
-                case 4: {  // drawing area bottom right
-                    DrawingAreaEnd end(packetInfo);
-                    logged = &end;
-                    m_gpu->write0(&end);
-                } break;
-                case 5: {  // drawing offset
-                    DrawingOffset offset(packetInfo);
-                    logged = &offset;
-                    m_gpu->write0(&offset);
-                } break;
-                case 6: {  // mask bit
-                    MaskBit mask(packetInfo);
-                    logged = &mask;
-                    m_gpu->write0(&mask);
-                } break;
-                default: {
-                    gotUnknown = true;
-                } break;
-            }
-        } break;
-    }
-    if (gotUnknown) {
+        switch (cmdType) {
+            case 0:  // GPU command
+                switch (command) {
+                    case 0x01: {  // clear cache
+                        ClearCache prim;
+                        m_gpu->write0(&prim);
+                    } break;
+                    case 0x02: {  // fast fill
+                        buf.rewind();
+                        m_gpu->m_fastFill.setActive();
+                        m_gpu->m_fastFill.processWrite(buf);
+                    } break;
+                    default: {
+                        gotUnknown = true;
+                    } break;
+                }
+                break;
+            case 1: {  // Polygon primitive
+                buf.rewind();
+                m_gpu->m_polygons[command]->setActive();
+                m_gpu->m_processor->processWrite(buf);
+            } break;
+            case 2: {  // Line primitive
+                buf.rewind();
+                m_gpu->m_lines[command]->setActive();
+                m_gpu->m_processor->processWrite(buf);
+            } break;
+            case 3: {  // Rectangle primitive
+                buf.rewind();
+                m_gpu->m_rects[command]->setActive();
+                m_gpu->m_processor->processWrite(buf);
+            } break;
+            case 4: {  // Move data in VRAM
+                buf.rewind();
+                m_gpu->m_blitVramVram.setActive();
+                m_gpu->m_processor->processWrite(buf);
+            } break;
+            case 5: {  // Write data to VRAM
+                buf.rewind();
+                m_gpu->m_blitRamVram.setActive();
+                m_gpu->m_processor->processWrite(buf);
+            } break;
+            case 6: {  // Read data from VRAM
+                buf.rewind();
+                m_gpu->m_blitVramRam.setActive();
+                m_gpu->m_processor->processWrite(buf);
+            } break;
+            case 7: {  // Environment command
+                switch (command) {
+                    case 1: {  // tpage
+                        TPage tpage(packetInfo);
+                        logged = &tpage;
+                        m_gpu->write0(&tpage);
+                    } break;
+                    case 2: {  // twindow
+                        TWindow twindow(packetInfo);
+                        logged = &twindow;
+                        m_gpu->write0(&twindow);
+                    } break;
+                    case 3: {  // drawing area top left
+                        DrawingAreaStart start(packetInfo);
+                        logged = &start;
+                        m_gpu->write0(&start);
+                    } break;
+                    case 4: {  // drawing area bottom right
+                        DrawingAreaEnd end(packetInfo);
+                        logged = &end;
+                        m_gpu->write0(&end);
+                    } break;
+                    case 5: {  // drawing offset
+                        DrawingOffset offset(packetInfo);
+                        logged = &offset;
+                        m_gpu->write0(&offset);
+                    } break;
+                    case 6: {  // mask bit
+                        MaskBit mask(packetInfo);
+                        logged = &mask;
+                        m_gpu->write0(&mask);
+                    } break;
+                    default: {
+                        gotUnknown = true;
+                    } break;
+                }
+            } break;
+        }
+        if (gotUnknown) {
+        }
     }
 }
 
-void PCSX::GPU::FastFill::processWrite(uint32_t value) {
+void PCSX::GPU::FastFill::processWrite(Buffer &buf) {
+    uint32_t value = buf.get();
     switch (m_state) {
         case READ_COLOR:
-            color = value;
+            color = value & 0xffffff;
             m_state = READ_XY;
-            break;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_XY:
             x = value & 0xffff;
             y = value >> 16;
             m_state = READ_WH;
-            break;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_WH:
             w = value & 0xffff;
             h = value >> 16;
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->write0(this);
-            break;
+            return;
     }
 }
 
-void PCSX::GPU::BlitVramVram::processWrite(uint32_t value) {
-    size_t size;
+void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf) {
+    uint32_t value = buf.get();
     switch (m_state) {
         case READ_COMMAND:
             m_state = READ_SRC_XY;
-            return;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_SRC_XY:
             sX = signExtend<int, 11>(value & 0xffff);
             sY = signExtend<int, 11>(value >> 16);
             m_state = READ_DST_XY;
-            return;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_DST_XY:
             dX = signExtend<int, 11>(value & 0xffff);
             dY = signExtend<int, 11>(value >> 16);
             m_state = READ_HW;
-            return;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_HW:
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
@@ -737,17 +779,20 @@ void PCSX::GPU::BlitVramVram::processWrite(uint32_t value) {
     }
 }
 
-void PCSX::GPU::BlitRamVram::processWrite(uint32_t value) {
+void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf) {
+    uint32_t value = buf.get();
     size_t size;
     switch (m_state) {
         case READ_COMMAND:
             m_state = READ_XY;
-            return;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_XY:
             x = signExtend<int, 11>(value & 0xffff);
             y = signExtend<int, 11>(value >> 16);
             m_state = READ_HW;
-            return;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_HW:
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
@@ -756,34 +801,44 @@ void PCSX::GPU::BlitRamVram::processWrite(uint32_t value) {
             m_data.clear();
             m_data.reserve(size * 4);
             m_state = READ_PIXELS;
-            return;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_PIXELS:
-            m_data.push_back((value >> 0) & 0xff);
-            m_data.push_back((value >> 8) & 0xff);
-            m_data.push_back((value >> 16) & 0xff);
-            m_data.push_back((value >> 24) & 0xff);
-            size = (w * h + 1) / 2;
-            size *= 4;
-            if (m_data.size() == size) {
-                m_state = READ_COMMAND;
-                m_gpu->m_defaultProcessor.setActive();
-                m_gpu->partialUpdateVRAM(x, y, w, h, reinterpret_cast<uint16_t *>(m_data.data()));
+            // TODO: shortcut this if we have the whole transfer up.
+            buf.rewind();
+            while (!buf.isEmpty()) {
+                value = buf.get();
+                m_data.push_back((value >> 0) & 0xff);
+                m_data.push_back((value >> 8) & 0xff);
+                m_data.push_back((value >> 16) & 0xff);
+                m_data.push_back((value >> 24) & 0xff);
+                size = (w * h + 1) / 2;
+                size *= 4;
+                if (m_data.size() == size) {
+                    m_state = READ_COMMAND;
+                    m_gpu->m_defaultProcessor.setActive();
+                    m_gpu->partialUpdateVRAM(x, y, w, h, reinterpret_cast<uint16_t *>(m_data.data()));
+                    return;
+                }
             }
             return;
     }
 }
 
-void PCSX::GPU::BlitVramRam::processWrite(uint32_t value) {
+void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf) {
+    uint32_t value = buf.get();
     switch (m_state) {
         case READ_COMMAND:
             m_gpu->m_readFifo->reset();
             m_state = READ_XY;
-            return;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_XY:
             x = signExtend<int, 11>(value & 0xffff);
             y = signExtend<int, 11>(value >> 16);
             m_state = READ_HW;
-            return;
+            if (buf.isEmpty()) return;
+            value = buf.get();
         case READ_HW:
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
@@ -881,7 +936,7 @@ void PCSX::GPU::write0(BlitVramVram *prim) {
 
     std::vector<uint16_t> rect;
     rect.resize(h * w);
-    for (auto l = 0; l < h; l++) {
+    for (unsigned l = 0; l < h; l++) {
         Slice slice;
         slice.borrow(inSlice, ((l + sY) * 1024 + sX) * sizeof(uint16_t), w * sizeof(uint16_t));
         memcpy(rect.data() + l * w, slice.data(), slice.size());

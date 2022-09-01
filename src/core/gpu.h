@@ -65,8 +65,7 @@ class GPU {
     void deserialize(const SaveStateWrapper *);
 
   private:
-    // Taken from PEOPS SOFTGPU
-    uint32_t s_lUsedAddr[3];
+    uint32_t s_usedAddr[3];
 
     bool CheckForEndlessLoop(uint32_t laddr);
     uint32_t gpuDmaChainSize(uint32_t addr);
@@ -120,12 +119,40 @@ class GPU {
   private:
     uint32_t m_statusControl[256];
 
+    class Buffer {
+      public:
+        Buffer(uint32_t value) : m_value(SWAP_LE32(value)) {
+            m_data = &m_value;
+            m_size = 1;
+        }
+        Buffer(const uint32_t *ptr, size_t size) : m_size(size), m_data(ptr) {}
+        Buffer(const Buffer &other) = delete;
+        Buffer(Buffer &&other) = delete;
+        Buffer &operator=(const Buffer &other) = delete;
+        Buffer &operator=(Buffer &&other) = delete;
+        bool isEmpty() const { return m_size == 0; }
+        void rewind() {
+            m_data--;
+            m_size++;
+        }
+        uint32_t get() {
+            if (isEmpty()) return 0;
+            m_size--;
+            return SWAP_LE32(*m_data++);
+        }
+
+      private:
+        uint32_t m_value;
+        size_t m_size;
+        const uint32_t *m_data;
+    };
+
     class Command {
       public:
         Command() : m_gpu(nullptr) {}
         Command(GPU *parent) : m_gpu(parent) {}
         virtual ~Command() {}
-        virtual void processWrite(uint32_t value);
+        virtual void processWrite(Buffer &);
         void setActive() { m_gpu->m_processor = this; }
 
       protected:
@@ -162,7 +189,7 @@ class GPU {
 
     struct FastFill final : public Command, public Logged {
         FastFill(GPU *parent) : Command(parent) {}
-        virtual void processWrite(uint32_t value) override;
+        void processWrite(Buffer &) override;
 
         uint32_t color;
         unsigned x, y, w, h;
@@ -173,7 +200,7 @@ class GPU {
 
     struct BlitVramVram final : public Command, public Logged {
         BlitVramVram(GPU *parent) : Command(parent) {}
-        virtual void processWrite(uint32_t value) override;
+        void processWrite(Buffer &) override;
 
         unsigned sX, sY, dX, dY, w, h;
 
@@ -191,7 +218,7 @@ class GPU {
             h = other.h;
         }
         BlitRamVram(BlitRamVram &&) = delete;
-        virtual void processWrite(uint32_t value) override;
+        void processWrite(Buffer &) override;
 
         unsigned x, y, w, h;
         Slice data;
@@ -203,7 +230,7 @@ class GPU {
 
     struct BlitVramRam final : public Command, public Logged {
         BlitVramRam(GPU *parent) : Command(parent) {}
-        virtual void processWrite(uint32_t value) override;
+        void processWrite(Buffer &) override;
 
         unsigned x, y, w, h;
 
@@ -277,17 +304,29 @@ class GPU {
         static constexpr unsigned count = shape == Shape::Tri ? 3 : 4;
 
         Poly() {}
-        void processWrite(uint32_t value) override;
+        void processWrite(Buffer &) override;
         uint32_t colors[count];
         int x[count], y[count];
         struct Empty {};
         typedef typename std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
         [[no_unique_address]] TextureUnitType u[count];
         [[no_unique_address]] TextureUnitType v[count];
-        [[no_unique_address]] TextureUnitType clutX;
-        [[no_unique_address]] TextureUnitType clutY;
         [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
         [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
+        TextureUnitType clutX() {
+            if constexpr (textured == Textured::Yes) {
+                return clutraw & 0x3f;
+            } else {
+                return {};
+            }
+        }
+        TextureUnitType clutY() {
+            if constexpr (textured == Textured::Yes) {
+                return (clutraw >> 6) & 0x1ff;
+            } else {
+                return {};
+            }
+        }
 
       private:
         unsigned m_count = 0;
@@ -299,7 +338,7 @@ class GPU {
         Line() {
             if constexpr (lineType == LineType::Simple) m_count = 0;
         }
-        void processWrite(uint32_t value) override;
+        void processWrite(Buffer &) override;
 
         template <typename T>
         using Storage = typename std::conditional<lineType == LineType::Poly, std::vector<T>, std::array<T, 2>>::type;
@@ -316,7 +355,7 @@ class GPU {
     template <Size size, Textured textured, Blend blend, Modulation modulation>
     struct Rect final : public Command, public Logged {
         Rect() {}
-        void processWrite(uint32_t value) override;
+        void processWrite(Buffer &) override;
 
         struct Empty {};
         int x, y, w, h;
@@ -326,9 +365,21 @@ class GPU {
             color;
         [[no_unique_address]] TextureUnitType u;
         [[no_unique_address]] TextureUnitType v;
-        [[no_unique_address]] TextureUnitType clutX;
-        [[no_unique_address]] TextureUnitType clutY;
         [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
+        TextureUnitType clutX() {
+            if constexpr (textured == Textured::Yes) {
+                return clutraw & 0x3f;
+            } else {
+                return {};
+            }
+        }
+        TextureUnitType clutY() {
+            if constexpr (textured == Textured::Yes) {
+                return (clutraw >> 6) & 0x1ff;
+            } else {
+                return {};
+            }
+        }
 
       private:
         enum { READ_COLOR, READ_XY, READ_UV, READ_HW } m_state = READ_COLOR;
