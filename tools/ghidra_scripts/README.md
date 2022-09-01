@@ -8,6 +8,8 @@ In order to run the scripts, go to `Window -> Script Manager`, then locate the s
 This script will connect to PCSX-Redux from Ghidra using the webserver, and upload the current list of symbols from the opened code browser. The list will be merged with the existing list of symbols in Redux. The web server in PCSX-Redux needs to be enabled. The script hardcodes the IP and port of PCSX-Redux, and you may want to change the script to account for different URL settings.
 
 ## export_to_redux.py
+Before running this script, make its `main_address` variable the address of your `main()` function.
+
 This script will generate two files consumed by the Typed Debugger (accessed from the Debug submenu):
 
  - redux_data_types.txt: this contains a description of all the structs in Ghidra's Data Type Manager.
