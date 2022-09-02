@@ -133,10 +133,10 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
     }
     m_state = READ_COLOR;
     m_gpu->m_defaultProcessor.setActive();
-    if (colors.size() >= 2) {
+    if ((colors.size() >= 2) && ((colors.size() == x.size()))) {
         m_gpu->write0(this);
     } else {
-        // derp, invalid
+        g_system->log(LogClass::GPU, "Got an invalid line command...\n");
     }
     if constexpr (lineType == LineType::Poly) {
         colors.clear();
@@ -573,12 +573,13 @@ void PCSX::GPU::writeStatus(uint32_t status) {
             CtrlQuery ctrlQuery(status);
             write1(&ctrlQuery);
         } break;
-        default:
+        default: {
             gotUnknown = true;
-            break;
+        } break;
     }
 
     if (gotUnknown) {
+        g_system->log(LogClass::GPU, "Got an unknown GPU control word: %08x\n", status);
     }
 }
 
@@ -669,17 +670,14 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
                 m_gpu->m_processor->processWrite(buf);
             } break;
             case 4: {  // Move data in VRAM
-                buf.rewind();
                 m_gpu->m_blitVramVram.setActive();
                 m_gpu->m_processor->processWrite(buf);
             } break;
             case 5: {  // Write data to VRAM
-                buf.rewind();
                 m_gpu->m_blitRamVram.setActive();
                 m_gpu->m_processor->processWrite(buf);
             } break;
             case 6: {  // Read data from VRAM
-                buf.rewind();
                 m_gpu->m_blitVramRam.setActive();
                 m_gpu->m_processor->processWrite(buf);
             } break;
@@ -721,7 +719,8 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
                 }
             } break;
         }
-        if (gotUnknown) {
+        if (gotUnknown && (value != 0)) {
+            g_system->log(LogClass::GPU, "Got an unknown GPU data word: %08x\n", value);
         }
     }
 }
@@ -734,12 +733,14 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf) {
             m_state = READ_XY;
             if (buf.isEmpty()) return;
             value = buf.get();
+            [[fallthrough]];
         case READ_XY:
             x = value & 0xffff;
             y = value >> 16;
             m_state = READ_WH;
             if (buf.isEmpty()) return;
             value = buf.get();
+            [[fallthrough]];
         case READ_WH:
             w = value & 0xffff;
             h = value >> 16;
@@ -751,25 +752,28 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf) {
 }
 
 void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf) {
-    uint32_t value = buf.get();
+    uint32_t value;
     switch (m_state) {
         case READ_COMMAND:
             m_state = READ_SRC_XY;
             if (buf.isEmpty()) return;
-            value = buf.get();
+            [[fallthrough]];
         case READ_SRC_XY:
+            value = buf.get();
             sX = signExtend<int, 11>(value & 0xffff);
             sY = signExtend<int, 11>(value >> 16);
             m_state = READ_DST_XY;
             if (buf.isEmpty()) return;
-            value = buf.get();
+            [[fallthrough]];
         case READ_DST_XY:
+            value = buf.get();
             dX = signExtend<int, 11>(value & 0xffff);
             dY = signExtend<int, 11>(value >> 16);
             m_state = READ_HW;
             if (buf.isEmpty()) return;
-            value = buf.get();
+            [[fallthrough]];
         case READ_HW:
+            value = buf.get();
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
             m_state = READ_COMMAND;
@@ -780,20 +784,23 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf) {
 }
 
 void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf) {
-    uint32_t value = buf.get();
+    uint32_t value;
     size_t size;
+    bool done = false;
     switch (m_state) {
         case READ_COMMAND:
             m_state = READ_XY;
             if (buf.isEmpty()) return;
-            value = buf.get();
+            [[fallthrough]];
         case READ_XY:
+            value = buf.get();
             x = signExtend<int, 11>(value & 0xffff);
             y = signExtend<int, 11>(value >> 16);
             m_state = READ_HW;
             if (buf.isEmpty()) return;
-            value = buf.get();
+            [[fallthrough]];
         case READ_HW:
+            value = buf.get();
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
             size = (w * h + 1) / 2;
@@ -802,44 +809,49 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf) {
             m_data.reserve(size * 4);
             m_state = READ_PIXELS;
             if (buf.isEmpty()) return;
-            value = buf.get();
+            [[fallthrough]];
         case READ_PIXELS:
-            // TODO: shortcut this if we have the whole transfer up.
-            buf.rewind();
-            while (!buf.isEmpty()) {
-                value = buf.get();
-                m_data.push_back((value >> 0) & 0xff);
-                m_data.push_back((value >> 8) & 0xff);
-                m_data.push_back((value >> 16) & 0xff);
-                m_data.push_back((value >> 24) & 0xff);
-                size = (w * h + 1) / 2;
-                size *= 4;
-                if (m_data.size() == size) {
-                    m_state = READ_COMMAND;
-                    m_gpu->m_defaultProcessor.setActive();
-                    m_gpu->partialUpdateVRAM(x, y, w, h, reinterpret_cast<uint16_t *>(m_data.data()));
-                    return;
+            size = (w * h + 1) / 2;
+            if ((buf.size() >= size) && (m_data.empty())) {
+                data.borrow(buf.data(), size * 4);
+                buf.consume(size);
+                done = true;
+            } else {
+                size_t toConsume = std::min(buf.size(), size - (m_data.size() / 4));
+                m_data.append(reinterpret_cast<const char *>(buf.data()), toConsume * 4);
+                done = m_data.size() == (size * 4);
+                buf.consume(toConsume);
+                if (done) {
+                    data.acquire(std::move(m_data));
+                    m_data.clear();
                 }
             }
-            return;
+            break;
+    }
+    if (done) {
+        m_state = READ_COMMAND;
+        m_gpu->m_defaultProcessor.setActive();
+        m_gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>());
     }
 }
 
 void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf) {
-    uint32_t value = buf.get();
+    uint32_t value;
     switch (m_state) {
         case READ_COMMAND:
             m_gpu->m_readFifo->reset();
             m_state = READ_XY;
             if (buf.isEmpty()) return;
-            value = buf.get();
+            [[fallthrough]];
         case READ_XY:
+            value = buf.get();
             x = signExtend<int, 11>(value & 0xffff);
             y = signExtend<int, 11>(value >> 16);
             m_state = READ_HW;
             if (buf.isEmpty()) return;
-            value = buf.get();
+            [[fallthrough]];
         case READ_HW:
+            value = buf.get();
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
             m_state = READ_COMMAND;

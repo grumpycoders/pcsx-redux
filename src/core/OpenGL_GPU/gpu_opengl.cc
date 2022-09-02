@@ -867,6 +867,28 @@ void PCSX::OpenGL_GPU::rectExec(Rect<size, textured, blend, modulation> *prim) {
     }
 }
 
+void PCSX::OpenGL_GPU::write1(CtrlReset *) {
+    // TODO: This should perform some more operations
+    m_display.reset();
+    setDisplayEnable(false);
+    acknowledgeIRQ1();
+}
+
+void PCSX::OpenGL_GPU::write1(CtrlClearFifo *) {}
+
+void PCSX::OpenGL_GPU::write1(CtrlIrqAck *) { acknowledgeIRQ1(); }
+
+void PCSX::OpenGL_GPU::write1(CtrlDisplayEnable *ctrl) { setDisplayEnable(ctrl->enable); }
+
+void PCSX::OpenGL_GPU::write1(CtrlDmaSetting *) {}
+
+void PCSX::OpenGL_GPU::write1(CtrlDisplayStart *ctrl) { m_display.set(ctrl); }
+void PCSX::OpenGL_GPU::write1(CtrlHorizontalDisplayRange *ctrl) { m_display.set(ctrl); }
+void PCSX::OpenGL_GPU::write1(CtrlVerticalDisplayRange *ctrl) { m_display.set(ctrl); }
+void PCSX::OpenGL_GPU::write1(CtrlDisplayMode *ctrl) { m_display.set(ctrl); }
+
+void PCSX::OpenGL_GPU::write1(CtrlQuery *) {}
+
 // clang-format off
 void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
 void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
@@ -942,26 +964,3 @@ void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulati
 void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
 void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
-// clang-format on
-
-void PCSX::OpenGL_GPU::write1(CtrlReset *) {
-    // TODO: This should perform some more operations
-    m_display.reset();
-    setDisplayEnable(false);
-    acknowledgeIRQ1();
-}
-
-void PCSX::OpenGL_GPU::write1(CtrlClearFifo *) {}
-
-void PCSX::OpenGL_GPU::write1(CtrlIrqAck *) { acknowledgeIRQ1(); }
-
-void PCSX::OpenGL_GPU::write1(CtrlDisplayEnable *ctrl) { setDisplayEnable(ctrl->enable); }
-
-void PCSX::OpenGL_GPU::write1(CtrlDmaSetting *) {}
-
-void PCSX::OpenGL_GPU::write1(CtrlDisplayStart *ctrl) { m_display.set(ctrl); }
-void PCSX::OpenGL_GPU::write1(CtrlHorizontalDisplayRange *ctrl) { m_display.set(ctrl); }
-void PCSX::OpenGL_GPU::write1(CtrlVerticalDisplayRange *ctrl) { m_display.set(ctrl); }
-void PCSX::OpenGL_GPU::write1(CtrlDisplayMode *ctrl) { m_display.set(ctrl); }
-
-void PCSX::OpenGL_GPU::write1(CtrlQuery *) {}

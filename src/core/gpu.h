@@ -135,11 +135,17 @@ class GPU {
             m_data--;
             m_size++;
         }
+        void consume(size_t size) {
+            m_data += size;
+            m_size -= size;
+        }
         uint32_t get() {
             if (isEmpty()) return 0;
             m_size--;
             return SWAP_LE32(*m_data++);
         }
+        size_t size() { return m_size; }
+        const uint32_t *data() { return m_data; }
 
       private:
         uint32_t m_value;
