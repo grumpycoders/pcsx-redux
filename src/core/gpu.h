@@ -21,12 +21,15 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "magic_enum/include/magic_enum.hpp"
+#include "support/eventbus.h"
 #include "support/file.h"
 #include "support/list.h"
 #include "support/opengl.h"
@@ -66,7 +69,6 @@ class GPU {
 
   private:
     uint32_t s_usedAddr[3];
-
     bool CheckForEndlessLoop(uint32_t laddr);
     uint32_t gpuDmaChainSize(uint32_t addr);
 
@@ -173,7 +175,11 @@ class GPU {
   public:
     class Logged;
     typedef Intrusive::List<Logged> LoggedList;
-    class Logged : public LoggedList::Node {};
+    class Logged : public LoggedList::Node {
+      public:
+        virtual ~Logged() {}
+        virtual std::string_view getName() = 0;
+    };
 
     enum class Shading { Flat, Gouraud };
     enum class Shape { Tri, Quad };
@@ -191,9 +197,12 @@ class GPU {
     };
     enum class TexDepth { Tex4Bits, Tex8Bits, Tex16Bits };
 
-    struct ClearCache final : public Logged {};
+    struct ClearCache final : public Logged {
+        std::string_view getName() override { return "Clear Cache"; }
+    };
 
     struct FastFill final : public Command, public Logged {
+        std::string_view getName() override { return "Fast Fill"; }
         FastFill(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &) override;
 
@@ -205,6 +214,7 @@ class GPU {
     };
 
     struct BlitVramVram final : public Command, public Logged {
+        std::string_view getName() override { return "VRAM to VRAM blit"; }
         BlitVramVram(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &) override;
 
@@ -215,6 +225,7 @@ class GPU {
     };
 
     struct BlitRamVram final : public Command, public Logged {
+        std::string_view getName() override { return "RAM to VRAM blit"; }
         BlitRamVram() {}
         BlitRamVram(GPU *parent) : Command(parent) {}
         BlitRamVram(const BlitRamVram &other) {
@@ -222,6 +233,7 @@ class GPU {
             y = other.y;
             w = other.w;
             h = other.h;
+            data.copy(other.data);
         }
         BlitRamVram(BlitRamVram &&) = delete;
         void processWrite(Buffer &) override;
@@ -235,6 +247,7 @@ class GPU {
     };
 
     struct BlitVramRam final : public Command, public Logged {
+        std::string_view getName() override { return "VRAM to RAM blit"; }
         BlitVramRam(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &) override;
 
@@ -245,6 +258,7 @@ class GPU {
     };
 
     struct TPage : public Logged {
+        std::string_view getName() override { return "Texture Page"; }
         TPage() {}
         TPage(uint32_t value);
         TPage(const TPage &other) = default;
@@ -262,6 +276,7 @@ class GPU {
     };
 
     struct TWindow : public Logged {
+        std::string_view getName() override { return "Texture Window"; }
         TWindow(uint32_t value);
         TWindow(const TWindow &other) = default;
         TWindow(TWindow &&other) = default;
@@ -271,6 +286,7 @@ class GPU {
     };
 
     struct DrawingAreaStart : public Logged {
+        std::string_view getName() override { return "Drawing Area Start"; }
         DrawingAreaStart(uint32_t value);
         DrawingAreaStart(const DrawingAreaStart &other) = default;
         DrawingAreaStart(DrawingAreaStart &&other) = default;
@@ -280,6 +296,7 @@ class GPU {
     };
 
     struct DrawingAreaEnd : public Logged {
+        std::string_view getName() override { return "Drawing Area End"; }
         DrawingAreaEnd(uint32_t value);
         DrawingAreaEnd(const DrawingAreaEnd &other) = default;
         DrawingAreaEnd(DrawingAreaEnd &&other) = default;
@@ -289,6 +306,7 @@ class GPU {
     };
 
     struct DrawingOffset : public Logged {
+        std::string_view getName() override { return "Drawing Offset"; }
         DrawingOffset(uint32_t value);
         DrawingOffset(const DrawingOffset &other) = default;
         DrawingOffset(DrawingOffset &&other) = default;
@@ -298,6 +316,7 @@ class GPU {
     };
 
     struct MaskBit : public Logged {
+        std::string_view getName() override { return "Mask Bit"; }
         MaskBit(uint32_t value);
         MaskBit(const MaskBit &other) = default;
         MaskBit(MaskBit &&other) = default;
@@ -309,6 +328,7 @@ class GPU {
     struct Poly final : public Command, public Logged {
         static constexpr unsigned count = shape == Shape::Tri ? 3 : 4;
 
+        std::string_view getName() override { return "Polygon"; }
         Poly() {}
         void processWrite(Buffer &) override;
         uint32_t colors[count];
@@ -341,6 +361,7 @@ class GPU {
 
     template <Shading shading, LineType lineType, Blend blend>
     struct Line final : public Command, public Logged {
+        std::string_view getName() override { return "Line"; }
         Line() {
             if constexpr (lineType == LineType::Simple) m_count = 0;
         }
@@ -360,6 +381,7 @@ class GPU {
 
     template <Size size, Textured textured, Blend blend, Modulation modulation>
     struct Rect final : public Command, public Logged {
+        std::string_view getName() override { return "Rectangle"; }
         Rect() {}
         void processWrite(Buffer &) override;
 
@@ -391,10 +413,17 @@ class GPU {
         enum { READ_COLOR, READ_XY, READ_UV, READ_HW } m_state = READ_COLOR;
     };
 
-    struct CtrlReset : public Logged {};
-    struct CtrlClearFifo : public Logged {};
-    struct CtrlIrqAck : public Logged {};
+    struct CtrlReset : public Logged {
+        std::string_view getName() override { return "Reset"; }
+    };
+    struct CtrlClearFifo : public Logged {
+        std::string_view getName() override { return "Clear Fifo"; }
+    };
+    struct CtrlIrqAck : public Logged {
+        std::string_view getName() override { return "IRQ Ack"; }
+    };
     struct CtrlDisplayEnable : public Logged {
+        std::string_view getName() override { return "Display Enable"; }
         CtrlDisplayEnable(uint32_t value) : enable((value & 1) == 0) {}
         CtrlDisplayEnable(const CtrlDisplayEnable &other) = default;
         CtrlDisplayEnable(CtrlDisplayEnable &&other) = default;
@@ -402,6 +431,7 @@ class GPU {
         bool enable;
     };
     struct CtrlDmaSetting : public Logged {
+        std::string_view getName() override { return "DMA Setting"; }
         CtrlDmaSetting(uint32_t value) : dma(magic_enum::enum_cast<Dma>(value & 3).value()) {}
         CtrlDmaSetting(const CtrlDmaSetting &other) = default;
         CtrlDmaSetting(CtrlDmaSetting &&other) = default;
@@ -409,6 +439,7 @@ class GPU {
         enum class Dma { Off, FifoQuery, Write, Read } dma;
     };
     struct CtrlDisplayStart : public Logged {
+        std::string_view getName() override { return "Display Start"; }
         CtrlDisplayStart(uint32_t value) : x(value & 0x3ff), y((value >> 10) & 0x1ff) {}
         CtrlDisplayStart(const CtrlDisplayStart &other) = default;
         CtrlDisplayStart(CtrlDisplayStart &&other) = default;
@@ -416,6 +447,7 @@ class GPU {
         unsigned x, y;
     };
     struct CtrlHorizontalDisplayRange : public Logged {
+        std::string_view getName() override { return "Horizontal Display Range"; }
         CtrlHorizontalDisplayRange(uint32_t value) : x0(value & 0xfff), x1((value >> 12) & 0xfff) {}
         CtrlHorizontalDisplayRange(const CtrlHorizontalDisplayRange &other) = default;
         CtrlHorizontalDisplayRange(CtrlHorizontalDisplayRange &&other) = default;
@@ -423,6 +455,7 @@ class GPU {
         unsigned x0, x1;
     };
     struct CtrlVerticalDisplayRange : public Logged {
+        std::string_view getName() override { return "Vertical Display Range"; }
         CtrlVerticalDisplayRange(uint32_t value) : y0(value & 0x3ff), y1((value >> 10) & 0x3ff) {}
         CtrlVerticalDisplayRange(const CtrlVerticalDisplayRange &other) = default;
         CtrlVerticalDisplayRange(CtrlVerticalDisplayRange &&other) = default;
@@ -430,6 +463,7 @@ class GPU {
         unsigned y0, y1;
     };
     struct CtrlDisplayMode : public Logged {
+        std::string_view getName() override { return "Display Mode"; }
         CtrlDisplayMode() : CtrlDisplayMode(0) {}
         CtrlDisplayMode(uint32_t value);
         CtrlDisplayMode(const CtrlDisplayMode &other) = default;
@@ -447,6 +481,7 @@ class GPU {
         bool interlace;
     };
     struct CtrlQuery : public Logged {
+        std::string_view getName() override { return "Query"; }
         CtrlQuery(uint32_t value) : query(value & 0x07) {}
         CtrlQuery(const CtrlQuery &other) = default;
         CtrlQuery(CtrlQuery &&other) = default;

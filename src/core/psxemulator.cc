@@ -26,6 +26,7 @@
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/gpulogger.h"
 #include "core/gte.h"
 #include "core/luaiso.h"
 #include "core/mdec.h"
@@ -49,6 +50,7 @@ extern "C" {
 PCSX::Emulator::Emulator()
     : m_mem(new PCSX::Memory()),
       m_counters(new PCSX::Counters()),
+      m_gpuLogger(new PCSX::GPULogger()),
       m_gte(new PCSX::GTE()),
       m_sio(new PCSX::SIO()),
       m_cdrom(PCSX::CDRom::factory()),

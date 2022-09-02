@@ -34,6 +34,7 @@
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
+#include "gui/widgets/gpulogger.h"
 #include "gui/widgets/kernellog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/luaeditor.h"
@@ -90,6 +91,7 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
+    typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
@@ -104,8 +106,8 @@ class GUI final {
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
-             ShowKernelLog, ShowCallstacks, ShowSIO1, MainFontSize, MonoFontSize, GUITheme, EnableRawMouseMotion,
-             WidescreenRatio>
+             ShowKernelLog, ShowCallstacks, ShowSIO1, ShowGPULogger, MainFontSize, MonoFontSize, GUITheme,
+             EnableRawMouseMotion, WidescreenRatio>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -333,6 +335,8 @@ class GUI final {
     Widgets::CallStacks m_callstacks = {settings.get<ShowCallstacks>().value};
 
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
+
+    Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
 
     EventBus::Listener m_listener;
 

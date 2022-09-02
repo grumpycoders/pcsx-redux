@@ -20,6 +20,7 @@
 #include "core/gpu.h"
 
 #include "core/debug.h"
+#include "core/gpulogger.h"
 #include "core/pgxp_mem.h"
 #include "core/psxdma.h"
 #include "core/psxhw.h"
@@ -79,6 +80,7 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer
     m_state = READ_COLOR;
     m_gpu->m_defaultProcessor.setActive();
     m_gpu->write0(this);
+    g_emulator->m_gpuLogger->addNode(new Poly<shading, shape, textured, blend, modulation>(*this));
 }
 
 template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
@@ -135,6 +137,7 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
     m_gpu->m_defaultProcessor.setActive();
     if ((colors.size() >= 2) && ((colors.size() == x.size()))) {
         m_gpu->write0(this);
+        g_emulator->m_gpuLogger->addNode(new Line<shading, lineType, blend>(*this));
     } else {
         g_system->log(LogClass::GPU, "Got an invalid line command...\n");
     }
@@ -197,6 +200,7 @@ void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer &buf) {
     m_state = READ_COLOR;
     m_gpu->m_defaultProcessor.setActive();
     m_gpu->write0(this);
+    g_emulator->m_gpuLogger->addNode(new Rect<size, textured, blend, modulation>(*this));
 }
 // clang-format on
 
@@ -534,44 +538,54 @@ void PCSX::GPU::writeStatus(uint32_t status) {
     switch (cmd) {
         case 0: {
             m_readFifo->reset();
-            CtrlReset ctrlReset;
-            write1(&ctrlReset);
+            CtrlReset ctrl;
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlReset(ctrl));
         } break;
         case 1: {
-            CtrlClearFifo ctrlClearFifo;
-            write1(&ctrlClearFifo);
+            CtrlClearFifo ctrl;
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlClearFifo(ctrl));
         } break;
         case 2: {
-            CtrlIrqAck ctrlIrqAck;
-            write1(&ctrlIrqAck);
+            CtrlIrqAck ctrl;
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlIrqAck(ctrl));
         } break;
         case 3: {
-            CtrlDisplayEnable ctrlDisplayEnable(status);
-            write1(&ctrlDisplayEnable);
+            CtrlDisplayEnable ctrl(status);
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlDisplayEnable(ctrl));
         } break;
         case 4: {
-            CtrlDmaSetting ctrlDmaSetting(status);
-            write1(&ctrlDmaSetting);
+            CtrlDmaSetting ctrl(status);
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlDmaSetting(ctrl));
         } break;
         case 5: {
-            CtrlDisplayStart ctrlDisplayStart(status);
-            write1(&ctrlDisplayStart);
+            CtrlDisplayStart ctrl(status);
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlDisplayStart(ctrl));
         } break;
         case 6: {
-            CtrlHorizontalDisplayRange ctrlHorizontalDisplayRange(status);
-            write1(&ctrlHorizontalDisplayRange);
+            CtrlHorizontalDisplayRange ctrl(status);
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlHorizontalDisplayRange(ctrl));
         } break;
         case 7: {
-            CtrlVerticalDisplayRange ctrlVerticalDisplayRange(status);
-            write1(&ctrlVerticalDisplayRange);
+            CtrlVerticalDisplayRange ctrl(status);
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlVerticalDisplayRange(ctrl));
         } break;
         case 8: {
-            CtrlDisplayMode ctrlDisplayMode(status);
-            write1(&ctrlDisplayMode);
+            CtrlDisplayMode ctrl(status);
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlDisplayMode(ctrl));
         } break;
         case 16: {
-            CtrlQuery ctrlQuery(status);
-            write1(&ctrlQuery);
+            CtrlQuery ctrl(status);
+            write1(&ctrl);
+            g_emulator->m_gpuLogger->addNode(new CtrlQuery(ctrl));
         } break;
         default: {
             gotUnknown = true;
@@ -635,7 +649,6 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
         const uint8_t command = (value >> 24) & 0x1f;  // 5 next bits = "command", which may be a bitfield
 
         const uint32_t packetInfo = value & 0xffffff;
-        GPU::Logged *logged = nullptr;
 
         switch (cmdType) {
             case 0:  // GPU command
@@ -643,6 +656,7 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
                     case 0x01: {  // clear cache
                         ClearCache prim;
                         m_gpu->write0(&prim);
+                        g_emulator->m_gpuLogger->addNode(new ClearCache(prim));
                     } break;
                     case 0x02: {  // fast fill
                         buf.rewind();
@@ -684,34 +698,34 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
             case 7: {  // Environment command
                 switch (command) {
                     case 1: {  // tpage
-                        TPage tpage(packetInfo);
-                        logged = &tpage;
-                        m_gpu->write0(&tpage);
+                        TPage prim(packetInfo);
+                        m_gpu->write0(&prim);
+                        g_emulator->m_gpuLogger->addNode(new TPage(prim));
                     } break;
                     case 2: {  // twindow
-                        TWindow twindow(packetInfo);
-                        logged = &twindow;
-                        m_gpu->write0(&twindow);
+                        TWindow prim(packetInfo);
+                        m_gpu->write0(&prim);
+                        g_emulator->m_gpuLogger->addNode(new TWindow(prim));
                     } break;
                     case 3: {  // drawing area top left
-                        DrawingAreaStart start(packetInfo);
-                        logged = &start;
-                        m_gpu->write0(&start);
+                        DrawingAreaStart prim(packetInfo);
+                        m_gpu->write0(&prim);
+                        g_emulator->m_gpuLogger->addNode(new DrawingAreaStart(prim));
                     } break;
                     case 4: {  // drawing area bottom right
-                        DrawingAreaEnd end(packetInfo);
-                        logged = &end;
-                        m_gpu->write0(&end);
+                        DrawingAreaEnd prim(packetInfo);
+                        m_gpu->write0(&prim);
+                        g_emulator->m_gpuLogger->addNode(new DrawingAreaEnd(prim));
                     } break;
                     case 5: {  // drawing offset
-                        DrawingOffset offset(packetInfo);
-                        logged = &offset;
-                        m_gpu->write0(&offset);
+                        DrawingOffset prim(packetInfo);
+                        m_gpu->write0(&prim);
+                        g_emulator->m_gpuLogger->addNode(new DrawingOffset(prim));
                     } break;
                     case 6: {  // mask bit
-                        MaskBit mask(packetInfo);
-                        logged = &mask;
-                        m_gpu->write0(&mask);
+                        MaskBit prim(packetInfo);
+                        m_gpu->write0(&prim);
+                        g_emulator->m_gpuLogger->addNode(new MaskBit(prim));
                     } break;
                     default: {
                         gotUnknown = true;
@@ -747,6 +761,7 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf) {
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->write0(this);
+            g_emulator->m_gpuLogger->addNode(new FastFill(*this));
             return;
     }
 }
@@ -779,6 +794,7 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf) {
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->write0(this);
+            g_emulator->m_gpuLogger->addNode(new BlitVramVram(*this));
             return;
     }
 }

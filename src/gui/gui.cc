@@ -43,6 +43,7 @@
 #include "core/debug.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/gpulogger.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -1049,6 +1050,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
                 ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
                 ImGui::MenuItem(_("Breakpoint on vsync"), nullptr, &m_breakOnVSync);
+                ImGui::MenuItem(_("Show GPU logger"), nullptr, &m_gpuLogger.m_show);
                 if (ImGui::BeginMenu(_("Memory Editors"))) {
                     for (auto& editor : m_mainMemEditors) {
                         editor.MenuItem();
@@ -1304,6 +1306,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
     if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
+    if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"));
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
@@ -1981,8 +1984,13 @@ void PCSX::GUI::update(bool vsync) {
     // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
     // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.
     g_emulator->m_gpu->setOpenGLContext();
-    if (vsync && m_breakOnVSync) {
-        g_system->pause();
+    if (vsync) {
+        if (m_breakOnVSync) {
+            g_system->pause();
+            g_emulator->m_gpuLogger->setClearOnResume();
+        } else {
+            g_emulator->m_gpuLogger->clearFrameLog();
+        }
     }
 }
 
