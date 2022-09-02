@@ -863,7 +863,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                         if (auto* addressNodeTuple = std::get_if<AddressNodeTuple>(&argData)) {
                             displayNode(&addressNodeTuple->node, addressNodeTuple->address, false,
                                         addressNodeTuple->addressOfPointer, functionData.id);
-                        } else if (auto* registerValue = std::get_if<RegisterValue>(&argData)) {
+                        } else if (auto* registerValue = std::get_if<ImmediateValue>(&argData)) {
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();  // Name.
                             ImGui::TreeNodeEx(registerValue->name.c_str(), ImGuiTreeNodeFlags_Leaf |
@@ -927,22 +927,25 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                             bpData.functionName = func.name;
 
                             const auto& regs = g_emulator->m_cpu->m_regs.GPR.n;
-                            // @todo: handle arguments passed on the stack.
+
+                            // todo: handle arguments of greater size than a word that are passed by value.
+
+                            // First, we handle up to 4 arguments passed in registers.
                             for (int i = 0; i < std::min(size_t{4}, func.arguments.size()); ++i) {
                                 const auto& arg = func.arguments[i];
-                                uint32_t reg_value = 0;
+                                uint32_t regValue = 0;
                                 switch (i) {
                                     case 0:
-                                        reg_value = regs.a0;
+                                        regValue = regs.a0;
                                         break;
                                     case 1:
-                                        reg_value = regs.a1;
+                                        regValue = regs.a1;
                                         break;
                                     case 2:
-                                        reg_value = regs.a2;
+                                        regValue = regs.a2;
                                         break;
                                     case 3:
-                                        reg_value = regs.a3;
+                                        regValue = regs.a3;
                                         break;
                                     default:
                                         assert(false);
@@ -951,10 +954,31 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                                 if (arg.type.back() == '*') {
                                     WatchTreeNode argNode{arg.type, arg.name, arg.size};
                                     populate(&argNode);
-                                    bpData.argData.push_back(AddressNodeTuple{reg_value, false, argNode});
+                                    bpData.argData.push_back(AddressNodeTuple{regValue, false, argNode});
                                 } else {
-                                    bpData.argData.push_back(RegisterValue{reg_value, arg.type, arg.name, arg.size});
+                                    bpData.argData.push_back(ImmediateValue{regValue, arg.type, arg.name, arg.size});
                                 }
+                            }
+
+                            // Next, we handle arguments passed on the stack.
+                            const auto sp = regs.sp;
+                            auto stackArgAddress = sp + 0x10;
+                            uint32_t memBase;
+                            uint8_t* memData = getMemoryPointerFor(stackArgAddress, memBase);
+
+                            for (int i = 4; i < func.arguments.size(); ++i) {
+                                const auto& arg = func.arguments[i];
+                                uint32_t argValue = *(uint32_t*)(memData + stackArgAddress - memBase);
+
+                                if (arg.type.back() == '*') {
+                                    WatchTreeNode argNode{arg.type, arg.name, arg.size};
+                                    populate(&argNode);
+                                    bpData.argData.push_back(AddressNodeTuple{argValue, false, argNode});
+                                } else {
+                                    bpData.argData.push_back(ImmediateValue{argValue, arg.type, arg.name, arg.size});
+                                }
+
+                                stackArgAddress += arg.size;
                             }
 
                             const auto ra = g_emulator->m_cpu->m_regs.GPR.n.ra;
