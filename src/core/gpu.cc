@@ -44,7 +44,11 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer
                 value = buf.get();
                 [[fallthrough]];
         case READ_COLOR:
-                colors[m_count] = value & 0xffffff;
+                if constexpr ((textured == Textured::Yes) && (modulation == Modulation::Off)) {
+                    colors[m_count] = 0x808080;
+                } else {
+                    colors[m_count] = value & 0xffffff;
+                }
             } else {
                 colors[m_count] = colors[0];
             }
