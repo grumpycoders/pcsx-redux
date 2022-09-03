@@ -569,11 +569,16 @@ struct PCSX::WebClient::WebClientImpl {
         auto& ct = m_requestData.headers;
         auto it = ct.find("Content-Type");
         if (it != ct.end()) {
-            auto& contentType = it->second;
+            std::string_view contentType = it->second;
             if (contentType.starts_with("multipart/form-data")) {
                 auto pos = contentType.find("boundary=");
                 if (pos != std::string::npos) {
-                    m_multipartBoundary = "--" + contentType.substr(pos + 9);
+                    std::string_view marker = contentType.substr(pos + 9);
+                    if (marker.starts_with("\"") && marker.ends_with("\"") && marker.size() >= 2) {
+                        marker = marker.substr(1, marker.size() - 2);
+                    }
+                    m_multipartBoundary = std::string("--");
+                    m_multipartBoundary += marker;
                     m_multipart = true;
                     memset(&m_multipartParserCallbacks, 0, sizeof(multipart_parser_settings));
                     m_multipartParserCallbacks.on_header_field = [](multipart_parser* p, const char* at,
