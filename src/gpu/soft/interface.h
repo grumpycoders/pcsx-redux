@@ -38,7 +38,7 @@ class impl final : public GPU, public SoftRenderer {
 
     void setDither(int setting) override { m_useDither = setting; }
     void clearVRAM() override;
-    void reset() override {
+    void resetBackend() override {
         clearVRAM();
         m_display.reset();
     }

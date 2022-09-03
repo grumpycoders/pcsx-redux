@@ -33,7 +33,7 @@
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
 
-void PCSX::OpenGL_GPU::reset() {
+void PCSX::OpenGL_GPU::resetBackend() {
     m_gpustat = 0x14802000;
 
     m_lastTransparency = Transparency::Opaque;

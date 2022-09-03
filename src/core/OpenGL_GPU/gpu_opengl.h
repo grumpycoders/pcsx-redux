@@ -39,7 +39,7 @@ class OpenGL_GPU final : public GPU {
 
     void setDither(int setting) override { m_useDither = setting; }
     void clearVRAM() override;
-    void reset() override;
+    void resetBackend() override;
     GLuint getVRAMTexture() override;
     void setLinearFiltering() override;
     Slice getVRAM() override;
@@ -130,7 +130,6 @@ class OpenGL_GPU final : public GPU {
     int m_vertexCount = 0;
     bool m_updateDrawOffset = false;
     bool m_syncVRAM = true;
-    bool m_drawnStuff = false;
     uint32_t m_rectTexpage = 0;  // Rects have their own texpage settings
     uint32_t m_lastTexwindowSetting = 0;
     uint32_t m_lastDrawOffsetSetting = 0;

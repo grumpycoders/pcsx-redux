@@ -28,7 +28,7 @@ namespace PCSX {
 namespace SoftGPU {
 
 struct SoftRenderer {
-    inline void reset() {
+    inline void resetRenderer() {
         m_lobalTextAddrX = 0;
         m_globalTextAddrY = 0;
         m_globalTextTP = GPU::TexDepth::Tex4Bits;

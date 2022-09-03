@@ -654,7 +654,7 @@ void PCSX::SoftGPU::impl::write1(CtrlReset *) {
     m_statusRet = 0x14802000;
     m_softDisplay.Disabled = 1;
     m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
-    reset();
+    resetRenderer();    
     acknowledgeIRQ1();
     m_softDisplay.RGB24 = false;
     m_softDisplay.Interlaced = false;

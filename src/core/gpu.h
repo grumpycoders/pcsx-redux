@@ -71,6 +71,7 @@ class GPU {
     uint32_t s_usedAddr[3];
     bool CheckForEndlessLoop(uint32_t laddr);
     uint32_t gpuDmaChainSize(uint32_t addr);
+    virtual void resetBackend() = 0;
 
   public:
     GPU();
@@ -100,7 +101,12 @@ class GPU {
     }
 
     virtual void setDither(int setting) = 0;
-    virtual void reset() = 0;
+    void reset() {
+        resetBackend();
+        m_readFifo->reset();
+        m_processor->reset();
+        m_defaultProcessor.setActive();
+    }
     virtual void clearVRAM() = 0;
     virtual GLuint getVRAMTexture() = 0;
     virtual void setLinearFiltering() = 0;
@@ -161,6 +167,7 @@ class GPU {
         Command(GPU *parent) : m_gpu(parent) {}
         virtual ~Command() {}
         virtual void processWrite(Buffer &);
+        virtual void reset() {}
         void setActive() { m_gpu->m_processor = this; }
 
       protected:
@@ -205,6 +212,7 @@ class GPU {
         std::string_view getName() override { return "Fast Fill"; }
         FastFill(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &) override;
+        void reset() override { m_state = READ_COLOR; }
 
         uint32_t color;
         unsigned x, y, w, h;
@@ -217,6 +225,7 @@ class GPU {
         std::string_view getName() override { return "VRAM to VRAM blit"; }
         BlitVramVram(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &) override;
+        void reset() override { m_state = READ_COMMAND; }
 
         unsigned sX, sY, dX, dY, w, h;
 
@@ -237,6 +246,10 @@ class GPU {
         }
         BlitRamVram(BlitRamVram &&) = delete;
         void processWrite(Buffer &) override;
+        void reset() override {
+            m_state = READ_COMMAND;
+            m_data.clear();
+        }
 
         unsigned x, y, w, h;
         Slice data;
@@ -331,6 +344,10 @@ class GPU {
         std::string_view getName() override { return "Polygon"; }
         Poly() {}
         void processWrite(Buffer &) override;
+        void reset() override {
+            m_state = READ_COLOR;
+            m_count = 0;
+        }
         uint32_t colors[count];
         int x[count], y[count];
         struct Empty {};
@@ -366,6 +383,16 @@ class GPU {
             if constexpr (lineType == LineType::Simple) m_count = 0;
         }
         void processWrite(Buffer &) override;
+        void reset() override {
+            m_state = READ_COLOR;
+            if constexpr (lineType == LineType::Simple) {
+                m_count = 0;
+            } else if constexpr (lineType == LineType::Poly) {
+                x.clear();
+                y.clear();
+                colors.clear();
+            }
+        }
 
         template <typename T>
         using Storage = typename std::conditional<lineType == LineType::Poly, std::vector<T>, std::array<T, 2>>::type;
@@ -384,6 +411,7 @@ class GPU {
         std::string_view getName() override { return "Rectangle"; }
         Rect() {}
         void processWrite(Buffer &) override;
+        void reset() override { m_state = READ_COLOR; }
 
         struct Empty {};
         int x, y, w, h;
