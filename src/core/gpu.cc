@@ -534,6 +534,8 @@ void PCSX::GPU::writeStatus(uint32_t status) {
     switch (cmd) {
         case 0: {
             m_readFifo->reset();
+            m_processor->reset();
+            m_defaultProcessor.setActive();
             CtrlReset ctrlReset;
             write1(&ctrlReset);
         } break;
