@@ -66,7 +66,7 @@ powershell -c "& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpy
 Then, open a new command prompt, and type the following:
 
 ```
-mips install 12.1.0
+mips install 12.2.0
 ```
 
 ### Linux

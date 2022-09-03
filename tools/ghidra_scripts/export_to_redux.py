@@ -22,8 +22,10 @@ with open (root_dir + '/redux_data_types.txt', 'w') as f:
         f.write(dt_info + '\n')
 
 with open (root_dir + '/redux_funcs.txt', 'w') as f:
-    for func in fm.getFunctions(toAddr(0x800148B8), True):
-        func_info = func.getEntryPoint().toString() + ';' + func.getName() + ';'
+    main_address = 0x800148B8
+    for func in fm.getFunctions(toAddr(main_address), True):
+        entry_point = func.getEntryPoint().toString()
+        func_info = entry_point.split(':')[-1] + ';' + func.getName() + ';'
         for param in func.getParameters():
             data_type_name = param.getDataType().getName()
             if data_type_name.__contains__('undefined'):

@@ -297,9 +297,23 @@ returnFromException:
     .type exceptionVector, @function
 
 exceptionVector:
+    /* At least one game (Armored Core: Master of Arena) is very wrongly
+       using 0x80 as a parameter to CdControlF instead of a pointer to
+       a structure that *contains* the 0x80 value:
+
+      ::8001616c 0e  00  04  24    li         a0, 0xe
+      ::80016170 cf  5f  00  0c    jal        CdControlF
+      ::80016174 80  00  05  24    _li        a1, 0x80
+
+      This results in the address 0x80 being wrongly dereferenced by
+      CdControlF to read its parameters, and the retail bios will have
+      enough zeroes here to make it work properly, tho it will be at
+      1x speed instead of the intended 2x. We pad with a nop to ensure
+      a behavior that is somewhat similar to the retail bios. */
+
+    nop
     li    $k0, %lo(exceptionHandler)
     jr    $k0
-    nop
     nop
 
     .align 2
