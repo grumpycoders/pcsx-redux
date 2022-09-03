@@ -112,9 +112,16 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
     } else {
         switch (m_state) {
             for (/* m_count = 0 */; m_count < 2; m_count++) {
-                [[fallthrough]];
+                if (shading == Shading::Gouraud) {
+                    m_state = READ_COLOR;
+                    if (buf.isEmpty()) return;
+                    value = buf.get();
+                    [[fallthrough]];
             case READ_COLOR:
-                colors[m_count] = value & 0xffffff;
+                    colors[m_count] = value & 0xffffff;
+                } else {
+                    colors[m_count] = colors[0];
+                }
                 m_state = READ_XY;
                 if (buf.isEmpty()) return;
                 value = buf.get();
@@ -122,13 +129,6 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
             case READ_XY:
                 x[m_count] = GPU::signExtend<int, 11>(value & 0xffff);
                 y[m_count] = GPU::signExtend<int, 11>(value >> 16);
-                if constexpr (shading == Shading::Flat) {
-                    colors[m_count] = colors[0];
-                } else {
-                    m_state = READ_COLOR;
-                }
-                if (buf.isEmpty()) return;
-                value = buf.get();
             }
         }
     }
