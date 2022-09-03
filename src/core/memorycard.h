@@ -19,13 +19,15 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
-//#include "core/sio.h"
-
-class SIO;
 
 namespace PCSX {
+class SIO;
+
 class MemoryCard {
   private:
     enum Commands : uint8_t {
@@ -102,7 +104,7 @@ class MemoryCard {
 
     char g_mcdData[MCD_SIZE];
 
-    uint8_t checksum_in, checksum_out;
+    uint8_t checksum_in = 0, checksum_out = 0;
     uint32_t command_ticks = 0;
     uint8_t current_command = Commands::None;
     uint8_t flag = Flags::DirectoryUnread;
@@ -113,7 +115,7 @@ class MemoryCard {
     SIO * m_sio;
 
     // PocketStation Specific
-    uint16_t PS_DirectoryIndex;
+    uint16_t PS_DirectoryIndex = 0;
 
     void GoIdle() {
         current_command = Commands::None;
@@ -122,7 +124,6 @@ class MemoryCard {
     }
 
     void CreateMcd(const PCSX::u8string mcd);
-    void ConvertMcd(const PCSX::u8string mcd, const char *data);
     char *getMcdData() { return g_mcdData; }
 
     friend class SIO;

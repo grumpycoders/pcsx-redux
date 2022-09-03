@@ -68,6 +68,13 @@ class Pads {
 
     void setLua(Lua L);
 
+    bool isPadConnected(int pad) {
+        if (pad > m_pads.size())
+            return false;
+        else
+            return m_pads[pad - 1].isControllerConnected();
+    }
+
   private:
     EventBus::Listener m_listener;
     int m_gamepadsMap[16] = {0};
@@ -164,6 +171,7 @@ class Pads {
         uint8_t doDualshockCommand(uint32_t &padState);
         void getButtons();
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
+        bool isControllerConnected() { return m_settings.get<SettingConnected>(); }
 
         json getCfg();
         void setCfg(const json &j);

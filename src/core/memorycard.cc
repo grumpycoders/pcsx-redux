@@ -1,10 +1,26 @@
-#include "core/memorycard.h"
+/***************************************************************************
+ *   Copyright (C) 2022 PCSX-Redux authors                                 *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
 
-#include <bitset>
+#include "core/memorycard.h"
 
 #include "core/sio.h"
 #include "support/sjis_conv.h"
-
 
 void PCSX::MemoryCard::ACK() { m_sio->ACK(); }
 
@@ -26,11 +42,10 @@ uint8_t PCSX::MemoryCard::ProcessEvents(uint8_t value) {
 
         case Commands::Access:
             switch (value) {
-
                 case Commands::PS_GetVersion:
-                //case Commands::PS_ChangeFuncValue:
+                // case Commands::PS_ChangeFuncValue:
                 case Commands::PS_GetDirIndex:
-                    //if (!Settings_blah_blah_PSExtensionsEnabled) { GoIdle(); return Responses::IdleHighZ; }
+                    // if (!Settings_blah_blah_PSExtensionsEnabled) { GoIdle(); return Responses::IdleHighZ; }
 
                 case Commands::Read:
                 case Commands::Write:
@@ -331,7 +346,6 @@ uint8_t PCSX::MemoryCard::TickPS_GetVersion(uint8_t value) {
     uint8_t data_out = Responses::IdleHighZ;
 
     switch (command_ticks) {
-
         case 0:  // 58
             data_out = 0x02;
             break;
@@ -386,10 +400,11 @@ void PCSX::MemoryCard::LoadMcd(const PCSX::u8string str) {
         struct stat buf;
         PCSX::g_system->printf(_("Loading memory card %s\n"), fname);
         if (stat(fname, &buf) != -1) {
-            if (buf.st_size == MCD_SIZE + 64)
+            if (buf.st_size == MCD_SIZE + 64) {
                 fseek(f, 64, SEEK_SET);
-            else if (buf.st_size == MCD_SIZE + 3904)
+            } else if (buf.st_size == MCD_SIZE + 3904) {
                 fseek(f, 3904, SEEK_SET);
+            }
         }
         if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
             throw("Error reading memory card.");
@@ -421,19 +436,14 @@ void PCSX::MemoryCard::saveMcd(const PCSX::u8string mcd, const char *data, uint3
         fclose(f);
         saved_local = true;
         PCSX::g_system->printf(_("Saving memory card %s\n"), fname);
-        return;
+    } else {
+        // try to create it again if we can't open it
+        f = fopen(fname, "wb");
+        if (f != NULL) {
+            fwrite(data, 1, MCD_SIZE, f);
+            fclose(f);
+        }
     }
-
-#if 0
-    // try to create it again if we can't open it
-    f = fopen(mcd, "wb");
-    if (f != NULL) {
-        fwrite(data, 1, MCD_SIZE, f);
-        fclose(f);
-    }
-#endif
-
-    ConvertMcd(mcd, data);
 }
 
 void PCSX::MemoryCard::CreateMcd(const PCSX::u8string mcd) {
@@ -444,79 +454,6 @@ void PCSX::MemoryCard::CreateMcd(const PCSX::u8string mcd) {
     const auto f = fopen(fname, "wb");
     if (f == nullptr) return;
 
-    if (stat(fname, &buf) != -1) {
-        if ((buf.st_size == MCD_SIZE + 3904) || strstr(fname, ".gme")) {
-            s = s + 3904;
-            fputc('1', f);
-            s--;
-            fputc('2', f);
-            s--;
-            fputc('3', f);
-            s--;
-            fputc('-', f);
-            s--;
-            fputc('4', f);
-            s--;
-            fputc('5', f);
-            s--;
-            fputc('6', f);
-            s--;
-            fputc('-', f);
-            s--;
-            fputc('S', f);
-            s--;
-            fputc('T', f);
-            s--;
-            fputc('D', f);
-            s--;
-            for (int i = 0; i < 7; i++) {
-                fputc(0, f);
-                s--;
-            }
-            fputc(1, f);
-            s--;
-            fputc(0, f);
-            s--;
-            fputc(1, f);
-            s--;
-            fputc('M', f);
-            s--;
-            fputc('Q', f);
-            s--;
-            for (int i = 0; i < 14; i++) {
-                fputc(0xa0, f);
-                s--;
-            }
-            fputc(0, f);
-            s--;
-            fputc(0xff, f);
-            while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        } else if ((buf.st_size == MCD_SIZE + 64) || strstr(fname, ".mem") || strstr(fname, ".vgs")) {
-            s = s + 64;
-            fputc('V', f);
-            s--;
-            fputc('g', f);
-            s--;
-            fputc('s', f);
-            s--;
-            fputc('M', f);
-            s--;
-            for (int i = 0; i < 3; i++) {
-                fputc(1, f);
-                s--;
-                fputc(0, f);
-                s--;
-                fputc(0, f);
-                s--;
-                fputc(0, f);
-                s--;
-            }
-            fputc(0, f);
-            s--;
-            fputc(2, f);
-            while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        }
-    }
     fputc('M', f);
     s--;
     fputc('C', f);
@@ -584,101 +521,4 @@ void PCSX::MemoryCard::CreateMcd(const PCSX::u8string mcd) {
     while ((s--) >= 0) fputc(0, f);
 
     fclose(f);
-}
-
-void PCSX::MemoryCard::ConvertMcd(const PCSX::u8string mcd, const char *data) {
-    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    int s = MCD_SIZE;
-
-    if (strstr(fname, ".gme")) {
-        auto f = fopen(fname, "wb");
-        if (f != nullptr) {
-            fwrite(data - 3904, 1, MCD_SIZE + 3904, f);
-            fclose(f);
-        }
-        f = fopen(fname, "r+");
-        s = s + 3904;
-        fputc('1', f);
-        s--;
-        fputc('2', f);
-        s--;
-        fputc('3', f);
-        s--;
-        fputc('-', f);
-        s--;
-        fputc('4', f);
-        s--;
-        fputc('5', f);
-        s--;
-        fputc('6', f);
-        s--;
-        fputc('-', f);
-        s--;
-        fputc('S', f);
-        s--;
-        fputc('T', f);
-        s--;
-        fputc('D', f);
-        s--;
-        for (int i = 0; i < 7; i++) {
-            fputc(0, f);
-            s--;
-        }
-        fputc(1, f);
-        s--;
-        fputc(0, f);
-        s--;
-        fputc(1, f);
-        s--;
-        fputc('M', f);
-        s--;
-        fputc('Q', f);
-        s--;
-        for (int i = 0; i < 14; i++) {
-            fputc(0xa0, f);
-            s--;
-        }
-        fputc(0, f);
-        s--;
-        fputc(0xff, f);
-        while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        fclose(f);
-    } else if (strstr(fname, ".mem") || strstr(fname, ".vgs")) {
-        auto f = fopen(fname, "wb");
-        if (f != nullptr) {
-            fwrite(data - 64, 1, MCD_SIZE + 64, f);
-            fclose(f);
-        }
-        f = fopen(fname, "r+");
-        s = s + 64;
-        fputc('V', f);
-        s--;
-        fputc('g', f);
-        s--;
-        fputc('s', f);
-        s--;
-        fputc('M', f);
-        s--;
-        for (int i = 0; i < 3; i++) {
-            fputc(1, f);
-            s--;
-            fputc(0, f);
-            s--;
-            fputc(0, f);
-            s--;
-            fputc(0, f);
-            s--;
-        }
-        fputc(0, f);
-        s--;
-        fputc(2, f);
-        while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        fclose(f);
-    } else {
-        const auto f = fopen(fname, "wb");
-        if (f != nullptr) {
-            fwrite(data, 1, MCD_SIZE, f);
-            fclose(f);
-        }
-    }
 }

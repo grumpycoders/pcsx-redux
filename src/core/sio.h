@@ -106,7 +106,6 @@ class SIO {
 
     uint8_t current_device = static_cast<uint8_t>(SIO_Device::None);
 
-    uint8_t data_in;
     uint8_t data_out;
     uint8_t delayed_out;
 
