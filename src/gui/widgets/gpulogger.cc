@@ -38,6 +38,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     ImGui::Checkbox(_("Replay frame"), &m_replay);
     bool collapseAll = false;
     bool expandAll = false;
+    bool disableFromHere = false;
     if (ImGui::Button(_("Collapse all nodes"))) {
         collapseAll = true;
     }
@@ -50,11 +51,21 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
 
     std::string label;
     for (auto& logged : logger->m_list) {
+        if (disableFromHere) logged.enabled = false;
         label = fmt::format("##highlight{}", n);
         ImGui::Checkbox(label.c_str(), &logged.highlight);
         ImGui::SameLine();
         label = fmt::format("##enable{}", n);
         ImGui::Checkbox(label.c_str(), &logged.enabled);
+        ImGui::SameLine();
+        label = fmt::format(" ##upto{}", n);
+        if (ImGui::Button(label.c_str())) {
+            for (auto& before : logger->m_list) {
+                before.enabled = true;
+                if (&before == &logged) break;
+            }
+            disableFromHere = true;
+        }
         ImGui::SameLine();
         if (collapseAll) ImGui::SetNextItemOpen(false);
         if (expandAll) ImGui::SetNextItemOpen(true);
