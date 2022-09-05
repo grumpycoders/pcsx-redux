@@ -30,6 +30,9 @@ class GPULogger {
 
     bool& m_show;
     bool m_replay = false;
+    bool m_showOrigins = false;
+    bool m_expandAll = false;
+    bool m_collapseAll = false;
 };
 
 }  // namespace Widgets

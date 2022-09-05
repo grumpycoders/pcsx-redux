@@ -24,6 +24,7 @@
 #include "core/pgxp_mem.h"
 #include "core/psxdma.h"
 #include "core/psxhw.h"
+#include "imgui/imgui.h"
 #include "magic_enum/include/magic_enum.hpp"
 
 #define GPUSTATUS_READYFORVRAM 0x08000000
@@ -35,7 +36,7 @@ namespace PCSX {
 // clang-format off
 // clang-format doesn't understand duff's device pattern...
 template <GPU::Shading shading, GPU::Shape shape, GPU::Textured textured, GPU::Blend blend, GPU::Modulation modulation>
-void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer &buf) {
+void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer & buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     switch (m_state) {
         for (/* m_count = 0 */; m_count < count; m_count++) {
@@ -83,12 +84,12 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer
     m_count = 0;
     m_state = READ_COLOR;
     m_gpu->m_defaultProcessor.setActive();
-    g_emulator->m_gpuLogger->addNode(*this);
+    g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
     m_gpu->write0(this);
 }
 
 template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
-void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
+void GPU::Line<shading, lineType, blend>::processWrite(Buffer & buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     if constexpr (lineType == LineType::Poly) {
         if ((value & 0xf000f000) != 0x50005000) {
@@ -140,7 +141,7 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
     m_state = READ_COLOR;
     m_gpu->m_defaultProcessor.setActive();
     if ((colors.size() >= 2) && ((colors.size() == x.size()))) {
-        g_emulator->m_gpuLogger->addNode(*this);
+        g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
         m_gpu->write0(this);
     } else {
         g_system->log(LogClass::GPU, "Got an invalid line command...\n");
@@ -153,7 +154,7 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
 }
 
 template <GPU::Size size, GPU::Textured textured, GPU::Blend blend, GPU::Modulation modulation>
-void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer &buf) {
+void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer & buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     switch (m_state) {
         case READ_COLOR:
@@ -203,7 +204,7 @@ void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer &buf) {
     }
     m_state = READ_COLOR;
     m_gpu->m_defaultProcessor.setActive();
-    g_emulator->m_gpuLogger->addNode(*this);
+    g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
     m_gpu->write0(this);
 }
 // clang-format on
@@ -533,11 +534,11 @@ void PCSX::GPU::gpuInterrupt() {
     DMA_INTERRUPT<2>();
 }
 
-void PCSX::GPU::writeStatus(uint32_t status) {
-    uint32_t cmd = (status >> 24) & 0xff;
+void PCSX::GPU::writeStatus(uint32_t value) {
+    uint32_t cmd = (value >> 24) & 0xff;
     bool gotUnknown = false;
 
-    m_statusControl[cmd] = status;
+    m_statusControl[cmd] = value;
 
     switch (cmd) {
         case 0: {
@@ -545,52 +546,52 @@ void PCSX::GPU::writeStatus(uint32_t status) {
             m_processor->reset();
             m_defaultProcessor.setActive();
             CtrlReset ctrl;
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 1: {
             CtrlClearFifo ctrl;
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 2: {
             CtrlIrqAck ctrl;
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 3: {
-            CtrlDisplayEnable ctrl(status);
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            CtrlDisplayEnable ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 4: {
-            CtrlDmaSetting ctrl(status);
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            CtrlDmaSetting ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 5: {
-            CtrlDisplayStart ctrl(status);
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            CtrlDisplayStart ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 6: {
-            CtrlHorizontalDisplayRange ctrl(status);
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            CtrlHorizontalDisplayRange ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 7: {
-            CtrlVerticalDisplayRange ctrl(status);
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            CtrlVerticalDisplayRange ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 8: {
-            CtrlDisplayMode ctrl(status);
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            CtrlDisplayMode ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 16: {
-            CtrlQuery ctrl(status);
-            g_emulator->m_gpuLogger->addNode(ctrl);
+            CtrlQuery ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         default: {
@@ -599,7 +600,7 @@ void PCSX::GPU::writeStatus(uint32_t status) {
     }
 
     if (gotUnknown) {
-        g_system->log(LogClass::GPU, "Got an unknown GPU control word: %08x\n", status);
+        g_system->log(LogClass::GPU, "Got an unknown GPU control word: %08x\n", value);
     }
 }
 
@@ -607,13 +608,13 @@ uint32_t PCSX::GPU::readData() { return m_readFifo.asA<File>()->read<uint32_t>()
 
 void PCSX::GPU::writeData(uint32_t value) {
     Buffer buf(value);
-    m_processor->processWrite(buf);
+    m_processor->processWrite(buf, Logged::Origin::DATAWRITE, value, 1);
 }
 
 void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t hwAddr) {
     Buffer buf(feed, transferSize);
     while (!buf.isEmpty()) {
-        m_processor->processWrite(buf);
+        m_processor->processWrite(buf, Logged::Origin::DIRECT_DMA, hwAddr, transferSize);
     }
 }
 
@@ -638,7 +639,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
         uint32_t *feed = (uint32_t *)PSXM((addr + 4) & 0x1fffff);
         Buffer buf(feed, transferSize);
         while (!buf.isEmpty()) {
-            m_processor->processWrite(buf);
+            m_processor->processWrite(buf, Logged::Origin::CHAIN_DMA, addr, transferSize);
         }
 
         // next 32-bit pointer
@@ -647,7 +648,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
 }
 
-void PCSX::GPU::Command::processWrite(Buffer &buf) {
+void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32_t value, uint32_t length) {
     while (!buf.isEmpty()) {
         uint32_t value = buf.get();
         bool gotUnknown = false;
@@ -662,12 +663,12 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
                     case 0x01: {  // clear cache
                         ClearCache prim;
                         m_gpu->write0(&prim);
-                        g_emulator->m_gpuLogger->addNode(prim);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                     } break;
                     case 0x02: {  // fast fill
                         buf.rewind();
                         m_gpu->m_fastFill.setActive();
-                        m_gpu->m_fastFill.processWrite(buf);
+                        m_gpu->m_fastFill.processWrite(buf, origin, value, length);
                     } break;
                     default: {
                         gotUnknown = true;
@@ -677,60 +678,60 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
             case 1: {  // Polygon primitive
                 buf.rewind();
                 m_gpu->m_polygons[command]->setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, value, length);
             } break;
             case 2: {  // Line primitive
                 buf.rewind();
                 m_gpu->m_lines[command]->setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, value, length);
             } break;
             case 3: {  // Rectangle primitive
                 buf.rewind();
                 m_gpu->m_rects[command]->setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, value, length);
             } break;
             case 4: {  // Move data in VRAM
                 m_gpu->m_blitVramVram.setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, value, length);
             } break;
             case 5: {  // Write data to VRAM
                 m_gpu->m_blitRamVram.setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, value, length);
             } break;
             case 6: {  // Read data from VRAM
                 m_gpu->m_blitVramRam.setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, value, length);
             } break;
             case 7: {  // Environment command
                 switch (command) {
                     case 1: {  // tpage
                         TPage prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 2: {  // twindow
                         TWindow prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 3: {  // drawing area top left
                         DrawingAreaStart prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 4: {  // drawing area bottom right
                         DrawingAreaEnd prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 5: {  // drawing offset
                         DrawingOffset prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 6: {  // mask bit
                         MaskBit prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                         m_gpu->write0(&prim);
                     } break;
                     default: {
@@ -745,7 +746,7 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
     }
 }
 
-void PCSX::GPU::FastFill::processWrite(Buffer &buf) {
+void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     switch (m_state) {
         case READ_COLOR:
@@ -766,13 +767,13 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf) {
             h = value >> 16;
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
-            g_emulator->m_gpuLogger->addNode(*this);
+            g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
             m_gpu->write0(this);
             return;
     }
 }
 
-void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf) {
+void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value;
     switch (m_state) {
         case READ_COMMAND:
@@ -799,13 +800,13 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf) {
             h = signExtend<int, 11>(value >> 16);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
-            g_emulator->m_gpuLogger->addNode(*this);
+            g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
             m_gpu->write0(this);
             return;
     }
 }
 
-void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf) {
+void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value;
     size_t size;
     bool done = false;
@@ -853,13 +854,14 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf) {
     if (done) {
         m_state = READ_COMMAND;
         m_gpu->m_defaultProcessor.setActive();
+        g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
         m_gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>());
     }
 }
 
 void PCSX::GPU::BlitRamVram::execute(GPU *gpu) { gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>()); }
 
-void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf) {
+void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value;
     switch (m_state) {
         case READ_COMMAND:
@@ -880,6 +882,7 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf) {
             h = signExtend<int, 11>(value >> 16);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
+            g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
             m_gpu->m_vramReadSlice = m_gpu->getVRAM();
             for (auto l = y; l < y + h; l++) {
                 Slice slice;
@@ -1005,3 +1008,162 @@ PCSX::GPU::CtrlDisplayMode::CtrlDisplayMode(uint32_t value) {
     interlace = (value >> 5) & 1;
     widthRaw = ((value >> 6) & 1) | ((value & 3) << 1);
 }
+
+void PCSX::GPU::ClearCache::drawLogNode() {}
+
+void PCSX::GPU::FastFill::drawLogNode() {
+    ImGui::Text("R: %i, G: %i, B: %i", (color >> 0) & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
+    ImGui::Separator();
+    ImGui::Text("X1: %i, Y1: %i", x, y);
+    ImGui::Text("X2: %i, Y2: %i", x + w, y + h);
+    ImGui::Text("W: %i, H: %i", w, h);
+}
+
+void PCSX::GPU::BlitVramVram::drawLogNode() {
+    ImGui::Text("From X: %i, Y: %i", sX, sY);
+    ImGui::Text("To X: %i, Y: %i", dX, dY);
+    ImGui::Text("W: %i, H: %i", w, h);
+}
+
+void PCSX::GPU::BlitRamVram::drawLogNode() {
+    ImGui::Text("X: %i, Y: %i", x, y);
+    ImGui::Text("W: %i, H: %i", w, h);
+}
+
+void PCSX::GPU::BlitVramRam::drawLogNode() {
+    ImGui::Text("X: %i, Y: %i", x, y);
+    ImGui::Text("W: %i, H: %i", w, h);
+}
+
+void PCSX::GPU::TPage::drawLogNode() {
+    ImGui::Text(_("Texture Page X: %i, Texture Page Y: %i"), tx, ty);
+    ImGui::TextUnformatted(_("Blending:"));
+    ImGui::SameLine();
+    switch (blendFunction) {
+        case BlendFunction::HalfBackAndHalfFront:
+            ImGui::TextUnformatted(_("50% Back + 50% Front"));
+            break;
+        case BlendFunction::FullBackAndFullFront:
+            ImGui::TextUnformatted(_("100% Back + 100% Front"));
+            break;
+        case BlendFunction::FullBackSubFullFront:
+            ImGui::TextUnformatted(_("100% Back - 100% Front"));
+            break;
+        case BlendFunction::FullBackAndQuarterFront:
+            ImGui::TextUnformatted(_("100% Back + 25% Front"));
+            break;
+    }
+    ImGui::TextUnformatted(_("Texture depth:"));
+    ImGui::SameLine();
+    switch (texDepth) {
+        case TexDepth::Tex4Bits:
+            ImGui::TextUnformatted(_("4 bits"));
+            break;
+        case TexDepth::Tex8Bits:
+            ImGui::TextUnformatted(_("8 bits"));
+            break;
+        case TexDepth::Tex16Bits:
+            ImGui::TextUnformatted(_("16 bits"));
+            break;
+    }
+    ImGui::Text(_("Dithering: %s"), dither ? _("Yes") : _("No"));
+}
+
+void PCSX::GPU::TWindow::drawLogNode() {
+    ImGui::Text("X: %i, Y: %i", x, y);
+    ImGui::Text("W: %i, H: %i", w, h);
+}
+
+void PCSX::GPU::DrawingAreaStart::drawLogNode() { ImGui::Text("X: %i, Y: %i", x, y); }
+
+void PCSX::GPU::DrawingAreaEnd::drawLogNode() { ImGui::Text("X: %i, Y: %i", x, y); }
+
+void PCSX::GPU::DrawingOffset::drawLogNode() { ImGui::Text("X: %i, Y: %i", x, y); }
+
+void PCSX::GPU::MaskBit::drawLogNode() {
+    ImGui::Text(_("Set: %s, Check: %s"), set ? _("Yes") : _("No"), check ? _("Yes") : _("No"));
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
+          PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode() {}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode() {}
+
+template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode() {}
+
+void PCSX::GPU::CtrlReset::drawLogNode() {}
+void PCSX::GPU::CtrlClearFifo::drawLogNode() {}
+void PCSX::GPU::CtrlIrqAck::drawLogNode() {}
+
+void PCSX::GPU::CtrlDisplayEnable::drawLogNode() {
+    if (enable) {
+        ImGui::TextUnformatted(_("Display Enabled"));
+    } else {
+        ImGui::TextUnformatted(_("Display Disabled"));
+    }
+}
+
+void PCSX::GPU::CtrlDmaSetting::drawLogNode() {
+    switch (dma) {
+        case Dma::Off:
+            ImGui::TextUnformatted(_("DMA Off"));
+            break;
+        case Dma::FifoQuery:
+            ImGui::TextUnformatted(_("FIFO Query"));
+            break;
+        case Dma::Read:
+            ImGui::TextUnformatted(_("DMA Read"));
+            break;
+        case Dma::Write:
+            ImGui::TextUnformatted(_("DMA Write"));
+            break;
+    }
+}
+
+void PCSX::GPU::CtrlDisplayStart::drawLogNode() { ImGui::Text("X: %i, Y: %i", x, y); }
+void PCSX::GPU::CtrlHorizontalDisplayRange::drawLogNode() { ImGui::Text("X0: %i, X1: %i", x0, x1); }
+void PCSX::GPU::CtrlVerticalDisplayRange::drawLogNode() { ImGui::Text("Y0: %i, Y1: %i", y0, y1); }
+
+void PCSX::GPU::CtrlDisplayMode::drawLogNode() {
+    ImGui::TextUnformatted(_("Horizontal resolution:"));
+    ImGui::SameLine();
+    switch (hres) {
+        case HR_256:
+            ImGui::TextUnformatted("256 pixels");
+            break;
+        case HR_320:
+            ImGui::TextUnformatted("320 pixels");
+            break;
+        case HR_512:
+            ImGui::TextUnformatted("512 pixels");
+            break;
+        case HR_640:
+            ImGui::TextUnformatted("640 pixels");
+            break;
+        case HR_368:
+            ImGui::TextUnformatted("368 pixels");
+            break;
+        case HR_384:
+            ImGui::TextUnformatted("384 pixels");
+            break;
+    }
+    ImGui::Text(_("Extended width mode: %s"), widthRaw & 1 ? _("Yes") : _("No"));
+    ImGui::TextUnformatted(_("Vertical resolution:"));
+    ImGui::SameLine();
+    switch (vres) {
+        case VR_240:
+            ImGui::TextUnformatted("240 pixels");
+            break;
+        case VR_480:
+            ImGui::TextUnformatted("480 pixels");
+            break;
+    }
+    ImGui::Text(_("Output mode: %s"), mode == VM_NTSC ? "NTSC" : "PAL");
+    ImGui::Text(_("Display depth: %s"), depth == CD_15BITS ? _("15 bits") : _("24 bits"));
+    ImGui::Text(_("Interlaced: %s"), interlace ? _("Yes") : _("No"));
+}
+
+void PCSX::GPU::CtrlQuery::drawLogNode() {}

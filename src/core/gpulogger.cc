@@ -21,6 +21,7 @@
 
 #include "core/gpu.h"
 #include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "core/system.h"
 
 PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
@@ -30,6 +31,14 @@ PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
         }
         m_clearScheduled = true;
     });
+}
+
+void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
+    node->origin = origin;
+    node->value = value;
+    node->length = length;
+    node->pc = g_emulator->m_cpu->m_regs.pc;
+    m_list.push_back(node);
 }
 
 void PCSX::GPULogger::startNewFrame() {

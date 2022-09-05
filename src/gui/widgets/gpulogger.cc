@@ -21,6 +21,7 @@
 
 #include "core/gpulogger.h"
 #include "core/psxemulator.h"
+#include "core/system.h"
 #include "fmt/format.h"
 
 void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) {
@@ -35,7 +36,12 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         }
     }
     ImGui::Checkbox(_("Breakpoint on vsync"), &logger->m_breakOnVSync);
+    ImGui::SameLine();
+    if (ImGui::Button(_("Resume"))) {
+        g_system->resume();
+    }
     ImGui::Checkbox(_("Replay frame"), &m_replay);
+    ImGui::Checkbox(_("Show origins"), &m_showOrigins);
     bool collapseAll = false;
     bool expandAll = false;
     bool disableFromHere = false;
@@ -43,15 +49,63 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         collapseAll = true;
     }
     ImGui::SameLine();
+    ImGui::Checkbox(_("Keep collapsed"), &m_collapseAll);
     if (ImGui::Button(_("Expand all nodes"))) {
         expandAll = true;
     }
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Keep expanded"), &m_expandAll);
 
     int n = 0;
     ImGui::BeginChild("DrawCalls");
 
+    GPU::Logged::Origin origin = GPU::Logged::Origin::REPLAY;
+    uint32_t value = 0;
+    uint32_t length = 0;
+
     std::string label;
     for (auto& logged : logger->m_list) {
+        if (m_showOrigins) {
+            if ((logged.origin != GPU::Logged::Origin::REPLAY) &&
+                ((origin != logged.origin) || (value != logged.value) || (length != logged.length))) {
+                ImGui::Separator();
+                std::string label;
+                origin = logged.origin;
+                value = logged.value;
+                length = logged.length;
+                switch (origin) {
+                    case GPU::Logged::Origin::DATAWRITE:
+                        ImGui::Text(_("Data port write: %08x"), value);
+                        break;
+                    case GPU::Logged::Origin::CTRLWRITE:
+                        ImGui::Text(_("Control port write: %08x"), value);
+                        break;
+                    case GPU::Logged::Origin::DIRECT_DMA:
+                        ImGui::TextUnformatted(_("Direct DMA from"));
+                        ImGui::SameLine();
+                        label = fmt::format("{:08x}", value | 0x80000000);
+                        if (ImGui::Button(label.c_str())) {
+                            g_system->m_eventBus->signal(Events::GUI::JumpToMemory{value | 0x80000000, length * 4});
+                        }
+                        break;
+                    case GPU::Logged::Origin::CHAIN_DMA:
+                        ImGui::TextUnformatted(_("Chain DMA from"));
+                        ImGui::SameLine();
+                        label = fmt::format("{:08x}", value | 0x80000000);
+                        if (ImGui::Button(label.c_str())) {
+                            g_system->m_eventBus->signal(Events::GUI::JumpToMemory{value | 0x80000000, length * 4 + 4});
+                        }
+                        break;
+                }
+                ImGui::SameLine();
+                ImGui::TextUnformatted(_("from"));
+                ImGui::SameLine();
+                label = fmt::format("{:08x}", logged.pc);
+                if (ImGui::Button(label.c_str())) {
+                    g_system->m_eventBus->signal(Events::GUI::JumpToPC{logged.pc});
+                }
+            }
+        }
         if (disableFromHere) logged.enabled = false;
         label = fmt::format("##highlight{}", n);
         ImGui::Checkbox(label.c_str(), &logged.highlight);
@@ -68,10 +122,11 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
             disableFromHere = true;
         }
         ImGui::SameLine();
-        if (collapseAll) ImGui::SetNextItemOpen(false);
-        if (expandAll) ImGui::SetNextItemOpen(true);
+        if (collapseAll || m_collapseAll) ImGui::SetNextItemOpen(false);
+        if (expandAll || m_expandAll) ImGui::SetNextItemOpen(true);
         label = fmt::format("{}##node{}", logged.getName(), n);
         if (ImGui::TreeNode(label.c_str())) {
+            logged.drawLogNode();
             ImGui::TreePop();
         }
         n++;

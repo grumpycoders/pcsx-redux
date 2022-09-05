@@ -34,17 +34,21 @@ class GPULogger {
     GPULogger();
     void clearFrameLog() { m_list.destroyAll(); }
     template <typename T>
-    void addNode(const T& node) {
+    void addNode(const T& data, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
         if (m_clearScheduled) {
             m_clearScheduled = false;
             startNewFrame();
         }
-        if (m_enabled) m_list.push_back(new T(node));
+        if (m_enabled) {
+            T* node = new T(data);
+            addNodeInternal(new T(data), origin, value, length);
+        }
     }
     void replay(GPU*);
 
   private:
     void startNewFrame();
+    void addNodeInternal(GPU::Logged* node, GPU::Logged::Origin, uint32_t value, uint32_t length);
 
     EventBus::Listener m_listener;
     bool m_clearScheduled = false;

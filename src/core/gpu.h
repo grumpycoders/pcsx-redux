@@ -125,6 +125,25 @@ class GPU {
     };
     virtual ScreenShot takeScreenShot() { throw std::runtime_error("Not yet implemented"); }
 
+    class Logged;
+    typedef Intrusive::List<Logged> LoggedList;
+    class Logged : public LoggedList::Node {
+      public:
+        virtual ~Logged() {}
+        virtual std::string_view getName() = 0;
+        virtual void drawLogNode() = 0;
+        virtual void execute(GPU *) = 0;
+
+        enum class Origin { DATAWRITE, CTRLWRITE, DIRECT_DMA, CHAIN_DMA, REPLAY };
+        uint32_t value, length;
+        uint32_t pc;
+
+        Origin origin;
+
+        bool enabled = true;
+        bool highlight = false;
+    };
+
   private:
     uint32_t m_statusControl[256];
 
@@ -167,7 +186,7 @@ class GPU {
         Command() : m_gpu(nullptr) {}
         Command(GPU *parent) : m_gpu(parent) {}
         virtual ~Command() {}
-        virtual void processWrite(Buffer &);
+        virtual void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length);
         virtual void reset() {}
         void setActive() { m_gpu->m_processor = this; }
 
@@ -181,17 +200,6 @@ class GPU {
     };
 
   public:
-    class Logged;
-    typedef Intrusive::List<Logged> LoggedList;
-    class Logged : public LoggedList::Node {
-      public:
-        virtual ~Logged() {}
-        virtual std::string_view getName() = 0;
-        virtual void execute(GPU *) = 0;
-        bool enabled = true;
-        bool highlight = false;
-    };
-
     enum class Shading { Flat, Gouraud };
     enum class Shape { Tri, Quad };
     enum class Textured { No, Yes };
@@ -210,14 +218,16 @@ class GPU {
 
     struct ClearCache final : public Logged {
         std::string_view getName() override { return "Clear Cache"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
     };
 
     struct FastFill final : public Command, public Logged {
         std::string_view getName() override { return "Fast Fill"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         FastFill(GPU *parent) : Command(parent) {}
-        void processWrite(Buffer &) override;
+        void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COLOR; }
 
         uint32_t color;
@@ -229,9 +239,10 @@ class GPU {
 
     struct BlitVramVram final : public Command, public Logged {
         std::string_view getName() override { return "VRAM to VRAM blit"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         BlitVramVram(GPU *parent) : Command(parent) {}
-        void processWrite(Buffer &) override;
+        void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COMMAND; }
 
         unsigned sX, sY, dX, dY, w, h;
@@ -242,6 +253,7 @@ class GPU {
 
     struct BlitRamVram final : public Command, public Logged {
         std::string_view getName() override { return "RAM to VRAM blit"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override;
         BlitRamVram() {}
         BlitRamVram(GPU *parent) : Command(parent) {}
@@ -253,7 +265,7 @@ class GPU {
             data.copy(other.data);
         }
         BlitRamVram(BlitRamVram &&) = delete;
-        void processWrite(Buffer &) override;
+        void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override {
             m_state = READ_COMMAND;
             m_data.clear();
@@ -269,9 +281,10 @@ class GPU {
 
     struct BlitVramRam final : public Command, public Logged {
         std::string_view getName() override { return "VRAM to RAM blit"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override {}
         BlitVramRam(GPU *parent) : Command(parent) {}
-        void processWrite(Buffer &) override;
+        void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
 
         unsigned x, y, w, h;
 
@@ -281,6 +294,7 @@ class GPU {
 
     struct TPage : public Logged {
         std::string_view getName() override { return "Texture Page"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         TPage() {}
         TPage(uint32_t value);
@@ -300,6 +314,7 @@ class GPU {
 
     struct TWindow : public Logged {
         std::string_view getName() override { return "Texture Window"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         TWindow(uint32_t value);
         TWindow(const TWindow &other) = default;
@@ -311,6 +326,7 @@ class GPU {
 
     struct DrawingAreaStart : public Logged {
         std::string_view getName() override { return "Drawing Area Start"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         DrawingAreaStart(uint32_t value);
         DrawingAreaStart(const DrawingAreaStart &other) = default;
@@ -322,6 +338,7 @@ class GPU {
 
     struct DrawingAreaEnd : public Logged {
         std::string_view getName() override { return "Drawing Area End"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         DrawingAreaEnd(uint32_t value);
         DrawingAreaEnd(const DrawingAreaEnd &other) = default;
@@ -333,6 +350,7 @@ class GPU {
 
     struct DrawingOffset : public Logged {
         std::string_view getName() override { return "Drawing Offset"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         DrawingOffset(uint32_t value);
         DrawingOffset(const DrawingOffset &other) = default;
@@ -344,6 +362,7 @@ class GPU {
 
     struct MaskBit : public Logged {
         std::string_view getName() override { return "Mask Bit"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         MaskBit(uint32_t value);
         MaskBit(const MaskBit &other) = default;
@@ -357,9 +376,10 @@ class GPU {
         static constexpr unsigned count = shape == Shape::Tri ? 3 : 4;
 
         std::string_view getName() override { return "Polygon"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         Poly() {}
-        void processWrite(Buffer &) override;
+        void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override {
             m_state = READ_COLOR;
             m_count = 0;
@@ -395,11 +415,12 @@ class GPU {
     template <Shading shading, LineType lineType, Blend blend>
     struct Line final : public Command, public Logged {
         std::string_view getName() override { return "Line"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         Line() {
             if constexpr (lineType == LineType::Simple) m_count = 0;
         }
-        void processWrite(Buffer &) override;
+        void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override {
             m_state = READ_COLOR;
             if constexpr (lineType == LineType::Simple) {
@@ -426,9 +447,10 @@ class GPU {
     template <Size size, Textured textured, Blend blend, Modulation modulation>
     struct Rect final : public Command, public Logged {
         std::string_view getName() override { return "Rectangle"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         Rect() {}
-        void processWrite(Buffer &) override;
+        void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COLOR; }
 
         struct Empty {};
@@ -461,18 +483,22 @@ class GPU {
 
     struct CtrlReset : public Logged {
         std::string_view getName() override { return "Reset"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write1(this); }
     };
     struct CtrlClearFifo : public Logged {
         std::string_view getName() override { return "Clear Fifo"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write1(this); }
     };
     struct CtrlIrqAck : public Logged {
         std::string_view getName() override { return "IRQ Ack"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override {}
     };
     struct CtrlDisplayEnable : public Logged {
         std::string_view getName() override { return "Display Enable"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         CtrlDisplayEnable(uint32_t value) : enable((value & 1) == 0) {}
         CtrlDisplayEnable(const CtrlDisplayEnable &other) = default;
@@ -482,6 +508,7 @@ class GPU {
     };
     struct CtrlDmaSetting : public Logged {
         std::string_view getName() override { return "DMA Setting"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         CtrlDmaSetting(uint32_t value) : dma(magic_enum::enum_cast<Dma>(value & 3).value()) {}
         CtrlDmaSetting(const CtrlDmaSetting &other) = default;
@@ -491,6 +518,7 @@ class GPU {
     };
     struct CtrlDisplayStart : public Logged {
         std::string_view getName() override { return "Display Start"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         CtrlDisplayStart(uint32_t value) : x(value & 0x3ff), y((value >> 10) & 0x1ff) {}
         CtrlDisplayStart(const CtrlDisplayStart &other) = default;
@@ -500,6 +528,7 @@ class GPU {
     };
     struct CtrlHorizontalDisplayRange : public Logged {
         std::string_view getName() override { return "Horizontal Display Range"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         CtrlHorizontalDisplayRange(uint32_t value) : x0(value & 0xfff), x1((value >> 12) & 0xfff) {}
         CtrlHorizontalDisplayRange(const CtrlHorizontalDisplayRange &other) = default;
@@ -509,6 +538,7 @@ class GPU {
     };
     struct CtrlVerticalDisplayRange : public Logged {
         std::string_view getName() override { return "Vertical Display Range"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         CtrlVerticalDisplayRange(uint32_t value) : y0(value & 0x3ff), y1((value >> 10) & 0x3ff) {}
         CtrlVerticalDisplayRange(const CtrlVerticalDisplayRange &other) = default;
@@ -518,6 +548,7 @@ class GPU {
     };
     struct CtrlDisplayMode : public Logged {
         std::string_view getName() override { return "Display Mode"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         CtrlDisplayMode() : CtrlDisplayMode(0) {}
         CtrlDisplayMode(uint32_t value);
@@ -537,6 +568,7 @@ class GPU {
     };
     struct CtrlQuery : public Logged {
         std::string_view getName() override { return "Query"; }
+        void drawLogNode() override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         CtrlQuery(uint32_t value) : query(value & 0x07) {}
         CtrlQuery(const CtrlQuery &other) = default;
