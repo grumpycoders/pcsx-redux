@@ -48,6 +48,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     }
 
     int n = 0;
+    ImGui::BeginChild("DrawCalls");
 
     std::string label;
     for (auto& logged : logger->m_list) {
@@ -76,6 +77,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         n++;
     }
 
+    ImGui::EndChild();
     ImGui::End();
 
     if (m_replay && !g_system->running()) {
