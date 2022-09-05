@@ -21,6 +21,7 @@
 
 #include "core/gpulogger.h"
 #include "core/psxemulator.h"
+#include "fmt/format.h"
 
 void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -28,9 +29,45 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         return;
     }
 
-    for (auto& logged : g_emulator->m_gpuLogger->m_list) {
-        ImGui::TextUnformatted(logged.getName().data());
+    if (ImGui::Checkbox(_("GPU logging"), &logger->m_enabled)) {
+        if (logger->m_enabled) {
+            logger->m_clearScheduled = true;
+        }
+    }
+    ImGui::Checkbox(_("Breakpoint on vsync"), &logger->m_breakOnVSync);
+    ImGui::Checkbox(_("Replay frame"), &m_replay);
+    bool collapseAll = false;
+    bool expandAll = false;
+    if (ImGui::Button(_("Collapse all nodes"))) {
+        collapseAll = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(_("Expand all nodes"))) {
+        expandAll = true;
+    }
+
+    int n = 0;
+
+    std::string label;
+    for (auto& logged : logger->m_list) {
+        label = fmt::format("##highlight{}", n);
+        ImGui::Checkbox(label.c_str(), &logged.highlight);
+        ImGui::SameLine();
+        label = fmt::format("##enable{}", n);
+        ImGui::Checkbox(label.c_str(), &logged.enabled);
+        ImGui::SameLine();
+        if (collapseAll) ImGui::SetNextItemOpen(false);
+        if (expandAll) ImGui::SetNextItemOpen(true);
+        label = fmt::format("{}##node{}", logged.getName(), n);
+        if (ImGui::TreeNode(label.c_str())) {
+            ImGui::TreePop();
+        }
+        n++;
     }
 
     ImGui::End();
+
+    if (m_replay && !g_system->running()) {
+        logger->replay(g_emulator->m_gpu.get());
+    }
 }

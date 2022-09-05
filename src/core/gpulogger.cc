@@ -19,12 +19,28 @@
 
 #include "core/gpulogger.h"
 
+#include "core/gpu.h"
+#include "core/psxemulator.h"
 #include "core/system.h"
 
 PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
-    m_listener.listen<Events::ExecutionFlow::Run>([this](auto event) {
-        if (!m_clearScheduled) return;
-        m_clearScheduled = false;
-        clearFrameLog();
+    m_listener.listen<Events::GPU::VSync>([this](auto event) {
+        if (m_breakOnVSync) {
+            g_system->pause();
+        }
+        m_clearScheduled = true;
     });
+}
+
+void PCSX::GPULogger::startNewFrame() {
+    clearFrameLog();
+    m_vram = g_emulator->m_gpu->getVRAM(GPU::Ownership::ACQUIRE);
+}
+
+void PCSX::GPULogger::replay(GPU* gpu) {
+    gpu->partialUpdateVRAM(0, 0, 1024, 512, m_vram.data<uint16_t>());
+    for (auto& node : m_list) {
+        if (node.enabled) node.execute(gpu);
+    }
+    gpu->vblank(true);
 }

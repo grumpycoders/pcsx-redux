@@ -473,7 +473,7 @@ GLuint PCSX::OpenGL_GPU::getVRAMTexture() {
 }
 
 // Called at the end of a frame
-void PCSX::OpenGL_GPU::vblank() {
+void PCSX::OpenGL_GPU::vblank(bool fromGui) {
     renderBatch();
 
     // Set the fill mode to fill before passing the OpenGL context to the GUI
@@ -498,7 +498,7 @@ void PCSX::OpenGL_GPU::vblank() {
     }
 
     m_gui->setViewport();
-    m_gui->flip();  // Set up offscreen framebuffer before rendering
+    if (!fromGui) m_gui->flip();  // Set up offscreen framebuffer before rendering
 
     float startX = m_display.startNormalized.x();
     float startY = m_display.startNormalized.y();
@@ -552,7 +552,7 @@ void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
     }
 }
 
-PCSX::Slice PCSX::OpenGL_GPU::getVRAM() {
+PCSX::Slice PCSX::OpenGL_GPU::getVRAM(Ownership) {
     static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
     uint16_t *pixels = (uint16_t *)malloc(texSize);
     glFlush();

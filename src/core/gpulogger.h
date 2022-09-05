@@ -21,6 +21,7 @@
 
 #include "core/gpu.h"
 #include "support/eventbus.h"
+#include "support/slice.h"
 
 namespace PCSX {
 
@@ -31,14 +32,26 @@ class GPULogger;
 class GPULogger {
   public:
     GPULogger();
-    void setClearOnResume() { m_clearScheduled = true; }
     void clearFrameLog() { m_list.destroyAll(); }
-    void addNode(GPU::Logged* node) { m_list.push_back(node); }
+    template <typename T>
+    void addNode(const T& node) {
+        if (m_clearScheduled) {
+            m_clearScheduled = false;
+            startNewFrame();
+        }
+        if (m_enabled) m_list.push_back(new T(node));
+    }
+    void replay(GPU*);
 
   private:
+    void startNewFrame();
+
     EventBus::Listener m_listener;
     bool m_clearScheduled = false;
+    bool m_enabled = false;
+    bool m_breakOnVSync = false;
     GPU::LoggedList m_list;
+    Slice m_vram;
     friend class Widgets::GPULogger;
 };
 

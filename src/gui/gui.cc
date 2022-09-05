@@ -1049,7 +1049,6 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 }
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
                 ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
-                ImGui::MenuItem(_("Breakpoint on vsync"), nullptr, &m_breakOnVSync);
                 ImGui::MenuItem(_("Show GPU logger"), nullptr, &m_gpuLogger.m_show);
                 if (ImGui::BeginMenu(_("Memory Editors"))) {
                     for (auto& editor : m_mainMemEditors) {
@@ -1984,14 +1983,6 @@ void PCSX::GUI::update(bool vsync) {
     // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
     // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.
     g_emulator->m_gpu->setOpenGLContext();
-    if (vsync) {
-        if (m_breakOnVSync) {
-            g_system->pause();
-            g_emulator->m_gpuLogger->setClearOnResume();
-        } else {
-            g_emulator->m_gpuLogger->clearFrameLog();
-        }
-    }
 }
 
 void PCSX::GUI::shellReached() {

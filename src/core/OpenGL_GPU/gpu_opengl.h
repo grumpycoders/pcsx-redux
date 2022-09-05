@@ -33,7 +33,7 @@ class OpenGL_GPU final : public GPU {
     int shutdown() override;
     uint32_t readStatusInternal() override;
     void setOpenGLContext() override;
-    void vblank() override;
+    void vblank(bool fromGui) override;
     bool configure() override;
     void debug() override;
 
@@ -42,7 +42,7 @@ class OpenGL_GPU final : public GPU {
     void resetBackend() override;
     GLuint getVRAMTexture() override;
     void setLinearFiltering() override;
-    Slice getVRAM() override;
+    Slice getVRAM(Ownership) override;
     void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) override;
     void restoreStatus(uint32_t status) { m_gpustat = status; }
 

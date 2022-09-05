@@ -29,6 +29,7 @@ class GPULogger {
     void draw(PCSX::GPULogger* logger, const char* title);
 
     bool& m_show;
+    bool m_replay = false;
 };
 
 }  // namespace Widgets

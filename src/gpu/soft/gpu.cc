@@ -87,14 +87,14 @@ int32_t PCSX::SoftGPU::impl::shutdown() {
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::GPU>(new PCSX::SoftGPU::impl()); }
 
-void PCSX::SoftGPU::impl::updateDisplay() {
+void PCSX::SoftGPU::impl::updateDisplay(bool fromGui) {
     if (m_softDisplay.Disabled) {
         glClearColor(1, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
         return;
     }
 
-    doBufferSwap();
+    doBufferSwap(fromGui);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -214,18 +214,18 @@ void PCSX::SoftGPU::impl::updateDisplayIfChanged() {
     changeDispOffsetsX();
 }
 
-void PCSX::SoftGPU::impl::vblank() {
+void PCSX::SoftGPU::impl::vblank(bool fromGui) {
     m_statusRet ^= 0x80000000;  // odd/even bit
 
     if (m_softDisplay.Interlaced) {
         // interlaced mode?
         if (m_doVSyncUpdate && m_softDisplay.DisplayMode.x > 0 && m_softDisplay.DisplayMode.y > 0) {
-            updateDisplay();
+            updateDisplay(fromGui);
         }
     } else {
         // non-interlaced?
         // some primitives drawn?
-        if (m_doVSyncUpdate) updateDisplay();  // -> update display
+        if (m_doVSyncUpdate) updateDisplay(fromGui);  // -> update display
     }
 
     m_doVSyncUpdate = false;  // vsync done

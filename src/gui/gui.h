@@ -312,7 +312,6 @@ class GUI final {
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
-    bool m_breakOnVSync = false;
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
