@@ -434,7 +434,7 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
             }
         }
         if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-            throw("Error reading memory card.");
+            throw std::runtime_error(_("Error reading memory card."));
         } else {
             m_savedToDisk = true;
         }
