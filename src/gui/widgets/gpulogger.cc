@@ -45,6 +45,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     bool collapseAll = false;
     bool expandAll = false;
     bool disableFromHere = false;
+    bool removeHighlight = false;
     if (ImGui::Button(_("Collapse all nodes"))) {
         collapseAll = true;
     }
@@ -55,6 +56,9 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     }
     ImGui::SameLine();
     ImGui::Checkbox(_("Keep expanded"), &m_expandAll);
+    if (ImGui::Button(_("Remove all highlights"))) {
+        removeHighlight = true;
+    }
 
     ImGui::Separator();
     ImGui::BeginChild("DrawCalls");
@@ -108,6 +112,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
             }
         }
         if (disableFromHere) logged.enabled = false;
+        if (removeHighlight) logged.highlight = false;
         label = fmt::format("##highlight{}", n);
         ImGui::Checkbox(label.c_str(), &logged.highlight);
         ImGui::SameLine();
