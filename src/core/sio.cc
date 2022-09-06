@@ -44,9 +44,9 @@ void PCSX::SIO::reset() {
     m_ctrlReg = 0;
     m_baudReg = 0;
     m_bufferIndex = 0;
-    m_memoryCard[0].Deselect();
-    m_memoryCard[1].Deselect();
-    current_device = SIO_Device::None;    
+    m_memoryCard[0].deselect();
+    m_memoryCard[1].deselect();
+    m_currentDevice = SIO_Device::None;    
 }
 
 void PCSX::SIO::writePad(uint8_t value) {
@@ -102,7 +102,7 @@ void PCSX::SIO::writePad(uint8_t value) {
 
             if (m_bufferIndex == m_maxBufferIndex) {
                 m_padState = PAD_STATE_IDLE;
-                current_device = SIO_Device::None;
+                m_currentDevice = SIO_Device::Ignore;
                 return;
             }
             break;
@@ -113,58 +113,61 @@ void PCSX::SIO::writePad(uint8_t value) {
 void PCSX::SIO::write8(uint8_t value) {
     SIO0_LOG("sio write8 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
 
-    data_out = 0xff;
+    m_dataOut = 0xff;
 
-    if (current_device == SIO_Device::None) {
-        current_device = value;
+    if (m_currentDevice == SIO_Device::None) {
+        m_currentDevice = value;
         m_statusReg |= RX_RDY;
+        m_delayedOut = 0xff;
     }
 
-    switch (current_device) {
+    switch (m_currentDevice) {
         case SIO_Device::PAD:
             // Pad Process events
             writePad(value);
-            data_out = m_buffer[m_bufferIndex];
+            m_dataOut = m_buffer[m_bufferIndex];
             break;
 
         case SIO_Device::MemoryCard:
             switch (m_ctrlReg & SIO_Selected::PortMask) {
                 case SIO_Selected::Port1:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
-                        data_out = delayed_out;
-                        delayed_out = m_memoryCard[0].ProcessEvents(value);
-                        if (m_memoryCard[0].DataChanged()) {
-                            m_memoryCard[0].Commit(
+                        m_dataOut = m_delayedOut;
+                        m_delayedOut = m_memoryCard[0].processEvents(value);
+                        if (m_memoryCard[0].dataChanged()) {
+                            m_memoryCard[0].commit(
                                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str());
                         }
                     } else {
-                        current_device = SIO_Device::None;
+                        m_currentDevice = SIO_Device::Ignore;
+                        m_memoryCard[0].deselect();
                     }
                     break;
 
                 case SIO_Selected::Port2:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
-                        data_out = delayed_out;
-                        delayed_out = m_memoryCard[1].ProcessEvents(value);
-                        if (m_memoryCard[1].DataChanged()) {
-                            m_memoryCard[1].Commit(
+                        m_dataOut = m_delayedOut;
+                        m_delayedOut = m_memoryCard[1].processEvents(value);
+                        if (m_memoryCard[1].dataChanged()) {
+                            m_memoryCard[1].commit(
                                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
                         }
                     } else {
-                        current_device = SIO_Device::None;
+                        m_currentDevice = SIO_Device::Ignore;
+                        m_memoryCard[1].deselect();
                     }
                     break;
             }
             break;
 
         case SIO_Device::Ignore:
-             return;
+            return;
 
         default:
-            current_device = SIO_Device::None;
+            m_currentDevice = SIO_Device::None;
             m_padState = PAD_STATE_IDLE;
-            m_memoryCard[0].Deselect();
-            m_memoryCard[1].Deselect();
+            m_memoryCard[0].deselect();
+            m_memoryCard[1].deselect();
     }
 }
 
@@ -174,16 +177,26 @@ void PCSX::SIO::writeMode16(uint16_t value) { m_modeReg = value; }
 
 void PCSX::SIO::writeCtrl16(uint16_t value) {
     SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
-    m_ctrlReg = value & ~RESET_ERR;
-    if (value & RESET_ERR) m_statusReg &= ~IRQ;
-    if ((m_ctrlReg & SIO_RESET) || (!m_ctrlReg)) {
+    
+    if ((m_ctrlReg & ControlFlags::TX_PERM) && (!(value & ControlFlags::TX_PERM))) {
+        // Select line de-activated, reset state machines
+        m_currentDevice = SIO_Device::None;
         m_padState = PAD_STATE_IDLE;
-        m_memoryCard[0].Deselect();
-        m_memoryCard[1].Deselect();
+        m_memoryCard[0].deselect();
+        m_memoryCard[1].deselect();
         m_bufferIndex = 0;
-        m_statusReg = TX_RDY | TX_EMPTY;
+    }
+
+    m_ctrlReg = value & ~ControlFlags::RESET_ERR;
+    if (value & ControlFlags::RESET_ERR) m_statusReg &= ~IRQ;
+    if ((m_ctrlReg & ControlFlags::SIO_RESET) || (!m_ctrlReg)) {
+        m_padState = PAD_STATE_IDLE;
+        m_memoryCard[0].deselect();
+        m_memoryCard[1].deselect();
+        m_bufferIndex = 0;
+        m_statusReg = StatusFlags::TX_RDY | StatusFlags::TX_EMPTY;
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
-        current_device = SIO_Device::None;
+        m_currentDevice = SIO_Device::None;
     }
 }
 
@@ -197,10 +210,10 @@ uint8_t PCSX::SIO::read8() {
         if (m_bufferIndex == m_maxBufferIndex) {
             m_statusReg &= ~RX_RDY;
             if (m_padState == PAD_STATE_READ_DATA) m_padState = PAD_STATE_IDLE;
-            current_device = SIO_Device::None;
+            m_currentDevice = SIO_Device::None;
         }
 
-        ret = data_out;
+        ret = m_dataOut;
     }
 
     SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_statusReg,
@@ -245,11 +258,9 @@ void PCSX::SIO::interrupt() {
 #endif
 }
 
-void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
-    m_memoryCard[0].LoadMcd(mcd1);
-    m_memoryCard[1].LoadMcd(mcd2);
-    //LoadMcd(1, mcd1);
-    //LoadMcd(2, mcd2);
+void PCSX::SIO::loadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
+    m_memoryCard[0].loadMcd(mcd1);
+    m_memoryCard[1].loadMcd(mcd2);
 }
 
 void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {

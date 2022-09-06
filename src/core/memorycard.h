@@ -22,6 +22,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <string>
+
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
@@ -29,6 +31,29 @@ namespace PCSX {
 class SIO;
 
 class MemoryCard {
+  public:
+    MemoryCard() : m_sio(nullptr) { memset(m_mcdData, 0, MCD_SIZE); }
+    MemoryCard(SIO *parent) : m_sio(parent) { memset(m_mcdData, 0, MCD_SIZE); }
+
+    // Hardware events
+    void acknowledge();
+    void deselect() {
+        m_currentCommand = Commands::None;
+        m_commandTicks = 0;
+        m_dataOffset = 0;
+    }
+
+    // File system / data manipulation
+    void commit(const PCSX::u8string path) {
+        if (!m_savedToDisk) saveMcd(path);
+    }
+    void createMcd(const PCSX::u8string mcd);
+    bool dataChanged() { return !m_savedToDisk; }
+    char *getMcdData() { return m_mcdData; }
+    void loadMcd(const PCSX::u8string str);
+    void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+    void saveMcd(const PCSX::u8string path) { saveMcd(path, m_mcdData, 0, MCD_SIZE); }
+
   private:
     enum Commands : uint8_t {
         Access = 0x81,  // Memory Card Select
@@ -66,85 +91,36 @@ class MemoryCard {
         BadSector = 0xFF,            // Bad Memory Card Sector
     };
 
-    struct McdBlock {
-        McdBlock() { reset(); }
-        int mcd;
-        int number;
-        std::string titleAscii;
-        std::string titleSjis;
-        std::string titleUtf8;
-        std::string id;
-        std::string name;
-        uint32_t fileSize;
-        uint32_t iconCount;
-        uint16_t icon[16 * 16 * 3];
-        uint32_t allocState;
-        int16_t nextBlock;
-        void reset() {
-            mcd = 0;
-            number = 0;
-            titleAscii.clear();
-            titleSjis.clear();
-            titleUtf8.clear();
-            id.clear();
-            name.clear();
-            fileSize = 0;
-            iconCount = 0;
-            memset(icon, 0, sizeof(icon));
-            allocState = 0;
-            nextBlock = -1;
-        }
-        bool isErased() const { return (allocState & 0xa0) == 0xa0; }
-        bool isChained() const { return (allocState & ~1) == 0x52; }
-    };
+    friend class SIO;
 
     static const size_t MCD_SECT_SIZE = 8 * 16;
     static const size_t MCD_BLOCK_SIZE = 8192;
     static const size_t MCD_SIZE = 1024 * MCD_SECT_SIZE;
 
-    char g_mcdData[MCD_SIZE];
+    // State machine / handlers
+    uint8_t processEvents(uint8_t value);
+    uint8_t tickReadCommand(uint8_t value);
+    uint8_t tickWriteCommand(uint8_t value);
+    uint8_t tickPS_GetDirIndex(uint8_t value);   // 5Ah
+    uint8_t tickPS_GetVersion(uint8_t value);    // 58h
+    uint8_t tickPS_PrepFileExec(uint8_t value);  // 59h
+    uint8_t tickPS_ExecCustom(uint8_t value);    // 5Dh
 
-    uint8_t checksum_in = 0, checksum_out = 0;
-    uint32_t command_ticks = 0;
-    uint8_t current_command = Commands::None;
-    uint8_t flag = Flags::DirectoryUnread;
-    bool saved_local = false;
-    uint16_t sector = 0;
-    uint32_t sector_offset = 0;
+    char m_mcdData[MCD_SIZE];
+    bool m_savedToDisk = false;
 
-    SIO * m_sio;
+    uint8_t m_checksumIn = 0, m_checksumOut = 0;
+    uint32_t m_commandTicks = 0;
+    uint8_t m_currentCommand = Commands::None;
+    uint16_t m_sector = 0;
+    uint32_t m_dataOffset = 0;
+
+    uint8_t m_directoryFlag = Flags::DirectoryUnread;
 
     // PocketStation Specific
-    uint16_t PS_DirectoryIndex = 0;
+    uint16_t m_directoryIndex = 0;
 
-    void GoIdle() {
-        current_command = Commands::None;
-        command_ticks = 0;
-        sector_offset = 0;
-    }
-
-    void CreateMcd(const PCSX::u8string mcd);
-    char *getMcdData() { return g_mcdData; }
-
-    friend class SIO;
-
-  public:
-    MemoryCard() : m_sio(nullptr) {}
-    MemoryCard(SIO *parent) : m_sio(parent) {}
-
-    void ACK();
-    void Commit(const PCSX::u8string path);
-    bool DataChanged() { return !saved_local; }
-    void Deselect();
-    void LoadMcd(const PCSX::u8string str);
-    void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
-    void saveMcd(const PCSX::u8string path) { saveMcd(path, g_mcdData, 0, MCD_SIZE); }
-    uint8_t ProcessEvents(uint8_t value);
-    uint8_t TickReadCommand(uint8_t value);
-    uint8_t TickWriteCommand(uint8_t value);
-
-    uint8_t TickPS_GetDirIndex(uint8_t value);
-    uint8_t TickPS_GetVersion(uint8_t value);
+    SIO *m_sio;
 };
 
 }  // namespace PCSX
