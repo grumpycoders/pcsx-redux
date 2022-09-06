@@ -846,7 +846,26 @@ void PCSX::OpenGL_GPU::polyExec(Poly<shading, shape, textured, blend, modulation
 }
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
-void PCSX::OpenGL_GPU::lineExec(Line<shading, lineType, blend> *prim) {}
+void PCSX::OpenGL_GPU::lineExec(Line<shading, lineType, blend> *prim) {
+    auto count = prim->colors.size();
+
+    if constexpr (blend == Blend::Off) {
+        setTransparency<Transparency::Opaque>();
+    } else if constexpr (blend == Blend::Semi) {
+        setTransparency<Transparency::Transparent>();
+    }
+
+    for (unsigned i = 1; i < count; i++) {
+        auto x0 = prim->x[i - 1];
+        auto x1 = prim->x[i];
+        auto y0 = prim->y[i - 1];
+        auto y1 = prim->y[i];
+        auto c0 = prim->colors[i - 1];
+        auto c1 = prim->colors[i];
+
+        drawLine(x0, y0, c0, x1, y1, c1);
+    }
+}
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::OpenGL_GPU::rectExec(Rect<size, textured, blend, modulation> *prim) {
