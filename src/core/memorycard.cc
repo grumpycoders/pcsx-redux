@@ -395,6 +395,7 @@ uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value) {
 void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
     char *data = m_mcdData;
     const char *fname = reinterpret_cast<const char *>(str.c_str());
+    size_t bytesRead;
 
     m_directoryFlag = Flags::DirectoryUnread;
 
@@ -416,9 +417,9 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
                     fseek(f, 3904, SEEK_SET);
                 }
             }
+            bytesRead = fread(data, 1, MCD_SIZE, f);
             fclose(f);
-            if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-                
+            if (bytesRead != MCD_SIZE) {
                 throw std::runtime_error(_("Error reading memory card."));
             }
         } else
@@ -433,8 +434,9 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
                 fseek(f, 3904, SEEK_SET);
             }
         }
+        bytesRead = fread(data, 1, MCD_SIZE, f);
         fclose(f);
-        if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
+        if (bytesRead != MCD_SIZE) {
             throw std::runtime_error(_("Error reading memory card."));
         } else {
             m_savedToDisk = true;
