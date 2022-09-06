@@ -416,11 +416,11 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
                     fseek(f, 3904, SEEK_SET);
                 }
             }
+            fclose(f);
             if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
                 
                 throw std::runtime_error(_("Error reading memory card."));
             }
-            fclose(f);
         } else
             PCSX::g_system->message(_("Memory card %s failed to load!\n"), fname);
     } else {
@@ -433,12 +433,12 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
                 fseek(f, 3904, SEEK_SET);
             }
         }
+        fclose(f);
         if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
             throw std::runtime_error(_("Error reading memory card."));
         } else {
             m_savedToDisk = true;
         }
-        fclose(f);
     }
 }
 
