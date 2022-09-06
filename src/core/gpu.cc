@@ -1012,30 +1012,30 @@ PCSX::GPU::CtrlDisplayMode::CtrlDisplayMode(uint32_t value) {
 void PCSX::GPU::ClearCache::drawLogNode() {}
 
 void PCSX::GPU::FastFill::drawLogNode() {
-    ImGui::Text("R: %i, G: %i, B: %i", (color >> 0) & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
+    ImGui::Text("  R: %i, G: %i, B: %i", (color >> 0) & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
     ImGui::Separator();
-    ImGui::Text("X1: %i, Y1: %i", x, y);
-    ImGui::Text("X2: %i, Y2: %i", x + w, y + h);
-    ImGui::Text("W: %i, H: %i", w, h);
+    ImGui::Text("  X0: %i, Y0: %i", x, y);
+    ImGui::Text("  X1: %i, Y1: %i", x + w, y + h);
+    ImGui::Text("  W: %i, H: %i", w, h);
 }
 
 void PCSX::GPU::BlitVramVram::drawLogNode() {
-    ImGui::Text("From X: %i, Y: %i", sX, sY);
-    ImGui::Text("To X: %i, Y: %i", dX, dY);
-    ImGui::Text("W: %i, H: %i", w, h);
+    ImGui::Text("  From X: %i, Y: %i", sX, sY);
+    ImGui::Text("  To X: %i, Y: %i", dX, dY);
+    ImGui::Text("  W: %i, H: %i", w, h);
 }
 
 void PCSX::GPU::BlitRamVram::drawLogNode() {
-    ImGui::Text("X: %i, Y: %i", x, y);
-    ImGui::Text("W: %i, H: %i", w, h);
+    ImGui::Text("  X: %i, Y: %i", x, y);
+    ImGui::Text("  W: %i, H: %i", w, h);
 }
 
 void PCSX::GPU::BlitVramRam::drawLogNode() {
-    ImGui::Text("X: %i, Y: %i", x, y);
-    ImGui::Text("W: %i, H: %i", w, h);
+    ImGui::Text("  X: %i, Y: %i", x, y);
+    ImGui::Text("  W: %i, H: %i", w, h);
 }
 
-void PCSX::GPU::TPage::drawLogNode() {
+void PCSX::GPU::TPage::drawLogNodeCommon() {
     ImGui::Text(_("Texture Page X: %i, Texture Page Y: %i"), tx, ty);
     ImGui::TextUnformatted(_("Blending:"));
     ImGui::SameLine();
@@ -1066,33 +1066,113 @@ void PCSX::GPU::TPage::drawLogNode() {
             ImGui::TextUnformatted(_("16 bits"));
             break;
     }
+}
+
+void PCSX::GPU::TPage::drawLogNode() {
+    drawLogNodeCommon();
     ImGui::Text(_("Dithering: %s"), dither ? _("Yes") : _("No"));
 }
 
 void PCSX::GPU::TWindow::drawLogNode() {
-    ImGui::Text("X: %i, Y: %i", x, y);
-    ImGui::Text("W: %i, H: %i", w, h);
+    ImGui::Text("  X: %i, Y: %i", x, y);
+    ImGui::Text("  W: %i, H: %i", w, h);
 }
 
-void PCSX::GPU::DrawingAreaStart::drawLogNode() { ImGui::Text("X: %i, Y: %i", x, y); }
+void PCSX::GPU::DrawingAreaStart::drawLogNode() { ImGui::Text("  X: %i, Y: %i", x, y); }
 
-void PCSX::GPU::DrawingAreaEnd::drawLogNode() { ImGui::Text("X: %i, Y: %i", x, y); }
+void PCSX::GPU::DrawingAreaEnd::drawLogNode() { ImGui::Text("  X: %i, Y: %i", x, y); }
 
-void PCSX::GPU::DrawingOffset::drawLogNode() { ImGui::Text("X: %i, Y: %i", x, y); }
+void PCSX::GPU::DrawingOffset::drawLogNode() { ImGui::Text("  X: %i, Y: %i", x, y); }
 
 void PCSX::GPU::MaskBit::drawLogNode() {
-    ImGui::Text(_("Set: %s, Check: %s"), set ? _("Yes") : _("No"), check ? _("Yes") : _("No"));
+    ImGui::Text(_("  Set: %s, Check: %s"), set ? _("Yes") : _("No"), check ? _("Yes") : _("No"));
 }
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
-void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode() {}
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode() {
+    if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
+        if constexpr (shading == Shading::Flat) {
+            ImGui::TextUnformatted(_("Shading: Flat"));
+            ImGui::Text("  R: %i, G: %i, B: %i", (colors[0] >> 0) & 0xff, (colors[0] >> 8) & 0xff,
+                        (colors[0] >> 16) & 0xff);
+        } else if constexpr (shading == Shading::Gouraud) {
+            ImGui::TextUnformatted(_("Shading: Gouraud"));
+        }
+    }
+    if constexpr (textured == Textured::Yes) {
+        ImGui::TextUnformatted(_("Textured"));
+    }
+    if constexpr (blend == Blend::Semi) {
+        ImGui::TextUnformatted(_("Semi-transparency blending"));
+    }
+    if constexpr (textured == Textured::Yes) {
+        ImGui::Separator();
+        tpage.drawLogNodeCommon();
+        if (tpage.texDepth != TexDepth::Tex16Bits) {
+            ImGui::Text("  ClutX: %i, ClutY: %i", clutX(), clutY());
+        }
+    }
+    for (unsigned i = 0; i < count; i++) {
+        ImGui::Separator();
+        ImGui::Text(_("Vertex %i"), i);
+        ImGui::Text("  X: %i, Y: %i", x[i], y[i]);
+        if constexpr ((shading == Shading::Gouraud) && ((textured == Textured::No) || (modulation == Modulation::On))) {
+            ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
+                        (colors[i] >> 16) & 0xff);
+        }
+        if constexpr (textured == Textured::Yes) {
+            ImGui::Text("  U: %i, V: %i", u[i], v[i]);
+        }
+    }
+}
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
-void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode() {}
+void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode() {
+    if constexpr (shading == Shading::Flat) {
+        ImGui::TextUnformatted(_("Shading: Flat"));
+        ImGui::Text("  R: %i, G: %i, B: %i", (colors[0] >> 0) & 0xff, (colors[0] >> 8) & 0xff,
+                    (colors[0] >> 16) & 0xff);
+    } else if constexpr (shading == Shading::Gouraud) {
+        ImGui::TextUnformatted(_("Shading: Gouraud"));
+    }
+    if constexpr (blend == Blend::Semi) {
+        ImGui::TextUnformatted(_("Semi-transparency blending"));
+    }
+    for (unsigned i = 1; i < colors.size(); i++) {
+        ImGui::Separator();
+        if constexpr (lineType == LineType::Poly) {
+            ImGui::Text(_("Line %i"), i);
+        }
+        ImGui::Text("  X0: %i, Y0: %i", x[i - 1], y[i - 1]);
+        if constexpr (shading == Shading::Gouraud) {
+            ImGui::Text("  R: %i, G: %i, B: %i", (colors[i - 1] >> 0) & 0xff, (colors[i - 1] >> 8) & 0xff,
+                        (colors[i - 1] >> 16) & 0xff);
+        }
+        ImGui::Text("  X1: %i, Y1: %i", x[i], y[i]);
+        if constexpr (shading == Shading::Gouraud) {
+            ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
+                        (colors[i] >> 16) & 0xff);
+        }
+    }
+}
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
-void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode() {}
+void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode() {
+    ImGui::Text("  X0: %i, Y0: %i", x, y);
+    ImGui::Text("  X1: %i, Y1: %i", x + w, y + h);
+    ImGui::Text("  W: %i, H: %i", w, h);
+    if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
+        ImGui::Text("  R: %i, G: %i, B: %i", (color >> 0) & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
+    }
+    if constexpr (blend == Blend::Semi) {
+        ImGui::TextUnformatted(_("Semi-transparency blending"));
+    }
+    if constexpr (textured == Textured::Yes) {
+        ImGui::Text("  U: %i, V: %i", u, v);
+        ImGui::Text("  ClutX: %i, ClutY: %i", clutX(), clutY());
+    }
+}
 
 void PCSX::GPU::CtrlReset::drawLogNode() {}
 void PCSX::GPU::CtrlClearFifo::drawLogNode() {}
@@ -1123,9 +1203,9 @@ void PCSX::GPU::CtrlDmaSetting::drawLogNode() {
     }
 }
 
-void PCSX::GPU::CtrlDisplayStart::drawLogNode() { ImGui::Text("X: %i, Y: %i", x, y); }
-void PCSX::GPU::CtrlHorizontalDisplayRange::drawLogNode() { ImGui::Text("X0: %i, X1: %i", x0, x1); }
-void PCSX::GPU::CtrlVerticalDisplayRange::drawLogNode() { ImGui::Text("Y0: %i, Y1: %i", y0, y1); }
+void PCSX::GPU::CtrlDisplayStart::drawLogNode() { ImGui::Text("  X: %i, Y: %i", x, y); }
+void PCSX::GPU::CtrlHorizontalDisplayRange::drawLogNode() { ImGui::Text("  X0: %i, X1: %i", x0, x1); }
+void PCSX::GPU::CtrlVerticalDisplayRange::drawLogNode() { ImGui::Text("  Y0: %i, Y1: %i", y0, y1); }
 
 void PCSX::GPU::CtrlDisplayMode::drawLogNode() {
     ImGui::TextUnformatted(_("Horizontal resolution:"));

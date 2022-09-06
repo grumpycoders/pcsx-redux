@@ -295,6 +295,7 @@ class GPU {
     struct TPage : public Logged {
         std::string_view getName() override { return "Texture Page"; }
         void drawLogNode() override;
+        void drawLogNodeCommon();
         void execute(GPU *gpu) override { gpu->write0(this); }
         TPage() {}
         TPage(uint32_t value);

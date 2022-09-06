@@ -56,12 +56,13 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     ImGui::SameLine();
     ImGui::Checkbox(_("Keep expanded"), &m_expandAll);
 
-    int n = 0;
+    ImGui::Separator();
     ImGui::BeginChild("DrawCalls");
 
     GPU::Logged::Origin origin = GPU::Logged::Origin::REPLAY;
     uint32_t value = 0;
     uint32_t length = 0;
+    int n = 0;
 
     std::string label;
     for (auto& logged : logger->m_list) {
