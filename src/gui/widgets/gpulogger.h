@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <limits>
+
 namespace PCSX {
 class GPULogger;
 namespace Widgets {
@@ -33,6 +35,9 @@ class GPULogger {
     bool m_showOrigins = false;
     bool m_expandAll = false;
     bool m_collapseAll = false;
+    bool m_setHighlightRange = false;
+    unsigned m_beginHighlight = 0;
+    unsigned m_endHighlight = std::numeric_limits<unsigned>::max();
 };
 
 }  // namespace Widgets

@@ -46,6 +46,8 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     bool expandAll = false;
     bool disableFromHere = false;
     bool removeHighlight = false;
+    bool setHighlightRange = m_setHighlightRange;
+    m_setHighlightRange = false;
     if (ImGui::Button(_("Collapse all nodes"))) {
         collapseAll = true;
     }
@@ -60,6 +62,13 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         removeHighlight = true;
     }
 
+    std::string label;
+
+    ImGui::Separator();
+    label = fmt::format(f_("{} primitives"), logger->m_list.size());
+    if (ImGui::TreeNode(label.c_str())) {
+        ImGui::TreePop();
+    }
     ImGui::Separator();
     ImGui::BeginChild("DrawCalls");
 
@@ -68,7 +77,6 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     uint32_t length = 0;
     int n = 0;
 
-    std::string label;
     for (auto& logged : logger->m_list) {
         if (m_showOrigins) {
             if ((logged.origin != GPU::Logged::Origin::REPLAY) &&
@@ -113,19 +121,33 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         }
         if (disableFromHere) logged.enabled = false;
         if (removeHighlight) logged.highlight = false;
-        label = fmt::format("##highlight{}", n);
-        ImGui::Checkbox(label.c_str(), &logged.highlight);
-        ImGui::SameLine();
         label = fmt::format("##enable{}", n);
+        if (!m_replay) ImGui::BeginDisabled();
         ImGui::Checkbox(label.c_str(), &logged.enabled);
         ImGui::SameLine();
-        label = fmt::format(" ##upto{}", n);
+        label = fmt::format("T##upto{}", n);
         if (ImGui::Button(label.c_str())) {
             for (auto& before : logger->m_list) {
                 before.enabled = true;
                 if (&before == &logged) break;
             }
             disableFromHere = true;
+        }
+        if (!m_replay) ImGui::EndDisabled();
+        ImGui::SameLine();
+        label = fmt::format("##highlight{}", n);
+        ImGui::Checkbox(label.c_str(), &logged.highlight);
+        ImGui::SameLine();
+        label = fmt::format("B##upto{}", n);
+        if (ImGui::Button(label.c_str())) {
+            m_setHighlightRange = true;
+            m_beginHighlight = n;
+        }
+        ImGui::SameLine();
+        label = fmt::format("E##upto{}", n);
+        if (ImGui::Button(label.c_str())) {
+            m_setHighlightRange = true;
+            m_endHighlight = n;
         }
         ImGui::SameLine();
         if (collapseAll || m_collapseAll) ImGui::SetNextItemOpen(false);
@@ -134,6 +156,9 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         if (ImGui::TreeNode(label.c_str())) {
             logged.drawLogNode();
             ImGui::TreePop();
+        }
+        if (setHighlightRange) {
+            logged.highlight = (m_beginHighlight <= n) && (n <= m_endHighlight);
         }
         n++;
     }
