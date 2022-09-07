@@ -750,6 +750,11 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf) {
         case READ_WH:
             w = value & 0xffff;
             h = value >> 16;
+            raw.x = x;
+            raw.y = y;
+            raw.w = w;
+            raw.h = h;
+            clipped = GPU::clip(x, y, w, h);
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->write0(this);
@@ -782,6 +787,14 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf) {
             value = buf.get();
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
+            raw.sX = sX;
+            raw.sY = sY;
+            raw.dX = dX;
+            raw.dY = dY;
+            raw.w = w;
+            raw.h = h;
+            clipped = GPU::clip(sX, sY, w, h);
+            clipped |= GPU::clip(dX, dY, w, h);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->write0(this);
@@ -835,6 +848,11 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf) {
             break;
     }
     if (done) {
+        raw.x = x;
+        raw.y = y;
+        raw.w = w;
+        raw.h = h;
+        clipped = GPU::clip(x, y, w, h);
         m_state = READ_COMMAND;
         m_gpu->m_defaultProcessor.setActive();
         m_gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>());
@@ -860,6 +878,11 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf) {
             value = buf.get();
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
+            raw.x = x;
+            raw.y = y;
+            raw.w = w;
+            raw.h = h;
+            clipped = GPU::clip(x, y, w, h);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->m_vramReadSlice = m_gpu->getVRAM();
