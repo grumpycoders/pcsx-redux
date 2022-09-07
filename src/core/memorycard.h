@@ -26,6 +26,7 @@
 
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
 
 namespace PCSX {
 class SIO;
@@ -92,6 +93,7 @@ class MemoryCard {
     };
 
     friend class SIO;
+    friend SaveStates::SaveState SaveStates::constructSaveState();
 
     static const size_t MCD_SECT_SIZE = 8 * 16;
     static const size_t MCD_BLOCK_SIZE = 8192;

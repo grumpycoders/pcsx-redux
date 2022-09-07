@@ -33,16 +33,16 @@
 // clk cycle byte
 // 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
 // TODO: add SioModePrescaler
-#define SIO_CYCLES (m_baudReg * 8)
+#define SIO_CYCLES (m_regs.baud * 8)
 
 PCSX::SIO::SIO() { reset(); }
 
 void PCSX::SIO::reset() {
     m_padState = PAD_STATE_IDLE;
-    m_statusReg = TX_RDY | TX_EMPTY;
-    m_modeReg = 0;
-    m_ctrlReg = 0;
-    m_baudReg = 0;
+    m_regs.status = TX_RDY | TX_READY2;
+    m_regs.mode = 0;
+    m_regs.control = 0;
+    m_regs.baud = 0;
     m_bufferIndex = 0;
     m_memoryCard[0].deselect();
     m_memoryCard[1].deselect();
@@ -52,9 +52,9 @@ void PCSX::SIO::reset() {
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
         case PAD_STATE_IDLE:        // start pad
-            m_statusReg |= RX_RDY;  // Transfer is Ready
+            m_regs.status |= RX_RDY;  // Transfer is Ready
 
-            switch (m_ctrlReg & SIO_Selected::PortMask) {
+            switch (m_regs.control & SIO_Selected::PortMask) {
                 case SIO_Selected::Port1:
                     if (!PCSX::g_emulator->m_pads->isPadConnected(1)) return;
                     m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port1);
@@ -73,7 +73,7 @@ void PCSX::SIO::writePad(uint8_t value) {
         case PAD_STATE_READ_COMMAND:
             m_padState = PAD_STATE_READ_DATA;
             m_bufferIndex = 1;
-            switch (m_ctrlReg & SIO_Selected::PortMask) {
+            switch (m_regs.control & SIO_Selected::PortMask) {
                 case SIO_Selected::Port1:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
                     break;
@@ -91,7 +91,7 @@ void PCSX::SIO::writePad(uint8_t value) {
 
         case PAD_STATE_READ_DATA:
             m_bufferIndex++;
-            switch (m_ctrlReg & SIO_Selected::PortMask) {
+            switch (m_regs.control & SIO_Selected::PortMask) {
                 case SIO_Selected::Port1:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
                     break;
@@ -113,11 +113,11 @@ void PCSX::SIO::writePad(uint8_t value) {
 void PCSX::SIO::write8(uint8_t value) {
     SIO0_LOG("sio write8 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
 
-    m_dataOut = 0xff;
+    m_regs.data = 0xff;
 
     if (m_currentDevice == SIO_Device::None) {
         m_currentDevice = value;
-        m_statusReg |= RX_RDY;
+        m_regs.status |= RX_RDY;
         m_delayedOut = 0xff;
     }
 
@@ -125,14 +125,14 @@ void PCSX::SIO::write8(uint8_t value) {
         case SIO_Device::PAD:
             // Pad Process events
             writePad(value);
-            m_dataOut = m_buffer[m_bufferIndex];
+            m_regs.data = m_buffer[m_bufferIndex];
             break;
 
         case SIO_Device::MemoryCard:
-            switch (m_ctrlReg & SIO_Selected::PortMask) {
+            switch (m_regs.control & SIO_Selected::PortMask) {
                 case SIO_Selected::Port1:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
-                        m_dataOut = m_delayedOut;
+                        m_regs.data = m_delayedOut;
                         m_delayedOut = m_memoryCard[0].processEvents(value);
                         if (m_memoryCard[0].dataChanged()) {
                             m_memoryCard[0].commit(
@@ -146,7 +146,7 @@ void PCSX::SIO::write8(uint8_t value) {
 
                 case SIO_Selected::Port2:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
-                        m_dataOut = m_delayedOut;
+                        m_regs.data = m_delayedOut;
                         m_delayedOut = m_memoryCard[1].processEvents(value);
                         if (m_memoryCard[1].dataChanged()) {
                             m_memoryCard[1].commit(
@@ -173,12 +173,12 @@ void PCSX::SIO::write8(uint8_t value) {
 
 void PCSX::SIO::writeStatus16(uint16_t value) {}
 
-void PCSX::SIO::writeMode16(uint16_t value) { m_modeReg = value; }
+void PCSX::SIO::writeMode16(uint16_t value) { m_regs.mode = value; }
 
 void PCSX::SIO::writeCtrl16(uint16_t value) {
     SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
     
-    if ((m_ctrlReg & ControlFlags::TX_PERM) && (!(value & ControlFlags::TX_PERM))) {
+    if ((m_regs.control & ControlFlags::TX_ENABLE) && (!(value & ControlFlags::TX_ENABLE))) {
         // Select line de-activated, reset state machines
         m_currentDevice = SIO_Device::None;
         m_padState = PAD_STATE_IDLE;
@@ -187,43 +187,43 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_bufferIndex = 0;
     }
 
-    m_ctrlReg = value & ~ControlFlags::RESET_ERR;
-    if (value & ControlFlags::RESET_ERR) m_statusReg &= ~IRQ;
-    if ((m_ctrlReg & ControlFlags::SIO_RESET) || (!m_ctrlReg)) {
+    m_regs.control = value & ~ControlFlags::RESET_ERR;
+    if (value & ControlFlags::RESET_ERR) m_regs.status &= ~IRQ;
+    if ((m_regs.control & ControlFlags::SIO_RESET) || (!m_regs.control)) {
         m_padState = PAD_STATE_IDLE;
         m_memoryCard[0].deselect();
         m_memoryCard[1].deselect();
         m_bufferIndex = 0;
-        m_statusReg = StatusFlags::TX_RDY | StatusFlags::TX_EMPTY;
+        m_regs.status = StatusFlags::TX_RDY | StatusFlags::TX_READY2;
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
         m_currentDevice = SIO_Device::None;
     }
 }
 
-void PCSX::SIO::writeBaud16(uint16_t value) { m_baudReg = value; }
+void PCSX::SIO::writeBaud16(uint16_t value) { m_regs.baud = value; }
 
 uint8_t PCSX::SIO::read8() {
     uint8_t ret = 0xFF;
 
-    if ((m_statusReg & RX_RDY) /* && (m_ctrlReg & RX_PERM)*/) {
-        //      m_statusReg &= ~RX_OVERRUN;
+    if ((m_regs.status & RX_RDY) /* && (m_ctrlReg & RX_ENABLE)*/) {
+        //      m_regs.status &= ~RX_OVERRUN;
         if (m_bufferIndex == m_maxBufferIndex) {
-            m_statusReg &= ~RX_RDY;
+            m_regs.status &= ~RX_RDY;
             if (m_padState == PAD_STATE_READ_DATA) m_padState = PAD_STATE_IDLE;
             m_currentDevice = SIO_Device::None;
         }
 
-        ret = m_dataOut;
+        ret = m_regs.data;
     }
 
-    SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_statusReg,
+    SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_regs.status,
              m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
              m_buffer[m_bufferIndex < BUFFER_SIZE - 1 ? m_bufferIndex + 1 : BUFFER_SIZE - 1]);
     return ret;
 }
 
 uint16_t PCSX::SIO::readStatus16() {
-    uint16_t hard = m_statusReg;
+    uint16_t hard = m_regs.status;
 
 #if 0
     // wait for IRQ first
@@ -231,23 +231,23 @@ uint16_t PCSX::SIO::readStatus16() {
     {
         hard &= ~TX_RDY;
         hard &= ~RX_RDY;
-        hard &= ~TX_EMPTY;
+        hard &= ~TX_READY2;
     }
 #endif
 
     return hard;
 }
 
-uint16_t PCSX::SIO::readMode16() { return m_modeReg; }
+uint16_t PCSX::SIO::readMode16() { return m_regs.mode; }
 
-uint16_t PCSX::SIO::readCtrl16() { return m_ctrlReg; }
+uint16_t PCSX::SIO::readCtrl16() { return m_regs.control; }
 
-uint16_t PCSX::SIO::readBaud16() { return m_baudReg; }
+uint16_t PCSX::SIO::readBaud16() { return m_regs.baud; }
 
 
 void PCSX::SIO::interrupt() {
     SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
-    m_statusReg |= IRQ;
+    m_regs.status |= IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
 #if 0

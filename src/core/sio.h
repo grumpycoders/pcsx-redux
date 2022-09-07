@@ -29,6 +29,15 @@
 
 namespace PCSX {
 
+struct SIORegisters {
+    uint32_t data;
+    uint32_t status;
+    uint16_t mode;
+    uint16_t control;
+    uint16_t baud;
+};
+
+
 class SIO {
   public:
     struct McdBlock {
@@ -81,7 +90,7 @@ class SIO {
     uint16_t readCtrl16();
     uint16_t readBaud16();
 
-    void acknowledge() { scheduleInterrupt(m_baudReg * 8); }
+    void acknowledge() { scheduleInterrupt(m_regs.baud * 8); }
     void interrupt();
     void reset();
 
@@ -114,7 +123,7 @@ class SIO {
         // Status Flags
         TX_RDY = 0x0001,
         RX_RDY = 0x0002,
-        TX_EMPTY = 0x0004,
+        TX_READY2 = 0x0004,
         PARITY_ERR = 0x0008,
         RX_OVERRUN = 0x0010,
         FRAMING_ERR = 0x0020,
@@ -125,13 +134,17 @@ class SIO {
     };
     enum ControlFlags : uint16_t {
         // Control Flags
-        TX_PERM = 0x0001,
+        TX_ENABLE = 0x0001,
         DTR = 0x0002,
-        RX_PERM = 0x0004,
+        RX_ENABLE = 0x0004,
         BREAK = 0x0008,
         RESET_ERR = 0x0010,
         RTS = 0x0020,
         SIO_RESET = 0x0040,
+        RX_IRQMODE = 0x0100,  // FIFO byte count, need to implement
+        TX_IRQEN = 0x0400,
+        RX_IRQEN = 0x0800,
+        ACK_IRQEN = 0x1000,
     };
     enum {
         // MCD flags
@@ -167,6 +180,9 @@ class SIO {
 
     static const size_t BUFFER_SIZE = 0x1010;
 
+    bool isTransmitReady() {
+        return (m_regs.control & ControlFlags::TX_ENABLE) && (m_regs.status & StatusFlags::TX_READY2);
+    }
     
     inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
@@ -182,25 +198,22 @@ class SIO {
 
     uint8_t m_buffer[BUFFER_SIZE];
 
-    // Transfer Ready and the Buffer is Empty
-    // static unsigned short m_statusReg = 0x002b;
-    uint16_t m_statusReg = TX_RDY | TX_EMPTY;
-    uint16_t m_modeReg;
-    uint16_t m_ctrlReg;
-    uint16_t m_baudReg;
+    SIORegisters m_regs = {
+        .status = TX_RDY | TX_READY2,  // Transfer Ready and the Buffer is Empty
+    };
 
     uint32_t m_maxBufferIndex;
     uint32_t m_bufferIndex;
-    uint32_t m_mcdState, m_mcdReadWriteState;
+    //uint32_t m_mcdState, m_mcdReadWriteState;
 
-    uint8_t m_mcdAddrHigh, m_mcdAddrLow;
-    bool m_wasMcd1Inserted = false;
-    bool m_wasMcd2Inserted = false;
+    //uint8_t m_mcdAddrHigh, m_mcdAddrLow;
+    //bool m_wasMcd1Inserted = false;
+    //bool m_wasMcd2Inserted = false;
     uint32_t m_padState;
 
-    uint8_t m_currentDevice = static_cast<uint8_t>(SIO_Device::None);
+    uint8_t m_currentDevice = SIO_Device::None;
 
-    uint8_t m_dataOut;
+    //uint8_t m_dataOut;
     uint8_t m_delayedOut;
 
     MemoryCard m_memoryCard[2] = {this, this};
