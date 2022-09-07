@@ -200,6 +200,43 @@ class GPU {
     };
 
   public:
+    template <typename T, T wMax = 1024, T hMax = 512>
+    static bool clip(T &x, T &y, T &w, T &h) {
+        bool clipped = false;
+        if (x >= wMax || y >= hMax) {
+            x = wMax;
+            y = hMax;
+            if ((w != 0) || (h != 0)) {
+                w = h = 0;
+                return true;
+            }
+            return false;
+        }
+        if (x < 0) {
+            clipped = true;
+            w += x;
+            x = 0;
+        }
+        if (y < 0) {
+            clipped = true;
+            h += y;
+            y = 0;
+        }
+        if (w < 0 || h < 0) {
+            h = w = 0;
+            return true;
+        }
+        if (x + w > wMax) {
+            clipped = true;
+            w = wMax - x;
+        }
+        if (y + h > hMax) {
+            clipped = true;
+            h = hMax - y;
+        }
+        return clipped;
+    }
+
     enum class Shading { Flat, Gouraud };
     enum class Shape { Tri, Quad };
     enum class Textured { No, Yes };
@@ -233,6 +270,12 @@ class GPU {
         uint32_t color;
         unsigned x, y, w, h;
 
+        struct {
+            unsigned x, y, w, h;
+        } raw;
+
+        bool clipped = false;
+
       private:
         enum { READ_COLOR, READ_XY, READ_WH } m_state = READ_COLOR;
     };
@@ -246,6 +289,12 @@ class GPU {
         void reset() override { m_state = READ_COMMAND; }
 
         unsigned sX, sY, dX, dY, w, h;
+
+        struct {
+            unsigned sX, sY, dX, dY, w, h;
+        } raw;
+
+        bool clipped = false;
 
       private:
         enum { READ_COMMAND, READ_SRC_XY, READ_DST_XY, READ_HW } m_state = READ_COMMAND;
@@ -274,6 +323,12 @@ class GPU {
         unsigned x, y, w, h;
         Slice data;
 
+        struct {
+            unsigned x, y, w, h;
+        } raw;
+
+        bool clipped = false;
+
       private:
         enum { READ_COMMAND, READ_XY, READ_HW, READ_PIXELS } m_state = READ_COMMAND;
         std::string m_data;
@@ -287,6 +342,12 @@ class GPU {
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
 
         unsigned x, y, w, h;
+
+        struct {
+            unsigned x, y, w, h;
+        } raw;
+
+        bool clipped = false;
 
       private:
         enum { READ_COMMAND, READ_XY, READ_HW } m_state = READ_COMMAND;

@@ -765,6 +765,11 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint3
         case READ_WH:
             w = value & 0xffff;
             h = value >> 16;
+            raw.x = x;
+            raw.y = y;
+            raw.w = w;
+            raw.h = h;
+            clipped = GPU::clip(x, y, w, h);
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
             g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
@@ -798,6 +803,14 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf, Logged::Origin origin, u
             value = buf.get();
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
+            raw.sX = sX;
+            raw.sY = sY;
+            raw.dX = dX;
+            raw.dY = dY;
+            raw.w = w;
+            raw.h = h;
+            clipped = GPU::clip(sX, sY, w, h);
+            clipped |= GPU::clip(dX, dY, w, h);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
             g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
@@ -852,6 +865,11 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, ui
             break;
     }
     if (done) {
+        raw.x = x;
+        raw.y = y;
+        raw.w = w;
+        raw.h = h;
+        clipped = GPU::clip(x, y, w, h);
         m_state = READ_COMMAND;
         m_gpu->m_defaultProcessor.setActive();
         g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
@@ -880,6 +898,11 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, ui
             value = buf.get();
             w = signExtend<int, 11>(value & 0xffff);
             h = signExtend<int, 11>(value >> 16);
+            raw.x = x;
+            raw.y = y;
+            raw.w = w;
+            raw.h = h;
+            clipped = GPU::clip(x, y, w, h);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
             g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
