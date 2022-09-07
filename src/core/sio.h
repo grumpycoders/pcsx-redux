@@ -183,6 +183,7 @@ class SIO {
     bool isTransmitReady() {
         return (m_regs.control & ControlFlags::TX_ENABLE) && (m_regs.status & StatusFlags::TX_READY2);
     }
+    void transmitData();
     
     inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
@@ -204,17 +205,13 @@ class SIO {
 
     uint32_t m_maxBufferIndex;
     uint32_t m_bufferIndex;
-    //uint32_t m_mcdState, m_mcdReadWriteState;
 
-    //uint8_t m_mcdAddrHigh, m_mcdAddrLow;
-    //bool m_wasMcd1Inserted = false;
-    //bool m_wasMcd2Inserted = false;
     uint32_t m_padState;
 
     uint8_t m_currentDevice = SIO_Device::None;
 
-    //uint8_t m_dataOut;
     uint8_t m_delayedOut;
+    uint8_t m_rxBuffer;
 
     MemoryCard m_memoryCard[2] = {this, this};
 };

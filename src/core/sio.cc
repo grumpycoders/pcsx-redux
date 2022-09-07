@@ -110,13 +110,11 @@ void PCSX::SIO::writePad(uint8_t value) {
     scheduleInterrupt(SIO_CYCLES);
 }
 
-void PCSX::SIO::write8(uint8_t value) {
-    SIO0_LOG("sio write8 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
-
-    m_regs.data = 0xff;
+void PCSX::SIO::transmitData() {
+    m_rxBuffer = 0xff;
 
     if (m_currentDevice == SIO_Device::None) {
-        m_currentDevice = value;
+        m_currentDevice = m_regs.data;
         m_regs.status |= RX_RDY;
         m_delayedOut = 0xff;
     }
@@ -124,16 +122,16 @@ void PCSX::SIO::write8(uint8_t value) {
     switch (m_currentDevice) {
         case SIO_Device::PAD:
             // Pad Process events
-            writePad(value);
-            m_regs.data = m_buffer[m_bufferIndex];
+            writePad(m_regs.data);
+            m_rxBuffer = m_buffer[m_bufferIndex];
             break;
 
         case SIO_Device::MemoryCard:
             switch (m_regs.control & SIO_Selected::PortMask) {
                 case SIO_Selected::Port1:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
-                        m_regs.data = m_delayedOut;
-                        m_delayedOut = m_memoryCard[0].processEvents(value);
+                        m_rxBuffer = m_delayedOut;
+                        m_delayedOut = m_memoryCard[0].processEvents(m_regs.data);
                         if (m_memoryCard[0].dataChanged()) {
                             m_memoryCard[0].commit(
                                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str());
@@ -146,8 +144,8 @@ void PCSX::SIO::write8(uint8_t value) {
 
                 case SIO_Selected::Port2:
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
-                        m_regs.data = m_delayedOut;
-                        m_delayedOut = m_memoryCard[1].processEvents(value);
+                        m_rxBuffer = m_delayedOut;
+                        m_delayedOut = m_memoryCard[1].processEvents(m_regs.data);
                         if (m_memoryCard[1].dataChanged()) {
                             m_memoryCard[1].commit(
                                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
@@ -168,6 +166,16 @@ void PCSX::SIO::write8(uint8_t value) {
             m_padState = PAD_STATE_IDLE;
             m_memoryCard[0].deselect();
             m_memoryCard[1].deselect();
+    }
+}
+
+void PCSX::SIO::write8(uint8_t value) {
+    SIO0_LOG("sio write8 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
+
+    m_regs.data = value;
+
+    if (isTransmitReady()) {
+        transmitData();
     }
 }
 
@@ -213,7 +221,7 @@ uint8_t PCSX::SIO::read8() {
             m_currentDevice = SIO_Device::None;
         }
 
-        ret = m_regs.data;
+        ret = m_rxBuffer;
     }
 
     SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_regs.status,
