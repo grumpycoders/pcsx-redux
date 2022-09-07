@@ -29,7 +29,7 @@ PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
         if (m_breakOnVSync) {
             g_system->pause();
         }
-        m_clearScheduled = true;
+        if (m_enabled) m_clearScheduled = true;
     });
 }
 
