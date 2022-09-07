@@ -1246,4 +1246,22 @@ void PCSX::GPU::CtrlDisplayMode::drawLogNode() {
     ImGui::Text(_("Interlaced: %s"), interlace ? _("Yes") : _("No"));
 }
 
-void PCSX::GPU::CtrlQuery::drawLogNode() {}
+void PCSX::GPU::CtrlQuery::drawLogNode() {
+    switch (type()) {
+        case QueryType::TextureWindow:
+            ImGui::TextUnformatted(_("Texture Window"));
+            break;
+        case QueryType::DrawAreaStart:
+            ImGui::TextUnformatted(_("Draw Area Start"));
+            break;
+        case QueryType::DrawAreaEnd:
+            ImGui::TextUnformatted(_("Draw Area End"));
+            break;
+        case QueryType::DrawOffset:
+            ImGui::TextUnformatted(_("Draw Offset"));
+            break;
+        default:
+            ImGui::TextUnformatted(_("Unknown"));
+            break;
+    }
+}
