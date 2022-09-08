@@ -123,7 +123,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
                         break;
                 }
                 ImGui::SameLine();
-                ImGui::TextUnformatted(_("from"));
+                ImGui::TextUnformatted(_("at PC = "));
                 ImGui::SameLine();
                 label = fmt::format("{:08x}", logged.pc);
                 if (ImGui::Button(label.c_str())) {
