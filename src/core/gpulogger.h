@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include "core/gpu.h"
 #include "support/eventbus.h"
 #include "support/slice.h"
@@ -35,10 +37,6 @@ class GPULogger {
     void clearFrameLog() { m_list.destroyAll(); }
     template <typename T>
     void addNode(const T& data, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
-        if (m_clearScheduled) {
-            m_clearScheduled = false;
-            startNewFrame();
-        }
         if (m_enabled) {
             T* node = new T(data);
             addNodeInternal(new T(data), origin, value, length);
@@ -51,9 +49,9 @@ class GPULogger {
     void addNodeInternal(GPU::Logged* node, GPU::Logged::Origin, uint32_t value, uint32_t length);
 
     EventBus::Listener m_listener;
-    bool m_clearScheduled = false;
     bool m_enabled = false;
     bool m_breakOnVSync = false;
+    uint64_t m_frameCounter = 0;
     GPU::LoggedList m_list;
     Slice m_vram;
     friend class Widgets::GPULogger;

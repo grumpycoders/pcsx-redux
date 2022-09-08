@@ -30,11 +30,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         return;
     }
 
-    if (ImGui::Checkbox(_("GPU logging"), &logger->m_enabled)) {
-        if (logger->m_enabled) {
-            logger->m_clearScheduled = true;
-        }
-    }
+    ImGui::Checkbox(_("GPU logging"), &logger->m_enabled);
     ImGui::Checkbox(_("Breakpoint on vsync"), &logger->m_breakOnVSync);
     ImGui::SameLine();
     if (ImGui::Button(_("Resume"))) {
@@ -65,8 +61,24 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     std::string label;
 
     ImGui::Separator();
-    label = fmt::format(f_("{} primitives"), logger->m_list.size());
+    label = fmt::format(f_("Frame {}###FrameCounterNode"), logger->m_frameCounter - m_frameCounterOrigin);
     if (ImGui::TreeNode(label.c_str())) {
+        if (ImGui::Button(_("Reset frame counter"))) {
+            m_frameCounterOrigin = logger->m_frameCounter;
+        }
+        ImGui::Text(_("%i primitives"), logger->m_list.size());
+        GPU::GPUStats stats;
+        for (auto& logged : logger->m_list) {
+            logged.cumulateStats(&stats);
+        }
+        ImGui::Text(_("%i triangles"), stats.triangles);
+        ImGui::Text(_("%i textured triangles"), stats.texturedTriangles);
+        ImGui::Text(_("%i rectangles"), stats.rectangles);
+        ImGui::Text(_("%i sprites"), stats.sprites);
+        ImGui::Text(_("%i pixel writes"), stats.pixelWrites);
+        ImGui::Text(_("%i pixel reads"), stats.pixelReads);
+        ImGui::Text(_("%i texel reads"), stats.texelReads);
+
         ImGui::TreePop();
     }
     ImGui::Separator();

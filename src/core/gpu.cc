@@ -1288,3 +1288,97 @@ void PCSX::GPU::CtrlQuery::drawLogNode() {
             break;
     }
 }
+
+static float triangleArea(float x1, float x2, float x3, float y1, float y2, float y3) {
+    float adx = x1 - x2;
+    float ady = y1 - y2;
+    float bdx = x1 - x3;
+    float bdy = y1 - y3;
+    float cdx = x2 - x3;
+    float cdy = y2 - y3;
+    float a = sqrtf(adx * adx + ady * ady);
+    float b = sqrtf(bdx * bdx + bdy * bdy);
+    float c = sqrtf(cdx * cdx + cdy * cdy);
+    float s = (a + b + c) / 2;
+    return sqrtf(s * (s - a) * (s - b) * (s - c));
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
+          PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::generateStatsInfo() {
+    float pixelArea = 0.0f;
+    float textureArea = 0.0f;
+
+    pixelArea = triangleArea(x[0], x[1], x[2], y[0], y[1], y[2]);
+    if constexpr (shape == Shape::Quad) {
+        pixelArea += triangleArea(x[1], x[2], x[3], y[1], y[2], y[3]);
+    }
+    if constexpr (textured == Textured::Yes) {
+        textureArea += triangleArea(u[0], u[1], u[2], v[0], v[1], v[2]);
+        if constexpr (shape == Shape::Quad) {
+            textureArea += triangleArea(u[1], u[2], u[3], v[1], v[2], v[3]);
+        }
+    }
+
+    if constexpr (textured == Textured::Yes) {
+        stats.texturedTriangles = shape == Shape::Quad ? 2 : 1;
+    } else {
+        stats.triangles = shape == Shape::Quad ? 2 : 1;
+    }
+    stats.pixelWrites = pixelArea;
+    if constexpr (blend == Blend::Semi) {
+        stats.pixelReads = pixelArea;
+    }
+    stats.texelReads = textureArea;
+}
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::GPU::Line<shading, lineType, blend>::generateStatsInfo() {
+    unsigned pixels = 0;
+    for (unsigned i = 1; i < colors.size(); i++) {
+        auto dx = std::abs(x[i] - x[i - 1]);
+        auto dy = std::abs(y[i] - y[i - 1]);
+        if (dx > dy) {
+            pixels += dx;
+        } else {
+            pixels += dy;
+        }
+    }
+
+    stats.pixelWrites += pixels;
+    if constexpr (blend == Blend::Semi) {
+        stats.pixelReads += pixels;
+    }
+}
+
+void PCSX::GPU::FastFill::cumulateStats(GPUStats *stats) { stats->pixelWrites += h * w; }
+void PCSX::GPU::BlitVramVram::cumulateStats(GPUStats *stats) {
+    auto s = h * w;
+    stats->pixelWrites += s;
+    stats->pixelReads += s;
+}
+void PCSX::GPU::BlitRamVram::cumulateStats(GPUStats *stats) { stats->pixelWrites += h * w; }
+void PCSX::GPU::BlitVramRam::cumulateStats(GPUStats *stats) { stats->pixelReads += h * w; }
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
+          PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::cumulateStats(GPUStats *accum) {
+    *accum += stats;
+}
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::GPU::Line<shading, lineType, blend>::cumulateStats(GPUStats *accum) {
+    *accum += stats;
+}
+template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Rect<size, textured, blend, modulation>::cumulateStats(GPUStats *stats) {
+    auto s = h * w;
+    stats->pixelWrites += s;
+    if constexpr (textured == Textured::Yes) {
+        stats->texelReads += s;
+        stats->sprites++;
+    } else {
+        stats->rectangles++;
+    }
+    if constexpr (blend == Blend::Semi) {
+        stats->pixelReads += s;
+    }
+}

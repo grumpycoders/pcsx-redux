@@ -26,25 +26,30 @@
 
 PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::GPU::VSync>([this](auto event) {
+        m_frameCounter++;
         if (m_breakOnVSync) {
             g_system->pause();
         }
-        if (m_enabled) m_clearScheduled = true;
     });
 }
 
 void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
+    auto frame = m_frameCounter;
+
+    for (auto i = m_list.begin(); (i != m_list.end()) && (i->frame != frame); i = m_list.begin()) {
+        delete &*i;
+    }
+
     node->origin = origin;
     node->value = value;
     node->length = length;
     node->pc = g_emulator->m_cpu->m_regs.pc;
+    node->frame = frame;
+    node->generateStatsInfo();
     m_list.push_back(node);
 }
 
-void PCSX::GPULogger::startNewFrame() {
-    clearFrameLog();
-    m_vram = g_emulator->m_gpu->getVRAM(GPU::Ownership::ACQUIRE);
-}
+void PCSX::GPULogger::startNewFrame() { m_vram = g_emulator->m_gpu->getVRAM(GPU::Ownership::ACQUIRE); }
 
 void PCSX::GPULogger::replay(GPU* gpu) {
     gpu->partialUpdateVRAM(0, 0, 1024, 512, m_vram.data<uint16_t>());

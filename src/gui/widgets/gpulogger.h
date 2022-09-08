@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include <limits>
 
 namespace PCSX {
@@ -36,6 +38,7 @@ class GPULogger {
     bool m_expandAll = false;
     bool m_collapseAll = false;
     bool m_setHighlightRange = false;
+    uint64_t m_frameCounterOrigin = 0;
     unsigned m_beginHighlight = 0;
     unsigned m_endHighlight = std::numeric_limits<unsigned>::max();
 };
