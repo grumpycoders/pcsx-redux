@@ -1133,7 +1133,10 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode()
         ImGui::Separator();
         tpage.drawLogNodeCommon();
         if (tpage.texDepth != TexDepth::Tex16Bits) {
-            ImGui::Text("  ClutX: %i, ClutY: %i", clutX(), clutY());
+            std::string label = fmt::format("  ClutX: {}, ClutY: {}", clutX(), clutY());
+            if (ImGui::Button(label.c_str())) {
+                g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
+            }
         }
     }
     for (unsigned i = 0; i < count; i++) {
@@ -1193,7 +1196,10 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode() {
     }
     if constexpr (textured == Textured::Yes) {
         ImGui::Text("  U: %i, V: %i", u, v);
-        ImGui::Text("  ClutX: %i, ClutY: %i", clutX(), clutY());
+        std::string label = fmt::format("  ClutX: {}, ClutY: {}", clutX(), clutY());
+        if (ImGui::Button(label.c_str())) {
+            g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
+        }
     }
 }
 

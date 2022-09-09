@@ -25,6 +25,7 @@
 #include "GL/gl3w.h"
 #include "gui/widgets/shader-editor.h"
 #include "imgui.h"
+#include "support/eventbus.h"
 
 namespace PCSX {
 
@@ -116,6 +117,8 @@ class VRAMViewer {
     bool m_firstShown = false;
 
     ShaderEditor m_editor = {"vram-viewer"};
+
+    EventBus::Listener m_listener;
 };
 
 }  // namespace Widgets

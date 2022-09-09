@@ -219,8 +219,14 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
 }
 
-PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show) {
+PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show), m_listener(g_system->m_eventBus) {
     m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, "");
+    m_listener.listen<PCSX::Events::GUI::SelectClut>([this](auto event) {
+        if (m_hasClut) {
+            m_clut.x = event.x / 1024.0f;
+            m_clut.y = event.y / 512.0f;
+        }
+    });
 }
 
 void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
@@ -401,6 +407,10 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
             ImGui::Separator();
             ImGui::Separator();
             ImGui::Text("%.0f : %.0f", std::floor(m_mouseUV.x * 1024.0f), std::floor(m_mouseUV.y * 512.0f));
+            if (m_hasClut) {
+                ImGui::Separator();
+                ImGui::Text("CLUT: %.0f : %.0f", std::floor(m_clut.x * 1024.0f), std::floor(m_clut.y * 512.0f));
+            }
             ImGui::EndMenuBar();
         }
         drawVRAM(gui, VRAMTexture);

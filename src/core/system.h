@@ -89,6 +89,9 @@ struct JumpToMemory {
     uint32_t address;
     unsigned size;
 };
+struct SelectClut {
+    unsigned x, y;
+};
 }  // namespace GUI
 struct Keyboard {
     int key, scancode, action, mods;
