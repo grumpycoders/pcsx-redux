@@ -35,6 +35,7 @@
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/gpulogger.h"
+#include "gui/widgets/handlers.h"
 #include "gui/widgets/kernellog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/luaeditor.h"
@@ -88,6 +89,7 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowDisassembly")> ShowDisassembly;
     typedef Setting<bool, TYPESTRING("ShowBreakpoints")> ShowBreakpoints;
     typedef Setting<bool, TYPESTRING("ShowEvents")> ShowEvents;
+    typedef Setting<bool, TYPESTRING("ShowHandlers")> ShowHandlers;
     typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
@@ -106,7 +108,7 @@ class GUI final {
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
-             ShowKernelLog, ShowCallstacks, ShowSIO1, ShowGPULogger, MainFontSize, MonoFontSize, GUITheme,
+             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowGPULogger, MainFontSize, MonoFontSize, GUITheme,
              EnableRawMouseMotion, WidescreenRatio>
         settings;
 
@@ -329,6 +331,7 @@ class GUI final {
     Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
 
     Widgets::Events m_events = {settings.get<ShowEvents>().value};
+    Widgets::Handlers m_handlers = {settings.get<ShowHandlers>().value};
     Widgets::KernelLog m_kernelLog = {settings.get<ShowKernelLog>().value};
 
     Widgets::CallStacks m_callstacks = {settings.get<ShowCallstacks>().value};

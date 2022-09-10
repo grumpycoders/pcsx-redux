@@ -248,6 +248,7 @@
     <ClCompile Include="..\..\src\gui\widgets\events.cc" />
     <ClCompile Include="..\..\src\gui\widgets\filedialog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\handlers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\kernellog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\log.cc" />
     <ClCompile Include="..\..\src\gui\widgets\luaeditor.cc" />
@@ -275,6 +276,7 @@
     <ClInclude Include="..\..\src\gui\widgets\events.h" />
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h" />
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h" />
+    <ClInclude Include="..\..\src\gui\widgets\handlers.h" />
     <ClInclude Include="..\..\src\gui\widgets\kernellog.h" />
     <ClInclude Include="..\..\src\gui\widgets\log.h" />
     <ClInclude Include="..\..\src\gui\widgets\luaeditor.h" />

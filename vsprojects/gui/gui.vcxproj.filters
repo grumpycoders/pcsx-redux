@@ -78,6 +78,7 @@
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc">
+    <ClCompile Include="..\..\src\gui\widgets\handlers.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
   </ItemGroup>
@@ -153,6 +154,7 @@
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h" />
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h">
+    <ClInclude Include="..\..\src\gui\widgets\handlers.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
   </ItemGroup>

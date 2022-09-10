@@ -96,8 +96,8 @@ class TypedDebugger {
         std::vector<FieldOrArgumentData> arguments;
     };
 
-    // Represents a value stored in a register, as opposed to one stored at an address in memory.
-    struct RegisterValue {
+    // Represents an immediate value, as opposed to one stored at an address in memory.
+    struct ImmediateValue {
         uint32_t value;
         std::string type;
         std::string name;
@@ -133,7 +133,7 @@ class TypedDebugger {
         std::string functionName;
         std::string callerName;
         uint32_t callerAddress;
-        using ArgumentData = std::variant<AddressNodeTuple, RegisterValue>;
+        using ArgumentData = std::variant<AddressNodeTuple, ImmediateValue>;
         std::vector<ArgumentData> argData;
     };
     std::vector<FunctionBreakpointData> m_displayedFunctionData;
