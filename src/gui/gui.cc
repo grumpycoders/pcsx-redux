@@ -1064,6 +1064,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
                 ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                 ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
+                ImGui::MenuItem(_("Kernel Handlers"), nullptr, &m_handlers.m_show);
                 ImGui::MenuItem(_("Kernel Calls"), nullptr, &m_kernelLog.m_show);
                 if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
                     ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
@@ -1199,6 +1200,9 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
     if (m_events.m_show) {
         m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_psxM), _("Kernel events"));
+    }
+    if (m_handlers.m_show) {
+        m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_psxM), _("Kernel handlers"));
     }
     if (m_kernelLog.m_show) {
         changed |= m_kernelLog.draw(g_emulator->m_cpu.get(), _("Kernel Calls"));

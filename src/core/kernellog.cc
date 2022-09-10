@@ -1174,6 +1174,9 @@ void PCSX::R3000Acpu::logC0KernelCall(uint32_t call) {
     uint32_t bit = 1 << (call % 32);
     if (!flags || ((*flags & bit) == 0)) return;
     auto &n = m_regs.GPR.n;
+    const char *const name = Kernel::getC0name(call);
+    if (name) g_system->log(LogClass::KERNEL, "KernelCall C0:%02X:%s(", call, name);
+
     switch (call) {
         case 0x00: {
             g_system->log(LogClass::KERNEL, "%i)", n.a0);
@@ -1268,9 +1271,9 @@ void PCSX::R3000Acpu::logC0KernelCall(uint32_t call) {
             break;
         }
         default: {
-            g_system->log(LogClass::KERNEL, "KernelCall: unknown kernel call C0:%02X from 0x%08x\n", call,
-                          m_regs.GPR.n.ra);
+            g_system->log(LogClass::KERNEL, "KernelCall: unknown kernel call C0:%02X", call, m_regs.GPR.n.ra);
             break;
         }
     }
+    g_system->log(LogClass::KERNEL, " from 0x%08x\n", n.ra);
 }

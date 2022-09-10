@@ -10,17 +10,17 @@
 
 set -ex
 
-wget https://ftp.gnu.org/gnu/binutils/binutils-2.38.tar.gz
-tar xvfz binutils-2.38.tar.gz
-cd binutils-2.38
+wget https://ftp.gnu.org/gnu/binutils/binutils-2.39.tar.gz
+tar xvfz binutils-2.39.tar.gz
+cd binutils-2.39
 ./configure --target=mipsel-none-elf --disable-multilib --disable-nls --disable-werror
 make
 make install-strip
 cd ..
 
-wget https://ftp.gnu.org/gnu/gcc/gcc-12.1.0/gcc-12.1.0.tar.gz
-tar xvfz gcc-12.1.0.tar.gz
-cd gcc-12.1.0
+wget https://ftp.gnu.org/gnu/gcc/gcc-12.2.0/gcc-12.2.0.tar.gz
+tar xvfz gcc-12.2.0.tar.gz
+cd gcc-12.2.0
 mkdir build
 cd build
 ../configure --target=mipsel-none-elf --without-isl --disable-nls --disable-threads --disable-shared --disable-libssp --disable-libstdcxx-pch --disable-libgomp --disable-werror --without-headers --disable-hosted-libstdcxx --with-as=/usr/local/bin/mipsel-none-elf-as --with-ld=/usr/local/bin/mipsel-none-elf-ld --enable-languages=c,c++
