@@ -253,7 +253,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     // TexCoordBR = 1, 1
     // ResolutionTL = 0, 0
     // ResolutionBR = m_resolution
-    // --> texTL = 0 - (cornerTL - 0) / dimensions = -corner / dimensions
+    // --> texTL = 0 - (cornerTL - 0) / dimensions = -cornerTL / dimensions
     // --> texBR = 1 - (cornerBR - m_resolution) / dimensions
     ImVec2 dimensions = m_cornerBR - m_cornerTL;
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
