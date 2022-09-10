@@ -1961,6 +1961,9 @@ bool PCSX::GUI::about() {
                 someString(_("Renderer"), GL_RENDERER);
                 someString(_("Version"), GL_VERSION);
                 someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
+                GLint textureUnits;
+                glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &textureUnits);
+                ImGui::Text(_("Texture units: %d"), textureUnits);
                 GLint n, i;
                 glGetIntegerv(GL_NUM_EXTENSIONS, &n);
                 ImGui::TextUnformatted(_("Extensions:"));
