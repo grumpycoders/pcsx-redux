@@ -157,27 +157,27 @@ function Image(textureID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
 end
 
 function Draw()
-    if (not configureme) then return end
+    if not configureme then return end
     local shoulddraw, lc
     local changed = false
-    shoulddraw, configureme = imgui.Begin("Output CRT Shader Configuration", true)
-    if (not shoulddraw) then
+    shoulddraw, configureme = imgui.Begin('Output CRT Shader Configuration', true)
+    if not shoulddraw then
         imgui.End()
         return true
     end
 
     lc, warp = imgui.SliderFloat('Warp intensity', warp, 0.0, 8.0, '%0.3f')
-    if (lc) then changed = true end
+    if lc then changed = true end
     lc, mask = imgui.SliderFloat('Mask intensity', mask, 0.0, 1.0, '%0.3f')
-    if (lc) then changed = true end
+    if lc then changed = true end
     lc, grey = imgui.Checkbox('Greyscale', grey)
-    if (lc) then changed = true end
+    if lc then changed = true end
     local masknames = {'Trinitron', 'Trinitron 2x', 'Trio'}
     local maskname = masknames[masktype]
     shoulddraw = imgui.BeginCombo('Mask type', maskname)
-    if (shoulddraw) then
+    if shoulddraw then
         for i = 1, 3 do
-            if (imgui.Selectable(masknames[i], i == masktype)) then
+            if imgui.Selectable(masknames[i], i == masktype) then
                 masktype = i
                 changed = true
             end
@@ -185,7 +185,7 @@ function Draw()
         imgui.EndCombo()
     end
 
-    if (imgui.Button('Reset')) then
+    if imgui.Button 'Reset' then
         Reset()
         changed = true
     end
@@ -377,29 +377,29 @@ end
 Constructor(shaderProgramID)
 
 function Draw()
-    if (not configureme) then return end
+    if not configureme then return end
     local shoulddraw, lc
     local changed = false
-    shoulddraw, configureme = imgui.Begin("Offscreen CRT shader Configuration", true)
-    if (not shoulddraw) then
+    shoulddraw, configureme = imgui.Begin('Offscreen CRT shader Configuration', true)
+    if not shoulddraw then
         imgui.End()
         return true
     end
 
     lc, enabled = imgui.Checkbox('Enable gaussian blur', enabled)
-    if (lc) then changed = true end
+    if lc then changed = true end
     lc, hardPix = imgui.SliderFloat('Hard Pixel factor', hardPix, 0.0, 3, '%.3f')
-    if (lc) then changed = true end
+    if lc then changed = true end
     lc, hardScan = imgui.SliderFloat('Hard Scanline factor', hardScan, 0.0, 20.0, '%.3f')
-    if (lc) then changed = true end
+    if lc then changed = true end
     lc, scanlines = imgui.Checkbox('Enable Scanlines', scanlines)
-    if (lc) then changed = true end
+    if lc then changed = true end
     lc, useSrgb = imgui.Checkbox('Use S-rgb', useSrgb)
-    if (lc) then changed = true end
+    if lc then changed = true end
     lc, nearest = imgui.Checkbox('Use Nearest', nearest)
-    if (lc) then changed = true end
+    if lc then changed = true end
 
-    if (imgui.Button('Reset')) then
+    if imgui.Button 'Reset' then
         Reset()
         changed = true
     end
@@ -417,7 +417,7 @@ function BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, 
     gl.glUniform1i(locUseSrgb, useSrgb and 1 or 0)
     gl.glUniform1i(locEnabled, enabled and 1 or 0)
     gl.glUniform1f(locScanlines, scanlines)
-    if (nearest) then
+    if nearest then
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
     else

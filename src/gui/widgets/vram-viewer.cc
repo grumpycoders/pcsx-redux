@@ -241,7 +241,12 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     m_mousePos = mousePos - m_origin;
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
-    drawList->AddCallback(imguiCBtrampoline, this);
+    drawList->AddCallback(
+        [](const ImDrawList *parentList, const ImDrawCmd *cmd) {
+            VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
+            that->imguiCB(parentList, cmd);
+        },
+        this);
 
     // TexCoord - (TexturePoint - ResolutionPoint) / dimensions
     // TexCoordTL = 0, 0
@@ -304,6 +309,7 @@ void PCSX::Widgets::VRAMViewer::drawEditor(GUI *gui) {
 }
 
 void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
+    glBindTexture(GL_TEXTURE_2D, m_textureID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     if (!m_shaderProgram) return;
@@ -347,7 +353,6 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
     glVertexAttribPointer(m_attribLocationVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
-    glBindTexture(GL_TEXTURE_2D, m_textureID);
 }
 
 void PCSX::Widgets::VRAMViewer::resetView() {

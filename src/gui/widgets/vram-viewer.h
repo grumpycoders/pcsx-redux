@@ -52,10 +52,6 @@ class VRAMViewer {
     void drawVRAM(GUI *gui, GLuint textureID);
     void compileShader(GUI *gui);
     void modeChanged();
-    static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
-        VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
-        that->imguiCB(parentList, cmd);
-    }
     void imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd);
 
     bool m_isMain = false;
