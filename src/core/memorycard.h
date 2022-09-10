@@ -42,6 +42,8 @@ class MemoryCard {
         m_currentCommand = Commands::None;
         m_commandTicks = 0;
         m_dataOffset = 0;
+        m_sector = 0;
+        m_spdr = Responses::IdleHighZ;
     }
 
     // File system / data manipulation
@@ -100,7 +102,7 @@ class MemoryCard {
     static const size_t MCD_SIZE = 1024 * MCD_SECT_SIZE;
 
     // State machine / handlers
-    uint8_t processEvents(uint8_t value);
+    uint8_t transceive(uint8_t value);
     uint8_t tickReadCommand(uint8_t value);
     uint8_t tickWriteCommand(uint8_t value);
     uint8_t tickPS_GetDirIndex(uint8_t value);   // 5Ah
@@ -118,6 +120,8 @@ class MemoryCard {
     uint32_t m_dataOffset = 0;
 
     uint8_t m_directoryFlag = Flags::DirectoryUnread;
+
+    uint8_t m_spdr = Responses::IdleHighZ;
 
     // PocketStation Specific
     uint16_t m_directoryIndex = 0;

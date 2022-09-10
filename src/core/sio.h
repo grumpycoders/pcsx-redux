@@ -37,7 +37,6 @@ struct SIORegisters {
     uint16_t baud;
 };
 
-
 class SIO {
   public:
     struct McdBlock {
@@ -90,7 +89,10 @@ class SIO {
     uint16_t readCtrl16();
     uint16_t readBaud16();
 
-    void acknowledge() { scheduleInterrupt(m_regs.baud * 8); }
+    void acknowledge() {
+        if (!(m_regs.control & ControlFlags::TX_ENABLE)) return;
+        scheduleInterrupt(m_regs.baud * 8);
+    }
     void interrupt();
     void reset();
 
@@ -117,19 +119,19 @@ class SIO {
     static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
-    
+
   private:
     enum StatusFlags : uint16_t {
         // Status Flags
         TX_RDY = 0x0001,
-        RX_RDY = 0x0002,
+        RX_FIFONOTEMPTY = 0x0002,
         TX_READY2 = 0x0004,
-        PARITY_ERR = 0x0008,
-        RX_OVERRUN = 0x0010,
+        RX_PARITYERR = 0x0008,
+        RX_OVERRUN = 0x0010,  //(unlike SIO, this isn't RX FIFO Overrun flag), to-do: investigate this claim -skitchin
         FRAMING_ERR = 0x0020,
         SYNC_DETECT = 0x0040,
-        DSR = 0x0080,
-        CTS = 0x0100,
+        DSR = 0x0080,  // ack input level
+        CTS = 0x0100,  //
         IRQ = 0x0200,
     };
     enum ControlFlags : uint16_t {
@@ -175,6 +177,46 @@ class SIO {
         };
     };
 
+    template <size_t buffer_size, typename T>
+    class FIFO {
+      public:
+        ~FIFO() { clear(); }
+
+        void clear() {
+            while (!queue_.empty()) queue_.pop();
+        }
+        bool isEmpty() { return queue_.empty(); }
+        T peek() {
+            T ret = T();
+            if (!queue_.empty()) {
+                ret = queue_.front();
+            }
+
+            return ret;
+        }
+        T pull() {
+            T ret = T();
+            if (!queue_.empty()) {
+                ret = queue_.front();
+                queue_.pop();
+            }
+
+            return ret;
+        }
+        void push(T data) {
+            if (queue_.size() >= buffer_size) {
+                queue_.back() = data;
+            } else {
+                queue_.push(data);
+            }
+        }
+
+        size_t size() { return queue_.size(); }
+
+      private:
+        std::queue<T> queue_;
+    };
+
     friend MemoryCard;
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
@@ -183,13 +225,15 @@ class SIO {
     bool isTransmitReady() {
         return (m_regs.control & ControlFlags::TX_ENABLE) && (m_regs.status & StatusFlags::TX_READY2);
     }
+
     void transmitData();
-    
+    void updateStat();
+
     inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
 #if 0
 // Breaks Twisted Metal 2 intro
-        m_statusReg &= ~RX_RDY;
+        m_statusReg &= ~RX_FIFONOTEMPTY;
         m_statusReg &= ~TX_RDY;
 #endif
     }
@@ -210,10 +254,11 @@ class SIO {
 
     uint8_t m_currentDevice = SIO_Device::None;
 
-    uint8_t m_delayedOut;
     uint8_t m_rxBuffer;
 
     MemoryCard m_memoryCard[2] = {this, this};
+
+    FIFO<8, uint8_t> m_rxFIFO;
 };
 
 }  // namespace PCSX

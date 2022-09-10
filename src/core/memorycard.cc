@@ -24,10 +24,9 @@
 
 void PCSX::MemoryCard::acknowledge() { m_sio->acknowledge(); }
 
-uint8_t PCSX::MemoryCard::processEvents(uint8_t value) {
-    uint8_t data_out = Responses::IdleHighZ;
+uint8_t PCSX::MemoryCard::transceive(uint8_t value) {
+    uint8_t data_out = m_spdr;
 
-    // Incoming value is the command
     if (m_currentCommand == Commands::None || m_currentCommand == Commands::Access) {
         m_currentCommand = value;
     }
@@ -35,44 +34,45 @@ uint8_t PCSX::MemoryCard::processEvents(uint8_t value) {
     switch (m_currentCommand) {
         // Access memory card device
         case Commands::Access:  // 81h
-            data_out = m_directoryFlag;
+            // Incoming value is the device command
+            m_spdr = m_directoryFlag;
             acknowledge();
             break;
 
         // Read a sector
         case Commands::Read:  // 52h
-            data_out = tickReadCommand(value);
+            m_spdr = tickReadCommand(value);
             break;
 
         // Write a sector
         case Commands::Write:  // 57h
-            data_out = tickWriteCommand(value);
+            m_spdr = tickWriteCommand(value);
             break;
 
         //
         case Commands::PS_GetVersion:  // 58h
-            data_out = tickPS_GetVersion(value);
+            m_spdr = tickPS_GetVersion(value);
             break;
 
         //
         case Commands::PS_PrepFileExec:  // 59h
-            data_out = tickPS_PrepFileExec(value);
+            m_spdr = tickPS_PrepFileExec(value);
             break;
 
         //
         case Commands::PS_GetDirIndex:  // 5Ah
-            data_out = tickPS_GetDirIndex(value);
+            m_spdr = tickPS_GetDirIndex(value);
             break;
 
         //
         case Commands::PS_ExecCustom:  // 5Dh
-            data_out = tickPS_ExecCustom(value);
+            m_spdr = tickPS_ExecCustom(value);
             break;
 
         case Commands::GetID:  // Un-implemented, need data capture
         case Commands::Error:  // Unexpected/Unsupported command
         default:
-            data_out = Responses::IdleHighZ;
+            m_spdr = Responses::IdleHighZ;
     }
 
     return data_out;
@@ -166,7 +166,7 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
             // actually occurs between Slave and Master.
             // Offset "Send" bytes noted from nocash's psx specs.
 
-        case 0:  // 52h
+        case 0:  // 57h
             data_out = Responses::ID1;
             break;
 
@@ -379,7 +379,7 @@ uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value) {
             break;
 
         case 2:  //
-            data_out = 0x01; 
+            data_out = 0x01;
             break;
 
         default:
