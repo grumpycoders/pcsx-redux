@@ -125,9 +125,17 @@ CALL_FUNCTION(IsWindowCollapsed, bool)
 PUSH_BOOL(ret)
 END_IMGUI_FUNC
 //    IMGUI_API bool          IsWindowFocused(ImGuiFocusedFlags flags=0); // is current window focused? or its root/child, depending on flags. see flags for options.
-// Unsupported arg type ImGuiFocusedFlags flags=0
+IMGUI_FUNCTION(IsWindowFocused)
+OPTIONAL_INT_ARG(flags, 0)
+CALL_FUNCTION(IsWindowFocused, bool, flags)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          IsWindowHovered(ImGuiHoveredFlags flags=0); // is current window hovered (and typically: not blocked by a popup/modal)? see flags for options. NB: If you are trying to check whether your mouse should be dispatched to imgui or to your app, you should use the 'io.WantCaptureMouse' boolean for that! Please read the FAQ!
-// Unsupported arg type ImGuiHoveredFlags flags=0
+IMGUI_FUNCTION(IsWindowHovered)
+OPTIONAL_INT_ARG(flags, 0)
+CALL_FUNCTION(IsWindowHovered, bool, flags)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API ImDrawList*   GetWindowDrawList();                        // get draw list associated to the current window, to append your own drawing primitives
 // Unsupported return type ImDrawList*
 //    IMGUI_API float         GetWindowDpiScale();                        // get DPI scale currently associated to the current window's viewport.
@@ -160,9 +168,18 @@ END_IMGUI_FUNC
 //    IMGUI_API ImGuiViewport*GetWindowViewport();                        // get viewport currently associated to the current window.
 // Unsupported return type ImGuiViewport*GetWindowViewpor
 //    IMGUI_API void          SetNextWindowPos(const ImVec2& pos, ImGuiCond cond = 0, const ImVec2& pivot = ImVec2 0  0); // set next window position. call before Begin(). use pivot=(0.5f,0.5f) to center on given point, etc.
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetNextWindowPos)
+IM_VEC_2_ARG(pos)
+OPTIONAL_INT_ARG(cond, 0)
+OPTIONAL_IM_VEC_2_ARG(pivot, 0, 0)
+CALL_FUNCTION_NO_RET(SetNextWindowPos, pos, cond, pivot)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetNextWindowSize(const ImVec2& size, ImGuiCond cond = 0);                  // set next window size. set axis to 0.0f to force an auto-fit on this axis. call before Begin()
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetNextWindowSize)
+IM_VEC_2_ARG(size)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetNextWindowSize, size, cond)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetNextWindowSizeConstraints(const ImVec2& size_min, const ImVec2& size_max, ImGuiSizeCallback custom_callback = NULL, void* custom_callback_data = NULL); // set next window size limits. use -1,-1 on either X/Y axis to preserve the current size. Sizes will be rounded down. Use callback to apply non-trivial programmatic constraints.
 // Unsupported arg type  ImGuiSizeCallback custom_callback = NULL
 // Unsupported arg type  void* custom_callback_data = NULL
@@ -172,7 +189,11 @@ IM_VEC_2_ARG(size)
 CALL_FUNCTION_NO_RET(SetNextWindowContentSize, size)
 END_IMGUI_FUNC
 //    IMGUI_API void          SetNextWindowCollapsed(bool collapsed, ImGuiCond cond = 0);                 // set next window collapsed state. call before Begin()
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetNextWindowCollapsed)
+BOOL_ARG(collapsed)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetNextWindowCollapsed, collapsed, cond)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetNextWindowFocus();                                                       // set next window to be focused / top-most. call before Begin()
 IMGUI_FUNCTION(SetNextWindowFocus)
 CALL_FUNCTION_NO_RET(SetNextWindowFocus)
@@ -188,11 +209,23 @@ UINT_ARG(viewport_id)
 CALL_FUNCTION_NO_RET(SetNextWindowViewport, viewport_id)
 END_IMGUI_FUNC
 //    IMGUI_API void          SetWindowPos(const ImVec2& pos, ImGuiCond cond = 0);                        // (not recommended) set current window position - call within Begin()/End(). prefer using SetNextWindowPos(), as this may incur tearing and side-effects.
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetWindowPos)
+IM_VEC_2_ARG(pos)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetWindowPos, pos, cond)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetWindowSize(const ImVec2& size, ImGuiCond cond = 0);                      // (not recommended) set current window size - call within Begin()/End(). set to ImVec2 0  0 to force an auto-fit. prefer using SetNextWindowSize(), as this may incur tearing and minor side-effects.
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetWindowSize)
+IM_VEC_2_ARG(size)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetWindowSize, size, cond)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetWindowCollapsed(bool collapsed, ImGuiCond cond = 0);                     // (not recommended) set current window collapsed state. prefer using SetNextWindowCollapsed().
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetWindowCollapsed)
+BOOL_ARG(collapsed)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetWindowCollapsed, collapsed, cond)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetWindowFocus();                                                           // (not recommended) set current window to be focused / top-most. prefer using SetNextWindowFocus().
 IMGUI_FUNCTION(SetWindowFocus)
 CALL_FUNCTION_NO_RET(SetWindowFocus)
@@ -203,11 +236,26 @@ NUMBER_ARG(scale)
 CALL_FUNCTION_NO_RET(SetWindowFontScale, scale)
 END_IMGUI_FUNC
 //    IMGUI_API void          SetWindowPos(const char* name, const ImVec2& pos, ImGuiCond cond = 0);      // set named window position.
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetWindowPos_3)
+LABEL_ARG(name)
+IM_VEC_2_ARG(pos)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetWindowPos, name, pos, cond)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetWindowSize(const char* name, const ImVec2& size, ImGuiCond cond = 0);    // set named window size. set axis to 0.0f to force an auto-fit on this axis.
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetWindowSize_3)
+LABEL_ARG(name)
+IM_VEC_2_ARG(size)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetWindowSize, name, size, cond)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetWindowCollapsed(const char* name, bool collapsed, ImGuiCond cond = 0);   // set named window collapsed state
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetWindowCollapsed_3)
+LABEL_ARG(name)
+BOOL_ARG(collapsed)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetWindowCollapsed, name, collapsed, cond)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetWindowFocus(const char* name);                                           // set named window to be focused / top-most. use NULL to remove focus.
 IMGUI_FUNCTION(SetWindowFocus_1)
 LABEL_ARG(name)
@@ -616,7 +664,12 @@ CALL_FUNCTION(InvisibleButton, bool, str_id, size, flags)
 PUSH_BOOL(ret)
 END_IMGUI_FUNC
 //    IMGUI_API bool          ArrowButton(const char* str_id, ImGuiDir dir);                  // square button with an arrow shape
-// Unsupported arg type  ImGuiDir dir
+IMGUI_FUNCTION(ArrowButton)
+LABEL_ARG(str_id)
+INT_ARG(dir)
+CALL_FUNCTION(ArrowButton, bool, str_id, dir)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API void          Image(ImTextureID user_texture_id, const ImVec2& size, const ImVec2& uv0 = ImVec2 0  0, const ImVec2& uv1 = ImVec2 1 1, const ImVec4& tint_col = ImVec4 1 1 1 1, const ImVec4& border_col = ImVec4 0 0 0 0);
 IMGUI_FUNCTION(Image)
 IM_TEXTURE_ID_ARG(user_texture_id)
@@ -793,12 +846,10 @@ END_INT_POINTER(v_current_min)
 END_INT_POINTER(v_current_max)
 END_IMGUI_FUNC
 //    IMGUI_API bool          DragScalar(const char* label, ImGuiDataType data_type, void* p_data, float v_speed = 1.0f, const void* p_min = NULL, const void* p_max = NULL, const char* format = NULL, ImGuiSliderFlags flags = 0);
-// Unsupported arg type  ImGuiDataType data_type
 // Unsupported arg type  void* p_data
 // Unsupported arg type  const void* p_min = NULL
 // Unsupported arg type  const void* p_max = NULL
 //    IMGUI_API bool          DragScalarN(const char* label, ImGuiDataType data_type, void* p_data, int components, float v_speed = 1.0f, const void* p_min = NULL, const void* p_max = NULL, const char* format = NULL, ImGuiSliderFlags flags = 0);
-// Unsupported arg type  ImGuiDataType data_type
 // Unsupported arg type  void* p_data
 // Unsupported arg type  const void* p_min = NULL
 // Unsupported arg type  const void* p_max = NULL
@@ -851,12 +902,10 @@ END_IMGUI_FUNC
 //    IMGUI_API bool          SliderInt4(const char* label, int v[4], int v_min, int v_max, const char* format = "%d", ImGuiSliderFlags flags = 0);
 // Unsupported arg type  int v[4]
 //    IMGUI_API bool          SliderScalar(const char* label, ImGuiDataType data_type, void* p_data, const void* p_min, const void* p_max, const char* format = NULL, ImGuiSliderFlags flags = 0);
-// Unsupported arg type  ImGuiDataType data_type
 // Unsupported arg type  void* p_data
 // Unsupported arg type  const void* p_min
 // Unsupported arg type  const void* p_max
 //    IMGUI_API bool          SliderScalarN(const char* label, ImGuiDataType data_type, void* p_data, int components, const void* p_min, const void* p_max, const char* format = NULL, ImGuiSliderFlags flags = 0);
-// Unsupported arg type  ImGuiDataType data_type
 // Unsupported arg type  void* p_data
 // Unsupported arg type  const void* p_min
 // Unsupported arg type  const void* p_max
@@ -887,7 +936,6 @@ PUSH_BOOL(ret)
 END_INT_POINTER(v)
 END_IMGUI_FUNC
 //    IMGUI_API bool          VSliderScalar(const char* label, const ImVec2& size, ImGuiDataType data_type, void* p_data, const void* p_min, const void* p_max, const char* format = NULL, ImGuiSliderFlags flags = 0);
-// Unsupported arg type  ImGuiDataType data_type
 // Unsupported arg type  void* p_data
 // Unsupported arg type  const void* p_min
 // Unsupported arg type  const void* p_max
@@ -946,12 +994,10 @@ END_IMGUI_FUNC
 // Unsupported arg type  double step = 0.0
 // Unsupported arg type  double step_fast = 0.0
 //    IMGUI_API bool          InputScalar(const char* label, ImGuiDataType data_type, void* p_data, const void* p_step = NULL, const void* p_step_fast = NULL, const char* format = NULL, ImGuiInputTextFlags flags = 0);
-// Unsupported arg type  ImGuiDataType data_type
 // Unsupported arg type  void* p_data
 // Unsupported arg type  const void* p_step = NULL
 // Unsupported arg type  const void* p_step_fast = NULL
 //    IMGUI_API bool          InputScalarN(const char* label, ImGuiDataType data_type, void* p_data, int components, const void* p_step = NULL, const void* p_step_fast = NULL, const char* format = NULL, ImGuiInputTextFlags flags = 0);
-// Unsupported arg type  ImGuiDataType data_type
 // Unsupported arg type  void* p_data
 // Unsupported arg type  const void* p_step = NULL
 // Unsupported arg type  const void* p_step_fast = NULL
@@ -1040,7 +1086,11 @@ PUSH_BOOL(ret)
 END_BOOL_POINTER(p_visible)
 END_IMGUI_FUNC
 //    IMGUI_API void          SetNextItemOpen(bool is_open, ImGuiCond cond = 0);                  // set next TreeNode/CollapsingHeader open state.
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetNextItemOpen)
+BOOL_ARG(is_open)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetNextItemOpen, is_open, cond)
+END_IMGUI_FUNC
 //    IMGUI_API bool          Selectable(const char* label, bool selected = false, ImGuiSelectableFlags flags = 0, const ImVec2& size = ImVec2 0  0); // "bool selected" carry the selection state (read-only). Selectable() is clicked is returns true so you can modify your selection state. size.x==0.0: use remaining width, size.x>0.0: specify width. size.y==0.0: use label height, size.y>0.0: specify height
 IMGUI_FUNCTION(Selectable)
 LABEL_ARG(label)
@@ -1222,17 +1272,39 @@ OPTIONAL_INT_ARG(popup_flags, 0)
 CALL_FUNCTION_NO_RET(OpenPopup, id, popup_flags)
 END_IMGUI_FUNC
 //    IMGUI_API void          OpenPopupOnItemClick(const char* str_id = NULL, ImGuiPopupFlags popup_flags = 1);   // helper to open popup when clicked on last item. Default to ImGuiPopupFlags_MouseButtonRight == 1. (note: actually triggers on the mouse _released_ event to be consistent with popup behaviors)
-// Unsupported arg type  ImGuiPopupFlags popup_flags = 1
+IMGUI_FUNCTION(OpenPopupOnItemClick)
+OPTIONAL_LABEL_ARG(str_id)
+OPTIONAL_INT_ARG(popup_flags, 1)
+CALL_FUNCTION_NO_RET(OpenPopupOnItemClick, str_id, popup_flags)
+END_IMGUI_FUNC
 //    IMGUI_API void          CloseCurrentPopup();                                                                // manually close the popup we have begin-ed into.
 IMGUI_FUNCTION(CloseCurrentPopup)
 CALL_FUNCTION_NO_RET(CloseCurrentPopup)
 END_IMGUI_FUNC
 //    IMGUI_API bool          BeginPopupContextItem(const char* str_id = NULL, ImGuiPopupFlags popup_flags = 1);  // open+begin popup when clicked on last item. Use str_id==NULL to associate the popup to previous item. If you want to use that on a non-interactive item such as Text() you need to pass in an explicit ID here. read comments in .cpp!
-// Unsupported arg type  ImGuiPopupFlags popup_flags = 1
+IMGUI_FUNCTION(BeginPopupContextItem)
+OPTIONAL_LABEL_ARG(str_id)
+OPTIONAL_INT_ARG(popup_flags, 1)
+CALL_FUNCTION(BeginPopupContextItem, bool, str_id, popup_flags)
+IF_RET_ADD_END_STACK(12)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          BeginPopupContextWindow(const char* str_id = NULL, ImGuiPopupFlags popup_flags = 1);// open+begin popup when clicked on current window.
-// Unsupported arg type  ImGuiPopupFlags popup_flags = 1
+IMGUI_FUNCTION(BeginPopupContextWindow)
+OPTIONAL_LABEL_ARG(str_id)
+OPTIONAL_INT_ARG(popup_flags, 1)
+CALL_FUNCTION(BeginPopupContextWindow, bool, str_id, popup_flags)
+IF_RET_ADD_END_STACK(12)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          BeginPopupContextVoid(const char* str_id = NULL, ImGuiPopupFlags popup_flags = 1);  // open+begin popup when clicked in void (where there are no windows).
-// Unsupported arg type  ImGuiPopupFlags popup_flags = 1
+IMGUI_FUNCTION(BeginPopupContextVoid)
+OPTIONAL_LABEL_ARG(str_id)
+OPTIONAL_INT_ARG(popup_flags, 1)
+CALL_FUNCTION(BeginPopupContextVoid, bool, str_id, popup_flags)
+IF_RET_ADD_END_STACK(12)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          IsPopupOpen(const char* str_id, ImGuiPopupFlags flags = 0);                         // return true if the popup is open.
 IMGUI_FUNCTION(IsPopupOpen)
 LABEL_ARG(str_id)
@@ -1319,7 +1391,12 @@ BOOL_ARG(v)
 CALL_FUNCTION_NO_RET(TableSetColumnEnabled, column_n, v)
 END_IMGUI_FUNC
 //    IMGUI_API void                  TableSetBgColor(ImGuiTableBgTarget target, ImU32 color, int column_n = -1);  // change the color of a cell, row, or column. See ImGuiTableBgTarget_ flags for details.
-// Unsupported arg type ImGuiTableBgTarget target
+IMGUI_FUNCTION(TableSetBgColor)
+INT_ARG(target)
+UINT_ARG(color)
+OPTIONAL_INT_ARG(column_n, -1)
+CALL_FUNCTION_NO_RET(TableSetBgColor, target, color, column_n)
+END_IMGUI_FUNC
 //    IMGUI_API void          Columns(int count = 1, const char* id = NULL, bool border = true);
 IMGUI_FUNCTION(Columns)
 OPTIONAL_INT_ARG(count, 1)
@@ -1405,7 +1482,11 @@ END_IMGUI_FUNC
 // Unsupported arg type const ImGuiViewport* viewport = NULL
 // Unsupported arg type  const ImGuiWindowClass* window_class = NULL
 //    IMGUI_API void          SetNextWindowDockID(ImGuiID dock_id, ImGuiCond cond = 0);           // set next window dock id
-// Unsupported arg type  ImGuiCond cond = 0
+IMGUI_FUNCTION(SetNextWindowDockID)
+UINT_ARG(dock_id)
+OPTIONAL_INT_ARG(cond, 0)
+CALL_FUNCTION_NO_RET(SetNextWindowDockID, dock_id, cond)
+END_IMGUI_FUNC
 //    IMGUI_API void          SetNextWindowClass(const ImGuiWindowClass* window_class);           // set next window class (control docking compatibility + provide hints to platform backend via custom viewport flags and platform parent/child relationship)
 // Unsupported arg type const ImGuiWindowClass* window_class
 //    IMGUI_API ImGuiID       GetWindowDockID();
@@ -1456,7 +1537,6 @@ END_IMGUI_FUNC
 //    IMGUI_API bool          SetDragDropPayload(const char* type, const void* data, size_t sz, ImGuiCond cond = 0);  // type is a user defined string of maximum 32 characters. Strings starting with '_' are reserved for dear imgui internal types. Data is copied and held by imgui.
 // Unsupported arg type  const void* data
 // Unsupported arg type  size_t sz
-// Unsupported arg type  ImGuiCond cond = 0
 //    IMGUI_API void          EndDragDropSource();                                                                    // only call EndDragDropSource() if BeginDragDropSource() returns true!
 IMGUI_FUNCTION(EndDragDropSource)
 CALL_FUNCTION_NO_RET(EndDragDropSource)
@@ -1509,7 +1589,11 @@ OPTIONAL_INT_ARG(offset, 0)
 CALL_FUNCTION_NO_RET(SetKeyboardFocusHere, offset)
 END_IMGUI_FUNC
 //    IMGUI_API bool          IsItemHovered(ImGuiHoveredFlags flags = 0);                         // is the last item hovered? (and usable, aka not blocked by a popup, etc.). See ImGuiHoveredFlags for more options.
-// Unsupported arg type ImGuiHoveredFlags flags = 0
+IMGUI_FUNCTION(IsItemHovered)
+OPTIONAL_INT_ARG(flags, 0)
+CALL_FUNCTION(IsItemHovered, bool, flags)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          IsItemActive();                                                     // is the last item active? (e.g. button being held, text field being edited. This will continuously return true while holding mouse button on an item. Items that don't interact will always return false)
 IMGUI_FUNCTION(IsItemActive)
 CALL_FUNCTION(IsItemActive, bool)
@@ -1521,7 +1605,11 @@ CALL_FUNCTION(IsItemFocused, bool)
 PUSH_BOOL(ret)
 END_IMGUI_FUNC
 //    IMGUI_API bool          IsItemClicked(ImGuiMouseButton mouse_button = 0);                   // is the last item hovered and mouse clicked on? (**)  == IsMouseClicked(mouse_button) && IsItemHovered()Important. (**) this it NOT equivalent to the behavior of e.g. Button(). Read comments in function definition.
-// Unsupported arg type ImGuiMouseButton mouse_button = 0
+IMGUI_FUNCTION(IsItemClicked)
+OPTIONAL_INT_ARG(mouse_button, 0)
+CALL_FUNCTION(IsItemClicked, bool, mouse_button)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          IsItemVisible();                                                    // is the last item visible? (items may be out of sight because of clipping/scrolling)
 IMGUI_FUNCTION(IsItemVisible)
 CALL_FUNCTION(IsItemVisible, bool)
@@ -1709,13 +1797,30 @@ OPTIONAL_BOOL_ARG(want_capture_keyboard_value, true)
 CALL_FUNCTION_NO_RET(CaptureKeyboardFromApp, want_capture_keyboard_value)
 END_IMGUI_FUNC
 //    IMGUI_API bool          IsMouseDown(ImGuiMouseButton button);                               // is mouse button held?
-// Unsupported arg type ImGuiMouseButton button
+IMGUI_FUNCTION(IsMouseDown)
+INT_ARG(button)
+CALL_FUNCTION(IsMouseDown, bool, button)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          IsMouseClicked(ImGuiMouseButton button, bool repeat = false);       // did mouse button clicked? (went from !Down to Down)
-// Unsupported arg type ImGuiMouseButton button
+IMGUI_FUNCTION(IsMouseClicked)
+INT_ARG(button)
+OPTIONAL_BOOL_ARG(repeat, false)
+CALL_FUNCTION(IsMouseClicked, bool, button, repeat)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          IsMouseReleased(ImGuiMouseButton button);                           // did mouse button released? (went from Down to !Down)
-// Unsupported arg type ImGuiMouseButton button
+IMGUI_FUNCTION(IsMouseReleased)
+INT_ARG(button)
+CALL_FUNCTION(IsMouseReleased, bool, button)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          IsMouseDoubleClicked(ImGuiMouseButton button);                      // did mouse button double-clicked? (note that a double-click will also report IsMouseClicked() == true)
-// Unsupported arg type ImGuiMouseButton button
+IMGUI_FUNCTION(IsMouseDoubleClicked)
+INT_ARG(button)
+CALL_FUNCTION(IsMouseDoubleClicked, bool, button)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          IsMouseHoveringRect(const ImVec2& r_min, const ImVec2& r_max, bool clip = true);// is mouse hovering given bounding rect (in screen space). clipped by current clipping settings, but disregarding of other consideration of focus/window ordering/popup-block.
 IMGUI_FUNCTION(IsMouseHoveringRect)
 IM_VEC_2_ARG(r_min)
@@ -1744,11 +1849,25 @@ PUSH_NUMBER(ret.x)
 PUSH_NUMBER(ret.y)
 END_IMGUI_FUNC
 //    IMGUI_API bool          IsMouseDragging(ImGuiMouseButton button, float lock_threshold = -1.0f);         // is mouse dragging? (if lock_threshold < -1.0f, uses io.MouseDraggingThreshold)
-// Unsupported arg type ImGuiMouseButton button
+IMGUI_FUNCTION(IsMouseDragging)
+INT_ARG(button)
+OPTIONAL_NUMBER_ARG(lock_threshold, -1.0f)
+CALL_FUNCTION(IsMouseDragging, bool, button, lock_threshold)
+PUSH_BOOL(ret)
+END_IMGUI_FUNC
 //    IMGUI_API ImVec2        GetMouseDragDelta(ImGuiMouseButton button = 0, float lock_threshold = -1.0f);   // return the delta from the initial clicking position while the mouse button is pressed or was just released. This is locked and return 0.0f until the mouse moves past a distance threshold at least once (if lock_threshold < -1.0f, uses io.MouseDraggingThreshold)
-// Unsupported arg type ImGuiMouseButton button = 0
+IMGUI_FUNCTION(GetMouseDragDelta)
+OPTIONAL_INT_ARG(button, 0)
+OPTIONAL_NUMBER_ARG(lock_threshold, -1.0f)
+CALL_FUNCTION(GetMouseDragDelta, ImVec2, button, lock_threshold)
+PUSH_NUMBER(ret.x)
+PUSH_NUMBER(ret.y)
+END_IMGUI_FUNC
 //    IMGUI_API void          ResetMouseDragDelta(ImGuiMouseButton button = 0);                   //
-// Unsupported arg type ImGuiMouseButton button = 0
+IMGUI_FUNCTION(ResetMouseDragDelta)
+OPTIONAL_INT_ARG(button, 0)
+CALL_FUNCTION_NO_RET(ResetMouseDragDelta, button)
+END_IMGUI_FUNC
 //    IMGUI_API ImGuiMouseCursor GetMouseCursor();                                                // get desired cursor type, reset in ImGui::NewFrame(), this is updated during the frame. valid before Render(). If you use software rendering by setting io.MouseDrawCursor ImGui will render those for you
 // Unsupported return type ImGuiMouseCursor
 //    IMGUI_API void          SetMouseCursor(ImGuiMouseCursor cursor_type);                       // set desired cursor type
