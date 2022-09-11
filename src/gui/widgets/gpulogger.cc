@@ -30,7 +30,13 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         return;
     }
 
-    ImGui::Checkbox(_("GPU logging"), &logger->m_enabled);
+    if (ImGui::Checkbox(_("GPU logging"), &logger->m_enabled)) {
+        if (logger->m_enabled) {
+            logger->enable();
+        } else {
+            logger->disable();
+        }
+    }
     ImGui::Checkbox(_("Breakpoint on vsync"), &logger->m_breakOnVSync);
     ImGui::SameLine();
     if (ImGui::Button(_("Resume"))) {
@@ -43,6 +49,8 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     bool disableFromHere = false;
     bool removeHighlight = false;
     bool setHighlightRange = m_setHighlightRange;
+    GPU::Logged* tempHighlight = nullptr;
+    bool hasHighlight = false;
     m_setHighlightRange = false;
     if (ImGui::Button(_("Collapse all nodes"))) {
         collapseAll = true;
@@ -57,6 +65,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     if (ImGui::Button(_("Remove all highlights"))) {
         removeHighlight = true;
     }
+    ImGui::Checkbox(_("Highlight on hover"), &m_hoverHighlight);
 
     std::string label;
 
@@ -133,6 +142,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         }
         if (disableFromHere) logged.enabled = false;
         if (removeHighlight) logged.highlight = false;
+        ImGui::BeginGroup();
         label = fmt::format("##enable{}", n);
         if (!m_replay) ImGui::BeginDisabled();
         ImGui::Checkbox(label.c_str(), &logged.enabled);
@@ -169,8 +179,15 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
             logged.drawLogNode();
             ImGui::TreePop();
         }
+        ImGui::EndGroup();
+        if (ImGui::IsItemHovered()) {
+            tempHighlight = &logged;
+        }
         if (setHighlightRange) {
             logged.highlight = (m_beginHighlight <= n) && (n <= m_endHighlight);
+        }
+        if (logged.highlight) {
+            hasHighlight = true;
         }
         n++;
     }
@@ -180,5 +197,9 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
 
     if (m_replay && !g_system->running()) {
         logger->replay(g_emulator->m_gpu.get());
+    }
+
+    if (hasHighlight || tempHighlight) {
+        logger->highlight(tempHighlight, tempHighlight && ImGui::GetIO().KeyCtrl);
     }
 }

@@ -1006,110 +1006,7 @@ void PCSX::GPU::write0(BlitVramVram *prim) {
     partialUpdateVRAM(dX, dY, w, h, rect.data());
 }
 
-PCSX::GPU::CtrlDisplayMode::CtrlDisplayMode(uint32_t value) {
-    if ((value >> 6) & 1) {
-        switch (value & 3) {
-            case 0:
-                hres = HR_368;
-                break;
-            case 1:
-                hres = HR_384;
-                break;
-            case 2:
-                hres = HR_512;
-                break;
-            case 3:
-                hres = HR_640;
-                break;
-        }
-    } else {
-        hres = magic_enum::enum_cast<decltype(hres)>(value & 3).value();
-    }
-    vres = magic_enum::enum_cast<decltype(vres)>((value >> 2) & 1).value();
-    mode = magic_enum::enum_cast<decltype(mode)>((value >> 3) & 1).value();
-    depth = magic_enum::enum_cast<decltype(depth)>((value >> 4) & 1).value();
-    interlace = (value >> 5) & 1;
-    widthRaw = ((value >> 6) & 1) | ((value & 3) << 1);
-}
-
-void PCSX::GPU::ClearCache::drawLogNode() {}
-
-void PCSX::GPU::FastFill::drawLogNode() {
-    ImGui::Text("  R: %i, G: %i, B: %i", (color >> 0) & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
-    ImGui::Separator();
-    ImGui::Text("  X0: %i, Y0: %i", x, y);
-    ImGui::Text("  X1: %i, Y1: %i", x + w, y + h);
-    ImGui::Text("  W: %i, H: %i", w, h);
-}
-
-void PCSX::GPU::BlitVramVram::drawLogNode() {
-    ImGui::Text("  From X: %i, Y: %i", sX, sY);
-    ImGui::Text("  To X: %i, Y: %i", dX, dY);
-    ImGui::Text("  W: %i, H: %i", w, h);
-}
-
-void PCSX::GPU::BlitRamVram::drawLogNode() {
-    ImGui::Text("  X: %i, Y: %i", x, y);
-    ImGui::Text("  W: %i, H: %i", w, h);
-}
-
-void PCSX::GPU::BlitVramRam::drawLogNode() {
-    ImGui::Text("  X: %i, Y: %i", x, y);
-    ImGui::Text("  W: %i, H: %i", w, h);
-}
-
-void PCSX::GPU::TPage::drawLogNodeCommon() {
-    ImGui::Text(_("Texture Page X: %i, Texture Page Y: %i"), tx, ty);
-    ImGui::TextUnformatted(_("Blending:"));
-    ImGui::SameLine();
-    switch (blendFunction) {
-        case BlendFunction::HalfBackAndHalfFront:
-            ImGui::TextUnformatted(_("50% Back + 50% Front"));
-            break;
-        case BlendFunction::FullBackAndFullFront:
-            ImGui::TextUnformatted(_("100% Back + 100% Front"));
-            break;
-        case BlendFunction::FullBackSubFullFront:
-            ImGui::TextUnformatted(_("100% Back - 100% Front"));
-            break;
-        case BlendFunction::FullBackAndQuarterFront:
-            ImGui::TextUnformatted(_("100% Back + 25% Front"));
-            break;
-    }
-    ImGui::TextUnformatted(_("Texture depth:"));
-    ImGui::SameLine();
-    switch (texDepth) {
-        case TexDepth::Tex4Bits:
-            ImGui::TextUnformatted(_("4 bits"));
-            break;
-        case TexDepth::Tex8Bits:
-            ImGui::TextUnformatted(_("8 bits"));
-            break;
-        case TexDepth::Tex16Bits:
-            ImGui::TextUnformatted(_("16 bits"));
-            break;
-    }
-}
-
-void PCSX::GPU::TPage::drawLogNode() {
-    drawLogNodeCommon();
-    ImGui::Text(_("Dithering: %s"), dither ? _("Yes") : _("No"));
-}
-
-void PCSX::GPU::TWindow::drawLogNode() {
-    ImGui::Text("  X: %i, Y: %i", x, y);
-    ImGui::Text("  W: %i, H: %i", w, h);
-}
-
-void PCSX::GPU::DrawingAreaStart::drawLogNode() { ImGui::Text("  X: %i, Y: %i", x, y); }
-
-void PCSX::GPU::DrawingAreaEnd::drawLogNode() { ImGui::Text("  X: %i, Y: %i", x, y); }
-
-void PCSX::GPU::DrawingOffset::drawLogNode() { ImGui::Text("  X: %i, Y: %i", x, y); }
-
-void PCSX::GPU::MaskBit::drawLogNode() {
-    ImGui::Text(_("  Set: %s, Check: %s"), set ? _("Yes") : _("No"), check ? _("Yes") : _("No"));
-}
+// These technically belong to gpulogger.cc, but due to the templatisation instanciation, they need to be here
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
@@ -1203,98 +1100,6 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode() {
     }
 }
 
-void PCSX::GPU::CtrlReset::drawLogNode() {}
-void PCSX::GPU::CtrlClearFifo::drawLogNode() {}
-void PCSX::GPU::CtrlIrqAck::drawLogNode() {}
-
-void PCSX::GPU::CtrlDisplayEnable::drawLogNode() {
-    if (enable) {
-        ImGui::TextUnformatted(_("Display Enabled"));
-    } else {
-        ImGui::TextUnformatted(_("Display Disabled"));
-    }
-}
-
-void PCSX::GPU::CtrlDmaSetting::drawLogNode() {
-    switch (dma) {
-        case Dma::Off:
-            ImGui::TextUnformatted(_("DMA Off"));
-            break;
-        case Dma::FifoQuery:
-            ImGui::TextUnformatted(_("FIFO Query"));
-            break;
-        case Dma::Read:
-            ImGui::TextUnformatted(_("DMA Read"));
-            break;
-        case Dma::Write:
-            ImGui::TextUnformatted(_("DMA Write"));
-            break;
-    }
-}
-
-void PCSX::GPU::CtrlDisplayStart::drawLogNode() { ImGui::Text("  X: %i, Y: %i", x, y); }
-void PCSX::GPU::CtrlHorizontalDisplayRange::drawLogNode() { ImGui::Text("  X0: %i, X1: %i", x0, x1); }
-void PCSX::GPU::CtrlVerticalDisplayRange::drawLogNode() { ImGui::Text("  Y0: %i, Y1: %i", y0, y1); }
-
-void PCSX::GPU::CtrlDisplayMode::drawLogNode() {
-    ImGui::TextUnformatted(_("Horizontal resolution:"));
-    ImGui::SameLine();
-    switch (hres) {
-        case HR_256:
-            ImGui::TextUnformatted("256 pixels");
-            break;
-        case HR_320:
-            ImGui::TextUnformatted("320 pixels");
-            break;
-        case HR_512:
-            ImGui::TextUnformatted("512 pixels");
-            break;
-        case HR_640:
-            ImGui::TextUnformatted("640 pixels");
-            break;
-        case HR_368:
-            ImGui::TextUnformatted("368 pixels");
-            break;
-        case HR_384:
-            ImGui::TextUnformatted("384 pixels");
-            break;
-    }
-    ImGui::Text(_("Extended width mode: %s"), widthRaw & 1 ? _("Yes") : _("No"));
-    ImGui::TextUnformatted(_("Vertical resolution:"));
-    ImGui::SameLine();
-    switch (vres) {
-        case VR_240:
-            ImGui::TextUnformatted("240 pixels");
-            break;
-        case VR_480:
-            ImGui::TextUnformatted("480 pixels");
-            break;
-    }
-    ImGui::Text(_("Output mode: %s"), mode == VM_NTSC ? "NTSC" : "PAL");
-    ImGui::Text(_("Display depth: %s"), depth == CD_15BITS ? _("15 bits") : _("24 bits"));
-    ImGui::Text(_("Interlaced: %s"), interlace ? _("Yes") : _("No"));
-}
-
-void PCSX::GPU::CtrlQuery::drawLogNode() {
-    switch (type()) {
-        case QueryType::TextureWindow:
-            ImGui::TextUnformatted(_("Texture Window"));
-            break;
-        case QueryType::DrawAreaStart:
-            ImGui::TextUnformatted(_("Draw Area Start"));
-            break;
-        case QueryType::DrawAreaEnd:
-            ImGui::TextUnformatted(_("Draw Area End"));
-            break;
-        case QueryType::DrawOffset:
-            ImGui::TextUnformatted(_("Draw Offset"));
-            break;
-        default:
-            ImGui::TextUnformatted(_("Unknown"));
-            break;
-    }
-}
-
 static float triangleArea(float x1, float x2, float x3, float y1, float y2, float y3) {
     float adx = x1 - x2;
     float ady = y1 - y2;
@@ -1356,15 +1161,6 @@ void PCSX::GPU::Line<shading, lineType, blend>::generateStatsInfo() {
     }
 }
 
-void PCSX::GPU::FastFill::cumulateStats(GPUStats *stats) { stats->pixelWrites += h * w; }
-void PCSX::GPU::BlitVramVram::cumulateStats(GPUStats *stats) {
-    auto s = h * w;
-    stats->pixelWrites += s;
-    stats->pixelReads += s;
-}
-void PCSX::GPU::BlitRamVram::cumulateStats(GPUStats *stats) { stats->pixelWrites += h * w; }
-void PCSX::GPU::BlitVramRam::cumulateStats(GPUStats *stats) { stats->pixelReads += h * w; }
-
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::cumulateStats(GPUStats *accum) {
@@ -1386,5 +1182,66 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::cumulateStats(GPUStats 
     }
     if constexpr (blend == Blend::Semi) {
         stats->pixelReads += s;
+    }
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
+          PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
+    if (op == PixelOp::WRITE) {
+        add({x[0], y[0]}, {x[1], y[1]}, {x[2], y[2]});
+        if constexpr (shape == Shape::Quad) {
+            add({x[1], y[1]}, {x[2], y[2]}, {x[3], y[3]});
+        }
+    } else if (op == PixelOp::READ) {
+        if constexpr (blend == Blend::Semi) {
+            add({x[0], y[0]}, {x[1], y[1]}, {x[2], y[2]});
+            if constexpr (shape == Shape::Quad) {
+                add({x[1], y[1]}, {x[2], y[2]}, {x[3], y[3]});
+            }
+        }
+        if constexpr (textured == Textured::Yes) {
+            add({int(u[0]), int(v[0])}, {int(u[1]), int(v[1])}, {int(u[2]), int(v[2])});
+            if constexpr (shape == Shape::Quad) {
+                add({int(u[1]), int(v[1])}, {int(u[2]), int(v[2])}, {int(u[3]), int(v[3])});
+            }
+            if (tpage.texDepth == TexDepth::Tex4Bits) {
+                addLine(std::move(add), clutX(), clutY(), clutX() + 16, clutY());
+            } else if (tpage.texDepth == TexDepth::Tex8Bits) {
+                addLine(std::move(add), clutX(), clutY(), clutX() + 256, clutY());
+            }
+        }
+    }
+}
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::GPU::Line<shading, lineType, blend>::getVertices(AddTri &&add, PixelOp op) {
+    if constexpr (blend == Blend::Off) {
+        if (op == PixelOp::READ) return;
+    }
+    auto count = colors.size();
+    for (unsigned i = 1; i < count; i++) {
+        auto x0 = x[i - 1];
+        auto x1 = x[i];
+        auto y0 = y[i - 1];
+        auto y1 = y[i];
+
+        addLine(std::move(add), x0, y0, x1, y1);
+    }
+}
+
+template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
+    if (op == PixelOp::WRITE) {
+        add({x, y}, {x + w, y}, {x + w, y + h});
+        add({x + w, y + h}, {x, y + h}, {x, y});
+    } else if (op == PixelOp::READ) {
+        if constexpr (blend == Blend::Semi) {
+            add({x, y}, {x + w, y}, {x + w, y + h});
+            add({x + w, y + h}, {x, y + h}, {x, y});
+        }
+        if constexpr (textured == Textured::Yes) {
+            add({int(u), int(v)}, {int(u + w), int(v)}, {int(u + w), int(v + h)});
+            add({int(u + w), int(v + h)}, {int(u), int(v + h)}, {int(u), int(v)});
+        }
     }
 }

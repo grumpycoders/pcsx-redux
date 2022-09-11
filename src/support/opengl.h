@@ -62,8 +62,6 @@ template <class...>
 constexpr std::false_type AlwaysFalse{};
 
 struct VertexArray {
-    GLuint m_handle = 0;
-
     void create() {
         if (m_handle == 0) {
             glGenVertexArrays(1, &m_handle);
@@ -132,6 +130,9 @@ struct VertexArray {
 
     void enableAttribute(GLuint index) { glEnableVertexAttribArray(index); }
     void disableAttribute(GLuint index) { glDisableVertexAttribArray(index); }
+
+  private:
+    GLuint m_handle = 0;
 };
 
 enum FramebufferTypes {
@@ -141,12 +142,8 @@ enum FramebufferTypes {
 };
 
 struct Texture {
-    GLuint m_handle = 0;
-    int m_width, m_height;
-    GLenum m_binding;
-    int m_samples = 1;  // For MSAA
-
     void create(int width, int height, GLint internalFormat, GLenum binding = GL_TEXTURE_2D, int samples = 1) {
+        glDeleteTextures(1, &m_handle);
         m_width = width;
         m_height = height;
         m_binding = binding;
@@ -181,12 +178,15 @@ struct Texture {
     void bind() { glBindTexture(m_binding, m_handle); }
     int width() { return m_width; }
     int height() { return m_height; }
+
+  private:
+    GLuint m_handle = 0;
+    int m_width, m_height;
+    GLenum m_binding;
+    int m_samples = 1;  // For MSAA
 };
 
 struct Framebuffer {
-    GLuint m_handle = 0;
-    GLenum m_textureType;  // GL_TEXTURE_2D or GL_TEXTURE_2D_MULTISAMPLE
-
     void create() {
         if (m_handle == 0) {
             glGenFramebuffers(1, &m_handle);
@@ -225,6 +225,10 @@ struct Framebuffer {
         bind(mode);
         glFramebufferTexture2D(mode, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, tex.handle(), 0);
     }
+
+  private:
+    GLuint m_handle = 0;
+    GLenum m_textureType;  // GL_TEXTURE_2D or GL_TEXTURE_2D_MULTISAMPLE
 };
 
 enum ShaderType {
@@ -233,18 +237,17 @@ enum ShaderType {
     Geometry = GL_GEOMETRY_SHADER,
     Compute = GL_COMPUTE_SHADER,
     TessControl = GL_TESS_CONTROL_SHADER,
-    TessEvaluation = GL_TESS_EVALUATION_SHADER
+    TessEvaluation = GL_TESS_EVALUATION_SHADER,
 };
 
 struct Shader {
-    GLuint m_handle = 0;
-
     Shader() {}
     Shader(const std::string_view source, ShaderType type) { create(source, static_cast<GLenum>(type)); }
     ~Shader() { glDeleteShader(m_handle); }
 
     // Returns whether compilation failed or not
     Status create(const std::string_view source, GLenum type) {
+        glDeleteShader(m_handle);
         m_handle = glCreateShader(type);
         const GLchar* const sources[1] = {source.data()};
 
@@ -270,12 +273,14 @@ struct Shader {
 
     GLuint handle() { return m_handle; }
     bool exists() { return m_handle != 0; }
+
+  private:
+    GLuint m_handle = 0;
 };
 
 struct Program {
-    GLuint m_handle = 0;
-
     Status create(std::initializer_list<std::reference_wrapper<Shader>> shaders) {
+        glDeleteProgram(m_handle);
         m_handle = glCreateProgram();
         for (const auto& shader : shaders) {
             glAttachShader(m_handle, shader.get().handle());
@@ -304,11 +309,16 @@ struct Program {
     GLuint handle() { return m_handle; }
     bool exists() { return m_handle != 0; }
     void use() { glUseProgram(m_handle); }
+    void setProgram(GLuint handle) {
+        glDeleteProgram(m_handle);
+        m_handle = handle;
+    }
+
+  private:
+    GLuint m_handle = 0;
 };
 
 struct VertexBuffer {
-    GLuint m_handle = 0;
-
     void create() {
         if (m_handle == 0) {
             glGenBuffers(1, &m_handle);
@@ -343,6 +353,9 @@ struct VertexBuffer {
     void bufferVertsSub(VertType* vertices, int vertCount, GLintptr offset = 0) {
         glBufferSubData(GL_ARRAY_BUFFER, offset, sizeof(VertType) * vertCount, vertices);
     }
+
+  private:
+    GLuint m_handle = 0;
 };
 
 static inline void setClearColor(float val) { glClearColor(val, val, val, val); }
@@ -449,6 +462,18 @@ class Vector {
     static_assert(size == 2 || size == 3 || size == 4);
     T m_storage[size];
 
+    template <unsigned index, typename Tail>
+    void setInternal(Tail t) {
+        m_storage[index] = t;
+    }
+
+    template <unsigned index, typename First, typename... Rest>
+    void setInternal(First f, Rest... rest) {
+        static_assert(std::is_same<First, T>::value);
+        m_storage[index] = f;
+        setInternal<index + 1>(rest...);
+    }
+
   public:
     T& r() { return m_storage[0]; }
     T& g() { return m_storage[1]; }
@@ -475,7 +500,19 @@ class Vector {
     T& p() { return b(); }
     T& q() { return a(); }
 
-    Vector(std::array<T, size> list) { std::copy(list.begin(), list.end(), &m_storage[0]); }
+    template <typename... Types>
+    Vector<T, size>& set(Types... components) {
+        static_assert(sizeof...(components) == size);
+        setInternal<0>(components...);
+        return *this;
+    }
+
+    template <typename... Types>
+    Vector(Types... components) {
+        set(components...);
+    }
+
+    explicit Vector(const std::array<T, size>& list) { std::copy(list.begin(), list.end(), &m_storage[0]); }
 
     Vector() {}
 };

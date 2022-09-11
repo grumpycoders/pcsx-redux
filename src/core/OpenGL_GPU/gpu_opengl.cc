@@ -49,7 +49,7 @@ void PCSX::OpenGL_GPU::resetBackend() {
     m_drawAreaRight = vramWidth;
     updateDrawArea();
 
-    m_drawingOffset = OpenGL::ivec2({0, 0});
+    m_drawingOffset = OpenGL::ivec2(0, 0);
 
     m_program.use();
     setDrawOffset(0x00000000);
@@ -297,7 +297,7 @@ int PCSX::OpenGL_GPU::initBackend(GUI *gui) {
     m_shaderEditor.setText(vertSource, fragSource, "");
     auto status = m_shaderEditor.compile(m_gui);
     if (!status.isOk()) return -1;
-    m_program.m_handle = m_shaderEditor.getProgram();
+    m_program.setProgram(m_shaderEditor.getProgram());
 
     m_program.use();
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
@@ -340,7 +340,7 @@ bool PCSX::OpenGL_GPU::configure() {
     if (m_shaderEditor.m_show && m_shaderEditor.draw(m_gui, "Hardware renderer shader editor")) {
         const auto status = m_shaderEditor.compile(m_gui);
         if (status.isOk()) {
-            m_program.m_handle = m_shaderEditor.getProgram();
+            m_program.setProgram(m_shaderEditor.getProgram());
             const auto lastProgram = OpenGL::getProgram();
 
             m_program.use();

@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <stdint.h>
+
+#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -148,14 +151,20 @@ class GPU {
     struct Logged;
     typedef Intrusive::List<Logged> LoggedList;
     struct Logged : public LoggedList::Node {
+        enum class Origin { DATAWRITE, CTRLWRITE, DIRECT_DMA, CHAIN_DMA, REPLAY };
+        enum class PixelOp { READ, WRITE };
+
+        typedef std::function<void(OpenGL::ivec2, OpenGL::ivec2, OpenGL::ivec2)> AddTri;
+
         virtual ~Logged() {}
         virtual std::string_view getName() = 0;
         virtual void drawLogNode() = 0;
         virtual void execute(GPU *) = 0;
         virtual void generateStatsInfo() = 0;
         virtual void cumulateStats(GPUStats *) = 0;
+        virtual void getVertices(AddTri &&, PixelOp) = 0;
+        void addLine(AddTri &&, int x1, int y1, int x2, int y2);
 
-        enum class Origin { DATAWRITE, CTRLWRITE, DIRECT_DMA, CHAIN_DMA, REPLAY };
         uint64_t frame;
         uint32_t value, length;
         uint32_t pc;
@@ -281,6 +290,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
     };
 
     struct FastFill final : public Command, public Logged {
@@ -289,6 +299,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
+        void getVertices(AddTri &&, PixelOp) override;
         FastFill(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COLOR; }
@@ -312,6 +323,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
+        void getVertices(AddTri &&, PixelOp) override;
         BlitVramVram(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COMMAND; }
@@ -334,6 +346,7 @@ class GPU {
         void execute(GPU *gpu) override;
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
+        void getVertices(AddTri &&, PixelOp) override;
         BlitRamVram() {}
         BlitRamVram(GPU *parent) : Command(parent) {}
         BlitRamVram(const BlitRamVram &other) {
@@ -370,6 +383,7 @@ class GPU {
         void execute(GPU *gpu) override {}
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
+        void getVertices(AddTri &&, PixelOp) override;
         BlitVramRam(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
 
@@ -392,6 +406,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         TPage() {}
         TPage(uint32_t value);
         TPage(const TPage &other) = default;
@@ -414,6 +429,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         TWindow(uint32_t value);
         TWindow(const TWindow &other) = default;
         TWindow(TWindow &&other) = default;
@@ -428,6 +444,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         DrawingAreaStart(uint32_t value);
         DrawingAreaStart(const DrawingAreaStart &other) = default;
         DrawingAreaStart(DrawingAreaStart &&other) = default;
@@ -442,6 +459,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         DrawingAreaEnd(uint32_t value);
         DrawingAreaEnd(const DrawingAreaEnd &other) = default;
         DrawingAreaEnd(DrawingAreaEnd &&other) = default;
@@ -456,6 +474,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         DrawingOffset(uint32_t value);
         DrawingOffset(const DrawingOffset &other) = default;
         DrawingOffset(DrawingOffset &&other) = default;
@@ -470,6 +489,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         MaskBit(uint32_t value);
         MaskBit(const MaskBit &other) = default;
         MaskBit(MaskBit &&other) = default;
@@ -486,6 +506,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override;
         void cumulateStats(GPUStats *) override;
+        void getVertices(AddTri &&, PixelOp) override;
         Poly() {}
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override {
@@ -528,6 +549,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override;
         void cumulateStats(GPUStats *) override;
+        void getVertices(AddTri &&, PixelOp) override;
         Line() {
             if constexpr (lineType == LineType::Simple) m_count = 0;
         }
@@ -563,6 +585,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
+        void getVertices(AddTri &&, PixelOp) override;
         Rect() {}
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COLOR; }
@@ -601,6 +624,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
     };
     struct CtrlClearFifo : public Logged {
         std::string_view getName() override { return "Clear Fifo"; }
@@ -608,6 +632,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
     };
     struct CtrlIrqAck : public Logged {
         std::string_view getName() override { return "IRQ Ack"; }
@@ -615,6 +640,7 @@ class GPU {
         void execute(GPU *gpu) override {}
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
     };
     struct CtrlDisplayEnable : public Logged {
         std::string_view getName() override { return "Display Enable"; }
@@ -622,6 +648,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         CtrlDisplayEnable(uint32_t value) : enable((value & 1) == 0) {}
         CtrlDisplayEnable(const CtrlDisplayEnable &other) = default;
         CtrlDisplayEnable(CtrlDisplayEnable &&other) = default;
@@ -634,6 +661,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         CtrlDmaSetting(uint32_t value) : dma(magic_enum::enum_cast<Dma>(value & 3).value()) {}
         CtrlDmaSetting(const CtrlDmaSetting &other) = default;
         CtrlDmaSetting(CtrlDmaSetting &&other) = default;
@@ -646,6 +674,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         CtrlDisplayStart(uint32_t value) : x(value & 0x3ff), y((value >> 10) & 0x1ff) {}
         CtrlDisplayStart(const CtrlDisplayStart &other) = default;
         CtrlDisplayStart(CtrlDisplayStart &&other) = default;
@@ -658,6 +687,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         CtrlHorizontalDisplayRange(uint32_t value) : x0(value & 0xfff), x1((value >> 12) & 0xfff) {}
         CtrlHorizontalDisplayRange(const CtrlHorizontalDisplayRange &other) = default;
         CtrlHorizontalDisplayRange(CtrlHorizontalDisplayRange &&other) = default;
@@ -670,6 +700,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         CtrlVerticalDisplayRange(uint32_t value) : y0(value & 0x3ff), y1((value >> 10) & 0x3ff) {}
         CtrlVerticalDisplayRange(const CtrlVerticalDisplayRange &other) = default;
         CtrlVerticalDisplayRange(CtrlVerticalDisplayRange &&other) = default;
@@ -682,6 +713,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         CtrlDisplayMode() : CtrlDisplayMode(0) {}
         CtrlDisplayMode(uint32_t value);
         CtrlDisplayMode(const CtrlDisplayMode &other) = default;
@@ -704,6 +736,7 @@ class GPU {
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
+        void getVertices(AddTri &&, PixelOp) override {}
         CtrlQuery(uint32_t value) : query(value & 0x07) {}
         CtrlQuery(const CtrlQuery &other) = default;
         CtrlQuery(CtrlQuery &&other) = default;

@@ -21,8 +21,11 @@
 
 #include <stdint.h>
 
+#include <array>
+
 #include "core/gpu.h"
 #include "support/eventbus.h"
+#include "support/opengl.h"
 #include "support/slice.h"
 
 namespace PCSX {
@@ -43,6 +46,9 @@ class GPULogger {
         }
     }
     void replay(GPU*);
+    void highlight(GPU::Logged* node, bool only = false);
+    void enable();
+    void disable();
 
   private:
     void startNewFrame();
@@ -51,9 +57,25 @@ class GPULogger {
     EventBus::Listener m_listener;
     bool m_enabled = false;
     bool m_breakOnVSync = false;
+    bool m_hasFramebuffers = false;
     uint64_t m_frameCounter = 0;
     GPU::LoggedList m_list;
     Slice m_vram;
+    float m_impact = 1.0f / 256.0f;
+    float m_decayRate = 1.0f / 1024.0f;
+
+    std::array<OpenGL::ivec2, 3 * 0x10000> m_vertices;
+    unsigned m_verticesCount = 0;
+
+    OpenGL::Framebuffer m_writtenHeatmapFB, m_readHeatmapFB, m_writtenHighlightFB, m_readHighlightFB;
+    OpenGL::Texture m_writtenHeatmapTex, m_readHeatmapTex, m_writtenHighlightTex, m_readHighlightTex;
+    OpenGL::VertexArray m_vao;
+    OpenGL::VertexBuffer m_vbo;
+    OpenGL::Program m_program;
+
+    void addTri(OpenGL::ivec2& v1, OpenGL::ivec2& v2, OpenGL::ivec2& v3);
+    void flush();
+
     friend class Widgets::GPULogger;
 };
 
