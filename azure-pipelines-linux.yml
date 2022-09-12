@@ -62,11 +62,11 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      wget https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/download/8.0.J/UNIROM_BOOTDISC_8.0.J.zip
+      wget https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/download/8.0.K/UNIROM_BOOTDISC_8.0.K.zip
 
 - task: ExtractFiles@1
   inputs:
-    archiveFilePatterns: 'UNIROM_BOOTDISC_8.0.J.zip'
+    archiveFilePatterns: 'UNIROM_BOOTDISC_8.0.K.zip'
     destinationFolder: 'unirom'
     cleanDestinationFolder: true
 
@@ -74,7 +74,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      ./ps1-packer unirom/stuff/unirom_b.exe -o unirom_packed.exe
+      ./ps1-packer unirom/stuff/unirom_r.exe -o unirom_packed.exe
 
 - task: Bash@3
   inputs:
