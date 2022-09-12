@@ -256,6 +256,7 @@ int __attribute__((section(".ramtext"))) mcWriteHandler() {
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
             if (b != 0x5d) return -1;
+            g_mcChecksum[port] = sector >> 8;
             break;
         case 6:
             SIOS[0].fifo; // throw away
