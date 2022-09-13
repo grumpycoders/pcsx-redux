@@ -97,12 +97,14 @@ int __attribute__((section(".ramtext"))) mcReadHandler() {
         case 1:
             g_sio0Mask = port == 0 ? 0x0000 : 0x2000;
             SIOS[0].ctrl = g_sio0Mask | 0x1003;
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = (g_mcDeviceId[port] & 0x0f) + 0x81;
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
             g_mcActionInProgress = 1;
             break;
         case 2:
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = 'R';
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
@@ -137,11 +139,13 @@ int __attribute__((section(".ramtext"))) mcReadHandler() {
             if (b != 0x5d) return -1;
             break;
         case 6:
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = sector;
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
             break;
         case 7:
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = 0;
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
@@ -211,12 +215,14 @@ int __attribute__((section(".ramtext"))) mcWriteHandler() {
         case 1:
             g_sio0Mask = port == 0 ? 0x0000 : 0x2000;
             SIOS[0].ctrl = g_sio0Mask | 0x1003;
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = (g_mcDeviceId[port] & 0x0f) + 0x81;
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
             g_mcActionInProgress = 1;
             break;
         case 2:
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = 'W';
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
@@ -250,8 +256,10 @@ int __attribute__((section(".ramtext"))) mcWriteHandler() {
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
             if (b != 0x5d) return -1;
+            g_mcChecksum[port] = sector >> 8;
             break;
         case 6:
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = sector & 0xff;
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
@@ -259,11 +267,14 @@ int __attribute__((section(".ramtext"))) mcWriteHandler() {
             g_mcFastTrackActive = 1;
             break;
         case 7:
+            SIOS[0].fifo; // throw away
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = g_mcChecksum[port];
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
             break;
         case 8:
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = 0;
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
@@ -307,13 +318,15 @@ int __attribute__((section(".ramtext"))) mcInfoHandler() {
         case 1:
             g_sio0Mask = port == 0 ? 0x0000 : 0x2000;
             SIOS[0].ctrl = g_sio0Mask | 0x1003;
+            SIOS[0].fifo; // throw away
             SIOS[0].fifo = (g_mcDeviceId[port] & 0x0f) + 0x81;
             SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
             IREG = ~IRQ_CONTROLLER;
             g_mcActionInProgress = 1;
             break;
         case 2:
-            SIOS[0].fifo = 0x52;
+            SIOS[0].fifo; // throw away
+            SIOS[0].fifo = 'R';
             SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
             IREG = ~IRQ_CONTROLLER;
             break;
