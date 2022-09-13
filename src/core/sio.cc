@@ -108,7 +108,6 @@ void PCSX::SIO::writePad(uint8_t value) {
             }
             break;
     }
-    // scheduleInterrupt(SIO_CYCLES);
     acknowledge();
 }
 
@@ -232,7 +231,7 @@ uint8_t PCSX::SIO::read8() {
 
     SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_regs.status,
              m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
-             m_buffer[m_bufferIndex < BUFFER_SIZE - 1 ? m_bufferIndex + 1 : BUFFER_SIZE - 1]);
+             m_buffer[m_bufferIndex < s_padBufferSize - 1 ? m_bufferIndex + 1 : s_padBufferSize - 1]);
     return ret;
 }
 
@@ -289,7 +288,7 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
     info.mcd = mcd;
 
     char *data = getMcdData(mcd);
-    uint8_t *ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 2;
+    uint8_t *ptr = reinterpret_cast<uint8_t *>(data) + block * s_blockSize + 2;
     auto &ta = info.titleAscii;
     auto &ts = info.titleSjis;
     info.iconCount = std::max(1, *ptr & 0x3);
@@ -351,13 +350,13 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
     info.titleUtf8 = Sjis::toUtf8(ts);
 
     // Read CLUT
-    ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 0x60;
+    ptr = reinterpret_cast<uint8_t *>(data) + block * s_blockSize + 0x60;
     std::memcpy(clut, ptr, 16 * sizeof(uint16_t));
 
     // Icons can have 1 to 3 frames of animation
     for (uint32_t i = 0; i < info.iconCount; i++) {
         uint16_t *icon = &info.icon[i * 16 * 16];
-        ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 128 + 128 * i;  // icon data
+        ptr = reinterpret_cast<uint8_t *>(data) + block * s_blockSize + 128 + 128 * i;  // icon data
 
         // Fetch each pixel, store it in the icon array in ABBBBBGGGGGRRRRR with the alpha bit set to 1
         for (x = 0; x < 16 * 16; x++) {
@@ -369,7 +368,7 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
     }
 
     // Parse directory frame info
-    const auto directoryFrame = (uint8_t *)data + block * MCD_SECT_SIZE;
+    const auto directoryFrame = (uint8_t *)data + block * s_sectorSize;
     uint32_t allocState = 0;
     allocState |= directoryFrame[0];
     allocState |= directoryFrame[1] << 8;
@@ -425,11 +424,11 @@ void PCSX::SIO::eraseMcdFile(const McdBlock &block) {
     char *data = getMcdData(block.mcd);
 
     // Set the block data to 0
-    const size_t offset = block.number * MCD_BLOCK_SIZE;
-    std::memset(data + offset, 0, MCD_BLOCK_SIZE);
+    const size_t offset = block.number * s_blockSize;
+    std::memset(data + offset, 0, s_blockSize);
 
     // Fix up the corresponding directory frame in block 0.
-    const auto frame = (uint8_t *)data + block.number * MCD_SECT_SIZE;
+    const auto frame = (uint8_t *)data + block.number * s_sectorSize;
     frame[0] = 0xa0;                   // Code for a freshly formatted block
     for (auto i = 1; i < 0x7f; i++) {  // Zero the rest of the frame
         frame[i] = 0;
@@ -495,18 +494,18 @@ bool PCSX::SIO::copyMcdFile(McdBlock block) {
         if (dstBlock < 1 || dstBlock > 16) throw std::runtime_error("Inconsistent memory card state");
 
         // copy block data
-        size_t srcOffset = block.number * MCD_BLOCK_SIZE;
-        size_t dstOffset = dstBlock * MCD_BLOCK_SIZE;
-        std::memcpy(otherData + dstOffset, data + srcOffset, MCD_BLOCK_SIZE);
+        size_t srcOffset = block.number * s_blockSize;
+        size_t dstOffset = dstBlock * s_blockSize;
+        std::memcpy(otherData + dstOffset, data + srcOffset, s_blockSize);
 
         // copy directory entry
-        srcOffset = block.number * MCD_SECT_SIZE;
-        dstOffset = dstBlock * MCD_SECT_SIZE;
-        std::memcpy(otherData + dstOffset, data + srcOffset, MCD_SECT_SIZE);
+        srcOffset = block.number * s_sectorSize;
+        dstOffset = dstBlock * s_sectorSize;
+        std::memcpy(otherData + dstOffset, data + srcOffset, s_sectorSize);
 
         // Fix up the corresponding directory frame in block 0.
         if (prevBlock != -1) {
-            const auto frame = reinterpret_cast<uint8_t *>(otherData) + prevBlock * MCD_SECT_SIZE;
+            const auto frame = reinterpret_cast<uint8_t *>(otherData) + prevBlock * s_sectorSize;
             uint8_t crcFix = frame[8] ^ (dstBlock - 1);
             frame[8] = dstBlock - 1;
             frame[0x7f] ^= crcFix;

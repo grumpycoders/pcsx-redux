@@ -137,8 +137,6 @@ uint8_t PCSX::MemoryCard::tickReadCommand(uint8_t value) {
                 if (m_sector >= 1024) {
                     data_out = Responses::BadSector;
                 } else {
-                    // data_out = memory_card_ram[(sector * (uint16_t)128) + sector_offset];
-                    // memcpy(&m_buffer[4], g_mcd1Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                     data_out = m_mcdData[m_dataOffset++];
                 }
 
@@ -188,14 +186,29 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
         case 4:  // LSB
             // Store lower 8 bits of sector
             m_sector |= value;
-            m_dataOffset = (m_sector * 128);
+            //m_dataOffset = (m_sector * 128);
+            m_dataOffset = 0;
             m_checksumOut = (m_sector >> 8) ^ (m_sector & 0xFF);
             data_out = value;
             break;
 
         case 133:  // CHK
             m_checksumIn = value;
-            data_out = Responses::CommandAcknowledge1;
+
+            if (m_sector >= 1024) {
+                m_commandTicks = 0xFF;
+
+                // To-do: Need to log actual behavior here
+                return Responses::BadSector;
+            }
+            else if (m_checksumIn != m_checksumOut) {
+                // To-do: Log official card behavior
+                // Below behavior is from 3rd party hardware
+                m_commandTicks = 0xFF;
+                return Responses::BadChecksum;
+            } else {
+                data_out = Responses::CommandAcknowledge1;
+            }
             break;
 
         case 134:  // 00h
@@ -203,24 +216,21 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
             break;
 
         case 135:  // 00h
-            if (m_sector >= 1024) {
-                data_out = Responses::BadSector;
-            } else if (m_checksumIn == m_checksumOut) {
                 m_directoryFlag = Flags::DirectoryRead;
                 data_out = Responses::GoodReadWrite;
-                // If the incoming sector is within our storage, store it
+                memcpy(&m_mcdData[m_sector * 128], &m_tempBuffer, s_sectorSize);
                 m_savedToDisk = false;
-            } else {
-                data_out = Responses::BadChecksum;
-            }
             break;
 
         default:
             if (m_commandTicks >= 5 && m_commandTicks <= 132) {
-                // Store data
-                m_mcdData[m_dataOffset] = value;
+                // Store data in temp buffer until checksum verified
+                // no idea if official cards did this, but why not.
+                m_tempBuffer[m_dataOffset] = value;
+
                 // Calculate checksum
                 m_checksumOut ^= value;
+
                 // Reply with (pre)
                 data_out = value;
                 m_dataOffset++;
@@ -409,17 +419,17 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
 
             if (stat(fname, &buf) != -1) {
                 // Check if the file is a VGS memory card, skip the header if it is
-                if (buf.st_size == MCD_SIZE + 64) {
+                if (buf.st_size == s_cardSize + 64) {
                     fseek(f, 64, SEEK_SET);
                 }
                 // Check if the file is a Dexdrive memory card, skip the header if it is
-                else if (buf.st_size == MCD_SIZE + 3904) {
+                else if (buf.st_size == s_cardSize + 3904) {
                     fseek(f, 3904, SEEK_SET);
                 }
             }
-            bytesRead = fread(data, 1, MCD_SIZE, f);
+            bytesRead = fread(data, 1, s_cardSize, f);
             fclose(f);
-            if (bytesRead != MCD_SIZE) {
+            if (bytesRead != s_cardSize) {
                 throw std::runtime_error(_("Error reading memory card."));
             }
         } else
@@ -428,15 +438,15 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
         struct stat buf;
         PCSX::g_system->printf(_("Loading memory card %s\n"), fname);
         if (stat(fname, &buf) != -1) {
-            if (buf.st_size == MCD_SIZE + 64) {
+            if (buf.st_size == s_cardSize + 64) {
                 fseek(f, 64, SEEK_SET);
-            } else if (buf.st_size == MCD_SIZE + 3904) {
+            } else if (buf.st_size == s_cardSize + 3904) {
                 fseek(f, 3904, SEEK_SET);
             }
         }
-        bytesRead = fread(data, 1, MCD_SIZE, f);
+        bytesRead = fread(data, 1, s_cardSize, f);
         fclose(f);
-        if (bytesRead != MCD_SIZE) {
+        if (bytesRead != s_cardSize) {
             throw std::runtime_error(_("Error reading memory card."));
         } else {
             m_savedToDisk = true;
@@ -452,9 +462,9 @@ void PCSX::MemoryCard::saveMcd(const PCSX::u8string mcd, const char *data, uint3
         struct stat buf;
 
         if (stat(fname, &buf) != -1) {
-            if (buf.st_size == MCD_SIZE + 64) {
+            if (buf.st_size == s_cardSize + 64) {
                 fseek(f, adr + 64, SEEK_SET);
-            } else if (buf.st_size == MCD_SIZE + 3904) {
+            } else if (buf.st_size == s_cardSize + 3904) {
                 fseek(f, adr + 3904, SEEK_SET);
             } else {
                 fseek(f, adr, SEEK_SET);
@@ -471,7 +481,7 @@ void PCSX::MemoryCard::saveMcd(const PCSX::u8string mcd, const char *data, uint3
         // try to create it again if we can't open it
         f = fopen(fname, "wb");
         if (f != NULL) {
-            fwrite(data, 1, MCD_SIZE, f);
+            fwrite(data, 1, s_cardSize, f);
             fclose(f);
         }
     }
@@ -479,7 +489,7 @@ void PCSX::MemoryCard::saveMcd(const PCSX::u8string mcd, const char *data, uint3
 
 void PCSX::MemoryCard::createMcd(const PCSX::u8string mcd) {
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    int s = MCD_SIZE;
+    int s = s_cardSize;
 
     const auto f = fopen(fname, "wb");
     if (f == nullptr) return;
@@ -488,7 +498,7 @@ void PCSX::MemoryCard::createMcd(const PCSX::u8string mcd) {
     s--;
     fputc('C', f);
     s--;
-    while (s-- > (MCD_SIZE - 127)) fputc(0, f);
+    while (s-- > (s_cardSize - 127)) fputc(0, f);
     fputc(0xe, f);
     s--;
 

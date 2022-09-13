@@ -71,9 +71,9 @@ class SIO {
         bool isChained() const { return (allocState & ~1) == 0x52; }
     };
 
-    static const size_t MCD_SECT_SIZE = 8 * 16;
-    static const size_t MCD_BLOCK_SIZE = 8192;
-    static const size_t MCD_SIZE = 1024 * MCD_SECT_SIZE;
+    static const size_t s_sectorSize = 8 * 16;            // 80h bytes per sector/frame
+    static const size_t s_blockSize = s_sectorSize * 64;  // 40h sectors per block
+    static const size_t s_cardSize = s_blockSize * 16;    // 16 blocks per frame(directory+15 saves)
 
     SIO();
 
@@ -171,9 +171,9 @@ class SIO {
     };
     struct SIO_Selected {
         enum : uint16_t {
-            Port1 = 0x0002,
-            Port2 = 0x2002,
-            PortMask = 0x2002,
+            Port1 = 0x0000,
+            Port2 = 0x2000,
+            PortMask = 0x2000,
         };
     };
 
@@ -220,7 +220,7 @@ class SIO {
     friend MemoryCard;
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
-    static const size_t BUFFER_SIZE = 0x1010;
+    static const size_t s_padBufferSize = 0x1010;
 
     bool isTransmitReady() {
         return (m_regs.control & ControlFlags::TX_ENABLE) && (m_regs.status & StatusFlags::TX_READY2);
@@ -241,7 +241,7 @@ class SIO {
 
     uint8_t last_byte;
 
-    uint8_t m_buffer[BUFFER_SIZE];
+    uint8_t m_buffer[s_padBufferSize];
 
     SIORegisters m_regs = {
         .status = TX_RDY | TX_READY2,  // Transfer Ready and the Buffer is Empty
