@@ -121,32 +121,36 @@ class SIO {
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
 
   private:
-    enum StatusFlags : uint16_t {
-        // Status Flags
-        TX_RDY = 0x0001,
-        RX_FIFONOTEMPTY = 0x0002,
-        TX_READY2 = 0x0004,
-        RX_PARITYERR = 0x0008,
-        RX_OVERRUN = 0x0010,  //(unlike SIO, this isn't RX FIFO Overrun flag), to-do: investigate this claim -skitchin
-        FRAMING_ERR = 0x0020,
-        SYNC_DETECT = 0x0040,
-        DSR = 0x0080,  // ack input level
-        CTS = 0x0100,  //
-        IRQ = 0x0200,
+    struct StatusFlags {
+        enum : uint16_t {
+            TX_READY = 0x0001,
+            RX_FIFONOTEMPTY = 0x0002,
+            TX_READY2 = 0x0004,
+            RX_PARITYERR = 0x0008,
+            RX_OVERRUN =
+                0x0010,  //(unlike SIO, this isn't RX FIFO Overrun flag), to-do: investigate this claim -skitchin
+            FRAMING_ERR = 0x0020,
+            SYNC_DETECT = 0x0040,
+            DSR = 0x0080,  // ack input level
+            CTS = 0x0100,  //
+            IRQ = 0x0200,
+        };
     };
-    enum ControlFlags : uint16_t {
-        // Control Flags
-        TX_ENABLE = 0x0001,
-        DTR = 0x0002,
-        RX_ENABLE = 0x0004,
-        BREAK = 0x0008,
-        RESET_ERR = 0x0010,
-        RTS = 0x0020,
-        SIO_RESET = 0x0040,
-        RX_IRQMODE = 0x0100,  // FIFO byte count, need to implement
-        TX_IRQEN = 0x0400,
-        RX_IRQEN = 0x0800,
-        ACK_IRQEN = 0x1000,
+    struct ControlFlags {
+        enum : uint16_t {
+            TX_ENABLE = 0x0001,
+            SELECT_ENABLE = 0x0002,
+            RX_ENABLE = 0x0004,
+            BREAK = 0x0008,
+            RESET_ERR = 0x0010,
+            RTS = 0x0020,
+            SIO_RESET = 0x0040,
+            RX_IRQMODE = 0x0100,  // FIFO byte count, to-do: implement
+            TX_IRQEN = 0x0400,
+            RX_IRQEN = 0x0800,
+            ACK_IRQEN = 0x1000,
+            WHICH_PORT = 0x2000,  // 0=/JOY1, 1=/JOY2
+        };
     };
     enum {
         // MCD flags
@@ -160,7 +164,7 @@ class SIO {
             Error = 0xFF  // Bad command
         };
     };
-    struct SIO_Device {
+    struct DeviceType {
         enum : uint8_t {
             None = 0x00,        // No device selected yet
             PAD = 0x01,         // Pad Select
@@ -169,11 +173,10 @@ class SIO {
             Ignore = 0xFF,      // Ignore incoming commands
         };
     };
-    struct SIO_Selected {
+    struct SelectedPort {
         enum : uint16_t {
             Port1 = 0x0000,
             Port2 = 0x2000,
-            PortMask = 0x2000,
         };
     };
 
@@ -234,7 +237,7 @@ class SIO {
 #if 0
 // Breaks Twisted Metal 2 intro
         m_statusReg &= ~RX_FIFONOTEMPTY;
-        m_statusReg &= ~TX_RDY;
+        m_statusReg &= ~TX_READY;
 #endif
     }
     void writePad(uint8_t value);
@@ -244,7 +247,7 @@ class SIO {
     uint8_t m_buffer[s_padBufferSize];
 
     SIORegisters m_regs = {
-        .status = TX_RDY | TX_READY2,  // Transfer Ready and the Buffer is Empty
+        .status = StatusFlags::TX_READY | StatusFlags::TX_READY2,  // Transfer Ready and the Buffer is Empty
     };
 
     uint32_t m_maxBufferIndex;
@@ -252,7 +255,7 @@ class SIO {
 
     uint32_t m_padState;
 
-    uint8_t m_currentDevice = SIO_Device::None;
+    uint8_t m_currentDevice = DeviceType::None;
 
     uint8_t m_rxBuffer;
 
