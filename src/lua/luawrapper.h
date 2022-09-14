@@ -80,8 +80,8 @@ class Lua {
     void openlib(const char* libname, const struct luaL_Reg* l, int nup) { luaL_openlib(L, libname, l, nup); }
 
     void setCallWrap(lua_CallWrapper wrapper);
-    void declareFunc(std::string_view funcName, lua_CFunction f, int tableIdx = LUA_GLOBALSINDEX);
-    void declareFunc(std::string_view funcName, std::function<int(Lua)> f, int tableIdx = LUA_GLOBALSINDEX);
+    void declareFunc(std::string_view funcName, lua_CFunction f, int tableIdx = LUA_GLOBALSINDEX, int upvalues = 0);
+    void declareFunc(std::string_view funcName, std::function<int(Lua)>&& f, int tableIdx = LUA_GLOBALSINDEX);
 
     void call(std::string_view funcName, int tableIdx = LUA_GLOBALSINDEX, int nArgs = 0);
     void call(int nArgs = 0);
@@ -196,7 +196,10 @@ class Lua {
     lua_Number checknumber(int i = -1) { return luaL_checknumber(L, i); }
     std::string tostring(int i = -1);
     lua_CFunction tocfunction(int i = -1) { return lua_tocfunction(L, i); }
-    void* touserdata(int i = -1) { return lua_touserdata(L, i); }
+    template <typename T = void>
+    T* touserdata(int i = -1) {
+        return reinterpret_cast<T*>(lua_touserdata(L, i));
+    }
 
     void concat(int n = 2) { lua_concat(L, n); }
 

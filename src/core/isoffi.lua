@@ -21,7 +21,7 @@ enum SectorMode {
     GUESS,     // will try and guess the sector mode based on flags found in the first sector
     RAW,       // 2352 bytes per sector
     M1,        // 2048 bytes per sector
-    M2_RAW,    // 2336 bytes per sector, includes subheader; can't be guessed
+    M2_RAW,    // 2336 bytes per sector, includes subheader; cannot be guessed
     M2_FORM1,  // 2048 bytes per sector
     M2_FORM2,  // 2324 bytes per sector
 };
@@ -45,24 +45,17 @@ LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, enum SectorMo
 
 local C = ffi.load 'CORE_ISO'
 
-local function readerGarbageCollect(reader) C.deleteIsoReader(reader._wrapper) end
-local readerMeta = { __gc = readerGarbageCollect }
-
-local function isoGarbageCollect(iso) C.deleteIso(iso._wrapper) end
-local isoMeta = { __gc = isoGarbageCollect }
-
 local function createIsoReaderWrapper(isoReader)
     local reader = {
-        _wrapper = isoReader,
+        _wrapper = ffi.gc(isoReader, C.deleteIsoReader),
         open = function(self, fname) return Support.File._createFileWrapper(C.readerOpen(self._wrapper, fname)) end,
     }
-    setmetatable(reader, readerMeta)
     return reader
 end
 
 local function createFileWrapper(wrapper)
     local iso = {
-        _wrapper = wrapper,
+        _wrapper = ffi.gc(wrapper, C.deleteIso),
         failed = function(self) return C.isIsoFailed(self._wrapper) end,
         createReader = function(self) return createIsoReaderWrapper(C.createIsoReader(self._wrapper)) end,
         open = function(self, lba, size, mode)
@@ -75,7 +68,6 @@ local function createFileWrapper(wrapper)
             return Support.File._createFileWrapper(C.fileisoOpen(self._wrapper, lba, size, mode))
         end,
     }
-    setmetatable(iso, isoMeta)
     return iso
 end
 
