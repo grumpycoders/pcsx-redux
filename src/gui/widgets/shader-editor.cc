@@ -347,7 +347,7 @@ PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     auto L = *g_emulator->m_lua;
     std::filesystem::path f = m_baseFilename;
 
-    if (m_autoreload) {
+    if (m_autocompile) {
         m_lastLuaErrors.clear();
         auto oldNormalPrinter = L.normalPrinter;
         auto oldErrorPrinter = L.errorPrinter;
@@ -440,7 +440,7 @@ PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
 
 bool PCSX::Widgets::ShaderEditor::draw(GUI *gui, const char *title) {
     if (!ImGui::Begin(title, &m_show)) return false;
-    ImGui::Checkbox(_("Auto reload"), &m_autoreload);
+    ImGui::Checkbox(_("Auto compile"), &m_autocompile);
     ImGui::SameLine();
     ImGui::Checkbox(_("Auto save"), &m_autosave);
     ImGui::SameLine();
