@@ -51,22 +51,30 @@ uint8_t PCSX::MemoryCard::transceive(uint8_t value) {
 
         //
         case Commands::PS_GetVersion:  // 58h
-            m_spdr = tickPS_GetVersion(value);
+            if (m_pocketstationEnabled) {
+                m_spdr = tickPS_GetVersion(value);
+            }
             break;
 
         //
         case Commands::PS_PrepFileExec:  // 59h
-            m_spdr = tickPS_PrepFileExec(value);
+            if (m_pocketstationEnabled) {
+                m_spdr = tickPS_PrepFileExec(value);
+            }
             break;
 
         //
         case Commands::PS_GetDirIndex:  // 5Ah
-            m_spdr = tickPS_GetDirIndex(value);
+            if (m_pocketstationEnabled) {
+                m_spdr = tickPS_GetDirIndex(value);
+            }
             break;
 
         //
         case Commands::PS_ExecCustom:  // 5Dh
-            m_spdr = tickPS_ExecCustom(value);
+            if (m_pocketstationEnabled) {
+                m_spdr = tickPS_ExecCustom(value);
+            }
             break;
 
         case Commands::GetID:  // Un-implemented, need data capture

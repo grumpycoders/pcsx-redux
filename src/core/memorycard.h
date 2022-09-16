@@ -53,6 +53,8 @@ class MemoryCard {
     }
     void createMcd(const PCSX::u8string mcd);
     bool dataChanged() { return !m_savedToDisk; }
+    void disablePocketstation() { m_pocketstationEnabled = false; };
+    void enablePocketstation() { m_pocketstationEnabled = true; };
     char *getMcdData() { return m_mcdData; }
     void loadMcd(const PCSX::u8string str);
     void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
@@ -126,6 +128,7 @@ class MemoryCard {
     uint8_t m_spdr = Responses::IdleHighZ;
 
     // PocketStation Specific
+    bool m_pocketstationEnabled = false;
     uint16_t m_directoryIndex = 0;
 
     SIO *m_sio;

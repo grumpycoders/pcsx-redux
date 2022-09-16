@@ -94,15 +94,35 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     // Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
     if (ImGui::Checkbox(_("Memory Card 1 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
-        g_emulator->m_sio->interrupt();
         changed = true;
     }
     ImGui::SameLine();
     if (ImGui::Checkbox(_("Memory Card 2 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value)) {
-        g_emulator->m_sio->interrupt();
         changed = true;
     }
+
+    if (ImGui::Checkbox(_("Card 1 Pocketstation"),
+                        &g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value)) {
+        g_emulator->m_sio->togglePocketstationMode();
+        changed = true;
+    }
+    ImGui::SameLine();
+    ShowHelpMarker(
+        _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
+          "allowing apps to be "
+          "saved/exported."));
+    ImGui::SameLine();
+    if (ImGui::Checkbox(_("Card 2 Pocketstation"),
+                        &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value)) {
+        g_emulator->m_sio->togglePocketstationMode();
+        changed = true;
+    }
+    ImGui::SameLine();
+    ShowHelpMarker(
+        _("Experimental.  Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
+          "allowing apps to be "
+          "saved/exported."));
 
     ImGui::SliderInt(_("Icon size"), &m_iconSize, 16, 512);
     ImGui::SameLine();
@@ -357,4 +377,16 @@ void PCSX::Widgets::MemcardManager::copyToClipboard(const SIO::McdBlock& block) 
 void PCSX::Widgets::MemcardManager::saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action) {
     m_undo.resize(m_undoIndex++);
     m_undo.push_back({action, std::move(tosave)});
+}
+
+void PCSX::Widgets::MemcardManager::ShowHelpMarker(const char* desc) {
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
 }

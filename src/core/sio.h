@@ -1,4 +1,5 @@
 /***************************************************************************
+/***************************************************************************
  *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -74,6 +75,7 @@ class SIO {
     static const size_t s_sectorSize = 8 * 16;            // 80h bytes per sector/frame
     static const size_t s_blockSize = s_sectorSize * 64;  // 40h sectors per block
     static const size_t s_cardSize = s_blockSize * 16;    // 16 blocks per frame(directory+15 saves)
+    static const size_t s_cardCount = 2;
 
     SIO();
 
@@ -90,9 +92,15 @@ class SIO {
     uint16_t readBaud16();
 
     void acknowledge() {
-        if (!(m_regs.control & ControlFlags::TX_ENABLE)) return;
-        scheduleInterrupt(m_regs.baud * 8);
+        if (!(m_regs.control & ControlFlags::TX_ENABLE)) {
+            return;
+        }
+
+        if (m_regs.control & ControlFlags::ACK_IRQEN && !(m_regs.status & StatusFlags::IRQ)) {
+            scheduleInterrupt(m_regs.baud * 8);
+        }
     }
+    void init();
     void interrupt();
     void reset();
 
@@ -116,6 +124,8 @@ class SIO {
         if (mcd == 1) return 2;
         return 1;
     }
+
+    void togglePocketstationMode();
     static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
@@ -123,16 +133,16 @@ class SIO {
   private:
     struct StatusFlags {
         enum : uint16_t {
-            TX_READY = 0x0001,
+            TX_DATACLEAR = 0x0001,  // 0 = pending transmit, 1 = transmit completed
             RX_FIFONOTEMPTY = 0x0002,
-            TX_READY2 = 0x0004,
+            TX_FINISHED = 0x0004,
             RX_PARITYERR = 0x0008,
             RX_OVERRUN =
                 0x0010,  //(unlike SIO, this isn't RX FIFO Overrun flag), to-do: investigate this claim -skitchin
             FRAMING_ERR = 0x0020,
             SYNC_DETECT = 0x0040,
-            DSR = 0x0080,  // ack input level
-            CTS = 0x0100,  //
+            ACK = 0x0080,  // ack input level
+            CTS = 0x0100,  // unknown
             IRQ = 0x0200,
         };
     };
@@ -144,7 +154,7 @@ class SIO {
             BREAK = 0x0008,
             RESET_ERR = 0x0010,
             RTS = 0x0020,
-            SIO_RESET = 0x0040,
+            RESET = 0x0040,
             RX_IRQMODE = 0x0100,  // FIFO byte count, to-do: implement
             TX_IRQEN = 0x0400,
             RX_IRQEN = 0x0800,
@@ -226,7 +236,11 @@ class SIO {
     static const size_t s_padBufferSize = 0x1010;
 
     bool isTransmitReady() {
-        return (m_regs.control & ControlFlags::TX_ENABLE) && (m_regs.status & StatusFlags::TX_READY2);
+        const bool txEnabled = m_regs.control & ControlFlags::TX_ENABLE;
+        const bool txFinished = m_regs.status & StatusFlags::TX_FINISHED;
+        const bool txDataNotEmpty = !(m_regs.status & StatusFlags::TX_DATACLEAR);
+
+        return (txEnabled && txFinished && txDataNotEmpty);
     }
 
     void transmitData();
@@ -237,17 +251,16 @@ class SIO {
 #if 0
 // Breaks Twisted Metal 2 intro
         m_statusReg &= ~RX_FIFONOTEMPTY;
-        m_statusReg &= ~TX_READY;
+        m_statusReg &= ~TX_DATACLEAR;
 #endif
     }
     void writePad(uint8_t value);
 
     uint8_t last_byte;
-
     uint8_t m_buffer[s_padBufferSize];
 
     SIORegisters m_regs = {
-        .status = StatusFlags::TX_READY | StatusFlags::TX_READY2,  // Transfer Ready and the Buffer is Empty
+        .status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED,  // Transfer Ready and the Buffer is Empty
     };
 
     uint32_t m_maxBufferIndex;
@@ -259,7 +272,7 @@ class SIO {
 
     uint8_t m_rxBuffer;
 
-    MemoryCard m_memoryCard[2] = {this, this};
+    MemoryCard m_memoryCard[s_cardCount] = {this, this};
 
     FIFO<8, uint8_t> m_rxFIFO;
 };

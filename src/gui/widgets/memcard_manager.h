@@ -61,6 +61,7 @@ class MemcardManager {
     void getPocketstationIcon(uint32_t* pixels, const SIO::McdBlock& block);
 
     void saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action);
+    void ShowHelpMarker(const char* desc);
 
     std::unique_ptr<uint8_t[]> getLatest() {
         std::unique_ptr<uint8_t[]> data(new uint8_t[SIO::s_cardSize * 2]);

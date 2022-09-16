@@ -35,12 +35,20 @@
 // TODO: add SioModePrescaler
 #define SIO_CYCLES (m_regs.baud * 8)
 
-PCSX::SIO::SIO() { reset(); }
+PCSX::SIO::SIO() {
+    reset();
+}
+
+void PCSX::SIO::init() {
+    reset();
+    togglePocketstationMode();
+    g_emulator->m_pads->init();
+}
 
 void PCSX::SIO::reset() {
     m_rxFIFO.clear();
     m_padState = PAD_STATE_IDLE;
-    m_regs.status = StatusFlags::TX_READY | StatusFlags::TX_READY2;
+    m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
     m_regs.mode = 0;
     m_regs.control = 0;
     m_regs.baud = 0;
@@ -112,6 +120,8 @@ void PCSX::SIO::writePad(uint8_t value) {
 }
 
 void PCSX::SIO::transmitData() {
+    m_regs.status &= ~StatusFlags::TX_FINISHED;
+
     m_rxBuffer = 0xff;
 
     if (m_currentDevice == DeviceType::None) {
@@ -135,6 +145,7 @@ void PCSX::SIO::transmitData() {
                                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str());
                         }
                     } else {
+                        m_memoryCard[0].m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
                         m_currentDevice = DeviceType::Ignore;
                         m_memoryCard[0].deselect();
                     }
@@ -148,6 +159,7 @@ void PCSX::SIO::transmitData() {
                                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
                         }
                     } else {
+                        m_memoryCard[1].m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
                         m_currentDevice = DeviceType::Ignore;
                         m_memoryCard[1].deselect();
                     }
@@ -166,15 +178,42 @@ void PCSX::SIO::transmitData() {
     }
 
     m_rxFIFO.push(m_rxBuffer);
+
     m_regs.data = m_rxBuffer;
     psxHu8ref(0x1040) = m_regs.data;
+    if (m_regs.control & ControlFlags::RX_IRQEN && !(m_regs.status & StatusFlags::IRQ)) {
+        switch ((m_regs.control & 0x300) >> 8) {
+            case 0:
+                if (!(m_rxFIFO.size() >= 1)) return;
+                break;
+
+            case 1:
+                if (!(m_rxFIFO.size() >= 2)) return;
+                break;
+
+            case 2:
+                if (!(m_rxFIFO.size() >= 4)) return;
+                break;
+
+            case 3:
+                if (!(m_rxFIFO.size() >= 8)) return;
+                break;
+        }
+        scheduleInterrupt(m_regs.baud * 8);
+    }
+    m_regs.status |= StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
     updateStat();
+
+    if (m_regs.control & ControlFlags::TX_IRQEN && !(m_regs.status & StatusFlags::IRQ)) {
+        scheduleInterrupt(m_regs.baud * 8);
+    }
 }
 
 void PCSX::SIO::write8(uint8_t value) {
     SIO0_LOG("sio write8 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
 
     m_regs.data = value;
+    m_regs.status &= ~StatusFlags::TX_DATACLEAR;
 
     if (isTransmitReady()) {
         transmitData();
@@ -186,9 +225,15 @@ void PCSX::SIO::writeStatus16(uint16_t value) {}
 void PCSX::SIO::writeMode16(uint16_t value) { m_regs.mode = value; }
 
 void PCSX::SIO::writeCtrl16(uint16_t value) {
+    const bool deselected = (m_regs.control & ControlFlags::SELECT_ENABLE) && (!(value & ControlFlags::SELECT_ENABLE));
+    const bool portChanged = (m_regs.control & ControlFlags::WHICH_PORT) && (!(value & ControlFlags::WHICH_PORT));
+    const bool wasReady = isTransmitReady();
+
+    m_regs.control = value;
+
     SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
 
-    if ((m_regs.control & ControlFlags::TX_ENABLE) && (!(value & ControlFlags::TX_ENABLE))) {
+    if (deselected || portChanged) {
         // Select line de-activated, reset state machines
         m_currentDevice = DeviceType::None;
         m_padState = PAD_STATE_IDLE;
@@ -197,18 +242,25 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_bufferIndex = 0;
     }
 
-    m_regs.control = value & ~ControlFlags::RESET_ERR;
-    if (value & ControlFlags::RESET_ERR) m_regs.status &= ~StatusFlags::IRQ;
-    if (m_regs.control & ControlFlags::SIO_RESET) {
+    if (m_regs.control & ControlFlags::RESET_ERR) {
+        m_regs.status &= ~(StatusFlags::RX_PARITYERR | StatusFlags::IRQ);
+        m_regs.control &= ~ControlFlags::RESET_ERR;
+    }
+
+    if (m_regs.control & ControlFlags::RESET) {
         m_rxFIFO.clear();
         m_padState = PAD_STATE_IDLE;
         m_memoryCard[0].deselect();
         m_memoryCard[1].deselect();
         m_bufferIndex = 0;
-        // m_regs.status = StatusFlags::TX_READY | StatusFlags::TX_READY2;
+        m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
         m_currentDevice = DeviceType::None;
         updateStat();
+    }
+
+    if (wasReady == false && isTransmitReady()) {
+        transmitData();
     }
 }
 
@@ -224,14 +276,12 @@ uint8_t PCSX::SIO::read8() {
     }
     updateStat();
 
-    if (!m_rxFIFO.isEmpty()) {
-        m_regs.data = m_rxFIFO.peek();
-        psxHu8ref(0x1040) = m_regs.data;
-    }
-
     SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_regs.status,
              m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
              m_buffer[m_bufferIndex < s_padBufferSize - 1 ? m_bufferIndex + 1 : s_padBufferSize - 1]);
+
+    psxHu8ref(0x1040) = ret;
+
     return ret;
 }
 
@@ -243,9 +293,9 @@ uint16_t PCSX::SIO::readStatus16() {
     // wait for IRQ first
     if( PCSX::g_emulator->m_cpu->m_regs.interrupt & (1 << PSXINT_SIO) )
     {
-        hard &= ~StatusFlags::TX_READY;
+        hard &= ~StatusFlags::TX_DATACLEAR;
         hard &= ~StatusFlags::RX_FIFONOTEMPTY;
-        hard &= ~StatusFlags::TX_READY2;
+        hard &= ~StatusFlags::TX_FINISHED;
     }
 #endif
 
@@ -260,13 +310,13 @@ uint16_t PCSX::SIO::readBaud16() { return m_regs.baud; }
 
 void PCSX::SIO::interrupt() {
     SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
-    m_regs.status |= StatusFlags::IRQ;
+    m_regs.status &= ~StatusFlags::IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
 #if 0
     // Rhapsody: fixes input problems
     // Twisted Metal 2: breaks intro
-    m_statusReg |= StatusFlags::TX_READY;
+    m_statusReg |= StatusFlags::TX_DATACLEAR;
     m_statusReg |= StatusFlags::RX_FIFONOTEMPTY;
 #endif
 }
@@ -533,6 +583,20 @@ void PCSX::SIO::saveMcd(int mcd) {
             m_memoryCard[1].saveMcd(path);
             break;
         }
+    }
+}
+
+void PCSX::SIO::togglePocketstationMode() {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Pocketstation>()) {
+        m_memoryCard[0].enablePocketstation();
+    } else {
+        m_memoryCard[0].disablePocketstation();
+    }
+
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Pocketstation>()) {
+        m_memoryCard[1].enablePocketstation();
+    } else {
+        m_memoryCard[1].disablePocketstation();
     }
 }
 
