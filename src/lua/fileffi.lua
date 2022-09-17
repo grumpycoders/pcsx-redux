@@ -94,7 +94,6 @@ void destroySlice(LuaSlice*);
 
 local C = ffi.load 'SUPPORT_FILE'
 
-local fileMeta = { __gc = function(file) C.deleteFile(file._wrapper) end }
 local sliceMeta = {
     __tostring = function(slice) return ffi.string(C.getSliceData(slice._wrapper), C.getSliceSize(slice._wrapper)) end,
     __len = function(slice) return tonumber(C.getSliceSize(slice._wrapper)) end,
@@ -111,13 +110,11 @@ local sliceMeta = {
         error('Unknown index `' .. index .. '` for LuaSlice')
     end,
     __newindex = function(slice, index, value) end,
-    __gc = function(slice) C.destroySlice(slice._wrapper) end,
 }
 
 local function createSliceWrapper(wrapper)
-    local slice = { _wrapper = wrapper, _type = 'Slice' }
-    setmetatable(slice, sliceMeta)
-    return slice
+    local slice = { _wrapper = ffi.gc(wrapper, C.destroySlice), _type = 'Slice' }
+    return setmetatable(slice, sliceMeta)
 end
 
 local bufferMeta = {
@@ -279,7 +276,7 @@ local int64_t = ffi.typeof('int64_t[1]');
 
 local function createFileWrapper(wrapper)
     local file = {
-        _wrapper = wrapper,
+        _wrapper = ffi.gc(wrapper, C.deleteFile),
         _type = 'File',
         close = function(self) C.closeFile(self._wrapper) end,
         read = read,
@@ -339,7 +336,6 @@ local function createFileWrapper(wrapper)
         writeI32At = function(self, num, pos) writeNum(self, num, int32_t, pos) end,
         writeI64At = function(self, num, pos) writeNum(self, num, int64_t, pos) end,
     }
-    setmetatable(file, fileMeta)
     return file
 end
 
