@@ -96,7 +96,7 @@ class SIO {
             return;
         }
 
-        if (m_regs.control & ControlFlags::ACK_IRQEN && !(m_regs.status & StatusFlags::IRQ)) {
+        if (m_regs.control & ControlFlags::ACK_IRQEN) {
             scheduleInterrupt(m_regs.baud * 8);
         }
     }
@@ -243,8 +243,33 @@ class SIO {
         return (txEnabled && txFinished && txDataNotEmpty);
     }
 
+    bool isRXIRQReady() {
+        if (m_regs.control & ControlFlags::RX_IRQEN) {
+            switch ((m_regs.control & 0x300) >> 8) {
+                case 0:
+                    if (!(m_rxFIFO.size() >= 1)) return false;
+                    break;
+
+                case 1:
+                    if (!(m_rxFIFO.size() >= 2)) return false;
+                    break;
+
+                case 2:
+                    if (!(m_rxFIFO.size() >= 4)) return false;
+                    break;
+
+                case 3:
+                    if (!(m_rxFIFO.size() >= 8)) return false;
+                    break;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
     void transmitData();
-    void updateStat();
+    void updateStatus();
 
     inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);

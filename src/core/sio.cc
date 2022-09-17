@@ -65,11 +65,18 @@ void PCSX::SIO::writePad(uint8_t value) {
 
             switch (m_regs.control & ControlFlags::WHICH_PORT) {
                 case SelectedPort::Port1:
-                    if (!PCSX::g_emulator->m_pads->isPadConnected(1)) return;
+                    if (!PCSX::g_emulator->m_pads->isPadConnected(1)) {
+                        m_buffer[0] = 0xff;
+                        return;
+                    }
+                    
                     m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port1);
                     break;
                 case SelectedPort::Port2:
-                    if (!PCSX::g_emulator->m_pads->isPadConnected(2)) return;
+                    if (!PCSX::g_emulator->m_pads->isPadConnected(2)) {
+                        m_buffer[0] = 0xff;
+                        return;
+                    }
                     m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port2);
                     break;
             }
@@ -178,35 +185,15 @@ void PCSX::SIO::transmitData() {
     }
 
     m_rxFIFO.push(m_rxBuffer);
-
     m_regs.data = m_rxBuffer;
     psxHu8ref(0x1040) = m_regs.data;
-    if (m_regs.control & ControlFlags::RX_IRQEN && !(m_regs.status & StatusFlags::IRQ)) {
-        switch ((m_regs.control & 0x300) >> 8) {
-            case 0:
-                if (!(m_rxFIFO.size() >= 1)) return;
-                break;
 
-            case 1:
-                if (!(m_rxFIFO.size() >= 2)) return;
-                break;
-
-            case 2:
-                if (!(m_rxFIFO.size() >= 4)) return;
-                break;
-
-            case 3:
-                if (!(m_rxFIFO.size() >= 8)) return;
-                break;
-        }
+    if (isRXIRQReady()) {
         scheduleInterrupt(m_regs.baud * 8);
     }
     m_regs.status |= StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
-    updateStat();
 
-    if (m_regs.control & ControlFlags::TX_IRQEN && !(m_regs.status & StatusFlags::IRQ)) {
-        scheduleInterrupt(m_regs.baud * 8);
-    }
+    updateStatus();
 }
 
 void PCSX::SIO::write8(uint8_t value) {
@@ -215,6 +202,7 @@ void PCSX::SIO::write8(uint8_t value) {
     m_regs.data = value;
     m_regs.status &= ~StatusFlags::TX_DATACLEAR;
 
+    updateStatus();
     if (isTransmitReady()) {
         transmitData();
     }
@@ -226,12 +214,17 @@ void PCSX::SIO::writeMode16(uint16_t value) { m_regs.mode = value; }
 
 void PCSX::SIO::writeCtrl16(uint16_t value) {
     const bool deselected = (m_regs.control & ControlFlags::SELECT_ENABLE) && (!(value & ControlFlags::SELECT_ENABLE));
+    const bool selected = (!(m_regs.control & ControlFlags::SELECT_ENABLE)) && (value & ControlFlags::SELECT_ENABLE);
     const bool portChanged = (m_regs.control & ControlFlags::WHICH_PORT) && (!(value & ControlFlags::WHICH_PORT));
     const bool wasReady = isTransmitReady();
 
     m_regs.control = value;
 
     SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
+
+    if (selected && (m_regs.control & ControlFlags::TX_IRQEN)) {
+        scheduleInterrupt(m_regs.baud * 8);
+    }
 
     if (deselected || portChanged) {
         // Select line de-activated, reset state machines
@@ -256,12 +249,13 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
         m_currentDevice = DeviceType::None;
-        updateStat();
     }
 
+    updateStatus();
     if (wasReady == false && isTransmitReady()) {
         transmitData();
     }
+    
 }
 
 void PCSX::SIO::writeBaud16(uint16_t value) { m_regs.baud = value; }
@@ -269,12 +263,13 @@ void PCSX::SIO::writeBaud16(uint16_t value) { m_regs.baud = value; }
 uint8_t PCSX::SIO::read8() {
     uint8_t ret = 0xFF;
 
-    updateStat();
+    updateStatus();
     if ((m_regs.status & StatusFlags::RX_FIFONOTEMPTY) /* && (m_ctrlReg & RX_ENABLE)*/) {
-        // if (!m_rxFIFO.isEmpty()) // already checked in updateStat to set RX_FIFONOTEMPTY
+        // if (!m_rxFIFO.isEmpty()) // already checked in updateStatus to set RX_FIFONOTEMPTY
         ret = m_rxFIFO.pull();
+        updateStatus();
     }
-    updateStat();
+    
 
     SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_regs.status,
              m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
@@ -286,7 +281,7 @@ uint8_t PCSX::SIO::read8() {
 }
 
 uint16_t PCSX::SIO::readStatus16() {
-    updateStat();
+    updateStatus();
     uint16_t hard = m_regs.status;
 
 #if 0
@@ -310,7 +305,7 @@ uint16_t PCSX::SIO::readBaud16() { return m_regs.baud; }
 
 void PCSX::SIO::interrupt() {
     SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
-    m_regs.status &= ~StatusFlags::IRQ;
+    m_regs.status |= StatusFlags::IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
 #if 0
@@ -600,11 +595,20 @@ void PCSX::SIO::togglePocketstationMode() {
     }
 }
 
-void PCSX::SIO::updateStat() {
+void PCSX::SIO::updateStatus() {
     if (m_rxFIFO.size() > 0) {
         m_regs.status |= StatusFlags::RX_FIFONOTEMPTY;
+        if (isRXIRQReady()) {
+            m_regs.status |= StatusFlags::IRQ;
+        }
     } else {
         m_regs.status &= ~StatusFlags::RX_FIFONOTEMPTY;
     }
+
+    if (m_regs.control & ControlFlags::TX_IRQEN) {
+            m_regs.status |= StatusFlags::IRQ;
+    }
+
+
     psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
 }
