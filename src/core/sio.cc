@@ -129,7 +129,7 @@ void PCSX::SIO::writePad(uint8_t value) {
 void PCSX::SIO::transmitData() {
     m_regs.status &= ~StatusFlags::TX_FINISHED;
 
-    m_rxBuffer = 0xff;
+    uint8_t m_rxBuffer = 0xff;
 
     if (m_currentDevice == DeviceType::None) {
         m_currentDevice = m_regs.data;

@@ -114,11 +114,11 @@ class MemoryCard {
     uint8_t tickPS_ExecCustom(uint8_t value);    // 5Dh
 
     char m_mcdData[s_cardSize];
-    char m_tempBuffer[s_sectorSize];
-    bool m_savedToDisk = false;
+    uint8_t m_tempBuffer[s_sectorSize];
+    bool m_savedToDisk = true;
 
     uint8_t m_checksumIn = 0, m_checksumOut = 0;
-    uint32_t m_commandTicks = 0;
+    uint16_t m_commandTicks = 0;
     uint8_t m_currentCommand = Commands::None;
     uint16_t m_sector = 0;
     uint32_t m_dataOffset = 0;

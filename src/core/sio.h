@@ -281,7 +281,6 @@ class SIO {
     }
     void writePad(uint8_t value);
 
-    uint8_t last_byte;
     uint8_t m_buffer[s_padBufferSize];
 
     SIORegisters m_regs = {
@@ -290,12 +289,9 @@ class SIO {
 
     uint32_t m_maxBufferIndex;
     uint32_t m_bufferIndex;
-
     uint32_t m_padState;
 
     uint8_t m_currentDevice = DeviceType::None;
-
-    uint8_t m_rxBuffer;
 
     MemoryCard m_memoryCard[s_cardCount] = {this, this};
 
