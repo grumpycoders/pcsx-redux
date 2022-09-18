@@ -123,6 +123,11 @@ void PCSX::SIO::writePad(uint8_t value) {
             }
             break;
     }
+
+    if (m_padState == PAD_STATE_BAD_COMMAND) {
+        return;
+    }
+
     acknowledge();
 }
 

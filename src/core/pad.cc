@@ -309,7 +309,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value, uint32_t& padState) {
             PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
             m_cmd = magic_enum::enum_integer(PadCommands::Idle);
             m_bufferLen = 0;
-            padState = PAD_STATE_IDLE;  // Tell the SIO class we're in an invalid state
+            padState = PAD_STATE_BAD_COMMAND;  // Tell the SIO class we're in an invalid state
             return 0xff;
         }
     } else if (m_currentByte >= m_bufferLen) {
@@ -402,7 +402,7 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand(uint32_t& padState) {
         PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), static_cast<uint8_t>(m_cmd));
         m_cmd = magic_enum::enum_integer(PadCommands::Idle);
         m_bufferLen = 0;
-        padState = PAD_STATE_IDLE;  // Tell the SIO class we're in an invalid state
+        padState = PAD_STATE_BAD_COMMAND;  // Tell the SIO class we're in an invalid state
         return 0xff;
     }
 }

@@ -42,6 +42,7 @@ enum {
     PAD_STATE_IDLE = 0,
     PAD_STATE_READ_COMMAND = 1,
     PAD_STATE_READ_DATA = 2,
+    PAD_STATE_BAD_COMMAND = 3,
 };
 
 class Pads {
