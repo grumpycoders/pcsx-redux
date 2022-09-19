@@ -280,7 +280,8 @@ struct Shader {
 
 struct Program {
     Status create(std::initializer_list<std::reference_wrapper<Shader>> shaders) {
-        glDeleteProgram(m_handle);
+        if (m_owned) glDeleteProgram(m_handle);
+        m_owned = true;
         m_handle = glCreateProgram();
         for (const auto& shader : shaders) {
             glAttachShader(m_handle, shader.get().handle());
@@ -304,18 +305,24 @@ struct Program {
 
         return Status::makeOk();
     }
-    ~Program() { glDeleteProgram(m_handle); }
+    ~Program() {
+        if (m_owned) glDeleteProgram(m_handle);
+    }
 
     GLuint handle() { return m_handle; }
     bool exists() { return m_handle != 0; }
     void use() { glUseProgram(m_handle); }
-    void setProgram(GLuint handle) {
-        glDeleteProgram(m_handle);
+    void setProgram(GLuint handle, bool acquire = false) {
+        if (m_owned) {
+            glDeleteProgram(m_handle);
+        }
         m_handle = handle;
+        m_owned = acquire;
     }
 
   private:
     GLuint m_handle = 0;
+    bool m_owned = true;
 };
 
 struct VertexBuffer {
