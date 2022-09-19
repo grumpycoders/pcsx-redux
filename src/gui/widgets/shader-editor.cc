@@ -194,7 +194,8 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
             in.close();
             m_vertexShaderEditor.setText(code.str());
         } else {
-            m_vertexShaderEditor.setText(c_defaultVertexShader);
+            std::string code(dVS);
+            m_vertexShaderEditor.setText(code.c_str());
         }
     }
     {
@@ -206,7 +207,8 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
             in.close();
             m_pixelShaderEditor.setText(code.str());
         } else {
-            m_pixelShaderEditor.setText(c_defaultPixelShader);
+            std::string code(dPS);
+            m_pixelShaderEditor.setText(code.c_str());
         }
     }
     {
@@ -218,7 +220,8 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
             in.close();
             m_luaEditor.setText(code.str());
         } else {
-            m_luaEditor.setText(c_defaultLuaInvoker);
+            std::string code(dL);
+            m_luaEditor.setText(code.c_str());
         }
     }
 }
