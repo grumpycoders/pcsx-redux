@@ -236,7 +236,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     m_textureID = textureID;
     m_resolution = ImGui::GetContentRegionAvail();
     m_origin = ImGui::GetCursorScreenPos();
-    auto basePos = ImGui::GetWindowViewport()->Pos;
+    auto basePos = m_basePos = ImGui::GetWindowViewport()->Pos;
     auto mousePos = ImGui::GetIO().MousePos - basePos;
     m_mousePos = mousePos - m_origin;
 
@@ -263,7 +263,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
         m_clutDestination->m_clut = m_mouseUV;
     }
 
-    m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
+    bool hovered = m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
     if (ImGui::IsItemClicked()) m_selectingClut = false;
 
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
@@ -271,9 +271,11 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     const auto &io = ImGui::GetIO();
 
     ImVec2 texSpan = texBR - texTL;
-    m_mouseUV = texTL + texSpan * (m_mousePos + basePos) / m_resolution;
+    if (hovered) {
+        m_mouseUV = texTL + texSpan * (m_mousePos + basePos) / m_resolution;
+    }
 
-    if (!m_hovered) {
+    if (!hovered) {
         m_magnify = false;
         return;
     }
@@ -290,11 +292,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
         } else {
             static const float increment = 1.2f;
             const float step = io.MouseWheel > 0.0f ? increment * io.MouseWheel : -1.0f / (increment * io.MouseWheel);
-
-            ImVec2 newDimensions = dimensions * step;
-            ImVec2 dimensionsDiff = newDimensions - dimensions;
-            m_cornerTL -= dimensionsDiff * m_mouseUV;
-            m_cornerBR = m_cornerTL + newDimensions;
+            zoom(step, m_mouseUV);
         }
     } else if (io.MouseDown[2]) {
         m_cornerTL += io.MouseDelta;
@@ -358,14 +356,15 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
 void PCSX::Widgets::VRAMViewer::resetView() {
     m_cornerTL = {0.0f, 0.0f};
     m_cornerBR = {512.0f / RATIOS[m_vramMode], 512.0f};
-    m_cornerBR *= ImGui::GetWindowDpiScale();
+    m_cornerBR *= m_DPI;
     m_magnifyAmount = 5.0f;
-    m_magnifyRadius = 150.0f * ImGui::GetWindowDpiScale();
+    m_magnifyRadius = 150.0f * m_DPI;
 }
 
 void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
     auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
     if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
+        m_DPI = ImGui::GetWindowDpiScale();
         if (!m_firstShown) {
             resetView();
             m_firstShown = true;
@@ -434,4 +433,39 @@ void PCSX::Widgets::VRAMViewer::modeChanged() {
     float deltaX = newX - dimensions.x;
     m_cornerTL.x = m_cornerTL.x - deltaX * focusX;
     m_cornerBR.x = m_cornerTL.x + newX;
+}
+
+void PCSX::Widgets::VRAMViewer::moveTo(ImVec2 pos) {
+    pos /= {-1024.0, -512.0};
+    ImVec2 dimensions = m_cornerBR - m_cornerTL;
+    ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
+    ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
+    ImVec2 texSpan = texBR - texTL;
+
+    m_cornerTL = pos * m_resolution / texSpan;
+    m_cornerBR = m_cornerTL + dimensions;
+}
+
+void PCSX::Widgets::VRAMViewer::focusOn(ImVec2 topLeft, ImVec2 bottomRight) {
+    m_cornerTL = {0.0f, 0.0f};
+    ImVec2 dimensions = bottomRight - topLeft;
+    float r = dimensions.y / dimensions.x;
+    if (r > 2.0f) {
+        dimensions.x = dimensions.y / 2.0f;
+    } else {
+        dimensions.y = dimensions.x * 2.0f;
+    }
+    dimensions = m_resolution / dimensions;
+    m_cornerBR = ImVec2(512.0f / RATIOS[m_vramMode], 512.0f) * std::max(dimensions.x, dimensions.y);
+    moveTo(topLeft);
+    ImVec2 center = (topLeft + (bottomRight - topLeft) / 2) / ImVec2(1024.0f, 512.0f);
+    zoom(0.9f, center);
+}
+
+void PCSX::Widgets::VRAMViewer::zoom(float factor, ImVec2 centerUV) {
+    ImVec2 dimensions = m_cornerBR - m_cornerTL;
+    ImVec2 newDimensions = dimensions * factor;
+    ImVec2 dimensionsDiff = newDimensions - dimensions;
+    m_cornerTL -= dimensionsDiff * centerUV;
+    m_cornerBR = m_cornerTL + newDimensions;
 }

@@ -43,6 +43,9 @@ class VRAMViewer {
         destination->m_hasClut = true;
     }
     void resetView();
+    void moveTo(ImVec2 pos);
+    void focusOn(ImVec2 topLeft, ImVec2 bottomRight);
+    void zoom(float factor, ImVec2 centerUV);
 
     void draw(GUI *gui, GLuint VRAMTexture);
 
@@ -87,6 +90,8 @@ class VRAMViewer {
     ImVec2 m_origin;
     ImVec2 m_cornerTL = {0.0f, 0.0f};
     ImVec2 m_cornerBR = {1024.0f, 512.0f};
+    ImVec2 m_basePos;
+    float m_DPI = 1.0f;
     GLuint m_textureID;
 
     enum : int {
