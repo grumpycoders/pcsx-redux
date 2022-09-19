@@ -115,7 +115,7 @@ class MemoryCard {
 
     char m_mcdData[s_cardSize];
     uint8_t m_tempBuffer[s_sectorSize];
-    bool m_savedToDisk = true;
+    bool m_savedToDisk = false;
 
     uint8_t m_checksumIn = 0, m_checksumOut = 0;
     uint16_t m_commandTicks = 0;

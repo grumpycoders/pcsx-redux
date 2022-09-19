@@ -77,7 +77,7 @@ class SIO {
     static const size_t s_cardSize = s_blockSize * 16;    // 16 blocks per frame(directory+15 saves)
     static const size_t s_cardCount = 2;
 
-    SIO();
+    SIO() { reset(); }
 
     void write8(uint8_t value);
     void writeStatus16(uint16_t value);
@@ -87,19 +87,11 @@ class SIO {
 
     uint8_t read8();
     uint16_t readStatus16();
-    uint16_t readMode16();
-    uint16_t readCtrl16();
-    uint16_t readBaud16();
+    uint16_t readMode16() { return m_regs.mode; }
+    uint16_t readCtrl16() { return m_regs.control; }
+    uint16_t readBaud16() { return m_regs.baud; }
 
-    void acknowledge() {
-        if (!(m_regs.control & ControlFlags::TX_ENABLE)) {
-            return;
-        }
-
-        if (m_regs.control & ControlFlags::ACK_IRQEN) {
-            scheduleInterrupt(m_regs.baud * 8);
-        }
-    }
+    void acknowledge();
     void init();
     void interrupt();
     void reset();
@@ -235,42 +227,8 @@ class SIO {
 
     static const size_t s_padBufferSize = 0x1010;
 
-    bool isTransmitReady() {
-        const bool txEnabled = m_regs.control & ControlFlags::TX_ENABLE;
-        const bool txFinished = m_regs.status & StatusFlags::TX_FINISHED;
-        const bool txDataNotEmpty = !(m_regs.status & StatusFlags::TX_DATACLEAR);
-
-        return (txEnabled && txFinished && txDataNotEmpty);
-    }
-
-    bool isRXIRQReady() {
-        if (m_regs.control & ControlFlags::RX_IRQEN) {
-            switch ((m_regs.control & 0x300) >> 8) {
-                case 0:
-                    if (!(m_rxFIFO.size() >= 1)) return false;
-                    break;
-
-                case 1:
-                    if (!(m_rxFIFO.size() >= 2)) return false;
-                    break;
-
-                case 2:
-                    if (!(m_rxFIFO.size() >= 4)) return false;
-                    break;
-
-                case 3:
-                    if (!(m_rxFIFO.size() >= 8)) return false;
-                    break;
-            }
-            return true;
-        }
-
-        return false;
-    }
-
-    void transmitData();
-    void updateStatus();
-
+    bool isReceiveIRQReady();
+    bool isTransmitReady();
     inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
 #if 0
@@ -279,19 +237,21 @@ class SIO {
         m_statusReg &= ~TX_DATACLEAR;
 #endif
     }
+    void transmitData();
+    void updateFIFOStatus();
     void writePad(uint8_t value);
-
-    uint8_t m_buffer[s_padBufferSize];
 
     SIORegisters m_regs = {
         .status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED,  // Transfer Ready and the Buffer is Empty
     };
 
-    uint32_t m_maxBufferIndex;
-    uint32_t m_bufferIndex;
-    uint32_t m_padState;
-
     uint8_t m_currentDevice = DeviceType::None;
+
+    // Pads
+    uint8_t m_buffer[s_padBufferSize];
+    uint32_t m_bufferIndex;
+    uint32_t m_maxBufferIndex;
+    uint32_t m_padState;
 
     MemoryCard m_memoryCard[s_cardCount] = {this, this};
 
