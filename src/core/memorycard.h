@@ -19,13 +19,8 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include <stdint.h>
 
-#include <string>
-
-#include "core/psxemulator.h"
-#include "core/r3000a.h"
 #include "core/sstate.h"
 
 namespace PCSX {
@@ -33,13 +28,13 @@ class SIO;
 
 class MemoryCard {
   public:
-    MemoryCard() : m_sio(nullptr) { memset(m_mcdData, 0, s_cardSize); }
-    MemoryCard(SIO *parent) : m_sio(parent) { memset(m_mcdData, 0, s_cardSize); }
+    MemoryCard() : m_sio(nullptr) { memset(m_mcdData, 0, c_cardSize); }
+    MemoryCard(SIO *parent) : m_sio(parent) { memset(m_mcdData, 0, c_cardSize); }
 
     // Hardware events
     void acknowledge();
     void deselect() {
-        memset(&m_tempBuffer, 0, s_sectorSize);
+        memset(&m_tempBuffer, 0, c_sectorSize);
         m_currentCommand = Commands::None;
         m_commandTicks = 0;
         m_dataOffset = 0;
@@ -58,7 +53,7 @@ class MemoryCard {
     char *getMcdData() { return m_mcdData; }
     void loadMcd(const PCSX::u8string str);
     void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
-    void saveMcd(const PCSX::u8string path) { saveMcd(path, m_mcdData, 0, s_cardSize); }
+    void saveMcd(const PCSX::u8string path) { saveMcd(path, m_mcdData, 0, c_cardSize); }
 
   private:
     enum Commands : uint8_t {
@@ -100,9 +95,9 @@ class MemoryCard {
     friend class SIO;
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
-    static const size_t s_sectorSize = 8 * 16;
-    static const size_t s_blockSize = 8192;
-    static const size_t s_cardSize = 1024 * s_sectorSize;
+    static const size_t c_sectorSize = 8 * 16;
+    static const size_t c_blockSize = 8192;
+    static const size_t c_cardSize = 1024 * c_sectorSize;
 
     // State machine / handlers
     uint8_t transceive(uint8_t value);
@@ -113,8 +108,8 @@ class MemoryCard {
     uint8_t tickPS_PrepFileExec(uint8_t value);  // 59h
     uint8_t tickPS_ExecCustom(uint8_t value);    // 5Dh
 
-    char m_mcdData[s_cardSize];
-    uint8_t m_tempBuffer[s_sectorSize];
+    char m_mcdData[c_cardSize];
+    uint8_t m_tempBuffer[c_sectorSize];
     bool m_savedToDisk = false;
 
     uint8_t m_checksumIn = 0, m_checksumOut = 0;

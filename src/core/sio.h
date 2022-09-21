@@ -72,10 +72,10 @@ class SIO {
         bool isChained() const { return (allocState & ~1) == 0x52; }
     };
 
-    static const size_t s_sectorSize = 8 * 16;            // 80h bytes per sector/frame
-    static const size_t s_blockSize = s_sectorSize * 64;  // 40h sectors per block
-    static const size_t s_cardSize = s_blockSize * 16;    // 16 blocks per frame(directory+15 saves)
-    static const size_t s_cardCount = 2;
+    static constexpr size_t c_sectorSize = 8 * 16;        // 80h bytes per sector/frame
+    static constexpr size_t c_blockSize = c_sectorSize * 64;  // 40h sectors per block
+    static constexpr size_t c_cardSize = c_blockSize * 16;    // 16 blocks per frame(directory+15 saves)
+    static constexpr size_t c_cardCount = 2;
 
     SIO() { reset(); }
 
@@ -182,7 +182,7 @@ class SIO {
         };
     };
 
-    template <size_t buffer_size, typename T>
+    template <typename T, size_t buffer_size>
     class FIFO {
       public:
         ~FIFO() { clear(); }
@@ -225,11 +225,11 @@ class SIO {
     friend MemoryCard;
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
-    static const size_t s_padBufferSize = 0x1010;
+    static constexpr size_t c_padBufferSize = 0x1010;
 
     bool isReceiveIRQReady();
     bool isTransmitReady();
-    inline void scheduleInterrupt(uint32_t eCycle) {
+    static inline void scheduleInterrupt(uint32_t eCycle) {
         g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
 #if 0
 // Breaks Twisted Metal 2 intro
@@ -248,14 +248,14 @@ class SIO {
     uint8_t m_currentDevice = DeviceType::None;
 
     // Pads
-    uint8_t m_buffer[s_padBufferSize];
+    uint8_t m_buffer[c_padBufferSize];
     uint32_t m_bufferIndex;
     uint32_t m_maxBufferIndex;
     uint32_t m_padState;
 
-    MemoryCard m_memoryCard[s_cardCount] = {this, this};
+    MemoryCard m_memoryCard[c_cardCount] = {this, this};
 
-    FIFO<8, uint8_t> m_rxFIFO;
+    FIFO<uint8_t, 8> m_rxFIFO;
 };
 
 }  // namespace PCSX

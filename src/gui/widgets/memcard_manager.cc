@@ -63,17 +63,17 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         const auto dataCard1 = g_emulator->m_sio->getMcdData(1);
         const auto dataCard2 = g_emulator->m_sio->getMcdData(2);
         if (isLatest) {
-            std::memcpy(dataCard1, m_latest.get(), SIO::s_cardSize);
-            std::memcpy(dataCard2, m_latest.get() + SIO::s_cardSize, SIO::s_cardSize);
+            std::memcpy(dataCard1, m_latest.get(), SIO::c_cardSize);
+            std::memcpy(dataCard2, m_latest.get() + SIO::c_cardSize, SIO::c_cardSize);
         } else {
             if (wasLatest) {
-                std::unique_ptr<uint8_t[]> latest(new uint8_t[SIO::s_cardSize * 2]);
-                std::memcpy(latest.get(), dataCard1, SIO::s_cardSize);
-                std::memcpy(latest.get() + SIO::s_cardSize, dataCard2, SIO::s_cardSize);
+                std::unique_ptr<uint8_t[]> latest(new uint8_t[SIO::c_cardSize * 2]);
+                std::memcpy(latest.get(), dataCard1, SIO::c_cardSize);
+                std::memcpy(latest.get() + SIO::c_cardSize, dataCard2, SIO::c_cardSize);
                 m_latest.swap(latest);
             }
-            std::memcpy(dataCard1, m_undo[m_undoIndex].second.get(), SIO::s_cardSize);
-            std::memcpy(dataCard2, m_undo[m_undoIndex].second.get() + SIO::s_cardSize, SIO::s_cardSize);
+            std::memcpy(dataCard1, m_undo[m_undoIndex].second.get(), SIO::c_cardSize);
+            std::memcpy(dataCard2, m_undo[m_undoIndex].second.get() + SIO::c_cardSize, SIO::c_cardSize);
         }
         g_emulator->m_sio->saveMcd(1);
         g_emulator->m_sio->saveMcd(2);
@@ -298,7 +298,7 @@ void PCSX::Widgets::MemcardManager::drawIcon(const PCSX::SIO::McdBlock& block) {
 // Extract the pocketstation icon from the block indicated by blockNumber into the pixels array (In RGBA8888)
 void PCSX::Widgets::MemcardManager::getPocketstationIcon(uint32_t* pixels, const SIO::McdBlock& block) {
     const auto data = g_emulator->m_sio->getMcdData(block.mcd);
-    const auto titleFrame = data + block.number * PCSX::SIO::s_blockSize;
+    const auto titleFrame = data + block.number * PCSX::SIO::c_blockSize;
 
     // Calculate icon offset using the header info documented here
     // https://psx-spx.consoledev.net/pocketstation/#pocketstation-file-headericons

@@ -70,10 +70,11 @@ class Pads {
     void setLua(Lua L);
 
     bool isPadConnected(int pad) {
-        if (pad > m_pads.size())
+        if (pad > m_pads.size()) {
             return false;
-        else
+        } else {
             return m_pads[pad - 1].isControllerConnected();
+        }
     }
 
   private:

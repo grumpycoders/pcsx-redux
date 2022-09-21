@@ -81,6 +81,7 @@ uint8_t PCSX::MemoryCard::transceive(uint8_t value) {
         case Commands::Error:  // Unexpected/Unsupported command
         default:
             m_spdr = Responses::IdleHighZ;
+            break;
     }
 
     return data_out;
@@ -129,16 +130,7 @@ uint8_t PCSX::MemoryCard::tickReadCommand(uint8_t value) {
             m_checksumOut = (m_sector >> 8) ^ (m_sector & 0xff);
             break;
 
-            // Cases 8 through 135 overloaded to default operator below
-
-        case 136:
-            data_out = m_checksumOut;
-            break;
-
-        case 137:
-            data_out = Responses::GoodReadWrite;
-            break;
-
+        // Cases 8 through 135 overloaded to default operator below
         default:
             if (m_commandTicks >= 8 && m_commandTicks <= 135)  // Stay here for 128 bytes
             {
@@ -153,6 +145,15 @@ uint8_t PCSX::MemoryCard::tickReadCommand(uint8_t value) {
                 // Send this till the spooky extra bytes go away
                 return Responses::CommandAcknowledge1;
             }
+            break;
+
+        case 136:
+            data_out = m_checksumOut;
+            break;
+
+        case 137:
+            data_out = Responses::GoodReadWrite;
+            break;
     }
 
     m_commandTicks++;
@@ -200,6 +201,25 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
             data_out = value;
             break;
 
+        default:
+            if (m_commandTicks >= 5 && m_commandTicks <= 132) {
+                // Store data in temp buffer until checksum verified
+                // no idea if official cards did this, but why not.
+                m_tempBuffer[m_dataOffset] = value;
+
+                // Calculate checksum
+                m_checksumOut ^= value;
+
+                // Reply with (pre)
+                data_out = value;
+                m_dataOffset++;
+            } else {
+                // Send this till the spooky extra bytes go away
+                return Responses::CommandAcknowledge1;
+            }
+
+            break;
+
         case 133:  // CHK
             m_checksumIn = value;
 
@@ -226,27 +246,8 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
         case 135:  // 00h
                 m_directoryFlag = Flags::DirectoryRead;
                 data_out = Responses::GoodReadWrite;
-                memcpy(&m_mcdData[m_sector * 128], &m_tempBuffer, s_sectorSize);
+                memcpy(&m_mcdData[m_sector * 128], &m_tempBuffer, c_sectorSize);
                 m_savedToDisk = false;
-            break;
-
-        default:
-            if (m_commandTicks >= 5 && m_commandTicks <= 132) {
-                // Store data in temp buffer until checksum verified
-                // no idea if official cards did this, but why not.
-                m_tempBuffer[m_dataOffset] = value;
-
-                // Calculate checksum
-                m_checksumOut ^= value;
-
-                // Reply with (pre)
-                data_out = value;
-                m_dataOffset++;
-            } else {
-                // Send this till the spooky extra bytes go away
-                return Responses::CommandAcknowledge1;
-            }
-
             break;
     }
 
@@ -410,6 +411,8 @@ uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value) {
     return data_out;
 }
 
+
+// To-do: "All the code starting here is terrible and needs to be rewritten"
 void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
     char *data = m_mcdData;
     const char *fname = reinterpret_cast<const char *>(str.c_str());
@@ -427,17 +430,17 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
 
             if (stat(fname, &buf) != -1) {
                 // Check if the file is a VGS memory card, skip the header if it is
-                if (buf.st_size == s_cardSize + 64) {
+                if (buf.st_size == c_cardSize + 64) {
                     fseek(f, 64, SEEK_SET);
                 }
                 // Check if the file is a Dexdrive memory card, skip the header if it is
-                else if (buf.st_size == s_cardSize + 3904) {
+                else if (buf.st_size == c_cardSize + 3904) {
                     fseek(f, 3904, SEEK_SET);
                 }
             }
-            bytesRead = fread(data, 1, s_cardSize, f);
+            bytesRead = fread(data, 1, c_cardSize, f);
             fclose(f);
-            if (bytesRead != s_cardSize) {
+            if (bytesRead != c_cardSize) {
                 throw std::runtime_error(_("Error reading memory card."));
             }
         } else
@@ -446,15 +449,15 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
         struct stat buf;
         PCSX::g_system->printf(_("Loading memory card %s\n"), fname);
         if (stat(fname, &buf) != -1) {
-            if (buf.st_size == s_cardSize + 64) {
+            if (buf.st_size == c_cardSize + 64) {
                 fseek(f, 64, SEEK_SET);
-            } else if (buf.st_size == s_cardSize + 3904) {
+            } else if (buf.st_size == c_cardSize + 3904) {
                 fseek(f, 3904, SEEK_SET);
             }
         }
-        bytesRead = fread(data, 1, s_cardSize, f);
+        bytesRead = fread(data, 1, c_cardSize, f);
         fclose(f);
-        if (bytesRead != s_cardSize) {
+        if (bytesRead != c_cardSize) {
             throw std::runtime_error(_("Error reading memory card."));
         } else {
             m_savedToDisk = true;
@@ -470,9 +473,9 @@ void PCSX::MemoryCard::saveMcd(const PCSX::u8string mcd, const char *data, uint3
         struct stat buf;
 
         if (stat(fname, &buf) != -1) {
-            if (buf.st_size == s_cardSize + 64) {
+            if (buf.st_size == c_cardSize + 64) {
                 fseek(f, adr + 64, SEEK_SET);
-            } else if (buf.st_size == s_cardSize + 3904) {
+            } else if (buf.st_size == c_cardSize + 3904) {
                 fseek(f, adr + 3904, SEEK_SET);
             } else {
                 fseek(f, adr, SEEK_SET);
@@ -489,7 +492,7 @@ void PCSX::MemoryCard::saveMcd(const PCSX::u8string mcd, const char *data, uint3
         // try to create it again if we can't open it
         f = fopen(fname, "wb");
         if (f != NULL) {
-            fwrite(data, 1, s_cardSize, f);
+            fwrite(data, 1, c_cardSize, f);
             fclose(f);
         }
     }
@@ -497,7 +500,7 @@ void PCSX::MemoryCard::saveMcd(const PCSX::u8string mcd, const char *data, uint3
 
 void PCSX::MemoryCard::createMcd(const PCSX::u8string mcd) {
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    int s = s_cardSize;
+    int s = c_cardSize;
 
     const auto f = fopen(fname, "wb");
     if (f == nullptr) return;
@@ -506,7 +509,7 @@ void PCSX::MemoryCard::createMcd(const PCSX::u8string mcd) {
     s--;
     fputc('C', f);
     s--;
-    while (s-- > (s_cardSize - 127)) fputc(0, f);
+    while (s-- > (c_cardSize - 127)) fputc(0, f);
     fputc(0xe, f);
     s--;
 
