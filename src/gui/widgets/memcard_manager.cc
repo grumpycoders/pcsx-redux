@@ -69,7 +69,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
             std::memcpy(dataCard2, m_latest.get() + SIO::c_cardSize, SIO::c_cardSize);
         } else {
             if (wasLatest) {
-                std::unique_ptr<uint8_t[]> latest(new uint8_t[SIO::c_cardSize * 2]);
+                std::unique_ptr<uint8_t[]> latest = std::make_unique<uint8_t[]>(SIO::c_cardSize * 2);
                 std::memcpy(latest.get(), dataCard1, SIO::c_cardSize);
                 std::memcpy(latest.get() + SIO::c_cardSize, dataCard2, SIO::c_cardSize);
                 m_latest.swap(latest);
