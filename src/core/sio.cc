@@ -56,19 +56,27 @@ bool PCSX::SIO::isReceiveIRQReady() {
     if (m_regs.control & ControlFlags::RX_IRQEN) {
         switch ((m_regs.control & 0x300) >> 8) {
             case 0:
-                if (!(m_rxFIFO.size() >= 1)) return false;
+                if (!(m_rxFIFO.size() >= 1)) {
+                    return false;
+                }
                 break;
 
             case 1:
-                if (!(m_rxFIFO.size() >= 2)) return false;
+                if (!(m_rxFIFO.size() >= 2)) {
+                    return false;
+                }
                 break;
 
             case 2:
-                if (!(m_rxFIFO.size() >= 4)) return false;
+                if (!(m_rxFIFO.size() >= 4)) {
+                    return false;
+                }
                 break;
 
             case 3:
-                if (!(m_rxFIFO.size() >= 8)) return false;
+                if (!(m_rxFIFO.size() >= 8)) {
+                    return false;
+                }
                 break;
         }
         return true;
@@ -229,6 +237,7 @@ void PCSX::SIO::transmitData() {
             m_padState = PAD_STATE_IDLE;
             m_memoryCard[0].deselect();
             m_memoryCard[1].deselect();
+            break;
     }
 
     m_rxFIFO.push(m_rxBuffer);
@@ -494,6 +503,7 @@ char *PCSX::SIO::getMcdData(int mcd) {
         default:
             throw std::runtime_error("Attempt to access invalid memory card");
             return nullptr;
+            break;
     }
 }
 
@@ -514,7 +524,10 @@ void PCSX::SIO::eraseMcdFile(const McdBlock &block) {
     }
     frame[0x7f] = 0xa0;  // xor checksum of frame
 
-    if (block.isErased()) return;
+    if (block.isErased()) {
+        return;
+    }
+
     auto nextBlock = block.nextBlock;
     if ((nextBlock >= 1) && (nextBlock <= 15)) {
         McdBlock next;
@@ -528,21 +541,29 @@ unsigned PCSX::SIO::getFreeSpace(int mcd) {
     for (int i = 1; i < 16; i++) {
         McdBlock block;
         getMcdBlockInfo(mcd, i, block);
-        if (block.isErased()) count++;
+        if (block.isErased()) {
+            count++;
+        }
     }
 
     return count;
 }
 
 unsigned PCSX::SIO::getFileBlockCount(McdBlock block) {
-    if (block.isErased()) return 0;
+    if (block.isErased()) {
+        return 0;
+    }
 
     std::bitset<16> walked;
     unsigned count = 1;
 
     while (true) {
-        if ((block.nextBlock < 1) || (block.nextBlock > 15)) return count;
-        if (walked.test(block.nextBlock)) return count;
+        if ((block.nextBlock < 1) || (block.nextBlock > 15)) {
+            return count;
+        }
+        if (walked.test(block.nextBlock)) {
+            return count;
+        }
         walked.set(block.nextBlock);
         getMcdBlockInfo(block.mcd, block.nextBlock, block);
         count++;
@@ -553,7 +574,9 @@ int PCSX::SIO::findFirstFree(int mcd) {
     McdBlock block;
     for (int i = 1; i < 16; i++) {
         getMcdBlockInfo(mcd, i, block);
-        if (block.isErased()) return i;
+        if (block.isErased()) {
+            return i;
+        }
     }
 
     return -1;
@@ -561,7 +584,9 @@ int PCSX::SIO::findFirstFree(int mcd) {
 
 bool PCSX::SIO::copyMcdFile(McdBlock block) {
     auto other = otherMcd(block);
-    if (getFreeSpace(other) < getFileBlockCount(block)) return false;
+    if (getFreeSpace(other) < getFileBlockCount(block)) {
+        return false;
+    }
     const auto data = getMcdData(block);
     const auto otherData = getMcdData(other);
 
@@ -570,7 +595,9 @@ bool PCSX::SIO::copyMcdFile(McdBlock block) {
 
     while (true) {
         int dstBlock = findFirstFree(other);
-        if (dstBlock < 1 || dstBlock > 16) throw std::runtime_error("Inconsistent memory card state");
+        if (dstBlock < 1 || dstBlock > 16) {
+            throw std::runtime_error("Inconsistent memory card state");
+        }
 
         // copy block data
         size_t srcOffset = block.number * c_blockSize;
@@ -590,9 +617,15 @@ bool PCSX::SIO::copyMcdFile(McdBlock block) {
             frame[0x7f] ^= crcFix;
         }
         prevBlock = dstBlock;
-        if (block.nextBlock == -1) return true;
-        if ((block.nextBlock < 1) || (block.nextBlock > 15)) return false;
-        if (walked.test(block.nextBlock)) return false;
+        if (block.nextBlock == -1) {
+            return true;
+        }
+        if ((block.nextBlock < 1) || (block.nextBlock > 15)) {
+            return false;
+        }
+        if (walked.test(block.nextBlock)) {
+            return false;
+        }
         walked.set(block.nextBlock);
         getMcdBlockInfo(block.mcd, block.nextBlock, block);
     }

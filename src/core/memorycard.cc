@@ -132,8 +132,7 @@ uint8_t PCSX::MemoryCard::tickReadCommand(uint8_t value) {
 
         // Cases 8 through 135 overloaded to default operator below
         default:
-            if (m_commandTicks >= 8 && m_commandTicks <= 135)  // Stay here for 128 bytes
-            {
+            if (m_commandTicks >= 8 && m_commandTicks <= 135) {  // Stay here for 128 bytes
                 if (m_sector >= 1024) {
                     data_out = Responses::BadSector;
                 } else {
@@ -195,12 +194,13 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
         case 4:  // LSB
             // Store lower 8 bits of sector
             m_sector |= value;
-            //m_dataOffset = (m_sector * 128);
+            // m_dataOffset = (m_sector * 128);
             m_dataOffset = 0;
             m_checksumOut = (m_sector >> 8) ^ (m_sector & 0xFF);
             data_out = value;
             break;
 
+        // Cases 5 through 135 overloaded to default operator below
         default:
             if (m_commandTicks >= 5 && m_commandTicks <= 132) {
                 // Store data in temp buffer until checksum verified
@@ -217,7 +217,6 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
                 // Send this till the spooky extra bytes go away
                 return Responses::CommandAcknowledge1;
             }
-
             break;
 
         case 133:  // CHK
@@ -228,8 +227,7 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
 
                 // To-do: Need to log actual behavior here
                 return Responses::BadSector;
-            }
-            else if (m_checksumIn != m_checksumOut) {
+            } else if (m_checksumIn != m_checksumOut) {
                 // To-do: Log official card behavior
                 // Below behavior is from 3rd party hardware
                 m_commandTicks = 0xFF;
@@ -244,10 +242,10 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
             break;
 
         case 135:  // 00h
-                m_directoryFlag = Flags::DirectoryRead;
-                data_out = Responses::GoodReadWrite;
-                memcpy(&m_mcdData[m_sector * 128], &m_tempBuffer, c_sectorSize);
-                m_savedToDisk = false;
+            m_directoryFlag = Flags::DirectoryRead;
+            data_out = Responses::GoodReadWrite;
+            memcpy(&m_mcdData[m_sector * 128], &m_tempBuffer, c_sectorSize);
+            m_savedToDisk = false;
             break;
     }
 
@@ -259,92 +257,20 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
 
 uint8_t PCSX::MemoryCard::tickPS_GetDirIndex(uint8_t value) {
     uint8_t data_out = Responses::IdleHighZ;
+    static constexpr uint8_t response_count = 19;
+    static constexpr uint8_t responses[response_count] = {0x12, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x13, 0x11, 0x4F,
+                                                          0x41, 0x20, 0x01, 0x99, 0x19, 0x27, 0x30, 0x09, 0x04};
 
-    switch (m_commandTicks) {
-            // 81 | 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            //         12 00 00 01 01 01 01 13 11 4F 41 20 01 99 19 27 30 09 04
-        case 0:  // 5A
-            data_out = 0x12;
-            break;
+    if (m_commandTicks < response_count) {
+        data_out = responses[m_commandTicks];
 
-        case 1:  //
-            data_out = 0x00;
-            break;
-
-        case 2:  //
-            data_out = 0x00;
-            break;
-
-        case 3:  //
-            data_out = 0x01;
-            break;
-
-        case 4:  //
-            data_out = 0x01;
-            break;
-
-        case 5:  //
-            data_out = 0x01;
-            break;
-
-        case 6:  //
-            data_out = 0x01;
-            break;
-
-        case 7:  //
-            data_out = 0x13;
-            break;
-
-        case 8:  //
-            data_out = 0x11;
-            break;
-
-        case 9:  //
-            data_out = 0x4F;
-            break;
-
-        case 10:  //
-            data_out = 0x41;
-            break;
-
-        case 11:  //
-            data_out = 0x20;
-            break;
-
-        case 12:  //
-            data_out = 0x01;
-            break;
-
-        case 13:  //
-            data_out = 0x99;
-            break;
-
-        case 14:  //
-            data_out = 0x19;
-            break;
-
-        case 15:  //
-            data_out = 0x27;
-            break;
-
-        case 16:  //
-            data_out = 0x30;
-            break;
-
-        case 17:  //
-            data_out = 0x09;
-            break;
-
-        case 18:  //
-            data_out = 0x04;
-            break;
-
-        default:
-            return Responses::CommandAcknowledge1;
+        // Don't ack the last byte
+        if (m_commandTicks <= (response_count - 1)) {
+            acknowledge();
+        }
     }
 
     m_commandTicks++;
-    acknowledge();
 
     return data_out;
 }
@@ -359,6 +285,7 @@ uint8_t PCSX::MemoryCard::tickPS_ExecCustom(uint8_t value) {
 
         default:
             data_out = 0x00;
+            break;
     }
 
     m_commandTicks++;
@@ -377,6 +304,7 @@ uint8_t PCSX::MemoryCard::tickPS_PrepFileExec(uint8_t value) {
 
         default:
             data_out = 0x00;
+            break;
     }
 
     m_commandTicks++;
@@ -387,30 +315,22 @@ uint8_t PCSX::MemoryCard::tickPS_PrepFileExec(uint8_t value) {
 
 uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value) {
     uint8_t data_out = Responses::IdleHighZ;
+    static constexpr uint8_t response_count = 3;
+    static constexpr uint8_t responses[response_count] = {0x02, 0x01, 0x01};
 
-    switch (m_commandTicks) {
-        case 0:  // 58
-            data_out = 0x02;
-            break;
+    if (m_commandTicks < response_count) {
+        data_out = responses[m_commandTicks];
 
-        case 1:  //
-            data_out = 0x01;
-            break;
-
-        case 2:  //
-            data_out = 0x01;
-            break;
-
-        default:
-            data_out = 0xff;
+        // Don't ack the last byte
+        if (m_commandTicks <= (response_count - 1)) {
+            acknowledge();
+        }
     }
 
     m_commandTicks++;
-    acknowledge();
 
     return data_out;
 }
-
 
 // To-do: "All the code starting here is terrible and needs to be rewritten"
 void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
@@ -443,8 +363,9 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
             if (bytesRead != c_cardSize) {
                 throw std::runtime_error(_("Error reading memory card."));
             }
-        } else
+        } else {
             PCSX::g_system->message(_("Memory card %s failed to load!\n"), fname);
+        }
     } else {
         struct stat buf;
         PCSX::g_system->printf(_("Loading memory card %s\n"), fname);
@@ -503,7 +424,9 @@ void PCSX::MemoryCard::createMcd(const PCSX::u8string mcd) {
     int s = c_cardSize;
 
     const auto f = fopen(fname, "wb");
-    if (f == nullptr) return;
+    if (f == nullptr) {
+        return;
+    }
 
     fputc('M', f);
     s--;

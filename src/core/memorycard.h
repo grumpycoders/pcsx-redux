@@ -44,7 +44,9 @@ class MemoryCard {
 
     // File system / data manipulation
     void commit(const PCSX::u8string path) {
-        if (!m_savedToDisk) saveMcd(path);
+        if (!m_savedToDisk) {
+            saveMcd(path);
+        }
     }
     void createMcd(const PCSX::u8string mcd);
     bool dataChanged() { return !m_savedToDisk; }
@@ -95,9 +97,9 @@ class MemoryCard {
     friend class SIO;
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
-    static const size_t c_sectorSize = 8 * 16;
-    static const size_t c_blockSize = 8192;
-    static const size_t c_cardSize = 1024 * c_sectorSize;
+    static constexpr size_t c_sectorSize = 8 * 16;
+    static constexpr size_t c_blockSize = 8192;
+    static constexpr size_t c_cardSize = 1024 * c_sectorSize;
 
     // State machine / handlers
     uint8_t transceive(uint8_t value);

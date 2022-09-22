@@ -55,7 +55,9 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     }
 
     const bool undoDisabled = m_undo.size() == 0;
-    if (undoDisabled) ImGui::BeginDisabled();
+    if (undoDisabled) {
+        ImGui::BeginDisabled();
+    }
     bool isLatest = m_undo.size() == m_undoIndex;
     const bool wasLatest = isLatest;
     if (ImGui::SliderInt(_("Undo"), &m_undoIndex, 0, m_undo.size(), "")) {
@@ -85,7 +87,9 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     } else {
         ImGui::TextUnformatted(m_undo[m_undoIndex].first.c_str());
     }
-    if (undoDisabled) ImGui::EndDisabled();
+    if (undoDisabled) {
+        ImGui::EndDisabled();
+    }
     if (ImGui::Button(_("Clear Undo buffer"))) {
         m_undo.clear();
         m_undoIndex = 0;
@@ -156,7 +160,9 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%d", i);
                 ImGui::TableSetColumnIndex(1);
-                if (!block.isChained() && !block.isErased()) drawIcon(block);
+                if (!block.isChained() && !block.isErased()) {
+                    drawIcon(block);
+                }
 
                 ImGui::TableSetColumnIndex(2);
                 if (block.isChained()) {
