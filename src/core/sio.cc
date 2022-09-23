@@ -36,12 +36,10 @@
 #define SIO_CYCLES (m_regs.baud * 8)
 
 void PCSX::SIO::acknowledge() {
-    if (!(m_regs.control & ControlFlags::TX_ENABLE)) {
-        return;
-    }
-
-    if (m_regs.control & ControlFlags::ACK_IRQEN) {
-        scheduleInterrupt(SIO_CYCLES);
+    if (m_regs.control & ControlFlags::TX_ENABLE) {
+        if (m_regs.control & ControlFlags::ACK_IRQEN) {
+            scheduleInterrupt(SIO_CYCLES);
+        }
     }
 }
 
@@ -245,7 +243,7 @@ void PCSX::SIO::transmitData() {
     m_regs.data = m_rxBuffer;
     psxHu8ref(0x1040) = m_rxBuffer;
 
-    if (isReceiveIRQReady()) {
+    if (isReceiveIRQReady() && !(m_regs.status & StatusFlags::IRQ)) {
         scheduleInterrupt(SIO_CYCLES);
     }
     m_regs.status |= StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
@@ -278,7 +276,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
 
     SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
 
-    if (selected && (m_regs.control & ControlFlags::TX_IRQEN)) {
+    if (selected && (m_regs.control & ControlFlags::TX_IRQEN) && !(m_regs.status & StatusFlags::IRQ)) {
         scheduleInterrupt(SIO_CYCLES);
     }
 
@@ -294,6 +292,11 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
     if (m_regs.control & ControlFlags::RESET_ERR) {
         m_regs.status &= ~(StatusFlags::RX_PARITYERR | StatusFlags::IRQ);
         m_regs.control &= ~ControlFlags::RESET_ERR;
+
+        if (isReceiveIRQReady()) {
+            m_regs.status |= StatusFlags::IRQ;
+            psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+        }
     }
 
     if (m_regs.control & ControlFlags::RESET) {
@@ -665,9 +668,6 @@ void PCSX::SIO::togglePocketstationMode() {
 void PCSX::SIO::updateFIFOStatus() {
     if (m_rxFIFO.size() > 0) {
         m_regs.status |= StatusFlags::RX_FIFONOTEMPTY;
-        if (isReceiveIRQReady()) {
-            m_regs.status |= StatusFlags::IRQ;
-        }
     } else {
         m_regs.status &= ~StatusFlags::RX_FIFONOTEMPTY;
     }
