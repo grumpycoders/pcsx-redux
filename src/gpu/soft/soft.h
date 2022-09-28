@@ -29,7 +29,7 @@ namespace SoftGPU {
 
 struct SoftRenderer {
     inline void resetRenderer() {
-        m_lobalTextAddrX = 0;
+        m_globalTextAddrX = 0;
         m_globalTextAddrY = 0;
         m_globalTextTP = GPU::TexDepth::Tex4Bits;
         m_globalTextABR = GPU::BlendFunction::HalfBackAndHalfFront;
@@ -87,11 +87,7 @@ struct SoftRenderer {
         SoftRect Range;
     };
 
-    struct TextureWindow {
-        SoftRect Position;
-    };
-
-    TextureWindow m_textureWindow;
+    SoftRect m_textureWindow;
     int m_ditherMode = 0;
     int m_drawX, m_drawY, m_drawW, m_drawH;
 
@@ -102,7 +98,7 @@ struct SoftRenderer {
     int16_t m_m1 = 255, m_m2 = 255, m_m3 = 255;
     int16_t m_y0, m_x0, m_y1, m_x1, m_y2, m_x2, m_y3, m_x3;  // global psx vertex coords
 
-    int32_t m_lobalTextAddrX;
+    int32_t m_globalTextAddrX;
     int32_t m_globalTextAddrY;
     GPU::TexDepth m_globalTextTP;
     GPU::BlendFunction m_globalTextABR;
