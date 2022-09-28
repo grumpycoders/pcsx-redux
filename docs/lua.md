@@ -18,17 +18,17 @@ For complex projects however, it is recommended to split your work into sub-modu
 ## API
 
 ### Basic Lua
-The [LuaJIT extensions](https://luajit.org/extensions.html) are fully loaded, and can be used globally. Most of the [standard Lua libraries](https://www.lua.org/manual/5.1/manual.html#5) are loaded, and are usable. The `require` function exists, but isn't recommended as the loading of external DLLs might be difficult to properly accomplish. Loading pure Lua files is fine. The `ffi` table is loaded globally, there is no need to `require` it, but it'll work nonetheless. As a side-effect of Luv, [Lua-compat-5.3](https://github.com/keplerproject/lua-compat-5.3) is loaded.
+The [LuaJIT extensions](https://luajit.org/extensions.html) are fully loaded, and can be used globally. The [standard Lua libraries](https://www.lua.org/manual/5.1/manual.html#5) are loaded, and are usable. The `require` function exists, but isn't recommended as the loading of external DLLs might be difficult to properly accomplish. Loading pure Lua files is fine. The `ffi` table is loaded globally, there is no need to `require` it, but it'll work nonetheless. As a side-effect of Luv, [Lua-compat-5.3](https://github.com/keplerproject/lua-compat-5.3) is loaded.
 
 ### Dear ImGui
 A good portion of [ImGui](https://github.com/ocornut/imgui) is bound to the Lua environment, and it's possible for the Lua code to emit arbitrary widgets through ImGui. It is advised to consult the [user manual](https://pthom.github.io/imgui_manual_online/manual/imgui_manual.html) of ImGui in order to properly understand how to make use of it. The list of current bindings can be found [within the source code](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/imgui_lua_bindings/imgui_iterator.inl). Some usage examples will be provided within the case studies.
 
 ### OpenGL
 OpenGL is bound directly to the Lua API through FFI bindings, loosely inspired and adapted from [LuaJIT-OpenCL](https://github.com/malkia/luajit-opencl
-). Some usage examples can be seen in the CRT-Lottes shader configuration page.
+). Some usage examples can be seen in [the CRT-Lottes shader configuration page](https://github.com/grumpycoders/pcsx-redux/blob/eadd59e764d526636d900fada6f3dd0057035690/src/gui/shaders/crt-lottes.cc#L141-L146).
 
 ### Luv
-For network access and interaction, PCSX-Redux uses libuv internally, and this is exposed to the Lua API through [Luv](https://github.com/luvit/luv)
+For network access and interaction, PCSX-Redux uses [libuv](https://libuv.org/) internally, and is exposed to the Lua API through [Luv](https://github.com/luvit/luv)
 
 ### Zlib
 The Zlib C-API is exposed through [FFI bindings](https://github.com/luapower/zlib).
@@ -50,7 +50,7 @@ PCSX-Redux will periodically try to call the Lua function `DrawImguiFrame` to al
 #### Events Engine interaction & Execution Contexts
 LuaJIT C callbacks aren't called from a safe execution context that can allow for coroutine resuming, and luv's execution context doesn't have any error handling.
 
-It is possible to defer executing code to the main loop of PCSX, which can (a) resume coroutines and (b) execute code in a safe context. The function `PCSX.nextTick(func)` will execute the given function in the next main loop iteration. Here's some examples of how to use it:
+It is possible to defer executing code to the main loop of PCSX-Redux, which can (a) resume coroutines and (b) execute code in a safe context. The function `PCSX.nextTick(func)` will execute the given function in the next main loop iteration. Here's some examples of how to use it:
 
 ```lua
     local captures = {}
@@ -95,7 +95,7 @@ function createClient(ip, port)
 end
 ```
 
-Of course, this can also delay processing significantly, as the main loop is usually bound to the speed of the UI, which can mean up to 13ms of delay.
+Of course, this can also delay processing significantly, as the main loop is usually bound to the speed of the UI, which can mean up to 20ms of delay.
 
 #### File API
 While the normal Lua io API is loaded, there's a more powerful API that's more tightly integrated with the rest of the PCSX-Redux File handling code. It's an abstraction class that allows seamless manipulation of various objects using a common API.
@@ -103,7 +103,7 @@ While the normal Lua io API is loaded, there's a more powerful API that's more t
 The File objects have different properties depending on how they are created and their intention. But generally speaking, the following rules apply:
 
 - Files are reference counted. They will be deleted when the reference count reaches zero. The Lua garbage collector will only decrease the reference count.
-- Whenever possible, writes are deferred to an asynchronous thread, making writes return basically instantly. This speed up comes at the trade off of data integrity, which means writes aren't guaranteed to be flushed to the disk yet when the function returns. Data will always have integrity internally within PCSX-Redux however.
+- Whenever possible, writes are deferred to an asynchronous thread, making writes return basically instantly. This speed up comes at the trade off of data integrity, which means writes aren't guaranteed to be flushed to the disk yet when the function returns. Data will always have integrity internally within PCSX-Redux however, and when exiting normally, all data will be flushed to the disk.
 - Some File objects can be cached. When caching, reads and writes will be done transparently, and the cache will be used instead of the actual file. This will make reads return basically instantly too.
 - The Read and Write APIs can haul LuaBuffer objects. These are Lua objects that can be used to read and write data to the file. You can construct one using the `Support.NewLuaBuffer(size)` function. They can be cast to strings, and can be used as a table for reading and writing bytes off of it, in a 0-based fashion. The length operator will return the size of the buffer. The methods `:maxsize()` and `:resize(size)` are available.
 - If the file isn't closed when the file object is destroyed, it'll be closed then, but letting the garbage collector do the closing is not recommended. This is because the garbage collector will only run when the memory pressure is high enough, and the file handle will be held for a long time.
@@ -125,7 +125,7 @@ Reads from the File object and advances the read pointer accordingly. The return
 
 Reads from the File object at the specified position. No pointers are modified. The return value depends on the variant used, just like the non-At variants above.
 ```lua
-:readAt(size, ptr)
+:readAt(size, pos)
 :readAt(ptr, size, pos)
 :readAt(buffer, pos)
 ```
@@ -140,7 +140,7 @@ Writes to the File object. The non-At variants will advances the write pointer a
 :writeAt(ptr, size, pos)
 ```
 
-Some APIs may return a `Slice` object, which is an opaque buffer coming from C++. It's possible to write a slice to a file in a zero-copy manner:
+Some APIs may return a `Slice` object, which is an opaque buffer coming from C++. It is possible to write a slice to a file in a zero-copy manner:
 
 ```lua
 :writeMoveSlice(slice)
@@ -189,7 +189,7 @@ Creates a read-only view of the file starting at the specified position, spannin
 :subFile([start[, length]])
 ```
 
-In addition to the above methods, the File API has these helpers, that'll read or write binary values off their corresponding stream position for the non-At variants, or at the indicated position for the At variants. All the values will be read or store in Little Endian, regardless of the host's endianness.
+In addition to the above methods, the File API has these helpers, that'll read or write binary values off their corresponding stream position for the non-At variants, or at the indicated position for the At variants. All the values will be read or stored in Little Endian, regardless of the host's endianness.
 ```lua
 :readU8(), :readU16(), :readU32(), :readU64(),
 :readI8(), :readI16(), :readI32(), :readI64(),
@@ -215,16 +215,16 @@ The `open` function will function on filesystem and network URLs, while the `buf
 - `TRUNCATE`: Opens the file for reading and writing. If the file does not exist, it will be created. If it does exist, it will be truncated to 0 size.
 - `CREATE`: Opens the file for reading and writing. If the file does not exist, it will be created. If it does exist, it will be left untouched.
 - `READWRITE`: Opens the file for reading and writing. Will fail if the file does not exist.
-- `DOWNLOAD_URL`: Opens the file for reading only. Will immediately start downloading the file from the network. The [curl](http://curl.se/libcurl) is the backend for this feature, and its [url schemes](https://everything.curl.dev/cmdline/urls) are supported. The progress of the download can be monitored with the `:cacheProgress()` method.
+- `DOWNLOAD_URL`: Opens the file for reading only. Will immediately start downloading the file from the network. The `filename` argument will be treated as a URL. The [curl](http://curl.se/libcurl) is the backend for this feature, and its [url schemes](https://everything.curl.dev/cmdline/urls) are supported. The progress of the download can be monitored with the `:cacheProgress()` method.
 - `DOWNLOAD_URL_AND_WAIT`: As above, but suspends the current coroutine until the download is done. Cannot be used with the main thread.
-- `ACQUIRE`: Only valid for `buffer`. See below.
 
-When calling `buffer()` with no argument, this will create an empty read-write buffer. When calling it with a pointer and a size, this will have the following behavior, depending on type:
+When calling `.buffer()` with no argument, this will create an empty read-write buffer. When calling it with a cdata pointer and a size, this will have the following behavior, depending on type:
+
 - `READWRITE` (or no type): The memory passed as an argument will be copied first.
 - `READ`: The memory passed as an argument will be referenced, and the lifespan of said memory needs to outlast the File object. The File object will be read-only.
-- `ACQUIRE`: It will acquire the pointer passed as an argument, and free it later using `free()`, meaning it needed to be allocated using `malloc()` in the first place.
+- `ACQUIRE`: It will acquire the pointer passed as an argument, and free it later using `free()`, meaning it needs to have been allocated using `malloc()` in the first place.
 
-The `uvFifo` function will create a File object that will read from and write to the specified TCP address and port after connecting to it. The `:failed()` method will return true in case of a connection failure. The address is a string, and must be a strict IP address. The port is a number. As the name suggests, this object is a FIFO, meaning that incoming bytes will be consumed by any read operation. The `:size()` method will return the number of bytes in the FIFO. Writes will be immediately sent over. There are no reception guarantees, as the other side might have disconnected at any point. The `:eof()` method will return true when the opposite end of the stream has been disconnected and there's no more bytes in the FIFO.
+The `uvFifo` function will create a File object that will read from and write to the specified TCP address and port after connecting to it. The `:failed()` method will return true in case of a connection failure. The address is a string, and must be a strict IP address, no hostnames allowed. The port is a number between 1 and 65535 inclusive. As the name suggests, this object is a FIFO, meaning that incoming bytes will be consumed by any read operation. The `:size()` method will return the number of bytes in the FIFO. Writes will be immediately sent over. There are no reception guarantees, as the other side might have disconnected at any point. The `:eof()` method will return true when the opposite end of the stream has been disconnected and there's no more bytes in the FIFO.
 
 #### Iso files
 There is some limited API for working with ISO files.
@@ -246,7 +246,7 @@ The `:open` method has some magic built-in. The size argument is optional, and i
 - `'M2_FORM1'`: the returned File object will read 2048 bytes per sector.
 - `'M2_FORM2'`: the returned File object will read 2324 bytes per sector.
 
-The resulting File object will cache a single full sector in memory, meaning that small sequential reads won't read the same sector over and off from the disk.
+The resulting File object will cache a single full sector in memory, meaning that small sequential reads won't read the same sector over and over from the disk.
 
 The ISOReader object has the following methods:
 
@@ -343,29 +343,31 @@ PCSX.SIO0.slots[1].pads[1].setOverride(PCSX.CONSTS.PAD.BUTTON.DOWN)
 ```
 
 #### Execution flow
-The Lua code has the following 4 API functions available to it in order to control the execution flow of the emulator:
+The Lua code has the following API functions available to it in order to control the execution flow of the emulator:
 
  - `PCSX.pauseEmulator()`
  - `PCSX.resumeEmulator()`
  - `PCSX.softResetEmulator()`
  - `PCSX.hardResetEmulator()`
 
-It's also possible to manipulate savestates using the following two functions:
+It's also possible to manipulate savestates using the following functions:
 
  - `PCSX.createSaveState()    -- returns a slice representing the savestate`
  - `PCSX.loadSaveState(slice)`
+ - `PCSX.loadSaveState(file)`
 
 #### Messages
-The globals `print` and `printError` are available, and will display logs in the Lua Console. You can also use `PCSX.log` to display a line in the general Log window. All three functions should behave the way you'd expect from a `print` function in Lua.
+The globals `print` and `printError` are available, and will display logs in the Lua Console. You can also use `PCSX.log` to display a line in the general Log window. All three functions should behave the way you'd expect from the normal `print` function in mainstream Lua.
 
 #### GUI
-You can move the cursor within the assembly window and the first memory view using the following two functions:
+You can move the cursor within the assembly window and the first memory view using the following functions:
 
 - `PCSX.GUI.jumpToPC(pc)`
 - `PCSX.GUI.jumpToMemory(address[, width])`
 
 #### GPU
 You can take a screenshot of the current view of the emulated display using the following:
+
 - `PCSX.GPU.takeScreenShot()`
 
 This will return a struct that has the following fields:
@@ -413,7 +415,7 @@ bp2 = PCSX.addBreakpoint(0x80030000, 'Exec', 4, 'Shell reached - pausing', funct
 end)
 ```
 
-The returned object will have a few methods attached to it:
+The returned breakpoint object will have a few methods attached to it:
 
 - `:disable()`
 - `:enable()`
