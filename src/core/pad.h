@@ -42,6 +42,7 @@ enum {
     PAD_STATE_IDLE = 0,
     PAD_STATE_READ_COMMAND = 1,
     PAD_STATE_READ_DATA = 2,
+    PAD_STATE_BAD_COMMAND = 3,
 };
 
 class Pads {
@@ -68,13 +69,21 @@ class Pads {
 
     void setLua(Lua L);
 
+    bool isPadConnected(int pad) {
+        if (pad > m_pads.size()) {
+            return false;
+        } else {
+            return m_pads[pad - 1].isControllerConnected();
+        }
+    }
+
   private:
     EventBus::Listener m_listener;
     int m_gamepadsMap[16] = {0};
 
-    static const int GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 1;
-    static const int GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 2;
-    static const int GLFW_GAMEPAD_BUTTON_INVALID = GLFW_GAMEPAD_BUTTON_LAST + 3;
+    static constexpr int GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 1;
+    static constexpr int GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 2;
+    static constexpr int GLFW_GAMEPAD_BUTTON_INVALID = GLFW_GAMEPAD_BUTTON_LAST + 3;
 
     // settings block
     // Pad keyboard bindings
@@ -164,6 +173,7 @@ class Pads {
         uint8_t doDualshockCommand(uint32_t &padState);
         void getButtons();
         bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
+        bool isControllerConnected() { return m_settings.get<SettingConnected>(); }
 
         json getCfg();
         void setCfg(const json &j);

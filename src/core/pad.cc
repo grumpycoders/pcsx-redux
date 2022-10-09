@@ -170,6 +170,7 @@ bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* st
             return false;
         default:
             return state->buttons[mapped];
+            break;
     }
 }
 
@@ -240,7 +241,9 @@ void PCSX::Pads::Pad::getButtons() {
             float a = 0;
             if ((x * x) > (y * y)) {
                 a = std::acos(x);
-                if (y < 0) a = π(2.0f) - a;
+                if (y < 0) {
+                    a = π(2.0f) - a;
+                }
             } else {
                 a = std::asin(y);
                 if (x < 0) {
@@ -309,7 +312,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value, uint32_t& padState) {
             PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
             m_cmd = magic_enum::enum_integer(PadCommands::Idle);
             m_bufferLen = 0;
-            padState = PAD_STATE_IDLE;  // Tell the SIO class we're in an invalid state
+            padState = PAD_STATE_BAD_COMMAND;  // Tell the SIO class we're in an invalid state
             return 0xff;
         }
     } else if (m_currentByte >= m_bufferLen) {
@@ -361,7 +364,7 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand(uint32_t& padState) {
 
     if (m_cmd == magic_enum::enum_integer(PadCommands::SetConfigMode)) {
         if (m_configMode) {  // The config mode version of this command does not reply with pad data
-            static const uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            static constexpr uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
             std::memcpy(m_buf, reply, 8);
             return 0xf3;
         } else {
@@ -402,7 +405,7 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand(uint32_t& padState) {
         PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), static_cast<uint8_t>(m_cmd));
         m_cmd = magic_enum::enum_integer(PadCommands::Idle);
         m_bufferLen = 0;
-        padState = PAD_STATE_IDLE;  // Tell the SIO class we're in an invalid state
+        padState = PAD_STATE_BAD_COMMAND;  // Tell the SIO class we're in an invalid state
         return 0xff;
     }
 }
@@ -479,6 +482,7 @@ uint8_t PCSX::Pads::Pad::read() {
             memcpy(m_buf, m_stdpar, 4);
             m_bufferLen = 4;
             return 0x41;
+            break;
     }
 }
 
@@ -776,6 +780,7 @@ int& PCSX::Pads::Pad::getButtonFromGUIIndex(int buttonIndex) {
             return m_settings.get<Keyboard_PadLeft>().value;
         default:
             abort();
+            break;
     }
 }
 
@@ -827,8 +832,12 @@ void PCSX::Pads::Pad::setDefaults(bool firstController) {
 void PCSX::Pads::setLua(Lua L) {
     auto getButton = [this](Lua L, unsigned pad) -> int {
         int n = L.gettop();
-        if (n == 0) return L.error("Not enough arguments to getButton");
-        if (!L.isnumber(1)) return L.error("Invalid argument to getButton");
+        if (n == 0) {
+            return L.error("Not enough arguments to getButton");
+        }
+        if (!L.isnumber(1)) {
+            return L.error("Invalid argument to getButton");
+        }
         auto buttons = m_pads[pad].m_data.buttonStatus;
         unsigned button = L.checknumber(1);
         L.push((buttons & (1 << button)) == 0);
@@ -837,8 +846,12 @@ void PCSX::Pads::setLua(Lua L) {
 
     auto setOverride = [this](Lua L, unsigned pad) -> int {
         int n = L.gettop();
-        if (n == 0) return L.error("Not enough arguments to setOverride");
-        if (!L.isnumber(1)) return L.error("Invalid argument to setOverride");
+        if (n == 0) {
+            return L.error("Not enough arguments to setOverride");
+        }
+        if (!L.isnumber(1)) {
+            return L.error("Invalid argument to setOverride");
+        }
         auto& overrides = m_pads[pad].m_data.overrides;
         unsigned button = L.checknumber(1);
         button = 1 << button;
@@ -848,8 +861,12 @@ void PCSX::Pads::setLua(Lua L) {
 
     auto clearOverride = [this](Lua L, unsigned pad) -> int {
         int n = L.gettop();
-        if (n == 0) return L.error("Not enough arguments to clearOverride");
-        if (!L.isnumber(1)) return L.error("Invalid argument to clearOverride");
+        if (n == 0) {
+            return L.error("Not enough arguments to clearOverride");
+        }
+        if (!L.isnumber(1)) {
+            return L.error("Invalid argument to clearOverride");
+        }
         auto& overrides = m_pads[pad].m_data.overrides;
         unsigned button = L.checknumber(1);
         button = 1 << button;
