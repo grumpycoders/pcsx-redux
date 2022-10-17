@@ -28,13 +28,9 @@ SOFTWARE.
 
 #include "common/hardware/hwregs.h"
 #include "common/syscalls/syscalls.h"
+#include "psyqo/alloc.h"
 #include "psyqo/kernel.hh"
 #include "psyqo/scene.hh"
-
-extern "C" {
-void* psyqo_heap_start();
-void* psyqo_heap_end();
-}
 
 int psyqo::Application::run() {
     enterCriticalSection();
