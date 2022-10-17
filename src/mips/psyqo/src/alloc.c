@@ -27,12 +27,12 @@ SOFTWARE.
 #include <stddef.h>
 #include <stdint.h>
 
+#include "psyqo/alloc.h"
+
 extern uintptr_t __heap_start;
 extern uintptr_t __stack_start;
 
 static void *heap_end = NULL;
-
-static void base_free(void *ptr);
 
 static void *sbrk(ptrdiff_t incr) {
     void *prev_heap_end, *next_heap_end, *ret;
@@ -79,7 +79,7 @@ static heap_t *find_fit(heap_t *head, size_t size) {
     return prev;
 }
 
-static void *base_malloc(size_t size) {
+void *psyqo_malloc(size_t size) {
     void *ptr = NULL, *heap_ptr;
     heap_t *new, *prev;
 
@@ -149,16 +149,16 @@ static void *base_malloc(size_t size) {
     return ptr;
 }
 
-static void *base_realloc(void *ptr, size_t size) {
+void *psyqo_realloc(void *ptr, size_t size) {
     heap_t *prev;
     void *new = NULL;
 
     if (!size && ptr) {
-        base_free(ptr);
+        psyqo_free(ptr);
         return NULL;
     }
 
-    if (!ptr) return base_malloc(size);
+    if (!ptr) return psyqo_malloc(size);
 
     size = (size + sizeof(heap_t) + 7) & ~7;
 
@@ -189,15 +189,15 @@ static void *base_realloc(void *ptr, size_t size) {
     }
 
     // No luck.
-    new = base_malloc(size);
+    new = psyqo_malloc(size);
     if (!new) return NULL;
 
     __builtin_memcpy(new, ptr, prev->size);
-    base_free(ptr);
+    psyqo_free(ptr);
     return new;
 }
 
-static void base_free(void *ptr) {
+void psyqo_free(void *ptr) {
     heap_t *cur;
     void *top;
     size_t size;
@@ -238,20 +238,20 @@ static void base_free(void *ptr) {
     cur->prev->next = cur->next;
 }
 
-void *__builtin_new(size_t size) { return base_malloc(size); }
-void __builtin_delete(void *ptr) { base_free(ptr); }
+void *__builtin_new(size_t size) { return psyqo_malloc(size); }
+void __builtin_delete(void *ptr) { psyqo_free(ptr); }
 // void * operator new(unsigned int);
-void *_Znwj(unsigned int size) { return base_malloc(size); }
+void *_Znwj(unsigned int size) { return psyqo_malloc(size); }
 // void * operator new[](unsigned int);
-void *_Znaj(unsigned int size) { return base_malloc(size); }
+void *_Znaj(unsigned int size) { return psyqo_malloc(size); }
 // void operator delete(void*);
-void _ZdlPv(void *ptr) { base_free(ptr); }
+void _ZdlPv(void *ptr) { psyqo_free(ptr); }
 // void operator delete[](void*);
-void _ZdaPv(void *ptr) { base_free(ptr); }
+void _ZdaPv(void *ptr) { psyqo_free(ptr); }
 // void operator delete(void*, unsigned int);
-void _ZdlPvj(void *ptr, unsigned int size) { base_free(ptr); }
+void _ZdlPvj(void *ptr, unsigned int size) { psyqo_free(ptr); }
 // void operator delete[](void*, unsigned int);
-void _ZdaPvj(void *ptr, unsigned int size) { base_free(ptr); }
+void _ZdaPvj(void *ptr, unsigned int size) { psyqo_free(ptr); }
 
 void *psyqo_heap_start() { return heap_base; }
 void *psyqo_heap_end() { return heap_end; }
