@@ -51,3 +51,7 @@ libcd.a    libgs.a    libmcrd.a  libsnd.a    noprint.obj.o
 ## Caveats of the conversion
 
 The crt0 files (the files typically named 2MBYTE.OBJ, 8MBYTE.OBJ, NOHEAP.OBJ, and NONE3.OBJ) cannot be properly converted. The provided crt0 in the common folder should be providing an appropriate replacement however.
+
+## Optional: Apply fix for header include order
+
+psyq has a notorious issue with the header files that prevents you from changing the include order, among other annoyances. There are a set of updated headers available which try to address these issues: https://github.com/johnbaumann/psyq_include_what_you_use
