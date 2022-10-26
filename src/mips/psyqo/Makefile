@@ -10,9 +10,11 @@ SRCS = \
 ../common/syscalls/printf.s \
 src/alloc.c \
 src/application.cpp \
+src/cdrom-device.cpp \
 src/font.cpp \
 src/gpu.cpp \
 src/kernel.cpp \
+src/msf.cpp \
 src/scene.cpp \
 src/simplepad.cpp \
 src/xprintf.c \

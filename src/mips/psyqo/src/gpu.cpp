@@ -125,10 +125,10 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
         eastl::atomic_signal_fence(eastl::memory_order_release);
     });
     // Enable DMA interrupt for GPU
-    auto t = DICR;
-    t &= 0xffffff;
-    t |= 0x040000;
-    DICR = t;
+    auto dicr = DICR;
+    dicr &= 0xffffff;
+    dicr |= 0x040000;
+    DICR = dicr;
 }
 
 namespace {

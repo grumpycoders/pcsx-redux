@@ -185,13 +185,11 @@ void psyqo::Kernel::Internal::prepare() {
         }
     });
     syscall_enableEvent(event);
-    auto t = IMASK;
-    t |= IRQ_DMA;
-    IMASK = t;
-    t = DICR;
-    t &= 0xffffff;
-    t |= 0x800000;
-    DICR = t;
+    IMASK = IMASK | IRQ_DMA;
+    uint32_t dicr = DICR;
+    dicr &= 0xffffff;
+    dicr |= 0x800000;
+    DICR = dicr;
     syscall_setIrqAutoAck(3, 1);
 
     for (auto& i : getInitializers()) i();

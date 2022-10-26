@@ -1137,7 +1137,7 @@ class CDRomImpl : public PCSX::CDRom {
             memset(m_transfer, 0, PCSX::IEC60908b::DATA_SIZE);
             m_stat = DiskError;
             m_result[0] |= STATUS_ERROR;
-            scheduleCDReadIRQ((m_mode & 0x80) ? (cdReadTime / 2) : cdReadTime);
+            setIrq();
             return;
         }
 
