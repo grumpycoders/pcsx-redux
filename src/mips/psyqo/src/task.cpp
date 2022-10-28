@@ -24,28 +24,53 @@ SOFTWARE.
 
 */
 
-#pragma once
-
-#include <EASTL/functional.h>
-#include <stdint.h>
-
 #include "psyqo/task.hh"
 
-namespace psyqo {
+psyqo::TaskQueue& psyqo::TaskQueue::run(Task&& task) {
+    task.m_taskQueue = this;
+    m_queue.clear();
+    m_catch = nullptr;
+    m_finally = nullptr;
+    m_queue.push_back(eastl::move(task));
+    rerun();
 
-/**
- * @brief The base CDRom class.
- *
- * @details The CDRom system is meant to be swappable between multiple
- * implementations, so the base class is a pure abstraction. This allows
- * the ISO9660 parser to be used with any CDRom implementation.
- */
+    return *this;
+}
 
-class CDRom {
-  public:
-    virtual ~CDRom() {}
-    virtual void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) = 0;
-    virtual TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) = 0;
-};
+psyqo::TaskQueue& psyqo::TaskQueue::then(Task&& task) {
+    task.m_taskQueue = this;
+    m_queue.push_back(eastl::move(task));
 
-}  // namespace psyqo
+    return *this;
+}
+
+psyqo::TaskQueue& psyqo::TaskQueue::butCatch(eastl::function<void(TaskQueue*)>&& fun) {
+    m_catch = eastl::move(fun);
+
+    return *this;
+}
+
+psyqo::TaskQueue& psyqo::TaskQueue::finally(eastl::function<void(TaskQueue*)>&& fun) {
+    m_finally = eastl::move(fun);
+
+    return *this;
+}
+
+void psyqo::TaskQueue::rerun() {
+    m_index = 0;
+    runNext();
+}
+
+void psyqo::TaskQueue::runNext() {
+    if (m_index >= m_queue.size()) {
+        if (m_finally) m_finally(this);
+        return;
+    }
+    Task* task = &m_queue[m_index++];
+    task->m_runner(task);
+}
+
+void psyqo::TaskQueue::runCatch() {
+    if (m_catch) m_catch(this);
+    if (m_finally) m_finally(this);
+}

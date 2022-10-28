@@ -17,6 +17,7 @@ src/kernel.cpp \
 src/msf.cpp \
 src/scene.cpp \
 src/simplepad.cpp \
+src/task.cpp \
 src/xprintf.c \
 
 CPPFLAGS = -Werror -I../../../third_party/EASTL/include -I../../../third_party/EABase/include/Common

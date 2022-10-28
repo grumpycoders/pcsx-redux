@@ -61,6 +61,18 @@ void psyqo::CDRomDevice::reset(eastl::function<void(bool)> &&callback) {
     CDROM_REG1_UC = CDL_INIT;
 }
 
+psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReset() {
+    return TaskQueue::Task([this](auto task) {
+        reset([task](bool success) {
+            if (success) {
+                task->resolve();
+            } else {
+                task->reject();
+            }
+        });
+    });
+}
+
 void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buffer,
                                      eastl::function<void(bool)> &&callback) {
     Kernel::assert(m_callback == nullptr, "Only one action allowed at a time");
@@ -78,6 +90,20 @@ void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buff
     CDROM_REG2_UC = bcd[1];
     CDROM_REG2_UC = bcd[2];
     CDROM_REG1_UC = CDL_SETLOC;
+}
+
+psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) {
+    m_count = count;
+    m_ptr = reinterpret_cast<uint8_t *>(buffer);
+    return TaskQueue::Task([this, sector](auto task) {
+        readSectors(sector, m_count, m_ptr, [task](bool success) {
+            if (success) {
+                task->resolve();
+            } else {
+                task->reject();
+            }
+        });
+    });
 }
 
 void psyqo::CDRomDevice::irq() {
@@ -143,9 +169,9 @@ void psyqo::CDRomDevice::complete() {
             eastl::atomic_signal_fence(eastl::memory_order_acquire);
             Kernel::assert(!!m_callback, "Wrong CDRomDevice state");
             Kernel::queueCallbackFromISR([this]() {
-                m_callback(true);
-                m_callback = nullptr;
+                auto callback = eastl::move(m_callback);
                 m_action = NONE;
+                callback(true);
             });
             break;
         default:
@@ -186,8 +212,8 @@ void psyqo::CDRomDevice::discError() {
     eastl::atomic_signal_fence(eastl::memory_order_acquire);
     Kernel::assert(!!m_callback, "Wrong CDRomDevice state");
     Kernel::queueCallbackFromISR([this]() {
-        m_callback(false);
-        m_callback = nullptr;
+        auto callback = eastl::move(m_callback);
         m_action = NONE;
+        callback(false);
     });
 }
