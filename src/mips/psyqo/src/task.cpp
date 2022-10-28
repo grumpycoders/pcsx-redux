@@ -26,13 +26,13 @@ SOFTWARE.
 
 #include "psyqo/task.hh"
 
-psyqo::TaskQueue& psyqo::TaskQueue::run(Task&& task) {
+psyqo::TaskQueue& psyqo::TaskQueue::start(Task&& task) {
     task.m_taskQueue = this;
     m_queue.clear();
     m_catch = nullptr;
     m_finally = nullptr;
     m_queue.push_back(eastl::move(task));
-    rerun();
+    run();
 
     return *this;
 }
@@ -56,7 +56,7 @@ psyqo::TaskQueue& psyqo::TaskQueue::finally(eastl::function<void(TaskQueue*)>&& 
     return *this;
 }
 
-void psyqo::TaskQueue::rerun() {
+void psyqo::TaskQueue::run() {
     m_index = 0;
     runNext();
 }

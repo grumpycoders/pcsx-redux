@@ -44,7 +44,35 @@ namespace psyqo {
 class CDRom {
   public:
     virtual ~CDRom() {}
+
+    /**
+     * @brief Read a sector from the CDRom.
+     *
+     * @details The function will make reasonable attempts at reading the
+     * disk, but it is not guaranteed to succeed. Failures may be caused
+     * by the disk being faulty, the lid being opened, or no valid disk
+     * being present. Only one operation can be in progress at a time.
+     *
+     * @param sector The sector to read.
+     * @param buffer The buffer to read into.
+     * @param size The size of the buffer.
+     * @param callback The callback to call when the read is done. It will be called
+     * from the main thread when possible. Its one argument is a boolean indicating
+     * whether the read was successful.
+     */
     virtual void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) = 0;
+
+    /**
+     * @brief Schedule a read operation.
+     *
+     * @details This is a convenience function that will schedule a read operation
+     * and return a task that can be waited on.
+     *
+     * @param sector The sector to read.
+     * @param buffer The buffer to read into.
+     * @param size The size of the buffer.
+     * @return A task that can be queued into a `TaskQueue`
+     */
     virtual TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) = 0;
 };
 

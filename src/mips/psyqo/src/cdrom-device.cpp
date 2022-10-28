@@ -62,15 +62,7 @@ void psyqo::CDRomDevice::reset(eastl::function<void(bool)> &&callback) {
 }
 
 psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReset() {
-    return TaskQueue::Task([this](auto task) {
-        reset([task](bool success) {
-            if (success) {
-                task->resolve();
-            } else {
-                task->reject();
-            }
-        });
-    });
+    return TaskQueue::Task([this](auto task) { reset([task](bool success) { task->complete(success); }); });
 }
 
 void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buffer,
@@ -96,13 +88,7 @@ psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadSectors(uint32_t sector, 
     m_count = count;
     m_ptr = reinterpret_cast<uint8_t *>(buffer);
     return TaskQueue::Task([this, sector](auto task) {
-        readSectors(sector, m_count, m_ptr, [task](bool success) {
-            if (success) {
-                task->resolve();
-            } else {
-                task->reject();
-            }
-        });
+        readSectors(sector, m_count, m_ptr, [task](bool success) { task->complete(success); });
     });
 }
 

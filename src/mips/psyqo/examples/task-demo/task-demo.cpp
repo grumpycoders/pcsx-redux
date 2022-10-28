@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#include <EASTL/fixed_string.h>
+
 #include "common/syscalls/syscalls.h"
 #include "psyqo/application.hh"
 #include "psyqo/cdrom-device.hh"
@@ -31,6 +33,7 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 #include "psyqo/scene.hh"
 #include "psyqo/task.hh"
+#include "psyqo/xprintf.h"
 
 namespace {
 
@@ -43,15 +46,15 @@ class TaskDemo final : public psyqo::Application {
     psyqo::CDRomDevice m_cdrom;
     psyqo::TaskQueue m_queue;
     uint8_t m_buffer[2048];
+    eastl::fixed_string<char, 256> m_text;
 };
 
 class TaskDemoScene final : public psyqo::Scene {
     void frame() override;
 };
 
-// We're instantiating the two objects above right now.
-TaskDemo TaskDemo;
-TaskDemoScene TaskDemoScene;
+TaskDemo taskDemo;
+TaskDemoScene taskDemoScene;
 
 }  // namespace
 
@@ -67,23 +70,33 @@ void TaskDemo::prepare() {
 
 void TaskDemo::createScene() {
     m_font.uploadSystemFont(gpu());
-    pushScene(&TaskDemoScene);
-    m_queue.run(m_cdrom.scheduleReset())
+    pushScene(&taskDemoScene);
+    m_queue
+        .start([this](auto task) {
+            m_text = "Initializing CDROM...";
+            syscall_puts("Initializing CDROM...\n");
+            task->resolve();
+        })
+        .then(m_cdrom.scheduleReset())
         .then(m_cdrom.scheduleReadSectors(16, 1, m_buffer))
         .then([this](auto task) {
-            ramsyscall_printf("Success: %02x %02x %02x %02x %02x %02x %02x %02x\n", m_buffer[0], m_buffer[1],
-                              m_buffer[2], m_buffer[3], m_buffer[4], m_buffer[5], m_buffer[6], m_buffer[7]);
+            fsprintf(m_text, "Success: %02x %02x %02x %02x %02x %02x %02x %02x", m_buffer[0], m_buffer[1], m_buffer[2],
+                     m_buffer[3], m_buffer[4], m_buffer[5], m_buffer[6], m_buffer[7]);
+            ramsyscall_printf("%s\n", m_text.c_str());
             task->resolve();
         })
         .butCatch([this](auto queue) {
+            m_text = "Failure, retrying...";
             syscall_puts("Failure, retrying...\n");
-            gpu().armTimer(gpu().now() + 1 * 1000 * 1000, [queue](auto id) { queue->rerun(); });
-        });
+            gpu().armTimer(gpu().now() + 1 * 1000 * 1000, [queue](auto id) { queue->run(); });
+        })
+        .run();
 }
 
 void TaskDemoScene::frame() {
     psyqo::Color bg{{.r = 0, .g = 64, .b = 91}};
-    TaskDemo.gpu().clear(bg);
+    taskDemo.gpu().clear(bg);
+    taskDemo.m_font.print(taskDemo.gpu(), taskDemo.m_text, {{.x = 4, .y = 32}}, {.r = 255, .g = 255, .b = 255});
 }
 
-int main() { return TaskDemo.run(); }
+int main() { return taskDemo.run(); }

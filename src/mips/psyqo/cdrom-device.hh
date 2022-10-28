@@ -32,12 +32,40 @@ SOFTWARE.
 
 namespace psyqo {
 
+
+/**
+ * @brief A specialization of the CDRom interface.
+ *
+ * @details This class is a specialization of the CDRom interface, which
+ * provides a way to read from the physical CDRom drive of the console.
+ * 
+ */
 class CDRomDevice final : public CDRom {
   public:
     virtual ~CDRomDevice();
+
+    /**
+     * @brief Prepares the CDRom subsystem.
+     *
+     * @details This method prepares the kernel and the system for the
+     * CDRom subsystem. It should be called once from the application's
+     * `prepare` method.
+     *
+     */
     void prepare();
+
+    /**
+     * @brief Resets the CDRom controller.
+     *
+     * @details This method will reset the CDRom controller. It technically
+     * does not need to be called, but it is a good idea to call it when
+     * the application starts, in order to ensure that the controller
+     * is in a known state.
+     *
+     */
     void reset(eastl::function<void(bool)> &&callback);
     TaskQueue::Task scheduleReset();
+
     void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
     TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) override;
 
