@@ -303,7 +303,7 @@ class GPU {
      * an hour, so it shouldn't be used for deadlines that are more than 30 minutes away. This relies
      * on root counter 1 set in hsync mode without any target value. The value will be updated
      * during the idle moments of the page flip, without relying on interrupts. The precision isn't
-     * really good, as it assumes one scanline runs at 64ms, but it should be good enough for most
+     * really good, as it assumes one scanline runs at 64us, but it should be good enough for most
      * purposes. Creating a stopwatch out of it should show that it's running a bit too fast,
      * approximately 1 second too fast every minute or so. Its monotonicity should be proper however.
      *
