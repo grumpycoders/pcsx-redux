@@ -72,7 +72,7 @@ class SIO {
         bool isChained() const { return (allocState & ~1) == 0x52; }
     };
 
-    static constexpr size_t c_sectorSize = 8 * 16;        // 80h bytes per sector/frame
+    static constexpr size_t c_sectorSize = 8 * 16;            // 80h bytes per sector/frame
     static constexpr size_t c_blockSize = c_sectorSize * 64;  // 40h sectors per block
     static constexpr size_t c_cardSize = c_blockSize * 16;    // 16 blocks per frame(directory+15 saves)
     static constexpr size_t c_cardCount = 2;

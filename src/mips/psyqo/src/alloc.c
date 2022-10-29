@@ -24,10 +24,10 @@ SOFTWARE.
 
 */
 
+#include "psyqo/alloc.h"
+
 #include <stddef.h>
 #include <stdint.h>
-
-#include "psyqo/alloc.h"
 
 extern uintptr_t __heap_start;
 extern uintptr_t __stack_start;
