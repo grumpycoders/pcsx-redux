@@ -26,15 +26,15 @@ SOFTWARE.
 
 #include "psyqo/task.hh"
 
-psyqo::TaskQueue& psyqo::TaskQueue::start(Task&& task) {
-    task.m_taskQueue = this;
+void psyqo::TaskQueue::reset() {
     m_queue.clear();
     m_catch = nullptr;
     m_finally = nullptr;
-    m_queue.push_back(eastl::move(task));
-    run();
+}
 
-    return *this;
+psyqo::TaskQueue& psyqo::TaskQueue::startWith(Task&& task) {
+    reset();
+    return then(eastl::move(task));
 }
 
 psyqo::TaskQueue& psyqo::TaskQueue::then(Task&& task) {
@@ -57,13 +57,26 @@ psyqo::TaskQueue& psyqo::TaskQueue::finally(eastl::function<void(TaskQueue*)>&& 
 }
 
 void psyqo::TaskQueue::run() {
+    m_parent = nullptr;
     m_index = 0;
+    m_running = true;
     runNext();
+}
+
+psyqo::TaskQueue::Task psyqo::TaskQueue::schedule() {
+    return Task([this](auto task) {
+        m_parent = task;
+        m_index = 0;
+        m_running = true;
+        runNext();
+    });
 }
 
 void psyqo::TaskQueue::runNext() {
     if (m_index >= m_queue.size()) {
+        m_running = false;
         if (m_finally) m_finally(this);
+        if (m_parent) m_parent->resolve();
         return;
     }
     Task* task = &m_queue[m_index++];
@@ -71,6 +84,14 @@ void psyqo::TaskQueue::runNext() {
 }
 
 void psyqo::TaskQueue::runCatch() {
-    if (m_catch) m_catch(this);
-    if (m_finally) m_finally(this);
+    m_running = false;
+    if (m_catch && m_finally) {
+        auto finally = m_finally;
+        m_catch(this);
+        finally(this);
+    } else {
+        if (m_catch) m_catch(this);
+        if (m_finally) m_finally(this);
+    }
+    if (m_parent) m_parent->reject();
 }

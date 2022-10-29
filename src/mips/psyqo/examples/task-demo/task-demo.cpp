@@ -72,7 +72,7 @@ void TaskDemo::createScene() {
     m_font.uploadSystemFont(gpu());
     pushScene(&taskDemoScene);
     m_queue
-        .start([this](auto task) {
+        .startWith([this](auto task) {
             m_text = "Initializing CDROM...";
             syscall_puts("Initializing CDROM...\n");
             task->resolve();
@@ -88,7 +88,7 @@ void TaskDemo::createScene() {
         .butCatch([this](auto queue) {
             m_text = "Failure, retrying...";
             syscall_puts("Failure, retrying...\n");
-            gpu().armTimer(gpu().now() + 1 * 1000 * 1000, [queue](auto id) { queue->run(); });
+            gpu().armTimer(gpu().now() + 1 * 1000 * 1000, [queue](auto) { queue->run(); });
         })
         .run();
 }
