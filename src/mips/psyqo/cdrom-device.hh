@@ -32,13 +32,12 @@ SOFTWARE.
 
 namespace psyqo {
 
-
 /**
  * @brief A specialization of the CDRom interface.
  *
  * @details This class is a specialization of the CDRom interface, which
  * provides a way to read from the physical CDRom drive of the console.
- * 
+ *
  */
 class CDRomDevice final : public CDRom {
   public:

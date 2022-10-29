@@ -37,7 +37,7 @@ namespace OpenGL {
 class [[nodiscard]] Status : private std::optional<std::string> {
   public:
     Status(const Status&) = default;
-    Status(Status&&) = default;
+    Status(Status &&) = default;
     Status& operator=(const Status&) = default;
     Status& operator=(Status&&) = default;
     bool isOk() const { return !has_value(); }
