@@ -66,7 +66,6 @@ class CDRomDevice final : public CDRom {
     TaskQueue::Task scheduleReset();
 
     void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
-    TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) override;
 
   private:
     void irq();

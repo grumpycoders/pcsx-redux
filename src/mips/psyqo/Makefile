@@ -11,6 +11,7 @@ SRCS = \
 src/adler32.cpp \
 src/alloc.c \
 src/application.cpp \
+src/cdrom.cpp \
 src/cdrom-device.cpp \
 src/font.cpp \
 src/gpu.cpp \

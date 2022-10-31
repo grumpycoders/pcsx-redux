@@ -35,23 +35,89 @@ SOFTWARE.
 
 namespace psyqo {
 
+/**
+ * @brief An ISO9660 parser.
+ *
+ * @details This class is a simple ISO9660 parser. It is not meant to be a full
+ * implementation, but rather a simple parser that can be used to find the
+ * files to be loaded.
+ */
+
 class ISO9660Parser {
   public:
+    /**
+     * @brief An ISO9660 directory entry.
+     *
+     * @details This struct represents a single directory entry in an ISO9660.
+     * It's not necessarily complete at the moment.
+     */
     struct DirEntry {
         uint32_t LBA = 0;
         uint32_t size = 0;
         eastl::fixed_string<char, 15, false> name;
         enum { INVALID, FILE, DIRECTORY, CURRENT_DIR, PARENT_DIR } type = INVALID;
     };
+
+    /**
+     * @brief An asynchronous read request.
+     *
+     * @details This struct serves as a persistent storage for an asynchronous read
+     * request. Its purpose is to be embedded outside of the parser, so it can
+     * keep track of the current state of the request.
+     */
     struct ReadRequest {
         struct DirEntry entry;
-        uint8_t* buffer = nullptr;
+        void* buffer = nullptr;
     };
+
+    /**
+     * @brief The ISO9660Parser constructor.
+     *
+     * @details This constructor takes a CDRom device as a parameter. It will
+     * use that device to read the structure of the ISO9660 filesystem.
+     *
+     * @param cdrom The CDRom device to use.
+     */
     ISO9660Parser(CDRom* cdrom) : m_cdrom(cdrom) {}
+
+    /**
+     * @brief Initializes the parser.
+     *
+     * @details This method initializes the basic internal structures of the parser.
+     * It must be called before any other method. If the underlying CDRom device
+     * fails reading, or if the filesystem is not an ISO9660, the callback or task
+     * will fail. It can be called multiple times, and has to be called when the user
+     * changes the disc in the drive.
+     */
     void initialize(eastl::function<void(bool success)> callback);
     TaskQueue::Task scheduleInitialize();
+
+    /**
+     * @brief Get the Direntry object for a given path.
+     *
+     * @details This method looks up the directory entry for a given path. It will
+     * fail if the CDRom device fails reading the disk, or if the parser hasn't been
+     * initialized yet. If the directory entry is not found, the callback or task
+     * will still be successful, but the directory entry will be invalid.
+     *
+     * @param[in] path The path to look for.
+     * @param[out] entry The DirEntry object to fill.
+     */
     void getDirentry(eastl::string_view path, DirEntry* entry, eastl::function<void(bool success)> callback);
     TaskQueue::Task scheduleGetDirentry(eastl::string_view path, DirEntry* entry);
+
+    /**
+     * @brief Read a file asynchronously.
+     *
+     * @details This method reads a file asynchronously. It will read the file
+     * from the given `entry` in the `ReadRequest`, and will read the number of
+     * sectors corresponding to the entry's size. The buffer is specified by
+     * the `buffer` field in the `ReadRequest`, and must be large enough to
+     * hold the whole file. This method is mainly a helper around the CDRom
+     * device's `readSectors` method.
+     *
+     * @param[in] request The request to fill.
+     */
     TaskQueue::Task scheduleReadRequest(ReadRequest* request);
 
   private:

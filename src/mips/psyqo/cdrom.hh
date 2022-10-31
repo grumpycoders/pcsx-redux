@@ -44,6 +44,18 @@ namespace psyqo {
 class CDRom {
   public:
     virtual ~CDRom() {}
+    /**
+     * @brief An asynchronous read request.
+     *
+     * @details This struct serves as a persistent storage for an asynchronous read
+     * request. Its purpose is to be embedded outside of the device class, so it can
+     * keep track of the current state of the request.
+     */
+    struct ReadRequest {
+        uint32_t LBA = 0;
+        uint32_t count = 0;
+        void *buffer = nullptr;
+    };
 
     /**
      * @brief Read a sector from the CDRom.
@@ -73,7 +85,23 @@ class CDRom {
      * @param size The size of the buffer.
      * @return A task that can be queued into a `TaskQueue`
      */
-    virtual TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) = 0;
+    TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer);
+
+    /**
+     * @brief Schedule a read operation.
+     *
+     * @details This is a convenience function that will schedule a read operation
+     * and return a task that can be waited on. The difference with `scheduleReadSectors`
+     * is that this method will read its arguments right before the operation is
+     * processed, so the request data can be filled in at the last moment.
+     *
+     * @param[in] request The request to schedule.
+     * @return A task that can be queued into a `TaskQueue`
+     */
+    TaskQueue::Task scheduleReadRequest(ReadRequest *request);
+
+  private:
+    ReadRequest m_readRequest;
 };
 
 }  // namespace psyqo
