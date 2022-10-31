@@ -31,6 +31,7 @@ SOFTWARE.
 #include "psyqo/cdrom-device.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
+#include "psyqo/iso9660-parser.hh"
 #include "psyqo/scene.hh"
 #include "psyqo/task.hh"
 #include "psyqo/xprintf.h"
@@ -44,9 +45,13 @@ class TaskDemo final : public psyqo::Application {
   public:
     psyqo::Font<> m_font;
     psyqo::CDRomDevice m_cdrom;
+    psyqo::ISO9660Parser m_isoParser = psyqo::ISO9660Parser(&m_cdrom);
+    psyqo::ISO9660Parser::ReadRequest m_request;
     psyqo::TaskQueue m_queue;
-    uint8_t m_buffer[2048];
     eastl::fixed_string<char, 256> m_text;
+    uint8_t m_buffer[2048];
+    uint32_t m_systemCnfSize;
+    bool m_done = false;
 };
 
 class TaskDemoScene final : public psyqo::Scene {
@@ -78,11 +83,37 @@ void TaskDemo::createScene() {
             task->resolve();
         })
         .then(m_cdrom.scheduleReset())
-        .then(m_cdrom.scheduleReadSectors(16, 1, m_buffer))
+        .then(m_isoParser.scheduleInitialize())
         .then([this](auto task) {
-            fsprintf(m_text, "Success: %02x %02x %02x %02x %02x %02x %02x %02x", m_buffer[0], m_buffer[1], m_buffer[2],
-                     m_buffer[3], m_buffer[4], m_buffer[5], m_buffer[6], m_buffer[7]);
-            ramsyscall_printf("%s\n", m_text.c_str());
+            m_text = "Finding SYSTEM.CNF;1...";
+            syscall_puts("Finding SYSTEM.CNF;1...\n");
+            task->resolve();
+        })
+        .then(m_isoParser.scheduleGetDirentry("SYSTEM.CNF;1", &m_request.entry))
+        .then([this](auto task) {
+            if (m_request.entry.type == psyqo::ISO9660Parser::DirEntry::INVALID) {
+                m_text = "SYSTEM.CNF;1 not found!";
+                syscall_puts("SYSTEM.CNF;1 not found!\n");
+                task->reject();
+                return;
+            }
+            if (m_request.entry.size > 2048) {
+                m_text = "SYSTEM.CNF;1 too big!";
+                syscall_puts("SYSTEM.CNF;1 too big!\n");
+                task->reject();
+                return;
+            }
+            m_request.buffer = m_buffer;
+            m_text = "Reading SYSTEM.CNF;1...";
+            syscall_puts("Reading SYSTEM.CNF;1...\n");
+            task->resolve();
+        })
+        .then(m_isoParser.scheduleReadRequest(&m_request))
+        .then([this](auto task) {
+            m_text = "Success!";
+            syscall_puts("Success!\n");
+            m_systemCnfSize = m_request.entry.size;
+            m_done = true;
             task->resolve();
         })
         .butCatch([this](auto queue) {
@@ -97,6 +128,26 @@ void TaskDemoScene::frame() {
     psyqo::Color bg{{.r = 0, .g = 64, .b = 91}};
     taskDemo.gpu().clear(bg);
     taskDemo.m_font.print(taskDemo.gpu(), taskDemo.m_text, {{.x = 4, .y = 32}}, {.r = 255, .g = 255, .b = 255});
+
+    if (taskDemo.m_done) {
+        eastl::string_view systemcnf = {reinterpret_cast<const char *>(taskDemo.m_buffer), taskDemo.m_systemCnfSize};
+        unsigned lineNumber = 0;
+        while (!systemcnf.empty()) {
+            auto pos = systemcnf.find('\r');
+            if (pos == eastl::string_view::npos) {
+                pos = systemcnf.length();
+            }
+            auto line = systemcnf.substr(0, pos);
+            systemcnf.remove_prefix(pos + 1);
+            if (systemcnf[0] == '\n') {
+                systemcnf.remove_prefix(1);
+            }
+            psyqo::Vertex v = {{.x = 4, .y = 64}};
+            v.y += lineNumber * 16;
+            lineNumber++;
+            taskDemo.m_font.print(taskDemo.gpu(), line, v, {.r = 255, .g = 255, .b = 255});
+        }
+    }
 }
 
 int main() { return taskDemo.run(); }

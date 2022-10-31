@@ -14,6 +14,7 @@ src/application.cpp \
 src/cdrom-device.cpp \
 src/font.cpp \
 src/gpu.cpp \
+src/iso9660-parser.cpp \
 src/kernel.cpp \
 src/msf.cpp \
 src/scene.cpp \
