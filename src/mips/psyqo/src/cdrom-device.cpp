@@ -84,14 +84,6 @@ void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buff
     CDROM_REG1_UC = CDL_SETLOC;
 }
 
-psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) {
-    m_count = count;
-    m_ptr = reinterpret_cast<uint8_t *>(buffer);
-    return TaskQueue::Task([this, sector](auto task) {
-        readSectors(sector, m_count, m_ptr, [task](bool success) { task->complete(success); });
-    });
-}
-
 void psyqo::CDRomDevice::irq() {
     CDROM_REG0_UC = 1;
     uint8_t irqReason = CDROM_REG3_UC;
