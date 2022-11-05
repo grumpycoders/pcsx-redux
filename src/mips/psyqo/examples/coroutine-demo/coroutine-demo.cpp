@@ -56,7 +56,7 @@ class CoroutineDemo final : public psyqo::Application {
 psyqo::Coroutine<> coroutine(CoroutineDemo *demo) {
     syscall_puts("Starting CD-Rom coroutine...\n");
     auto *coroutine = &demo->m_coroutine;
-    psyqo::Coroutine<>::Awaiter awaiter{coroutine};
+    psyqo::Coroutine<>::Awaiter awaiter = coroutine->awaiter();
     bool success = false;
     bool doneOnce = false;
     while (!success) {
