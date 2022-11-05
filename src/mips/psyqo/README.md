@@ -16,7 +16,7 @@ To discuss PlayStation1's development, hacking, and reverse engineering in gener
 The library can be seen in an alpha state at the moment, and is actively being developed. The next immediate features should include:
 
 - [ ] Proper GPU DMA chaining
-- [ ] CDRom access
 - [ ] Memory card access
+- [ ] Better CDRom support
 - [ ] Better sound support
 - [ ] Better input support
