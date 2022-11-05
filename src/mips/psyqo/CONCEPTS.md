@@ -208,7 +208,7 @@ psyqo::Coroutine<int> myCoroutine(SomeObject *container) {
 }
 ```
 
-The above coroutine will perform an asynchronous operation, and then return the result of that operation. The coroutine will be suspended until the asynchronous operation completes, and then resumed by its callback. The result will be held inside of the coroutine object for the the caller to inspect. The `co_await` and `co_return` keywords are specific to coroutines, and are part of the C++ language as defined by the C++20 revision. The `co_await` keyword will suspend the coroutine, and the `co_return` keyword will terminate the coroutine and store the result inside of the coroutine object.
+The above coroutine will perform an asynchronous operation, and then return the result of that operation. The coroutine will be suspended until the asynchronous operation completes, and then resumed by its callback. The result will be held inside of the coroutine object for the caller to inspect. The `co_await` and `co_return` keywords are specific to coroutines, and are part of the C++ language as defined by the C++20 revision. The `co_await` keyword will suspend the coroutine, and the `co_return` keyword will terminate the coroutine and store the result inside of the coroutine object.
 
 The caller must do something along these lines:
 
