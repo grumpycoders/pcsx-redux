@@ -252,17 +252,17 @@ switch ($cmd) {
         if ($args[1] -eq $NULL) {
             Load-Index $cwd | Sort-Object -Property Key | Select-Object version
         } else {
-            Load-Index $cwd | Sort-Object -Property Key | Where-Object {$_.lts} | Select-Object version
+            Load-Index $cwd | Sort-Object -Property Key | Where-Object { $_.lts } | Select-Object version
         }
     }
     "version" {
         Write-Host "v0.1.0"
     }
     "self-install" {
-    if ($args[1] -ne $NULL) {
-        $dest = $args[1]
-    }
-    if ($cwd -like $dest) {
+        if ($args[1] -ne $NULL) {
+            $dest = $args[1]
+        }
+        if ($cwd -like $dest) {
             Write-Host "This is already installed."
         } else {
             Write-Host "Installing..."
