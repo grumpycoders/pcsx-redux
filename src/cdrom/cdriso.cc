@@ -322,6 +322,8 @@ bool PCSX::CDRIso::open(void) {
                 PCSX::g_system->printf("[2048]");
                 m_isMode1ISO = true;
             }
+        } else {
+            m_isMode1ISO = false;
         }
         m_cdHandle->rSeek(0, SEEK_SET);
     }

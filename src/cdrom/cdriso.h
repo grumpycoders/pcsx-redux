@@ -61,6 +61,7 @@ class CDRIso {
     int get_compressed_cdda_track_length(const char* filepath);
 
     bool CheckSBI(const uint8_t* time);
+    bool IsMode1ISO() { return m_isMode1ISO; }
 
   private:
     bool open();

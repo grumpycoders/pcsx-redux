@@ -900,6 +900,7 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlID + 0x100:
                 SetResultSize(8);
 
+                // No Disk
                 if (m_iso->failed()) {
                     m_result[0] = 0x08;
                     m_result[1] = 0x40;
@@ -909,22 +910,30 @@ class CDRomImpl : public PCSX::CDRom {
                 }
 
                 m_result[0] = m_statP;
-                m_result[1] = 0;
-                m_result[2] = 0;
-                m_result[3] = 0;
+                memset((char *)&m_result[1], 0, 7);
 
                 // 0x10 - audio | 0x40 - disk missing | 0x80 - unlicensed
                 getStatus(&cdr_stat);
-                if (cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
+                if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CLOSED) || cdr_stat.Type == 0xff) {
                     m_result[1] = 0xc0;
-                } else {
-                    // Audio, unlicensed
-                    if (cdr_stat.Type == 2) m_result[1] |= (0x10 | 0x80);
                 }
-                m_result[0] |= (m_result[1] >> 4) & 0x08;
+                
+                if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CDDA)) {
+                    m_stat = DiskError;
+                    m_result[0] |= STATUS_UNKNOWN3;  // IdError
+                    // Audio, unlicensed
+                    m_result[1] |= (0x10 | 0x80);
+                } else if (isBootable()) {
+                    strncpy((char *)&m_result[4], "PCSX", 4);
+                    m_stat = Complete;
+                } else {
+                    m_stat = DiskError;
+                    m_result[0] |= STATUS_UNKNOWN3;  // IdError
+                    m_result[1] = 0x80;              // Unlicensed
+                }
 
-                strncpy((char *)&m_result[4], "PCSX", 4);
-                m_stat = Complete;
+                m_result[2] = m_iso->IsMode1ISO() ? 0x00 : 0x20;
+                
                 m_suceeded = true;
                 break;
 
@@ -1611,6 +1620,7 @@ PCSX::CDRom *PCSX::CDRom::factory() { return new CDRomImpl; }
 void PCSX::CDRom::check() {
     m_cdromId.clear();
     m_cdromLabel.clear();
+    m_bootable = false;
     ISO9660Reader reader(m_iso);
     if (reader.failed()) return;
     IO<File> systemcnf(reader.open("SYSTEM.CNF;1"));
@@ -1642,6 +1652,10 @@ void PCSX::CDRom::check() {
                 m_cdromId += filename.substr(9, 2);
             }
 
+            if (filename.size() > 0) {
+                m_bootable = true;
+            }
+
             break;
         }
     } else {
@@ -1649,6 +1663,7 @@ void PCSX::CDRom::check() {
         if (!psxexe->failed()) {
             m_cdromId = "SLUS99999";
             exename = "PSX.EXE;1";
+            m_bootable = true;
         }
     }
 
