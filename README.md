@@ -59,7 +59,7 @@ Note: If you get an error saying `hresult e_fail has been returned from a call t
 
 If you want to compile OpenBIOS or other PS1 software, you need to install a MIPS toolchain on Windows. You can do this by copy-pasting the following into a command prompt:
 
-```
+```powershell
 powershell -c "& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }"
 ```
 
@@ -68,6 +68,14 @@ Then, open a new command prompt, and type the following:
 ```
 mips install 12.2.0
 ```
+
+To manually install this script, you can download it from [here](https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1), and then install it with the following command:
+
+```powershell
+powershell -ExecutionPolicy Unrestricted -File mips.ps1 self-install C:\path\to\destination
+```
+
+You can leave the installation path blank to install the script in the Application Data folder.
 
 ### Linux
 Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. You will also need a few libraries on your system for this to work. Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/build/Dockerfile#L22) for a list of library packages to install. Alternatively, if you do not want to use Docker, you can also simply install the dependencies listed below and run `make`.

@@ -1,3 +1,5 @@
+# Modplayer
+
 This code is a reverse engineering of the file MODPLAY.BIN, located in the zip file "Asm-Mod" from http://hitmen.c02.at/html/psx_tools.html, that has the CRC32 bb91769f.
 
 The current API behaves roughly the same the original one. The code should provide information about the alterations made to it.

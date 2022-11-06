@@ -139,9 +139,7 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
     }
     -- Use a proxy instead of doing this on the wrapper directly using ffi.gc, because of a bug in LuaJIT,
     -- where circular references on finalizers using ffi.gc won't actually collect anything.
-    debug.setmetatable(bp._proxy, {
-        __gc = function() removeBreakpoint(bp) end,
-    })
+    debug.setmetatable(bp._proxy, { __gc = function() removeBreakpoint(bp) end })
     return bp
 end
 

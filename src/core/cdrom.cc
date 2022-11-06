@@ -406,13 +406,13 @@ class CDRomImpl : public PCSX::CDRom {
 
         CDROM_LOG("ReadTrack *** %02i:%02i:%02i\n", time.m, time.s, time.f);
 
+        m_prev.reset();
         if (m_iso->getTrackType(m_curTrack) == PCSX::CDRIso::TrackType::CDDA) {
             m_suceeded = false;
         } else {
             m_suceeded = m_iso->readTrack(time);
+            if (m_suceeded) m_prev = time;
         }
-
-        m_prev = time;
 
         const PCSX::IEC60908b::Sub *sub = m_iso->getBufferSub();
         if (sub && m_curTrack == 1) {
@@ -1146,7 +1146,7 @@ class CDRomImpl : public PCSX::CDRom {
             memset(m_transfer, 0, PCSX::IEC60908b::DATA_SIZE);
             m_stat = DiskError;
             m_result[0] |= STATUS_ERROR;
-            scheduleCDReadIRQ((m_mode & 0x80) ? (cdReadTime / 2) : cdReadTime);
+            setIrq();
             return;
         }
 

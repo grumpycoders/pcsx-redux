@@ -1,3 +1,5 @@
+# Nugget
+
 ## Where
 
 There are two canonical ways to access the code located here. First is to access the full [PCSX-Redux repository](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips), which is in read-write mode. The second is to access the [Nugget mirror](https://github.com/pcsx-redux/nugget), which is read only. The purpose of the mirror is to have a smaller set of sources and dependencies if somebody wants to only access the mips code of PCSX-Redux. It is suitable for using as a submodule.

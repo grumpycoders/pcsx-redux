@@ -27,6 +27,7 @@ SOFTWARE.
 #pragma once
 
 #include <stdarg.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -160,6 +161,7 @@ static inline int asprintf(char **out, const char *fmt, ...) {
  */
 template <int nodeCount, bool bEnableOverflow = true>
 static inline void vfsprintf(eastl::fixed_string<char, nodeCount, bEnableOverflow> &str, const char *fmt, va_list ap) {
+    str.clear();
     vxprintf(
         [](const char *str, int len, void *opaque) {
             eastl::fixed_string<char, nodeCount, bEnableOverflow> *out =
@@ -171,6 +173,7 @@ static inline void vfsprintf(eastl::fixed_string<char, nodeCount, bEnableOverflo
 
 template <int nodeCount, bool bEnableOverflow = true>
 static inline void fsprintf(eastl::fixed_string<char, nodeCount, bEnableOverflow> &str, const char *fmt, ...) {
+    str.clear();
     va_list ap;
     va_start(ap, fmt);
     vfsprintf<nodeCount, bEnableOverflow>(str, fmt, ap);

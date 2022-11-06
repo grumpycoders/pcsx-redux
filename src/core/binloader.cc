@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 
+#include <exception>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -54,54 +55,51 @@ bool loadCPE(IO<File> file) {
                 uint32_t addr = file->read<uint32_t>();
                 uint32_t size = file->read<uint32_t>();
                 uint8_t* ptr = PSXM(addr);
+                for (auto testaddr = addr; testaddr < addr + size; addr += 0x10000) {
+                    uint8_t* ptr = (uint8_t*)PSXM(testaddr);
+                    if (!ptr) throw std::runtime_error("Invalid loading address in CPE file");
+                }
                 file->read(ptr, size);
-                break;
-            }
+            } break;
             case 2: {
                 file->read<uint32_t>();
-                break;
-            }
+            } break;
             case 3: {
                 reg = file->read<uint16_t>();
                 value = file->read<uint32_t>();
                 setRegister = true;
-                break;
-            }
+            } break;
             case 4: {
                 reg = file->read<uint16_t>();
                 value = file->read<uint16_t>();
                 setRegister = true;
-                break;
-            }
+            } break;
             case 5: {
                 reg = file->read<uint16_t>();
                 value = file->read<uint8_t>();
                 setRegister = true;
-                break;
-            }
+            } break;
             case 6: {
                 reg = file->read<uint16_t>();
                 value = file->read<uint16_t>();
                 uint32_t remainder = file->read<uint8_t>();
                 value |= remainder << 16;
                 setRegister = true;
-                break;
-            }
+            } break;
             case 7: {
                 file->read<uint32_t>();
-                break;
-            }
+            } break;
             case 8: {
                 file->byte();
-                break;
-            }
+            } break;
         }
 
         if (setRegister) {
             switch (reg) {
-                case 0x90:
+                case 0x90: {
+                    if (!PSXM(value)) throw std::runtime_error("Invalid PC address in CPE file");
                     regs.pc = value;
-                    break;
+                } break;
             }
         }
     }
@@ -120,10 +118,15 @@ bool loadPSEXE(IO<File> file) {
     file->read<uint32_t>();
 
     regs.pc = file->read<uint32_t>();
+    if (!PSXM(regs.pc)) throw std::runtime_error("Invalid PC address in PS-EXE file");
     file->read<uint32_t>();
     uint32_t addr = file->read<uint32_t>();
     uint32_t size = file->read<uint32_t>();
     uint8_t* ptr = PSXM(addr);
+    for (auto testaddr = addr; testaddr < addr + size; addr += 0x10000) {
+        uint8_t* ptr = (uint8_t*)PSXM(testaddr);
+        if (!ptr) throw std::runtime_error("Invalid loading address in PS-EXE file");
+    }
     file->read<uint32_t>();
     file->read<uint32_t>();
     file->read<uint32_t>();

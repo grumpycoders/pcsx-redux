@@ -71,12 +71,13 @@
 ** backwards compatible.
 */
 /* #define COMPATIBILITY       / * Compatible with SUN OS 4.1 */
+#include "psyqo/xprintf.h"
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "psyqo/alloc.h"
-#include "psyqo/xprintf.h"
 
 static __inline__ int isdigit(int c) { return c >= '0' && c <= '9'; }
 static __inline__ size_t strlen(const char *s) {
