@@ -93,7 +93,7 @@ body:
 
   - type: textarea
     validations:
-      required: true
+      required: false
     attributes:
       label: Additional information
       description: >-
