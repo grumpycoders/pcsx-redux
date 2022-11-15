@@ -152,40 +152,42 @@ void PCSX::Lua::setCallWrap(lua_CallWrapper wrapper) {
     pop();
 }
 
-void PCSX::Lua::declareFunc(std::string_view name, lua_CFunction f, int i) {
+void PCSX::Lua::declareFunc(std::string_view name, lua_CFunction f, int i, int upvalues) {
     i = getabsolute(i);
     checkstack(2);
     lua_pushlstring(L, name.data(), name.size());
-    lua_pushcfunction(L, f);
+    if (upvalues != 0) {
+        lua_insert(L, -upvalues - 1);
+    }
+    lua_pushcclosure(L, f, upvalues);
     lua_settable(L, i);
 }
 
 typedef std::function<int(PCSX::Lua)> LuaLambda;
 
-static int lambdaWrapper(lua_State* L_) {
-    PCSX::Lua L(L_);
-    auto* lambda = reinterpret_cast<LuaLambda*>(L.touserdata(lua_upvalueindex(1)));
-    return lambda->operator()(L);
-}
-
-static int lambdaGC(lua_State* L_) {
-    PCSX::Lua L(L_);
-    auto* lambda = reinterpret_cast<LuaLambda*>(L.touserdata());
-    if (lambda) lambda->~LuaLambda();
-    return 0;
-}
-
-void PCSX::Lua::declareFunc(std::string_view name, LuaLambda f, int i) {
+void PCSX::Lua::declareFunc(std::string_view name, LuaLambda&& f, int i) {
     i = getabsolute(i);
     checkstack(5);
     lua_pushlstring(L, name.data(), name.size());
-    new (lua_newuserdata(L, sizeof(LuaLambda))) LuaLambda(f);
+    new (lua_newuserdata(L, sizeof(LuaLambda))) LuaLambda(std::move(f));
     newtable();
     push("__gc");
-    push(lambdaGC);
+    push([](lua_State* L_) -> int {
+        PCSX::Lua L(L_);
+        auto* lambda = reinterpret_cast<LuaLambda*>(L.touserdata());
+        if (lambda) lambda->~LuaLambda();
+        return 0;
+    });
     settable();
     setmetatable();
-    lua_pushcclosure(L, lambdaWrapper, 1);
+    lua_pushcclosure(
+        L,
+        [](lua_State* L_) -> int {
+            PCSX::Lua L(L_);
+            auto* lambda = reinterpret_cast<LuaLambda*>(L.touserdata(lua_upvalueindex(1)));
+            return lambda->operator()(L);
+        },
+        1);
     lua_settable(L, i);
 }
 

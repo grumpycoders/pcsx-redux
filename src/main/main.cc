@@ -222,7 +222,7 @@ int pcsxMain(int argc, char **argv) {
     PCSX::u8string path1 = emuSettings.get<PCSX::Emulator::SettingMcd1>().string();
     PCSX::u8string path2 = emuSettings.get<PCSX::Emulator::SettingMcd2>().string();
 
-    emulator->m_sio->LoadMcds(path1, path2);
+    emulator->m_sio->loadMcds(path1, path2);
     auto biosCfg = args.get<std::string>("bios");
     if (biosCfg.has_value()) emuSettings.get<PCSX::Emulator::SettingBios>() = biosCfg.value();
 

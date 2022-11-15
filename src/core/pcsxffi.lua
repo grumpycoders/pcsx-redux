@@ -85,13 +85,14 @@ void loadSaveStateFromFile(LuaFile*);
 
 local C = ffi.load 'PCSX'
 
-local function garbageCollect(bp)
-    C.removeBreakpoint(bp._wrapper)
-    bp._invokercb:free()
-    setmetatable(bp, {})
+local function removeBreakpoint(bp)
+    C.removeBreakpoint(ffi.gc(bp._wrapper, nil))
+    bp._wrapper = ffi.cast('Breakpoint*', 0)
+    if bp._invokercb ~= nil then
+        bp._invokercb:free()
+        bp._invokercb = nil
+    end
 end
-
-local meta = { __gc = garbageCollect }
 
 local function defaultInvoker(address, width, cause)
     C.pauseEmulator()
@@ -125,17 +126,20 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
             end
         end
     end
-    local invokercb = ffi.cast('bool (*)(uint32_t address, unsigned width, const char* cause)', invokercb)
+    invokercb = ffi.cast('bool (*)(uint32_t address, unsigned width, const char* cause)', invokercb)
     local wrapper = C.addBreakpoint(address, bptype, width, cause, invokercb)
     local bp = {
         _wrapper = wrapper,
+        _proxy = newproxy(),
         _invokercb = invokercb,
         enable = function(bp) C.enableBreakpoint(bp._wrapper) end,
         disable = function(bp) C.disableBreakpoint(bp._wrapper) end,
         isEnabled = function(bp) return C.breakpointEnabled(bp._wrapper) end,
-        remove = function(bp) garbageCollect(bp) end,
+        remove = function(bp) removeBreakpoint(bp) end,
     }
-    setmetatable(bp, meta)
+    -- Use a proxy instead of doing this on the wrapper directly using ffi.gc, because of a bug in LuaJIT,
+    -- where circular references on finalizers using ffi.gc won't actually collect anything.
+    debug.setmetatable(bp._proxy, { __gc = function() removeBreakpoint(bp) end })
     return bp
 end
 

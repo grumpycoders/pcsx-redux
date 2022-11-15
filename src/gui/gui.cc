@@ -31,6 +31,7 @@
 
 #include <algorithm>
 #include <ctime>
+#include <exception>
 #include <fstream>
 #include <iomanip>
 #include <type_traits>
@@ -2002,7 +2003,17 @@ void PCSX::GUI::shellReached() {
     std::filesystem::path p = filename;
 
     g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
-    bool success = BinaryLoader::load(filename);
+    bool success = false;
+    auto backupPC = regs.pc;
+    try {
+        success = BinaryLoader::load(filename);
+    } catch (std::exception& e) {
+        g_system->log(LogClass::UI, "Failed to load %s: %s\n", p.string(), e.what());
+        regs.pc = backupPC;
+    } catch (...) {
+        g_system->log(LogClass::UI, "Failed to load %s: unknown error\n", p.string());
+        regs.pc = backupPC;
+    }
     if (success) {
         g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
     }

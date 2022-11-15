@@ -449,6 +449,12 @@ static __attribute__((always_inline)) void syscall_putchar(int c) {
     ((void (*)(int))0xb0)(c);
 }
 
+static __attribute__((always_inline)) void syscall_puts(const char *msg) {
+    register int n asm("t1") = 0x3f;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(const char *))0xb0)(msg);
+}
+
 static __attribute__((always_inline)) int syscall_addDevice(const struct Device *device) {
     register int n asm("t1") = 0x47;
     __asm__ volatile("" : "=r"(n) : "r"(n));

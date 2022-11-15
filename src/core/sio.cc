@@ -25,6 +25,7 @@
 #include <bitset>
 #include <stdexcept>
 
+#include "core/memorycard.h"
 #include "core/pad.h"
 #include "support/sjis_conv.h"
 #include "support/strings-helpers.h"
@@ -32,33 +33,114 @@
 // clk cycle byte
 // 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
 // TODO: add SioModePrescaler
-#define SIO_CYCLES (m_baudReg * 8)
+#define SIO_CYCLES (m_regs.baud * 8)
 
-PCSX::SIO::SIO() { reset(); }
+void PCSX::SIO::acknowledge() {
+    if (m_regs.control & ControlFlags::TX_ENABLE) {
+        if (m_regs.control & ControlFlags::ACK_IRQEN) {
+            scheduleInterrupt(SIO_CYCLES);
+        }
+    }
+}
+
+void PCSX::SIO::init() {
+    reset();
+    togglePocketstationMode();
+    g_emulator->m_pads->init();
+    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+}
+
+bool PCSX::SIO::isReceiveIRQReady() {
+    if (m_regs.control & ControlFlags::RX_IRQEN) {
+        switch ((m_regs.control & 0x300) >> 8) {
+            case 0:
+                if (!(m_rxFIFO.size() >= 1)) {
+                    return false;
+                }
+                break;
+
+            case 1:
+                if (!(m_rxFIFO.size() >= 2)) {
+                    return false;
+                }
+                break;
+
+            case 2:
+                if (!(m_rxFIFO.size() >= 4)) {
+                    return false;
+                }
+                break;
+
+            case 3:
+                if (!(m_rxFIFO.size() >= 8)) {
+                    return false;
+                }
+                break;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+bool PCSX::SIO::isTransmitReady() {
+    const bool txEnabled = m_regs.control & ControlFlags::TX_ENABLE;
+    const bool txFinished = m_regs.status & StatusFlags::TX_FINISHED;
+    const bool txDataNotEmpty = !(m_regs.status & StatusFlags::TX_DATACLEAR);
+
+    return (txEnabled && txFinished && txDataNotEmpty);
+}
 
 void PCSX::SIO::reset() {
+    m_rxFIFO.clear();
     m_padState = PAD_STATE_IDLE;
-    m_statusReg = TX_RDY | TX_EMPTY;
-    m_modeReg = 0;
-    m_ctrlReg = 0;
-    m_baudReg = 0;
+    m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
+    m_regs.mode = 0;
+    m_regs.control = 0;
+    m_regs.baud = 0;
     m_bufferIndex = 0;
-    m_mcdState = MCD_STATE_IDLE;
-    m_mcdReadWriteState = MCD_READWRITE_STATE_IDLE;
+    m_memoryCard[0].deselect();
+    m_memoryCard[1].deselect();
+    m_currentDevice = DeviceType::None;
 }
 
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
-        case PAD_STATE_READ_COMMAND:
-            scheduleInterrupt(SIO_CYCLES);
+        case PAD_STATE_IDLE:                                // start pad
+            m_regs.status |= StatusFlags::RX_FIFONOTEMPTY;  // Transfer is Ready
+            psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
 
+            switch (m_regs.control & ControlFlags::WHICH_PORT) {
+                case SelectedPort::Port1:
+                    if (!PCSX::g_emulator->m_pads->isPadConnected(1)) {
+                        m_buffer[0] = 0xff;
+                        return;
+                    }
+
+                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port1);
+                    break;
+                case SelectedPort::Port2:
+                    if (!PCSX::g_emulator->m_pads->isPadConnected(2)) {
+                        m_buffer[0] = 0xff;
+                        return;
+                    }
+                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port2);
+                    break;
+            }
+
+            m_maxBufferIndex = 2;
+            m_bufferIndex = 0;
+            m_padState = PAD_STATE_READ_COMMAND;
+            break;
+
+        case PAD_STATE_READ_COMMAND:
             m_padState = PAD_STATE_READ_DATA;
             m_bufferIndex = 1;
-            switch (m_ctrlReg & 0x2002) {
-                case 0x0002:
+            switch (m_regs.control & ControlFlags::WHICH_PORT) {
+                case SelectedPort::Port1:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
                     break;
-                case 0x2002:
+                case SelectedPort::Port2:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
                     break;
             }
@@ -68,612 +150,221 @@ void PCSX::SIO::writePad(uint8_t value) {
             } else {
                 m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
             }
-            return;
+            break;
+
         case PAD_STATE_READ_DATA:
             m_bufferIndex++;
-            switch (m_ctrlReg & 0x2002) {
-                case 0x0002:
+            switch (m_regs.control & ControlFlags::WHICH_PORT) {
+                case SelectedPort::Port1:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
                     break;
-                case 0x2002:
+                case SelectedPort::Port2:
                     m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
                     break;
             }
 
             if (m_bufferIndex == m_maxBufferIndex) {
                 m_padState = PAD_STATE_IDLE;
+                m_currentDevice = DeviceType::Ignore;
                 return;
             }
-            scheduleInterrupt(SIO_CYCLES);
-            return;
+            break;
     }
+
+    if (m_padState == PAD_STATE_BAD_COMMAND) {
+        return;
+    }
+
+    acknowledge();
 }
 
-void PCSX::SIO::writeMcd(uint8_t value) {
-    switch (m_mcdState) {
-        case MCD_STATE_READ_COMMAND:
-            scheduleInterrupt(SIO_CYCLES);
-            if (m_mcdReadWriteState) {
-                m_bufferIndex++;
-                return;
-            }
-            m_bufferIndex = 1;
-            switch (value) {
-                case 'R':
-                    m_mcdReadWriteState = MCD_READWRITE_STATE_READ;
-                    break;
-                case 'W':
-                    m_mcdReadWriteState = MCD_READWRITE_STATE_WRITE;
-                    break;
-                default:
-                    m_mcdState = MCD_STATE_IDLE;
-            }
-            return;
-        case MCD_STATE_READ_ADDR_HIGH:
-            scheduleInterrupt(SIO_CYCLES);
-            m_mcdAddrHigh = value;
-            *m_buffer = 0;
-            m_bufferIndex = 0;
-            m_maxBufferIndex = 1;
-            m_mcdState = MCD_STATE_READ_ADDR_LOW;
-            return;
-        case MCD_STATE_READ_ADDR_LOW:
-            scheduleInterrupt(SIO_CYCLES);
-            m_mcdAddrLow = value;
-            *m_buffer = m_mcdAddrHigh;
-            m_bufferIndex = 0;
-            m_maxBufferIndex = 1;
-            m_mcdState = MCD_STATE_READ_ACK;
-            return;
-        case MCD_STATE_READ_ACK:
-            scheduleInterrupt(SIO_CYCLES);
-            m_bufferIndex = 0;
-            switch (m_mcdReadWriteState) {
-                case MCD_READWRITE_STATE_READ:
-                    m_buffer[0] = 0x5c;
-                    m_buffer[1] = 0x5d;
-                    m_buffer[2] = m_mcdAddrHigh;
-                    m_buffer[3] = m_mcdAddrLow;
-                    switch (m_ctrlReg & 0x2002) {
-                        case 0x0002:
-                            memcpy(&m_buffer[4], g_mcd1Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
-                            break;
-                        case 0x2002:
-                            memcpy(&m_buffer[4], g_mcd2Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
-                            break;
-                    }
-                    {
-                        char xorsum = 0;
-                        for (int i = 2; i < 128 + 4; i++) xorsum ^= m_buffer[i];
-                        m_buffer[132] = xorsum;
-                    }
-                    m_buffer[133] = 0x47;
-                    m_maxBufferIndex = 133;
-                    break;
-                case MCD_READWRITE_STATE_WRITE:
-                    m_buffer[0] = m_mcdAddrLow;
-                    m_buffer[1] = value;
-                    m_buffer[129] = 0x5c;
-                    m_buffer[130] = 0x5d;
-                    m_buffer[131] = 0x47;
-                    m_maxBufferIndex = 131;
-                    break;
-            }
-            m_mcdState = MCD_STATE_READWRITE_DATA;
-            return;
-        case MCD_STATE_READWRITE_DATA:
-            m_bufferIndex++;
-            if (m_mcdReadWriteState == MCD_READWRITE_STATE_WRITE) {
-                if (m_bufferIndex < 128) m_buffer[m_bufferIndex + 1] = value;
-            }
-            scheduleInterrupt(SIO_CYCLES);
-            return;
+void PCSX::SIO::transmitData() {
+    m_regs.status &= ~StatusFlags::TX_FINISHED;
+    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+
+    uint8_t m_rxBuffer = 0xff;
+
+    if (m_currentDevice == DeviceType::None) {
+        m_currentDevice = m_regs.data;
     }
+
+    switch (m_currentDevice) {
+        case DeviceType::PAD:
+            // Pad Process events
+            writePad(m_regs.data);
+            m_rxBuffer = m_buffer[m_bufferIndex];
+            break;
+
+        case DeviceType::MemoryCard:
+            switch (m_regs.control & ControlFlags::WHICH_PORT) {
+                case SelectedPort::Port1:
+                    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
+                        m_rxBuffer = m_memoryCard[0].transceive(m_regs.data);
+                        if (m_memoryCard[0].dataChanged()) {
+                            m_memoryCard[0].commit(
+                                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str());
+                        }
+                    } else {
+                        m_memoryCard[0].m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
+                        m_currentDevice = DeviceType::Ignore;
+                        m_memoryCard[0].deselect();
+                    }
+                    break;
+
+                case SelectedPort::Port2:
+                    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
+                        m_rxBuffer = m_memoryCard[1].transceive(m_regs.data);
+                        if (m_memoryCard[1].dataChanged()) {
+                            m_memoryCard[1].commit(
+                                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
+                        }
+                    } else {
+                        m_memoryCard[1].m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
+                        m_currentDevice = DeviceType::Ignore;
+                        m_memoryCard[1].deselect();
+                    }
+                    break;
+            }
+            break;
+
+        case DeviceType::Ignore:
+            break;
+
+        default:
+            m_currentDevice = DeviceType::None;
+            m_padState = PAD_STATE_IDLE;
+            m_memoryCard[0].deselect();
+            m_memoryCard[1].deselect();
+            break;
+    }
+
+    m_rxFIFO.push(m_rxBuffer);
+    updateFIFOStatus();
+    m_regs.data = m_rxBuffer;
+    psxHu8ref(0x1040) = m_rxBuffer;
+
+    if (isReceiveIRQReady() && !(m_regs.status & StatusFlags::IRQ)) {
+        scheduleInterrupt(SIO_CYCLES);
+    }
+    m_regs.status |= StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
+    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
 }
 
 void PCSX::SIO::write8(uint8_t value) {
-    SIO0_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
-    if (m_padState != PAD_STATE_IDLE) {
-        writePad(value);
-        return;
-    }
-    if (m_mcdState != MCD_STATE_IDLE) {
-        writeMcd(value);
-        return;
-    }
-    switch (value) {
-        case 0x01:                  // start pad
-            m_statusReg |= RX_RDY;  // Transfer is Ready
+    SIO0_LOG("sio write8 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
 
-            switch (m_ctrlReg & 0x2002) {
-                case 0x0002:
-                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port1);
-                    break;
-                case 0x2002:
-                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port2);
-                    break;
-            }
+    m_regs.data = value;
+    m_regs.status &= ~StatusFlags::TX_DATACLEAR;
+    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
 
-            m_maxBufferIndex = 2;
-            m_bufferIndex = 0;
-            m_padState = PAD_STATE_READ_COMMAND;
-            scheduleInterrupt(SIO_CYCLES);
-            return;
-        case 0x81:  // start memcard
-                    // case 0x82: case 0x83: case 0x84: // Multitap memcard access
-            m_statusReg |= RX_RDY;
-
-            std::memset(m_buffer, 0, 4);
-            if ((m_ctrlReg & 0x2002) == 0x0002) {
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
-                    m_buffer[1] = m_wasMcd1Inserted ? 0 : MCDST_CHANGED;
-                    m_buffer[2] = 0x5a;
-                    m_buffer[3] = 0x5d;
-                    m_wasMcd1Inserted = true;
-                } else {
-                    m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
-                }
-            } else if ((m_ctrlReg & 0x2002) == 0x2002) {
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
-                    m_buffer[1] = m_wasMcd2Inserted ? 0 : MCDST_CHANGED;
-                    m_buffer[2] = 0x5a;
-                    m_buffer[3] = 0x5d;
-                    m_wasMcd2Inserted = true;
-                } else {
-                    m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
-                }
-            }
-
-            m_bufferIndex = 0;
-            m_maxBufferIndex = 3;
-            m_mcdState = MCD_STATE_READ_COMMAND;
-            m_mcdReadWriteState = MCD_READWRITE_STATE_IDLE;
-            scheduleInterrupt(SIO_CYCLES);
-            return;
-
-        default:  // no hardware found
-            m_statusReg |= RX_RDY;
-            return;
+    if (isTransmitReady()) {
+        transmitData();
     }
 }
 
 void PCSX::SIO::writeStatus16(uint16_t value) {}
 
-void PCSX::SIO::writeMode16(uint16_t value) { m_modeReg = value; }
+void PCSX::SIO::writeMode16(uint16_t value) { m_regs.mode = value; }
 
 void PCSX::SIO::writeCtrl16(uint16_t value) {
-    SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
-    m_ctrlReg = value & ~RESET_ERR;
-    if (value & RESET_ERR) m_statusReg &= ~IRQ;
-    if ((m_ctrlReg & SIO_RESET) || (!m_ctrlReg)) {
-        m_padState = PAD_STATE_IDLE;
-        m_mcdState = MCD_STATE_IDLE;
-        m_bufferIndex = 0;
-        m_statusReg = TX_RDY | TX_EMPTY;
-        PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
+    const bool deselected = (m_regs.control & ControlFlags::SELECT_ENABLE) && (!(value & ControlFlags::SELECT_ENABLE));
+    const bool selected = (!(m_regs.control & ControlFlags::SELECT_ENABLE)) && (value & ControlFlags::SELECT_ENABLE);
+    const bool portChanged = (m_regs.control & ControlFlags::WHICH_PORT) && (!(value & ControlFlags::WHICH_PORT));
+    const bool wasReady = isTransmitReady();
+
+    m_regs.control = value;
+
+    SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
+
+    if (selected && (m_regs.control & ControlFlags::TX_IRQEN) && !(m_regs.status & StatusFlags::IRQ)) {
+        scheduleInterrupt(SIO_CYCLES);
     }
-}
 
-void PCSX::SIO::writeBaud16(uint16_t value) { m_baudReg = value; }
+    if (deselected || portChanged) {
+        // Select line de-activated, reset state machines
+        m_currentDevice = DeviceType::None;
+        m_padState = PAD_STATE_IDLE;
+        m_memoryCard[0].deselect();
+        m_memoryCard[1].deselect();
+        m_bufferIndex = 0;
+    }
 
-uint8_t PCSX::SIO::read8() {
-    uint8_t ret = 0;
+    if (m_regs.control & ControlFlags::RESET_ERR) {
+        m_regs.status &= ~(StatusFlags::RX_PARITYERR | StatusFlags::IRQ);
+        m_regs.control &= ~ControlFlags::RESET_ERR;
 
-    if ((m_statusReg & RX_RDY) /* && (m_ctrlReg & RX_PERM)*/) {
-        //      m_statusReg &= ~RX_OVERRUN;
-        ret = m_buffer[m_bufferIndex];
-        if (m_bufferIndex == m_maxBufferIndex) {
-            m_statusReg &= ~RX_RDY;  // Receive is not Ready now
-            if (m_mcdState == MCD_STATE_READWRITE_DATA) {
-                m_mcdState = MCD_STATE_IDLE;
-                if (m_mcdReadWriteState == MCD_READWRITE_STATE_WRITE) {
-                    switch (m_ctrlReg & 0x2002) {
-                        case 0x0002:
-                            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
-                                memcpy(g_mcd1Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
-                                saveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
-                                        g_mcd1Data, (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
-                            }
-                            break;
-                        case 0x2002:
-                            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
-                                memcpy(g_mcd2Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
-                                saveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str(),
-                                        g_mcd2Data, (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
-                            }
-                            break;
-                    }
-                }
-            }
-            if (m_padState == PAD_STATE_READ_DATA) m_padState = PAD_STATE_IDLE;
-            if (m_mcdState == MCD_STATE_READ_COMMAND) {
-                m_mcdState = MCD_STATE_READ_ADDR_HIGH;
-                m_statusReg |= RX_RDY;
-            }
+        if (isReceiveIRQReady()) {
+            m_regs.status |= StatusFlags::IRQ;
+            psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
         }
     }
 
-    SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_statusReg,
+    if (m_regs.control & ControlFlags::RESET) {
+        m_rxFIFO.clear();
+        m_padState = PAD_STATE_IDLE;
+        m_memoryCard[0].deselect();
+        m_memoryCard[1].deselect();
+        m_bufferIndex = 0;
+        m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
+        psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+        PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
+        m_currentDevice = DeviceType::None;
+    }
+
+    updateFIFOStatus();
+
+    if (m_regs.control & ControlFlags::TX_IRQEN) {
+        m_regs.status |= StatusFlags::IRQ;
+        psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+    }
+
+    if (wasReady == false && isTransmitReady()) {
+        transmitData();
+    }
+}
+
+void PCSX::SIO::writeBaud16(uint16_t value) { m_regs.baud = value; }
+
+uint8_t PCSX::SIO::read8() {
+    uint8_t ret = 0xFF;
+
+    if ((m_regs.status & StatusFlags::RX_FIFONOTEMPTY) && !m_rxFIFO.isEmpty()) {
+        ret = m_rxFIFO.pull();
+        updateFIFOStatus();
+    }
+
+    SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_regs.status,
              m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
-             m_buffer[m_bufferIndex < BUFFER_SIZE - 1 ? m_bufferIndex + 1 : BUFFER_SIZE - 1]);
+             m_buffer[m_bufferIndex < c_padBufferSize - 1 ? m_bufferIndex + 1 : c_padBufferSize - 1]);
+
+    psxHu8ref(0x1040) = ret;
+
     return ret;
 }
 
 uint16_t PCSX::SIO::readStatus16() {
-    uint16_t hard = m_statusReg;
-
-#if 0
-    // wait for IRQ first
-    if( PCSX::g_emulator->m_cpu->m_regs.interrupt & (1 << PSXINT_SIO) )
-    {
-        hard &= ~TX_RDY;
-        hard &= ~RX_RDY;
-        hard &= ~TX_EMPTY;
-    }
-#endif
+    uint16_t hard = m_regs.status;
 
     return hard;
 }
 
-uint16_t PCSX::SIO::readMode16() { return m_modeReg; }
-
-uint16_t PCSX::SIO::readCtrl16() { return m_ctrlReg; }
-
-uint16_t PCSX::SIO::readBaud16() { return m_baudReg; }
-
-void PCSX::SIO::netError() {
-    // ClosePlugins();
-    PCSX::g_system->message("%s", _("Connection closed!\n"));
-}
-
 void PCSX::SIO::interrupt() {
     SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
-    m_statusReg |= IRQ;
+    m_regs.status |= StatusFlags::IRQ;
+    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
 #if 0
     // Rhapsody: fixes input problems
     // Twisted Metal 2: breaks intro
-    m_statusReg |= TX_RDY;
-    m_statusReg |= RX_RDY;
+    m_statusReg |= StatusFlags::TX_DATACLEAR;
+    m_statusReg |= StatusFlags::RX_FIFONOTEMPTY;
 #endif
 }
 
-void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
-    char *data = nullptr;
-    const char *fname = reinterpret_cast<const char *>(str.c_str());
-
-    if (mcd == 1) {
-        data = g_mcd1Data;
-        m_wasMcd1Inserted = false;
-    }
-    if (mcd == 2) {
-        data = g_mcd2Data;
-        m_wasMcd2Inserted = false;
-    }
-
-    FILE *f = fopen(fname, "rb");
-    if (f == nullptr) {
-        PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), fname);
-        CreateMcd(str);
-        f = fopen(fname, "rb");
-        if (f != nullptr) {
-            struct stat buf;
-
-            if (stat(fname, &buf) != -1) {
-                // Check if the file is a VGS memory card, skip the header if it is
-                if (buf.st_size == MCD_SIZE + 64) fseek(f, 64, SEEK_SET);
-                // Check if the file is a Dexdrive memory card, skip the header if it is
-                else if (buf.st_size == MCD_SIZE + 3904)
-                    fseek(f, 3904, SEEK_SET);
-            }
-            if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-                throw("Error reading memory card.");
-            }
-            fclose(f);
-        } else
-            PCSX::g_system->message(_("Memory card %s failed to load!\n"), fname);
-    } else {
-        struct stat buf;
-        PCSX::g_system->printf(_("Loading memory card %s\n"), fname);
-        if (stat(fname, &buf) != -1) {
-            if (buf.st_size == MCD_SIZE + 64)
-                fseek(f, 64, SEEK_SET);
-            else if (buf.st_size == MCD_SIZE + 3904)
-                fseek(f, 3904, SEEK_SET);
-        }
-        if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-            throw("Error reading memory card.");
-        }
-        fclose(f);
-    }
-}
-
-void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
-    LoadMcd(1, mcd1);
-    LoadMcd(2, mcd2);
-}
-
-void PCSX::SIO::saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
-    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    FILE *f = fopen(fname, "r+b");
-
-    if (f != nullptr) {
-        struct stat buf;
-
-        if (stat(fname, &buf) != -1) {
-            if (buf.st_size == MCD_SIZE + 64)
-                fseek(f, adr + 64, SEEK_SET);
-            else if (buf.st_size == MCD_SIZE + 3904)
-                fseek(f, adr + 3904, SEEK_SET);
-            else
-                fseek(f, adr, SEEK_SET);
-        } else
-            fseek(f, adr, SEEK_SET);
-
-        fwrite(data + adr, 1, size, f);
-        fclose(f);
-        PCSX::g_system->printf(_("Saving memory card %s\n"), fname);
-        return;
-    }
-
-#if 0
-    // try to create it again if we can't open it
-    f = fopen(mcd, "wb");
-    if (f != NULL) {
-        fwrite(data, 1, MCD_SIZE, f);
-        fclose(f);
-    }
-#endif
-
-    ConvertMcd(mcd, data);
-}
-
-void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
-    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    struct stat buf;
-    int s = MCD_SIZE;
-
-    const auto f = fopen(fname, "wb");
-    if (f == nullptr) return;
-
-    if (stat(fname, &buf) != -1) {
-        if ((buf.st_size == MCD_SIZE + 3904) || strstr(fname, ".gme")) {
-            s = s + 3904;
-            fputc('1', f);
-            s--;
-            fputc('2', f);
-            s--;
-            fputc('3', f);
-            s--;
-            fputc('-', f);
-            s--;
-            fputc('4', f);
-            s--;
-            fputc('5', f);
-            s--;
-            fputc('6', f);
-            s--;
-            fputc('-', f);
-            s--;
-            fputc('S', f);
-            s--;
-            fputc('T', f);
-            s--;
-            fputc('D', f);
-            s--;
-            for (int i = 0; i < 7; i++) {
-                fputc(0, f);
-                s--;
-            }
-            fputc(1, f);
-            s--;
-            fputc(0, f);
-            s--;
-            fputc(1, f);
-            s--;
-            fputc('M', f);
-            s--;
-            fputc('Q', f);
-            s--;
-            for (int i = 0; i < 14; i++) {
-                fputc(0xa0, f);
-                s--;
-            }
-            fputc(0, f);
-            s--;
-            fputc(0xff, f);
-            while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        } else if ((buf.st_size == MCD_SIZE + 64) || strstr(fname, ".mem") || strstr(fname, ".vgs")) {
-            s = s + 64;
-            fputc('V', f);
-            s--;
-            fputc('g', f);
-            s--;
-            fputc('s', f);
-            s--;
-            fputc('M', f);
-            s--;
-            for (int i = 0; i < 3; i++) {
-                fputc(1, f);
-                s--;
-                fputc(0, f);
-                s--;
-                fputc(0, f);
-                s--;
-                fputc(0, f);
-                s--;
-            }
-            fputc(0, f);
-            s--;
-            fputc(2, f);
-            while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        }
-    }
-    fputc('M', f);
-    s--;
-    fputc('C', f);
-    s--;
-    while (s-- > (MCD_SIZE - 127)) fputc(0, f);
-    fputc(0xe, f);
-    s--;
-
-    for (int i = 0; i < 15; i++) {  // 15 blocks
-        fputc(0xa0, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        for (int j = 0; j < 117; j++) {
-            fputc(0x00, f);
-            s--;
-        }
-        fputc(0xa0, f);
-        s--;
-    }
-
-    for (int i = 0; i < 20; i++) {
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0x00, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        fputc(0xff, f);
-        s--;
-        for (int j = 0; j < 118; j++) {
-            fputc(0x00, f);
-            s--;
-        }
-    }
-
-    while ((s--) >= 0) fputc(0, f);
-
-    fclose(f);
-}
-
-void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
-    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    int s = MCD_SIZE;
-
-    if (strstr(fname, ".gme")) {
-        auto f = fopen(fname, "wb");
-        if (f != nullptr) {
-            fwrite(data - 3904, 1, MCD_SIZE + 3904, f);
-            fclose(f);
-        }
-        f = fopen(fname, "r+");
-        s = s + 3904;
-        fputc('1', f);
-        s--;
-        fputc('2', f);
-        s--;
-        fputc('3', f);
-        s--;
-        fputc('-', f);
-        s--;
-        fputc('4', f);
-        s--;
-        fputc('5', f);
-        s--;
-        fputc('6', f);
-        s--;
-        fputc('-', f);
-        s--;
-        fputc('S', f);
-        s--;
-        fputc('T', f);
-        s--;
-        fputc('D', f);
-        s--;
-        for (int i = 0; i < 7; i++) {
-            fputc(0, f);
-            s--;
-        }
-        fputc(1, f);
-        s--;
-        fputc(0, f);
-        s--;
-        fputc(1, f);
-        s--;
-        fputc('M', f);
-        s--;
-        fputc('Q', f);
-        s--;
-        for (int i = 0; i < 14; i++) {
-            fputc(0xa0, f);
-            s--;
-        }
-        fputc(0, f);
-        s--;
-        fputc(0xff, f);
-        while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        fclose(f);
-    } else if (strstr(fname, ".mem") || strstr(fname, ".vgs")) {
-        auto f = fopen(fname, "wb");
-        if (f != nullptr) {
-            fwrite(data - 64, 1, MCD_SIZE + 64, f);
-            fclose(f);
-        }
-        f = fopen(fname, "r+");
-        s = s + 64;
-        fputc('V', f);
-        s--;
-        fputc('g', f);
-        s--;
-        fputc('s', f);
-        s--;
-        fputc('M', f);
-        s--;
-        for (int i = 0; i < 3; i++) {
-            fputc(1, f);
-            s--;
-            fputc(0, f);
-            s--;
-            fputc(0, f);
-            s--;
-            fputc(0, f);
-            s--;
-        }
-        fputc(0, f);
-        s--;
-        fputc(2, f);
-        while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        fclose(f);
-    } else {
-        const auto f = fopen(fname, "wb");
-        if (f != nullptr) {
-            fwrite(data, 1, MCD_SIZE, f);
-            fclose(f);
-        }
-    }
+void PCSX::SIO::loadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
+    m_memoryCard[0].loadMcd(mcd1);
+    m_memoryCard[1].loadMcd(mcd2);
 }
 
 void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
@@ -688,7 +379,7 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
     info.mcd = mcd;
 
     char *data = getMcdData(mcd);
-    uint8_t *ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 2;
+    uint8_t *ptr = reinterpret_cast<uint8_t *>(data) + block * c_blockSize + 2;
     auto &ta = info.titleAscii;
     auto &ts = info.titleSjis;
     info.iconCount = std::max(1, *ptr & 0x3);
@@ -750,13 +441,13 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
     info.titleUtf8 = Sjis::toUtf8(ts);
 
     // Read CLUT
-    ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 0x60;
+    ptr = reinterpret_cast<uint8_t *>(data) + block * c_blockSize + 0x60;
     std::memcpy(clut, ptr, 16 * sizeof(uint16_t));
 
     // Icons can have 1 to 3 frames of animation
-    for (int i = 0; i < info.iconCount; i++) {
+    for (uint32_t i = 0; i < info.iconCount; i++) {
         uint16_t *icon = &info.icon[i * 16 * 16];
-        ptr = reinterpret_cast<uint8_t *>(data) + block * MCD_BLOCK_SIZE + 128 + 128 * i;  // icon data
+        ptr = reinterpret_cast<uint8_t *>(data) + block * c_blockSize + 128 + 128 * i;  // icon data
 
         // Fetch each pixel, store it in the icon array in ABBBBBGGGGGRRRRR with the alpha bit set to 1
         for (x = 0; x < 16 * 16; x++) {
@@ -768,7 +459,7 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
     }
 
     // Parse directory frame info
-    const auto directoryFrame = (uint8_t *)data + block * MCD_SECT_SIZE;
+    const auto directoryFrame = (uint8_t *)data + block * c_sectorSize;
     uint32_t allocState = 0;
     allocState |= directoryFrame[0];
     allocState |= directoryFrame[1] << 8;
@@ -809,12 +500,13 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
 char *PCSX::SIO::getMcdData(int mcd) {
     switch (mcd) {
         case 1:
-            return g_mcd1Data;
+            return m_memoryCard[0].getMcdData();
         case 2:
-            return g_mcd2Data;
+            return m_memoryCard[1].getMcdData();
         default:
             throw std::runtime_error("Attempt to access invalid memory card");
             return nullptr;
+            break;
     }
 }
 
@@ -824,18 +516,21 @@ void PCSX::SIO::eraseMcdFile(const McdBlock &block) {
     char *data = getMcdData(block.mcd);
 
     // Set the block data to 0
-    const size_t offset = block.number * MCD_BLOCK_SIZE;
-    std::memset(data + offset, 0, MCD_BLOCK_SIZE);
+    const size_t offset = block.number * c_blockSize;
+    std::memset(data + offset, 0, c_blockSize);
 
     // Fix up the corresponding directory frame in block 0.
-    const auto frame = (uint8_t *)data + block.number * MCD_SECT_SIZE;
+    const auto frame = (uint8_t *)data + block.number * c_sectorSize;
     frame[0] = 0xa0;                   // Code for a freshly formatted block
     for (auto i = 1; i < 0x7f; i++) {  // Zero the rest of the frame
         frame[i] = 0;
     }
     frame[0x7f] = 0xa0;  // xor checksum of frame
 
-    if (block.isErased()) return;
+    if (block.isErased()) {
+        return;
+    }
+
     auto nextBlock = block.nextBlock;
     if ((nextBlock >= 1) && (nextBlock <= 15)) {
         McdBlock next;
@@ -849,21 +544,29 @@ unsigned PCSX::SIO::getFreeSpace(int mcd) {
     for (int i = 1; i < 16; i++) {
         McdBlock block;
         getMcdBlockInfo(mcd, i, block);
-        if (block.isErased()) count++;
+        if (block.isErased()) {
+            count++;
+        }
     }
 
     return count;
 }
 
 unsigned PCSX::SIO::getFileBlockCount(McdBlock block) {
-    if (block.isErased()) return 0;
+    if (block.isErased()) {
+        return 0;
+    }
 
     std::bitset<16> walked;
     unsigned count = 1;
 
     while (true) {
-        if ((block.nextBlock < 1) || (block.nextBlock > 15)) return count;
-        if (walked.test(block.nextBlock)) return count;
+        if ((block.nextBlock < 1) || (block.nextBlock > 15)) {
+            return count;
+        }
+        if (walked.test(block.nextBlock)) {
+            return count;
+        }
         walked.set(block.nextBlock);
         getMcdBlockInfo(block.mcd, block.nextBlock, block);
         count++;
@@ -874,7 +577,9 @@ int PCSX::SIO::findFirstFree(int mcd) {
     McdBlock block;
     for (int i = 1; i < 16; i++) {
         getMcdBlockInfo(mcd, i, block);
-        if (block.isErased()) return i;
+        if (block.isErased()) {
+            return i;
+        }
     }
 
     return -1;
@@ -882,7 +587,9 @@ int PCSX::SIO::findFirstFree(int mcd) {
 
 bool PCSX::SIO::copyMcdFile(McdBlock block) {
     auto other = otherMcd(block);
-    if (getFreeSpace(other) < getFileBlockCount(block)) return false;
+    if (getFreeSpace(other) < getFileBlockCount(block)) {
+        return false;
+    }
     const auto data = getMcdData(block);
     const auto otherData = getMcdData(other);
 
@@ -891,29 +598,37 @@ bool PCSX::SIO::copyMcdFile(McdBlock block) {
 
     while (true) {
         int dstBlock = findFirstFree(other);
-        if (dstBlock < 1 || dstBlock > 16) throw std::runtime_error("Inconsistent memory card state");
+        if (dstBlock < 1 || dstBlock > 16) {
+            throw std::runtime_error("Inconsistent memory card state");
+        }
 
         // copy block data
-        size_t srcOffset = block.number * MCD_BLOCK_SIZE;
-        size_t dstOffset = dstBlock * MCD_BLOCK_SIZE;
-        std::memcpy(otherData + dstOffset, data + srcOffset, MCD_BLOCK_SIZE);
+        size_t srcOffset = block.number * c_blockSize;
+        size_t dstOffset = dstBlock * c_blockSize;
+        std::memcpy(otherData + dstOffset, data + srcOffset, c_blockSize);
 
         // copy directory entry
-        srcOffset = block.number * MCD_SECT_SIZE;
-        dstOffset = dstBlock * MCD_SECT_SIZE;
-        std::memcpy(otherData + dstOffset, data + srcOffset, MCD_SECT_SIZE);
+        srcOffset = block.number * c_sectorSize;
+        dstOffset = dstBlock * c_sectorSize;
+        std::memcpy(otherData + dstOffset, data + srcOffset, c_sectorSize);
 
         // Fix up the corresponding directory frame in block 0.
         if (prevBlock != -1) {
-            const auto frame = reinterpret_cast<uint8_t *>(otherData) + prevBlock * MCD_SECT_SIZE;
+            const auto frame = reinterpret_cast<uint8_t *>(otherData) + prevBlock * c_sectorSize;
             uint8_t crcFix = frame[8] ^ (dstBlock - 1);
             frame[8] = dstBlock - 1;
             frame[0x7f] ^= crcFix;
         }
         prevBlock = dstBlock;
-        if (block.nextBlock == -1) return true;
-        if ((block.nextBlock < 1) || (block.nextBlock > 15)) return false;
-        if (walked.test(block.nextBlock)) return false;
+        if (block.nextBlock == -1) {
+            return true;
+        }
+        if ((block.nextBlock < 1) || (block.nextBlock > 15)) {
+            return false;
+        }
+        if (walked.test(block.nextBlock)) {
+            return false;
+        }
         walked.set(block.nextBlock);
         getMcdBlockInfo(block.mcd, block.nextBlock, block);
     }
@@ -922,17 +637,39 @@ bool PCSX::SIO::copyMcdFile(McdBlock block) {
 // Back up the entire memory card to a file
 // mcd: The memory card to back up (1 or 2)
 void PCSX::SIO::saveMcd(int mcd) {
-    const auto data = getMcdData(mcd);
     switch (mcd) {
         case 1: {
             const auto path = g_emulator->settings.get<Emulator::SettingMcd1>().string();
-            saveMcd(path, data, 0, MCD_SIZE);
+            m_memoryCard[0].saveMcd(path);
             break;
         }
         case 2: {
             const auto path = g_emulator->settings.get<Emulator::SettingMcd2>().string();
-            saveMcd(path, data, 0, MCD_SIZE);
+            m_memoryCard[1].saveMcd(path);
             break;
         }
     }
+}
+
+void PCSX::SIO::togglePocketstationMode() {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Pocketstation>()) {
+        m_memoryCard[0].enablePocketstation();
+    } else {
+        m_memoryCard[0].disablePocketstation();
+    }
+
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Pocketstation>()) {
+        m_memoryCard[1].enablePocketstation();
+    } else {
+        m_memoryCard[1].disablePocketstation();
+    }
+}
+
+void PCSX::SIO::updateFIFOStatus() {
+    if (m_rxFIFO.size() > 0) {
+        m_regs.status |= StatusFlags::RX_FIFONOTEMPTY;
+    } else {
+        m_regs.status &= ~StatusFlags::RX_FIFONOTEMPTY;
+    }
+    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
 }

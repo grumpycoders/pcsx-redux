@@ -83,17 +83,25 @@ void pushEvent(PCSX::Lua L, const PCSX::Events::Keyboard& e) {
 
 template <typename Event>
 void createListener(PCSX::Lua L) {
+    // 1 = event name, 2 = callback
     L.getfieldtable("EVENT_LISTENERS", LUA_REGISTRYINDEX);
+    // 3 = event listeners table
     L.newtable();
+    // 4 = empty table
 
     L.push("callback");
+    // 1 = event name, 2 = callback, 3 = event listeners table, 4 = empty table, 5 = "callback"
     L.copy(2);
+    // 1 = event name, 2 = callback, 3 = event listeners table, 4 = empty table, 5 = "callback", 6 = callback
     L.settable();
+    // 1 = event name, 2 = callback, 3 = event listeners table, 4 = event info table
 
     L.push("thread");
     auto t = L.thread(true);
     L.settable();
 
+    // grabs a reference to the event info table, which looks like this:
+    // { callback = function, thread = coroutine }
     int ref = L.ref();
 
     auto listener = new PCSX::EventBus::Listener(PCSX::g_system->m_eventBus);
@@ -105,24 +113,42 @@ void createListener(PCSX::Lua L) {
         L.pcall(1);
     });
 
+    int a = L.gettop();
+
     L.newtable();
+    L.newuser(1);
     L.newtable();
+    L.push(lua_Number(ref));
+    L.push(listener);
+    // Neither Lua nor LuaJIT handle nested garbage collectors properly, so
+    // don't use the full lambda version here otherwise things will go boom
     L.declareFunc(
         "__gc",
-        [ref, listener](PCSX::Lua L) -> int {
+        [](lua_State* L_) -> int {
+            PCSX::Lua L(L_);
+            int ref = L.tonumber(lua_upvalueindex(1));
+            auto listener = L.touserdata<PCSX::EventBus::Listener>(lua_upvalueindex(2));
             L.getfieldtable("EVENT_LISTENERS", LUA_REGISTRYINDEX);
             L.unref(ref);
             delete listener;
             return 0;
         },
-        -1);
+        -3, 2);
+    int b = L.gettop();
     L.setmetatable();
+    L.setfield("_proxy");
+    int c = L.gettop();
 
+    bool called = false;
     L.declareFunc(
         "remove",
-        [ref, listener](PCSX::Lua L) -> int {
-            L.newtable();
+        [ref, listener, called](PCSX::Lua L) mutable -> int {
+            if (called) return 0;
+            called = true;
+            L.getfield("_proxy");
+            L.push();
             L.setmetatable();
+            L.pop();
             L.getfieldtable("EVENT_LISTENERS", LUA_REGISTRYINDEX);
             L.unref(ref);
             delete listener;

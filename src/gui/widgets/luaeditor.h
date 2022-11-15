@@ -42,7 +42,7 @@ class LuaEditor {
     ZepEditor m_text = {"pcsx.lua"};
     std::vector<std::string> m_lastErrors;
     bool m_displayError = false;
-    bool m_autoreload = true;
+    bool m_autorun = true;
     bool m_autosave = true;
 };
 

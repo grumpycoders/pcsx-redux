@@ -55,15 +55,17 @@ void PCSX::Widgets::LuaEditor::draw(const char* title, PCSX::GUI* gui) {
 
     auto& L = g_emulator->m_lua;
 
-    ImGui::Checkbox(_("Auto reload"), &m_autoreload);
+    ImGui::Checkbox(_("Auto run"), &m_autorun);
     ImGui::SameLine();
     ImGui::Checkbox(_("Auto save"), &m_autosave);
+    ImGui::SameLine();
+    bool runOnce = ImGui::Button(_("> Run"));
     ImVec2 size(0, -ImGui::GetTextLineHeightWithSpacing() * 5);
     ImGui::BeginChild("LuaSource", size);
     m_text.draw(gui);
     ImGui::EndChild();
-    if (m_text.hasTextChanged()) {
-        if (m_autoreload) {
+    if (runOnce || m_text.hasTextChanged()) {
+        if (runOnce || m_autorun) {
             m_lastErrors.clear();
             auto oldNormalPrinter = L->normalPrinter;
             auto oldErrorPrinter = L->errorPrinter;
@@ -86,6 +88,7 @@ void PCSX::Widgets::LuaEditor::draw(const char* title, PCSX::GUI* gui) {
             }
             L->normalPrinter = oldNormalPrinter;
             L->errorPrinter = oldErrorPrinter;
+            lua_gc(L->getState(), LUA_GCCOLLECT, 0);
         }
 
         if (m_autosave) {

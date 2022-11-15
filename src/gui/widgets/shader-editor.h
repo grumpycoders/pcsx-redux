@@ -83,7 +83,7 @@ class ShaderEditor {
     std::string m_errorMessage;
     std::vector<std::string> m_lastLuaErrors;
     bool m_displayError = false;
-    bool m_autoreload = true;
+    bool m_autocompile = true;
     bool m_autosave = true;
     bool m_showAll = false;
     bool m_setupVAO = true;
