@@ -1,3 +1,5 @@
+# PSYQo Tetris example
+
 This is the most complex example so far. It exercises the library to basically do everything.
 
 The code is thoroughly documented in order to explain the theory behind it. The entry point is located in the [`tetris.cpp`](tetris.cpp) file.

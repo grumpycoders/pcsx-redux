@@ -398,7 +398,7 @@ void buLowLevelOpCompleted() {
                         memcpy(&dirEntries[s_buCurrentSector[port]], buffer, sizeof(struct BuDirectoryEntry));
                     }
                     if (++s_buCurrentSector[port] < 15) {
-                        if (syscall_mcReadSector(deviceId, s_buCurrentSector[port], buffer)) return;
+                        if (syscall_mcReadSector(deviceId, s_buCurrentSector[port] + 1, buffer)) return;
                         g_mcOverallSuccess = 0;
                         g_mcErrors[0] = 1;
                         buFinishAndTrigger(port, 0x8000);

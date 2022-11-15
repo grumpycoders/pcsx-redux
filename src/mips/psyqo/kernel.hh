@@ -157,7 +157,7 @@ void queueCallback(eastl::function<void()>&& lambda);
  * from the main thead, during idle moments like various blocking
  * operations. This variant is safe to call from an interrupt handler.
  * This is how to idiomatically execute something safely from an
- * an interrupt handler.
+ * interrupt handler.
  */
 void queueCallbackFromISR(eastl::function<void()>&& lambda);
 

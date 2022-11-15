@@ -136,6 +136,9 @@
     <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc">
       <Filter>Source Files\OpenGL GPU</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\memorycard.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\web-server.h">
@@ -266,6 +269,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h">
       <Filter>Header Files\OpenGL GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\memorycard.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

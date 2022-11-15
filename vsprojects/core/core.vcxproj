@@ -258,6 +258,7 @@
     <ClCompile Include="..\..\src\core\kernellog.cc" />
     <ClCompile Include="..\..\src\core\luaiso.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
+    <ClCompile Include="..\..\src\core\memorycard.cc" />
     <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc" />
     <ClCompile Include="..\..\src\core\pad.cc" />
     <ClCompile Include="..\..\src\core\pcsxlua.cc" />
@@ -303,6 +304,7 @@
     <ClInclude Include="..\..\src\core\logger.h" />
     <ClInclude Include="..\..\src\core\luaiso.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
+    <ClInclude Include="..\..\src\core\memorycard.h" />
     <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h" />
     <ClInclude Include="..\..\src\core\pad.h" />
     <ClInclude Include="..\..\src\core\pcsxlua.h" />

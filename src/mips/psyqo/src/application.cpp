@@ -28,17 +28,13 @@ SOFTWARE.
 
 #include "common/hardware/hwregs.h"
 #include "common/syscalls/syscalls.h"
+#include "psyqo/alloc.h"
 #include "psyqo/kernel.hh"
 #include "psyqo/scene.hh"
 
-extern "C" {
-void* psyqo_heap_start();
-void* psyqo_heap_end();
-}
-
 int psyqo::Application::run() {
     enterCriticalSection();
-    ramsyscall_printf("*** PSYQo Application - starting ***\n");
+    syscall_puts("*** PSYQo Application - starting ***\n");
     ramsyscall_printf("Current heap start: %p\n", psyqo_heap_start());
     ramsyscall_printf("Current heap end: %p\n", psyqo_heap_end());
     Kernel::Internal::prepare();

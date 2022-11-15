@@ -55,7 +55,9 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     }
 
     const bool undoDisabled = m_undo.size() == 0;
-    if (undoDisabled) ImGui::BeginDisabled();
+    if (undoDisabled) {
+        ImGui::BeginDisabled();
+    }
     bool isLatest = m_undo.size() == m_undoIndex;
     const bool wasLatest = isLatest;
     if (ImGui::SliderInt(_("Undo"), &m_undoIndex, 0, m_undo.size(), "")) {
@@ -63,17 +65,17 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         const auto dataCard1 = g_emulator->m_sio->getMcdData(1);
         const auto dataCard2 = g_emulator->m_sio->getMcdData(2);
         if (isLatest) {
-            std::memcpy(dataCard1, m_latest.get(), SIO::MCD_SIZE);
-            std::memcpy(dataCard2, m_latest.get() + SIO::MCD_SIZE, SIO::MCD_SIZE);
+            std::memcpy(dataCard1, m_latest.get(), SIO::c_cardSize);
+            std::memcpy(dataCard2, m_latest.get() + SIO::c_cardSize, SIO::c_cardSize);
         } else {
             if (wasLatest) {
-                std::unique_ptr<uint8_t[]> latest(new uint8_t[SIO::MCD_SIZE * 2]);
-                std::memcpy(latest.get(), dataCard1, SIO::MCD_SIZE);
-                std::memcpy(latest.get() + SIO::MCD_SIZE, dataCard2, SIO::MCD_SIZE);
+                std::unique_ptr<uint8_t[]> latest = std::make_unique<uint8_t[]>(SIO::c_cardSize * 2);
+                std::memcpy(latest.get(), dataCard1, SIO::c_cardSize);
+                std::memcpy(latest.get() + SIO::c_cardSize, dataCard2, SIO::c_cardSize);
                 m_latest.swap(latest);
             }
-            std::memcpy(dataCard1, m_undo[m_undoIndex].second.get(), SIO::MCD_SIZE);
-            std::memcpy(dataCard2, m_undo[m_undoIndex].second.get() + SIO::MCD_SIZE, SIO::MCD_SIZE);
+            std::memcpy(dataCard1, m_undo[m_undoIndex].second.get(), SIO::c_cardSize);
+            std::memcpy(dataCard2, m_undo[m_undoIndex].second.get() + SIO::c_cardSize, SIO::c_cardSize);
         }
         g_emulator->m_sio->saveMcd(1);
         g_emulator->m_sio->saveMcd(2);
@@ -85,7 +87,9 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     } else {
         ImGui::TextUnformatted(m_undo[m_undoIndex].first.c_str());
     }
-    if (undoDisabled) ImGui::EndDisabled();
+    if (undoDisabled) {
+        ImGui::EndDisabled();
+    }
     if (ImGui::Button(_("Clear Undo buffer"))) {
         m_undo.clear();
         m_undoIndex = 0;
@@ -94,15 +98,35 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     // Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
     if (ImGui::Checkbox(_("Memory Card 1 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
-        g_emulator->m_sio->interrupt();
         changed = true;
     }
     ImGui::SameLine();
     if (ImGui::Checkbox(_("Memory Card 2 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value)) {
-        g_emulator->m_sio->interrupt();
         changed = true;
     }
+
+    if (ImGui::Checkbox(_("Card 1 Pocketstation"),
+                        &g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value)) {
+        g_emulator->m_sio->togglePocketstationMode();
+        changed = true;
+    }
+    ImGui::SameLine();
+    ShowHelpMarker(
+        _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
+          "allowing apps to be "
+          "saved/exported."));
+    ImGui::SameLine();
+    if (ImGui::Checkbox(_("Card 2 Pocketstation"),
+                        &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value)) {
+        g_emulator->m_sio->togglePocketstationMode();
+        changed = true;
+    }
+    ImGui::SameLine();
+    ShowHelpMarker(
+        _("Experimental.  Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
+          "allowing apps to be "
+          "saved/exported."));
 
     ImGui::SliderInt(_("Icon size"), &m_iconSize, 16, 512);
     ImGui::SameLine();
@@ -136,7 +160,9 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%d", i);
                 ImGui::TableSetColumnIndex(1);
-                if (!block.isChained() && !block.isErased()) drawIcon(block);
+                if (!block.isChained() && !block.isErased()) {
+                    drawIcon(block);
+                }
 
                 ImGui::TableSetColumnIndex(2);
                 if (block.isChained()) {
@@ -278,7 +304,7 @@ void PCSX::Widgets::MemcardManager::drawIcon(const PCSX::SIO::McdBlock& block) {
 // Extract the pocketstation icon from the block indicated by blockNumber into the pixels array (In RGBA8888)
 void PCSX::Widgets::MemcardManager::getPocketstationIcon(uint32_t* pixels, const SIO::McdBlock& block) {
     const auto data = g_emulator->m_sio->getMcdData(block.mcd);
-    const auto titleFrame = data + block.number * PCSX::SIO::MCD_BLOCK_SIZE;
+    const auto titleFrame = data + block.number * PCSX::SIO::c_blockSize;
 
     // Calculate icon offset using the header info documented here
     // https://psx-spx.consoledev.net/pocketstation/#pocketstation-file-headericons
@@ -357,4 +383,16 @@ void PCSX::Widgets::MemcardManager::copyToClipboard(const SIO::McdBlock& block) 
 void PCSX::Widgets::MemcardManager::saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action) {
     m_undo.resize(m_undoIndex++);
     m_undo.push_back({action, std::move(tosave)});
+}
+
+void PCSX::Widgets::MemcardManager::ShowHelpMarker(const char* desc) {
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
 }

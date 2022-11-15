@@ -124,7 +124,7 @@ int PCSX::Emulator::init() {
     }
 
     setPGXPMode(m_config.PGXP_Mode);
-    m_pads->init();
+    m_sio->init();
     return ret;
 }
 

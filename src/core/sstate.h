@@ -131,22 +131,43 @@ typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, 
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 6> SPUField;
 
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1010>, TYPESTRING("buffer"), 1> SIOBuffer;
-typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("status_reg"), 2> SIOStatusReg;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("status_reg"), 2> SIOStatusReg;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mode_reg"), 3> SIOModeReg;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("ctrl_reg"), 4> SIOCtrlReg;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("baud_reg"), 5> SIOBaudReg;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("buffer_max_index"), 6> SIOBufferMaxIndex;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("buffer_index"), 7> SIOBufferIndex;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd_state"), 8> SIOMCDState;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd_readwrite_state"), 9> SIOMCDReadWriteState;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd_addr_high"), 10> SIOMCDAddrHigh;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd_addr_low"), 11> SIOMCDAddrLow;
+// skip id 8
+// skip id 9
+// skip id 10
+// skip id 11
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_state"), 12> SIOPadState;
-typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("was_mcd1_inserted"), 13> SIOWasMCD1Inserted;
-typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("was_mcd2_inserted"), 14> SIOWasMCD2Inserted;
+// skip id 13
+// skip id 14
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("currentdevice"), 15> SIOCurrentDevice;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd1_tempbuffer"), 16> SIOMCD1TempBuffer;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1_directoryflag"), 17> SIOMCD1DirectoryFlag;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1_checksumin"), 18> SIOMCD1ChecksumIn;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1_checksumout"), 19> SIOMCD1ChecksumOut;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd1_commandticks"), 20> SIOMCD1CommandTicks;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1_currentcommand"), 21> SIOMCD1CurrentCommand;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd1_sector"), 22> SIOMCD1Sector;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd1_dataoffset"), 23> SIOMCD1DataOffset;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd2_tempbuffer"), 24> SIOMCD2TempBuffer;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2_directoryflag"), 25> SIOMCD2DirectoryFlag;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2_checksumin"), 26> SIOMCD2ChecksumIn;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2_checksumout"), 27> SIOMCD2ChecksumOut;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2_commandticks"), 28> SIOMCD2CommandTicks;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2_currentcommand"), 29> SIOMCD2CurrentCommand;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2_sector"), 30> SIOMCD2Sector;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd2_dataoffset"), 31> SIOMCD2DataOffset;
+
 typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuffer, SIOStatusReg, SIOModeReg, SIOCtrlReg, SIOBaudReg,
-                          SIOBufferMaxIndex, SIOBufferIndex, SIOMCDState, SIOMCDReadWriteState, SIOMCDAddrHigh,
-                          SIOMCDAddrLow, SIOPadState, SIOWasMCD1Inserted, SIOWasMCD2Inserted>
+                          SIOBufferMaxIndex, SIOBufferIndex, SIOPadState, SIOCurrentDevice, SIOMCD1TempBuffer,
+                          SIOMCD1DirectoryFlag, SIOMCD1ChecksumIn, SIOMCD1ChecksumOut, SIOMCD1CommandTicks,
+                          SIOMCD1CurrentCommand, SIOMCD1Sector, SIOMCD1DataOffset, SIOMCD2TempBuffer,
+                          SIOMCD2DirectoryFlag, SIOMCD2ChecksumIn, SIOMCD2ChecksumOut, SIOMCD2CommandTicks,
+                          SIOMCD2CurrentCommand, SIOMCD2Sector, SIOMCD2DataOffset>
     SIO;
 typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 7> SIOField;
 

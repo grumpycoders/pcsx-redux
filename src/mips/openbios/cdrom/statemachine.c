@@ -548,7 +548,7 @@ static void __attribute__((section(".ramtext"))) acknowledge() {
         case READ_SETMODE:
             readSetModeResponse();
             break;
-        case 0xf2:
+        case SEEKL_SETLOC:
             issueSeekAfterSetLoc(0);
             break;
         case 0xf14:
@@ -762,7 +762,7 @@ int __attribute__((section(".ramtext"))) cdromInnerInit() {
     IMASK |= IRQ_DMA;
     leaveCriticalSection();
     CDROM_REG0 = 0;
-    CDROM_REG1 = 10;
+    CDROM_REG1 = CDL_INIT;
     int wait = 30000;
     while (wait-- && s_initializationComplete != 2) {
         if (s_initializationComplete == 1) return 1;

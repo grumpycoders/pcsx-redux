@@ -63,6 +63,7 @@ bool breakpointEnabled(LuaBreakpoint* wrapper) {
     return wrapper->wrapper.begin()->enabled();
 }
 void removeBreakpoint(LuaBreakpoint* wrapper) {
+    if (!wrapper) return;
     wrapper->wrapper.destroyAll();
     delete wrapper;
 }
