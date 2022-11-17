@@ -1,0 +1,2385 @@
+# 
+# Translators:
+# Name LastName, 2022
+# Whitehole <javi_del_95@hotmail.com>, 2022
+# Víctor González, 2022
+# 
+msgid ""
+msgstr ""
+"Last-Translator: Víctor González, 2022\n"
+"Language-Team: Spanish (Spain) (https://www.transifex.com/grumpycoders/teams/99251/es_ES/)\n"
+"Language: es_ES\n"
+"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+
+#: src/core/psxmem.cc:128
+msgid ""
+"\n"
+"                   No BIOS loaded, emulation halted.\n"
+"\n"
+"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
+"The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
+msgstr ""
+"\n"
+"                   No se ha cargado una BIOS, emulación detenida.\n"
+"\n"
+"Elige un archivo de BIOS en la configuración y luego haz un reinicio completo de la emulación.\n"
+"El archivo distribuido OpenBIOS.bin podría ser una BIOS alternativa ideal.\n"
+"\n"
+
+#: src/cdrom/cdriso-ecm.cc:303
+#, c-format
+msgid ""
+"\n"
+"Detected ECM file with proper header and filename suffix.\n"
+msgstr ""
+"\n"
+"Detectado un archivo ECM con la cabecera y el sufijo en su nombre de archivo correctos.\n"
+
+#: src/cdrom/cdriso-cue.cc:174
+#, c-format
+msgid ""
+"\n"
+"could not open: %s\n"
+msgstr ""
+"\n"
+"no se pudo abrir: %s\n"
+
+#: src/gui/widgets/filedialog.cc:266
+msgid "  Date & Time"
+msgstr "Fecha y hora"
+
+#: src/gui/widgets/filedialog.cc:210
+msgid "  File"
+msgstr "Archivo"
+
+#: src/gui/widgets/filedialog.cc:238
+msgid "  Size"
+msgstr "Tamaño"
+
+#: src/gui/gui.cc:1026
+#, c-format
+msgid "%.2f FPS (%.2f ms)"
+msgstr "%.2f FPS (%.2f ms)"
+
+#: src/gui/gui.cc:1029
+#, c-format
+msgid "%.2f ms audio buffer (%i frames)"
+msgstr "Búfer de audio de %.2f ms (%i fotogramas)"
+
+#: src/gui/widgets/memcard_manager.cc:158
+#, c-format
+msgid "%s (%dKB)"
+msgstr "%s (%d KB)"
+
+#: src/core/cheat.cc:310 src/core/cheat.cc:425
+msgid "(Untitled)"
+msgstr "(Sin título)"
+
+#: src/gui/widgets/memory_observer.cc:221
+msgid "16 bytes (fast)"
+msgstr "16 bytes (rápido)"
+
+#: src/gui/widgets/vram-viewer.cc:370
+msgid "24 bits shift"
+msgstr "Variación para 24 bits"
+
+#: src/gui/widgets/memory_observer.cc:219
+msgid "8 bytes (fast)"
+msgstr "8 bytes (rápido)"
+
+#: src/gui/gui.cc:1455
+msgid "8MB"
+msgstr "8 MB"
+
+#: src/gui/gui.cc:1016 src/gui/gui.cc:1743
+msgid "About"
+msgstr "Acerca de"
+
+#: src/spu/cfg.cc:91
+msgid "Accurate - best quality, but slower"
+msgstr "Precisa: mejor calidad, pero más lenta"
+
+#: src/gui/widgets/memcard_manager.cc:128
+msgid "Action"
+msgstr "Acción"
+
+#: src/spu/cfg.cc:102
+msgid ""
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
+" is necessary for some games."
+msgstr ""
+"Activa las IRQ de la SPU basadas en las escrituras al búfer de "
+"decodificación/captura. Esta opción es necesaria para algunos juegos."
+
+#: src/gui/gui.cc:1449
+msgid ""
+"Activates the dynamic-recompiler CPU core.\n"
+"It is significantly faster than the interpreted CPU,\n"
+"however it doesn't play nicely with the debugger.\n"
+"Changing this setting requires a reboot to take effect.\n"
+"The dynarec core isn't available for all CPUs, so\n"
+"this setting may not have any effect for you."
+msgstr ""
+"Activa el núcleo del recompilador dinámico de la CPU.\n"
+"Es considerablemente más rápido que la CPU interpretada,\n"
+"pero no funciona bien con el depurador.\n"
+"Es necesario reiniciar para que los cambios\n"
+"en este ajuste tengan efecto.\n"
+"El núcleo dynarec no está disponible para todas\n"
+"las CPU, por lo que este ajuste podría no cambiar\n"
+"nada en tu caso."
+
+#: src/cdrom/cdriso-ffmpeg.cc:255
+#, c-format
+msgid "Actual %i vs. %i estimated\n"
+msgstr "Actual %i/Estimado %i\n"
+
+#: src/gui/widgets/breakpoints.cc:119
+msgid "Add Breakpoint"
+msgstr "Añadir un punto de interrupción"
+
+#: src/gui/widgets/assembly.cc:451
+msgid ""
+"Add a small visible notch to indicate instructions that are on the delay "
+"slot of a branch."
+msgstr ""
+"Añade una pequeña marca visible para indicar a las instrucciones que se "
+"encuentran en la ranura de retraso de una rama."
+
+#: src/gui/gui.cc:1576
+msgid "Add one entry"
+msgstr "Añadir una entrada"
+
+#: src/gui/widgets/assembly.cc:795 src/gui/widgets/breakpoints.cc:109
+msgid "Address"
+msgstr "Dirección"
+
+#: src/gui/gui.cc:1574
+msgid "Advanced BIOS patching"
+msgstr "Parcheado avanzado de la BIOS"
+
+#: src/gui/gui.cc:1440
+msgid "Always enable SPU IRQ"
+msgstr "Activar siempre las IRQ de la SPU"
+
+#: src/gui/gui.cc:1306 src/gui/gui.cc:1311
+msgid ""
+"An error has occured while downloading\n"
+"and/or applying the update."
+msgstr ""
+"Ha habido un error al descargar\n"
+"o aplicar la actualización."
+
+#: src/gui/gui.cc:1282
+msgid ""
+"An update is available.\n"
+"Click 'Download' to download and apply the update.\n"
+"PCSX-Redux will automatically restart to apply it."
+msgstr ""
+"Hay una actualización disponible.\n"
+"Haz clic en «Descargar» para descargarla y aplicarla.\n"
+"PCSX-Redux se reiniciará automáticamente\n"
+"para aplicar la actualización."
+
+#: src/gui/gui.cc:1286
+msgid ""
+"An update is available.\n"
+"Click 'Download' to download it. While the update can be\n"
+"downloaded, it won't be applied automatically. You will\n"
+"have to install it manually, the way you previously did.\n"
+"PCSX-Redux will quit once the update is downloaded."
+msgstr ""
+"Hay una actualización disponible.\n"
+"Haz clic en «Descargar» para descargarla.\n"
+"Esta actualización no se aplicará automáticamente,\n"
+"sino que tendrás que instalarla de forma manual,\n"
+"como ya has hecho antes.\n"
+"PCSX-Redux se cerrará automáticamente\n"
+"una vez se haya descargado la actualización."
+
+#: src/core/pad.cc:558
+msgid "Analog"
+msgstr "Analógico"
+
+#: src/gui/widgets/memory_observer.cc:223
+msgid "Arbitrary"
+msgstr "Arbitrario"
+
+#: src/gui/gui.cc:1160
+msgid "Assembly"
+msgstr "Ensamblador"
+
+#: src/core/psxinterpreter.cc:1151
+#, c-format
+msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
+msgstr "Se ha intentado acceder a COP3 desde 0x%08x. Ignorando.\n"
+
+#: src/core/psxinterpreter.cc:1140
+#, c-format
+msgid ""
+"Attempted to use an invalid floating point instruction from 0x%08x. "
+"Ignored.\n"
+msgstr ""
+"Se ha intentado utilizar una instrucción de coma flotante no válida desde "
+"0x%08x. Ignorando.\n"
+
+#: src/core/psxinterpreter.cc:851
+#, c-format
+msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
+msgstr ""
+"Intento de JALR no alineada desde 0x%08x a 0x%08x, ¡provocando excepción!\n"
+
+#: src/core/psxinterpreter.cc:822
+#, c-format
+msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
+msgstr ""
+"Intento de JR no alineada a 0x%08x desde 0x%08x, ¡provocando excepción!\n"
+
+#: src/spu/cfg.cc:84
+msgid ""
+"Attempts to make the CPU-to-SPU audio stream\n"
+"in sync, by changing its pitch. Consumes more CPU."
+msgstr ""
+"Intenta mantener en sincronía el flujo de audio\n"
+"entre la CPU y la SPU alterando su tono.\n"
+"Utiliza más la CPU."
+
+#: src/gui/gui.cc:1765
+msgid "Authors"
+msgstr "Autores"
+
+#: src/core/pad.cc:549
+msgid "Auto"
+msgstr "Elegir automáticamente"
+
+#: src/gui/widgets/luaeditor.cc:58 src/gui/widgets/shader-editor.cc:354
+msgid "Auto reload"
+msgstr "Recargar automáticamente"
+
+#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:356
+msgid "Auto save"
+msgstr "Autoguardado"
+
+#: src/gui/gui.cc:496
+msgid "BIOS"
+msgstr "BIOS"
+
+#: src/core/psxmem.cc:163
+#, c-format
+msgid "BIOS entry point: %s\n"
+msgstr "Punto de entrada de la BIOS: %s\n"
+
+#: src/gui/gui.cc:1489
+msgid "BIOS file"
+msgstr "Archivo de BIOS"
+
+#: src/spu/cfg.cc:51
+msgid "Backend"
+msgstr "Motor"
+
+#: src/gui/widgets/sio1.cc:159
+msgid "Bit"
+msgstr "Bit"
+
+#: src/gui/widgets/memcard_manager.cc:123
+msgid "Block number"
+msgstr "N.º de bloque"
+
+#: src/gui/widgets/breakpoints.cc:48
+msgid "Break on byte read map "
+msgstr "Interrumpir al leer el mapa de byte"
+
+#: src/gui/widgets/breakpoints.cc:53
+msgid "Break on byte write map"
+msgstr "Interrumpir al escribir el mapa de byte"
+
+#: src/gui/widgets/breakpoints.cc:47
+msgid "Break on execution map"
+msgstr "Interrumpir al ejecutar el mapa"
+
+#: src/gui/widgets/breakpoints.cc:50
+msgid "Break on half read map "
+msgstr "Interrumpir al leer el mapa de HWORD"
+
+#: src/gui/widgets/breakpoints.cc:55
+msgid "Break on half write map"
+msgstr "Interrumpir al escribir el mapa de HWORD"
+
+#: src/gui/widgets/breakpoints.cc:52
+msgid "Break on word read map "
+msgstr "Interrumpir al leer el mapa de WORD"
+
+#: src/gui/widgets/breakpoints.cc:57
+msgid "Break on word write map"
+msgstr "Interrumpir al escribir el mapa de WORD"
+
+#: src/gui/widgets/breakpoints.cc:110
+msgid "Breakpoint Type"
+msgstr "Tipo de punto de interrupción"
+
+#: src/gui/widgets/breakpoints.cc:118
+msgid "Breakpoint Width"
+msgstr "Ancho de punto de interrupción"
+
+#: src/gui/gui.cc:956
+msgid "Breakpoint on vsync"
+msgstr "Interrumpir durante V-Sync"
+
+#: src/core/debug.cc:199
+#, c-format
+msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
+msgstr "Interrupción activada: PC=0x%08x - Motivo: %s %s\n"
+
+#: src/gui/gui.cc:1168 src/gui/widgets/breakpoints.cc:59
+msgid "Breakpoints"
+msgstr "Puntos de interrupción"
+
+#: src/cdrom/cdriso-ffmpeg.cc:254
+#, c-format
+msgid "Buffer overflow..."
+msgstr "Desbordamiento de búfer..."
+
+#: src/gui/widgets/events.cc:43
+msgid "CB"
+msgstr "CB"
+
+#: src/core/cdrom.cc:1661
+#, c-format
+msgid "CD-ROM EXE Name: %.255s\n"
+msgstr "Nombre de ejecutable del CD-ROM: %.255s\n"
+
+#: src/core/cdrom.cc:1660
+#, c-format
+msgid "CD-ROM ID: %.9s\n"
+msgstr "ID de CD-ROM: %.9s\n"
+
+#: src/core/cdrom.cc:1659
+#, c-format
+msgid "CD-ROM Label: %.32s\n"
+msgstr "Etiqueta de CD-ROM: %.32s\n"
+
+#: src/gui/gui.cc:470
+msgid "CLUT VRAM selector"
+msgstr "Selector de CLUT de la VRAM"
+
+#: src/gui/widgets/assembly.cc:475 src/gui/widgets/log.cc:111
+msgid "CPU trace"
+msgstr "Seguimiento de CPU"
+
+#: src/gui/gui.cc:1021
+#, c-format
+msgid "CPU: %s"
+msgstr "CPU: %s"
+
+#: src/gui/gui.cc:907
+msgid "CRT-lottes shader"
+msgstr "Shader CRT-lottes"
+
+#: src/gui/gui.cc:1335
+msgid "Caching"
+msgstr "Caché"
+
+#: src/gui/widgets/source.cc:92
+msgid "Callstack"
+msgstr "Pila de llamadas"
+
+#: src/gui/gui.cc:1113
+msgid "Callstacks"
+msgstr "Pilas de llamadas"
+
+#: src/gui/gui.cc:1317 src/gui/widgets/filedialog.cc:346
+#: src/gui/widgets/registers.cc:208 src/gui/widgets/sio1.cc:214
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: src/spu/cfg.cc:100
+msgid "Capture/decode buffer IRQ"
+msgstr "Capturar/Decodificar búfer de IRQ"
+
+#: src/gui/widgets/memcard_manager.cc:143
+msgid "Chained block"
+msgstr "Bloque adjunto"
+
+#: src/gui/widgets/registers.cc:194
+#, c-format
+msgid "Change the value of register %s:"
+msgstr "Cambia el valor del registro %s:"
+
+#: src/gui/gui.cc:1757
+#, c-format
+msgid "Changeset: %s"
+msgstr "Conjunto de cambios: %s"
+
+#: src/core/cheat.cc:148
+#, c-format
+msgid "Cheats loaded from: %s\n"
+msgstr "Trucos cargados desde: %s\n"
+
+#: src/core/cheat.cc:179
+#, c-format
+msgid "Cheats saved to: %s\n"
+msgstr "Trucos guardados en: %s\n"
+
+#: src/core/pad.cc:552
+msgid "Circle"
+msgstr "Círculo"
+
+#: src/gui/widgets/log.cc:128
+msgid "Clear"
+msgstr "Borrar"
+
+#: src/gui/widgets/memcard_manager.cc:89
+msgid "Clear Undo buffer"
+msgstr "Borrar búfer de acciones deshechas"
+
+#: src/gui/gui.cc:783
+msgid "Close ISO"
+msgstr "Cerrar ISO"
+
+#: src/gui/gui.cc:838
+msgid "Close LID"
+msgstr "Cerrar tapa de disco"
+
+#: src/gui/widgets/assembly.cc:883
+msgid "Code##{}{:08x}"
+msgstr "Código##{}{:08x}"
+
+#: src/gui/widgets/assembly.cc:463
+msgid "Columns"
+msgstr "Columnas"
+
+#: src/gui/widgets/assembly.cc:426
+msgid "Combined pseudo-instructions"
+msgstr "Combinar seudoinstrucciones"
+
+#: src/core/pad.cc:603
+msgid "Computer button mapping"
+msgstr "Asignación del equipo"
+
+#: src/gui/gui.cc:872
+msgid "Configuration"
+msgstr "Configuración"
+
+#: src/gui/gui.cc:921
+msgid "Configure Shaders"
+msgstr "Configurar shaders"
+
+#: src/gui/widgets/shader-editor.cc:360
+msgid "Configure shader"
+msgstr "Configurar shader"
+
+#: src/core/pad.cc:565
+msgid "Connected"
+msgstr "Conectado"
+
+#. ClosePlugins();
+#: src/core/sio.cc:326
+msgid "Connection closed!\n"
+msgstr "¡Conexión cerrada!\n"
+
+#: src/gui/widgets/sio1.cc:252
+msgid "Control"
+msgstr "Control"
+
+#: src/core/pad.cc:549
+msgid "Controller"
+msgstr "Mando"
+
+#: src/core/pad.cc:572
+msgid "Controller Type"
+msgstr "Tipo de mando"
+
+#: src/gui/gui.cc:897
+msgid "Controls"
+msgstr "Controles"
+
+#: src/gui/widgets/memcard_manager.cc:184
+msgid "Copied file {}({}) from card {} to card {}"
+msgstr "Se ha copiado el archivo {}({}) de la tarjeta {} a la tarjeta {}"
+
+#: src/gui/widgets/log.cc:130
+msgid "Copy"
+msgstr "Copiar"
+
+#: src/gui/widgets/memcard_manager.cc:226
+msgid "Copy icon##{}"
+msgstr "Copiar icono##{}"
+
+#: src/gui/widgets/memcard_manager.cc:174
+msgid "Copy##{}"
+msgstr "Copiar##{}"
+
+#: src/core/r3000a.cc:40
+#, c-format
+msgid "Copyright (C) 2019-2022 PCSX-Redux authors\n"
+msgstr "Copyright (C) 2019-2022 los autores de PCSX-Redux\n"
+
+#: src/gui/widgets/events.cc:39
+msgid "Core"
+msgstr "Núcleo"
+
+#: src/gui/gui.cc:1797
+#, c-format
+msgid "Core profile: %s"
+msgstr "Perfil de núcleo: %s"
+
+#: src/cdrom/cdriso-ffmpeg.cc:163
+#, c-format
+msgid "Could not allocate audio codec for the input, aborting\n"
+msgstr "No se ha podido asignar un códec de audio a la entrada, abortando.\n"
+
+#: src/cdrom/cdriso-ffmpeg.cc:189
+#, c-format
+msgid "Could not allocate frame\n"
+msgstr "No se ha podido asignar un fotograma.\n"
+
+#: src/cdrom/cdriso-ffmpeg.cc:237
+#, c-format
+msgid "Could not allocate memory to decode CDDA TRACK: %s\n"
+msgstr "No se ha podido asignar memoria para decodificar la pista CDDA: %s\n"
+
+#: src/cdrom/cdriso-ffmpeg.cc:171
+#, c-format
+msgid "Could not allocate resample context"
+msgstr "No se ha podido asignar el contexto para el remuestreo."
+
+#: src/cdrom/cdriso-ffmpeg.cc:89
+#, c-format
+msgid "Could not find %s stream in input file\n"
+msgstr "No se ha podido encontrar el flujo %s en el archivo de entrada.\n"
+
+#: src/cdrom/cdriso-ffmpeg.cc:155
+#, c-format
+msgid "Could not find audio codec for the input, aborting\n"
+msgstr ""
+"No se ha podido encontrar el códec de audio para la entrada, abortando.\n"
+
+#: src/cdrom/cdriso-ffmpeg.cc:147
+#, c-format
+msgid "Could not find audio stream in the input, aborting\n"
+msgstr "No se ha podido encontrar el flujo de audio en la entrada, abortando.\n"
+
+#: src/cdrom/cdriso-ffmpeg.cc:137
+#, c-format
+msgid "Could not find stream information\n"
+msgstr "No se ha podido encontrar la información del flujo.\n"
+
+#: src/core/cheat.cc:76
+#, c-format
+msgid "Could not load cheats from: %s\n"
+msgstr "No se han podido cargar los trucos de %s.\n"
+
+#: src/core/psxmem.cc:188
+#, c-format
+msgid "Could not open BIOS Overlay:\"%s\"!\n"
+msgstr "¡No se ha podido abrir la superposición de la BIOS «%s»!\n"
+
+#: src/core/psxmem.cc:139
+#, c-format
+msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
+msgstr "No se ha podido abrir la BIOS «%s». Reintentando con OpenBIOS.\n"
+
+#: src/core/psxmem.cc:149
+#, c-format
+msgid ""
+"Could not open OpenBIOS fallback. Things won't work properly.\n"
+"Add a valid BIOS in the configuration and hard reset.\n"
+msgstr ""
+"No se ha podido abrir el respaldo de OpenBIOS.\n"
+"La emulación no funcionará correctamente.\n"
+"Introduce una BIOS válida en la configuración\n"
+"y haz un reinicio completo del emulador.\n"
+
+#: src/cdrom/cdriso-ffmpeg.cc:182
+#, c-format
+msgid "Could not open resample context"
+msgstr "No se ha podido abrir el contexto para el remuestreo."
+
+#: src/cdrom/cdriso-ffmpeg.cc:132
+#, c-format
+msgid "Could not open source file %s\n"
+msgstr "No se ha podido abrir el archivo de origen %s.\n"
+
+#: src/core/pad.cc:551
+msgid "Cross"
+msgstr "Cruz/X"
+
+#: src/spu/cfg.cc:95
+msgid "Cubic interpolation - better treble"
+msgstr "Interpolación cúbica - mejores agudos"
+
+#: src/gui/widgets/assembly.cc:885
+msgid "DWARF##{}{:08x}"
+msgstr "DWARF##{}{:08x}"
+
+#: src/gui/widgets/assembly.cc:884
+msgid "Data##{}{:08x}"
+msgstr "Datos##{}{:08x}"
+
+#: src/gui/gui.cc:1761
+#, c-format
+msgid "Date & time: %s"
+msgstr "Fecha y hora: %s"
+
+#: src/gui/gui.cc:928 src/gui/widgets/assembly.cc:415
+msgid "Debug"
+msgstr "Depurador"
+
+#: src/gui/gui.cc:1441
+msgid "Decode MDEC videos in B&W"
+msgstr "Decodificar vídeos MDEC en blanco y negro"
+
+#: src/cdrom/cdriso-ffmpeg.cc:248
+#, c-format
+msgid "Decoding audio tr#%u (%s)..."
+msgstr "Decodificando pista de audio %u (%s)..."
+
+#: src/gui/gui.cc:899
+msgid "Default shader"
+msgstr "Shader predeterminado"
+
+#: src/gui/widgets/assembly.cc:446
+msgid "Delay slot notch"
+msgstr "Marca de ranura de retraso"
+
+#. Column 0
+#: src/gui/widgets/sio1.cc:160
+msgid "Description"
+msgstr "Descripción"
+
+#: src/spu/cfg.cc:60
+msgid "Device"
+msgstr "Dispositivo"
+
+#: src/core/pad.cc:588
+msgid "Device type"
+msgstr "Tipo de dispositivo"
+
+#: src/core/pad.cc:557
+msgid "Digital"
+msgstr "Digital"
+
+#: src/gui/widgets/filedialog.cc:189
+msgid "Directories"
+msgstr "Directorios"
+
+#: src/gui/widgets/log.cc:73
+msgid "Disable all"
+msgstr "Deshabilitar todo"
+
+#: src/gui/widgets/breakpoints.cc:84
+msgid "Disable##"
+msgstr "Deshabilitar##"
+
+#: src/gui/widgets/luainspector.cc:93
+msgid "Display"
+msgstr "Mostrar"
+
+#: src/gui/widgets/log.cc:88
+msgid "Display all"
+msgstr "Mostrar todo"
+
+#: src/gui/widgets/assembly.cc:459
+msgid "Display arrows for jumps. This might crowd the display a bit too much."
+msgstr ""
+"Muestra flechas en los saltos. Podría saturar demasiado la cantidad de "
+"información mostrada."
+
+#: src/gui/widgets/log.cc:86
+msgid "Displayed"
+msgstr "Mostrado"
+
+#: src/core/pad.cc:556
+msgid "Down"
+msgstr "Abajo"
+
+#: src/gui/gui.cc:1294
+msgid "Download"
+msgstr "Descargar"
+
+#: src/gui/gui.cc:1333
+#, c-format
+msgid "Download rate: %s"
+msgstr "Velocidad de descarga: %s"
+
+#: src/spu/cfg.cc:99
+msgid "Downmixes stereo to mono."
+msgstr "Reduce el sonido estéreo a mono."
+
+#: src/gui/widgets/memcard_manager.cc:109
+msgid "Draw Pocketstation icons"
+msgstr "Mostrar iconos de PocketStation"
+
+#: src/gui/widgets/assembly.cc:455
+msgid "Draw arrows for jumps"
+msgstr "Mostrar flechas para los saltos"
+
+#: src/gui/gui.cc:791
+msgid "Dump save state proto schema"
+msgstr "Volcar protoesquema del guardado rápido"
+
+#: src/gui/gui.cc:1179
+msgid "Dwarf"
+msgstr "Dwarf (Información de compilación completa)"
+
+#: src/gui/gui.cc:1164
+msgid "DynaRec Disassembler"
+msgstr "Desensamblador del DynaRec"
+
+#: src/gui/gui.cc:951
+msgid ""
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
+"in Configuration->Emulation, restart PCSX-Redux, then try again."
+msgstr ""
+"El desensamblador del DynaRec no se encuentra disponible\n"
+"en el modo de CPU interpretada. Prueba a activar\n"
+"[CPU DynaRec] dentro de Configuración->Emulación,\n"
+"reinicia PCSX-Redux y vuelve a intentarlo."
+
+#: src/gui/gui.cc:1442
+msgid "Dynarec CPU"
+msgstr "CPU DynaRec"
+
+#: src/gui/widgets/sio1.cc:153
+msgid "Edit"
+msgstr "Editar"
+
+#: src/gui/widgets/registers.cc:158
+msgid "Edit value of pc"
+msgstr "Editar valor de PC"
+
+#: src/gui/widgets/registers.cc:66 src/gui/widgets/registers.cc:192
+#: src/gui/widgets/sio1.cc:137
+msgid "Edit value of {}"
+msgstr "Editar valor de {}"
+
+#: src/gui/widgets/registers.cc:157
+msgid "Edit##pc"
+msgstr "Editar##PC"
+
+#: src/gui/widgets/registers.cc:62
+msgid "Edit##{}"
+msgstr "Editar##{}"
+
+#: src/gui/gui.cc:1456
+msgid ""
+"Emulates an installed 8MB system,\n"
+"instead of the normal 2MB. Useful for working\n"
+"with development binaries and games."
+msgstr ""
+"Emula un sistema con 8 MB instalados en vez\n"
+"de 2 MB, que es lo normal. Ideal para versiones\n"
+"en desarrollo de binarios y juegos."
+
+#: src/gui/gui.cc:856 src/gui/gui.cc:873
+msgid "Emulation"
+msgstr "Emulación"
+
+#: src/gui/gui.cc:1425
+msgid "Emulation Configuration"
+msgstr "Configuración de emulación"
+
+#: src/gui/widgets/vram-viewer.cc:390
+msgid "Enable Alpha channel view"
+msgstr "Mostrar canales alfa"
+
+#: src/gui/gui.cc:1245
+msgid "Enable Auto Update"
+msgstr "Activar actualizaciones automáticas"
+
+#: src/gui/gui.cc:1493 src/gui/widgets/assembly.cc:473
+msgid "Enable Debugger"
+msgstr "Activar depurador"
+
+#: src/gui/gui.cc:1503
+msgid "Enable GDB Server"
+msgstr "Activar servidor GDB"
+
+#: src/gui/gui.cc:1789
+msgid "Enable OpenGL error reporting"
+msgstr "Activar informe de errores de OpenGL"
+
+#: src/gui/gui.cc:1560
+msgid "Enable SIO1 Server"
+msgstr "Activar servidor SIO1"
+
+#: src/gui/gui.cc:1546
+msgid "Enable Web Server"
+msgstr "Activar servidor web"
+
+#: src/gui/gui.cc:1439
+msgid "Enable XA decoder"
+msgstr "Activar decodificador XA"
+
+#: src/gui/widgets/log.cc:69
+msgid "Enable all"
+msgstr "Activar todo"
+
+#: src/gui/gui.cc:1265
+msgid "Enable auto update"
+msgstr "Activar actualizaciones automáticas"
+
+#: src/gui/widgets/vram-viewer.cc:391
+msgid "Enable greyscale"
+msgstr "Activar escala de grises"
+
+#: src/spu/cfg.cc:78
+msgid "Enable streaming"
+msgstr "Activar flujos de streaming"
+
+#: src/gui/widgets/breakpoints.cc:87
+msgid "Enable##"
+msgstr "Activar##"
+
+#: src/gui/gui.cc:1619 src/gui/widgets/log.cc:67
+msgid "Enabled"
+msgstr "Activado"
+
+#: src/gui/gui.cc:1517
+msgid ""
+"Enables sending the processor's manifest\n"
+"from the gdb server. Keep this enabled, unless\n"
+"you want to connect IDA to this server, as it\n"
+"has a bug in its manifest parser."
+msgstr ""
+"Activa la transmisión del manifiesto del procesador\n"
+"desde el servidor GDB. Mantén esta opción activada\n"
+"a menos que quieras conectar el programa IDA\n"
+"a este servidor, ya que IDA tiene un defecto\n"
+"en su analizador de manifiestos."
+
+#: src/core/psxinterpreter.cc:1125
+#, c-format
+msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
+msgstr "Encontrado un opcode reservado en 0x%08x, provocando excepción.\n"
+
+#. We have to suffix the action button names with ##number because Imgui
+#. can't handle multiple buttons with the same name well
+#: src/gui/widgets/memcard_manager.cc:163
+msgid "Erase##{}"
+msgstr "Borrar##{}"
+
+#: src/gui/widgets/memcard_manager.cc:168
+msgid "Erased file {}({}) off card {}"
+msgstr "Se ha borrado el archivo {}({}) de la tarjeta {}"
+
+#: src/core/psxmem.cc:73
+msgid "Error allocating memory!"
+msgstr "¡Error al asignar memoria!"
+
+#: src/cdrom/cdriso-ffmpeg.cc:59
+#, c-format
+msgid "Error decoding audio frame\n"
+msgstr "Error al decodificar el fotograma de audio\n"
+
+#: src/core/debug.h:36
+msgid "Exec"
+msgstr "Exec"
+
+#: src/core/debug.cc:79
+msgid "Execution map"
+msgstr "Mapa de ejecuciones"
+
+#: src/gui/widgets/memcard_manager.cc:220
+msgid "Export PNG##{}"
+msgstr "Exportar PNG##{}"
+
+#: src/gui/gui.cc:1804
+msgid "Extensions:"
+msgstr "Extensiones:"
+
+#: src/cdrom/cdriso-ffmpeg.cc:97 src/cdrom/cdriso-ffmpeg.cc:103
+#, c-format
+msgid "Failed to find %s codec\n"
+msgstr "Error al buscar el códec %s\n"
+
+#: src/cdrom/cdriso-ffmpeg.cc:110
+#, c-format
+msgid "Failed to open %s codec\n"
+msgstr "Error al abrir el códec %s\n"
+
+#: src/gui/gui.cc:1483
+msgid "Fast boot"
+msgstr "Arranque rápido"
+
+#: src/gui/gui.cc:781 src/gui/widgets/assembly.cc:411
+#: src/gui/widgets/vram-viewer.cc:363
+msgid "File"
+msgstr "Archivo"
+
+#: src/gui/gui.cc:1595
+msgid "File Offset"
+msgstr "Desplazamiento del archivo"
+
+#: src/gui/gui.cc:1336 src/gui/gui.cc:1587
+#: src/gui/widgets/memcard_manager.cc:127
+msgid "Filename"
+msgstr "Nombre de archivo"
+
+#: src/gui/widgets/filedialog.cc:206
+msgid "Files"
+msgstr "Archivos"
+
+#: src/gui/widgets/assembly.cc:869
+msgid "Filter"
+msgstr "Filtro"
+
+#: src/gui/gui.cc:971
+msgid "First Chance Exceptions"
+msgstr "Primeras excepciones"
+
+#: src/gui/widgets/events.cc:42
+msgid "Flag"
+msgstr "Indicador"
+
+#: src/gui/widgets/log.cc:124
+msgid "Follow"
+msgstr "Seguir"
+
+#: src/gui/widgets/assembly.cc:479
+msgid "Follow PC"
+msgstr "Seguir PC"
+
+#: src/gui/widgets/memcard_manager.cc:146
+msgid "Free block"
+msgstr "Bloque vacío"
+
+#: src/gui/gui.cc:1003
+msgid "Fullscreen render"
+msgstr "Renderizar a pantalla completa"
+
+#: src/gui/gui.cc:1023
+#, c-format
+msgid "GAME ID: %s"
+msgstr "ID DE JUEGO: %s"
+
+#: src/gui/gui.cc:1540
+msgid "GDB Server Port"
+msgstr "Puerto de servidor GDB"
+
+#: src/gui/gui.cc:1542
+msgid "GDB Server Trace"
+msgstr "Seguimiento del servidor GDB"
+
+#: src/core/gdb-server.cc:606
+msgid "GDB client"
+msgstr "Cliente de GDB"
+
+#: src/gui/gui.cc:1516
+msgid "GDB send manifest"
+msgstr "Enviar manifiesto por GDB"
+
+#: src/gui/gui.cc:893
+msgid "GPU"
+msgstr "GPU"
+
+#: src/gui/widgets/assembly.cc:655 src/gui/widgets/assembly.cc:664
+#: src/gui/widgets/breakpoints.cc:124
+msgid "GUI"
+msgstr "Interfaz de usuario"
+
+#: src/core/pad.cc:671
+msgid "Gamepad"
+msgstr "Mando"
+
+#: src/core/pad.cc:604
+msgid "Gamepad button"
+msgstr "Botón de mando"
+
+#: src/spu/cfg.cc:94
+msgid "Gaussian interpolation - good quality"
+msgstr "Interpolación gausiana - buena calidad"
+
+#: src/core/pad.cc:561
+msgid "Gun (Unimplemented)"
+msgstr "Lightgun (sin implementar)"
+
+#: src/core/pad.cc:562
+msgid "Guncon (Unimplemented"
+msgstr "GunCon (sin implementar)"
+
+#: src/gui/gui.cc:866
+msgid "Hard Reset"
+msgstr "Reinicio completo"
+
+#: src/gui/gui.cc:494
+msgid "Hardware Registers"
+msgstr "Registros de hardware"
+
+#: src/gui/gui.cc:1011
+msgid "Help"
+msgstr "Ayuda"
+
+#: src/gui/widgets/log.cc:92
+msgid "Hide all"
+msgstr "Ocultar todo"
+
+#: src/gui/widgets/filedialog.cc:174
+msgid "Home"
+msgstr "Inicio"
+
+#: src/gui/widgets/events.cc:38 src/gui/widgets/memcard_manager.cc:126
+msgid "ID"
+msgstr "ID"
+
+#: src/gui/widgets/memcard_manager.cc:124
+msgid "Icon"
+msgstr "Icono"
+
+#: src/gui/widgets/memcard_manager.cc:107
+msgid "Icon size"
+msgstr "Tamaño de icono"
+
+#: src/gui/gui.cc:1031
+msgid "Idle"
+msgstr "Inactivo"
+
+#: src/gui/gui.cc:1426
+msgid "Idle Swap Interval"
+msgstr "Intervalo de intercambio de inactividad"
+
+#: src/gui/widgets/assembly.cc:490
+#, c-format
+msgid "In ISR: %s"
+msgstr "En ISR: %s"
+
+#: src/spu/cfg.cc:96
+msgid "Interpolation"
+msgstr "Interpolación"
+
+#: src/gui/gui.cc:1698
+msgid "Interrupt Scaler"
+msgstr "Escalador de interrupciones"
+
+#: src/cdrom/ppf.cc:195
+#, c-format
+msgid "Invalid PPF patch: %s.\n"
+msgstr "Parche PPF no válido: %s.\n"
+
+#. fail if the negative offset is more than the total file size
+#: src/core/psxmem.cc:202 src/core/psxmem.cc:206
+#, c-format
+msgid "Invalid file offset for BIOS Overlay:\"%s\"!\n"
+msgstr ""
+"¡Desplazamiento de archivo no válido para la superposición de BIOS «%s»!\n"
+
+#. fail if the negative offset is more than the BIOS size
+#: src/core/psxmem.cc:240 src/core/psxmem.cc:244
+#, c-format
+msgid "Invalid load offset for BIOS Overlay:\"%s\"!\n"
+msgstr ""
+"¡Desplazamiento de carga no válido para la superposición de BIOS «%s»!\n"
+
+#: src/core/psxmem.cc:221 src/core/psxmem.cc:228
+#, c-format
+msgid "Invalid load size specified BIOS Overlay:\"%s\"!\n"
+msgstr ""
+"¡Se ha especificado un tamaño de carga no válido para la superposición de "
+"BIOS «%s»!\n"
+
+#: src/gui/gui.cc:970 src/gui/gui.cc:1110
+msgid "Kernel Calls"
+msgstr "Llamadas al kernel"
+
+#: src/gui/gui.cc:969
+msgid "Kernel Events"
+msgstr "Eventos del kernel"
+
+#: src/gui/gui.cc:1107
+msgid "Kernel events"
+msgstr "Eventos del kernel"
+
+#: src/core/pad.cc:549
+msgid "Keyboard"
+msgstr "Teclado -"
+
+#: src/core/pad.cc:520
+msgid "Keyboard Backspace"
+msgstr "Teclado - Retroceso"
+
+#: src/core/pad.cc:516
+msgid "Keyboard Down"
+msgstr "Teclado - Abajo"
+
+#: src/core/pad.cc:522
+msgid "Keyboard Enter"
+msgstr "Teclado - Intro"
+
+#: src/core/pad.cc:518
+msgid "Keyboard Left"
+msgstr "Teclado - Izquierda"
+
+#: src/core/pad.cc:514
+msgid "Keyboard Right"
+msgstr "Teclado - Derecha"
+
+#: src/core/pad.cc:524
+msgid "Keyboard Space"
+msgstr "Teclado - Espacio"
+
+#: src/core/pad.cc:512
+msgid "Keyboard Up"
+msgstr "Teclado - Arriba"
+
+#: src/core/pad.cc:601
+msgid "Keyboard mapping"
+msgstr "Asignaciones del teclado"
+
+#: src/core/psxmem.cc:171
+#, c-format
+msgid "Known BIOS detected: %s (%08x)\n"
+msgstr "Se ha detectado una BIOS conocida: %s (%08x)\n"
+
+#: src/core/pad.cc:553
+msgid "L1"
+msgstr "L1"
+
+#: src/core/pad.cc:553
+msgid "L2"
+msgstr "L2"
+
+#: src/core/pad.cc:554
+msgid "L3"
+msgstr "L3"
+
+#: src/gui/widgets/memcard_manager.cc:84
+msgid "Latest"
+msgstr "Más reciente"
+
+#: src/core/pad.cc:556
+msgid "Left"
+msgstr "Izquierda"
+
+#: src/gui/widgets/shader-editor.cc:232
+msgid "Link error: {}\n"
+msgstr "Error de vínculo: {}\n"
+
+#: src/gui/gui.cc:1603
+msgid "Load Offset"
+msgstr "Desplazamiento de carga"
+
+#: src/gui/gui.cc:1611
+msgid "Load Size"
+msgstr "Tamaño de carga"
+
+#: src/gui/widgets/assembly.h:64
+msgid "Load Symbols"
+msgstr "Cargar símbolos"
+
+#: src/gui/gui.cc:787
+msgid "Load binary"
+msgstr "Cargar binario"
+
+#: src/gui/gui.cc:831
+msgid "Load global state"
+msgstr "Cargar estado global"
+
+#: src/gui/gui.cc:813
+msgid "Load state slots"
+msgstr "Cargar un estado de guardado"
+
+#: src/gui/widgets/assembly.cc:412
+msgid "Load symbols map"
+msgstr "Cargar mapa de símbolos"
+
+#: src/core/psxmem.cc:250
+#, c-format
+msgid "Loaded BIOS overlay: %s\n"
+msgstr "Se ha cargado la superposición de BIOS: %s\n"
+
+#: src/core/psxmem.cc:165
+#, c-format
+msgid "Loaded BIOS: %s\n"
+msgstr "Se ha cargado la BIOS: %s\n"
+
+#: src/cdrom/cdriso.cc:277
+#, c-format
+msgid "Loaded CD Image: %s"
+msgstr "Se ha cargado la imagen de CD: %s"
+
+#. build address array
+#: src/cdrom/ppf.cc:326
+#, c-format
+msgid "Loaded PPF %d.0 patch: %s.\n"
+msgstr "Se ha cargado el parche PPF %d.0: %s.\n"
+
+#: src/cdrom/cdriso-sbi.cc:42
+#, c-format
+msgid "Loaded SBI file: %s.\n"
+msgstr "Se ha cargado el archivo SBI: %s.\n"
+
+#: src/core/sio.cc:378
+#, c-format
+msgid "Loading memory card %s\n"
+msgstr "Cargando tarjeta de memoria %s\n"
+
+#: src/gui/gui.cc:1214
+msgid "Locale"
+msgstr "Idioma"
+
+#: src/gui/widgets/log.cc:108
+msgid "Log CD-ROM commands"
+msgstr "Registrar comandos del CD-ROM"
+
+#: src/gui/widgets/log.cc:114
+msgid "Log kernel calls"
+msgstr "Registrar llamadas al kernel"
+
+#: src/gui/gui.cc:1089
+msgid "Logs"
+msgstr "Registros"
+
+#: src/spu/cfg.cc:82
+msgid "Loud"
+msgstr "Alto"
+
+#: src/spu/cfg.cc:82
+msgid "Loudest"
+msgstr "El más alto"
+
+#: src/spu/cfg.cc:82
+msgid "Low"
+msgstr "Bajo"
+
+#: src/gui/gui.cc:1095
+msgid "Lua Console"
+msgstr "Consola Lua"
+
+#: src/gui/gui.cc:1104
+msgid "Lua Editor"
+msgstr "Editor de Lua"
+
+#: src/gui/gui.cc:1101
+msgid "Lua Inspector"
+msgstr "Inspector de Lua"
+
+#: src/gui/widgets/shader-editor.cc:397
+msgid "Lua Invoker"
+msgstr "Invocador de Lua"
+
+#: src/gui/gui.cc:1234
+msgid "Main Font Size"
+msgstr "Tamaño de la fuente principal"
+
+#: src/gui/gui.cc:469
+msgid "Main VRAM Viewer"
+msgstr "Visualizador de VRAM principal"
+
+#: src/gui/gui.cc:890
+msgid "Manage Memory Cards"
+msgstr "Administrar tarjetas de memoria"
+
+#: src/gui/widgets/breakpoints.cc:36
+msgid "Map byte reads         "
+msgstr "Lecturas de mapas de bytes"
+
+#: src/gui/widgets/breakpoints.cc:41
+msgid "Map byte writes        "
+msgstr "Escrituras de mapas de bytes"
+
+#: src/gui/widgets/breakpoints.cc:35
+msgid "Map execution"
+msgstr "Ejecución de mapas"
+
+#: src/gui/widgets/breakpoints.cc:38
+msgid "Map half reads         "
+msgstr "Lecturas de mapas de HWORD"
+
+#: src/gui/widgets/breakpoints.cc:43
+msgid "Map half writes        "
+msgstr "Escrituras de mapas de HWORD"
+
+#: src/gui/widgets/breakpoints.cc:40
+msgid "Map word reads         "
+msgstr "Lecturas de mapas de WORD"
+
+#: src/gui/widgets/breakpoints.cc:45
+msgid "Map word writes        "
+msgstr "Escrituras de mapas de WORD"
+
+#: src/spu/cfg.cc:82
+msgid "Medium"
+msgstr "Intermedio"
+
+#: src/gui/widgets/memcard_manager.cc:236
+msgid "Memory Card 1"
+msgstr "Tarjeta de memoria 1"
+
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
+#. happens as well.
+#: src/gui/widgets/memcard_manager.cc:95
+msgid "Memory Card 1 inserted"
+msgstr "Tarjeta de memoria 1 introducida"
+
+#: src/gui/widgets/memcard_manager.cc:240
+msgid "Memory Card 2"
+msgstr "Tarjeta de memoria 2"
+
+#: src/gui/widgets/memcard_manager.cc:101
+msgid "Memory Card 2 inserted"
+msgstr "Tarjeta de memoria 2 introducida"
+
+#: src/gui/gui.cc:1152
+msgid "Memory Card Manager"
+msgstr "Administrador de tarjetas de memoria"
+
+#: src/gui/gui.cc:484
+msgid "Memory Editor #"
+msgstr "Editor de memoria "
+
+#: src/gui/gui.cc:957
+msgid "Memory Editors"
+msgstr "Editores de memoria"
+
+#: src/gui/gui.cc:1172
+msgid "Memory Observer"
+msgstr "Observador de memoria"
+
+#: src/core/sio.cc:375
+#, c-format
+msgid "Memory card %s failed to load!\n"
+msgstr "¡La tarjeta de memoria %s ha fallado al cargar!\n"
+
+#: src/gui/widgets/registers.cc:154
+msgid "Misc"
+msgstr "Otros"
+
+#: src/gui/widgets/shader-editor.cc:244
+msgid "Missing attribute {} in shader program"
+msgstr "Falta el atributo {} en la programación del shader"
+
+#: src/gui/widgets/events.cc:41 src/gui/widgets/sio1.cc:243
+msgid "Mode"
+msgstr "Modo"
+
+#: src/gui/widgets/log.cc:126 src/spu/cfg.cc:98
+msgid "Mono"
+msgstr "Mono"
+
+#: src/gui/gui.cc:1235
+msgid "Mono Font Size"
+msgstr "Tamaño de la fuente monoespaciada"
+
+#: src/spu/cfg.cc:70
+msgid ""
+"More precise CPU-SPU synchronization,\n"
+"at the cost of extra power required."
+msgstr ""
+"Ofrece una sincronización entre CPU y SPU\n"
+"más precisa a costa de necesitar\n"
+"unos mayores requisitos de tu equipo."
+
+#: src/core/pad.cc:559
+msgid "Mouse"
+msgstr "Ratón"
+
+#: src/gui/gui.cc:1630
+msgid "Move down"
+msgstr "Bajar"
+
+#: src/gui/gui.cc:1626
+msgid "Move up"
+msgstr "Subir"
+
+#: src/gui/widgets/memcard_manager.cc:196
+msgid "Move##{}"
+msgstr "Mover##{}"
+
+#: src/gui/widgets/memcard_manager.cc:207
+msgid "Moved file {}({}) from card {} to card {}"
+msgstr "Se ha trasladado el archivo {}({}) de la tarjeta {} a la tarjeta {}"
+
+#: src/spu/cfg.cc:77
+msgid "Muted"
+msgstr "Silenciar audio"
+
+#: src/core/pad.cc:560
+msgid "Negcon (Unimplemented)"
+msgstr "NegCon (sin implementar)"
+
+#: src/gui/widgets/sio1.cc:200
+msgid "New value"
+msgstr "Valor nuevo"
+
+#: src/core/pad.cc:654
+msgid "No gamepad selected or connected"
+msgstr "No se ha seleccionado o conectado un mando"
+
+#: src/gui/gui.cc:1271
+msgid "No thanks"
+msgstr "No, gracias"
+
+#: src/gui/gui.cc:1754
+msgid ""
+"No version information.\n"
+"\n"
+"Probably built from source."
+msgstr ""
+"No hay información sobre la versión.\n"
+"\n"
+"Probablemente haya sido compilada a partir\n"
+"de los archivos fuente."
+
+#: src/spu/cfg.cc:90 src/spu/cfg.cc:93
+msgid "None - fastest"
+msgstr "Ninguna - lo más rápido"
+
+#: src/gui/gui.h:309
+msgid "Notification"
+msgstr "Notificación"
+
+#: src/gui/widgets/filedialog.cc:337 src/gui/widgets/sio1.cc:203
+msgid "OK"
+msgstr "Aceptar"
+
+#. change handle to decoded one
+#: src/cdrom/cdriso-ffmpeg.cc:260
+#, c-format
+msgid "OK\n"
+msgstr "Aceptar\n"
+
+#: src/gui/gui.cc:1192
+msgid "Offscreen Render"
+msgstr "Renderizar elementos fuera de pantalla"
+
+#: src/gui/gui.h:131
+msgid "Ok"
+msgstr "Aceptar"
+
+#: src/gui/gui.h:264
+msgid "Open Binary"
+msgstr "Abrir binario"
+
+#: src/gui/gui.cc:782
+msgid "Open ISO"
+msgstr "Abrir imagen ISO"
+
+#: src/gui/gui.h:263
+msgid "Open Image"
+msgstr "Abrir imagen"
+
+#: src/gui/gui.cc:834
+msgid "Open LID"
+msgstr "Abrir tapa de disco"
+
+#: src/gui/gui.cc:842
+msgid "Open and close LID"
+msgstr "Abrir y volver a cerrar tapa de disco"
+
+#: src/core/psxmem.cc:173
+#, c-format
+msgid "OpenBIOS detected (%08x)\n"
+msgstr "Se ha detectado una OpenBIOS (%08x)\n"
+
+#: src/gui/gui.cc:1780
+msgid ""
+"OpenGL error reporting has been disabled because your OpenGL driver is too "
+"old. Error reporting requires at least OpenGL 4.3. Please update your "
+"graphics drivers, or contact your GPU vendor for correct OpenGL drivers. "
+"Disabled OpenGL error reporting won't have a negative impact on the "
+"performances of this software, but user code such as the shader editor won't"
+" be able to properly report problems accurately."
+msgstr ""
+"Se ha desactivado el informe de errores de OpenGL porque tu controlador de "
+"OpenGL es demasiado antiguo. Los informes de errores requieren, como mínimo,"
+" de la versión 4.3 de Open GL. Recomendamos actualizar los controladores de "
+"tu tarjeta gráfica o contactar con el fabricante de tu GPU para obtener los "
+"controladores correctos para OpenGL. Desactivar los informes de errores de "
+"OpenGL no afectará de forma negativa al rendimiento de este software, pero "
+"ciertos códigos personalizados, como el editor de shaders, no podrán "
+"informar debidamente de cualquier problema que pueda ocurrir."
+
+#: src/gui/gui.cc:1793
+msgid ""
+"OpenGL error reporting is necessary for properly reporting OpenGL problems. "
+"However it requires OpenGL 4.3+ and might have performance repercussions on "
+"some PCs. (Requires reboot)"
+msgstr ""
+"El informe de errores de OpenGL es necesario para poder informar debidamente"
+" de cualquier problema que pueda ocurrir con OpenGL. Sin embargo, es "
+"necesaria la versión 4.3 o superior de OpenGL y esto podría afectar al "
+"rendimiento de algunos equipos (es necesario reiniciar)."
+
+#: src/gui/gui.cc:1777
+msgid "OpenGL error reporting: disabled"
+msgstr "Informe de errores de OpenGL: desactivado"
+
+#: src/gui/gui.cc:1775
+msgid "OpenGL error reporting: enabled"
+msgstr "Informe de errores de OpenGL: activado"
+
+#: src/gui/gui.cc:1773
+msgid "OpenGL information"
+msgstr "Información sobre OpenGL"
+
+#: src/gui/widgets/assembly.cc:425
+msgid "Options"
+msgstr "Opciones"
+
+#: src/gui/widgets/dwarf.cc:120
+msgid "Order by"
+msgstr "Ordenar por"
+
+#: src/gui/gui.cc:765
+msgid "Output"
+msgstr "Salida"
+
+#: src/gui/gui.cc:1187
+msgid "Output Video"
+msgstr "Salida de vídeo"
+
+#: src/gui/gui.cc:1524
+msgid "PCSX Logs to GDB"
+msgstr "Enviar registros de PCSX a GDB"
+
+#: src/core/r3000a.cc:39
+#, c-format
+msgid "PCSX-Redux booting\n"
+msgstr "Arrancando PCSX-Redux\n"
+
+#: src/gui/gui.cc:1252
+msgid ""
+"PCSX-Redux can automatically update itself.\n"
+"\n"
+"If you enable the auto update option, it will check for new updates\n"
+"on startup. No personal data nor identifiable token is sent for this\n"
+"process, but Microsoft might still keep and record information such\n"
+"as your IP address.\n"
+"\n"
+"If an update is available, you will get prompted to download and\n"
+"install it. You can still download versions of PCSX-Redux as usual\n"
+"from its website.\n"
+"\n"
+"If you want to change this setting later, you can go to the\n"
+"Configuration -> System menu."
+msgstr ""
+"PCSX-Redux puede actualizarse de forma automática.\n"
+"\n"
+"Si activas la opción de actualizaciones automáticas, el programa\n"
+"buscará versiones nuevas nada más ejecutarse. No se enviarán\n"
+"datos personales ni tokens identificables durante este proceso,\n"
+"pero Microsoft podría almacenar cierta información, como tu\n"
+"dirección IP.\n"
+"\n"
+"En caso de que haya una actualización disponible,\n"
+"se te preguntará si quieres descargarla e instalarla.\n"
+"También puedes seguir descargándote las versiones\n"
+"de PCSX-Redux desde su página web, como siempre.\n"
+"\n"
+"Si quieres cambiar este ajuste más tarde, puedes hacerlo\n"
+"en el menú Configuración -> Sistema."
+
+#: src/core/pad.cc:488
+msgid "Pad"
+msgstr "Mando"
+
+#: src/core/pad.cc:476
+msgid "Pad 1"
+msgstr "Mando 1"
+
+#: src/core/pad.cc:477
+msgid "Pad 2"
+msgstr "Mando 2"
+
+#: src/core/pad.cc:470
+msgid "Pad configuration"
+msgstr "Configuración de mandos"
+
+#: src/gui/gui.cc:490
+msgid "Parallel Port"
+msgstr "Puerto paralelo"
+
+#: src/gui/widgets/memory_observer.cc:215
+msgid "Pattern search"
+msgstr "Búsqueda de patrones"
+
+#: src/gui/gui.cc:860 src/gui/widgets/assembly.cc:416
+#: src/gui/widgets/assembly.cc:480
+msgid "Pause"
+msgstr "Pausar"
+
+#: src/spu/cfg.cc:86
+msgid "Pause SPU waiting for CPU IRQ"
+msgstr "SPU pausada a la espera de IRQs de CPU"
+
+#: src/gui/widgets/shader-editor.cc:391
+msgid "Pixel Shader"
+msgstr "Pixel Shader"
+
+#: src/gui/widgets/shader-editor.cc:210
+msgid "Pixel Shader compilation error: {}\n"
+msgstr "Error de compilación de Pixel Shader: {}\n"
+
+#: src/gui/gui.cc:1244
+msgid "Preload ISO files"
+msgstr "Precargar archivos ISO"
+
+#: src/gui/widgets/assembly.cc:436
+msgid "Pseudo-instructions filling"
+msgstr "Rellenar seudoinstrucciones"
+
+#: src/gui/gui.cc:797 src/gui/gui.cc:814
+msgid "Quick-save slot"
+msgstr "Ranura de guardado rápido"
+
+#: src/gui/gui.cc:850
+msgid "Quit"
+msgstr "Salir"
+
+#: src/core/pad.cc:553
+msgid "R1"
+msgstr "R1"
+
+#: src/core/pad.cc:554
+msgid "R2"
+msgstr "R2"
+
+#: src/core/pad.cc:554
+msgid "R3"
+msgstr "R3"
+
+#: src/gui/widgets/assembly.cc:809
+msgid "RAM base"
+msgstr "Base de RAM"
+
+#: src/core/debug.h:36
+msgid "Read"
+msgstr "Lectura"
+
+#: src/core/debug.cc:116
+msgid "Read 16 map"
+msgstr "Leer mapa de 16 bits"
+
+#: src/core/debug.cc:123
+msgid "Read 32 map"
+msgstr "Leer mapa de 32 bits"
+
+#: src/core/debug.cc:109
+msgid "Read 8 map"
+msgstr "Leer mapa de 8 bits"
+
+#: src/gui/gui.cc:1329
+#, c-format
+msgid "Read rate: %s"
+msgstr "Tasa de lectura: %s"
+
+#: src/gui/gui.cc:847
+msgid "Reboot"
+msgstr "Reiniciar"
+
+#: src/gui/widgets/assembly.cc:867
+msgid "Refresh"
+msgstr "Actualizar"
+
+#: src/gui/widgets/registers.cc:195
+msgid "Register"
+msgstr "Registro"
+
+#: src/gui/gui.cc:1156 src/gui/widgets/registers.cc:40
+msgid "Registers"
+msgstr "Registros"
+
+#: src/gui/gui.cc:1229
+msgid "Reload locales"
+msgstr "Volver a cargar idiomas"
+
+#: src/gui/gui.cc:1622
+msgid "Remove"
+msgstr "Eliminar"
+
+#: src/gui/widgets/assembly.cc:668
+msgid "Remove breakpoint from here"
+msgstr "Quitar este punto de interrupción"
+
+#: src/gui/widgets/breakpoints.cc:80
+msgid "Remove##"
+msgstr "Quitar##"
+
+#: src/gui/gui.cc:1799
+msgid "Renderer"
+msgstr "Renderizador"
+
+#: src/core/pad.cc:480
+msgid "Rescan gamepads and re-read game controllers database"
+msgstr "Volver a buscar mandos y a leer la base de datos de mandos"
+
+#: src/gui/gui.cc:1431
+msgid "Reset Scaler"
+msgstr "Reiniciar escalador"
+
+#: src/gui/gui.cc:1699
+msgid "Reset all"
+msgstr "Reiniciar todo"
+
+#: src/gui/widgets/vram-viewer.cc:367
+msgid "Reset view"
+msgstr "Restablecer vista"
+
+#: src/gui/widgets/assembly.cc:417 src/gui/widgets/assembly.cc:482
+msgid "Resume"
+msgstr "Reanudar"
+
+#: src/spu/cfg.cc:92
+msgid "Reverb"
+msgstr "Reverberación"
+
+#: src/core/pad.cc:556
+msgid "Right"
+msgstr "Derecha"
+
+#: src/gui/widgets/filedialog.cc:180
+msgid "Roots"
+msgstr "Raíces"
+
+#: src/gui/widgets/assembly.cc:654
+msgid "Run to cursor"
+msgstr "Ejecutar hasta el cursor"
+
+#: src/gui/gui.cc:1198
+msgid "SIO1 Debug"
+msgstr "Depurador de SIO1"
+
+#: src/gui/gui.cc:1573
+msgid "SIO1 Server Port"
+msgstr "Puerto del servidor de SIO1"
+
+#: src/gui/gui.cc:894
+msgid "SPU"
+msgstr "SPU"
+
+#: src/spu/cfg.cc:40
+msgid "SPU configuration"
+msgstr "Configuración de SPU"
+
+#: src/gui/gui.cc:826
+msgid "Save global state"
+msgstr "Guardar estado global"
+
+#: src/gui/gui.cc:796
+msgid "Save state slots"
+msgstr "Guardar un estado de guardado"
+
+#: src/core/sio.cc:416
+#, c-format
+msgid "Saving memory card %s\n"
+msgstr "Guardando tarjeta de memoria %s\n"
+
+#: src/gui/widgets/memory_observer.cc:149
+msgid "Scan alignment"
+msgstr "Alineación de búsqueda"
+
+#: src/gui/widgets/memory_observer.cc:164
+msgid "Scan type"
+msgstr "Tipo de búsqueda"
+
+#: src/gui/gui.cc:492
+msgid "Scratch Pad"
+msgstr "Scratchpad"
+
+#: src/gui/widgets/memory_observer.cc:230
+msgid "Search"
+msgstr "Buscar"
+
+#: src/core/pad.cc:552
+msgid "Select"
+msgstr "SELECT"
+
+#: src/gui/gui.h:265
+msgid "Select BIOS"
+msgstr "Seleccionar BIOS"
+
+#: src/gui/gui.h:266
+msgid "Select BIOS Overlay"
+msgstr "Seleccionar superposición de BIOS"
+
+#: src/gui/widgets/vram-viewer.cc:388
+msgid "Select a CLUT"
+msgstr "Selecciona un CLUT"
+
+#: src/gui/widgets/memory_observer.cc:226
+msgid "Sequence"
+msgstr "Secuencia"
+
+#: src/gui/widgets/memory_observer.cc:217
+msgid "Sequence size: "
+msgstr "Tamaño de secuencia:"
+
+#: src/gui/widgets/assembly.cc:663
+msgid "Set Breakpoint here"
+msgstr "Fijar un punto de interrupción"
+
+#: src/core/pad.cc:497
+msgid "Set defaults"
+msgstr "Valores predeterminados"
+
+#: src/gui/gui.cc:898
+msgid "Shader presets"
+msgstr "Preajustes de shaders"
+
+#: src/gui/gui.cc:1801
+msgid "Shading language version"
+msgstr "Versión del lenguaje de shaders"
+
+#: src/gui/gui.cc:945
+msgid "Show Assembly"
+msgstr "Mostrar ensamblador"
+
+#: src/gui/gui.cc:954
+msgid "Show Breakpoints"
+msgstr "Mostrar puntos de interrupción"
+
+#: src/gui/gui.cc:935
+msgid "Show CLUT VRAM viewer"
+msgstr "Mostrar selector de CLUT de la VRAM"
+
+#: src/gui/gui.cc:955
+msgid "Show Callstacks"
+msgstr "Mostrar pilas de llamadas"
+
+#: src/gui/gui.cc:947 src/gui/gui.cc:949
+msgid "Show DynaRec Disassembly"
+msgstr "Mostrar desensamblador del DynaRec"
+
+#: src/gui/gui.cc:1012
+msgid "Show ImGui Demo"
+msgstr "Mostrar demostración de ImGui"
+
+#: src/gui/gui.cc:968
+msgid "Show Interrupts Scaler"
+msgstr "Mostrar escalador de interrupciones"
+
+#: src/gui/gui.cc:929
+msgid "Show Logs"
+msgstr "Mostrar registros"
+
+#: src/gui/gui.cc:930
+msgid "Show Lua Console"
+msgstr "Mostrar consola Lua"
+
+#: src/gui/gui.cc:931
+msgid "Show Lua Inspector"
+msgstr "Mostrar inspector de Lua"
+
+#: src/gui/gui.cc:932
+msgid "Show Lua editor"
+msgstr "Mostrar editor de Lua"
+
+#: src/gui/gui.cc:967
+msgid "Show Memory Observer"
+msgstr "Mostrar observador de memoria"
+
+#: src/gui/gui.cc:1005
+msgid "Show Offscreen Shader Editor"
+msgstr "Mostrar editor de shaders fuera de pantalla"
+
+#: src/gui/gui.cc:1004
+msgid "Show Output Shader Editor"
+msgstr "Mostrar editor de shaders de salida"
+
+#: src/gui/gui.cc:944
+msgid "Show Registers"
+msgstr "Mostrar registros"
+
+#: src/gui/gui.cc:991
+msgid "Show SIO1 debug"
+msgstr "Mostrar depurador de SIO1"
+
+#: src/gui/gui.cc:989
+msgid "Show SPU debug"
+msgstr "Mostrar depurador de SPU"
+
+#: src/gui/widgets/vram-viewer.cc:394
+msgid "Show Shader Editor"
+msgstr "Mostrar editor de shaders"
+
+#: src/gui/gui.cc:1014
+msgid "Show UvFile information"
+msgstr "Mostrar información de UvFile"
+
+#: src/gui/gui.cc:938
+msgid "Show VRAM viewer #"
+msgstr "Mostrar visualizador de VRAM "
+
+#: src/gui/widgets/shader-editor.cc:358
+msgid "Show all"
+msgstr "Mostrar todo"
+
+#: src/gui/widgets/memory_observer.cc:202
+#: src/gui/widgets/memory_observer.cc:256
+msgid "Show in memory editor##{}"
+msgstr "Mostrar en editor de memoria##{}"
+
+#: src/gui/gui.cc:934
+msgid "Show main VRAM viewer"
+msgstr "Mostrar visualizador de VRAM principal"
+
+#: src/gui/gui.cc:1007
+msgid "Show raw DWARF info"
+msgstr "Mostrar información de DWARF en bruto"
+
+#: src/gui/gui.cc:1001
+msgid "Show source"
+msgstr "Mostrar origen"
+
+#: src/gui/gui.cc:1000
+msgid "Show types"
+msgstr "Mostrar tipos"
+
+#: src/core/psxinterpreter.cc:457
+#, c-format
+msgid "Signed overflow in ADD instruction from 0x%08x!\n"
+msgstr "¡Desbordamiento con signo en la instruccion ADD de 0x%08x!\n"
+
+#: src/core/psxinterpreter.cc:363
+#, c-format
+msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
+msgstr "¡Desbordamiento con signo en la instruccion ADDI de 0x%08x!\n"
+
+#: src/core/psxinterpreter.cc:499
+#, c-format
+msgid "Signed overflow in SUB instruction from 0x%08x!\n"
+msgstr "¡Desbordamiento con signo en la instruccion SUB de 0x%08x!\n"
+
+#: src/spu/cfg.cc:90
+msgid "Simple - only handles the most common effects"
+msgstr "Simple - aplica solo los efectos más comunes"
+
+#: src/spu/cfg.cc:93
+msgid "Simple interpolation"
+msgstr "Interpolación simple"
+
+#: src/gui/widgets/assembly.cc:477
+msgid "Skip ISR"
+msgstr "Omitir ISR"
+
+#: src/gui/widgets/log.cc:112
+msgid "Skip ISR during CPU traces"
+msgstr "Omitir ISR en los seguimientos de la CPU"
+
+#: src/gui/gui.cc:803 src/gui/gui.cc:817
+msgid "Slot {}"
+msgstr "Ranura {}"
+
+#: src/gpu/soft/gpu.cc:1207
+msgid "Soft GPU configuration"
+msgstr "Configuración de GPU por software"
+
+#: src/gui/gui.cc:863
+msgid "Soft Reset"
+msgstr "Reinicio rápido"
+
+#: src/gui/gui.cc:1184
+msgid "Source"
+msgstr "Origen"
+
+#: src/gui/widgets/events.cc:40
+msgid "Spec"
+msgstr "Espec"
+
+#: src/gui/widgets/log.cc:105
+msgid "Special"
+msgstr "Especial"
+
+#: src/gui/gui.cc:1437
+msgid "Speed Scaler"
+msgstr "Escalador de velocidad"
+
+#: src/core/pad.cc:551
+msgid "Square"
+msgstr "Cuadrado"
+
+#: src/core/pad.cc:552 src/gui/gui.cc:857
+msgid "Start"
+msgstr "START"
+
+#: src/gui/gui.cc:993
+msgid "Start GPU dump"
+msgstr "Iniciar volcado de GPU"
+
+#: src/gui/widgets/sio1.cc:234
+msgid "Status"
+msgstr "Estado"
+
+#: src/gui/widgets/memory_observer.cc:228
+msgid "Step"
+msgstr "Avanzar"
+
+#: src/gui/widgets/assembly.cc:419 src/gui/widgets/assembly.cc:484
+msgid "Step In"
+msgstr "Avanzar una"
+
+#: src/core/debug.cc:278 src/gui/widgets/assembly.cc:421
+#: src/gui/widgets/assembly.cc:488
+msgid "Step Out"
+msgstr "Saltar una"
+
+#: src/core/debug.cc:162 src/gui/widgets/assembly.cc:420
+#: src/gui/widgets/assembly.cc:486
+msgid "Step Over"
+msgstr "Salir de"
+
+#: src/core/debug.cc:155
+msgid "Step in"
+msgstr "Avanzar una"
+
+#: src/core/debug.cc:174
+msgid "Step out (no callstack)"
+msgstr "Saltar una (sin pila de llamadas)"
+
+#: src/core/debug.cc:169
+msgid "Step over"
+msgstr "Salir de"
+
+#: src/gui/gui.cc:996
+msgid "Stop GPU dump"
+msgstr "Detener volcado de GPU"
+
+#: src/spu/cfg.cc:87
+msgid ""
+"Suspends the SPU processing during an IRQ, waiting\n"
+"for the main CPU to acknowledge it. Fixes issues\n"
+"with some games, but slows SPU processing."
+msgstr ""
+"Suspende el procesamiento de la SPU durante\n"
+"un IRQ hasta que la CPU principal la reconozca.\n"
+"Arregla problemas en algunos juegos a costa\n"
+"de frenar el procesamiento de la SPU."
+
+#: src/gui/widgets/assembly.cc:818 src/gui/widgets/assembly.cc:866
+msgid "Symbols"
+msgstr "Símbolos"
+
+#: src/gui/gui.cc:896
+msgid "System"
+msgstr "Sistema"
+
+#: src/gui/gui.cc:1243
+msgid "System Configuration"
+msgstr "Configuración del sistema"
+
+#: src/gui/gui.cc:1464
+msgid "System Type"
+msgstr "Tipo de sistema"
+
+#: src/gui/gui.cc:1543
+msgid ""
+"The GDB server will start tracing its\n"
+"protocol into the logs, which can be helpful to debug\n"
+"the gdb server system itself."
+msgstr ""
+"El servidor GDB comenzará a escribir en los registros\n"
+"un seguimiento de su protocolo. Esto puede servir\n"
+"para depurar el sistema del servidor GDB."
+
+#: src/core/sio.cc:357
+#, c-format
+msgid "The memory card %s doesn't exist - creating it\n"
+msgstr "La tarjeta de memoria %s no existe, creando una nueva.\n"
+
+#: src/gui/gui.cc:1719
+msgid "Themes"
+msgstr "Temas"
+
+#: src/gui/gui.cc:1512
+msgid ""
+"This will activate a gdb-server that you can\n"
+"connect to with any gdb-remote compliant client.\n"
+"You also need to enable the debugger."
+msgstr ""
+"Esta opción activará un servidor GDB al que podrás\n"
+"conectarte desde cualquier cliente compatible\n"
+"con gdb-remote. Es necesario activar también\n"
+"el depurador."
+
+#: src/gui/gui.cc:1569
+msgid ""
+"This will activate a tcp server, that will\n"
+"relay information between tcp and sio1.\n"
+"See the wiki for details."
+msgstr ""
+"Esta opción activará un servidor TCP que transmitirá\n"
+"información entre el protocolo TCP y SIO1.\n"
+"Encontrarás más información en la wiki."
+
+#: src/gui/gui.cc:1555
+msgid ""
+"This will activate a web-server, that you can\n"
+"query using a REST api. See the wiki for details.\n"
+"The debugger might be required in some cases."
+msgstr ""
+"Esta opción activará un servidor web que podrás\n"
+"consultar mediante una API REST. Encontrarás\n"
+"más información en la wiki. En algunos casos\n"
+"podrías necesitar que el depurador esté activado."
+
+#: src/gui/gui.cc:1484
+msgid ""
+"This will cause the BIOS to skip the shell,\n"
+"which may include additional checks.\n"
+"Also will make the boot time substantially\n"
+"faster by not displaying the logo."
+msgstr ""
+"Esta opción omitirá el shell de la BIOS, el cual\n"
+"podría contener comprobaciones adicionales.\n"
+"También reducirá considerablemente\n"
+"el tiempo de arranque al no mostrar el logotipo."
+
+#: src/gui/gui.cc:1500
+msgid ""
+"This will enable the usage of various breakpoints\n"
+"throughout the execution of mips code. Enabling this\n"
+"can slow down emulation to a noticable extend."
+msgstr ""
+"Esta opción activará el uso de varios puntos\n"
+"de interrupción durante la ejecución del código MIPS.\n"
+"Podría ralentizar la emulación en gran medida."
+
+#: src/gui/widgets/memcard_manager.cc:125
+msgid "Title"
+msgstr "Título"
+
+#: src/cdrom/cdriso.cc:256
+#, c-format
+msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
+msgstr "Pista %.2d (%s) - Inicio %.2d:%.2d:%.2d, longitud %.2d:%.2d:%.2d\n"
+
+#: src/core/pad.cc:551
+msgid "Triangle"
+msgstr "Triángulo"
+
+#: src/gui/widgets/types.cc:27
+msgid "Types"
+msgstr "Tipos"
+
+#: src/gui/gui.cc:895
+msgid "UI"
+msgstr "Interfaz de usuario"
+
+#: src/gui/gui.cc:1208
+msgid "UI Configuration"
+msgstr "Configuración de la interfaz de usuario"
+
+#: src/core/psxinterpreter.cc:893
+#, c-format
+msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
+msgstr "Dirección 0x%08x no alineada en LH de 0x%08x\n"
+
+#: src/core/psxinterpreter.cc:914
+#, c-format
+msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
+msgstr "Dirección 0x%08x no alineada en LHU de 0x%08x\n"
+
+#: src/core/psxinterpreter.cc:935
+#, c-format
+msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
+msgstr "Dirección 0x%08x no alineada en LW de 0x%08x\n"
+
+#: src/core/psxinterpreter.cc:1001
+#, c-format
+msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
+msgstr "Dirección 0x%08x no alineada en SH de 0x%08x\n"
+
+#: src/core/psxinterpreter.cc:1016
+#, c-format
+msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
+msgstr "Dirección 0x%08x no alineada en SW de 0x%08x\n"
+
+#: src/spu/cfg.cc:79
+msgid ""
+"Uncheck this to mute the streaming channel\n"
+"from the main CPU to the SPU. This includes\n"
+"XA audio and audio tracks."
+msgstr ""
+"Desactiva esta opción para silenciar el canal\n"
+"del flujo que va de la CPU principal a la SPU.\n"
+"Incluye el audio XA y las pistas de audio."
+
+#: src/gui/widgets/memcard_manager.cc:61
+msgid "Undo"
+msgstr "Deshacer"
+
+#: src/gui/widgets/memcard_manager.cc:81
+msgid "Undo version: "
+msgstr "Versión de deshacer:"
+
+#: src/core/psxmem.cc:175
+#, c-format
+msgid "Unknown bios loaded (%08x)\n"
+msgstr "Se ha cargado una BIOS desconocida (%08x)\n"
+
+#: src/core/pad.cc:288 src/core/pad.cc:381
+#, c-format
+msgid "Unknown command for pad: %02X\n"
+msgstr "Comando de mando desconocido: %02X\n"
+
+#: src/core/pad.cc:529
+msgid "Unknown keyboard key {}"
+msgstr "Tecla de teclado desconocida: {}"
+
+#: src/cdrom/ppf.cc:279
+#, c-format
+msgid "Unsupported PPF version (%d).\n"
+msgstr "Versión de PPF no admitida (%d).\n"
+
+#: src/core/pad.cc:556
+msgid "Up"
+msgstr "Arriba"
+
+#: src/gui/gui.cc:1280
+msgid "Update available"
+msgstr "Actualización disponible"
+
+#: src/gui/gui.cc:1251
+msgid "Update configuration"
+msgstr "Configuración de actualizaciones"
+
+#: src/spu/cfg.cc:69
+msgid "Use Null Sync"
+msgstr "Sincronización NULL"
+
+#: src/core/pad.cc:486
+msgid "Use raw input for mouse"
+msgstr "Utilizar entrada sin procesar del ratón"
+
+#: src/gui/gui.cc:1326
+msgid "UvFiles"
+msgstr "UvFiles"
+
+#: src/gui/widgets/vram-viewer.cc:296
+msgid "VRAM Shader Editor"
+msgstr "Editor de shaders de la VRAM"
+
+#: src/gui/gui.cc:933
+msgid "VRAM viewers"
+msgstr "Visualizadores de la VRAM"
+
+#. 1
+#: src/gui/widgets/sio1.cc:161
+msgid "Value"
+msgstr "Valor"
+
+#: src/gui/gui.cc:1798
+msgid "Vendor"
+msgstr "Proveedor"
+
+#: src/gui/gui.cc:1751 src/gui/gui.cc:1800
+msgid "Version"
+msgstr "Versión"
+
+#: src/gui/gui.cc:1756
+#, c-format
+msgid "Version: %s"
+msgstr "Versión: %s"
+
+#: src/gui/widgets/shader-editor.cc:385
+msgid "Vertex Shader"
+msgstr "Vertex Shader"
+
+#: src/gui/widgets/shader-editor.cc:189
+msgid "Vertex Shader compilation error: {}\n"
+msgstr "Error de compilación de Vertex Shader: {}\n"
+
+#: src/gui/widgets/vram-viewer.cc:366
+msgid "View"
+msgstr "Vista"
+
+#: src/gui/widgets/vram-viewer.cc:375
+msgid "View VRAM in 16 bits"
+msgstr "Ver la VRAM en el modo 16 bits"
+
+#: src/gui/widgets/vram-viewer.cc:371
+msgid "View VRAM in 24 bits"
+msgstr "Ver la VRAM en el modo 24 bits"
+
+#: src/gui/widgets/vram-viewer.cc:383
+msgid "View VRAM in 4 bits"
+msgstr "Ver la VRAM en el modo a 4 bits"
+
+#: src/gui/widgets/vram-viewer.cc:379
+msgid "View VRAM in 8 bits"
+msgstr "Ver la VRAM en el modo a 8 bits"
+
+#: src/spu/cfg.cc:83
+msgid "Volume"
+msgstr "Volumen"
+
+#: src/gui/gui.cc:475
+msgid "Vram Viewer #"
+msgstr "Visualizador de VRAM "
+
+#: src/gui/gui.cc:447
+msgid ""
+"Warning: OpenGL error reporting disabled. See About dialog for more "
+"information.\n"
+msgstr ""
+"Aviso: se han desactivado los informes de errores de OpenGL. Para más "
+"información, ve a la ventana Acerca de.\n"
+
+#: src/gui/gui.cc:1559
+msgid "Web Server Port"
+msgstr "Puerto del servidor web"
+
+#: src/gui/widgets/assembly.cc:441
+msgid ""
+"When combining two instructions into a single pseudo-instruction, add a "
+"placeholder for the second one."
+msgstr ""
+"Al combinar dos instrucciones en una seudoinstrucción, se añadirá un "
+"marcador de posición para la segunda."
+
+#: src/gui/widgets/assembly.cc:431
+msgid ""
+"When two instructions are detected to be a single pseudo-instruction, "
+"combine them into the actual pseudo-instruction."
+msgstr ""
+"Cuando se detecte que dos instrucciones son una misma seudoinstrucción, se "
+"combinarán para mostrar la seudoinstrucción real."
+
+#: src/core/debug.h:36
+msgid "Write"
+msgstr "Escritura"
+
+#: src/core/debug.cc:137
+msgid "Write 16 map"
+msgstr "Escribir mapa de 16 bits"
+
+#: src/core/debug.cc:144
+msgid "Write 32 map"
+msgstr "Escribir mapa de 32 bits"
+
+#: src/core/debug.cc:130
+msgid "Write 8 map"
+msgstr "Escribir mapa de 8 bits"
+
+#: src/gui/gui.cc:1331
+#, c-format
+msgid "Write rate: %s"
+msgstr "Tasa de escritura: %s"
+
+#: src/core/sio.cc:681
+msgid "Wrong block number"
+msgstr "Número de bloque erróneo"
+
+#: src/gui/widgets/filedialog.cc:272
+msgid "^ Date & Time"
+msgstr "^ Fecha y hora"
+
+#: src/gui/widgets/filedialog.cc:216
+msgid "^ File"
+msgstr "^ Archivo"
+
+#: src/gui/widgets/filedialog.cc:244
+msgid "^ Size"
+msgstr "^ Tamaño"
+
+#: src/gui/widgets/filedialog.cc:269
+msgid "v Date & Time"
+msgstr "v Fecha y hora"
+
+#: src/gui/widgets/filedialog.cc:213
+msgid "v File"
+msgstr "v Archivo"
+
+#: src/gui/widgets/filedialog.cc:241
+msgid "v Size"
+msgstr "v Tamaño"
