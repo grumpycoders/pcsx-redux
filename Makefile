@@ -10,7 +10,7 @@ CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo fals
 
 PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
 
-LOCALES := el es_ES fr
+LOCALES := el es_ES fr pt_BR
 
 ifeq ($(wildcard third_party/imgui/imgui.h),)
 HAS_SUBMODULES = false
