@@ -1,30 +1,35 @@
-# 
+#
 # Translators:
 # Felipefpl, 2022
-# 
+#
 msgid ""
 msgstr ""
 "Last-Translator: Felipefpl, 2022\n"
-"Language-Team: Portuguese (Brazil) (https://www.transifex.com/grumpycoders/teams/99251/pt_BR/)\n"
+"Language-Team: Portuguese (Brazil) (https://www.transifex.com/grumpycoders/"
+"teams/99251/pt_BR/)\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % "
+"1000000 == 0 ? 1 : 2;\n"
 
 #: src/core/psxmem.cc:128
 msgid ""
 "\n"
 "                   No BIOS loaded, emulation halted.\n"
 "\n"
-"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the "
+"emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 "\n"
 "                 Nenhuma BIOS carregada, emulação interrompida.\n"
 "\n"
-"Defina um arquivo de BIOS na configuração e faça uma reset rígido do emulador.\n"
-"O arquivo OpenBIOS.bin distribuído.bin pode ser um substituto apropriado da BIOS.\n"
+"Defina um arquivo de BIOS na configuração e faça uma reset rígido do "
+"emulador.\n"
+"O arquivo OpenBIOS.bin distribuído.bin pode ser um substituto apropriado da "
+"BIOS.\n"
 
 #: src/cdrom/cdriso-ecm.cc:303
 #, c-format
@@ -33,7 +38,8 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Arquivo ECM detectado com o sufixo de cabeçalho e nome de arquivo apropriado.\n"
+"Arquivo ECM detectado com o sufixo de cabeçalho e nome de arquivo "
+"apropriado.\n"
 
 #: src/cdrom/cdriso-cue.cc:174
 #, c-format
@@ -105,11 +111,11 @@ msgstr "Ação"
 
 #: src/spu/cfg.cc:102
 msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
-" is necessary for some games."
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
+"is necessary for some games."
 msgstr ""
-"Ativa os IRQs do SPU baseado nas gravações no buffer de "
-"decodificação/captura. Esta opção é necessária pra alguns jogos."
+"Ativa os IRQs do SPU baseado nas gravações no buffer de decodificação/"
+"captura. Esta opção é necessária pra alguns jogos."
 
 #: src/gui/gui.cc:1449
 msgid ""
@@ -227,7 +233,8 @@ msgstr ""
 #: src/core/psxinterpreter.cc:822
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
-msgstr "Tentativa de JR desalinhado pra 0x%08x do 0x%08x, disparando exceção!\n"
+msgstr ""
+"Tentativa de JR desalinhado pra 0x%08x do 0x%08x, disparando exceção!\n"
 
 #: src/spu/cfg.cc:84
 msgid ""
@@ -577,7 +584,8 @@ msgid ""
 "Could not open OpenBIOS fallback. Things won't work properly.\n"
 "Add a valid BIOS in the configuration and hard reset.\n"
 msgstr ""
-"Não pôde abrir a reserva da OpenBIOS. As coisas não funcionarão apropriadamente.\n"
+"Não pôde abrir a reserva da OpenBIOS. As coisas não funcionarão "
+"apropriadamente.\n"
 "Adicione uma BIOS válida na configuração e no reset rígido.\n"
 
 #: src/cdrom/cdriso-ffmpeg.cc:182
@@ -716,10 +724,12 @@ msgstr "Disassembler do DynaRec"
 
 #: src/gui/gui.cc:951
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
+"[Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
-"O Disassembler do DynaRec não está disponível no modo de CPU interpretada. Tente ativar o [Dynarec CPU]\n"
+"O Disassembler do DynaRec não está disponível no modo de CPU interpretada. "
+"Tente ativar o [Dynarec CPU]\n"
 "em Configuração->Emulação, reinicie o PCSX-Redux, então tente de novo."
 
 #: src/gui/gui.cc:1442
@@ -1056,7 +1066,8 @@ msgstr "Deslocamento inválido da carga pra sobreposição da BIOS:\"%s\"!\n"
 #: src/core/psxmem.cc:221 src/core/psxmem.cc:228
 #, c-format
 msgid "Invalid load size specified BIOS Overlay:\"%s\"!\n"
-msgstr "Tamanho inválido da carga especificado pra sobreposição da BIOS:\"%s\"!\n"
+msgstr ""
+"Tamanho inválido da carga especificado pra sobreposição da BIOS:\"%s\"!\n"
 
 #: src/gui/gui.cc:970 src/gui/gui.cc:1110
 msgid "Kernel Calls"
@@ -1286,8 +1297,7 @@ msgstr "Médio"
 msgid "Memory Card 1"
 msgstr "Tarjeta de memoria 1"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
-#. happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
 #: src/gui/widgets/memcard_manager.cc:95
 msgid "Memory Card 1 inserted"
 msgstr "Memory Card 1 inserido"
@@ -1456,12 +1466,12 @@ msgid ""
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
 "graphics drivers, or contact your GPU vendor for correct OpenGL drivers. "
 "Disabled OpenGL error reporting won't have a negative impact on the "
-"performances of this software, but user code such as the shader editor won't"
-" be able to properly report problems accurately."
+"performances of this software, but user code such as the shader editor won't "
+"be able to properly report problems accurately."
 msgstr ""
 "O relatório de erros do OpenGL foi desativado porque seu driver OpenGL é "
-"muito antigo. O relatório de erros requer pelo menos o OpenGL 4.3. Por favor"
-" atualize seus drivers gráficos ou contacte o vendedor da sua GPU pra obter "
+"muito antigo. O relatório de erros requer pelo menos o OpenGL 4.3. Por favor "
+"atualize seus drivers gráficos ou contacte o vendedor da sua GPU pra obter "
 "os drivers OpenGL corretos. O relatório de erros desativado do OpenGL não "
 "terá um impacto negativo nas performances deste software mas o código do "
 "usuário tal como o editor de shader não será capaz de relatar "
@@ -1532,8 +1542,10 @@ msgid ""
 msgstr ""
 "O PCSX-Redux pode automaticamente atualizar a si mesmo.\n"
 "\n"
-"Se você ativar a opção de auto-atualização ela procurará novas atualizações na\n"
-"inicialização. Nenhum dado pessoal ou código identificável é enviado pra isto\n"
+"Se você ativar a opção de auto-atualização ela procurará novas atualizações "
+"na\n"
+"inicialização. Nenhum dado pessoal ou código identificável é enviado pra "
+"isto\n"
 "mas a Microsoft ainda poderia manter e registrar informações  tais como\n"
 "como seu endereço de IP.\n"
 "\n"
