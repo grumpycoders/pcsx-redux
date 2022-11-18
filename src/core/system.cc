@@ -46,6 +46,10 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
         {"el.po", {}, c_greekRanges},
     },
     {
+        "Español",
+        {"es_ES.po", {}, nullptr},
+    },
+    {
         "Français",
         {"fr.po", {}, c_frenchRanges},
     },
