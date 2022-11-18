@@ -69,6 +69,10 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
         "Malti",
         {"mt.po", {}, c_malteseRanges},
     },
+    {
+        "Português Brasileiro",
+        {"pt_BR.po", {}, nullptr},
+    },
 };
 
 bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::path& path) {
