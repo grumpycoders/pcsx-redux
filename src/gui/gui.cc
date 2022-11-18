@@ -940,10 +940,10 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Emulation"))) {
-                if (ImGui::MenuItem(_("Start"), "F5", nullptr, !g_system->running())) {
+                if (ImGui::MenuItem(_("Start emulation"), "F5", nullptr, !g_system->running())) {
                     g_system->resume();
                 }
-                if (ImGui::MenuItem(_("Pause"), "F6", nullptr, g_system->running())) {
+                if (ImGui::MenuItem(_("Pause emulation"), "F6", nullptr, g_system->running())) {
                     g_system->pause();
                 }
                 if (ImGui::MenuItem(_("Soft Reset"), "F8")) {
