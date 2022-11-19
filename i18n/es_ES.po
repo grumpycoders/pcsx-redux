@@ -1,31 +1,35 @@
-# 
+#
 # Translators:
 # Name LastName, 2022
 # Whitehole <javi_del_95@hotmail.com>, 2022
 # Víctor González, 2022
-# 
+#
 msgid ""
 msgstr ""
 "Last-Translator: Víctor González, 2022\n"
-"Language-Team: Spanish (Spain) (https://www.transifex.com/grumpycoders/teams/99251/es_ES/)\n"
+"Language-Team: Spanish (Spain) (https://www.transifex.com/grumpycoders/"
+"teams/99251/es_ES/)\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
+"1 : 2;\n"
 
 #: src/core/psxmem.cc:118
 msgid ""
 "\n"
 "                   No BIOS loaded, emulation halted.\n"
 "\n"
-"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the "
+"emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 "\n"
 "                   No se ha cargado una BIOS, emulación detenida.\n"
 "\n"
-"Elige un archivo de BIOS en la configuración y luego haz un reinicio completo de la emulación.\n"
+"Elige un archivo de BIOS en la configuración y luego haz un reinicio "
+"completo de la emulación.\n"
 "El archivo distribuido OpenBIOS.bin podría ser una BIOS alternativa ideal.\n"
 "\n"
 
@@ -36,7 +40,8 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Detectado un archivo ECM con la cabecera y el sufijo en su nombre de archivo correctos.\n"
+"Detectado un archivo ECM con la cabecera y el sufijo en su nombre de archivo "
+"correctos.\n"
 
 #: src/cdrom/cdriso-cue.cc:173
 #, c-format
@@ -126,8 +131,8 @@ msgstr "Acción"
 
 #: src/spu/cfg.cc:101
 msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
-" is necessary for some games."
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
+"is necessary for some games."
 msgstr ""
 "Activa las IRQ de la SPU basadas en las escrituras\n"
 "al búfer de decodificación/captura.\n"
@@ -195,8 +200,7 @@ msgstr "Añadir punto de interrupción de escritura##{}{}"
 #: src/gui/widgets/assembly.cc:814 src/gui/widgets/breakpoints.cc:109
 #: src/gui/widgets/memory_observer.cc:160
 #: src/gui/widgets/memory_observer.cc:318
-#: src/gui/widgets/memory_observer.cc:406
-#: src/gui/widgets/typed_debugger.cc:898
+#: src/gui/widgets/memory_observer.cc:406 src/gui/widgets/typed_debugger.cc:898
 msgid "Address"
 msgstr "Dirección"
 
@@ -255,11 +259,11 @@ msgstr ""
 "Pulsa en «Descargar» para obtener la actualización\n"
 "con tu navegador web y aplicarla manualmente."
 
-#: src/core/pad.cc:601
+#: src/core/pad.cc:820
 msgid "Analog"
 msgstr "Analógico"
 
-#: src/core/pad.cc:597
+#: src/core/pad.cc:816
 msgid "Analog Mode"
 msgstr "Modo analógico"
 
@@ -282,8 +286,8 @@ msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
 "Ignored.\n"
 msgstr ""
-"Se ha intentado utilizar una instrucción de coma flotante no válida desde "
-"0x%08x. Ignorando.\n"
+"Se ha intentado utilizar una instrucción de coma flotante no válida desde 0x"
+"%08x. Ignorando.\n"
 
 #: src/core/psxinterpreter.cc:841
 #, c-format
@@ -310,7 +314,7 @@ msgstr ""
 msgid "Authors"
 msgstr "Autores"
 
-#: src/core/pad.cc:591
+#: src/core/pad.cc:810
 msgid "Auto"
 msgstr "Elegir automáticamente"
 
@@ -487,7 +491,7 @@ msgstr "Trucos cargados desde: %s\n"
 msgid "Cheats saved to: %s\n"
 msgstr "Trucos guardados en: %s\n"
 
-#: src/core/pad.cc:594
+#: src/core/pad.cc:813
 msgid "Circle"
 msgstr "Círculo"
 
@@ -535,7 +539,7 @@ msgstr "Columnas"
 msgid "Combined pseudo-instructions"
 msgstr "Combinar seudoinstrucciones"
 
-#: src/core/pad.cc:656
+#: src/core/pad.cc:875
 msgid "Computer button mapping"
 msgstr "Asignación del equipo"
 
@@ -551,7 +555,7 @@ msgstr "Configurar shaders"
 msgid "Configure shader"
 msgstr "Configurar shader"
 
-#: src/core/pad.cc:608
+#: src/core/pad.cc:827
 msgid "Connected"
 msgstr "Conectado"
 
@@ -563,11 +567,11 @@ msgstr "Contexto##{}"
 msgid "Control"
 msgstr "Control"
 
-#: src/core/pad.cc:591
+#: src/core/pad.cc:810
 msgid "Controller"
 msgstr "Mando"
 
-#: src/core/pad.cc:625
+#: src/core/pad.cc:844
 msgid "Controller Type"
 msgstr "Tipo de mando"
 
@@ -651,7 +655,8 @@ msgstr ""
 #: src/cdrom/cdriso-ffmpeg.cc:147
 #, c-format
 msgid "Could not find audio stream in the input, aborting\n"
-msgstr "No se ha podido encontrar el flujo de audio en la entrada, abortando.\n"
+msgstr ""
+"No se ha podido encontrar el flujo de audio en la entrada, abortando.\n"
 
 #: src/cdrom/cdriso-ffmpeg.cc:137
 #, c-format
@@ -689,7 +694,7 @@ msgstr "No se ha podido abrir el contexto para el remuestreo."
 msgid "Could not open source file %s\n"
 msgstr "No se ha podido abrir el archivo de origen %s.\n"
 
-#: src/core/pad.cc:593
+#: src/core/pad.cc:812
 msgid "Cross"
 msgstr "Cruz/X"
 
@@ -753,11 +758,11 @@ msgstr "Descripción"
 msgid "Device"
 msgstr "Dispositivo"
 
-#: src/core/pad.cc:641
+#: src/core/pad.cc:860
 msgid "Device type"
 msgstr "Tipo de dispositivo"
 
-#: src/core/pad.cc:600
+#: src/core/pad.cc:819
 msgid "Digital"
 msgstr "Digital"
 
@@ -769,8 +774,7 @@ msgstr "Deshabilitar todo"
 msgid "Disable##"
 msgstr "Deshabilitar##"
 
-#: src/gui/widgets/typed_debugger.cc:330
-#: src/gui/widgets/typed_debugger.cc:1005
+#: src/gui/widgets/typed_debugger.cc:330 src/gui/widgets/typed_debugger.cc:1005
 msgid "Disable##{}"
 msgstr "Deshabilitar##{}"
 
@@ -811,7 +815,7 @@ msgstr "Mostrar rango vertical: %d-%d"
 msgid "Displayed"
 msgstr "Mostrado"
 
-#: src/core/pad.cc:599
+#: src/core/pad.cc:818
 msgid "Down"
 msgstr "Abajo"
 
@@ -851,7 +855,8 @@ msgstr "Desensamblador del DynaRec"
 
 #: src/gui/gui.cc:1048
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
+"[Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
 "El desensamblador del DynaRec no se encuentra disponible\n"
@@ -1024,8 +1029,8 @@ msgid ""
 "Pocketstation commands, possibly allowing apps to be saved/exported."
 msgstr ""
 "Experimental. El emulador intentará enviar respuestas artificiales a los "
-"comandos de PocketStation, lo que tal vez permita el guardado o exportado de"
-" aplicaciones."
+"comandos de PocketStation, lo que tal vez permita el guardado o exportado de "
+"aplicaciones."
 
 #: src/gui/widgets/memcard_manager.cc:116
 msgid ""
@@ -1033,8 +1038,8 @@ msgid ""
 "Pocketstation commands, possibly allowing apps to be saved/exported."
 msgstr ""
 "Experimental. El emulador intentará enviar respuestas artificiales a los "
-"comandos de PocketStation, lo que tal vez permita el guardado o exportado de"
-" aplicaciones."
+"comandos de PocketStation, lo que tal vez permita el guardado o exportado de "
+"aplicaciones."
 
 #: src/gui/widgets/memcard_manager.cc:246
 msgid "Export PNG##{}"
@@ -1143,11 +1148,11 @@ msgstr "GPU"
 msgid "GUI"
 msgstr "Interfaz de usuario"
 
-#: src/core/pad.cc:724
+#: src/core/pad.cc:943
 msgid "Gamepad"
 msgstr "Mando"
 
-#: src/core/pad.cc:657
+#: src/core/pad.cc:876
 msgid "Gamepad button"
 msgstr "Botón de mando"
 
@@ -1163,11 +1168,11 @@ msgstr "Ver en desensamblador"
 msgid "Go to in Memory Editor"
 msgstr "Ver en editor de memoria"
 
-#: src/core/pad.cc:604
+#: src/core/pad.cc:823
 msgid "Gun (Unimplemented)"
 msgstr "Lightgun (sin implementar)"
 
-#: src/core/pad.cc:605
+#: src/core/pad.cc:824
 msgid "Guncon (Unimplemented"
 msgstr "GunCon (sin implementar)"
 
@@ -1183,8 +1188,7 @@ msgstr "Registros de hardware"
 msgid "Help"
 msgstr "Ayuda"
 
-#: src/gui/widgets/memory_observer.cc:89
-#: src/gui/widgets/memory_observer.cc:278
+#: src/gui/widgets/memory_observer.cc:89 src/gui/widgets/memory_observer.cc:278
 msgid "Hex"
 msgstr "Hexad."
 
@@ -1261,43 +1265,43 @@ msgstr "Eventos del kernel"
 msgid "Kernel handlers"
 msgstr "Controladores del kernel"
 
-#: src/core/pad.cc:591
+#: src/core/pad.cc:810
 msgid "Keyboard"
 msgstr "Teclado -"
 
-#: src/core/pad.cc:558
+#: src/core/pad.cc:777
 msgid "Keyboard Backspace"
 msgstr "Teclado - Retroceso"
 
-#: src/core/pad.cc:554
+#: src/core/pad.cc:773
 msgid "Keyboard Down"
 msgstr "Teclado - Abajo"
 
-#: src/core/pad.cc:560
+#: src/core/pad.cc:779
 msgid "Keyboard Enter"
 msgstr "Teclado - Intro"
 
-#: src/core/pad.cc:564
+#: src/core/pad.cc:783
 msgid "Keyboard Escape"
 msgstr "Teclado - Esc"
 
-#: src/core/pad.cc:556
+#: src/core/pad.cc:775
 msgid "Keyboard Left"
 msgstr "Teclado - Izquierda"
 
-#: src/core/pad.cc:552
+#: src/core/pad.cc:771
 msgid "Keyboard Right"
 msgstr "Teclado - Derecha"
 
-#: src/core/pad.cc:562
+#: src/core/pad.cc:781
 msgid "Keyboard Space"
 msgstr "Teclado - Espacio"
 
-#: src/core/pad.cc:550
+#: src/core/pad.cc:769
 msgid "Keyboard Up"
 msgstr "Teclado - Arriba"
 
-#: src/core/pad.cc:654
+#: src/core/pad.cc:873
 msgid "Keyboard mapping"
 msgstr "Asignaciones del teclado"
 
@@ -1306,15 +1310,15 @@ msgstr "Asignaciones del teclado"
 msgid "Known BIOS detected: %s (%08x)\n"
 msgstr "Se ha detectado una BIOS conocida: %s (%08x)\n"
 
-#: src/core/pad.cc:595
+#: src/core/pad.cc:814
 msgid "L1"
 msgstr "L1"
 
-#: src/core/pad.cc:595
+#: src/core/pad.cc:814
 msgid "L2"
 msgstr "L2"
 
-#: src/core/pad.cc:596
+#: src/core/pad.cc:815
 msgid "L3"
 msgstr "L3"
 
@@ -1322,7 +1326,7 @@ msgstr "L3"
 msgid "Latest"
 msgstr "Más reciente"
 
-#: src/core/pad.cc:599
+#: src/core/pad.cc:818
 msgid "Left"
 msgstr "Izquierda"
 
@@ -1474,8 +1478,7 @@ msgstr "Intermedio"
 msgid "Memory Card 1"
 msgstr "Tarjeta de memoria 1"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
-#. happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
 #: src/gui/widgets/memcard_manager.cc:99
 msgid "Memory Card 1 inserted"
 msgstr "Tarjeta de memoria 1 introducida"
@@ -1539,7 +1542,7 @@ msgstr ""
 "más precisa a costa de necesitar\n"
 "unos mayores requisitos de tu equipo."
 
-#: src/core/pad.cc:602
+#: src/core/pad.cc:821
 msgid "Mouse"
 msgstr "Ratón"
 
@@ -1560,7 +1563,7 @@ msgstr "Silenciar audio"
 msgid "Name"
 msgstr "Nombre"
 
-#: src/core/pad.cc:603
+#: src/core/pad.cc:822
 msgid "Negcon (Unimplemented)"
 msgstr "NegCon (sin implementar)"
 
@@ -1587,7 +1590,7 @@ msgstr "Búsqueda siguiente"
 msgid "No MSAA"
 msgstr "Desactivar MSAA"
 
-#: src/core/pad.cc:707
+#: src/core/pad.cc:926
 msgid "No gamepad selected or connected"
 msgstr "No se ha seleccionado o conectado un mando"
 
@@ -1671,12 +1674,12 @@ msgid ""
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
 "graphics drivers, or contact your GPU vendor for up to date OpenGL drivers. "
 "Disabled OpenGL error reporting won't have a negative impact on the "
-"performances of this software, but user code such as the shader editor won't"
-" be able to properly report problems accurately."
+"performances of this software, but user code such as the shader editor won't "
+"be able to properly report problems accurately."
 msgstr ""
 "Se ha desactivado el informe de errores de OpenGL porque tu controlador de "
-"OpenGL es demasiado antiguo. Los informes de errores requieren, como mínimo,"
-" de la versión 4.3 de Open GL. Recomendamos actualizar los controladores de "
+"OpenGL es demasiado antiguo. Los informes de errores requieren, como mínimo, "
+"de la versión 4.3 de Open GL. Recomendamos actualizar los controladores de "
 "tu tarjeta gráfica o contactar con el fabricante de tu GPU para obtener los "
 "controladores más recientes para OpenGL. Desactivar los informes de errores "
 "de OpenGL no afectará de forma negativa al rendimiento de este software, "
@@ -1689,8 +1692,8 @@ msgid ""
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
 "some computers. (Requires a restart of the emulator)"
 msgstr ""
-"El informe de errores de OpenGL es necesario para poder informar debidamente"
-" de cualquier problema que pueda ocurrir con OpenGL. Sin embargo, es "
+"El informe de errores de OpenGL es necesario para poder informar debidamente "
+"de cualquier problema que pueda ocurrir con OpenGL. Sin embargo, es "
 "necesaria la versión 4.3 o superior de OpenGL y esto podría afectar al "
 "rendimiento de algunos equipos (es necesario reiniciar el emulador)."
 
@@ -1763,19 +1766,19 @@ msgstr ""
 "Si quieres cambiar este ajuste más tarde, puedes hacerlo\n"
 "en el menú Configuración -> Sistema."
 
-#: src/core/pad.cc:526
+#: src/core/pad.cc:745
 msgid "Pad"
 msgstr "Mando"
 
-#: src/core/pad.cc:514
+#: src/core/pad.cc:733
 msgid "Pad 1"
 msgstr "Mando 1"
 
-#: src/core/pad.cc:515
+#: src/core/pad.cc:734
 msgid "Pad 2"
 msgstr "Mando 2"
 
-#: src/core/pad.cc:508
+#: src/core/pad.cc:727
 msgid "Pad configuration"
 msgstr "Configuración de mandos"
 
@@ -1840,15 +1843,15 @@ msgstr "Ranura de guardado rápido"
 msgid "Quit"
 msgstr "Salir"
 
-#: src/core/pad.cc:595
+#: src/core/pad.cc:814
 msgid "R1"
 msgstr "R1"
 
-#: src/core/pad.cc:596
+#: src/core/pad.cc:815
 msgid "R2"
 msgstr "R2"
 
-#: src/core/pad.cc:596
+#: src/core/pad.cc:815
 msgid "R3"
 msgstr "R3"
 
@@ -1860,8 +1863,7 @@ msgstr "Base de RAM"
 msgid "Raw"
 msgstr "Sin procesar"
 
-#: src/gui/widgets/typed_debugger.cc:329
-#: src/gui/widgets/typed_debugger.cc:1004
+#: src/gui/widgets/typed_debugger.cc:329 src/gui/widgets/typed_debugger.cc:1004
 msgid "Re-enable##{}"
 msgstr "Reactivar##{}"
 
@@ -1934,7 +1936,7 @@ msgstr "Quitar##"
 msgid "Renderer"
 msgstr "Renderizador"
 
-#: src/core/pad.cc:518
+#: src/core/pad.cc:737
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Volver a buscar mandos y a leer la base de datos de mandos"
 
@@ -1979,7 +1981,7 @@ msgstr "Reanudar"
 msgid "Reverb"
 msgstr "Reverberación"
 
-#: src/core/pad.cc:599
+#: src/core/pad.cc:818
 msgid "Right"
 msgstr "Derecha"
 
@@ -2061,7 +2063,7 @@ msgstr "Scratchpad"
 msgid "Search"
 msgstr "Buscar"
 
-#: src/core/pad.cc:594
+#: src/core/pad.cc:813
 msgid "Select"
 msgstr "SELECT"
 
@@ -2081,7 +2083,7 @@ msgstr "Secuencia"
 msgid "Sequence size: "
 msgstr "Tamaño de secuencia:"
 
-#: src/core/pad.cc:535
+#: src/core/pad.cc:754
 msgid "Set defaults"
 msgstr "Valores predeterminados"
 
@@ -2291,11 +2293,11 @@ msgstr "Especial"
 msgid "Speed Scaler"
 msgstr "Escalador de velocidad"
 
-#: src/core/pad.cc:593
+#: src/core/pad.cc:812
 msgid "Square"
 msgstr "Cuadrado"
 
-#: src/core/pad.cc:594
+#: src/core/pad.cc:813
 msgid "Start"
 msgstr "START"
 
@@ -2473,7 +2475,7 @@ msgstr "Alternar punto de interrupción"
 msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
 msgstr "Pista %.2d (%s) - Inicio %.2d:%.2d:%.2d, longitud %.2d:%.2d:%.2d\n"
 
-#: src/core/pad.cc:593
+#: src/core/pad.cc:812
 msgid "Triangle"
 msgstr "Triángulo"
 
@@ -2522,7 +2524,7 @@ msgstr "Dirección 0x%08x no alineada en SH de 0x%08x\n"
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en SW de 0x%08x\n"
 
-#: src/core/pad.cc:566
+#: src/core/pad.cc:785
 msgid "Unbound"
 msgstr "Sin asignar"
 
@@ -2549,16 +2551,16 @@ msgstr "Versión de deshacer:"
 msgid "Unknown bios loaded (%08x)\n"
 msgstr "Se ha cargado una BIOS desconocida (%08x)\n"
 
-#: src/core/pad.cc:312 src/core/pad.cc:405
+#: src/core/pad.cc:532 src/core/pad.cc:625
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Comando de mando desconocido: %02X\n"
 
-#: src/core/pad.cc:571
+#: src/core/pad.cc:790
 msgid "Unknown keyboard key {}"
 msgstr "Tecla de teclado desconocida: {}"
 
-#: src/core/pad.cc:599
+#: src/core/pad.cc:818
 msgid "Up"
 msgstr "Arriba"
 
@@ -2586,7 +2588,7 @@ msgstr "Usar relación de aspecto panorámica"
 msgid "Use linear filtering"
 msgstr "Usar filtrado lineal"
 
-#: src/core/pad.cc:524
+#: src/core/pad.cc:743
 msgid "Use raw input for mouse"
 msgstr "Utilizar entrada sin procesar del ratón"
 

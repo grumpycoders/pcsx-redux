@@ -256,11 +256,11 @@ msgstr ""
 "instalá-la manualmente, da maneira que você fez anteriormente.\n"
 "O PCSX-Redux fechará uma vez que a atualização for baixada."
 
-#: src/core/pad.cc:601
+#: src/core/pad.cc:820
 msgid "Analog"
 msgstr "Analógico"
 
-#: src/core/pad.cc:597
+#: src/core/pad.cc:816
 #, fuzzy
 msgid "Analog Mode"
 msgstr "Analógico"
@@ -311,7 +311,7 @@ msgstr ""
 msgid "Authors"
 msgstr "Autores"
 
-#: src/core/pad.cc:591
+#: src/core/pad.cc:810
 msgid "Auto"
 msgstr "Auto"
 
@@ -491,7 +491,7 @@ msgstr "Trucos cargados desde: %s\n"
 msgid "Cheats saved to: %s\n"
 msgstr "Trucos guardados en \"%s\".\n"
 
-#: src/core/pad.cc:594
+#: src/core/pad.cc:813
 msgid "Circle"
 msgstr "Círculo"
 
@@ -543,7 +543,7 @@ msgstr "Colunas"
 msgid "Combined pseudo-instructions"
 msgstr "Pseudo-instruções combinadas"
 
-#: src/core/pad.cc:656
+#: src/core/pad.cc:875
 msgid "Computer button mapping"
 msgstr "Mapeamento do botão do computador"
 
@@ -559,7 +559,7 @@ msgstr "Configurar Shaders"
 msgid "Configure shader"
 msgstr "Configurar shader"
 
-#: src/core/pad.cc:608
+#: src/core/pad.cc:827
 msgid "Connected"
 msgstr "Conectado"
 
@@ -572,11 +572,11 @@ msgstr "Copiar##{}"
 msgid "Control"
 msgstr "Controle"
 
-#: src/core/pad.cc:591
+#: src/core/pad.cc:810
 msgid "Controller"
 msgstr "Comando"
 
-#: src/core/pad.cc:625
+#: src/core/pad.cc:844
 msgid "Controller Type"
 msgstr "Tipo de Controle"
 
@@ -698,7 +698,7 @@ msgstr "Não pôde abrir o contexto da reamostra"
 msgid "Could not open source file %s\n"
 msgstr "Não pôde abrir o arquivo do código-fonte %s\n"
 
-#: src/core/pad.cc:593
+#: src/core/pad.cc:812
 msgid "Cross"
 msgstr "Atravessar /Cross"
 
@@ -760,11 +760,11 @@ msgstr "Descrição"
 msgid "Device"
 msgstr "Dispositivo"
 
-#: src/core/pad.cc:641
+#: src/core/pad.cc:860
 msgid "Device type"
 msgstr "Tipo de dispositivo"
 
-#: src/core/pad.cc:600
+#: src/core/pad.cc:819
 msgid "Digital"
 msgstr "Digital"
 
@@ -816,7 +816,7 @@ msgstr ""
 msgid "Displayed"
 msgstr "Exibido"
 
-#: src/core/pad.cc:599
+#: src/core/pad.cc:818
 msgid "Down"
 msgstr "Baixo"
 
@@ -1139,11 +1139,11 @@ msgstr "GPU"
 msgid "GUI"
 msgstr "GUI"
 
-#: src/core/pad.cc:724
+#: src/core/pad.cc:943
 msgid "Gamepad"
 msgstr "Gamepad"
 
-#: src/core/pad.cc:657
+#: src/core/pad.cc:876
 msgid "Gamepad button"
 msgstr "Botão do Gamepad"
 
@@ -1161,11 +1161,11 @@ msgstr "Mostrar Assembly"
 msgid "Go to in Memory Editor"
 msgstr "Editores de Memória"
 
-#: src/core/pad.cc:604
+#: src/core/pad.cc:823
 msgid "Gun (Unimplemented)"
 msgstr "Arma (Não Implementada)"
 
-#: src/core/pad.cc:605
+#: src/core/pad.cc:824
 msgid "Guncon (Unimplemented"
 msgstr "Guncon (Não Implementado)"
 
@@ -1260,44 +1260,44 @@ msgstr "Eventos do Kernel"
 msgid "Kernel handlers"
 msgstr "Chamadas do Kernel"
 
-#: src/core/pad.cc:591
+#: src/core/pad.cc:810
 msgid "Keyboard"
 msgstr "Teclado"
 
-#: src/core/pad.cc:558
+#: src/core/pad.cc:777
 msgid "Keyboard Backspace"
 msgstr "Backspace do Teclado"
 
-#: src/core/pad.cc:554
+#: src/core/pad.cc:773
 msgid "Keyboard Down"
 msgstr "Teclado Pra Baixo"
 
-#: src/core/pad.cc:560
+#: src/core/pad.cc:779
 msgid "Keyboard Enter"
 msgstr "Teclado Enter"
 
-#: src/core/pad.cc:564
+#: src/core/pad.cc:783
 #, fuzzy
 msgid "Keyboard Escape"
 msgstr "Teclado Pra Cima"
 
-#: src/core/pad.cc:556
+#: src/core/pad.cc:775
 msgid "Keyboard Left"
 msgstr "Teclado Esquerda"
 
-#: src/core/pad.cc:552
+#: src/core/pad.cc:771
 msgid "Keyboard Right"
 msgstr "Teclado Direita"
 
-#: src/core/pad.cc:562
+#: src/core/pad.cc:781
 msgid "Keyboard Space"
 msgstr "Teclado Barra de Espaço"
 
-#: src/core/pad.cc:550
+#: src/core/pad.cc:769
 msgid "Keyboard Up"
 msgstr "Teclado Pra Cima"
 
-#: src/core/pad.cc:654
+#: src/core/pad.cc:873
 msgid "Keyboard mapping"
 msgstr "Mapeamento do teclado"
 
@@ -1306,15 +1306,15 @@ msgstr "Mapeamento do teclado"
 msgid "Known BIOS detected: %s (%08x)\n"
 msgstr "BIOS conhecida detectada: %s (%08x)\n"
 
-#: src/core/pad.cc:595
+#: src/core/pad.cc:814
 msgid "L1"
 msgstr "E1"
 
-#: src/core/pad.cc:595
+#: src/core/pad.cc:814
 msgid "L2"
 msgstr "L2"
 
-#: src/core/pad.cc:596
+#: src/core/pad.cc:815
 msgid "L3"
 msgstr "L3"
 
@@ -1322,7 +1322,7 @@ msgstr "L3"
 msgid "Latest"
 msgstr "Mais recentes"
 
-#: src/core/pad.cc:599
+#: src/core/pad.cc:818
 msgid "Left"
 msgstr "Esquerda"
 
@@ -1537,7 +1537,7 @@ msgstr ""
 "Sincronização da CPU-SPU mais precisa,\n"
 "ao custo da energia extra requerida."
 
-#: src/core/pad.cc:602
+#: src/core/pad.cc:821
 msgid "Mouse"
 msgstr "Mouse"
 
@@ -1558,7 +1558,7 @@ msgstr "Mudo"
 msgid "Name"
 msgstr ""
 
-#: src/core/pad.cc:603
+#: src/core/pad.cc:822
 msgid "Negcon (Unimplemented)"
 msgstr "Negcon (Não Implementado)"
 
@@ -1586,7 +1586,7 @@ msgstr ""
 msgid "No MSAA"
 msgstr ""
 
-#: src/core/pad.cc:707
+#: src/core/pad.cc:926
 msgid "No gamepad selected or connected"
 msgstr "Nenhum gamepad selecionado ou conectado"
 
@@ -1764,19 +1764,19 @@ msgstr ""
 "Se você quer mudar esta configuração mais tarde você pode ir em\n"
 "Configuração -> Menu do Sistema."
 
-#: src/core/pad.cc:526
+#: src/core/pad.cc:745
 msgid "Pad"
 msgstr "Pad"
 
-#: src/core/pad.cc:514
+#: src/core/pad.cc:733
 msgid "Pad 1"
 msgstr "Pad 1"
 
-#: src/core/pad.cc:515
+#: src/core/pad.cc:734
 msgid "Pad 2"
 msgstr "Pad 2"
 
-#: src/core/pad.cc:508
+#: src/core/pad.cc:727
 msgid "Pad configuration"
 msgstr "Configuração do pad"
 
@@ -1845,15 +1845,15 @@ msgstr "Slot do salvamento rápido"
 msgid "Quit"
 msgstr "Sair"
 
-#: src/core/pad.cc:595
+#: src/core/pad.cc:814
 msgid "R1"
 msgstr "D1"
 
-#: src/core/pad.cc:596
+#: src/core/pad.cc:815
 msgid "R2"
 msgstr "R2"
 
-#: src/core/pad.cc:596
+#: src/core/pad.cc:815
 msgid "R3"
 msgstr "R3"
 
@@ -1942,7 +1942,7 @@ msgstr "Remover##"
 msgid "Renderer"
 msgstr "Renderizador"
 
-#: src/core/pad.cc:518
+#: src/core/pad.cc:737
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr ""
 "Re-escanear os gamepads e reler o banco de dados dos controles dos jogos"
@@ -1991,7 +1991,7 @@ msgstr "Resumo"
 msgid "Reverb"
 msgstr "Reverb"
 
-#: src/core/pad.cc:599
+#: src/core/pad.cc:818
 msgid "Right"
 msgstr "Direita"
 
@@ -2075,7 +2075,7 @@ msgstr "Bloco de rascunho"
 msgid "Search"
 msgstr "Pesquisar"
 
-#: src/core/pad.cc:594
+#: src/core/pad.cc:813
 msgid "Select"
 msgstr "Selecionar"
 
@@ -2095,7 +2095,7 @@ msgstr "Sequência"
 msgid "Sequence size: "
 msgstr "Tamanho da sequência: "
 
-#: src/core/pad.cc:535
+#: src/core/pad.cc:754
 msgid "Set defaults"
 msgstr "Definir padrões"
 
@@ -2296,11 +2296,11 @@ msgstr "Especial"
 msgid "Speed Scaler"
 msgstr "Escalador da Velocidade"
 
-#: src/core/pad.cc:593
+#: src/core/pad.cc:812
 msgid "Square"
 msgstr "Quadrado"
 
-#: src/core/pad.cc:594
+#: src/core/pad.cc:813
 msgid "Start"
 msgstr "Iniciar"
 
@@ -2477,7 +2477,7 @@ msgstr "Mostrar Pontos de Interrupção"
 msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
 msgstr "Faixa %.2d (%s) - Início %.2d:%.2d:%.2d, Duração %.2d:%.2d:%.2d\n"
 
-#: src/core/pad.cc:593
+#: src/core/pad.cc:812
 msgid "Triangle"
 msgstr "Triângulo"
 
@@ -2528,7 +2528,7 @@ msgstr "Endereço desalinhado 0x%08x em SH do 0x%08x\n"
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x no SW do 0x%08x\n"
 
-#: src/core/pad.cc:566
+#: src/core/pad.cc:785
 msgid "Unbound"
 msgstr ""
 
@@ -2555,16 +2555,16 @@ msgstr "Desfazer versão: "
 msgid "Unknown bios loaded (%08x)\n"
 msgstr "Bios desconhecida carregada (%08x)\n"
 
-#: src/core/pad.cc:312 src/core/pad.cc:405
+#: src/core/pad.cc:532 src/core/pad.cc:625
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Comando desconhecido pro pad: %02X\n"
 
-#: src/core/pad.cc:571
+#: src/core/pad.cc:790
 msgid "Unknown keyboard key {}"
 msgstr "Tecla do teclado desconhecida {}"
 
-#: src/core/pad.cc:599
+#: src/core/pad.cc:818
 msgid "Up"
 msgstr "Acima"
 
@@ -2592,7 +2592,7 @@ msgstr ""
 msgid "Use linear filtering"
 msgstr ""
 
-#: src/core/pad.cc:524
+#: src/core/pad.cc:743
 msgid "Use raw input for mouse"
 msgstr "Usar entrada bruta pro mouse"
 
