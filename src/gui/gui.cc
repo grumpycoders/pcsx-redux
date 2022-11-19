@@ -744,41 +744,41 @@ void PCSX::GUI::startFrame() {
     if (g_emulator->settings.get<Emulator::SettingKioskMode>().value) return;
 
     // Check hotkeys (TODO: Make configurable)
-    if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
         m_showMenu = !m_showMenu;
     }
     if (io.KeyAlt) {
-        if (ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
+        if (ImGui::IsKeyPressed(ImGuiKey_Enter)) setFullscreen(!m_fullscreen);
         if (io.KeyCtrl) {
             setRawMouseMotion(!isRawMouseMotionEnabled());
         }
     }
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_F1)) {  // Save to quick-save slot
+    if (ImGui::IsKeyPressed(ImGuiKey_F1)) {  // Save to quick-save slot
         saveSaveState(buildSaveStateFilename(0));
     }
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_F2)) {  // Load from quick-save slot
+    if (ImGui::IsKeyPressed(ImGuiKey_F2)) {  // Load from quick-save slot
         const auto saveStateName = buildSaveStateFilename(0);
         loadSaveState(saveStateName);
     }
 
     if (!g_system->running()) {
-        if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_F10)) {
             g_emulator->m_debug->stepOver();
-        } else if (ImGui::IsKeyPressed(GLFW_KEY_F11)) {
+        } else if (ImGui::IsKeyPressed(ImGuiKey_F11)) {
             if (ImGui::GetIO().KeyShift) {
                 g_emulator->m_debug->stepOut();
             } else {
                 g_emulator->m_debug->stepIn();
             }
-        } else if (ImGui::IsKeyPressed(GLFW_KEY_F5)) {
+        } else if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
             g_system->resume();
         }
     } else {
-        if (ImGui::IsKeyPressed(GLFW_KEY_PAUSE) || ImGui::IsKeyPressed(GLFW_KEY_F6)) g_system->pause();
+        if (ImGui::IsKeyPressed(ImGuiKey_Pause) || ImGui::IsKeyPressed(ImGuiKey_F6)) g_system->pause();
     }
-    if (ImGui::IsKeyPressed(GLFW_KEY_F8)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_F8)) {
         if (ImGui::GetIO().KeyShift) {
             g_system->hardReset();
         } else {
