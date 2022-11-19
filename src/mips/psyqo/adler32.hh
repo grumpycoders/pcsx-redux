@@ -79,4 +79,4 @@ uint32_t adler32_bytes(uint8_t* buffer, unsigned length, uint32_t sum = 1);
  */
 uint32_t adler32_words(uint32_t* buffer, unsigned length, uint32_t sum = 1);
 
-}  // namespace
+}  // namespace psyqo
