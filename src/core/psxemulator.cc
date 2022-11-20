@@ -68,6 +68,18 @@ PCSX::Emulator::Emulator()
 
 void PCSX::Emulator::setLua() {
     auto L = *m_lua;
+    L.declareFunc("t_", [](lua_State* L_) -> int {
+        Lua L(L_);
+        if (L.gettop() != 1) {
+            return L.error("t_ expects 1 argument");
+        }
+        if (!L.isstring(1)) {
+            return L.error("t_ expects a string");
+        }
+        auto str = L.tostring(1);
+        L.push(g_system->getStr(djbHash::hash(str), str.c_str()));
+        return 1;
+    });
     L.openlibs();
     L.load("ffi = require('ffi')", "internal:setffi.lua");
     LuaFFI::open_zlib(L);

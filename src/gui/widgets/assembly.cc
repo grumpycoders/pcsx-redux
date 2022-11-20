@@ -495,7 +495,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     ImGui::SameLine();
     DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOut(); });
     ImGui::SameLine();
-    ImGui::Text(_("In ISR: %s"), cpu->m_inISR ? "yes" : "no");
+    ImGui::Text(_("In ISR: %s"), cpu->m_inISR ? _("yes") : _("no"));
 
     gui->useMonoFont();
 

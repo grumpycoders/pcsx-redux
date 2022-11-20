@@ -792,7 +792,7 @@ static std::string glfwKeyToString(int key) {
 
     auto str = std::string(keyName);
     str[0] = toupper(str[0]);
-    return fmt::format("Keyboard {}", str);
+    return fmt::format(f_("Keyboard {}"), str);
 }
 
 void PCSX::Pads::Pad::keyboardEvent(const Events::Keyboard& event) {
@@ -807,21 +807,31 @@ void PCSX::Pads::Pad::keyboardEvent(const Events::Keyboard& event) {
 
 bool PCSX::Pads::Pad::configure() {
     static std::function<const char*()> const c_inputDevices[] = {
-        []() { return _("Auto"); }, []() { return _("Controller"); }, []() { return _("Keyboard"); }};
+        []() { return _("Auto"); },
+        []() { return _("Controller"); },
+        []() { return _("Keyboard"); },
+    };
     static std::function<const char*()> const c_buttonNames[] = {
-        []() { return _("Cross"); },      []() { return _("Square"); }, []() { return _("Triangle"); },
-        []() { return _("Circle"); },     []() { return _("Select"); }, []() { return _("Start"); },
-        []() { return _("L1"); },         []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); },         []() { return _("L3"); },     []() { return _("R3"); },
-        []() { return _("Analog Mode"); }};
+        []() { return _("Cross"); },       []() { return _("Square"); }, []() { return _("Triangle"); },
+        []() { return _("Circle"); },      []() { return _("Select"); }, []() { return _("Start"); },
+        []() { return _("L1"); },          []() { return _("R1"); },     []() { return _("L2"); },
+        []() { return _("R2"); },          []() { return _("L3"); },     []() { return _("R3"); },
+        []() { return _("Analog Mode"); },
+    };
     static std::function<const char*()> const c_dpadDirections[] = {
-        []() { return _("Up"); }, []() { return _("Right"); }, []() { return _("Down"); }, []() { return _("Left"); }};
-    static std::function<const char*()> const c_controllerTypes[] = {[]() { return _("Digital"); },
-                                                                     []() { return _("Analog"); },
-                                                                     []() { return _("Mouse"); },
-                                                                     []() { return _("Negcon (Unimplemented)"); },
-                                                                     []() { return _("Gun (Unimplemented)"); },
-                                                                     []() { return _("Guncon (Unimplemented"); }};
+        []() { return _("Up"); },
+        []() { return _("Right"); },
+        []() { return _("Down"); },
+        []() { return _("Left"); },
+    };
+    static std::function<const char*()> const c_controllerTypes[] = {
+        []() { return _("Digital"); },
+        []() { return _("Analog"); },
+        []() { return _("Mouse"); },
+        []() { return _("Negcon (Unimplemented)"); },
+        []() { return _("Gun (Unimplemented)"); },
+        []() { return _("Guncon (Unimplemented"); },
+    };
 
     bool changed = false;
     if (ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value)) {
@@ -833,7 +843,7 @@ bool PCSX::Pads::Pad::configure() {
         ImGui::BeginDisabled();
     }
 
-    ImGui::Checkbox("Analog mode", &m_analogMode);
+    ImGui::Checkbox(_("Analog mode"), &m_analogMode);
 
     if (m_type != PadType::Analog) {
         ImGui::EndDisabled();
@@ -867,8 +877,10 @@ bool PCSX::Pads::Pad::configure() {
 
         ImGui::EndCombo();
     }
-    changed |= ImGui::SliderFloat("Mouse sensitivity X", &m_settings.get<SettingMouseSensitivityX>().value, 0.f, 10.f);
-    changed |= ImGui::SliderFloat("Mouse sensitivity Y", &m_settings.get<SettingMouseSensitivityY>().value, 0.f, 10.f);
+    changed |=
+        ImGui::SliderFloat(_("Mouse sensitivity X"), &m_settings.get<SettingMouseSensitivityX>().value, 0.f, 10.f);
+    changed |=
+        ImGui::SliderFloat(_("Mouse sensitivity Y"), &m_settings.get<SettingMouseSensitivityY>().value, 0.f, 10.f);
 
     ImGui::TextUnformatted(_("Keyboard mapping"));
     if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_Resizable)) {
