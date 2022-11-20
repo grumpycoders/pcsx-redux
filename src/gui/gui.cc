@@ -1623,20 +1623,24 @@ when changing this setting.)"));
         }
 
         {
-            static const char* types[] = {"Auto", "NTSC", "PAL"};
+            static const std::function<const char*()> types[] = {
+                []() { return _("Auto"); },
+                []() { return _("NTSC"); },
+                []() { return _("PAL"); },
+            };
             auto& autodetect = settings.get<Emulator::SettingAutoVideo>().value;
             auto& type = settings.get<Emulator::SettingVideo>().value;
-            if (ImGui::BeginCombo(_("System Type"), types[autodetect ? 0 : (type + 1)])) {
-                if (ImGui::Selectable(types[0], autodetect)) {
+            if (ImGui::BeginCombo(_("System Type"), types[autodetect ? 0 : (type + 1)]())) {
+                if (ImGui::Selectable(types[0](), autodetect)) {
                     changed = true;
                     autodetect = true;
                 }
-                if (ImGui::Selectable(types[1], !autodetect && (type == PCSX::Emulator::PSX_TYPE_NTSC))) {
+                if (ImGui::Selectable(types[1](), !autodetect && (type == PCSX::Emulator::PSX_TYPE_NTSC))) {
                     changed = true;
                     type = PCSX::Emulator::PSX_TYPE_NTSC;
                     autodetect = false;
                 }
-                if (ImGui::Selectable(types[2], !autodetect && (type == PCSX::Emulator::PSX_TYPE_PAL))) {
+                if (ImGui::Selectable(types[2](), !autodetect && (type == PCSX::Emulator::PSX_TYPE_PAL))) {
                     changed = true;
                     type = PCSX::Emulator::PSX_TYPE_PAL;
                     autodetect = false;
@@ -1849,15 +1853,18 @@ void PCSX::GUI::interruptsScaler() {
 }
 
 bool PCSX::GUI::showThemes() {
-    static const char* imgui_themes[] = {"Default", "Classic", "Light", "Cherry",
-                                         "Mono",    "Dracula", "Olive"};  // Used for theme combo box
+    static const std::function<const char*()> imgui_themes[] = {
+        []() { return _("Default theme"); }, []() { return _("Classic"); }, []() { return _("Light"); },
+        []() { return _("Cherry"); },        []() { return _("Mono"); },    []() { return _("Dracula"); },
+        []() { return _("Olive"); },
+    };
     auto changed = false;
     auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;
 
-    if (ImGui::BeginCombo(_("Themes"), imgui_themes[currentTheme], ImGuiComboFlags_HeightLarge)) {
+    if (ImGui::BeginCombo(_("Themes"), imgui_themes[currentTheme](), ImGuiComboFlags_HeightLarge)) {
         for (int n = 0; n < IM_ARRAYSIZE(imgui_themes); n++) {
             bool selected = (currentTheme == n);
-            if (ImGui::Selectable(imgui_themes[n], selected)) {
+            if (ImGui::Selectable(imgui_themes[n](), selected)) {
                 currentTheme = n;
                 changed = true;
                 applyTheme(n);
@@ -1948,15 +1955,15 @@ bool PCSX::GUI::about() {
 
                 changed |= ImGui::Checkbox(_("Enable OpenGL error reporting"),
                                            &g_emulator->settings.get<Emulator::SettingGLErrorReporting>().value);
-                changed |= ImGui::SliderInt(
-                    _("OpenGL error reporting severity"),
-                    &g_emulator->settings.get<Emulator::SettingGLErrorReportingSeverity>().value, 0, 3);
-
                 ShowHelpMarker(
                     _("OpenGL error reporting is necessary for properly reporting OpenGL problems. "
                       "However it requires OpenGL 4.3+ and might have performance repercussions on "
                       "some computers. (Requires a restart of the emulator)"));
-                ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
+                changed |= ImGui::SliderInt(
+                    _("OpenGL error reporting severity"),
+                    &g_emulator->settings.get<Emulator::SettingGLErrorReportingSeverity>().value, 0, 3);
+
+                ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? _("yes") : _("no"));
                 someString(_("Vendor"), GL_VENDOR);
                 someString(_("Renderer"), GL_RENDERER);
                 someString(_("Version"), GL_VERSION);
