@@ -1,20 +1,15 @@
-#
+# 
 # Translators:
 # Name LastName, 2022
 # Whitehole <javi_del_95@hotmail.com>, 2022
 # Víctor González, 2022
-#
+# 
 msgid ""
 msgstr ""
 "Last-Translator: Víctor González, 2022\n"
-"Language-Team: Spanish (Spain) (https://www.transifex.com/grumpycoders/"
-"teams/99251/es_ES/)\n"
+"Language-Team: Spanish (Spain) (https://www.transifex.com/grumpycoders/teams/99251/es_ES/)\n"
 "Language: es_ES\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
-"1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
 
 #: src/cdrom/cdriso-cue.cc:173
 #, c-format
@@ -32,8 +27,7 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Detectado un archivo ECM con la cabecera y el sufijo en su nombre de archivo "
-"correctos.\n"
+"Detectado un archivo ECM con la cabecera y el sufijo en su nombre de archivo correctos.\n"
 
 #: src/cdrom/cdriso-ffmpeg.cc:59
 #, c-format
@@ -68,8 +62,7 @@ msgstr "No se ha podido encontrar la información del flujo.\n"
 #: src/cdrom/cdriso-ffmpeg.cc:147
 #, c-format
 msgid "Could not find audio stream in the input, aborting\n"
-msgstr ""
-"No se ha podido encontrar el flujo de audio en la entrada, abortando.\n"
+msgstr "No se ha podido encontrar el flujo de audio en la entrada, abortando.\n"
 
 #: src/cdrom/cdriso-ffmpeg.cc:155
 #, c-format
@@ -397,9 +390,8 @@ msgid "Unknown keyboard key {}"
 msgstr "Tecla de teclado desconocida: {}"
 
 #: src/core/pad.cc:795
-#, fuzzy
 msgid "Keyboard {}"
-msgstr "Teclado -"
+msgstr "Teclado {}"
 
 #: src/core/pad.cc:810 src/gui/gui.cc:1627
 msgid "Auto"
@@ -411,7 +403,7 @@ msgstr "Mando"
 
 #: src/core/pad.cc:812
 msgid "Keyboard"
-msgstr "Teclado -"
+msgstr "Teclado"
 
 #: src/core/pad.cc:815
 msgid "Cross"
@@ -487,7 +479,7 @@ msgstr "Digital"
 
 #: src/core/pad.cc:829
 msgid "Analog"
-msgstr "Analógico"
+msgstr "ANALOG"
 
 #: src/core/pad.cc:830
 msgid "Mouse"
@@ -510,7 +502,6 @@ msgid "Connected"
 msgstr "Conectado"
 
 #: src/core/pad.cc:846
-#, fuzzy
 msgid "Analog mode"
 msgstr "Modo analógico"
 
@@ -524,11 +515,11 @@ msgstr "Tipo de dispositivo"
 
 #: src/core/pad.cc:881
 msgid "Mouse sensitivity X"
-msgstr ""
+msgstr "Sensibilidad X del ratón"
 
 #: src/core/pad.cc:883
 msgid "Mouse sensitivity Y"
-msgstr ""
+msgstr "Sensibilidad Y del ratón"
 
 #: src/core/pad.cc:885
 msgid "Keyboard mapping"
@@ -613,8 +604,8 @@ msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
 "Ignored.\n"
 msgstr ""
-"Se ha intentado utilizar una instrucción de coma flotante no válida desde 0x"
-"%08x. Ignorando.\n"
+"Se ha intentado utilizar una instrucción de coma flotante no válida desde "
+"0x%08x. Ignorando.\n"
 
 #: src/core/psxinterpreter.cc:1119
 #, c-format
@@ -630,15 +621,13 @@ msgid ""
 "\n"
 "                   No BIOS loaded, emulation halted.\n"
 "\n"
-"Set a BIOS file into the configuration, and do a hard reset of the "
-"emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 "\n"
 "                   No se ha cargado una BIOS, emulación detenida.\n"
 "\n"
-"Elige un archivo de BIOS en la configuración y luego haz un reinicio "
-"completo de la emulación.\n"
+"Elige un archivo de BIOS en la configuración y luego haz un reinicio completo de la emulación.\n"
 "El archivo distribuido OpenBIOS.bin podría ser una BIOS alternativa ideal.\n"
 "\n"
 
@@ -709,17 +698,16 @@ msgstr ""
 "Reinicia el servidor o el cliente SIO1 y vuelve a intentarlo."
 
 #: src/gpu/soft/gpu.cc:918
-#, fuzzy
 msgid "No dithering (fastest)"
-msgstr "Ninguna - lo más rápido"
+msgstr "Sin tramado (lo más rápido)"
 
 #: src/gpu/soft/gpu.cc:919
 msgid "Game-dependent dithering (slow)"
-msgstr ""
+msgstr "Tramado según el juego (lento)"
 
 #: src/gpu/soft/gpu.cc:920
 msgid "Always dither g-shaded polygons (slowest)"
-msgstr ""
+msgstr "Aplicar siempre tramado a polígonos con sombreado-g (lo más lento)"
 
 #: src/gpu/soft/gpu.cc:923
 msgid "Soft GPU configuration"
@@ -727,14 +715,13 @@ msgstr "Configuración de GPU por software"
 
 #: src/gpu/soft/gpu.cc:924
 msgid "Dithering"
-msgstr ""
+msgstr "Tramado"
 
 #: src/gpu/soft/gpu.cc:946
 msgid "Soft GPU debugger"
 msgstr "Depurador de GPU por software"
 
 #: src/gpu/soft/gpu.cc:948
-#, fuzzy
 msgid ""
 "Debugging features are not supported when using the software renderer yet\n"
 "Consider enabling the OpenGL GPU option instead."
@@ -970,8 +957,7 @@ msgstr "Mostrar desensamblador del DynaRec"
 
 #: src/gui/gui.cc:1048
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
-"[Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
 "El desensamblador del DynaRec no se encuentra disponible\n"
@@ -1160,7 +1146,7 @@ msgstr "Salida de vídeo"
 
 #: src/gui/gui.cc:1297
 msgid "Offscreen Render"
-msgstr "Renderizar elementos fuera de pantalla"
+msgstr "Renderizado de elementos fuera de pantalla"
 
 #: src/gui/gui.cc:1303
 msgid "SIO1 Debug"
@@ -1455,11 +1441,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1628
 msgid "NTSC"
-msgstr ""
+msgstr "NTSC"
 
 #: src/gui/gui.cc:1629
 msgid "PAL"
-msgstr ""
+msgstr "PAL"
 
 #: src/gui/gui.cc:1633
 msgid "System Type"
@@ -1635,25 +1621,23 @@ msgstr "Reiniciar todo"
 
 #: src/gui/gui.cc:1857
 msgid "Classic"
-msgstr ""
+msgstr "Clásico"
 
 #: src/gui/gui.cc:1857
-#, fuzzy
 msgid "Default theme"
-msgstr "Shader predeterminado"
+msgstr "Tema predeterminado"
 
 #: src/gui/gui.cc:1857
-#, fuzzy
 msgid "Light"
-msgstr "Derecha"
+msgstr "Claro"
 
 #: src/gui/gui.cc:1858
 msgid "Cherry"
-msgstr ""
+msgstr "Rojo cereza"
 
 #: src/gui/gui.cc:1858
 msgid "Dracula"
-msgstr ""
+msgstr "Drácula"
 
 #: src/gui/gui.cc:1858 src/spu/cfg.cc:97
 msgid "Mono"
@@ -1661,7 +1645,7 @@ msgstr "Mono"
 
 #: src/gui/gui.cc:1859
 msgid "Olive"
-msgstr ""
+msgstr "Oliva"
 
 #: src/gui/gui.cc:1864
 msgid "Themes"
@@ -1727,12 +1711,12 @@ msgid ""
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
 "graphics drivers, or contact your GPU vendor for up to date OpenGL drivers. "
 "Disabled OpenGL error reporting won't have a negative impact on the "
-"performances of this software, but user code such as the shader editor won't "
-"be able to properly report problems accurately."
+"performances of this software, but user code such as the shader editor won't"
+" be able to properly report problems accurately."
 msgstr ""
 "Se ha desactivado el informe de errores de OpenGL porque tu controlador de "
-"OpenGL es demasiado antiguo. Los informes de errores requieren, como mínimo, "
-"de la versión 4.3 de Open GL. Recomendamos actualizar los controladores de "
+"OpenGL es demasiado antiguo. Los informes de errores requieren, como mínimo,"
+" de la versión 4.3 de Open GL. Recomendamos actualizar los controladores de "
 "tu tarjeta gráfica o contactar con el fabricante de tu GPU para obtener los "
 "controladores más recientes para OpenGL. Desactivar los informes de errores "
 "de OpenGL no afectará de forma negativa al rendimiento de este software, "
@@ -1749,8 +1733,8 @@ msgid ""
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
 "some computers. (Requires a restart of the emulator)"
 msgstr ""
-"El informe de errores de OpenGL es necesario para poder informar debidamente "
-"de cualquier problema que pueda ocurrir con OpenGL. Sin embargo, es "
+"El informe de errores de OpenGL es necesario para poder informar debidamente"
+" de cualquier problema que pueda ocurrir con OpenGL. Sin embargo, es "
 "necesaria la versión 4.3 o superior de OpenGL y esto podría afectar al "
 "rendimiento de algunos equipos (es necesario reiniciar el emulador)."
 
@@ -1764,13 +1748,12 @@ msgid "Core profile: %s"
 msgstr "Perfil de núcleo: %s"
 
 #: src/gui/gui.cc:1966 src/gui/widgets/assembly.cc:498
-#, fuzzy
 msgid "no"
-msgstr "Mono"
+msgstr "no"
 
 #: src/gui/gui.cc:1966 src/gui/widgets/assembly.cc:498
 msgid "yes"
-msgstr ""
+msgstr "sí"
 
 #: src/gui/gui.cc:1967
 msgid "Vendor"
@@ -1805,76 +1788,69 @@ msgid "Notification"
 msgstr "Notificación"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:54
-#, fuzzy
 msgid "Offscreen CRT shader Configuration"
-msgstr "Mostrar editor de shaders fuera de pantalla"
+msgstr "Configuración del shader CRT para fuera de pantalla"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:60
-#, fuzzy
 msgid "Enable gaussian blur"
-msgstr "Activar escala de grises"
+msgstr "Activar desenfoque gausiano"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:62
 msgid "Hard Pixel factor"
-msgstr ""
+msgstr "Factor fijo de píxeles"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:64
 msgid "Hard Scanline factor"
-msgstr ""
+msgstr "Factor fijo de líneas de barrido"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:66
-#, fuzzy
 msgid "Enable Scanlines"
-msgstr "Activar todo"
+msgstr "Activar líneas de barrido"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:68
 msgid "Use S-rgb"
-msgstr ""
+msgstr "Utilizar S-RGB"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:70
 msgid "Use Nearest"
-msgstr ""
+msgstr "Utilizar vecino más cercano"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:73
 #: src/gui/shaders/crt-lottes-output.lua:84
-#, fuzzy
 msgid "Reset to defaults"
-msgstr "Valores predeterminados"
+msgstr "Restaurar predeterminados"
 
 #: src/gui/shaders/crt-lottes-output.lua:59
-#, fuzzy
 msgid "Output CRT Shader Configuration"
-msgstr "Configuración del sistema"
+msgstr "Configuración del shader CRT de salida"
 
 #: src/gui/shaders/crt-lottes-output.lua:65
 msgid "Warp intensity"
-msgstr ""
+msgstr "Intensidad de la deformación"
 
 #: src/gui/shaders/crt-lottes-output.lua:67
 msgid "Mask intensity"
-msgstr ""
+msgstr "Intensidad de la máscara"
 
 #: src/gui/shaders/crt-lottes-output.lua:69
-#, fuzzy
 msgid "Greyscale"
-msgstr "Activar escala de grises"
+msgstr "Escala de grises"
 
 #: src/gui/shaders/crt-lottes-output.lua:71
 msgid "Trinitron"
-msgstr ""
+msgstr "Trinitron"
 
 #: src/gui/shaders/crt-lottes-output.lua:71
 msgid "Trinitron 2x"
-msgstr ""
+msgstr "Trinitron x2"
 
 #: src/gui/shaders/crt-lottes-output.lua:71
 msgid "Trio"
-msgstr ""
+msgstr "Trio"
 
 #: src/gui/shaders/crt-lottes-output.lua:73
-#, fuzzy
 msgid "Mask type"
-msgstr "Tipo de búsqueda"
+msgstr "Tipo de máscara"
 
 #: src/gui/widgets/assembly.cc:413
 msgid "Load symbols map"
@@ -1997,7 +1973,8 @@ msgstr "Alternar punto de interrupción"
 #: src/gui/widgets/assembly.cc:814 src/gui/widgets/breakpoints.cc:109
 #: src/gui/widgets/memory_observer.cc:160
 #: src/gui/widgets/memory_observer.cc:318
-#: src/gui/widgets/memory_observer.cc:406 src/gui/widgets/typed_debugger.cc:899
+#: src/gui/widgets/memory_observer.cc:406
+#: src/gui/widgets/typed_debugger.cc:899
 msgid "Address"
 msgstr "Dirección"
 
@@ -2031,59 +2008,59 @@ msgstr "Cargar símbolos"
 
 #: src/gui/widgets/breakpoints.cc:35
 msgid "Map execution"
-msgstr "Ejecución de mapas"
+msgstr "Registrar ejecuciones"
 
 #: src/gui/widgets/breakpoints.cc:36
 msgid "Map byte reads         "
-msgstr "Lecturas de mapas de bytes"
+msgstr "Registrar lecturas de bytes"
 
 #: src/gui/widgets/breakpoints.cc:38
 msgid "Map half reads         "
-msgstr "Lecturas de mapas de HWORD"
+msgstr "Registrar lecturas de HWORDs"
 
 #: src/gui/widgets/breakpoints.cc:40
 msgid "Map word reads         "
-msgstr "Lecturas de mapas de WORD"
+msgstr "Registrar lecturas de WORDs"
 
 #: src/gui/widgets/breakpoints.cc:41
 msgid "Map byte writes        "
-msgstr "Escrituras de mapas de bytes"
+msgstr "Registrar escrituras de bytes"
 
 #: src/gui/widgets/breakpoints.cc:43
 msgid "Map half writes        "
-msgstr "Escrituras de mapas de HWORD"
+msgstr "Registrar escrituras de HWORDs"
 
 #: src/gui/widgets/breakpoints.cc:45
 msgid "Map word writes        "
-msgstr "Escrituras de mapas de WORD"
+msgstr "Registrar escrituras de WORDs"
 
 #: src/gui/widgets/breakpoints.cc:47
 msgid "Break on execution map"
-msgstr "Interrumpir al ejecutar el mapa"
+msgstr "Interrumpir en ejecuciones del mapa"
 
 #: src/gui/widgets/breakpoints.cc:48
 msgid "Break on byte read map "
-msgstr "Interrumpir al leer el mapa de byte"
+msgstr "Interrumpir al leer bytes del mapa"
 
 #: src/gui/widgets/breakpoints.cc:50
 msgid "Break on half read map "
-msgstr "Interrumpir al leer el mapa de HWORD"
+msgstr "Interrumpir al leer HWORDs del mapa"
 
 #: src/gui/widgets/breakpoints.cc:52
 msgid "Break on word read map "
-msgstr "Interrumpir al leer el mapa de WORD"
+msgstr "Interrumpir al leer WORDs del mapa"
 
 #: src/gui/widgets/breakpoints.cc:53
 msgid "Break on byte write map"
-msgstr "Interrumpir al escribir el mapa de byte"
+msgstr "Interrumpir al escribir bytes del mapa"
 
 #: src/gui/widgets/breakpoints.cc:55
 msgid "Break on half write map"
-msgstr "Interrumpir al escribir el mapa de HWORD"
+msgstr "Interrumpir al escribir HWORDs del mapa"
 
 #: src/gui/widgets/breakpoints.cc:57
 msgid "Break on word write map"
-msgstr "Interrumpir al escribir el mapa de WORD"
+msgstr "Interrumpir al escribir WORDs del mapa"
 
 #: src/gui/widgets/breakpoints.cc:80
 msgid "Remove##"
@@ -2091,7 +2068,7 @@ msgstr "Quitar##"
 
 #: src/gui/widgets/breakpoints.cc:84
 msgid "Disable##"
-msgstr "Deshabilitar##"
+msgstr "Desactivar##"
 
 #: src/gui/widgets/breakpoints.cc:87
 msgid "Enable##"
@@ -2110,9 +2087,8 @@ msgid "Add Breakpoint"
 msgstr "Añadir un punto de interrupción"
 
 #: src/gui/widgets/console.cc:34
-#, fuzzy
 msgid "Close Console"
-msgstr "Consola Lua"
+msgstr "Cerrar consola"
 
 #. Clear items button
 #: src/gui/widgets/console.cc:39 src/gui/widgets/dynarec_disassembly.cc:90
@@ -2126,58 +2102,54 @@ msgid "Copy"
 msgstr "Copiar"
 
 #: src/gui/widgets/console.cc:47 src/gui/widgets/dynarec_disassembly.cc:99
-#, fuzzy
 msgid "Auto-scroll"
-msgstr "Compilar automáticamente"
+msgstr "Desplazamiento automático"
 
 #: src/gui/widgets/console.cc:48 src/gui/widgets/dynarec_disassembly.cc:100
 #: src/gui/widgets/log.cc:126
-#, fuzzy
 msgid "Monospace"
-msgstr "Mono"
+msgstr "Fuente monoespaciada"
 
 #: src/gui/widgets/console.cc:97
 msgid "Input"
-msgstr ""
+msgstr "Entrada"
 
 #. Disassemble button
 #: src/gui/widgets/dynarec_disassembly.cc:60
-#, fuzzy
 msgid "Disassemble Buffer"
-msgstr "Desensamblador del DynaRec"
+msgstr "Desensamblar búfer"
 
 #. Save to File button
 #: src/gui/widgets/dynarec_disassembly.cc:65
 msgid "Save to File"
-msgstr ""
+msgstr "Guardar en archivo"
 
 #: src/gui/widgets/dynarec_disassembly.cc:70
 #: src/gui/widgets/dynarec_disassembly.cc:71
-#, fuzzy
 msgid "Disassembler Error"
-msgstr "Desensamblador del DynaRec"
+msgstr "Error del desensamblador"
 
 #: src/gui/widgets/dynarec_disassembly.cc:72
 msgid ""
 "Disassembly Failed.\n"
 "Check Logs"
 msgstr ""
+"Error en el desensamblador.\n"
+"Comprueba los registros."
 
 #: src/gui/widgets/dynarec_disassembly.cc:73
-#, fuzzy
 msgid "Close"
-msgstr "Cerrar tapa de disco"
+msgstr "Cerrar"
 
 #: src/gui/widgets/dynarec_disassembly.cc:82
-#, fuzzy
 msgid "Close Disassembler"
-msgstr "Desensamblador del DynaRec"
+msgstr "Cerrar desensamblador"
 
 #. Show buffer size returned from disassembly function
 #: src/gui/widgets/dynarec_disassembly.cc:112
 #, c-format
 msgid "Code size: %.2fMB"
-msgstr ""
+msgstr "Tamaño del código: %.2f MB"
 
 #: src/gui/widgets/events.cc:38 src/gui/widgets/memcard_manager.cc:148
 msgid "ID"
@@ -2189,7 +2161,7 @@ msgstr "Núcleo"
 
 #: src/gui/widgets/events.cc:40
 msgid "Spec"
-msgstr "Espec"
+msgstr "Spec"
 
 #: src/gui/widgets/events.cc:41 src/gui/widgets/sio1.cc:243
 msgid "Mode"
@@ -2234,7 +2206,7 @@ msgstr "  controlador: "
 
 #: src/gui/widgets/log.cc:67
 msgid "Enabled"
-msgstr "Activado"
+msgstr "Activados"
 
 #: src/gui/widgets/log.cc:69
 msgid "Enable all"
@@ -2242,11 +2214,11 @@ msgstr "Activar todo"
 
 #: src/gui/widgets/log.cc:73
 msgid "Disable all"
-msgstr "Deshabilitar todo"
+msgstr "Desactivar todo"
 
 #: src/gui/widgets/log.cc:86
 msgid "Displayed"
-msgstr "Mostrado"
+msgstr "Mostrados"
 
 #: src/gui/widgets/log.cc:88
 msgid "Display all"
@@ -2302,17 +2274,18 @@ msgstr "Deshacer"
 
 #: src/gui/widgets/memcard_manager.cc:83
 msgid "Undo version: "
-msgstr "Versión de deshacer:"
+msgstr "Versión de acción deshecha:"
 
 #: src/gui/widgets/memcard_manager.cc:86
 msgid "Latest"
-msgstr "Más reciente"
+msgstr "Última"
 
 #: src/gui/widgets/memcard_manager.cc:93
 msgid "Clear Undo buffer"
 msgstr "Borrar búfer de acciones deshechas"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
+#. happens as well.
 #: src/gui/widgets/memcard_manager.cc:99
 msgid "Memory Card 1 inserted"
 msgstr "Tarjeta de memoria 1 introducida"
@@ -2332,8 +2305,8 @@ msgid ""
 "Pocketstation commands, possibly allowing apps to be saved/exported."
 msgstr ""
 "Experimental. El emulador intentará enviar respuestas artificiales a los "
-"comandos de PocketStation, lo que tal vez permita el guardado o exportado de "
-"aplicaciones."
+"comandos de PocketStation, lo que tal vez permita el guardado o exportado de"
+" aplicaciones."
 
 #: src/gui/widgets/memcard_manager.cc:119
 msgid "Card 2 Pocketstation"
@@ -2426,9 +2399,10 @@ msgstr "Búsqueda sin formato"
 msgid "Pattern"
 msgstr "Patrón"
 
-#: src/gui/widgets/memory_observer.cc:89 src/gui/widgets/memory_observer.cc:278
+#: src/gui/widgets/memory_observer.cc:89
+#: src/gui/widgets/memory_observer.cc:278
 msgid "Hex"
-msgstr "Hexad."
+msgstr "Hexadecimal"
 
 #: src/gui/widgets/memory_observer.cc:142
 #: src/gui/widgets/memory_observer.cc:395
@@ -2497,11 +2471,11 @@ msgstr "Valor buscado"
 
 #: src/gui/widgets/memory_observer.cc:322
 msgid "Read breakpoint"
-msgstr "Punto de interrupción de lectura"
+msgstr "Interrup. de lectura"
 
 #: src/gui/widgets/memory_observer.cc:323
 msgid "Write breakpoint"
-msgstr "Punto de interrupción de escritura"
+msgstr "Interrup. de escritura"
 
 #: src/gui/widgets/memory_observer.cc:361
 msgid "Add read breakpoint##{}"
@@ -2668,18 +2642,20 @@ msgstr "WritePause"
 msgid "Display log entries##{}{}"
 msgstr "Mostrar entradas del registro##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:329 src/gui/widgets/typed_debugger.cc:1005
+#: src/gui/widgets/typed_debugger.cc:329
+#: src/gui/widgets/typed_debugger.cc:1005
 msgid "Re-enable##{}"
 msgstr "Reactivar##{}"
 
-#: src/gui/widgets/typed_debugger.cc:330 src/gui/widgets/typed_debugger.cc:1006
+#: src/gui/widgets/typed_debugger.cc:330
+#: src/gui/widgets/typed_debugger.cc:1006
 msgid "Disable##{}"
-msgstr "Deshabilitar##{}"
+msgstr "Desactivar##{}"
 
 #. Name.
 #: src/gui/widgets/typed_debugger.cc:375
 msgid "{}\t@ {:#x}##{}"
-msgstr "{}\t@ {:#x}##{}"
+msgstr "{}\ten {:#x}##{}"
 
 #: src/gui/widgets/typed_debugger.cc:415
 msgid "Add to Watch tab##{}{}"
@@ -2697,22 +2673,21 @@ msgstr "Valor nuevo##{}"
 
 #: src/gui/widgets/typed_debugger.cc:593
 msgid ""
-"Data types can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will generate a redux_data_types.txt file in its "
-"folder, or from any text file where each line specifies the data type's name "
-"and fields, separated by semi-colons; fields are specified in type-name-size "
-"tuples whose elements are separated by commas.\n"
+"Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
+"Los tipos de datos se pueden importar de Ghidra mediante el script tools/ghidra_scripts/export_redux.py, el cual generará un archivo llamado redux_data_types.txt en su carpeta; o a partir de cualquier archivo de texto donde cada línea especifique el nombre y los campos del tipo de datos separados por puntos y coma. Los campos se deben especificar como tuplas tipo/nombre/tamaño y sus elementos deben estar separados por comas.\n"
+"\n"
+"Por ejemplo:\n"
 
 #: src/gui/widgets/typed_debugger.cc:600
 msgid "Arrays are specified as\n"
-msgstr ""
+msgstr "Las matrices se especifican así:\n"
 
 #: src/gui/widgets/typed_debugger.cc:604
 msgid "and pointers as\n"
-msgstr ""
+msgstr "Y los punteros, así:\n"
 
 #: src/gui/widgets/typed_debugger.cc:608 src/gui/widgets/typed_debugger.h:48
 msgid "Import data types"
@@ -2720,18 +2695,17 @@ msgstr "Importar tipos de datos"
 
 #: src/gui/widgets/typed_debugger.cc:627
 msgid ""
-"Functions can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will generate a redux_funcs.txt file in its folder, "
-"or from any text file where each line specifies the function address, name "
-"and arguments, separated by semi-colons; arguments are specified in type-"
-"name-size tuples whose elements are separated by commas.\n"
+"Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_funcs.txt file in its folder, or from any text file where each line specifies the function address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
+"Las funciones se pueden importar de Ghidra mediante el script tools/ghidra_scripts/export_redux.py, el cual generará un archivo llamado redux_funcs.txt en su carpeta; o a partir de cualquier archivo de texto donde cada línea especifique la dirección de la función, su nombre y sus argumentos, todos ellos separados por puntos y coma. Los argumentos se deben especificar como tuplas tipo/nombre/tamaño y sus elementos deben estar separados por comas.\n"
+"\n"
+"Por ejemplo:\n"
 
 #: src/gui/widgets/typed_debugger.cc:634
 msgid "Arrays and pointers are specified as for data types.\n"
-msgstr ""
+msgstr "Las matrices y los punteros se especifican como tipos de datos.\n"
 
 #: src/gui/widgets/typed_debugger.cc:635 src/gui/widgets/typed_debugger.h:50
 msgid "Import functions"
@@ -2800,7 +2774,7 @@ msgstr "FunctionBreakpoints"
 
 #: src/gui/widgets/typed_debugger.cc:855
 msgid "{}\t(called from {}\t@ {:#x})##{}"
-msgstr "{}\t(llamado por {}\t@ {:#x})##{}"
+msgstr "{}\t(llamado por {}\ten {:#x})##{}"
 
 #: src/gui/widgets/typed_debugger.cc:902
 msgid "Toggle"
@@ -2844,7 +2818,7 @@ msgstr "Ver la VRAM en el modo a 4 bits"
 
 #: src/gui/widgets/vram-viewer.cc:391
 msgid "Select a CLUT"
-msgstr "Selecciona un CLUT"
+msgstr "Seleccionar un CLUT"
 
 #: src/gui/widgets/vram-viewer.cc:393
 msgid "Enable Alpha channel view"
@@ -2987,31 +2961,28 @@ msgstr "Capturar/Decodificar búfer de IRQ"
 
 #: src/spu/cfg.cc:101
 msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
-"is necessary for some games."
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
+" is necessary for some games."
 msgstr ""
 "Activa las IRQ de la SPU basadas en las escrituras\n"
 "al búfer de decodificación/captura.\n"
 "Esta opción es necesaria para algunos juegos."
 
 #: src/spu/debug.cc:62
-#, fuzzy
 msgid "SPU Debug"
-msgstr "Depurador de SIO1"
+msgstr "Depurador de SPU"
 
 #: src/spu/debug.cc:84
-#, fuzzy
 msgid "Mute all"
-msgstr "Ocultar todo"
+msgstr "Silenciar todo"
 
 #: src/spu/debug.cc:90
-#, fuzzy
 msgid "Unmute all"
-msgstr "Activar todo"
+msgstr "Reproducir todo"
 
 #: src/spu/debug.cc:104
 msgid "ADSR channel info"
-msgstr ""
+msgstr "Datos del canal ADSR"
 
 #: src/spu/debug.cc:107
 msgid ""
@@ -3020,6 +2991,10 @@ msgid ""
 "Sustain:\n"
 "Release:"
 msgstr ""
+"Ataque:\n"
+"Caída:\n"
+"Sostenim.:\n"
+"Desvanec.:"
 
 #: src/spu/debug.cc:115
 msgid ""
@@ -3028,10 +3003,14 @@ msgid ""
 "Curr adsr vol:\n"
 "Raw enveloppe"
 msgstr ""
+"Nivel sostenim.:\n"
+"Aum. sostenim.:\n"
+"Vol. actual ADSR:\n"
+"Envolvente en bruto"
 
 #: src/spu/debug.cc:123
 msgid "Generic channel info"
-msgstr ""
+msgstr "Datos del canal genérico"
 
 #: src/spu/debug.cc:127
 msgid ""
@@ -3045,6 +3024,15 @@ msgid ""
 "Rvb offset:\n"
 "Rvb repeat:"
 msgstr ""
+"Activado:\n"
+"Parada:\n"
+"Ruido:\n"
+"FMod:\n"
+"Reverb.:\n"
+"Reverb. activas:\n"
+"N.º de reverb.:\n"
+"Compen. reverb.:\n"
+"Reverb. repetidas:"
 
 #: src/spu/debug.cc:137
 msgid ""
@@ -3058,6 +3046,15 @@ msgid ""
 "Act freq:\n"
 "Used freq:"
 msgstr ""
+"Pos. inicial:\n"
+"Pos. actual:\n"
+"Pos. bucle:\n"
+"\n"
+"Volumen D:\n"
+"Volumen I:\n"
+"\n"
+"Frec. actual:\n"
+"Frec. usada:"
 
 #: src/spu/debug.cc:149
 msgid ""
@@ -3066,11 +3063,14 @@ msgid ""
 "Samples:\n"
 "Volume:\n"
 msgstr ""
+"Frecuencia:\n"
+"Estéreo:\n"
+"Muestras:\n"
+"Volumen:\n"
 
 #: src/spu/debug.cc:158
-#, fuzzy
 msgid "Spu states"
-msgstr "Guardar un estado de guardado"
+msgstr "Estados de la SPU"
 
 #: src/spu/debug.cc:159
 msgid ""
@@ -3079,11 +3079,7 @@ msgid ""
 "Stat:\n"
 "Spu mem:"
 msgstr ""
-
-#~ msgid ""
-#~ "Experimental.  Emulator will attempt to send artificial responses to "
-#~ "Pocketstation commands, possibly allowing apps to be saved/exported."
-#~ msgstr ""
-#~ "Experimental. El emulador intentará enviar respuestas artificiales a los "
-#~ "comandos de PocketStation, lo que tal vez permita el guardado o exportado "
-#~ "de aplicaciones."
+"Dir. IRQ:\n"
+"Ctrl:\n"
+"Stat:\n"
+"Mem. SPU:"
