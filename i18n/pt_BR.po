@@ -1,18 +1,13 @@
-#
+# 
 # Translators:
 # Felipefpl, 2022
-#
+# 
 msgid ""
 msgstr ""
 "Last-Translator: Felipefpl, 2022\n"
-"Language-Team: Portuguese (Brazil) (https://www.transifex.com/grumpycoders/"
-"teams/99251/pt_BR/)\n"
+"Language-Team: Portuguese (Brazil) (https://www.transifex.com/grumpycoders/teams/99251/pt_BR/)\n"
 "Language: pt_BR\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % "
-"1000000 == 0 ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
 
 #: src/cdrom/cdriso-cue.cc:173
 #, c-format
@@ -30,8 +25,7 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Arquivo ECM detectado com o sufixo de cabeçalho e nome de arquivo "
-"apropriado.\n"
+"Arquivo ECM detectado com o sufixo de cabeçalho e nome de arquivo apropriado.\n"
 
 #: src/cdrom/cdriso-ffmpeg.cc:59
 #, c-format
@@ -394,9 +388,8 @@ msgid "Unknown keyboard key {}"
 msgstr "Tecla do teclado desconhecida {}"
 
 #: src/core/pad.cc:795
-#, fuzzy
 msgid "Keyboard {}"
-msgstr "Teclado"
+msgstr "Teclado {}"
 
 #: src/core/pad.cc:810 src/gui/gui.cc:1627
 msgid "Auto"
@@ -507,7 +500,6 @@ msgid "Connected"
 msgstr "Conectado"
 
 #: src/core/pad.cc:846
-#, fuzzy
 msgid "Analog mode"
 msgstr "Modo Analógico"
 
@@ -521,11 +513,11 @@ msgstr "Tipo de dispositivo"
 
 #: src/core/pad.cc:881
 msgid "Mouse sensitivity X"
-msgstr ""
+msgstr "Sensibilidade do mouse X"
 
 #: src/core/pad.cc:883
 msgid "Mouse sensitivity Y"
-msgstr ""
+msgstr "Sensibilidade do mouse Y"
 
 #: src/core/pad.cc:885
 msgid "Keyboard mapping"
@@ -565,8 +557,7 @@ msgstr "Sobrecarga assinada na instrução SUB do 0x%08x!\n"
 #: src/core/psxinterpreter.cc:815
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
-msgstr ""
-"Tentativa de JR desalinhado pra 0x%08x do 0x%08x, disparando exceção!\n"
+msgstr "Tentativa de JR desalinhado pra 0x%08x do 0x%08x, disparando exceção!\n"
 
 #: src/core/psxinterpreter.cc:841
 #, c-format
@@ -627,17 +618,14 @@ msgid ""
 "\n"
 "                   No BIOS loaded, emulation halted.\n"
 "\n"
-"Set a BIOS file into the configuration, and do a hard reset of the "
-"emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 "\n"
 "                 Nenhuma BIOS carregada, emulação interrompida.\n"
 "\n"
-"Defina um arquivo de BIOS na configuração e faça uma reset rígido do "
-"emulador.\n"
-"O arquivo OpenBIOS.bin distribuído.bin pode ser um substituto apropriado da "
-"BIOS.\n"
+"Defina um arquivo de BIOS na configuração e faça uma reset rígido do emulador.\n"
+"O arquivo OpenBIOS.bin distribuído.bin pode ser um substituto apropriado da BIOS.\n"
 
 #: src/core/psxmem.cc:129
 #, c-format
@@ -650,8 +638,7 @@ msgid ""
 "Could not open OpenBIOS fallback. Things won't work properly.\n"
 "Add a valid BIOS in the configuration and hard reset.\n"
 msgstr ""
-"Não pôde abrir a reserva da OpenBIOS. As coisas não funcionarão "
-"apropriadamente.\n"
+"Não pôde abrir a reserva da OpenBIOS. As coisas não funcionarão apropriadamente.\n"
 "Adicione uma BIOS válida na configuração e no reset rígido.\n"
 
 #: src/core/psxmem.cc:149
@@ -705,17 +692,16 @@ msgstr ""
 "Reinicie o servidor/cliente SIO1 e tente de novo."
 
 #: src/gpu/soft/gpu.cc:918
-#, fuzzy
 msgid "No dithering (fastest)"
-msgstr "Nenhum - mais rápido"
+msgstr "Sem pontilhamento (mais rápido)"
 
 #: src/gpu/soft/gpu.cc:919
 msgid "Game-dependent dithering (slow)"
-msgstr ""
+msgstr "Pontilhamento dependente do jogo (lento)"
 
 #: src/gpu/soft/gpu.cc:920
 msgid "Always dither g-shaded polygons (slowest)"
-msgstr ""
+msgstr "Sempre atrasar polígonos g-shaded (mais lento)"
 
 #: src/gpu/soft/gpu.cc:923
 msgid "Soft GPU configuration"
@@ -723,21 +709,19 @@ msgstr "Configuração leve da GPU"
 
 #: src/gpu/soft/gpu.cc:924
 msgid "Dithering"
-msgstr ""
+msgstr "Pontilhamento"
 
 #: src/gpu/soft/gpu.cc:946
 msgid "Soft GPU debugger"
 msgstr "Debugger da GPU Leve"
 
 #: src/gpu/soft/gpu.cc:948
-#, fuzzy
 msgid ""
 "Debugging features are not supported when using the software renderer yet\n"
 "Consider enabling the OpenGL GPU option instead."
 msgstr ""
-"As funções de debug ainda não são suportadas quando usar o renderizador de "
-"software\n"
-"Considere ativar a opção GPU do OpenGL ao invés disto"
+"As funções de debug ainda não são suportadas quando usar o renderizador de software\n"
+"Considere ativar a opção GPU do OpenGL ao invés disto."
 
 #: src/gui/gui.cc:516
 msgid ""
@@ -966,12 +950,10 @@ msgstr "Mostrar o Disassembly do DynaRec"
 
 #: src/gui/gui.cc:1048
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
-"[Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
-"O Disassembler do DynaRec não está disponível no modo de CPU interpretada. "
-"Tente ativar a [CPU do Dynarec]\n"
+"O Disassembler do DynaRec não está disponível no modo de CPU interpretada. Tente ativar a [CPU do Dynarec]\n"
 "em Configuração->Emulação, reinicie o PCSX-Redux, então tente de novo."
 
 #: src/gui/gui.cc:1051
@@ -1245,10 +1227,8 @@ msgid ""
 msgstr ""
 "O PCSX-Redux pode automaticamente atualizar a si mesmo.\n"
 "\n"
-"Se você ativar a opção de auto-atualização ela procurará novas atualizações "
-"na\n"
-"inicialização. Nenhum dado pessoal ou código identificável é enviado pra "
-"isto\n"
+"Se você ativar a opção de auto-atualização ela procurará novas atualizações na\n"
+"inicialização. Nenhum dado pessoal ou código identificável é enviado pra isto\n"
 "mas a Microsoft ainda poderia manter e registrar informações tais como\n"
 "seu endereço de IP.\n"
 "\n"
@@ -1441,11 +1421,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1628
 msgid "NTSC"
-msgstr ""
+msgstr "NTSC"
 
 #: src/gui/gui.cc:1629
 msgid "PAL"
-msgstr ""
+msgstr "PAL"
 
 #: src/gui/gui.cc:1633
 msgid "System Type"
@@ -1617,25 +1597,23 @@ msgstr "Resetar tudo"
 
 #: src/gui/gui.cc:1857
 msgid "Classic"
-msgstr ""
+msgstr "Clássico"
 
 #: src/gui/gui.cc:1857
-#, fuzzy
 msgid "Default theme"
-msgstr "Shader padrão"
+msgstr "Tema padrão"
 
 #: src/gui/gui.cc:1857
-#, fuzzy
 msgid "Light"
-msgstr "Direita"
+msgstr "Claro"
 
 #: src/gui/gui.cc:1858
 msgid "Cherry"
-msgstr ""
+msgstr "Cereja"
 
 #: src/gui/gui.cc:1858
 msgid "Dracula"
-msgstr ""
+msgstr "Drácula"
 
 #: src/gui/gui.cc:1858 src/spu/cfg.cc:97
 msgid "Mono"
@@ -1643,7 +1621,7 @@ msgstr "Mono"
 
 #: src/gui/gui.cc:1859
 msgid "Olive"
-msgstr ""
+msgstr "Oliva"
 
 #: src/gui/gui.cc:1864
 msgid "Themes"
@@ -1708,12 +1686,12 @@ msgid ""
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
 "graphics drivers, or contact your GPU vendor for up to date OpenGL drivers. "
 "Disabled OpenGL error reporting won't have a negative impact on the "
-"performances of this software, but user code such as the shader editor won't "
-"be able to properly report problems accurately."
+"performances of this software, but user code such as the shader editor won't"
+" be able to properly report problems accurately."
 msgstr ""
 "O relatório de erros do OpenGL foi desativado porque seu driver OpenGL é "
-"muito antigo. O relatório de erros requer pelo menos o OpenGL 4.3. Por favor "
-"atualize seus drivers gráficos ou contacte o vendedor da sua GPU pra obter "
+"muito antigo. O relatório de erros requer pelo menos o OpenGL 4.3. Por favor"
+" atualize seus drivers gráficos ou contacte o vendedor da sua GPU pra obter "
 "os drivers OpenGL corretos. O relatório de erros desativado do OpenGL não "
 "terá um impacto negativo nas performances deste software mas o código do "
 "usuário tal como o editor de shader não será capaz de reportar "
@@ -1744,13 +1722,12 @@ msgid "Core profile: %s"
 msgstr "Perfil do núcleo: %s"
 
 #: src/gui/gui.cc:1966 src/gui/widgets/assembly.cc:498
-#, fuzzy
 msgid "no"
-msgstr "Mono"
+msgstr "não"
 
 #: src/gui/gui.cc:1966 src/gui/widgets/assembly.cc:498
 msgid "yes"
-msgstr ""
+msgstr "sim"
 
 #: src/gui/gui.cc:1967
 msgid "Vendor"
@@ -1785,76 +1762,69 @@ msgid "Notification"
 msgstr "Notificação"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:54
-#, fuzzy
 msgid "Offscreen CRT shader Configuration"
-msgstr "Mostrar o Editor do Shader Fora da Tela"
+msgstr "Configuração do Shader Fora da Tela do CRT"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:60
-#, fuzzy
 msgid "Enable gaussian blur"
-msgstr "Ativar escala de cinza"
+msgstr "Ativar desfoque gaussiano"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:62
 msgid "Hard Pixel factor"
-msgstr ""
+msgstr "Fator dos Pixels Rígidos"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:64
 msgid "Hard Scanline factor"
-msgstr ""
+msgstr "Fator dos Scanlines Rígidos"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:66
-#, fuzzy
 msgid "Enable Scanlines"
-msgstr "Ativar tudo"
+msgstr "Ativar Scanlines"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:68
 msgid "Use S-rgb"
-msgstr ""
+msgstr "Usar S-RGB"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:70
 msgid "Use Nearest"
-msgstr ""
+msgstr "Usar o Mais Próximo"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:73
 #: src/gui/shaders/crt-lottes-output.lua:84
-#, fuzzy
 msgid "Reset to defaults"
-msgstr "Definir padrões"
+msgstr "Resetar para os padrões"
 
 #: src/gui/shaders/crt-lottes-output.lua:59
-#, fuzzy
 msgid "Output CRT Shader Configuration"
-msgstr "Configuração do Sistema"
+msgstr "Configuração do Shader de Saída do CRT"
 
 #: src/gui/shaders/crt-lottes-output.lua:65
 msgid "Warp intensity"
-msgstr ""
+msgstr "Intensidade do Warp"
 
 #: src/gui/shaders/crt-lottes-output.lua:67
 msgid "Mask intensity"
-msgstr ""
+msgstr "Intensidade da Máscara"
 
 #: src/gui/shaders/crt-lottes-output.lua:69
-#, fuzzy
 msgid "Greyscale"
-msgstr "Ativar escala de cinza"
+msgstr "Escala de cinza"
 
 #: src/gui/shaders/crt-lottes-output.lua:71
 msgid "Trinitron"
-msgstr ""
+msgstr "Trinitron"
 
 #: src/gui/shaders/crt-lottes-output.lua:71
 msgid "Trinitron 2x"
-msgstr ""
+msgstr "Trinitron 2x"
 
 #: src/gui/shaders/crt-lottes-output.lua:71
 msgid "Trio"
-msgstr ""
+msgstr "Trio"
 
 #: src/gui/shaders/crt-lottes-output.lua:73
-#, fuzzy
 msgid "Mask type"
-msgstr "Tipo de escaneamento"
+msgstr "Tipo de máscara"
 
 #: src/gui/widgets/assembly.cc:413
 msgid "Load symbols map"
@@ -1975,7 +1945,8 @@ msgstr "Alternar Pontos de Interrupção"
 #: src/gui/widgets/assembly.cc:814 src/gui/widgets/breakpoints.cc:109
 #: src/gui/widgets/memory_observer.cc:160
 #: src/gui/widgets/memory_observer.cc:318
-#: src/gui/widgets/memory_observer.cc:406 src/gui/widgets/typed_debugger.cc:899
+#: src/gui/widgets/memory_observer.cc:406
+#: src/gui/widgets/typed_debugger.cc:899
 msgid "Address"
 msgstr "Endereço"
 
@@ -2088,9 +2059,8 @@ msgid "Add Breakpoint"
 msgstr "Adicionar Ponto de Interrupção"
 
 #: src/gui/widgets/console.cc:34
-#, fuzzy
 msgid "Close Console"
-msgstr "Console do Lua"
+msgstr "Fechar Console"
 
 #. Clear items button
 #: src/gui/widgets/console.cc:39 src/gui/widgets/dynarec_disassembly.cc:90
@@ -2104,58 +2074,54 @@ msgid "Copy"
 msgstr "Copiar"
 
 #: src/gui/widgets/console.cc:47 src/gui/widgets/dynarec_disassembly.cc:99
-#, fuzzy
 msgid "Auto-scroll"
-msgstr "Auto-compilar"
+msgstr "Auto-rolar"
 
 #: src/gui/widgets/console.cc:48 src/gui/widgets/dynarec_disassembly.cc:100
 #: src/gui/widgets/log.cc:126
-#, fuzzy
 msgid "Monospace"
-msgstr "Mono"
+msgstr "Mono-espaço"
 
 #: src/gui/widgets/console.cc:97
 msgid "Input"
-msgstr ""
+msgstr "Entrada"
 
 #. Disassemble button
 #: src/gui/widgets/dynarec_disassembly.cc:60
-#, fuzzy
 msgid "Disassemble Buffer"
-msgstr "Disassembler do DynaRec"
+msgstr "Fazer Disassembler do Buffer"
 
 #. Save to File button
 #: src/gui/widgets/dynarec_disassembly.cc:65
 msgid "Save to File"
-msgstr ""
+msgstr "Salvar no Arquivo"
 
 #: src/gui/widgets/dynarec_disassembly.cc:70
 #: src/gui/widgets/dynarec_disassembly.cc:71
-#, fuzzy
 msgid "Disassembler Error"
-msgstr "Disassembler do DynaRec"
+msgstr "Erro do Disassembler"
 
 #: src/gui/widgets/dynarec_disassembly.cc:72
 msgid ""
 "Disassembly Failed.\n"
 "Check Logs"
 msgstr ""
+"O Disassembly Falhou.\n"
+"Verificar os Registros"
 
 #: src/gui/widgets/dynarec_disassembly.cc:73
-#, fuzzy
 msgid "Close"
-msgstr "Fechar LID"
+msgstr "Fechar"
 
 #: src/gui/widgets/dynarec_disassembly.cc:82
-#, fuzzy
 msgid "Close Disassembler"
-msgstr "Disassembler do DynaRec"
+msgstr "Fechar Disassembler"
 
 #. Show buffer size returned from disassembly function
 #: src/gui/widgets/dynarec_disassembly.cc:112
 #, c-format
 msgid "Code size: %.2fMB"
-msgstr ""
+msgstr "Tamanho do Código: %.2fMBs"
 
 #: src/gui/widgets/events.cc:38 src/gui/widgets/memcard_manager.cc:148
 msgid "ID"
@@ -2290,7 +2256,8 @@ msgstr "Mais recentes"
 msgid "Clear Undo buffer"
 msgstr "Limpar o buffer do desfazer"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
+#. happens as well.
 #: src/gui/widgets/memcard_manager.cc:99
 msgid "Memory Card 1 inserted"
 msgstr "Memory Card 1 inserido"
@@ -2310,8 +2277,8 @@ msgid ""
 "Pocketstation commands, possibly allowing apps to be saved/exported."
 msgstr ""
 "Experimental. O emulador tentará enviar respostas artificiais aos comandos "
-"do Pocketstation possivelmente permitindo que os aplicativos sejam salvos/"
-"exportados."
+"do Pocketstation possivelmente permitindo que os aplicativos sejam "
+"salvos/exportados."
 
 #: src/gui/widgets/memcard_manager.cc:119
 msgid "Card 2 Pocketstation"
@@ -2404,7 +2371,8 @@ msgstr "Busca simples"
 msgid "Pattern"
 msgstr "Modelo"
 
-#: src/gui/widgets/memory_observer.cc:89 src/gui/widgets/memory_observer.cc:278
+#: src/gui/widgets/memory_observer.cc:89
+#: src/gui/widgets/memory_observer.cc:278
 msgid "Hex"
 msgstr "Hex"
 
@@ -2646,11 +2614,13 @@ msgstr "PausaNaGravação"
 msgid "Display log entries##{}{}"
 msgstr "Exibir entradas do registro##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:329 src/gui/widgets/typed_debugger.cc:1005
+#: src/gui/widgets/typed_debugger.cc:329
+#: src/gui/widgets/typed_debugger.cc:1005
 msgid "Re-enable##{}"
 msgstr "Re-ativar##{}"
 
-#: src/gui/widgets/typed_debugger.cc:330 src/gui/widgets/typed_debugger.cc:1006
+#: src/gui/widgets/typed_debugger.cc:330
+#: src/gui/widgets/typed_debugger.cc:1006
 msgid "Disable##{}"
 msgstr "Desativar##{}"
 
@@ -2675,22 +2645,21 @@ msgstr "Novo valor##{}"
 
 #: src/gui/widgets/typed_debugger.cc:593
 msgid ""
-"Data types can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will generate a redux_data_types.txt file in its "
-"folder, or from any text file where each line specifies the data type's name "
-"and fields, separated by semi-colons; fields are specified in type-name-size "
-"tuples whose elements are separated by commas.\n"
+"Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
+"Os tipos de dados podem ser importados do Ghidra usando tools/ghidra_scripts/export_redux.py o que gerará um arquivo redux_data_types.txt na sua pasta ou de qualquer arquivo de texto aonde cada linha especifica o nome e os campos do tipo dos dados separados por ponto-e-vírgula; os campos são especificados em tuplas tipo-nome-tamanho cujos elementos são separados por vírgulas.\n"
+"\n"
+"Por exemplo:\n"
 
 #: src/gui/widgets/typed_debugger.cc:600
 msgid "Arrays are specified as\n"
-msgstr ""
+msgstr "As matrizes são especificadas como\n"
 
 #: src/gui/widgets/typed_debugger.cc:604
 msgid "and pointers as\n"
-msgstr ""
+msgstr "e os ponteiros como\n"
 
 #: src/gui/widgets/typed_debugger.cc:608 src/gui/widgets/typed_debugger.h:48
 msgid "Import data types"
@@ -2698,18 +2667,17 @@ msgstr "Importar tipos de dados"
 
 #: src/gui/widgets/typed_debugger.cc:627
 msgid ""
-"Functions can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will generate a redux_funcs.txt file in its folder, "
-"or from any text file where each line specifies the function address, name "
-"and arguments, separated by semi-colons; arguments are specified in type-"
-"name-size tuples whose elements are separated by commas.\n"
+"Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_funcs.txt file in its folder, or from any text file where each line specifies the function address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
+"As funções podem ser importadas do Ghidra usando tools/ghidra_scripts/export_redux.py que gerará um arquivo redux_funcs.txt na sua pasta ou de qualquer arquivo de texto aonde cada linha especifica o endereço da função, nome e argumentos separados por ponto-e-vírgula; os argumentos são especificados em tuplas type-name-size cujos elementos são separados por vírgulas.\n"
+"\n"
+"Por exemplo:\n"
 
 #: src/gui/widgets/typed_debugger.cc:634
 msgid "Arrays and pointers are specified as for data types.\n"
-msgstr ""
+msgstr "Matrizes e ponteiros são especificados para tipos de dados.\n"
 
 #: src/gui/widgets/typed_debugger.cc:635 src/gui/widgets/typed_debugger.h:50
 msgid "Import functions"
@@ -2962,30 +2930,27 @@ msgstr "IRQ do buffer de captura/decodificação"
 
 #: src/spu/cfg.cc:101
 msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
-"is necessary for some games."
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
+" is necessary for some games."
 msgstr ""
-"Ativa os IRQs do SPU baseado nas gravações no buffer de decodificação/"
-"captura. Esta opção é necessária pra alguns jogos."
+"Ativa os IRQs do SPU baseado nas gravações no buffer de "
+"decodificação/captura. Esta opção é necessária pra alguns jogos."
 
 #: src/spu/debug.cc:62
-#, fuzzy
 msgid "SPU Debug"
-msgstr "Debug do SIO1"
+msgstr "Debug do SPU"
 
 #: src/spu/debug.cc:84
-#, fuzzy
 msgid "Mute all"
-msgstr "Esconder tudo"
+msgstr "Silenciar tudo"
 
 #: src/spu/debug.cc:90
-#, fuzzy
 msgid "Unmute all"
-msgstr "Ativar tudo"
+msgstr "Ativar o som de tudo"
 
 #: src/spu/debug.cc:104
 msgid "ADSR channel info"
-msgstr ""
+msgstr "Informações do canal ADSR"
 
 #: src/spu/debug.cc:107
 msgid ""
@@ -2994,6 +2959,10 @@ msgid ""
 "Sustain:\n"
 "Release:"
 msgstr ""
+"Atacar:\n"
+"Decair:\n"
+"Sustentar:\n"
+"Soltar:"
 
 #: src/spu/debug.cc:115
 msgid ""
@@ -3002,10 +2971,14 @@ msgid ""
 "Curr adsr vol:\n"
 "Raw enveloppe"
 msgstr ""
+"Nível de sustentação:\n"
+"Sustentar inc:\n"
+"Vol atual do adsr:\n"
+"Envoltório bruto"
 
 #: src/spu/debug.cc:123
 msgid "Generic channel info"
-msgstr ""
+msgstr "Informações do canal genérico"
 
 #: src/spu/debug.cc:127
 msgid ""
@@ -3019,6 +2992,15 @@ msgid ""
 "Rvb offset:\n"
 "Rvb repeat:"
 msgstr ""
+"Em:\n"
+"Parar:\n"
+"Ruído:\n"
+"FMod:\n"
+"Reverb:\n"
+"Rvb ativo:\n"
+"Número do Rvb:\n"
+"Deslocamento do Rvb:\n"
+"Repetir Rvb:"
 
 #: src/spu/debug.cc:137
 msgid ""
@@ -3032,6 +3014,15 @@ msgid ""
 "Act freq:\n"
 "Used freq:"
 msgstr ""
+"Pos Inicial:\n"
+"Pos Atual:\n"
+"Pos do Loop:\n"
+"\n"
+"Vol Direito:\n"
+"Vol Esquerdo:\n"
+"\n"
+"Freq de Ação:\n"
+"Freq Usada:"
 
 #: src/spu/debug.cc:149
 msgid ""
@@ -3040,11 +3031,14 @@ msgid ""
 "Samples:\n"
 "Volume:\n"
 msgstr ""
+"Freq:\n"
+"Estéreo:\n"
+"Amostras:\n"
+"Volume:\n"
 
 #: src/spu/debug.cc:158
-#, fuzzy
 msgid "Spu states"
-msgstr "Slots do save state"
+msgstr "Estados do SPU"
 
 #: src/spu/debug.cc:159
 msgid ""
@@ -3053,11 +3047,7 @@ msgid ""
 "Stat:\n"
 "Spu mem:"
 msgstr ""
-
-#~ msgid ""
-#~ "Experimental.  Emulator will attempt to send artificial responses to "
-#~ "Pocketstation commands, possibly allowing apps to be saved/exported."
-#~ msgstr ""
-#~ "Experimental.  O emulador tentará enviar respostas artificiais aos "
-#~ "comandos do Pocketstation possivelmente permitindo que os aplicativos "
-#~ "sejam salvos/exportados."
+"Irq addr:\n"
+"Ctrl:\n"
+"Stat:\n"
+"Spu mem:"
