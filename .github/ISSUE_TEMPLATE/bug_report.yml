@@ -90,6 +90,17 @@ body:
       options:
         - Interpreter
         - Recompiler
+        
+  - type: dropdown
+    validations:
+      required: true
+    attributes:
+      label: GPU emulation mode
+      description: >
+        If you've ticked the "OpenGL GPU" option pick "OpenGL". Otherwise, pick "Software"
+      options:
+        - Software
+        - OpenGL
 
   - type: textarea
     validations:
