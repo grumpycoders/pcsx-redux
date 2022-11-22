@@ -295,6 +295,9 @@
     <ClCompile Include="..\..\src\cdrom\iec-60908b.cc" />
     <ClCompile Include="..\..\src\cdrom\iso9660-reader.cc" />
     <ClCompile Include="..\..\src\cdrom\ppf.cc" />
+    <ClCompile Include="..\..\third_party\cueparser\cueparser.c" />
+    <ClCompile Include="..\..\third_party\cueparser\fileabstract.c" />
+    <ClCompile Include="..\..\third_party\cueparser\scheduler.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\cdrom\cdriso.h" />
@@ -304,6 +307,10 @@
     <ClInclude Include="..\..\src\cdrom\iso9660-lowlevel.h" />
     <ClInclude Include="..\..\src\cdrom\iso9660-reader.h" />
     <ClInclude Include="..\..\src\cdrom\ppf.h" />
+    <ClInclude Include="..\..\third_party\cueparser\cueparser.h" />
+    <ClInclude Include="..\..\third_party\cueparser\disc.h" />
+    <ClInclude Include="..\..\third_party\cueparser\fileabstract.h" />
+    <ClInclude Include="..\..\third_party\cueparser\scheduler.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

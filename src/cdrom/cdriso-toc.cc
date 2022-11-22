@@ -68,7 +68,9 @@ bool PCSX::CDRIso::parsetoc(const char *isofileStr) {
 
     filename = tocname.parent_path();
 
-    memset(&m_ti, 0, sizeof(m_ti));
+    for (auto &i : m_ti) {
+        i = {};
+    }
     m_cddaBigEndian = true;  // cdrdao uses big-endian for CD Audio
 
     sector_size = PCSX::IEC60908b::FRAMESIZE_RAW;

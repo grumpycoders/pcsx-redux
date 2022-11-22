@@ -19,28 +19,17 @@
 
 #include "cdrom/cdriso.h"
 #include "core/cdrom.h"
+#include "cueparser/cueparser.h"
+#include "cueparser/disc.h"
+#include "cueparser/fileabstract.h"
+#include "cueparser/scheduler.h"
 
 // this function tries to get the .cue file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
 bool PCSX::CDRIso::parsecue(const char *isofileString) {
-    auto get_cdda_type = [](const char *str) {
-        const size_t lenstr = strlen(str);
-        if (strncmp((str + lenstr - 3), "bin", 3) == 0) {
-            return trackinfo::BIN;
-        } else {
-            return trackinfo::CCDDA;
-        }
-        return trackinfo::BIN;  // no valid extension or no support; assume bin
-    };
-
     std::filesystem::path isofile = MAKEU8(isofileString);
     std::filesystem::path cuename, filepath;
     IO<File> fi;
-    char *token;
-    char time[20];
-    char linebuf[256], tmpb[256], dummy[256];
-    unsigned int t, file_len, mode, sector_offs;
-    unsigned int sector_size = 2352;
 
     m_numtracks = 0;
 
@@ -57,134 +46,122 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
     // Some stupid tutorials wrongly tell users to use cdrdao to rip a
     // "bin/cue" image, which is in fact a "bin/toc" image. So let's check
     // that...
-    if (fi->gets(linebuf, sizeof(linebuf))) {
-        if (!strncmp(linebuf, "CD_ROM_XA", 9)) {
-            // Don't proceed further, as this is actually a .toc file rather
-            // than a .cue file.
-            return parsetoc(isofileString);
-        }
-        fi->rSeek(0, SEEK_SET);
+    if (fi->gets() == "CD_ROM_XA") {
+        // Don't proceed further, as this is actually a .toc file rather
+        // than a .cue file.
+        return parsetoc(isofileString);
     }
+    fi->rSeek(0, SEEK_SET);
 
     // build a path for files referenced in .cue
     filepath = cuename.parent_path();
 
-    memset(&m_ti, 0, sizeof(m_ti));
+    CueScheduler scheduler;
+    Scheduler_construct(&scheduler);
+    struct Context {
+        std::filesystem::path filepath;
+        bool failed = false;
+    } context;
+    context.filepath = filepath;
+    scheduler.opaque = &context;
 
-    file_len = 0;
-    sector_offs = 2 * 75;
-
-    while (fi->gets(linebuf, sizeof(linebuf))) {
-        strncpy(dummy, linebuf, sizeof(linebuf));
-        token = strtok(dummy, " ");
-
-        if (token == NULL) continue;
-
-        if (!strcmp(token, "TRACK")) {
-            m_numtracks++;
-
-            sector_size = 0;
-            if (strstr(linebuf, "AUDIO") != NULL) {
-                m_ti[m_numtracks].type = TrackType::CDDA;
-                sector_size = PCSX::IEC60908b::FRAMESIZE_RAW;
-                // Check if extension is mp3, etc, for compressed audio formats
-                if (m_multifile &&
-                    (m_ti[m_numtracks].cddatype = get_cdda_type(m_ti[m_numtracks].filepath)) > trackinfo::BIN) {
-                    int seconds = get_compressed_cdda_track_length(m_ti[m_numtracks].filepath) + 0;
-                    const bool lazy_decode = true;  // TODO: config param
-
-                    // TODO: get frame length for compressed audio as well
-                    m_ti[m_numtracks].len_decoded_buffer = 44100 * (16 / 8) * 2 * seconds;
-                    file_len = m_ti[m_numtracks].len_decoded_buffer / PCSX::IEC60908b::FRAMESIZE_RAW;
-
-                    // Send to decoder if not lazy decoding
-                    if (!lazy_decode) {
-                        PCSX::g_system->printf("\n");
-                        file_len = do_decode_cdda(&(m_ti[m_numtracks]), m_numtracks) / PCSX::IEC60908b::FRAMESIZE_RAW;
-                    }
-                }
-            } else if (sscanf(linebuf, " TRACK %u MODE%u/%u", &t, &mode, &sector_size) == 3) {
-                int32_t accurate_len;
-                // TODO: if 2048 frame length -> recalculate file_len?
-                m_ti[m_numtracks].type = TrackType::DATA;
-                // detect if ECM or compressed & get accurate length
-                if (handleecm(m_ti[m_numtracks].filepath, m_cdHandle, &accurate_len)) {
-                    file_len = accurate_len;
-                }
+    auto createFile = [](CueFile *file, CueScheduler *scheduler, const char *filename) -> CueFile * {
+        Context *context = reinterpret_cast<Context *>(scheduler->opaque);
+        UvFile *fi = new UvFile(filename);
+        if (fi->failed()) {
+            delete fi;
+            fi = new UvFile(context->filepath / filename);
+        }
+        file->opaque = fi;
+        file->destroy = [](CueFile *file) {
+            UvFile *fi = reinterpret_cast<UvFile *>(file->opaque);
+            delete fi;
+            file->opaque = nullptr;
+        };
+        file->close = [](CueFile *file, CueScheduler *scheduler, void (*cb)(CueFile *, CueScheduler *)) {
+            UvFile *fi = reinterpret_cast<UvFile *>(file->opaque);
+            fi->close();
+            File_schedule_close(file, scheduler, cb);
+        };
+        file->size = [](CueFile *file, CueScheduler *scheduler, void (*cb)(CueFile *, CueScheduler *, uint64_t)) {
+            UvFile *fi = reinterpret_cast<UvFile *>(file->opaque);
+            File_schedule_size(file, scheduler, fi->size(), cb);
+        };
+        file->read = [](CueFile *file, CueScheduler *scheduler, uint32_t amount, uint64_t cursor, uint8_t *buffer,
+                        void (*cb)(CueFile *, CueScheduler *, int error, uint32_t amount, uint8_t *buffer)) {
+            UvFile *fi = reinterpret_cast<UvFile *>(file->opaque);
+            if (cursor >= fi->size()) {
+                File_schedule_read(file, scheduler, 0, 0, nullptr, cb);
             } else {
-                PCSX::g_system->printf(".cue: failed to parse TRACK\n");
-                m_ti[m_numtracks].type = m_numtracks == 1 ? TrackType::DATA : TrackType::CDDA;
+                auto r = fi->readAt(buffer, amount, cursor);
+                File_schedule_read(file, scheduler, r < 0 ? 1 : 0, r, buffer, cb);
             }
-            if (sector_size == 0)  // TODO m_isMode1ISO?
-                sector_size = PCSX::IEC60908b::FRAMESIZE_RAW;
-        } else if (!strcmp(token, "INDEX")) {
-            if (sscanf(linebuf, " INDEX %02d %8s", &t, time) != 2)
-                PCSX::g_system->printf(".cue: failed to parse INDEX\n");
-            m_ti[m_numtracks].start = IEC60908b::MSF(time);
+        };
+        file->write = [](CueFile *file, CueScheduler *scheduler, uint32_t amount, uint64_t cursor,
+                         const uint8_t *buffer, void (*cb)(CueFile *, CueScheduler *, int error, uint32_t amount)) {
+            throw std::runtime_error("Writes not implemented");
+        };
+        file->cfilename = nullptr;
+        file->filename = nullptr;
+        file->references = 1;
+        return !fi->failed() ? file : nullptr;
+    };
 
-            t = m_ti[m_numtracks].start.toLBA();
-            m_ti[m_numtracks].start_offset = t * sector_size;
-            t += sector_offs;
-            m_ti[m_numtracks].start = IEC60908b::MSF(t);
+    CueFile cue;
+    CueParser parser;
+    CueDisc disc;
+    bool success = createFile(&cue, &scheduler, cuename.string().c_str());
+    if (!success) {
+        throw std::runtime_error("Couldn't open cue file twice...");
+    }
+    cue.cfilename = cuename.string().c_str();
+    CueParser_construct(&parser, &disc);
+    CueParser_parse(&parser, &cue, &scheduler, createFile,
+                    [](CueParser *parser, CueScheduler *scheduler, const char *error) {
+                        Context *context = reinterpret_cast<Context *>(scheduler->opaque);
+                        if (error) {
+                            context->failed = true;
+                            g_system->log(LogClass::CDROM_IO, "Error parsing Cue File: %s", error);
+                        }
+                    });
 
-            // default track length to file length
-            t = file_len - m_ti[m_numtracks].start_offset / sector_size;
-            m_ti[m_numtracks].length = IEC60908b::MSF(t);
+    Scheduler_run(&scheduler);
+    CueParser_destroy(&parser);
 
-            if (m_numtracks > 1 && !m_ti[m_numtracks].handle) {
-                // this track uses the same file as the last,
-                // start of this track is last track's end
-                t = m_ti[m_numtracks].start.toLBA() - m_ti[m_numtracks - 1].start.toLBA();
-                m_ti[m_numtracks - 1].length = IEC60908b::MSF(t);
-            }
-            if (m_numtracks > 1 && m_pregapOffset == -1) m_pregapOffset = m_ti[m_numtracks].start_offset / sector_size;
-        } else if (!strcmp(token, "PREGAP")) {
-            if (sscanf(linebuf, " PREGAP %8s", time) == 1) {
-                sector_offs += IEC60908b::MSF(time).toLBA();
-            }
-            m_pregapOffset = -1;  // mark to fill track start_offset
-        } else if (!strcmp(token, "FILE")) {
-            t = sscanf(linebuf, " FILE \"%255[^\"]\"", tmpb);
-            if (t != 1) sscanf(linebuf, " FILE %255s", tmpb);
-
-            // absolute path?
-            m_ti[m_numtracks + 1].handle.setFile(new UvFile(tmpb));
-            if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
-                m_ti[m_numtracks + 1].handle.asA<UvFile>()->startCaching();
-            }
-            if (m_ti[m_numtracks + 1].handle->failed()) {
-                m_ti[m_numtracks + 1].handle.setFile(new UvFile(filepath / tmpb));
-                if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
-                    m_ti[m_numtracks + 1].handle.asA<UvFile>()->startCaching();
+    File_schedule_close(&cue, &scheduler, [](CueFile *file, CueScheduler *scheduler) { file->destroy(file); });
+    if (context.failed) {
+        for (unsigned i = 1; i <= disc.trackCount; i++) {
+            CueTrack *track = &disc.tracks[i];
+            if (track->file) {
+                if (track->file->references == 1) {
+                    File_schedule_close(track->file, &scheduler,
+                                        [](CueFile *file, CueScheduler *scheduler) { file->destroy(file); });
+                } else {
+                    track->file->references--;
                 }
-            }
-
-            strcpy(m_ti[m_numtracks + 1].filepath,
-                   reinterpret_cast<const char *>(m_ti[m_numtracks + 1].handle->filename().u8string().c_str()));
-
-            // update global offset if this is not first file in this .cue
-            if (m_numtracks + 1 > 1) {
-                m_multifile = true;
-                sector_offs += file_len;
-            }
-
-            file_len = 0;
-            if (m_ti[m_numtracks + 1].handle->failed()) {
-                PCSX::g_system->message(_("\ncould not open: %s\n"), m_ti[m_numtracks + 1].handle->filename().string());
-                m_ti[m_numtracks + 1].handle.reset();
-                continue;
-            }
-
-            // File length, compressed audio length will be calculated in AUDIO tag
-            m_ti[m_numtracks + 1].handle->rSeek(0, SEEK_END);
-            file_len = m_ti[m_numtracks + 1].handle->rTell() / PCSX::IEC60908b::FRAMESIZE_RAW;
-
-            if (m_numtracks == 0 && (isofile.extension() == ".cue")) {
-                // user selected .cue as image file, use its data track instead
-                m_cdHandle.setFile(new SubFile(m_ti[m_numtracks + 1].handle, 0, m_ti[m_numtracks + 1].handle->size()));
+                track->file = nullptr;
             }
         }
+        Scheduler_run(&scheduler);
+        return false;
     }
+    Scheduler_run(&scheduler);
+
+    m_cdHandle.setFile(reinterpret_cast<UvFile *>(disc.tracks[1].file->opaque));
+
+    for (unsigned i = 1; i <= disc.trackCount; i++) {
+        CueTrack *track = &disc.tracks[i];
+        UvFile *fi = reinterpret_cast<UvFile *>(track->file->opaque);
+        m_ti[i].handle.setFile(new SubFile(fi, (track->indices[0] - track->fileOffset) * 2352, track->size * 2352));
+        m_ti[i].type = track->trackType == TRACK_TYPE_AUDIO ? TrackType::CDDA : TrackType::DATA;
+        m_ti[i].cddatype = trackinfo::BIN;
+        m_ti[i].start = IEC60908b::MSF(track->indices[0]);
+        m_ti[i].pregap = IEC60908b::MSF(track->indices[1] - track->indices[0]);
+        m_ti[i].length = IEC60908b::MSF(track->size);
+    }
+
+    m_numtracks = disc.trackCount;
+    m_multifile = true;
 
     return true;
 }

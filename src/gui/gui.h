@@ -35,6 +35,7 @@
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/handlers.h"
+#include "gui/widgets/isobrowser.h"
 #include "gui/widgets/kernellog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/luaeditor.h"
@@ -92,6 +93,7 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
+    typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
@@ -106,8 +108,8 @@ class GUI final {
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
-             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, MainFontSize, MonoFontSize, GUITheme,
-             EnableRawMouseMotion, WidescreenRatio>
+             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, MainFontSize, MonoFontSize,
+             GUITheme, EnableRawMouseMotion, WidescreenRatio>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -312,6 +314,7 @@ class GUI final {
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
+    Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
     bool m_breakOnVSync = false;
 
     bool m_showCfg = false;

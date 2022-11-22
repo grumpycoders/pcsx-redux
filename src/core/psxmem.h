@@ -133,12 +133,12 @@ class Memory {
 
     void setLuts();
 
-    uint32_t getBiosAdler32() { return m_biosAdler32; }
+    uint32_t getBiosAdler32() { return m_biosCRC; }
     std::string_view getBiosVersionString();
 
   private:
     int m_writeok = 1;
-    uint32_t m_biosAdler32 = 0;
+    uint32_t m_biosCRC = 0;
 };
 
 }  // namespace PCSX
