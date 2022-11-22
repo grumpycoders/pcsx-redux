@@ -1,16 +1,20 @@
-# 
+#
 # Translators:
 # Felipefpl, 2022
-# 
+#
 msgid ""
 msgstr ""
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-11-22 06:35+0000\n"
 "Last-Translator: Felipefpl, 2022\n"
-"Language-Team: Portuguese (Brazil) (https://www.transifex.com/grumpycoders/teams/99251/pt_BR/)\n"
+"Language-Team: Portuguese (Brazil) (https://www.transifex.com/grumpycoders/"
+"teams/99251/pt_BR/)\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % "
+"1000000 == 0 ? 1 : 2;\n"
 
 #: src/cdrom/cdriso-cue.cc:173
 #, c-format
@@ -28,7 +32,8 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Arquivo ECM detectado com o sufixo de cabeçalho e nome de arquivo apropriado.\n"
+"Arquivo ECM detectado com o sufixo de cabeçalho e nome de arquivo "
+"apropriado.\n"
 
 #: src/cdrom/cdriso-ffmpeg.cc:59
 #, c-format
@@ -560,7 +565,8 @@ msgstr "Sobrecarga assinada na instrução SUB do 0x%08x!\n"
 #: src/core/psxinterpreter.cc:815
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
-msgstr "Tentativa de JR desalinhado pra 0x%08x do 0x%08x, disparando exceção!\n"
+msgstr ""
+"Tentativa de JR desalinhado pra 0x%08x do 0x%08x, disparando exceção!\n"
 
 #: src/core/psxinterpreter.cc:841
 #, c-format
@@ -621,14 +627,17 @@ msgid ""
 "\n"
 "                   No BIOS loaded, emulation halted.\n"
 "\n"
-"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the "
+"emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 "\n"
 "                 Nenhuma BIOS carregada, emulação interrompida.\n"
 "\n"
-"Defina um arquivo de BIOS na configuração e faça uma reset rígido do emulador.\n"
-"O arquivo OpenBIOS.bin distribuído.bin pode ser um substituto apropriado da BIOS.\n"
+"Defina um arquivo de BIOS na configuração e faça uma reset rígido do "
+"emulador.\n"
+"O arquivo OpenBIOS.bin distribuído.bin pode ser um substituto apropriado da "
+"BIOS.\n"
 
 #: src/core/psxmem.cc:129
 #, c-format
@@ -641,7 +650,8 @@ msgid ""
 "Could not open OpenBIOS fallback. Things won't work properly.\n"
 "Add a valid BIOS in the configuration and hard reset.\n"
 msgstr ""
-"Não pôde abrir a reserva da OpenBIOS. As coisas não funcionarão apropriadamente.\n"
+"Não pôde abrir a reserva da OpenBIOS. As coisas não funcionarão "
+"apropriadamente.\n"
 "Adicione uma BIOS válida na configuração e no reset rígido.\n"
 
 #: src/core/psxmem.cc:149
@@ -723,7 +733,8 @@ msgid ""
 "Debugging features are not supported when using the software renderer yet\n"
 "Consider enabling the OpenGL GPU option instead."
 msgstr ""
-"As funções de debug ainda não são suportadas quando usar o renderizador de software\n"
+"As funções de debug ainda não são suportadas quando usar o renderizador de "
+"software\n"
 "Considere ativar a opção GPU do OpenGL ao invés disto."
 
 #: src/gui/gui.cc:516
@@ -953,10 +964,12 @@ msgstr "Mostrar o Disassembly do DynaRec"
 
 #: src/gui/gui.cc:1048
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
+"[Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
-"O Disassembler do DynaRec não está disponível no modo de CPU interpretada. Tente ativar a [CPU do Dynarec]\n"
+"O Disassembler do DynaRec não está disponível no modo de CPU interpretada. "
+"Tente ativar a [CPU do Dynarec]\n"
 "em Configuração->Emulação, reinicie o PCSX-Redux, então tente de novo."
 
 #: src/gui/gui.cc:1051
@@ -1230,8 +1243,10 @@ msgid ""
 msgstr ""
 "O PCSX-Redux pode automaticamente atualizar a si mesmo.\n"
 "\n"
-"Se você ativar a opção de auto-atualização ela procurará novas atualizações na\n"
-"inicialização. Nenhum dado pessoal ou código identificável é enviado pra isto\n"
+"Se você ativar a opção de auto-atualização ela procurará novas atualizações "
+"na\n"
+"inicialização. Nenhum dado pessoal ou código identificável é enviado pra "
+"isto\n"
 "mas a Microsoft ainda poderia manter e registrar informações tais como\n"
 "seu endereço de IP.\n"
 "\n"
@@ -1689,12 +1704,12 @@ msgid ""
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
 "graphics drivers, or contact your GPU vendor for up to date OpenGL drivers. "
 "Disabled OpenGL error reporting won't have a negative impact on the "
-"performances of this software, but user code such as the shader editor won't"
-" be able to properly report problems accurately."
+"performances of this software, but user code such as the shader editor won't "
+"be able to properly report problems accurately."
 msgstr ""
 "O relatório de erros do OpenGL foi desativado porque seu driver OpenGL é "
-"muito antigo. O relatório de erros requer pelo menos o OpenGL 4.3. Por favor"
-" atualize seus drivers gráficos ou contacte o vendedor da sua GPU pra obter "
+"muito antigo. O relatório de erros requer pelo menos o OpenGL 4.3. Por favor "
+"atualize seus drivers gráficos ou contacte o vendedor da sua GPU pra obter "
 "os drivers OpenGL corretos. O relatório de erros desativado do OpenGL não "
 "terá um impacto negativo nas performances deste software mas o código do "
 "usuário tal como o editor de shader não será capaz de reportar "
@@ -1948,8 +1963,7 @@ msgstr "Alternar Pontos de Interrupção"
 #: src/gui/widgets/assembly.cc:814 src/gui/widgets/breakpoints.cc:109
 #: src/gui/widgets/memory_observer.cc:160
 #: src/gui/widgets/memory_observer.cc:318
-#: src/gui/widgets/memory_observer.cc:406
-#: src/gui/widgets/typed_debugger.cc:899
+#: src/gui/widgets/memory_observer.cc:406 src/gui/widgets/typed_debugger.cc:899
 msgid "Address"
 msgstr "Endereço"
 
@@ -2259,8 +2273,7 @@ msgstr "Mais recentes"
 msgid "Clear Undo buffer"
 msgstr "Limpar o buffer do desfazer"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
-#. happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
 #: src/gui/widgets/memcard_manager.cc:99
 msgid "Memory Card 1 inserted"
 msgstr "Memory Card 1 inserido"
@@ -2280,8 +2293,8 @@ msgid ""
 "Pocketstation commands, possibly allowing apps to be saved/exported."
 msgstr ""
 "Experimental. O emulador tentará enviar respostas artificiais aos comandos "
-"do Pocketstation possivelmente permitindo que os aplicativos sejam "
-"salvos/exportados."
+"do Pocketstation possivelmente permitindo que os aplicativos sejam salvos/"
+"exportados."
 
 #: src/gui/widgets/memcard_manager.cc:119
 msgid "Card 2 Pocketstation"
@@ -2374,8 +2387,7 @@ msgstr "Busca simples"
 msgid "Pattern"
 msgstr "Modelo"
 
-#: src/gui/widgets/memory_observer.cc:89
-#: src/gui/widgets/memory_observer.cc:278
+#: src/gui/widgets/memory_observer.cc:89 src/gui/widgets/memory_observer.cc:278
 msgid "Hex"
 msgstr "Hex"
 
@@ -2617,13 +2629,11 @@ msgstr "PausaNaGravação"
 msgid "Display log entries##{}{}"
 msgstr "Exibir entradas do registro##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:329
-#: src/gui/widgets/typed_debugger.cc:1005
+#: src/gui/widgets/typed_debugger.cc:329 src/gui/widgets/typed_debugger.cc:1005
 msgid "Re-enable##{}"
 msgstr "Re-ativar##{}"
 
-#: src/gui/widgets/typed_debugger.cc:330
-#: src/gui/widgets/typed_debugger.cc:1006
+#: src/gui/widgets/typed_debugger.cc:330 src/gui/widgets/typed_debugger.cc:1006
 msgid "Disable##{}"
 msgstr "Desativar##{}"
 
@@ -2648,11 +2658,19 @@ msgstr "Novo valor##{}"
 
 #: src/gui/widgets/typed_debugger.cc:593
 msgid ""
-"Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose elements are separated by commas.\n"
+"Data types can be imported from Ghidra using tools/ghidra_scripts/"
+"export_redux.py, which will generate a redux_data_types.txt file in its "
+"folder, or from any text file where each line specifies the data type's name "
+"and fields, separated by semi-colons; fields are specified in type-name-size "
+"tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
-"Os tipos de dados podem ser importados do Ghidra usando tools/ghidra_scripts/export_redux.py o que gerará um arquivo redux_data_types.txt na sua pasta ou de qualquer arquivo de texto aonde cada linha especifica o nome e os campos do tipo dos dados separados por ponto-e-vírgula; os campos são especificados em tuplas tipo-nome-tamanho cujos elementos são separados por vírgulas.\n"
+"Os tipos de dados podem ser importados do Ghidra usando tools/ghidra_scripts/"
+"export_redux.py o que gerará um arquivo redux_data_types.txt na sua pasta ou "
+"de qualquer arquivo de texto aonde cada linha especifica o nome e os campos "
+"do tipo dos dados separados por ponto-e-vírgula; os campos são especificados "
+"em tuplas tipo-nome-tamanho cujos elementos são separados por vírgulas.\n"
 "\n"
 "Por exemplo:\n"
 
@@ -2670,11 +2688,20 @@ msgstr "Importar tipos de dados"
 
 #: src/gui/widgets/typed_debugger.cc:627
 msgid ""
-"Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_funcs.txt file in its folder, or from any text file where each line specifies the function address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples whose elements are separated by commas.\n"
+"Functions can be imported from Ghidra using tools/ghidra_scripts/"
+"export_redux.py, which will generate a redux_funcs.txt file in its folder, "
+"or from any text file where each line specifies the function address, name "
+"and arguments, separated by semi-colons; arguments are specified in type-"
+"name-size tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
-"As funções podem ser importadas do Ghidra usando tools/ghidra_scripts/export_redux.py que gerará um arquivo redux_funcs.txt na sua pasta ou de qualquer arquivo de texto aonde cada linha especifica o endereço da função, nome e argumentos separados por ponto-e-vírgula; os argumentos são especificados em tuplas type-name-size cujos elementos são separados por vírgulas.\n"
+"As funções podem ser importadas do Ghidra usando tools/ghidra_scripts/"
+"export_redux.py que gerará um arquivo redux_funcs.txt na sua pasta ou de "
+"qualquer arquivo de texto aonde cada linha especifica o endereço da função, "
+"nome e argumentos separados por ponto-e-vírgula; os argumentos são "
+"especificados em tuplas type-name-size cujos elementos são separados por "
+"vírgulas.\n"
 "\n"
 "Por exemplo:\n"
 
@@ -2933,11 +2960,11 @@ msgstr "IRQ do buffer de captura/decodificação"
 
 #: src/spu/cfg.cc:101
 msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
-" is necessary for some games."
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
+"is necessary for some games."
 msgstr ""
-"Ativa os IRQs do SPU baseado nas gravações no buffer de "
-"decodificação/captura. Esta opção é necessária pra alguns jogos."
+"Ativa os IRQs do SPU baseado nas gravações no buffer de decodificação/"
+"captura. Esta opção é necessária pra alguns jogos."
 
 #: src/spu/debug.cc:62
 msgid "SPU Debug"

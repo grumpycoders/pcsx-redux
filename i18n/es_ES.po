@@ -1,18 +1,22 @@
-# 
+#
 # Translators:
 # Name LastName, 2022
 # Whitehole <javi_del_95@hotmail.com>, 2022
 # Víctor González, 2022
-# 
+#
 msgid ""
 msgstr ""
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-11-22 06:35+0000\n"
 "Last-Translator: Víctor González, 2022\n"
-"Language-Team: Spanish (Spain) (https://www.transifex.com/grumpycoders/teams/99251/es_ES/)\n"
+"Language-Team: Spanish (Spain) (https://www.transifex.com/grumpycoders/"
+"teams/99251/es_ES/)\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
+"1 : 2;\n"
 
 #: src/cdrom/cdriso-cue.cc:173
 #, c-format
@@ -30,7 +34,8 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Detectado un archivo ECM con la cabecera y el sufijo en su nombre de archivo correctos.\n"
+"Detectado un archivo ECM con la cabecera y el sufijo en su nombre de archivo "
+"correctos.\n"
 
 #: src/cdrom/cdriso-ffmpeg.cc:59
 #, c-format
@@ -65,7 +70,8 @@ msgstr "No se ha podido encontrar la información del flujo.\n"
 #: src/cdrom/cdriso-ffmpeg.cc:147
 #, c-format
 msgid "Could not find audio stream in the input, aborting\n"
-msgstr "No se ha podido encontrar el flujo de audio en la entrada, abortando.\n"
+msgstr ""
+"No se ha podido encontrar el flujo de audio en la entrada, abortando.\n"
 
 #: src/cdrom/cdriso-ffmpeg.cc:155
 #, c-format
@@ -607,8 +613,8 @@ msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
 "Ignored.\n"
 msgstr ""
-"Se ha intentado utilizar una instrucción de coma flotante no válida desde "
-"0x%08x. Ignorando.\n"
+"Se ha intentado utilizar una instrucción de coma flotante no válida desde 0x"
+"%08x. Ignorando.\n"
 
 #: src/core/psxinterpreter.cc:1119
 #, c-format
@@ -624,13 +630,15 @@ msgid ""
 "\n"
 "                   No BIOS loaded, emulation halted.\n"
 "\n"
-"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the "
+"emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 "\n"
 "                   No se ha cargado una BIOS, emulación detenida.\n"
 "\n"
-"Elige un archivo de BIOS en la configuración y luego haz un reinicio completo de la emulación.\n"
+"Elige un archivo de BIOS en la configuración y luego haz un reinicio "
+"completo de la emulación.\n"
 "El archivo distribuido OpenBIOS.bin podría ser una BIOS alternativa ideal.\n"
 "\n"
 
@@ -960,7 +968,8 @@ msgstr "Mostrar desensamblador del DynaRec"
 
 #: src/gui/gui.cc:1048
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
+"[Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
 "El desensamblador del DynaRec no se encuentra disponible\n"
@@ -1714,12 +1723,12 @@ msgid ""
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
 "graphics drivers, or contact your GPU vendor for up to date OpenGL drivers. "
 "Disabled OpenGL error reporting won't have a negative impact on the "
-"performances of this software, but user code such as the shader editor won't"
-" be able to properly report problems accurately."
+"performances of this software, but user code such as the shader editor won't "
+"be able to properly report problems accurately."
 msgstr ""
 "Se ha desactivado el informe de errores de OpenGL porque tu controlador de "
-"OpenGL es demasiado antiguo. Los informes de errores requieren, como mínimo,"
-" de la versión 4.3 de Open GL. Recomendamos actualizar los controladores de "
+"OpenGL es demasiado antiguo. Los informes de errores requieren, como mínimo, "
+"de la versión 4.3 de Open GL. Recomendamos actualizar los controladores de "
 "tu tarjeta gráfica o contactar con el fabricante de tu GPU para obtener los "
 "controladores más recientes para OpenGL. Desactivar los informes de errores "
 "de OpenGL no afectará de forma negativa al rendimiento de este software, "
@@ -1736,8 +1745,8 @@ msgid ""
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
 "some computers. (Requires a restart of the emulator)"
 msgstr ""
-"El informe de errores de OpenGL es necesario para poder informar debidamente"
-" de cualquier problema que pueda ocurrir con OpenGL. Sin embargo, es "
+"El informe de errores de OpenGL es necesario para poder informar debidamente "
+"de cualquier problema que pueda ocurrir con OpenGL. Sin embargo, es "
 "necesaria la versión 4.3 o superior de OpenGL y esto podría afectar al "
 "rendimiento de algunos equipos (es necesario reiniciar el emulador)."
 
@@ -1976,8 +1985,7 @@ msgstr "Alternar punto de interrupción"
 #: src/gui/widgets/assembly.cc:814 src/gui/widgets/breakpoints.cc:109
 #: src/gui/widgets/memory_observer.cc:160
 #: src/gui/widgets/memory_observer.cc:318
-#: src/gui/widgets/memory_observer.cc:406
-#: src/gui/widgets/typed_debugger.cc:899
+#: src/gui/widgets/memory_observer.cc:406 src/gui/widgets/typed_debugger.cc:899
 msgid "Address"
 msgstr "Dirección"
 
@@ -2287,8 +2295,7 @@ msgstr "Última"
 msgid "Clear Undo buffer"
 msgstr "Borrar búfer de acciones deshechas"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
-#. happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
 #: src/gui/widgets/memcard_manager.cc:99
 msgid "Memory Card 1 inserted"
 msgstr "Tarjeta de memoria 1 introducida"
@@ -2308,8 +2315,8 @@ msgid ""
 "Pocketstation commands, possibly allowing apps to be saved/exported."
 msgstr ""
 "Experimental. El emulador intentará enviar respuestas artificiales a los "
-"comandos de PocketStation, lo que tal vez permita el guardado o exportado de"
-" aplicaciones."
+"comandos de PocketStation, lo que tal vez permita el guardado o exportado de "
+"aplicaciones."
 
 #: src/gui/widgets/memcard_manager.cc:119
 msgid "Card 2 Pocketstation"
@@ -2402,8 +2409,7 @@ msgstr "Búsqueda sin formato"
 msgid "Pattern"
 msgstr "Patrón"
 
-#: src/gui/widgets/memory_observer.cc:89
-#: src/gui/widgets/memory_observer.cc:278
+#: src/gui/widgets/memory_observer.cc:89 src/gui/widgets/memory_observer.cc:278
 msgid "Hex"
 msgstr "Hexadecimal"
 
@@ -2645,13 +2651,11 @@ msgstr "WritePause"
 msgid "Display log entries##{}{}"
 msgstr "Mostrar entradas del registro##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:329
-#: src/gui/widgets/typed_debugger.cc:1005
+#: src/gui/widgets/typed_debugger.cc:329 src/gui/widgets/typed_debugger.cc:1005
 msgid "Re-enable##{}"
 msgstr "Reactivar##{}"
 
-#: src/gui/widgets/typed_debugger.cc:330
-#: src/gui/widgets/typed_debugger.cc:1006
+#: src/gui/widgets/typed_debugger.cc:330 src/gui/widgets/typed_debugger.cc:1006
 msgid "Disable##{}"
 msgstr "Desactivar##{}"
 
@@ -2676,11 +2680,20 @@ msgstr "Valor nuevo##{}"
 
 #: src/gui/widgets/typed_debugger.cc:593
 msgid ""
-"Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose elements are separated by commas.\n"
+"Data types can be imported from Ghidra using tools/ghidra_scripts/"
+"export_redux.py, which will generate a redux_data_types.txt file in its "
+"folder, or from any text file where each line specifies the data type's name "
+"and fields, separated by semi-colons; fields are specified in type-name-size "
+"tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
-"Los tipos de datos se pueden importar de Ghidra mediante el script tools/ghidra_scripts/export_redux.py, el cual generará un archivo llamado redux_data_types.txt en su carpeta; o a partir de cualquier archivo de texto donde cada línea especifique el nombre y los campos del tipo de datos separados por puntos y coma. Los campos se deben especificar como tuplas tipo/nombre/tamaño y sus elementos deben estar separados por comas.\n"
+"Los tipos de datos se pueden importar de Ghidra mediante el script tools/"
+"ghidra_scripts/export_redux.py, el cual generará un archivo llamado "
+"redux_data_types.txt en su carpeta; o a partir de cualquier archivo de texto "
+"donde cada línea especifique el nombre y los campos del tipo de datos "
+"separados por puntos y coma. Los campos se deben especificar como tuplas "
+"tipo/nombre/tamaño y sus elementos deben estar separados por comas.\n"
 "\n"
 "Por ejemplo:\n"
 
@@ -2698,11 +2711,21 @@ msgstr "Importar tipos de datos"
 
 #: src/gui/widgets/typed_debugger.cc:627
 msgid ""
-"Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_funcs.txt file in its folder, or from any text file where each line specifies the function address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples whose elements are separated by commas.\n"
+"Functions can be imported from Ghidra using tools/ghidra_scripts/"
+"export_redux.py, which will generate a redux_funcs.txt file in its folder, "
+"or from any text file where each line specifies the function address, name "
+"and arguments, separated by semi-colons; arguments are specified in type-"
+"name-size tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
-"Las funciones se pueden importar de Ghidra mediante el script tools/ghidra_scripts/export_redux.py, el cual generará un archivo llamado redux_funcs.txt en su carpeta; o a partir de cualquier archivo de texto donde cada línea especifique la dirección de la función, su nombre y sus argumentos, todos ellos separados por puntos y coma. Los argumentos se deben especificar como tuplas tipo/nombre/tamaño y sus elementos deben estar separados por comas.\n"
+"Las funciones se pueden importar de Ghidra mediante el script tools/"
+"ghidra_scripts/export_redux.py, el cual generará un archivo llamado "
+"redux_funcs.txt en su carpeta; o a partir de cualquier archivo de texto "
+"donde cada línea especifique la dirección de la función, su nombre y sus "
+"argumentos, todos ellos separados por puntos y coma. Los argumentos se deben "
+"especificar como tuplas tipo/nombre/tamaño y sus elementos deben estar "
+"separados por comas.\n"
 "\n"
 "Por ejemplo:\n"
 
@@ -2964,8 +2987,8 @@ msgstr "Capturar/Decodificar búfer de IRQ"
 
 #: src/spu/cfg.cc:101
 msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
-" is necessary for some games."
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
+"is necessary for some games."
 msgstr ""
 "Activa las IRQ de la SPU basadas en las escrituras\n"
 "al búfer de decodificación/captura.\n"
