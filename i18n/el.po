@@ -4,6 +4,8 @@
 #
 msgid ""
 msgstr ""
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-11-22 06:35+0000\n"
 "Last-Translator: Γιωργος Πονηρης <gponiris2004@gmail.com>, 2021\n"
 "Language-Team: Greek (https://www.transifex.com/grumpycoders/teams/99251/"
 "el/)\n"
