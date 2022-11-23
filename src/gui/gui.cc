@@ -444,7 +444,10 @@ void PCSX::GUI::init() {
                 settings.get<WindowPosY>().reset();
             }
 
-            glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
+            int posX = std::max<int>(settings.get<WindowPosX>(), 1);
+            int posY = std::max<int>(settings.get<WindowPosY>(), 1);
+            
+            glfwSetWindowPos(m_window, posX, posY);
             glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
             PCSX::g_emulator->m_spu->setCfg(j);
             PCSX::g_emulator->m_pads->setCfg(j);
