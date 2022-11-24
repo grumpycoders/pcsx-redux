@@ -25,6 +25,7 @@
 
 // And only then we can load the rest
 #define GLFW_INCLUDE_NONE
+#define NANOVG_GLES3_IMPLEMENTATION
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <assert.h>
@@ -67,6 +68,9 @@
 #include "lua/glffi.h"
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum.hpp"
+#include "nanovg/src/nanovg.h"
+#include "nanovg/src/nanovg_gl.h"
+#include "nanovg/src/nanovg_gl_utils.h"
 #include "spu/interface.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
@@ -399,6 +403,11 @@ void PCSX::GUI::init() {
     result = gl3wInit();
     if (result) {
         throw std::runtime_error("Unable to initialize OpenGL layer. Check OpenGL drivers.");
+    }
+
+    m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
+    if (!m_nvgContext) {
+        throw std::runtime_error("Unable to initialize NanoVG. Check OpenGL drivers.");
     }
 
     // Setup ImGui binding

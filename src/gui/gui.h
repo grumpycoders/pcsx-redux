@@ -61,6 +61,7 @@
 #endif
 
 struct GLFWwindow;
+struct NVGcontext;
 
 namespace PCSX {
 
@@ -262,6 +263,7 @@ class GUI final {
     int &m_glfwSizeX = settings.get<WindowSizeX>().value;
     int &m_glfwSizeY = settings.get<WindowSizeY>().value;
     GLuint m_VRAMTexture = 0;
+    NVGcontext *m_nvgContext = nullptr;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
