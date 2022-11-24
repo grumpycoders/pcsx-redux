@@ -677,7 +677,7 @@ void PCSX::GUI::startFrame() {
         w = std::max<int>(w, 1);
         h = std::max<int>(h, 1);
         m_framebufferSize = ImVec2(w, h);
-        m_renderSize = ImVec2(w, h);
+        m_renderSize = m_fullWindowRender ? ImVec2(w, h) : m_outputWindowSize;
         normalizeDimensions(m_renderSize, renderRatio);
 
         // Reset texture and framebuffer storage
@@ -828,7 +828,7 @@ void PCSX::GUI::endFrame() {
     m_offscreenShaderEditor.configure(this);
     m_outputShaderEditor.configure(this);
 
-    if (m_fullscreenRender) {
+    if (m_fullWindowRender) {
         ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
         const auto basePos = ImGui::GetMainViewport()->Pos;
         const auto displayFramebufferScale = ImGui::GetIO().DisplayFramebufferScale;
@@ -839,7 +839,7 @@ void PCSX::GUI::endFrame() {
         ImGui::SetNextWindowSize(logicalRenderSize);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        ImGui::Begin("FullScreenRender", nullptr,
+        ImGui::Begin("FullWindowRender", nullptr,
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
@@ -854,18 +854,22 @@ void PCSX::GUI::endFrame() {
                 _("Output"), &outputShown,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
+            if ((m_outputWindowSize.x != textureSize.x) || (m_outputWindowSize.y != textureSize.y)) {
+                m_outputWindowSize = textureSize;
+                m_setupScreenSize = true;
+            }
             normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
             m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
         }
         ImGui::End();
-        if (!outputShown) m_fullscreenRender = true;
+        if (!outputShown) m_fullWindowRender = true;
     }
 
     bool showOpenIsoFileDialog = false;
     bool showOpenBinaryDialog = false;
 
-    if (m_showMenu || !m_fullscreenRender || !PCSX::g_system->running()) {
+    if (m_showMenu || !m_fullWindowRender || !PCSX::g_system->running()) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu(_("File"))) {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
@@ -1099,7 +1103,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     PCSX::g_emulator->m_gpu->stopDump();
                 }
                 ImGui::Separator();
-                ImGui::MenuItem(_("Fullscreen render"), nullptr, &m_fullscreenRender);
+                ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender);
                 ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
                 ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
                 ImGui::EndMenu();
@@ -1535,7 +1539,7 @@ the update and manually apply it.)")));
 
     ImGui::Render();
     glViewport(0, 0, w, h);
-    if (m_fullscreenRender) {
+    if (m_fullWindowRender) {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     } else {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);

@@ -68,7 +68,7 @@ enum class LogClass : unsigned;
 
 class GUI final {
     typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
-    typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
+    typedef Setting<bool, TYPESTRING("FullWindowRender"), true> FullWindowRender;
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
     typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
     typedef Setting<bool, TYPESTRING("ShowLuaConsole")> ShowLuaConsole;
@@ -102,7 +102,7 @@ class GUI final {
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
     typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
     typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
+    Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
@@ -271,10 +271,11 @@ class GUI final {
     ImVec4 m_backgroundColor = ImColor(114, 144, 154);
     ImVec2 m_framebufferSize = ImVec2(1, 1);  // Size of GLFW window framebuffer
     ImVec2 m_renderSize = ImVec2(1, 1);
+    ImVec2 m_outputWindowSize = ImVec2(1, 1);
 
     bool &m_fullscreen = {settings.get<Fullscreen>().value};
 
-    bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
+    bool &m_fullWindowRender = {settings.get<FullWindowRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
     int &m_idleSwapInterval = {settings.get<IdleSwapInterval>().value};
     bool m_showThemes = false;
