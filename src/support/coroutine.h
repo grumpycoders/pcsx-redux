@@ -19,7 +19,11 @@
 
 #pragma once
 
+#ifdef __APPLE__
+#include <experimental/coroutine>
+#else
 #include <coroutine>
+#endif
 #include <type_traits>
 
 namespace PCSX {
