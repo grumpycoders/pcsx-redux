@@ -43,6 +43,7 @@ class IsoBrowser {
     uint32_t m_fullCRC = 0;
     uint32_t m_crcs[100] = {0};
     Coroutine<> m_crcCalculator;
+    float m_crcProgress = 0.0f;
 
     Coroutine<> computeCRC(CDRIso*);
 };

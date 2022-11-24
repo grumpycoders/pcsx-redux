@@ -32,22 +32,26 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
     auto time = std::chrono::steady_clock::now();
     Coroutine<>::Awaiter awaiter = m_crcCalculator.awaiter();
 
-    m_fullCRC = crc32(0L, Z_NULL, 0);
+    uint32_t fullCRC = crc32(0L, Z_NULL, 0);
     uint32_t lba = 0;
     for (unsigned t = 1; t <= iso->getTN(); t++) {
         uint32_t len = iso->getLength(t).toLBA();
-        m_crcs[t] = crc32(0L, Z_NULL, 0);
+        uint32_t crc = crc32(0L, Z_NULL, 0);
         uint8_t buffer[2352];
         for (unsigned s = 0; s < len; s++) {
             iso->readSectors(lba++, buffer, 1);
-            m_fullCRC = crc32(m_fullCRC, buffer, 2352);
-            m_crcs[t] = crc32(m_crcs[t], buffer, 2352);
+            fullCRC = crc32(fullCRC, buffer, 2352);
+            crc = crc32(crc, buffer, 2352);
             if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
+                m_crcProgress = (float)s / (float)len;
                 co_yield awaiter;
                 time = std::chrono::steady_clock::now();
             }
         }
-    };
+        m_crcs[t] = crc;
+    }
+
+    m_fullCRC = fullCRC;
 };
 
 void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
@@ -69,11 +73,13 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
         if (startCaching && !f->caching() && f->canCache()) f->startCaching();
     });
 
-    if (ImGui::Button(_("Compute CRCs"))) {
-        m_crcCalculator = computeCRC(iso);
-    }
-
-    if (!m_crcCalculator.done()) {
+    if (m_crcCalculator.done()) {
+        if (ImGui::Button(_("Compute CRCs"))) {
+            m_crcProgress = 0.0f;
+            m_crcCalculator = computeCRC(iso);
+        }
+    } else {
+        ImGui::ProgressBar(m_crcProgress);
         m_crcCalculator.resume();
     }
 
