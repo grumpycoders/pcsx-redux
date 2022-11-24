@@ -375,7 +375,7 @@ void PCSX::GUI::init() {
     }
 
     if (!m_window) {
-        throw std::runtime_error("Unable to create main Window. Check OpenGL drivers.");
+        throw std::runtime_error("Unable to create main window. Check OpenGL drivers.");
     }
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
@@ -1668,7 +1668,7 @@ faster by not displaying the logo.)"));
 
         ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
-can slow down emulation to a noticable extend.)"));
+can slow down emulation to a noticeable extent.)"));
         if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
@@ -1948,7 +1948,7 @@ bool PCSX::GUI::about() {
                             _("OpenGL error reporting has been disabled because your OpenGL driver is too old. Error "
                               "reporting requires at least OpenGL 4.3. Please update your graphics drivers, or "
                               "contact your GPU vendor for up to date OpenGL drivers. Disabled OpenGL error reporting "
-                              "won't have a negative impact on the performances of this software, but user code such "
+                              "won't have a negative impact on the performance of this software, but user code such "
                               "as the shader editor won't be able to properly report problems accurately."));
                     }
                 }
