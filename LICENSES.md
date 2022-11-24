@@ -47,6 +47,8 @@ find a link to the vendored version itself.
  - [md4c](https://github.com/mity/md4c)
  - [miniaudio](https://github.com/mackron/miniaudio)
  - [multipart-parser-c](https://github.com/iafonov/multipart-parser-c)
+ - [nanosvg](https://github.com/memononen/nanosvg) ([vendored](https://github.com/grumpycoders/nanosvg))
+ - [nanovg](https://github.com/memononen/nanovg) ([vendored](https://github.com/grumpycoders/nanovg))
  - [noto](https://fonts.google.com/noto) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/noto))
  - [pprint.lua](https://github.com/jagt/pprint.lua) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/pprint.lua))
  - [stb](https://github.com/nothings/stb)
