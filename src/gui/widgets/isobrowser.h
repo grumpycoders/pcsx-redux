@@ -23,9 +23,12 @@
 
 #include <functional>
 
+#include "support/coroutine.h"
+
 namespace PCSX {
 
 class CDRom;
+class CDRIso;
 
 namespace Widgets {
 
@@ -39,6 +42,9 @@ class IsoBrowser {
   private:
     uint32_t m_fullCRC = 0;
     uint32_t m_crcs[100] = {0};
+    Coroutine<> m_crcCalculator;
+
+    Coroutine<> computeCRC(CDRIso*);
 };
 
 }  // namespace Widgets

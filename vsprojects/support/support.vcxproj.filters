@@ -99,6 +99,9 @@
     <ClInclude Include="..\..\third_party\cq\reclaimer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\support\coroutine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\support\file.cc">

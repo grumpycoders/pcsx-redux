@@ -21,10 +21,34 @@
 
 #include <zlib.h>
 
+#include <chrono>
+
 #include "core/cdrom.h"
 #include "fmt/format.h"
 #include "imgui/imgui.h"
 #include "support/uvfile.h"
+
+PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
+    auto time = std::chrono::steady_clock::now();
+    Coroutine<>::Awaiter awaiter = m_crcCalculator.awaiter();
+
+    m_fullCRC = crc32(0L, Z_NULL, 0);
+    uint32_t lba = 0;
+    for (unsigned t = 1; t <= iso->getTN(); t++) {
+        uint32_t len = iso->getLength(t).toLBA();
+        m_crcs[t] = crc32(0L, Z_NULL, 0);
+        uint8_t buffer[2352];
+        for (unsigned s = 0; s < len; s++) {
+            iso->readSectors(lba++, buffer, 1);
+            m_fullCRC = crc32(m_fullCRC, buffer, 2352);
+            m_crcs[t] = crc32(m_crcs[t], buffer, 2352);
+            if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
+                co_yield awaiter;
+                time = std::chrono::steady_clock::now();
+            }
+        }
+    };
+};
 
 void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -40,36 +64,21 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
         return;
     }
 
+    bool startCaching = ImGui::Button(_("Cache files"));
+    UvThreadOp::iterateOverAllOps([startCaching](UvThreadOp* f) {
+        if (startCaching && !f->caching() && f->canCache()) f->startCaching();
+    });
+
+    if (ImGui::Button(_("Compute CRCs"))) {
+        m_crcCalculator = computeCRC(iso);
+    }
+
+    if (!m_crcCalculator.done()) {
+        m_crcCalculator.resume();
+    }
+
     auto str = fmt::format(f_("Disc size: {} ({}) - CRC32: {:08x}"), iso->getTD(0), iso->getTD(0).toLBA(), m_fullCRC);
     ImGui::TextUnformatted(str.c_str());
-    ImGui::SameLine();
-    bool startCaching = ImGui::Button(_("Cache files"));
-    bool allCached = true;
-    UvThreadOp::iterateOverAllOps([startCaching, &allCached](UvThreadOp* f) {
-        if (startCaching && !f->caching() && f->canCache()) f->startCaching();
-        if (!f->caching()) {
-            allCached = false;
-        } else if (f->cacheProgress() != 1.0f) {
-            allCached = false;
-        }
-    });
-    ImGui::SameLine();
-    if (!allCached) ImGui::BeginDisabled();
-    if (ImGui::Button(_("Compute CRCs"))) {
-        m_fullCRC = crc32(0L, Z_NULL, 0);
-        uint32_t lba = 0;
-        for (unsigned t = 1; t <= iso->getTN(); t++) {
-            uint32_t len = iso->getLength(t).toLBA();
-            m_crcs[t] = crc32(0L, Z_NULL, 0);
-            uint8_t buffer[2352];
-            for (unsigned s = 0; s < len; s++) {
-                iso->readSectors(lba++, buffer, 1);
-                m_fullCRC = crc32(m_fullCRC, buffer, 2352);
-                m_crcs[t] = crc32(m_crcs[t], buffer, 2352);
-            }
-        }
-    }
-    if (!allCached) ImGui::EndDisabled();
     if (ImGui::BeginTable("Tracks", 5, ImGuiTableFlags_Resizable)) {
         ImGui::TableSetupColumn(_("Track"));
         ImGui::TableSetupColumn(_("Start"));
