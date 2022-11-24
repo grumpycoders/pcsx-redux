@@ -123,6 +123,7 @@ SRCS += third_party/imgui_memory_editor/imgui_memory_editor.cpp
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/md4c/src/md4c.c
 SRCS += third_party/multipart-parser-c/multipart_parser.c
+SRCS += third_party/nanovg/src/nanovg.c
 SRCS += third_party/tracy/TracyClient.cpp
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
