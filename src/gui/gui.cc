@@ -444,7 +444,7 @@ void PCSX::GUI::init() {
                 settings.get<WindowPosY>().reset();
             }
 
-            if ((setting.get<WindowPosX>().value > 0) && (setting.get<WindowPosY>().value > 0)) {
+            if ((settings.get<WindowPosX>().value > 0) && (settings.get<WindowPosY>().value > 0)) {
                 glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             }
 
