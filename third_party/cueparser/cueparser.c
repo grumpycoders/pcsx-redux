@@ -506,7 +506,7 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     end_parse(parser, scheduler, "cuesheet PREGAP after an INDEX");
                     return;
                 }
-                if (!parser->isTrackANewFile) {
+                if (parser->currentSectorNumber != track->fileOffset) {
                     end_parse(parser, scheduler, "cuesheet PREGAP not at the beginning of a FILE isn't supported");
                     return;
                 }
@@ -517,6 +517,7 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                 }
                 track->indexCount = 0;
                 track->indices[0] = parser->currentSectorNumber;
+                track->fileOffset += pregapLength;
                 parser->currentSectorNumber += pregapLength;
                 parser->state = CUE_PARSER_START;
             } break;

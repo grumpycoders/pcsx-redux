@@ -23,6 +23,7 @@
 
 #include <functional>
 
+#include "gui/widgets/filedialog.h"
 #include "support/coroutine.h"
 
 namespace PCSX {
@@ -46,6 +47,7 @@ class IsoBrowser {
     float m_crcProgress = 0.0f;
 
     Coroutine<> computeCRC(CDRIso*);
+    FileDialog m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
 };
 
 }  // namespace Widgets

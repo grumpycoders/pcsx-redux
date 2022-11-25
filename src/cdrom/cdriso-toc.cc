@@ -154,7 +154,9 @@ bool PCSX::CDRIso::parsetoc(const char *isofileStr) {
             }
         }
     }
-    if (m_numtracks > 0) m_cdHandle.setFile(new SubFile(m_ti[1].handle, 0, m_ti[1].handle->size()));
+    if ((m_numtracks > 0) && (m_ti[1].handle)) {
+        m_cdHandle.setFile(new SubFile(m_ti[1].handle, 0, m_ti[1].handle->size()));
+    }
 
     return true;
 }

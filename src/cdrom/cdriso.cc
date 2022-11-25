@@ -338,7 +338,8 @@ bool PCSX::CDRIso::open(void) {
         m_ti[1].type = TrackType::DATA;
         m_ti[1].start = IEC60908b::MSF(0, 2, 0);
         m_ti[1].pregap = IEC60908b::MSF(0, 0, 0);
-        m_ti[1].length = IEC60908b::MSF(m_ti[1].handle->size());
+        m_ti[1].handle = m_cdHandle;
+        m_ti[1].length = IEC60908b::MSF(m_ti[1].handle->size() / 2352);
     }
 
     if (m_ppf.load(m_isoPath)) {
@@ -404,10 +405,10 @@ void PCSX::CDRIso::close() {
 PCSX::IEC60908b::MSF PCSX::CDRIso::getTD(uint8_t track) {
     if (track == 0) {
         unsigned int sect;
-        sect = m_ti[m_numtracks].start.toLBA() + m_ti[m_numtracks].length.toLBA();
+        sect = m_ti[m_numtracks].start.toLBA() + m_ti[m_numtracks].length.toLBA() - m_ti[m_numtracks].pregap.toLBA();
         return IEC60908b::MSF(sect);
     } else if (m_numtracks > 0 && track <= m_numtracks) {
-        return IEC60908b::MSF(m_ti[track].start.toLBA() + m_ti[track].pregap.toLBA());
+        return IEC60908b::MSF(m_ti[track].start.toLBA());
     }
     return IEC60908b::MSF(0, 2, 0);
 }
@@ -531,9 +532,8 @@ bool PCSX::CDRIso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
         return true;
     }
 
-    // pregap is silent
-    uint32_t pregap = m_ti[track].start.toLBA() + m_ti[track].pregap.toLBA();
-    if ((track_start <= lba) && (lba < pregap)) {
+    // if above the track's end (likely next track's pregap), play silence
+    if (lba >= (track_start + m_ti[track].length.toLBA())) {
         memset(buffer, 0, IEC60908b::FRAMESIZE_RAW);
         return true;
     }

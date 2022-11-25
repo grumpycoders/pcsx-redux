@@ -30,7 +30,6 @@
 
 PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
     auto time = std::chrono::steady_clock::now();
-    Coroutine<>::Awaiter awaiter = m_crcCalculator.awaiter();
 
     uint32_t fullCRC = crc32(0L, Z_NULL, 0);
     uint32_t lba = 0;
@@ -44,7 +43,7 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
             crc = crc32(crc, buffer, 2352);
             if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
                 m_crcProgress = (float)s / (float)len;
-                co_yield awaiter;
+                co_yield m_crcCalculator.awaiter();
                 time = std::chrono::steady_clock::now();
             }
         }
@@ -55,11 +54,41 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
 };
 
 void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
-    if (!ImGui::Begin(title, &m_show)) {
+    if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return;
     }
 
+    bool showOpenIsoFileDialog = false;
+
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu(_("File"))) {
+            showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
+            if (ImGui::MenuItem(_("Close Disk Image"))) {
+                g_emulator->m_cdrom->setIso(new CDRIso());
+                g_emulator->m_cdrom->check();
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+
+    auto& isoPath = g_emulator->settings.get<Emulator::SettingIsoPath>();
+
+    if (showOpenIsoFileDialog) {
+        if (!isoPath.empty()) {
+            m_openIsoFileDialog.m_currentPath = isoPath.value;
+        }
+        m_openIsoFileDialog.openDialog();
+    }
+    if (m_openIsoFileDialog.draw()) {
+        isoPath.value = m_openIsoFileDialog.m_currentPath;
+        std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
+        if (!fileToOpen.empty()) {
+            g_emulator->m_cdrom->setIso(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
+            g_emulator->m_cdrom->check();
+        }
+    }
     auto iso = cdrom->m_iso.get();
 
     if (iso->failed()) {
@@ -68,10 +97,27 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
         return;
     }
 
-    bool startCaching = ImGui::Button(_("Cache files"));
-    UvThreadOp::iterateOverAllOps([startCaching](UvThreadOp* f) {
-        if (startCaching && !f->caching() && f->canCache()) f->startCaching();
+    bool canCache = false;
+    bool isCaching = false;
+    float cacheProgress = 0.0f;
+    UvThreadOp::iterateOverAllOps([&canCache, &isCaching, &cacheProgress](UvThreadOp* f) {
+        if (f->caching() && (f->cacheProgress() < 1.0f)) {
+            isCaching = true;
+            cacheProgress = f->cacheProgress();
+        }
+        if (f->canCache() && !f->caching()) canCache = true;
     });
+    if (isCaching) {
+        ImGui::ProgressBar(cacheProgress);
+    } else {
+        if (!canCache) ImGui::BeginDisabled();
+        if (ImGui::Button(_("Cache files"))) {
+            UvThreadOp::iterateOverAllOps([](UvThreadOp* f) {
+                if (!f->caching() && f->canCache()) f->startCaching();
+            });
+        }
+        if (!canCache) ImGui::EndDisabled();
+    }
 
     if (m_crcCalculator.done()) {
         if (ImGui::Button(_("Compute CRCs"))) {
