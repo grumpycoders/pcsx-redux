@@ -445,10 +445,10 @@ void PCSX::GUI::init() {
 
             auto& windowSizeX = settings.get<WindowSizeX>();
             auto& windowSizeY = settings.get<WindowSizeY>();
-            if (!windowSizeX || resetUI) {
+            if (windowSizeX <= 0 || resetUI) {
                 windowSizeX.reset();
             }
-            if (!windowSizeY || resetUI) {
+            if (windowSizeY <= 0 || resetUI) {
                 windowSizeY.reset();
             }
             if (resetUI) {
