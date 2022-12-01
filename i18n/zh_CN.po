@@ -413,19 +413,19 @@ msgstr "键盘"
 
 #: src/core/pad.cc:815
 msgid "Cross"
-msgstr "×"
+msgstr "叉叉"
 
 #: src/core/pad.cc:815
 msgid "Square"
-msgstr "□"
+msgstr "方框"
 
 #: src/core/pad.cc:815
 msgid "Triangle"
-msgstr "△"
+msgstr "三角"
 
 #: src/core/pad.cc:816
 msgid "Circle"
-msgstr "⚪"
+msgstr "圆圈"
 
 #: src/core/pad.cc:816
 msgid "Select"
