@@ -151,7 +151,7 @@ msgstr "无 MSAA"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:525
 msgid "{}x MSAA"
-msgstr "{}x MSAA"
+msgstr "{1}x MSAA"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:527
 msgid "MSAA"
@@ -393,11 +393,11 @@ msgstr "未绑定"
 
 #: src/core/pad.cc:790
 msgid "Unknown keyboard key {}"
-msgstr "未知键盘按键{}"
+msgstr "未知键盘按键{1}"
 
 #: src/core/pad.cc:795
 msgid "Keyboard {}"
-msgstr "键盘{}"
+msgstr "键盘{1}"
 
 #: src/core/pad.cc:810 src/gui/gui.cc:1627
 msgid "Auto"
@@ -807,7 +807,7 @@ msgstr "快速存档"
 
 #: src/gui/gui.cc:891 src/gui/gui.cc:904
 msgid "Slot {}"
-msgstr "槽 {}"
+msgstr "槽 {1}"
 
 #: src/gui/gui.cc:900
 msgid "Load state slots"
@@ -1939,11 +1939,11 @@ msgstr "Filter"
 
 #: src/gui/widgets/assembly.cc:903
 msgid "Code##{}{:08x}"
-msgstr "Code##{}{:08x}"
+msgstr "Code##{1}{:08x}"
 
 #: src/gui/widgets/assembly.cc:904
 msgid "Data##{}{:08x}"
-msgstr "Data##{}{:08x}"
+msgstr "Data##{1}{:08x}"
 
 #: src/gui/widgets/assembly.h:62
 msgid "Load Symbols"
@@ -2295,35 +2295,35 @@ msgstr "%s (%dKB)"
 #. can't handle multiple buttons with the same name well
 #: src/gui/widgets/memcard_manager.cc:187
 msgid "Erase##{}"
-msgstr "抹掉##{}"
+msgstr "抹掉##{1}"
 
 #: src/gui/widgets/memcard_manager.cc:192
 msgid "Erased file {}({}) off card {}"
-msgstr "从卡{}中抹掉文件{}({})"
+msgstr "从卡{3}中抹掉文件{1}({2})"
 
 #: src/gui/widgets/memcard_manager.cc:198
 msgid "Copy##{}"
-msgstr "复制##{}"
+msgstr "复制##{1}"
 
 #: src/gui/widgets/memcard_manager.cc:208
 msgid "Copied file {}({}) from card {} to card {}"
-msgstr "从卡{}中复制文件{}到({})"
+msgstr "从卡{3}中复制文件{1}({2})到卡{3}"
 
 #: src/gui/widgets/memcard_manager.cc:220
 msgid "Move##{}"
-msgstr "移动##{}"
+msgstr "移动##{1}"
 
 #: src/gui/widgets/memcard_manager.cc:231
 msgid "Moved file {}({}) from card {} to card {}"
-msgstr "从卡{} 中移动文件{}({})到卡{}"
+msgstr "从卡{3} 中移动文件{1}({2})到卡{4}"
 
 #: src/gui/widgets/memcard_manager.cc:244
 msgid "Export PNG##{}"
-msgstr "导出 PNG##{}"
+msgstr "导出 PNG##{1}"
 
 #: src/gui/widgets/memcard_manager.cc:250
 msgid "Copy icon##{}"
-msgstr "复制图标##{}"
+msgstr "复制图标##{1}"
 
 #: src/gui/widgets/memcard_manager.cc:260
 msgid "Memory Card 1"
@@ -2367,7 +2367,7 @@ msgstr "Access"
 #: src/gui/widgets/memory_observer.cc:355
 #: src/gui/widgets/memory_observer.cc:420
 msgid "Show in memory editor##{}"
-msgstr "在内存编辑器中显示##{}"
+msgstr "在内存编辑器中显示##{1}"
 
 #: src/gui/widgets/memory_observer.cc:187
 msgid "Delta-over-time search"
@@ -2421,11 +2421,11 @@ msgstr "写入断点"
 
 #: src/gui/widgets/memory_observer.cc:361
 msgid "Add read breakpoint##{}"
-msgstr "添加断点读取##{}"
+msgstr "添加断点读取##{1}"
 
 #: src/gui/widgets/memory_observer.cc:367
 msgid "Add write breakpoint##{}"
-msgstr "添加断点写入##{}"
+msgstr "添加断点写入##{1}"
 
 #: src/gui/widgets/memory_observer.cc:380
 msgid "Pattern search"
@@ -2457,7 +2457,7 @@ msgstr "Step"
 
 #: src/gui/widgets/registers.cc:31
 msgid "Context##{}"
-msgstr "Context##{}"
+msgstr "Context##{1}"
 
 #: src/gui/widgets/registers.cc:33
 msgid "Go to in Assembly"
@@ -2469,12 +2469,12 @@ msgstr "复制数值"
 
 #: src/gui/widgets/registers.cc:47
 msgid "Edit##{}"
-msgstr "编辑##{}"
+msgstr "编辑##{1}"
 
 #: src/gui/widgets/registers.cc:49 src/gui/widgets/registers.cc:211
 #: src/gui/widgets/sio1.cc:137
 msgid "Edit value of {}"
-msgstr "编辑值为 {}"
+msgstr "编辑值为 {1}"
 
 #: src/gui/widgets/registers.cc:174
 msgid "Misc"
@@ -2491,19 +2491,19 @@ msgstr "寄存器"
 
 #: src/gui/widgets/shader-editor.cc:278
 msgid "Vertex Shader compilation error: {}\n"
-msgstr "顶点着色器编译错误：{}\n"
+msgstr "顶点着色器编译错误：{1}\n"
 
 #: src/gui/widgets/shader-editor.cc:299
 msgid "Pixel Shader compilation error: {}\n"
-msgstr "像素渲染器编译错误：{}\n"
+msgstr "像素渲染器编译错误：{1}\n"
 
 #: src/gui/widgets/shader-editor.cc:321
 msgid "Link error: {}\n"
-msgstr "链接错误：{}\n"
+msgstr "链接错误：{1}\n"
 
 #: src/gui/widgets/shader-editor.cc:333
 msgid "Missing attribute {} in shader program"
-msgstr "着色器程序中缺少属性 {}"
+msgstr "着色器程序中缺少属性 {1}"
 
 #: src/gui/widgets/shader-editor.cc:443
 msgid "Auto compile"
@@ -2561,11 +2561,11 @@ msgstr "控制"
 
 #: src/gui/widgets/typed_debugger.cc:277
 msgid "Log reads and writes##{}{}"
-msgstr "日志读取和写入##{}{}"
+msgstr "日志读取和写入##{1}{2}"
 
 #: src/gui/widgets/typed_debugger.cc:287
 msgid "Add read breakpoint##{}{}"
-msgstr "添加断点读取##{}{}"
+msgstr "添加断点读取##{1}{2}"
 
 #: src/gui/widgets/typed_debugger.cc:290
 msgid "ReadPause"
@@ -2573,7 +2573,7 @@ msgstr "读取暂停"
 
 #: src/gui/widgets/typed_debugger.cc:294
 msgid "Add write breakpoint##{}{}"
-msgstr "添加断点写入##{}{}"
+msgstr "添加断点写入##{1}{2}"
 
 #: src/gui/widgets/typed_debugger.cc:297
 msgid "WritePause"
@@ -2582,36 +2582,36 @@ msgstr "写入暂停"
 #. Name.
 #: src/gui/widgets/typed_debugger.cc:304
 msgid "Display log entries##{}{}"
-msgstr "显示日志条目##{}{}"
+msgstr "显示日志条目##{1}{2}"
 
 #: src/gui/widgets/typed_debugger.cc:329
 #: src/gui/widgets/typed_debugger.cc:1005
 msgid "Re-enable##{}"
-msgstr "重新启用##{}"
+msgstr "重新启用##{1}"
 
 #: src/gui/widgets/typed_debugger.cc:330
 #: src/gui/widgets/typed_debugger.cc:1006
 msgid "Disable##{}"
-msgstr "禁用##{}"
+msgstr "禁用##{1}"
 
 #. Name.
 #: src/gui/widgets/typed_debugger.cc:375
 msgid "{}\t@ {:#x}##{}"
-msgstr "{}\t@ {:#x}##{}"
+msgstr "{1}\t@ {:#x}##{2}"
 
 #: src/gui/widgets/typed_debugger.cc:415
 msgid "Add to Watch tab##{}{}"
-msgstr "加入观察列表##{}{}"
+msgstr "加入观察列表##{1}{2}"
 
 #: src/gui/widgets/typed_debugger.cc:442 src/gui/widgets/typed_debugger.cc:467
 msgid "Show in memory editor##{}{}"
-msgstr "在内存编辑器中查看##{}{}"
+msgstr "在内存编辑器中查看##{1}{2}"
 
 #: src/gui/widgets/typed_debugger.cc:550 src/gui/widgets/typed_debugger.cc:555
 #: src/gui/widgets/typed_debugger.cc:560 src/gui/widgets/typed_debugger.cc:565
 #: src/gui/widgets/typed_debugger.cc:570 src/gui/widgets/typed_debugger.cc:575
 msgid "New value##{}"
-msgstr "新数值##{}"
+msgstr "新数值##{1}"
 
 #: src/gui/widgets/typed_debugger.cc:593
 msgid ""
@@ -2671,7 +2671,7 @@ msgstr "Watch"
 
 #: src/gui/widgets/typed_debugger.cc:754
 msgid "{}[{}]"
-msgstr "{}[{}]"
+msgstr "{1}[{2}]"
 
 #: src/gui/widgets/typed_debugger.cc:774 src/gui/widgets/typed_debugger.cc:821
 msgid "Clear breakpoints"
@@ -2716,7 +2716,7 @@ msgstr "FunctionBreakpoints"
 
 #: src/gui/widgets/typed_debugger.cc:855
 msgid "{}\t(called from {}\t@ {:#x})##{}"
-msgstr "{}\t(called from {}\t@ {:#x})##{}"
+msgstr "{1}\t(called from {}\t@ {:#x})##{2}"
 
 #: src/gui/widgets/typed_debugger.cc:902
 msgid "Toggle"
@@ -2724,7 +2724,7 @@ msgstr "切换"
 
 #: src/gui/widgets/typed_debugger.cc:917
 msgid "Add breakpoint##{}"
-msgstr "添加断点##{}"
+msgstr "添加断点##{1}"
 
 #: src/gui/widgets/vram-viewer.cc:298
 msgid "VRAM Shader Editor"
