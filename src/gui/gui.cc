@@ -31,10 +31,12 @@
 #include <assert.h>
 
 #include <algorithm>
+#include <cmath>
 #include <ctime>
 #include <exception>
 #include <fstream>
 #include <iomanip>
+#include <numbers>
 #include <type_traits>
 #include <unordered_set>
 
@@ -72,6 +74,7 @@
 #include "nanovg/src/nanovg_gl.h"
 #include "nanovg/src/nanovg_gl_utils.h"
 #include "spu/interface.h"
+#include "support/bezier.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "tracy/Tracy.hpp"
@@ -2140,4 +2143,77 @@ void PCSX::GUI::byteRateToString(float rate, std::string& str) {
     } else {
         str = fmt::format("{:.2f} B/s", rate);
     }
+}
+
+void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end, ImVec4 innerColor,
+                                ImVec4 outerColor) {
+    const float innerWidth = width;
+    const float outerWidth = width * 2.0f;
+    auto vg = m_nvgContext;
+    float bump;
+    float angle = Bezier::angle(start, c1, c2, end, 1.0f);
+    auto vgInnerColor = nvgRGBA(innerColor.x * 255, innerColor.y * 255, innerColor.z * 255, innerColor.w * 255);
+    auto vgOuterColor = nvgRGBA(outerColor.x * 255, outerColor.y * 255, outerColor.z * 255, outerColor.w * 255);
+
+    nvgSave(vg);
+    nvgLineCap(vg, NVG_BUTT);
+
+    // Set the outer arrow drawing settings.
+    nvgFillColor(vg, vgOuterColor);
+    nvgStrokeColor(vg, vgOuterColor);
+    nvgStrokeWidth(vg, outerWidth);
+
+    // Draw the butt of the arrow - the linecap setting works for both ends, and we only want it round at the start.
+    nvgBeginPath(vg);
+    nvgArc(vg, start.x, start.y, outerWidth / 2.0f, 0.0f, 2.0f * std::numbers::pi_v<float>, NVG_CW);
+    nvgFill(vg);
+
+    // Draw the shaft of the arrow itself.
+    nvgBeginPath(vg);
+    nvgMoveTo(vg, start.x, start.y);
+    nvgBezierTo(vg, c1.x, c1.y, c2.x, c2.y, end.x, end.y);
+    nvgStroke(vg);
+
+    // Draw the arrowhead.
+    bump = outerWidth / 1.5f;
+    nvgTranslate(vg, end.x, end.y);
+    nvgRotate(vg, angle);
+    nvgBeginPath(vg);
+    nvgMoveTo(vg, 0.0f, 0.0f);
+    nvgLineTo(vg, -bump * 2.0f, bump);
+    nvgLineTo(vg, -bump * 1.6f, 0.0f);
+    nvgLineTo(vg, -bump * 2.0f, -bump);
+    nvgClosePath(vg);
+    nvgStroke(vg);
+
+    // Set the inner arrow drawing settings, and draw everything again, with some slightly different offsets.
+    nvgResetTransform(vg);
+    nvgFillColor(vg, vgInnerColor);
+    nvgStrokeColor(vg, vgInnerColor);
+    nvgStrokeWidth(vg, innerWidth);
+
+    // Draw the butt of the arrow - the linecap setting works for both ends, and we only want it round at the start.
+    nvgBeginPath(vg);
+    nvgArc(vg, start.x, start.y, innerWidth / 2.0f, 0.0f, 2.0f * std::numbers::pi_v<float>, NVG_CW);
+    nvgFill(vg);
+
+    // Draw the shaft of the arrow itself.
+    nvgBeginPath(vg);
+    nvgMoveTo(vg, start.x, start.y);
+    nvgBezierTo(vg, c1.x, c1.y, c2.x, c2.y, end.x, end.y);
+    nvgStroke(vg);
+
+    // Draw the arrowhead.
+    bump = innerWidth / 1.5f;
+    nvgTranslate(vg, end.x, end.y);
+    nvgRotate(vg, angle);
+    nvgBeginPath(vg);
+    nvgMoveTo(vg, 0.0f, 0.0f);
+    nvgLineTo(vg, -bump * 3.55f, bump * 1.65f);
+    nvgLineTo(vg, -bump * 2.85f, 0.0f);
+    nvgLineTo(vg, -bump * 3.55f, -bump * 1.65f);
+    nvgClosePath(vg);
+    nvgStroke(vg);
+
+    nvgRestore(vg);
 }

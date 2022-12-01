@@ -404,6 +404,9 @@ class GUI final {
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
     void useMainFont() { ImGui::PushFont(m_mainFont); }
     void useMonoFont() { ImGui::PushFont(m_monoFont); }
+
+    void drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end,
+                         ImVec4 innerColor = {1.0f, 1.0f, 1.0f, 1.0f}, ImVec4 outerColor = {0.5f, 0.5f, 0.5f, 1.0f});
 };
 
 }  // namespace PCSX
