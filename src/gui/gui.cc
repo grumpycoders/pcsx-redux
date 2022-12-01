@@ -2174,7 +2174,6 @@ void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2,
 
     // Draw the arrowhead.
     bump = outerWidth / 1.5f;
-    nvgSave(vg);
     nvgTranslate(vg, end.x, end.y);
     nvgRotate(vg, angle);
     nvgBeginPath(vg);
@@ -2184,9 +2183,9 @@ void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2,
     nvgLineTo(vg, -bump * 2.0f, -bump);
     nvgClosePath(vg);
     nvgStroke(vg);
-    nvgRestore(vg);
 
     // Set the inner arrow drawing settings, and draw everything again, with some slightly different offsets.
+    nvgResetTransform(vg);
     nvgFillColor(vg, vgInnerColor);
     nvgStrokeColor(vg, vgInnerColor);
     nvgStrokeWidth(vg, innerWidth);
@@ -2204,7 +2203,6 @@ void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2,
 
     // Draw the arrowhead.
     bump = innerWidth / 1.5f;
-    nvgSave(vg);
     nvgTranslate(vg, end.x, end.y);
     nvgRotate(vg, angle);
     nvgBeginPath(vg);
@@ -2214,7 +2212,6 @@ void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2,
     nvgLineTo(vg, -bump * 3.55f, -bump * 1.65f);
     nvgClosePath(vg);
     nvgStroke(vg);
-    nvgRestore(vg);
 
     nvgRestore(vg);
 }
