@@ -647,9 +647,16 @@ void PCSX::GUI::close() {
 void PCSX::GUI::saveCfg() {
     std::ofstream cfg("pcsx.json");
     json j;
-
-    glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
-    glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
+   
+    if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
+        m_glfwPosX = settings.get<WindowPosX>();
+        m_glfwPosY = settings.get<WindowPosY>();
+        m_glfwSizeX = settings.get<WindowSizeX>();
+        m_glfwSizeY = settings.get<WindowSizeY>();
+    } else {  
+        glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
+        glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
+    }
 
     j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
     j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
