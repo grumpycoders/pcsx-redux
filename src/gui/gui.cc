@@ -468,6 +468,8 @@ void PCSX::GUI::init() {
             saveCfg();
         }
 
+        g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
+
         g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
         if (emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
