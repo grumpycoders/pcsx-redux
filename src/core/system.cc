@@ -75,7 +75,9 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     },
     {
         "Zhongwen",
-        {"zh_CN.po", {{MAKEU8("NotoSansSC-Regular.otf"), reinterpret_cast<const ImWchar*>(Range::CHINESE_SIMPLIFIED)}}, nullptr},
+        {"zh_CN.po",
+         {{MAKEU8("NotoSansSC-Regular.otf"), reinterpret_cast<const ImWchar*>(Range::CHINESE_FULL)}},
+         nullptr},
     },
 };
 
