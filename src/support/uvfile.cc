@@ -702,6 +702,7 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
     m_tcp = tcp;
     request([this, host = std::string(address), port](auto loop) {
         uv_tcp_init(loop, m_tcp);
+        uv_tcp_nodelay(m_tcp, 1);
         struct sockaddr_in connectAddr;
         int result = uv_ip4_addr(host.c_str(), port, &connectAddr);
         if (result != 0) {
@@ -852,6 +853,7 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
     });
     request([this, port](auto loop) {
         uv_tcp_init(loop, &m_server);
+        uv_tcp_nodelay(&m_server, 1);
         m_server.data = this;
 
         struct sockaddr_in bindAddr;
