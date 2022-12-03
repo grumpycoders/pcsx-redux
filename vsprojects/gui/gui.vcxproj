@@ -293,6 +293,8 @@
     <ClInclude Include="..\..\third_party\imgui_memory_editor\imgui_memory_editor.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\gui\shaders\crt-lottes-offscreen.lua" />
+    <None Include="..\..\src\gui\shaders\crt-lottes-output.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

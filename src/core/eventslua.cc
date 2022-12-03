@@ -185,7 +185,7 @@ void PCSX::LuaBindings::open_events(Lua L) {
             } else if (name == "ExecutionFlow::Run") {
                 createListener<Events::ExecutionFlow::Run>(L);
             } else if (name == "ExecutionFlow::Pause") {
-                createListener<Events::ExecutionFlow::Run>(L);
+                createListener<Events::ExecutionFlow::Pause>(L);
             } else if (name == "ExecutionFlow::Reset") {
                 createListener<Events::ExecutionFlow::Reset>(L);
             } else if (name == "ExecutionFlow::SaveStateLoaded") {

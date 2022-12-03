@@ -164,6 +164,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\..\src\gui\shaders\crt-lottes-offscreen.lua">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="..\..\src\gui\shaders\crt-lottes-output.lua">
+      <Filter>Source Files\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">

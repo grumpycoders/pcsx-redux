@@ -450,6 +450,9 @@
     <ProjectReference Include="..\multipart-parser\multipart-parser.vcxproj">
       <Project>{de9d9c53-5caa-4542-8c27-72d84334f9e3}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\nanovg\nanovg.vcxproj">
+      <Project>{b68e9c60-8362-4a32-ac2e-4f0c2673f3e1}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\soft\soft.vcxproj">
       <Project>{660a9963-15e0-4b91-a5cf-bed493e862ec}</Project>
     </ProjectReference>

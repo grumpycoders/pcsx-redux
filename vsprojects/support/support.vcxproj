@@ -282,6 +282,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\mips\common\util\sjis-table.h" />
+    <ClInclude Include="..\..\src\support\bezier.h" />
     <ClInclude Include="..\..\src\support\binstruct.h" />
     <ClInclude Include="..\..\src\support\circular.h" />
     <ClInclude Include="..\..\src\support\container-file.h" />
@@ -290,6 +291,7 @@
     <ClInclude Include="..\..\src\support\eventbus.h" />
     <ClInclude Include="..\..\src\support\file.h" />
     <ClInclude Include="..\..\src\support\hashtable.h" />
+    <ClInclude Include="..\..\src\support\imgui-helpers.h" />
     <ClInclude Include="..\..\src\support\list.h" />
     <ClInclude Include="..\..\src\support\opengl.h" />
     <ClInclude Include="..\..\src\support\stream-file.h" />

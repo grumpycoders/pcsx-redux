@@ -18,6 +18,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\src\.clang-format = ..\src\.clang-format
 		..\src\.editorconfig = ..\src\.editorconfig
 		..\AUTHORS = ..\AUTHORS
+		..\LICENSES.md = ..\LICENSES.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GPU", "GPU", "{60F01E36-B838-4AA0-8057-8324E0E39526}"
@@ -85,6 +86,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multipart-parser", "multipart-parser\multipart-parser.vcxproj", "{DE9D9C53-5CAA-4542-8C27-72D84334F9E3}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImFileDialog", "ImFileDialog\ImFileDialog.vcxproj", "{2BF92257-03C6-43FE-85E8-918166A07A26}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nanovg", "nanovg\nanovg.vcxproj", "{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -759,6 +762,26 @@ Global
 		{2BF92257-03C6-43FE-85E8-918166A07A26}.ReleaseWithTracy|x64.Build.0 = ReleaseWithTracy|x64
 		{2BF92257-03C6-43FE-85E8-918166A07A26}.ReleaseWithTracy|x86.ActiveCfg = ReleaseWithTracy|Win32
 		{2BF92257-03C6-43FE-85E8-918166A07A26}.ReleaseWithTracy|x86.Build.0 = ReleaseWithTracy|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.Debug|x64.ActiveCfg = Debug|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.Debug|x64.Build.0 = Debug|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.Debug|x86.ActiveCfg = Debug|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.Debug|x86.Build.0 = Debug|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.Release|x64.ActiveCfg = Release|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.Release|x64.Build.0 = Release|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.Release|x86.ActiveCfg = Release|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.Release|x86.Build.0 = Release|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseCLI|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseCLI|x64.Build.0 = ReleaseWithClangCL|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseCLI|x86.ActiveCfg = ReleaseWithClangCL|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseCLI|x86.Build.0 = ReleaseWithClangCL|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithClangCL|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithClangCL|x86.ActiveCfg = ReleaseWithClangCL|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithClangCL|x86.Build.0 = ReleaseWithClangCL|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithTracy|x64.ActiveCfg = ReleaseWithTracy|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithTracy|x64.Build.0 = ReleaseWithTracy|x64
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithTracy|x86.ActiveCfg = ReleaseWithTracy|Win32
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithTracy|x86.Build.0 = ReleaseWithTracy|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -798,9 +821,10 @@ Global
 		{9BA68B05-13A3-4D61-82A3-F6BC4F87C48E} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{DE9D9C53-5CAA-4542-8C27-72D84334F9E3} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{2BF92257-03C6-43FE-85E8-918166A07A26} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
+		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
+		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 	EndGlobalSection
 EndGlobal

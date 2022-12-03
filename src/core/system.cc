@@ -62,16 +62,22 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
         {"it.po", {}, nullptr},
     },
     {
-        "Nihongo",
-        {"jp.po", {}, nullptr},
-    },
-    {
         "Malti",
         {"mt.po", {}, c_malteseRanges},
     },
     {
+        "Nihongo",
+        {"jp.po", {}, nullptr},
+    },
+    {
         "Português (Brasil)",
         {"pt_BR.po", {}, nullptr},
+    },
+    {
+        "Zhongwen",
+        {"zh_CN.po",
+         {{MAKEU8("NotoSansSC-Regular.otf"), reinterpret_cast<const ImWchar*>(Range::CHINESE_FULL)}},
+         nullptr},
     },
 };
 
