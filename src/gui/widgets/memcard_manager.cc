@@ -85,7 +85,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     if (isLatest) {
         ImGui::TextUnformatted(_("Latest"));
     } else {
-        ImGui::TextUnformatted(m_undo[m_undoIndex].first.c_str());
+        ImGui::TextWrapped("%s", m_undo[m_undoIndex].first.c_str());
     }
     if (undoDisabled) {
         ImGui::EndDisabled();
@@ -114,8 +114,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     ImGui::SameLine();
     ShowHelpMarker(
         _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
-          "allowing apps to be "
-          "saved/exported."));
+          "allowing apps to be saved/exported."));
     ImGui::SameLine();
     if (ImGui::Checkbox(_("Card 2 Pocketstation"),
                         &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value)) {
@@ -124,9 +123,8 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     }
     ImGui::SameLine();
     ShowHelpMarker(
-        _("Experimental.  Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
-          "allowing apps to be "
-          "saved/exported."));
+        _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
+          "allowing apps to be saved/exported."));
 
     ImGui::SliderInt(_("Icon size"), &m_iconSize, 16, 512);
     ImGui::SameLine();

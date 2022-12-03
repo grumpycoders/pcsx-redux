@@ -10,7 +10,7 @@ CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo fals
 
 PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
 
-LOCALES := el fr
+LOCALES := el es_ES fr pt_BR zh_CN
 
 ifeq ($(wildcard third_party/imgui/imgui.h),)
 HAS_SUBMODULES = false
@@ -43,6 +43,7 @@ CPPFLAGS += -Ithird_party/xbyak/xbyak
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W -DIMGUI_ENABLE_FREETYPE
 CPPFLAGS += -DZEP_FEATURE_CPP_FILE_SYSTEM
+CPPFLAGS += -DNVG_NO_STB
 IMGUI_CPPFLAGS += -include src/forced-includes/imgui.h
 
 CPPFLAGS_Release += -O3
@@ -123,6 +124,7 @@ SRCS += third_party/imgui_memory_editor/imgui_memory_editor.cpp
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/md4c/src/md4c.c
 SRCS += third_party/multipart-parser-c/multipart_parser.c
+SRCS += third_party/nanovg/src/nanovg.c
 SRCS += third_party/tracy/TracyClient.cpp
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
@@ -264,7 +266,10 @@ endef
 
 regen-i18n:
 	find src -name *.cc -or -name *.c -or -name *.h | sort -u > pcsx-src-list.txt
-	xgettext --keyword=_,f_ --language=C++ --add-comments --sort-output -o i18n/pcsx-redux.pot --omit-header -f pcsx-src-list.txt
+	xgettext --keyword=_ --keyword=f_ --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
+	find src -name *.lua | sort -u > pcsx-src-list.txt
+	xgettext --keyword=t_ --language=Lua --join-existing --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
+	sed '/POT-Creation-Date/d' -i i18n/pcsx-redux.pot
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 

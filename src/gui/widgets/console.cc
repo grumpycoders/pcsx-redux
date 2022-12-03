@@ -31,26 +31,26 @@ void PCSX::Widgets::Console::draw(const char* title, GUI* gui) {
     }
 
     if (ImGui::BeginPopupContextItem()) {
-        if (ImGui::MenuItem("Close Console")) m_show = false;
+        if (ImGui::MenuItem(_("Close Console"))) m_show = false;
         ImGui::EndPopup();
     }
 
     ImGui::SameLine();
-    if (ImGui::SmallButton("Clear")) m_items.clear();
+    if (ImGui::SmallButton(_("Clear"))) m_items.clear();
     ImGui::SameLine();
-    bool copy_to_clipboard = ImGui::SmallButton("Copy");
+    bool copy_to_clipboard = ImGui::SmallButton(_("Copy"));
 
     ImGui::Separator();
 
     // Options menu
     if (ImGui::BeginPopup("Options")) {
-        ImGui::Checkbox("Auto-scroll", &m_autoScroll);
-        ImGui::Checkbox("Mono", &m_mono);
+        ImGui::Checkbox(_("Auto-scroll"), &m_autoScroll);
+        ImGui::Checkbox(_("Monospace"), &m_mono);
         ImGui::EndPopup();
     }
 
     // Options, Filter
-    if (ImGui::Button("Options")) ImGui::OpenPopup("Options");
+    if (ImGui::Button(_("Options"))) ImGui::OpenPopup("Options");
     ImGui::Separator();
 
     // Reserve enough left-over height for 1 separator + 1 input text
@@ -94,7 +94,7 @@ void PCSX::Widgets::Console::draw(const char* title, GUI* gui) {
     bool reclaim_focus = false;
     ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue |
                                            ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
-    if (ImGui::InputText("Input", &InputBuf, input_text_flags, &TextEditCallbackStub, (void*)this)) {
+    if (ImGui::InputText(_("Input"), &InputBuf, input_text_flags, &TextEditCallbackStub, (void*)this)) {
         m_items.push_back(std::make_pair(LineType::COMMAND, "# " + InputBuf));
 
         m_historyPos = -1;

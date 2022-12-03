@@ -123,7 +123,7 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
 
     ImGui::Checkbox(_("Follow"), &m_follow);
     ImGui::SameLine();
-    ImGui::Checkbox(_("Mono"), &m_mono);
+    ImGui::Checkbox(_("Monospace"), &m_mono);
     ImGui::SameLine();
     if (ImGui::Button(_("Clear"))) clear();
     ImGui::SameLine();

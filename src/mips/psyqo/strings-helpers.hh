@@ -31,6 +31,8 @@ SOFTWARE.
 
 namespace psyqo {
 
-static inline bool startsWith(const eastl::string_view &s1, const eastl::string_view &s2) { return s1.rfind(s2, 0) == 0; }
+static inline bool startsWith(const eastl::string_view &s1, const eastl::string_view &s2) {
+    return s1.rfind(s2, 0) == 0;
+}
 
-}  // namespace
+}  // namespace psyqo

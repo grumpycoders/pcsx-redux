@@ -119,90 +119,11 @@ void main() {
 }
 
 std::string_view PCSX::Shaders::CrtLottes::Output::lua() {
-    return R"(
-local locSrcSize = -1
-local locDstSize = -1
-local locWarp = -1
-local locMask = -1
-local locMaskType = -1
-local locGrey = -1
-
-local srcSize = { X = 0, Y = 0 }
-local dstSize = { X = 0, Y = 0 }
-
-function Reset()
-    warp = 1.0
-    mask = 0.5
-    masktype = 1
-    grey = false
-end
-
-function Constructor(shaderProgramID)
-    locSrcSize = gl.glGetUniformLocation(shaderProgramID, 'u_srcSize')
-    locDstSize = gl.glGetUniformLocation(shaderProgramID, 'u_dstSize')
-    locWarp = gl.glGetUniformLocation(shaderProgramID, 'u_warp')
-    locMask = gl.glGetUniformLocation(shaderProgramID, 'u_mask')
-    locMaskType = gl.glGetUniformLocation(shaderProgramID, 'u_masktype')
-    locGrey = gl.glGetUniformLocation(shaderProgramID, 'u_grey')
-    Reset()
-end
-Constructor(shaderProgramID)
-
-function Image(textureID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
-    srcSize.X = srcSizeX
-    srcSize.Y = srcSizeY
-    dstSize.X = dstSizeX
-    dstSize.Y = dstSizeY
-    imgui.Image(textureID, dstSizeX, dstSizeY, 0, 0, 1, 1)
-end
-
-function Draw()
-    if (not configureme) then return end
-    local shoulddraw, lc
-    local changed = false
-    shoulddraw, configureme = imgui.Begin("Output CRT Shader Configuration", true)
-    if (not shoulddraw) then
-        imgui.End()
-        return true
-    end
-
-    lc, warp = imgui.SliderFloat('Warp intensity', warp, 0.0, 8.0, '%0.3f')
-    if (lc) then changed = true end
-    lc, mask = imgui.SliderFloat('Mask intensity', mask, 0.0, 1.0, '%0.3f')
-    if (lc) then changed = true end
-    lc, grey = imgui.Checkbox('Greyscale', grey)
-    if (lc) then changed = true end
-    local masknames = {'Trinitron', 'Trinitron 2x', 'Trio'}
-    local maskname = masknames[masktype]
-    shoulddraw = imgui.BeginCombo('Mask type', maskname)
-    if (shoulddraw) then
-        for i = 1, 3 do
-            if (imgui.Selectable(masknames[i], i == masktype)) then
-                masktype = i
-                changed = true
-            end
-        end
-        imgui.EndCombo()
-    end
-
-    if (imgui.Button('Reset')) then
-        Reset()
-        changed = true
-    end
-
-    imgui.End()
-    return changed
-end
-
-function BindAttributes(textureID, shaderProgramID)
-    gl.glUniform2f(locSrcSize, srcSize.X, srcSize.Y)
-    gl.glUniform2f(locDstSize, dstSize.X, dstSize.Y)
-    gl.glUniform1f(locWarp, warp)
-    gl.glUniform1f(locMask, mask)
-    gl.glUniform1i(locMaskType, masktype)
-    gl.glUniform1i(locGrey, grey and 1 or 0)
-end
-)";
+    static int lualoader = 1;
+    static const char* lua = (
+#include "gui/shaders/crt-lottes-output.lua"
+    );
+    return lua;
 }
 
 std::string_view PCSX::Shaders::CrtLottes::Offscreen::vert() {
@@ -344,86 +265,9 @@ void main() {
 }
 
 std::string_view PCSX::Shaders::CrtLottes::Offscreen::lua() {
-    return R"(
-local locSrcLoc = -1
-local locSrcSize = -1
-local locDstSize = -1
-local locHardPix = -1
-local locHardScan = -1
-local locUseSrgb = -1
-local locEnabled = -1
-local locScanlines = -1
-
-function Reset()
-    hardPix = 1.5
-    hardScan = 4.5
-    useSrgb = false
-    enabled = true
-    scanlines = true
-    nearest = true
-end
-
-function Constructor(shaderProgramID)
-    locSrcLoc = gl.glGetUniformLocation(shaderProgramID, 'u_srcLoc')
-    locSrcSize = gl.glGetUniformLocation(shaderProgramID, 'u_srcSize')
-    locDstSize = gl.glGetUniformLocation(shaderProgramID, 'u_dstSize')
-    locHardPix = gl.glGetUniformLocation(shaderProgramID, 'u_hardPix')
-    locHardScan = gl.glGetUniformLocation(shaderProgramID, 'u_hardScan')
-    locUseSrgb = gl.glGetUniformLocation(shaderProgramID, 'u_useSrgb')
-    locEnabled = gl.glGetUniformLocation(shaderProgramID, 'u_enabled')
-    locScanlines = gl.glGetUniformLocation(shaderProgramID, 'u_scanlines')
-    Reset()
-end
-Constructor(shaderProgramID)
-
-function Draw()
-    if (not configureme) then return end
-    local shoulddraw, lc
-    local changed = false
-    shoulddraw, configureme = imgui.Begin("Offscreen CRT shader Configuration", true)
-    if (not shoulddraw) then
-        imgui.End()
-        return true
-    end
-
-    lc, enabled = imgui.Checkbox('Enable gaussian blur', enabled)
-    if (lc) then changed = true end
-    lc, hardPix = imgui.SliderFloat('Hard Pixel factor', hardPix, 0.0, 3, '%.3f')
-    if (lc) then changed = true end
-    lc, hardScan = imgui.SliderFloat('Hard Scanline factor', hardScan, 0.0, 20.0, '%.3f')
-    if (lc) then changed = true end
-    lc, scanlines = imgui.Checkbox('Enable Scanlines', scanlines)
-    if (lc) then changed = true end
-    lc, useSrgb = imgui.Checkbox('Use S-rgb', useSrgb)
-    if (lc) then changed = true end
-    lc, nearest = imgui.Checkbox('Use Nearest', nearest)
-    if (lc) then changed = true end
-
-    if (imgui.Button('Reset')) then
-        Reset()
-        changed = true
-    end
-
-    imgui.End()
-    return changed
-end
-
-function BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
-    gl.glUniform2f(locSrcLoc, srcLocX, srcLocY)
-    gl.glUniform2f(locSrcSize, srcSizeX, srcSizeY)
-    gl.glUniform2f(locDstSize, dstSizeX, dstSizeY)
-    gl.glUniform1f(locHardPix, -hardPix)
-    gl.glUniform1f(locHardScan, -hardScan)
-    gl.glUniform1i(locUseSrgb, useSrgb and 1 or 0)
-    gl.glUniform1i(locEnabled, enabled and 1 or 0)
-    gl.glUniform1f(locScanlines, scanlines)
-    if (nearest) then
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
-    else
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-    end
-end
-)";
+    static int lualoader = 1;
+    static const char* lua = (
+#include "gui/shaders/crt-lottes-offscreen.lua"
+    );
+    return lua;
 }

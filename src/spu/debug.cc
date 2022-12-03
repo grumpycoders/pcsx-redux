@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/system.h"
 #include "imgui.h"
 #include "spu/interface.h"
 
@@ -58,7 +59,7 @@ void PCSX::SPU::impl::debug() {
     if (!m_showDebug) return;
     ImGui::SetNextWindowPos(ImVec2(20, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1200, 430), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("SPU Debug", &m_showDebug)) {
+    if (!ImGui::Begin(_("SPU Debug"), &m_showDebug)) {
         ImGui::End();
         return;
     }
@@ -80,13 +81,13 @@ void PCSX::SPU::impl::debug() {
             }
         }
         ImGui::Columns(1);
-        if (ImGui::Button("Mute all", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0))) {
+        if (ImGui::Button(_("Mute all"), ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0))) {
             for (unsigned ch = 0; ch < MAXCHAN; ch++) {
                 s_chan[ch].data.get<Chan::Mute>().value = true;
             }
         }
         ImGui::SameLine();
-        if (ImGui::Button("Unmute all", ImVec2(-1, 0))) {
+        if (ImGui::Button(_("Unmute all"), ImVec2(-1, 0))) {
             for (unsigned ch = 0; ch < MAXCHAN; ch++) {
                 s_chan[ch].data.get<Chan::Mute>().value = false;
             }
@@ -100,10 +101,10 @@ void PCSX::SPU::impl::debug() {
 
         ImGui::BeginChild("##debugSPUright", ImVec2(0, 0), true);
         {
-            ImGui::Text("ADSR channel info");
+            ImGui::Text(_("ADSR channel info"));
             ImGui::Columns(2);
             {
-                ImGui::Text("Attack:\nDecay:\nSustain:\nRelease:");
+                ImGui::Text(_("Attack:\nDecay:\nSustain:\nRelease:"));
                 ImGui::SameLine();
                 ImGui::Text("%i\n%i\n%i\n%i", ADSRX.get<exAttackRate>().value ^ 0x7f,
                             (ADSRX.get<exDecayRate>().value ^ 0x1f) / 4, ADSRX.get<exSustainRate>().value ^ 0x7f,
@@ -111,7 +112,7 @@ void PCSX::SPU::impl::debug() {
             }
             ImGui::NextColumn();
             {
-                ImGui::Text("Sustain level:\nSustain inc:\nCurr adsr vol:\nRaw enveloppe");
+                ImGui::Text(_("Sustain level:\nSustain inc:\nCurr adsr vol:\nRaw enveloppe"));
                 ImGui::SameLine();
                 ImGui::Text("%i\n%i\n%i\n%08x", ADSRX.get<exSustainLevel>().value >> 27,
                             ADSRX.get<exSustainIncrease>().value, ADSRX.get<exVolume>().value,
@@ -119,10 +120,11 @@ void PCSX::SPU::impl::debug() {
             }
             ImGui::Columns(1);
             ImGui::Separator();
-            ImGui::Text("Generic channel info");
+            ImGui::Text(_("Generic channel info"));
             ImGui::Columns(2);
             {
-                ImGui::Text("On:\nStop:\nNoise:\nFMod:\nReverb:\nRvb active:\nRvb number:\nRvb offset:\nRvb repeat:");
+                ImGui::Text(
+                    _("On:\nStop:\nNoise:\nFMod:\nReverb:\nRvb active:\nRvb number:\nRvb offset:\nRvb repeat:"));
                 ImGui::SameLine();
                 ImGui::Text("%i\n%i\n%i\n%i\n%i\n%i\n%i\n%i\n%i", ch.data.get<Chan::On>().value,
                             ch.data.get<Chan::Stop>().value, ch.data.get<Chan::Noise>().value,
@@ -132,7 +134,7 @@ void PCSX::SPU::impl::debug() {
             }
             ImGui::NextColumn();
             {
-                ImGui::Text("Start pos:\nCurr pos:\nLoop pos:\n\nRight vol:\nLeft vol:\n\nAct freq:\nUsed freq:");
+                ImGui::Text(_("Start pos:\nCurr pos:\nLoop pos:\n\nRight vol:\nLeft vol:\n\nAct freq:\nUsed freq:"));
                 ImGui::SameLine();
                 ImGui::Text("%li\n%li\n%li\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", ch.pStart - spuMemC, ch.pCurr - spuMemC,
                             ch.pLoop - spuMemC, ch.data.get<Chan::RightVolume>().value,
@@ -144,7 +146,7 @@ void PCSX::SPU::impl::debug() {
             ImGui::BeginChild("##debugSPUXA", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0), true);
             {
                 ImGui::Text("XA");
-                ImGui::Text("Freq:\nStereo:\nSamples:\nVolume:\n");
+                ImGui::Text(_("Freq:\nStereo:\nSamples:\nVolume:\n"));
                 ImGui::SameLine();
                 ImGui::Text("%i\n%i\n%i\n%5i  %5i", xapGlobal ? xapGlobal->freq : 0, xapGlobal ? xapGlobal->stereo : 0,
                             xapGlobal ? xapGlobal->nsamples : 0, iLeftXAVol, iRightXAVol);
@@ -153,8 +155,8 @@ void PCSX::SPU::impl::debug() {
             ImGui::SameLine();
             ImGui::BeginChild("##debugSPUstate", ImVec2(0, 0), true);
             {
-                ImGui::Text("Spu states");
-                ImGui::Text("Irq addr:\nCtrl:\nStat:\nSpu mem:");
+                ImGui::Text(_("Spu states"));
+                ImGui::Text(_("Irq addr:\nCtrl:\nStat:\nSpu mem:"));
                 ImGui::SameLine();
                 ImGui::Text("%li\n%04x\n%04x\n%i", pSpuIrq ? -1 : pSpuIrq - spuMemC, spuCtrl, spuStat, spuAddr);
             }

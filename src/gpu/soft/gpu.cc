@@ -914,15 +914,23 @@ bool PCSX::SoftGPU::impl::configure() {
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-    static const char *ditherValues[] = {"No dithering (fastest)", "Game-dependent dithering (slow)",
-                                         "Always dither g-shaded polygons (slowest)"};
+    static const std::function<const char *()> ditherValues[] = {
+        []() { return _("No dithering (fastest)"); },
+        []() { return _("Game-dependent dithering (slow)"); },
+        []() { return _("Always dither g-shaded polygons (slowest)"); },
+    };
 
     if (ImGui::Begin(_("Soft GPU configuration"), &m_showCfg)) {
-        if (ImGui::Combo("Dithering", &m_softPrim.m_useDither, ditherValues, 3)) {
-            changed = true;
-            g_emulator->settings.get<Emulator::SettingDither>() = m_softPrim.m_useDither;
+        if (ImGui::BeginCombo(_("Dithering"), ditherValues[m_softPrim.m_useDither]())) {
+            for (int n = 0; n < IM_ARRAYSIZE(ditherValues); n++) {
+                if (ImGui::Selectable(ditherValues[n](), n == m_softPrim.m_useDither)) {
+                    m_softPrim.m_useDither = n;
+                    g_emulator->settings.get<Emulator::SettingDither>() = m_softPrim.m_useDither;
+                    changed = true;
+                }
+            }
+            ImGui::EndCombo();
         }
-
         if (ImGui::Checkbox(_("Use linear filtering"),
                             &g_emulator->settings.get<Emulator::SettingLinearFiltering>().value)) {
             changed = true;
@@ -937,8 +945,9 @@ bool PCSX::SoftGPU::impl::configure() {
 void PCSX::SoftGPU::impl::debug() {
     if (ImGui::Begin(_("Soft GPU debugger"), &m_showDebug)) {
         ImGui::Text(
-            _("Debugging featurs are not supported when using the software renderer yet\nConsider enabling the OpenGL "
-              "GPU option instead"));
+            _("Debugging features are not supported when using the software renderer yet\nConsider enabling the "
+              "OpenGL "
+              "GPU option instead."));
         ImGui::End();
     }
 }
