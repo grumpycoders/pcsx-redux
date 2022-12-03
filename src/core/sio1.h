@@ -37,15 +37,14 @@ namespace PCSX {
 
 struct SIO1Registers {
     uint32_t data;
-    uint32_t status;
+    uint16_t status;
     uint16_t mode;
     uint16_t control;
     uint16_t baud;
 };
 
-typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("dxr"), 1> FlowControlDXR;
-typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("xts"), 2> FlowControlXTS;
-typedef Protobuf::Message<TYPESTRING("FlowControl"), FlowControlDXR, FlowControlXTS> FlowControl;
+typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("flow_control_reg"), 1> FlowControlReg;
+typedef Protobuf::Message<TYPESTRING("FlowControl"), FlowControlReg> FlowControl;
 typedef Protobuf::MessageField<FlowControl, TYPESTRING("flow_control"), 2> FlowControlField;
 typedef Protobuf::Field<Protobuf::Bytes, TYPESTRING("data"), 1> DataTransferData;
 typedef Protobuf::Message<TYPESTRING("DataTransfer"), DataTransferData> DataTransfer;
@@ -61,8 +60,6 @@ class SIO1 {
     /*
      * TODO:
      * STAT Baudrate timer
-     * Implement TX interrupts
-     * Implement DSR interrupts
      * Add/verify cases for all R/W functions exist in psxhw.cpp
      */
 
@@ -92,14 +89,14 @@ class SIO1 {
         m_regs.baud = 0;
         m_decodeState = READ_SIZE;
         messageSize = 0;
-        initialMessage = true;
+        m_slaveDelay = true;
         g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
     }
 
     void stopSIO1Connection() {
         m_decodeState = READ_SIZE;
         messageSize = 0;
-        initialMessage = true;
+        m_slaveDelay = true;
         if (m_sio1fifo.isA<Fifo>()) {
             m_sio1fifo.asA<Fifo>()->reset();
         } else if (m_sio1fifo) {
@@ -127,58 +124,44 @@ class SIO1 {
         }
     }
 
-    uint8_t readBaud8() { return m_regs.baud; }
     uint16_t readBaud16() { return m_regs.baud; }
 
-    uint8_t readCtrl8() { return m_regs.control; }
-    uint16_t readCtrl16() { return m_regs.control; }
+    uint16_t readCtrl16() {
+        if (m_sio1Mode == SIO1Mode::Protobuf) sio1StateMachine();
+        return m_regs.control;
+    }
 
     uint8_t readData8();
     uint16_t readData16();
     uint32_t readData32();
 
-    uint8_t readMode8() { return m_regs.mode; }
     uint16_t readMode16() { return m_regs.mode; }
 
-    uint8_t readStat8();
     uint16_t readStat16();
     uint32_t readStat32();
 
-    void writeBaud8(uint8_t v) { writeBaud16(v); }
     void writeBaud16(uint16_t v);
-
-    void writeCtrl8(uint8_t v) { writeCtrl16(v); }
     void writeCtrl16(uint16_t v);
 
     void writeData8(uint8_t v);
-    void writeData16(uint16_t v) {
-        writeData8(v);
-        writeData8(v >> 8);
-    }
-    void writeData32(uint32_t v) {
-        writeData8(v);
-        writeData8(v >> 8);
-        writeData8(v >> 16);
-        writeData8(v >> 24);
-    }
+    void writeData16(uint16_t v) { writeData8(v & 0xff); }
+    void writeData32(uint32_t v) { writeData8(v & 0xff); }
 
-    void writeMode8(uint8_t v) { writeMode16(v); };
     void writeMode16(uint16_t v);
-
-    void writeStat8(uint8_t v) { writeStat32(v); }
-    void writeStat16(uint16_t v) { writeStat32(v); }
-    void writeStat32(uint32_t v);
+    void writeStat16(uint16_t v);
+    void writeStat32(uint32_t v) { writeStat16(v); };
 
     void receiveCallback();
-    void sio1StateMachine();
+    void sio1StateMachine(bool data = false);
 
     SIO1Registers m_regs;
 
   private:
     uint8_t messageSize = 0;
+    bool m_slaveDelay = true;
     uint64_t m_cycleCount = 2352;  // Default to cycles for 115200 baud
     uint64_t m_baudRate = 115200;  // Default to 115200 baud
-    bool initialMessage = true;
+
     SIOPayload makeDataMessage(std::string &&data);
     SIOPayload makeFlowControlMessage();
     std::string encodeMessage(SIOPayload message);
@@ -188,19 +171,29 @@ class SIO1 {
     void decodeMessage();
     void processMessage(SIOPayload payload);
     void calcCycleCount();
+    void updateStat();
+    void transmitData();
+    bool isTransmitReady();
 
-    struct flowControl {
-        bool dxr;
-        bool xts;
-        auto operator<=>(const flowControl &) const = default;
-    };
+    inline void slaveDelay() {
+        uint16_t ctrl = CR_DTR | CR_RTS;
+        SIOPayload payload = {
+            DataTransfer{},
+            FlowControl{ctrl},
+        };
+        for (int i = 0; i < 4; ++i) {
+            std::string message = encodeMessage(payload);
+            transmitMessage(std::move(message));
+        }
+        m_slaveDelay = false;
+    }
 
-    flowControl m_flowControl = {};
-    flowControl m_prevFlowControl = {};
-
-    inline void pollFlowControl() {
-        m_flowControl.dxr = (m_regs.control & CR_DTR);
-        m_flowControl.xts = (m_regs.control & CR_RTS);
+    inline void waitOnMessage() {
+        while (m_fifo->size() == 0)
+            ;                          // Wait for the next message to force sync
+        messageSize = m_fifo->byte();  // Retrieve size of message
+        while (m_fifo->size() < messageSize)
+            ;  // Wait until full message has been received
     }
 
     inline void setDsr(bool value) {
@@ -258,10 +251,6 @@ class SIO1 {
     enum { READ_SIZE, READ_MESSAGE } m_decodeState = READ_SIZE;
 
     inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
-
-    void updateStat();
-    void transmitData();
-    bool isTransmitReady();
 
     IO<File> m_fifo;
     IO<File> m_sio1fifo;
