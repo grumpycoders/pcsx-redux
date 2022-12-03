@@ -22,7 +22,13 @@
 #include <GL/gl3w.h>
 #include <stdarg.h>
 
+#include <functional>
+#include <map>
+#include <set>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "core/system.h"
 #include "flags.h"
@@ -114,11 +120,13 @@ class GUI final {
     // imgui can't handle more than one "instance", so...
     static GUI *s_gui;
     void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
+    void (*m_onChangedViewportOldCallback)(ImGuiViewport *viewport) = nullptr;
     static void glfwKeyCallbackTrampoline(GLFWwindow *window, int key, int scancode, int action, int mods) {
         s_gui->glfwKeyCallback(window, key, scancode, action, mods);
     }
     void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
+    void changeScale(float scale);
     bool m_onlyLogGLErrors = false;
     std::vector<std::string> m_glErrors;
 
@@ -361,9 +369,12 @@ class GUI final {
     bool m_reportGLErrors = false;
     std::string m_imguiUserError;
 
-    ImFont *m_mainFont;
-    ImFont *m_monoFont;
+    std::map<float, ImFont *> m_mainFonts;
+    std::map<float, ImFont *> m_monoFonts;
+    ImFont *findClosestFont(const std::map<float, ImFont *> &fonts);
+    std::set<float> m_allScales;
     bool m_hasJapanese = false;
+    float m_currentScale = 1.0f;
 
     ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
 
@@ -382,7 +393,10 @@ class GUI final {
     bool m_setupScreenSize = true;
     bool m_clearTextures = true;
     Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
-    ImFont *getMono() { return m_monoFont ? m_monoFont : ImGui::GetIO().Fonts[0].Fonts[0]; }
+    ImFont *getMainFont() { return findClosestFont(m_mainFonts); }
+    ImFont *getMonoFont() { return findClosestFont(m_monoFonts); }
+    void useMainFont() { ImGui::PushFont(getMainFont()); }
+    void useMonoFont() { ImGui::PushFont(getMonoFont()); }
 
     struct {
         bool empty() const { return filename.empty(); }
@@ -402,8 +416,6 @@ class GUI final {
     } m_exeToLoad;
 
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
-    void useMainFont() { ImGui::PushFont(m_mainFont); }
-    void useMonoFont() { ImGui::PushFont(m_monoFont); }
 
     void drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end,
                          ImVec4 innerColor = {1.0f, 1.0f, 1.0f, 1.0f}, ImVec4 outerColor = {0.5f, 0.5f, 0.5f, 1.0f});
