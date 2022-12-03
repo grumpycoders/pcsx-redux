@@ -61,7 +61,7 @@ void PCSX::Widgets::ZepEditor::draw(GUI* gui) {
         m_dpiScale = dpiScale;
         auto& display = m_editor->GetDisplay();
         display.SetPixelScale(Zep::NVec2f(dpiScale));
-        auto font = gui->getMono();
+        auto font = gui->getMonoFont();
         int fontPixelHeight = (int)dpi_pixel_height_from_point_size(14.0f, dpiScale);
 
         display.SetFont(Zep::ZepTextType::UI, std::make_shared<Zep::ZepFont_ImGui>(display, font, fontPixelHeight));

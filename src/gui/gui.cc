@@ -493,7 +493,7 @@ void PCSX::GUI::init() {
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
-    io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
+    // io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 
     ImGui_ImplGlfw_InitForOpenGL(m_window, true);
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
@@ -505,11 +505,16 @@ void PCSX::GUI::init() {
     };
     m_createWindowOldCallback = platform_io.Platform_CreateWindow;
     platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
-        s_gui->m_createWindowOldCallback(viewport);
+        if (s_gui->m_createWindowOldCallback) s_gui->m_createWindowOldCallback(viewport);
         // absolutely horrendous hack, but the only way we have to grab the
         // newly created GLFWwindow pointer...
         auto window = *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
         glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
+    };
+    m_onChangedViewportOldCallback = platform_io.Platform_OnChangedViewport;
+    platform_io.Platform_OnChangedViewport = [](ImGuiViewport* viewport) {
+        if (s_gui->m_onChangedViewportOldCallback) s_gui->m_onChangedViewportOldCallback(viewport);
+        s_gui->changeScale(viewport->DpiScale);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     // Some bad GPU drivers (*cough* Intel) don't like mixed shaders versions,
@@ -649,13 +654,13 @@ void PCSX::GUI::close() {
 void PCSX::GUI::saveCfg() {
     std::ofstream cfg("pcsx.json");
     json j;
-   
+
     if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
         m_glfwPosX = settings.get<WindowPosX>();
         m_glfwPosY = settings.get<WindowPosY>();
         m_glfwSizeX = settings.get<WindowSizeX>();
         m_glfwSizeY = settings.get<WindowSizeY>();
-    } else {  
+    } else {
         glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
         glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
     }
@@ -731,23 +736,29 @@ void PCSX::GUI::startFrame() {
 
     if (m_reloadFonts) {
         m_reloadFonts = false;
+        auto scales = m_allScales;
+        if (scales.empty()) scales.emplace(1.0f);
 
         ImGui_ImplOpenGL3_DestroyFontsTexture();
+        m_mainFonts.clear();
+        m_monoFonts.clear();
 
         io.Fonts->Clear();
         io.Fonts->AddFontDefault();
-        m_mainFont = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value, io,
-                              g_system->getLocaleRanges());
-        for (auto e : g_system->getLocaleExtra()) {
-            loadFont(e.first, settings.get<MainFontSize>().value, io, e.second, true);
+        for (auto& scale : scales) {
+            m_mainFonts[scale] = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value * scale,
+                                          io, g_system->getLocaleRanges());
+            for (auto e : g_system->getLocaleExtra()) {
+                loadFont(e.first, settings.get<MainFontSize>().value * scale, io, e.second, true);
+            }
+            // try loading the japanese font for memory card manager
+            m_hasJapanese = loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MainFontSize>().value * scale,
+                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true);
+            m_monoFonts[scale] =
+                loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale, io, nullptr);
         }
-        // try loading the japanese font for memory card manager
-        m_hasJapanese = loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MainFontSize>().value, io,
-                                 reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true);
-        m_monoFont = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value, io, nullptr);
         io.Fonts->Build();
-        io.FontDefault = m_mainFont;
-
+        io.FontDefault = m_mainFonts.begin()->second;
         ImGui_ImplOpenGL3_CreateFontsTexture();
     }
 
@@ -2225,4 +2236,30 @@ void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2,
     nvgStroke(vg);
 
     nvgRestore(vg);
+}
+
+ImFont* PCSX::GUI::findClosestFont(const std::map<float, ImFont*>& fonts) {
+    if (fonts.empty()) return ImGui::GetIO().Fonts[0].Fonts[0];
+    float scale = m_currentScale;
+    auto it = fonts.find(scale);
+    if (it != fonts.end()) return it->second;
+
+    m_reloadFonts = true;
+    float currentDistance = 9999.0f;
+    ImFont* currentFont = nullptr;
+    for (auto& font : fonts) {
+        float d = fabs(font.first - scale);
+        if (d < currentDistance) {
+            currentDistance = d;
+            currentFont = font.second;
+        }
+    }
+
+    return currentFont;
+}
+
+void PCSX::GUI::changeScale(float scale) {
+    m_currentScale = scale;
+    m_allScales.emplace(scale);
+    ImGui::SetCurrentFont(getMainFont());
 }
