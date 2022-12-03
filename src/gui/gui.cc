@@ -1141,6 +1141,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
                     m_setupScreenSize = true;
                 }
+                if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
+                    setFullscreen(m_fullscreen);
+                    m_setupScreenSize = true;
+                }
                 ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
                 ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
                 ImGui::EndMenu();
