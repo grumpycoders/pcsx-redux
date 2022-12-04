@@ -379,9 +379,6 @@ void PCSX::CDRIso::close() {
     for (int i = 1; i <= m_numtracks; i++) {
         if (m_ti[i].handle) {
             m_ti[i].handle.reset();
-            if (m_ti[i].decoded_buffer) {
-                free(m_ti[i].decoded_buffer);
-            }
             m_ti[i].cddatype = trackinfo::NONE;
         }
     }
@@ -544,11 +541,6 @@ bool PCSX::CDRIso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
         for (file = track; file > 1; file--) {
             if (m_ti[file].handle) break;
         }
-    }
-
-    /* Need to decode audio track first if compressed still (lazy) */
-    if (m_ti[file].cddatype > trackinfo::BIN) {
-        do_decode_cdda(&(m_ti[file]), file);
     }
 
     ret = (*this.*m_cdimg_read_func)(m_ti[file].handle, m_ti[track].start_offset, buffer, lba - track_start);

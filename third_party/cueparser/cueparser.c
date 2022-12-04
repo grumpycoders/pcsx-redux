@@ -376,10 +376,12 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     case KW_EMPTY:
                         end_parse(parser, scheduler, "cuesheet FILE missing its filetype argument");
                         return;
+                        break;
                     case KW_BINARY:
                         parser->currentFileType = CUE_FILE_TYPE_BINARY;
-                        parser->currentFile->size(parser->currentFile, scheduler, size_cb);
+                        parser->currentFile->size(parser->currentFile, scheduler, 0, size_cb);
                         return;
+                        break;
                     case KW_MOTOROLA:
                         parser->currentFileType = CUE_FILE_TYPE_MOTOROLA;
                         end_parse(parser, scheduler, "cuesheet FILETYPE MOTOROLA not supported at the moment");
@@ -392,12 +394,12 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                         break;
                     case KW_WAVE:
                         parser->currentFileType = CUE_FILE_TYPE_WAVE;
-                        end_parse(parser, scheduler, "cuesheet FILETYPE WAVE not supported at the moment");
+                        parser->currentFile->size(parser->currentFile, scheduler, 1, size_cb);
                         return;
                         break;
                     case KW_MP3:
                         parser->currentFileType = CUE_FILE_TYPE_MP3;
-                        end_parse(parser, scheduler, "cuesheet FILETYPE MP3 not supported at the moment");
+                        parser->currentFile->size(parser->currentFile, scheduler, 1, size_cb);
                         return;
                         break;
                     default:
@@ -442,6 +444,7 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     return;
                 }
                 track->indexCount = indexNum;
+                track->compressed = parser->currentFileType != CUE_FILE_TYPE_BINARY;
                 parser->state = CUE_PARSER_INDEX_TIMECODE;
             } break;
             case CUE_PARSER_INDEX_TIMECODE: {
@@ -572,8 +575,9 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     track->postgap = 0;
                     track->size = 0;
                     track->trackType = TRACK_TYPE_UNKNOWN;
+                    track->compressed = 0;
                     if (parser->isTrackANewFile) {
-                        parser->currentSectorNumber += parser->previousFileSize / 2352;
+                        parser->currentSectorNumber += (parser->previousFileSize + 2351) / 2352;
                         parser->isTrackANewFile = 0;
                         track->fileOffset = parser->currentSectorNumber;
                     } else {
@@ -660,7 +664,7 @@ static void parse_eof(struct CueParser* parser, struct CueScheduler* scheduler) 
         struct CueTrack* track = &parser->disc->tracks[i];
         prevTrack->size = track->indices[0] - prevTrack->indices[0];
     }
-    parser->currentSectorNumber += parser->currentFileSize / 2352;
+    parser->currentSectorNumber += (parser->currentFileSize + 2351) / 2352;
     struct CueTrack* track = &parser->disc->tracks[parser->disc->trackCount];
     track->size = parser->currentSectorNumber - track->indices[0];
     end_parse(parser, scheduler, NULL);

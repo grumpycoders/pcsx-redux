@@ -60,8 +60,6 @@ class CDRIso {
     unsigned m_cdrIsoMultidiskCount;
     unsigned m_cdrIsoMultidiskSelect;
 
-    int get_compressed_cdda_track_length(const char* filepath);
-
     bool CheckSBI(const uint8_t* time);
 
   private:
@@ -138,9 +136,6 @@ class CDRIso {
         IEC60908b::MSF length;
         IO<File> handle = nullptr;                                         // for multi-track images CDDA
         enum cddatype_t { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;  // BIN, WAV, MP3, APE
-        char* decoded_buffer = nullptr;
-        uint32_t len_decoded_buffer = 0;
-        char filepath[256] = {0};
         uint32_t start_offset = 0;  // byte offset from start of above file
     };
 
@@ -154,7 +149,6 @@ class CDRIso {
     PPF m_ppf;
 
     void decodeRawSubData();
-    int do_decode_cdda(struct trackinfo* tri, uint32_t tracknumber);
     bool parsetoc(const char* isofile);
     bool parsecue(const char* isofile);
     bool parseccd(const char* isofile);

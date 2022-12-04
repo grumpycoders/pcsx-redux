@@ -56,6 +56,7 @@ struct CueTrack {
                                  // the lead-in isn't taken into account
     uint32_t postgap;            // size of the postgap in sectors
     enum CueTrackType trackType;
+    int compressed;
 };
 
 struct CueDisc {

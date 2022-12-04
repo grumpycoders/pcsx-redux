@@ -36,9 +36,6 @@
     <ClCompile Include="..\..\src\cdrom\cdriso-ecm.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\cdrom\cdriso-ffmpeg.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\cdrom\cdriso-mds.cc">
       <Filter>Source Files</Filter>
     </ClCompile>

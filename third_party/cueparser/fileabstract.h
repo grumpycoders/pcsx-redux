@@ -37,7 +37,8 @@ struct CueScheduler;
 struct CueFile {
     void (*destroy)(struct CueFile *);
     void (*close)(struct CueFile *, struct CueScheduler *, void (*)(struct CueFile *, struct CueScheduler *));
-    void (*size)(struct CueFile *, struct CueScheduler *, void (*)(struct CueFile *, struct CueScheduler *, uint64_t));
+    void (*size)(struct CueFile *, struct CueScheduler *, int compressed,
+                 void (*)(struct CueFile *, struct CueScheduler *, uint64_t));
     void (*read)(struct CueFile *, struct CueScheduler *, uint32_t amount, uint64_t cursor, uint8_t *buffer,
                  void (*)(struct CueFile *, struct CueScheduler *, int error, uint32_t amount, uint8_t *buffer));
     void (*write)(struct CueFile *, struct CueScheduler *, uint32_t amount, uint64_t cursor, const uint8_t *buffer,

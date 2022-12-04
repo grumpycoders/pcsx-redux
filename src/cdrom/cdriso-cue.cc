@@ -23,6 +23,7 @@
 #include "cueparser/disc.h"
 #include "cueparser/fileabstract.h"
 #include "cueparser/scheduler.h"
+#include "support/ffmpeg-audio-file.h"
 
 // this function tries to get the .cue file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
@@ -83,9 +84,17 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
             fi->close();
             File_schedule_close(file, scheduler, cb);
         };
-        file->size = [](CueFile *file, CueScheduler *scheduler, void (*cb)(CueFile *, CueScheduler *, uint64_t)) {
+        file->size = [](CueFile *file, CueScheduler *scheduler, int compressed,
+                        void (*cb)(CueFile *, CueScheduler *, uint64_t)) {
             UvFile *fi = reinterpret_cast<UvFile *>(file->opaque);
-            File_schedule_size(file, scheduler, fi->size(), cb);
+            if (compressed) {
+                FFmpegAudioFile *cfi = new FFmpegAudioFile(fi, FFmpegAudioFile::CHANNELS_STEREO,
+                                                           FFmpegAudioFile::ENDIANNESS_LITTLE, 44100);
+                file->opaque = cfi;
+                File_schedule_size(file, scheduler, cfi->size(), cb);
+            } else {
+                File_schedule_size(file, scheduler, fi->size(), cb);
+            }
         };
         file->read = [](CueFile *file, CueScheduler *scheduler, uint32_t amount, uint64_t cursor, uint8_t *buffer,
                         void (*cb)(CueFile *, CueScheduler *, int error, uint32_t amount, uint8_t *buffer)) {
@@ -151,10 +160,10 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
 
     for (unsigned i = 1; i <= disc.trackCount; i++) {
         CueTrack *track = &disc.tracks[i];
-        UvFile *fi = reinterpret_cast<UvFile *>(track->file->opaque);
+        File *fi = reinterpret_cast<File *>(track->file->opaque);
         m_ti[i].handle.setFile(new SubFile(fi, (track->indices[1] - track->fileOffset) * 2352, track->size * 2352));
         m_ti[i].type = track->trackType == TRACK_TYPE_AUDIO ? TrackType::CDDA : TrackType::DATA;
-        m_ti[i].cddatype = trackinfo::BIN;
+        m_ti[i].cddatype = track->compressed ? trackinfo::CCDDA : trackinfo::BIN;
         m_ti[i].start = IEC60908b::MSF(track->indices[1]);
         m_ti[i].pregap = IEC60908b::MSF(track->indices[1] - track->indices[0]);
         m_ti[i].length = IEC60908b::MSF(track->size);

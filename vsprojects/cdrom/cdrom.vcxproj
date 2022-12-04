@@ -285,7 +285,6 @@
     <ClCompile Include="..\..\src\cdrom\cdriso-ccd.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-cue.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-ecm.cc" />
-    <ClCompile Include="..\..\src\cdrom\cdriso-ffmpeg.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-mds.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-pbp.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-sbi.cc" />
