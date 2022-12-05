@@ -1131,6 +1131,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
                 ImGui::Separator();
+                ImGui::MenuItem(_("Show Iso Browser"), nullptr, &m_isoBrowser.m_show);
+                ImGui::Separator();
                 if (ImGui::MenuItem(_("Start GPU dump"))) {
                     PCSX::g_emulator->m_gpu->startDump();
                 }
@@ -1348,6 +1350,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_sio1.draw(this, &PCSX::g_emulator->m_sio1->m_regs, _("SIO1 Debug"));
     }
 
+    if (m_isoBrowser.m_show) {
+        m_isoBrowser.draw(g_emulator->m_cdrom.get(), _("ISO Browser"));
+    }
+
     if (m_showCfg) changed |= configure();
     if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();
     g_emulator->m_spu->debug();
@@ -1520,7 +1526,7 @@ the update and manually apply it.)")));
             ImGui::Text(_("Write rate: %s"), rate.c_str());
             byteRateToString(UvFile::getDownloadRate(), rate);
             ImGui::Text(_("Download rate: %s"), rate.c_str());
-            if (ImGui::BeginTable("UvFiles", 2)) {
+            if (ImGui::BeginTable("UvFiles", 2, ImGuiTableFlags_Resizable)) {
                 ImGui::TableSetupColumn(_("Caching"));
                 ImGui::TableSetupColumn(_("Filename"));
                 ImGui::TableHeadersRow();

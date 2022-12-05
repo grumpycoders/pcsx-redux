@@ -285,7 +285,6 @@
     <ClCompile Include="..\..\src\cdrom\cdriso-ccd.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-cue.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-ecm.cc" />
-    <ClCompile Include="..\..\src\cdrom\cdriso-ffmpeg.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-mds.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-pbp.cc" />
     <ClCompile Include="..\..\src\cdrom\cdriso-sbi.cc" />
@@ -295,6 +294,9 @@
     <ClCompile Include="..\..\src\cdrom\iec-60908b.cc" />
     <ClCompile Include="..\..\src\cdrom\iso9660-reader.cc" />
     <ClCompile Include="..\..\src\cdrom\ppf.cc" />
+    <ClCompile Include="..\..\third_party\cueparser\cueparser.c" />
+    <ClCompile Include="..\..\third_party\cueparser\fileabstract.c" />
+    <ClCompile Include="..\..\third_party\cueparser\scheduler.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\cdrom\cdriso.h" />
@@ -304,20 +306,24 @@
     <ClInclude Include="..\..\src\cdrom\iso9660-lowlevel.h" />
     <ClInclude Include="..\..\src\cdrom\iso9660-reader.h" />
     <ClInclude Include="..\..\src\cdrom\ppf.h" />
+    <ClInclude Include="..\..\third_party\cueparser\cueparser.h" />
+    <ClInclude Include="..\..\third_party\cueparser\disc.h" />
+    <ClInclude Include="..\..\third_party\cueparser\fileabstract.h" />
+    <ClInclude Include="..\..\third_party\cueparser\scheduler.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets" Condition="Exists('..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets')" />
     <Import Project="..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets')" />
+    <Import Project="..\packages\libFFmpeg-lite.lgpl2.native.5.1.2\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\packages\libFFmpeg-lite.lgpl2.native.5.1.2\build\native\libffmpeg-lite.lgpl2.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\FFmpeg.Nightly.20200831.1.0\build\native\FFmpeg.Nightly.targets'))" />
     <Error Condition="!Exists('..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets'))" />
+    <Error Condition="!Exists('..\packages\libFFmpeg-lite.lgpl2.native.5.1.2\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\libFFmpeg-lite.lgpl2.native.5.1.2\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
   </Target>
 </Project>

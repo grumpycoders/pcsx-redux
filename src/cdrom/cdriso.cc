@@ -251,10 +251,12 @@ uint8_t *PCSX::CDRIso::getBuffer() {
 
 void PCSX::CDRIso::printTracks() {
     for (int i = 1; i <= m_numtracks; i++) {
-        PCSX::g_system->printf(
-            _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
-            (m_ti[i].type == TrackType::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
-            m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s, m_ti[i].length.f);
+        PCSX::g_system->printf(_("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
+                               (m_ti[i].type == TrackType::DATA        ? "DATA"
+                                : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA"
+                                                                       : "CDDA"),
+                               m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s,
+                               m_ti[i].length.f);
     }
 }
 
@@ -284,6 +286,10 @@ bool PCSX::CDRIso::open(void) {
 
     m_useCompressed = false;
     m_cdimg_read_func = &CDRIso::cdread_normal;
+
+    for (auto &i : m_ti) {
+        i = {};
+    }
 
     if (parsecue(reinterpret_cast<const char *>(m_isoPath.string().c_str()))) {
         PCSX::g_system->printf("[+cue]");
@@ -333,6 +339,9 @@ bool PCSX::CDRIso::open(void) {
         m_numtracks = 1;
         m_ti[1].type = TrackType::DATA;
         m_ti[1].start = IEC60908b::MSF(0, 2, 0);
+        m_ti[1].pregap = IEC60908b::MSF(0, 0, 0);
+        m_ti[1].handle = m_cdHandle;
+        m_ti[1].length = IEC60908b::MSF(m_ti[1].handle->size() / 2352);
     }
 
     if (m_ppf.load(m_isoPath)) {
@@ -372,9 +381,6 @@ void PCSX::CDRIso::close() {
     for (int i = 1; i <= m_numtracks; i++) {
         if (m_ti[i].handle) {
             m_ti[i].handle.reset();
-            if (m_ti[i].decoded_buffer) {
-                free(m_ti[i].decoded_buffer);
-            }
             m_ti[i].cddatype = trackinfo::NONE;
         }
     }
@@ -398,10 +404,30 @@ void PCSX::CDRIso::close() {
 PCSX::IEC60908b::MSF PCSX::CDRIso::getTD(uint8_t track) {
     if (track == 0) {
         unsigned int sect;
+        sect = m_ti[m_numtracks].start.toLBA() + m_ti[m_numtracks].length.toLBA() - m_ti[m_numtracks].pregap.toLBA();
+        return IEC60908b::MSF(sect);
+    } else if (m_numtracks > 0 && track <= m_numtracks) {
+        return IEC60908b::MSF(m_ti[track].start.toLBA());
+    }
+    return IEC60908b::MSF(0, 2, 0);
+}
+
+PCSX::IEC60908b::MSF PCSX::CDRIso::getLength(uint8_t track) {
+    if (track == 0) {
+        unsigned int sect;
         sect = m_ti[m_numtracks].start.toLBA() + m_ti[m_numtracks].length.toLBA();
         return IEC60908b::MSF(sect);
     } else if (m_numtracks > 0 && track <= m_numtracks) {
-        return m_ti[track].start;
+        return m_ti[track].length;
+    }
+    return IEC60908b::MSF(0, 0, 0);
+}
+
+PCSX::IEC60908b::MSF PCSX::CDRIso::getPregap(uint8_t track) {
+    if (track <= 1) {
+        return IEC60908b::MSF(0, 0, 0);
+    } else if (m_numtracks > 0 && track <= m_numtracks) {
+        return m_ti[track].pregap;
     }
     return IEC60908b::MSF(0, 2, 0);
 }
@@ -462,10 +488,14 @@ unsigned PCSX::CDRIso::readSectors(uint32_t lba, void *buffer_, unsigned count) 
 
     for (unsigned i = 0; i < count; i++) {
         auto ptr = buffer + actual * IEC60908b::FRAMESIZE_RAW;
-        IEC60908b::MSF time(lba + 150);
-        long ret = (*this.*m_cdimg_read_func)(m_cdHandle, 0, ptr, lba++);
-        m_ppf.maybePatchSector(ptr, time);
-        if (ret < 0) return actual;
+        if (lba < m_ti[1].length.toLBA()) {
+            IEC60908b::MSF time(lba + 150);
+            long ret = (*this.*m_cdimg_read_func)(m_cdHandle, 0, ptr, lba++);
+            m_ppf.maybePatchSector(ptr, time);
+            if (ret < 0) return actual;
+        } else {
+            if (!readCDDA(IEC60908b::MSF(lba++), ptr)) return actual;
+        }
         actual++;
     }
 
@@ -486,17 +516,23 @@ bool PCSX::CDRIso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
     unsigned int file, track, track_start = 0;
     int ret;
 
-    m_cddaCurPos = msf.toLBA();
+    uint32_t lba = msf.toLBA();
 
     // find current track index
     for (track = m_numtracks;; track--) {
         track_start = m_ti[track].start.toLBA();
-        if (track_start <= m_cddaCurPos) break;
+        if (track_start <= lba) break;
         if (track == 1) break;
     }
 
     // data tracks play silent
     if (m_ti[track].type != TrackType::CDDA) {
+        memset(buffer, 0, IEC60908b::FRAMESIZE_RAW);
+        return true;
+    }
+
+    // if above the track's end (likely next track's pregap), play silence
+    if (lba >= (track_start + m_ti[track].length.toLBA())) {
         memset(buffer, 0, IEC60908b::FRAMESIZE_RAW);
         return true;
     }
@@ -509,12 +545,7 @@ bool PCSX::CDRIso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
         }
     }
 
-    /* Need to decode audio track first if compressed still (lazy) */
-    if (m_ti[file].cddatype > trackinfo::BIN) {
-        do_decode_cdda(&(m_ti[file]), file);
-    }
-
-    ret = (*this.*m_cdimg_read_func)(m_ti[file].handle, m_ti[track].start_offset, buffer, m_cddaCurPos - track_start);
+    ret = (*this.*m_cdimg_read_func)(m_ti[file].handle, m_ti[track].start_offset, buffer, lba - track_start);
     if (ret != IEC60908b::FRAMESIZE_RAW) {
         memset(buffer, 0, IEC60908b::FRAMESIZE_RAW);
         return false;

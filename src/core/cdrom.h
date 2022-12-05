@@ -34,6 +34,10 @@
 
 namespace PCSX {
 
+namespace Widgets {
+class IsoBrowser;
+}
+
 struct CdrStat {
     uint32_t Type;
     uint32_t Status;
@@ -158,6 +162,7 @@ class CDRom {
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
   private:
+    friend class Widgets::IsoBrowser;
     std::string m_cdromId;
     std::string m_cdromLabel;
     bool m_bootable;

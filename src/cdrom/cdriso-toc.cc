@@ -68,7 +68,9 @@ bool PCSX::CDRIso::parsetoc(const char *isofileStr) {
 
     filename = tocname.parent_path();
 
-    memset(&m_ti, 0, sizeof(m_ti));
+    for (auto &i : m_ti) {
+        i = {};
+    }
     m_cddaBigEndian = true;  // cdrdao uses big-endian for CD Audio
 
     sector_size = PCSX::IEC60908b::FRAMESIZE_RAW;
@@ -152,7 +154,9 @@ bool PCSX::CDRIso::parsetoc(const char *isofileStr) {
             }
         }
     }
-    if (m_numtracks > 0) m_cdHandle.setFile(new SubFile(m_ti[1].handle, 0, m_ti[1].handle->size()));
+    if ((m_numtracks > 0) && (m_ti[1].handle)) {
+        m_cdHandle.setFile(new SubFile(m_ti[1].handle, 0, m_ti[1].handle->size()));
+    }
 
     return true;
 }

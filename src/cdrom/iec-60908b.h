@@ -155,6 +155,6 @@ struct fmt::formatter<PCSX::IEC60908b::MSF> {
 
     template <typename FormatContext>
     auto format(PCSX::IEC60908b::MSF const &msf, FormatContext &ctx) {
-        return fmt::format_to(ctx.out(), "{0}:{1}:{2}", msf.m, msf.s, msf.f);
+        return fmt::format_to(ctx.out(), "{0:02}:{1:02}:{2:02}", msf.m, msf.s, msf.f);
     }
 };

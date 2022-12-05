@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\cueparser">
+      <UniqueIdentifier>{2b0f228a-f193-4dd9-9989-28718172d09c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\cueparser">
+      <UniqueIdentifier>{b3b9e7f8-7847-454a-b04b-23e2cffc389c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\cdrom\cdriso.cc">
@@ -28,9 +34,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\cdrom\cdriso-ecm.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\cdrom\cdriso-ffmpeg.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\cdrom\cdriso-mds.cc">
@@ -57,6 +60,15 @@
     <ClCompile Include="..\..\src\cdrom\file.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\third_party\cueparser\cueparser.c">
+      <Filter>Source Files\cueparser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\cueparser\scheduler.c">
+      <Filter>Source Files\cueparser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\cueparser\fileabstract.c">
+      <Filter>Source Files\cueparser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\cdrom\cdriso.h">
@@ -79,6 +91,18 @@
     </ClInclude>
     <ClInclude Include="..\..\src\cdrom\iso9660-highlevel.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\cueparser\cueparser.h">
+      <Filter>Header Files\cueparser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\cueparser\disc.h">
+      <Filter>Header Files\cueparser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\cueparser\fileabstract.h">
+      <Filter>Header Files\cueparser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\cueparser\scheduler.h">
+      <Filter>Header Files\cueparser</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
