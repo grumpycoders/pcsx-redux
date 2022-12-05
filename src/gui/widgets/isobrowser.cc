@@ -28,6 +28,18 @@
 #include "imgui/imgui.h"
 #include "support/uvfile.h"
 
+static void ShowHelpMarker(const char* desc) {
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
+
 PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
     auto time = std::chrono::steady_clock::now();
 
@@ -126,6 +138,14 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
             m_crcProgress = 0.0f;
             m_crcCalculator = computeCRC(iso);
         }
+
+        ShowHelpMarker(_(R"(Computes the CRC32 of each track, and of
+the whole disk. The CRC32 is computed on the raw data,
+after decompression of the tracks. This is useful to
+check the disk image against redump's information.
+
+The computation can be slow, and can be sped up
+significantly by caching the files beforehand.)"));
     } else {
         ImGui::ProgressBar(m_crcProgress);
         m_crcCalculator.resume();
