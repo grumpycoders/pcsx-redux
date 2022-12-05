@@ -22,7 +22,13 @@
 #include <GL/gl3w.h>
 #include <stdarg.h>
 
+#include <functional>
+#include <map>
+#include <set>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "core/system.h"
 #include "flags.h"
@@ -35,6 +41,7 @@
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/handlers.h"
+#include "gui/widgets/isobrowser.h"
 #include "gui/widgets/kernellog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/luaeditor.h"
@@ -61,6 +68,7 @@
 #endif
 
 struct GLFWwindow;
+struct NVGcontext;
 
 namespace PCSX {
 
@@ -68,7 +76,7 @@ enum class LogClass : unsigned;
 
 class GUI final {
     typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
-    typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
+    typedef Setting<bool, TYPESTRING("FullWindowRender"), true> FullWindowRender;
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
     typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
     typedef Setting<bool, TYPESTRING("ShowLuaConsole")> ShowLuaConsole;
@@ -92,6 +100,7 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
+    typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
@@ -102,22 +111,24 @@ class GUI final {
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
     typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
     typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
+    Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
-             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, MainFontSize, MonoFontSize, GUITheme,
-             EnableRawMouseMotion, WidescreenRatio>
+             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, MainFontSize, MonoFontSize,
+             GUITheme, EnableRawMouseMotion, WidescreenRatio>
         settings;
 
     // imgui can't handle more than one "instance", so...
     static GUI *s_gui;
     void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
+    void (*m_onChangedViewportOldCallback)(ImGuiViewport *viewport) = nullptr;
     static void glfwKeyCallbackTrampoline(GLFWwindow *window, int key, int scancode, int action, int mods) {
         s_gui->glfwKeyCallback(window, key, scancode, action, mods);
     }
     void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
+    void changeScale(float scale);
     bool m_onlyLogGLErrors = false;
     std::vector<std::string> m_glErrors;
 
@@ -262,6 +273,7 @@ class GUI final {
     int &m_glfwSizeX = settings.get<WindowSizeX>().value;
     int &m_glfwSizeY = settings.get<WindowSizeY>().value;
     GLuint m_VRAMTexture = 0;
+    NVGcontext *m_nvgContext = nullptr;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
@@ -271,10 +283,11 @@ class GUI final {
     ImVec4 m_backgroundColor = ImColor(114, 144, 154);
     ImVec2 m_framebufferSize = ImVec2(1, 1);  // Size of GLFW window framebuffer
     ImVec2 m_renderSize = ImVec2(1, 1);
+    ImVec2 m_outputWindowSize = ImVec2(1, 1);
 
     bool &m_fullscreen = {settings.get<Fullscreen>().value};
 
-    bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
+    bool &m_fullWindowRender = {settings.get<FullWindowRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
     int &m_idleSwapInterval = {settings.get<IdleSwapInterval>().value};
     bool m_showThemes = false;
@@ -312,6 +325,7 @@ class GUI final {
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
+    Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
     bool m_breakOnVSync = false;
 
     bool m_showCfg = false;
@@ -358,9 +372,12 @@ class GUI final {
     bool m_reportGLErrors = false;
     std::string m_imguiUserError;
 
-    ImFont *m_mainFont;
-    ImFont *m_monoFont;
+    std::map<float, ImFont *> m_mainFonts;
+    std::map<float, ImFont *> m_monoFonts;
+    ImFont *findClosestFont(const std::map<float, ImFont *> &fonts);
+    std::set<float> m_allScales;
     bool m_hasJapanese = false;
+    float m_currentScale = 1.0f;
 
     ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
 
@@ -379,7 +396,10 @@ class GUI final {
     bool m_setupScreenSize = true;
     bool m_clearTextures = true;
     Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
-    ImFont *getMono() { return m_monoFont ? m_monoFont : ImGui::GetIO().Fonts[0].Fonts[0]; }
+    ImFont *getMainFont() { return findClosestFont(m_mainFonts); }
+    ImFont *getMonoFont() { return findClosestFont(m_monoFonts); }
+    void useMainFont() { ImGui::PushFont(getMainFont()); }
+    void useMonoFont() { ImGui::PushFont(getMonoFont()); }
 
     struct {
         bool empty() const { return filename.empty(); }
@@ -399,8 +419,9 @@ class GUI final {
     } m_exeToLoad;
 
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
-    void useMainFont() { ImGui::PushFont(m_mainFont); }
-    void useMonoFont() { ImGui::PushFont(m_monoFont); }
+
+    void drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end,
+                         ImVec4 innerColor = {1.0f, 1.0f, 1.0f, 1.0f}, ImVec4 outerColor = {0.5f, 0.5f, 0.5f, 1.0f});
 };
 
 }  // namespace PCSX

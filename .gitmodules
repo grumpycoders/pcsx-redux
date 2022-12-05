@@ -79,3 +79,9 @@
 [submodule "third_party/multipart-parser-c"]
 	path = third_party/multipart-parser-c
 	url = https://github.com/iafonov/multipart-parser-c
+[submodule "third_party/nanovg"]
+	path = third_party/nanovg
+	url = https://github.com/grumpycoders/nanovg
+[submodule "third_party/nanosvg"]
+	path = third_party/nanosvg
+	url = https://github.com/grumpycoders/nanosvg

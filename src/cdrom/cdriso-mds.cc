@@ -38,7 +38,9 @@ bool PCSX::CDRIso::parsemds(const char *isofileString) {
         fi.asA<UvFile>()->startCaching();
     }
 
-    memset(&m_ti, 0, sizeof(m_ti));
+    for (auto &i : m_ti) {
+        i = {};
+    }
 
     // check if it's a valid mds file
     i = fi->read<uint32_t>();

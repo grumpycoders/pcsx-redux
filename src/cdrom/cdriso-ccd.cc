@@ -40,7 +40,9 @@ bool PCSX::CDRIso::parseccd(const char *isofileString) {
     }
     if (fi->failed()) return false;
 
-    memset(&m_ti, 0, sizeof(m_ti));
+    for (auto &i : m_ti) {
+        i = {};
+    }
 
     while (fi->gets(linebuf, sizeof(linebuf))) {
         if (!strncmp(linebuf, "[TRACK", 6)) {

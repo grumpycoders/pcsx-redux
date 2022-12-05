@@ -273,7 +273,7 @@ sub generateImguiGeneric {
           push(@funcArgs, $name);
           # one of the various enums
           # we are handling these as ints
-        } elsif ($args[$i] =~ m/^ *(ImGuiMouseButton|ImGuiTableBgTarget|ImGuiPopupFlags|ImGuiDataType|ImGuiDir|ImGuiCond|ImGuiFocusedFlags|ImGuiHoveredFlags|ImGuiWindowFlags|ImGuiCol|ImGuiStyleVar|ImGuiKey|ImGuiAlign|ImGuiColorEditMode|ImGuiMouseCursor|ImGuiSetCond|ImGuiInputTextFlags|ImGuiSelectableFlags|ImGuiSliderFlags|ImDrawFlags|ImGuiButtonFlags|ImGuiColorEditFlags|ImGuiComboFlags|ImGuiDockNodeFlags|ImGuiDragDropFlags|ImGuiPopupFlags|ImGuiTabBarFlags|ImGuiTabItemFlags|ImGuiTableColumnFlags|ImGuiTableFlags|ImGuiTableRowFlags|ImGuiTreeNodeFlags) ([^ =]*)( *= *[0-9]*|) *$/) {
+        } elsif ($args[$i] =~ m/^ *(ImGuiMouseButton|ImGuiTableBgTarget|ImGuiPopupFlags|ImGuiDataType|ImGuiDir|ImGuiCond|ImGuiFocusedFlags|ImGuiHoveredFlags|ImGuiWindowFlags|ImGuiCol|ImGuiStyleVar|ImGuiAlign|ImGuiColorEditMode|ImGuiMouseCursor|ImGuiSetCond|ImGuiInputTextFlags|ImGuiSelectableFlags|ImGuiSliderFlags|ImDrawFlags|ImGuiButtonFlags|ImGuiColorEditFlags|ImGuiComboFlags|ImGuiDockNodeFlags|ImGuiDragDropFlags|ImGuiPopupFlags|ImGuiTabBarFlags|ImGuiTabItemFlags|ImGuiTableColumnFlags|ImGuiTableFlags|ImGuiTableRowFlags|ImGuiTreeNodeFlags) ([^ =]*)( *= *[0-9]*|) *$/) {
          #These are ints
          my $name = $2;
           if ($3 =~ m/^ *= *([0-9]+)$/) {

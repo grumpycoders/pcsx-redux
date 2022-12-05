@@ -590,18 +590,18 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     bool showImportDataTypesFileDialog = false;
     if (m_structs.empty()) {
         ImGui::TextWrapped(
-            "Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will "
-            "generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the "
-            "data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples "
-            "whose elements are separated by commas. For example:\n");
+            _("Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will "
+              "generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the "
+              "data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples "
+              "whose elements are separated by commas.\n\nFor example:\n"));
         gui->useMonoFont();
-        ImGui::TextUnformatted("CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n");
+        ImGui::TextUnformatted("CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n\n");
         ImGui::PopFont();
-        ImGui::TextUnformatted("Arrays are specified as\n");
+        ImGui::TextUnformatted(_("Arrays are specified as\n"));
         gui->useMonoFont();
-        ImGui::TextUnformatted("type[number]\n");
+        ImGui::TextUnformatted("type[number]\n\n");
         ImGui::PopFont();
-        ImGui::TextUnformatted("and pointers as\n");
+        ImGui::TextUnformatted(_("and pointers as\n"));
         gui->useMonoFont();
         ImGui::TextUnformatted("type *");
         ImGui::PopFont();
@@ -619,18 +619,19 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
             }
         }
     }
+    ImGui::Separator();
 
     bool showImportFunctionsFileDialog = false;
     if (m_functions.empty()) {
         ImGui::TextWrapped(
-            "Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate "
+            _("Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate "
             "a redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
             "address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples "
-            "whose elements are separated by commas. For example:\n");
+            "whose elements are separated by commas.\n\nFor example:\n"));
         gui->useMonoFont();
-        ImGui::TextUnformatted("800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n");
+        ImGui::TextUnformatted("800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n\n");
         ImGui::PopFont();
-        ImGui::TextUnformatted("Arrays and pointers are specified as for data types.\n");
+        ImGui::TextUnformatted(_("Arrays and pointers are specified as for data types.\n"));
         showImportFunctionsFileDialog = ImGui::Button(_("Import functions"));
         if (showImportFunctionsFileDialog) {
             m_importFunctionsFileDialog.openDialog();
