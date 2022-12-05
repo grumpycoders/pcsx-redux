@@ -55,7 +55,7 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | b
     && nvm alias default $NODE_VERSION \
     && nvm use default
 RUN . $NVM_DIR/nvm.sh && npm install -g appcenter-cli
-RUN apt install -y squashfs-tools zip
+RUN apt install -y squashfs-tools zip zsync
 
 RUN mkdir /project
 RUN mkdir -p /home/coder/dconf
