@@ -18,17 +18,17 @@ AppDir:
     - amd64
     allow_unauthenticated: true
     sources:
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy main restricted
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy universe
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-updates universe
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy multiverse
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-updates multiverse
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted
-        universe multiverse
-    - sourceline: deb http://security.ubuntu.com/ubuntu/ jammy-security main restricted
-    - sourceline: deb http://security.ubuntu.com/ubuntu/ jammy-security universe
-    - sourceline: deb http://security.ubuntu.com/ubuntu/ jammy-security multiverse
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic main restricted
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-updates main restricted
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic universe
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-updates universe
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic multiverse
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-updates multiverse
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-backports main
+        restricted universe multiverse
+    - sourceline: deb http://security.ubuntu.com/ubuntu kinetic-security main restricted
+    - sourceline: deb http://security.ubuntu.com/ubuntu kinetic-security universe
+    - sourceline: deb http://security.ubuntu.com/ubuntu kinetic-security multiverse
     include:
     - libbz2-1.0:amd64
     - libcom-err2:amd64
@@ -37,15 +37,13 @@ AppDir:
     - libgpg-error0:amd64
     - libkeyutils1:amd64
     - liblzma5:amd64
-    - libpcre3:amd64
     - libselinux1:amd64
     - openssl
     - zlib1g:amd64
   files:
     include:
-    - /lib/x86_64-linux-gnu/libGLX.so.0
-    - /lib/x86_64-linux-gnu/libGLdispatch.so.0
     - /lib/x86_64-linux-gnu/libOpenCL.so.1
+    - /lib/x86_64-linux-gnu/libSvtAv1Enc.so.1
     - /lib/x86_64-linux-gnu/libX11.so.6
     - /lib/x86_64-linux-gnu/libXau.so.6
     - /lib/x86_64-linux-gnu/libXdmcp.so.6
@@ -53,9 +51,9 @@ AppDir:
     - /lib/x86_64-linux-gnu/libXfixes.so.3
     - /lib/x86_64-linux-gnu/libXrender.so.1
     - /lib/x86_64-linux-gnu/libaom.so.3
-    - /lib/x86_64-linux-gnu/libavcodec.so.58
-    - /lib/x86_64-linux-gnu/libavformat.so.58
-    - /lib/x86_64-linux-gnu/libavutil.so.56
+    - /lib/x86_64-linux-gnu/libavcodec.so.59
+    - /lib/x86_64-linux-gnu/libavformat.so.59
+    - /lib/x86_64-linux-gnu/libavutil.so.57
     - /lib/x86_64-linux-gnu/libblkid.so.1
     - /lib/x86_64-linux-gnu/libbluray.so.2
     - /lib/x86_64-linux-gnu/libbrotlicommon.so.1
@@ -65,11 +63,12 @@ AppDir:
     - /lib/x86_64-linux-gnu/libcairo.so.2
     - /lib/x86_64-linux-gnu/libcapstone.so.4
     - /lib/x86_64-linux-gnu/libchromaprint.so.1
+    - /lib/x86_64-linux-gnu/libcjson.so.1
     - /lib/x86_64-linux-gnu/libcodec2.so.1.0
     - /lib/x86_64-linux-gnu/libcrypto.so.3
     - /lib/x86_64-linux-gnu/libcurl.so.4
     - /lib/x86_64-linux-gnu/libdatrie.so.1
-    - /lib/x86_64-linux-gnu/libdav1d.so.5
+    - /lib/x86_64-linux-gnu/libdav1d.so.6
     - /lib/x86_64-linux-gnu/libffi.so.8
     - /lib/x86_64-linux-gnu/libfontconfig.so.1
     - /lib/x86_64-linux-gnu/libfreetype.so.6
@@ -90,8 +89,8 @@ AppDir:
     - /lib/x86_64-linux-gnu/libgssapi_krb5.so.2
     - /lib/x86_64-linux-gnu/libharfbuzz.so.0
     - /lib/x86_64-linux-gnu/libhogweed.so.6
-    - /lib/x86_64-linux-gnu/libicudata.so.70
-    - /lib/x86_64-linux-gnu/libicuuc.so.70
+    - /lib/x86_64-linux-gnu/libicudata.so.71
+    - /lib/x86_64-linux-gnu/libicuuc.so.71
     - /lib/x86_64-linux-gnu/libidn2.so.0
     - /lib/x86_64-linux-gnu/libjpeg.so.8
     - /lib/x86_64-linux-gnu/libk5crypto.so.3
@@ -99,6 +98,7 @@ AppDir:
     - /lib/x86_64-linux-gnu/libkrb5support.so.0
     - /lib/x86_64-linux-gnu/liblber-2.5.so.0
     - /lib/x86_64-linux-gnu/libldap-2.5.so.0
+    - /lib/x86_64-linux-gnu/libmbedcrypto.so.7
     - /lib/x86_64-linux-gnu/libmd.so.0
     - /lib/x86_64-linux-gnu/libmfx.so.1
     - /lib/x86_64-linux-gnu/libmount.so.1
@@ -122,6 +122,7 @@ AppDir:
     - /lib/x86_64-linux-gnu/libpng16.so.16
     - /lib/x86_64-linux-gnu/libpsl.so.5
     - /lib/x86_64-linux-gnu/librabbitmq.so.4
+    - /lib/x86_64-linux-gnu/librist.so.4
     - /lib/x86_64-linux-gnu/librsvg-2.so.2
     - /lib/x86_64-linux-gnu/librtmp.so.1
     - /lib/x86_64-linux-gnu/libsasl2.so.2
@@ -130,12 +131,12 @@ AppDir:
     - /lib/x86_64-linux-gnu/libsodium.so.23
     - /lib/x86_64-linux-gnu/libsoxr.so.0
     - /lib/x86_64-linux-gnu/libspeex.so.1
-    - /lib/x86_64-linux-gnu/libsrt-gnutls.so.1.4
+    - /lib/x86_64-linux-gnu/libsrt-gnutls.so.1.5
     - /lib/x86_64-linux-gnu/libssh-gcrypt.so.4
     - /lib/x86_64-linux-gnu/libssh.so.4
     - /lib/x86_64-linux-gnu/libssl.so.3
     - /lib/x86_64-linux-gnu/libstdc++.so.6
-    - /lib/x86_64-linux-gnu/libswresample.so.3
+    - /lib/x86_64-linux-gnu/libswresample.so.4
     - /lib/x86_64-linux-gnu/libtasn1.so.6
     - /lib/x86_64-linux-gnu/libthai.so.0
     - /lib/x86_64-linux-gnu/libtheoradec.so.1
@@ -155,7 +156,7 @@ AppDir:
     - /lib/x86_64-linux-gnu/libvpx.so.7
     - /lib/x86_64-linux-gnu/libwebp.so.7
     - /lib/x86_64-linux-gnu/libwebpmux.so.3
-    - /lib/x86_64-linux-gnu/libx264.so.163
+    - /lib/x86_64-linux-gnu/libx264.so.164
     - /lib/x86_64-linux-gnu/libx265.so.199
     - /lib/x86_64-linux-gnu/libxml2.so.2
     - /lib/x86_64-linux-gnu/libxvidcore.so.4

@@ -1,6 +1,6 @@
 # Dockerfile for grumpycoders/pcsx-redux-build
 
-FROM ubuntu:22.04
+FROM ubuntu:22.10
 
 # The tzdata package isn't docker-friendly, and something pulls it.
 ENV DEBIAN_FRONTEND noninteractive
@@ -55,7 +55,7 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | b
     && nvm alias default $NODE_VERSION \
     && nvm use default
 RUN . $NVM_DIR/nvm.sh && npm install -g appcenter-cli
-RUN apt install -y zip
+RUN apt install -y squashfs-tools zip zsync
 
 RUN mkdir /project
 RUN mkdir -p /home/coder/dconf

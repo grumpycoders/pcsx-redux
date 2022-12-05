@@ -34,6 +34,7 @@
 #include "support/file.h"
 
 static const std::map<uint32_t, std::string_view> s_knownBioses = {
+#ifdef USE_ADLER
     {0x1002e6b5, "SCPH-1002 (EU)"},
     {0x1ac46cf1, "SCPH-5000 (JP)"},
     {0x24e21a0e, "SCPH-7003 (US)"},
@@ -58,6 +59,32 @@ static const std::map<uint32_t, std::string_view> s_knownBioses = {
     {0xe7ca4fad, "????"},
     {0xf380c9ff, "SCPH-5000"},
     {0xfb4afc11, "SCPH-5000 (2)"},
+#else
+    {0x0bad7ea9, "????"},
+    {0x171bdcec, "SCPH-101"},
+    {0x1e26792f, "SCPH-1002 - DTLH-3002 (EU)"},
+    {0x24fc7e17, "SCPH-5000 (JP)"},
+    {0x318178bf, "SCPH-7502 (EU)"},
+    {0x3539def6, "SCPH-3000 (JP)"},
+    {0x37157331, "SCPH-1001 - DTLH-3000 (US)"},
+    {0x3b601fc8, "SCPH-1000 (JP)"},
+    {0x4d9e7c86, "SCPH-5502 - SCPH-5552 (2) (EU)"},
+    {0x502224b6, "SCPH-7001 (US)"},
+    {0x55847d8c, "????"},
+    {0x76b880e5, "????"},
+    {0x826ac185, "SCPH-5000"},
+    {0x86c30531, "????"},
+    {0x8c93a399, "SCPH-5000 (2)"},
+    {0x8d8cb7e4, "SCPH-7003 (US)"},
+    {0x9bb87c4b, "SCPH-1002 (EU)"},
+    {0xaff00f2f, "????"},
+    {0xbc190209, "SCPH-3500 (JP)"},
+    {0xd786f0b9, "SCPH-5502 - SCPH-5552 (EU)"},
+    {0xdecb22f5, "????"},
+    {0xec541cd0, "SCPH-7000 (JP)"},
+    {0xf2af798b, "????"},
+    {0xff3eeb8c, "SCPH-5500 (JP)"},
+#endif
 };
 
 int PCSX::Memory::init() {
@@ -148,15 +175,15 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         f->close();
         PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
     }
-    uint32_t adler = adler32(0L, Z_NULL, 0);
-    m_biosAdler32 = adler = adler32(adler, m_psxR, bios_size);
-    auto it = s_knownBioses.find(adler);
+    uint32_t crc = crc32(0L, Z_NULL, 0);
+    m_biosCRC = crc = crc32(crc, m_psxR, bios_size);
+    auto it = s_knownBioses.find(crc);
     if (it != s_knownBioses.end()) {
-        g_system->printf(_("Known BIOS detected: %s (%08x)\n"), it->second, adler);
+        g_system->printf(_("Known BIOS detected: %s (%08x)\n"), it->second, crc);
     } else if (strncmp((const char *)&m_psxR[0x78], "OpenBIOS", 8) == 0) {
-        g_system->printf(_("OpenBIOS detected (%08x)\n"), adler);
+        g_system->printf(_("OpenBIOS detected (%08x)\n"), crc);
     } else {
-        g_system->printf(_("Unknown bios loaded (%08x)\n"), adler);
+        g_system->printf(_("Unknown bios loaded (%08x)\n"), crc);
     }
 }
 
@@ -431,7 +458,7 @@ void PCSX::Memory::setLuts() {
 }
 
 std::string_view PCSX::Memory::getBiosVersionString() {
-    auto it = s_knownBioses.find(m_biosAdler32);
+    auto it = s_knownBioses.find(m_biosCRC);
     if (it == s_knownBioses.end()) return "Unknown";
     return it->second;
 }

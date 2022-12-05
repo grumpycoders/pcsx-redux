@@ -38,7 +38,6 @@ ssize_t PCSX::ZReader::rSeek(ssize_t pos, int wheel) {
 }
 
 ssize_t PCSX::ZReader::read(void *dest_, size_t size) {
-    if (m_hitEOF) return -1;
     uint8_t *dest = reinterpret_cast<uint8_t *>(dest_);
 
     ssize_t dumpDelta = m_filePtr - m_zstream.total_out;
@@ -51,6 +50,7 @@ ssize_t PCSX::ZReader::read(void *dest_, size_t size) {
         m_zstream.next_in = m_inBuffer;
         inflateInit2(&m_zstream, m_raw ? -MAX_WBITS : MAX_WBITS);
     }
+    if (m_hitEOF) return -1;
     auto decompSome = [this](void *dest, ssize_t size) -> ssize_t {
         m_zstream.avail_out = size;
         m_zstream.next_out = reinterpret_cast<decltype(m_zstream.next_out)>(dest);
