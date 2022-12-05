@@ -96,6 +96,8 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
         ImGui::End();
         return;
     }
+    ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdrom->getCDRomID().c_str());
+    ImGui::Text(_("GAME Label: %s"), g_emulator->m_cdrom->getCDRomLabel().c_str());
 
     bool canCache = false;
     bool isCaching = false;
