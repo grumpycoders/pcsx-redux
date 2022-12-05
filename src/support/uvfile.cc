@@ -505,6 +505,7 @@ void PCSX::UvFile::write(Slice &&slice) {
 }
 
 ssize_t PCSX::UvFile::readAt(void *dest, size_t size, size_t ptr) {
+    if (ptr >= m_size) return -1;
     size = std::min(m_size - ptr, size);
     if (size == 0) return -1;
     float progress = m_cacheProgress.load(std::memory_order_acquire);

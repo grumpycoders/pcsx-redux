@@ -81,6 +81,9 @@
     <ClCompile Include="..\..\src\gui\widgets\handlers.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\isobrowser.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h">
@@ -157,9 +160,18 @@
     <ClInclude Include="..\..\src\gui\widgets\handlers.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\isobrowser.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\..\src\gui\shaders\crt-lottes-offscreen.lua">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="..\..\src\gui\shaders\crt-lottes-output.lua">
+      <Filter>Source Files\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">

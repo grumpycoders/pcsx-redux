@@ -463,7 +463,10 @@ static inline void setBlendFactor(GLenum fac1, GLenum fac2, GLenum fac3, GLenum 
 }
 
 // Abstraction for GLSL vectors
-template <typename T, int size>
+template <class T>
+concept Scalar = std::is_scalar<T>::value;
+
+template <Scalar T, int size>
 class Vector {
     // A GLSL vector can only have 2, 3 or 4 elements
     static_assert(size == 2 || size == 3 || size == 4);

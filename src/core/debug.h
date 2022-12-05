@@ -111,6 +111,13 @@ class Debug {
     bool m_breakmp_r8 = false, m_breakmp_r16 = false, m_breakmp_r32 = false;
     bool m_breakmp_w8 = false, m_breakmp_w16 = false, m_breakmp_w32 = false;
 
+    void clearMaps() {
+        memset(m_mainMemoryMap, 0, sizeof(m_mainMemoryMap));
+        memset(m_biosMemoryMap, 0, sizeof(m_biosMemoryMap));
+        memset(m_parpMemoryMap, 0, sizeof(m_parpMemoryMap));
+        memset(m_scratchPadMap, 0, sizeof(m_scratchPadMap));
+    }
+
   private:
     void startStepping();
 
@@ -136,10 +143,10 @@ class Debug {
     bool triggerBP(Breakpoint* bp, uint32_t address, unsigned width, const char* reason = "");
     BreakpointTreeType m_breakpoints;
 
-    uint8_t m_mainMemoryMap[0x00800000];
-    uint8_t m_biosMemoryMap[0x00080000];
-    uint8_t m_parpMemoryMap[0x00010000];
-    uint8_t m_scratchPadMap[0x00000400];
+    uint8_t m_mainMemoryMap[0x00800000] = {0};
+    uint8_t m_biosMemoryMap[0x00080000] = {0};
+    uint8_t m_parpMemoryMap[0x00010000] = {0};
+    uint8_t m_scratchPadMap[0x00000400] = {0};
 
     void markMap(uint32_t address, int mask);
     bool isMapMarked(uint32_t address, int mask);

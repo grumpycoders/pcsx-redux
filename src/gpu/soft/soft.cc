@@ -2494,8 +2494,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
                         vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust + (XAdjust >> 1))];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    getTextureTransColShade32Solid((uint32_t *)&vram16[(i << 10) + j],
-                                                   vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                    uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                    uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                    getTextureTransColShade32Solid(pdest, color);
 
                     posX += difX2;
                     posY += difY2;
@@ -2536,8 +2537,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
                 tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust + (XAdjust >> 1))];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                getTextureTransColShade32((uint32_t *)&vram16[(i << 10) + j],
-                                          vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                getTextureTransColShade32(pdest, color);
 
                 posX += difX2;
                 posY += difY2;
@@ -2634,8 +2636,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
                         vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust + (XAdjust >> 1))];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    getTextureTransColShade32Solid((uint32_t *)&vram16[(i << 10) + j],
-                                                   vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                    uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                    uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                    getTextureTransColShade32Solid(pdest, color);
                     posX += difX2;
                     posY += difY2;
                 }
@@ -2683,8 +2686,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
                 tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & drawY) << 11) + YAdjust + (XAdjust >> 1))];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                getTextureTransColShade32((uint32_t *)&vram16[(i << 10) + j],
-                                          vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                getTextureTransColShade32(pdest, color);
                 posX += difX2;
                 posY += difY2;
             }
@@ -2774,8 +2778,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
                         vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust + (XAdjust >> 1))];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    getTextureTransColShade32Solid((uint32_t *)&vram16[(i << 10) + j],
-                                                   vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                    uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                    uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                    getTextureTransColShade32Solid(pdest, color);
                     posX += difX2;
                     posY += difY2;
                 }
@@ -2823,8 +2828,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
                 tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust + (XAdjust >> 1))];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                getTextureTransColG32Semi((uint32_t *)&vram16[(i << 10) + j],
-                                          vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                getTextureTransColG32Semi(pdest, color);
                 posX += difX2;
                 posY += difY2;
             }
@@ -2906,8 +2912,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
                     tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + ((posX >> 16) & maskX))];
                     tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust +
                                                     (((posX + difX) >> 16) & maskX))];
-                    getTextureTransColShade32Solid((uint32_t *)&vram16[(i << 10) + j],
-                                                   vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                    uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                    uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                    getTextureTransColShade32Solid(pdest, color);
                     posX += difX2;
                     posY += difY2;
                 }
@@ -2942,8 +2949,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
                 tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + ((posX >> 16) & maskX))];
                 tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust +
                                                 (((posX + difX) >> 16) & maskX))];
-                getTextureTransColShade32((uint32_t *)&vram16[(i << 10) + j],
-                                          vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                getTextureTransColShade32(pdest, color);
                 posX += difX2;
                 posY += difY2;
             }
@@ -3027,8 +3035,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
                     tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + ((posX >> 16) & maskX))];
                     tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust +
                                                     (((posX + difX) >> 16) & maskX))];
-                    getTextureTransColShade32Solid((uint32_t *)&vram16[(i << 10) + j],
-                                                   vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                    uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                    uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                    getTextureTransColShade32Solid(pdest, color);
                     posX += difX2;
                     posY += difY2;
                 }
@@ -3071,8 +3080,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
                 tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + ((posX >> 16) & maskX))];
                 tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust +
                                                 (((posX + difX) >> 16) & maskX))];
-                getTextureTransColShade32((uint32_t *)&vram16[(i << 10) + j],
-                                          vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                getTextureTransColShade32(pdest, color);
                 posX += difX2;
                 posY += difY2;
             }
@@ -3156,8 +3166,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
                     tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + ((posX >> 16) & maskX))];
                     tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust +
                                                     (((posX + difX) >> 16) & maskX))];
-                    getTextureTransColShade32Solid((uint32_t *)&vram16[(i << 10) + j],
-                                                   vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                    uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                    uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                    getTextureTransColShade32Solid(pdest, color);
                     posX += difX2;
                     posY += difY2;
                 }
@@ -3200,8 +3211,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
                 tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + ((posX >> 16) & maskX))];
                 tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust +
                                                 (((posX + difX) >> 16) & maskX))];
-                getTextureTransColG32Semi((uint32_t *)&vram16[(i << 10) + j],
-                                          vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16);
+                uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                uint32_t color = vram16[clutP + tC1] | ((int32_t)vram16[clutP + tC2]) << 16;
+                getTextureTransColG32Semi(pdest, color);
                 posX += difX2;
                 posY += difY2;
             }
@@ -3276,23 +3288,25 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
-                    getTextureTransColShade32Solid(
-                        (uint32_t *)&vram16[(i << 10) + j],
-                        (((int32_t)
-                              vram16[(((((posY + difY) >> 16) & maskY) + globalTextAddrY + textureWindow.y0) << 10) +
-                                     (((posX + difX) >> 16) & maskX) + globalTextAddrX + textureWindow.x0])
-                         << 16) |
-                            vram16[((((posY >> 16) & maskY) + globalTextAddrY + textureWindow.y0) << 10) +
-                                   (((posX) >> 16) & maskX) + globalTextAddrX + textureWindow.x0]);
+                    uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
+                    auto upX = (((posX + difX) >> 16) & maskX) + globalTextAddrX + textureWindow.x0;
+                    auto upY = (((posY + difY) >> 16) & maskY) + globalTextAddrY + textureWindow.y0;
+                    auto dnX = ((posX >> 16) & maskX) + globalTextAddrX + textureWindow.x0;
+                    auto dnY = ((posY >> 16) & maskY) + globalTextAddrY + textureWindow.y0;
+                    uint32_t color = vram16[upX + (upY << 10)];
+                    color <<= 16;
+                    color |= vram[dnX + (dnY << 10)];
+                    getTextureTransColShade32Solid(pdest, color);
 
                     posX += difX2;
                     posY += difY2;
                 }
                 if (j == xmax) {
-                    getTextureTransColShadeSolid(
-                        &vram16[(i << 10) + j],
-                        vram16[((((posY >> 16) & maskY) + globalTextAddrY + textureWindow.y0) << 10) +
-                               ((posX >> 16) & maskX) + globalTextAddrX + textureWindow.x0]);
+                    uint16_t *pdest = &vram16[(i << 10) + j];
+                    auto x = ((posX >> 16) & maskX) + globalTextAddrX + textureWindow.x0;
+                    auto y = ((posY >> 16) & maskY) + globalTextAddrY + textureWindow.y0;
+                    uint16_t color = vram16[x + (y << 10)];
+                    getTextureTransColShadeSolid(pdest, color);
                 }
             }
             if (nextRowFlatTextured3()) return;
@@ -4426,7 +4440,8 @@ void PCSX::SoftGPU::SoftRenderer::line_N_NE_Shade(int x0, int y0, int x1, int y1
     int32_t dr, dg, db;
 
     const auto vram = m_vram;
-    const auto vram16 = m_vram16;    const auto drawX = m_drawX;
+    const auto vram16 = m_vram16;
+    const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;

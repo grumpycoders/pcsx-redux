@@ -249,6 +249,7 @@
     <ClCompile Include="..\..\src\gui\widgets\filedialog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\handlers.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\isobrowser.cc" />
     <ClCompile Include="..\..\src\gui\widgets\kernellog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\log.cc" />
     <ClCompile Include="..\..\src\gui\widgets\luaeditor.cc" />
@@ -277,6 +278,7 @@
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h" />
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h" />
     <ClInclude Include="..\..\src\gui\widgets\handlers.h" />
+    <ClInclude Include="..\..\src\gui\widgets\isobrowser.h" />
     <ClInclude Include="..\..\src\gui\widgets\kernellog.h" />
     <ClInclude Include="..\..\src\gui\widgets\log.h" />
     <ClInclude Include="..\..\src\gui\widgets\luaeditor.h" />
@@ -293,18 +295,20 @@
     <ClInclude Include="..\..\third_party\imgui_memory_editor\imgui_memory_editor.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\gui\shaders\crt-lottes-offscreen.lua" />
+    <None Include="..\..\src\gui\shaders\crt-lottes-output.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\glfw.3.3.5\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.5\build\native\glfw.targets')" />
     <Import Project="..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets')" />
+    <Import Project="..\packages\glfw.3.3.8\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.8\build\native\glfw.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\glfw.3.3.5\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.5\build\native\glfw.targets'))" />
     <Error Condition="!Exists('..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets'))" />
+    <Error Condition="!Exists('..\packages\glfw.3.3.8\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.8\build\native\glfw.targets'))" />
   </Target>
 </Project>
