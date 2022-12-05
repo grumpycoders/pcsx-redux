@@ -115,8 +115,8 @@ class CDRomImpl : public PCSX::CDRom {
         STATUS_SEEK = 1 << 6,       // 0x40
         STATUS_READ = 1 << 5,       // 0x20
         STATUS_SHELLOPEN = 1 << 4,  // 0x10
-        STATUS_UNKNOWN3 = 1 << 3,   // 0x08
-        STATUS_UNKNOWN2 = 1 << 2,   // 0x04
+        STATUS_IDERROR = 1 << 3,    // 0x08
+        STATUS_SEEKERROR = 1 << 2,  // 0x04
         STATUS_ROTATING = 1 << 1,   // 0x02
         STATUS_ERROR = 1 << 0,      // 0x01
     };
@@ -126,6 +126,20 @@ class CDRomImpl : public PCSX::CDRom {
         ERROR_NOTREADY = 1 << 7,    // 0x80
         ERROR_INVALIDCMD = 1 << 6,  // 0x40
         ERROR_INVALIDARG = 1 << 5,  // 0x20
+    };
+
+    /* Disc Flags */
+    enum {
+        FLAG_CDDA = 1 << 4,        // 0x10
+        FLAG_NODISC = 1 << 6,      // 0x40
+        FLAG_UNLICENSED = 1 << 7,  // 0x80
+    };
+
+    /* Disc Types */
+    enum {
+        DISCTYPE_CDROM = 0x00,
+        DISCTYPE_CDI = 0x10,
+        DISCTYPE_CDROMXA = 0x20,
     };
 
 // 1x = 75 sectors per second
@@ -898,43 +912,38 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case CdlID + 0x100:
-                SetResultSize(8);
+                SetResultSize(8);  // m_result = {stat,flags,type,atip,"PCSX"}
+                memset(m_result, 0, sizeof(m_result));
+
+                m_result[0] = m_statP;
 
                 // No Disk
                 if (m_iso->failed()) {
-                    m_result[0] = 0x08;
-                    m_result[1] = 0x40;
-                    memset((char *)&m_result[2], 0, 6);
+                    m_result[0] |= STATUS_IDERROR;
+                    m_result[1] = FLAG_NODISC;
                     m_stat = DiskError;
-                    break;
-                }
-
-                m_result[0] = m_statP;
-                memset((char *)&m_result[1], 0, 7);
-
-                // 0x10 - audio | 0x40 - disk missing | 0x80 - unlicensed
-                getStatus(&cdr_stat);
-                if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CLOSED) || cdr_stat.Type == 0xff) {
-                    m_result[1] = 0xc0;
-                }
-                
-                if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CDDA)) {
-                    m_stat = DiskError;
-                    m_result[0] |= STATUS_UNKNOWN3;  // IdError
-                    // Audio, unlicensed
-                    m_result[1] |= (0x10 | 0x80);
-                } else if (isBootable()) {
-                    strncpy((char *)&m_result[4], "PCSX", 4);
-                    m_stat = Complete;
                 } else {
-                    m_stat = DiskError;
-                    m_result[0] |= STATUS_UNKNOWN3;  // IdError
-                    m_result[1] = 0x80;              // Unlicensed
-                }
+                    getStatus(&cdr_stat);
+                    if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CLOSED) || cdr_stat.Type == 0xff) {
+                        m_result[1] = 0xc0;
+                    }
 
-                m_result[2] = m_iso->IsMode1ISO() ? 0x00 : 0x20;
-                
-                m_suceeded = true;
+                    if (isBootable()) {
+                        strncpy((char *)&m_result[4], "PCSX", 4);
+                        m_stat = Complete;
+                    } else {
+                        m_result[0] |= STATUS_IDERROR;
+                        m_result[1] |= FLAG_UNLICENSED;
+                        m_stat = DiskError;
+                    }
+
+                    if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CDDA)) {
+                        m_result[1] |= FLAG_CDDA;  // Audio
+                    }
+
+                    m_result[2] = m_iso->IsMode1ISO() ? DISCTYPE_CDROM : DISCTYPE_CDROMXA;
+                    m_suceeded = true;
+                }
                 break;
 
             case CdlInit:
@@ -1667,6 +1676,7 @@ void PCSX::CDRom::check() {
         }
     }
 
+    g_system->printf(_("CD-ROM is %s\n"), m_bootable ? _("Bootable") : _("Not Bootable"));
     g_system->printf(_("CD-ROM Label: %.32s\n"), m_cdromLabel);
     g_system->printf(_("CD-ROM ID: %.9s\n"), m_cdromId);
     g_system->printf(_("CD-ROM EXE Name: %.255s\n"), exename);
