@@ -158,7 +158,6 @@ ssize_t PCSX::FFmpegAudioFile::rSeek(ssize_t pos, int wheel) {
 }
 
 ssize_t PCSX::FFmpegAudioFile::read(void *dest_, size_t size) {
-    if (m_hitEOF) return -1;
     uint8_t *dest = reinterpret_cast<uint8_t *>(dest_);
 
     ssize_t dumpDelta = m_filePtr - m_totalOut;
@@ -169,6 +168,7 @@ ssize_t PCSX::FFmpegAudioFile::read(void *dest_, size_t size) {
         if (av_seek_frame(m_formatContext, m_audioStreamIndex, 0, AVSEEK_FLAG_BYTE) < 0) return -1;
         m_totalOut = 0;
     }
+    if (m_hitEOF) return -1;
     ssize_t ret = 0;
     while (dumpDelta) {
         uint8_t dummy[256];
