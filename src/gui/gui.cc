@@ -910,7 +910,7 @@ void PCSX::GUI::endFrame() {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
                 if (ImGui::MenuItem(_("Close Disk Image"))) {
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso());
-                    PCSX::g_emulator->m_cdrom->check();
+                    PCSX::g_emulator->m_cdrom->parseIso();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
                     showOpenBinaryDialog = true;
@@ -957,16 +957,13 @@ void PCSX::GUI::endFrame() {
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime(-1);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    // Open lid forever
                 }
                 if (ImGui::MenuItem(_("Close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime(0);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    // Close lid forever
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime((int64_t)time(nullptr) + 2);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    // Open lid, and schedule a close lid
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Reboot"))) {
@@ -1193,7 +1190,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator->m_cdrom->setIso(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
-            PCSX::g_emulator->m_cdrom->check();
+            PCSX::g_emulator->m_cdrom->parseIso();
         }
     }
 
@@ -2108,7 +2105,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
         g_system->softReset();
     } else {
         PCSX::g_emulator->m_cdrom->setIso(new CDRIso(pathStr));
-        PCSX::g_emulator->m_cdrom->check();
+        PCSX::g_emulator->m_cdrom->parseIso();
     }
 
     free(extension);

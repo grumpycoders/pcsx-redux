@@ -107,66 +107,14 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             SIOMCD2Sector{g_emulator->m_sio->m_memoryCard[1].m_sector},
             SIOMCD2DataOffset{g_emulator->m_sio->m_memoryCard[1].m_dataOffset},
         },
-        CDRom {
-            CDReg1Mode { g_emulator->m_cdrom->m_reg1Mode },
-            CDReg2 { g_emulator->m_cdrom->m_reg2 },
-            CDCmdProcess { g_emulator->m_cdrom->m_cmdProcess },
-            CDCtrl { g_emulator->m_cdrom->m_ctrl },
-            CDStat { g_emulator->m_cdrom->m_stat },
-            CDStatP { g_emulator->m_cdrom->m_statP },
-            CDTransfer { reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_transfer) },
-            CDTransferIndex { g_emulator->m_cdrom->m_transferIndex },
-            CDPrev { g_emulator->m_cdrom->m_prev.data },
-            CDParam { g_emulator->m_cdrom->m_param },
-            CDResult { g_emulator->m_cdrom->m_result },
-            CDParamC { g_emulator->m_cdrom->m_paramC },
-            CDResultC { g_emulator->m_cdrom->m_resultC },
-            CDResultP { g_emulator->m_cdrom->m_resultP },
-            CDResultReady { g_emulator->m_cdrom->m_resultReady },
-            CDCmd { g_emulator->m_cdrom->m_cmd },
-            CDRead { g_emulator->m_cdrom->m_read },
-            CDSetLocPending { g_emulator->m_cdrom->m_setlocPending },
-            CDReading { g_emulator->m_cdrom->m_reading },
-            CDSetSectorPlay { g_emulator->m_cdrom->m_setSectorPlay.data },
-            CDSetSectorEnd { g_emulator->m_cdrom->m_setSectorEnd.data },
-            CDSetSector { g_emulator->m_cdrom->m_setSector.data },
-            CDTrack { g_emulator->m_cdrom->m_track },
-            CDPlay { g_emulator->m_cdrom->m_play },
-            CDMuted { g_emulator->m_cdrom->m_muted },
-            CDCurTrack { g_emulator->m_cdrom->m_curTrack },
-            CDMode { g_emulator->m_cdrom->m_mode },
-            CDFile { g_emulator->m_cdrom->m_file },
-            CDChannel { g_emulator->m_cdrom->m_channel },
-            CDSuceeded { g_emulator->m_cdrom->m_suceeded },
-            CDFirstSector { g_emulator->m_cdrom->m_firstSector },
-            CDIRQ { g_emulator->m_cdrom->m_irq },
-            CDIrqRepeated { g_emulator->m_cdrom->m_irqRepeated },
-            CDECycle { g_emulator->m_cdrom->m_eCycle },
-            CDSeeked { g_emulator->m_cdrom->m_seeked },
-            CDReadRescheduled { g_emulator->m_cdrom->m_readRescheduled },
-            CDDriveState { g_emulator->m_cdrom->m_driveState },
-            CDFastForward { g_emulator->m_cdrom->m_fastForward },
-            CDFastBackward { g_emulator->m_cdrom->m_fastBackward },
-            CDAttenuatorLeftToLeft { g_emulator->m_cdrom->m_attenuatorLeftToLeft },
-            CDAttenuatorLeftToRight { g_emulator->m_cdrom->m_attenuatorLeftToRight },
-            CDAttenuatorRightToRight { g_emulator->m_cdrom->m_attenuatorRightToRight },
-            CDAttenuatorRightToLeft { g_emulator->m_cdrom->m_attenuatorRightToLeft },
-            CDAttenuatorLeftToLeftT { g_emulator->m_cdrom->m_attenuatorLeftToLeftT },
-            CDAttenuatorLeftToRightT { g_emulator->m_cdrom->m_attenuatorLeftToRightT },
-            CDAttenuatorRightToRightT { g_emulator->m_cdrom->m_attenuatorRightToRightT },
-            CDAttenuatorRightToLeftT { g_emulator->m_cdrom->m_attenuatorRightToLeftT },
-            CDSubQTrack { g_emulator->m_cdrom->m_subq.track },
-            CDSubQIndex { g_emulator->m_cdrom->m_subq.index },
-            CDSubQRelative { g_emulator->m_cdrom->m_subq.relative },
-            CDSubQAbsolute { g_emulator->m_cdrom->m_subq.absolute },
-            CDTrackChanged { g_emulator->m_cdrom->m_trackChanged },
-            CDLocationChanged { g_emulator->m_cdrom->m_locationChanged },
-        },
         Hardware {},
         Counters {},
         MDEC {},
         PCdrvFilesField {},
         CallStacks {},
+        CDRom {
+            CDParam { g_emulator->m_cdrom->m_param },
+        },
     };
     // clang-format on
 }
@@ -182,8 +130,8 @@ std::string PCSX::SaveStates::save() {
     SaveState state = constructSaveState();
     SaveStateWrapper wrapper(state);
 
-    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v3";
-    state.get<SaveStateInfoField>().get<Version>().value = 3;
+    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v4";
+    state.get<SaveStateInfoField>().get<Version>().value = 4;
 
     g_emulator->m_gpu->serialize(&wrapper);
     g_emulator->m_spu->save(state.get<SPUField>());
@@ -288,7 +236,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
         return false;
     }
 
-    if (state.get<SaveStateInfoField>().get<Version>().value != 3) {
+    if (state.get<SaveStateInfoField>().get<Version>().value != 4) {
         return false;
     }
 
@@ -302,13 +250,16 @@ bool PCSX::SaveStates::load(std::string_view data) {
     g_emulator->m_cpu->m_regs.pc &= ~3;
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
+#if 0
     g_emulator->m_cdrom->load();
+#endif
 
     g_emulator->m_counters->deserialize(&wrapper);
     g_emulator->m_mdec->deserialize(&wrapper);
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
+#if 0
     g_emulator->m_cdrom->m_xa.freq = xa.get<SaveStates::XAFrequency>().value;
     g_emulator->m_cdrom->m_xa.nbits = xa.get<SaveStates::XANBits>().value;
     g_emulator->m_cdrom->m_xa.nsamples = xa.get<SaveStates::XANSamples>().value;
@@ -321,6 +272,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
     g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
+#endif
 
     g_emulator->m_cpu->closeAllPCdevFiles();
     for (auto& file : state.get<PCdrvFilesField>().value) {

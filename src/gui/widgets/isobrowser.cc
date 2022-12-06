@@ -78,7 +78,7 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
             showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
             if (ImGui::MenuItem(_("Close Disk Image"))) {
                 g_emulator->m_cdrom->setIso(new CDRIso());
-                g_emulator->m_cdrom->check();
+                g_emulator->m_cdrom->parseIso();
             }
             ImGui::EndMenu();
         }
@@ -98,7 +98,7 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             g_emulator->m_cdrom->setIso(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
-            g_emulator->m_cdrom->check();
+            g_emulator->m_cdrom->parseIso();
         }
     }
     auto iso = cdrom->m_iso.get();

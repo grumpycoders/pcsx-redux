@@ -252,7 +252,7 @@ int pcsxMain(int argc, char **argv) {
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("loadiso", "");
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("disk", "");
     if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->setIso(new PCSX::CDRIso(isoToOpen));
-    PCSX::g_emulator->m_cdrom->check();
+    PCSX::g_emulator->m_cdrom->parseIso();
     auto argPCdrvBase = args.get<std::string>("pcdrvbase");
     if (args.get<bool>("pcdrv", false)) {
         debugSettings.get<PCSX::Emulator::DebugSettings::PCdrv>().value = true;
