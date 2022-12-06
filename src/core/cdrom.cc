@@ -1025,7 +1025,6 @@ class CDRomImpl : public PCSX::CDRom {
             default:
                 CDROM_LOG("Invalid command: %02x\n", irq);
                 error = ERROR_INVALIDCMD;
-                [[fallthrough]];
 
             set_error:
                 SetResultSize(2);
