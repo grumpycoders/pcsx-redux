@@ -32,6 +32,8 @@
 #include "zep/theme.h"
 #include "zep/window.h"
 
+struct ImFont;
+
 namespace PCSX {
 class GUI;
 namespace Widgets {
@@ -74,6 +76,7 @@ class ZepEditor final : public Zep::IZepComponent, public Zep::IZepReplProvider 
     std::unique_ptr<Zep::ZepEditor> m_editor;
     std::optional<decltype(m_editor->GetMRUBuffer()->GetLastUpdateTime())> m_lastUpdateTime;
     std::optional<float> m_dpiScale;
+    ImFont* m_font = nullptr;
 
     virtual std::string ReplParse(Zep::ZepBuffer& buffer, const Zep::GlyphIterator& cursorOffset,
                                   Zep::ReplParseType type) override;
