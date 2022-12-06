@@ -2269,6 +2269,7 @@ ImFont* PCSX::GUI::findClosestFont(const std::map<float, ImFont*>& fonts) {
 }
 
 void PCSX::GUI::changeScale(float scale) {
+    if (scale <= 0.0f) return;
     m_currentScale = scale;
     m_allScales.emplace(scale);
     ImGui::SetCurrentFont(getMainFont());
