@@ -588,8 +588,8 @@ class CDRomImpl : public PCSX::CDRom {
 
         m_irq = 0;
         CDROM_IO_LOG("CDRINT %x %x %x %x\n", m_seeked, m_stat, irq, m_irqRepeated);
-        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+        if ((irq & 0x100) && PCSX ::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                                 .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
             logCDROM(irq);
         }
 
@@ -1025,7 +1025,6 @@ class CDRomImpl : public PCSX::CDRom {
             default:
                 CDROM_LOG("Invalid command: %02x\n", irq);
                 error = ERROR_INVALIDCMD;
-                // FALLTHROUGH
 
             set_error:
                 SetResultSize(2);
@@ -1254,19 +1253,24 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         m_cmd = rt;
-
-        if (rt > cdCmdEnumCount) {
-            CDROM_IO_LOG("CD1 write: %x (CdlUnknown)", rt);
-        } else {
-            CDROM_IO_LOG("CD1 write: %x (%s)", rt, magic_enum::enum_names<Commands>()[rt]);
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+            logCDROM(rt);
         }
 
-        if (m_paramC) {
-            CDROM_IO_LOG(" Param[%d] = {", m_paramC);
-            for (i = 0; i < m_paramC; i++) CDROM_IO_LOG(" %x,", m_param[i]);
-            CDROM_IO_LOG("}\n");
-        } else {
-            CDROM_IO_LOG("\n");
+        if constexpr (PCSX::CDROM_IO_LOGGER::c_enabled) {
+            std::string args;
+            if (m_paramC) {
+                args = fmt::format(" Param[{}] = {{", m_paramC);
+                for (i = 0; i < m_paramC; i++) args += fmt::format(" {:02x},", m_param[i]);
+                args += "}";
+            }
+
+            if (rt > cdCmdEnumCount) {
+                CDROM_IO_LOG("CD1 write: %x (CdlUnknown) %s\n", rt, args);
+            } else {
+                CDROM_IO_LOG("CD1 write: %x (%s) %s\n", rt, magic_enum::enum_names<Commands>()[rt], args);
+            }
         }
 
         m_resultReady = 0;
@@ -1478,8 +1482,7 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
         }
 
-        HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
-        DMA_INTERRUPT<3>();
+        dmaInterrupt();
     }
 
     void dmaInterrupt() final {
@@ -1585,19 +1588,68 @@ class CDRomImpl : public PCSX::CDRom {
 
     void logCDROM(int command) {
         const auto delayedString = (command & 0x100) ? "[Delayed]" : "";  // log if this is a delayed CD-ROM IRQ
+        uint32_t pc = PCSX::g_emulator->m_cpu->m_regs.pc;
 
         switch (command & 0xff) {
             // TODO: decode more commands
             case CdlTest:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: CdlTest %02x\n", delayedString,
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlTest %02x\n", pc, delayedString,
                                     m_param[0]);
                 break;
+            case CdlSetloc:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlSetloc %02x:%02x:%02x\n", pc,
+                                    delayedString, m_param[0], m_param[1], m_param[2]);
+                break;
+            case CdlPlay:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlPlay %i\n", pc, delayedString,
+                                    m_param[0]);
+                break;
+            case CdlSetfilter:
+                PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                    "%08x [CDROM]%s Command: CdlSetfilter file: %i, channel: %i\n", pc, delayedString,
+                                    m_param[0], m_param[1]);
+                break;
+            case CdlSetmode: {
+                auto mode = m_param[0];
+                std::string modeDecode = mode & 1 ? "CDDA" : "DATA";
+                if (mode & 2) modeDecode += " Autopause";
+                if (mode & 4) modeDecode += " Report";
+                if (mode & 8) modeDecode += " SubheaderFilter";
+                switch ((mode & 0x30) >> 4) {
+                    case 0:
+                        modeDecode += " 2048bytes";
+                        break;
+                    case 1:
+                        modeDecode += " 2328bytes";
+                        break;
+                    case 2:
+                        modeDecode += " 2340bytes";
+                        break;
+                    case 3:
+                        modeDecode += " *wrong read mode*";
+                        break;
+                }
+                if (mode & 0x40) modeDecode += " RealTimePlay";
+                modeDecode += mode & 0x80 ? " @2x" : " @1x";
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlSetmode %02x (%s)\n", pc,
+                                    delayedString, m_param[0], modeDecode);
+            } break;
+            case CdlGetTN:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlGetTN (returns %i)\n", pc,
+                                    delayedString, m_iso->getTN());
+                break;
+            case CdlGetTD: {
+                auto ret = m_iso->getTD(m_param[0]);
+                PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                    "%08x [CDROM]%s Command: CdlGetTD %i (returns %02i:%02i:%02i)\n", pc, delayedString,
+                                    m_param[0], ret.m, ret.s, ret.f);
+            } break;
             default:
                 if ((command & 0xff) > cdCmdEnumCount) {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: CdlUnknown(0x%02X)\n", delayedString,
-                                        command & 0xff);
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlUnknown(0x%02X)\n", pc,
+                                        delayedString, command & 0xff);
                 } else {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: %s\n", delayedString,
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: %s\n", pc, delayedString,
                                         magic_enum::enum_names<Commands>()[command & 0xff]);
                 }
                 break;
