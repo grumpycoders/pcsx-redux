@@ -311,6 +311,9 @@ class CDRomImpl : public PCSX::CDRom {
                     StopCdda();
                     m_driveState = DRIVESTATE_LID_OPEN;
                     scheduleCDLidIRQ(8 * irqReschedule);
+                }else if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CLOSED) || cdr_stat.Type == 0xff) {
+                    // No Disc
+                    m_statP &= ~(STATUS_PLAY | STATUS_READ | STATUS_ROTATING);
                 }
                 break;
 
@@ -586,9 +589,10 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         m_ctrl &= ~BUSYSTS;  // Command/parameter transmission not busy
-
+               
         // default response
         SetResultSize(1);
+        memset(m_result, 0, sizeof(m_result));  // Clear result buffer
         m_result[0] = m_statP;
         m_stat = Acknowledge;
 
@@ -669,32 +673,44 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case CdlForward:
-                // TODO: error 80 if stopped
-                m_stat = Complete;
-                m_suceeded = true;
-
-                // GameShark CD Player: Calls 2x + Play 2x
-                if (m_fastForward == 0) {
-                    m_fastForward = 2;
+                if ((m_statP & STATUS_PLAY) == 0) {
+                    SetResultSize(2);
+                    m_stat = DiskError;
+                    m_result[0] += 1;
+                    m_result[1] = ERROR_NOTREADY;
                 } else {
-                    m_fastForward++;
+                    // GameShark CD Player: Calls 2x + Play 2x
+                    if (m_fastForward == 0) {
+                        m_fastForward = 2;
+                    } else {
+                        m_fastForward++;
+                    }
+                    
+                    m_fastBackward = 0;
+                    
+                    m_stat = Acknowledge;
+                    m_suceeded = true;
                 }
-
-                m_fastBackward = 0;
                 break;
 
             case CdlBackward:
-                m_stat = Complete;
-                m_suceeded = true;
-
-                // GameShark CD Player: Calls 2x + Play 2x
-                if (m_fastBackward == 0) {
-                    m_fastBackward = 2;
+                if ((m_statP & STATUS_PLAY) == 0) {
+                    SetResultSize(2);
+                    m_stat = DiskError;
+                    m_result[0] += 1;
+                    m_result[1] = ERROR_NOTREADY;
                 } else {
-                    m_fastBackward++;
+                    // GameShark CD Player: Calls 2x + Play 2x
+                    if (m_fastBackward == 0) {
+                        m_fastBackward = 2;
+                    } else {
+                        m_fastBackward++;
+                    }
+                    m_fastForward = 0;
+                    
+                    m_stat = Acknowledge;
+                    m_suceeded = true;
                 }
-
-                m_fastForward = 0;
                 break;
 
             case CdlStandby:
@@ -854,10 +870,9 @@ class CDRomImpl : public PCSX::CDRom {
                     m_result[0] |= STATUS_ERROR;
                 } else {
                     m_track = PCSX::IEC60908b::btoi(m_param[0]);
-                    SetResultSize(4);
+                    SetResultSize(3);
                     m_stat = Acknowledge;
                     MSF td = m_iso->getTD(m_track);
-                    m_result[0] = m_statP;
                     m_result[1] = PCSX::IEC60908b::itob(td.m);
                     m_result[2] = PCSX::IEC60908b::itob(td.s);
                 }
@@ -913,21 +928,14 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlID + 0x100:
                 SetResultSize(8);  // m_result = {stat,flags,type,atip,"PCSX"}
-                memset(m_result, 0, sizeof(m_result));
 
-                m_result[0] = m_statP;
-
-                // No Disk
-                if (m_iso->failed()) {
+                // No Disc
+                getStatus(&cdr_stat);
+                if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CLOSED) || cdr_stat.Type == 0xff) {
                     m_result[0] |= STATUS_IDERROR;
                     m_result[1] = FLAG_NODISC;
                     m_stat = DiskError;
                 } else {
-                    getStatus(&cdr_stat);
-                    if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CLOSED) || cdr_stat.Type == 0xff) {
-                        m_result[1] = 0xc0;
-                    }
-
                     if (isBootable()) {
                         strncpy((char *)&m_result[4], "PCSX", 4);
                         m_stat = Complete;
@@ -1574,7 +1582,8 @@ class CDRomImpl : public PCSX::CDRom {
         m_transferIndex = 0;
         m_reg2 = 0x1f;
         m_stat = NoIntr;
-        m_driveState = DRIVESTATE_STANDBY;
+        m_driveState = DRIVESTATE_RESCAN_CD;
+        scheduleCDLidIRQ(cdReadTime * 105);
         m_statP = STATUS_ROTATING;
 
         // BIOS player - default values
@@ -1582,8 +1591,6 @@ class CDRomImpl : public PCSX::CDRom {
         m_attenuatorLeftToRight = 0x00;
         m_attenuatorRightToLeft = 0x00;
         m_attenuatorRightToRight = 0x80;
-
-        getCdInfo();
     }
 
     void load() final {
