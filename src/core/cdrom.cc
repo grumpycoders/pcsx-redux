@@ -70,42 +70,95 @@ class CDRomImpl final : public PCSX::CDRom {
 
     static constexpr size_t c_cdCmdEnumCount = magic_enum::enum_count<Commands>();
 
-    void reset() override {}
+    void reset() override {
+        m_dataFIFOIndex = 0;
+        m_dataFIFOSize = 0;
+        m_paramFIFOSize = 0;
+        m_responseFIFOIndex = 0;
+        m_responseFIFOSize = 0;
+        m_registerIndex = 0;
+        m_busy = false;
+        m_state = 0;
+        m_command = 0;
+    }
 
     void interrupt() override {}
     void dmaInterrupt() override {}
-    uint8_t read0() override { return 0; }
-    uint8_t read1() override { return 0; }
-    uint8_t read2() override { return 0; }
+
+    uint8_t read0() override {
+        uint8_t v01 = m_registerIndex & 3;
+        uint8_t adpcmPlaying = 0;
+        uint8_t v3 = m_paramFIFOSize == 0 ? 0x08 : 0;
+        uint8_t v4 = m_paramFIFOSize == 16 ? 0x10 : 0;
+        uint8_t v5 = responseFIFOEmpty() ? 0x20 : 0;
+        uint8_t v6 = m_dataFIFOSize == m_dataFIFOIndex ? 0x40 : 0;
+        uint8_t v7 = m_busy ? 0x80 : 0;
+
+        return v01 | adpcmPlaying | v3 | v4 | v5 | v6 | v7;
+    }
+
+    uint8_t read1() override {
+        if (responseFIFOEmpty()) return 0;
+        return m_responseFIFO[m_responseFIFOIndex++];
+    }
+
+    uint8_t read2() override {
+        if (dataFIFOEmpty()) return 0;
+        return m_dataFIFO[m_dataFIFOIndex++];
+    }
+
     uint8_t read3() override { return 0; }
-    void write0(uint8_t rt) override {}
-    void write1(uint8_t rt) override {}
+
+    void write0(uint8_t rt) override { m_registerIndex = rt & 3; }
+
+    void write1(uint8_t rt) override {
+        switch (m_registerIndex) {
+            case 0: {
+                if (m_busy) {
+                    // The CD-Rom controller is already executing a command.
+                    // This basically results in undefined behavior.
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom command while controller is busy");
+                    PCSX::g_system->pause();
+                }
+                m_busy = true;
+                m_command = rt;
+                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                        .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+                    logCDROM(rt);
+                }
+                startCommand(rt);
+            } break;
+        }
+    }
+
     void write2(uint8_t rt) override {}
+
     void write3(uint8_t rt) override {}
 
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) override {}
 
-    void logCDROM(int command) {
+    void startCommand(uint8_t command) {}
+
+    void logCDROM(uint8_t command) {
         uint32_t pc = PCSX::g_emulator->m_cpu->m_regs.pc;
 
         switch (command & 0xff) {
-            // TODO: decode more commands
             case CdlTest:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlTest %02x\n", pc, m_param[0]);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlTest %02x\n", pc, m_paramFIFO[0]);
                 break;
             case CdlSetloc:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlSetloc %02x:%02x:%02x\n", pc,
-                                    m_param[0], m_param[1], m_param[2]);
+                                    m_paramFIFO[0], m_paramFIFO[1], m_paramFIFO[2]);
                 break;
             case CdlPlay:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlPlay %i\n", pc, m_param[0]);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlPlay %i\n", pc, m_paramFIFO[0]);
                 break;
             case CdlSetfilter:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlSetfilter file: %i, channel: %i\n",
-                                    pc, m_param[0], m_param[1]);
+                                    pc, m_paramFIFO[0], m_paramFIFO[1]);
                 break;
             case CdlSetmode: {
-                auto mode = m_param[0];
+                auto mode = m_paramFIFO[0];
                 std::string modeDecode = mode & 1 ? "CDDA" : "DATA";
                 if (mode & 2) modeDecode += " Autopause";
                 if (mode & 4) modeDecode += " Report";
@@ -127,16 +180,16 @@ class CDRomImpl final : public PCSX::CDRom {
                 if (mode & 0x40) modeDecode += " RealTimePlay";
                 modeDecode += mode & 0x80 ? " @2x" : " @1x";
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlSetmode %02x (%s)\n", pc,
-                                    m_param[0], modeDecode);
+                                    m_paramFIFO[0], modeDecode);
             } break;
             case CdlGetTN:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlGetTN (returns %i)\n", pc,
                                     m_iso->getTN());
                 break;
             case CdlGetTD: {
-                auto ret = m_iso->getTD(m_param[0]);
+                auto ret = m_iso->getTD(m_paramFIFO[0]);
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                    "%08x [CDROM] Command: CdlGetTD %i (returns %02i:%02i:%02i)\n", pc, m_param[0],
+                                    "%08x [CDROM] Command: CdlGetTD %i (returns %02i:%02i:%02i)\n", pc, m_paramFIFO[0],
                                     ret.m, ret.s, ret.f);
             } break;
             default:

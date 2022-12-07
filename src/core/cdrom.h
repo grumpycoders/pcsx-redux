@@ -85,7 +85,21 @@ class CDRom {
     std::shared_ptr<CDRIso> m_iso;
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
-    uint8_t m_param[32] = {0};
+    bool dataFIFOEmpty() { return m_dataFIFOIndex == m_dataFIFOSize; }
+    bool responseFIFOEmpty() { return m_responseFIFOIndex == m_responseFIFOSize; }
+
+    uint8_t m_dataFIFO[2352] = {0};
+    uint8_t m_paramFIFO[16] = {0};
+    uint8_t m_responseFIFO[16] = {0};
+    uint32_t m_dataFIFOIndex = 0;
+    uint32_t m_dataFIFOSize = 0;
+    uint8_t m_paramFIFOSize = 0;
+    uint8_t m_responseFIFOIndex = 0;
+    uint8_t m_responseFIFOSize = 0;
+    uint8_t m_registerIndex = 0;
+    bool m_busy = false;
+    uint8_t m_state = 0;
+    uint8_t m_command = 0;
 
   private:
     friend class Widgets::IsoBrowser;

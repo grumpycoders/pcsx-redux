@@ -221,6 +221,7 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("sp"), 2> CallSP;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("sp"), 3> CallFP;
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("shadow"), 4> Shadow;
 typedef Protobuf::Message<TYPESTRING("Call"), CallRA, CallSP, CallFP, Shadow> Call;
+
 typedef Protobuf::RepeatedVariableField<Call, TYPESTRING("calls"), 1> Calls;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("low"), 2> LowSP;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("high"), 3> HighSP;
@@ -229,12 +230,28 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("fp"), 5> PresumedFP;
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("iscurrent"), 6> CallstackIsCurrent;
 typedef Protobuf::Message<TYPESTRING("Calls"), Calls, LowSP, HighSP, PresumedRA, PresumedFP, CallstackIsCurrent>
     CallStack;
+
 typedef Protobuf::RepeatedVariableField<CallStack, TYPESTRING("CallStacks"), 1> CallStacksMessageField;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("currentSP"), 2> CallStacksCurrentSP;
 typedef Protobuf::Message<TYPESTRING("CallStacks"), CallStacksMessageField, CallStacksCurrentSP> CallStacks;
 typedef Protobuf::MessageField<CallStacks, TYPESTRING("callstacks"), 14> CallStacksField;
-typedef Protobuf::FieldPtr<Protobuf::FixedBytes<32>, TYPESTRING("param"), 1> CDParam;
-typedef Protobuf::Message<TYPESTRING("CDRom"), CDParam> CDRom;
+
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<2352>, TYPESTRING("dataFIFO"), 1> CDDataFIFO;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<16>, TYPESTRING("paramFIFO"), 2> CDParamFIFO;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<16>, TYPESTRING("responseFIFO"), 3> CDResponseFIFO;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("dataFIFOIndex"), 4> CDDataFIFOIndex;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("dataFIFOSize"), 5> CDDataFIFOSize;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("paramFIFOSize"), 6> CDParamFIFOSize;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("responseFIFOData"), 7> CDResponseFIFOData;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("responseFIFOSize"), 8> CDResponseFIFOSize;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("registerIndex"), 9> CDRegisterIndex;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("busy"), 10> CDBusy;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("state"), 11> CDState;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("command"), 12> CDCommand;
+typedef Protobuf::Message<TYPESTRING("CDRom"), CDDataFIFO, CDParamFIFO, CDResponseFIFO, CDDataFIFOIndex, CDDataFIFOSize,
+                          CDParamFIFOSize, CDResponseFIFOData, CDResponseFIFOSize, CDRegisterIndex, CDBusy, CDState,
+                          CDCommand>
+    CDRom;
 typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 15> CDRomField;
 
 typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, ThumbnailField, MemoryField, RegistersField,
