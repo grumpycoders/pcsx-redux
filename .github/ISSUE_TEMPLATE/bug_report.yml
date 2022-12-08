@@ -102,6 +102,22 @@ body:
         - Software
         - OpenGL
 
+  - type: checkboxes
+    attributes:
+      label: Options
+      description: Check the same checkboxes from your Settings window
+      options:
+        - label: Fastboot
+        - label: Debugger
+
+  - type: textarea
+    validations:
+      required: false
+    attributes:
+      label: Logs
+      description: >-
+        If possible and relevant, go to the Debug->Show Logs window, and copy/paste its contents here.
+
   - type: textarea
     validations:
       required: false
