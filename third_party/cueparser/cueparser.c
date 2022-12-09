@@ -407,24 +407,30 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                         return;
                 }
                 break;
-            case CUE_PARSER_FLAGS:
+            case CUE_PARSER_FLAGS: {
+                struct CueTrack* track = &parser->disc->tracks[parser->currentTrack];
                 switch (keyword) {
                     case KW_EMPTY:
                         assert(isEOL);
                         parser->state = CUE_PARSER_START;
                         break;
                     case KW_DCP:
+                        track->digitalCopyPermitted = 1;
+                        break;
                     case KW_4CH:
+                        track->fourChannelAudio = 1;
+                        break;
                     case KW_PRE:
+                        track->preEmphasis = 1;
+                        break;
                     case KW_SCMS:
-                        end_parse(parser, scheduler, "cuesheet FLAGS not supported at the moment");
-                        return;
+                        track->serialCopyManagementSystem = 1;
                         break;
                     default:
                         end_parse(parser, scheduler, "cuesheet FLAGS argument unknown");
                         return;
                 }
-                break;
+            } break;
             case CUE_PARSER_INDEX_NUMBER: {
                 if (keyword == KW_EMPTY) {
                     end_parse(parser, scheduler, "cuesheet INDEX missing index number argument");
@@ -463,7 +469,9 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     if (parser->currentTrack == 1) {
                         track->indices[0] = 0;
                     } else {
-                        track->indices[0] = parser->currentSectorNumber;
+                        track->indices[0] = track->indices[1] - parser->currentPregap;
+                        track->fileOffset += parser->currentPregap;
+                        parser->currentSectorNumber += parser->currentPregap;
                     }
                     parser->implicitIndex = 0;
                 }
@@ -509,19 +517,12 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     end_parse(parser, scheduler, "cuesheet PREGAP after an INDEX");
                     return;
                 }
-                if (parser->currentSectorNumber != track->fileOffset) {
-                    end_parse(parser, scheduler, "cuesheet PREGAP not at the beginning of a FILE isn't supported");
-                    return;
-                }
                 int32_t pregapLength = timecodeToSectorNumber(parser->word);
                 if (pregapLength < 0) {
                     end_parse(parser, scheduler, "cuesheet PREGAP length invalid");
                     return;
                 }
-                track->indexCount = 0;
-                track->indices[0] = parser->currentSectorNumber;
-                track->fileOffset += pregapLength;
-                parser->currentSectorNumber += pregapLength;
+                parser->currentPregap = pregapLength;
                 parser->state = CUE_PARSER_START;
             } break;
             case CUE_PARSER_SONGWRITER:
@@ -576,6 +577,11 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     track->size = 0;
                     track->trackType = TRACK_TYPE_UNKNOWN;
                     track->compressed = 0;
+                    track->digitalCopyPermitted = 0;
+                    track->fourChannelAudio = 0;
+                    track->preEmphasis = 0;
+                    track->serialCopyManagementSystem = 0;
+                    parser->currentPregap = 0;
                     if (parser->isTrackANewFile) {
                         parser->currentSectorNumber += (parser->previousFileSize + 2351) / 2352;
                         parser->isTrackANewFile = 0;
