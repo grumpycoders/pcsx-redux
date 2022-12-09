@@ -95,10 +95,18 @@ body:
     validations:
       required: false
     attributes:
+      label: Iso checks
+      description: >-
+        If possible, verify the integrity of your iso file by using the Debug->Iso browser window with its CRC32 feature. Compare and link the results with https://redump.org/
+
+  - type: textarea
+    validations:
+      required: false
+    attributes:
       label: Logs
       description: >-
         If possible and relevant, go to the Debug->Show Logs window, and copy/paste its contents here.
-
+  
   - type: textarea
     validations:
       required: false
