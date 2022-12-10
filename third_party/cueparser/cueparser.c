@@ -469,7 +469,8 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     if (parser->currentTrack == 1) {
                         track->indices[0] = 0;
                     } else {
-                        track->indices[0] = track->indices[1] - parser->currentPregap;
+                        track->indices[0] = track->indices[1];
+                        track->indices[1] += parser->currentPregap;
                         track->fileOffset += parser->currentPregap;
                         parser->currentSectorNumber += parser->currentPregap;
                     }
