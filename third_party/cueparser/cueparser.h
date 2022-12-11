@@ -87,6 +87,7 @@ struct CueParser {
     uint32_t currentSectorNumber;
     int implicitIndex;
     int isTrackANewFile;
+    uint32_t currentPregap;
 };
 
 void CueParser_construct(struct CueParser*, struct CueDisc*);
