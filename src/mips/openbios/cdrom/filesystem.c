@@ -225,8 +225,8 @@ static int findDirectoryEntryForFilename(int id, const char *filename) {
         for (struct DirectoryEntry *entry = s_cachedDirectoryEntry + id; id < count; id++, entry++) {
             if (patternMatches(entry->name, localName)) return s_foundDirectoryEntry = id;
         }
+        return -1;
     }
-
     return -1;
 }
 

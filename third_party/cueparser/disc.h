@@ -57,6 +57,10 @@ struct CueTrack {
     uint32_t postgap;            // size of the postgap in sectors
     enum CueTrackType trackType;
     int compressed;
+    int digitalCopyPermitted;
+    int fourChannelAudio;
+    int preEmphasis;
+    int serialCopyManagementSystem;
 };
 
 struct CueDisc {
