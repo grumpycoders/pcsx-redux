@@ -56,12 +56,15 @@ PCSX::Widgets::ZepEditor::ZepEditor(const std::string& name)
 
 void PCSX::Widgets::ZepEditor::draw(GUI* gui) {
     auto dpiScale = ImGui::GetWindowDpiScale();
+    if (dpiScale <= 0.0f) return;
+    auto font = gui->getMonoFont();
+    if (!font) return;
 
-    if (!m_dpiScale.has_value() || (m_dpiScale.value() != dpiScale)) {
+    if (!m_dpiScale.has_value() || (m_dpiScale.value() != dpiScale) || m_font != font) {
         m_dpiScale = dpiScale;
+        m_font = font;
         auto& display = m_editor->GetDisplay();
         display.SetPixelScale(Zep::NVec2f(dpiScale));
-        auto font = gui->getMonoFont();
         int fontPixelHeight = (int)dpi_pixel_height_from_point_size(14.0f, dpiScale);
 
         display.SetFont(Zep::ZepTextType::UI, std::make_shared<Zep::ZepFont_ImGui>(display, font, fontPixelHeight));
