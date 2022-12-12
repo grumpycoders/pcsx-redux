@@ -2354,8 +2354,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2
     uint16_t color;
     uint32_t lcolor;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawW = m_drawW;
@@ -2378,6 +2376,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2
     for (ymin = m_yMin; ymin < drawY; ymin++) {
         if (nextRowFlat3()) return;
     }
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         color |= m_setMask16;
@@ -2432,14 +2433,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
     int32_t clutP;
     int16_t tC1, tC2;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawW = m_drawW;
     const auto drawH = m_drawH;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH) return;
@@ -2465,6 +2462,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(int16_t x1, int16_t y1, int16_t 
     difX2 = difX << 1;
     difY = m_deltaRightV;
     difY2 = difY << 1;
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -2567,20 +2569,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
     int32_t posX, posY, YAdjust, clutP, XAdjust;
     int16_t tC1, tC2;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
-    const auto xxleftX = m_leftX;
-    const auto xxrightX = m_rightX;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto xxleftU = m_leftU;
-    const auto xxleftV = m_leftV;
-    const auto xxrightU = m_rightU;
-    const auto xxrightV = m_rightV;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
@@ -2601,6 +2593,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
 
     YAdjust = ((m_globalTextAddrY) << 11) + (m_globalTextAddrX << 1);
     YAdjust += (m_textureWindow.y0 << 11) + (m_textureWindow.x0 >> 1);
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -2715,14 +2712,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
     int32_t posX, posY, YAdjust, clutP, XAdjust;
     int16_t tC1, tC2;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
@@ -2743,6 +2736,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_
 
     YAdjust = ((m_globalTextAddrY) << 11) + (m_globalTextAddrX << 1);
     YAdjust += (m_textureWindow.y0 << 11) + (m_textureWindow.x0 >> 1);
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -2855,14 +2853,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
     int32_t posX, posY, YAdjust, clutP;
     int16_t tC1, tC2;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH) return;
@@ -2888,6 +2882,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(int16_t x1, int16_t y1, int16_t 
     difX2 = difX << 1;
     difY = m_deltaRightV;
     difY2 = difY << 1;
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -2977,14 +2976,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
     int32_t posX, posY, YAdjust, clutP;
     int16_t tC1, tC2;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
@@ -3005,6 +3000,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(int16_t x1, int16_t y1, int16_t 
 
     YAdjust = ((m_globalTextAddrY) << 11) + (m_globalTextAddrX << 1);
     YAdjust += (m_textureWindow.y0 << 11) + (m_textureWindow.x0);
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3108,14 +3108,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
     int32_t posX, posY, YAdjust, clutP;
     int16_t tC1, tC2;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
@@ -3136,6 +3132,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_
 
     YAdjust = ((m_globalTextAddrY) << 11) + (m_globalTextAddrX << 1);
     YAdjust += (m_textureWindow.y0 << 11) + (m_textureWindow.x0);
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3238,17 +3239,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
     int32_t difX, difY, difX2, difY2;
     int32_t posX, posY;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH) return;
@@ -3269,6 +3263,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
     difX2 = difX << 1;
     difY = m_deltaRightV;
     difY2 = difY << 1;
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3362,17 +3364,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
     int32_t difX, difY, difX2, difY2;
     int32_t posX, posY;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
@@ -3388,6 +3383,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
     for (ymin = m_yMin; ymin < drawY; ymin++) {
         if (nextRowFlatTextured4()) return;
     }
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3495,17 +3498,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
     int32_t difX, difY, difX2, difY2;
     int32_t posX, posY;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW && x4 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH && y4 > drawH) return;
@@ -3521,6 +3517,14 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
     for (ymin = m_yMin; ymin < drawY; ymin++) {
         if (nextRowFlatTextured4()) return;
     }
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
 
     if (!m_checkMask && !m_drawSemiTrans) {
         for (i = ymin; i <= ymax; i++) {
@@ -3629,22 +3633,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
     int32_t cR1, cG1, cB1;
     int32_t difR, difB, difG, difR2, difB2, difG2;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH) return;
@@ -3668,6 +3660,16 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
     difG2 = difG << 1;
     difB2 = difB << 1;
 
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+
     if (!m_checkMask && !m_drawSemiTrans && m_ditherMode != 2) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (m_leftX >> 16);
@@ -3675,9 +3677,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
             if (drawW < xmax) xmax = drawW;
 
             if (xmax >= xmin) {
-                cR1 = leftR;
-                cG1 = leftG;
-                cB1 = leftB;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < drawX) {
                     j = drawX - xmin;
@@ -3715,9 +3717,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
             if (drawW < xmax) xmax = drawW;
 
             if (xmax >= xmin) {
-                cR1 = leftR;
-                cG1 = leftG;
-                cB1 = leftB;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < drawX) {
                     j = drawX - xmin;
@@ -3744,9 +3746,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
             if (drawW < xmax) xmax = drawW;
 
             if (xmax >= xmin) {
-                cR1 = leftR;
-                cG1 = leftG;
-                cB1 = leftB;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < drawX) {
                     j = drawX - xmin;
@@ -3796,23 +3798,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
     int32_t posX, posY, YAdjust, clutP, XAdjust;
     int16_t tC1, tC2;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH) return;
@@ -3846,6 +3835,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
     difY = m_deltaRightV;
     difY2 = difY << 1;
 
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
+
     if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
             xmin = ((m_leftX) >> 16);
@@ -3855,9 +3855,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
             if (xmax >= xmin) {
                 posX = m_leftU;
                 posY = m_leftV;
-                cR1 = leftR;
-                cG1 = leftG;
-                cB1 = leftB;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < drawX) {
                     j = drawX - xmin;
@@ -3908,9 +3908,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
         if (xmax >= xmin) {
             posX = m_leftU;
             posY = m_leftV;
-            cR1 = leftR;
-            cG1 = leftG;
-            cB1 = leftB;
+            cR1 = m_leftR;
+            cG1 = m_leftG;
+            cB1 = m_leftB;
 
             if (xmin < drawX) {
                 j = drawX - xmin;
@@ -3968,23 +3968,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
     int32_t posX, posY, YAdjust, clutP;
     int16_t tC1, tC2;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH) return;
@@ -4017,6 +4004,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
     difY = m_deltaRightV;
     difY2 = difY << 1;
 
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
+
     if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (m_leftX >> 16);
@@ -4026,9 +4024,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
             if (xmax >= xmin) {
                 posX = m_leftU;
                 posY = m_leftV;
-                cR1 = leftR;
-                cG1 = leftG;
-                cB1 = leftB;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < drawX) {
                     j = drawX - xmin;
@@ -4074,9 +4072,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
         if (xmax >= xmin) {
             posX = m_leftU;
             posY = m_leftV;
-            cR1 = leftR;
-            cG1 = leftG;
-            cB1 = leftB;
+            cR1 = m_leftR;
+            cG1 = m_leftG;
+            cB1 = m_leftB;
 
             if (xmin < drawX) {
                 j = drawX - xmin;
@@ -4130,23 +4128,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
     int32_t difX, difY, difX2, difY2;
     int32_t posX, posY;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     if (x1 > drawW && x2 > drawW && x3 > drawW) return;
     if (y1 > drawH && y2 > drawH && y3 > drawH) return;
@@ -4174,6 +4159,17 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
     difY = m_deltaRightV;
     difY2 = difY << 1;
 
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
+
     if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (m_leftX >> 16);
@@ -4183,9 +4179,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
             if (xmax >= xmin) {
                 posX = m_leftU;
                 posY = m_leftV;
-                cR1 = leftR;
-                cG1 = leftG;
-                cB1 = leftB;
+                cR1 = m_leftR;
+                cG1 = m_leftG;
+                cB1 = m_leftB;
 
                 if (xmin < drawX) {
                     j = drawX - xmin;
@@ -4235,9 +4231,9 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
         if (xmax >= xmin) {
             posX = m_leftU;
             posY = m_leftV;
-            cR1 = leftR;
-            cG1 = leftG;
-            cB1 = leftB;
+            cR1 = m_leftR;
+            cG1 = m_leftG;
+            cB1 = m_leftB;
 
             if (xmin < drawX) {
                 j = drawX - xmin;
@@ -4291,23 +4287,10 @@ void PCSX::SoftGPU::SoftRenderer::line_E_SE_Shade(int x0, int y0, int x1, int y1
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     r0 = (rgb0 & 0x00ff0000);
     g0 = (rgb0 & 0x0000ff00) << 8;
@@ -4332,6 +4315,17 @@ void PCSX::SoftGPU::SoftRenderer::line_E_SE_Shade(int x0, int y0, int x1, int y1
     d = 2 * dy - dx;        /* Initial value of d */
     incrE = 2 * dy;         /* incr. used for move to E */
     incrSE = 2 * (dy - dx); /* incr. used for move to SE */
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
 
     if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
         getShadeTransCol(&vram16[(y0 << 10) + x0],
@@ -4365,23 +4359,10 @@ void PCSX::SoftGPU::SoftRenderer::line_S_SE_Shade(int x0, int y0, int x1, int y1
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     r0 = (rgb0 & 0x00ff0000);
     g0 = (rgb0 & 0x0000ff00) << 8;
@@ -4406,6 +4387,17 @@ void PCSX::SoftGPU::SoftRenderer::line_S_SE_Shade(int x0, int y0, int x1, int y1
     d = 2 * dx - dy;        /* Initial value of d */
     incrS = 2 * dx;         /* incr. used for move to S */
     incrSE = 2 * (dx - dy); /* incr. used for move to SE */
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
 
     if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
         getShadeTransCol(&vram16[(y0 << 10) + x0],
@@ -4439,23 +4431,10 @@ void PCSX::SoftGPU::SoftRenderer::line_N_NE_Shade(int x0, int y0, int x1, int y1
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     r0 = (rgb0 & 0x00ff0000);
     g0 = (rgb0 & 0x0000ff00) << 8;
@@ -4480,6 +4459,17 @@ void PCSX::SoftGPU::SoftRenderer::line_N_NE_Shade(int x0, int y0, int x1, int y1
     d = 2 * dx - dy;        /* Initial value of d */
     incrN = 2 * dx;         /* incr. used for move to N */
     incrNE = 2 * (dx - dy); /* incr. used for move to NE */
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
 
     if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
         getShadeTransCol(&vram16[(y0 << 10) + x0],
@@ -4513,23 +4503,10 @@ void PCSX::SoftGPU::SoftRenderer::line_E_NE_Shade(int x0, int y0, int x1, int y1
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     r0 = (rgb0 & 0x00ff0000);
     g0 = (rgb0 & 0x0000ff00) << 8;
@@ -4554,6 +4531,17 @@ void PCSX::SoftGPU::SoftRenderer::line_E_NE_Shade(int x0, int y0, int x1, int y1
     d = 2 * dy - dx;        /* Initial value of d */
     incrE = 2 * dy;         /* incr. used for move to E */
     incrNE = 2 * (dy - dx); /* incr. used for move to NE */
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
 
     if ((x0 >= drawX) && (x0 < drawW) && (y0 >= drawY) && (y0 < drawH)) {
         getShadeTransCol(&vram16[(y0 << 10) + x0],
@@ -4587,23 +4575,10 @@ void PCSX::SoftGPU::SoftRenderer::vertLineShade(int x, int y0, int y1, uint32_t 
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     r0 = (rgb0 & 0x00ff0000);
     g0 = (rgb0 & 0x0000ff00) << 8;
@@ -4633,6 +4608,17 @@ void PCSX::SoftGPU::SoftRenderer::vertLineShade(int x, int y0, int y1, uint32_t 
 
     if (y1 > m_drawH) y1 = m_drawH;
 
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
+
     for (y = y0; y <= y1; y++) {
         getShadeTransCol(&vram16[(y << 10) + x],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
@@ -4649,23 +4635,10 @@ void PCSX::SoftGPU::SoftRenderer::horzLineShade(int y, int x0, int x1, uint32_t 
     uint32_t r0, g0, b0, r1, g1, b1;
     int32_t dr, dg, db;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     r0 = (rgb0 & 0x00ff0000);
     g0 = (rgb0 & 0x0000ff00) << 8;
@@ -4695,6 +4668,17 @@ void PCSX::SoftGPU::SoftRenderer::horzLineShade(int y, int x0, int x1, uint32_t 
 
     if (x1 > m_drawW) x1 = m_drawW;
 
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
+
     for (x = x0; x <= x1; x++) {
         getShadeTransCol(&vram16[(y << 10) + x],
                          (uint16_t)(((r0 >> 9) & 0x7c00) | ((g0 >> 14) & 0x03e0) | ((b0 >> 19) & 0x001f)));
@@ -4709,23 +4693,10 @@ void PCSX::SoftGPU::SoftRenderer::horzLineShade(int y, int x0, int x1, uint32_t 
 void PCSX::SoftGPU::SoftRenderer::line_E_SE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrE, incrSE, d, x, y;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     dx = x1 - x0;
     dy = y1 - y0;
@@ -4734,6 +4705,18 @@ void PCSX::SoftGPU::SoftRenderer::line_E_SE_Flat(int x0, int y0, int x1, int y1,
     incrSE = 2 * (dy - dx); /* incr. used for move to SE */
     x = x0;
     y = y0;
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
+
     if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
         getShadeTransCol(&vram16[(y << 10) + x], color);
     }
@@ -4758,23 +4741,10 @@ void PCSX::SoftGPU::SoftRenderer::line_E_SE_Flat(int x0, int y0, int x1, int y1,
 void PCSX::SoftGPU::SoftRenderer::line_S_SE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrS, incrSE, d, x, y;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     dx = x1 - x0;
     dy = y1 - y0;
@@ -4783,6 +4753,18 @@ void PCSX::SoftGPU::SoftRenderer::line_S_SE_Flat(int x0, int y0, int x1, int y1,
     incrSE = 2 * (dx - dy); /* incr. used for move to SE */
     x = x0;
     y = y0;
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
+
     if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
         getShadeTransCol(&vram16[(y << 10) + x], color);
     }
@@ -4807,23 +4789,10 @@ void PCSX::SoftGPU::SoftRenderer::line_S_SE_Flat(int x0, int y0, int x1, int y1,
 void PCSX::SoftGPU::SoftRenderer::line_N_NE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrN, incrNE, d, x, y;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     dx = x1 - x0;
     dy = -(y1 - y0);
@@ -4832,6 +4801,18 @@ void PCSX::SoftGPU::SoftRenderer::line_N_NE_Flat(int x0, int y0, int x1, int y1,
     incrNE = 2 * (dx - dy); /* incr. used for move to NE */
     x = x0;
     y = y0;
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
+
     if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
         getShadeTransCol(&vram16[(y << 10) + x], color);
     }
@@ -4856,23 +4837,10 @@ void PCSX::SoftGPU::SoftRenderer::line_N_NE_Flat(int x0, int y0, int x1, int y1,
 void PCSX::SoftGPU::SoftRenderer::line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t color) {
     int dx, dy, incrE, incrNE, d, x, y;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     dx = x1 - x0;
     dy = -(y1 - y0);
@@ -4881,6 +4849,18 @@ void PCSX::SoftGPU::SoftRenderer::line_E_NE_Flat(int x0, int y0, int x1, int y1,
     incrNE = 2 * (dy - dx); /* incr. used for move to NE */
     x = x0;
     y = y0;
+
+    const auto vram = m_vram;
+    const auto vram16 = m_vram16;
+    const auto maskX = m_textureWindow.x1 - 1;
+    const auto maskY = m_textureWindow.y1 - 1;
+    const auto globalTextAddrX = m_globalTextAddrX;
+    const auto globalTextAddrY = m_globalTextAddrY;
+    const auto textureWindow = m_textureWindow;
+    const auto setMask16 = m_setMask16;
+    const auto setMask32 = m_setMask32;
+    const auto ditherMode = m_ditherMode;
+
     if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
         getShadeTransCol(&vram16[(y << 10) + x], color);
     }
@@ -4905,26 +4885,15 @@ void PCSX::SoftGPU::SoftRenderer::line_E_NE_Flat(int x0, int y0, int x1, int y1,
 void PCSX::SoftGPU::SoftRenderer::vertLineFlat(int x, int y0, int y1, uint16_t color) {
     int y;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     if (y0 < drawY) y0 = drawY;
     if (y1 > drawH) y1 = drawH;
+
+    const auto vram16 = m_vram16;
 
     for (y = y0; y <= y1; y++) {
         getShadeTransCol(&vram16[(y << 10) + x], color);
@@ -4936,26 +4905,15 @@ void PCSX::SoftGPU::SoftRenderer::vertLineFlat(int x, int y0, int y1, uint16_t c
 void PCSX::SoftGPU::SoftRenderer::horzLineFlat(int y, int x0, int x1, uint16_t color) {
     int x;
 
-    const auto vram = m_vram;
-    const auto vram16 = m_vram16;
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
     const auto drawW = m_drawW;
-    const auto maskX = m_textureWindow.x1 - 1;
-    const auto maskY = m_textureWindow.y1 - 1;
-    const auto globalTextAddrX = m_globalTextAddrX;
-    const auto globalTextAddrY = m_globalTextAddrY;
-    const auto textureWindow = m_textureWindow;
-    const auto leftR = m_leftR;
-    const auto leftG = m_leftG;
-    const auto leftB = m_leftB;
-    const auto setMask16 = m_setMask16;
-    const auto setMask32 = m_setMask32;
-    const auto ditherMode = m_ditherMode;
 
     if (x0 < drawX) x0 = drawX;
     if (x1 > drawW) x1 = drawW;
+
+    const auto vram16 = m_vram16;
 
     for (x = x0; x <= x1; x++) {
         getShadeTransCol(&vram16[(y << 10) + x], color);
