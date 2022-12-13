@@ -129,7 +129,7 @@ PCSX::FFmpegAudioFile::FFmpegAudioFile(IO<File> file, Channels channels, Endiann
     m_failed = av_seek_frame(m_formatContext, m_audioStreamIndex, 0, AVSEEK_FLAG_BYTE) < 0;
 }
 
-PCSX::FFmpegAudioFile::~FFmpegAudioFile() {
+void PCSX::FFmpegAudioFile::closeInternal() {
     if (m_ioContext) {
         av_freep(&m_ioContext->buffer);
         avio_context_free(&m_ioContext);

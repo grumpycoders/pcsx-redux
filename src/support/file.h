@@ -76,7 +76,11 @@ class File {
             abort();
         }
     }
-    virtual void close() {}
+    void close() {
+        if (m_closed) return;
+        closeInternal();
+        m_closed = true;
+    }
     virtual bool isClosed() { return false; }
     virtual ssize_t rSeek(ssize_t pos, int wheel = SEEK_SET) { throw std::runtime_error("Can't seek for reading"); }
     virtual ssize_t rTell() { throw std::runtime_error("Can't seek for reading"); }
@@ -257,11 +261,13 @@ class File {
             delete this;
         }
     }
+    virtual void closeInternal() {}
     friend class IOBase;
     template <FileDerived T>
     friend class IO;
 
     std::atomic<unsigned> m_refCount = 0;
+    bool m_closed = false;
 };
 
 class IOBase {
@@ -355,7 +361,6 @@ class BufferFile : public File {
     // Makes a read-only buffer out of the input slice.
     BufferFile(Slice&& slice);
 
-    virtual void close() final override;
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
     virtual ssize_t wSeek(ssize_t pos, int wheel) final override;
@@ -369,6 +374,7 @@ class BufferFile : public File {
     Slice borrow();
 
   private:
+    virtual void closeInternal() final override;
     static uint8_t m_internalBuffer;
     size_t m_ptrR = 0;
     size_t m_ptrW = 0;
@@ -381,7 +387,6 @@ class BufferFile : public File {
 
 class PosixFile : public File {
   public:
-    virtual void close() final override;
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
     virtual ssize_t wSeek(ssize_t pos, int wheel) final override;
@@ -435,6 +440,7 @@ class PosixFile : public File {
     PosixFile(const char* filename, FileOps::ReadWrite);
 
   private:
+    virtual void closeInternal() final override;
     const std::filesystem::path m_filename;
     FILE* m_handle = nullptr;
     size_t m_ptrR = 0;

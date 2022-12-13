@@ -179,7 +179,7 @@ void PCSX::UvThreadOp::stopThread() {
     s_threadRunning = false;
 }
 
-void PCSX::UvFile::close() {
+void PCSX::UvFile::closeInternal() {
     if (m_download && (m_cacheProgress.load(std::memory_order_acquire) != 1.0)) {
         m_cancelDownload.store(true, std::memory_order_release);
         m_cacheBarrier.get_future().wait();
@@ -760,7 +760,7 @@ void PCSX::UvFifo::startRead(uv_tcp_t *tcp) {
         });
 }
 
-void PCSX::UvFifo::close() {
+void PCSX::UvFifo::closeInternal() {
     m_closed.store(true);
     request([tcp = m_tcp](uv_loop_t *loop) {
         if (!tcp) return;
