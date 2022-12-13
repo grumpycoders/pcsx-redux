@@ -60,7 +60,7 @@ PCSX::BufferFile::BufferFile(Slice &&slice) : File(RO_SEEKABLE), m_slice(std::mo
     m_size = m_slice.size();
 }
 
-void PCSX::BufferFile::close() {
+void PCSX::BufferFile::closeInternal() {
     if (m_owned) free(m_data);
     m_owned = true;
     m_data = nullptr;
@@ -152,7 +152,7 @@ PCSX::Slice PCSX::BufferFile::borrow() {
     return ret;
 }
 
-void PCSX::PosixFile::close() {
+void PCSX::PosixFile::closeInternal() {
     if (m_handle) {
         fclose(m_handle);
         m_handle = nullptr;
