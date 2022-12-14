@@ -474,7 +474,13 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
 
     uint32_t pc = virtToReal(m_registers->pc);
     auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
-    ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value);
+    if (ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value)) {
+        if (g_emulator->settings.get<Emulator::SettingDynarec>() && debugSettings.get<Emulator::DebugSettings::Debug>()) {
+            gui->addNotification(R"(Debugger and dynarec enabled at the same time.
+Consider turning the dynarec off in the main Emulation
+settings, otherwise debugging features may not work.)");
+        }
+    }
     ImGui::SameLine();
     ImGui::Checkbox(_("CPU trace"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
     ImGui::SameLine();

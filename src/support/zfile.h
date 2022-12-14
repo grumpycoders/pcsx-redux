@@ -32,7 +32,6 @@ class ZReader : public File {
     ZReader(IO<File> file, Raw) : ZReader(INTERNAL, file, -1, true) {}
     ZReader(IO<File> file, ssize_t size) : ZReader(INTERNAL, file, size, false) {}
     ZReader(IO<File> file, ssize_t size, Raw) : ZReader(INTERNAL, file, size, true) {}
-    virtual void close() final override { inflateEnd(&m_zstream); }
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_filePtr; }
     virtual ssize_t read(void* dest, size_t size) final override;
@@ -45,6 +44,7 @@ class ZReader : public File {
     virtual bool failed() final override { return m_file->failed(); }
 
   private:
+    virtual void closeInternal() final override { inflateEnd(&m_zstream); }
     enum Internal { INTERNAL };
     ZReader(Internal, IO<File> file, ssize_t size, bool raw)
         : File(RO_SEEKABLE), m_file(file), m_size(size), m_raw(raw) {
@@ -78,11 +78,11 @@ class ZWriter : public File {
     ZWriter(IO<File> file) : ZWriter(INTERNAL, file, false, false) {}
     ZWriter(IO<File> file, Raw) : ZWriter(INTERNAL, file, true, false) {}
     ZWriter(IO<File> file, GZip) : ZWriter(INTERNAL, file, false, true) {}
-    virtual void close() final override;
     virtual ssize_t write(const void* dest, size_t size) final override;
     virtual bool failed() final override { return m_file->failed(); }
 
   private:
+    virtual void closeInternal() final override;
     static constexpr size_t c_chunkSize = 65536;
     enum Internal { INTERNAL };
     ZWriter(Internal, IO<File> file, bool raw, bool gzip) : File(RW_STREAM), m_file(file) {
