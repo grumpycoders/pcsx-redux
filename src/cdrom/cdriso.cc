@@ -404,7 +404,7 @@ PCSX::IEC60908b::MSF PCSX::CDRIso::getTD(uint8_t track) {
         unsigned int sect;
         sect = m_ti[m_numtracks].start.toLBA() + m_ti[m_numtracks].length.toLBA() - m_ti[m_numtracks].pregap.toLBA();
         return IEC60908b::MSF(sect);
-    } else if (m_numtracks > 0 && track <= m_numtracks) {
+    } else if (m_numtracks > 1 && track <= m_numtracks) {
         return IEC60908b::MSF(m_ti[track].start.toLBA());
     }
     return IEC60908b::MSF(0, 2, 0);

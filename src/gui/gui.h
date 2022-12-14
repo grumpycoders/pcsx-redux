@@ -199,11 +199,15 @@ class GUI final {
         Notifier(std::function<const char *()> title) : m_title(title) {}
         void notify(const std::string &message) {
             m_message = message;
-            ImGui::OpenPopup(m_title());
+            m_toOpen = true;
         }
         bool draw() {
+            if (m_toOpen) {
+                ImGui::OpenPopup(m_title());
+                m_toOpen = false;
+            }
             bool done = false;
-            if (ImGui::BeginPopupModal(m_title(), NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (ImGui::BeginPopupModal(m_title(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
                 ImGui::TextUnformatted(m_message.c_str());
                 if (ImGui::Button(_("Ok"), ImVec2(120, 0))) {
                     ImGui::CloseCurrentPopup();
@@ -216,6 +220,7 @@ class GUI final {
 
       private:
         const std::function<const char *()> m_title;
+        bool m_toOpen = false;
         std::string m_message;
     };
     void addNotification(const std::string &notification) { m_notifier.notify(notification); }
