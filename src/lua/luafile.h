@@ -23,6 +23,7 @@
 
 #include "lua/luawrapper.h"
 #include "support/file.h"
+#include "support/uvfile.h"
 
 namespace PCSX {
 
@@ -50,6 +51,12 @@ static constexpr inline int wheelConv(enum SeekWheel w) {
 struct LuaFile {
     LuaFile(IO<File> file) : file(file) {}
     IO<File> file;
+};
+
+struct LuaServer {
+    LuaServer(UvFifoListener* listener) : m_listener(listener) {}
+    UvFifoListener* m_listener = nullptr;
+    uv_async_t m_async;
 };
 
 void open_file(Lua);

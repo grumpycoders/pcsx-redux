@@ -20,6 +20,7 @@ ffi.cdef [[
 typedef struct { char opaque[?]; } LuaFile;
 typedef struct { uint32_t size; uint8_t data[?]; } LuaBuffer;
 typedef struct { char opaque[?]; } LuaSlice;
+typedef struct { char opaque[?]; } LuaServer;
 
 enum FileOps {
     READ,
@@ -48,6 +49,12 @@ LuaFile* bufferFileEmpty();
 LuaFile* subFile(LuaFile*, uint64_t start, int64_t size);
 
 LuaFile* uvFifo(const char* address, int port);
+
+LuaServer* uvFifoListener();
+void stop(LuaServer* server);
+void start(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo));
+
+
 
 void closeFile(LuaFile* wrapper);
 
@@ -339,6 +346,39 @@ local function createFileWrapper(wrapper)
     return file
 end
 
+local function createUvListener(port, callback)
+    if type(port) ~= 'number' then error 'port argument must be an unsigned number' end
+    if (port) == nil then error 'must provide a port' end
+    --if callback == nil then error 'must provide a callback function' end
+
+    if callback ~= nil then
+        --if type(callback) ~= 'function' then error 'callback must be a function' end
+        cb = function(fifo)
+            callback(createFileWrapper(fifo))
+        end
+        cb = ffi.cast('void (*)(LuaFile* fifo)', cb)
+    end
+
+
+
+    local wrapper = C.uvFifoListener()
+
+    local listener = {
+        _type = "LuaServer",
+        _wrapper = wrapper,
+        _proxy = newproxy(),
+        _cb = cb,
+        _port = port,
+        start = function(listener) C.start(listener._wrapper, listener._port, listener._cb)  end,
+        stop = function(listener) C.stop(listener._wrapper) end,
+        test = function() print("Testing")  end
+    }
+    -- Use a proxy instead of doing this on the wrapper directly using ffi.gc, because of a bug in LuaJIT,
+    -- where circular references on finalizers using ffi.gc won't actually collect anything.
+    debug.setmetatable(listener._proxy, { __gc = function()  C.stop(listener._wrapper) end })
+    return listener
+end
+
 local function open(filename, t)
     if (t == nil) then t = 'READ' end
     if (t == 'DOWNLOAD_URL_AND_WAIT') then
@@ -395,6 +435,10 @@ local function uvFifo(address, port)
     return createFileWrapper(C.uvFifo(address, port))
 end
 
+local function uvFifoListener(port, callback)
+    return createUvListener(port, callback)
+end
+
 if (type(Support) ~= 'table') then Support = {} end
 
 Support.NewLuaBuffer = function(size)
@@ -408,6 +452,8 @@ Support.File = {
     buffer = buffer,
     zReader = zReader,
     uvFifo = uvFifo,
+    uvFifoListener = uvFifoListener,
+    _createUvListener = createUvListener,
     _createFileWrapper = createFileWrapper,
     _createSliceWrapper = createSliceWrapper,
 }

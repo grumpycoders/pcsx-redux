@@ -27,6 +27,7 @@
 namespace {
 
 using LuaFile = PCSX::LuaFFI::LuaFile;
+using LuaServer = PCSX::LuaFFI::LuaServer;
 
 enum FileOps {
     READ,
@@ -72,6 +73,18 @@ LuaFile* subFile(LuaFile* wrapper, uint64_t start, int64_t size) {
     return new LuaFile(new PCSX::SubFile(wrapper->file, start, size));
 }
 LuaFile* uvFifo(const char* address, int port) { return new LuaFile(new PCSX::UvFifo(address, port)); }
+
+LuaServer* uvFifoListener() {return new LuaServer(new PCSX::UvFifoListener());}
+
+void start(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo)) { server->m_listener->start(port, PCSX::g_system->getLoop(), &server->m_async, [cb](PCSX::UvFifo* fifo) {
+        cb(new LuaFile(fifo));
+    });
+}
+
+//void start(LuaServer* server, unsigned port, void (*cb)(PCSX::UvFifo* fifo)) { server->m_listener->start(port, PCSX::g_system->getLoop(),  &server->m_async, cb); }
+
+
+void stop(LuaServer* server) {server->m_listener->stop();}
 
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
 
@@ -194,6 +207,9 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, bufferFileEmpty);
     REGISTER(L, subFile);
     REGISTER(L, uvFifo);
+    REGISTER(L, uvFifoListener);
+    REGISTER(L, stop);
+    REGISTER(L, start);
 
     REGISTER(L, closeFile);
 
