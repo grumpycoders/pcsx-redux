@@ -37,7 +37,7 @@ class CDRomImpl final : public PCSX::CDRom {
     enum Commands {
         CdlSync = 0,
         CdlGetStat = 1,
-        CdlSetloc = 2,
+        CdlSetLoc = 2,
         CdlPlay = 3,
         CdlForward = 4,
         CdlBackward = 5,
@@ -48,18 +48,18 @@ class CDRomImpl final : public PCSX::CDRom {
         CdlReset = 10,
         CdlMute = 11,
         CdlDemute = 12,
-        CdlSetfilter = 13,
-        CdlSetmode = 14,
-        CdlGetparam = 15,
-        CdlGetlocL = 16,
-        CdlGetlocP = 17,
+        CdlSetFilter = 13,
+        CdlSetMode = 14,
+        CdlGetParam = 15,
+        CdlGetLocL = 16,
+        CdlGetLocP = 17,
         CdlReadT = 18,
         CdlGetTN = 19,
         CdlGetTD = 20,
         CdlSeekL = 21,
         CdlSeekP = 22,
-        CdlSetclock = 23,
-        CdlGetclock = 24,
+        CdlSetClock = 23,
+        CdlGetClock = 24,
         CdlTest = 25,
         CdlID = 26,
         CdlReadS = 27,
@@ -89,7 +89,7 @@ class CDRomImpl final : public PCSX::CDRom {
         uint8_t v01 = m_registerIndex & 3;
         uint8_t adpcmPlaying = 0;
         uint8_t v3 = m_paramFIFOSize == 0 ? 0x08 : 0;
-        uint8_t v4 = m_paramFIFOSize == 16 ? 0x10 : 0;
+        uint8_t v4 = paramFIFOFull() ? 0x10 : 0;
         uint8_t v5 = responseFIFOEmpty() ? 0x20 : 0;
         uint8_t v6 = m_dataFIFOSize == m_dataFIFOIndex ? 0x40 : 0;
         uint8_t v7 = m_busy ? 0x80 : 0;
@@ -107,37 +107,156 @@ class CDRomImpl final : public PCSX::CDRom {
         return m_dataFIFO[m_dataFIFOIndex++];
     }
 
-    uint8_t read3() override { return 0; }
+    uint8_t read3() override {
+        switch (m_registerIndex & 1) {
+            case 0: {
+                // cause mask
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom r0:0 not available yet\n");
+                PCSX::g_system->pause();
+                return 0;
+            } break;
+            case 1: {
+                // cause
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom r0:1 not available yet\n");
+                PCSX::g_system->pause();
+                return 0;
+            } break;
+        }
+        // should not be reachable
+        return 0;
+    }
 
-    void write0(uint8_t rt) override { m_registerIndex = rt & 3; }
+    void write0(uint8_t value) override { m_registerIndex = value & 3; }
 
-    void write1(uint8_t rt) override {
+    void write1(uint8_t value) override {
         switch (m_registerIndex) {
             case 0: {
                 if (m_busy) {
                     // The CD-Rom controller is already executing a command.
-                    // This basically results in undefined behavior.
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom command while controller is busy");
+                    // This basically results in undefined behavior. We'll still
+                    // have to address this, as some games will do it anyway.
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom command while controller is busy\n");
                     PCSX::g_system->pause();
                 }
-                m_busy = true;
-                m_command = rt;
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                        .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
-                    logCDROM(rt);
-                }
-                startCommand(rt);
+                startCommand(value);
+            } break;
+            case 1: {
+                // ??
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w1:1 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+            case 2: {
+                // ??
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w1:2 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+            case 3: {
+                // Volume setting RR
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w1:3 not available yet\n");
+                PCSX::g_system->pause();
             } break;
         }
     }
 
-    void write2(uint8_t rt) override {}
+    void write2(uint8_t value) override {
+        switch (m_registerIndex) {
+            case 0: {
+                if (!paramFIFOFull()) m_paramFIFO[m_paramFIFOSize++] = value;
+            } break;
+            case 1: {
+                // cause mask
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w2:1 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+            case 2: {
+                // Volume setting LL
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w2:2 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+            case 3: {
+                // Volume setting RL
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w2:3 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+        }
+    }
 
-    void write3(uint8_t rt) override {}
+    void write3(uint8_t value) override {
+        switch (m_registerIndex) {
+            case 0: {
+                // ??
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w3:0 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+            case 1: {
+                // cause ack
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w3:1 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+            case 2: {
+                // Volume setting LR
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w3:2 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+            case 3: {
+                // SPU settings latch
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom w3:3 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+        }
+    }
 
-    void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) override {}
+    void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) override {
+        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom DMA not available yet\n");
+        PCSX::g_system->pause();
+    }
 
-    void startCommand(uint8_t command) {}
+    void startCommand(uint8_t command) {
+        m_busy = true;
+        m_command = command;
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+            logCDROM(command);
+        }
+
+        if (command > 30) {
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "Unknown CD-Rom command\n");
+            PCSX::g_system->pause();
+        }
+
+        auto handler = c_commandsHandlers[command];
+
+        (this->*handler)();
+    }
+
+    void cdlUnimplemented() {
+        PCSX::g_system->log(PCSX::LogClass::CDROM, "Unknown CD-Rom command\n");
+        PCSX::g_system->pause();
+    }
+
+    typedef void(CDRomImpl::*CommandType)();
+
+    const CommandType c_commandsHandlers[31] {
+#if 0
+        &CDRomImpl::cdlSync, &CDRomImpl::cdlGetStat, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlPlay, // 0
+        &CDRomImpl::cdlForward, &CDRomImpl::cdlBackward, &CDRomImpl::cdlReadN, &CDRomImpl::cdlStandby, // 4
+        &CDRomImpl::cdlStop, &CDRomImpl::cdlPause, &CDRomImpl::cdlReset, &CDRomImpl::cdlMute, // 8
+        &CDRomImpl::cdlDemute, &CDRomImpl::cdlSetFilter, &CDRomImpl::cdlSetMode, &CDRomImpl::cdlGetParam, // 12
+        &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, &CDRomImpl::cdlReadT, &CDRomImpl::cdlGetTN, // 16
+        &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, &CDRomImpl::cdlSetClock,  // 20
+        &CDRomImpl::cdlGetClock, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS, // 24
+        &CDRomImpl::cdlInit, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
+#else
+        &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, // 0
+        &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, // 4
+        &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, // 8
+        &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, // 12
+        &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, // 16
+        &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, // 20
+        &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, // 24
+        &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented, &CDRomImpl::cdlUnimplemented,                   // 28
+#endif
+    };
 
     void logCDROM(uint8_t command) {
         uint32_t pc = PCSX::g_emulator->m_cpu->m_regs.pc;
@@ -146,18 +265,18 @@ class CDRomImpl final : public PCSX::CDRom {
             case CdlTest:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlTest %02x\n", pc, m_paramFIFO[0]);
                 break;
-            case CdlSetloc:
+            case CdlSetLoc:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlSetloc %02x:%02x:%02x\n", pc,
                                     m_paramFIFO[0], m_paramFIFO[1], m_paramFIFO[2]);
                 break;
             case CdlPlay:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlPlay %i\n", pc, m_paramFIFO[0]);
                 break;
-            case CdlSetfilter:
+            case CdlSetFilter:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM] Command: CdlSetfilter file: %i, channel: %i\n",
                                     pc, m_paramFIFO[0], m_paramFIFO[1]);
                 break;
-            case CdlSetmode: {
+            case CdlSetMode: {
                 auto mode = m_paramFIFO[0];
                 std::string modeDecode = mode & 1 ? "CDDA" : "DATA";
                 if (mode & 2) modeDecode += " Autopause";

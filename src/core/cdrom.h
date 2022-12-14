@@ -86,6 +86,7 @@ class CDRom {
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
     bool dataFIFOEmpty() { return m_dataFIFOIndex == m_dataFIFOSize; }
+    bool paramFIFOFull() { return m_paramFIFOSize == 16; }
     bool responseFIFOEmpty() { return m_responseFIFOIndex == m_responseFIFOSize; }
 
     uint8_t m_dataFIFO[2352] = {0};
@@ -100,6 +101,17 @@ class CDRom {
     bool m_busy = false;
     uint8_t m_state = 0;
     uint8_t m_command = 0;
+
+    // to save/init
+    enum class Cause : uint8_t {
+        None = 0,
+        DataReady = 1,
+        Complete = 2,
+        Acknowledge = 3,
+        End = 4,
+        Error = 5,
+    };
+    Cause m_cause = Cause::None;
 
   private:
     friend class Widgets::IsoBrowser;
