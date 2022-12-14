@@ -51,6 +51,7 @@ LuaFile* subFile(LuaFile*, uint64_t start, int64_t size);
 LuaFile* uvFifo(const char* address, int port);
 
 LuaServer* uvFifoListener();
+
 void stop(LuaServer* server);
 void start(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo));
 
@@ -346,18 +347,19 @@ local function createFileWrapper(wrapper)
     return file
 end
 
-local function createUvListener(port, callback)
+local function createUvListener(port, cb)
     if type(port) ~= 'number' then error 'port argument must be an unsigned number' end
     if (port) == nil then error 'must provide a port' end
-    --if callback == nil then error 'must provide a callback function' end
+    if cb == nil then error 'must provide a callback function' end
 
-    if callback ~= nil then
-        --if type(callback) ~= 'function' then error 'callback must be a function' end
-        cb = function(fifo)
-            callback(createFileWrapper(fifo))
+    _callback = function(fifo)  end
+    if cb ~= nil then
+        if type(cb) ~= 'function' then error 'callback must be a function' end
+        _callback = function(fifo)
+            cb(fifo)
         end
-        cb = ffi.cast('void (*)(LuaFile* fifo)', cb)
     end
+    _callback = ffi.cast('void (*)(LuaFile* fifo)', _callback)
 
 
 
@@ -367,11 +369,10 @@ local function createUvListener(port, callback)
         _type = "LuaServer",
         _wrapper = wrapper,
         _proxy = newproxy(),
-        _cb = cb,
+        _cb = _callback,
         _port = port,
         start = function(listener) C.start(listener._wrapper, listener._port, listener._cb)  end,
         stop = function(listener) C.stop(listener._wrapper) end,
-        test = function() print("Testing")  end
     }
     -- Use a proxy instead of doing this on the wrapper directly using ffi.gc, because of a bug in LuaJIT,
     -- where circular references on finalizers using ffi.gc won't actually collect anything.
