@@ -52,10 +52,8 @@ LuaFile* uvFifo(const char* address, int port);
 
 LuaServer* uvFifoListener();
 
-void stop(LuaServer* server);
-void start(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo));
-
-
+void stopListener(LuaServer* server);
+void startListener(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo));
 
 void closeFile(LuaFile* wrapper);
 
@@ -353,15 +351,16 @@ local function createUvListener(port, cb)
     if cb == nil then error 'must provide a callback function' end
 
     _callback = function(fifo)  end
+
     if cb ~= nil then
         if type(cb) ~= 'function' then error 'callback must be a function' end
         _callback = function(fifo)
-            cb(fifo)
+            file = createFileWrapper(fifo)
+            cb(file)
         end
     end
+
     _callback = ffi.cast('void (*)(LuaFile* fifo)', _callback)
-
-
 
     local wrapper = C.uvFifoListener()
 
@@ -371,12 +370,12 @@ local function createUvListener(port, cb)
         _proxy = newproxy(),
         _cb = _callback,
         _port = port,
-        start = function(listener) C.start(listener._wrapper, listener._port, listener._cb)  end,
-        stop = function(listener) C.stop(listener._wrapper) end,
+        startListener = function(listener) C.startListener(listener._wrapper, listener._port, listener._cb)  end,
+        stopListener = function(listener) C.stopListener(listener._wrapper) end,
     }
     -- Use a proxy instead of doing this on the wrapper directly using ffi.gc, because of a bug in LuaJIT,
     -- where circular references on finalizers using ffi.gc won't actually collect anything.
-    debug.setmetatable(listener._proxy, { __gc = function()  C.stop(listener._wrapper) end })
+    debug.setmetatable(listener._proxy, { __gc = function()  C.stopListener(listener._wrapper) end })
     return listener
 end
 

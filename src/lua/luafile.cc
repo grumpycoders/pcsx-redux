@@ -76,15 +76,19 @@ LuaFile* uvFifo(const char* address, int port) { return new LuaFile(new PCSX::Uv
 
 LuaServer* uvFifoListener() {return new LuaServer(new PCSX::UvFifoListener());}
 
-void start(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo)) { server->m_listener->start(port, PCSX::g_system->getLoop(), &server->m_async, [cb](PCSX::UvFifo* fifo) {
-        cb(new LuaFile(fifo));
+void startListener(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo)) { server->m_listener->start(port, PCSX::g_system->getLoop(), &server->m_async, [cb, server](PCSX::UvFifo* fifo) {
+        if (fifo) {
+            cb(new LuaFile(fifo));
+        } else {
+            server->m_async.data = server;
+            uv_close(reinterpret_cast<uv_handle_t*>(&server->m_async), [](uv_handle_t* handle) {});
+        }
     });
 }
 
-//void start(LuaServer* server, unsigned port, void (*cb)(PCSX::UvFifo* fifo)) { server->m_listener->start(port, PCSX::g_system->getLoop(),  &server->m_async, cb); }
-
-
-void stop(LuaServer* server) {server->m_listener->stop();}
+void stopListener(LuaServer* server) {
+   server->m_listener->stop();
+}
 
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
 
@@ -208,8 +212,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, subFile);
     REGISTER(L, uvFifo);
     REGISTER(L, uvFifoListener);
-    REGISTER(L, stop);
-    REGISTER(L, start);
+    REGISTER(L, stopListener);
+    REGISTER(L, startListener);
 
     REGISTER(L, closeFile);
 
