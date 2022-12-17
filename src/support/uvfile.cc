@@ -871,6 +871,7 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
             uv_tcp_t *tcp = new uv_tcp_t();
             auto loop = server->loop;
             uv_tcp_init(loop, tcp);
+            listener->m_listening = true;
             if (uv_accept(reinterpret_cast<uv_stream_t *>(server), reinterpret_cast<uv_stream_t *>(tcp)) == 0) {
                 UvFifo *fifo = new UvFifo(tcp);
                 listener->m_pending.Enqueue(fifo);
@@ -878,10 +879,12 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
             } else {
                 uv_close(reinterpret_cast<uv_handle_t *>(tcp),
                          [](uv_handle_t *handle) { delete reinterpret_cast<uv_tcp_t *>(handle); });
+                listener->m_listening = true;
             }
         });
         if (result != 0) {
             uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {});
+            m_listening = false;
             return;
         }
     });
@@ -893,6 +896,7 @@ void PCSX::UvFifoListener::stop() {
             UvFifoListener *listener = reinterpret_cast<UvFifoListener *>(handle->data);
             listener->m_pending.Enqueue(nullptr);
             uv_async_send(listener->m_async);
+            listener->m_listening = false;
         });
     });
 }
