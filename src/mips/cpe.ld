@@ -123,12 +123,12 @@ SECTIONS {
 
     __data_start = .;
     .data : {
-        *(.data .data.* .gnu.linkonce.d.*)
-        *(.data1)
-        *(.sdata .sdata.* .gnu.linkonce.s.*)
-        *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
-        *(.got.plt)
-        *(.got)
+        KEEP (*(.data .data.* .gnu.linkonce.d.*))
+        KEEP (*(.data1))
+        KEEP (*(.sdata .sdata.* .gnu.linkonce.s.*))
+        KEEP (*(.sdata2 .sdata2.* .gnu.linkonce.s2.*))
+        KEEP (*(.got.plt))
+        KEEP (*(.got))
     } > ram
 
     . = ALIGN(4);
