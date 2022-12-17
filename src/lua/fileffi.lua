@@ -54,6 +54,7 @@ LuaServer* uvFifoListener();
 
 void stopListener(LuaServer* server);
 void startListener(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo));
+void deleteListener(LuaServer* server);
 
 void closeFile(LuaFile* wrapper);
 
@@ -366,12 +367,12 @@ local function createUvListener(port, cb)
         _proxy = newproxy(),
         _cb = _callback,
         _port = port,
-        startListener = function(listener) C.startListener(listener._wrapper, listener._port, listener._cb)  end,
-        stopListener = function(listener) C.stopListener(listener._wrapper) end,
+        start = function(listener) C.startListener(listener._wrapper, listener._port, listener._cb)  end,
+        stop = function(listener) C.stopListener(listener._wrapper) end,
     }
     -- Use a proxy instead of doing this on the wrapper directly using ffi.gc, because of a bug in LuaJIT,
     -- where circular references on finalizers using ffi.gc won't actually collect anything.
-    debug.setmetatable(listener._proxy, { __gc = function()  C.stopListener(listener._wrapper) end })
+    debug.setmetatable(listener._proxy, { __gc = function()  C.deleteListener(listener._wrapper) listener._cb = nil end })
     return listener
 end
 
