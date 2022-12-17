@@ -157,15 +157,15 @@ SECTIONS {
 
     __data_start = .;
     .data : {
-        *(.data .data.* .gnu.linkonce.d.*)
-        *(.data1)
-        *(.sdata .sdata.* .gnu.linkonce.s.*)
-        *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
-        *(.got.plt)
-        *(.got)
+        KEEP (*(.data .data.* .gnu.linkonce.d.*))
+        KEEP (*(.data1))
+        KEEP (*(.sdata .sdata.* .gnu.linkonce.s.*))
+        KEEP (*(.sdata2 .sdata2.* .gnu.linkonce.s2.*))
+        KEEP (*(.got.plt))
+        KEEP (*(.got))
         /* pad file to be a multiple of 2048 bytes.  Needed for loading from CD-ROM. */
         . = ALIGN(2048);
-    } > ram
+    } > ram = 0x50414444
 
     __data_end = .;
     __fdata_end = .;
