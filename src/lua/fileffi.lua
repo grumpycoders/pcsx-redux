@@ -349,15 +349,11 @@ local function createUvListener(port, cb)
     if type(port) ~= 'number' then error 'port argument must be an unsigned number' end
     if (port) == nil then error 'must provide a port' end
     if cb == nil then error 'must provide a callback function' end
+    if type(cb) ~= 'function' then error 'callback must be a function' end
 
-    _callback = function(fifo)  end
-
-    if cb ~= nil then
-        if type(cb) ~= 'function' then error 'callback must be a function' end
-        _callback = function(fifo)
-            file = createFileWrapper(fifo)
-            cb(file)
-        end
+    local _callback = function(fifo)
+        file = createFileWrapper(fifo)
+        cb(file)
     end
 
     _callback = ffi.cast('void (*)(LuaFile* fifo)', _callback)
