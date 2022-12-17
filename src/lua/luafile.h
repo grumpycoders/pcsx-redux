@@ -57,6 +57,13 @@ struct LuaServer {
     LuaServer(UvFifoListener* listener) : m_listener(listener) {}
     UvFifoListener* m_listener = nullptr;
     uv_async_t m_async;
+
+  public:
+    enum class Status {
+        STARTED,
+        STOPPED,
+        STOPPING
+    } m_status = Status::STOPPED;
 };
 
 void open_file(Lua);

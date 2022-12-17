@@ -79,15 +79,39 @@ LuaServer* uvFifoListener() {return new LuaServer(new PCSX::UvFifoListener());}
 void startListener(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo)) { server->m_listener->start(port, PCSX::g_system->getLoop(), &server->m_async, [cb, server](PCSX::UvFifo* fifo) {
         if (fifo) {
             cb(new LuaFile(fifo));
+            server->m_status = LuaServer::Status::STARTED;
         } else {
             server->m_async.data = server;
             uv_close(reinterpret_cast<uv_handle_t*>(&server->m_async), [](uv_handle_t* handle) {});
+            if (!server->m_listener->isListening())
+                server->m_status = LuaServer::Status::STOPPED;
         }
     });
 }
 
 void stopListener(LuaServer* server) {
-   server->m_listener->stop();
+    if (server->m_status == LuaServer::Status::STOPPED) return;
+
+    server->m_status = LuaServer::Status::STOPPING;
+    if (server->m_listener->isListening())
+        server->m_listener->stop();
+
+    if (!server->m_listener->isListening())
+        server->m_status = LuaServer::Status::STOPPED;
+}
+
+void deleteListener(LuaServer* server) {
+    if (server->m_status == LuaServer::Status::STARTED) {
+        server->m_async.data = server;
+        uv_close(reinterpret_cast<uv_handle_t*>(&server->m_async), [](uv_handle_t* handle) {
+            auto tcp = reinterpret_cast<uv_tcp_t *>(handle);
+            LuaServer* server = reinterpret_cast<LuaServer*>(handle->data);
+            server->m_status = LuaServer::Status::STOPPED;
+
+            delete tcp;
+            delete server;
+        });
+    }
 }
 
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
@@ -214,6 +238,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, uvFifoListener);
     REGISTER(L, stopListener);
     REGISTER(L, startListener);
+    REGISTER(L, deleteListener);
 
     REGISTER(L, closeFile);
 
