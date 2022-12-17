@@ -158,6 +158,7 @@ void psyqo::Kernel::Internal::addInitializer(eastl::function<void()>&& lambda) {
 
 void psyqo::Kernel::Internal::prepare() {
     syscall_dequeueCDRomHandlers();
+    syscall_setDefaultExceptionJmpBuf();
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
         uint32_t dicr = DICR;
         uint32_t dirqs = dicr >> 24;
