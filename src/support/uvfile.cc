@@ -171,6 +171,9 @@ int PCSX::UvThreadOp::curlTimerFunction(CURLM *multi, long timeout_ms, void *use
 
 void PCSX::UvThreadOp::stopThread() {
     if (!s_threadRunning) throw std::runtime_error("UV thread isn't running");
+    std::promise<void> barrier;
+    request([&barrier](auto loop) { barrier.set_value(); });
+    barrier.get_future().wait();
     request([](auto loop) {
         uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {});
         uv_close(reinterpret_cast<uv_handle_t *>(&s_timer), [](auto handle) {});
