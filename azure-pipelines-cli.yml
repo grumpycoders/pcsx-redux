@@ -69,6 +69,7 @@ steps:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
       **\*.exe
+      !**\exe2iso.exe
       !**\pcsxrunner.exe
       !**\pcsx-wrapper.exe
       !**\pcsx-redux.exe
