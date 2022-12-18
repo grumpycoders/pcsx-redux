@@ -86,20 +86,20 @@ void compute_edcecc(uint8_t* sector) {
     // for our P and Q ECC channels, Q is covering P, so we need to compute
     // P first, then Q, in order to have a consistent ECC overall
 
-    // for reed solomon, we need to create a generator polynome by
+    // for reed solomon, we need to create a generator polynomial by
     // computing the product:
-    //    Π(x+2ⁿ, n, 1, r)
+    //    Π(x+2ⁿ, n, 0, r-1)
     // with r being the number of recovery symbols
 
     // we're doing (26, 24) and (45, 43) reed solomon computations,
-    // which means we have r=2 recovery symbols, reducing to the polynome
+    // which means we have r=2 recovery symbols, reducing to the polynomial
     //   x² + 3·x + 2 (from (x+1)·(x+2))
 
     // the way reed solomon works is by transforming the message into a
-    // polynome, and then dividing it by the generator polynome;
+    // polynomial, and then dividing it by the generator polynomial;
     // the remainder of the division form the recovery symbols
 
-    // there are two ways to do polynome division, the slow one technically
+    // there are two ways to do polynomial division, the slow one technically
     // being the long division, and the fast one, called expanded synthetic
     // division, that can be found at
     // https://en.wikipedia.org/wiki/Synthetic_division#Expanded_synthetic_division
@@ -122,7 +122,7 @@ void compute_edcecc(uint8_t* sector) {
 
     // which speeds up our math here a bit
 
-    // however, considering our generator polynome, we can still use the
+    // however, considering our generator polynomial, we can still use the
     // long division, and still be faster than using the expanded synthetic
     // division, because our only factors are 2 and 3, so if we precompute
     // the mul2 and div3 tables in our galois field, then we only have a
@@ -163,7 +163,7 @@ void compute_edcecc(uint8_t* sector) {
             // otherwise, we need to first compute log(coeff ^ ecc[0])
             coeff = gf_log_table[coeff];
             // then we can mutate our ecc based on the hardcoded values
-            // for our generator polynome, as explained before
+            // for our generator polynomial, as explained before
             uint16_t adder = 0;
             adder = gf_exp_table[coeff + 0x01];
             adder <<= 8;
@@ -188,7 +188,7 @@ void compute_edcecc(uint8_t* sector) {
         // of course, since nothing is ever easy, each 8-bits part of the ecc
         // goes to its own location; luckily, it's on the same stride as the
         // data for it, which makes sense for reading it back as a single
-        // polynome when doing the ecc correction
+        // polynomial when doing the ecc correction
         ecc_data[24 * 86 + i] = ecc & 0xff;
         ecc >>= 8;
         ecc_data[25 * 86 + i] = ecc & 0xff;
@@ -217,7 +217,7 @@ void compute_edcecc(uint8_t* sector) {
             // it crosses the upper limit
             // also this means we can't parallelize this computation as easily
             // as the P channel, due to how this jumps all over the place
-            int l = ((44 * j + 43 * (i / 2)) % 1118) * 2 + (i & 1);
+            unsigned l = ((44 * j + 43 * (i / 2)) % 1118) * 2 + (i & 1);
             uint8_t coeff = ecc_data[l];
 #ifdef USE_EXPANDED_SYNTHETIC_DIVISION
             coeff ^= ecc & 0xff;
