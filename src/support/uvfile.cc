@@ -879,7 +879,7 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
             } else {
                 uv_close(reinterpret_cast<uv_handle_t *>(tcp),
                          [](uv_handle_t *handle) { delete reinterpret_cast<uv_tcp_t *>(handle); });
-                listener->m_listening = true;
+                listener->m_listening = false;
             }
         });
         if (result != 0) {
