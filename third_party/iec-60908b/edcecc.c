@@ -87,8 +87,8 @@ void compute_edcecc(uint8_t* sector) {
     // P first, then Q, in order to have a consistent ECC overall
 
     // for reed solomon, we need to create a generator polynome by
-    // computing the sum:
-    //    Σ(x+2ⁿ, n, 0, r)
+    // computing the product:
+    //    Π(x+2ⁿ, n, 1, r)
     // with r being the number of recovery symbols
 
     // we're doing (26, 24) and (45, 43) reed solomon computations,
