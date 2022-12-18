@@ -399,7 +399,7 @@ class R3000Acpu {
             if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
         }
 
-        const auto r = m_regs.GPR.n;
+        auto r = m_regs.GPR.n;
 
         // Intercepts write, puts, putc, and putchar.
         // The BIOS doesn't have the TTY output set up by default,
@@ -413,11 +413,13 @@ class R3000Acpu {
             switch (call) {
                 case 0x03: {  // write
                     if (r.a0 != 1) break;
-                    uint8_t *str = PSXM(r.a1);
                     uint32_t size = r.a2;
                     m_regs.GPR.n.v0 = size;
                     while (size--) {
-                        g_system->biosPutc(*str++);
+                        uint8_t *ptr = PSXM(r.a1);
+                        r.a1++;
+                        if (!ptr) break;
+                        g_system->biosPutc(*ptr++);
                     }
                     break;
                 }
@@ -430,9 +432,12 @@ class R3000Acpu {
                     break;
                 }
                 case 0x3e: {  // puts
-                    uint8_t *str = PSXM(r.a0);
-                    uint8_t c;
-                    while ((c = *str++) != 0) {
+                    while (true) {
+                        uint8_t *str = PSXM(r.a0);
+                        r.a0++;
+                        if (!str) break;
+                        uint8_t c = *str;
+                        if (!c) break;
                         g_system->biosPutc(c);
                     }
                     break;
@@ -442,11 +447,13 @@ class R3000Acpu {
             switch (call) {
                 case 0x35: {  // write
                     if (r.a0 != 1) break;
-                    uint8_t *str = PSXM(r.a1);
                     uint32_t size = r.a2;
                     m_regs.GPR.n.v0 = size;
                     while (size--) {
-                        g_system->biosPutc(*str++);
+                        uint8_t *ptr = PSXM(r.a1);
+                        r.a1++;
+                        if (!ptr) break;
+                        g_system->biosPutc(*ptr++);
                     }
                     break;
                 }
@@ -459,9 +466,12 @@ class R3000Acpu {
                     break;
                 }
                 case 0x3f: {  // puts
-                    uint8_t *str = PSXM(r.a0);
-                    uint8_t c;
-                    while ((c = *str++) != 0) {
+                    while (true) {
+                        uint8_t *str = PSXM(r.a0);
+                        r.a0++;
+                        if (!str) break;
+                        uint8_t c = *str;
+                        if (!c) break;
                         g_system->biosPutc(c);
                     }
                     break;
