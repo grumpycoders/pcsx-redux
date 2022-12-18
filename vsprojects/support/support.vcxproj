@@ -294,6 +294,7 @@
     <ClInclude Include="..\..\src\support\hashtable.h" />
     <ClInclude Include="..\..\src\support\imgui-helpers.h" />
     <ClInclude Include="..\..\src\support\list.h" />
+    <ClInclude Include="..\..\src\support\md5.h" />
     <ClInclude Include="..\..\src\support\opengl.h" />
     <ClInclude Include="..\..\src\support\stream-file.h" />
     <ClInclude Include="..\..\src\support\strings-helpers.h" />
@@ -318,6 +319,7 @@
     <ClCompile Include="..\..\src\support\container-file.cc" />
     <ClCompile Include="..\..\src\support\ffmpeg-audio-file.cc" />
     <ClCompile Include="..\..\src\support\file.cc" />
+    <ClCompile Include="..\..\src\support\md5.cc" />
     <ClCompile Include="..\..\src\support\sjis_conv.cc" />
     <ClCompile Include="..\..\src\support\uvfile.cc" />
     <ClCompile Include="..\..\src\support\version-linux.cc" />
