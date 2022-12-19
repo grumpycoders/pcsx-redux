@@ -30,6 +30,9 @@
     <ClCompile Include="..\..\src\lua\extra.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\third_party\lua-protobuf\pb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\lua\luawrapper.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\lua\extra.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\lua-protobuf\pb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -86,5 +92,17 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="..\..\third_party\lua-protobuf\protoc.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\lua-protobuf\lexer.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\lua-protobuf\toplevel.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\lua-protobuf\descriptor.pb.lua">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

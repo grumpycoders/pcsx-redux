@@ -123,6 +123,7 @@ SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/imgui_md/imgui_md.cpp
 SRCS += third_party/imgui_memory_editor/imgui_memory_editor.cpp
+SRCS += third_party/lua-protobuf/pb.c
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/md4c/src/md4c.c
 SRCS += third_party/multipart-parser-c/multipart_parser.c
