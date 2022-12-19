@@ -101,17 +101,15 @@ void stopListener(LuaServer* server) {
 }
 
 void deleteListener(LuaServer* server) {
-    if (server->m_status == LuaServer::Status::STARTED) {
-        server->m_async.data = server;
-        uv_close(reinterpret_cast<uv_handle_t*>(&server->m_async), [](uv_handle_t* handle) {
-            auto tcp = reinterpret_cast<uv_tcp_t *>(handle);
-            LuaServer* server = reinterpret_cast<LuaServer*>(handle->data);
-            server->m_status = LuaServer::Status::STOPPED;
+            server->m_async.data = server;
+            uv_close(reinterpret_cast<uv_handle_t*>(&server->m_async), [](uv_handle_t* handle) {
+                auto tcp = reinterpret_cast<uv_tcp_t*>(handle);
+                LuaServer* server = reinterpret_cast<LuaServer*>(handle->data);
+                server->m_status = LuaServer::Status::STOPPED;
 
-            delete tcp;
-            delete server;
-        });
-    }
+                delete tcp;
+                delete server;
+            });
 }
 
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
