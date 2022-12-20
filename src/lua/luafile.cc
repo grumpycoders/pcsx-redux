@@ -330,6 +330,19 @@ void PCSX::LuaFFI::open_file(Lua L) {
     L.declareFunc("writeFileUserData", writeFileUserData, -1);
     L.declareFunc("writeFileUserDataAt", writeFileUserData, -1);
     L.pop();
+    L.declareFunc(
+        "sliceToPBSlice",
+        [](Lua L) -> int {
+            if (L.gettop() != 1) return L.error("Invalid number of arguments to sliceToPBSlice");
+            if (!L.istable(1)) return L.error("sliceToPBSlice: arg 1 is not a Slice");
+            L.getfieldtable("_type");
+            if (!L.isstring() || (L.tostring() != "Slice")) return L.error("sliceToPBSlice: arg 1 is not a Slice");
+            L.getfieldtable("_wrapper", -2);
+            Slice* slice = *L.topointer<Slice*>();
+            if (!slice) return L.error("sliceToPBSlice: arg 1 is corrupted");
+            return lpb_newslice(L.getState(), slice->data<char>(), slice->size());
+        },
+        -1);
     L.pop();
     L.load(fileFFICDef, "internal:lua/fileffi-cdef.lua");
     L.load(fileFFI, "internal:lua/fileffi.lua");
