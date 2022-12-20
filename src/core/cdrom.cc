@@ -23,6 +23,7 @@
 
 #include "core/cdrom.h"
 
+#include "cdrom/iec-60908b.h"
 #include "cdrom/iso9660-reader.h"
 #include "core/debug.h"
 #include "core/psxdma.h"
@@ -69,6 +70,18 @@ class CDRomImpl final : public PCSX::CDRom {
     };
 
     static constexpr size_t c_cdCmdEnumCount = magic_enum::enum_count<Commands>();
+    static constexpr bool isValidBCD(uint8_t value) { return (value & 0x0f) <= 9 && (value & 0xf0) <= 0x90; }
+    static constexpr std::optional<PCSX::IEC60908b::MSF> getMSF(uint8_t *msf) {
+        bool validBCD = isValidBCD(msf[0]) && isValidBCD(msf[1]) && isValidBCD(msf[2]);
+        if (!validBCD) return {};
+        uint8_t m = PCSX::IEC60908b::btoi(msf[0]);
+        uint8_t s = PCSX::IEC60908b::btoi(msf[1]);
+        uint8_t f = PCSX::IEC60908b::btoi(msf[2]);
+
+        if (s >= 60) return {};
+        if (f >= 75) return {};
+        return PCSX::IEC60908b::MSF(m, s, f);
+    }
 
     void reset() override {
         m_dataFIFOIndex = 0;
@@ -280,6 +293,32 @@ class CDRomImpl final : public PCSX::CDRom {
         (this->*handler)();
     }
 
+    // Command 2.
+    void cdlSetLoc() {
+        switch (m_state) {
+            case 0:
+                // TODO: Figure out proper timings.
+                m_state = 1;
+                schedule(5'000);
+                break;
+            case 1: {
+                // TODO: Verify that the command is aborted if
+                // these parameters are indeed wrong.
+                auto maybeMSF = getMSF(m_paramFIFO);
+                if ((m_paramFIFOSize == 3) && (maybeMSF.has_value())) {
+                    m_cause = Cause::Acknowledge;
+                    m_seekPosition = maybeMSF.value();
+                } else {
+                    m_cause = Cause::Error;
+                }
+                m_state = 0;
+                m_busy = false;
+                m_command = 0;
+                triggerIRQ();
+            } break;
+        }
+    }
+
     // Command 10.
     void cdlReset() {
         PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: cdlReset, state = %i\n", m_state);
@@ -294,14 +333,15 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
                 triggerIRQ();
+                // TODO: should we wait for ack first?
                 schedule(5'000);
                 break;
             case 2:
                 m_cause = Cause::Complete;
                 m_state = 0;
-                triggerIRQ();
                 m_busy = false;
                 m_command = 0;
+                triggerIRQ();
                 break;
         }
     }
@@ -324,7 +364,7 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlGetClock, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS, // 24
         &CDRomImpl::cdlInit, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
 #else
-        &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,        // 0
+        &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlUnk,     // 0
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 4
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlReset, &CDRomImpl::cdlUnk,  // 8
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 12

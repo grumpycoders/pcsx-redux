@@ -89,6 +89,7 @@ class CDRom {
     bool paramFIFOAvailable() { return m_paramFIFOSize != 16; }
     bool responseFIFOHasData() { return m_responseFIFOIndex == m_responseFIFOSize; }
 
+    // to save/init
     uint8_t m_dataFIFO[2352] = {0};
     uint8_t m_paramFIFO[16] = {0};
     uint8_t m_responseFIFO[16] = {0};
@@ -102,7 +103,6 @@ class CDRom {
     uint8_t m_state = 0;
     uint8_t m_command = 0;
 
-    // to save/init
     enum class Cause : uint8_t {
         None = 0,
         DataReady = 1,
@@ -112,6 +112,9 @@ class CDRom {
         Error = 5,
     };
     Cause m_cause = Cause::None;
+
+    IEC60908b::MSF m_currentPosition;
+    IEC60908b::MSF m_seekPosition;
 
   private:
     friend class Widgets::IsoBrowser;
