@@ -89,6 +89,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImFileDialog", "ImFileDialo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nanovg", "nanovg\nanovg.vcxproj", "{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "exe2iso", "exe2iso\exe2iso.vcxproj", "{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -782,6 +784,26 @@ Global
 		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithTracy|x64.Build.0 = ReleaseWithTracy|x64
 		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithTracy|x86.ActiveCfg = ReleaseWithTracy|Win32
 		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1}.ReleaseWithTracy|x86.Build.0 = ReleaseWithTracy|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.Debug|x64.ActiveCfg = Debug|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.Debug|x64.Build.0 = Debug|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.Debug|x86.ActiveCfg = Debug|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.Debug|x86.Build.0 = Debug|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.Release|x64.ActiveCfg = Release|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.Release|x64.Build.0 = Release|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.Release|x86.ActiveCfg = Release|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.Release|x86.Build.0 = Release|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseCLI|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseCLI|x64.Build.0 = ReleaseWithClangCL|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseCLI|x86.ActiveCfg = ReleaseWithClangCL|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseCLI|x86.Build.0 = ReleaseWithClangCL|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseWithClangCL|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseWithClangCL|x86.ActiveCfg = ReleaseWithClangCL|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseWithClangCL|x86.Build.0 = ReleaseWithClangCL|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseWithTracy|x64.Build.0 = Release|x64
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseWithTracy|x86.ActiveCfg = Release|Win32
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB}.ReleaseWithTracy|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -822,9 +844,10 @@ Global
 		{DE9D9C53-5CAA-4542-8C27-72D84334F9E3} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{2BF92257-03C6-43FE-85E8-918166A07A26} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{B68E9C60-8362-4A32-AC2E-4F0C2673F3E1} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
+		{4105DDD2-39FC-49EF-BBD7-1C64BCFC64AB} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
+		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 	EndGlobalSection
 EndGlobal

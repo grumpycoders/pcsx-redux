@@ -180,10 +180,12 @@ PCSX = {
             f()
         end
     end,
-    takeScreenShot = function()
-        local ss = C.takeScreenShot()
-        return { data = Support.File._createSliceWrapper(ss.data), width = ss.width, height = ss.height, bpp = ss.bpp }
-    end,
+    GPU = {
+        takeScreenShot = function()
+            local ss = C.takeScreenShot()
+            return { data = Support.File._createSliceWrapper(ss.data), width = ss.width, height = ss.height, bpp = ss.bpp }
+        end,
+    },
     createSaveState = function()
         local slice = C.createSaveState()
         return Support.File._createSliceWrapper(slice)

@@ -153,4 +153,15 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     );
     registerAllSymbols(L);
     L.load(pcsxFFI, "internal:core/pcsxffi.lua");
+    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.declareFunc(
+        "getSaveStateProtoSchema",
+        [](PCSX::Lua L) -> int {
+            std::ostringstream os;
+            PCSX::SaveStates::ProtoFile::dumpSchema(os);
+            L.push(os.str());
+            return 1;
+        },
+        -1);
+    L.pop();
 }

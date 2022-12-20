@@ -165,8 +165,8 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
     uint32_t compLoad;
     bool inplace;
 
+    while ((dataOut.size() & 3) != 0) dataOut.push_back(0);
     if (tload != 0) {
-        while ((dataOut.size() & 3) != 0) dataOut.push_back(0);
         compLoad = tload;
         newPC = compLoad + dataOut.size();
         inplace = false;
