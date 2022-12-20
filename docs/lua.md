@@ -28,16 +28,19 @@ OpenGL is bound directly to the Lua API through FFI bindings, loosely inspired a
 ). Some usage examples can be seen in [the CRT-Lottes shader configuration page](https://github.com/grumpycoders/pcsx-redux/blob/eadd59e764d526636d900fada6f3dd0057035690/src/gui/shaders/crt-lottes.cc#L141-L146).
 
 ### Luv
-For network access and interaction, PCSX-Redux uses [libuv](https://libuv.org/) internally, and is exposed to the Lua API through [Luv](https://github.com/luvit/luv)
+For network access and interaction, PCSX-Redux uses [libuv](https://libuv.org/) internally, and is exposed to the Lua API through [Luv](https://github.com/luvit/luv), tho its loop is tied to the main thread one, meaning it'll run only once per frame. There is another layer of network API available through the File API, which is more convenient and faster for simple tasks.
 
 ### Zlib
-The Zlib C-API is exposed through [FFI bindings](https://github.com/luapower/zlib).
+The Zlib C-API is exposed through [FFI bindings](https://github.com/luapower/zlib). There is another layer of Zlib API available through the File API, which is more convenient and faster for simple tasks.
 
 ### FFI-Reflect
 The [FFI-Reflect](https://github.com/corsix/ffi-reflect) library is loaded globally as the `reflect` symbol. It's able to generate reflection objects for the LuaJIT FFI module.
 
 ### PPrint
 The [PPrint](https://github.com/jagt/pprint.lua) library is loaded globally as the `pprint` symbol. It's a more powerful `print` function than the one provided by Lua, and can be used to print tables in a more readable way.
+
+### Lua-Protobuf
+The [Lua-Protobuf](https://github.com/starwing/lua-protobuf) library is available, but not loaded by default. All of its documented API should be usable straight with no additional work. It has been slightly modified, but nothing that should be visible to the user. There is some limited glue between its API and PCSX's.
 
 ### PCSX-Redux
 
@@ -106,6 +109,7 @@ The File objects have different properties depending on how they are created and
 - Whenever possible, writes are deferred to an asynchronous thread, making writes return basically instantly. This speed up comes at the trade off of data integrity, which means writes aren't guaranteed to be flushed to the disk yet when the function returns. Data will always have integrity internally within PCSX-Redux however, and when exiting normally, all data will be flushed to the disk.
 - Some File objects can be cached. When caching, reads and writes will be done transparently, and the cache will be used instead of the actual file. This will make reads return basically instantly too.
 - The Read and Write APIs can haul LuaBuffer objects. These are Lua objects that can be used to read and write data to the file. You can construct one using the `Support.NewLuaBuffer(size)` function. They can be cast to strings, and can be used as a table for reading and writing bytes off of it, in a 0-based fashion. The length operator will return the size of the buffer. The methods `:maxsize()` and `:resize(size)` are available.
+- The Read and Write APIs can also function using Lua-Protobuf's buffers and slices respectively.
 - If the file isn't closed when the file object is destroyed, it'll be closed then, but letting the garbage collector do the closing is not recommended. This is because the garbage collector will only run when the memory pressure is high enough, and the file handle will be held for a long time.
 - When using streamed functions, unlike POSIX files handles, there's two distinct seeking pointers: one for reading and one for writing.
 
@@ -118,9 +122,10 @@ Closes and frees any associated resources. Better to call this manually than let
 
 Reads from the File object and advances the read pointer accordingly. The return value depends on the variant used.
 ```lua
-:read(size)      -- returns a LuaBuffer
-:read(ptr, size) -- returns the number of bytes read, ptr has to be a cdata of pointer type
-:read(buffer)    -- returns the number of bytes read, and adjusts the buffer's size
+:read(size)            -- returns a LuaBuffer
+:read(ptr, size)       -- returns the number of bytes read, ptr has to be a cdata of pointer type
+:read(buffer)          -- returns the number of bytes read, and adjusts the buffer's size
+:read(pb_buffer, size) -- returns the number of bytes read, while appending to the pb_buffer's existing data
 ```
 
 Reads from the File object at the specified position. No pointers are modified. The return value depends on the variant used, just like the non-At variants above.
@@ -128,26 +133,33 @@ Reads from the File object at the specified position. No pointers are modified. 
 :readAt(size, pos)
 :readAt(ptr, size, pos)
 :readAt(buffer, pos)
+:readAt(pb_buffer, pos)
 ```
 
 Writes to the File object. The non-At variants will advances the write pointer accordingly. The At variants will not modify the write pointer, and simply write at the requested location. Returns the number of bytes written. The `string` variants will in fact take any object that can be transformed to a string using `tostring()`.
 ```lua
 :write(string)
 :write(buffer)
+:write(slice)
+:write(pb_slice)
 :write(ptr, size)
 :writeAt(string, pos)
 :writeAt(buffer, pos)
+:writeAt(slice, pos)
+:writeAt(pb_slice, pos)
 :writeAt(ptr, size, pos)
 ```
 
-Some APIs may return a `Slice` object, which is an opaque buffer coming from C++. It is possible to write a slice to a file in a zero-copy manner:
+Note that in this context, `pb_slice` and `pb_buffer` refer to Lua-Protobuf's `pb.slice` and `pb.buffer` objects respectively.
+
+Some APIs may return a `Slice` object, which is an opaque buffer coming from C++. The `write` and `writeAt` methods can take a `Slice`. It is possible to write a slice to a file in a zero-copy manner, which will be more efficient:
 
 ```lua
 :writeMoveSlice(slice)
 :writeAtMoveSlice(slice, pos)
 ```
 
-After which, the slice will be consumed and not reusable. The object is convertible to a string, and also has two members: `data`, which is a `const void*`, and `size`. Once consumed, the size of a slice will go down to zero.
+After which, the slice will be consumed and not reusable. The `Slice` object is convertible to a string using `tostring`, and also has two members: `data`, which is a `const void*`, and `size`. Once consumed by the `MoveSlice` variants, the size of a slice will go down to zero.
 
 The following methods manipulate the read and write pointers. All of them return their corresponding pointer. The `wheel` argument can be of the values `'SEEK_SET'`, `'SEEK_CUR'`, and `'SEEK_END'`, and will default to `'SEEK_SET'`.
 ```lua
@@ -207,6 +219,7 @@ Support.File.open(filename[, type])
 Support.File.buffer()
 Support.File.buffer(ptr, size[, type])
 Support.File.uvFifo(address, port)
+Support.File.zReader(file[, size[, raw]])
 ```
 
 The `open` function will function on filesystem and network URLs, while the `buffer` function will generate a memory-only File object that's fully readable, writable, and seekable. The `type` argument of the `open` function will determine what happens exactly. It's a string that can have the following values:
@@ -225,6 +238,8 @@ When calling `.buffer()` with no argument, this will create an empty read-write 
 - `ACQUIRE`: It will acquire the pointer passed as an argument, and free it later using `free()`, meaning it needs to have been allocated using `malloc()` in the first place.
 
 The `uvFifo` function will create a File object that will read from and write to the specified TCP address and port after connecting to it. The `:failed()` method will return true in case of a connection failure. The address is a string, and must be a strict IP address, no hostnames allowed. The port is a number between 1 and 65535 inclusive. As the name suggests, this object is a FIFO, meaning that incoming bytes will be consumed by any read operation. The `:size()` method will return the number of bytes in the FIFO. Writes will be immediately sent over. There are no reception guarantees, as the other side might have disconnected at any point. The `:eof()` method will return true when the opposite end of the stream has been disconnected and there's no more bytes in the FIFO.
+
+The `zReader` function will create a read-only File object which decompresses the data from the specified File object. The `file` argument is a File object, and the `size` argument is an optional number that will be used to determine the size of the decompressed data. If not specified, the resulting file won't be seekable, and its `:size()` method won't work, but the file will be readable until `:eof()` returns true. The `raw` argument is an optional string that needs to be equal to `'RAW'`, and will determine whether the data is compressed using the raw deflate format, or the zlib format. Any other string means the zlib format will be used.
 
 #### Iso files
 There is some limited API for working with ISO files.
@@ -355,6 +370,25 @@ It's also possible to manipulate savestates using the following functions:
  - `PCSX.createSaveState()    -- returns a slice representing the savestate`
  - `PCSX.loadSaveState(slice)`
  - `PCSX.loadSaveState(file)`
+
+Additionally, the following function returns a string containing the .proto file used to serialize the savestate:
+
+ - `PCSX.getSaveStateProtoSchema()`
+
+Note that the actual savestates made from the UI are gzip-compressed, but the functions above don't compress or decompress the data, so if trying to reload a savestate made from the UI, it'll need to be decompressed first, possibly through the zReader File object.
+
+Overall, this means the following is possible:
+
+```lua
+local compiler = require('protoc').new()
+local pb = require('pb')
+
+local state = PCSX.createSaveState()
+compiler:load(PCSX.getSaveStateProtoSchema())
+
+local decodedState = pb.decode('SaveState', tostring(state))
+print(string.format('%08x', decodedState.registers.pc))
+```
 
 #### Messages
 The globals `print` and `printError` are available, and will display logs in the Lua Console. You can also use `PCSX.log` to display a line in the general Log window. All three functions should behave the way you'd expect from the normal `print` function in mainstream Lua.
