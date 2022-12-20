@@ -54,12 +54,17 @@ local bufferMeta = {
                 if size > buffer.maxsize() then error('buffer size too large') end
                 buffer.size = size
             end
+        elseif index == 'pbSlice' then
+            return Support._internal.createPBSliceFromBuffer(buffer)
         end
         error('Unknown index `' .. index .. '` for LuaBuffer')
     end,
     __newindex = function(buffer, index, value)
-        if type(index) == 'number' and index >= 0 and index < buffer.size then buffer.data[index] = value end
-        error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
+        if type(index) == 'number' and index >= 0 and index < buffer.size then
+            buffer.data[index] = value
+        else
+            error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
+        end
     end,
 }
 
