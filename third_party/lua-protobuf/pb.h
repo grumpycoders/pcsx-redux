@@ -19,14 +19,7 @@
 # endif
 #endif
 
-#ifdef PB_STATIC_API
-# ifndef PB_IMPLEMENTATION
-#  define PB_IMPLEMENTATION
-# endif
-# define PB_API PB_STATIC
-#endif
-
-#if !defined(PB_API) && defined(_WIN32)
+#if !defined(PB_API) && defined(_WIN32) && !defined(PB_STATIC_API)
 # ifdef PB_IMPLEMENTATION
 #  define PB_API __declspec(dllexport)
 # else
@@ -35,7 +28,7 @@
 #endif
 
 #ifndef PB_API
-# define PB_API extern
+# define PB_API
 #endif
 
 #if defined(_MSC_VER) || defined(__UNIXOS2__) || defined(__SOL64__)
@@ -354,6 +347,9 @@ typedef struct lpb_State lpb_State;
 
 LUALIB_API lpb_State* lpb_lstate(lua_State* L);
 LUALIB_API pb_Slice lpb_checkslice(lua_State* L, int idx);
+LUALIB_API int lpb_isslice(lua_State* L, int idx);
+LUALIB_API pb_Buffer* lpb_checkbuffer(lua_State* L, int idx);
+LUALIB_API int lpb_isbuffer(lua_State* L, int idx);
 LUALIB_API int lpb_newslice(lua_State* L, const char* s, size_t len);
 LUALIB_API const pb_Type* lpb_type(lpb_State* LS, pb_Slice s);
 

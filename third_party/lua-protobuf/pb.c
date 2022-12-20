@@ -7,7 +7,7 @@
 # pragma warning(disable: 4127) /* const in if condition */
 #endif
 
-#define PB_STATIC_API
+#define PB_IMPLEMENTATION
 #include "pb.h"
 
 PB_NS_BEGIN
@@ -280,6 +280,30 @@ LUALIB_API pb_Slice lpb_checkslice(lua_State *L, int idx) {
     pb_Slice ret = lpb_toslice(L, idx);
     if (ret.p == NULL) typeerror(L, idx, "string/buffer/slice");
     return ret;
+}
+
+LUALIB_API int lpb_isslice(lua_State* L, int idx) {
+    int type = lua_type(L, idx);
+    if (type == LUA_TSTRING) {
+        return 1;
+    }
+    else if (type == LUA_TUSERDATA) {
+        pb_Buffer* buffer;
+        pb_Slice* s;
+        if ((buffer = test_buffer(L, idx)) != NULL)
+            return 1;
+        else if ((s = test_slice(L, idx)) != NULL)
+            return 1;
+    }
+    return 0;
+}
+
+LUALIB_API pb_Buffer* lpb_checkbuffer(lua_State* L, int idx) {
+    return check_buffer(L, idx);
+}
+
+LUALIB_API int lpb_isbuffer(lua_State* L, int idx) {
+    return test_buffer(L, idx) != NULL;
 }
 
 static void lpb_readbytes(lua_State *L, pb_Slice *s, pb_Slice *pv) {

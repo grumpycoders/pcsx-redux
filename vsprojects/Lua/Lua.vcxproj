@@ -51,6 +51,7 @@
     <ClInclude Include="..\..\third_party\lua-protobuf\pb.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\lua\fileffi-cdef.lua" />
     <None Include="..\..\src\lua\fileffi.lua" />
     <None Include="..\..\src\lua\glffi-def1.lua" />
     <None Include="..\..\src\lua\glffi-def2.lua" />

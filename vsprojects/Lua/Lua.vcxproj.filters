@@ -104,5 +104,8 @@
     <None Include="..\..\third_party\lua-protobuf\descriptor.pb.lua">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="..\..\src\lua\fileffi-cdef.lua">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -287,7 +287,7 @@ typedef Protobuf::RepeatedVariableField<PCdrvFile, TYPESTRING("files"), 13> PCdr
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("ra"), 1> CallRA;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("sp"), 2> CallSP;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("sp"), 3> CallFP;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("fp"), 3> CallFP;
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("shadow"), 4> Shadow;
 typedef Protobuf::Message<TYPESTRING("Call"), CallRA, CallSP, CallFP, Shadow> Call;
 typedef Protobuf::RepeatedVariableField<Call, TYPESTRING("calls"), 1> Calls;

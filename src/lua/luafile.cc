@@ -20,6 +20,7 @@
 #include "lua/luafile.h"
 
 #include "core/system.h"
+#include "lua-protobuf/pb.h"
 #include "lua/luawrapper.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
@@ -168,6 +169,80 @@ const void* getSliceData(PCSX::Slice* slice) { return slice->data(); }
 
 void destroySlice(PCSX::Slice* slice) { delete slice; }
 
+int readFileUserData(PCSX::Lua L) {
+    if (L.gettop() != 3) return L.error("Invalid number of arguments to readFileUserData");
+
+    if (!L.iscdata(1)) return L.error("readFileUserData: arg 1 not a cdata");
+    if (!L.isuserdata(2)) return L.error("readFileUserData: arg 2 not a userdata");
+    if (!L.isnumber(3)) return L.error("readFileUserData: arg 3 not a number");
+
+    LuaFile* wrapper = *L.topointer<LuaFile*>(1);
+
+    if (!lpb_isbuffer(L.getState(), 2)) return L.error("readFileUserData: unknown userdata type");
+    pb_Buffer* buffer = lpb_checkbuffer(L.getState(), 2);
+    size_t len = L.tonumber(3);
+    auto ptr = pb_prepbuffsize(buffer, len);
+
+    auto ret = wrapper->file->read(ptr, len);
+    if (ret >= 0) pb_addsize(buffer, ret);
+    L.push(lua_Number(ret));
+    return 1;
+}
+
+int readFileUserDataAt(PCSX::Lua L) {
+    if (L.gettop() != 4) return L.error("Invalid number of arguments to readFileUserDataAt");
+
+    if (!L.iscdata(1)) return L.error("readFileUserDataAt: arg 1 not a cdata");
+    if (!L.isuserdata(2)) return L.error("readFileUserDataAt: arg 2 not a userdata");
+    if (!L.isnumber(3)) return L.error("readFileUserDataAt: arg 3 not a number");
+    if (!L.isnumber(4)) return L.error("readFileUserDataAt: arg 4 not a number");
+
+    LuaFile* wrapper = *L.topointer<LuaFile*>(1);
+
+    if (!lpb_isbuffer(L.getState(), 2)) return L.error("readFileUserDataAt: unknown userdata type");
+    pb_Buffer* buffer = lpb_checkbuffer(L.getState(), 2);
+    size_t len = L.tonumber(3);
+    auto ptr = pb_prepbuffsize(buffer, len);
+
+    auto ret = wrapper->file->readAt(ptr, len, L.tonumber(4));
+    if (ret >= 0) pb_addsize(buffer, ret);
+    L.push(lua_Number(ret));
+    return 1;
+}
+
+int writeFileUserData(PCSX::Lua L) {
+    if (L.gettop() != 2) return L.error("Invalid number of arguments to writeFileUserData");
+
+    if (!L.iscdata(1)) return L.error("writeFileUserData: arg 1 not a cdata");
+    if (!L.isuserdata(2)) return L.error("writeFileUserData: arg 2 not a userdata");
+
+    LuaFile* wrapper = *L.topointer<LuaFile*>(1);
+
+    if (!lpb_isslice(L.getState(), 2)) return L.error("writeFileUserData: unknown userdata type");
+    pb_Slice s = lpb_checkslice(L.getState(), 2);
+
+    auto ret = wrapper->file->write(s.p, s.end - s.p);
+    L.push(lua_Number(ret));
+    return 1;
+}
+
+int writeFileUserDataAt(PCSX::Lua L) {
+    if (L.gettop() != 3) return L.error("Invalid number of arguments to writeFileUserDataAt");
+
+    if (!L.iscdata(1)) return L.error("writeFileUserDataAt: arg 1 not a cdata");
+    if (!L.isuserdata(2)) return L.error("writeFileUserDataAt: arg 2 not a userdata");
+    if (!L.isnumber(3)) return L.error("writeFileUserDataAt: arg 3 not a number");
+
+    LuaFile* wrapper = *L.topointer<LuaFile*>(1);
+
+    if (!lpb_isslice(L.getState(), 2)) return L.error("writeFileUserDataAt: unknown userdata type");
+    pb_Slice s = lpb_checkslice(L.getState(), 2);
+
+    auto ret = wrapper->file->writeAt(s.p, s.end - s.p, L.tonumber(3));
+    L.push(lua_Number(ret));
+    return 1;
+}
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -241,9 +316,21 @@ static void registerAllSymbols(PCSX::Lua L) {
 
 void PCSX::LuaFFI::open_file(Lua L) {
     static int lualoader = 1;
+    static const char* fileFFICDef = (
+#include "lua/fileffi-cdef.lua"
+    );
     static const char* fileFFI = (
 #include "lua/fileffi.lua"
     );
     registerAllSymbols(L);
+    L.getfieldtable("Support", LUA_GLOBALSINDEX);
+    L.getfieldtable("_internal");
+    L.declareFunc("readFileUserData", readFileUserData, -1);
+    L.declareFunc("readFileUserDataAt", readFileUserDataAt, -1);
+    L.declareFunc("writeFileUserData", writeFileUserData, -1);
+    L.declareFunc("writeFileUserDataAt", writeFileUserData, -1);
+    L.pop();
+    L.pop();
+    L.load(fileFFICDef, "internal:lua/fileffi-cdef.lua");
     L.load(fileFFI, "internal:lua/fileffi.lua");
 }

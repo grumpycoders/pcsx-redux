@@ -508,13 +508,22 @@ void PCSX::Lua::displayStack(bool error) {
                 push("(Function)");
                 break;
             case LUA_TUSERDATA:
-                push("(Userdata)");
+                push("(Userdata) ");
+                lua_pushfstring(L, "%08x", lua_touserdata(L, i));
                 break;
             case LUA_TLIGHTUSERDATA:
-                push("(Lightuserdata)");
+                push("(Lightuserdata) ");
+                lua_pushfstring(L, "%08x", lua_touserdata(L, i));
                 break;
             case LUA_TTHREAD:
                 push("(Thread)");
+                break;
+            case 9:
+                push("(Proto)");
+                break;
+            case 10:
+                push("(CData)");
+                lua_pushfstring(L, "%08x", lua_topointer(L, i));
                 break;
             default:
                 push("Unknown");
