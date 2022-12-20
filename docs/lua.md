@@ -159,7 +159,9 @@ Some APIs may return a `Slice` object, which is an opaque buffer coming from C++
 :writeAtMoveSlice(slice, pos)
 ```
 
-After which, the slice will be consumed and not reusable. The `Slice` object is convertible to a string using `tostring`, and also has two members: `data`, which is a `const void*`, and `size`. Once consumed by the `MoveSlice` variants, the size of a slice will go down to zero.
+After which, the slice will be consumed and not reusable. The `Slice` object is convertible to a string using `tostring()`, and also has two members: `data`, which is a `const void*`, and `size`. Once consumed by the `MoveSlice` variants, the size of a slice will go down to zero.
+
+Finally, it is possible to convert a `Slice` object to a `pb.slice` one using the `Support.sliceToPBSlice` function. However, the same caveats as for normal `pb.slice` objects apply: it is fragile, and will be invalidated if the underlying Slice is moved or destroyed, so it is recommended to use it as a temporary object, such as an argument to `pb.decode`. Still, it is a much faster alternative to calling `tostring()` which will make a copy of the underlying slice.
 
 The following methods manipulate the read and write pointers. All of them return their corresponding pointer. The `wheel` argument can be of the values `'SEEK_SET'`, `'SEEK_CUR'`, and `'SEEK_END'`, and will default to `'SEEK_SET'`.
 ```lua
@@ -386,7 +388,7 @@ local pb = require('pb')
 local state = PCSX.createSaveState()
 compiler:load(PCSX.getSaveStateProtoSchema())
 
-local decodedState = pb.decode('SaveState', tostring(state))
+local decodedState = pb.decode('SaveState', Support.sliceToPBSlice(state))
 print(string.format('%08x', decodedState.registers.pc))
 ```
 
