@@ -40,6 +40,7 @@
     <ClCompile Include="..\..\src\lua\luafile.cc" />
     <ClCompile Include="..\..\src\lua\luawrapper.cc" />
     <ClCompile Include="..\..\src\lua\zlibffi.cc" />
+    <ClCompile Include="..\..\third_party\lua-protobuf\pb.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\lua\extra.h" />
@@ -47,8 +48,10 @@
     <ClInclude Include="..\..\src\lua\luafile.h" />
     <ClInclude Include="..\..\src\lua\luawrapper.h" />
     <ClInclude Include="..\..\src\lua\zlibffi.h" />
+    <ClInclude Include="..\..\third_party\lua-protobuf\pb.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\lua\fileffi-cdef.lua" />
     <None Include="..\..\src\lua\fileffi.lua" />
     <None Include="..\..\src\lua\glffi-def1.lua" />
     <None Include="..\..\src\lua\glffi-def2.lua" />
@@ -59,6 +62,10 @@
     <None Include="..\..\src\lua\glffi-enum3.lua" />
     <None Include="..\..\src\lua\glffi-typedefs.lua" />
     <None Include="..\..\third_party\ffi-reflect\reflect.lua" />
+    <None Include="..\..\third_party\lua-protobuf\descriptor.pb.lua" />
+    <None Include="..\..\third_party\lua-protobuf\lexer.lua" />
+    <None Include="..\..\third_party\lua-protobuf\protoc.lua" />
+    <None Include="..\..\third_party\lua-protobuf\toplevel.lua" />
     <None Include="..\..\third_party\pprint.lua\pprint.lua" />
     <None Include="..\..\third_party\zlibffi\zlibffi.lua" />
     <None Include="packages.config" />
