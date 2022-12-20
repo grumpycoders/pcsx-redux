@@ -86,8 +86,8 @@ class CDRom {
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
     bool dataFIFOEmpty() { return m_dataFIFOIndex == m_dataFIFOSize; }
-    bool paramFIFOFull() { return m_paramFIFOSize == 16; }
-    bool responseFIFOEmpty() { return m_responseFIFOIndex == m_responseFIFOSize; }
+    bool paramFIFOAvailable() { return m_paramFIFOSize != 16; }
+    bool responseFIFOHasData() { return m_responseFIFOIndex == m_responseFIFOSize; }
 
     uint8_t m_dataFIFO[2352] = {0};
     uint8_t m_paramFIFO[16] = {0};
