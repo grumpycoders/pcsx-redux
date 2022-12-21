@@ -50,7 +50,21 @@ class CDRom {
     CDRom() : m_iso(new CDRIso()) {}
     virtual ~CDRom() {}
     static CDRom* factory();
-    bool isLidOpened() { return false; }
+    bool isLidOpened();
+    void closeLid() {
+        m_lidOpened = false;
+        m_lidCloseScheduled = false;
+    }
+    void openLid() {
+        m_lidOpened = true;
+        m_lidCloseScheduled = false;
+    }
+    void scheduleCloseLid() {
+        m_lidOpened = true;
+        m_lidCloseScheduled = true;
+        using namespace std::chrono_literals;
+        m_lidCloseAtCycles = g_emulator->m_cpu->m_regs.getFutureCycle(1s);
+    }
     void parseIso();
 
     std::shared_ptr<CDRIso> getIso() { return m_iso; }
@@ -88,6 +102,10 @@ class CDRom {
     bool dataFIFOEmpty() { return m_dataFIFOIndex == m_dataFIFOSize; }
     bool paramFIFOAvailable() { return m_paramFIFOSize != 16; }
     bool responseFIFOHasData() { return m_responseFIFOIndex == m_responseFIFOSize; }
+
+    bool m_lidOpened = false;
+    bool m_lidCloseScheduled = false;
+    uint32_t m_lidCloseAtCycles = 0;
 
     // to save/init
     uint8_t m_dataFIFO[2352] = {0};

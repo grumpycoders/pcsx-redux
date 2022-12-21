@@ -494,3 +494,14 @@ void PCSX::CDRom::parseIso() {
     g_system->printf(_("CD-ROM ID: %.9s\n"), m_cdromId);
     g_system->printf(_("CD-ROM EXE Name: %.255s\n"), exename);
 }
+
+bool PCSX::CDRom::isLidOpened() {
+    if (m_lidCloseScheduled) {
+        const uint32_t cycle = g_emulator->m_cpu->m_regs.cycle;
+        if (((int32_t)(m_lidCloseAtCycles - cycle)) <= 0) {
+            m_lidCloseScheduled = false;
+            m_lidOpened = false;
+        }
+    }
+    return m_lidOpened;
+}

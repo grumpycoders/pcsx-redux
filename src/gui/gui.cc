@@ -957,13 +957,13 @@ void PCSX::GUI::endFrame() {
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
-                    // Open lid forever
+                    PCSX::g_emulator->m_cdrom->openLid();
                 }
                 if (ImGui::MenuItem(_("Close LID"))) {
-                    // Close lid forever
+                    PCSX::g_emulator->m_cdrom->closeLid();
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    // Open lid, and schedule a close lid
+                    PCSX::g_emulator->m_cdrom->scheduleCloseLid();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Reboot"))) {

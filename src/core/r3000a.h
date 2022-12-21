@@ -21,6 +21,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -200,6 +201,13 @@ struct psxRegisters {
     uint32_t lowestTarget;
     uint8_t ICache_Addr[0x1000];
     uint8_t ICache_Code[0x1000];
+    uint32_t getFutureCycle(std::chrono::nanoseconds delay) const { return cycle + durationToCycles(delay); }
+    std::chrono::nanoseconds getFutureTime(uint32_t futureCycle) const {
+        return std::chrono::nanoseconds(int32_t(futureCycle - cycle) * 1'000'000'000 / g_emulator->m_psxClockSpeed);
+    }
+    static constexpr uint32_t durationToCycles(std::chrono::nanoseconds duration) {
+        return duration.count() * g_emulator->m_psxClockSpeed / 1'000'000'000;
+    }
 };
 
 // R3000A Instruction Macros
