@@ -107,8 +107,13 @@ class CDRomImpl final : public PCSX::CDRom {
         PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: scheduling callback in %d cycles\n", cycles);
         PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDR, cycles);
     }
+    void schedule(std::chrono::nanoseconds delay) { schedule(PCSX::psxRegisters::durationToCycles(delay)); }
+
+    void scheduleRead(uint32_t cycles) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDREAD, cycles); }
+    void scheduleRead(std::chrono::nanoseconds delay) { scheduleRead(PCSX::psxRegisters::durationToCycles(delay)); }
 
     void scheduleDMA(uint32_t cycles) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRDMA, cycles); }
+    void scheduleDMA(std::chrono::nanoseconds delay) { scheduleDMA(PCSX::psxRegisters::durationToCycles(delay)); }
 
     void triggerIRQ() { psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4)); }
 
