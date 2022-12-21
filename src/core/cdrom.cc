@@ -101,6 +101,8 @@ class CDRomImpl final : public PCSX::CDRom {
         (this->*handler)();
     }
 
+    void readInterrupt() override {}
+
     void dmaInterrupt() override {}
 
     void schedule(uint32_t cycles) {

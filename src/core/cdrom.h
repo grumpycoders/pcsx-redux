@@ -83,6 +83,7 @@ class CDRom {
     virtual void reset() = 0;
 
     virtual void interrupt() = 0;
+    virtual void readInterrupt() = 0;
     virtual void dmaInterrupt() = 0;
     virtual uint8_t read0() = 0;
     virtual uint8_t read1() = 0;
@@ -131,8 +132,8 @@ class CDRom {
     };
     Cause m_cause = Cause::None;
 
-    IEC60908b::MSF m_currentPosition;
-    IEC60908b::MSF m_seekPosition;
+    MSF m_currentPosition;
+    MSF m_seekPosition;
 
   private:
     friend class Widgets::IsoBrowser;
