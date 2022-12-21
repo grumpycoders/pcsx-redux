@@ -254,6 +254,11 @@ class CDRomImpl final : public PCSX::CDRom {
                     // TODO: act on this?
                     return;
                 }
+                if (value == 0x18) {
+                    // request ack?
+                    // TODO: act on this?
+                    return;
+                }
                 if (value == 0x1f) {
                     // all ack?
                     // TODO: act on this?
