@@ -202,22 +202,6 @@ struct psxRegisters {
     uint8_t ICache_Code[0x1000];
 };
 
-// U64 and S64 are used to wrap long integer constants.
-#define U64(val) val##ULL
-#define S64(val) val##LL
-
-#if defined(__BIGENDIAN__)
-
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#else
-
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#endif
-
 // R3000A Instruction Macros
 #define _PC_ PCSX::g_emulator->m_cpu->m_regs.pc  // The next PC to be executed
 
@@ -337,13 +321,14 @@ class R3000Acpu {
         bool fromLink = false;
     } m_delayedLoadInfo[2];
     unsigned m_currentDelayedLoad = 0;
-    uint32_t &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
+    template <typename T = uint32_t>
+    T &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
         if (reg >= 32) abort();
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = reg;
         delayedLoad.mask = mask;
-        return delayedLoad.value;
+        return reinterpret_cast<T &>(delayedLoad.value);
     }
     void delayedLoad(unsigned reg, uint32_t value, uint32_t mask = 0) {
         auto &ref = delayedLoadRef(reg, mask);
