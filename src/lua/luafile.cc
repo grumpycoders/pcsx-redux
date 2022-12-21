@@ -243,6 +243,15 @@ int writeFileUserDataAt(PCSX::Lua L) {
     return 1;
 }
 
+int createPBSliceFromBuffer(PCSX::Lua L) {
+    if (L.gettop() != 1) return L.error("Invalid number of arguments to createPBSliceFromBuffer");
+    if (!L.iscdata(1)) return L.error("createPBSliceFromBuffer: arg 1 is not a pointer");
+
+    uint32_t* ptr = L.topointer<uint32_t>(1);
+
+    return lpb_newslice(L.getState(), reinterpret_cast<char*>(ptr + 1), *ptr);
+}
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -329,6 +338,7 @@ void PCSX::LuaFFI::open_file(Lua L) {
     L.declareFunc("readFileUserDataAt", readFileUserDataAt, -1);
     L.declareFunc("writeFileUserData", writeFileUserData, -1);
     L.declareFunc("writeFileUserDataAt", writeFileUserData, -1);
+    L.declareFunc("createPBSliceFromBuffer", createPBSliceFromBuffer, -1);
     L.pop();
     L.declareFunc(
         "sliceToPBSlice",
