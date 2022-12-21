@@ -314,6 +314,9 @@ class CDRomImpl final : public PCSX::CDRom {
             case 1: {
                 // TODO: Verify that the command is aborted if
                 // these parameters are indeed wrong.
+                // Also probably should error out if no disc or
+                // lid open?
+                // What happens when issued during Read / Play?
                 auto maybeMSF = getMSF(m_paramFIFO);
                 if ((m_paramFIFOSize == 3) && (maybeMSF.has_value())) {
                     m_cause = Cause::Acknowledge;
