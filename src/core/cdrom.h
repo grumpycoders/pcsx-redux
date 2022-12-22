@@ -102,7 +102,7 @@ class CDRom {
 
     bool dataFIFOEmpty() { return m_dataFIFOIndex == m_dataFIFOSize; }
     bool paramFIFOAvailable() { return m_paramFIFOSize != 16; }
-    bool responseFIFOHasData() { return m_responseFIFOIndex == m_responseFIFOSize; }
+    bool responseFIFOHasData() { return m_responseFIFOIndex != m_responseFIFOSize; }
 
     bool m_lidOpened = false;
     bool m_lidCloseScheduled = false;
@@ -119,6 +119,8 @@ class CDRom {
     uint8_t m_responseFIFOSize = 0;
     uint8_t m_registerIndex = 0;
     bool m_busy = false;
+    bool m_gotAck = false;
+    bool m_waitingAck = false;
     uint8_t m_state = 0;
     uint8_t m_command = 0;
 
