@@ -29,6 +29,8 @@ SOFTWARE.
 
 // clang-format off
 
+#include <stdint.h>
+
 #include "common/syscalls/syscalls.h"
 
 CESTER_BODY(
@@ -83,6 +85,34 @@ CESTER_BODY(
             CDROM_REG3 = cause & 0x18;
         }
         return cause & 7;
+    }
+
+    static inline int resetCDRom() {
+        uint32_t imask = IMASK;
+        uint8_t cause;
+
+        IMASK = imask | IRQ_CDROM;
+
+        CDROM_REG0 = 1;
+        CDROM_REG3 = 0x1f;
+        CDROM_REG0 = 1;
+        CDROM_REG2 = 0x1f;
+        CDROM_REG0 = 0;
+        CDROM_REG1 = CDL_INIT;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 3) return 0;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 2) return 0;
+
+        initializeTime();
+        // wait 10ms for things to settle
+        while (updateTime() < 10000);
+        IMASK = imask;
+        return 1;
     }
 )
 

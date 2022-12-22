@@ -146,8 +146,42 @@ CESTER_TEST(cdlInitDelayed, test_instance,
     // waiting its ack, we're really only measuring the roundtrip of the
     // communication between the CPU and the mechacon. It typically takes 750us
     // to do this roundtrip.
+    cester_assert_uint_ge(completeTime, 150);
     cester_assert_uint_lt(completeTime, 2000);
     ramsyscall_printf("Delayed initialization: CD-Rom controller initialized, ack in %ius, complete in %ius\n", ackTime, completeTime);
 
     IMASK = imask;
+)
+
+CESTER_TEST(cdlSetLoc, test_instances,
+    int resetDone = resetCDRom();
+    cester_assert_true(resetDone);
+    if (!resetDone) return;
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 2;
+    CDROM_REG2 = 0;
+    CDROM_REG1 = CDL_SETLOC;
+    uint32_t completeTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t response[16];
+    uint8_t responseSize = readResponse(response);
+    uint8_t stat2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(0x38, stat1);
+    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(2, response[0]);
+    cester_assert_uint_eq(1, responseSize);
+    // we seem to consistently get ~1000us with a pretty tight margin
+    // of error from this test, but let's still give it some slack.
+    cester_assert_uint_ge(completeTime, 500);
+    cester_assert_uint_lt(completeTime, 1500);
+    ramsyscall_printf("Basic setloc to 00:02:00, complete in %ius\n", completeTime);
 )
