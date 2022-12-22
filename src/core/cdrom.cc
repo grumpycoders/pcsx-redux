@@ -93,6 +93,11 @@ class CDRomImpl final : public PCSX::CDRom {
         m_busy = false;
         m_state = 0;
         m_command = 0;
+        m_cause = Cause::None;
+        m_currentPosition.reset();
+        m_seekPosition.reset();
+        m_gotAck = false;
+        m_waitingAck = false;
     }
 
     void interrupt() override {
@@ -117,7 +122,11 @@ class CDRomImpl final : public PCSX::CDRom {
     void scheduleDMA(uint32_t cycles) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRDMA, cycles); }
     void scheduleDMA(std::chrono::nanoseconds delay) { scheduleDMA(PCSX::psxRegisters::durationToCycles(delay)); }
 
-    void triggerIRQ() { psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4)); }
+    void triggerIRQ() {
+        assert(!m_waitingAck);
+        m_gotAck = false;
+        psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+    }
 
     void clearIRQ() { psxHu32ref(0x1070) &= SWAP_LE32(~uint32_t(4)); }
 
@@ -169,7 +178,10 @@ class CDRomImpl final : public PCSX::CDRom {
             case 1: {
                 // cause
                 // TODO: add bit 4
-                return magic_enum::enum_integer(m_cause) | 0xe0;
+                uint8_t ret = magic_enum::enum_integer(m_cause) | 0xe0;
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: read cause, returning %02x\n", ret);
+                m_cause = Cause::None;
+                return ret;
             } break;
         }
         // should not be reachable
@@ -250,11 +262,11 @@ class CDRomImpl final : public PCSX::CDRom {
                 PCSX::g_system->pause();
             } break;
             case 1: {
+                bool ack = false;
                 // cause ack
                 if (value == 0x07) {
                     // partial ack?
-                    // TODO: act on this?
-                    return;
+                    ack = true;
                 }
                 if (value == 0x18) {
                     // request ack?
@@ -263,7 +275,17 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 if (value == 0x1f) {
                     // all ack?
-                    // TODO: act on this?
+                    ack = true;
+                }
+                if (ack) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: got ack\n");
+                    if (m_waitingAck) {
+                        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: was waiting on ack\n");
+                        using namespace std::chrono_literals;
+                        m_waitingAck = false;
+                        schedule(750us);
+                    }
+                    m_gotAck = true;
                     return;
                 }
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:1 not available yet\n");
@@ -288,7 +310,6 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void startCommand(uint8_t command) {
-        m_busy = true;
         m_command = command;
         if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                 .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
@@ -343,19 +364,32 @@ class CDRomImpl final : public PCSX::CDRom {
                 // TODO: figure out exactly the various states of the CD-Rom controller
                 // that are being reset, and their value.
                 m_state = 1;
+                m_currentPosition.reset();
+                m_seekPosition.reset();
                 schedule(2ms);
                 break;
             case 1:
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
+                m_responseFIFOSize = 1;
+                m_responseFIFOIndex = 0;
+                m_responseFIFO[0] = 2;
                 triggerIRQ();
-                // TODO: should we wait for ack first?
                 schedule(120ms);
                 break;
             case 2:
+                if (!m_gotAck) {
+                    m_waitingAck = true;
+                    m_state = 3;
+                    break;
+                }
+                [[fallthrough]];
+            case 3:
                 m_cause = Cause::Complete;
                 m_state = 0;
-                m_busy = false;
+                m_responseFIFOSize = 1;
+                m_responseFIFOIndex = 0;
+                m_responseFIFO[0] = 2;
                 m_command = 0;
                 triggerIRQ();
                 break;
