@@ -268,11 +268,6 @@ class CDRomImpl final : public PCSX::CDRom {
                     // partial ack?
                     ack = true;
                 }
-                if (value == 0x18) {
-                    // request ack?
-                    // TODO: act on this?
-                    return;
-                }
                 if (value == 0x1f) {
                     // all ack?
                     ack = true;
@@ -286,6 +281,16 @@ class CDRomImpl final : public PCSX::CDRom {
                         schedule(750us);
                     }
                     m_gotAck = true;
+                    return;
+                }
+                if (value & 0x10) {
+                    // request ack?
+                    // TODO: act on this?
+                    return;
+                }
+                if (value & 0x08) {
+                    // ??
+                    // TODO: act on this?
                     return;
                 }
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:1 not available yet\n");
