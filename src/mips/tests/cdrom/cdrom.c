@@ -59,6 +59,8 @@ CESTER_TEST(cdlInitBasic, test_instance,
     uint8_t response1[16];
     uint8_t responseSize1 = readResponse(response1);
     uint8_t stat2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
 
     uint32_t completeTime = waitCDRomIRQ() - ackTime;
     uint8_t cause2 = ackCDRomCause();
@@ -66,9 +68,13 @@ CESTER_TEST(cdlInitBasic, test_instance,
     uint8_t response2[16];
     uint8_t responseSize2 = readResponse(response2);
     uint8_t stat4 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause2b = CDROM_REG3_UC;
 
     cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(2, cause2);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(0xe0, cause2b);
     cester_assert_uint_eq(2, response1[0]);
     cester_assert_uint_eq(1, responseSize1);
     cester_assert_uint_eq(2, response2[0]);
