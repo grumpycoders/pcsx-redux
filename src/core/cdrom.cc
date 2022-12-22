@@ -46,7 +46,7 @@ class CDRomImpl final : public PCSX::CDRom {
         CdlStandby = 7,
         CdlStop = 8,
         CdlPause = 9,
-        CdlReset = 10,
+        CdlInit = 10,
         CdlMute = 11,
         CdlDemute = 12,
         CdlSetFilter = 13,
@@ -64,7 +64,7 @@ class CDRomImpl final : public PCSX::CDRom {
         CdlTest = 25,
         CdlID = 26,
         CdlReadS = 27,
-        CdlInit = 28,
+        CdlReset = 28,
         CdlGetQ = 29,
         CdlReadToc = 30,
     };
@@ -356,9 +356,9 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     // Command 10.
-    void cdlReset() {
+    void cdlInit() {
         using namespace std::chrono_literals;
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: cdlReset, state = %i\n", m_state);
+        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: cdlInit, state = %i\n", m_state);
         switch (m_state) {
             case 0:
                 // TODO: figure out exactly the various states of the CD-Rom controller
@@ -407,16 +407,16 @@ class CDRomImpl final : public PCSX::CDRom {
 #if 0
         &CDRomImpl::cdlSync, &CDRomImpl::cdlGetStat, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlPlay, // 0
         &CDRomImpl::cdlForward, &CDRomImpl::cdlBackward, &CDRomImpl::cdlReadN, &CDRomImpl::cdlStandby, // 4
-        &CDRomImpl::cdlStop, &CDRomImpl::cdlPause, &CDRomImpl::cdlReset, &CDRomImpl::cdlMute, // 8
+        &CDRomImpl::cdlStop, &CDRomImpl::cdlPause, &CDRomImpl::cdlInit, &CDRomImpl::cdlMute, // 8
         &CDRomImpl::cdlDemute, &CDRomImpl::cdlSetFilter, &CDRomImpl::cdlSetMode, &CDRomImpl::cdlGetParam, // 12
         &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, &CDRomImpl::cdlReadT, &CDRomImpl::cdlGetTN, // 16
         &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, &CDRomImpl::cdlSetClock,  // 20
         &CDRomImpl::cdlGetClock, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS, // 24
-        &CDRomImpl::cdlInit, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
+        &CDRomImpl::cdlReset, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
 #else
         &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlUnk,     // 0
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 4
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlReset, &CDRomImpl::cdlUnk,  // 8
+            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlInit, &CDRomImpl::cdlUnk,  // 8
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 12
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 16
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 20
