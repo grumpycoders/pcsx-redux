@@ -71,7 +71,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     static constexpr size_t c_cdCmdEnumCount = magic_enum::enum_count<Commands>();
     static constexpr bool isValidBCD(uint8_t value) { return (value & 0x0f) <= 9 && (value & 0xf0) <= 0x90; }
-    static constexpr std::optional<PCSX::IEC60908b::MSF> getMSF(uint8_t *msf) {
+    static std::optional<PCSX::IEC60908b::MSF> getMSF(uint8_t *msf) {
         bool validBCD = isValidBCD(msf[0]) && isValidBCD(msf[1]) && isValidBCD(msf[2]);
         if (!validBCD) return {};
         uint8_t m = PCSX::IEC60908b::btoi(msf[0]);
