@@ -1,8 +1,8 @@
-TARGET = basic
+TARGET = cdrom
 
 include ../common.mk
 
 SRCS += \
-basic.c \
+cdrom.c \
 
 include ../../common.mk
