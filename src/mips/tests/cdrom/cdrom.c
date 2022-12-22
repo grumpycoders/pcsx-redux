@@ -65,12 +65,69 @@ CESTER_TEST(cdlInitBasic, test_instance,
     cester_assert_uint_eq(2, cause2);
     cester_assert_uint_eq(0, stat1);
     cester_assert_uint_eq(0, stat2);
+    // Typical value seems to be around 2ms.
     cester_assert_uint_ge(ackTime, 800);
     cester_assert_uint_lt(ackTime, 5000);
     // These may be a bit flaky on real hardware, depending on the motors status when starting.
+    // Typical value seems to be around 120ms.
     cester_assert_uint_ge(completeTime, 50000);
     cester_assert_uint_lt(completeTime, 150000);
-    ramsyscall_printf("CD-Rom controller initialized, ack in %ius, complete in %ius\n", ackTime, completeTime);
+    ramsyscall_printf("Basic initialization: CD-Rom controller initialized, ack in %ius, complete in %ius\n", ackTime, completeTime);
+
+    IMASK = imask;
+)
+
+CESTER_TEST(cdlInitDelayed, test_instance,
+    initializeTime();
+
+    uint32_t imask = IMASK;
+
+    IMASK = imask | IRQ_CDROM;
+
+    CDROM_REG0 = 1;
+    CDROM_REG3 = 0x1f;
+    CDROM_REG0 = 1;
+    CDROM_REG2 = 0x1f;
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_INIT;
+
+    uint32_t ackTime = waitCDRomIRQ();
+
+    // We shouldn't get another IRQ until we acknowledge the previous one
+    // directly to the controller. But the initialization will continue
+    // in the background nonetheless. Wait 500ms, since the controller
+    // finishes its initialization in roughly 120ms.
+    uint32_t delayedTime;
+    do {
+        delayedTime = updateTime();
+    } while (((IREG & IRQ_CDROM) == 0) && (delayedTime <= 500000));
+    int gotIRQ = (IREG & IRQ_CDROM) != 0;
+    if (gotIRQ) IREG &= ~IRQ_CDROM;
+
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t stat1 = getCDRomStat();
+
+    initializeTime();
+
+    uint32_t completeTime = waitCDRomIRQ();
+    uint8_t cause2 = ackCDRomCause();
+    uint8_t stat2 = getCDRomStat();
+
+    cester_assert_false(gotIRQ);
+    cester_assert_uint_ge(delayedTime, 500000);
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(2, cause2);
+    cester_assert_uint_eq(0, stat1);
+    cester_assert_uint_eq(0, stat2);
+    // This still takes about 2ms.
+    cester_assert_uint_ge(ackTime, 800);
+    cester_assert_uint_lt(ackTime, 5000);
+    // Since the initialization completes in the background of the controller
+    // waiting its ack, we're really only measuring the roundtrip of the
+    // communication between the CPU and the mechacon. It typically takes 750us
+    // to do this roundtrip.
+    cester_assert_uint_lt(completeTime, 2000);
+    ramsyscall_printf("Delayed initialization: CD-Rom controller initialized, ack in %ius, complete in %ius\n", ackTime, completeTime);
 
     IMASK = imask;
 )
