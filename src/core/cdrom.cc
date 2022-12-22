@@ -336,20 +336,21 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 10.
     void cdlReset() {
+        using namespace std::chrono_literals;
         PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: cdlReset, state = %i\n", m_state);
         switch (m_state) {
             case 0:
                 // TODO: figure out exactly the various states of the CD-Rom controller
-                // that are being reset, and their value. Also figure out proper timings.
+                // that are being reset, and their value.
                 m_state = 1;
-                schedule(5'000);
+                schedule(2ms);
                 break;
             case 1:
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
                 triggerIRQ();
                 // TODO: should we wait for ack first?
-                schedule(5'000);
+                schedule(120ms);
                 break;
             case 2:
                 m_cause = Cause::Complete;
