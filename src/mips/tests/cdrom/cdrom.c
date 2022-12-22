@@ -55,16 +55,28 @@ CESTER_TEST(cdlInitBasic, test_instance,
 
     uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = getCDRomStat();
+    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t stat2 = CDROM_REG0 & ~3;
 
     uint32_t completeTime = waitCDRomIRQ() - ackTime;
     uint8_t cause2 = ackCDRomCause();
-    uint8_t stat2 = getCDRomStat();
+    uint8_t stat3 = CDROM_REG0 & ~3;
+    uint8_t response2[16];
+    uint8_t responseSize2 = readResponse(response2);
+    uint8_t stat4 = CDROM_REG0 & ~3;
 
     cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(2, cause2);
-    cester_assert_uint_eq(0, stat1);
-    cester_assert_uint_eq(0, stat2);
+    cester_assert_uint_eq(2, response1[0]);
+    cester_assert_uint_eq(1, responseSize1);
+    cester_assert_uint_eq(2, response2[0]);
+    cester_assert_uint_eq(1, responseSize2);
+    cester_assert_uint_eq(0x38, stat1);
+    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(0x38, stat3);
+    cester_assert_uint_eq(0x18, stat4);
     // Typical value seems to be around 2ms.
     cester_assert_uint_ge(ackTime, 800);
     cester_assert_uint_lt(ackTime, 5000);
@@ -105,20 +117,22 @@ CESTER_TEST(cdlInitDelayed, test_instance,
     if (gotIRQ) IREG &= ~IRQ_CDROM;
 
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = getCDRomStat();
+    CDROM_REG1;
+    uint8_t stat1 = CDROM_REG0 & ~3;
 
     initializeTime();
 
     uint32_t completeTime = waitCDRomIRQ();
     uint8_t cause2 = ackCDRomCause();
-    uint8_t stat2 = getCDRomStat();
+    CDROM_REG1;
+    uint8_t stat2 = CDROM_REG0 & ~3;
 
     cester_assert_false(gotIRQ);
     cester_assert_uint_ge(delayedTime, 500000);
     cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(2, cause2);
-    cester_assert_uint_eq(0, stat1);
-    cester_assert_uint_eq(0, stat2);
+    cester_assert_uint_eq(0x18, stat1);
+    cester_assert_uint_eq(0x18, stat2);
     // This still takes about 2ms.
     cester_assert_uint_ge(ackTime, 800);
     cester_assert_uint_lt(ackTime, 5000);

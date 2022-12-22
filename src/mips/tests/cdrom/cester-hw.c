@@ -38,6 +38,14 @@ CESTER_BODY(
     static uint32_t s_currentTime = 0;
     static const unsigned US_PER_HBLANK = 64;
 
+    static uint8_t readResponse(uint8_t response[16]) {
+        uint8_t responseSize = 0;
+        while ((CDROM_REG0 & 0x20) && (responseSize < 16)) {
+            response[responseSize++] = CDROM_REG1;
+        }
+        return responseSize;
+    }
+
     static inline void initializeTime() {
         s_lastHSyncCounter = COUNTERS[1].value;
         s_currentTime = 0;
@@ -75,11 +83,6 @@ CESTER_BODY(
             CDROM_REG3 = cause & 0x18;
         }
         return cause & 7;
-    }
-
-    static inline uint8_t getCDRomStat() {
-        CDROM_REG0 = 0;
-        return CDROM_REG1_UC & ~3;
     }
 )
 
