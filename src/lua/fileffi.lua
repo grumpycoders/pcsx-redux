@@ -51,7 +51,7 @@ local bufferMeta = {
             return function(buffer) return ffi.sizeof(buffer) - 4 end
         elseif index == 'resize' then
             return function(buffer, size)
-                if size > buffer.maxsize() then error('buffer size too large') end
+                if size > buffer:maxsize() then error('buffer size too large') end
                 buffer.size = size
             end
         elseif index == 'pbSlice' then
@@ -176,9 +176,9 @@ local function writeNum(self, num, ctype, pos)
         buf = n
     end
     if pos == nil then
-        C.writeRawPtr(self._wrapper, ffi.cast('void*', buf), size)
+        C.writeFileRawPtr(self._wrapper, ffi.cast('void*', buf), size)
     else
-        C.writeAtRawPtr(self._wrapper, ffi.cast('void*', buf), size, pos)
+        C.writeFileAtRawPtr(self._wrapper, ffi.cast('void*', buf), size, pos)
     end
 end
 
