@@ -76,6 +76,7 @@ LuaFile* uvFifo(const char* address, int port) { return new LuaFile(new PCSX::Uv
 
 LuaServer* uvFifoListener() {
     auto server = new LuaServer(new PCSX::UvFifoListener());
+
     server->m_delete = [](LuaServer* server) {
         if (server->m_deleting) {
             delete server->m_async;
