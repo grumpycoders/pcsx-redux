@@ -6,6 +6,8 @@ The tests are written in C, and are compiled using the [MIPS GCC toolchain](../.
 
 The tests are checking two things: proper results from the CDRom controller, and approximate timings. The former are exact value checks, and will always reproduce properly on the real hardware. The latter are approximate value checks, and will usually only reproduce properly on the real hardware if the CD is inserted in the drive, the lid is closed, and the drive has been settled for a few seconds, but may still be flaky on the real hardware.
 
+The tests are currently being run on a 9001 machine for its real hardware routine checks, with occasional tests being run on a wider range of hardware.
+
 The code is commented to explain what is being tested, and why. The tests are also written to be as self-contained as possible, so that they can be easily copied and modified to test other things.
 
 All in all, these tests are overdoing it in terms of state and feature tests, and over aggressive. PS1 games most definitely do not need this level of accuracy, but this controller is so finicky that it is better to be safe than sorry. An emulator able to pass these tests ought to be able to run anything, as long as the main CPU timings are somewhat accurate.
