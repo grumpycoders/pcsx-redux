@@ -114,6 +114,26 @@ CESTER_BODY(
         IMASK = imask;
         return 1;
     }
+
+    static int setLoc(uint8_t minute, uint8_t second, uint8_t frame) {
+        uint32_t imask = IMASK;
+        uint8_t cause;
+
+        IMASK = imask | IRQ_CDROM;
+
+        CDROM_REG0 = 0;
+        CDROM_REG2 = minute;
+        CDROM_REG2 = second;
+        CDROM_REG2 = frame;
+        CDROM_REG1 = CDL_SETLOC;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 2) return 0;
+
+        IMASK = imask;
+        return 1;
+    }
 )
 
 CESTER_BEFORE_ALL(cpu_tests,

@@ -87,3 +87,63 @@ CESTER_TEST(cdlSetLocNoArgs, test_instances,
     cester_assert_uint_lt(errorTime, 1500);
     ramsyscall_printf("Invalid setloc with no args, errored in %ius\n", errorTime);
 )
+
+CESTER_TEST(cdlSetLocMultiple, test_instances,
+    int resetDone = resetCDRom();
+    uint8_t cause;
+    cester_assert_true(resetDone);
+    if (!resetDone) return;
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 2;
+    CDROM_REG2 = 0;
+    CDROM_REG1 = CDL_SETLOC;
+    uint32_t time1 = waitCDRomIRQ();
+    cause = ackCDRomCause();
+    CDROM_REG1;
+    if (cause != 3) {
+        cester_assert_uint_eq(3, cause);
+        return;
+    }
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0x99;
+    CDROM_REG2 = 0x59;
+    CDROM_REG2 = 0x74;
+    CDROM_REG1 = CDL_SETLOC;
+    uint32_t time2 = waitCDRomIRQ();
+    cause = ackCDRomCause();
+    CDROM_REG1;
+    if (cause != 3) {
+        cester_assert_uint_eq(3, cause);
+        return;
+    }
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0x50;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG1 = CDL_SETLOC;
+    uint32_t time3 = waitCDRomIRQ();
+    cause = ackCDRomCause();
+    CDROM_REG1;
+    if (cause != 3) {
+        cester_assert_uint_eq(3, cause);
+        return;
+    }
+
+    // Setloc is only changing an internal state.
+    // Its response time is very fast, and won't
+    // vary regardless of the location.
+    cester_assert_uint_ge(time1, 500);
+    cester_assert_uint_lt(time1, 2000);
+    cester_assert_uint_ge(time2, 500);
+    cester_assert_uint_lt(time2, 2000);
+    cester_assert_uint_ge(time3, 500);
+    cester_assert_uint_lt(time3, 2000);
+    ramsyscall_printf("Multiple setloc to 00:02:00, complete in %ius, %ius, %ius\n", time1, time2, time3);
+)
