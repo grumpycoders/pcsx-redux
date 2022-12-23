@@ -56,9 +56,10 @@ PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorDa
     Slice slice;
     uint8_t* ptr;
     static const uint8_t c_sync[12] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00};
+    uint32_t lba = msf.toLBA() - 150;
     switch (mode) {
         case SectorMode::RAW:
-            m_out->writeAt(sectorData, IEC60908b::FRAMESIZE_RAW, (msf.toLBA() - 150) * IEC60908b::FRAMESIZE_RAW);
+            m_out->writeAt(sectorData, IEC60908b::FRAMESIZE_RAW, lba * IEC60908b::FRAMESIZE_RAW);
             break;
         case SectorMode::M2_RAW:
             slice.resize(IEC60908b::FRAMESIZE_RAW);
@@ -67,7 +68,7 @@ PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorDa
             msf.toBCD(ptr + 12);
             ptr[15] = 2;
             memcpy(ptr + 16, sectorData, 2336);
-            m_out->writeAt(std::move(slice), (msf.toLBA() - 150) * IEC60908b::FRAMESIZE_RAW);
+            m_out->writeAt(std::move(slice), lba * IEC60908b::FRAMESIZE_RAW);
             break;
         case SectorMode::M2_FORM1:
             slice.resize(IEC60908b::FRAMESIZE_RAW);
@@ -81,7 +82,7 @@ PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorDa
             ptr[19] = ptr[23] = 0;
             memcpy(ptr + 24, sectorData, 2048);
             compute_edcecc(ptr);
-            m_out->writeAt(std::move(slice), (msf.toLBA() - 150) * IEC60908b::FRAMESIZE_RAW);
+            m_out->writeAt(std::move(slice), lba * IEC60908b::FRAMESIZE_RAW);
             break;
         case SectorMode::M2_FORM2:
             slice.resize(IEC60908b::FRAMESIZE_RAW);
@@ -95,7 +96,7 @@ PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorDa
             ptr[19] = ptr[23] = 0;
             memcpy(ptr + 24, sectorData, 2324);
             compute_edcecc(ptr);
-            m_out->writeAt(std::move(slice), (msf.toLBA() - 150) * IEC60908b::FRAMESIZE_RAW);
+            m_out->writeAt(std::move(slice), lba * IEC60908b::FRAMESIZE_RAW);
             break;
         default:
             return {0, 0, 0};
