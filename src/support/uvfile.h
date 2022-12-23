@@ -240,9 +240,6 @@ class UvFifoListener : public UvThreadOp {
     UvFifoListener() {}
     void start(unsigned port, uv_loop_t* loop, uv_async_t* async, std::function<void(UvFifo*)>&& cb);
     void stop();
-    bool isListening() const {
-        return m_listening.load();
-    }
 
   private:
     virtual bool canCache() const override { return false; }
@@ -250,7 +247,6 @@ class UvFifoListener : public UvThreadOp {
     uv_tcp_t m_server = {};
     std::function<void(UvFifo*)> m_cb;
     ConcurrentQueue<UvFifo*> m_pending;
-    std::atomic<bool> m_listening{false};
 };
 
 }  // namespace PCSX

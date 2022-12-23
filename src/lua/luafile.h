@@ -56,14 +56,11 @@ struct LuaFile {
 struct LuaServer {
     LuaServer(UvFifoListener* listener) : m_listener(listener) {}
     UvFifoListener* m_listener = nullptr;
-    uv_async_t m_async;
+    uv_async_t* m_async = nullptr;
+    std::function<void(LuaServer*)> m_delete;
+    bool m_deleting = false;
 
-  public:
-    enum class Status {
-        STARTED,
-        STOPPED,
-        STOPPING
-    } m_status = Status::STOPPED;
+    enum class Status { STARTED, STOPPED, STOPPING } m_status = Status::STOPPED;
 };
 
 void open_file(Lua);
