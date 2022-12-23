@@ -126,12 +126,14 @@ CESTER_TEST(cdlInitDelayed, test_instance,
     CDROM_REG1;
     uint8_t stat1 = CDROM_REG0 & ~3;
 
+
     initializeTime();
 
     uint32_t completeTime = waitCDRomIRQ();
     uint8_t cause2 = ackCDRomCause();
     CDROM_REG1;
     uint8_t stat2 = CDROM_REG0 & ~3;
+
 
     cester_assert_false(gotIRQ);
     cester_assert_uint_ge(delayedTime, 500000);
@@ -144,11 +146,53 @@ CESTER_TEST(cdlInitDelayed, test_instance,
     cester_assert_uint_lt(ackTime, 5000);
     // Since the initialization completes in the background of the controller
     // waiting its ack, we're really only measuring the roundtrip of the
-    // communication between the CPU and the mechacon. It typically takes 750us
+    // communication between the CPU and the mechacon. It typically takes 350us
     // to do this roundtrip.
     cester_assert_uint_ge(completeTime, 150);
-    cester_assert_uint_lt(completeTime, 2000);
+    cester_assert_uint_lt(completeTime, 1000);
     ramsyscall_printf("Delayed initialization: CD-Rom controller initialized, ack in %ius, complete in %ius\n", ackTime, completeTime);
+
+    IMASK = imask;
+)
+
+CESTER_TEST(cdlInitWithArgs, test_instance,
+    initializeTime();
+
+    uint32_t imask = IMASK;
+
+    IMASK = imask | IRQ_CDROM;
+
+    CDROM_REG0 = 1;
+    CDROM_REG3 = 0x1f;
+    CDROM_REG0 = 1;
+    CDROM_REG2 = 0x1f;
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0xff;
+    CDROM_REG2 = 0xff;
+    CDROM_REG2 = 0xff;
+    CDROM_REG2 = 0xff;
+    CDROM_REG1 = CDL_INIT;
+
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t stat2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(3, response1[0]);
+    cester_assert_uint_eq(32, response1[1]);
+    cester_assert_uint_eq(2, responseSize1);
+    cester_assert_uint_eq(0x38, stat1);
+    cester_assert_uint_eq(0x18, stat2);
+    // Typical value seems to be around 1ms.
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 1500);
+    ramsyscall_printf("Initialization with args: CD-Rom controller errored, error in %ius\n", errorTime);
 
     IMASK = imask;
 )
@@ -179,7 +223,7 @@ CESTER_TEST(cdlSetLoc, test_instances,
     cester_assert_uint_eq(0x18, stat2);
     cester_assert_uint_eq(2, response[0]);
     cester_assert_uint_eq(1, responseSize);
-    // we seem to consistently get ~1000us with a pretty tight margin
+    // we seem to consistently get ~1ms with a pretty tight margin
     // of error from this test, but let's still give it some slack.
     cester_assert_uint_ge(completeTime, 500);
     cester_assert_uint_lt(completeTime, 1500);
