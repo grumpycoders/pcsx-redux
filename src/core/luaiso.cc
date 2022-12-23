@@ -23,6 +23,7 @@
 
 #include "cdrom/cdriso.h"
 #include "cdrom/file.h"
+#include "cdrom/iso9660-builder.h"
 #include "cdrom/iso9660-reader.h"
 #include "core/cdrom.h"
 #include "lua/luafile.h"
@@ -36,9 +37,7 @@ struct LuaIso {
 };
 
 void deleteIso(LuaIso* wrapper) { delete wrapper; }
-
 bool isIsoFailed(LuaIso* wrapper) { return wrapper->iso->failed(); }
-
 LuaIso* getCurrentIso() { return new LuaIso(PCSX::g_emulator->m_cdrom->getIso()); }
 
 PCSX::ISO9660Reader* createIsoReader(LuaIso* wrapper) { return new PCSX::ISO9660Reader(wrapper->iso); }
@@ -48,9 +47,24 @@ bool isReaderFailed(PCSX::ISO9660Reader* reader) { return reader->failed(); }
 PCSX::LuaFFI::LuaFile* readerOpen(PCSX::ISO9660Reader* reader, const char* path) {
     return new PCSX::LuaFFI::LuaFile(reader->open(path));
 }
-PCSX::LuaFFI::LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, PCSX::CDRIsoFile::SectorMode mode) {
+PCSX::LuaFFI::LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, PCSX::SectorMode mode) {
     return new PCSX::LuaFFI::LuaFile(new PCSX::CDRIsoFile(wrapper->iso, lba, size, mode));
 }
+
+struct LuaIsoBuilder {
+    LuaIsoBuilder(PCSX::IO<PCSX::File> out) : isoBuilder(out) {}
+    PCSX::ISO9660Builder isoBuilder;
+};
+
+LuaIsoBuilder* createIsoBuilder(PCSX::LuaFFI::LuaFile* wrapper) { return new LuaIsoBuilder(wrapper->file); }
+void deleteIsoBuilder(LuaIsoBuilder* wrapper) { delete wrapper; }
+void isoBuilderWriteLicense(LuaIsoBuilder* wrapper, PCSX::LuaFFI::LuaFile* licenseWrapper) {
+    wrapper->isoBuilder.writeLicense(licenseWrapper->file);
+}
+void isoBuilderWriteSector(LuaIsoBuilder* wrapper, const uint8_t* sectorData, PCSX::SectorMode mode) {
+    wrapper->isoBuilder.writeSector(sectorData, mode);
+}
+void isoBuilderClose(LuaIsoBuilder* wrapper) { wrapper->isoBuilder.close(); }
 
 }  // namespace
 
@@ -76,6 +90,12 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, isReaderFailed);
     REGISTER(L, readerOpen);
     REGISTER(L, fileisoOpen);
+
+    REGISTER(L, createIsoBuilder);
+    REGISTER(L, deleteIsoBuilder);
+    REGISTER(L, isoBuilderWriteLicense);
+    REGISTER(L, isoBuilderWriteSector);
+    REGISTER(L, isoBuilderClose);
 
     L.settable();
     L.pop();

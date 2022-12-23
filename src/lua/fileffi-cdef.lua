@@ -49,6 +49,8 @@ LuaFile* subFile(LuaFile*, uint64_t start, int64_t size);
 
 LuaFile* uvFifo(const char* address, int port);
 
+LuaFile* failedFile();
+
 void closeFile(LuaFile* wrapper);
 
 uint64_t readFileRawPtr(LuaFile* wrapper, void* dst, uint64_t size);

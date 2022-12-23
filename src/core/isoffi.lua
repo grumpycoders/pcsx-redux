@@ -41,6 +41,13 @@ bool isReaderFailed(IsoReader* reader);
 LuaFile* readerOpen(IsoReader* reader, const char* path);
 LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, enum SectorMode mode);
 
+typedef struct { char opaque[?]; } LuaIsoBuilder;
+LuaIsoBuilder* createIsoBuilder(LuaFile* out);
+void deleteIsoBuilder(LuaIsoBuilder* wrapper);
+void isoBuilderWriteLicense(LuaIsoBuilder* wrapper, LuaFile*);
+void isoBuilderWriteSector(LuaIsoBuilder* wrapper, const uint8_t* sectorData, enum SectorMode mode);
+void isoBuilderClose(LuaIsoBuilder* wrapper);
+
 ]]
 
 local C = ffi.load 'CORE_ISO'
@@ -53,7 +60,7 @@ local function createIsoReaderWrapper(isoReader)
     return reader
 end
 
-local function createFileWrapper(wrapper)
+local function createIsoWrapper(wrapper)
     local iso = {
         _wrapper = ffi.gc(wrapper, C.deleteIso),
         failed = function(self) return C.isIsoFailed(self._wrapper) end,
@@ -71,6 +78,26 @@ local function createFileWrapper(wrapper)
     return iso
 end
 
-PCSX.getCurrentIso = function() return createFileWrapper(C.getCurrentIso()) end
+local function createIsoBuilderWrapper(wrapper)
+    local iso = {
+        _wrapper = ffi.gc(wrapper, function(self) C.isoBuilderClose(self) C.deleteIsoBuilder(self) end),
+        writeLicense = function(self, file)
+            if not file then file = Support.File.failedFile() end
+            C.isoBuilderWriteLicense(self._wrapper, file._wrapper)
+        end,
+        writeSector = function(self, sectorData, mode)
+            if not mode then mode = 'M2_FORM1' end
+            if Support.isLuaBuffer(sectorData) then
+                sectorData = sectorData.data
+            end
+            C.isoBuilderWriteSector(self._wrapper, sectorData, mode)
+        end,
+        close = function(self) C.isoBuilderClose(self._wrapper) end,
+    }
+    return iso
+end
+
+PCSX.getCurrentIso = function() return createIsoWrapper(C.getCurrentIso()) end
+PCSX.isoBuilder = function(file) return createIsoBuilderWrapper(C.createIsoBuilder(file._wrapper)) end
 
 -- )EOF"

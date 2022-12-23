@@ -338,11 +338,14 @@ Support.NewLuaBuffer = function(size)
     return buf
 end
 
+Support.isLuaBuffer = function(obj) return ffi.istype('LuaBuffer', obj) end
+
 Support.File = {
     open = open,
     buffer = buffer,
     zReader = zReader,
     uvFifo = uvFifo,
+    failedFile = function() return createFileWrapper(C.failedFile()) end,
     _createFileWrapper = createFileWrapper,
     _createSliceWrapper = createSliceWrapper,
 }

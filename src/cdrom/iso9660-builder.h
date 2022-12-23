@@ -19,41 +19,30 @@
 
 #pragma once
 
-#include <stdint.h>
-
-#include <memory>
-#include <string_view>
-
 #include "cdrom/common.h"
+#include "cdrom/iec-60908b.h"
 #include "support/file.h"
 
 namespace PCSX {
 
-class CDRIso;
-
-class CDRIsoFile : public File {
+class ISO9660Builder {
   public:
-    virtual ~CDRIsoFile() {}
-
-    static constexpr uint32_t c_sectorSizes[] = {2352, 2352, 2048, 2336, 2048, 2324};
-    CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size = -1, SectorMode = SectorMode::GUESS);
-    virtual bool failed() final override { return m_failed; }
-    virtual ssize_t rSeek(ssize_t pos, int wheel) override;
-    virtual ssize_t rTell() override { return m_ptrR; }
-    virtual size_t size() override { return m_size; }
-    virtual ssize_t read(void* dest, size_t size) override;
-    virtual File* dup() override { return new CDRIsoFile(m_iso, m_lba, m_size, m_mode); };
+    ISO9660Builder(IO<File> out) : m_out(out) {}
+    bool failed() { return !m_out || m_out->failed(); }
+    IEC60908b::MSF getCurrentLocation() { return m_location; }
+    void writeLicense(IO<File> licenseFile = nullptr);
+    IEC60908b::MSF writeSector(const uint8_t* sectorData, SectorMode mode) {
+        return writeSectorAt(sectorData, m_location, mode);
+    }
+    IEC60908b::MSF writeSectorAt(const uint8_t* sectorData, IEC60908b::MSF msf, SectorMode mode);
+    void close() {
+        m_out->close();
+        m_out = nullptr;
+    }
 
   private:
-    std::shared_ptr<CDRIso> m_iso;
-    uint8_t m_cachedSector[2352];
-    int32_t m_cachedLBA = -1;
-    uint32_t m_lba;
-    uint32_t m_size;
-    SectorMode m_mode;
-    size_t m_ptrR = 0;
-
-    bool m_failed = false;
+    IO<File> m_out;
+    IEC60908b::MSF m_location = {0, 2, 0};
 };
 
 }  // namespace PCSX

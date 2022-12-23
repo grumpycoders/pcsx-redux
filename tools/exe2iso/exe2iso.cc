@@ -133,15 +133,9 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
     uint32_t exeOffset = 19 + offset;
 
     uint8_t sector[2352];
+    bool wroteLicense = false;
     // Sectors 0-15 are the license. We can keep it to zeroes and it'll work most everywhere.
-    if (!licenseFile || licenseFile->failed()) {
-        for (unsigned i = 0; i < 16; i++) {
-            memset(sector, 0, sizeof(sector));
-            makeHeader(sector, i);
-            if (regen) PCSX::IEC60908b::computeEDCECC(sector);
-            out->write(sector, sizeof(sector));
-        }
-    } else {
+    if (licenseFile && !licenseFile->failed()) {
         uint8_t licenseData[2352 * 16];
         memset(licenseData, 0, sizeof(licenseData));
         licenseFile->read(licenseData, sizeof(licenseData));
@@ -154,6 +148,7 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
                 if (regen) PCSX::IEC60908b::computeEDCECC(sector);
                 out->write(sector, sizeof(sector));
             }
+            wroteLicense = true;
         } else if (licenseData[0x24e2] == 'L') {
             // looks like an iso file itself
             for (unsigned i = 0; i < 16; i++) {
@@ -162,14 +157,17 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
                 if (regen) PCSX::IEC60908b::computeEDCECC(sector);
                 out->write(sector, sizeof(sector));
             }
+            wroteLicense = true;
         } else {
             fmt::print("Unrecognized LICENSE file format {}\n", output.value());
-            for (unsigned i = 0; i < 16; i++) {
-                memset(sector, 0, sizeof(sector));
-                makeHeader(sector, i);
-                if (regen) PCSX::IEC60908b::computeEDCECC(sector);
-                out->write(sector, sizeof(sector));
-            }
+        }
+    }
+    if (!wroteLicense) {
+        for (unsigned i = 0; i < 16; i++) {
+            memset(sector, 0, sizeof(sector));
+            makeHeader(sector, i);
+            if (regen) PCSX::IEC60908b::computeEDCECC(sector);
+            out->write(sector, sizeof(sector));
         }
     }
     // The actual structure of the iso. We're only generating 3 sectors,
