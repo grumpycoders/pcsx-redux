@@ -327,7 +327,9 @@ end
 local function uvFifo(address, port)
     if type(address) ~= 'string' then error('address must be a string') end
     if type(port) ~= 'number' then error('port must be a number') end
-    return createFileWrapper(C.uvFifo(address, port))
+    local ret = createFileWrapper(C.uvFifo(address, port))
+    ret.isConnecting = function(file) return C.uvFifoIsConnecting(file._wrapper) end
+    return ret
 end
 
 if (type(Support) ~= 'table') then Support = {} end
