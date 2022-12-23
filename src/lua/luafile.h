@@ -56,7 +56,7 @@ struct LuaFile {
 struct LuaServer {
     LuaServer(UvFifoListener* listener) : m_listener(listener) {}
     UvFifoListener* m_listener = nullptr;
-    uv_async_t* m_async = nullptr;
+    uv_async_t m_async;
     std::function<void(LuaServer*)> m_stop;
     bool m_deleting = false;
 

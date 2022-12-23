@@ -79,7 +79,6 @@ LuaServer* uvFifoListener() {
 
     server->m_stop = [](LuaServer* server) {
         if (server->m_deleting) {
-            delete server->m_async;
             delete server->m_listener;
             delete server;
         }
@@ -89,14 +88,13 @@ LuaServer* uvFifoListener() {
 }
 
 void startListener(LuaServer* server, unsigned port, void (*cb)(LuaFile* fifo)) {
-    server->m_async = new uv_async_t;
-    server->m_listener->start(port, PCSX::g_system->getLoop(), server->m_async, [cb, server](PCSX::UvFifo* fifo) {
+    server->m_listener->start(port, PCSX::g_system->getLoop(), &server->m_async, [cb, server](PCSX::UvFifo* fifo) {
         if (fifo) {
             cb(new LuaFile(fifo));
             server->m_status = LuaServer::Status::STARTED;
         } else {
-            server->m_async->data = server;
-            uv_close(reinterpret_cast<uv_handle_t*>(server->m_async), [](uv_handle_t* handle) {
+            server->m_async.data = server;
+            uv_close(reinterpret_cast<uv_handle_t*>(&server->m_async), [](uv_handle_t* handle) {
                 LuaServer* server = reinterpret_cast<LuaServer*>(handle->data);
                 server->m_status = LuaServer::Status::STOPPED;
                 server->m_stop(server);
