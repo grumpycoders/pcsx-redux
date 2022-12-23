@@ -148,7 +148,7 @@ CESTER_TEST(cdlInitDelayed, test_instance,
     // waiting its ack, we're really only measuring the roundtrip of the
     // communication between the CPU and the mechacon. It typically takes 350us
     // to do this roundtrip.
-    cester_assert_uint_ge(completeTime, 150);
+    cester_assert_uint_ge(completeTime, 100);
     cester_assert_uint_lt(completeTime, 1000);
     ramsyscall_printf("Delayed initialization: CD-Rom controller initialized, ack in %ius, complete in %ius\n", ackTime, completeTime);
 
