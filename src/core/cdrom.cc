@@ -34,6 +34,8 @@
 
 namespace {
 
+using namespace std::chrono_literals;
+
 class CDRomImpl final : public PCSX::CDRom {
     enum Commands {
         CdlSync = 0,
@@ -335,9 +337,8 @@ class CDRomImpl final : public PCSX::CDRom {
     void cdlSetLoc() {
         switch (m_state) {
             case 0:
-                // TODO: Figure out proper timings.
                 m_state = 1;
-                schedule(5'000);
+                schedule(1ms);
                 break;
             case 1: {
                 // TODO: Verify that the command is aborted if
@@ -352,9 +353,12 @@ class CDRomImpl final : public PCSX::CDRom {
                 } else {
                     m_cause = Cause::Error;
                 }
+                m_paramFIFOSize = 0;
                 m_state = 0;
-                m_busy = false;
                 m_command = 0;
+                m_responseFIFOSize = 1;
+                m_responseFIFOIndex = 0;
+                m_responseFIFO[0] = 2;
                 triggerIRQ();
             } break;
         }
@@ -362,7 +366,6 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 10.
     void cdlInit() {
-        using namespace std::chrono_literals;
         PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: cdlInit, state = %i\n", m_state);
         switch (m_state) {
             case 0:
