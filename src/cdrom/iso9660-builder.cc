@@ -40,6 +40,7 @@ void PCSX::ISO9660Builder::writeLicense(IO<File> licenseFile) {
             for (unsigned i = 0; i < 16; i++) {
                 writeSectorAt(licenseData + IEC60908b::FRAMESIZE_RAW * i, {0, 2, uint8_t(i)}, SectorMode::RAW);
             }
+            return;
         }
     }
     uint8_t dummy[2048];
