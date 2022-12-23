@@ -348,18 +348,19 @@ class CDRomImpl final : public PCSX::CDRom {
                 schedule(1ms);
                 break;
             case 1: {
-                // TODO: Verify that the command is aborted if
-                // these parameters are indeed wrong.
-                // Also probably should error out if no disc or
+                // TODO: probably should error out if no disc or
                 // lid open?
                 // What happens when issued during Read / Play?
                 auto maybeMSF = getMSF(m_paramFIFO);
                 if ((m_paramFIFOSize == 3) && (maybeMSF.has_value())) {
+                    setResponse("\x02"sv);
                     m_cause = Cause::Acknowledge;
                     m_seekPosition = maybeMSF.value();
-                    setResponse("\x02"sv);
-                } else {
+                } else if (m_paramFIFOSize != 3) {
                     setResponse("\x03\x20"sv);
+                    m_cause = Cause::Error;
+                } else {
+                    setResponse("\x03\x10"sv);
                     m_cause = Cause::Error;
                 }
                 m_paramFIFOSize = 0;
