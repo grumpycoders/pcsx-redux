@@ -74,6 +74,7 @@ LuaFile* subFile(LuaFile* wrapper, uint64_t start, int64_t size) {
 }
 LuaFile* uvFifo(const char* address, int port) { return new LuaFile(new PCSX::UvFifo(address, port)); }
 bool uvFifoIsConnecting(LuaFile* wrapper) { return wrapper->file.asA<PCSX::UvFifo>()->isConnecting(); }
+LuaFile* failedFile() { return new LuaFile(new PCSX::FailedFile()); }
 
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
 
@@ -280,6 +281,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, subFile);
     REGISTER(L, uvFifo);
     REGISTER(L, uvFifoIsConnecting);
+    REGISTER(L, failedFile);
 
     REGISTER(L, closeFile);
 
