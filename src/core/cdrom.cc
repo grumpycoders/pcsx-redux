@@ -23,6 +23,8 @@
 
 #include "core/cdrom.h"
 
+#include <string_view>
+
 #include "cdrom/iec-60908b.h"
 #include "cdrom/iso9660-reader.h"
 #include "core/debug.h"
@@ -34,7 +36,7 @@
 
 namespace {
 
-using namespace std::chrono_literals;
+using namespace std::literals;
 
 class CDRomImpl final : public PCSX::CDRom {
     enum Commands {
@@ -131,6 +133,12 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void clearIRQ() { psxHu32ref(0x1070) &= SWAP_LE32(~uint32_t(4)); }
+
+    void setResponse(std::string_view response) {
+        m_responseFIFOSize = response.size();
+        m_responseFIFOIndex = 0;
+        std::copy(response.begin(), response.end(), m_responseFIFO);
+    }
 
     uint8_t read0() override {
         uint8_t v01 = m_registerIndex & 3;
@@ -278,7 +286,6 @@ class CDRomImpl final : public PCSX::CDRom {
                     PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: got ack\n");
                     if (m_waitingAck) {
                         PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: was waiting on ack\n");
-                        using namespace std::chrono_literals;
                         m_waitingAck = false;
                         schedule(350us);
                     }
@@ -350,14 +357,9 @@ class CDRomImpl final : public PCSX::CDRom {
                 if ((m_paramFIFOSize == 3) && (maybeMSF.has_value())) {
                     m_cause = Cause::Acknowledge;
                     m_seekPosition = maybeMSF.value();
-                    m_responseFIFOSize = 1;
-                    m_responseFIFOIndex = 0;
-                    m_responseFIFO[0] = 2;
+                    setResponse("\x02"sv);
                 } else {
-                    m_responseFIFOSize = 2;
-                    m_responseFIFOIndex = 0;
-                    m_responseFIFO[0] = 3;
-                    m_responseFIFO[1] = 32;
+                    setResponse("\x03\x20"sv);
                     m_cause = Cause::Error;
                 }
                 m_paramFIFOSize = 0;
@@ -388,9 +390,7 @@ class CDRomImpl final : public PCSX::CDRom {
             case 1:
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
-                m_responseFIFOSize = 1;
-                m_responseFIFOIndex = 0;
-                m_responseFIFO[0] = 2;
+                setResponse("\x02"sv);
                 triggerIRQ();
                 schedule(120ms);
                 break;
@@ -404,9 +404,7 @@ class CDRomImpl final : public PCSX::CDRom {
             case 3:
                 m_cause = Cause::Complete;
                 m_state = 0;
-                m_responseFIFOSize = 1;
-                m_responseFIFOIndex = 0;
-                m_responseFIFO[0] = 2;
+                setResponse("\x02"sv);
                 m_command = 0;
                 triggerIRQ();
                 break;
@@ -414,10 +412,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_cause = Cause::Error;
                 m_state = 0;
                 m_paramFIFOSize = 0;
-                m_responseFIFOSize = 2;
-                m_responseFIFOIndex = 0;
-                m_responseFIFO[0] = 3;
-                m_responseFIFO[1] = 32;
+                setResponse("\x03\x20"sv);
                 m_command = 0;
                 triggerIRQ();
         }
