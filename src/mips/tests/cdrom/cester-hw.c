@@ -49,13 +49,25 @@ CESTER_BODY(
     }
 
     static inline void initializeTime() {
-        s_lastHSyncCounter = COUNTERS[1].value;
+        while (1) {
+            uint32_t init = COUNTERS[1].value;
+            uint32_t counter;
+            while ((counter = COUNTERS[1].value) == init);
+            if (counter != COUNTERS[1].value) continue;
+            s_lastHSyncCounter = counter;
+            break;
+        }
         s_currentTime = 0;
     }
 
     static inline uint32_t updateTime() {
         uint32_t lastHSyncCounter = s_lastHSyncCounter;
-        uint32_t hsyncCounter = COUNTERS[1].value;
+        uint32_t hsyncCounter;
+        while (1) {
+            hsyncCounter = COUNTERS[1].value;
+            if (hsyncCounter != COUNTERS[1].value) continue;
+            break;
+        }
         if (hsyncCounter < lastHSyncCounter) {
             hsyncCounter += 0x10000;
         }
