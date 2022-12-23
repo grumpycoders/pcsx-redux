@@ -48,6 +48,9 @@ LuaFile* bufferFileEmpty();
 LuaFile* subFile(LuaFile*, uint64_t start, int64_t size);
 
 LuaFile* uvFifo(const char* address, int port);
+bool uvFifoIsConnecting(LuaFile*);
+
+LuaFile* failedFile();
 
 void closeFile(LuaFile* wrapper);
 

@@ -73,6 +73,8 @@ LuaFile* subFile(LuaFile* wrapper, uint64_t start, int64_t size) {
     return new LuaFile(new PCSX::SubFile(wrapper->file, start, size));
 }
 LuaFile* uvFifo(const char* address, int port) { return new LuaFile(new PCSX::UvFifo(address, port)); }
+bool uvFifoIsConnecting(LuaFile* wrapper) { return wrapper->file.asA<PCSX::UvFifo>()->isConnecting(); }
+LuaFile* failedFile() { return new LuaFile(new PCSX::FailedFile()); }
 
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
 
@@ -243,6 +245,15 @@ int writeFileUserDataAt(PCSX::Lua L) {
     return 1;
 }
 
+int createPBSliceFromBuffer(PCSX::Lua L) {
+    if (L.gettop() != 1) return L.error("Invalid number of arguments to createPBSliceFromBuffer");
+    if (!L.iscdata(1)) return L.error("createPBSliceFromBuffer: arg 1 is not a pointer");
+
+    uint32_t* ptr = L.topointer<uint32_t>(1);
+
+    return lpb_newslice(L.getState(), reinterpret_cast<char*>(ptr + 1), *ptr);
+}
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -269,6 +280,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, bufferFileEmpty);
     REGISTER(L, subFile);
     REGISTER(L, uvFifo);
+    REGISTER(L, uvFifoIsConnecting);
+    REGISTER(L, failedFile);
 
     REGISTER(L, closeFile);
 
@@ -329,6 +342,7 @@ void PCSX::LuaFFI::open_file(Lua L) {
     L.declareFunc("readFileUserDataAt", readFileUserDataAt, -1);
     L.declareFunc("writeFileUserData", writeFileUserData, -1);
     L.declareFunc("writeFileUserDataAt", writeFileUserData, -1);
+    L.declareFunc("createPBSliceFromBuffer", createPBSliceFromBuffer, -1);
     L.pop();
     L.declareFunc(
         "sliceToPBSlice",

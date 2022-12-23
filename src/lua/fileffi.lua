@@ -54,12 +54,17 @@ local bufferMeta = {
                 if size > buffer.maxsize() then error('buffer size too large') end
                 buffer.size = size
             end
+        elseif index == 'pbSlice' then
+            return Support._internal.createPBSliceFromBuffer(buffer)
         end
         error('Unknown index `' .. index .. '` for LuaBuffer')
     end,
     __newindex = function(buffer, index, value)
-        if type(index) == 'number' and index >= 0 and index < buffer.size then buffer.data[index] = value end
-        error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
+        if type(index) == 'number' and index >= 0 and index < buffer.size then
+            buffer.data[index] = value
+        else
+            error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
+        end
     end,
 }
 
@@ -322,7 +327,9 @@ end
 local function uvFifo(address, port)
     if type(address) ~= 'string' then error('address must be a string') end
     if type(port) ~= 'number' then error('port must be a number') end
-    return createFileWrapper(C.uvFifo(address, port))
+    local ret = createFileWrapper(C.uvFifo(address, port))
+    ret.isConnecting = function(file) return C.uvFifoIsConnecting(file._wrapper) end
+    return ret
 end
 
 if (type(Support) ~= 'table') then Support = {} end
@@ -333,11 +340,14 @@ Support.NewLuaBuffer = function(size)
     return buf
 end
 
+Support.isLuaBuffer = function(obj) return ffi.istype('LuaBuffer', obj) end
+
 Support.File = {
     open = open,
     buffer = buffer,
     zReader = zReader,
     uvFifo = uvFifo,
+    failedFile = function() return createFileWrapper(C.failedFile()) end,
     _createFileWrapper = createFileWrapper,
     _createSliceWrapper = createSliceWrapper,
 }
