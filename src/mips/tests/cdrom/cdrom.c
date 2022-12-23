@@ -39,7 +39,7 @@ SOFTWARE.
 
 // clang-format off
 
-CESTER_TEST(cdlInitBasic, test_instance,
+CESTER_TEST(cdlInit, test_instance,
     initializeTime();
 
     uint32_t imask = IMASK;
@@ -191,7 +191,7 @@ CESTER_TEST(cdlInitWithArgs, test_instance,
     cester_assert_uint_eq(0x18, stat2);
     // Typical value seems to be around 1ms.
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 1500);
+    cester_assert_uint_lt(errorTime, 2000);
     ramsyscall_printf("Initialization with args: CD-Rom controller errored, error in %ius\n", errorTime);
 
     IMASK = imask;
@@ -223,9 +223,39 @@ CESTER_TEST(cdlSetLoc, test_instances,
     cester_assert_uint_eq(0x18, stat2);
     cester_assert_uint_eq(2, response[0]);
     cester_assert_uint_eq(1, responseSize);
+    // Typical value seems to be around 1ms.
+    cester_assert_uint_ge(completeTime, 500);
+    cester_assert_uint_lt(completeTime, 2000);
+    ramsyscall_printf("Basic setloc to 00:02:00, complete in %ius\n", completeTime);
+)
+
+CESTER_TEST(cdlSetLocNoArgs, test_instances,
+    int resetDone = resetCDRom();
+    cester_assert_true(resetDone);
+    if (!resetDone) return;
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_SETLOC;
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t response[16];
+    uint8_t responseSize = readResponse(response);
+    uint8_t stat2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(0x38, stat1);
+    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(3, response[0]);
+    cester_assert_uint_eq(32, response[1]);
+    cester_assert_uint_eq(2, responseSize);
     // we seem to consistently get ~1ms with a pretty tight margin
     // of error from this test, but let's still give it some slack.
-    cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 1500);
-    ramsyscall_printf("Basic setloc to 00:02:00, complete in %ius\n", completeTime);
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 1500);
+    ramsyscall_printf("Invalid setloc with no args, errored in %ius\n", errorTime);
 )
