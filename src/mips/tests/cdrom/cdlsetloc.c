@@ -212,3 +212,70 @@ CESTER_TEST(cdlSetLocInvalid2, test_instances,
     cester_assert_uint_lt(errorTime, 6500);
     ramsyscall_printf("Invalid setloc to 00:02:79, errored in %ius\n", errorTime);
 )
+
+CESTER_TEST(cdlSetLocTooManyArgs, test_instances,
+    int resetDone = resetCDRom();
+    cester_assert_true(resetDone);
+    if (!resetDone) return;
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 2;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG1 = CDL_SETLOC;
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t response[16];
+    uint8_t responseSize = readResponse(response);
+    uint8_t stat2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(0x38, stat1);
+    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(3, response[0]);
+    cester_assert_uint_eq(32, response[1]);
+    cester_assert_uint_eq(2, responseSize);
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 6500);
+    ramsyscall_printf("Invalid setloc with too many args, errored in %ius\n", errorTime);
+)
+
+CESTER_TEST(cdlSetLocTooManyArgsAndInvalid, test_instances,
+    int resetDone = resetCDRom();
+    cester_assert_true(resetDone);
+    if (!resetDone) return;
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 2;
+    CDROM_REG2 = 0x79;
+    CDROM_REG2 = 0;
+    CDROM_REG1 = CDL_SETLOC;
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t response[16];
+    uint8_t responseSize = readResponse(response);
+    uint8_t stat2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(0x38, stat1);
+    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(3, response[0]);
+    cester_assert_uint_eq(32, response[1]);
+    cester_assert_uint_eq(2, responseSize);
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 6500);
+    ramsyscall_printf("Invalid setloc with too many invalid args, errored in %ius\n", errorTime);
+)
+
