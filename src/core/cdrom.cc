@@ -280,7 +280,7 @@ class CDRomImpl final : public PCSX::CDRom {
                         PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: was waiting on ack\n");
                         using namespace std::chrono_literals;
                         m_waitingAck = false;
-                        schedule(750us);
+                        schedule(350us);
                     }
                     m_gotAck = true;
                     return;
@@ -350,15 +350,19 @@ class CDRomImpl final : public PCSX::CDRom {
                 if ((m_paramFIFOSize == 3) && (maybeMSF.has_value())) {
                     m_cause = Cause::Acknowledge;
                     m_seekPosition = maybeMSF.value();
+                    m_responseFIFOSize = 1;
+                    m_responseFIFOIndex = 0;
+                    m_responseFIFO[0] = 2;
                 } else {
+                    m_responseFIFOSize = 2;
+                    m_responseFIFOIndex = 0;
+                    m_responseFIFO[0] = 3;
+                    m_responseFIFO[1] = 32;
                     m_cause = Cause::Error;
                 }
                 m_paramFIFOSize = 0;
                 m_state = 0;
                 m_command = 0;
-                m_responseFIFOSize = 1;
-                m_responseFIFOIndex = 0;
-                m_responseFIFO[0] = 2;
                 triggerIRQ();
             } break;
         }
@@ -369,6 +373,11 @@ class CDRomImpl final : public PCSX::CDRom {
         PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: cdlInit, state = %i\n", m_state);
         switch (m_state) {
             case 0:
+                if (m_paramFIFOSize != 0) {
+                    m_state = 4;
+                    schedule(1ms);
+                    break;
+                }
                 // TODO: figure out exactly the various states of the CD-Rom controller
                 // that are being reset, and their value.
                 m_state = 1;
@@ -401,6 +410,16 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_command = 0;
                 triggerIRQ();
                 break;
+            case 4:
+                m_cause = Cause::Error;
+                m_state = 0;
+                m_paramFIFOSize = 0;
+                m_responseFIFOSize = 2;
+                m_responseFIFOIndex = 0;
+                m_responseFIFO[0] = 3;
+                m_responseFIFO[1] = 32;
+                m_command = 0;
+                triggerIRQ();
         }
     }
 
