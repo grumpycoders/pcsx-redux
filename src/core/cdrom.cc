@@ -183,7 +183,6 @@ class CDRomImpl final : public PCSX::CDRom {
 
         uint8_t ret = v01 | adpcmPlaying | v3 | v4 | v5 | v6 | v7;
 
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: r0: %02x\n", ret);
         return ret;
     }
 
@@ -194,7 +193,7 @@ class CDRomImpl final : public PCSX::CDRom {
         } else {
             ret = m_responseFIFO[m_responseFIFOIndex++];
         }
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: r1: %02x\n", ret);
+
         return ret;
     }
 
@@ -205,7 +204,7 @@ class CDRomImpl final : public PCSX::CDRom {
         } else {
             ret = m_dataFIFO[m_dataFIFOIndex++];
         }
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: r2: %02x\n", ret);
+
         return ret;
     }
 
@@ -221,7 +220,6 @@ class CDRomImpl final : public PCSX::CDRom {
                 // cause
                 // TODO: add bit 4
                 uint8_t ret = magic_enum::enum_integer(m_cause) | 0xe0;
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: read cause, returning %02x\n", ret);
                 m_cause = Cause::None;
                 return ret;
             } break;
@@ -231,12 +229,10 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void write0(uint8_t value) override {
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w0: %02x\n", value);
         m_registerIndex = value & 3;
     }
 
     void write1(uint8_t value) override {
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w1: %02x\n", value);
         switch (m_registerIndex) {
             case 0: {
                 if (m_busy) {
@@ -267,7 +263,6 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void write2(uint8_t value) override {
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w2: %02x\n", value);
         switch (m_registerIndex) {
             case 0: {
                 if (paramFIFOAvailable()) m_paramFIFO[m_paramFIFOSize++] = value;
@@ -296,7 +291,6 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void write3(uint8_t value) override {
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3: %02x\n", value);
         switch (m_registerIndex) {
             case 0: {
                 // ??
@@ -315,9 +309,7 @@ class CDRomImpl final : public PCSX::CDRom {
                     ack = true;
                 }
                 if (ack) {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: got ack\n");
                     if (m_waitingAck) {
-                        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: was waiting on ack\n");
                         m_waitingAck = false;
                         schedule(350us);
                     }
@@ -431,7 +423,6 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 10.
     void cdlInit() {
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: cdlInit, state = %i\n", m_state);
         switch (m_state) {
             case 0:
                 if (m_paramFIFOSize != 0) {
