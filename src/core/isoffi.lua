@@ -41,12 +41,12 @@ bool isReaderFailed(IsoReader* reader);
 LuaFile* readerOpen(IsoReader* reader, const char* path);
 LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, enum SectorMode mode);
 
-typedef struct { char opaque[?]; } LuaIsoBuilder;
-LuaIsoBuilder* createIsoBuilder(LuaFile* out);
-void deleteIsoBuilder(LuaIsoBuilder* wrapper);
-void isoBuilderWriteLicense(LuaIsoBuilder* wrapper, LuaFile*);
-void isoBuilderWriteSector(LuaIsoBuilder* wrapper, const uint8_t* sectorData, enum SectorMode mode);
-void isoBuilderClose(LuaIsoBuilder* wrapper);
+typedef struct { char opaque[?]; } ISO9660Builder;
+ISO9660Builder* createIsoBuilder(LuaFile* out);
+void deleteIsoBuilder(ISO9660Builder* builder);
+void isoBuilderWriteLicense(ISO9660Builder* builder, LuaFile*);
+void isoBuilderWriteSector(ISO9660Builder* builder, const uint8_t* sectorData, enum SectorMode mode);
+void isoBuilderClose(ISO9660Builder* builder);
 
 ]]
 
