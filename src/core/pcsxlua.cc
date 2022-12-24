@@ -106,6 +106,10 @@ void loadSaveStateFromFile(PCSX::LuaFFI::LuaFile* file) {
     PCSX::SaveStates::load(data.asStringView());
 }
 
+void quit() {
+    PCSX::g_system->quit();
+}
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -142,6 +146,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, createSaveState);
     REGISTER(L, loadSaveStateFromSlice);
     REGISTER(L, loadSaveStateFromFile);
+    REGISTER(L, quit);
     L.settable();
     L.pop();
 }

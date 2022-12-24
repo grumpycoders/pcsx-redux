@@ -81,6 +81,8 @@ LuaScreenShot takeScreenShot();
 LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
 void loadSaveStateFromFile(LuaFile*);
+
+void quit();
 ]]
 
 local C = ffi.load 'PCSX'
@@ -200,6 +202,7 @@ PCSX = {
             error('loadSaveState: requires a Slice or File as input')
         end
     end,
+    quit = function() C.quit() end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end
