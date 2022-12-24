@@ -81,7 +81,7 @@ CESTER_TEST(cdlSetLocNoArgs, test_instances,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
-    cester_assert_uint_eq(32, response[1]);
+    cester_assert_uint_eq(0x20, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 6500);
@@ -174,7 +174,7 @@ CESTER_TEST(cdlSetLocInvalid1, test_instances,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
-    cester_assert_uint_eq(16, response[1]);
+    cester_assert_uint_eq(0x10, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 6500);
@@ -206,7 +206,7 @@ CESTER_TEST(cdlSetLocInvalid2, test_instances,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
-    cester_assert_uint_eq(16, response[1]);
+    cester_assert_uint_eq(0x10, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 6500);
@@ -239,7 +239,7 @@ CESTER_TEST(cdlSetLocTooManyArgs, test_instances,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
-    cester_assert_uint_eq(32, response[1]);
+    cester_assert_uint_eq(0x20, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 6500);
@@ -272,7 +272,7 @@ CESTER_TEST(cdlSetLocTooManyArgsAndInvalid, test_instances,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
-    cester_assert_uint_eq(32, response[1]);
+    cester_assert_uint_eq(0x20, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 6500);

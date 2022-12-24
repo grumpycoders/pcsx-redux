@@ -54,14 +54,14 @@ CESTER_TEST(invalid0, test_instance,
     cester_assert_uint_eq(5, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(3, response1[0]);
-    cester_assert_uint_eq(64, response1[1]);
+    cester_assert_uint_eq(0x40, response1[1]);
     cester_assert_uint_eq(2, responseSize1);
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     // Typical value seems to be around 750us.
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 1500);
-    ramsyscall_printf("Basic getTN: errored in %ius\n", errorTime);
+    ramsyscall_printf("Invalid command 0: errored in %ius\n", errorTime);
 
     IMASK = imask;
 )

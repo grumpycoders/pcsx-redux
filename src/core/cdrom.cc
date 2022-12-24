@@ -487,8 +487,26 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void cdlUnk() {
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unknown CD-Rom command\n");
-        PCSX::g_system->pause();
+        switch (m_state) {
+            case 0:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unknown CD-Rom command %i\n", m_command);
+                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                        .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+                    PCSX::g_system->pause();
+                }
+                m_state = 1;
+                schedule(750us);
+                break;
+            case 1:
+                setResponse(getStatus() | 1);
+                appendResponse(0x40);
+                m_cause = Cause::Error;
+                m_paramFIFOSize = 0;
+                m_state = 0;
+                m_command = 0;
+                triggerIRQ();
+                break;
+        }
     }
 
     typedef void (CDRomImpl::*CommandType)();

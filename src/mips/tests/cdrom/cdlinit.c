@@ -185,7 +185,7 @@ CESTER_TEST(cdlInitWithArgs, test_instance,
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(0xe0, cause2b);
     cester_assert_uint_eq(3, response1[0]);
-    cester_assert_uint_eq(32, response1[1]);
+    cester_assert_uint_eq(0x20, response1[1]);
     cester_assert_uint_eq(2, responseSize1);
     cester_assert_uint_eq(2, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
