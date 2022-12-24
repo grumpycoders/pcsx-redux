@@ -145,7 +145,7 @@ CESTER_TEST(cdlGetTD2, test_instance,
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("Basic getTD 1: ack in %ius\n", ackTime);
+    ramsyscall_printf("Basic getTD 2: ack in %ius\n", ackTime);
 
     IMASK = imask;
 )
@@ -187,7 +187,7 @@ CESTER_TEST(cdlGetTD3, test_instance,
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("Basic getTD 1: ack in %ius\n", ackTime);
+    ramsyscall_printf("Basic getTD 3: ack in %ius\n", ackTime);
 
     IMASK = imask;
 )
@@ -228,7 +228,7 @@ CESTER_TEST(cdlGetTD4, test_instance,
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("Basic getTD 1: ack in %ius\n", ackTime);
+    ramsyscall_printf("Basic getTD 4: ack in %ius\n", ackTime);
 
     IMASK = imask;
 )
@@ -269,7 +269,7 @@ CESTER_TEST(cdlGetTD5, test_instance,
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("Basic getTD 1: ack in %ius\n", ackTime);
+    ramsyscall_printf("Basic getTD 5: ack in %ius\n", ackTime);
 
     IMASK = imask;
 )
@@ -310,7 +310,7 @@ CESTER_TEST(cdlGetTD6, test_instance,
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("Basic getTD 1: ack in %ius\n", ackTime);
+    ramsyscall_printf("Basic getTD 6: ack in %ius\n", ackTime);
 
     IMASK = imask;
 )
@@ -351,7 +351,7 @@ CESTER_TEST(cdlGetTD12, test_instance,
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("Basic getTD 1: ack in %ius\n", ackTime);
+    ramsyscall_printf("Basic getTD 12: ack in %ius\n", ackTime);
 
     IMASK = imask;
 )
@@ -392,7 +392,207 @@ CESTER_TEST(cdlGetTD25, test_instance,
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("Basic getTD 1: ack in %ius\n", ackTime);
+    ramsyscall_printf("Basic getTD 25: ack in %ius\n", ackTime);
+
+    IMASK = imask;
+)
+
+CESTER_TEST(cdlGetTD99, test_instance,
+    uint32_t imask = IMASK;
+
+    IMASK = imask | IRQ_CDROM;
+
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    initializeTime();
+
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0x99;
+    CDROM_REG1 = CDL_GETTD;
+
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(3, response1[0]);
+    cester_assert_uint_eq(0x10, response1[1]);
+    cester_assert_uint_eq(2, responseSize1);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 1500);
+    ramsyscall_printf("Basic getTD 99: errored in %ius\n", errorTime);
+
+    IMASK = imask;
+)
+
+CESTER_TEST(cdlGetTDaa, test_instance,
+    uint32_t imask = IMASK;
+
+    IMASK = imask | IRQ_CDROM;
+
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    initializeTime();
+
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0xaa;
+    CDROM_REG1 = CDL_GETTD;
+
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(3, response1[0]);
+    cester_assert_uint_eq(0x10, response1[1]);
+    cester_assert_uint_eq(2, responseSize1);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 1500);
+    ramsyscall_printf("Basic getTD aa: errored in %ius\n", errorTime);
+
+    IMASK = imask;
+)
+
+CESTER_TEST(cdlGetTD1a, test_instance,
+    uint32_t imask = IMASK;
+
+    IMASK = imask | IRQ_CDROM;
+
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    initializeTime();
+
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0x1a;
+    CDROM_REG1 = CDL_GETTD;
+
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(3, response1[0]);
+    cester_assert_uint_eq(0x10, response1[1]);
+    cester_assert_uint_eq(2, responseSize1);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 1500);
+    ramsyscall_printf("Basic getTD 1a: errored in %ius\n", errorTime);
+
+    IMASK = imask;
+)
+
+CESTER_TEST(cdlGetTDNoArgs, test_instance,
+    uint32_t imask = IMASK;
+
+    IMASK = imask | IRQ_CDROM;
+
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    initializeTime();
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_GETTD;
+
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(3, response1[0]);
+    cester_assert_uint_eq(0x20, response1[1]);
+    cester_assert_uint_eq(2, responseSize1);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 1500);
+    ramsyscall_printf("No args getTD: errored in %ius\n", errorTime);
+
+    IMASK = imask;
+)
+
+CESTER_TEST(cdlGetTDTooManyArgs, test_instance,
+    uint32_t imask = IMASK;
+
+    IMASK = imask | IRQ_CDROM;
+
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    initializeTime();
+
+    CDROM_REG0 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG1 = CDL_GETTD;
+
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(3, response1[0]);
+    cester_assert_uint_eq(0x20, response1[1]);
+    cester_assert_uint_eq(2, responseSize1);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 1500);
+    ramsyscall_printf("Too many args getTD: errored in %ius\n", errorTime);
 
     IMASK = imask;
 )
