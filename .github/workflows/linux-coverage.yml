@@ -23,16 +23,16 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
+          wget https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/download/8.0.K/UNIROM_BOOTDISC_8.0.K.zip
+      - run: |
+          unzip -o UNIROM_BOOTDISC_8.0.K.zip
+      - run: |
           make -j 2 all pcsx-redux-tests
           make -C src/mips/openbios -j 2
           cp src/mips/openbios/openbios.bin .
           make -C src/mips/openbios clean
           make -C src/mips/tests -j 2 PCSX_TESTS=true
           cp ./openbios.bin src/mips/openbios/
-      - run: |
-          wget https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/download/8.0.K/UNIROM_BOOTDISC_8.0.K.zip
-      - run: |
-          unzip UNIROM_BOOTDISC_8.0.K.zip
       - run: |
           xvfb-run catchsegv ./pcsx-redux -stdout -lua_stdout -testmode -no-gui-logs -iso UNIROM_BOOTDISC_8.0.K.bin -exec "dofile 'src/mips/tests/cdrom/create-test-iso.lua'"
       - name: Test
