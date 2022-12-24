@@ -55,7 +55,7 @@ CESTER_TEST(cdlGetTN, test_instance,
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(2, response1[0]);
     cester_assert_uint_eq(1, response1[1]);
-    cester_assert_uint_eq(25, response1[2]);
+    cester_assert_uint_eq(0x25, response1[2]);
     cester_assert_uint_eq(3, responseSize1);
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);

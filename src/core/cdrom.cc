@@ -475,7 +475,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 // lid open?
                 setResponse(getStatus());
                 appendResponse(1);
-                appendResponse(m_iso->getTN());
+                appendResponse(PCSX::IEC60908b::itob(m_iso->getTN()));
                 m_cause = Cause::Acknowledge;
                 m_paramFIFOSize = 0;
                 m_state = 0;
