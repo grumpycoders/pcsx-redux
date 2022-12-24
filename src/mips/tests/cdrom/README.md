@@ -1,6 +1,14 @@
 # CDRom tests
 
-This directory contains tests for the CDRom controller of the PS1. They are assuming that there is a CD inserted in the drive, and the lid is closed. At the moment, they do not rely on a certain CD, but they will in the future.
+This directory contains tests for the CDRom controller of the PS1. They are assuming that there is a CD inserted in the drive, and the lid is closed. The tests require a somewhat specific iso to be mounted. The iso can be created using the `create-test-iso.lua` script. PCSX-Redux itself is the interpreter for this script. It also requires a copy of the [Unirom iso](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/) to be present.
+
+The script can be run using the following command:
+
+```bash
+pcsx-redux -stdout -lua_stdout -testmode -no-gui-logs -iso UNIROM_BOOTDISC.bin -exec "dofile 'create-test-iso.lua'"
+```
+
+This will emit a `test.cue` file, and multiple corresponding tracks. The data track will contain Unirom itself, for potentially booting on a retail machine and be able to upload the tests to the machine using [`nops`](https://github.com/JonathanDotCel/NOTPSXSerial).
 
 The tests are written in C, and are compiled using the [MIPS GCC toolchain](../../psyqo/GETTING_STARTED.md#the-toolchain). The tests are compiled using the `make` command, and the resulting binary needs to be run on systems that have an ANSI console connected.
 
