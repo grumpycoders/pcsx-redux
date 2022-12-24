@@ -102,7 +102,7 @@ class CDRom {
     std::shared_ptr<CDRIso> m_iso;
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
-    bool dataFIFOEmpty() { return m_dataFIFOIndex == m_dataFIFOSize; }
+    bool dataFIFOHasData() { return m_dataFIFOIndex != m_dataFIFOSize; }
     bool paramFIFOAvailable() { return m_paramFIFOSize != 16; }
     bool responseFIFOHasData() { return m_responseFIFOIndex != m_responseFIFOSize; }
 
