@@ -26,7 +26,7 @@ SOFTWARE.
 
 // clang-format off
 
-CESTER_TEST(cdlSeekP, test_instance,
+CESTER_SKIP_TEST(cdlSeekP, test_instance,
     uint32_t imask = IMASK;
 
     IMASK = imask | IRQ_CDROM;
@@ -89,7 +89,7 @@ CESTER_TEST(cdlSeekP, test_instance,
     IMASK = imask;
 )
 
-CESTER_TEST(cdlSeekL, test_instance,
+CESTER_SKIP_TEST(cdlSeekL, test_instance,
     uint32_t imask = IMASK;
 
     IMASK = imask | IRQ_CDROM;
