@@ -111,6 +111,33 @@ In Geany : `Debug > Setup Program` :
 
 ![geany program setup](./images/geany-gdb-scope-options.png)
 
+### CLion
+
+Open the Run/Debug Configurations menu, which you can find here:
+
+![run/debug configurations menu](./images/clion-edit-configurations.png)
+
+Then, add a new Remote Debug configuration:
+
+![add new remote debug](./images/clion-add-new-configuration.png)
+
+Finally, set your new configuration up:
+
+![config set up](./images/clion-remote-debug-setup.png)
+
+#### .gdbinit
+
+Create a `.gdbinit` file at the root of your project with the following content, adapting the path to your `elf` file.
+
+```
+define target remote
+target extended-remote $arg0
+symbol-file /path/to/your/executable.elf
+monitor reset shellhalt
+load /path/to/your/executable.elf
+end
+```
+
 ## Beginning Debugging
 
 Launch `pcsx-redux`, then run the debugger from your IDE. It should load the `elf` file, and execute until the next breakpoint.
