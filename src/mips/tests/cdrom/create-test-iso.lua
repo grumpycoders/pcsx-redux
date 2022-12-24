@@ -96,7 +96,7 @@ end
 
 local cue = Support.File.open('test.cue', 'TRUNCATE')
 cue:write('FILE "test.bin" BINARY\n')
-cue:write('  TRACK 01 MODE1/2352\n')
+cue:write('  TRACK 01 MODE2/2352\n')
 cue:write('    INDEX 01 00:00:00\n')
 cue:write('FILE "test-t2.bin" BINARY\n')
 cue:write('  TRACK 02 AUDIO\n')
