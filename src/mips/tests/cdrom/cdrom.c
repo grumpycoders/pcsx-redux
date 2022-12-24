@@ -37,4 +37,5 @@ SOFTWARE.
 
 #include "cester-hw.c"
 #include "cdlinit.c"
+#include "cdlseek.c"
 #include "cdlsetloc.c"
