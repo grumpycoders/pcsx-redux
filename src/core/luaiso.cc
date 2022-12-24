@@ -51,20 +51,17 @@ PCSX::LuaFFI::LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size,
     return new PCSX::LuaFFI::LuaFile(new PCSX::CDRIsoFile(wrapper->iso, lba, size, mode));
 }
 
-struct LuaIsoBuilder {
-    LuaIsoBuilder(PCSX::IO<PCSX::File> out) : isoBuilder(out) {}
-    PCSX::ISO9660Builder isoBuilder;
-};
-
-LuaIsoBuilder* createIsoBuilder(PCSX::LuaFFI::LuaFile* wrapper) { return new LuaIsoBuilder(wrapper->file); }
-void deleteIsoBuilder(LuaIsoBuilder* wrapper) { delete wrapper; }
-void isoBuilderWriteLicense(LuaIsoBuilder* wrapper, PCSX::LuaFFI::LuaFile* licenseWrapper) {
-    wrapper->isoBuilder.writeLicense(licenseWrapper->file);
+PCSX::ISO9660Builder* createIsoBuilder(PCSX::LuaFFI::LuaFile* wrapper) {
+    return new PCSX::ISO9660Builder(wrapper->file);
 }
-void isoBuilderWriteSector(LuaIsoBuilder* wrapper, const uint8_t* sectorData, PCSX::SectorMode mode) {
-    wrapper->isoBuilder.writeSector(sectorData, mode);
+void deleteIsoBuilder(PCSX::ISO9660Builder* builder) { delete builder; }
+void isoBuilderWriteLicense(PCSX::ISO9660Builder* builder, PCSX::LuaFFI::LuaFile* licenseWrapper) {
+    builder->writeLicense(licenseWrapper->file);
 }
-void isoBuilderClose(LuaIsoBuilder* wrapper) { wrapper->isoBuilder.close(); }
+void isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, PCSX::SectorMode mode) {
+    builder->writeSector(sectorData, mode);
+}
+void isoBuilderClose(PCSX::ISO9660Builder* builder) { builder->close(); }
 
 }  // namespace
 
