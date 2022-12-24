@@ -73,23 +73,24 @@ for i = count, 70 * 60 * 75 - 1 do
 end
 
 b:resize(2352)
-local audioTrack = Support.File.open('test-t2.bin', 'TRUNCATE')
+local audioTrack
+audioTrack = Support.File.open('test-t2.bin', 'TRUNCATE')
 for i = 1, 75 * 5 do
     audioTrack:write(b)
 end
-local audioTrack = Support.File.open('test-t3.bin', 'TRUNCATE')
+audioTrack = Support.File.open('test-t3.bin', 'TRUNCATE')
 for i = 1, 75 * 5 + 15 do
     audioTrack:write(b)
 end
-local audioTrack = Support.File.open('test-t4.bin', 'TRUNCATE')
+audioTrack = Support.File.open('test-t4.bin', 'TRUNCATE')
 for i = 1, 75 * 5 + 15 do
     audioTrack:write(b)
 end
-local audioTrack = Support.File.open('test-t5.bin', 'TRUNCATE')
+audioTrack = Support.File.open('test-t5.bin', 'TRUNCATE')
 for i = 1, 75 * 5 + 15 do
     audioTrack:write(b)
 end
-local audioTrack = Support.File.open('test-t6.bin', 'TRUNCATE')
+audioTrack = Support.File.open('test-t6.bin', 'TRUNCATE')
 for i = 1, 75 * 5 + 15 do
     audioTrack:write(b)
 end
@@ -118,5 +119,15 @@ FILE "test-t6.bin" BINARY
     INDEX 00 00:00:00
     INDEX 01 00:02:00
 ]])
+
+for i = 7, 25 do
+    audioTrack = Support.File.open(string.format('test-t%d.bin', i), 'TRUNCATE')
+    for j = 1, 75 * 5 + 15 do
+        audioTrack:write(b)
+    end
+    cue:write(string.format('FILE "test-t%d.bin" BINARY\n', i))
+    cue:write(string.format('  TRACK %02d AUDIO\n', i))
+    cue:write('    INDEX 01 00:02:00\n')
+end
 
 PCSX.quit()

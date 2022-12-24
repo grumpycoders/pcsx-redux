@@ -468,7 +468,7 @@ class CDRomImpl final : public PCSX::CDRom {
         switch (m_state) {
             case 0:
                 m_state = 1;
-                schedule(750us);
+                schedule(2ms);
                 break;
             case 1: {
                 // TODO: probably should error out if no disc or

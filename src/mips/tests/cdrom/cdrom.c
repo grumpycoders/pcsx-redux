@@ -40,3 +40,4 @@ SOFTWARE.
 #include "cdlinit.c"
 #include "cdlseek.c"
 #include "cdlsetloc.c"
+#include "invalid.c"

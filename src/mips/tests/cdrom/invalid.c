@@ -26,7 +26,7 @@ SOFTWARE.
 
 // clang-format off
 
-CESTER_TEST(cdlGetTN, test_instance,
+CESTER_TEST(invalid0, test_instance,
     uint32_t imask = IMASK;
 
     IMASK = imask | IRQ_CDROM;
@@ -40,52 +40,7 @@ CESTER_TEST(cdlGetTN, test_instance,
     initializeTime();
 
     CDROM_REG0 = 0;
-    CDROM_REG1 = CDL_GETTN;
-
-    uint32_t ackTime = waitCDRomIRQ();
-    uint8_t cause1 = ackCDRomCause();
-    uint8_t ctrl1 = CDROM_REG0 & ~3;
-    uint8_t response1[16];
-    uint8_t responseSize1 = readResponse(response1);
-    uint8_t ctrl2 = CDROM_REG0 & ~3;
-    CDROM_REG0 = 1;
-    uint8_t cause1b = CDROM_REG3_UC;
-
-    cester_assert_uint_eq(3, cause1);
-    cester_assert_uint_eq(0xe0, cause1b);
-    cester_assert_uint_eq(2, response1[0]);
-    cester_assert_uint_eq(1, response1[1]);
-    cester_assert_uint_eq(25, response1[2]);
-    cester_assert_uint_eq(3, responseSize1);
-    cester_assert_uint_eq(0x38, ctrl1);
-    cester_assert_uint_eq(0x18, ctrl2);
-    // Typical value seems to be around 2ms, but varies a lot.
-    cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("Basic getTN: ack in %ius\n", ackTime);
-
-    IMASK = imask;
-)
-
-CESTER_TEST(cdlGetTNWithArgs, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
-    int resetDone = resetCDRom();
-    if (!resetDone) {
-        cester_assert_true(resetDone);
-        return;
-    }
-
-    initializeTime();
-
-    CDROM_REG0 = 0;
-    CDROM_REG2 = 0;
-    CDROM_REG2 = 0;
-    CDROM_REG2 = 0;
-    CDROM_REG2 = 0;
-    CDROM_REG1 = CDL_GETTN;
+    CDROM_REG1 = CDL_SYNC;
 
     uint32_t errorTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
@@ -99,7 +54,7 @@ CESTER_TEST(cdlGetTNWithArgs, test_instance,
     cester_assert_uint_eq(5, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(3, response1[0]);
-    cester_assert_uint_eq(32, response1[1]);
+    cester_assert_uint_eq(64, response1[1]);
     cester_assert_uint_eq(2, responseSize1);
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
