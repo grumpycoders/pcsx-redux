@@ -95,26 +95,28 @@ for i = 1, 75 * 5 + 15 do
 end
 
 local cue = Support.File.open('test.cue', 'TRUNCATE')
-cue:write('FILE "test.bin" BINARY\n')
-cue:write('  TRACK 01 MODE2/2352\n')
-cue:write('    INDEX 01 00:00:00\n')
-cue:write('FILE "test-t2.bin" BINARY\n')
-cue:write('  TRACK 02 AUDIO\n')
-cue:write('    INDEX 01 00:00:00\n')
-cue:write('FILE "test-t3.bin" BINARY\n')
-cue:write('  TRACK 03 AUDIO\n')
-cue:write('    INDEX 01 00:00:00\n')
-cue:write('FILE "test-t4.bin" BINARY\n')
-cue:write('  TRACK 04 AUDIO\n')
-cue:write('    INDEX 00 00:00:00\n')
-cue:write('    INDEX 01 00:02:00\n')
-cue:write('FILE "test-t5.bin" BINARY\n')
-cue:write('  TRACK 05 AUDIO\n')
-cue:write('    INDEX 00 00:00:00\n')
-cue:write('    INDEX 01 00:02:45\n')
-cue:write('FILE "test-t6.bin" BINARY\n')
-cue:write('  TRACK 06 AUDIO\n')
-cue:write('    INDEX 00 00:00:00\n')
-cue:write('    INDEX 01 00:02:00\n')
+cue:write([[
+FILE "test.bin" BINARY
+  TRACK 01 MODE2/2352
+    INDEX 01 00:00:00
+FILE "test-t2.bin" BINARY
+  TRACK 02 AUDIO
+    INDEX 01 00:00:00
+FILE "test-t3.bin" BINARY
+  TRACK 03 AUDIO
+    INDEX 01 00:00:00
+FILE "test-t4.bin" BINARY
+  TRACK 04 AUDIO
+    INDEX 00 00:00:00
+    INDEX 01 00:02:00
+FILE "test-t5.bin" BINARY
+  TRACK 05 AUDIO
+    INDEX 00 00:00:00
+    INDEX 01 00:02:45
+FILE "test-t6.bin" BINARY
+  TRACK 06 AUDIO
+    INDEX 00 00:00:00
+    INDEX 01 00:02:00
+]])
 
 PCSX.quit()
