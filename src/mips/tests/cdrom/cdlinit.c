@@ -42,19 +42,19 @@ CESTER_TEST(cdlInit, test_instance,
 
     uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response1[16];
     uint8_t responseSize1 = readResponse(response1);
-    uint8_t stat2 = CDROM_REG0 & ~3;
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
     uint32_t completeTime = waitCDRomIRQ() - ackTime;
     uint8_t cause2 = ackCDRomCause();
-    uint8_t stat3 = CDROM_REG0 & ~3;
+    uint8_t ctrl3 = CDROM_REG0 & ~3;
     uint8_t response2[16];
     uint8_t responseSize2 = readResponse(response2);
-    uint8_t stat4 = CDROM_REG0 & ~3;
+    uint8_t ctrl4 = CDROM_REG0 & ~3;
     CDROM_REG0 = 1;
     uint8_t cause2b = CDROM_REG3_UC;
 
@@ -66,10 +66,10 @@ CESTER_TEST(cdlInit, test_instance,
     cester_assert_uint_eq(1, responseSize1);
     cester_assert_uint_eq(2, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
-    cester_assert_uint_eq(0x38, stat1);
-    cester_assert_uint_eq(0x18, stat2);
-    cester_assert_uint_eq(0x38, stat3);
-    cester_assert_uint_eq(0x18, stat4);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_eq(0x38, ctrl3);
+    cester_assert_uint_eq(0x18, ctrl4);
     // Typical value seems to be around 2ms.
     cester_assert_uint_ge(ackTime, 800);
     cester_assert_uint_lt(ackTime, 5000);
@@ -111,7 +111,7 @@ CESTER_TEST(cdlInitDelayed, test_instance,
 
     uint8_t cause1 = ackCDRomCause();
     CDROM_REG1;
-    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
 
 
     initializeTime();
@@ -119,15 +119,15 @@ CESTER_TEST(cdlInitDelayed, test_instance,
     uint32_t completeTime = waitCDRomIRQ();
     uint8_t cause2 = ackCDRomCause();
     CDROM_REG1;
-    uint8_t stat2 = CDROM_REG0 & ~3;
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
 
 
     cester_assert_false(gotIRQ);
     cester_assert_uint_ge(delayedTime, 500000);
     cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(2, cause2);
-    cester_assert_uint_eq(0x18, stat1);
-    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(0x18, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
     // This still takes about 2ms.
     cester_assert_uint_ge(ackTime, 800);
     cester_assert_uint_lt(ackTime, 5000);
@@ -162,24 +162,45 @@ CESTER_TEST(cdlInitWithArgs, test_instance,
 
     uint32_t errorTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response1[16];
     uint8_t responseSize1 = readResponse(response1);
-    uint8_t stat2 = CDROM_REG0 & ~3;
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_NOP;
+    uint32_t ackTime = waitCDRomIRQ();
+    uint8_t cause2 = ackCDRomCause();
+    uint8_t ctrl3 = CDROM_REG0 & ~3;
+    uint8_t response2[16];
+    uint8_t responseSize2 = readResponse(response2);
+    uint8_t ctrl4 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause2b = CDROM_REG3_UC;
+
     cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(3, cause2);
     cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(0xe0, cause2b);
     cester_assert_uint_eq(3, response1[0]);
     cester_assert_uint_eq(32, response1[1]);
     cester_assert_uint_eq(2, responseSize1);
-    cester_assert_uint_eq(0x38, stat1);
-    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(2, response2[0]);
+    cester_assert_uint_eq(1, responseSize2);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_eq(0x38, ctrl3);
+    cester_assert_uint_eq(0x18, ctrl4);
     // Typical value seems to be around 1ms.
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 2000);
+    // Typical value seems to be around 1.5ms.
+    cester_assert_uint_ge(ackTime, 1000);
+    cester_assert_uint_lt(ackTime, 2500);
     ramsyscall_printf("Initialization with args: CD-Rom controller errored, error in %ius\n", errorTime);
+    ramsyscall_printf("Initialization with args: requested status, ack in %ius\n", ackTime);
 
     IMASK = imask;
 )

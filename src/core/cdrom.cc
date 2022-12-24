@@ -41,7 +41,7 @@ using namespace std::literals;
 class CDRomImpl final : public PCSX::CDRom {
     enum Commands {
         CdlSync = 0,
-        CdlGetStat = 1,
+        CdlNop = 1,
         CdlSetLoc = 2,
         CdlPlay = 3,
         CdlForward = 4,
@@ -135,9 +135,41 @@ class CDRomImpl final : public PCSX::CDRom {
     void clearIRQ() { psxHu32ref(0x1070) &= SWAP_LE32(~uint32_t(4)); }
 
     void setResponse(std::string_view response) {
+        std::copy(response.begin(), response.end(), m_responseFIFO);
         m_responseFIFOSize = response.size();
         m_responseFIFOIndex = 0;
-        std::copy(response.begin(), response.end(), m_responseFIFO);
+    }
+
+    void setResponse(uint8_t response) {
+        m_responseFIFO[0] = response;
+        m_responseFIFOSize = 1;
+        m_responseFIFOIndex = 0;
+    }
+
+    void appendResponse(std::string_view response) {
+        std::copy(response.begin(), response.end(), m_responseFIFO + m_responseFIFOSize);
+        m_responseFIFOSize += response.size();
+    }
+
+    void appendResponse(uint8_t response) { m_responseFIFO[m_responseFIFOSize++] = response; }
+
+    uint8_t getStatus() {
+        uint8_t v1 = m_motorOn ? 0x02 : 0;
+        uint8_t v4 = m_wasLidOpened ? 0x10 : 0;
+        if (!isLidOpen()) m_wasLidOpened = false;
+        uint8_t v567 = 0;
+        switch (m_status) {
+            case Status::READING_DATA:
+                v567 = 0x20;
+                break;
+            case Status::SEEKING:
+                v567 = 0x40;
+                break;
+            case Status::PLAYING_CDDA:
+                v567 = 0x80;
+                break;
+        }
+        return v1 | v4 | v567;
     }
 
     uint8_t read0() override {
@@ -340,6 +372,30 @@ class CDRomImpl final : public PCSX::CDRom {
         (this->*handler)();
     }
 
+    // Command 1.
+    void cdlNop() {
+        switch (m_state) {
+            case 0:
+                m_state = 1;
+                schedule(750us);
+                break;
+            case 1: {
+                if (m_paramFIFOSize == 0) {
+                    setResponse(getStatus());
+                    m_cause = Cause::Acknowledge;
+                } else {
+                    setResponse(getStatus() | 1);
+                    appendResponse(0x20);
+                    m_cause = Cause::Error;
+                }
+                m_paramFIFOSize = 0;
+                m_state = 0;
+                m_command = 0;
+                triggerIRQ();
+            } break;
+        }
+    }
+
     // Command 2.
     void cdlSetLoc() {
         switch (m_state) {
@@ -353,14 +409,16 @@ class CDRomImpl final : public PCSX::CDRom {
                 // What happens when issued during Read / Play?
                 auto maybeMSF = getMSF(m_paramFIFO);
                 if ((m_paramFIFOSize == 3) && (maybeMSF.has_value())) {
-                    setResponse("\x02"sv);
+                    setResponse(getStatus());
                     m_cause = Cause::Acknowledge;
                     m_seekPosition = maybeMSF.value();
                 } else if (m_paramFIFOSize != 3) {
-                    setResponse("\x03\x20"sv);
+                    setResponse(getStatus() | 1);
+                    appendResponse(0x20);
                     m_cause = Cause::Error;
                 } else {
-                    setResponse("\x03\x10"sv);
+                    setResponse(getStatus() | 1);
+                    appendResponse(0x10);
                     m_cause = Cause::Error;
                 }
                 m_paramFIFOSize = 0;
@@ -384,6 +442,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 // TODO: figure out exactly the various states of the CD-Rom controller
                 // that are being reset, and their value.
                 m_state = 1;
+                m_motorOn = true;
                 m_currentPosition.reset();
                 m_seekPosition.reset();
                 schedule(2ms);
@@ -391,7 +450,7 @@ class CDRomImpl final : public PCSX::CDRom {
             case 1:
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
-                setResponse("\x02"sv);
+                setResponse(getStatus());
                 triggerIRQ();
                 schedule(120ms);
                 break;
@@ -405,7 +464,7 @@ class CDRomImpl final : public PCSX::CDRom {
             case 3:
                 m_cause = Cause::Complete;
                 m_state = 0;
-                setResponse("\x02"sv);
+                setResponse(getStatus());
                 m_command = 0;
                 triggerIRQ();
                 break;
@@ -413,9 +472,38 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_cause = Cause::Error;
                 m_state = 0;
                 m_paramFIFOSize = 0;
-                setResponse("\x03\x20"sv);
+                setResponse(getStatus() | 1);
+                appendResponse(0x20);
                 m_command = 0;
                 triggerIRQ();
+        }
+    }
+
+    // Command 19.
+    void cdlGetTN() {
+        switch (m_state) {
+            case 0:
+                m_state = 1;
+                schedule(750us);
+                break;
+            case 1: {
+                // TODO: probably should error out if no disc or
+                // lid open?
+                if (m_paramFIFOSize == 0) {
+                    setResponse(getStatus());
+                    appendResponse(1);
+                    appendResponse(m_iso->getTN());
+                    m_cause = Cause::Acknowledge;
+                } else {
+                    setResponse(getStatus() | 1);
+                    appendResponse(0x20);
+                    m_cause = Cause::Error;
+                }
+                m_paramFIFOSize = 0;
+                m_state = 0;
+                m_command = 0;
+                triggerIRQ();
+            } break;
         }
     }
 
@@ -428,7 +516,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     const CommandType c_commandsHandlers[31] {
 #if 0
-        &CDRomImpl::cdlSync, &CDRomImpl::cdlGetStat, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlPlay, // 0
+        &CDRomImpl::cdlSync, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlPlay, // 0
         &CDRomImpl::cdlForward, &CDRomImpl::cdlBackward, &CDRomImpl::cdlReadN, &CDRomImpl::cdlStandby, // 4
         &CDRomImpl::cdlStop, &CDRomImpl::cdlPause, &CDRomImpl::cdlInit, &CDRomImpl::cdlMute, // 8
         &CDRomImpl::cdlDemute, &CDRomImpl::cdlSetFilter, &CDRomImpl::cdlSetMode, &CDRomImpl::cdlGetParam, // 12
@@ -437,11 +525,11 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlGetClock, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS, // 24
         &CDRomImpl::cdlReset, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
 #else
-        &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlUnk,     // 0
+        &CDRomImpl::cdlUnk, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlUnk,     // 0
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 4
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlInit, &CDRomImpl::cdlUnk,  // 8
+            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlInit, &CDRomImpl::cdlUnk,   // 8
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 12
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 16
+            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlGetTN,  // 16
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 20
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 24
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,                        // 28
@@ -568,13 +656,13 @@ void PCSX::CDRom::parseIso() {
     g_system->printf(_("CD-ROM EXE Name: %.255s\n"), exename);
 }
 
-bool PCSX::CDRom::isLidOpened() {
+bool PCSX::CDRom::isLidOpen() {
     if (m_lidCloseScheduled) {
         const uint32_t cycle = g_emulator->m_cpu->m_regs.cycle;
         if (((int32_t)(m_lidCloseAtCycles - cycle)) <= 0) {
             m_lidCloseScheduled = false;
-            m_lidOpened = false;
+            m_lidOpen = false;
         }
     }
-    return m_lidOpened;
+    return m_lidOpen;
 }

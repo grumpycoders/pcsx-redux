@@ -39,17 +39,17 @@ CESTER_TEST(cdlSetLoc, test_instances,
     CDROM_REG1 = CDL_SETLOC;
     uint32_t completeTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response[16];
     uint8_t responseSize = readResponse(response);
-    uint8_t stat2 = CDROM_REG0 & ~3;
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
     cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
-    cester_assert_uint_eq(0x38, stat1);
-    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(2, response[0]);
     cester_assert_uint_eq(1, responseSize);
     // Typical value seems to be around 1ms, but has
@@ -69,17 +69,17 @@ CESTER_TEST(cdlSetLocNoArgs, test_instances,
     CDROM_REG1 = CDL_SETLOC;
     uint32_t errorTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response[16];
     uint8_t responseSize = readResponse(response);
-    uint8_t stat2 = CDROM_REG0 & ~3;
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
     cester_assert_uint_eq(5, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
-    cester_assert_uint_eq(0x38, stat1);
-    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
     cester_assert_uint_eq(32, response[1]);
     cester_assert_uint_eq(2, responseSize);
@@ -162,17 +162,17 @@ CESTER_TEST(cdlSetLocInvalid1, test_instances,
     CDROM_REG1 = CDL_SETLOC;
     uint32_t errorTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response[16];
     uint8_t responseSize = readResponse(response);
-    uint8_t stat2 = CDROM_REG0 & ~3;
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
     cester_assert_uint_eq(5, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
-    cester_assert_uint_eq(0x38, stat1);
-    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
     cester_assert_uint_eq(16, response[1]);
     cester_assert_uint_eq(2, responseSize);
@@ -194,17 +194,17 @@ CESTER_TEST(cdlSetLocInvalid2, test_instances,
     CDROM_REG1 = CDL_SETLOC;
     uint32_t errorTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response[16];
     uint8_t responseSize = readResponse(response);
-    uint8_t stat2 = CDROM_REG0 & ~3;
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
     cester_assert_uint_eq(5, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
-    cester_assert_uint_eq(0x38, stat1);
-    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
     cester_assert_uint_eq(16, response[1]);
     cester_assert_uint_eq(2, responseSize);
@@ -227,17 +227,17 @@ CESTER_TEST(cdlSetLocTooManyArgs, test_instances,
     CDROM_REG1 = CDL_SETLOC;
     uint32_t errorTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response[16];
     uint8_t responseSize = readResponse(response);
-    uint8_t stat2 = CDROM_REG0 & ~3;
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
     cester_assert_uint_eq(5, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
-    cester_assert_uint_eq(0x38, stat1);
-    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
     cester_assert_uint_eq(32, response[1]);
     cester_assert_uint_eq(2, responseSize);
@@ -260,17 +260,17 @@ CESTER_TEST(cdlSetLocTooManyArgsAndInvalid, test_instances,
     CDROM_REG1 = CDL_SETLOC;
     uint32_t errorTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
-    uint8_t stat1 = CDROM_REG0 & ~3;
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response[16];
     uint8_t responseSize = readResponse(response);
-    uint8_t stat2 = CDROM_REG0 & ~3;
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
     cester_assert_uint_eq(5, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
-    cester_assert_uint_eq(0x38, stat1);
-    cester_assert_uint_eq(0x18, stat2);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(3, response[0]);
     cester_assert_uint_eq(32, response[1]);
     cester_assert_uint_eq(2, responseSize);

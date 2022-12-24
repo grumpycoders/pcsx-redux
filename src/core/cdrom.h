@@ -50,17 +50,19 @@ class CDRom {
     CDRom() : m_iso(new CDRIso()) {}
     virtual ~CDRom() {}
     static CDRom* factory();
-    bool isLidOpened();
+    bool isLidOpen();
     void closeLid() {
-        m_lidOpened = false;
+        m_lidOpen = false;
         m_lidCloseScheduled = false;
     }
     void openLid() {
-        m_lidOpened = true;
+        m_lidOpen = true;
+        m_wasLidOpened = true;
         m_lidCloseScheduled = false;
     }
     void scheduleCloseLid() {
-        m_lidOpened = true;
+        m_lidOpen = true;
+        m_wasLidOpened = true;
         m_lidCloseScheduled = true;
         using namespace std::chrono_literals;
         m_lidCloseAtCycles = g_emulator->m_cpu->m_regs.getFutureCycle(1s);
@@ -104,7 +106,8 @@ class CDRom {
     bool paramFIFOAvailable() { return m_paramFIFOSize != 16; }
     bool responseFIFOHasData() { return m_responseFIFOIndex != m_responseFIFOSize; }
 
-    bool m_lidOpened = false;
+    bool m_lidOpen = false;
+    bool m_wasLidOpened = false;
     bool m_lidCloseScheduled = false;
     uint32_t m_lidCloseAtCycles = 0;
 
@@ -121,6 +124,14 @@ class CDRom {
     bool m_busy = false;
     bool m_gotAck = false;
     bool m_waitingAck = false;
+    bool m_motorOn = false;
+    enum class Status {
+        STOPPED,
+        READING_DATA,
+        SEEKING,
+        PLAYING_CDDA,
+    };
+    Status m_status = Status::STOPPED;
     uint8_t m_state = 0;
     uint8_t m_command = 0;
 

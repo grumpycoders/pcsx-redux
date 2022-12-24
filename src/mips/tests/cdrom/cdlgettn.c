@@ -26,7 +26,7 @@ SOFTWARE.
 
 // clang-format off
 
-CESTER_SKIP_TEST(cdlSeekP, test_instance,
+CESTER_TEST(cdlGetTN, test_instance,
     uint32_t imask = IMASK;
 
     IMASK = imask | IRQ_CDROM;
@@ -37,15 +37,10 @@ CESTER_SKIP_TEST(cdlSeekP, test_instance,
         return;
     }
 
-    int setlocDone = setLoc(0, 2, 0);
-
-    initializeTime();
-    // wait 10ms for things to settle
-    while (updateTime() < 10000);
     initializeTime();
 
     CDROM_REG0 = 0;
-    CDROM_REG1 = CDL_SEEKP;
+    CDROM_REG1 = CDL_GETTN;
 
     uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
@@ -56,40 +51,23 @@ CESTER_SKIP_TEST(cdlSeekP, test_instance,
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
-    uint32_t completeTime = waitCDRomIRQ() - ackTime;
-    uint8_t cause2 = ackCDRomCause();
-    uint8_t ctrl3 = CDROM_REG0 & ~3;
-    uint8_t response2[16];
-    uint8_t responseSize2 = readResponse(response2);
-    uint8_t ctrl4 = CDROM_REG0 & ~3;
-    CDROM_REG0 = 1;
-    uint8_t cause2b = CDROM_REG3_UC;
-
     cester_assert_uint_eq(3, cause1);
-    cester_assert_uint_eq(2, cause2);
     cester_assert_uint_eq(0xe0, cause1b);
-    cester_assert_uint_eq(0xe0, cause2b);
     cester_assert_uint_eq(2, response1[0]);
-    cester_assert_uint_eq(1, responseSize1);
-    cester_assert_uint_eq(2, response2[0]);
-    cester_assert_uint_eq(1, responseSize2);
+    cester_assert_uint_eq(1, response1[1]);
+    cester_assert_uint_eq(6, response1[2]);
+    cester_assert_uint_eq(3, responseSize1);
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
-    cester_assert_uint_eq(0x38, ctrl3);
-    cester_assert_uint_eq(0x18, ctrl4);
-    // Typical value seems to be around 750us.
+    // Typical value seems to be around 2ms, but varies a lot.
     cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 1500);
-    // Typical value seems to be around 105ms. Of course, this is
-    // with a proper laser assy.
-    cester_assert_uint_ge(completeTime, 100000);
-    cester_assert_uint_lt(completeTime, 110000);
-    ramsyscall_printf("Basic seekP to 00:02:00: ack in %ius, complete in %ius\n", ackTime, completeTime);
+    cester_assert_uint_lt(ackTime, 5000);
+    ramsyscall_printf("Basic getTN: ack in %ius\n", ackTime);
 
     IMASK = imask;
 )
 
-CESTER_SKIP_TEST(cdlSeekL, test_instance,
+CESTER_TEST(cdlGetTNWithArgs, test_instance,
     uint32_t imask = IMASK;
 
     IMASK = imask | IRQ_CDROM;
@@ -100,17 +78,16 @@ CESTER_SKIP_TEST(cdlSeekL, test_instance,
         return;
     }
 
-    int setlocDone = setLoc(0, 2, 0);
-
-    initializeTime();
-    // wait 10ms for things to settle
-    while (updateTime() < 10000);
     initializeTime();
 
     CDROM_REG0 = 0;
-    CDROM_REG1 = CDL_SEEKL;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG2 = 0;
+    CDROM_REG1 = CDL_GETTN;
 
-    uint32_t ackTime = waitCDRomIRQ();
+    uint32_t errorTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
     uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response1[16];
@@ -119,35 +96,17 @@ CESTER_SKIP_TEST(cdlSeekL, test_instance,
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
-    uint32_t completeTime = waitCDRomIRQ() - ackTime;
-    uint8_t cause2 = ackCDRomCause();
-    uint8_t ctrl3 = CDROM_REG0 & ~3;
-    uint8_t response2[16];
-    uint8_t responseSize2 = readResponse(response2);
-    uint8_t ctrl4 = CDROM_REG0 & ~3;
-    CDROM_REG0 = 1;
-    uint8_t cause2b = CDROM_REG3_UC;
-
-    cester_assert_uint_eq(3, cause1);
-    cester_assert_uint_eq(2, cause2);
+    cester_assert_uint_eq(5, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
-    cester_assert_uint_eq(0xe0, cause2b);
-    cester_assert_uint_eq(2, response1[0]);
-    cester_assert_uint_eq(1, responseSize1);
-    cester_assert_uint_eq(2, response2[0]);
-    cester_assert_uint_eq(1, responseSize2);
+    cester_assert_uint_eq(3, response1[0]);
+    cester_assert_uint_eq(32, response1[1]);
+    cester_assert_uint_eq(2, responseSize1);
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
-    cester_assert_uint_eq(0x38, ctrl3);
-    cester_assert_uint_eq(0x18, ctrl4);
     // Typical value seems to be around 750us.
-    cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 2000);
-    // Typical value seems to be around 145ms. Of course, this is
-    // with a proper laser assy.
-    cester_assert_uint_ge(completeTime, 140000);
-    cester_assert_uint_lt(completeTime, 150000);
-    ramsyscall_printf("Basic seekL to 00:02:00: ack in %ius, complete in %ius\n", ackTime, completeTime);
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 1500);
+    ramsyscall_printf("Basic getTN: errored in %ius\n", errorTime);
 
     IMASK = imask;
 )
