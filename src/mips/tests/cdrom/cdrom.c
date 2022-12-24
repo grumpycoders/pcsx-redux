@@ -36,6 +36,7 @@ SOFTWARE.
 #include "exotic/cester.h"
 
 #include "cester-hw.c"
+#include "cdlgettd.c"
 #include "cdlgettn.c"
 #include "cdlinit.c"
 #include "cdlseek.c"
