@@ -121,6 +121,7 @@ class CDRom {
     uint8_t m_responseFIFOIndex = 0;
     uint8_t m_responseFIFOSize = 0;
     uint8_t m_registerIndex = 0;
+    bool m_errorArgumentsCount = false;
     bool m_busy = false;
     bool m_gotAck = false;
     bool m_waitingAck = false;

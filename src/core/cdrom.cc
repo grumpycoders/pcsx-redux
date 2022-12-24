@@ -105,8 +105,17 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void interrupt() override {
+        if (m_errorArgumentsCount) {
+            m_errorArgumentsCount = false;
+            m_cause = Cause::Error;
+            m_paramFIFOSize = 0;
+            m_command = 0;
+            setResponse(getStatus() | 1);
+            appendResponse(0x20);
+            triggerIRQ();
+            return;
+        }
         auto handler = c_commandsHandlers[m_command];
-
         (this->*handler)();
     }
 
@@ -228,9 +237,7 @@ class CDRomImpl final : public PCSX::CDRom {
         return 0;
     }
 
-    void write0(uint8_t value) override {
-        m_registerIndex = value & 3;
-    }
+    void write0(uint8_t value) override { m_registerIndex = value & 3; }
 
     void write1(uint8_t value) override {
         switch (m_registerIndex) {
@@ -357,10 +364,19 @@ class CDRomImpl final : public PCSX::CDRom {
         if (command > 30) {
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unknown CD-Rom command\n");
             PCSX::g_system->pause();
+            return;
+        }
+
+        auto count = c_commandsArgumentsCount[command];
+        if (count >= 0) {
+            if (m_paramFIFOSize != count) {
+                m_errorArgumentsCount = true;
+                schedule(750us);
+                return;
+            }
         }
 
         auto handler = c_commandsHandlers[command];
-
         (this->*handler)();
     }
 
@@ -372,14 +388,8 @@ class CDRomImpl final : public PCSX::CDRom {
                 schedule(750us);
                 break;
             case 1: {
-                if (m_paramFIFOSize == 0) {
-                    setResponse(getStatus());
-                    m_cause = Cause::Acknowledge;
-                } else {
-                    setResponse(getStatus() | 1);
-                    appendResponse(0x20);
-                    m_cause = Cause::Error;
-                }
+                setResponse(getStatus());
+                m_cause = Cause::Acknowledge;
                 m_paramFIFOSize = 0;
                 m_state = 0;
                 m_command = 0;
@@ -400,14 +410,10 @@ class CDRomImpl final : public PCSX::CDRom {
                 // lid open?
                 // What happens when issued during Read / Play?
                 auto maybeMSF = getMSF(m_paramFIFO);
-                if ((m_paramFIFOSize == 3) && (maybeMSF.has_value())) {
+                if (maybeMSF.has_value()) {
                     setResponse(getStatus());
                     m_cause = Cause::Acknowledge;
                     m_seekPosition = maybeMSF.value();
-                } else if (m_paramFIFOSize != 3) {
-                    setResponse(getStatus() | 1);
-                    appendResponse(0x20);
-                    m_cause = Cause::Error;
                 } else {
                     setResponse(getStatus() | 1);
                     appendResponse(0x10);
@@ -425,11 +431,6 @@ class CDRomImpl final : public PCSX::CDRom {
     void cdlInit() {
         switch (m_state) {
             case 0:
-                if (m_paramFIFOSize != 0) {
-                    m_state = 4;
-                    schedule(1ms);
-                    break;
-                }
                 // TODO: figure out exactly the various states of the CD-Rom controller
                 // that are being reset, and their value.
                 m_state = 1;
@@ -459,14 +460,6 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_command = 0;
                 triggerIRQ();
                 break;
-            case 4:
-                m_cause = Cause::Error;
-                m_state = 0;
-                m_paramFIFOSize = 0;
-                setResponse(getStatus() | 1);
-                appendResponse(0x20);
-                m_command = 0;
-                triggerIRQ();
         }
     }
 
@@ -480,16 +473,10 @@ class CDRomImpl final : public PCSX::CDRom {
             case 1: {
                 // TODO: probably should error out if no disc or
                 // lid open?
-                if (m_paramFIFOSize == 0) {
-                    setResponse(getStatus());
-                    appendResponse(1);
-                    appendResponse(m_iso->getTN());
-                    m_cause = Cause::Acknowledge;
-                } else {
-                    setResponse(getStatus() | 1);
-                    appendResponse(0x20);
-                    m_cause = Cause::Error;
-                }
+                setResponse(getStatus());
+                appendResponse(1);
+                appendResponse(m_iso->getTN());
+                m_cause = Cause::Acknowledge;
                 m_paramFIFOSize = 0;
                 m_state = 0;
                 m_command = 0;
@@ -525,6 +512,17 @@ class CDRomImpl final : public PCSX::CDRom {
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 24
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,                        // 28
 #endif
+    };
+
+    static constexpr int c_commandsArgumentsCount[31] = {
+        0, 0,  3, -1,  // 0
+        0, 0,  0, 0,   // 4
+        0, 0,  0, 0,   // 8
+        0, 2,  1, 0,   // 12
+        0, 0,  1, 0,   // 16
+        1, 0,  0, 0,   // 20
+        0, -1, 0, 0,   // 24
+        0, 0,  0,      // 28
     };
 
     void logCDROM(uint8_t command) {
