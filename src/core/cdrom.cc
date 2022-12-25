@@ -486,6 +486,36 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Command 20.
+    void cdlGetTD() {
+        switch (m_state) {
+            case 0:
+                m_state = 1;
+                schedule(750us);
+                break;
+            case 1: {
+                // TODO: probably should error out if no disc or
+                // lid open?
+                auto track = PCSX::IEC60908b::btoi(m_paramFIFO[0]);
+                if (!isValidBCD(m_paramFIFO[0]) || (track > m_iso->getTN())) {
+                    setResponse(getStatus() | 1);
+                    appendResponse(0x10);
+                    m_cause = Cause::Error;
+                } else {
+                    setResponse(getStatus());
+                    auto td = m_iso->getTD(track);
+                    appendResponse(PCSX::IEC60908b::itob(td.m));
+                    appendResponse(PCSX::IEC60908b::itob(td.s));
+                    m_cause = Cause::Acknowledge;
+                }
+                m_paramFIFOSize = 0;
+                m_state = 0;
+                m_command = 0;
+                triggerIRQ();
+            } break;
+        }
+    }
+
     void cdlUnk() {
         switch (m_state) {
             case 0:
@@ -527,7 +557,7 @@ class CDRomImpl final : public PCSX::CDRom {
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlInit, &CDRomImpl::cdlUnk,   // 8
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 12
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlGetTN,  // 16
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 20
+            &CDRomImpl::cdlGetTD, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,  // 20
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 24
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,                        // 28
 #endif
