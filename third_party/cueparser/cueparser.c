@@ -465,16 +465,19 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     return;
                 }
                 struct CueTrack* track = &parser->disc->tracks[parser->currentTrack];
-                track->indices[track->indexCount] = parser->currentSectorNumber + sectorNumber;
-                if (track->indexCount == 0) {
+                if (parser->implicitIndex || (track->indexCount == 0)) {
                     parser->cutting = sectorNumber;
-                } else if (parser->implicitIndex) {
+                    parser->currentFileSize -= sectorNumber * 2352;
+                }
+                track->indices[track->indexCount] = parser->currentSectorNumber + sectorNumber - parser->cutting;
+                if (parser->implicitIndex) {
                     track->indices[0] = track->indices[1];
                     track->indices[1] += parser->currentPregap;
                     track->fileOffset += parser->currentPregap + sectorNumber;
-                    parser->cutting = sectorNumber;
                     parser->currentSectorNumber += parser->currentPregap;
                     parser->implicitIndex = 0;
+                } else if (track->indexCount == 0) {
+                    track->fileOffset += sectorNumber;
                 }
                 parser->state = CUE_PARSER_START;
             } break;
@@ -584,7 +587,7 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     track->serialCopyManagementSystem = 0;
                     parser->currentPregap = 0;
                     if (parser->isTrackANewFile) {
-                        parser->currentSectorNumber += (parser->previousFileSize + 2351) / 2352 - parser->cutting;
+                        parser->currentSectorNumber += (parser->previousFileSize + 2351) / 2352;
                         parser->isTrackANewFile = 0;
                         track->fileOffset = parser->currentSectorNumber;
                     } else {

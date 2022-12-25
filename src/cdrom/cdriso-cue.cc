@@ -169,7 +169,7 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
         m_ti[i].handle.setFile(new SubFile(fi, (track->indices[1] - track->fileOffset) * 2352, track->size * 2352));
         m_ti[i].type = track->trackType == TRACK_TYPE_AUDIO ? TrackType::CDDA : TrackType::DATA;
         m_ti[i].cddatype = track->compressed ? trackinfo::CCDDA : trackinfo::BIN;
-        m_ti[i].start = IEC60908b::MSF(track->indices[1]);
+        m_ti[i].start = IEC60908b::MSF(track->indices[1] + 150);
         m_ti[i].pregap = IEC60908b::MSF(track->indices[1] - track->indices[0]);
         m_ti[i].length = IEC60908b::MSF(track->size);
     }
