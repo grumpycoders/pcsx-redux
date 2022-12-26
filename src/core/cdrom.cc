@@ -378,6 +378,25 @@ class CDRomImpl final : public PCSX::CDRom {
         (this->*handler)();
     }
 
+    enum class SeekType { DATA, CDDA };
+
+    std::chrono::nanoseconds computeSeekDelay(MSF from, MSF to, SeekType seekType) {
+        unsigned destTrack = m_iso->getTrack(to);
+        if (destTrack == 0) return 650ms;
+        if ((seekType == SeekType::DATA) && (m_iso->getTrackType(destTrack) == PCSX::CDRIso::TrackType::CDDA)) {
+            return 4s;
+        }
+        uint32_t distance = 0;
+        if (from > to) {
+            distance = (from - to).toLBA();
+        } else {
+            distance = (to - from).toLBA();
+        }
+        // TODO: ought to be a decent approximation for now,
+        // but may require some tuning later on.
+        return std::chrono::microseconds(distance * 3) + 150ms;
+    }
+
     // Command 1.
     void cdlNop() {
         switch (m_state) {
@@ -457,8 +476,8 @@ class CDRomImpl final : public PCSX::CDRom {
             case 3:
                 m_cause = Cause::Complete;
                 m_state = 0;
-                setResponse(getStatus());
                 m_command = 0;
+                setResponse(getStatus());
                 triggerIRQ();
                 break;
         }
@@ -554,6 +573,88 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Command 21.
+    void cdlSeekL() {
+        switch (m_state) {
+            case 0:
+                m_state = 1;
+                schedule(1ms);
+                break;
+            case 1:
+                m_cause = Cause::Acknowledge;
+                m_state = 2;
+                setResponse(getStatus());
+                triggerIRQ();
+                schedule(computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA));
+                break;
+            case 2:
+                if (!m_gotAck) {
+                    m_waitingAck = true;
+                    m_state = 3;
+                    break;
+                }
+                [[fallthrough]];
+            case 3: {
+                // TODO: read sector and cache sector header for locL
+                m_currentPosition = m_seekPosition;
+                unsigned track = m_iso->getTrack(m_seekPosition);
+                if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
+                    m_cause = Cause::Error;
+                    setResponse(getStatus() | 4);
+                    appendResponse(4);
+                } else if (track == 0) {
+                    m_cause = Cause::Error;
+                    setResponse(getStatus() | 4);
+                    appendResponse(0x10);
+                } else {
+                    m_cause = Cause::Complete;
+                    setResponse(getStatus());
+                }
+                m_state = 0;
+                m_command = 0;
+                triggerIRQ();
+            } break;
+        }
+    }
+
+    // Command 22.
+    void cdlSeekP() {
+        switch (m_state) {
+            case 0:
+                m_state = 1;
+                schedule(1ms);
+                break;
+            case 1:
+                m_cause = Cause::Acknowledge;
+                m_state = 2;
+                setResponse(getStatus());
+                triggerIRQ();
+                schedule(computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::CDDA));
+                break;
+            case 2:
+                if (!m_gotAck) {
+                    m_waitingAck = true;
+                    m_state = 3;
+                    break;
+                }
+                [[fallthrough]];
+            case 3: {
+                m_currentPosition = m_seekPosition;
+                if (m_iso->getTrack(m_seekPosition) == 0) {
+                    m_cause = Cause::Error;
+                    setResponse(getStatus() | 4);
+                    appendResponse(0x10);
+                } else {
+                    m_cause = Cause::Complete;
+                    setResponse(getStatus());
+                }
+                m_state = 0;
+                m_command = 0;
+                triggerIRQ();
+            } break;
+        }
+    }
+
     void cdlUnk() {
         switch (m_state) {
             case 0:
@@ -595,7 +696,7 @@ class CDRomImpl final : public PCSX::CDRom {
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlInit, &CDRomImpl::cdlUnk,           // 8
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 12
             &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, &CDRomImpl::cdlUnk, &CDRomImpl::cdlGetTN,  // 16
-            &CDRomImpl::cdlGetTD, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,          // 20
+            &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, &CDRomImpl::cdlUnk,      // 20
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 24
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,                                // 28
 #endif

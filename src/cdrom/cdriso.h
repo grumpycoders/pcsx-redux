@@ -50,6 +50,7 @@ class CDRIso {
     IEC60908b::MSF getLength(uint8_t track);
     IEC60908b::MSF getPregap(uint8_t track);
     bool getLocP(const IEC60908b::MSF msf, uint8_t locP[8]);
+    unsigned getTrack(const IEC60908b::MSF msf);
 
     bool failed();
 

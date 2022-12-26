@@ -458,6 +458,22 @@ bool PCSX::CDRIso::getLocP(const PCSX::IEC60908b::MSF msf, uint8_t locP[8]) {
     return true;
 }
 
+unsigned PCSX::CDRIso::getTrack(const PCSX::IEC60908b::MSF msf) {
+    auto length = getTD(0) + IEC60908b::MSF{0, 2, 0};
+    if (msf >= length) return 0;
+    unsigned track;
+    for (track = m_numtracks; track != 1; track--) {
+        if (m_ti[track].start <= msf) break;
+    }
+    IEC60908b::MSF nextPregapStart;
+    if (track != m_numtracks) {
+        if (msf >= (m_ti[track + 1].start - m_ti[track + 1].pregap)) {
+            track++;
+        }
+    }
+    return track;
+}
+
 // Decode 'raw' subchannel data from being packed bitwise.
 // Essentially is a bitwise matrix transposition.
 void PCSX::CDRIso::decodeRawSubData() {
