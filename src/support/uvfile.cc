@@ -200,6 +200,7 @@ void PCSX::UvFile::closeInternal() {
             delete req;
         });
     });
+    m_handle = -1;
 }
 
 void PCSX::UvFile::openwrapper(const char *filename, int flags) {
@@ -399,6 +400,16 @@ ssize_t PCSX::UvFile::read(void *dest, size_t size) {
     }
 
     if (progress == 1.0f) {
+        if ((m_handle >= 0) && !writable()) {
+            request([handle = m_handle](auto loop) {
+                auto req = new uv_fs_t();
+                uv_fs_close(loop, req, handle, [](uv_fs_t *req) {
+                    uv_fs_req_cleanup(req);
+                    delete req;
+                });
+            });
+            m_handle = -1;
+        }
         memcpy(dest, m_cache + m_ptrR, size);
         m_ptrR += size;
         return size;
@@ -521,6 +532,16 @@ ssize_t PCSX::UvFile::readAt(void *dest, size_t size, size_t ptr) {
     }
 
     if (progress == 1.0f) {
+        if ((m_handle >= 0) && !writable()) {
+            request([handle = m_handle](auto loop) {
+                auto req = new uv_fs_t();
+                uv_fs_close(loop, req, handle, [](uv_fs_t *req) {
+                    uv_fs_req_cleanup(req);
+                    delete req;
+                });
+            });
+            m_handle = -1;
+        }
         memcpy(dest, m_cache + ptr, size);
         return size;
     }
