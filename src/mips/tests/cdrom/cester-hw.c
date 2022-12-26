@@ -40,6 +40,27 @@ CESTER_BODY(
     static uint32_t s_currentTime = 0;
     static const unsigned US_PER_HBLANK = 64;
 
+    struct LocPResult {
+        uint8_t track, index, m, s, f, am, as, af;
+        uint8_t padding[8];
+    };
+
+    static uint8_t btoi(uint8_t b) {
+        return (b >> 4) * 10 + (b & 0xf);
+    }
+
+    static uint8_t itob(uint8_t i) {
+        return (i / 10) * 16 + (i % 10);
+    }
+
+    static int isValidBCD(uint8_t b) {
+        return (b & 0xf) < 10 && (b >> 4) < 10;
+    }
+
+    static uint32_t MSF2LBA(uint8_t m, uint8_t s, uint8_t f) {
+        return (m * 60 + s) * 75 + f;
+    }
+
     static uint8_t readResponse(uint8_t response[16]) {
         uint8_t responseSize = 0;
         while ((CDROM_REG0 & 0x20) && (responseSize < 16)) {
@@ -138,6 +159,37 @@ CESTER_BODY(
         CDROM_REG2 = second;
         CDROM_REG2 = frame;
         CDROM_REG1 = CDL_SETLOC;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 3) return 0;
+
+        IMASK = imask;
+        return 1;
+    }
+
+    static int seekTo(uint8_t minute, uint8_t second, uint8_t frame) {
+        uint32_t imask = IMASK;
+        uint8_t cause;
+
+        IMASK = imask | IRQ_CDROM;
+
+        CDROM_REG0 = 0;
+        CDROM_REG2 = minute;
+        CDROM_REG2 = second;
+        CDROM_REG2 = frame;
+        CDROM_REG1 = CDL_SETLOC;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 3) return 0;
+
+        CDROM_REG0 = 0;
+        CDROM_REG1 = CDL_SEEKP;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 3) return 0;
         waitCDRomIRQ();
         cause = ackCDRomCause();
         CDROM_REG1;

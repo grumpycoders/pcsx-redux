@@ -36,9 +36,12 @@ SOFTWARE.
 #include "exotic/cester.h"
 
 #include "cester-hw.c"
+#include "cdlgetlocl.c"
+#include "cdlgetlocp.c"
 #include "cdlgettd.c"
 #include "cdlgettn.c"
 #include "cdlinit.c"
-#include "cdlseek.c"
+#include "cdlseekl.c"
+#include "cdlseekp.c"
 #include "cdlsetloc.c"
 #include "invalid.c"
