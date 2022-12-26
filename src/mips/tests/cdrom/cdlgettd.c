@@ -431,7 +431,7 @@ CESTER_TEST(cdlGetTD26, test_instance,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 1500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD 26: errored in %ius\n", errorTime);
 
     IMASK = imask;
@@ -471,7 +471,7 @@ CESTER_TEST(cdlGetTD99, test_instance,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 1500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD 99: errored in %ius\n", errorTime);
 
     IMASK = imask;
@@ -511,7 +511,7 @@ CESTER_TEST(cdlGetTDaa, test_instance,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 1500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD aa: errored in %ius\n", errorTime);
 
     IMASK = imask;
@@ -551,7 +551,7 @@ CESTER_TEST(cdlGetTD0a, test_instance,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 1500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD 0a: errored in %ius\n", errorTime);
 
     IMASK = imask;
@@ -591,7 +591,7 @@ CESTER_TEST(cdlGetTD1a, test_instance,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 1500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD 1a: errored in %ius\n", errorTime);
 
     IMASK = imask;
@@ -630,7 +630,7 @@ CESTER_TEST(cdlGetTDNoArgs, test_instance,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 1500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("No args getTD: errored in %ius\n", errorTime);
 
     IMASK = imask;
@@ -671,7 +671,7 @@ CESTER_TEST(cdlGetTDTooManyArgs, test_instance,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 1500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Too many args getTD: errored in %ius\n", errorTime);
 
     IMASK = imask;

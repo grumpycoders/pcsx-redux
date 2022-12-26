@@ -53,6 +53,6 @@ CESTER_TEST(cdlGetLocL, test_instances,
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.
     cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 6500);
+    cester_assert_uint_lt(completeTime, 7000);
     ramsyscall_printf("Basic getlocL, complete in %ius\n", completeTime);
 )

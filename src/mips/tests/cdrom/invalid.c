@@ -60,7 +60,7 @@ CESTER_TEST(invalid0, test_instance,
     cester_assert_uint_eq(0x18, ctrl2);
     // Typical value seems to be around 750us.
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 1500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Invalid command 0: errored in %ius\n", errorTime);
 
     IMASK = imask;
