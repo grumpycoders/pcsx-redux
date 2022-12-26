@@ -69,7 +69,7 @@ fb.bat
 *.sstate9
 
 # GPU dump files
-*.dump 
+*.dump
 
 # IDA database files
 *.id0
@@ -98,3 +98,12 @@ DynarecOutput.map
 DynarecProfileData.txt
 DynarecDisassembly.txt
 sstate.proto
+
+# nops' configuration file
+comport.txt
+
+# Cue sheets.
+*.cue
+
+# Various editors' backup files
+*.bak
