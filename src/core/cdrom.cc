@@ -123,10 +123,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     void dmaInterrupt() override {}
 
-    void schedule(uint32_t cycles) {
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: scheduling callback in %d cycles\n", cycles);
-        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDR, cycles);
-    }
+    void schedule(uint32_t cycles) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDR, cycles); }
     void schedule(std::chrono::nanoseconds delay) { schedule(PCSX::psxRegisters::durationToCycles(delay)); }
 
     void scheduleRead(uint32_t cycles) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDREAD, cycles); }
@@ -437,7 +434,10 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_state = 1;
                 m_motorOn = true;
                 m_currentPosition.reset();
+                m_currentPosition.s = 2;
                 m_seekPosition.reset();
+                m_seekPosition.s = 2;
+                memset(m_lastLocP, 0, sizeof(m_lastLocP));
                 schedule(2ms);
                 break;
             case 1:
@@ -464,6 +464,45 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Command 16.
+    void cdlGetLocL() {
+        switch (m_state) {
+            case 0:
+                m_state = 1;
+                schedule(750us);
+                break;
+            case 1: {
+                // TODO: probably should error out if no disc or
+                // lid open?
+                setResponse("TODOTODO"sv);
+                m_cause = Cause::Acknowledge;
+                m_state = 0;
+                m_command = 0;
+                triggerIRQ();
+            } break;
+        }
+    }
+
+    // Command 17.
+    void cdlGetLocP() {
+        switch (m_state) {
+            case 0:
+                m_state = 1;
+                schedule(750us);
+                break;
+            case 1: {
+                // TODO: probably should error out if no disc or
+                // lid open?
+                m_iso->getLocP(m_currentPosition, m_lastLocP);
+                setResponse(std::string_view((char *)m_lastLocP, sizeof(m_lastLocP)));
+                m_cause = Cause::Acknowledge;
+                m_state = 0;
+                m_command = 0;
+                triggerIRQ();
+            } break;
+        }
+    }
+
     // Command 19.
     void cdlGetTN() {
         switch (m_state) {
@@ -478,7 +517,6 @@ class CDRomImpl final : public PCSX::CDRom {
                 appendResponse(1);
                 appendResponse(PCSX::IEC60908b::itob(m_iso->getTN()));
                 m_cause = Cause::Acknowledge;
-                m_paramFIFOSize = 0;
                 m_state = 0;
                 m_command = 0;
                 triggerIRQ();
@@ -552,14 +590,14 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlGetClock, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS, // 24
         &CDRomImpl::cdlReset, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
 #else
-        &CDRomImpl::cdlUnk, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlUnk,     // 0
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 4
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlInit, &CDRomImpl::cdlUnk,   // 8
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 12
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlGetTN,  // 16
-            &CDRomImpl::cdlGetTD, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,  // 20
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,    // 24
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,                        // 28
+        &CDRomImpl::cdlUnk, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlUnk,             // 0
+            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 4
+            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlInit, &CDRomImpl::cdlUnk,           // 8
+            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 12
+            &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, &CDRomImpl::cdlUnk, &CDRomImpl::cdlGetTN,  // 16
+            &CDRomImpl::cdlGetTD, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,          // 20
+            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 24
+            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,                                // 28
 #endif
     };
 

@@ -148,6 +148,7 @@ class CDRom {
 
     MSF m_currentPosition;
     MSF m_seekPosition;
+    uint8_t m_lastLocP[8] = {0};
 
   private:
     friend class Widgets::IsoBrowser;

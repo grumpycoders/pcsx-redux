@@ -45,17 +45,20 @@ class CDRIso {
     enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
     TrackType getTrackType(unsigned track) { return m_ti[track].type; }
     const std::filesystem::path& getIsoPath() { return m_isoPath; }
-    uint8_t getTN() { return std::max(m_numtracks, 1); }
+    uint8_t getTN() { return std::max(m_numtracks, 1U); }
     IEC60908b::MSF getTD(uint8_t track);
     IEC60908b::MSF getLength(uint8_t track);
     IEC60908b::MSF getPregap(uint8_t track);
+    bool getLocP(const IEC60908b::MSF msf, uint8_t locP[8]);
+
+    bool failed();
+
+    /* Probably have to change those */
     bool readTrack(const IEC60908b::MSF time);
     unsigned readSectors(uint32_t lba, void* buffer, unsigned count);
     uint8_t* getBuffer();
     const IEC60908b::Sub* getBufferSub();
     bool readCDDA(const IEC60908b::MSF msf, unsigned char* buffer);
-
-    bool failed();
 
     unsigned m_cdrIsoMultidiskCount;
     unsigned m_cdrIsoMultidiskSelect;
@@ -127,7 +130,6 @@ class CDRIso {
     ECMFILELUT* m_ecm_savetable = nullptr;
 
     static inline const size_t ECM_SECTOR_SIZE[4] = {1, 2352, 2336, 2336};
-    static inline const uint8_t ZEROADDRESS[4] = {0, 0, 0, 0};
 
     struct trackinfo {
         TrackType type = TrackType::CLOSED;
@@ -136,12 +138,12 @@ class CDRIso {
         IEC60908b::MSF length;
         IO<File> handle = nullptr;                                         // for multi-track images CDDA
         enum cddatype_t { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;  // BIN, WAV, MP3, APE
-        uint32_t start_offset = 0;  // byte offset from start of above file
+        uint32_t start_offset = 0;                                         // byte offset from start of above file
     };
 
     static constexpr unsigned MAXTRACKS = 100; /* How many tracks can a CD hold? */
 
-    int m_numtracks = 0;
+    unsigned m_numtracks = 0;
     struct trackinfo m_ti[MAXTRACKS];
 
     // redump.org SBI files

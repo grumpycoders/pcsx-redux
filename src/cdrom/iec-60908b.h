@@ -112,6 +112,49 @@ struct MSF {
         ++(*this);
         return tmp;
     }
+    MSF &operator--() {
+        if (f == 0) {
+            f = 74;
+            if (s == 0) {
+                s = 59;
+                if (m == 0) {
+                    m = 99;
+                } else {
+                    m--;
+                }
+            } else {
+                s--;
+            }
+        } else {
+            f--;
+        }
+        return *this;
+    }
+    MSF operator--(int) {
+        MSF tmp = *this;
+        --(*this);
+        return tmp;
+    }
+    MSF operator+(const MSF &other) const {
+        MSF tmp = *this;
+        tmp += other;
+        return tmp;
+    }
+    MSF operator-(const MSF &other) const {
+        MSF tmp = *this;
+        tmp -= other;
+        return tmp;
+    }
+    MSF &operator+=(const MSF &other) {
+        uint32_t lba = toLBA() + other.toLBA();
+        *this = MSF(lba);
+        return *this;
+    }
+    MSF &operator-=(const MSF &other) {
+        uint32_t lba = toLBA() - other.toLBA();
+        *this = MSF(lba);
+        return *this;
+    }
     constexpr uint32_t toLBA() const { return (m * 60 + s) * 75 + f; }
     constexpr void toBCD(uint8_t *dst) const {
         dst[0] = itob(m);
