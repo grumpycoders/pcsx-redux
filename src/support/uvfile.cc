@@ -192,6 +192,8 @@ void PCSX::UvFile::closeInternal() {
     }
     free(m_cache);
     m_cache = nullptr;
+    m_download = false;
+    m_cacheProgress.store(0.0f);
     if (m_handle < 0) return;
     request([handle = m_handle](auto loop) {
         auto req = new uv_fs_t();
