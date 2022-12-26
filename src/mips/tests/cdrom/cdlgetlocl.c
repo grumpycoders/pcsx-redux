@@ -48,11 +48,53 @@ CESTER_TEST(cdlGetLocL, test_instances,
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     // Nothing of value is actually being read right after initialization,
-    // so there's no proper data in this response.
+    // so there's no proper data in this response. There's somewhat of a
+    // bug in the controller, where doing a GetLocL right after a reset
+    // will actually work, whereas it shouldn't, as GetLocL is only supposed
+    // to work during a data transfer.
     cester_assert_uint_eq(8, responseSize);
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.
     cester_assert_uint_ge(completeTime, 500);
     cester_assert_uint_lt(completeTime, 7000);
     ramsyscall_printf("Basic getlocL, complete in %ius\n", completeTime);
+)
+
+CESTER_TEST(cdlGetLocLafterSeekL, test_instances,
+    int resetDone = resetCDRom();
+    cester_assert_true(resetDone);
+    if (!resetDone) return;
+
+    int seekDone = seekLTo(0x50, 0, 0);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
+        return;
+    }
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_GETLOCL;
+    uint32_t errorTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response[16];
+    uint8_t responseSize = readResponse(response);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    // Since we've done a seekL, without a read, we will actually
+    // error out here, unlike the previous test.
+    cester_assert_uint_eq(2, responseSize);
+    cester_assert_uint_eq(3, response[0]);
+    cester_assert_uint_eq(0x80, response[1]);
+    // Typical value seems to be around 750us, but has
+    // been seen to spike high from time to time.
+    cester_assert_uint_ge(errorTime, 500);
+    cester_assert_uint_lt(errorTime, 7000);
+    ramsyscall_printf("Basic getlocL after seekL, errored in %ius\n", errorTime);
 )

@@ -168,7 +168,38 @@ CESTER_BODY(
         return 1;
     }
 
-    static int seekTo(uint8_t minute, uint8_t second, uint8_t frame) {
+    static int seekPTo(uint8_t minute, uint8_t second, uint8_t frame) {
+        uint32_t imask = IMASK;
+        uint8_t cause;
+
+        IMASK = imask | IRQ_CDROM;
+
+        CDROM_REG0 = 0;
+        CDROM_REG2 = minute;
+        CDROM_REG2 = second;
+        CDROM_REG2 = frame;
+        CDROM_REG1 = CDL_SETLOC;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 3) return 0;
+
+        CDROM_REG0 = 0;
+        CDROM_REG1 = CDL_SEEKP;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 3) return 0;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 2) return 0;
+
+        IMASK = imask;
+        return 1;
+    }
+
+    static int seekLTo(uint8_t minute, uint8_t second, uint8_t frame) {
         uint32_t imask = IMASK;
         uint8_t cause;
 

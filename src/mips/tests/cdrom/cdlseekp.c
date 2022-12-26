@@ -154,7 +154,7 @@ CESTER_TEST(cdlSeekP2to4, test_instance,
         return;
     }
 
-    int seekDone = seekTo(0, 2, 0);
+    int seekDone = seekPTo(0, 2, 0);
     if (!seekDone) {
         cester_assert_true(seekDone);
         return;
@@ -225,7 +225,7 @@ CESTER_TEST(cdlSeekP2to71, test_instance,
         return;
     }
 
-    int seekDone = seekTo(0, 2, 0);
+    int seekDone = seekPTo(0, 2, 0);
     if (!seekDone) {
         cester_assert_true(seekDone);
         return;
@@ -295,7 +295,7 @@ CESTER_TEST(cdlSeekP2to99, test_instance,
         return;
     }
 
-    int seekDone = seekTo(0, 2, 0);
+    int seekDone = seekPTo(0, 2, 0);
     if (!seekDone) {
         cester_assert_true(seekDone);
         return;
