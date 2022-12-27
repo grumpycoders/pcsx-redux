@@ -160,11 +160,11 @@ class CDRomImpl final : public PCSX::CDRom {
 
     void appendResponse(uint8_t response) { m_responseFIFO[m_responseFIFOSize++] = response; }
 
-    uint8_t getStatus() {
+    uint8_t getStatus(bool resetLid = false) {
         bool lidOpen = isLidOpen();
+        if (resetLid && !lidOpen) m_wasLidOpened = false;
         uint8_t v1 = m_motorOn && !lidOpen ? 0x02 : 0;
         uint8_t v4 = m_wasLidOpened ? 0x10 : 0;
-        if (!lidOpen) m_wasLidOpened = false;
         uint8_t v567 = 0;
         switch (m_status) {
             case Status::READING_DATA:
@@ -406,7 +406,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 schedule(750us);
                 break;
             case 1: {
-                setResponse(getStatus());
+                setResponse(getStatus(true));
                 m_cause = Cause::Acknowledge;
                 m_paramFIFOSize = 0;
                 m_state = 0;
