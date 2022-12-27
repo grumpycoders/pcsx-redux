@@ -25,8 +25,10 @@ SOFTWARE.
 */
 
 #include "common/hardware/cdrom.h"
+#include "common/hardware/dma.h"
 #include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"
+#include "common/syscalls/syscalls.h"
 
 #undef unix
 #define CESTER_NO_SIGNAL

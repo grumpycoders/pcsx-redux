@@ -31,8 +31,6 @@ SOFTWARE.
 
 #include <stdint.h>
 
-#include "common/syscalls/syscalls.h"
-
 CESTER_BODY(
     static int s_interruptsWereEnabled = 0;
     static uint16_t s_oldMode = 0;
@@ -229,12 +227,48 @@ CESTER_BODY(
         IMASK = imask;
         return 1;
     }
+
+    int setMode(uint8_t mode) {
+        uint32_t imask = IMASK;
+        uint8_t cause;
+
+        IMASK = imask | IRQ_CDROM;
+
+        CDROM_REG0 = 0;
+        CDROM_REG2 = mode;
+        CDROM_REG1 = CDL_SETMODE;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 3) return 0;
+
+        IMASK = imask;
+        return 1;
+    }
+
+    uint8_t getCtrl() {
+        uint32_t imask = IMASK;
+        uint8_t cause;
+
+        IMASK = imask | IRQ_CDROM;
+
+        CDROM_REG0 = 0;
+        CDROM_REG1 = CDL_NOP;
+        waitCDRomIRQ();
+        ackCDRomCause();
+        uint8_t ctrl = CDROM_REG1;
+
+        IMASK = imask;
+        return ctrl;
+    }
 )
 
 CESTER_BEFORE_ALL(cpu_tests,
     s_interruptsWereEnabled = enterCriticalSection();
     s_oldMode = COUNTERS[1].mode;
     COUNTERS[1].mode = 0x0100;
+    SBUS_DEV5_CTRL = 0x20943;
+    SBUS_COM_CTRL = 0x132c;
 )
 
 CESTER_AFTER_ALL(cpu_tests,
