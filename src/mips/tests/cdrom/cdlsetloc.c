@@ -37,7 +37,7 @@ CESTER_TEST(cdlSetLoc, test_instances,
     CDROM_REG2 = 2;
     CDROM_REG2 = 0;
     CDROM_REG1 = CDL_SETLOC;
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
     uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response[16];
@@ -54,8 +54,8 @@ CESTER_TEST(cdlSetLoc, test_instances,
     cester_assert_uint_eq(1, responseSize);
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.
-    cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 6500);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic setloc to 00:02:00, complete in %ius\n", completeTime);
 )
 
@@ -84,7 +84,7 @@ CESTER_TEST(cdlSetLocNoArgs, test_instances,
     cester_assert_uint_eq(0x20, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 6500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Invalid setloc with no args, errored in %ius\n", errorTime);
 )
 
@@ -141,11 +141,11 @@ CESTER_TEST(cdlSetLocMultiple, test_instances,
     // vary regardless of the location, but can
     // still spike to 6ms from time to time.
     cester_assert_uint_ge(time1, 500);
-    cester_assert_uint_lt(time1, 6500);
+    cester_assert_uint_lt(time1, 7000);
     cester_assert_uint_ge(time2, 500);
-    cester_assert_uint_lt(time2, 6500);
+    cester_assert_uint_lt(time2, 7000);
     cester_assert_uint_ge(time3, 500);
-    cester_assert_uint_lt(time3, 6500);
+    cester_assert_uint_lt(time3, 7000);
     ramsyscall_printf("Multiple setloc to 00:02:00, complete in %ius, %ius, %ius\n", time1, time2, time3);
 )
 
@@ -177,7 +177,7 @@ CESTER_TEST(cdlSetLocInvalid1, test_instances,
     cester_assert_uint_eq(0x10, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 6500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Invalid setloc to 00:02:2a, errored in %ius\n", errorTime);
 )
 
@@ -209,7 +209,7 @@ CESTER_TEST(cdlSetLocInvalid2, test_instances,
     cester_assert_uint_eq(0x10, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 6500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Invalid setloc to 00:02:79, errored in %ius\n", errorTime);
 )
 
@@ -242,7 +242,7 @@ CESTER_TEST(cdlSetLocTooManyArgs, test_instances,
     cester_assert_uint_eq(0x20, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 6500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Invalid setloc with too many args, errored in %ius\n", errorTime);
 )
 
@@ -275,7 +275,7 @@ CESTER_TEST(cdlSetLocTooManyArgsAndInvalid, test_instances,
     cester_assert_uint_eq(0x20, response[1]);
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 6500);
+    cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Invalid setloc with too many invalid args, errored in %ius\n", errorTime);
 )
 

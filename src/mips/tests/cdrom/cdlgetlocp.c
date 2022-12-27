@@ -34,7 +34,7 @@ CESTER_TEST(cdlGetLocP, test_instances,
     initializeTime();
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_GETLOCP;
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
     uint8_t ctrl1 = CDROM_REG0 & ~3;
     struct LocPResult response;
@@ -76,9 +76,9 @@ CESTER_TEST(cdlGetLocP, test_instances,
     cester_assert_uint_eq(8, responseSize);
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.
-    cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 6500);
-    ramsyscall_printf("Basic getlocP, complete in %ius\n", completeTime);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    ramsyscall_printf("Basic getlocP, ack in %ius\n", ackTime);
     ramsyscall_printf("Full response: track: %02x, index: %02x, relative: %02x:%02x:%02x(%2i), absolute: %02x:%02x:%02x(%2i)\n",
         response.track, response.index,
         response.m, response.s, response.f, relative,
@@ -100,7 +100,7 @@ CESTER_TEST(cdlGetLocPafterSeekP, test_instances,
     initializeTime();
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_GETLOCP;
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
     uint8_t ctrl1 = CDROM_REG0 & ~3;
     struct LocPResult response;
@@ -136,9 +136,9 @@ CESTER_TEST(cdlGetLocPafterSeekP, test_instances,
     cester_assert_uint_eq(8, responseSize);
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.
-    cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 7000);
-    ramsyscall_printf("Basic getlocP after seekP, complete in %ius\n", completeTime);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    ramsyscall_printf("Basic getlocP after seekP, ack in %ius\n", ackTime);
     ramsyscall_printf("Full response: track: %02x, index: %02x, relative: %02x:%02x:%02x(%2i), absolute: %02x:%02x:%02x(%2i)\n",
         response.track, response.index,
         response.m, response.s, response.f, relative,
@@ -160,7 +160,7 @@ CESTER_TEST(cdlGetLocPafterSeekL, test_instances,
     initializeTime();
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_GETLOCP;
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
     uint8_t ctrl1 = CDROM_REG0 & ~3;
     struct LocPResult response;
@@ -199,9 +199,9 @@ CESTER_TEST(cdlGetLocPafterSeekL, test_instances,
     cester_assert_uint_eq(8, responseSize);
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.
-    cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 7000);
-    ramsyscall_printf("Basic getlocP after seekL, complete in %ius\n", completeTime);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    ramsyscall_printf("Basic getlocP after seekL, ack in %ius\n", ackTime);
     ramsyscall_printf("Full response: track: %02x, index: %02x, relative: %02x:%02x:%02x(%2i), absolute: %02x:%02x:%02x(%2i)\n",
         response.track, response.index,
         response.m, response.s, response.f, relative,
@@ -224,7 +224,7 @@ CESTER_TEST(cdlGetLocPinT5, test_instances,
     initializeTime();
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_GETLOCP;
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
     uint8_t ctrl1 = CDROM_REG0 & ~3;
     struct LocPResult response;
@@ -258,9 +258,9 @@ CESTER_TEST(cdlGetLocPinT5, test_instances,
     cester_assert_uint_eq(8, responseSize);
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.
-    cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 7000);
-    ramsyscall_printf("Basic getlocP after seekP in track5's, complete in %ius\n", completeTime);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    ramsyscall_printf("Basic getlocP after seekP in track5's, ack in %ius\n", ackTime);
     ramsyscall_printf("Full response: track: %02x, index: %02x, relative: %02x:%02x:%02x(%2i), absolute: %02x:%02x:%02x(%2i)\n",
         response.track, response.index,
         response.m, response.s, response.f, relative,
@@ -282,7 +282,7 @@ CESTER_TEST(cdlGetLocPinT5Pregap, test_instances,
     initializeTime();
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_GETLOCP;
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
     uint8_t ctrl1 = CDROM_REG0 & ~3;
     struct LocPResult response;
@@ -315,9 +315,9 @@ CESTER_TEST(cdlGetLocPinT5Pregap, test_instances,
     cester_assert_uint_eq(8, responseSize);
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.
-    cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 7000);
-    ramsyscall_printf("Basic getlocP after seekP in track5's pregap, complete in %ius\n", completeTime);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    ramsyscall_printf("Basic getlocP after seekP in track5's pregap, ack in %ius\n", ackTime);
     ramsyscall_printf("Full response: track: %02x, index: %02x, relative: %02x:%02x:%02x(%2i), absolute: %02x:%02x:%02x(%2i)\n",
         response.track, response.index,
         response.m, response.s, response.f, relative,

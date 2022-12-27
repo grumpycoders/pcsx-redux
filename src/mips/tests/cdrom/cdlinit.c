@@ -71,8 +71,8 @@ CESTER_TEST(cdlInit, test_instance,
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x18, ctrl4);
     // Typical value seems to be around 2ms.
-    cester_assert_uint_ge(ackTime, 800);
-    cester_assert_uint_lt(ackTime, 5000);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
     // These may be a bit flaky on real hardware, depending on the motors status when starting.
     // Typical value seems to be around 120ms.
     cester_assert_uint_ge(completeTime, 50000);
@@ -129,8 +129,8 @@ CESTER_TEST(cdlInitDelayed, test_instance,
     cester_assert_uint_eq(0x18, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     // This still takes about 2ms.
-    cester_assert_uint_ge(ackTime, 800);
-    cester_assert_uint_lt(ackTime, 5000);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
     // Since the initialization completes in the background of the controller
     // waiting its ack, we're really only measuring the roundtrip of the
     // communication between the CPU and the mechacon. It typically takes 350us
@@ -195,7 +195,7 @@ CESTER_TEST(cdlInitWithArgs, test_instance,
     cester_assert_uint_eq(0x18, ctrl4);
     // Typical value seems to be around 1ms.
     cester_assert_uint_ge(errorTime, 500);
-    cester_assert_uint_lt(errorTime, 2000);
+    cester_assert_uint_lt(errorTime, 7000);
     // Typical value seems to be around 1.5ms.
     cester_assert_uint_ge(ackTime, 1000);
     cester_assert_uint_lt(ackTime, 3500);

@@ -34,7 +34,7 @@ CESTER_TEST(cdlGetLocL, test_instances,
     initializeTime();
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_GETLOCL;
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
     uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response[16];
@@ -55,9 +55,9 @@ CESTER_TEST(cdlGetLocL, test_instances,
     cester_assert_uint_eq(8, responseSize);
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.
-    cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 7000);
-    ramsyscall_printf("Basic getlocL, complete in %ius\n", completeTime);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    ramsyscall_printf("Basic getlocL, ack in %ius\n", ackTime);
 )
 
 CESTER_TEST(cdlGetLocLafterSeekP, test_instances,
@@ -114,7 +114,7 @@ CESTER_TEST(cdlGetLocLafterSeekL, test_instances,
     initializeTime();
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_GETLOCL;
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t ackTime = waitCDRomIRQ();
     uint8_t cause1 = ackCDRomCause();
     uint8_t ctrl1 = CDROM_REG0 & ~3;
     uint8_t response[16];
@@ -134,7 +134,7 @@ CESTER_TEST(cdlGetLocLafterSeekL, test_instances,
     cester_assert_uint_eq(0x80, response[1]);
     // Typical value seems to be around 750us, but has
     // been seen to spike high from time to time.
-    cester_assert_uint_ge(completeTime, 500);
-    cester_assert_uint_lt(completeTime, 7000);
-    ramsyscall_printf("Basic getlocL after seekL, complete in %ius\n", completeTime);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    ramsyscall_printf("Basic getlocL after seekL, ack in %ius\n", ackTime);
 )
