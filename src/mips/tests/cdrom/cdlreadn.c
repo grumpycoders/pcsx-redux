@@ -60,7 +60,7 @@ CESTER_TEST(cdlReadN1x, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
-    uint32_t readyTime = waitCDRomIRQ();
+    uint32_t readyTime = waitCDRomIRQ() - ackTime1;
     uint8_t cause2 = ackCDRomCause();
     uint8_t ctrl3 = CDROM_REG0 & ~3;
     uint8_t response2[16];
@@ -95,7 +95,7 @@ CESTER_TEST(cdlReadN1x, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause3b = CDROM_REG3_UC;
 
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t completeTime = waitCDRomIRQ() - ackTime2;
     uint8_t cause4 = ackCDRomCause();
     uint8_t ctrl7 = CDROM_REG0 & ~3;
     uint8_t response4[16];
@@ -178,7 +178,7 @@ CESTER_TEST(cdlReadN1xwithDMA, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
-    uint32_t readyTime = waitCDRomIRQ();
+    uint32_t readyTime = waitCDRomIRQ() - ackTime1;
     uint8_t cause2 = ackCDRomCause();
     uint8_t ctrl3 = CDROM_REG0 & ~3;
     uint8_t response2[16];
@@ -222,7 +222,7 @@ CESTER_TEST(cdlReadN1xwithDMA, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause3b = CDROM_REG3_UC;
 
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t completeTime = waitCDRomIRQ() - ackTime2;
     uint8_t cause4 = ackCDRomCause();
     uint8_t ctrl7 = CDROM_REG0 & ~3;
     uint8_t response4[16];
@@ -304,7 +304,7 @@ CESTER_TEST(cdlReadN2x, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
-    uint32_t readyTime = waitCDRomIRQ();
+    uint32_t readyTime = waitCDRomIRQ() - ackTime1;
     uint8_t cause2 = ackCDRomCause();
     uint8_t ctrl3 = CDROM_REG0 & ~3;
     uint8_t response2[16];
@@ -339,7 +339,7 @@ CESTER_TEST(cdlReadN2x, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause3b = CDROM_REG3_UC;
 
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t completeTime = waitCDRomIRQ() - ackTime2;
     uint8_t cause4 = ackCDRomCause();
     uint8_t ctrl7 = CDROM_REG0 & ~3;
     uint8_t response4[16];
@@ -426,7 +426,7 @@ CESTER_TEST(cdlReadN2xwithDMA, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause1b = CDROM_REG3_UC;
 
-    uint32_t readyTime = waitCDRomIRQ();
+    uint32_t readyTime = waitCDRomIRQ() - ackTime1;
     uint8_t cause2 = ackCDRomCause();
     uint8_t ctrl3 = CDROM_REG0 & ~3;
     uint8_t response2[16];
@@ -470,7 +470,7 @@ CESTER_TEST(cdlReadN2xwithDMA, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause3b = CDROM_REG3_UC;
 
-    uint32_t completeTime = waitCDRomIRQ();
+    uint32_t completeTime = waitCDRomIRQ() - ackTime2;
     uint8_t cause4 = ackCDRomCause();
     uint8_t ctrl7 = CDROM_REG0 & ~3;
     uint8_t response4[16];
