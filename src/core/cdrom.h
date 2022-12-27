@@ -151,6 +151,7 @@ class CDRom {
     MSF m_seekPosition;
     uint8_t m_lastLocP[8] = {0};
     uint8_t m_lastLocL[8] = {0};
+    enum class Speed { Simple, Double } m_speed;
 
   private:
     friend class Widgets::IsoBrowser;
