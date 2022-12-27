@@ -284,7 +284,7 @@ CESTER_TEST(cdlSeekP2to71, test_instance,
     IMASK = imask;
 )
 
-CESTER_TEST(cdlSeekP2to99, test_instance,
+CESTER_TEST(cdlSeekP2to80, test_instance,
     uint32_t imask = IMASK;
 
     IMASK = imask | IRQ_CDROM;
@@ -301,7 +301,7 @@ CESTER_TEST(cdlSeekP2to99, test_instance,
         return;
     }
 
-    int setLocDone = setLoc(0x99, 0, 0);
+    int setLocDone = setLoc(0x80, 0, 0);
     if (!setLocDone) {
         cester_assert_true(setLocDone);
         return;
@@ -353,7 +353,7 @@ CESTER_TEST(cdlSeekP2to99, test_instance,
     // retry reading where there's clearly no information whatsoever. Will sometimes
     // fail in roughly 650ms, which is the seek time plus some minor retry.
     cester_assert_uint_ge(errorTime, 600000);
-    ramsyscall_printf("Basic seekP from 00:02:00 to 99:00:00: ack in %ius, errored in %ius\n", ackTime, errorTime);
+    ramsyscall_printf("Basic seekP from 00:02:00 to 80:00:00: ack in %ius, errored in %ius\n", ackTime, errorTime);
 
     IMASK = imask;
 )
