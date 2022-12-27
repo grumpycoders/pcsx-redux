@@ -82,7 +82,7 @@ CESTER_TEST(cdlSeekP, test_instance,
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x18, ctrl4);
     cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 2000);
+    cester_assert_uint_lt(ackTime, 2500);
     // Timings here won't really be relevant, as the CDRom's head will be hovering
     // already around the right place, so it's mostly a no-op to seek there, but
     // can vary a lot between 2ms and 500ms as the head is moving and re-aligning.
@@ -205,7 +205,7 @@ CESTER_TEST(cdlSeekP2to4, test_instance,
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x18, ctrl4);
     cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 2000);
+    cester_assert_uint_lt(ackTime, 2500);
     // It'd be difficult to put an interval check here, as the seek time will vary
     // a lot depending on the status of the drive, but it should probably be
     // at least 100ms, and more likely 150ms.
@@ -276,7 +276,7 @@ CESTER_TEST(cdlSeekP2to71, test_instance,
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x18, ctrl4);
     cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 2000);
+    cester_assert_uint_lt(ackTime, 2500);
     // This is a pretty long distance seek, which will take at least a full second.
     cester_assert_uint_ge(completeTime, 1000000);
     ramsyscall_printf("Basic seekP from 00:02:00 to 71:00:00: ack in %ius, complete in %ius\n", ackTime, completeTime);
@@ -347,7 +347,7 @@ CESTER_TEST(cdlSeekP2to80, test_instance,
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x18, ctrl4);
     cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 2000);
+    cester_assert_uint_lt(ackTime, 2500);
     // The seekP won't be successful when targeting a sector past the end of the
     // disc. The failure can be faster than the previous test, because it won't
     // retry reading where there's clearly no information whatsoever. Will sometimes

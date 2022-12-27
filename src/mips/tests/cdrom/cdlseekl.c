@@ -205,7 +205,7 @@ CESTER_TEST(cdlSeekL2to4, test_instance,
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x18, ctrl4);
     cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 2000);
+    cester_assert_uint_lt(ackTime, 2500);
     // It'd be difficult to put an interval check here, as the seek time will vary
     // a lot depending on the status of the drive, but it should probably be
     // at least 120ms, and more likely 170ms.
@@ -277,7 +277,7 @@ CESTER_TEST(cdlSeekL2to71, test_instance,
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x18, ctrl4);
     cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 2000);
+    cester_assert_uint_lt(ackTime, 2500);
     // The seekL won't be successful when targeting a sector past the end of the
     // data track, but it should still take a while to complete, because it'll
     // keep retrying reading data where there's none. Roughly 4s.
@@ -350,7 +350,7 @@ CESTER_TEST(cdlSeekL2to80, test_instance,
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x18, ctrl4);
     cester_assert_uint_ge(ackTime, 500);
-    cester_assert_uint_lt(ackTime, 2000);
+    cester_assert_uint_lt(ackTime, 2500);
     // The seekL won't be successful when targeting a sector past the end of the
     // disc. The failure can be faster than the previous test, because it won't
     // retry reading where there's clearly no information whatsoever. Will sometimes

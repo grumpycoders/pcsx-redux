@@ -44,4 +44,5 @@ SOFTWARE.
 #include "cdlseekl.c"
 #include "cdlseekp.c"
 #include "cdlsetloc.c"
+#include "cdlsetmode.c"
 #include "invalid.c"
