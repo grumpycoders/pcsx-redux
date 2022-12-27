@@ -377,7 +377,8 @@ CESTER_TEST(cdlReadN2x, test_instances,
     cester_assert_uint_ge(ackTime2, 500);
     cester_assert_uint_lt(ackTime2, 7000);
     // Switching speed is roughly 650ms for the speed up,
-    // and then this also contains the seeking time.
+    // and then this also contains the seeking time, and
+    // the time to read the first sector, which is 6.66ms
     cester_assert_uint_ge(readyTime, 500000);
     // Pausing at 2x is ~35ms
     cester_assert_uint_ge(completeTime, 32500);
@@ -507,7 +508,8 @@ CESTER_TEST(cdlReadN2xwithDMA, test_instances,
     cester_assert_uint_ge(ackTime2, 500);
     cester_assert_uint_lt(ackTime2, 7000);
     // Switching speed is roughly 650ms for the speed up,
-    // and then this also contains the seeking time.
+    // and then this also contains the seeking time, and
+    // the time to read the first sector, which is 6.66ms
     cester_assert_uint_ge(readyTime, 500000);
     // Pausing at 2x is ~35ms
     cester_assert_uint_ge(completeTime, 32500);
