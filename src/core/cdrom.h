@@ -126,6 +126,7 @@ class CDRom {
     bool m_gotAck = false;
     bool m_waitingAck = false;
     bool m_motorOn = false;
+    bool m_invalidLocL = false;
     enum class Status {
         STOPPED,
         READING_DATA,
@@ -149,6 +150,7 @@ class CDRom {
     MSF m_currentPosition;
     MSF m_seekPosition;
     uint8_t m_lastLocP[8] = {0};
+    uint8_t m_lastLocL[8] = {0};
 
   private:
     friend class Widgets::IsoBrowser;

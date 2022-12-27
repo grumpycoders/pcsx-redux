@@ -91,7 +91,7 @@ CESTER_TEST(cdlGetLocPafterSeekP, test_instances,
     cester_assert_true(resetDone);
     if (!resetDone) return;
 
-    int seekDone = seekTo(0x50, 0, 0);
+    int seekDone = seekPTo(0x50, 0, 0);
     if (!seekDone) {
         cester_assert_true(seekDone);
         return;
@@ -173,9 +173,12 @@ CESTER_TEST(cdlGetLocPafterSeekL, test_instances,
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
-    // After a simple seekP, the head will hover around the seeked
-    // position, so the GetLocP will return values before that. Distance
-    // from the seeked position will be up to 50 frames around this location.
+    // After a simple seekL, the head will hover around the seeked
+    // position, so the GetLocP will return values around that. Distance
+    // from the seeked position will be up to 10 frames around this location,
+    // and sometimes a little bit after it too. It will be much more precise
+    // than seekP however, and most of the time, will be exactly at the
+    // seeked position.
     int inPregap = response.index == 0;
     uint32_t relative = MSF2LBA(btoi(response.m), btoi(response.s), btoi(response.f));
     uint32_t absolute = MSF2LBA(btoi(response.am), btoi(response.as), btoi(response.af));
@@ -189,10 +192,10 @@ CESTER_TEST(cdlGetLocPafterSeekL, test_instances,
     cester_assert_uint_ge(onefifty, 150);
     cester_assert_uint_eq(inPregap, 0);
     cester_assert_uint_eq(response.index, 1);
-    cester_assert_uint_ge(absolute, 224950);
-    cester_assert_uint_lt(absolute, 225000);
-    cester_assert_uint_ge(relative, 224800);
-    cester_assert_uint_lt(relative, 224850);
+    cester_assert_uint_ge(absolute, 224990);
+    cester_assert_uint_le(absolute, 225005);
+    cester_assert_uint_ge(relative, 224840);
+    cester_assert_uint_le(relative, 224855);
     cester_assert_uint_eq(8, responseSize);
     // Typical value seems to be around 1ms, but has
     // been seen to spike high from time to time.

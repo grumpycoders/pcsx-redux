@@ -456,6 +456,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_currentPosition.s = 2;
                 m_seekPosition.reset();
                 m_seekPosition.s = 2;
+                m_invalidLocL = false;
                 memset(m_lastLocP, 0, sizeof(m_lastLocP));
                 schedule(2ms);
                 break;
@@ -493,8 +494,14 @@ class CDRomImpl final : public PCSX::CDRom {
             case 1: {
                 // TODO: probably should error out if no disc or
                 // lid open?
-                setResponse("TODOTODO"sv);
-                m_cause = Cause::Acknowledge;
+                if (m_invalidLocL) {
+                    setResponse(getStatus() | 1);
+                    appendResponse(0x80);
+                    m_cause = Cause::Error;
+                } else {
+                    setResponse(std::string_view((char *)m_lastLocL, sizeof(m_lastLocL)));
+                    m_cause = Cause::Acknowledge;
+                }
                 m_state = 0;
                 m_command = 0;
                 triggerIRQ();
@@ -610,6 +617,7 @@ class CDRomImpl final : public PCSX::CDRom {
                     m_cause = Cause::Complete;
                     setResponse(getStatus());
                 }
+                m_invalidLocL = true;
                 m_state = 0;
                 m_command = 0;
                 triggerIRQ();
@@ -639,7 +647,8 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 [[fallthrough]];
             case 3: {
-                m_currentPosition = m_seekPosition;
+                MSF fudge = m_seekPosition - MSF{m_seekPosition.toLBA() / 32768};
+                m_currentPosition = fudge;
                 if (m_iso->getTrack(m_seekPosition) == 0) {
                     m_cause = Cause::Error;
                     setResponse(getStatus() | 4);
@@ -648,6 +657,7 @@ class CDRomImpl final : public PCSX::CDRom {
                     m_cause = Cause::Complete;
                     setResponse(getStatus());
                 }
+                m_invalidLocL = true;
                 m_state = 0;
                 m_command = 0;
                 triggerIRQ();

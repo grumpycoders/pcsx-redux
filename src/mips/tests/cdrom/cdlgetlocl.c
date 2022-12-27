@@ -60,12 +60,12 @@ CESTER_TEST(cdlGetLocL, test_instances,
     ramsyscall_printf("Basic getlocL, complete in %ius\n", completeTime);
 )
 
-CESTER_TEST(cdlGetLocLafterSeekL, test_instances,
+CESTER_TEST(cdlGetLocLafterSeekP, test_instances,
     int resetDone = resetCDRom();
     cester_assert_true(resetDone);
     if (!resetDone) return;
 
-    int seekDone = seekLTo(0x50, 0, 0);
+    int seekDone = seekPTo(0x50, 0, 0);
     if (!seekDone) {
         cester_assert_true(seekDone);
         return;
@@ -87,7 +87,7 @@ CESTER_TEST(cdlGetLocLafterSeekL, test_instances,
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
-    // Since we've done a seekL, without a read, we will actually
+    // Since we've done a seekP, without a read, we will actually
     // error out here, unlike the previous test.
     cester_assert_uint_eq(2, responseSize);
     cester_assert_uint_eq(3, response[0]);
@@ -96,5 +96,45 @@ CESTER_TEST(cdlGetLocLafterSeekL, test_instances,
     // been seen to spike high from time to time.
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
-    ramsyscall_printf("Basic getlocL after seekL, errored in %ius\n", errorTime);
+    ramsyscall_printf("Basic getlocL after seekP, errored in %ius\n", errorTime);
+)
+
+
+CESTER_TEST(cdlGetLocLafterSeekL, test_instances,
+    int resetDone = resetCDRom();
+    cester_assert_true(resetDone);
+    if (!resetDone) return;
+
+    int seekDone = seekPTo(0x50, 0, 0);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
+        return;
+    }
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_GETLOCL;
+    uint32_t completeTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response[16];
+    uint8_t responseSize = readResponse(response);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    // Just like with the seekP, we will error out here, as
+    // there was no valid read performed.
+    cester_assert_uint_eq(2, responseSize);
+    cester_assert_uint_eq(3, response[0]);
+    cester_assert_uint_eq(0x80, response[1]);
+    // Typical value seems to be around 750us, but has
+    // been seen to spike high from time to time.
+    cester_assert_uint_ge(completeTime, 500);
+    cester_assert_uint_lt(completeTime, 7000);
+    ramsyscall_printf("Basic getlocL after seekL, complete in %ius\n", completeTime);
 )

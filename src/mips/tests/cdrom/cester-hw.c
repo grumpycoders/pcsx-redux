@@ -216,7 +216,7 @@ CESTER_BODY(
         if (cause != 3) return 0;
 
         CDROM_REG0 = 0;
-        CDROM_REG1 = CDL_SEEKP;
+        CDROM_REG1 = CDL_SEEKL;
         waitCDRomIRQ();
         cause = ackCDRomCause();
         CDROM_REG1;
