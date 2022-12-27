@@ -28,8 +28,10 @@ SOFTWARE.
 
 CESTER_TEST(cdlSetLoc, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     initializeTime();
     CDROM_REG0 = 0;
@@ -61,8 +63,10 @@ CESTER_TEST(cdlSetLoc, test_instances,
 
 CESTER_TEST(cdlSetLocNoArgs, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     initializeTime();
     CDROM_REG0 = 0;
@@ -91,8 +95,10 @@ CESTER_TEST(cdlSetLocNoArgs, test_instances,
 CESTER_TEST(cdlSetLocMultiple, test_instances,
     int resetDone = resetCDRom();
     uint8_t cause;
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     initializeTime();
     CDROM_REG0 = 0;
@@ -151,8 +157,10 @@ CESTER_TEST(cdlSetLocMultiple, test_instances,
 
 CESTER_TEST(cdlSetLocInvalid1, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     initializeTime();
     CDROM_REG0 = 0;
@@ -183,8 +191,10 @@ CESTER_TEST(cdlSetLocInvalid1, test_instances,
 
 CESTER_TEST(cdlSetLocInvalid2, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     initializeTime();
     CDROM_REG0 = 0;
@@ -215,8 +225,10 @@ CESTER_TEST(cdlSetLocInvalid2, test_instances,
 
 CESTER_TEST(cdlSetLocTooManyArgs, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     initializeTime();
     CDROM_REG0 = 0;
@@ -248,8 +260,10 @@ CESTER_TEST(cdlSetLocTooManyArgs, test_instances,
 
 CESTER_TEST(cdlSetLocTooManyArgsAndInvalid, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     initializeTime();
     CDROM_REG0 = 0;

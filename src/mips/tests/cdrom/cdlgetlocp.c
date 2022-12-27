@@ -28,8 +28,10 @@ SOFTWARE.
 
 CESTER_TEST(cdlGetLocP, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     initializeTime();
     CDROM_REG0 = 0;
@@ -88,8 +90,10 @@ CESTER_TEST(cdlGetLocP, test_instances,
 
 CESTER_TEST(cdlGetLocPafterSeekP, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     int seekDone = seekPTo(0x50, 0, 0);
     if (!seekDone) {
@@ -148,8 +152,10 @@ CESTER_TEST(cdlGetLocPafterSeekP, test_instances,
 
 CESTER_TEST(cdlGetLocPafterSeekL, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     int seekDone = seekLTo(0x50, 0, 0);
     if (!seekDone) {
@@ -212,8 +218,10 @@ CESTER_TEST(cdlGetLocPafterSeekL, test_instances,
 
 CESTER_TEST(cdlGetLocPinT5, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     int seekDone = seekPTo(0x70, 0x21, 0);
     if (!seekDone) {
@@ -270,8 +278,10 @@ CESTER_TEST(cdlGetLocPinT5, test_instances,
 
 CESTER_TEST(cdlGetLocPinT5Pregap, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     int seekDone = seekPTo(0x70, 0x19, 0x73);
     if (!seekDone) {

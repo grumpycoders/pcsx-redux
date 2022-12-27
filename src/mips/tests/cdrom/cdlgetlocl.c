@@ -28,8 +28,10 @@ SOFTWARE.
 
 CESTER_TEST(cdlGetLocL, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     initializeTime();
     CDROM_REG0 = 0;
@@ -62,8 +64,10 @@ CESTER_TEST(cdlGetLocL, test_instances,
 
 CESTER_TEST(cdlGetLocLafterSeekP, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     int seekDone = seekPTo(0x50, 0, 0);
     if (!seekDone) {
@@ -102,8 +106,10 @@ CESTER_TEST(cdlGetLocLafterSeekP, test_instances,
 
 CESTER_TEST(cdlGetLocLafterSeekL, test_instances,
     int resetDone = resetCDRom();
-    cester_assert_true(resetDone);
-    if (!resetDone) return;
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
 
     int seekDone = seekPTo(0x50, 0, 0);
     if (!seekDone) {
