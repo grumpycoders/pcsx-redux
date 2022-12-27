@@ -448,7 +448,7 @@ bool PCSX::CDRIso::getLocP(const PCSX::IEC60908b::MSF msf, uint8_t locP[8]) {
     locP[1] = inPregap ? 0 : 1;
     IEC60908b::MSF relative;
     if (inPregap) {
-        m_ti[track].start - msf;
+        relative = m_ti[track].start - msf;
     } else {
         relative = msf - m_ti[track].start;
     }
