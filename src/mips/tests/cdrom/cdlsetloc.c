@@ -56,7 +56,7 @@ CESTER_TEST(cdlSetLoc, test_instances,
     // been seen to spike high from time to time.
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("Basic setloc to 00:02:00, complete in %ius\n", completeTime);
+    ramsyscall_printf("Basic setloc to 00:02:00, ack in %ius\n", ackTime);
 )
 
 CESTER_TEST(cdlSetLocNoArgs, test_instances,
