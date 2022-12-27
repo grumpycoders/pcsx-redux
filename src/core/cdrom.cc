@@ -102,6 +102,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_seekPosition.reset();
         m_gotAck = false;
         m_waitingAck = false;
+        m_speed = Speed::Simple;
     }
 
     void interrupt() override {
@@ -457,6 +458,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_seekPosition.reset();
                 m_seekPosition.s = 2;
                 m_invalidLocL = false;
+                m_speed = Speed::Simple;
                 memset(m_lastLocP, 0, sizeof(m_lastLocP));
                 schedule(2ms);
                 break;
@@ -481,6 +483,27 @@ class CDRomImpl final : public PCSX::CDRom {
                 setResponse(getStatus());
                 triggerIRQ();
                 break;
+        }
+    }
+
+    // Command 14
+    void cdlSetMode() {
+        switch (m_state) {
+            case 0:
+                m_state = 1;
+                schedule(750us);
+                break;
+            case 1: {
+                uint8_t mode = m_paramFIFO[0];
+                // TODO: add the rest of the mode bits.
+                m_speed = mode & 0x80 ? Speed::Double : Speed::Simple;
+                setResponse(getStatus());
+                m_cause = Cause::Acknowledge;
+                m_paramFIFOSize = 0;
+                m_state = 0;
+                m_command = 0;
+                triggerIRQ();
+            } break;
         }
     }
 
@@ -704,7 +727,7 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlUnk, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlUnk,             // 0
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 4
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlInit, &CDRomImpl::cdlUnk,           // 8
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 12
+            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlSetMode, &CDRomImpl::cdlUnk,        // 12
             &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, &CDRomImpl::cdlUnk, &CDRomImpl::cdlGetTN,  // 16
             &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, &CDRomImpl::cdlUnk,      // 20
             &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 24
