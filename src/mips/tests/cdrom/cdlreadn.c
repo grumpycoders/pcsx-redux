@@ -33,15 +33,6 @@ CESTER_TEST(cdlReadN1x, test_instances,
         return;
     }
 
-    // Mode after reset is undefined technically,
-    // but seems to be using raw mode. Let's make
-    // sure it's a known value.
-    int setModeDone = setMode(0);
-    if (!setModeDone) {
-        cester_assert_true(setModeDone);
-        return;
-    }
-
     int setLocDone = setLoc(0, 2, 0x16);
     if (!setLocDone) {
         cester_assert_true(setLocDone);
@@ -148,15 +139,6 @@ CESTER_TEST(cdlReadN1xwithDMA, test_instances,
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
-        return;
-    }
-
-    // Mode after reset is undefined technically,
-    // but seems to be using raw mode. Let's make
-    // sure it's a known value.
-    int setModeDone = setMode(0);
-    if (!setModeDone) {
-        cester_assert_true(setModeDone);
         return;
     }
 
@@ -277,9 +259,6 @@ CESTER_TEST(cdlReadN2x, test_instances,
         return;
     }
 
-    // Mode after reset is undefined technically,
-    // but seems to be using raw mode. Let's make
-    // sure it's a known value.
     int setModeDone = setMode(0x80);
     if (!setModeDone) {
         cester_assert_true(setModeDone);
@@ -399,9 +378,6 @@ CESTER_TEST(cdlReadN2xwithDMA, test_instances,
         return;
     }
 
-    // Mode after reset is undefined technically,
-    // but seems to be using raw mode. Let's make
-    // sure it's a known value.
     int setModeDone = setMode(0x80);
     if (!setModeDone) {
         cester_assert_true(setModeDone);
@@ -529,9 +505,6 @@ CESTER_TEST(cdlReadN2xRunaway, test_instances,
         return;
     }
 
-    // Mode after reset is undefined technically,
-    // but seems to be using raw mode. Let's make
-    // sure it's a known value.
     int setModeDone = setMode(0x80);
     if (!setModeDone) {
         cester_assert_true(setModeDone);
@@ -642,4 +615,110 @@ CESTER_TEST(cdlReadN2xRunaway, test_instances,
     cester_assert_uint_eq('1', sector[5]);
     cester_assert_uint_eq(6, size);
     ramsyscall_printf("Basic single 6 bytes readN @2x at 00:02:16, runaway read, ack1 in %ius, ready in %ius, read in %ius, ack2 in %ius, complete in %ius\n", ackTime1, readyTime, readTime, ackTime2, completeTime);
+)
+
+CESTER_TEST(cdlReadNInAudio, test_instances,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    int setLocDone = setLoc(0x70, 0x21, 0);
+    if (!setLocDone) {
+        cester_assert_true(setLocDone);
+        return;
+    }
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_READN;
+    uint32_t ackTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    uint32_t errorTime = waitCDRomIRQ() - ackTime;
+    uint8_t cause2 = ackCDRomCause();
+    uint8_t ctrl3 = CDROM_REG0 & ~3;
+    uint8_t response2[16];
+    uint8_t responseSize2 = readResponse(response2);
+    uint8_t ctrl4 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause2b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(5, cause2);
+    cester_assert_uint_eq(0xe0, cause2b);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_eq(0x38, ctrl3);
+    cester_assert_uint_eq(0x18, ctrl4);
+    cester_assert_uint_eq(2, response1[0]);
+    cester_assert_uint_eq(1, responseSize1);
+    cester_assert_uint_eq(6, response2[0]);
+    cester_assert_uint_eq(4, response2[1]);
+    cester_assert_uint_eq(2, responseSize2);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    cester_assert_uint_ge(errorTime, 4000000);
+    ramsyscall_printf("Basic readN in audio track, ack in %ius, errored in %ius\n", ackTime, errorTime);
+)
+
+CESTER_TEST(cdlReadNTooFar, test_instances,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    int setLocDone = setLoc(0x80, 0, 0);
+    if (!setLocDone) {
+        cester_assert_true(setLocDone);
+        return;
+    }
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_READN;
+    uint32_t ackTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    uint32_t errorTime = waitCDRomIRQ() - ackTime;
+    uint8_t cause2 = ackCDRomCause();
+    uint8_t ctrl3 = CDROM_REG0 & ~3;
+    uint8_t response2[16];
+    uint8_t responseSize2 = readResponse(response2);
+    uint8_t ctrl4 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause2b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(5, cause2);
+    cester_assert_uint_eq(0xe0, cause2b);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_eq(0x38, ctrl3);
+    cester_assert_uint_eq(0x18, ctrl4);
+    cester_assert_uint_eq(2, response1[0]);
+    cester_assert_uint_eq(1, responseSize1);
+    cester_assert_uint_eq(6, response2[0]);
+    cester_assert_uint_eq(0x10, response2[1]);
+    cester_assert_uint_eq(2, responseSize2);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    cester_assert_uint_ge(errorTime, 600000);
+    ramsyscall_printf("Basic readN too far, ack in %ius, errored in %ius\n", ackTime, errorTime);
 )

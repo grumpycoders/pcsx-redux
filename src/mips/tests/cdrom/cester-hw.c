@@ -118,6 +118,24 @@ CESTER_BODY(
         return cause & 7;
     }
 
+    int setMode(uint8_t mode) {
+        uint32_t imask = IMASK;
+        uint8_t cause;
+
+        IMASK = imask | IRQ_CDROM;
+
+        CDROM_REG0 = 0;
+        CDROM_REG2 = mode;
+        CDROM_REG1 = CDL_SETMODE;
+        waitCDRomIRQ();
+        cause = ackCDRomCause();
+        CDROM_REG1;
+        if (cause != 3) return 0;
+
+        IMASK = imask;
+        return 1;
+    }
+
     static inline int resetCDRom() {
         uint32_t imask = IMASK;
         uint8_t cause;
@@ -143,7 +161,7 @@ CESTER_BODY(
         // wait 10ms for things to settle
         while (updateTime() < 10000);
         IMASK = imask;
-        return 1;
+        return setMode(0);
     }
 
     static int setLoc(uint8_t minute, uint8_t second, uint8_t frame) {
@@ -223,24 +241,6 @@ CESTER_BODY(
         cause = ackCDRomCause();
         CDROM_REG1;
         if (cause != 2) return 0;
-
-        IMASK = imask;
-        return 1;
-    }
-
-    int setMode(uint8_t mode) {
-        uint32_t imask = IMASK;
-        uint8_t cause;
-
-        IMASK = imask | IRQ_CDROM;
-
-        CDROM_REG0 = 0;
-        CDROM_REG2 = mode;
-        CDROM_REG1 = CDL_SETMODE;
-        waitCDRomIRQ();
-        cause = ackCDRomCause();
-        CDROM_REG1;
-        if (cause != 3) return 0;
 
         IMASK = imask;
         return 1;
