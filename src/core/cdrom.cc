@@ -103,6 +103,10 @@ class CDRomImpl final : public PCSX::CDRom {
         m_gotAck = false;
         m_waitingAck = false;
         m_speed = Speed::Simple;
+        m_speedChanged = false;
+        m_status = Status::IDLE;
+        m_readDelayed = 0;
+        m_dataRequested = false;
     }
 
     void interrupt() override {
@@ -117,12 +121,55 @@ class CDRomImpl final : public PCSX::CDRom {
             return;
         }
         auto handler = c_commandsHandlers[m_command];
-        (this->*handler)();
+        if (handler) {
+            (this->*handler)();
+        } else {
+            setResponse(getStatus() | 1);
+            appendResponse(0x40);
+            m_cause = Cause::Error;
+            m_paramFIFOSize = 0;
+            m_state = 0;
+            m_command = 0;
+            triggerIRQ();
+        }
     }
 
-    void readInterrupt() override {}
+    void readInterrupt() override {
+        static const std::chrono::nanoseconds c_retryDelay = 50us;
+        if ((m_status == Status::IDLE) || (m_status == Status::SEEKING)) {
+            m_readDelayed = 0;
+            return;
+        }
+        if (m_command != 0) {
+            m_readDelayed++;
+            scheduleRead(c_retryDelay);
+            return;
+        }
+        switch (m_status) {
+            case Status::READING_DATA: {
+                auto readDelay = computeReadDelay();
+                readDelay -= m_readDelayed * c_retryDelay;
+                m_readDelayed = 0;
+                m_cause = Cause::DataReady;
+                m_dataFIFOIndex = 0;
+                m_dataFIFOPending = 2048;
+                if (m_dataRequested) m_dataFIFOSize = 2048;
+                triggerIRQ();
+                scheduleRead(readDelay);
+            } break;
+            default:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "unsupported yet\n");
+                PCSX::g_system->pause();
+                break;
+        }
+    }
 
-    void dmaInterrupt() override {}
+    void dmaInterrupt() override {
+        if (HW_DMA3_CHCR & SWAP_LE32(0x01000000)) {
+            HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
+            DMA_INTERRUPT<3>();
+        }
+    }
 
     void schedule(uint32_t cycles) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDR, cycles); }
     void schedule(std::chrono::nanoseconds delay) { schedule(PCSX::psxRegisters::durationToCycles(delay)); }
@@ -300,6 +347,17 @@ class CDRomImpl final : public PCSX::CDRom {
         switch (m_registerIndex) {
             case 0: {
                 // ??
+                if (value == 0) {
+                    m_dataRequested = false;
+                    m_dataFIFOSize = 0;
+                    m_dataFIFOIndex = 0;
+                    return;
+                }
+                if (value == 0x80) {
+                    m_dataRequested = true;
+                    m_dataFIFOSize = m_dataFIFOPending;
+                    return;
+                }
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:0 not available yet\n");
                 PCSX::g_system->pause();
             } break;
@@ -325,12 +383,10 @@ class CDRomImpl final : public PCSX::CDRom {
                 if (value & 0x10) {
                     // request ack?
                     // TODO: act on this?
-                    return;
                 }
                 if (value & 0x08) {
                     // ??
                     // TODO: act on this?
-                    return;
                 }
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:1 not available yet\n");
                 PCSX::g_system->pause();
@@ -349,11 +405,29 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) override {
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: DMA not available yet\n");
-        PCSX::g_system->pause();
+        uint32_t size = bcr >> 16;
+        size *= bcr & 0xffff;
+        size *= 4;
+        if (size == 0) size = 0xffffffff;
+        size = std::min(m_dataFIFOSize - m_dataFIFOIndex, size);
+        auto ptr = (uint8_t *)PSXM(madr);
+        for (auto i = 0; i < size; i++) {
+            *ptr++ = m_dataFIFO[m_dataFIFOIndex++];
+        }
+        PCSX::g_emulator->m_cpu->Clear(madr, size / 4);
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                .get<PCSX::Emulator::DebugSettings::Debug>()) {
+            PCSX::g_emulator->m_debug->checkDMAwrite(3, madr, size);
+        }
+        if (chcr == 0x11400100) {
+            scheduleDMA(size / 16);
+        } else {
+            scheduleDMA(size / 4);
+        }
     }
 
     void startCommand(uint8_t command) {
+        m_state = 0;
         m_command = command;
         if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                 .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
@@ -376,7 +450,20 @@ class CDRomImpl final : public PCSX::CDRom {
         }
 
         auto handler = c_commandsHandlers[command];
-        (this->*handler)();
+
+        std::chrono::nanoseconds initialDelay = c_commandsInitialDelay[command];
+
+        if (handler == nullptr) {
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unknown CD-Rom command %i\n", m_command);
+            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                    .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+                PCSX::g_system->pause();
+            }
+            initialDelay = 750us;
+        }
+
+        m_state = 1;
+        schedule(initialDelay);
     }
 
     enum class SeekType { DATA, CDDA };
@@ -398,77 +485,97 @@ class CDRomImpl final : public PCSX::CDRom {
         return std::chrono::microseconds(distance * 3) + 150ms;
     }
 
+    std::chrono::nanoseconds computeReadDelay() { return m_speed == Speed::Simple ? 13333us : 6666us; }
+
     // Command 1.
     void cdlNop() {
-        switch (m_state) {
-            case 0:
-                m_state = 1;
-                schedule(750us);
-                break;
-            case 1: {
-                setResponse(getStatus(true));
-                m_cause = Cause::Acknowledge;
-                m_paramFIFOSize = 0;
-                m_state = 0;
-                m_command = 0;
-                triggerIRQ();
-            } break;
-        }
+        setResponse(getStatus(true));
+        m_cause = Cause::Acknowledge;
+        m_command = 0;
+        triggerIRQ();
     }
 
     // Command 2.
     void cdlSetLoc() {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        // What happens when issued during Read / Play?
+        auto maybeMSF = getMSF(m_paramFIFO);
+        if (maybeMSF.has_value()) {
+            setResponse(getStatus());
+            m_cause = Cause::Acknowledge;
+            m_seekPosition = maybeMSF.value();
+        } else {
+            setResponse(getStatus() | 1);
+            appendResponse(0x10);
+            m_cause = Cause::Error;
+        }
+        m_paramFIFOSize = 0;
+        m_command = 0;
+        triggerIRQ();
+    }
+
+    // Command 6.
+    void cdlReadN() {
         switch (m_state) {
-            case 0:
-                m_state = 1;
-                schedule(1ms);
-                break;
             case 1: {
-                // TODO: probably should error out if no disc or
-                // lid open?
-                // What happens when issued during Read / Play?
-                auto maybeMSF = getMSF(m_paramFIFO);
-                if (maybeMSF.has_value()) {
-                    setResponse(getStatus());
-                    m_cause = Cause::Acknowledge;
-                    m_seekPosition = maybeMSF.value();
-                } else {
-                    setResponse(getStatus() | 1);
-                    appendResponse(0x10);
-                    m_cause = Cause::Error;
+                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
+                if (m_speedChanged) {
+                    m_speedChanged = false;
+                    seekDelay += 650ms;
                 }
-                m_paramFIFOSize = 0;
-                m_state = 0;
-                m_command = 0;
+                schedule(seekDelay);
+                m_cause = Cause::Acknowledge;
+                m_state = 2;
+                setResponse(getStatus());
+                m_status = Status::SEEKING;
                 triggerIRQ();
+            } break;
+            case 2:
+                m_status = Status::IDLE;
+                if (!m_gotAck) {
+                    m_waitingAck = true;
+                    m_state = 3;
+                    break;
+                }
+                [[fallthrough]];
+            case 3: {
+                m_currentPosition = m_seekPosition;
+                unsigned track = m_iso->getTrack(m_seekPosition);
+                if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
+                    m_cause = Cause::Error;
+                    setResponse(getStatus() | 4);
+                    appendResponse(4);
+                    triggerIRQ();
+                } else if (track == 0) {
+                    m_cause = Cause::Error;
+                    setResponse(getStatus() | 4);
+                    appendResponse(0x10);
+                    triggerIRQ();
+                } else {
+                    m_status = Status::READING_DATA;
+                    scheduleRead(computeReadDelay());
+                }
+                m_command = 0;
             } break;
         }
     }
 
-    // Command 10.
-    void cdlInit() {
+    // Command 9.
+    void cdlPause() {
         switch (m_state) {
-            case 0:
-                // TODO: figure out exactly the various states of the CD-Rom controller
-                // that are being reset, and their value.
-                m_state = 1;
-                m_motorOn = true;
-                m_currentPosition.reset();
-                m_currentPosition.s = 2;
-                m_seekPosition.reset();
-                m_seekPosition.s = 2;
-                m_invalidLocL = false;
-                m_speed = Speed::Simple;
-                memset(m_lastLocP, 0, sizeof(m_lastLocP));
-                schedule(2ms);
-                break;
-            case 1:
+            case 1: {
+                if (m_status == Status::IDLE) {
+                    schedule(200us);
+                } else {
+                    schedule(m_speed == Speed::Simple ? 70ms : 35ms);
+                }
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
+                m_status = Status::IDLE;
                 setResponse(getStatus());
                 triggerIRQ();
-                schedule(120ms);
-                break;
+            } break;
             case 2:
                 if (!m_gotAck) {
                     m_waitingAck = true;
@@ -478,7 +585,44 @@ class CDRomImpl final : public PCSX::CDRom {
                 [[fallthrough]];
             case 3:
                 m_cause = Cause::Complete;
-                m_state = 0;
+                m_command = 0;
+                setResponse(getStatus());
+                triggerIRQ();
+                break;
+        }
+    }
+
+    // Command 10.
+    void cdlInit() {
+        switch (m_state) {
+            case 1:
+                m_cause = Cause::Acknowledge;
+                m_state = 2;
+                setResponse(getStatus());
+                triggerIRQ();
+                schedule(120ms);
+                break;
+            case 2:
+                // TODO: figure out exactly the various states of the CD-Rom controller
+                // that are being reset, and their value.
+                m_motorOn = true;
+                m_speedChanged = false;
+                m_currentPosition.reset();
+                m_currentPosition.s = 2;
+                m_seekPosition.reset();
+                m_seekPosition.s = 2;
+                m_invalidLocL = false;
+                m_speed = Speed::Simple;
+                m_status = Status::IDLE;
+                memset(m_lastLocP, 0, sizeof(m_lastLocP));
+                if (!m_gotAck) {
+                    m_waitingAck = true;
+                    m_state = 3;
+                    break;
+                }
+                [[fallthrough]];
+            case 3:
+                m_cause = Cause::Complete;
                 m_command = 0;
                 setResponse(getStatus());
                 triggerIRQ();
@@ -488,136 +632,108 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 14
     void cdlSetMode() {
-        switch (m_state) {
-            case 0:
-                m_state = 1;
-                schedule(750us);
-                break;
-            case 1: {
-                uint8_t mode = m_paramFIFO[0];
-                // TODO: add the rest of the mode bits.
-                m_speed = mode & 0x80 ? Speed::Double : Speed::Simple;
-                setResponse(getStatus());
-                m_cause = Cause::Acknowledge;
-                m_paramFIFOSize = 0;
-                m_state = 0;
-                m_command = 0;
-                triggerIRQ();
-            } break;
+        uint8_t mode = m_paramFIFO[0];
+        // TODO: add the rest of the mode bits.
+        if (mode & 0x80) {
+            if (m_speed == Speed::Simple) {
+                m_speed = Speed::Double;
+                m_speedChanged = true;
+            }
+        } else {
+            if (m_speed == Speed::Double) {
+                m_speed = Speed::Simple;
+                m_speedChanged = true;
+            }
         }
+        if (mode & 0x7f) {
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode:\n", mode);
+            PCSX::g_system->pause();
+        }
+        setResponse(getStatus());
+        m_cause = Cause::Acknowledge;
+        m_paramFIFOSize = 0;
+        m_command = 0;
+        triggerIRQ();
     }
 
     // Command 16.
     void cdlGetLocL() {
-        switch (m_state) {
-            case 0:
-                m_state = 1;
-                schedule(750us);
-                break;
-            case 1: {
-                // TODO: probably should error out if no disc or
-                // lid open?
-                if (m_invalidLocL) {
-                    setResponse(getStatus() | 1);
-                    appendResponse(0x80);
-                    m_cause = Cause::Error;
-                } else {
-                    setResponse(std::string_view((char *)m_lastLocL, sizeof(m_lastLocL)));
-                    m_cause = Cause::Acknowledge;
-                }
-                m_state = 0;
-                m_command = 0;
-                triggerIRQ();
-            } break;
+        // TODO: probably should error out if no disc or
+        // lid open?
+        if (m_invalidLocL) {
+            setResponse(getStatus() | 1);
+            appendResponse(0x80);
+            m_cause = Cause::Error;
+        } else {
+            setResponse(std::string_view((char *)m_lastLocL, sizeof(m_lastLocL)));
+            m_cause = Cause::Acknowledge;
         }
+        m_command = 0;
+        triggerIRQ();
     }
 
     // Command 17.
     void cdlGetLocP() {
-        switch (m_state) {
-            case 0:
-                m_state = 1;
-                schedule(750us);
-                break;
-            case 1: {
-                // TODO: probably should error out if no disc or
-                // lid open?
-                m_iso->getLocP(m_currentPosition, m_lastLocP);
-                setResponse(std::string_view((char *)m_lastLocP, sizeof(m_lastLocP)));
-                m_cause = Cause::Acknowledge;
-                m_state = 0;
-                m_command = 0;
-                triggerIRQ();
-            } break;
-        }
+        // TODO: probably should error out if no disc or
+        // lid open?
+        m_iso->getLocP(m_currentPosition, m_lastLocP);
+        setResponse(std::string_view((char *)m_lastLocP, sizeof(m_lastLocP)));
+        m_cause = Cause::Acknowledge;
+        m_command = 0;
+        triggerIRQ();
     }
 
     // Command 19.
     void cdlGetTN() {
-        switch (m_state) {
-            case 0:
-                m_state = 1;
-                schedule(2ms);
-                break;
-            case 1: {
-                // TODO: probably should error out if no disc or
-                // lid open?
-                setResponse(getStatus());
-                appendResponse(1);
-                appendResponse(PCSX::IEC60908b::itob(m_iso->getTN()));
-                m_cause = Cause::Acknowledge;
-                m_state = 0;
-                m_command = 0;
-                triggerIRQ();
-            } break;
-        }
+        // TODO: probably should error out if no disc or
+        // lid open?
+        setResponse(getStatus());
+        appendResponse(1);
+        appendResponse(PCSX::IEC60908b::itob(m_iso->getTN()));
+        m_cause = Cause::Acknowledge;
+        m_command = 0;
+        triggerIRQ();
     }
 
     // Command 20.
     void cdlGetTD() {
-        switch (m_state) {
-            case 0:
-                m_state = 1;
-                schedule(750us);
-                break;
-            case 1: {
-                // TODO: probably should error out if no disc or
-                // lid open?
-                auto track = PCSX::IEC60908b::btoi(m_paramFIFO[0]);
-                if (!isValidBCD(m_paramFIFO[0]) || (track > m_iso->getTN())) {
-                    setResponse(getStatus() | 1);
-                    appendResponse(0x10);
-                    m_cause = Cause::Error;
-                } else {
-                    setResponse(getStatus());
-                    auto td = m_iso->getTD(track);
-                    appendResponse(PCSX::IEC60908b::itob(td.m));
-                    appendResponse(PCSX::IEC60908b::itob(td.s));
-                    m_cause = Cause::Acknowledge;
-                }
-                m_paramFIFOSize = 0;
-                m_state = 0;
-                m_command = 0;
-                triggerIRQ();
-            } break;
+        // TODO: probably should error out if no disc or
+        // lid open?
+        auto track = PCSX::IEC60908b::btoi(m_paramFIFO[0]);
+        if (!isValidBCD(m_paramFIFO[0]) || (track > m_iso->getTN())) {
+            setResponse(getStatus() | 1);
+            appendResponse(0x10);
+            m_cause = Cause::Error;
+        } else {
+            setResponse(getStatus());
+            auto td = m_iso->getTD(track);
+            appendResponse(PCSX::IEC60908b::itob(td.m));
+            appendResponse(PCSX::IEC60908b::itob(td.s));
+            m_cause = Cause::Acknowledge;
         }
+        m_paramFIFOSize = 0;
+        m_command = 0;
+        triggerIRQ();
     }
 
     // Command 21.
     void cdlSeekL() {
         switch (m_state) {
-            case 0:
-                m_state = 1;
-                schedule(1ms);
-                break;
             case 1:
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
                 setResponse(getStatus());
                 triggerIRQ();
-                schedule(computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA));
+                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
+                if (m_speedChanged) {
+                    m_speedChanged = false;
+                    seekDelay += 650ms;
+                }
+                m_status = Status::SEEKING;
+                schedule(seekDelay);
                 break;
             case 2:
+                m_status = Status::IDLE;
                 if (!m_gotAck) {
                     m_waitingAck = true;
                     m_state = 3;
@@ -625,7 +741,6 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 [[fallthrough]];
             case 3: {
-                // TODO: read sector and cache sector header for locL
                 m_currentPosition = m_seekPosition;
                 unsigned track = m_iso->getTrack(m_seekPosition);
                 if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
@@ -641,7 +756,6 @@ class CDRomImpl final : public PCSX::CDRom {
                     setResponse(getStatus());
                 }
                 m_invalidLocL = true;
-                m_state = 0;
                 m_command = 0;
                 triggerIRQ();
             } break;
@@ -651,18 +765,21 @@ class CDRomImpl final : public PCSX::CDRom {
     // Command 22.
     void cdlSeekP() {
         switch (m_state) {
-            case 0:
-                m_state = 1;
-                schedule(1ms);
-                break;
             case 1:
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
                 setResponse(getStatus());
                 triggerIRQ();
-                schedule(computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::CDDA));
+                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::CDDA);
+                if (m_speedChanged) {
+                    m_speedChanged = false;
+                    seekDelay += 650ms;
+                }
+                m_status = Status::SEEKING;
+                schedule(seekDelay);
                 break;
             case 2:
+                m_status = Status::IDLE;
                 if (!m_gotAck) {
                     m_waitingAck = true;
                     m_state = 3;
@@ -681,33 +798,9 @@ class CDRomImpl final : public PCSX::CDRom {
                     setResponse(getStatus());
                 }
                 m_invalidLocL = true;
-                m_state = 0;
                 m_command = 0;
                 triggerIRQ();
             } break;
-        }
-    }
-
-    void cdlUnk() {
-        switch (m_state) {
-            case 0:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unknown CD-Rom command %i\n", m_command);
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                        .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
-                    PCSX::g_system->pause();
-                }
-                m_state = 1;
-                schedule(750us);
-                break;
-            case 1:
-                setResponse(getStatus() | 1);
-                appendResponse(0x40);
-                m_cause = Cause::Error;
-                m_paramFIFOSize = 0;
-                m_state = 0;
-                m_command = 0;
-                triggerIRQ();
-                break;
         }
     }
 
@@ -724,14 +817,14 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlGetClock, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS, // 24
         &CDRomImpl::cdlReset, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
 #else
-        &CDRomImpl::cdlUnk, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlUnk,             // 0
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 4
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlInit, &CDRomImpl::cdlUnk,           // 8
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlSetMode, &CDRomImpl::cdlUnk,        // 12
-            &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, &CDRomImpl::cdlUnk, &CDRomImpl::cdlGetTN,  // 16
-            &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, &CDRomImpl::cdlUnk,      // 20
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,            // 24
-            &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk, &CDRomImpl::cdlUnk,                                // 28
+        nullptr, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, nullptr,                        // 0
+            nullptr, nullptr, &CDRomImpl::cdlReadN, nullptr,                                // 4
+            nullptr, &CDRomImpl::cdlPause, &CDRomImpl::cdlInit, nullptr,                    // 8
+            nullptr, nullptr, &CDRomImpl::cdlSetMode, nullptr,                              // 12
+            &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, nullptr, &CDRomImpl::cdlGetTN,  // 16
+            &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, nullptr,      // 20
+            nullptr, nullptr, nullptr, nullptr,                                             // 24
+            nullptr, nullptr, nullptr,                                                      // 28
 #endif
     };
 
@@ -744,6 +837,17 @@ class CDRomImpl final : public PCSX::CDRom {
         1, 0,  0, 0,   // 20
         0, -1, 0, 0,   // 24
         0, 0,  0,      // 28
+    };
+
+    static constexpr std::chrono::nanoseconds c_commandsInitialDelay[31] = {
+        0ns,   750us, 1ms,   0ns,  // 0
+        0ns,   0ns,   1ms,   0ns,  // 4
+        0ns,   1ms,   2ms,   0ns,  // 8
+        0ns,   0ns,   750us, 0ns,  // 12
+        750us, 750us, 0ns,   2ms,  // 16
+        750us, 1ms,   1ms,   0ns,  // 20
+        0ns,   0ns,   0ns,   0ns,  // 24
+        0ns,   0ns,   0ns,         // 28
     };
 
     void logCDROM(uint8_t command) {

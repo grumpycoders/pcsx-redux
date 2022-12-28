@@ -117,6 +117,7 @@ class CDRom {
     uint8_t m_responseFIFO[16] = {0};
     uint32_t m_dataFIFOIndex = 0;
     uint32_t m_dataFIFOSize = 0;
+    uint32_t m_dataFIFOPending = 0;
     uint8_t m_paramFIFOSize = 0;
     uint8_t m_responseFIFOIndex = 0;
     uint8_t m_responseFIFOSize = 0;
@@ -126,14 +127,16 @@ class CDRom {
     bool m_gotAck = false;
     bool m_waitingAck = false;
     bool m_motorOn = false;
+    bool m_speedChanged = false;
     bool m_invalidLocL = false;
+    bool m_dataRequested = false;
     enum class Status {
-        STOPPED,
+        IDLE,
         READING_DATA,
         SEEKING,
         PLAYING_CDDA,
     };
-    Status m_status = Status::STOPPED;
+    Status m_status = Status::IDLE;
     uint8_t m_state = 0;
     uint8_t m_command = 0;
 
@@ -152,6 +155,7 @@ class CDRom {
     uint8_t m_lastLocP[8] = {0};
     uint8_t m_lastLocL[8] = {0};
     enum class Speed { Simple, Double } m_speed;
+    unsigned m_readDelayed = 0;
 
   private:
     friend class Widgets::IsoBrowser;
