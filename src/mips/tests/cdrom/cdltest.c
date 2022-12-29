@@ -27,6 +27,12 @@ SOFTWARE.
 // clang-format off
 
 CESTER_TEST(cdlTestNoArg, test_instance,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
     initializeTime();
 
     uint32_t imask = IMASK;
@@ -60,6 +66,12 @@ CESTER_TEST(cdlTestNoArg, test_instance,
 )
 
 CESTER_TEST(cdlTest20, test_instance,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
     initializeTime();
 
     uint32_t imask = IMASK;
@@ -92,6 +104,12 @@ CESTER_TEST(cdlTest20, test_instance,
 )
 
 CESTER_TEST(cdlTest20ExtraArgs, test_instance,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
     initializeTime();
 
     uint32_t imask = IMASK;
@@ -127,6 +145,12 @@ CESTER_TEST(cdlTest20ExtraArgs, test_instance,
 )
 
 CESTER_TEST(cdlTestff, test_instance,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
     initializeTime();
 
     uint32_t imask = IMASK;
