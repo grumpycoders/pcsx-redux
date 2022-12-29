@@ -155,6 +155,7 @@ class CDRom {
     uint8_t m_lastLocP[8] = {0};
     uint8_t m_lastLocL[8] = {0};
     enum class Speed { Simple, Double } m_speed;
+    enum class ReadSpan { S2048, S2328, S2340 } m_readSpan;
     unsigned m_readDelayed = 0;
 
   private:

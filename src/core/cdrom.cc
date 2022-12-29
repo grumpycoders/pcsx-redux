@@ -147,6 +147,27 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         switch (m_status) {
             case Status::READING_DATA: {
+                m_iso->readTrack(m_currentPosition);
+                auto buffer = m_iso->getBuffer();
+                uint32_t size = 0;
+                switch (m_readSpan) {
+                    case ReadSpan::S2048:
+                        size = 2048;
+                        if (buffer[3] == 1) {
+                            memcpy(m_dataFIFO, buffer + 4, 2048);
+                        } else {
+                            memcpy(m_dataFIFO, buffer + 12, 2048);
+                        }
+                        break;
+                    case ReadSpan::S2328:
+                        size = 2328;
+                        memcpy(m_dataFIFO, buffer + 12, 2328);
+                        break;
+                    case ReadSpan::S2340:
+                        size = 2340;
+                        memcpy(m_dataFIFO, buffer + 4, 2340);
+                        break;
+                }
                 auto readDelay = computeReadDelay();
                 readDelay -= m_readDelayed * c_retryDelay;
                 m_readDelayed = 0;
@@ -645,7 +666,22 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_speedChanged = true;
             }
         }
-        if (mode & 0x7f) {
+        switch ((mode & 0x30) >> 4) {
+            case 0:
+                m_readSpan = ReadSpan::S2048;
+                break;
+            case 1:
+                m_readSpan = ReadSpan::S2328;
+                break;
+            case 2:
+                m_readSpan = ReadSpan::S2340;
+                break;
+            case 3:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode:\n", mode);
+                PCSX::g_system->pause();
+                break;
+        }
+        if (mode & 0x4f) {
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode:\n", mode);
             PCSX::g_system->pause();
         }
