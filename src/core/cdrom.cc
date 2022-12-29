@@ -107,6 +107,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_status = Status::IDLE;
         m_readDelayed = 0;
         m_dataRequested = false;
+        m_causeMask = 0x1f;
     }
 
     void interrupt() override {
@@ -204,9 +205,13 @@ class CDRomImpl final : public PCSX::CDRom {
     void scheduleDMA(std::chrono::nanoseconds delay) { scheduleDMA(PCSX::psxRegisters::durationToCycles(delay)); }
 
     void triggerIRQ() {
+        assert(m_cause != Cause::None);
         assert(!m_waitingAck);
-        m_gotAck = false;
-        psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+        uint8_t bit = 1 << (static_cast<uint8_t>(m_cause) - 1);
+        if (m_causeMask & bit) {
+            m_gotAck = false;
+            psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+        }
     }
 
     void clearIRQ() { psxHu32ref(0x1070) &= SWAP_LE32(~uint32_t(4)); }
@@ -289,8 +294,7 @@ class CDRomImpl final : public PCSX::CDRom {
     uint8_t read3() override {
         switch (m_registerIndex & 1) {
             case 0: {
-                // cause mask? this doesn't make sense.
-                return 0x1f;  // derp?
+                return m_causeMask | 0xe0;
             } break;
             case 1: {
                 // cause
@@ -331,7 +335,6 @@ class CDRomImpl final : public PCSX::CDRom {
             case 3: {
                 // Volume setting RR
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w1:3 not available yet\n");
-                PCSX::g_system->pause();
             } break;
         }
     }
@@ -342,24 +345,15 @@ class CDRomImpl final : public PCSX::CDRom {
                 if (paramFIFOAvailable()) m_paramFIFO[m_paramFIFOSize++] = value;
             } break;
             case 1: {
-                // cause mask
-                if (value == 0x1f) {
-                    // all enabled?
-                    // TODO: act on this?
-                    return;
-                }
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w2:1 not available yet\n");
-                PCSX::g_system->pause();
+                m_causeMask = value;
             } break;
             case 2: {
                 // Volume setting LL
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w2:2 not available yet\n");
-                PCSX::g_system->pause();
             } break;
             case 3: {
                 // Volume setting RL
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w2:3 not available yet\n");
-                PCSX::g_system->pause();
             } break;
         }
     }
@@ -419,12 +413,10 @@ class CDRomImpl final : public PCSX::CDRom {
             case 2: {
                 // Volume setting LR
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:2 not available yet\n");
-                PCSX::g_system->pause();
             } break;
             case 3: {
                 // SPU settings latch
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:3 not available yet\n");
-                PCSX::g_system->pause();
             } break;
         }
     }
@@ -639,6 +631,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_invalidLocL = false;
                 m_speed = Speed::Simple;
                 m_status = Status::IDLE;
+                m_causeMask = 0x1f;
                 memset(m_lastLocP, 0, sizeof(m_lastLocP));
                 if (!m_gotAck) {
                     m_waitingAck = true;

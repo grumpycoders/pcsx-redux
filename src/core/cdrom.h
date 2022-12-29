@@ -140,6 +140,7 @@ class CDRom {
     uint8_t m_command = 0;
     enum class Speed : uint8_t { Simple, Double } m_speed;
     enum class ReadSpan : uint8_t { S2048, S2328, S2340 } m_readSpan;
+    uint8_t m_causeMask = 0x1f;
 
     enum class Cause : uint8_t {
         None = 0,
