@@ -224,6 +224,13 @@ class CDRomImpl final : public PCSX::CDRom {
         if (m_causeMask & bit) {
             m_gotAck = false;
             psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+            const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                                   .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+            if (debug) {
+                auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] triggering IRQ with cause %d\n", regs.pc,
+                                    regs.cycle, static_cast<uint8_t>(m_cause));
+            }
         } else {
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                     .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
@@ -232,8 +239,6 @@ class CDRomImpl final : public PCSX::CDRom {
             }
         }
     }
-
-    void clearIRQ() { psxHu32ref(0x1070) &= SWAP_LE32(~uint32_t(4)); }
 
     void setResponse(std::string_view response) {
         std::copy(response.begin(), response.end(), m_responseFIFO);
@@ -284,6 +289,12 @@ class CDRomImpl final : public PCSX::CDRom {
         uint8_t v7 = m_busy ? 0x80 : 0;
 
         uint8_t ret = v01 | adpcmPlaying | v3 | v4 | v5 | v6 | v7;
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] r0: %02x\n", regs.pc, regs.cycle, ret);
+        }
 
         return ret;
     }
@@ -296,6 +307,12 @@ class CDRomImpl final : public PCSX::CDRom {
             ret = m_responseFIFO[m_responseFIFOIndex++];
         }
 
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] r1: %02x\n", regs.pc, regs.cycle, ret);
+        }
         return ret;
     }
 
@@ -307,28 +324,55 @@ class CDRomImpl final : public PCSX::CDRom {
             ret = m_dataFIFO[m_dataFIFOIndex++];
         }
 
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] r2: %02x\n", regs.pc, regs.cycle, ret);
+        }
         return ret;
     }
 
     uint8_t read3() override {
+        uint8_t ret = 0;
         switch (m_registerIndex & 1) {
             case 0: {
-                return m_causeMask | 0xe0;
+                ret = m_causeMask | 0xe0;
             } break;
             case 1: {
                 // cause
                 // TODO: add bit 4
-                uint8_t ret = magic_enum::enum_integer(m_cause) | 0xe0;
-                return ret;
+                ret = magic_enum::enum_integer(m_cause) | 0xe0;
             } break;
         }
-        // should not be reachable
-        return 0;
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] r3.%i: %02x\n", regs.pc, regs.cycle,
+                                m_registerIndex & 1, ret);
+        }
+        return ret;
     }
 
-    void write0(uint8_t value) override { m_registerIndex = value & 3; }
+    void write0(uint8_t value) override {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w0: %02x\n", regs.pc, regs.cycle, value);
+        }
+        m_registerIndex = value & 3;
+    }
 
     void write1(uint8_t value) override {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w1.%i: %02x\n", regs.pc, regs.cycle,
+                                m_registerIndex, value);
+        }
         switch (m_registerIndex) {
             case 0: {
                 if (m_busy) {
@@ -358,6 +402,13 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void write2(uint8_t value) override {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w2.%i: %02x\n", regs.pc, regs.cycle,
+                                m_registerIndex, value);
+        }
         switch (m_registerIndex) {
             case 0: {
                 if (paramFIFOAvailable()) m_paramFIFO[m_paramFIFOSize++] = value;
@@ -377,6 +428,13 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void write3(uint8_t value) override {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w3.%i: %02x\n", regs.pc, regs.cycle,
+                                m_registerIndex, value);
+        }
         switch (m_registerIndex) {
             case 0: {
                 // ??
@@ -1040,23 +1098,25 @@ class CDRomImpl final : public PCSX::CDRom {
     };
 
     void logCDROM(uint8_t command) {
-        uint32_t pc = PCSX::g_emulator->m_cpu->m_regs.pc;
+        auto &regs = PCSX::g_emulator->m_cpu->m_regs;
 
         switch (command & 0xff) {
             case CdlTest:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x] Command: CdlTest %02x\n", pc, m_paramFIFO[0]);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlTest %02x\n", regs.pc,
+                                    regs.cycle, m_paramFIFO[0]);
                 break;
             case CdlSetLoc:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x] Command: CdlSetloc %02x:%02x:%02x\n", pc,
-                                    m_paramFIFO[0], m_paramFIFO[1], m_paramFIFO[2]);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlSetloc %02x:%02x:%02x\n",
+                                    regs.pc, regs.cycle, m_paramFIFO[0], m_paramFIFO[1], m_paramFIFO[2]);
                 break;
             case CdlPlay:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x] Command: CdlPlay %i\n", pc, m_paramFIFO[0]);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlPlay %i\n", regs.pc,
+                                    regs.cycle, m_paramFIFO[0]);
                 break;
             case CdlSetFilter:
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                    "CD-Rom: %08x] Command: CdlSetfilter file: %i, channel: %i\n", pc, m_paramFIFO[0],
-                                    m_paramFIFO[1]);
+                                    "CD-Rom: %08x.%08x] Command: CdlSetfilter file: %i, channel: %i\n", regs.pc,
+                                    regs.cycle, m_paramFIFO[0], m_paramFIFO[1]);
                 break;
             case CdlSetMode: {
                 auto mode = m_paramFIFO[0];
@@ -1080,25 +1140,25 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 if (mode & 0x40) modeDecode += " RealTimePlay";
                 modeDecode += mode & 0x80 ? " @2x" : " @1x";
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x] Command: CdlSetmode %02x (%s)\n", pc,
-                                    m_paramFIFO[0], modeDecode);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlSetmode %02x (%s)\n",
+                                    regs.pc, regs.cycle, m_paramFIFO[0], modeDecode);
             } break;
             case CdlGetTN:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x] Command: CdlGetTN (returns %i)\n", pc,
-                                    m_iso->getTN());
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlGetTN (returns %i)\n",
+                                    regs.pc, regs.cycle, m_iso->getTN());
                 break;
             case CdlGetTD: {
                 auto ret = m_iso->getTD(m_paramFIFO[0]);
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                    "CD-Rom: %08x] Command: CdlGetTD %i (returns %02i:%02i:%02i)\n", pc, m_paramFIFO[0],
-                                    ret.m, ret.s, ret.f);
+                                    "CD-Rom: %08x.%08x] Command: CdlGetTD %i (returns %02i:%02i:%02i)\n", regs.pc,
+                                    regs.cycle, m_paramFIFO[0], ret.m, ret.s, ret.f);
             } break;
             default:
                 if ((command & 0xff) > c_cdCmdEnumCount) {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x] Command: CdlUnknown(0x%02X)\n", pc,
-                                        command & 0xff);
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlUnknown(0x%02X)\n",
+                                        regs.pc, regs.cycle, command & 0xff);
                 } else {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x] Command: %s\n", pc,
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: %s\n", regs.pc, regs.cycle,
                                         magic_enum::enum_names<Commands>()[command & 0xff]);
                 }
                 break;
