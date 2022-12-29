@@ -174,8 +174,8 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_readDelayed = 0;
                 m_cause = Cause::DataReady;
                 m_dataFIFOIndex = 0;
-                m_dataFIFOPending = 2048;
-                if (m_dataRequested) m_dataFIFOSize = 2048;
+                m_dataFIFOPending = size;
+                if (m_dataRequested) m_dataFIFOSize = size;
                 m_currentPosition++;
                 setResponse(getStatus());
                 triggerIRQ();
