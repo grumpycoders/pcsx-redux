@@ -663,6 +663,28 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Command 11
+    void cdlMute() {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        setResponse(getStatus());
+        m_cause = Cause::Acknowledge;
+        m_command = 0;
+        PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: Mute - not yet implemented.\n");
+        triggerIRQ();
+    }
+
+    // Command 12
+    void cdlDemute() {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        setResponse(getStatus());
+        m_cause = Cause::Acknowledge;
+        m_command = 0;
+        PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: Demute - not yet implemented.\n");
+        triggerIRQ();
+    }
+
     // Command 14
     void cdlSetMode() {
         uint8_t mode = m_paramFIFO[0];
@@ -930,8 +952,8 @@ class CDRomImpl final : public PCSX::CDRom {
 #else
         nullptr, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, nullptr,                        // 0
             nullptr, nullptr, &CDRomImpl::cdlReadN, nullptr,                                // 4
-            nullptr, &CDRomImpl::cdlPause, &CDRomImpl::cdlInit, nullptr,                    // 8
-            nullptr, nullptr, &CDRomImpl::cdlSetMode, nullptr,                              // 12
+            nullptr, &CDRomImpl::cdlPause, &CDRomImpl::cdlInit, &CDRomImpl::cdlMute,        // 8
+            &CDRomImpl::cdlDemute, nullptr, &CDRomImpl::cdlSetMode, nullptr,                // 12
             &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, nullptr, &CDRomImpl::cdlGetTN,  // 16
             &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, nullptr,      // 20
             nullptr, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, nullptr,                       // 24
@@ -951,14 +973,14 @@ class CDRomImpl final : public PCSX::CDRom {
     };
 
     static constexpr std::chrono::nanoseconds c_commandsInitialDelay[31] = {
-        0ns,   750us, 1ms,   0ns,  // 0
-        0ns,   0ns,   1ms,   0ns,  // 4
-        0ns,   1ms,   2ms,   0ns,  // 8
-        0ns,   0ns,   750us, 0ns,  // 12
-        750us, 750us, 0ns,   2ms,  // 16
-        750us, 1ms,   1ms,   0ns,  // 20
-        0ns,   750us, 5ms,   0ns,  // 24
-        0ns,   0ns,   0ns,         // 28
+        0ns,   750us, 1ms,   0ns,    // 0
+        0ns,   0ns,   1ms,   0ns,    // 4
+        0ns,   1ms,   2ms,   750us,  // 8
+        750us, 0ns,   750us, 0ns,    // 12
+        750us, 750us, 0ns,   2ms,    // 16
+        750us, 1ms,   1ms,   0ns,    // 20
+        0ns,   750us, 5ms,   0ns,    // 24
+        0ns,   0ns,   0ns,           // 28
     };
 
     void logCDROM(uint8_t command) {
