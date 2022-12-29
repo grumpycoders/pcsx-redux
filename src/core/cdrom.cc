@@ -410,7 +410,11 @@ class CDRomImpl final : public PCSX::CDRom {
                     // ??
                     // TODO: act on this?
                 }
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:1 not available yet\n");
+                if (value & 0x40) {
+                    m_paramFIFOSize = 0;
+                    return;
+                }
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:1(%02x) not available yet\n", value);
                 PCSX::g_system->pause();
             } break;
             case 2: {
