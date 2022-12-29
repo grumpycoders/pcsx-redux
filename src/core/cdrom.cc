@@ -288,10 +288,8 @@ class CDRomImpl final : public PCSX::CDRom {
     uint8_t read3() override {
         switch (m_registerIndex & 1) {
             case 0: {
-                // cause mask
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: r3:0 not available yet\n");
-                PCSX::g_system->pause();
-                return 0;
+                // cause mask? this doesn't make sense.
+                return 0x1f;  // derp?
             } break;
             case 1: {
                 // cause
@@ -380,7 +378,7 @@ class CDRomImpl final : public PCSX::CDRom {
                     m_dataFIFOSize = m_dataFIFOPending;
                     return;
                 }
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:0 not available yet\n");
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:0(%02x) not available yet\n", value);
                 PCSX::g_system->pause();
             } break;
             case 1: {
@@ -845,6 +843,69 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Command 25.
+    void cdlTest() {
+        static constexpr uint8_t c_test20[] = {0x94, 0x09, 0x19, 0xc0};
+        if (m_paramFIFOSize == 0) {
+            m_cause = Cause::Error;
+            m_paramFIFOSize = 0;
+            m_command = 0;
+            setResponse(getStatus() | 1);
+            appendResponse(0x20);
+            triggerIRQ();
+            return;
+        }
+
+        switch (m_paramFIFO[0]) {
+            case 0x20:
+                if (m_paramFIFOSize == 1) {
+                    setResponse(std::string_view((const char *)c_test20, sizeof(c_test20)));
+                    m_cause = Cause::Acknowledge;
+                } else {
+                    setResponse(getStatus() | 1);
+                    appendResponse(0x20);
+                    m_cause = Cause::Error;
+                }
+                break;
+            default:
+                setResponse(getStatus() | 1);
+                appendResponse(0x10);
+                m_cause = Cause::Error;
+                break;
+        }
+        m_paramFIFOSize = 0;
+        m_command = 0;
+        triggerIRQ();
+    }
+
+    // Command 26.
+    void cdlID() {
+        switch (m_state) {
+            case 1:
+                m_cause = Cause::Acknowledge;
+                m_state = 2;
+                setResponse(getStatus());
+                triggerIRQ();
+                schedule(5ms);
+                break;
+            case 2:
+                if (!m_gotAck) {
+                    m_waitingAck = true;
+                    m_state = 3;
+                    break;
+                }
+                [[fallthrough]];
+            case 3: {
+                // Adjust this response for various types of discs and situations.
+                m_cause = Cause::Complete;
+                setResponse(getStatus());
+                appendResponse("\x00\x20\x00PCSX");
+                m_command = 0;
+                triggerIRQ();
+            } break;
+        }
+    }
+
     typedef void (CDRomImpl::*CommandType)();
 
     const CommandType c_commandsHandlers[31] {
@@ -864,7 +925,7 @@ class CDRomImpl final : public PCSX::CDRom {
             nullptr, nullptr, &CDRomImpl::cdlSetMode, nullptr,                              // 12
             &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, nullptr, &CDRomImpl::cdlGetTN,  // 16
             &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, nullptr,      // 20
-            nullptr, nullptr, nullptr, nullptr,                                             // 24
+            nullptr, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, nullptr,                       // 24
             nullptr, nullptr, nullptr,                                                      // 28
 #endif
     };
@@ -887,7 +948,7 @@ class CDRomImpl final : public PCSX::CDRom {
         0ns,   0ns,   750us, 0ns,  // 12
         750us, 750us, 0ns,   2ms,  // 16
         750us, 1ms,   1ms,   0ns,  // 20
-        0ns,   0ns,   0ns,   0ns,  // 24
+        0ns,   750us, 5ms,   0ns,  // 24
         0ns,   0ns,   0ns,         // 28
     };
 
