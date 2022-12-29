@@ -621,7 +621,7 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
  * Format:  OP rs, offset                                 *
  *********************************************************/
 #define RepZBranchi32(op)                \
-    if (int32_t(_rRs_) op 0) {              \
+    if (int32_t(_rRs_) op 0) {           \
         doBranch(_BranchTarget_, false); \
     }
 #define RepZBranchLinki32(op)                                    \
@@ -1613,6 +1613,7 @@ inline void InterpretedCPU::execBlock() {
 
         m_regs.pc += 4;
         m_regs.cycle += PCSX::Emulator::BIAS;
+        if ((m_regs.pc & 0xffc00000) == 0xbfc00000) m_regs.cycle += PCSX::Emulator::BIAS * 10;
 
         cIntFunc_t func = s_pPsxBSC[code >> 26];
         (*this.*func)(code);

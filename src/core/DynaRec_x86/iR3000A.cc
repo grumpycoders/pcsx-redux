@@ -3081,6 +3081,7 @@ void DynaRecCPU::recRecompile() {
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     unsigned count = 0;
+    unsigned extra = 0;
 
     // Set up stack frame.
     // If our block doesn't require one, this will be emitted, but the block address will be adjusted so it won't be
@@ -3138,6 +3139,7 @@ void DynaRecCPU::recRecompile() {
         m_regs.code = *(uint32_t *)p;
         m_pc += 4;
         count++;
+        if ((m_pc & 0xffc00000) == 0xbfc00000) extra++;
         func_t func = m_pRecBSC[m_regs.code >> 26];
         (*this.*func)();
 
@@ -3155,7 +3157,7 @@ void DynaRecCPU::recRecompile() {
     processDelayedLoad();
 
     iFlushRegs();
-    gen.add(dword[&m_regs.cycle], count * PCSX::Emulator::BIAS);
+    gen.add(dword[&m_regs.cycle], (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);
 
     if (m_pcInEBP) {
         gen.mov(eax, ebp);
