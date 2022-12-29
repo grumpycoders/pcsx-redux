@@ -153,8 +153,10 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         switch (m_status) {
             case Status::READING_DATA: {
+                m_invalidLocL = false;
                 m_iso->readTrack(m_currentPosition);
                 auto buffer = m_iso->getBuffer();
+                memcpy(m_lastLocL, buffer, sizeof(m_lastLocL));
                 uint32_t size = 0;
                 switch (m_readSpan) {
                     case ReadSpan::S2048:
@@ -609,6 +611,7 @@ class CDRomImpl final : public PCSX::CDRom {
             } break;
             case 2:
                 m_status = Status::IDLE;
+                m_invalidLocL = true;
                 if (!m_gotAck) {
                     m_waitingAck = true;
                     m_state = 3;
