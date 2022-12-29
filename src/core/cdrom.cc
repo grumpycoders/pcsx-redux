@@ -137,8 +137,13 @@ class CDRomImpl final : public PCSX::CDRom {
 
     void readInterrupt() override {
         static const std::chrono::nanoseconds c_retryDelay = 50us;
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
         if ((m_status == Status::IDLE) || (m_status == Status::SEEKING)) {
             m_readDelayed = 0;
+            if (debug) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: cancelling read.\n");
+            }
             return;
         }
         if (m_command != 0) {
@@ -177,6 +182,10 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_dataFIFOPending = size;
                 if (m_dataRequested) m_dataFIFOSize = size;
                 m_currentPosition++;
+                if (debug) {
+                    std::string msfFormat = fmt::format("{}", m_currentPosition);
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: advancing to %s.\n", msfFormat);
+                }
                 setResponse(getStatus());
                 triggerIRQ();
                 scheduleRead(readDelay);
@@ -211,6 +220,12 @@ class CDRomImpl final : public PCSX::CDRom {
         if (m_causeMask & bit) {
             m_gotAck = false;
             psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+        } else {
+            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                    .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: wanted to trigger IRQ but cause %d is masked...\n",
+                                    static_cast<uint8_t>(m_cause));
+            }
         }
     }
 
