@@ -130,15 +130,16 @@ class CDRom {
     bool m_speedChanged = false;
     bool m_invalidLocL = false;
     bool m_dataRequested = false;
-    enum class Status {
+    enum class Status : uint8_t {
         IDLE,
         READING_DATA,
         SEEKING,
         PLAYING_CDDA,
-    };
-    Status m_status = Status::IDLE;
+    } m_status = Status::IDLE;
     uint8_t m_state = 0;
     uint8_t m_command = 0;
+    enum class Speed : uint8_t { Simple, Double } m_speed;
+    enum class ReadSpan : uint8_t { S2048, S2328, S2340 } m_readSpan;
 
     enum class Cause : uint8_t {
         None = 0,
@@ -147,15 +148,12 @@ class CDRom {
         Acknowledge = 3,
         End = 4,
         Error = 5,
-    };
-    Cause m_cause = Cause::None;
+    } m_cause = Cause::None;
 
     MSF m_currentPosition;
     MSF m_seekPosition;
     uint8_t m_lastLocP[8] = {0};
     uint8_t m_lastLocL[8] = {0};
-    enum class Speed { Simple, Double } m_speed;
-    enum class ReadSpan { S2048, S2328, S2340 } m_readSpan;
     unsigned m_readDelayed = 0;
 
   private:

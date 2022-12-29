@@ -175,6 +175,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_dataFIFOIndex = 0;
                 m_dataFIFOPending = 2048;
                 if (m_dataRequested) m_dataFIFOSize = 2048;
+                setResponse(getStatus());
                 triggerIRQ();
                 scheduleRead(readDelay);
             } break;
@@ -593,11 +594,11 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
-                m_status = Status::IDLE;
                 setResponse(getStatus());
                 triggerIRQ();
             } break;
             case 2:
+                m_status = Status::IDLE;
                 if (!m_gotAck) {
                     m_waitingAck = true;
                     m_state = 3;
