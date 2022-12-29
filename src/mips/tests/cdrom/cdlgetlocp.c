@@ -256,7 +256,7 @@ CESTER_TEST(cdlGetLocPinT5, test_instances,
         start = absolute - relative;
     }
     cester_assert_uint_eq(5, response.track);
-    cester_assert_uint_ge(start, 316500);
+    cester_assert_uint_eq(316500, start);
     cester_assert_uint_eq(0, inPregap);
     cester_assert_uint_eq(1, response.index);
     cester_assert_uint_ge(absolute, 316535);
@@ -316,7 +316,7 @@ CESTER_TEST(cdlGetLocPinT5Pregap, test_instances,
         start = absolute - relative;
     }
     cester_assert_uint_eq(5, response.track);
-    cester_assert_uint_ge(start, 316500);
+    cester_assert_uint_eq(316500, start);
     cester_assert_uint_eq(1, inPregap);
     cester_assert_uint_eq(0, response.index);
     cester_assert_uint_ge(absolute, 316460);
