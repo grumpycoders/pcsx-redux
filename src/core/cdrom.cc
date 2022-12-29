@@ -944,6 +944,52 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Command 27.
+    void cdlReadS() {
+        switch (m_state) {
+            case 1: {
+                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
+                if (m_speedChanged) {
+                    m_speedChanged = false;
+                    seekDelay += 650ms;
+                }
+                schedule(seekDelay);
+                m_cause = Cause::Acknowledge;
+                m_state = 2;
+                setResponse(getStatus());
+                m_status = Status::SEEKING;
+                triggerIRQ();
+            } break;
+            case 2:
+                m_status = Status::IDLE;
+                if (!m_gotAck) {
+                    m_waitingAck = true;
+                    m_state = 3;
+                    break;
+                }
+                [[fallthrough]];
+            case 3: {
+                m_currentPosition = m_seekPosition;
+                unsigned track = m_iso->getTrack(m_seekPosition);
+                if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
+                    m_cause = Cause::Error;
+                    setResponse(getStatus() | 4);
+                    appendResponse(4);
+                    triggerIRQ();
+                } else if (track == 0) {
+                    m_cause = Cause::Error;
+                    setResponse(getStatus() | 4);
+                    appendResponse(0x10);
+                    triggerIRQ();
+                } else {
+                    m_status = Status::READING_DATA;
+                    scheduleRead(computeReadDelay());
+                }
+                m_command = 0;
+            } break;
+        }
+    }
+
     typedef void (CDRomImpl::*CommandType)();
 
     const CommandType c_commandsHandlers[31] {
@@ -963,7 +1009,7 @@ class CDRomImpl final : public PCSX::CDRom {
             &CDRomImpl::cdlDemute, nullptr, &CDRomImpl::cdlSetMode, nullptr,                // 12
             &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, nullptr, &CDRomImpl::cdlGetTN,  // 16
             &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, nullptr,      // 20
-            nullptr, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, nullptr,                       // 24
+            nullptr, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS,          // 24
             nullptr, nullptr, nullptr,                                                      // 28
 #endif
     };
@@ -986,7 +1032,7 @@ class CDRomImpl final : public PCSX::CDRom {
         750us, 0ns,   750us, 0ns,    // 12
         750us, 750us, 0ns,   2ms,    // 16
         750us, 1ms,   1ms,   0ns,    // 20
-        0ns,   750us, 5ms,   0ns,    // 24
+        0ns,   750us, 5ms,   1ms,    // 24
         0ns,   0ns,   0ns,           // 28
     };
 
