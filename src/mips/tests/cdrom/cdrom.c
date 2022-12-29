@@ -48,4 +48,5 @@ SOFTWARE.
 #include "cdlseekp.c"
 #include "cdlsetloc.c"
 #include "cdlsetmode.c"
+#include "cdltest.c"
 #include "invalid.c"
