@@ -937,7 +937,10 @@ class CDRomImpl final : public PCSX::CDRom {
                 // Adjust this response for various types of discs and situations.
                 m_cause = Cause::Complete;
                 setResponse(getStatus());
-                appendResponse("\x00\x20\x00PCSX");
+                appendResponse(0x00);
+                appendResponse(0x20);
+                appendResponse(0x00);
+                appendResponse("PCSX"sv);
                 m_command = 0;
                 triggerIRQ();
             } break;
