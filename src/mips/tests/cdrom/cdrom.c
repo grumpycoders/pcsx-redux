@@ -42,6 +42,7 @@ SOFTWARE.
 #include "cdlgetlocp.c"
 #include "cdlgettd.c"
 #include "cdlgettn.c"
+#include "cdlid.c"
 #include "cdlinit.c"
 #include "cdlreadn.c"
 #include "cdlseekl.c"
