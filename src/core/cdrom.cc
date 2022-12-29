@@ -108,6 +108,8 @@ class CDRomImpl final : public PCSX::CDRom {
         m_readDelayed = 0;
         m_dataRequested = false;
         m_causeMask = 0x1f;
+        m_subheaderFilter = false;
+        m_realtime = false;
     }
 
     void interrupt() override {
@@ -718,7 +720,9 @@ class CDRomImpl final : public PCSX::CDRom {
                 PCSX::g_system->pause();
                 break;
         }
-        if (mode & 0x4f) {
+        m_subheaderFilter = (mode & 0x08) != 0;
+        m_realtime = (mode & 0x40) != 0;
+        if (mode & 0x07) {
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode:\n", mode);
             PCSX::g_system->pause();
         }

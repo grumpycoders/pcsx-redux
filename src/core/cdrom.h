@@ -130,6 +130,8 @@ class CDRom {
     bool m_speedChanged = false;
     bool m_invalidLocL = false;
     bool m_dataRequested = false;
+    bool m_subheaderFilter = false;
+    bool m_realtime = false;
     enum class Status : uint8_t {
         IDLE,
         READING_DATA,
