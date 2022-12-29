@@ -171,7 +171,7 @@ class CDRomImpl final : public PCSX::CDRom {
                         break;
                     case ReadSpan::S2340:
                         size = 2340;
-                        memcpy(m_dataFIFO, buffer + 4, 2340);
+                        memcpy(m_dataFIFO, buffer, 2340);
                         break;
                 }
                 auto readDelay = computeReadDelay();
