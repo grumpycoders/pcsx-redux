@@ -315,7 +315,6 @@ class CDRomImpl final : public PCSX::CDRom {
                 // cause
                 // TODO: add bit 4
                 uint8_t ret = magic_enum::enum_integer(m_cause) | 0xe0;
-                m_cause = Cause::None;
                 return ret;
             } break;
         }
@@ -403,6 +402,7 @@ class CDRomImpl final : public PCSX::CDRom {
                     ack = true;
                 }
                 if (ack) {
+                    m_cause = Cause::None;
                     if (m_waitingAck) {
                         m_waitingAck = false;
                         schedule(350us);
