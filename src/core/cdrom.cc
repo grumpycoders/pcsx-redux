@@ -397,11 +397,12 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         switch (m_registerIndex) {
             case 0: {
-                if (m_busy) {
+                if (m_command != 0) {
                     // The CD-Rom controller is already executing a command.
                     // This basically results in undefined behavior. We'll still
                     // have to address this, as some games will do it anyway.
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: command while controller is busy\n");
+                    PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                        "CD-Rom: command while controller is already executing one!\n");
                     PCSX::g_system->pause();
                 }
                 startCommand(value);
