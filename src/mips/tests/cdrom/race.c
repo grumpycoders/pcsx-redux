@@ -214,7 +214,7 @@ CESTER_TEST(raceGetTD1AndNop, test_instance,
     IMASK = imask;
 )
 
-CESTER_TEST(cdlSeekP2to80, test_instance,
+CESTER_TEST(raceSeekP2to80WaitAckAndNop, test_instance,
     uint32_t imask = IMASK;
 
     IMASK = imask | IRQ_CDROM;
