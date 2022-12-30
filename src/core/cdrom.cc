@@ -848,7 +848,7 @@ class CDRomImpl final : public PCSX::CDRom {
     // Command 21.
     void cdlSeekL() {
         switch (m_state) {
-            case 1:
+            case 1: {
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
                 setResponse(getStatus());
@@ -860,7 +860,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 m_status = Status::Seeking;
                 schedule(seekDelay);
-                break;
+            } break;
             case 2:
                 m_status = Status::Idle;
                 if (!m_gotAck) {
@@ -894,7 +894,7 @@ class CDRomImpl final : public PCSX::CDRom {
     // Command 22.
     void cdlSeekP() {
         switch (m_state) {
-            case 1:
+            case 1: {
                 m_cause = Cause::Acknowledge;
                 m_state = 2;
                 setResponse(getStatus());
@@ -906,7 +906,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 m_status = Status::Seeking;
                 schedule(seekDelay);
-                break;
+            } break;
             case 2:
                 m_status = Status::Idle;
                 if (!m_gotAck) {
