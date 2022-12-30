@@ -45,6 +45,7 @@ SOFTWARE.
 #include "cdlid.c"
 #include "cdlinit.c"
 #include "cdlreadn.c"
+#include "cdlreads.c"
 #include "cdlseekl.c"
 #include "cdlseekp.c"
 #include "cdlsetloc.c"
