@@ -104,7 +104,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_waitingAck = false;
         m_speed = Speed::Simple;
         m_speedChanged = false;
-        m_status = Status::IDLE;
+        m_status = Status::Idle;
         m_readDelayed = 0;
         m_dataRequested = false;
         m_causeMask = 0x1f;
@@ -141,58 +141,80 @@ class CDRomImpl final : public PCSX::CDRom {
         static const std::chrono::nanoseconds c_retryDelay = 50us;
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
-        if ((m_status == Status::IDLE) || (m_status == Status::SEEKING)) {
+        if (m_startReading) {
+            m_startReading = false;
+            m_status = Status::ReadingData;
+        }
+        if ((m_status == Status::Idle) || (m_status == Status::Seeking)) {
             m_readDelayed = 0;
+            m_readingType = ReadingType::None;
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: cancelling read.\n");
             }
             return;
         }
+
         if (m_command != 0) {
             m_readDelayed++;
             scheduleRead(c_retryDelay);
             return;
         }
         switch (m_status) {
-            case Status::READING_DATA: {
-                m_invalidLocL = false;
-                m_iso->readTrack(m_currentPosition);
-                auto buffer = m_iso->getBuffer();
-                memcpy(m_lastLocL, buffer, sizeof(m_lastLocL));
-                uint32_t size = 0;
-                switch (m_readSpan) {
-                    case ReadSpan::S2048:
-                        size = 2048;
-                        if (buffer[3] == 1) {
-                            memcpy(m_dataFIFO, buffer + 4, 2048);
-                        } else {
-                            memcpy(m_dataFIFO, buffer + 12, 2048);
-                        }
-                        break;
-                    case ReadSpan::S2328:
-                        size = 2328;
-                        memcpy(m_dataFIFO, buffer + 12, 2328);
-                        break;
-                    case ReadSpan::S2340:
-                        size = 2340;
-                        memcpy(m_dataFIFO, buffer, 2340);
-                        break;
+            case Status::ReadingData: {
+                unsigned track = m_iso->getTrack(m_currentPosition);
+                if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
+                    m_status = Status::Idle;
+                    m_cause = Cause::Error;
+                    setResponse(getStatus() | 4);
+                    appendResponse(4);
+                    triggerIRQ();
+                } else if (track == 0) {
+                    m_status = Status::Idle;
+                    m_cause = Cause::Error;
+                    setResponse(getStatus() | 4);
+                    appendResponse(0x10);
+                    triggerIRQ();
+                } else {
+                    m_invalidLocL = false;
+                    m_iso->readTrack(m_currentPosition);
+                    auto buffer = m_iso->getBuffer();
+                    memcpy(m_lastLocL, buffer, sizeof(m_lastLocL));
+                    uint32_t size = 0;
+                    switch (m_readSpan) {
+                        case ReadSpan::S2048:
+                            size = 2048;
+                            if (buffer[3] == 1) {
+                                memcpy(m_dataFIFO, buffer + 4, 2048);
+                            } else {
+                                memcpy(m_dataFIFO, buffer + 12, 2048);
+                            }
+                            break;
+                        case ReadSpan::S2328:
+                            size = 2328;
+                            memcpy(m_dataFIFO, buffer + 12, 2328);
+                            break;
+                        case ReadSpan::S2340:
+                            size = 2340;
+                            memcpy(m_dataFIFO, buffer, 2340);
+                            break;
+                    }
+                    auto readDelay = computeReadDelay();
+                    readDelay -= m_readDelayed * c_retryDelay;
+                    m_readDelayed = 0;
+                    m_cause = Cause::DataReady;
+                    m_dataFIFOIndex = 0;
+                    m_dataFIFOPending = size;
+                    if (m_dataRequested) m_dataFIFOSize = size;
+                    m_currentPosition++;
+                    if (debug) {
+                        std::string msfFormat = fmt::format("{}", m_currentPosition);
+                        PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: advancing to %s.\n",
+                                            msfFormat);
+                    }
+                    setResponse(getStatus());
+                    triggerIRQ();
+                    scheduleRead(readDelay);
                 }
-                auto readDelay = computeReadDelay();
-                readDelay -= m_readDelayed * c_retryDelay;
-                m_readDelayed = 0;
-                m_cause = Cause::DataReady;
-                m_dataFIFOIndex = 0;
-                m_dataFIFOPending = size;
-                if (m_dataRequested) m_dataFIFOSize = size;
-                m_currentPosition++;
-                if (debug) {
-                    std::string msfFormat = fmt::format("{}", m_currentPosition);
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: advancing to %s.\n", msfFormat);
-                }
-                setResponse(getStatus());
-                triggerIRQ();
-                scheduleRead(readDelay);
             } break;
             default:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "unsupported yet\n");
@@ -266,13 +288,13 @@ class CDRomImpl final : public PCSX::CDRom {
         uint8_t v4 = m_wasLidOpened ? 0x10 : 0;
         uint8_t v567 = 0;
         switch (m_status) {
-            case Status::READING_DATA:
+            case Status::ReadingData:
                 v567 = 0x20;
                 break;
-            case Status::SEEKING:
+            case Status::Seeking:
                 v567 = 0x40;
                 break;
-            case Status::PLAYING_CDDA:
+            case Status::PlayingCDDA:
                 v567 = 0x80;
                 break;
         }
@@ -611,55 +633,26 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 6.
     void cdlReadN() {
-        switch (m_state) {
-            case 1: {
-                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
-                if (m_speedChanged) {
-                    m_speedChanged = false;
-                    seekDelay += 650ms;
-                }
-                schedule(seekDelay);
-                m_cause = Cause::Acknowledge;
-                m_state = 2;
-                setResponse(getStatus());
-                m_status = Status::SEEKING;
-                triggerIRQ();
-            } break;
-            case 2:
-                m_status = Status::IDLE;
-                if (!m_gotAck) {
-                    m_waitingAck = true;
-                    m_state = 3;
-                    break;
-                }
-                [[fallthrough]];
-            case 3: {
-                m_currentPosition = m_seekPosition;
-                unsigned track = m_iso->getTrack(m_seekPosition);
-                if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
-                    m_cause = Cause::Error;
-                    setResponse(getStatus() | 4);
-                    appendResponse(4);
-                    triggerIRQ();
-                } else if (track == 0) {
-                    m_cause = Cause::Error;
-                    setResponse(getStatus() | 4);
-                    appendResponse(0x10);
-                    triggerIRQ();
-                } else {
-                    m_status = Status::READING_DATA;
-                    scheduleRead(computeReadDelay());
-                }
-                m_command = 0;
-            } break;
+        auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
+        if (m_speedChanged) {
+            m_speedChanged = false;
+            seekDelay += 650ms;
         }
+        scheduleRead(seekDelay + computeReadDelay());
+        m_cause = Cause::Acknowledge;
+        setResponse(getStatus());
+        m_currentPosition = m_seekPosition;
+        m_command = 0;
+        m_startReading = true;
+        m_readingType = ReadingType::Normal;
+        triggerIRQ();
     }
 
     // Command 9.
     void cdlPause() {
         switch (m_state) {
             case 1: {
-                if (m_status == Status::IDLE) {
+                if (m_status == Status::Idle) {
                     schedule(200us);
                 } else {
                     schedule(m_speed == Speed::Simple ? 70ms : 35ms);
@@ -670,7 +663,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 triggerIRQ();
             } break;
             case 2:
-                m_status = Status::IDLE;
+                m_status = Status::Idle;
                 m_invalidLocL = true;
                 if (!m_gotAck) {
                     m_waitingAck = true;
@@ -708,7 +701,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_seekPosition.s = 2;
                 m_invalidLocL = false;
                 m_speed = Speed::Simple;
-                m_status = Status::IDLE;
+                m_status = Status::Idle;
                 m_causeMask = 0x1f;
                 memset(m_lastLocP, 0, sizeof(m_lastLocP));
                 if (!m_gotAck) {
@@ -864,11 +857,11 @@ class CDRomImpl final : public PCSX::CDRom {
                     m_speedChanged = false;
                     seekDelay += 650ms;
                 }
-                m_status = Status::SEEKING;
+                m_status = Status::Seeking;
                 schedule(seekDelay);
                 break;
             case 2:
-                m_status = Status::IDLE;
+                m_status = Status::Idle;
                 if (!m_gotAck) {
                     m_waitingAck = true;
                     m_state = 3;
@@ -910,11 +903,11 @@ class CDRomImpl final : public PCSX::CDRom {
                     m_speedChanged = false;
                     seekDelay += 650ms;
                 }
-                m_status = Status::SEEKING;
+                m_status = Status::Seeking;
                 schedule(seekDelay);
                 break;
             case 2:
-                m_status = Status::IDLE;
+                m_status = Status::Idle;
                 if (!m_gotAck) {
                     m_waitingAck = true;
                     m_state = 3;
@@ -1007,48 +1000,8 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 27.
     void cdlReadS() {
-        switch (m_state) {
-            case 1: {
-                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
-                if (m_speedChanged) {
-                    m_speedChanged = false;
-                    seekDelay += 650ms;
-                }
-                schedule(seekDelay);
-                m_cause = Cause::Acknowledge;
-                m_state = 2;
-                setResponse(getStatus());
-                m_status = Status::SEEKING;
-                triggerIRQ();
-            } break;
-            case 2:
-                m_status = Status::IDLE;
-                if (!m_gotAck) {
-                    m_waitingAck = true;
-                    m_state = 3;
-                    break;
-                }
-                [[fallthrough]];
-            case 3: {
-                m_currentPosition = m_seekPosition;
-                unsigned track = m_iso->getTrack(m_seekPosition);
-                if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
-                    m_cause = Cause::Error;
-                    setResponse(getStatus() | 4);
-                    appendResponse(4);
-                    triggerIRQ();
-                } else if (track == 0) {
-                    m_cause = Cause::Error;
-                    setResponse(getStatus() | 4);
-                    appendResponse(0x10);
-                    triggerIRQ();
-                } else {
-                    m_status = Status::READING_DATA;
-                    scheduleRead(computeReadDelay());
-                }
-                m_command = 0;
-            } break;
-        }
+        cdlReadN();
+        m_readingType = ReadingType::Streaming;
     }
 
     typedef void (CDRomImpl::*CommandType)();

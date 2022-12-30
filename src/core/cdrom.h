@@ -132,12 +132,19 @@ class CDRom {
     bool m_dataRequested = false;
     bool m_subheaderFilter = false;
     bool m_realtime = false;
+    bool m_startReading = false;
+    bool m_startPlaying = false;
+    enum class ReadingType : uint8_t {
+        None,
+        Normal,
+        Streaming,
+    } m_readingType = ReadingType::None;
     enum class Status : uint8_t {
-        IDLE,
-        READING_DATA,
-        SEEKING,
-        PLAYING_CDDA,
-    } m_status = Status::IDLE;
+        Idle,
+        ReadingData,
+        Seeking,
+        PlayingCDDA,
+    } m_status = Status::Idle;
     uint8_t m_state = 0;
     uint8_t m_command = 0;
     enum class Speed : uint8_t { Simple, Double } m_speed;
