@@ -104,6 +104,18 @@ CESTER_BODY(
         return time;
     }
 
+    static inline int waitCDRomIRQWithTimeout(uint32_t* timeoutp) {
+        uint32_t time = updateTime();
+        uint32_t timeout = *timeoutp + time;
+        do {
+            time = updateTime();
+        } while (((IREG & IRQ_CDROM) == 0) && (time <= timeout));
+        int ret = (IREG & IRQ_CDROM) != 0;
+        *timeoutp = time;
+        IREG &= ~IRQ_CDROM;
+        return ret;
+    }
+
     static inline uint8_t ackCDRomCause() {
         CDROM_REG0 = 1;
         uint8_t cause = CDROM_REG3_UC;

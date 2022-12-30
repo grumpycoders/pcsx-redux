@@ -38,6 +38,7 @@ SOFTWARE.
 #include "exotic/cester.h"
 
 #include "cester-hw.c"
+
 #include "cdlgetlocl.c"
 #include "cdlgetlocp.c"
 #include "cdlgettd.c"
@@ -52,3 +53,4 @@ SOFTWARE.
 #include "cdlsetmode.c"
 #include "cdltest.c"
 #include "invalid.c"
+#include "race.c"
