@@ -811,7 +811,7 @@ CESTER_TEST(cdlReadS2xWithNop, test_instances,
     cester_assert_uint_eq(0xe0, cause5b);
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
-    cester_assert_uint_eq(0x18, ctrl2b);
+    cester_assert_uint_eq(0x98, ctrl2b);
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x18, ctrl4);
     cester_assert_uint_eq(0x38, ctrl5);
