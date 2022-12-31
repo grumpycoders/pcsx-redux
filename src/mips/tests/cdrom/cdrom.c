@@ -55,3 +55,4 @@ SOFTWARE.
 #include "cdltest.c"
 #include "invalid.c"
 #include "race.c"
+#include "reading.c"
