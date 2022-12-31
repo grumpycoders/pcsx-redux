@@ -116,7 +116,7 @@ CESTER_TEST(cdlReadS1x, test_instances,
     cester_assert_uint_eq(0x22, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
     cester_assert_uint_eq(0x22, response3[0]);
-    cester_assert_uint_eq(1, responseSize4);
+    cester_assert_uint_eq(1, responseSize3);
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
     cester_assert_uint_ge(ackTime1, 500);
@@ -234,7 +234,7 @@ CESTER_TEST(cdlReadS1xwithDMA, test_instances,
     cester_assert_uint_eq(0x22, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
     cester_assert_uint_eq(0x22, response3[0]);
-    cester_assert_uint_eq(1, responseSize4);
+    cester_assert_uint_eq(1, responseSize3);
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
     cester_assert_uint_ge(ackTime1, 500);
@@ -348,7 +348,7 @@ CESTER_TEST(cdlReadS2x, test_instances,
     cester_assert_uint_eq(0x22, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
     cester_assert_uint_eq(0x22, response3[0]);
-    cester_assert_uint_eq(1, responseSize4);
+    cester_assert_uint_eq(1, responseSize3);
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
     cester_assert_uint_ge(ackTime1, 500);
@@ -476,7 +476,7 @@ CESTER_TEST(cdlReadS2xwithDMA, test_instances,
     cester_assert_uint_eq(0x22, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
     cester_assert_uint_eq(0x22, response3[0]);
-    cester_assert_uint_eq(1, responseSize4);
+    cester_assert_uint_eq(1, responseSize3);
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
     cester_assert_uint_ge(ackTime1, 500);
@@ -594,7 +594,7 @@ CESTER_TEST(cdlReadS2xRunaway, test_instances,
     cester_assert_uint_eq(0x22, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
     cester_assert_uint_eq(0x22, response3[0]);
-    cester_assert_uint_eq(1, responseSize4);
+    cester_assert_uint_eq(1, responseSize3);
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
     cester_assert_uint_ge(ackTime1, 500);
@@ -825,7 +825,7 @@ CESTER_TEST(cdlReadS2xWithNop, test_instances,
     cester_assert_uint_eq(2, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
     cester_assert_uint_eq(0x22, response3[0]);
-    cester_assert_uint_eq(1, responseSize4);
+    cester_assert_uint_eq(1, responseSize3);
     cester_assert_uint_eq(0x22, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
     cester_assert_uint_eq(2, response5[0]);
