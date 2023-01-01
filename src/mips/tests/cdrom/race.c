@@ -439,3 +439,42 @@ CESTER_TEST(readResponseBeforeAck, test_instances,
     cester_assert_uint_eq(2, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
 )
+
+CESTER_TEST(ackBeforeReadResponse, test_instances,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    int seekDone = seekPTo(0x70, 0x19, 0x73);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
+        return;
+    }
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_GETLOCP;
+
+    while (CDROM_REG0 & 0x80);
+    CDROM_REG1 = CDL_NOP;
+
+    while (updateTime() < 50000);
+
+    waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    waitCDRomIRQ();
+    uint8_t cause2 = ackCDRomCause();
+    uint8_t response2[16];
+    uint8_t responseSize2 = readResponse(response2);
+
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(5, response1[0]);
+    cester_assert_uint_eq(8, responseSize1);
+    cester_assert_uint_eq(3, cause2);
+    cester_assert_uint_eq(2, response2[0]);
+    cester_assert_uint_eq(1, responseSize2);
+)
