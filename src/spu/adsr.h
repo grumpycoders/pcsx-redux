@@ -57,6 +57,11 @@ class ADSR {
     };
 
     const Table m_table;
+
+    int Attack(SPUCHAN* ch);
+    int Decay(SPUCHAN* ch);
+    int Sustain(SPUCHAN* ch);
+    int Release(SPUCHAN* ch);
 };
 
 }  // namespace SPU
