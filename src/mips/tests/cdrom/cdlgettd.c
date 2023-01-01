@@ -27,10 +27,6 @@ SOFTWARE.
 // clang-format off
 
 CESTER_TEST(cdlGetTD0, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -63,15 +59,9 @@ CESTER_TEST(cdlGetTD0, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic getTD 0: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD1, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -104,16 +94,10 @@ CESTER_TEST(cdlGetTD1, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic getTD 1: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 
 CESTER_TEST(cdlGetTD2, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -146,16 +130,10 @@ CESTER_TEST(cdlGetTD2, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic getTD 2: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 
 CESTER_TEST(cdlGetTD3, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -188,15 +166,9 @@ CESTER_TEST(cdlGetTD3, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic getTD 3: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD4, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -229,15 +201,9 @@ CESTER_TEST(cdlGetTD4, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic getTD 4: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD5, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -270,15 +236,9 @@ CESTER_TEST(cdlGetTD5, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic getTD 5: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD6, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -311,15 +271,9 @@ CESTER_TEST(cdlGetTD6, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic getTD 6: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD12, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -352,15 +306,9 @@ CESTER_TEST(cdlGetTD12, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic getTD 12: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD25, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -393,15 +341,9 @@ CESTER_TEST(cdlGetTD25, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic getTD 25: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD26, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -433,15 +375,9 @@ CESTER_TEST(cdlGetTD26, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD 26: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD99, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -473,15 +409,9 @@ CESTER_TEST(cdlGetTD99, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD 99: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTDaa, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -513,15 +443,9 @@ CESTER_TEST(cdlGetTDaa, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD aa: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD0a, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -553,15 +477,9 @@ CESTER_TEST(cdlGetTD0a, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD 0a: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTD1a, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -593,15 +511,9 @@ CESTER_TEST(cdlGetTD1a, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic getTD 1a: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTDNoArgs, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -632,15 +544,9 @@ CESTER_TEST(cdlGetTDNoArgs, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("No args getTD: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlGetTDTooManyArgs, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -673,6 +579,5 @@ CESTER_TEST(cdlGetTDTooManyArgs, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Too many args getTD: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
+

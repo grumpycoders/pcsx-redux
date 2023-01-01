@@ -27,10 +27,6 @@ SOFTWARE.
 // clang-format off
 
 CESTER_TEST(simpleReading, test_instances,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -125,15 +121,9 @@ CESTER_TEST(simpleReading, test_instances,
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
     ramsyscall_printf("Long read, ack then pause, ready1 in %ius, ready2 in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time3);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(simpleReadingPauseWithoutAck, test_instances,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -159,7 +149,6 @@ CESTER_TEST(simpleReadingPauseWithoutAck, test_instances,
 
     initializeTime();
     while (updateTime() <= 500000);
-    uint8_t sector[2048];
 
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_PAUSE;
@@ -234,6 +223,112 @@ CESTER_TEST(simpleReadingPauseWithoutAck, test_instances,
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
     ramsyscall_printf("Long read, pause then ack, error in %ius, ready in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time3);
+)
 
-    IMASK = imask;
+CESTER_TEST(simpleReadingNopQuery, test_instances,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    int setModeDone = setMode(0x80);
+    if (!setModeDone) {
+        cester_assert_true(setModeDone);
+        return;
+    }
+
+    int setLocDone = setLoc(0x20, 0, 0);
+    if (!setLocDone) {
+        cester_assert_true(setLocDone);
+        return;
+    }
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_READN;
+    waitCDRomIRQ();
+    ackCDRomCause();
+
+    initializeTime();
+
+    for (unsigned i = 0; i < 100; i++) {
+        CDROM_REG0 = 0;
+        CDROM_REG1 = CDL_NOP;
+        waitCDRomIRQ();
+        ackCDRomCause();
+        uint8_t response[16];
+        readResponse(response);
+    }
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_NOP;
+
+    initializeTime();
+    uint32_t time1 = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    initializeTime();
+    uint32_t time2 = waitCDRomIRQ();
+    uint8_t cause2 = ackCDRomCause();
+    uint8_t ctrl3 = CDROM_REG0 & ~3;
+    uint8_t response2[16];
+    uint8_t responseSize2 = readResponse(response2);
+    uint8_t ctrl4 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause2b = CDROM_REG3_UC;
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_PAUSE;
+
+    initializeTime();
+    uint32_t time3 = waitCDRomIRQ();
+    uint8_t cause3 = ackCDRomCause();
+    uint8_t ctrl5 = CDROM_REG0 & ~3;
+    uint8_t response3[16];
+    uint8_t responseSize3 = readResponse(response3);
+    uint8_t ctrl6 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause3b = CDROM_REG3_UC;
+
+    initializeTime();
+    uint32_t time4 = waitCDRomIRQ();
+    uint8_t cause4 = ackCDRomCause();
+    uint8_t ctrl7 = CDROM_REG0 & ~3;
+    uint8_t response4[16];
+    uint8_t responseSize4 = readResponse(response4);
+    uint8_t ctrl8 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause4b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(1, cause2);
+    cester_assert_uint_eq(0xe0, cause2b);
+    cester_assert_uint_eq(3, cause3);
+    cester_assert_uint_eq(0xe0, cause3b);
+    cester_assert_uint_eq(2, cause4);
+    cester_assert_uint_eq(0xe0, cause4b);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_eq(0x38, ctrl3);
+    cester_assert_uint_eq(0x18, ctrl4);
+    cester_assert_uint_eq(0x38, ctrl5);
+    cester_assert_uint_eq(0x18, ctrl6);
+    cester_assert_uint_eq(0x38, ctrl7);
+    cester_assert_uint_eq(0x18, ctrl8);
+    cester_assert_uint_eq(2, response1[0]);
+    cester_assert_uint_eq(1, responseSize1);
+    cester_assert_uint_eq(0x22, response2[0]);
+    cester_assert_uint_eq(1, responseSize2);
+    cester_assert_uint_eq(0x22, response3[0]);
+    cester_assert_uint_eq(1, responseSize3);
+    cester_assert_uint_eq(2, response4[0]);
+    cester_assert_uint_eq(1, responseSize4);
+    ramsyscall_printf("Long read, nop then pause, ack in %ius, ready in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time3);
 )

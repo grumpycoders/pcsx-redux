@@ -33,9 +33,6 @@ CESTER_TEST(cdlNop, test_instance,
         return;
     }
 
-    uint32_t imask = IMASK;
-    IMASK = imask | IRQ_CDROM;
-
     initializeTime();
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_NOP;
@@ -58,8 +55,6 @@ CESTER_TEST(cdlNop, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic cdlNop, ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlNopTooManyArgs, test_instance,
@@ -70,10 +65,6 @@ CESTER_TEST(cdlNopTooManyArgs, test_instance,
     }
 
     initializeTime();
-
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
 
     CDROM_REG0 = 0;
     CDROM_REG2 = 0;
@@ -101,8 +92,6 @@ CESTER_TEST(cdlNopTooManyArgs, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic cdlNop with too many args, errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlNopBusyTime, test_instance,
@@ -111,9 +100,6 @@ CESTER_TEST(cdlNopBusyTime, test_instance,
         cester_assert_true(resetDone);
         return;
     }
-
-    uint32_t imask = IMASK;
-    IMASK = imask | IRQ_CDROM;
 
     initializeTime();
     CDROM_REG0 = 0;
@@ -139,7 +125,5 @@ CESTER_TEST(cdlNopBusyTime, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic cdlNop, ack in %ius, busy flag was set for %ius, actual processing time %ius\n", ackTime, busyTime, ackTime - busyTime);
-
-    IMASK = imask;
 )
 

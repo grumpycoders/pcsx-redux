@@ -35,10 +35,6 @@ CESTER_TEST(cdlId, test_instance,
 
     initializeTime();
 
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_GETID;
 
@@ -77,8 +73,6 @@ CESTER_TEST(cdlId, test_instance,
     ramsyscall_printf("Full response: %02x %02x %02x %02x %02x %02x %02x %02x\n",
         response2[0], response2[1], response2[2], response2[3],
         response2[4], response2[5], response2[6], response2[7]);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlIdTooManyArgs, test_instance,
@@ -89,10 +83,6 @@ CESTER_TEST(cdlIdTooManyArgs, test_instance,
     }
 
     initializeTime();
-
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
 
     CDROM_REG0 = 0;
     CDROM_REG2 = 0;
@@ -120,7 +110,5 @@ CESTER_TEST(cdlIdTooManyArgs, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic cdlId with too many args, errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 

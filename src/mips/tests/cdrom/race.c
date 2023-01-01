@@ -118,10 +118,6 @@ CESTER_TEST(raceNopAndGetLocP, test_instances,
 )
 
 CESTER_TEST(raceNopAndGetTD1, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -162,15 +158,9 @@ CESTER_TEST(raceNopAndGetTD1, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Nop followed by GetTD1: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(raceGetTD1AndNop, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -210,15 +200,9 @@ CESTER_TEST(raceGetTD1AndNop, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("GetTD1 followed by Nop: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(raceSeekP2to80WaitAckAndNop, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -303,15 +287,9 @@ CESTER_TEST(raceSeekP2to80WaitAckAndNop, test_instance,
     cester_assert_uint_ge(ackTime2, 500);
     cester_assert_uint_lt(ackTime2, 7000);
     ramsyscall_printf("SeekP from 00:02:00 to 80:00:00 with Nop in between: ack in %ius, ack2 in %ius, errored in %ius\n", ackTime, ackTime2, errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(raceNopWaitAndNop, test_instances,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -365,15 +343,9 @@ CESTER_TEST(raceNopWaitAndNop, test_instances,
     // The second ack's timing will be affected by the first ack's timing,
     // so we can't really test it.
     ramsyscall_printf("Nop followed by Nop, ack in %ius, ack2 in %ius\n", ackTime, ackTime2);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(nopQueue, test_instances,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -400,15 +372,9 @@ CESTER_TEST(nopQueue, test_instances,
 
     cester_assert_uint_eq(2, count);
     ramsyscall_printf("Nop command queue of %i\n", count);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(nopQueueBusy, test_instances,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -433,6 +399,43 @@ CESTER_TEST(nopQueueBusy, test_instances,
 
     cester_assert_uint_eq(0x38, ctrl[0]);
     cester_assert_uint_eq(0xb8, ctrl[1]);
+)
 
-    IMASK = imask;
+CESTER_TEST(readResponseBeforeAck, test_instances,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    int seekDone = seekPTo(0x70, 0x19, 0x73);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
+        return;
+    }
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_GETLOCP;
+
+    while (CDROM_REG0 & 0x80);
+    CDROM_REG1 = CDL_NOP;
+
+    while (updateTime() < 50000);
+
+    waitCDRomIRQ();
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t cause1 = ackCDRomCause();
+    waitCDRomIRQ();
+    uint8_t response2[16];
+    uint8_t responseSize2 = readResponse(response2);
+    uint8_t cause2 = ackCDRomCause();
+
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(5, response1[0]);
+    cester_assert_uint_eq(8, responseSize1);
+    cester_assert_uint_eq(3, cause2);
+    cester_assert_uint_eq(2, response2[0]);
+    cester_assert_uint_eq(1, responseSize2);
 )

@@ -36,6 +36,7 @@ CESTER_BODY(
     static uint16_t s_oldMode = 0;
     static uint32_t s_lastHSyncCounter = 0;
     static uint32_t s_currentTime = 0;
+    static uint32_t s_oldIMASK = 0;
     static const unsigned US_PER_HBLANK = 64;
 
     struct LocPResult {
@@ -131,11 +132,7 @@ CESTER_BODY(
     }
 
     int setMode(uint8_t mode) {
-        uint32_t imask = IMASK;
         uint8_t cause;
-
-        IMASK = imask | IRQ_CDROM;
-
         CDROM_REG0 = 0;
         CDROM_REG2 = mode;
         CDROM_REG1 = CDL_SETMODE;
@@ -143,16 +140,11 @@ CESTER_BODY(
         cause = ackCDRomCause();
         CDROM_REG1;
         if (cause != 3) return 0;
-
-        IMASK = imask;
         return 1;
     }
 
     static inline int resetCDRom() {
-        uint32_t imask = IMASK;
         uint8_t cause;
-
-        IMASK = imask | IRQ_CDROM;
 
         CDROM_REG0 = 1;
         CDROM_REG3 = 0x1f;
@@ -172,15 +164,11 @@ CESTER_BODY(
         initializeTime();
         // wait 10ms for things to settle
         while (updateTime() < 10000);
-        IMASK = imask;
         return setMode(0);
     }
 
     static int setLoc(uint8_t minute, uint8_t second, uint8_t frame) {
-        uint32_t imask = IMASK;
         uint8_t cause;
-
-        IMASK = imask | IRQ_CDROM;
 
         CDROM_REG0 = 0;
         CDROM_REG2 = minute;
@@ -192,15 +180,11 @@ CESTER_BODY(
         CDROM_REG1;
         if (cause != 3) return 0;
 
-        IMASK = imask;
         return 1;
     }
 
     static int seekPTo(uint8_t minute, uint8_t second, uint8_t frame) {
-        uint32_t imask = IMASK;
         uint8_t cause;
-
-        IMASK = imask | IRQ_CDROM;
 
         CDROM_REG0 = 0;
         CDROM_REG2 = minute;
@@ -222,16 +206,11 @@ CESTER_BODY(
         cause = ackCDRomCause();
         CDROM_REG1;
         if (cause != 2) return 0;
-
-        IMASK = imask;
         return 1;
     }
 
     static int seekLTo(uint8_t minute, uint8_t second, uint8_t frame) {
-        uint32_t imask = IMASK;
         uint8_t cause;
-
-        IMASK = imask | IRQ_CDROM;
 
         CDROM_REG0 = 0;
         CDROM_REG2 = minute;
@@ -254,15 +233,11 @@ CESTER_BODY(
         CDROM_REG1;
         if (cause != 2) return 0;
 
-        IMASK = imask;
         return 1;
     }
 
     uint8_t getCtrl() {
-        uint32_t imask = IMASK;
         uint8_t cause;
-
-        IMASK = imask | IRQ_CDROM;
 
         CDROM_REG0 = 0;
         CDROM_REG1 = CDL_NOP;
@@ -270,7 +245,6 @@ CESTER_BODY(
         ackCDRomCause();
         uint8_t ctrl = CDROM_REG1;
 
-        IMASK = imask;
         return ctrl;
     }
 )
@@ -281,9 +255,12 @@ CESTER_BEFORE_ALL(cpu_tests,
     COUNTERS[1].mode = 0x0100;
     SBUS_DEV5_CTRL = 0x20943;
     SBUS_COM_CTRL = 0x132c;
+    s_oldIMASK = IMASK;
+    IMASK = IRQ_CDROM;
 )
 
 CESTER_AFTER_ALL(cpu_tests,
+    IMASK = s_oldIMASK;
     COUNTERS[1].mode = s_oldMode;
     if (s_interruptsWereEnabled) leaveCriticalSection();
 )

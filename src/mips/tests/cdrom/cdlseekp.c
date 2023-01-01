@@ -27,10 +27,6 @@ SOFTWARE.
 // clang-format off
 
 CESTER_TEST(cdlSeekP, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -87,15 +83,9 @@ CESTER_TEST(cdlSeekP, test_instance,
     // already around the right place, so it's mostly a no-op to seek there, but
     // can vary a lot between 2ms and 500ms as the head is moving and re-aligning.
     ramsyscall_printf("Basic seekP to 00:02:00: ack in %ius, complete in %ius\n", ackTime, completeTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlSeekPwithArgs, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -139,15 +129,9 @@ CESTER_TEST(cdlSeekPwithArgs, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Too many args seekP, errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlSeekP2to4, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -210,15 +194,9 @@ CESTER_TEST(cdlSeekP2to4, test_instance,
     // a lot depending on the status of the drive, but it should probably be
     // at least 100ms, and more likely 150ms.
     ramsyscall_printf("Basic seekP from 00:02:00 to 00:04:00: ack in %ius, complete in %ius\n", ackTime, completeTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlSeekP2to71, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -280,15 +258,9 @@ CESTER_TEST(cdlSeekP2to71, test_instance,
     // This is a pretty long distance seek, which will take at least a full second.
     cester_assert_uint_ge(completeTime, 1000000);
     ramsyscall_printf("Basic seekP from 00:02:00 to 71:00:00: ack in %ius, complete in %ius\n", ackTime, completeTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlSeekP2to80, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -354,6 +326,4 @@ CESTER_TEST(cdlSeekP2to80, test_instance,
     // fail in roughly 650ms, which is the seek time plus some minor retry.
     cester_assert_uint_ge(errorTime, 600000);
     ramsyscall_printf("Basic seekP from 00:02:00 to 80:00:00: ack in %ius, errored in %ius\n", ackTime, errorTime);
-
-    IMASK = imask;
 )

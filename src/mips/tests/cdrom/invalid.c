@@ -27,10 +27,6 @@ SOFTWARE.
 // clang-format off
 
 CESTER_TEST(invalid0, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -62,6 +58,4 @@ CESTER_TEST(invalid0, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Invalid command 0: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )

@@ -29,10 +29,6 @@ SOFTWARE.
 CESTER_TEST(cdlInit, test_instance,
     initializeTime();
 
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     CDROM_REG0 = 1;
     CDROM_REG3 = 0x1f;
     CDROM_REG0 = 1;
@@ -78,16 +74,10 @@ CESTER_TEST(cdlInit, test_instance,
     cester_assert_uint_ge(completeTime, 50000);
     cester_assert_uint_lt(completeTime, 150000);
     ramsyscall_printf("Basic initialization: CD-Rom controller initialized, ack in %ius, complete in %ius\n", ackTime, completeTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlInitDelayed, test_instance,
     initializeTime();
-
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
 
     CDROM_REG0 = 1;
     CDROM_REG3 = 0x1f;
@@ -138,16 +128,10 @@ CESTER_TEST(cdlInitDelayed, test_instance,
     cester_assert_uint_ge(completeTime, 100);
     cester_assert_uint_lt(completeTime, 1000);
     ramsyscall_printf("Delayed initialization: CD-Rom controller initialized, ack in %ius, complete in %ius\n", ackTime, completeTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlInitWithArgs, test_instance,
     initializeTime();
-
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
 
     CDROM_REG0 = 1;
     CDROM_REG3 = 0x1f;
@@ -201,7 +185,6 @@ CESTER_TEST(cdlInitWithArgs, test_instance,
     cester_assert_uint_lt(ackTime, 3500);
     ramsyscall_printf("Initialization with args: CD-Rom controller errored, error in %ius\n", errorTime);
     ramsyscall_printf("Initialization with args: requested status, ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
+
 

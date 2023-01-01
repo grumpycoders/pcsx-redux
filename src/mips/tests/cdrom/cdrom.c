@@ -39,6 +39,7 @@ SOFTWARE.
 
 #include "cester-hw.c"
 
+#if 1
 #include "cdlgetlocl.c"
 #include "cdlgetlocp.c"
 #include "cdlgettd.c"
@@ -56,3 +57,6 @@ SOFTWARE.
 #include "invalid.c"
 #include "race.c"
 #include "reading.c"
+#else
+#include "race.c"
+#endif

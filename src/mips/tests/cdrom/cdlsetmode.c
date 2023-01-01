@@ -27,10 +27,6 @@ SOFTWARE.
 // clang-format off
 
 CESTER_TEST(cdlSetMode, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -62,15 +58,9 @@ CESTER_TEST(cdlSetMode, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic setMode: ack in %ius\n", ackTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlSetModeWithoutArgs, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -102,15 +92,9 @@ CESTER_TEST(cdlSetModeWithoutArgs, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("No args setMode: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlSetModeWithTooManyArgs, test_instance,
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -146,6 +130,4 @@ CESTER_TEST(cdlSetModeWithTooManyArgs, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("No args setMode: errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )

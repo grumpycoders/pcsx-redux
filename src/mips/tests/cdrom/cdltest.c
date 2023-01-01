@@ -35,10 +35,6 @@ CESTER_TEST(cdlTestNoArg, test_instance,
 
     initializeTime();
 
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
-
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_TEST;
 
@@ -61,8 +57,6 @@ CESTER_TEST(cdlTestNoArg, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic cdlTest with no args, errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlTest20, test_instance,
@@ -73,10 +67,6 @@ CESTER_TEST(cdlTest20, test_instance,
     }
 
     initializeTime();
-
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
 
     CDROM_REG0 = 0;
     CDROM_REG2 = 0x20;
@@ -99,8 +89,6 @@ CESTER_TEST(cdlTest20, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic cdlTest with arg = 0x20, ack in %ius, response = %02x %02x %02x %02x\n", ackTime, response1[0], response1[1], response1[2], response1[3]);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlTest20ExtraArgs, test_instance,
@@ -111,10 +99,6 @@ CESTER_TEST(cdlTest20ExtraArgs, test_instance,
     }
 
     initializeTime();
-
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
 
     CDROM_REG0 = 0;
     CDROM_REG2 = 0x20;
@@ -140,8 +124,6 @@ CESTER_TEST(cdlTest20ExtraArgs, test_instance,
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
     ramsyscall_printf("Basic cdlTest with arg = 0x20, 0x00, errored in %ius\n", errorTime);
-
-    IMASK = imask;
 )
 
 CESTER_TEST(cdlTestff, test_instance,
@@ -152,10 +134,6 @@ CESTER_TEST(cdlTestff, test_instance,
     }
 
     initializeTime();
-
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_CDROM;
 
     CDROM_REG0 = 0;
     CDROM_REG2 = 0xff;
@@ -180,6 +158,4 @@ CESTER_TEST(cdlTestff, test_instance,
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
     ramsyscall_printf("Basic cdlTest with arg = 0xff, errored in %ius\n", ackTime);
-
-    IMASK = imask;
 )
