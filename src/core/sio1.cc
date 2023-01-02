@@ -126,7 +126,7 @@ void PCSX::SIO1::sio1StateMachine() {
     }
 }
 
-void PCSX::SIO1::interrupt() {
+void PCSX::SIO1::scheduledCallback() {
     SIO1_LOG("SIO1 Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
     psxHu32ref(0x1070) |= SWAP_LEu32(IRQ8_SIO);
     m_regs.status |= SR_IRQ;
@@ -281,7 +281,7 @@ void PCSX::SIO1::writeCtrl16(uint16_t v) {
             m_sio1fifo.asA<Fifo>()->reset();
         }
 
-        PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
+        g_emulator->m_cpu->unschedule(Schedule::SIO1);
     }
 
     if (!(m_regs.control & CR_RXEN)) {

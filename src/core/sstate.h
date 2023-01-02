@@ -56,7 +56,7 @@ typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 32, TYPESTRING("cp2c"), 4> 
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pc"), 5> PC;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("code"), 6> Code;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("cycle"), 7> Cycle;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("interrupt"), 8> Interrupt;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("schedule_mask"), 8> ScheduleMask;
 // skip id 9
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_addr"), 10> ICacheAddr;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_code"), 11> ICacheCode;
@@ -75,11 +75,11 @@ typedef Protobuf::Message<TYPESTRING("DelaySlotInfo"), DelaySlotIndex, DelaySlot
 typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_1"), 14> DelaySlotInfo1;
 typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_2"), 15> DelaySlotInfo2;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("current_delayed_load"), 16> CurrentDelayedLoad;
-typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 32, TYPESTRING("interrupt_targets"), 17> IntTargetsField;
+typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 32, TYPESTRING("schedule_targets"), 17> ScheduleTargetsField;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("in_isr"), 18> InISR;
-typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, Interrupt, ICacheAddr,
+typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, ScheduleMask, ICacheAddr,
                           ICacheCode, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2, CurrentDelayedLoad,
-                          IntTargetsField, InISR>
+                          ScheduleTargetsField, InISR>
     Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersField;
 

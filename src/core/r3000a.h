@@ -174,17 +174,18 @@ typedef union {
     PAIR p[32];
 } psxCP2Ctrl;
 
-enum {
-    PSXINT_SIO = 0,
-    PSXINT_SIO1,
-    PSXINT_CDR,
-    PSXINT_CDREAD,
-    PSXINT_GPUDMA,
-    PSXINT_MDECOUTDMA,
-    PSXINT_SPUDMA,
-    PSXINT_MDECINDMA,
-    PSXINT_GPUOTCDMA,
-    PSXINT_CDRDMA,
+enum class Schedule : unsigned {
+    SIO = 0,
+    SIO1,
+    CDRFIFO,
+    CDRCOMMANDS,
+    CDREAD,
+    GPUDMA,
+    MDECOUTDMA,
+    SPUDMA,
+    MDECINDMA,
+    GPUOTCDMA,
+    CDRDMA,
 };
 
 struct psxRegisters {
@@ -196,9 +197,9 @@ struct psxRegisters {
     uint32_t code;    // The current instruction
     uint32_t cycle;
     uint32_t previousCycles;
-    uint32_t interrupt;
+    uint32_t scheduleMask;
     std::atomic<bool> spuInterrupt;
-    uint32_t intTargets[32];
+    uint32_t scheduleTargets[32];
     uint32_t lowestTarget;
     uint8_t ICache_Addr[0x1000];
     uint8_t ICache_Code[0x1000];
@@ -297,25 +298,32 @@ class R3000Acpu {
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
-    void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
-        PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
+    void schedule(Schedule s_, uint32_t eCycle) {
+        unsigned s = static_cast<unsigned>(s_);
+        PSXIRQ_LOG("Scheduling callback %08x at %08x\n", s, eCycle);
         const uint32_t cycle = m_regs.cycle;
-        uint32_t target = uint32_t(cycle + eCycle * m_interruptScales[interrupt]);
-        m_regs.interrupt |= (1 << interrupt);
-        m_regs.intTargets[interrupt] = target;
+        uint32_t target = uint32_t(cycle + eCycle * m_scheduleScales[s]);
+        m_regs.scheduleMask |= (1 << s);
+        m_regs.scheduleTargets[s] = target;
         int32_t lowest = m_regs.lowestTarget - cycle;
         int32_t maybeNewLowest = target - cycle;
         if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
     }
 
+    void unschedule(Schedule s_) {
+        unsigned s = static_cast<unsigned>(s_);
+        PSXIRQ_LOG("Unscheduling callback %08x\n", s);
+        m_regs.scheduleMask &= ~(1 << s);
+    }
+
     psxRegisters m_regs;
-    float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                                   1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+    float m_scheduleScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                  1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
     virtual void Reset() {
         invalidateCache();
-        m_regs.interrupt = 0;
+        m_regs.scheduleMask = 0;
     }
     bool m_inISR = false;
     bool m_nextIsDelaySlot = false;

@@ -1881,18 +1881,17 @@ of the emulator to take effect.)");
 
 void PCSX::GUI::interruptsScaler() {
     static const char* names[] = {
-        "SIO",      "SIO1",        "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",
-        "GPU Busy", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek",
-        "CDR Play",
+        "SIO",          "SIO1",    "CDR FIFO",    "CDR Command", "CDR Reads", "GPU DMA",
+        "MDEC Out DMA", "SPU DMA", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",
     };
-    if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
+    if (ImGui::Begin(_("Scheduler Scaler"), &m_showInterruptsScaler)) {
         if (ImGui::Button(_("Reset all"))) {
-            for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
+            for (auto& scale : g_emulator->m_cpu->m_scheduleScales) {
                 scale = 1.0f;
             }
         }
         unsigned counter = 0;
-        for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
+        for (auto& scale : g_emulator->m_cpu->m_scheduleScales) {
             ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
             counter++;
         }

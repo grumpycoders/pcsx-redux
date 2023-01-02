@@ -93,7 +93,7 @@ class SIO {
 
     void acknowledge();
     void init();
-    void interrupt();
+    void scheduledCallback();
     void reset();
 
     bool copyMcdFile(McdBlock block);
@@ -230,7 +230,7 @@ class SIO {
     bool isReceiveIRQReady();
     bool isTransmitReady();
     static inline void scheduleInterrupt(uint32_t eCycle) {
-        g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO, eCycle);
+        g_emulator->m_cpu->schedule(Schedule::SIO, eCycle);
 #if 0
 // Breaks Twisted Metal 2 intro
         m_statusReg &= ~RX_FIFONOTEMPTY;

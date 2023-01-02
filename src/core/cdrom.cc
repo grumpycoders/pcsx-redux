@@ -112,7 +112,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_realtime = false;
     }
 
-    void interrupt() override {
+    void fifoScheduledCallback() override {
         if (m_errorArgumentsCount) {
             m_errorArgumentsCount = false;
             m_cause = Cause::Error;
@@ -137,7 +137,9 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
-    void readInterrupt() override {
+    void commandsScheduledCallback() override {}
+
+    void readScheduledCallback() override {
         static const std::chrono::nanoseconds c_retryDelay = 50us;
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
@@ -223,20 +225,23 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
-    void dmaInterrupt() override {
+    void scheduleDmaCallback() override {
         if (HW_DMA3_CHCR & SWAP_LE32(0x01000000)) {
             HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
             DMA_INTERRUPT<3>();
         }
     }
 
-    void schedule(uint32_t cycles) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDR, cycles); }
+    void scheduleFifo(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRFIFO, cycles); }
+    void scheduleFifo(std::chrono::nanoseconds delay) { schedule(PCSX::psxRegisters::durationToCycles(delay)); }
+
+    void schedule(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRCOMMANDS, cycles); }
     void schedule(std::chrono::nanoseconds delay) { schedule(PCSX::psxRegisters::durationToCycles(delay)); }
 
-    void scheduleRead(uint32_t cycles) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDREAD, cycles); }
+    void scheduleRead(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDREAD, cycles); }
     void scheduleRead(std::chrono::nanoseconds delay) { scheduleRead(PCSX::psxRegisters::durationToCycles(delay)); }
 
-    void scheduleDMA(uint32_t cycles) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRDMA, cycles); }
+    void scheduleDMA(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRDMA, cycles); }
     void scheduleDMA(std::chrono::nanoseconds delay) { scheduleDMA(PCSX::psxRegisters::durationToCycles(delay)); }
 
     void triggerIRQ() {

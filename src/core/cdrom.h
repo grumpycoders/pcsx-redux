@@ -84,9 +84,10 @@ class CDRom {
 
     virtual void reset() = 0;
 
-    virtual void interrupt() = 0;
-    virtual void readInterrupt() = 0;
-    virtual void dmaInterrupt() = 0;
+    virtual void fifoScheduledCallback() = 0;
+    virtual void commandsScheduledCallback() = 0;
+    virtual void readScheduledCallback() = 0;
+    virtual void scheduleDmaCallback() = 0;
     virtual uint8_t read0() = 0;
     virtual uint8_t read1() = 0;
     virtual uint8_t read2() = 0;

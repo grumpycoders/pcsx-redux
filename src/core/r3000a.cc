@@ -284,41 +284,43 @@ void PCSX::R3000Acpu::branchTest() {
 
     if (m_regs.spuInterrupt.exchange(false)) PCSX::g_emulator->m_spu->interrupt();
 
-    const uint32_t interrupts = m_regs.interrupt;
+    const uint32_t interrupts = m_regs.scheduleMask;
 
     int32_t lowestDistance = std::numeric_limits<int32_t>::max();
     uint32_t lowestTarget = cycle;
-    uint32_t* targets = m_regs.intTargets;
+    uint32_t* targets = m_regs.scheduleTargets;
 
     if ((interrupts != 0) && (((int32_t)(m_regs.lowestTarget - cycle)) <= 0)) {
-#define checkAndUpdate(irq, act)                                \
-    {                                                           \
-        constexpr uint32_t mask = 1 << irq;                     \
-        if ((interrupts & mask) != 0) {                         \
-            uint32_t target = targets[irq];                     \
-            int32_t dist = target - cycle;                      \
-            if (dist > 0) {                                     \
-                if (lowestDistance > dist) {                    \
-                    lowestDistance = dist;                      \
-                    lowestTarget = target;                      \
-                }                                               \
-            } else {                                            \
-                m_regs.interrupt &= ~mask;                      \
-                PSXIRQ_LOG("Triggering interrupt %08x\n", irq); \
-                act();                                          \
-            }                                                   \
-        }                                                       \
+#define checkAndUpdate(irq_, act)                                     \
+    {                                                                 \
+        constexpr unsigned irq = static_cast<unsigned>(irq_);         \
+        constexpr uint32_t mask = 1 << irq;                           \
+        if ((interrupts & mask) != 0) {                               \
+            uint32_t target = targets[irq];                           \
+            int32_t dist = target - cycle;                            \
+            if (dist > 0) {                                           \
+                if (lowestDistance > dist) {                          \
+                    lowestDistance = dist;                            \
+                    lowestTarget = target;                            \
+                }                                                     \
+            } else {                                                  \
+                m_regs.scheduleMask &= ~mask;                         \
+                PSXIRQ_LOG("Calling scheduled callback %08x\n", irq); \
+                act();                                                \
+            }                                                         \
+        }                                                             \
     }
-        checkAndUpdate(PSXINT_SIO, g_emulator->m_sio->interrupt);
-        checkAndUpdate(PSXINT_SIO1, g_emulator->m_sio1->interrupt);
-        checkAndUpdate(PSXINT_CDR, g_emulator->m_cdrom->interrupt);
-        checkAndUpdate(PSXINT_CDREAD, g_emulator->m_cdrom->readInterrupt);
-        checkAndUpdate(PSXINT_GPUDMA, GPU::gpuInterrupt);
-        checkAndUpdate(PSXINT_MDECOUTDMA, g_emulator->m_mdec->mdec1Interrupt);
-        checkAndUpdate(PSXINT_SPUDMA, spuInterrupt);
-        checkAndUpdate(PSXINT_MDECINDMA, g_emulator->m_mdec->mdec0Interrupt);
-        checkAndUpdate(PSXINT_GPUOTCDMA, gpuotcInterrupt);
-        checkAndUpdate(PSXINT_CDRDMA, g_emulator->m_cdrom->dmaInterrupt);
+        checkAndUpdate(Schedule::SIO, g_emulator->m_sio->scheduledCallback);
+        checkAndUpdate(Schedule::SIO1, g_emulator->m_sio1->scheduledCallback);
+        checkAndUpdate(Schedule::CDRFIFO, g_emulator->m_cdrom->fifoScheduledCallback);
+        checkAndUpdate(Schedule::CDRCOMMANDS, g_emulator->m_cdrom->commandsScheduledCallback);
+        checkAndUpdate(Schedule::CDREAD, g_emulator->m_cdrom->readScheduledCallback);
+        checkAndUpdate(Schedule::GPUDMA, GPU::gpuInterrupt);
+        checkAndUpdate(Schedule::MDECOUTDMA, g_emulator->m_mdec->scheduledCallback1);
+        checkAndUpdate(Schedule::SPUDMA, spuInterrupt);
+        checkAndUpdate(Schedule::MDECINDMA, g_emulator->m_mdec->scheduledCallback0);
+        checkAndUpdate(Schedule::GPUOTCDMA, gpuotcInterrupt);
+        checkAndUpdate(Schedule::CDRDMA, g_emulator->m_cdrom->scheduleDmaCallback);
         m_regs.lowestTarget = lowestTarget;
     }
     if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_regs.CP0.n.Status & 0x401) == 0x401)) {
