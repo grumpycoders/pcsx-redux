@@ -39,6 +39,177 @@ CESTER_TEST(simpleReading, test_instances,
         return;
     }
 
+    int setLocDone = setLoc(0x20, 2, 0);
+
+    if (!setLocDone) {
+        cester_assert_true(setLocDone);
+        return;
+    }
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_READN;
+    uint8_t response[16];
+    waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    readResponse(response);
+
+    uint32_t sectorData[100];
+    uint8_t causes[100];
+
+    __builtin_memset(sectorData, 0, sizeof(sectorData));
+    __builtin_memset(causes, 0, sizeof(causes));
+
+    for (unsigned i = 0; i < 100; i++) {
+        waitCDRomIRQ();
+        uint8_t cause = ackCDRomCause();
+        causes[i] = cause;
+        readResponse(response);
+        if (cause != 1) break;
+
+        uint8_t sector[2048];
+
+        CDROM_REG0 = 0;
+        CDROM_REG3 = 0x80;
+
+        uint32_t dicr = DICR;
+        dicr &= 0x00ffffff;
+        dicr |= 0x00880000;
+        DICR = dicr;
+        DPCR |= 0x8000;
+        DMA_CTRL[DMA_CDROM].MADR = (uintptr_t)sector;
+        DMA_CTRL[DMA_CDROM].BCR = (2048 >> 2) | 0x10000;
+        DMA_CTRL[DMA_CDROM].CHCR = 0x11000000;
+
+        while ((DMA_CTRL[DMA_CDROM].CHCR & 0x01000000) != 0);
+        dicr = DICR;
+        dicr &= 0x00ffffff;
+        dicr |= 0x88000000;
+        DICR = dicr;
+        CDROM_REG3 = 0;
+
+        uint32_t *sector32 = (uint32_t *)sector;
+        sectorData[i] = sector32[0];
+    }
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_PAUSE;
+    waitCDRomIRQ();
+    uint8_t cause2 = ackCDRomCause();
+    readResponse(response);
+    waitCDRomIRQ();
+    uint8_t cause3 = ackCDRomCause();
+    readResponse(response);
+
+    uint32_t start = 20 * 60 * 75;
+    for (unsigned i = 0; i < 100; i++) {
+        cester_assert_uint_eq(start + i, sectorData[i]);
+        cester_assert_uint_eq(1, causes[i]);
+    }
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(3, cause2);
+    cester_assert_uint_eq(2, cause3);
+)
+
+CESTER_TEST(setLocDuringSimpleReading, test_instances,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    int setModeDone = setMode(0x80);
+    if (!setModeDone) {
+        cester_assert_true(setModeDone);
+        return;
+    }
+
+    int setLocDone = setLoc(0x20, 2, 0);
+
+    if (!setLocDone) {
+        cester_assert_true(setLocDone);
+        return;
+    }
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_READN;
+    uint8_t response[16];
+    waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    readResponse(response);
+
+    uint32_t sectorData[100];
+    uint8_t causes[100];
+
+    __builtin_memset(sectorData, 0, sizeof(sectorData));
+    __builtin_memset(causes, 0, sizeof(causes));
+
+    for (unsigned i = 0; i < 100; i++) {
+        waitCDRomIRQ();
+        uint8_t cause = ackCDRomCause();
+        causes[i] = cause;
+        readResponse(response);
+        if (cause != 1) break;
+
+        uint8_t sector[2048];
+
+        CDROM_REG0 = 0;
+        CDROM_REG3 = 0x80;
+
+        uint32_t dicr = DICR;
+        dicr &= 0x00ffffff;
+        dicr |= 0x00880000;
+        DICR = dicr;
+        DPCR |= 0x8000;
+        DMA_CTRL[DMA_CDROM].MADR = (uintptr_t)sector;
+        DMA_CTRL[DMA_CDROM].BCR = (2048 >> 2) | 0x10000;
+        DMA_CTRL[DMA_CDROM].CHCR = 0x11000000;
+
+        while ((DMA_CTRL[DMA_CDROM].CHCR & 0x01000000) != 0);
+        dicr = DICR;
+        dicr &= 0x00ffffff;
+        dicr |= 0x88000000;
+        DICR = dicr;
+        CDROM_REG3 = 0;
+
+        uint32_t *sector32 = (uint32_t *)sector;
+        sectorData[i] = sector32[0];
+
+        if (i == 50) setLocDone = setLoc(0x20, 2, 0);
+    }
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_PAUSE;
+    waitCDRomIRQ();
+    uint8_t cause2 = ackCDRomCause();
+    readResponse(response);
+    waitCDRomIRQ();
+    uint8_t cause3 = ackCDRomCause();
+    readResponse(response);
+
+    uint32_t start = 20 * 60 * 75;
+    for (unsigned i = 0; i < 100; i++) {
+        cester_assert_uint_eq(start + i, sectorData[i]);
+        cester_assert_uint_eq(1, causes[i]);
+    }
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(3, cause2);
+    cester_assert_uint_eq(2, cause3);
+    cester_assert_true(setLocDone);
+)
+
+CESTER_TEST(simpleReadingWithoutAck, test_instances,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    int setModeDone = setMode(0x80);
+    if (!setModeDone) {
+        cester_assert_true(setModeDone);
+        return;
+    }
+
     int setLocDone = setLoc(0x20, 0, 0);
     if (!setLocDone) {
         cester_assert_true(setLocDone);
@@ -213,7 +384,8 @@ CESTER_TEST(simpleReadingPauseWithoutAck, test_instances,
     cester_assert_uint_eq(0x38, ctrl7);
     cester_assert_uint_eq(0x18, ctrl8);
     // This bit will jitter
-    cester_assert_uint_eq(3, response1[0] & ~0x40);
+    uint8_t response1_0 = response1[0] & ~0x40;
+    cester_assert_uint_eq(3, response1_0);
     cester_assert_uint_eq(0x80, response1[1]);
     cester_assert_uint_eq(2, responseSize1);
     cester_assert_uint_eq(0x23, response2[0]);
