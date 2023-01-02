@@ -68,6 +68,11 @@ CESTER_BODY(
         return responseSize;
     }
 
+    static uint8_t discardResponse() {
+        uint8_t response[16];
+        return readResponse(response);
+    }
+
     static inline void initializeTime() {
         while (1) {
             uint32_t init = COUNTERS[1].value;
