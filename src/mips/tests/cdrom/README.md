@@ -12,6 +12,8 @@ This will emit a `test.cue` file, and multiple corresponding tracks. The data tr
 
 The tests are written in C, and are compiled using the [MIPS GCC toolchain](../../psyqo/GETTING_STARTED.md#the-toolchain). The tests are compiled using the `make` command, and the resulting binary needs to be run on systems that have an ANSI console connected.
 
+One important caveat of the test framework is it'll allocate memory for failed tests, and the memory allocator is very rudimentary. This means that if too many tests fail, the system will run out of memory and crash. Check the file `cdrom.c` to disable portions of tests and work incrementally towards a working emulator.
+
 The tests are checking two things: proper results from the CDRom controller, and approximate timings. The former are exact value checks, and will always reproduce properly on the real hardware. The latter are approximate value checks, and will usually only reproduce properly on the real hardware if the CD is inserted in the drive, the lid is closed, and the drive has been settled for a few seconds, but may still be flaky on the real hardware.
 
 The tests are currently being run on a 9001 machine for its real hardware routine checks, with occasional tests being run on a wider range of hardware.
