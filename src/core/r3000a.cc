@@ -37,7 +37,7 @@
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
-    g_system->printf(_("Copyright (C) 2019-2022 PCSX-Redux authors\n"));
+    g_system->printf(_("Copyright (C) 2019-2023 PCSX-Redux authors\n"));
     const auto& args = g_system->getArgs();
 
     if (args.get<bool>("interpreter"))
