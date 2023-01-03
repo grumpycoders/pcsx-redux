@@ -66,10 +66,10 @@ body:
     validations:
       required: true
     attributes:
-      label: GPU model
-      placeholder: (eg Nvidia GeForce GTX 980 Ti)
+      label: GPU model & Drivers
+      placeholder: Go to Help->About->OpenGL information
       description: >
-        The GPU model of the system you're running PCSX-Redux on
+        The GPU model and drivers version of the system you're running PCSX-Redux on
         
   - type: input
     validations:
@@ -80,28 +80,33 @@ body:
       description: >
         The BIOS you're using to play games.
 
-  - type: dropdown
-    validations:
-      required: true
+  - type: checkboxes
     attributes:
-      label: CPU emulation mode
-      description: >
-        If the menu bar says "Interpreted" on the top right, pick "Interpreter". Otherwise, pick "Recompiler"
+      label: Options
+      description: Check the same checkboxes that are also checked in the Configuration->Emulation window
       options:
-        - Interpreter
-        - Recompiler
-        
-  - type: dropdown
-    validations:
-      required: true
-    attributes:
-      label: GPU emulation mode
-      description: >
-        If you've ticked the "OpenGL GPU" option pick "OpenGL". Otherwise, pick "Software"
-      options:
-        - Software
-        - OpenGL
+        - label: Dynarec CPU
+        - label: 8MB
+        - label: OpenGL GPU
+        - label: Fastboot
+        - label: Debugger
 
+  - type: textarea
+    validations:
+      required: false
+    attributes:
+      label: Iso checks
+      description: >-
+        If possible, verify the integrity of your iso file by using the Debug->Iso browser window with its CRC32 feature. Compare and link the results with https://redump.org/
+
+  - type: textarea
+    validations:
+      required: false
+    attributes:
+      label: Logs
+      description: >-
+        If possible and relevant, go to the Debug->Show Logs window, and copy/paste its contents here.
+  
   - type: textarea
     validations:
       required: false

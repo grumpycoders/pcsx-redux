@@ -106,28 +106,7 @@ ssize_t PCSX::CDRIso::ecmDecode(IO<File> f, unsigned int base, void *dest, int s
                 break;
         }
 
-        // Compute EDC
-        switch (type) {
-            case 1:
-                ref32(0x810) = SWAP_LE32(IEC60908b::computeEDC(0, sector, 0x810));
-                break;
-            case 2:
-                ref32(0x818) = SWAP_LE32(IEC60908b::computeEDC(0, sector + 0x10, 0x808));
-                break;
-            case 3:
-                ref32(0x92c) = SWAP_LE32(IEC60908b::computeEDC(0, sector + 0x10, 0x91c));
-                break;
-        }
-
-        // Compute ECC
-        switch (type) {
-            case 1:
-                IEC60908b::computeECC(sector + 0xc, sector + 0x10, sector + 0x81c);
-                break;
-            case 2:
-                IEC60908b::computeECC(ZEROADDRESS, sector + 0x10, sector + 0x81c);
-                break;
-        }
+        IEC60908b::computeEDCECC(sector);
     };
 
     writebytecount = pos->sector * PCSX::IEC60908b::FRAMESIZE_RAW;

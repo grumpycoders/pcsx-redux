@@ -39,10 +39,10 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
     cuename.replace_extension("cue");
 
     fi.setFile(new UvFile(cuename));
+    if (fi->failed()) return false;
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         fi.asA<UvFile>()->startCaching();
     }
-    if (fi->failed()) return false;
 
     // Some stupid tutorials wrongly tell users to use cdrdao to rip a
     // "bin/cue" image, which is in fact a "bin/toc" image. So let's check
@@ -72,6 +72,11 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
         if (fi->failed()) {
             delete fi;
             fi = new UvFile(context->filepath / filename);
+        }
+        if (!fi->failed()) {
+            if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+                fi->startCaching();
+            }
         }
         file->opaque = fi;
         file->destroy = [](CueFile *file) {

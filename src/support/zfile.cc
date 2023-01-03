@@ -108,7 +108,7 @@ ssize_t PCSX::ZWriter::write(const void *dest, size_t size) {
     return size;
 }
 
-void PCSX::ZWriter::close() {
+void PCSX::ZWriter::closeInternal() {
     int r = Z_OK;
     while (r != Z_STREAM_END) {
         void *data = malloc(c_chunkSize);

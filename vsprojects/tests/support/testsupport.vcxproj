@@ -147,6 +147,7 @@
     <ClCompile Include="..\..\..\tests\support\circular.cc" />
     <ClCompile Include="..\..\..\tests\support\hashtable.cc" />
     <ClCompile Include="..\..\..\tests\support\list.cc" />
+    <ClCompile Include="..\..\..\tests\support\md5.cc" />
     <ClCompile Include="..\..\..\tests\support\tree.cc" />
   </ItemGroup>
   <ItemGroup>

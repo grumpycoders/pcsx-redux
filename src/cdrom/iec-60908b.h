@@ -135,10 +135,8 @@ struct MSF {
     };
 };
 
-// Write ECC P and Q codes for a sector
-void computeECC(const uint8_t *address, const uint8_t *data, uint8_t *ecc);
-// Compute EDC for a block
-uint32_t computeEDC(uint32_t edc, const uint8_t *src, size_t size);
+// Compute the EDC and ECC for a mode2 sector.
+void computeEDCECC(uint8_t *sector);
 
 // Compute the CRC-16 for the SubQ channel.
 uint16_t subqCRC(const uint8_t *d, int len = 10);
