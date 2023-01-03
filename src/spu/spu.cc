@@ -293,7 +293,7 @@ inline int PCSX::SPU::impl::iGetNoiseVal(SPUCHAN *pChannel) {
     auto &SB = pChannel->data.get<PCSX::SPU::Chan::SB>().value;
     int fa;
 
-    if ((dwNoiseVal <<= 1) & 0x80000000L) {
+    /* if ((dwNoiseVal <<= 1) & 0x80000000L) {
         dwNoiseVal ^= 0x0040001L;
         fa = ((dwNoiseVal >> 2) & 0x7fff);
         fa = -fa;
@@ -302,14 +302,48 @@ inline int PCSX::SPU::impl::iGetNoiseVal(SPUCHAN *pChannel) {
 
     // mmm... depending on the noise freq we allow bigger/smaller changes to the previous val
     fa = pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value +
-         ((fa - pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value) / ((0x001f - ((spuCtrl & 0x3f00) >> 9)) + 1));
-    if (fa > 32767L) fa = 32767L;
+         ((fa - pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value) / ((0x001f - ((spuCtrl & 0x3f00) >> 9)) + 1));*/
+
+    fa = (int16_t)dwNoiseVal;
+
+    /*if (fa > 32767L)
+        fa = 32767L;
     if (fa < -32767L) fa = -32767L;
-    pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value = fa;
+    pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value = fa;*/
 
     if (settings.get<Interpolation>() < 2)  // no gauss/cubic interpolation?
         SB[29].value = fa;                  // -> store noise val in "current sample" slot
     return fa;
+}
+
+// Noise Waveform - Dr. Hell (Xebra)
+char NoiseWaveAdd[64] = {1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1,
+                         1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,
+                         1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1};
+
+unsigned short NoiseFreqAdd[5] = {0, 84, 140, 180, 210};
+
+void PCSX::SPU::impl::NoiseClock() {
+    unsigned int level;
+
+    level = 0x8000 >> (dwNoiseClock >> 2);
+    level <<= 16;
+
+    dwNoiseCount += 0x10000;
+
+    // Dr. Hell - fraction
+    dwNoiseCount += NoiseFreqAdd[dwNoiseClock & 3];
+    if ((dwNoiseCount & 0xffff) >= NoiseFreqAdd[4]) {
+        dwNoiseCount += 0x10000;
+        dwNoiseCount -= NoiseFreqAdd[dwNoiseClock & 3];
+    }
+
+    if (dwNoiseCount >= level) {
+        while (dwNoiseCount >= level) dwNoiseCount -= level;
+
+        // Dr. Hell - form
+        dwNoiseVal = (dwNoiseVal << 1) | NoiseWaveAdd[(dwNoiseVal >> 10) & 63];
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -478,9 +512,9 @@ void PCSX::SPU::impl::MainThread() {
         //--------------------------------------------------//
         {
             pChannel = s_chan;
-            for (ch = 0; ch < MAXCHAN;
-                 ch++, pChannel++)  // loop em all... we will collect 1 ms of sound of each playing channel
-            {
+
+            // loop em all... we will collect 1 ms of sound of each playing channel
+            for (ch = 0; ch < MAXCHAN; ch++, pChannel++) {
                 if (pChannel->data.get<PCSX::SPU::Chan::New>().value) {
                     StartSound(pChannel);        // start new sound
                     dwNewChannel &= ~(1 << ch);  // clear new channel bit
@@ -505,9 +539,9 @@ void PCSX::SPU::impl::MainThread() {
                     VoiceChangeFrequency(pChannel);
 
                 ns = 0;
-
                 while (ns < NSSIZE)  // loop until 1 ms of data is reached
                 {
+                    NoiseClock();
                     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
                         FModChangeFrequency(pChannel, ns);
 
@@ -710,7 +744,6 @@ void PCSX::SPU::impl::MainThread() {
         ///////////////////////////////////////////////////////
         // mix all channels (including reverb) into one buffer
 
-        
         for (ns = 0; ns < NSSIZE; ns++) {
             SSumL[ns] += MixREVERBLeft(ns);
 

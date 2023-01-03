@@ -105,6 +105,7 @@ class impl final : public SPUInterface {
     int iGetNoiseVal(SPUCHAN *pChannel);
     void StoreInterpolationVal(SPUCHAN *pChannel, int fa);
     int iGetInterpolationVal(SPUCHAN *pChannel);
+    void NoiseClock();
 
     // registers
     void SoundOn(int start, int end, uint16_t val);
@@ -167,6 +168,8 @@ class impl final : public SPUInterface {
     REVERBInfo rvb;
 
     uint32_t dwNoiseVal = 1;  // global noise generator
+    uint32_t dwNoiseClock = 0;  // global noise generator
+    uint32_t dwNoiseCount = 0;  // global noise generator
 
     uint16_t spuCtrl = 0;  // some vars to store psx reg infos
     uint16_t spuStat = 0;

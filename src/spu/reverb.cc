@@ -107,8 +107,8 @@ void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
         else if (settings.get<Reverb>() == 1 && iReverbOff > 0)  // -> fake reverb used?
         {
             pChannel->data.get<Chan::RVBActive>().value = true;  // -> activate it
-            pChannel->data.get<Chan::RVBOffset>().value = iReverbOff * 45;
-            pChannel->data.get<Chan::RVBRepeat>().value = iReverbRepeat * 45;
+            pChannel->data.get<Chan::RVBOffset>().value = iReverbOff * NSSIZE;
+            pChannel->data.get<Chan::RVBRepeat>().value = iReverbRepeat * NSSIZE;
             pChannel->data.get<Chan::RVBNum>().value = iReverbNum;
         }
     } else
