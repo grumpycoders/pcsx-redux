@@ -49,6 +49,7 @@ SRCS += \
 branchbranch.s \
 cpu.c \
 links.s \
+loads.s \
 lwlr.s \
 
 include ../../common.mk
