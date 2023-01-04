@@ -33,7 +33,7 @@ SOFTWARE.
 
 /* This can happen. */
 cpu_delayed_load:
-    lw    $a1, 4($a0)
+    lw    $a1, 0($a0)
     move  $v0, $a1
     jr    $ra
     nop
@@ -44,7 +44,7 @@ cpu_delayed_load:
 
 /* This happens even more frequently. */
 cpu_delayed_load_cancelled:
-    lw    $v0, 4($a0)
+    lw    $v0, 0($a0)
     move  $v0, $a1
     jr    $ra
     nop
