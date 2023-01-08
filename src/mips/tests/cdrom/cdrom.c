@@ -39,7 +39,7 @@ SOFTWARE.
 
 #include "cester-hw.c"
 
-#if 0
+#if 1
 #include "cdlgetlocl.c"
 #include "cdlgetlocp.c"
 #include "cdlgettd.c"
