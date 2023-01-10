@@ -248,10 +248,7 @@ typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("registerIndex"), 9> CDRe
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("busy"), 10> CDBusy;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("state"), 11> CDState;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("command"), 12> CDCommand;
-typedef Protobuf::Message<TYPESTRING("CDRom"), CDDataFIFO, CDParamFIFO, CDResponseFIFO, CDDataFIFOIndex, CDDataFIFOSize,
-                          CDParamFIFOSize, CDResponseFIFOData, CDResponseFIFOSize, CDRegisterIndex, CDBusy, CDState,
-                          CDCommand>
-    CDRom;
+typedef Protobuf::Message<TYPESTRING("CDRom"), CDDataFIFO> CDRom;
 typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 15> CDRomField;
 
 typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, ThumbnailField, MemoryField, RegistersField,

@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "cdrom/cdriso.h"
 #include "cdrom/iec-60908b.h"
@@ -38,15 +39,9 @@ namespace Widgets {
 class IsoBrowser;
 }
 
-struct CdrStat {
-    uint32_t Type;
-    uint32_t Status;
-    IEC60908b::MSF Time;
-};
-
 class CDRom {
   public:
-    using MSF = PCSX::IEC60908b::MSF;
+    using MSF = IEC60908b::MSF;
     CDRom() : m_iso(new CDRIso()) {}
     virtual ~CDRom() {}
     static CDRom* factory();
@@ -104,8 +99,6 @@ class CDRom {
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
     bool dataFIFOHasData() { return m_dataFIFOIndex != m_dataFIFOSize; }
-    bool paramFIFOAvailable() { return m_paramFIFOSize != 16; }
-    bool responseFIFOHasData() { return m_responseFIFOIndex != m_responseFIFOSize; }
 
     bool m_lidOpen = false;
     bool m_wasLidOpened = false;
@@ -114,19 +107,10 @@ class CDRom {
 
     // to save/init
     uint8_t m_dataFIFO[2352] = {0};
-    uint8_t m_paramFIFO[16] = {0};
-    uint8_t m_responseFIFO[16] = {0};
     uint32_t m_dataFIFOIndex = 0;
     uint32_t m_dataFIFOSize = 0;
     uint32_t m_dataFIFOPending = 0;
-    uint8_t m_paramFIFOSize = 0;
-    uint8_t m_responseFIFOIndex = 0;
-    uint8_t m_responseFIFOSize = 0;
     uint8_t m_registerIndex = 0;
-    bool m_errorArgumentsCount = false;
-    bool m_busy = false;
-    bool m_gotAck = false;
-    bool m_waitingAck = false;
     bool m_motorOn = false;
     bool m_speedChanged = false;
     bool m_invalidLocL = false;
@@ -146,8 +130,6 @@ class CDRom {
         Seeking,
         PlayingCDDA,
     } m_status = Status::Idle;
-    uint8_t m_state = 0;
-    uint8_t m_command = 0;
     enum class Speed : uint8_t { Simple, Double } m_speed;
     enum class ReadSpan : uint8_t { S2048, S2328, S2340 } m_readSpan;
     uint8_t m_causeMask = 0x1f;
@@ -159,13 +141,62 @@ class CDRom {
         Acknowledge = 3,
         End = 4,
         Error = 5,
-    } m_cause = Cause::None;
+    };
 
     MSF m_currentPosition;
     MSF m_seekPosition;
     uint8_t m_lastLocP[8] = {0};
     uint8_t m_lastLocL[8] = {0};
-    unsigned m_readDelayed = 0;
+
+    struct QueueElement {
+        uint8_t value;
+        uint8_t payload[16];
+        bool valueRead = false;
+        bool hasValue = false;
+        uint8_t payloadSize = 0;
+        uint8_t payloadIndex = 0;
+        bool isPayloadEmpty() const { return payloadSize == payloadIndex; }
+        bool isPayloadFull() const { return payloadSize == sizeof(payload); }
+        bool empty() const { return (!hasValue || valueRead) && isPayloadEmpty(); }
+        void clear() {
+            hasValue = false;
+            valueRead = false;
+            payloadSize = 0;
+            payloadIndex = 0;
+        }
+        void setValue(uint8_t newValue) {
+            value = newValue;
+            hasValue = true;
+        }
+        void setValue(Cause cause) { setValue(static_cast<uint8_t>(cause)); }
+        void pushPayloadData(uint8_t value) {
+            if (payloadSize < sizeof(payload)) payload[payloadSize++] = value;
+        }
+        void pushPayloadData(std::string_view values) {
+            for (auto value : values) {
+                pushPayloadData(value);
+            }
+        }
+        uint8_t getValue() const { return valueRead ? 0 : value; }
+        uint8_t readPayloadByte() {
+            if (payloadIndex < payloadSize) {
+                return payload[payloadIndex++];
+            }
+            return 0;
+        }
+    };
+
+    QueueElement m_commandFifo;
+    QueueElement m_commandExecuting;
+    QueueElement m_responseFifo[2];
+    bool responseFifoFull() { return !m_responseFifo[0].empty() && !m_responseFifo[1].empty(); }
+    void maybeEnqueueResponse(QueueElement& response) {
+        if (m_responseFifo[0].empty()) {
+            m_responseFifo[0] = response;
+        } else if (m_responseFifo[1].empty()) {
+            m_responseFifo[1] = response;
+        }
+    }
 
   private:
     friend class Widgets::IsoBrowser;

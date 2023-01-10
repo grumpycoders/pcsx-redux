@@ -316,6 +316,11 @@ class R3000Acpu {
         m_regs.scheduleMask &= ~(1 << s);
     }
 
+    bool isScheduled(Schedule s_) {
+        unsigned s = static_cast<unsigned>(s_);
+        return (m_regs.scheduleMask & (1 << s)) != 0;
+    }
+
     psxRegisters m_regs;
     float m_scheduleScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
                                   1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};

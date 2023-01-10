@@ -75,7 +75,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     static constexpr size_t c_cdCmdEnumCount = magic_enum::enum_count<Commands>();
     static constexpr bool isValidBCD(uint8_t value) { return (value & 0x0f) <= 9 && (value & 0xf0) <= 0x90; }
-    static std::optional<PCSX::IEC60908b::MSF> getMSF(uint8_t *msf) {
+    static std::optional<PCSX::IEC60908b::MSF> getMSF(const uint8_t *msf) {
         bool validBCD = isValidBCD(msf[0]) && isValidBCD(msf[1]) && isValidBCD(msf[2]);
         if (!validBCD) return {};
         uint8_t m = PCSX::IEC60908b::btoi(msf[0]);
@@ -90,54 +90,29 @@ class CDRomImpl final : public PCSX::CDRom {
     void reset() override {
         m_dataFIFOIndex = 0;
         m_dataFIFOSize = 0;
-        m_paramFIFOSize = 0;
-        m_responseFIFOIndex = 0;
-        m_responseFIFOSize = 0;
         m_registerIndex = 0;
-        m_busy = false;
-        m_state = 0;
-        m_command = 0;
-        m_cause = Cause::None;
         m_currentPosition.reset();
         m_seekPosition.reset();
-        m_gotAck = false;
-        m_waitingAck = false;
         m_speed = Speed::Simple;
         m_speedChanged = false;
         m_status = Status::Idle;
-        m_readDelayed = 0;
         m_dataRequested = false;
         m_causeMask = 0x1f;
         m_subheaderFilter = false;
         m_realtime = false;
+        m_commandFifo.clear();
+        m_commandExecuting.clear();
+        m_responseFifo[0].clear();
+        m_responseFifo[1].clear();
     }
 
-    void fifoScheduledCallback() override {
-        if (m_errorArgumentsCount) {
-            m_errorArgumentsCount = false;
-            m_cause = Cause::Error;
-            m_paramFIFOSize = 0;
-            m_command = 0;
-            setResponse(getStatus() | 1);
-            appendResponse(0x20);
-            triggerIRQ();
-            return;
-        }
-        auto handler = c_commandsHandlers[m_command];
-        if (handler) {
-            (this->*handler)();
-        } else {
-            setResponse(getStatus() | 1);
-            appendResponse(0x40);
-            m_cause = Cause::Error;
-            m_paramFIFOSize = 0;
-            m_state = 0;
-            m_command = 0;
-            triggerIRQ();
-        }
-    }
+    void fifoScheduledCallback() override { maybeStartCommand(); }
 
-    void commandsScheduledCallback() override {}
+    void commandsScheduledCallback() override {
+        auto command = m_commandExecuting.value;
+        auto handler = c_commandsHandlers[command];
+        (this->*handler)(m_commandExecuting, false);
+    }
 
     void readScheduledCallback() override {
         static const std::chrono::nanoseconds c_retryDelay = 50us;
@@ -148,7 +123,6 @@ class CDRomImpl final : public PCSX::CDRom {
             m_status = Status::ReadingData;
         }
         if ((m_status == Status::Idle) || (m_status == Status::Seeking)) {
-            m_readDelayed = 0;
             m_readingType = ReadingType::None;
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: cancelling read.\n");
@@ -156,26 +130,15 @@ class CDRomImpl final : public PCSX::CDRom {
             return;
         }
 
-        if (m_command != 0) {
-            m_readDelayed++;
-            scheduleRead(c_retryDelay);
-            return;
-        }
         switch (m_status) {
             case Status::ReadingData: {
                 unsigned track = m_iso->getTrack(m_currentPosition);
                 if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
                     m_status = Status::Idle;
-                    m_cause = Cause::Error;
-                    setResponse(getStatus() | 4);
-                    appendResponse(4);
-                    triggerIRQ();
+                    maybeEnqueueError(4, 4);
                 } else if (track == 0) {
                     m_status = Status::Idle;
-                    m_cause = Cause::Error;
-                    setResponse(getStatus() | 4);
-                    appendResponse(0x10);
-                    triggerIRQ();
+                    maybeEnqueueError(4, 0x10);
                 } else {
                     m_invalidLocL = false;
                     m_iso->readTrack(m_currentPosition);
@@ -201,9 +164,6 @@ class CDRomImpl final : public PCSX::CDRom {
                             break;
                     }
                     auto readDelay = computeReadDelay();
-                    readDelay -= m_readDelayed * c_retryDelay;
-                    m_readDelayed = 0;
-                    m_cause = Cause::DataReady;
                     m_dataFIFOIndex = 0;
                     m_dataFIFOPending = size;
                     if (m_dataRequested) m_dataFIFOSize = size;
@@ -213,8 +173,9 @@ class CDRomImpl final : public PCSX::CDRom {
                         PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: advancing to %s.\n",
                                             msfFormat);
                     }
-                    setResponse(getStatus());
-                    triggerIRQ();
+                    QueueElement ready;
+                    ready.pushPayloadData(getStatus());
+                    maybeTriggerIRQ(Cause::DataReady, ready);
                     scheduleRead(readDelay);
                 }
             } break;
@@ -233,7 +194,7 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void scheduleFifo(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRFIFO, cycles); }
-    void scheduleFifo(std::chrono::nanoseconds delay) { schedule(PCSX::psxRegisters::durationToCycles(delay)); }
+    void scheduleFifo(std::chrono::nanoseconds delay) { scheduleFifo(PCSX::psxRegisters::durationToCycles(delay)); }
 
     void schedule(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRCOMMANDS, cycles); }
     void schedule(std::chrono::nanoseconds delay) { schedule(PCSX::psxRegisters::durationToCycles(delay)); }
@@ -244,47 +205,28 @@ class CDRomImpl final : public PCSX::CDRom {
     void scheduleDMA(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRDMA, cycles); }
     void scheduleDMA(std::chrono::nanoseconds delay) { scheduleDMA(PCSX::psxRegisters::durationToCycles(delay)); }
 
-    void triggerIRQ() {
-        assert(m_cause != Cause::None);
-        assert(!m_waitingAck);
-        uint8_t bit = 1 << (static_cast<uint8_t>(m_cause) - 1);
+    void maybeTriggerIRQ(Cause cause, QueueElement &element) {
+        uint8_t causeValue = static_cast<uint8_t>(cause);
+        uint8_t bit = 1 << (causeValue - 1);
         if (m_causeMask & bit) {
-            m_gotAck = false;
+            element.setValue(cause);
+            maybeEnqueueResponse(element);
             psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
             const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                    .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
             if (debug) {
                 auto &regs = PCSX::g_emulator->m_cpu->m_regs;
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] triggering IRQ with cause %d\n", regs.pc,
-                                    regs.cycle, static_cast<uint8_t>(m_cause));
+                                    regs.cycle, causeValue);
             }
         } else {
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                     .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: wanted to trigger IRQ but cause %d is masked...\n",
-                                    static_cast<uint8_t>(m_cause));
+                                    causeValue);
             }
         }
     }
-
-    void setResponse(std::string_view response) {
-        std::copy(response.begin(), response.end(), m_responseFIFO);
-        m_responseFIFOSize = response.size();
-        m_responseFIFOIndex = 0;
-    }
-
-    void setResponse(uint8_t response) {
-        m_responseFIFO[0] = response;
-        m_responseFIFOSize = 1;
-        m_responseFIFOIndex = 0;
-    }
-
-    void appendResponse(std::string_view response) {
-        std::copy(response.begin(), response.end(), m_responseFIFO + m_responseFIFOSize);
-        m_responseFIFOSize += response.size();
-    }
-
-    void appendResponse(uint8_t response) { m_responseFIFO[m_responseFIFOSize++] = response; }
 
     uint8_t getStatus(bool resetLid = false) {
         bool lidOpen = isLidOpen();
@@ -309,11 +251,11 @@ class CDRomImpl final : public PCSX::CDRom {
     uint8_t read0() override {
         uint8_t v01 = m_registerIndex & 3;
         uint8_t adpcmPlaying = 0;
-        uint8_t v3 = m_paramFIFOSize == 0 ? 0x08 : 0;
-        uint8_t v4 = paramFIFOAvailable() ? 0x10 : 0;
-        uint8_t v5 = responseFIFOHasData() ? 0x20 : 0;
+        uint8_t v3 = m_commandFifo.isPayloadEmpty() ? 0x08 : 0;
+        uint8_t v4 = !m_commandFifo.isPayloadFull() ? 0x10 : 0;
+        uint8_t v5 = !m_responseFifo[0].empty() ? 0x20 : 0;
         uint8_t v6 = m_dataFIFOSize != m_dataFIFOIndex ? 0x40 : 0;
-        uint8_t v7 = m_busy ? 0x80 : 0;
+        uint8_t v7 = m_commandFifo.hasValue ? 0x80 : 0;
 
         uint8_t ret = v01 | adpcmPlaying | v3 | v4 | v5 | v6 | v7;
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -327,12 +269,8 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     uint8_t read1() override {
-        uint8_t ret = 0;
-        if (!responseFIFOHasData()) {
-            ret = 0;
-        } else {
-            ret = m_responseFIFO[m_responseFIFOIndex++];
-        }
+        uint8_t ret = m_responseFifo[0].readPayloadByte();
+        // TODO: if empty, move response FIFO and maybe trigger IRQ.
 
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
@@ -369,7 +307,7 @@ class CDRomImpl final : public PCSX::CDRom {
             case 1: {
                 // cause
                 // TODO: add bit 4
-                ret = magic_enum::enum_integer(m_cause) | 0xe0;
+                ret = m_responseFifo[0].getValue() | 0xe0;
             } break;
         }
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -401,17 +339,17 @@ class CDRomImpl final : public PCSX::CDRom {
                                 m_registerIndex, value);
         }
         switch (m_registerIndex) {
-            case 0: {
-                if (m_command != 0) {
-                    // The CD-Rom controller is already executing a command.
-                    // This basically results in undefined behavior. We'll still
-                    // have to address this, as some games will do it anyway.
-                    PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                        "CD-Rom: command while controller is already executing one!\n");
-                    PCSX::g_system->pause();
+            case 0:
+                m_commandFifo.value = value;
+                if (!m_commandFifo.hasValue) {
+                    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                            .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+                        logCDROM(m_commandFifo);
+                    }
+                    scheduleFifo(1ms);
                 }
-                startCommand(value);
-            } break;
+                m_commandFifo.hasValue = true;
+                break;
             case 1: {
                 // ??
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w1:1 not available yet\n");
@@ -439,7 +377,7 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         switch (m_registerIndex) {
             case 0: {
-                if (paramFIFOAvailable()) m_paramFIFO[m_paramFIFOSize++] = value;
+                m_commandFifo.pushPayloadData(value);
             } break;
             case 1: {
                 m_causeMask = value;
@@ -492,12 +430,8 @@ class CDRomImpl final : public PCSX::CDRom {
                     ack = true;
                 }
                 if (ack) {
-                    m_cause = Cause::None;
-                    if (m_waitingAck) {
-                        m_waitingAck = false;
-                        schedule(350us);
-                    }
-                    m_gotAck = true;
+                    m_responseFifo[0].valueRead = true;
+                    // TODO: if empty, move response FIFO and maybe trigger IRQ.
                     return;
                 }
                 if (value & 0x10) {
@@ -509,7 +443,7 @@ class CDRomImpl final : public PCSX::CDRom {
                     // TODO: act on this?
                 }
                 if (value & 0x40) {
-                    m_paramFIFOSize = 0;
+                    m_commandFifo.payloadSize = 0;
                     return;
                 }
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:1(%02x) not available yet\n", value);
@@ -548,44 +482,42 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
-    void startCommand(uint8_t command) {
-        m_state = 0;
-        m_command = command;
-        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
-            logCDROM(command);
-        }
+    void maybeEnqueueError(uint8_t mask1, uint8_t mask2) {
+        QueueElement error;
+        error.pushPayloadData(getStatus() | mask1);
+        error.pushPayloadData(mask2);
+        maybeTriggerIRQ(Cause::Error, error);
+    }
 
-        if (command > 30) {
-            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unknown CD-Rom command\n");
-            PCSX::g_system->pause();
+    void maybeStartCommand() {
+        auto command = m_commandFifo.value;
+        static constexpr unsigned c_commandMax = sizeof(c_commandsArgumentsCount) / sizeof(c_commandsArgumentsCount[0]);
+        if (command >= c_commandMax) {
+            maybeEnqueueError(1, 0x40);
+            endCommand();
             return;
         }
-
-        auto count = c_commandsArgumentsCount[command];
-        if (count >= 0) {
-            if (m_paramFIFOSize != count) {
-                m_errorArgumentsCount = true;
-                schedule(750us);
-                return;
-            }
+        auto expectedCount = c_commandsArgumentsCount[command];
+        if ((expectedCount >= 0) && (expectedCount != m_commandFifo.payloadSize)) {
+            maybeEnqueueError(1, 0x20);
+            endCommand();
+            return;
         }
-
         auto handler = c_commandsHandlers[command];
-
-        std::chrono::nanoseconds initialDelay = c_commandsInitialDelay[command];
-
-        if (handler == nullptr) {
-            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unknown CD-Rom command %i\n", m_command);
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                    .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
-                PCSX::g_system->pause();
+        if (handler) {
+            if ((this->*handler)(m_commandFifo, true)) {
+                m_commandExecuting = m_commandFifo;
             }
-            initialDelay = 750us;
+            m_commandFifo.clear();
+        } else {
+            maybeEnqueueError(1, 0x40);
+            endCommand();
+            return;
         }
+    }
 
-        m_state = 1;
-        schedule(initialDelay);
+    void endCommand() {
+        if (!responseFifoFull() && !m_commandFifo.empty()) scheduleFifo(1ms);
     }
 
     enum class SeekType { DATA, CDDA };
@@ -610,146 +542,132 @@ class CDRomImpl final : public PCSX::CDRom {
     std::chrono::nanoseconds computeReadDelay() { return m_speed == Speed::Simple ? 13333us : 6666us; }
 
     // Command 1.
-    void cdlNop() {
-        setResponse(getStatus(true));
-        m_cause = Cause::Acknowledge;
-        m_command = 0;
-        triggerIRQ();
+    bool cdlNop(const QueueElement &command, bool start) {
+        QueueElement response;
+        response.pushPayloadData(getStatus(true));
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        endCommand();
+        return false;
     }
 
     // Command 2.
-    void cdlSetLoc() {
+    bool cdlSetLoc(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
         // What happens when issued during Read / Play?
-        auto maybeMSF = getMSF(m_paramFIFO);
+        auto maybeMSF = getMSF(command.payload);
+        QueueElement response;
+        Cause cause;
         if (maybeMSF.has_value()) {
-            setResponse(getStatus());
-            m_cause = Cause::Acknowledge;
+            response.pushPayloadData(getStatus());
+            cause = Cause::Acknowledge;
+            maybeTriggerIRQ(cause, response);
             m_seekPosition = maybeMSF.value();
         } else {
-            setResponse(getStatus() | 1);
-            appendResponse(0x10);
-            m_cause = Cause::Error;
+            maybeEnqueueError(1, 0x10);
         }
-        m_paramFIFOSize = 0;
-        m_command = 0;
-        triggerIRQ();
+        endCommand();
+        return false;
     }
 
     // Command 6.
-    void cdlReadN() {
+    bool cdlReadN(const QueueElement &command, bool start) {
         auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
         if (m_speedChanged) {
             m_speedChanged = false;
             seekDelay += 650ms;
         }
         scheduleRead(seekDelay + computeReadDelay());
-        m_cause = Cause::Acknowledge;
-        setResponse(getStatus());
+        QueueElement response;
+        response.pushPayloadData(getStatus());
         m_currentPosition = m_seekPosition;
-        m_command = 0;
         m_startReading = true;
         m_readingType = ReadingType::Normal;
-        triggerIRQ();
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        endCommand();
+        return false;
     }
 
     // Command 9.
-    void cdlPause() {
-        switch (m_state) {
-            case 1: {
-                if (m_status == Status::Idle) {
-                    schedule(200us);
-                } else {
-                    schedule(m_speed == Speed::Simple ? 70ms : 35ms);
-                }
-                m_cause = Cause::Acknowledge;
-                m_state = 2;
-                setResponse(getStatus());
-                triggerIRQ();
-            } break;
-            case 2:
-                m_status = Status::Idle;
-                m_invalidLocL = true;
-                if (!m_gotAck) {
-                    m_waitingAck = true;
-                    m_state = 3;
-                    break;
-                }
-                [[fallthrough]];
-            case 3:
-                m_cause = Cause::Complete;
-                m_command = 0;
-                setResponse(getStatus());
-                triggerIRQ();
-                break;
+    bool cdlPause(const QueueElement &command, bool start) {
+        if (start) {
+            if (m_status == Status::Idle) {
+                schedule(200us);
+            } else {
+                schedule(m_speed == Speed::Simple ? 70ms : 35ms);
+            }
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            return true;
+        } else {
+            m_status = Status::Idle;
+            m_invalidLocL = true;
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Complete, response);
+            endCommand();
+            return false;
         }
     }
 
     // Command 10.
-    void cdlInit() {
-        switch (m_state) {
-            case 1:
-                m_cause = Cause::Acknowledge;
-                m_state = 2;
-                setResponse(getStatus());
-                triggerIRQ();
-                schedule(120ms);
-                break;
-            case 2:
-                // TODO: figure out exactly the various states of the CD-Rom controller
-                // that are being reset, and their value.
-                m_motorOn = true;
-                m_speedChanged = false;
-                m_currentPosition.reset();
-                m_currentPosition.s = 2;
-                m_seekPosition.reset();
-                m_seekPosition.s = 2;
-                m_invalidLocL = false;
-                m_speed = Speed::Simple;
-                m_status = Status::Idle;
-                m_causeMask = 0x1f;
-                memset(m_lastLocP, 0, sizeof(m_lastLocP));
-                if (!m_gotAck) {
-                    m_waitingAck = true;
-                    m_state = 3;
-                    break;
-                }
-                [[fallthrough]];
-            case 3:
-                m_cause = Cause::Complete;
-                m_command = 0;
-                setResponse(getStatus());
-                triggerIRQ();
-                break;
+    bool cdlInit(const QueueElement &command, bool start) {
+        if (start) {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(120ms);
+            return true;
+        } else {
+            // TODO: figure out exactly the various states of the CD-Rom controller
+            // that are being reset, and their value.
+            m_motorOn = true;
+            m_speedChanged = false;
+            m_currentPosition.reset();
+            m_currentPosition.s = 2;
+            m_seekPosition.reset();
+            m_seekPosition.s = 2;
+            m_invalidLocL = false;
+            m_speed = Speed::Simple;
+            m_status = Status::Idle;
+            m_causeMask = 0x1f;
+            memset(m_lastLocP, 0, sizeof(m_lastLocP));
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Complete, response);
+            endCommand();
+            return false;
         }
     }
 
     // Command 11
-    void cdlMute() {
+    bool cdlMute(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
-        setResponse(getStatus());
-        m_cause = Cause::Acknowledge;
-        m_command = 0;
         PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: Mute - not yet implemented.\n");
-        triggerIRQ();
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        endCommand();
+        return false;
     }
 
     // Command 12
-    void cdlDemute() {
+    bool cdlDemute(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
-        setResponse(getStatus());
-        m_cause = Cause::Acknowledge;
-        m_command = 0;
         PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: Demute - not yet implemented.\n");
-        triggerIRQ();
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        endCommand();
+        return false;
     }
 
     // Command 14
-    void cdlSetMode() {
-        uint8_t mode = m_paramFIFO[0];
+    bool cdlSetMode(const QueueElement &command, bool start) {
+        uint8_t mode = command.payload[0];
         // TODO: add the rest of the mode bits.
         if (mode & 0x80) {
             if (m_speed == Speed::Simple) {
@@ -783,234 +701,193 @@ class CDRomImpl final : public PCSX::CDRom {
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode:\n", mode);
             PCSX::g_system->pause();
         }
-        setResponse(getStatus());
-        m_cause = Cause::Acknowledge;
-        m_paramFIFOSize = 0;
-        m_command = 0;
-        triggerIRQ();
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        endCommand();
+        return false;
     }
 
     // Command 16.
-    void cdlGetLocL() {
+    bool cdlGetLocL(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
         if (m_invalidLocL) {
-            setResponse(getStatus() | 1);
-            appendResponse(0x80);
-            m_cause = Cause::Error;
+            maybeEnqueueError(1, 0x80);
         } else {
-            setResponse(std::string_view((char *)m_lastLocL, sizeof(m_lastLocL)));
-            m_cause = Cause::Acknowledge;
+            QueueElement response;
+            response.pushPayloadData(std::string_view((char *)m_lastLocL, sizeof(m_lastLocL)));
+            maybeTriggerIRQ(Cause::Acknowledge, response);
         }
-        m_command = 0;
-        triggerIRQ();
+        endCommand();
+        return false;
     }
 
     // Command 17.
-    void cdlGetLocP() {
+    bool cdlGetLocP(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
         m_iso->getLocP(m_currentPosition, m_lastLocP);
-        setResponse(std::string_view((char *)m_lastLocP, sizeof(m_lastLocP)));
-        m_cause = Cause::Acknowledge;
-        m_command = 0;
-        triggerIRQ();
+        QueueElement response;
+        response.pushPayloadData(std::string_view((char *)m_lastLocP, sizeof(m_lastLocP)));
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        endCommand();
+        return false;
     }
 
     // Command 19.
-    void cdlGetTN() {
+    bool cdlGetTN(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
-        setResponse(getStatus());
-        appendResponse(1);
-        appendResponse(PCSX::IEC60908b::itob(m_iso->getTN()));
-        m_cause = Cause::Acknowledge;
-        m_command = 0;
-        triggerIRQ();
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        response.pushPayloadData(1);
+        response.pushPayloadData(PCSX::IEC60908b::itob(m_iso->getTN()));
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        endCommand();
+        return false;
     }
 
     // Command 20.
-    void cdlGetTD() {
+    bool cdlGetTD(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
-        auto track = PCSX::IEC60908b::btoi(m_paramFIFO[0]);
-        if (!isValidBCD(m_paramFIFO[0]) || (track > m_iso->getTN())) {
-            setResponse(getStatus() | 1);
-            appendResponse(0x10);
-            m_cause = Cause::Error;
+        auto track = PCSX::IEC60908b::btoi(command.payload[0]);
+        if (!isValidBCD(command.payload[0]) || (track > m_iso->getTN())) {
+            maybeEnqueueError(1, 0x10);
         } else {
-            setResponse(getStatus());
             auto td = m_iso->getTD(track);
-            appendResponse(PCSX::IEC60908b::itob(td.m));
-            appendResponse(PCSX::IEC60908b::itob(td.s));
-            m_cause = Cause::Acknowledge;
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            response.pushPayloadData(PCSX::IEC60908b::itob(td.m));
+            response.pushPayloadData(PCSX::IEC60908b::itob(td.s));
+            maybeTriggerIRQ(Cause::Acknowledge, response);
         }
-        m_paramFIFOSize = 0;
-        m_command = 0;
-        triggerIRQ();
+        endCommand();
+        return false;
     }
 
     // Command 21.
-    void cdlSeekL() {
-        switch (m_state) {
-            case 1: {
-                m_cause = Cause::Acknowledge;
-                m_state = 2;
-                setResponse(getStatus());
-                triggerIRQ();
-                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
-                if (m_speedChanged) {
-                    m_speedChanged = false;
-                    seekDelay += 650ms;
-                }
-                m_status = Status::Seeking;
-                schedule(seekDelay);
-            } break;
-            case 2:
-                m_status = Status::Idle;
-                if (!m_gotAck) {
-                    m_waitingAck = true;
-                    m_state = 3;
-                    break;
-                }
-                [[fallthrough]];
-            case 3: {
-                m_currentPosition = m_seekPosition;
-                unsigned track = m_iso->getTrack(m_seekPosition);
-                if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
-                    m_cause = Cause::Error;
-                    setResponse(getStatus() | 4);
-                    appendResponse(4);
-                } else if (track == 0) {
-                    m_cause = Cause::Error;
-                    setResponse(getStatus() | 4);
-                    appendResponse(0x10);
-                } else {
-                    m_cause = Cause::Complete;
-                    setResponse(getStatus());
-                }
-                m_invalidLocL = true;
-                m_command = 0;
-                triggerIRQ();
-            } break;
+    bool cdlSeekL(const QueueElement &command, bool start) {
+        if (start) {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
+            if (m_speedChanged) {
+                m_speedChanged = false;
+                seekDelay += 650ms;
+            }
+            m_status = Status::Seeking;
+            schedule(seekDelay);
+            return true;
+        } else {
+            m_status = Status::Idle;
+            m_currentPosition = m_seekPosition;
+            unsigned track = m_iso->getTrack(m_seekPosition);
+            if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
+                maybeEnqueueError(4, 4);
+            } else if (track == 0) {
+                maybeEnqueueError(4, 0x10);
+            } else {
+                QueueElement response;
+                response.pushPayloadData(getStatus());
+                maybeTriggerIRQ(Cause::Complete, response);
+            }
+            m_invalidLocL = true;
+            endCommand();
+            return false;
         }
     }
 
     // Command 22.
-    void cdlSeekP() {
-        switch (m_state) {
-            case 1: {
-                m_cause = Cause::Acknowledge;
-                m_state = 2;
-                setResponse(getStatus());
-                triggerIRQ();
-                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::CDDA);
-                if (m_speedChanged) {
-                    m_speedChanged = false;
-                    seekDelay += 650ms;
-                }
-                m_status = Status::Seeking;
-                schedule(seekDelay);
-            } break;
-            case 2:
-                m_status = Status::Idle;
-                if (!m_gotAck) {
-                    m_waitingAck = true;
-                    m_state = 3;
-                    break;
-                }
-                [[fallthrough]];
-            case 3: {
-                MSF fudge = m_seekPosition - MSF{m_seekPosition.toLBA() / 32768};
-                m_currentPosition = fudge;
-                if (m_iso->getTrack(m_seekPosition) == 0) {
-                    m_cause = Cause::Error;
-                    setResponse(getStatus() | 4);
-                    appendResponse(0x10);
-                } else {
-                    m_cause = Cause::Complete;
-                    setResponse(getStatus());
-                }
-                m_invalidLocL = true;
-                m_command = 0;
-                triggerIRQ();
-            } break;
+    bool cdlSeekP(const QueueElement &command, bool start) {
+        if (start) {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::CDDA);
+            if (m_speedChanged) {
+                m_speedChanged = false;
+                seekDelay += 650ms;
+            }
+            m_status = Status::Seeking;
+            schedule(seekDelay);
+            return true;
+        } else {
+            m_status = Status::Idle;
+            MSF fudge = m_seekPosition - MSF{m_seekPosition.toLBA() / 32768};
+            m_currentPosition = fudge;
+            if (m_iso->getTrack(m_seekPosition) == 0) {
+                maybeEnqueueError(4, 0x10);
+            } else {
+                QueueElement response;
+                response.pushPayloadData(getStatus());
+                maybeTriggerIRQ(Cause::Complete, response);
+            }
+            m_invalidLocL = true;
+            endCommand();
+            return false;
         }
     }
 
     // Command 25.
-    void cdlTest() {
+    bool cdlTest(const QueueElement &command, bool start) {
         static constexpr uint8_t c_test20[] = {0x94, 0x09, 0x19, 0xc0};
-        if (m_paramFIFOSize == 0) {
-            m_cause = Cause::Error;
-            m_paramFIFOSize = 0;
-            m_command = 0;
-            setResponse(getStatus() | 1);
-            appendResponse(0x20);
-            triggerIRQ();
-            return;
+        if (command.isPayloadEmpty()) {
+            maybeEnqueueError(1, 0x20);
+            endCommand();
+            return false;
         }
 
-        switch (m_paramFIFO[0]) {
+        switch (command.payload[0]) {
             case 0x20:
-                if (m_paramFIFOSize == 1) {
-                    setResponse(std::string_view((const char *)c_test20, sizeof(c_test20)));
-                    m_cause = Cause::Acknowledge;
+                if (command.payloadSize == 1) {
+                    QueueElement response;
+                    response.pushPayloadData(std::string_view((const char *)c_test20, sizeof(c_test20)));
+                    maybeTriggerIRQ(Cause::Acknowledge, response);
                 } else {
-                    setResponse(getStatus() | 1);
-                    appendResponse(0x20);
-                    m_cause = Cause::Error;
+                    maybeEnqueueError(1, 0x20);
                 }
                 break;
             default:
-                setResponse(getStatus() | 1);
-                appendResponse(0x10);
-                m_cause = Cause::Error;
+                maybeEnqueueError(1, 0x10);
                 break;
         }
-        m_paramFIFOSize = 0;
-        m_command = 0;
-        triggerIRQ();
+        endCommand();
+        return false;
     }
 
     // Command 26.
-    void cdlID() {
-        switch (m_state) {
-            case 1:
-                m_cause = Cause::Acknowledge;
-                m_state = 2;
-                setResponse(getStatus());
-                triggerIRQ();
-                schedule(5ms);
-                break;
-            case 2:
-                if (!m_gotAck) {
-                    m_waitingAck = true;
-                    m_state = 3;
-                    break;
-                }
-                [[fallthrough]];
-            case 3: {
-                // Adjust this response for various types of discs and situations.
-                m_cause = Cause::Complete;
-                setResponse(getStatus());
-                appendResponse(0x00);
-                appendResponse(0x20);
-                appendResponse(0x00);
-                appendResponse("PCSX"sv);
-                m_command = 0;
-                triggerIRQ();
-            } break;
+    bool cdlID(const QueueElement &command, bool start) {
+        if (start) {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(5ms);
+            return true;
+        } else {
+            // Adjust this response for various types of discs and situations.
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            response.pushPayloadData(0x00);
+            response.pushPayloadData(0x20);
+            response.pushPayloadData(0x00);
+            response.pushPayloadData("PCSX"sv);
+            maybeTriggerIRQ(Cause::Complete, response);
+            endCommand();
+            return false;
         }
     }
 
     // Command 27.
-    void cdlReadS() {
-        cdlReadN();
+    bool cdlReadS(const QueueElement &command, bool start) {
+        bool ret = cdlReadN(command, start);
         m_readingType = ReadingType::Streaming;
+        return ret;
     }
 
-    typedef void (CDRomImpl::*CommandType)();
+    typedef bool (CDRomImpl::*CommandType)(const QueueElement &, bool);
 
     const CommandType c_commandsHandlers[31] {
 #if 0
@@ -1045,40 +922,29 @@ class CDRomImpl final : public PCSX::CDRom {
         0, 0,  0,      // 28
     };
 
-    static constexpr std::chrono::nanoseconds c_commandsInitialDelay[31] = {
-        0ns,   750us, 1ms,   0ns,    // 0
-        0ns,   0ns,   1ms,   0ns,    // 4
-        0ns,   1ms,   2ms,   750us,  // 8
-        750us, 0ns,   750us, 0ns,    // 12
-        750us, 750us, 0ns,   2ms,    // 16
-        750us, 1ms,   1ms,   0ns,    // 20
-        0ns,   750us, 5ms,   1ms,    // 24
-        0ns,   0ns,   0ns,           // 28
-    };
-
-    void logCDROM(uint8_t command) {
+    void logCDROM(const QueueElement &command) {
         auto &regs = PCSX::g_emulator->m_cpu->m_regs;
 
-        switch (command & 0xff) {
+        switch (command.value) {
             case CdlTest:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlTest %02x\n", regs.pc,
-                                    regs.cycle, m_paramFIFO[0]);
+                                    regs.cycle, command.payload[0]);
                 break;
             case CdlSetLoc:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlSetloc %02x:%02x:%02x\n",
-                                    regs.pc, regs.cycle, m_paramFIFO[0], m_paramFIFO[1], m_paramFIFO[2]);
+                                    regs.pc, regs.cycle, command.payload[0], command.payload[1], command.payload[2]);
                 break;
             case CdlPlay:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlPlay %i\n", regs.pc,
-                                    regs.cycle, m_paramFIFO[0]);
+                                    regs.cycle, command.payload[0]);
                 break;
             case CdlSetFilter:
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
                                     "CD-Rom: %08x.%08x] Command: CdlSetfilter file: %i, channel: %i\n", regs.pc,
-                                    regs.cycle, m_paramFIFO[0], m_paramFIFO[1]);
+                                    regs.cycle, command.payload[0], command.payload[1]);
                 break;
             case CdlSetMode: {
-                auto mode = m_paramFIFO[0];
+                auto mode = command.payload[0];
                 std::string modeDecode = mode & 1 ? "CDDA" : "DATA";
                 if (mode & 2) modeDecode += " Autopause";
                 if (mode & 4) modeDecode += " Report";
@@ -1100,25 +966,25 @@ class CDRomImpl final : public PCSX::CDRom {
                 if (mode & 0x40) modeDecode += " RealTimePlay";
                 modeDecode += mode & 0x80 ? " @2x" : " @1x";
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlSetmode %02x (%s)\n",
-                                    regs.pc, regs.cycle, m_paramFIFO[0], modeDecode);
+                                    regs.pc, regs.cycle, command.payload[0], modeDecode);
             } break;
             case CdlGetTN:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlGetTN (returns %i)\n",
                                     regs.pc, regs.cycle, m_iso->getTN());
                 break;
             case CdlGetTD: {
-                auto ret = m_iso->getTD(m_paramFIFO[0]);
+                auto ret = m_iso->getTD(command.payload[0]);
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
                                     "CD-Rom: %08x.%08x] Command: CdlGetTD %i (returns %02i:%02i:%02i)\n", regs.pc,
-                                    regs.cycle, m_paramFIFO[0], ret.m, ret.s, ret.f);
+                                    regs.cycle, command.payload[0], ret.m, ret.s, ret.f);
             } break;
             default:
-                if ((command & 0xff) > c_cdCmdEnumCount) {
+                if (command.value > c_cdCmdEnumCount) {
                     PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlUnknown(0x%02X)\n",
-                                        regs.pc, regs.cycle, command & 0xff);
+                                        regs.pc, regs.cycle, command.value);
                 } else {
                     PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: %s\n", regs.pc, regs.cycle,
-                                        magic_enum::enum_names<Commands>()[command & 0xff]);
+                                        magic_enum::enum_names<Commands>()[command.value]);
                 }
                 break;
         }

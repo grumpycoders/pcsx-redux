@@ -113,17 +113,6 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         CallStacks{},
         CDRom{
             CDDataFIFO{g_emulator->m_cdrom->m_dataFIFO},
-            CDParamFIFO{g_emulator->m_cdrom->m_paramFIFO},
-            CDResponseFIFO{g_emulator->m_cdrom->m_responseFIFO},
-            CDDataFIFOIndex{g_emulator->m_cdrom->m_dataFIFOIndex},
-            CDDataFIFOSize{g_emulator->m_cdrom->m_dataFIFOSize},
-            CDParamFIFOSize{g_emulator->m_cdrom->m_paramFIFOSize},
-            CDResponseFIFOData{g_emulator->m_cdrom->m_responseFIFOIndex},
-            CDResponseFIFOSize{g_emulator->m_cdrom->m_responseFIFOSize},
-            CDRegisterIndex{g_emulator->m_cdrom->m_registerIndex},
-            CDBusy{g_emulator->m_cdrom->m_busy},
-            CDState{g_emulator->m_cdrom->m_state},
-            CDCommand{g_emulator->m_cdrom->m_command},
         },
     };
 }
