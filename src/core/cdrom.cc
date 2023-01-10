@@ -106,7 +106,14 @@ class CDRomImpl final : public PCSX::CDRom {
         m_responseFifo[1].clear();
     }
 
-    void fifoScheduledCallback() override { maybeStartCommand(); }
+    void fifoScheduledCallback() override {
+        if (m_responseFifo[0].empty() && !m_responseFifo[1].empty()) {
+            m_responseFifo[0] = m_responseFifo[1];
+            m_responseFifo[1].clear();
+            psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+        }
+        maybeStartCommand();
+    }
 
     void commandsScheduledCallback() override {
         auto command = m_commandExecuting.value;
@@ -210,8 +217,7 @@ class CDRomImpl final : public PCSX::CDRom {
         uint8_t bit = 1 << (causeValue - 1);
         if (m_causeMask & bit) {
             element.setValue(cause);
-            maybeEnqueueResponse(element);
-            psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+            if (maybeEnqueueResponse(element)) psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
             const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                    .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
             if (debug) {
@@ -270,7 +276,9 @@ class CDRomImpl final : public PCSX::CDRom {
 
     uint8_t read1() override {
         uint8_t ret = m_responseFifo[0].readPayloadByte();
-        // TODO: if empty, move response FIFO and maybe trigger IRQ.
+        if (m_responseFifo[0].empty() && !m_responseFifo[1].empty()) {
+            scheduleFifo(1ms);
+        }
 
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
@@ -431,7 +439,9 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 if (ack) {
                     m_responseFifo[0].valueRead = true;
-                    // TODO: if empty, move response FIFO and maybe trigger IRQ.
+                    if (m_responseFifo[0].empty() && !m_responseFifo[1].empty()) {
+                        scheduleFifo(1ms);
+                    }
                     return;
                 }
                 if (value & 0x10) {
@@ -490,30 +500,30 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void maybeStartCommand() {
+        if (m_commandFifo.empty()) return;
         auto command = m_commandFifo.value;
         static constexpr unsigned c_commandMax = sizeof(c_commandsArgumentsCount) / sizeof(c_commandsArgumentsCount[0]);
         if (command >= c_commandMax) {
             maybeEnqueueError(1, 0x40);
             endCommand();
+            m_commandFifo.clear();
             return;
         }
         auto expectedCount = c_commandsArgumentsCount[command];
         if ((expectedCount >= 0) && (expectedCount != m_commandFifo.payloadSize)) {
             maybeEnqueueError(1, 0x20);
             endCommand();
+            m_commandFifo.clear();
             return;
         }
         auto handler = c_commandsHandlers[command];
         if (handler) {
-            if ((this->*handler)(m_commandFifo, true)) {
-                m_commandExecuting = m_commandFifo;
-            }
-            m_commandFifo.clear();
+            if ((this->*handler)(m_commandFifo, true)) m_commandExecuting = m_commandFifo;
         } else {
             maybeEnqueueError(1, 0x40);
             endCommand();
-            return;
         }
+        m_commandFifo.clear();
     }
 
     void endCommand() {
@@ -615,6 +625,8 @@ class CDRomImpl final : public PCSX::CDRom {
     bool cdlInit(const QueueElement &command, bool start) {
         if (start) {
             QueueElement response;
+            m_motorOn = true;
+            m_speedChanged = false;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
             schedule(120ms);
@@ -622,8 +634,6 @@ class CDRomImpl final : public PCSX::CDRom {
         } else {
             // TODO: figure out exactly the various states of the CD-Rom controller
             // that are being reset, and their value.
-            m_motorOn = true;
-            m_speedChanged = false;
             m_currentPosition.reset();
             m_currentPosition.s = 2;
             m_seekPosition.reset();

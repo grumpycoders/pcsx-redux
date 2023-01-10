@@ -190,12 +190,14 @@ class CDRom {
     QueueElement m_commandExecuting;
     QueueElement m_responseFifo[2];
     bool responseFifoFull() { return !m_responseFifo[0].empty() && !m_responseFifo[1].empty(); }
-    void maybeEnqueueResponse(QueueElement& response) {
+    bool maybeEnqueueResponse(QueueElement& response) {
         if (m_responseFifo[0].empty()) {
             m_responseFifo[0] = response;
+            return true;
         } else if (m_responseFifo[1].empty()) {
             m_responseFifo[1] = response;
         }
+        return false;
     }
 
   private:
