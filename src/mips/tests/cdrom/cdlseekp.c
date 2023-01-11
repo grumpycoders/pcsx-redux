@@ -355,7 +355,7 @@ CESTER_TEST(cdlSeekP2to85AndNop, test_instance,
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_SEEKP;
 
-    while (CDROM_REG0 & 0x85);
+    while (CDROM_REG0 & 0x80);
     CDROM_REG1 = CDL_NOP;
 
     uint32_t ackTime = waitCDRomIRQ();
