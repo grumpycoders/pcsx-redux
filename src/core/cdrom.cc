@@ -276,9 +276,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     uint8_t read1() override {
         uint8_t ret = m_responseFifo[0].readPayloadByte();
-        if (m_responseFifo[0].empty() && !m_responseFifo[1].empty()) {
-            scheduleFifo(1ms);
-        }
+        maybeScheduleNextCommand();
 
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
@@ -439,9 +437,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 if (ack) {
                     m_responseFifo[0].valueRead = true;
-                    if (m_responseFifo[0].empty() && !m_responseFifo[1].empty()) {
-                        scheduleFifo(1ms);
-                    }
+                    maybeScheduleNextCommand();
                     return;
                 }
                 if (value & 0x10) {
@@ -505,14 +501,14 @@ class CDRomImpl final : public PCSX::CDRom {
         static constexpr unsigned c_commandMax = sizeof(c_commandsArgumentsCount) / sizeof(c_commandsArgumentsCount[0]);
         if (command >= c_commandMax) {
             maybeEnqueueError(1, 0x40);
-            endCommand();
+            maybeScheduleNextCommand();
             m_commandFifo.clear();
             return;
         }
         auto expectedCount = c_commandsArgumentsCount[command];
         if ((expectedCount >= 0) && (expectedCount != m_commandFifo.payloadSize)) {
             maybeEnqueueError(1, 0x20);
-            endCommand();
+            maybeScheduleNextCommand();
             m_commandFifo.clear();
             return;
         }
@@ -521,13 +517,13 @@ class CDRomImpl final : public PCSX::CDRom {
             if ((this->*handler)(m_commandFifo, true)) m_commandExecuting = m_commandFifo;
         } else {
             maybeEnqueueError(1, 0x40);
-            endCommand();
+            maybeScheduleNextCommand();
         }
         m_commandFifo.clear();
     }
 
-    void endCommand() {
-        if (!responseFifoFull() && !m_commandFifo.empty()) scheduleFifo(1ms);
+    void maybeScheduleNextCommand() {
+        if (!responseFifoFull()) scheduleFifo(1ms);
     }
 
     enum class SeekType { DATA, CDDA };
@@ -556,7 +552,7 @@ class CDRomImpl final : public PCSX::CDRom {
         QueueElement response;
         response.pushPayloadData(getStatus(true));
         maybeTriggerIRQ(Cause::Acknowledge, response);
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -576,7 +572,7 @@ class CDRomImpl final : public PCSX::CDRom {
         } else {
             maybeEnqueueError(1, 0x10);
         }
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -594,7 +590,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_startReading = true;
         m_readingType = ReadingType::Normal;
         maybeTriggerIRQ(Cause::Acknowledge, response);
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -616,7 +612,7 @@ class CDRomImpl final : public PCSX::CDRom {
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Complete, response);
-            endCommand();
+            maybeScheduleNextCommand();
             return false;
         }
     }
@@ -646,7 +642,7 @@ class CDRomImpl final : public PCSX::CDRom {
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Complete, response);
-            endCommand();
+            maybeScheduleNextCommand();
             return false;
         }
     }
@@ -659,7 +655,7 @@ class CDRomImpl final : public PCSX::CDRom {
         QueueElement response;
         response.pushPayloadData(getStatus());
         maybeTriggerIRQ(Cause::Acknowledge, response);
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -671,7 +667,7 @@ class CDRomImpl final : public PCSX::CDRom {
         QueueElement response;
         response.pushPayloadData(getStatus());
         maybeTriggerIRQ(Cause::Acknowledge, response);
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -714,7 +710,7 @@ class CDRomImpl final : public PCSX::CDRom {
         QueueElement response;
         response.pushPayloadData(getStatus());
         maybeTriggerIRQ(Cause::Acknowledge, response);
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -729,7 +725,7 @@ class CDRomImpl final : public PCSX::CDRom {
             response.pushPayloadData(std::string_view((char *)m_lastLocL, sizeof(m_lastLocL)));
             maybeTriggerIRQ(Cause::Acknowledge, response);
         }
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -741,7 +737,7 @@ class CDRomImpl final : public PCSX::CDRom {
         QueueElement response;
         response.pushPayloadData(std::string_view((char *)m_lastLocP, sizeof(m_lastLocP)));
         maybeTriggerIRQ(Cause::Acknowledge, response);
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -754,7 +750,7 @@ class CDRomImpl final : public PCSX::CDRom {
         response.pushPayloadData(1);
         response.pushPayloadData(PCSX::IEC60908b::itob(m_iso->getTN()));
         maybeTriggerIRQ(Cause::Acknowledge, response);
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -773,7 +769,7 @@ class CDRomImpl final : public PCSX::CDRom {
             response.pushPayloadData(PCSX::IEC60908b::itob(td.s));
             maybeTriggerIRQ(Cause::Acknowledge, response);
         }
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -808,7 +804,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 maybeTriggerIRQ(Cause::Complete, response);
             }
             m_invalidLocL = true;
-            endCommand();
+            maybeScheduleNextCommand();
             return false;
         }
     }
@@ -842,7 +838,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 maybeTriggerIRQ(Cause::Complete, response);
             }
             m_invalidLocL = true;
-            endCommand();
+            maybeScheduleNextCommand();
             return false;
         }
     }
@@ -852,7 +848,7 @@ class CDRomImpl final : public PCSX::CDRom {
         static constexpr uint8_t c_test20[] = {0x94, 0x09, 0x19, 0xc0};
         if (command.isPayloadEmpty()) {
             maybeEnqueueError(1, 0x20);
-            endCommand();
+            maybeScheduleNextCommand();
             return false;
         }
 
@@ -870,7 +866,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 maybeEnqueueError(1, 0x10);
                 break;
         }
-        endCommand();
+        maybeScheduleNextCommand();
         return false;
     }
 
@@ -891,7 +887,7 @@ class CDRomImpl final : public PCSX::CDRom {
             response.pushPayloadData(0x00);
             response.pushPayloadData("PCSX"sv);
             maybeTriggerIRQ(Cause::Complete, response);
-            endCommand();
+            maybeScheduleNextCommand();
             return false;
         }
     }
