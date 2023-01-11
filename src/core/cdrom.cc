@@ -259,7 +259,7 @@ class CDRomImpl final : public PCSX::CDRom {
         uint8_t adpcmPlaying = 0;
         uint8_t v3 = m_commandFifo.isPayloadEmpty() ? 0x08 : 0;
         uint8_t v4 = !m_commandFifo.isPayloadFull() ? 0x10 : 0;
-        uint8_t v5 = !m_responseFifo[0].empty() ? 0x20 : 0;
+        uint8_t v5 = !m_responseFifo[0].isPayloadEmpty() ? 0x20 : 0;
         uint8_t v6 = m_dataFIFOSize != m_dataFIFOIndex ? 0x40 : 0;
         uint8_t v7 = m_commandFifo.hasValue ? 0x80 : 0;
 
