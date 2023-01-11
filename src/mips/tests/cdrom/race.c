@@ -289,7 +289,7 @@ CESTER_TEST(raceSeekP2to85AckWaitAndNop, test_instance,
     ramsyscall_printf("SeekP from 00:02:00 to 85:00:00 with Nop in between: ack in %ius, ack2 in %ius, errored in %ius\n", ackTime, ackTime2, errorTime);
 )
 
-CESTER_TEST(raceSeekP2to85WaitAckAndNop, test_instance,
+CESTER_TEST(raceSeekL2to71WaitAckAndNop, test_instance,
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -302,7 +302,7 @@ CESTER_TEST(raceSeekP2to85WaitAckAndNop, test_instance,
         return;
     }
 
-    int setLocDone = setLoc(0x85, 0, 0);
+    int setLocDone = setLoc(0x71, 0, 0);
     if (!setLocDone) {
         cester_assert_true(setLocDone);
         return;
@@ -314,7 +314,7 @@ CESTER_TEST(raceSeekP2to85WaitAckAndNop, test_instance,
     initializeTime();
 
     CDROM_REG0 = 0;
-    CDROM_REG1 = CDL_SEEKP;
+    CDROM_REG1 = CDL_SEEKL;
     uint8_t ctrl0 = CDROM_REG0 & ~3;
 
     while (CDROM_REG0 & 0x80);
@@ -323,9 +323,9 @@ CESTER_TEST(raceSeekP2to85WaitAckAndNop, test_instance,
     uint8_t ctrl0b = CDROM_REG0 & ~3;
 
     initializeTime();
-    // Wait 10s...
-    ramsyscall_printf("Waiting 6s...\n");
-    while (updateTime() < 6000000);
+    // Wait 2s...
+    ramsyscall_printf("Waiting 2s...\n");
+    while (updateTime() < 2000000);
     ramsyscall_printf("Done...\n");
 
     initializeTime();
@@ -357,7 +357,7 @@ CESTER_TEST(raceSeekP2to85WaitAckAndNop, test_instance,
     cester_assert_uint_eq(0xe0, cause2b);
     cester_assert_uint_eq(2, response1[0]);
     cester_assert_uint_eq(1, responseSize1);
-    cester_assert_uint_eq(0, response2[0]);
+    cester_assert_uint_eq(0x42, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
     cester_assert_uint_eq(0x98, ctrl0);
     cester_assert_uint_eq(0xb8, ctrl0b);
@@ -370,7 +370,7 @@ CESTER_TEST(raceSeekP2to85WaitAckAndNop, test_instance,
     cester_assert_uint_lt(ackTime, 150);
     cester_assert_uint_ge(ackTime2, 500);
     cester_assert_uint_lt(ackTime2, 7000);
-    ramsyscall_printf("SeekP from 00:02:00 to 85:00:00 then stall with Nop: ack in %ius, ack2 in %ius\n", ackTime, ackTime2);
+    ramsyscall_printf("SeekL from 00:02:00 to 71:00:00 then stall with Nop: ack in %ius, ack2 in %ius\n", ackTime, ackTime2);
 )
 
 CESTER_TEST(raceNopWaitAndNop, test_instances,
