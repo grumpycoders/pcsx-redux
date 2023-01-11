@@ -609,10 +609,10 @@ class CDRomImpl final : public PCSX::CDRom {
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
-            return true;
-        } else {
             m_status = Status::Idle;
             m_invalidLocL = true;
+            return true;
+        } else {
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Complete, response);
@@ -630,8 +630,6 @@ class CDRomImpl final : public PCSX::CDRom {
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
             schedule(120ms);
-            return true;
-        } else {
             // TODO: figure out exactly the various states of the CD-Rom controller
             // that are being reset, and their value.
             m_currentPosition.reset();
@@ -643,6 +641,8 @@ class CDRomImpl final : public PCSX::CDRom {
             m_status = Status::Idle;
             m_causeMask = 0x1f;
             memset(m_lastLocP, 0, sizeof(m_lastLocP));
+            return true;
+        } else {
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Complete, response);
@@ -783,6 +783,9 @@ class CDRomImpl final : public PCSX::CDRom {
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(15ms);
+            return true;
+        } else if (m_status != Status::Seeking) {
             auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
             if (m_speedChanged) {
                 m_speedChanged = false;
@@ -816,6 +819,9 @@ class CDRomImpl final : public PCSX::CDRom {
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(15ms);
+            return true;
+        } else if (m_status != Status::Seeking) {
             auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::CDDA);
             if (m_speedChanged) {
                 m_speedChanged = false;
