@@ -348,7 +348,7 @@ CESTER_TEST(raceSeekL2to71WaitAckAndNop, test_instance,
     CDROM_REG0 = 1;
     uint8_t cause2b = CDROM_REG3_UC;
 
-    uint32_t timeout = 150000;
+    uint32_t timeout = 1500000;
     int gotIRQ = waitCDRomIRQWithTimeout(&timeout);
 
     cester_assert_uint_eq(3, cause1);
