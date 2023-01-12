@@ -127,6 +127,7 @@ class impl final : public SPUInterface {
     void StoreREVERB(SPUCHAN *pChannel, int ns);
     int MixREVERBLeft(int ns);
     int MixREVERBRight();
+    int DrHellReverb(int ns);
 
     // xa
     void FeedXA(xa_decode_t *xap);
@@ -166,6 +167,7 @@ class impl final : public SPUInterface {
 
     SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
     REVERBInfo rvb;
+    ReverbRegisters reverb_regs;
 
     uint32_t dwNoiseVal = 1;  // global noise generator
     uint32_t dwNoiseClock = 0;  // global noise generator

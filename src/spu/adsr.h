@@ -37,26 +37,26 @@ class ADSR {
   public:
     void start(SPUCHAN* pChannel);
     int mix(SPUCHAN* pChannel);
+    ADSR() {
+        // Pre-calculate ADSR effective rates
+
+        for (int rate = 0; rate <= 47; rate++) {
+            denominator[rate] = 1;
+            numerator_increase[rate] = (7 - (rate & 3)) << (11 - (rate >> 2));
+            numerator_decrease[rate] = (-8 + (rate & 3)) << (11 - (rate >> 2));
+        }
+
+        for (int rate = 48; rate <= 127; rate++) {
+            denominator[rate] = 1 << ((rate >> 2) - 11);
+            numerator_increase[rate] = 7 - (rate & 3);
+            numerator_decrease[rate] = -8 + (rate & 3);
+        }
+    };
 
   private:
-    static inline const uint32_t m_tableDisp[] = {
-        -0x18 + 0 + 32, -0x18 + 4 + 32,  -0x18 + 6 + 32,  -0x18 + 8 + 32,  // release/decay
-        -0x18 + 9 + 32, -0x18 + 10 + 32, -0x18 + 11 + 32, -0x18 + 12 + 32,
-
-        -0x1B + 0 + 32, -0x1B + 4 + 32,  -0x1B + 6 + 32,  -0x1B + 8 + 32,  // sustain
-        -0x1B + 9 + 32, -0x1B + 10 + 32, -0x1B + 11 + 32, -0x1B + 12 + 32,
-    };
-
-    class Table {
-      public:
-        Table();
-        const uint32_t& operator[](size_t index) const { return m_table[index]; }
-
-      private:
-        uint32_t m_table[160];
-    };
-
-    const Table m_table;
+    int32_t denominator[128];
+    int32_t numerator_increase[128];
+    int32_t numerator_decrease[128];
 
     int Attack(SPUCHAN* ch);
     int Decay(SPUCHAN* ch);

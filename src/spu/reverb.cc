@@ -102,9 +102,9 @@ void PCSX::SPU::impl::SetREVERB(unsigned short val) {
 void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
     if (pChannel->data.get<Chan::Reverb>().value && (spuCtrl & 0x80))  // reverb possible?
     {
-        if (settings.get<Reverb>() == 2)
+        if (settings.get<Reverb>() == 2 || settings.get<Reverb>() == 3) {
             pChannel->data.get<Chan::RVBActive>().value = true;
-        else if (settings.get<Reverb>() == 1 && iReverbOff > 0)  // -> fake reverb used?
+        } else if (settings.get<Reverb>() == 1 && iReverbOff > 0)  // -> fake reverb used?
         {
             pChannel->data.get<Chan::RVBActive>().value = true;  // -> activate it
             pChannel->data.get<Chan::RVBOffset>().value = iReverbOff * NSSIZE;
@@ -120,7 +120,7 @@ void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::InitREVERB() {
-    if (settings.get<Reverb>() == 2) {
+    if (settings.get<Reverb>() == 2 || settings.get<Reverb>() == 3) {
         memset(sRVBStart, 0, NSSIZE * 2 * 4);
     }
 }
@@ -132,7 +132,8 @@ void PCSX::SPU::impl::InitREVERB() {
 void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
     if (settings.get<Reverb>() == 0)
         return;
-    else if (settings.get<Reverb>() == 2)  // -------------------------------- // Neil's reverb
+    else if (settings.get<Reverb>() == 2 ||
+             settings.get<Reverb>() == 3)  // -------------------------------- // Neil's reverb
     {
         const int iRxl =
             (pChannel->data.get<Chan::sval>().value * pChannel->data.get<Chan::LeftVolume>().value) / 0x4000;
@@ -170,7 +171,7 @@ void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
 inline int PCSX::SPU::impl::g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
 {
     short *p = (short *)spuMem;
-    iOff = (iOff * 4) + rvb.CurrAddr;
+    iOff = (iOff) + rvb.CurrAddr;
     while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
     while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
     return (int)*(p + iOff);
@@ -182,7 +183,7 @@ inline void PCSX::SPU::impl::s_buffer(int iOff,
                                       int iVal)  // set_buffer content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
-    iOff = (iOff * 4) + rvb.CurrAddr;
+    iOff = (iOff) + rvb.CurrAddr;
     while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
     while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
     if (iVal < -32768L) iVal = -32768L;
@@ -202,6 +203,148 @@ inline void PCSX::SPU::impl::s_buffer1(
     if (iVal < -32768L) iVal = -32768L;
     if (iVal > 32767L) iVal = 32767L;
     *(p + iOff) = (short)iVal;
+}
+
+////////////////////////////////////////////////////////////////////////
+int PCSX::SPU::impl::DrHellReverb(int ns) {
+    static int iCnt = 0;  // this func will be called with 44.1 khz
+
+    if (!rvb.StartAddr)  // reverb is off
+    {
+        rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
+        return 0;
+    }
+
+    iCnt++;
+
+    if (iCnt & 1)  // we work on every second left value: downsample to 22 khz
+    {
+        if (spuCtrl & 0x80)  // -> reverb on? oki
+        {
+            /*
+             * PlayStation Reverberation Algorithm (C) Dr. Hell, 2005
+             * Strictly speaking, the timing of left and right processing is shifted by one sampling time,
+             * each run every 2 sampling times
+             */
+            int16_t z1_Lsame = reverb_regs.mLSAME - 1;
+            int16_t z1_Rsame = reverb_regs.mRSAME - 1;
+            int16_t z1_Ldiff = reverb_regs.mLDIFF - 1;
+            int16_t z1_Rdiff = reverb_regs.mRDIFF - 1;
+            int16_t zm_Lapf1 = reverb_regs.mLSAME - reverb_regs.dAPF1;
+            int16_t zm_Rapf1 = reverb_regs.mRSAME - reverb_regs.dAPF1;
+            int16_t zm_Lapf2 = reverb_regs.mLAPF2 - reverb_regs.dAPF2;
+            int16_t zm_Rapf2 = reverb_regs.mRAPF2 - reverb_regs.dAPF2;
+
+            /*
+             * LoadFromLowPassFilter is a 35 or 39 tap FIR filter
+             * Even if the outermost coefficient is 0, the result is the same, so it is not possible to determine
+             * whether it is 35 or 39.
+             */
+            const int INPUT_SAMPLE_L = *(sRVBStart + (ns << 1));
+            const int INPUT_SAMPLE_R = *(sRVBStart + (ns << 1) + 1);
+
+            int L_in = (INPUT_SAMPLE_L * reverb_regs.vLIN);
+            int R_in = (INPUT_SAMPLE_R * reverb_regs.vRIN);
+
+            /*
+             * Left -> Wall -> Left Reflection
+             */
+            int16_t L_temp = g_buffer(reverb_regs.dLSAME);
+            int16_t R_temp = g_buffer(reverb_regs.dRSAME);
+            int16_t L_same = L_in + reverb_regs.vWALL * L_temp;
+            int16_t R_same = R_in + reverb_regs.vWALL * R_temp;
+            L_temp = g_buffer(z1_Lsame);
+            R_temp = g_buffer(z1_Rsame);
+            L_same = L_temp + reverb_regs.vIIR * (L_same - L_temp);
+            R_same = R_temp + reverb_regs.vIIR * (R_same - R_temp);
+
+            /*
+             * Left -> Wall -> Right Reflection
+             */
+            L_temp = g_buffer(reverb_regs.dRDIFF);
+            R_temp = g_buffer(reverb_regs.dLDIFF);
+            int16_t L_diff = L_in + reverb_regs.vWALL * L_temp;
+            int16_t R_diff = R_in + reverb_regs.vWALL * R_temp;
+            L_temp = g_buffer(z1_Ldiff);
+            R_temp = g_buffer(z1_Rdiff);
+            L_diff = L_temp + reverb_regs.vIIR * (L_diff - L_temp);
+            R_diff = R_temp + reverb_regs.vIIR * (R_diff - R_temp);
+
+            /*
+             * Early Echo (Comb Filter)
+             */
+            L_in = reverb_regs.vCOMB1 * g_buffer(reverb_regs.mLCOMB1) +
+                   reverb_regs.vCOMB2 * g_buffer(reverb_regs.mLCOMB2) +
+                   reverb_regs.vCOMB3 * g_buffer(reverb_regs.mLCOMB3) +
+                   reverb_regs.vCOMB4 * g_buffer(reverb_regs.mLCOMB4);
+            R_in = reverb_regs.vCOMB1 * g_buffer(reverb_regs.mRCOMB1) +
+                   reverb_regs.vCOMB2 * g_buffer(reverb_regs.mRCOMB2) +
+                   reverb_regs.vCOMB3 * g_buffer(reverb_regs.mRCOMB3) +
+                   reverb_regs.vCOMB4 * g_buffer(reverb_regs.mRCOMB4);
+
+            /*
+             * Late Reverb (Two All Pass Filters)
+             */
+            L_temp = g_buffer(zm_Lapf1);
+            R_temp = g_buffer(zm_Rapf1);
+            int16_t L_apf1 = L_in - reverb_regs.vAPF1 * L_temp;
+            int16_t R_apf1 = R_in - reverb_regs.vAPF1 * R_temp;
+            L_in = L_temp + reverb_regs.vAPF1 * L_apf1;
+            R_in = R_temp + reverb_regs.vAPF1 * R_apf1;
+            L_temp = g_buffer(zm_Lapf2);
+            R_temp = g_buffer(zm_Rapf2);
+            int16_t L_apf2 = L_in - reverb_regs.vAPF2 * L_temp;
+            int16_t R_apf2 = R_in - reverb_regs.vAPF2 * R_temp;
+            L_in = L_temp + reverb_regs.vAPF2 * L_apf2;
+            R_in = R_temp + reverb_regs.vAPF2 * R_apf2;
+
+            /*
+             * Output
+             */
+            //SetOutputL(L_in);
+            //SetOutputR(R_in);
+
+            /*
+             * Write Buffer
+             */
+            s_buffer(reverb_regs.mLSAME, L_same);
+            s_buffer(reverb_regs.mRSAME, R_same);
+            s_buffer(reverb_regs.mLDIFF, L_diff);
+            s_buffer(reverb_regs.mRDIFF, R_diff);
+            s_buffer(reverb_regs.mLAPF1, L_apf1);
+            s_buffer(reverb_regs.mRAPF1, R_apf1);
+            s_buffer(reverb_regs.mLAPF2, L_apf2);
+            s_buffer(reverb_regs.mRAPF2, R_apf2);
+
+            /*
+             * Update Circular Buffer
+             */
+            // UpdateReverbWork();
+
+            rvb.iLastRVBLeft = rvb.iRVBLeft;
+            rvb.iLastRVBRight = rvb.iRVBRight;
+
+            rvb.iRVBLeft = (g_buffer(reverb_regs.mLAPF1) + g_buffer(reverb_regs.mLAPF2)) / 3;
+            rvb.iRVBRight = (g_buffer(reverb_regs.mRAPF1) + g_buffer(reverb_regs.mRAPF2)) / 3;
+
+            rvb.iRVBLeft = (rvb.iRVBLeft * rvb.VolLeft) / 0x4000;
+            rvb.iRVBRight = (rvb.iRVBRight * rvb.VolRight) / 0x4000;
+
+            rvb.CurrAddr++;
+            if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
+
+            return rvb.iLastRVBLeft + (rvb.iRVBLeft - rvb.iLastRVBLeft) / 2;
+        } else  // -> reverb off
+        {
+            rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
+        }
+
+        rvb.CurrAddr++;
+        if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
+    }
+
+    return rvb.iLastRVBLeft;
+    
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -298,6 +441,8 @@ int PCSX::SPU::impl::MixREVERBLeft(int ns) {
         }
 
         return rvb.iLastRVBLeft;
+    } else if (settings.get<Reverb>() == 3) {
+        return DrHellReverb(ns);
     } else  // easy fake reverb:
     {
         const int iRV = *sRVBPlay;                      // -> simply take the reverb mix buf value
@@ -312,7 +457,7 @@ int PCSX::SPU::impl::MixREVERBLeft(int ns) {
 int PCSX::SPU::impl::MixREVERBRight() {
     if (settings.get<Reverb>() == 0)
         return 0;
-    else if (settings.get<Reverb>() == 2)  // Neill's reverb:
+    else if (settings.get<Reverb>() == 2 || settings.get<Reverb>() == 3)  // Neill's reverb:
     {
         int i = rvb.iLastRVBRight + (rvb.iRVBRight - rvb.iLastRVBRight) / 2;
         rvb.iLastRVBRight = rvb.iRVBRight;

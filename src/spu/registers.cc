@@ -90,9 +90,9 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             case 8: {  // Attack/Decay/Sustain/Release (ADSR)
                 //---------------------------------------------//
                 s_chan[ch].ADSRX.get<exAttackModeExp>().value = (val & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exAttackRate>().value = ((val >> 8) & 0x007f) ^ 0x7f;
-                s_chan[ch].ADSRX.get<exDecayRate>().value = 4 * (((val >> 4) & 0x000f) ^ 0x1f);
-                s_chan[ch].ADSRX.get<exSustainLevel>().value = (val & 0x000f) << 27;
+                s_chan[ch].ADSRX.get<exAttackRate>().value = ((val >> 8) & 0x007f);
+                s_chan[ch].ADSRX.get<exDecayRate>().value = 4 * (((val >> 4) & 0x000f));
+                s_chan[ch].ADSRX.get<exSustainLevel>().value = (val & 0x000f);
                 //---------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.get<AttackModeExp>().value = (val & 0x8000) ? 1 : 0;  // 0x007f
@@ -127,9 +127,9 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 //----------------------------------------------//
                 s_chan[ch].ADSRX.get<exSustainModeExp>().value = (val & 0x8000) ? 1 : 0;
                 s_chan[ch].ADSRX.get<exSustainIncrease>().value = (val & 0x4000) ? 0 : 1;
-                s_chan[ch].ADSRX.get<exSustainRate>().value = ((val >> 6) & 0x007f) ^ 0x7f;
+                s_chan[ch].ADSRX.get<exSustainRate>().value = ((val >> 6) & 0x007f);
                 s_chan[ch].ADSRX.get<exReleaseModeExp>().value = (val & 0x0020) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exReleaseRate>().value = 4 * ((val & 0x001f) ^ 0x1f);
+                s_chan[ch].ADSRX.get<exReleaseRate>().value = 4 * ((val & 0x001f));
                 //----------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.get<SustainModeExp>().value = (val & 0x8000) ? 1 : 0;
@@ -221,10 +221,12 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
         case H_SPUrvolL:
             rvb.VolLeft = val;
+            reverb_regs.vLOUT = val;
             break;
 
         case H_SPUrvolR:
             rvb.VolRight = val;
+            reverb_regs.vROUT = val;
             break;
             //-------------------------------------------------//
 
@@ -311,6 +313,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
         case H_Reverb + 0:
 
             rvb.FB_SRC_A = val;
+            reverb_regs.dAPF1 = (int16_t)(val / 32768.0);
 
             // OK, here's the fake REVERB stuff...
             // depending on effect we do more or less delay and repeats... bah
@@ -321,96 +324,127 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
         case H_Reverb + 2:
             rvb.FB_SRC_B = (int16_t)val;
+            reverb_regs.dAPF2 = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 4:
             rvb.IIR_ALPHA = (int16_t)val;
+            reverb_regs.vIIR = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 6:
             rvb.ACC_COEF_A = (int16_t)val;
+            reverb_regs.vCOMB1 = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 8:
             rvb.ACC_COEF_B = (int16_t)val;
+            reverb_regs.vCOMB2 = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 10:
             rvb.ACC_COEF_C = (int16_t)val;
+            reverb_regs.vCOMB3 = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 12:
             rvb.ACC_COEF_D = (int16_t)val;
+            reverb_regs.vCOMB4 = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 14:
             rvb.IIR_COEF = (int16_t)val;
+            reverb_regs.vWALL = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 16:
             rvb.FB_ALPHA = (int16_t)val;
+            reverb_regs.vAPF1 = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 18:
             rvb.FB_X = (int16_t)val;
+            reverb_regs.vAPF2 = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 20:
             rvb.IIR_DEST_A0 = (int16_t)val;
+            reverb_regs.mLSAME = (int16_t)(val * 4);
             break;
         case H_Reverb + 22:
             rvb.IIR_DEST_A1 = (int16_t)val;
+            reverb_regs.mRSAME = (int16_t)(val * 4);
             break;
         case H_Reverb + 24:
             rvb.ACC_SRC_A0 = (int16_t)val;
+            reverb_regs.mLCOMB1 = (int16_t)(val * 4);
             break;
         case H_Reverb + 26:
             rvb.ACC_SRC_A1 = (int16_t)val;
+            reverb_regs.mRCOMB1 = (int16_t)(val * 4);
             break;
         case H_Reverb + 28:
             rvb.ACC_SRC_B0 = (int16_t)val;
+            reverb_regs.mLCOMB2 = (int16_t)(val * 4);
             break;
         case H_Reverb + 30:
             rvb.ACC_SRC_B1 = (int16_t)val;
+            reverb_regs.mRCOMB2 = (int16_t)(val * 4);
             break;
         case H_Reverb + 32:
             rvb.IIR_SRC_A0 = (int16_t)val;
+            reverb_regs.dLSAME = (int16_t)(val * 4);
             break;
         case H_Reverb + 34:
             rvb.IIR_SRC_A1 = (int16_t)val;
+            reverb_regs.dRSAME = (int16_t)(val * 4);
             break;
         case H_Reverb + 36:
             rvb.IIR_DEST_B0 = (int16_t)val;
+            reverb_regs.mLDIFF = (int16_t)(val * 4);
             break;
         case H_Reverb + 38:
             rvb.IIR_DEST_B1 = (int16_t)val;
+            reverb_regs.mRDIFF = (int16_t)(val * 4);
             break;
         case H_Reverb + 40:
             rvb.ACC_SRC_C0 = (int16_t)val;
+            reverb_regs.mLCOMB3 = (int16_t)(val * 4);
             break;
         case H_Reverb + 42:
             rvb.ACC_SRC_C1 = (int16_t)val;
+            reverb_regs.mRCOMB3 = (int16_t)(val * 4);
             break;
         case H_Reverb + 44:
             rvb.ACC_SRC_D0 = (int16_t)val;
+            reverb_regs.mLCOMB4 = (int16_t)(val * 4);
             break;
         case H_Reverb + 46:
             rvb.ACC_SRC_D1 = (int16_t)val;
+            reverb_regs.mRCOMB4 = (int16_t)(val * 4);
             break;
         case H_Reverb + 48:
-            rvb.IIR_SRC_B1 = (int16_t)val;
+            rvb.IIR_SRC_B0 = (int16_t)val;
+            reverb_regs.dLDIFF = (int16_t)(val * 4);
             break;
         case H_Reverb + 50:
-            rvb.IIR_SRC_B0 = (int16_t)val;
+            rvb.IIR_SRC_B1 = (int16_t)val;
+            reverb_regs.dRDIFF = (int16_t)(val * 4);
             break;
         case H_Reverb + 52:
             rvb.MIX_DEST_A0 = (int16_t)val;
+            reverb_regs.mLAPF1 = (int16_t)(val * 4);
             break;
         case H_Reverb + 54:
             rvb.MIX_DEST_A1 = (int16_t)val;
+            reverb_regs.mRAPF1 = (int16_t)(val * 4);
             break;
         case H_Reverb + 56:
             rvb.MIX_DEST_B0 = (int16_t)val;
+            reverb_regs.mLAPF2 = (int16_t)(val * 4);
             break;
         case H_Reverb + 58:
             rvb.MIX_DEST_B1 = (int16_t)val;
+            reverb_regs.mRAPF2 = (int16_t)(val * 4);
             break;
         case H_Reverb + 60:
             rvb.IN_COEF_L = (int16_t)val;
+            reverb_regs.vLIN = (int16_t)(val / 32768.0);
             break;
         case H_Reverb + 62:
             rvb.IN_COEF_R = (int16_t)val;
+            reverb_regs.vRIN = (int16_t)(val / 32768.0);
             break;
     }
 
@@ -438,7 +472,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
                                                                // return 1 as well
                     !s_chan[ch].ADSRX.get<exEnvelopeVol>().value)
                     return 1;
-                return (uint16_t)(s_chan[ch].ADSRX.get<exEnvelopeVol>().value >> 16);
+                return (uint16_t)(s_chan[ch].ADSRX.get<exEnvelopeVol>().value);
             }
 
             case 14:  // get loop address

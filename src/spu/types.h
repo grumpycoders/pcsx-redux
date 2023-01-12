@@ -60,10 +60,11 @@ typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_mode_exp"), 9> exRe
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_rate"), 10> exReleaseRate;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("envelope_vol"), 11> exEnvelopeVol;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("volume"), 12> exVolume;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("envelope_vol_frak"), 13> exEnvelopeVolFrak;
 
 typedef Protobuf::Message<TYPESTRING("ADSRInfoEx"), exState, exAttackModeExp, exAttackRate, exDecayRate, exSustainLevel,
                           exSustainModeExp, exSustainIncrease, exSustainRate, exReleaseModeExp, exReleaseRate,
-                          exEnvelopeVol, exVolume>
+                          exEnvelopeVol, exVolume, exEnvelopeVolFrak>
     ADSRInfoEx;
 
 namespace Chan {
@@ -141,6 +142,44 @@ struct SPUCHAN {
     Chan::Data data;
     ADSRInfo ADSR;     // active ADSR settings
     ADSRInfoEx ADSRX;  // next ADSR settings (will be moved to active on sample start)
+};
+
+struct ReverbRegisters {
+    int16_t vLOUT;    // Reverb Output Volume Left
+    int16_t vROUT;    // Reverb Output Volume Right
+    int16_t mBASE;    // Reverb Work Area Start Address in Sound RAM
+    int16_t dAPF1;    // Reverb APF Offset 1
+    int16_t dAPF2;    // Reverb APF Offset 2
+    int16_t vIIR;     // Reverb Reflection Volume 1
+    int16_t vCOMB1;   // Reverb Comb Volume 1
+    int16_t vCOMB2;   // Reverb Comb Volume 2
+    int16_t vCOMB3;   // Reverb Comb Volume 3
+    int16_t vCOMB4;   // Reverb Comb Volume 4
+    int16_t vWALL;    // Reverb Reflection Volume 2
+    int16_t vAPF1;    // Reverb APF Volume 1
+    int16_t vAPF2;    // Reverb APF Volume 2
+    int16_t mLSAME;   // Reverb Same Side Reflection Address 1 Left
+    int16_t mRSAME;   // Reverb Same Side Reflection Address 1 Right
+    int16_t mLCOMB1;  // Reverb Comb Address 1 Left
+    int16_t mRCOMB1;  // Reverb Comb Address 1 Right
+    int16_t mLCOMB2;  // Reverb Comb Address 2 Left
+    int16_t mRCOMB2;  // Reverb Comb Address 2 Right
+    int16_t dLSAME;   // Reverb Same Side Reflection Address 2 Left
+    int16_t dRSAME;   // Reverb Same Side Reflection Address 2 Right
+    int16_t mLDIFF;   // Reverb Different Side Reflect Address 1 Left
+    int16_t mRDIFF;   // Reverb Different Side Reflect Address 1 Right
+    int16_t mLCOMB3;  // Reverb Comb Address 3 Left
+    int16_t mRCOMB3;  // Reverb Comb Address 3 Right
+    int16_t mLCOMB4;  // Reverb Comb Address 4 Left
+    int16_t mRCOMB4;  // Reverb Comb Address 4 Right
+    int16_t dLDIFF;   // Reverb Different Side Reflect Address 2 Left
+    int16_t dRDIFF;   // Reverb Different Side Reflect Address 2 Right
+    int16_t mLAPF1;   // Reverb APF Address 1 Left
+    int16_t mRAPF1;   // Reverb APF Address 1 Right
+    int16_t mLAPF2;   // Reverb APF Address 2 Left
+    int16_t mRAPF2;   // Reverb APF Address 2 Right
+    int16_t vLIN;     // Reverb Input Volume Left
+    int16_t vRIN;     // Reverb Input Volume Right
 };
 
 struct REVERBInfo {

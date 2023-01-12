@@ -87,7 +87,8 @@ in sync, by changing its pitch. Consumes more CPU.)"));
 for the main CPU to acknowledge it. Fixes issues
 with some games, but slows SPU processing.)"));
     const char *reverbValues[] = {_("None - fastest"), _("Simple - only handles the most common effects"),
-                                  _("Accurate - best quality, but slower")};
+                                  _("Accurate - best quality, but slower"),
+                                  _("Dr. Hell - Unknown")};
     changed |= ImGui::Combo(_("Reverb"), &settings.get<Reverb>().value, reverbValues, IM_ARRAYSIZE(reverbValues));
     const char *interpolationValues[] = {_("None - fastest"), _("Simple interpolation"),
                                          _("Gaussian interpolation - good quality"),

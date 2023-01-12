@@ -106,8 +106,8 @@ void PCSX::SPU::impl::debug() {
             {
                 ImGui::Text(_("Attack:\nDecay:\nSustain:\nRelease:"));
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n%i", ADSRX.get<exAttackRate>().value ^ 0x7f,
-                            (ADSRX.get<exDecayRate>().value ^ 0x1f) / 4, ADSRX.get<exSustainRate>().value ^ 0x7f,
+                ImGui::Text("%i\n%i\n%i\n%i", ADSRX.get<exAttackRate>().value,
+                            (ADSRX.get<exDecayRate>().value ^ 0x1f) / 4, ADSRX.get<exSustainRate>().value,
                             (ADSRX.get<exReleaseRate>().value ^ 0x1f) / 4);
             }
             ImGui::NextColumn();
