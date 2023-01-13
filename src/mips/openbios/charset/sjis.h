@@ -28,5 +28,5 @@ SOFTWARE.
 
 #include <stdint.h>
 
-const uint8_t* Krom2RawAdd(uint16_t c);
-uint16_t Krom2Offset(uint16_t c);
+const uint8_t* Krom2RawAdd(uint32_t c);
+uint16_t Krom2Offset(uint32_t c);
