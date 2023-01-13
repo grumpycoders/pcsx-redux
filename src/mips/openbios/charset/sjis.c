@@ -32,7 +32,8 @@ extern const uint8_t __attribute__((weak)) _binary_charset_font1_raw_start[];
 extern const uint8_t __attribute__((weak)) _binary_charset_font2_raw_start[];
 static const uint8_t* biosFontOffset = (const uint8_t*)0xbfc66000;
 
-const uint8_t* Krom2RawAdd(uint16_t c) {
+const uint8_t* Krom2RawAdd(uint32_t c_) {
+    uint16_t c = c_ & 0xffff;
     const uint8_t* ptr = (const uint8_t*)-1;
     if ((0x8140 <= c) && (c <= 0x84be)) {
         ptr = _binary_charset_font1_raw_start ? _binary_charset_font1_raw_start : biosFontOffset;
@@ -44,7 +45,8 @@ const uint8_t* Krom2RawAdd(uint16_t c) {
     return ptr + Krom2Offset(c) * 0x1e;
 }
 
-uint16_t Krom2Offset(uint16_t c) {
+uint16_t Krom2Offset(uint32_t c_) {
+    uint16_t c = c_ & 0xffff;
     struct CodepointLookup {
         uint16_t codepoint;
         uint16_t offset;
@@ -161,16 +163,12 @@ uint16_t Krom2Offset(uint16_t c) {
             break;
     }
 #else
-    unsigned idx;
 
     // this code may technically be slower, but also is more generic
-    if ((0x8140 <= c) && (c <= 0x9872)) {
-        idx = 0;
-        while (table[idx].codepoint <= c) idx++;
-        idx--;
-    } else {
-        return 0;
-    }
+    if ((0x8140 > c) || (c > 0x9872)) return 0;
+    unsigned idx = 1;
+    while (table[idx].codepoint <= c) idx++;
+    idx--;
 
 #endif
 
