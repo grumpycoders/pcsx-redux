@@ -28,5 +28,13 @@ SOFTWARE.
 
 #include <stdint.h>
 
+// The normal API uses uint16_t as arguments, but
+// some games like GT2 will call these functions
+// with int16_t values instead, which then causes
+// all sorts of complications down the line when
+// used with modern compilers. So we're going to
+// use uint32_t instead, and cast to uint16_t
+// inside the functions to ensure the values
+// are always positive.
 const uint8_t* Krom2RawAdd(uint32_t c);
 uint16_t Krom2Offset(uint32_t c);
