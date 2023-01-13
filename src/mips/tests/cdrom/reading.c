@@ -39,10 +39,10 @@ CESTER_TEST(simpleReading, test_instances,
         return;
     }
 
-    int setLocDone = setLoc(0x20, 2, 0);
+    int seekDone = seekLTo(0x20, 2, 0);
 
-    if (!setLocDone) {
-        cester_assert_true(setLocDone);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
         return;
     }
 
@@ -123,10 +123,11 @@ CESTER_TEST(setLocDuringSimpleReading, test_instances,
         return;
     }
 
-    int setLocDone = setLoc(0x20, 2, 0);
+    int seekDone = seekLTo(0x20, 2, 0);
+    int setLocDone = 0;
 
-    if (!setLocDone) {
-        cester_assert_true(setLocDone);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
         return;
     }
 
@@ -194,7 +195,7 @@ CESTER_TEST(setLocDuringSimpleReading, test_instances,
     cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(3, cause2);
     cester_assert_uint_eq(2, cause3);
-    cester_assert_true(setLocDone);
+    cester_assert_true(seekDone);
 )
 
 CESTER_TEST(simpleReadingWithoutAck, test_instances,
@@ -210,9 +211,9 @@ CESTER_TEST(simpleReadingWithoutAck, test_instances,
         return;
     }
 
-    int setLocDone = setLoc(0x20, 0, 0);
-    if (!setLocDone) {
-        cester_assert_true(setLocDone);
+    int seekDone = seekLTo(0x20, 0, 0);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
         return;
     }
 
@@ -307,9 +308,9 @@ CESTER_TEST(simpleReadingWithoutAckThenInit, test_instances,
         return;
     }
 
-    int setLocDone = setLoc(0x20, 0, 0);
-    if (!setLocDone) {
-        cester_assert_true(setLocDone);
+    int seekDone = seekLTo(0x20, 0, 0);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
         return;
     }
 
@@ -404,9 +405,9 @@ CESTER_TEST(simpleReadingPauseWithoutAck, test_instances,
         return;
     }
 
-    int setLocDone = setLoc(0x20, 0, 0);
-    if (!setLocDone) {
-        cester_assert_true(setLocDone);
+    int seekDone = seekLTo(0x20, 0, 0);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
         return;
     }
 
@@ -420,6 +421,80 @@ CESTER_TEST(simpleReadingPauseWithoutAck, test_instances,
 
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_PAUSE;
+
+    unsigned readyCount = 0;
+    uint32_t time1;
+    uint8_t cause1;
+    uint8_t ctrl1, ctrl2;
+    uint8_t response1[16];
+    uint8_t responseSize1;
+    while (1) {
+        initializeTime();
+        time1 = waitCDRomIRQ();
+        cause1 = ackCDRomCause();
+        ctrl1 = CDROM_REG0 & ~3;
+        responseSize1 = readResponse(response1);
+        ctrl2 = CDROM_REG0 & ~3;
+        if (cause1 == 1) {
+            readyCount++;
+        } else {
+            break;
+        }
+    }
+
+    initializeTime();
+    uint32_t time2 = waitCDRomIRQ();
+    uint8_t cause2 = ackCDRomCause();
+    uint8_t ctrl3 = CDROM_REG0 & ~3;
+    uint8_t response2[16];
+    uint8_t responseSize2 = readResponse(response2);
+    uint8_t ctrl4 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause2b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(2, cause2);
+    cester_assert_uint_eq(0xe0, cause2b);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_eq(0x38, ctrl3);
+    cester_assert_uint_eq(0x18, ctrl4);
+    cester_assert_uint_eq(0x22, response1[0]);
+    cester_assert_uint_eq(1, responseSize1);
+    cester_assert_uint_eq(2, response2[0]);
+    cester_assert_uint_eq(1, responseSize2);
+    cester_assert_uint_ge(readyCount, 1);
+    cester_assert_uint_le(readyCount, 2);
+    ramsyscall_printf("Long read, pause then ack, ack in %ius, complete in %ius\n", time1, time2);
+)
+
+CESTER_TEST(simpleReadingNopQuery, test_instances,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    int setModeDone = setMode(0x80);
+    if (!setModeDone) {
+        cester_assert_true(setModeDone);
+        return;
+    }
+
+    int seekDone = seekLTo(0x20, 0, 0);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
+        return;
+    }
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_READN;
+    waitCDRomIRQ();
+    ackCDRomCause();
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_NOP;
 
     initializeTime();
     uint32_t time1 = waitCDRomIRQ();
@@ -464,7 +539,7 @@ CESTER_TEST(simpleReadingPauseWithoutAck, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause4b = CDROM_REG3_UC;
 
-    cester_assert_uint_eq(5, cause1);
+    cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(1, cause2);
     cester_assert_uint_eq(0xe0, cause2b);
@@ -480,21 +555,18 @@ CESTER_TEST(simpleReadingPauseWithoutAck, test_instances,
     cester_assert_uint_eq(0x18, ctrl6);
     cester_assert_uint_eq(0x38, ctrl7);
     cester_assert_uint_eq(0x18, ctrl8);
-    // This bit will jitter
-    uint8_t response1_0 = response1[0] & ~0x40;
-    cester_assert_uint_eq(3, response1_0);
-    cester_assert_uint_eq(0x80, response1[1]);
-    cester_assert_uint_eq(2, responseSize1);
-    cester_assert_uint_eq(0x23, response2[0]);
+    cester_assert_uint_eq(0x42, response1[0]);
+    cester_assert_uint_eq(1, responseSize1);
+    cester_assert_uint_eq(0x22, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
     cester_assert_uint_eq(0x22, response3[0]);
     cester_assert_uint_eq(1, responseSize3);
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
-    ramsyscall_printf("Long read, pause then ack, error in %ius, ready in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time3);
+    ramsyscall_printf("Long read, nop then pause, ack in %ius, ready in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time3);
 )
 
-CESTER_TEST(simpleReadingNopQuery, test_instances,
+CESTER_TEST(simpleReadingNopSeriesQuery, test_instances,
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -507,9 +579,9 @@ CESTER_TEST(simpleReadingNopQuery, test_instances,
         return;
     }
 
-    int setLocDone = setLoc(0x20, 0, 0);
-    if (!setLocDone) {
-        cester_assert_true(setLocDone);
+    int seekDone = seekLTo(0x20, 0, 0);
+    if (!seekDone) {
+        cester_assert_true(seekDone);
         return;
     }
 
@@ -523,10 +595,13 @@ CESTER_TEST(simpleReadingNopQuery, test_instances,
     for (unsigned i = 0; i < 100; i++) {
         CDROM_REG0 = 0;
         CDROM_REG1 = CDL_NOP;
-        waitCDRomIRQ();
-        ackCDRomCause();
-        uint8_t response[16];
-        readResponse(response);
+        uint8_t cause;
+        do {
+            waitCDRomIRQ();
+            cause = ackCDRomCause();
+            uint8_t response[16];
+            readResponse(response);
+        } while (cause == 1);
     }
 
     CDROM_REG0 = 0;
@@ -591,7 +666,7 @@ CESTER_TEST(simpleReadingNopQuery, test_instances,
     cester_assert_uint_eq(0x18, ctrl6);
     cester_assert_uint_eq(0x38, ctrl7);
     cester_assert_uint_eq(0x18, ctrl8);
-    cester_assert_uint_eq(2, response1[0]);
+    cester_assert_uint_eq(0x22, response1[0]);
     cester_assert_uint_eq(1, responseSize1);
     cester_assert_uint_eq(0x22, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
@@ -599,5 +674,5 @@ CESTER_TEST(simpleReadingNopQuery, test_instances,
     cester_assert_uint_eq(1, responseSize3);
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
-    ramsyscall_printf("Long read, nop then pause, ack in %ius, ready in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time3);
+    ramsyscall_printf("Long read, nop series then pause, ack in %ius, ready in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time3);
 )
