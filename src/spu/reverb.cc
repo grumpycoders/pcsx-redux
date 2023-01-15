@@ -171,6 +171,29 @@ void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
 inline int PCSX::SPU::impl::g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
 {
     short *p = (short *)spuMem;
+    iOff = (iOff * 4) + rvb.CurrAddr;
+    while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
+    while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
+    return (int)*(p + iOff);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+inline void PCSX::SPU::impl::s_bufferdrhell(int iOff,
+                                            int iVal)  // set_buffer content helper: takes care about wraps and clipping
+{
+    short *p = (short *)spuMem;
+    iOff = (iOff) + rvb.CurrAddr;
+    while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
+    while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
+    if (iVal < -32768L) iVal = -32768L;
+    if (iVal > 32767L) iVal = 32767L;
+    *(p + iOff) = (short)iVal;
+}
+
+inline int PCSX::SPU::impl::g_bufferdrhell(int iOff)  // get_buffer content helper: takes care about wraps
+{
+    short *p = (short *)spuMem;
     iOff = (iOff) + rvb.CurrAddr;
     while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
     while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
@@ -183,7 +206,7 @@ inline void PCSX::SPU::impl::s_buffer(int iOff,
                                       int iVal)  // set_buffer content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
-    iOff = (iOff) + rvb.CurrAddr;
+    iOff = (iOff * 4) + rvb.CurrAddr;
     while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
     while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
     if (iVal < -32768L) iVal = -32768L;
@@ -219,21 +242,21 @@ int PCSX::SPU::impl::DrHellReverb(int ns) {
 
     if (iCnt & 1)  // we work on every second left value: downsample to 22 khz
     {
-        if (spuCtrl & 0x80)  // -> reverb on? oki
+        if (spuCtrl & ControlFlags::ReverbMasterEnable)  // -> reverb on? oki
         {
             /*
              * PlayStation Reverberation Algorithm (C) Dr. Hell, 2005
              * Strictly speaking, the timing of left and right processing is shifted by one sampling time,
              * each run every 2 sampling times
              */
-            int16_t z1_Lsame = reverb_regs.mLSAME - 1;
-            int16_t z1_Rsame = reverb_regs.mRSAME - 1;
-            int16_t z1_Ldiff = reverb_regs.mLDIFF - 1;
-            int16_t z1_Rdiff = reverb_regs.mRDIFF - 1;
-            int16_t zm_Lapf1 = reverb_regs.mLSAME - reverb_regs.dAPF1;
-            int16_t zm_Rapf1 = reverb_regs.mRSAME - reverb_regs.dAPF1;
-            int16_t zm_Lapf2 = reverb_regs.mLAPF2 - reverb_regs.dAPF2;
-            int16_t zm_Rapf2 = reverb_regs.mRAPF2 - reverb_regs.dAPF2;
+            int32_t z1_Lsame = reverb_regs.mLSAME - 1;
+            int32_t z1_Rsame = reverb_regs.mRSAME - 1;
+            int32_t z1_Ldiff = reverb_regs.mLDIFF - 1;
+            int32_t z1_Rdiff = reverb_regs.mRDIFF - 1;
+            int32_t zm_Lapf1 = reverb_regs.mLSAME - reverb_regs.dAPF1;
+            int32_t zm_Rapf1 = reverb_regs.mRSAME - reverb_regs.dAPF1;
+            int32_t zm_Lapf2 = reverb_regs.mLAPF2 - reverb_regs.dAPF2;
+            int32_t zm_Rapf2 = reverb_regs.mRAPF2 - reverb_regs.dAPF2;
 
             /*
              * LoadFromLowPassFilter is a 35 or 39 tap FIR filter
@@ -249,72 +272,72 @@ int PCSX::SPU::impl::DrHellReverb(int ns) {
             /*
              * Left -> Wall -> Left Reflection
              */
-            int16_t L_temp = g_buffer(reverb_regs.dLSAME);
-            int16_t R_temp = g_buffer(reverb_regs.dRSAME);
-            int16_t L_same = L_in + reverb_regs.vWALL * L_temp;
-            int16_t R_same = R_in + reverb_regs.vWALL * R_temp;
-            L_temp = g_buffer(z1_Lsame);
-            R_temp = g_buffer(z1_Rsame);
-            L_same = L_temp + reverb_regs.vIIR * (L_same - L_temp);
-            R_same = R_temp + reverb_regs.vIIR * (R_same - R_temp);
+            int32_t L_temp = g_bufferdrhell(reverb_regs.dLSAME);
+            int32_t R_temp = g_bufferdrhell(reverb_regs.dRSAME);
+            int32_t L_same = L_in + ((reverb_regs.vWALL * L_temp) / 32768L);
+            int32_t R_same = R_in + ((reverb_regs.vWALL * R_temp) / 32768L);
+            L_temp = g_bufferdrhell(z1_Lsame);
+            R_temp = g_bufferdrhell(z1_Rsame);
+            L_same = L_temp + ((reverb_regs.vIIR * (L_same - L_temp)) / 32768L);
+            R_same = R_temp + ((reverb_regs.vIIR * (R_same - R_temp)) / 32768L);
 
             /*
              * Left -> Wall -> Right Reflection
              */
-            L_temp = g_buffer(reverb_regs.dRDIFF);
-            R_temp = g_buffer(reverb_regs.dLDIFF);
-            int16_t L_diff = L_in + reverb_regs.vWALL * L_temp;
-            int16_t R_diff = R_in + reverb_regs.vWALL * R_temp;
-            L_temp = g_buffer(z1_Ldiff);
-            R_temp = g_buffer(z1_Rdiff);
-            L_diff = L_temp + reverb_regs.vIIR * (L_diff - L_temp);
-            R_diff = R_temp + reverb_regs.vIIR * (R_diff - R_temp);
+            L_temp = g_bufferdrhell(reverb_regs.dRDIFF);
+            R_temp = g_bufferdrhell(reverb_regs.dLDIFF);
+            int32_t L_diff = L_in + ((reverb_regs.vWALL * L_temp) / 32768L);
+            int32_t R_diff = R_in + ((reverb_regs.vWALL * R_temp) / 32768L);
+            L_temp = g_bufferdrhell(z1_Ldiff);
+            R_temp = g_bufferdrhell(z1_Rdiff);
+            L_diff = L_temp + ((reverb_regs.vIIR * (L_diff - L_temp)) / 32768L);
+            R_diff = R_temp + ((reverb_regs.vIIR * (R_diff - R_temp)) / 32768L);
 
             /*
              * Early Echo (Comb Filter)
              */
-            L_in = reverb_regs.vCOMB1 * g_buffer(reverb_regs.mLCOMB1) +
-                   reverb_regs.vCOMB2 * g_buffer(reverb_regs.mLCOMB2) +
-                   reverb_regs.vCOMB3 * g_buffer(reverb_regs.mLCOMB3) +
-                   reverb_regs.vCOMB4 * g_buffer(reverb_regs.mLCOMB4);
-            R_in = reverb_regs.vCOMB1 * g_buffer(reverb_regs.mRCOMB1) +
-                   reverb_regs.vCOMB2 * g_buffer(reverb_regs.mRCOMB2) +
-                   reverb_regs.vCOMB3 * g_buffer(reverb_regs.mRCOMB3) +
-                   reverb_regs.vCOMB4 * g_buffer(reverb_regs.mRCOMB4);
+            L_in = ((reverb_regs.vCOMB1 * g_bufferdrhell(reverb_regs.mLCOMB1)) / 32768L) +
+                   ((reverb_regs.vCOMB2 * g_bufferdrhell(reverb_regs.mLCOMB2)) / 32768L) +
+                   ((reverb_regs.vCOMB3 * g_bufferdrhell(reverb_regs.mLCOMB3)) / 32768L) +
+                   ((reverb_regs.vCOMB4 * g_bufferdrhell(reverb_regs.mLCOMB4)) / 32768L);
+            R_in = ((reverb_regs.vCOMB1 * g_bufferdrhell(reverb_regs.mRCOMB1)) / 32768L) +
+                   ((reverb_regs.vCOMB2 * g_bufferdrhell(reverb_regs.mRCOMB2)) / 32768L) +
+                   ((reverb_regs.vCOMB3 * g_bufferdrhell(reverb_regs.mRCOMB3)) / 32768L) +
+                   ((reverb_regs.vCOMB4 * g_bufferdrhell(reverb_regs.mRCOMB4)) / 32768L);
 
             /*
              * Late Reverb (Two All Pass Filters)
              */
-            L_temp = g_buffer(zm_Lapf1);
-            R_temp = g_buffer(zm_Rapf1);
-            int16_t L_apf1 = L_in - reverb_regs.vAPF1 * L_temp;
-            int16_t R_apf1 = R_in - reverb_regs.vAPF1 * R_temp;
+            L_temp = g_bufferdrhell(zm_Lapf1);
+            R_temp = g_bufferdrhell(zm_Rapf1);
+            int32_t L_apf1 = L_in - reverb_regs.vAPF1 * L_temp;
+            int32_t R_apf1 = R_in - reverb_regs.vAPF1 * R_temp;
             L_in = L_temp + reverb_regs.vAPF1 * L_apf1;
             R_in = R_temp + reverb_regs.vAPF1 * R_apf1;
-            L_temp = g_buffer(zm_Lapf2);
-            R_temp = g_buffer(zm_Rapf2);
-            int16_t L_apf2 = L_in - reverb_regs.vAPF2 * L_temp;
-            int16_t R_apf2 = R_in - reverb_regs.vAPF2 * R_temp;
+            L_temp = g_bufferdrhell(zm_Lapf2);
+            R_temp = g_bufferdrhell(zm_Rapf2);
+            int32_t L_apf2 = L_in - reverb_regs.vAPF2 * L_temp;
+            int32_t R_apf2 = R_in - reverb_regs.vAPF2 * R_temp;
             L_in = L_temp + reverb_regs.vAPF2 * L_apf2;
             R_in = R_temp + reverb_regs.vAPF2 * R_apf2;
 
             /*
              * Output
              */
-            //SetOutputL(L_in);
-            //SetOutputR(R_in);
+            // SetOutputL(L_in);
+            // SetOutputR(R_in);
 
             /*
              * Write Buffer
              */
-            s_buffer(reverb_regs.mLSAME, L_same);
-            s_buffer(reverb_regs.mRSAME, R_same);
-            s_buffer(reverb_regs.mLDIFF, L_diff);
-            s_buffer(reverb_regs.mRDIFF, R_diff);
-            s_buffer(reverb_regs.mLAPF1, L_apf1);
-            s_buffer(reverb_regs.mRAPF1, R_apf1);
-            s_buffer(reverb_regs.mLAPF2, L_apf2);
-            s_buffer(reverb_regs.mRAPF2, R_apf2);
+            s_bufferdrhell(reverb_regs.mLSAME, L_same);
+            s_bufferdrhell(reverb_regs.mRSAME, R_same);
+            s_bufferdrhell(reverb_regs.mLDIFF, L_diff);
+            s_bufferdrhell(reverb_regs.mRDIFF, R_diff);
+            s_bufferdrhell(reverb_regs.mLAPF1, L_apf1);
+            s_bufferdrhell(reverb_regs.mRAPF1, R_apf1);
+            s_bufferdrhell(reverb_regs.mLAPF2, L_apf2);
+            s_bufferdrhell(reverb_regs.mRAPF2, R_apf2);
 
             /*
              * Update Circular Buffer
@@ -324,8 +347,8 @@ int PCSX::SPU::impl::DrHellReverb(int ns) {
             rvb.iLastRVBLeft = rvb.iRVBLeft;
             rvb.iLastRVBRight = rvb.iRVBRight;
 
-            rvb.iRVBLeft = (g_buffer(reverb_regs.mLAPF1) + g_buffer(reverb_regs.mLAPF2)) / 3;
-            rvb.iRVBRight = (g_buffer(reverb_regs.mRAPF1) + g_buffer(reverb_regs.mRAPF2)) / 3;
+            rvb.iRVBLeft = (g_bufferdrhell(reverb_regs.mLAPF1) + g_bufferdrhell(reverb_regs.mLAPF2)) / 3;
+            rvb.iRVBRight = (g_bufferdrhell(reverb_regs.mRAPF1) + g_bufferdrhell(reverb_regs.mRAPF2)) / 3;
 
             rvb.iRVBLeft = (rvb.iRVBLeft * rvb.VolLeft) / 0x4000;
             rvb.iRVBRight = (rvb.iRVBRight * rvb.VolRight) / 0x4000;
@@ -344,7 +367,347 @@ int PCSX::SPU::impl::DrHellReverb(int ns) {
     }
 
     return rvb.iLastRVBLeft;
-    
+}
+
+int PCSX::SPU::impl::AnotherReverbTest(int ns) {
+    if (settings.get<Reverb>() == 0) return 0;
+
+    static int iCnt = 0;  // this func will be called with 44.1 khz
+
+    if (!rvb.StartAddr)  // reverb is off
+    {
+        rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
+        return 0;
+    }
+
+    iCnt++;
+
+    if (iCnt & 1)  // we work on every second left value: downsample to 22 khz
+    {
+        if (spuCtrl & ControlFlags::ReverbMasterEnable)  // -> reverb on? oki
+        {
+            const int INPUT_SAMPLE_L = *(sRVBStart + (ns << 1));
+            const int INPUT_SAMPLE_R = *(sRVBStart + (ns << 1) + 1);
+            int LeftInput = *(sRVBStart + (ns << 1));
+            int RightInput = *(sRVBStart + (ns << 1) + 1);
+
+            int32_t mAPF1 = rvb.FB_SRC_A * 4;
+            int32_t mAPF2 = rvb.FB_SRC_B * 4;
+            double gIIR = rvb.IIR_ALPHA / 32768.0;
+            double gCOMB1 = rvb.ACC_COEF_A / 32768.0;
+            double gCOMB2 = rvb.ACC_COEF_B / 32768.0;
+            double gCOMB3 = rvb.ACC_COEF_C / 32768.0;
+            double gCOMB4 = rvb.ACC_COEF_D / 32768.0;
+            double gWALL = rvb.IIR_COEF / 32768.0;
+            double gAPF1 = rvb.FB_ALPHA / 32768.0;
+            double gAPF2 = rvb.FB_X / 32768.0;
+            int32_t z0_Lsame = rvb.IIR_DEST_A0 * 4;
+            int32_t z0_Rsame = rvb.IIR_DEST_A1 * 4;
+            int32_t m1_Lcomb = rvb.ACC_SRC_A0 * 4;
+            int32_t m1_Rcomb = rvb.ACC_SRC_A1 * 4;
+            int32_t m2_Lcomb = rvb.ACC_SRC_B0 * 4;
+            int32_t m2_Rcomb = rvb.ACC_SRC_B1 * 4;
+            int32_t zm_Lsame = rvb.IIR_SRC_A0 * 4;
+            int32_t zm_Rsame = rvb.IIR_SRC_A1 * 4;
+            int32_t z0_Ldiff = rvb.IIR_DEST_B0 * 4;
+            int32_t z0_Rdiff = rvb.IIR_DEST_B1 * 4;
+            int32_t m3_Lcomb = rvb.ACC_SRC_C0 * 4;
+            int32_t m3_Rcomb = rvb.ACC_SRC_C1 * 4;
+            int32_t m4_Lcomb = rvb.ACC_SRC_D0 * 4;
+            int32_t m4_Rcomb = rvb.ACC_SRC_D1 * 4;
+            int32_t zm_Ldiff = rvb.IIR_SRC_B1 * 4;
+            int32_t zm_Rdiff = rvb.IIR_SRC_B0 * 4;
+            int32_t z0_Lapf1 = rvb.MIX_DEST_A0 * 4;
+            int32_t z0_Rapf1 = rvb.MIX_DEST_A1 * 4;
+            int32_t z0_Lapf2 = rvb.MIX_DEST_B0 * 4;
+            int32_t z0_Rapf2 = rvb.MIX_DEST_B1 * 4;
+            double gLIN = rvb.IN_COEF_L / 32768.0;
+            double gRIN = rvb.IN_COEF_R / 32768.0;
+            int32_t z1_Lsame = z0_Lsame - 1;
+            int32_t z1_Rsame = z0_Rsame - 1;
+            int32_t z1_Ldiff = z0_Ldiff - 1;
+            int32_t z1_Rdiff = z0_Rdiff - 1;
+            int32_t zm_Lapf1 = z0_Lapf1 - mAPF1;
+            int32_t zm_Rapf1 = z0_Rapf1 - mAPF1;
+            int32_t zm_Lapf2 = z0_Lapf2 - mAPF2;
+            int32_t zm_Rapf2 = z0_Rapf2 - mAPF2;
+
+            // ___Input from Mixer (Input volume multiplied with incoming data)_____________
+            int L_in = rvb.IN_COEF_L * LeftInput;   // from any channels that have Reverb enabled
+            int R_in = rvb.IN_COEF_R * RightInput;  // from any channels that have Reverb enabled
+
+            /*
+             * Left -> Wall -> Left Reflection
+             */
+            int32_t L_temp = g_bufferdrhell(zm_Lsame);
+            int32_t R_temp = g_bufferdrhell(zm_Rsame);
+            int32_t L_same = L_in + (gWALL * L_temp);
+            int32_t R_same = R_in + (gWALL * R_temp);
+            L_temp = g_bufferdrhell(z1_Lsame);
+            R_temp = g_bufferdrhell(z1_Rsame);
+            L_same = L_temp + gIIR * (L_same - L_temp);
+            R_same = R_temp + gIIR * (R_same - R_temp);
+
+            /*
+             * Left -> Wall -> Right Reflection
+             */
+            L_temp = g_bufferdrhell(zm_Rdiff);
+            R_temp = g_bufferdrhell(zm_Ldiff);
+            int32_t L_diff = L_in + gWALL * L_temp;
+            int32_t R_diff = R_in + gWALL * R_temp;
+            L_temp = g_bufferdrhell(z1_Ldiff);
+            R_temp = g_bufferdrhell(z1_Rdiff);
+            L_diff = L_temp + gIIR * (L_diff - L_temp);
+            R_diff = R_temp + gIIR * (R_diff - R_temp);
+
+            /*
+             * Early Echo (Comb Filter)
+             */
+            L_in = gCOMB1 * g_bufferdrhell(m1_Lcomb) + gCOMB2 * g_bufferdrhell(m2_Lcomb) +
+                   gCOMB3 * g_bufferdrhell(m3_Lcomb) + gCOMB4 * g_bufferdrhell(m4_Lcomb);
+            R_in = gCOMB1 * g_bufferdrhell(m1_Rcomb) + gCOMB2 * g_bufferdrhell(m2_Rcomb) +
+                   gCOMB3 * g_bufferdrhell(m3_Rcomb) + gCOMB4 * g_bufferdrhell(m4_Rcomb);
+
+            /*
+             * Late Reverb (Two All Pass Filters)
+             */
+            L_temp = g_bufferdrhell(zm_Lapf1);
+            R_temp = g_bufferdrhell(zm_Rapf1);
+            int32_t L_apf1 = L_in - gAPF1 * L_temp;
+            int32_t R_apf1 = R_in - gAPF1 * R_temp;
+            L_in = L_temp + gAPF1 * L_apf1;
+            R_in = R_temp + gAPF1 * R_apf1;
+            L_temp = g_bufferdrhell(zm_Lapf2);
+            R_temp = g_bufferdrhell(zm_Rapf2);
+            int32_t L_apf2 = L_in - gAPF2 * L_temp;
+            int32_t R_apf2 = R_in - gAPF2 * R_temp;
+            L_in = L_temp + gAPF2 * L_apf2;
+            R_in = R_temp + gAPF2 * R_apf2;
+
+            /*
+             * Output
+             */
+            // SetOutputL(L_in);
+            // SetOutputR(R_in);
+
+            int ACC0, ACC1, FB_A0, FB_A1, FB_B0, FB_B1;
+
+            const int IIR_INPUT_A0 =
+                (g_buffer(rvb.IIR_SRC_A0) * rvb.IIR_COEF) / 32768L + (INPUT_SAMPLE_L * rvb.IN_COEF_L) / 32768L;
+            const int IIR_INPUT_A1 =
+                (g_buffer(rvb.IIR_SRC_A1) * rvb.IIR_COEF) / 32768L + (INPUT_SAMPLE_R * rvb.IN_COEF_R) / 32768L;
+            const int IIR_INPUT_B0 =
+                (g_buffer(rvb.IIR_SRC_B0) * rvb.IIR_COEF) / 32768L + (INPUT_SAMPLE_L * rvb.IN_COEF_L) / 32768L;
+            const int IIR_INPUT_B1 =
+                (g_buffer(rvb.IIR_SRC_B1) * rvb.IIR_COEF) / 32768L + (INPUT_SAMPLE_R * rvb.IN_COEF_R) / 32768L;
+
+            const int IIR_A0 = (IIR_INPUT_A0 * rvb.IIR_ALPHA) / 32768L +
+                               (g_buffer(rvb.IIR_DEST_A0) * (32768L - rvb.IIR_ALPHA)) / 32768L;
+            const int IIR_A1 = (IIR_INPUT_A1 * rvb.IIR_ALPHA) / 32768L +
+                               (g_buffer(rvb.IIR_DEST_A1) * (32768L - rvb.IIR_ALPHA)) / 32768L;
+            const int IIR_B0 = (IIR_INPUT_B0 * rvb.IIR_ALPHA) / 32768L +
+                               (g_buffer(rvb.IIR_DEST_B0) * (32768L - rvb.IIR_ALPHA)) / 32768L;
+            const int IIR_B1 = (IIR_INPUT_B1 * rvb.IIR_ALPHA) / 32768L +
+                               (g_buffer(rvb.IIR_DEST_B1) * (32768L - rvb.IIR_ALPHA)) / 32768L;
+
+            ACC0 = (g_buffer(rvb.ACC_SRC_A0) * rvb.ACC_COEF_A) / 32768L +
+                   (g_buffer(rvb.ACC_SRC_B0) * rvb.ACC_COEF_B) / 32768L +
+                   (g_buffer(rvb.ACC_SRC_C0) * rvb.ACC_COEF_C) / 32768L +
+                   (g_buffer(rvb.ACC_SRC_D0) * rvb.ACC_COEF_D) / 32768L;
+            ACC1 = (g_buffer(rvb.ACC_SRC_A1) * rvb.ACC_COEF_A) / 32768L +
+                   (g_buffer(rvb.ACC_SRC_B1) * rvb.ACC_COEF_B) / 32768L +
+                   (g_buffer(rvb.ACC_SRC_C1) * rvb.ACC_COEF_C) / 32768L +
+                   (g_buffer(rvb.ACC_SRC_D1) * rvb.ACC_COEF_D) / 32768L;
+
+            FB_A0 = g_buffer(rvb.MIX_DEST_A0 - rvb.FB_SRC_A);
+            FB_A1 = g_buffer(rvb.MIX_DEST_A1 - rvb.FB_SRC_A);
+            FB_B0 = g_buffer(rvb.MIX_DEST_B0 - rvb.FB_SRC_B);
+            FB_B1 = g_buffer(rvb.MIX_DEST_B1 - rvb.FB_SRC_B);
+
+            // s_buffer1(rvb.IIR_DEST_A0, IIR_A0);
+            // s_buffer1(rvb.IIR_DEST_A1, IIR_A1);
+            // s_buffer1(rvb.IIR_DEST_B0, IIR_B0);
+            // s_buffer1(rvb.IIR_DEST_B1, IIR_B1);
+            //  s_buffer(rvb.MIX_DEST_A0, ACC0 - (FB_A0 * rvb.FB_ALPHA) / 32768L);
+            //  s_buffer(rvb.MIX_DEST_A1, ACC1 - (FB_A1 * rvb.FB_ALPHA) / 32768L);
+
+            // s_buffer(rvb.MIX_DEST_B0, (rvb.FB_ALPHA * ACC0) / 32768L -
+            //                               (FB_A0 * (int)(rvb.FB_ALPHA ^ 0xFFFF8000)) / 32768L -
+            //                               (FB_B0 * rvb.FB_X) / 32768L);
+            // s_buffer(rvb.MIX_DEST_B1, (rvb.FB_ALPHA * ACC1) / 32768L -
+            //                               (FB_A1 * (int)(rvb.FB_ALPHA ^ 0xFFFF8000)) / 32768L -
+            //                               (FB_B1 * rvb.FB_X) / 32768L);
+
+            /*
+             * Write Buffer
+             */
+            // s_buffer1(rvb.IIR_DEST_A0, IIR_A0);
+            s_bufferdrhell(z0_Lsame, L_same / 32768L);
+
+            // s_buffer1(rvb.IIR_DEST_A1, IIR_A1);
+            s_bufferdrhell(z0_Rsame, R_same / 32768L);
+
+            // s_buffer1(rvb.IIR_DEST_B0, IIR_B0);
+            s_bufferdrhell(z0_Ldiff, L_diff / 32768L);
+
+            // s_buffer1(rvb.IIR_DEST_B1, IIR_B1);
+            s_bufferdrhell(z0_Rdiff, R_diff / 32768L);
+
+            s_bufferdrhell(z0_Lapf1, L_apf1);
+            s_bufferdrhell(z0_Rapf1, R_apf1);
+            s_bufferdrhell(z0_Lapf2, L_apf2);
+            s_bufferdrhell(z0_Rapf2, R_apf2);
+
+            rvb.iLastRVBLeft = rvb.iRVBLeft;
+            rvb.iLastRVBRight = rvb.iRVBRight;
+
+            rvb.iRVBLeft = (g_buffer(rvb.MIX_DEST_A0) + g_buffer(rvb.MIX_DEST_B0)) / 3;
+            rvb.iRVBRight = (g_buffer(rvb.MIX_DEST_A1) + g_buffer(rvb.MIX_DEST_B1)) / 3;
+
+            rvb.iRVBLeft = (rvb.iRVBLeft * rvb.VolLeft) / 0x4000;
+            rvb.iRVBRight = (rvb.iRVBRight * rvb.VolRight) / 0x4000;
+
+            rvb.CurrAddr++;
+            if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
+
+            return rvb.iLastRVBLeft + (rvb.iRVBLeft - rvb.iLastRVBLeft) / 2;
+        } else  // -> reverb off
+        {
+            rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
+        }
+
+        rvb.CurrAddr++;
+        if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
+    }
+
+    return rvb.iLastRVBLeft;
+}
+
+int PCSX::SPU::impl::NoCashReverb(int ns) {
+    static int iCnt = 0;  // this func will be called with 44.1 khz
+
+    if (!rvb.StartAddr)  // reverb is off
+    {
+        rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
+        return 0;
+    }
+
+    iCnt++;
+
+    if (iCnt & 1)  // we work on every second left value: downsample to 22 khz
+    {
+        if (spuCtrl & ControlFlags::ReverbMasterEnable)  // -> reverb on? oki
+        {
+            const int INPUT_SAMPLE_L = *(sRVBStart + (ns << 1));
+            const int INPUT_SAMPLE_R = *(sRVBStart + (ns << 1) + 1);
+
+            int L_in = (INPUT_SAMPLE_L * reverb_regs.vLIN);
+            int R_in = (INPUT_SAMPLE_R * reverb_regs.vRIN);
+
+            int32_t Lout;
+            int32_t Rout;
+
+            int32_t mLSAME = g_bufferdrhell(reverb_regs.mLSAME);
+            int32_t mLSAME2 = g_bufferdrhell(reverb_regs.mLSAME - 2);
+            int32_t notmlsame = g_buffer(rvb.IIR_DEST_A0);
+
+            if (notmlsame || mLSAME || mLSAME2) {
+                notmlsame = notmlsame + 0;
+            }
+
+            int32_t mRSAME = g_bufferdrhell(reverb_regs.mRSAME);
+            int32_t mRSAME2 = g_bufferdrhell(reverb_regs.mRSAME - 2);
+
+            int32_t mLDIFF = g_bufferdrhell(reverb_regs.mLDIFF);
+            int32_t mLDIFF2 = g_bufferdrhell(reverb_regs.mLDIFF - 2);
+
+            int32_t mRDIFF = g_bufferdrhell(reverb_regs.mRDIFF);
+            int32_t mRDIFF2 = g_bufferdrhell(reverb_regs.mRDIFF - 2);
+
+            int32_t dLSAME = g_bufferdrhell(reverb_regs.dLSAME);
+            int32_t dRSAME = g_bufferdrhell(reverb_regs.dRSAME);
+
+            int32_t dLDIFF = g_bufferdrhell(reverb_regs.dLDIFF);
+            int32_t dRDIFF = g_bufferdrhell(reverb_regs.dRDIFF);
+
+            int32_t mLCOMB1 = g_bufferdrhell(reverb_regs.mLCOMB1);
+            int32_t mRCOMB1 = g_bufferdrhell(reverb_regs.mRCOMB1);
+            int32_t mLCOMB2 = g_bufferdrhell(reverb_regs.mLCOMB2);
+            int32_t mRCOMB2 = g_bufferdrhell(reverb_regs.mRCOMB2);
+            int32_t mLCOMB3 = g_bufferdrhell(reverb_regs.mLCOMB3);
+            int32_t mRCOMB3 = g_bufferdrhell(reverb_regs.mRCOMB3);
+            int32_t mLCOMB4 = g_bufferdrhell(reverb_regs.mLCOMB4);
+            int32_t mRCOMB4 = g_bufferdrhell(reverb_regs.mRCOMB4);
+
+            int32_t APFL1 = g_bufferdrhell(reverb_regs.mLAPF1 - reverb_regs.dAPF1);
+            int32_t APFR1 = g_bufferdrhell(reverb_regs.mRAPF1 - reverb_regs.dAPF1);
+            int32_t APFL2 = g_bufferdrhell(reverb_regs.mLAPF2 - reverb_regs.dAPF2);
+            int32_t APFR2 = g_bufferdrhell(reverb_regs.mRAPF2 - reverb_regs.dAPF2);
+
+            // Same Side Reflection(left - to - left and right - to - right)
+
+            // L-to-L
+            s_bufferdrhell(reverb_regs.mLSAME,
+                           (L_in + dLSAME * reverb_regs.vWALL - mLSAME2) * reverb_regs.vIIR + mLSAME2);
+
+            // R-to-R
+            s_bufferdrhell(reverb_regs.mRSAME,
+                           (R_in + dRSAME * reverb_regs.vWALL - mRSAME2) * reverb_regs.vIIR + mRSAME2);
+
+            // Different Side Reflection(left - to - right and right - to - left)
+            s_bufferdrhell(reverb_regs.mLDIFF,
+                           (L_in + dRDIFF * reverb_regs.vWALL - mLDIFF2) * reverb_regs.vIIR + mLDIFF2);
+            s_bufferdrhell(reverb_regs.mRDIFF,
+                           (R_in + dLDIFF * reverb_regs.vWALL - mRDIFF2) * reverb_regs.vIIR + mRDIFF2);
+
+            // Early Echo (Comb Filter, with input from buffer)
+            Lout = reverb_regs.vCOMB1 * mLCOMB1 + reverb_regs.vCOMB2 * mLCOMB2 + reverb_regs.vCOMB3 * mLCOMB3 +
+                   reverb_regs.vCOMB4 * mLCOMB4;
+
+            Rout = reverb_regs.vCOMB1 * mRCOMB1 + reverb_regs.vCOMB2 * mRCOMB2 + reverb_regs.vCOMB3 * mRCOMB3 +
+                   reverb_regs.vCOMB4 * mRCOMB4;
+
+            // Late Reverb APF1 (All Pass Filter 1, with input from COMB)________________
+            Lout = Lout - reverb_regs.vAPF1 * APFL1;
+            s_bufferdrhell(reverb_regs.mLAPF1, Lout);
+            Lout = Lout * reverb_regs.vAPF1 + APFL1;
+
+            Rout = Rout - reverb_regs.vAPF1 * APFR1;
+            s_bufferdrhell(reverb_regs.mRAPF1, Rout);
+            Rout = Rout * reverb_regs.vAPF1 + APFR2;
+
+            // Late Reverb APF2 (All Pass Filter 2, with input from APF1)
+            Lout = Lout - reverb_regs.vAPF2 * APFL2;
+            s_bufferdrhell(reverb_regs.mLAPF2, Lout);
+            Lout = Lout * reverb_regs.vAPF2 + APFL2;
+
+            Rout = Rout - reverb_regs.vAPF2 * APFR2;
+            s_bufferdrhell(reverb_regs.mRAPF2, Rout);
+            Rout = Rout * reverb_regs.vAPF2 + APFR2;
+
+            rvb.iLastRVBLeft = rvb.iRVBLeft;
+            rvb.iLastRVBRight = rvb.iRVBRight;
+
+            rvb.iRVBLeft = (g_bufferdrhell(reverb_regs.mLAPF1) + g_bufferdrhell(reverb_regs.mLAPF2)) / 3;
+            rvb.iRVBRight = (g_bufferdrhell(reverb_regs.mRAPF1) + g_bufferdrhell(reverb_regs.mRAPF2)) / 3;
+
+            rvb.iRVBLeft = (Lout)*rvb.VolLeft;
+            rvb.iRVBRight = (Rout)*rvb.VolRight;
+
+            rvb.CurrAddr++;
+            if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
+
+            return rvb.iLastRVBLeft + (rvb.iRVBLeft - rvb.iLastRVBLeft) / 2;
+        } else  // -> reverb off
+        {
+            rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
+        }
+
+        rvb.CurrAddr++;
+        if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
+    }
+
+    return rvb.iLastRVBLeft;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -364,7 +727,7 @@ int PCSX::SPU::impl::MixREVERBLeft(int ns) {
 
         if (iCnt & 1)  // we work on every second left value: downsample to 22 khz
         {
-            if (spuCtrl & 0x80)  // -> reverb on? oki
+            if (spuCtrl & ControlFlags::ReverbMasterEnable)  // -> reverb on? oki
             {
                 int ACC0, ACC1, FB_A0, FB_A1, FB_B0, FB_B1;
 
@@ -442,7 +805,9 @@ int PCSX::SPU::impl::MixREVERBLeft(int ns) {
 
         return rvb.iLastRVBLeft;
     } else if (settings.get<Reverb>() == 3) {
-        return DrHellReverb(ns);
+        // return DrHellReverb(ns);
+        //  return NoCashReverb(ns);
+        return AnotherReverbTest(ns);
     } else  // easy fake reverb:
     {
         const int iRV = *sRVBPlay;                      // -> simply take the reverb mix buf value

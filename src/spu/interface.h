@@ -117,6 +117,9 @@ class impl final : public SPUInterface {
     void SetPitch(int ch, uint16_t val);
     void ReverbOn(int start, int end, uint16_t val);
 
+    int g_bufferdrhell(int iOff);             // get_buffer content helper: takes care about wraps
+    void s_bufferdrhell(int iOff, int iVal);  // set_buffer content helper: takes care about wraps and clipping
+
     // reverb
     int g_buffer(int iOff);              // get_buffer content helper: takes care about wraps
     void s_buffer(int iOff, int iVal);   // set_buffer content helper: takes care about wraps and clipping
@@ -128,6 +131,8 @@ class impl final : public SPUInterface {
     int MixREVERBLeft(int ns);
     int MixREVERBRight();
     int DrHellReverb(int ns);
+    int NoCashReverb(int ns);
+    int AnotherReverbTest(int ns);
 
     // xa
     void FeedXA(xa_decode_t *xap);
@@ -169,9 +174,25 @@ class impl final : public SPUInterface {
     REVERBInfo rvb;
     ReverbRegisters reverb_regs;
 
-    uint32_t dwNoiseVal = 1;  // global noise generator
+    uint32_t dwNoiseVal = 1;    // global noise generator
     uint32_t dwNoiseClock = 0;  // global noise generator
     uint32_t dwNoiseCount = 0;  // global noise generator
+
+    struct ControlFlags {
+        enum : uint16_t {
+            CDAudioEnable = 1 << 0,         // 0x0001
+            ExternalAudioEnable = 1 << 1,   // 0x0002
+            CDReverbEnable = 1 << 2,        // 0x0004
+            ExternalReverbEnable = 1 << 3,  // 0x0008
+            RAMTransferMode = 0x0030,       // 0x0030 5-4 Sound RAM Transfer Mode
+            IRQEnable = 1 << 6,             // 0x0040
+            ReverbMasterEnable = 1 << 7,    // 0x0080
+            FrequencyStep = 0x0300,         // 0x0300 9-8 Noise Frequency Step
+            Noise = 0x3f00,                 // 0x3f00 13-10 Noise Frequency Shift
+            Mute = 1 << 14,                 // 0x4000
+            Enable = 1 << 15                // 0x8000
+        };
+    };
 
     uint16_t spuCtrl = 0;  // some vars to store psx reg infos
     uint16_t spuStat = 0;

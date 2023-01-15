@@ -353,7 +353,7 @@ inline void PCSX::SPU::impl::StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 2)  // fmod freq channel
         SB[29].value = fa;
     else {
-        if ((spuCtrl & 0x4000) == 0)
+        if ((spuCtrl & ControlFlags::Mute) == 0)
             fa = 0;  // muted?
         else         // else adjust
         {
@@ -541,6 +541,9 @@ void PCSX::SPU::impl::MainThread() {
                 ns = 0;
                 while (ns < NSSIZE)  // loop until 1 ms of data is reached
                 {
+                    //SSumL[ns] = 0;
+                    //SSumR[ns] = 0;
+                    
                     NoiseClock();
                     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
                         FModChangeFrequency(pChannel, ns);
@@ -608,7 +611,7 @@ void PCSX::SPU::impl::MainThread() {
 
                             //////////////////////////////////////////// irq check
 
-                            if ((spuCtrl & 0x40))  // some callback and irq active?
+                            if ((spuCtrl & ControlFlags::IRQEnable))  // some callback and irq active?
                             {
                                 if ((pSpuIrq > start - 16 &&  // irq address reached?
                                      pSpuIrq <= start) ||
@@ -701,7 +704,8 @@ void PCSX::SPU::impl::MainThread() {
                     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 2)  // fmod freq channel
                         iFMod[ns] = pChannel->data.get<PCSX::SPU::Chan::sval>()
                                         .value;  // -> store 1T sample data, use that to do fmod on next channel
-                    else                         // no fmod freq channel
+                    //else                         // no fmod freq channel
+                    if (pChannel->data.get<PCSX::SPU::Chan::sval>().value != 0)
                     {
                         //////////////////////////////////////////////
                         // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
@@ -720,7 +724,9 @@ void PCSX::SPU::impl::MainThread() {
                         //////////////////////////////////////////////
                         // now let us store sound data for reverb
 
-                        if (pChannel->data.get<PCSX::SPU::Chan::RVBActive>().value) StoreREVERB(pChannel, ns);
+                        if (pChannel->data.get<PCSX::SPU::Chan::RVBActive>().value) {
+                            StoreREVERB(pChannel, ns);
+                        }
                     }
 
                     ////////////////////////////////////////////////
@@ -785,7 +791,7 @@ void PCSX::SPU::impl::MainThread() {
         if (pMixIrq)  // pMixIRQ will only be set, if the config option is active
         {
             for (ns = 0; ns < NSSIZE; ns++) {
-                if ((spuCtrl & 0x40) && pSpuIrq && pSpuIrq < spuMemC + 0x1000) {
+                if ((spuCtrl & ControlFlags::IRQEnable) && pSpuIrq && pSpuIrq < spuMemC + 0x1000) {
                     for (ch = 0; ch < 4; ch++) {
                         if (pSpuIrq >= pMixIrq + (ch * 0x400) && pSpuIrq < pMixIrq + (ch * 0x400) + 2) {
                             scheduleInterrupt();
