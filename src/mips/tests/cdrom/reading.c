@@ -391,7 +391,7 @@ CESTER_SKIP_TEST(simpleReadingWithoutAckNorResponseReadThenInit, test_instances,
     cester_assert_uint_eq(1, responseSize3);
     cester_assert_uint_eq(2, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
-    ramsyscall_printf("Long read, ack then init, ready1 in %ius, ready2 in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time3);
+    ramsyscall_printf("Long read, no response read, ack then init, ready1 in %ius, ready2 in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time3);
 )
 
 CESTER_TEST(simpleReadingWithoutAckThenInit, test_instances,
