@@ -221,6 +221,8 @@ CESTER_TEST(simpleReadingWithoutAck, test_instances,
     CDROM_REG1 = CDL_READN;
     waitCDRomIRQ();
     ackCDRomCause();
+    uint8_t response[16];
+    readResponse(response);
 
     initializeTime();
     while (updateTime() <= 500000);
