@@ -106,6 +106,7 @@ class CDRom {
     uint32_t m_lidCloseAtCycles = 0;
 
     // to save/init
+    uint64_t m_seed = 9223521712174600777ull;
     uint8_t m_dataFIFO[2352] = {0};
     uint32_t m_dataFIFOIndex = 0;
     uint32_t m_dataFIFOSize = 0;

@@ -87,7 +87,13 @@ class CDRomImpl final : public PCSX::CDRom {
         return PCSX::IEC60908b::MSF(m, s, f);
     }
 
+    uint32_t rand() {
+        m_seed *= 14726776315600504853ull;
+        return m_seed >> 9;
+    }
+
     void reset() override {
+        m_seed = 9223521712174600777ull;
         m_dataFIFOIndex = 0;
         m_dataFIFOSize = 0;
         m_registerIndex = 0;
@@ -352,7 +358,7 @@ class CDRomImpl final : public PCSX::CDRom {
                             .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
                         logCDROM(m_commandFifo);
                     }
-                    scheduleFifo(1ms);
+                    scheduleFifo(797us);
                 }
                 m_commandFifo.hasValue = true;
                 break;
@@ -496,7 +502,7 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void maybeStartCommand() {
-        if (m_commandFifo.empty()) return;
+        if (m_commandFifo.empty() || !m_responseFifo[1].empty()) return;
         auto command = m_commandFifo.value;
         static constexpr unsigned c_commandMax = sizeof(c_commandsArgumentsCount) / sizeof(c_commandsArgumentsCount[0]);
         if (command >= c_commandMax) {
@@ -523,7 +529,7 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void maybeScheduleNextCommand() {
-        if (!responseFifoFull()) scheduleFifo(1ms);
+        if (!responseFifoFull()) scheduleFifo(797us);
     }
 
     enum class SeekType { DATA, CDDA };
@@ -542,7 +548,7 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         // TODO: ought to be a decent approximation for now,
         // but may require some tuning later on.
-        return std::chrono::microseconds(distance * 3) + 150ms;
+        return std::chrono::microseconds(distance * 3) + 167ms;
     }
 
     std::chrono::nanoseconds computeReadDelay() { return m_speed == Speed::Simple ? 13333us : 6666us; }
