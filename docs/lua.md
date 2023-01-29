@@ -300,6 +300,7 @@ The `eventName` argument is a string that can have the following values:
 The Lua code can access the emulated memory and registers directly through some FFI bindings:
 
 - `PCSX.getMemPtr()` will return a `cdata[uint8_t*]` representing up to 8MB of emulated memory. This can be written to, but careful about the emulated i-cache in case code is being written to.
+- `PCSX.getPapPtr()` will return a `cdata[uint8_t*]` representing up to 512kB of the EXP1/Parallel port memory space. This can be written to.
 - `PCSX.getRomPtr()` will return a `cdata[uint8_t*]` representing up to 512kB of the BIOS memory space. This can be written to.
 - `PCSX.getScratchPtr()` will return a `cdata[uint8_t*]` representing up to 1kB for the scratchpad memory space.
 - `PCSX.getRegisters()` will return a structured cdata representing all the registers present in the CPU:
