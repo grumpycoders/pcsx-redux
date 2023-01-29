@@ -84,6 +84,7 @@ class WebServer;
 class SIO1;
 class SIO1Server;
 class SIO1Client;
+class PIOCart;
 
 class Emulator;
 extern Emulator* g_emulator;
@@ -181,6 +182,12 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("KioskMode"), false> SettingKioskMode;
     typedef Setting<bool, TYPESTRING("Mcd1Pocketstation"), false> SettingMcd1Pocketstation;
     typedef Setting<bool, TYPESTRING("Mcd2Pocketstation"), false> SettingMcd2Pocketstation;
+    typedef SettingPath<TYPESTRING("BiosPath")> SettingBiosBrowsePath;
+    typedef SettingPath<TYPESTRING("EXP1Filepath")> SettingEXP1Filepath;
+    typedef SettingPath<TYPESTRING("EXP1BrowsePath")> SettingEXP1BrowsePath;
+    typedef Setting<bool, TYPESTRING("PIOConnected")> SettingPIOConnected;
+    
+    
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
@@ -188,7 +195,7 @@ class Emulator {
              SettingMcd2Inserted, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither, SettingGLErrorReporting,
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
-             SettingMcd2Pocketstation>
+             SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath, SettingPIOConnected>
         settings;
     class PcsxConfig {
       public:
@@ -245,6 +252,7 @@ class Emulator {
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<Memory> m_mem;
     std::unique_ptr<Pads> m_pads;
+    std::unique_ptr<PIOCart> m_pioCart;
     std::unique_ptr<R3000Acpu> m_cpu;
     std::unique_ptr<SIO> m_sio;
     std::unique_ptr<SIO1> m_sio1;

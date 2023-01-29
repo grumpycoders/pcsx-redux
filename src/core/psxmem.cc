@@ -33,6 +33,8 @@
 #include "mips/common/util/encoder.hh"
 #include "support/file.h"
 
+#include "core/pio-cart.h"
+
 static const std::map<uint32_t, std::string_view> s_knownBioses = {
 #ifdef USE_ADLER
     {0x1002e6b5, "SCPH-1002 (EU)"},
@@ -91,37 +93,60 @@ int PCSX::Memory::init() {
     m_readLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
     m_writeLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
 
-    m_psxM = (uint8_t *)calloc(0x00800000, 1);
-    m_psxP = (uint8_t *)calloc(0x00010000, 1);
-    m_psxH = (uint8_t *)calloc(0x00010000, 1);
-    m_psxR = (uint8_t *)calloc(0x00080000, 1);
+    m_wram = (uint8_t *)calloc(0x00800000, 1);
+    m_exp1 = (uint8_t *)calloc(0x00800000, 1);
+    m_hard = (uint8_t *)calloc(0x00010000, 1);
+    m_bios = (uint8_t *)calloc(0x00080000, 1);
 
-    if (m_readLUT == NULL || m_writeLUT == NULL || m_psxM == NULL || m_psxP == NULL || m_psxH == NULL) {
+    if (m_readLUT == NULL || m_writeLUT == NULL || m_wram == NULL || m_exp1 == NULL || m_bios == NULL ||
+        m_hard == NULL) {
         g_system->message("%s", _("Error allocating memory!"));
         return -1;
     }
 
-    // MemR
-    m_readLUT[0x1f00] = (uint8_t *)m_psxP;
+    // EXP1
+    g_emulator->m_pioCart->setLuts();
 
-    for (int i = 0; i < 0x08; i++) m_readLUT[i + 0x1fc0] = (uint8_t *)&m_psxR[i << 16];
+    for (int i = 0; i < 0x08; i++) {
+        m_readLUT[i + 0x1fc0] = (uint8_t *)&m_bios[i << 16];
+    }
 
     memcpy(m_readLUT + 0x9fc0, m_readLUT + 0x1fc0, 0x08 * sizeof(void *));
     memcpy(m_readLUT + 0xbfc0, m_readLUT + 0x1fc0, 0x08 * sizeof(void *));
-
-    // MemW
-    m_writeLUT[0x1f00] = (uint8_t *)m_psxP;
 
     setLuts();
 
     return 0;
 }
 
+void PCSX::Memory::LoadEXP1FromFile(std::filesystem::path rom_path)  // Load EXP1 cart image
+{
+    const size_t exp1_size = 0x00040000;
+
+    auto &exp1Path = rom_path;
+    if (!exp1Path.empty()) {
+        IO<File> f(new PosixFile(exp1Path.string()));
+        if (f->failed()) {
+            g_system->printf(_("Could not open EXP1:\"%s\".\n"), exp1Path.string());
+        }
+
+        if (!f->failed()) {
+            size_t rom_size = (f->size() > exp1_size) ? exp1_size : f->size();
+            f->read(m_exp1, rom_size);
+            f->close();
+            PCSX::g_system->printf(_("Loaded %i bytes to EXP1 from file: %s\n"), rom_size, exp1Path.string());
+        }
+    } else {
+        memset(m_exp1, 0xff, exp1_size);
+    }
+}
+
 void PCSX::Memory::reset() {
     const uint32_t bios_size = 0x00080000;
-    memset(m_psxM, 0, 0x00800000);
-    memset(m_psxP, 0, 0x00010000);
-    memset(m_psxR, 0, bios_size);
+    const uint32_t exp1_size = 0x00040000;
+    memset(m_wram, 0, 0x00800000);
+    memset(m_exp1, 0xff, exp1_size);  // Detached memory floating high
+    memset(m_bios, 0, bios_size);
     static const uint32_t nobios[6] = {
         Mips::Encoder::lui(Mips::Encoder::Reg::V0, 0xbfc0),  // v0 = 0xbfc00000
         Mips::Encoder::lui(Mips::Encoder::Reg::V1, 0x1f80),  // v1 = 0x1f800000
@@ -133,16 +158,16 @@ void PCSX::Memory::reset() {
 
     int index = 0;
     for (auto w : nobios) {
-        m_psxR[index++] = w & 0xff;
+        m_bios[index++] = w & 0xff;
         w >>= 8;
-        m_psxR[index++] = w & 0xff;
+        m_bios[index++] = w & 0xff;
         w >>= 8;
-        m_psxR[index++] = w & 0xff;
+        m_bios[index++] = w & 0xff;
         w >>= 8;
-        m_psxR[index++] = w & 0xff;
+        m_bios[index++] = w & 0xff;
         w >>= 8;
     }
-    strcpy((char *)m_psxR + index, _(R"(
+    strcpy((char *)m_bios + index, _(R"(
                    No BIOS loaded, emulation halted.
 
 Set a BIOS file into the configuration, and do a hard reset of the emulator.
@@ -150,37 +175,42 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 )"));
 
     // Load BIOS
-    auto &biosPath = g_emulator->settings.get<Emulator::SettingBios>().value;
-    IO<File> f(new PosixFile(biosPath.string()));
-    if (f->failed()) {
-        g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath.string());
-
-        g_system->findResource(
-            [&f](const std::filesystem::path &filename) {
-                f.setFile(new PosixFile(filename));
-                return !f->failed();
-            },
-            "openbios.bin", "resources", std::filesystem::path("src") / "mips" / "openbios");
+    {
+        auto &biosPath = g_emulator->settings.get<Emulator::SettingBios>().value;
+        IO<File> f(new PosixFile(biosPath.string()));
         if (f->failed()) {
-            g_system->printf(_(
-                "Could not open OpenBIOS fallback. Things won't work properly.\nAdd a valid BIOS in the configuration "
-                "and hard reset.\n"));
-        } else {
-            biosPath = f->filename();
+            g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath.string());
+
+            g_system->findResource(
+                [&f](const std::filesystem::path &filename) {
+                    f.setFile(new PosixFile(filename));
+                    return !f->failed();
+                },
+                "openbios.bin", "resources", std::filesystem::path("src") / "mips" / "openbios");
+            if (f->failed()) {
+                g_system->printf(
+                    _("Could not open OpenBIOS fallback. Things won't work properly.\nAdd a valid BIOS in the "
+                      "configuration "
+                      "and hard reset.\n"));
+            } else {
+                biosPath = f->filename();
+            }
+        }
+
+        if (!f->failed()) {
+            f->read(m_bios, bios_size);
+            f->close();
+            PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
         }
     }
 
-    if (!f->failed()) {
-        f->read(m_psxR, bios_size);
-        f->close();
-        PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
-    }
+    LoadEXP1FromFile(g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
     uint32_t crc = crc32(0L, Z_NULL, 0);
-    m_biosCRC = crc = crc32(crc, m_psxR, bios_size);
+    m_biosCRC = crc = crc32(crc, m_bios, bios_size);
     auto it = s_knownBioses.find(crc);
     if (it != s_knownBioses.end()) {
         g_system->printf(_("Known BIOS detected: %s (%08x)\n"), it->second, crc);
-    } else if (strncmp((const char *)&m_psxR[0x78], "OpenBIOS", 8) == 0) {
+    } else if (strncmp((const char *)&m_bios[0x78], "OpenBIOS", 8) == 0) {
         g_system->printf(_("OpenBIOS detected (%08x)\n"), crc);
     } else {
         g_system->printf(_("Unknown bios loaded (%08x)\n"), crc);
@@ -188,10 +218,10 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 }
 
 void PCSX::Memory::shutdown() {
-    free(m_psxM);
-    free(m_psxP);
-    free(m_psxH);
-    free(m_psxR);
+    free(m_wram);
+    free(m_exp1);
+    free(m_hard);
+    free(m_bios);
 
     free(m_readLUT);
     free(m_writeLUT);
@@ -212,6 +242,13 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
             } else {
                 return g_emulator->m_hw->read8(address);
             }
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+            return g_emulator->m_pioCart->read8(address);
+        } else if (sendReadToLua(address, 1)) {
+            auto L = *g_emulator->m_lua;
+            const uint8_t ret = L.tonumber();
+            L.pop();
+            return ret;
         } else {
             g_system->log(LogClass::CPU, _("8-bit read from unknown address: %8.8lx\n"), address);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
@@ -237,6 +274,13 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
             } else {
                 return g_emulator->m_hw->read16(address);
             }
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+            return g_emulator->m_pioCart->read8(address);
+        } else if (sendReadToLua(address, 2)) {
+            auto L = *g_emulator->m_lua;
+            const uint16_t ret = L.tonumber();
+            L.pop();
+            return ret;
         } else {
             g_system->log(LogClass::CPU, _("16-bit read from unknown address: %8.8lx\n"), address);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
@@ -262,6 +306,13 @@ uint32_t PCSX::Memory::read32(uint32_t address) {
             } else {
                 return g_emulator->m_hw->read32(address);
             }
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+            return g_emulator->m_pioCart->read32(address);
+        } else if (sendReadToLua(address, 4)) {
+            auto L = *g_emulator->m_lua;
+            const uint32_t ret = L.tonumber();
+            L.pop();
+            return ret;
         } else {
             if (m_writeok) {
                 g_system->log(LogClass::CPU, _("32-bit read from unknown address: %8.8lx\n"), address);
@@ -273,6 +324,43 @@ uint32_t PCSX::Memory::read32(uint32_t address) {
         }
     }
 }
+
+int PCSX::Memory::sendReadToLua(const uint32_t address, const size_t size) {
+    // Grab a local pointer for our Lua VM interpreter
+    auto L = *g_emulator->m_lua;
+    int nresult = 0;
+    // Try getting the symbol 'UnknownMemoryRead' from the global space, and put it on top of the stack
+    L.getfield("UnknownMemoryRead", LUA_GLOBALSINDEX);
+    // If top-of-stack is not nil, then we're going to try calling it.
+    if (!L.isnil()) {
+        try {
+            // Call the function. Technically we should empty
+            // the stack afterward to clean potential return
+            // values from the Lua code, this is a bug in the gui code.
+            const int top = L.gettop();
+            L.push(lua_Number(address));
+            L.push(lua_Number(size));
+            nresult = L.pcall(2);
+        } catch (...) {
+            // If there is any error while executing the Lua code,
+            // push the string "UnknownMemoryRead" on top of the stack,
+            L.push("UnknownMemoryRead");
+            // then push the value "nil" (rough equivalent of NULL in Lua)
+            L.push();
+            // This will pop a key/value pair from the stack, and set
+            // the corresponding value in the global space. This effectively
+            // deletes the global function on errors.
+            L.settable(LUA_GLOBALSINDEX);
+        }
+    } else {
+        // This pops the nil from the stack.
+        L.pop();
+    }
+
+    return nresult;
+}
+
+void PCSX::Memory::sendWriteToLua() {}
 
 void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
@@ -290,6 +378,8 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
             } else {
                 g_emulator->m_hw->write8(address, value);
             }
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+            g_emulator->m_pioCart->write8(address, value);
         } else {
             g_system->log(LogClass::CPU, _("8-bit write to unknown address: %8.8lx\n"), address);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
@@ -315,6 +405,8 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
             } else {
                 g_emulator->m_hw->write16(address, value);
             }
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+            g_emulator->m_pioCart->write16(address, value);
         } else {
             g_system->log(LogClass::CPU, _("16-bit write to unknown address: %8.8lx\n"), address);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
@@ -340,6 +432,8 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
             } else {
                 g_emulator->m_hw->write32(address, value);
             }
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+            g_emulator->m_pioCart->write32(address, value);
         } else if (address != 0xfffe0130) {
             if (!m_writeok) g_emulator->m_cpu->Clear(address, 1);
 
@@ -379,7 +473,7 @@ const void *PCSX::Memory::pointerRead(uint32_t address) {
 
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400)
-            return &m_psxH[address & 0x3FF];
+            return &m_hard[address & 0x3FF];
         else {
             switch (address) {  // IO regs that are safe to read from directly
                 case 0x1f801080:
@@ -407,7 +501,7 @@ const void *PCSX::Memory::pointerRead(uint32_t address) {
                 case 0x1f801074:
                 case 0x1f8010f0:
                 case 0x1f8010f4:
-                    return &m_psxH[address & 0xffff];
+                    return &m_hard[address & 0xffff];
 
                 default:
                     return nullptr;
@@ -427,7 +521,7 @@ const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
 
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400)
-            return &m_psxH[address & 0x3FF];
+            return &m_hard[address & 0x3FF];
         else {
             switch (address) {
                 // IO regs that are safe to write to directly. For some of these,
@@ -449,7 +543,7 @@ const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
                 case 0x1f8010e4:
                 case 0x1f801074:
                 case 0x1f8010f0:
-                    return size == 32 ? &m_psxH[address & 0xffff] : nullptr;
+                    return size == 32 ? &m_hard[address & 0xffff] : nullptr;
 
                 default:
                     return nullptr;
@@ -465,9 +559,9 @@ const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
 }
 
 void PCSX::Memory::setLuts() {
-    int max = (m_psxH[0x1061] & 0x1) ? 0x80 : 0x20;
+    int max = (m_hard[0x1061] & 0x1) ? 0x80 : 0x20;
     if (!g_emulator->settings.get<Emulator::Setting8MB>()) max = 0x20;
-    for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_psxM[(i & (max - 1)) << 16];
+    for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_wram[(i & (max - 1)) << 16];
     memcpy(m_readLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
     memcpy(m_readLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
     if (m_writeok) {
