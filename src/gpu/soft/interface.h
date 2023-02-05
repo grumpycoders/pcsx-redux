@@ -93,11 +93,11 @@ class impl final : public GPU {
         char *pixels = reinterpret_cast<char *>(malloc(size));
         ss.data.acquire(pixels, size);
         if (PSXDisplay.RGB24) {
-            auto ptr = psxVSecure;
-            ptr += (startY * 1024 + startX) * 3;
+            auto ptr = psxVub;
+            ptr += startX * 3 + startY * 1024 * 2;
             for (int i = 0; i < height; i++) {
                 std::memcpy(pixels, ptr, width * 3);
-                ptr += 1024 * 3;
+                ptr += 1024 * 2;
                 pixels += width * 3;
             }
         } else {
