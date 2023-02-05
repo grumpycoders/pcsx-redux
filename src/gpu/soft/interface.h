@@ -97,7 +97,7 @@ class impl final : public GPU {
             ptr += (startY * 1024 + startX) * 3;
             for (int i = 0; i < height; i++) {
                 std::memcpy(pixels, ptr, width * 3);
-                ptr += 1024 * 3;
+                ptr += 1024 * 2;
                 pixels += width * 3;
             }
         } else {
