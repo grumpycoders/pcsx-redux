@@ -94,7 +94,7 @@ class impl final : public GPU {
         ss.data.acquire(pixels, size);
         if (PSXDisplay.RGB24) {
             auto ptr = psxVSecure;
-            ptr += (startY * 1024 + startX) * 3;
+            ptr += startX * 3 + startY * 1024 * 2;
             for (int i = 0; i < height; i++) {
                 std::memcpy(pixels, ptr, width * 3);
                 ptr += 1024 * 2;
