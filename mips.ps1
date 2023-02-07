@@ -207,6 +207,10 @@ $GdbBaseURL = "https://static.grumpycoder.net/pixel/gdb-multiarch-windows/"
 
 $MyURI = "https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1"
 
+# Globals for PowerShell behavior
+$ProgressPreference = "SilentlyContinue"
+$ErrorActionPreference = "stop"
+
 # If we're invoked from the installer shortcut, we're going to redownload ourselves
 # and install ourselves. That's a bit redundant, but, sure.
 if ($me -eq "&") {
@@ -222,14 +226,58 @@ if ($me -eq "&") {
 
     $cmd = $args[0]
     if ($args.Length -eq 0) {
-        Usage
+        Add-Type -AssemblyName System.Windows.Forms
+        $installform = New-Object system.Windows.Forms.Form
+        $installform.Text = "MIPS Toolchain Installer"
+        $installform.Width = 400
+        $installform.Height = 200
+        $installform.StartPosition = "CenterScreen"
+        $installform.FormBorderStyle = "FixedDialog"
+        $installform.MaximizeBox = $FALSE
+        $installform.MinimizeBox = $FALSE
+        $installform.TopMost = $TRUE
+        $installform.ShowInTaskbar = $FALSE
+        $installform.TopLevel = $TRUE
+        $label = New-Object System.Windows.Forms.Label
+        $label.Text = "Select a version of the toolchain to install:"
+        $label.Location = New-Object System.Drawing.Point(10, 10)
+        $label.Width = 360
+        $installform.Controls.Add($label)
+        $list = New-Object System.Windows.Forms.ComboBox
+        $list.Location = New-Object System.Drawing.Point(10, 40)
+        $list.Width = 360
+        $list.DropDownStyle = "DropDownList"
+        $installform.Controls.Add($list)
+        $acceptButton = New-Object System.Windows.Forms.Button
+        $acceptButton.Text = "Install"
+        $acceptButton.Location = New-Object System.Drawing.Point(10, 70)
+        $acceptButton.Width = 360
+        $acceptButtonClick = {
+            $installform.Hide()
+            $installform.Close() | Out-Null
+            $toinstall = $list.Text
+            Install $toinstall.TrimStart("v") | Out-Null
+        }
+        $acceptButton.Add_Click($acceptButtonClick)
+        $installform.Controls.Add($acceptButton)
+        $cancelButton = New-Object System.Windows.Forms.Button
+        $cancelButton.Text =  "Cancel"
+        $cancelButton.Location = New-Object System.Drawing.Point(10, 100)
+        $cancelButton.Width = 360
+        $cancelButtonClick = {
+            $installform.Close() | Out-Null
+        }
+        $cancelButton.Add_Click($cancelButtonClick)
+        $installform.Controls.Add($cancelButton)
+        Download-Index $cwd
+        Load-Index $cwd | Sort-Object -Descending -Property Key | ForEach-Object {
+            $list.Items.Add($_.version) | Out-Null
+        }
+        $list.SelectedIndex = 0
+        $installform.ShowDialog() | Out-Null
         return
     }
 }
-
-# Globals for PowerShell behavior
-$ProgressPreference = "SilentlyContinue"
-$ErrorActionPreference = "stop"
 
 switch ($cmd) {
     "install" {
@@ -249,14 +297,10 @@ switch ($cmd) {
     }
     "ls-remote" {
         Download-Index $cwd
-        if ($args[1] -eq $NULL) {
-            Load-Index $cwd | Sort-Object -Property Key | Select-Object version
-        } else {
-            Load-Index $cwd | Sort-Object -Property Key | Where-Object { $_.lts } | Select-Object version
-        }
+        Load-Index $cwd | Sort-Object -Property Key | Select-Object version
     }
     "version" {
-        Write-Host "v0.1.0"
+        Write-Host "v0.2.0"
     }
     "self-install" {
         if ($args[1] -ne $NULL) {
@@ -266,10 +310,22 @@ switch ($cmd) {
             Write-Host "This is already installed."
         } else {
             Write-Host "Installing..."
-            if ($dest -match " ") {
+            while ($dest -match " ") {
                 Write-Host "The installation path of the mips toolchain contains spaces. This is not supported."
-                Write-Host "Please follow the manual installation instructions from https://bit.ly/pcsx-redux#windows"
-                return
+                Write-Host "Please select a different folder for the installation."
+                [System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms") | Out-Null
+
+                $folderdialog = New-Object System.Windows.Forms.FolderBrowserDialog
+                $folderdialog.Description = "Select an installation folder for the mips tool and toolchains."
+                $folderdialog.rootfolder = "MyComputer"
+                $folderdialog.SelectedPath = $initialDirectory
+
+                if ($folderdialog.ShowDialog() -eq "OK") {
+                    $dest = $folderdialog.SelectedPath
+                } else {
+                    Write-Host "Installation aborted."
+                    return
+                }
             }
             MkDir-p $dest
             MkDir-p $VersionsPath
