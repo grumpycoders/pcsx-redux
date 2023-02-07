@@ -199,7 +199,7 @@ int pcsxMain(int argc, char **argv) {
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
     std::filesystem::path self = argv[0];
-    std::filesystem::path binDir = self.parent_path();
+    std::filesystem::path binDir = std::filesystem::absolute(self).parent_path();
     system->setBinDir(binDir);
     system->loadAllLocales();
 
