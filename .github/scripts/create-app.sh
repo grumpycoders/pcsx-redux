@@ -58,6 +58,3 @@ install_name_tool -add_rpath @loader_path/../Frameworks ${APPROOT}/Contents/MacO
 
 # Linux desktop shortcuts not relevant.
 rm -rfv ${APPROOT}/Contents/Resources/share/applications
-
-# Ad-hoc codesign the app.
-codesign --force -s - -vvvv ${APPROOT}
