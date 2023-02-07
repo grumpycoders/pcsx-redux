@@ -69,6 +69,8 @@ jobs:
         echo '    }' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
         echo '  ]' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
         echo '}' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+    - name: Signing Application
+      run: codesign --force -s - -vvvv PCSX-Redux.app
     - name: Adjusting for dmg folder
       run: |
         mkdir dmgdir
