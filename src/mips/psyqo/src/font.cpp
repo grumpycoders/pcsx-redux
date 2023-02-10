@@ -63,8 +63,21 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
 
     // On the fly decompression of the system font.
     uint32_t d;
-    for (unsigned i = 0; i < sizeof(s_systemFont); i++) {
-        uint8_t b = s_systemFont[i];
+    uint32_t bb = 0x100;
+    const int8_t* tree = reinterpret_cast<const int8_t*>(s_systemFont);
+    const uint8_t* data = s_systemFont;
+    const uint8_t* lut = data;
+    lut += data[0];
+    data += data[1];
+    for (unsigned i = 0; i < 64 * 48 / 2; i++) {
+        int8_t c = 2;
+        while (c > 0) {
+            if (bb == 0x100) bb = *data++ | 0x10000;
+            uint32_t bit = bb & 1;
+            bb >>= 1;
+            c = tree[c + bit];
+        }
+        auto b = lut[-c];
         for (unsigned j = 0; j < 4; j++) {
             uint32_t m;
             d >>= 8;
