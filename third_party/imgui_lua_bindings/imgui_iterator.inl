@@ -1154,19 +1154,37 @@ END_IMGUI_FUNC
 // Unsupported arg type  const char** out_text)
 // Unsupported arg type  void* data
 //    IMGUI_API void          PlotLines(const char* label, const float* values, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2 0  0, int stride = sizeof(float));
-// Unsupported arg type  const float* values
-// Unsupported arg type  ImVec2 graph_size = ImVec2 0  0
+IMGUI_FUNCTION(PlotLines)
+LABEL_ARG(label)
+FLOAT_ARRAY_ARG(values)
+OPTIONAL_INT_ARG(values_offset, 0)
+OPTIONAL_LABEL_ARG(overlay_text)
+OPTIONAL_NUMBER_ARG(scale_min, FLT_MAX)
+OPTIONAL_NUMBER_ARG(scale_max, FLT_MAX)
+OPTIONAL_IM_VEC_2_ARG(graph_size, 0, 0)
+OPTIONAL_INT_ARG(stride, sizeof(float))
+CALL_FUNCTION_NO_RET(PlotLines, label, values, values_count, values_offset, overlay_text, scale_min, scale_max, graph_size, stride)
+END_FLOAT_ARRAY(values)
+END_IMGUI_FUNC
 //    IMGUI_API void          PlotLines(const char* label, float(*values_getter)(void* data, int idx), void* data, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2 0  0);
 // Unsupported arg type  float(*values_getter)(void* data
 // Unsupported arg type  void* data
-// Unsupported arg type  ImVec2 graph_size = ImVec2 0  0
 //    IMGUI_API void          PlotHistogram(const char* label, const float* values, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2 0  0, int stride = sizeof(float));
-// Unsupported arg type  const float* values
-// Unsupported arg type  ImVec2 graph_size = ImVec2 0  0
+IMGUI_FUNCTION(PlotHistogram)
+LABEL_ARG(label)
+FLOAT_ARRAY_ARG(values)
+OPTIONAL_INT_ARG(values_offset, 0)
+OPTIONAL_LABEL_ARG(overlay_text)
+OPTIONAL_NUMBER_ARG(scale_min, FLT_MAX)
+OPTIONAL_NUMBER_ARG(scale_max, FLT_MAX)
+OPTIONAL_IM_VEC_2_ARG(graph_size, 0, 0)
+OPTIONAL_INT_ARG(stride, sizeof(float))
+CALL_FUNCTION_NO_RET(PlotHistogram, label, values, values_count, values_offset, overlay_text, scale_min, scale_max, graph_size, stride)
+END_FLOAT_ARRAY(values)
+END_IMGUI_FUNC
 //    IMGUI_API void          PlotHistogram(const char* label, float(*values_getter)(void* data, int idx), void* data, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2 0  0);
 // Unsupported arg type  float(*values_getter)(void* data
 // Unsupported arg type  void* data
-// Unsupported arg type  ImVec2 graph_size = ImVec2 0  0
 //    IMGUI_API void          Value(const char* prefix, bool b);
 IMGUI_FUNCTION(Value)
 LABEL_ARG(prefix)

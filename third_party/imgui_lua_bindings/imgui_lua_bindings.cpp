@@ -105,6 +105,22 @@ static int impl_##name(lua_State *L) { \
     stackval++; \
   }
 
+#define FLOAT_ARRAY_ARG(name) \
+  if (!lua_istable(L, arg)) { \
+    return luaL_error(L, "Expected table for argument %d", arg); \
+  } \
+  int name##_count = lua_objlen(L, arg); \
+  float* name = new float[name##_count]; \
+  for (int i = 0; i < name##_count; i++) { \
+    lua_rawgeti(L, arg, i + 1); \
+    name[i] = luaL_checknumber(L, -1); \
+    lua_pop(L, 1); \
+  } \
+  arg++;
+
+#define END_FLOAT_ARRAY(name) \
+  delete[] name;
+
 #define OPTIONAL_INT_ARG(name, otherwise)\
   int name = otherwise; \
   if (arg <= max_args) { \
@@ -267,6 +283,10 @@ static const struct luaL_Reg imguilib[] = {
 	#define FLOAT_POINTER_ARG(name)
 	#undef END_FLOAT_POINTER
 	#define END_FLOAT_POINTER(name)
+	#undef FLOAT_ARRAY_ARG
+	#define FLOAT_ARRAY_ARG(name)
+	#undef END_FLOAT_ARRAY
+	#define END_FLOAT_ARRAY(name)
 	#undef OPTIONAL_INT_ARG
 	#define OPTIONAL_INT_ARG(name, otherwise)
 	#undef INT_ARG
@@ -380,6 +400,10 @@ static void PushImguiEnums(lua_State* lState, const char* tableName) {
 #define FLOAT_POINTER_ARG(name)
 #undef END_FLOAT_POINTER
 #define END_FLOAT_POINTER(name)
+#undef FLOAT_ARRAY_ARG
+#define FLOAT_ARRAY_ARG(name)
+#undef END_FLOAT_ARRAY
+#define END_FLOAT_ARRAY(name)
 #undef OPTIONAL_INT_ARG
 #define OPTIONAL_INT_ARG(name, otherwise)
 #undef INT_ARG
