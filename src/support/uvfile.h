@@ -87,8 +87,14 @@ class UvThreadOp : public UvThreadOpListType::Node {
     uint8_t* m_cache = nullptr;
     std::atomic<float> m_cacheProgress = 0.0;
     std::promise<void> m_cacheBarrier;
-    typedef std::function<void(uv_loop_t*)> UvRequest;
-    static void request(UvRequest&& req) {
+    struct UvRequest {
+        std::function<void(uv_loop_t*)> functor;
+        uint64_t sequence;
+    };
+    static void request(std::function<void(uv_loop_t*)>&& functor) {
+        UvRequest req;
+        req.functor = std::move(functor);
+        req.sequence = s_writeSequence++;
         s_queue.Enqueue(std::move(req));
         uv_async_send(&s_kicker);
     }
@@ -115,8 +121,12 @@ class UvThreadOp : public UvThreadOpListType::Node {
     static std::atomic<size_t> s_dataDownloadLastTick;
     static constexpr uint64_t c_tick = 500;
 
-    static ConcurrentQueue<UvRequest> s_queue;
     static UvThreadOpListType s_allOps;
+
+  private:
+    static ConcurrentQueue<UvRequest> s_queue;
+    static uint64_t s_writeSequence;
+    static uint64_t s_readSequence;
 };
 
 class UvFile : public File, public UvThreadOp {

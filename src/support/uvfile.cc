@@ -21,6 +21,7 @@
 
 #include <curl/curl.h>
 
+#include <cstdint>
 #include <exception>
 
 struct CurlContext {
@@ -57,6 +58,9 @@ uv_loop_t PCSX::UvThreadOp::s_uvLoop;
 uv_timer_t PCSX::UvThreadOp::s_curlTimeout;
 CURLM *PCSX::UvThreadOp::s_curlMulti = nullptr;
 
+uint64_t PCSX::UvThreadOp::s_readSequence = 0;
+uint64_t PCSX::UvThreadOp::s_writeSequence = 0;
+
 void PCSX::UvThreadOp::startThread() {
     if (s_threadRunning) throw std::runtime_error("UV thread already running");
     std::promise<void> barrier;
@@ -83,7 +87,12 @@ void PCSX::UvThreadOp::startThread() {
         uv_async_init(&s_uvLoop, &s_kicker, [](uv_async_t *async) {
             UvRequest req;
             while (s_queue.Dequeue(req)) {
-                req(async->loop);
+                if (req.sequence == s_readSequence) {
+                    s_readSequence++;
+                    req.functor(async->loop);
+                } else {
+                    s_queue.Enqueue(std::move(req));
+                }
             }
         });
         uv_timer_init(&s_uvLoop, &s_timer);
