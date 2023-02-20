@@ -1,0 +1,50 @@
+{
+  "name": "psx-dev",
+  "displayName": "PSX.Dev",
+  "description": "Insert Description Here",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grumpycoders/pcsx-redux.git"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "psxDev.showPanel",
+        "title": "Show panel",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.hello",
+        "title": "Hello",
+        "category": "PSX.Dev"
+      }
+    ]
+  },
+  "prettier": "prettier-config-standard",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@vscode/test-electron": "^2.2.2",
+    "eslint": "^8.33.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.1.0",
+    "prettier-config-standard": "^5.0.0",
+    "standard": "^17.0.0"
+  },
+  "dependencies": {
+    "@vscode/webview-ui-toolkit": "^1.2.1"
+  }
+}
