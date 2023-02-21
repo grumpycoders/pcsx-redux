@@ -9,6 +9,7 @@
   "extensionKind": [
     "ui"
   ],
+  "publisher": "grumpycoders",
   "license": "MIT",
   "repository": {
     "type": "git",
