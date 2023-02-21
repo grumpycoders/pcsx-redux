@@ -6,6 +6,9 @@
   "engines": {
     "vscode": "^1.75.0"
   },
+  "extensionKind": [
+    "ui"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -19,15 +22,36 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "walkthroughs": [
+      {
+        "id": "psxDev",
+        "title": "PSX.Dev",
+        "description": "PSX.Dev walkthrough",
+        "steps": [
+          {
+            "id": "showpanel",
+            "title": "Show PSX.Dev panel",
+            "description": "Thank you for installing the PSX.Dev VSCode extension. In order to use the extension, please \n[show PSX.Dev panel](command:psxDev.showPanel).",
+            "completionEvents": ["onCommand:psxDev.showPanel"]
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "PSX.Dev",
+      "properties": {
+        "psxDev.psyqStoragePath": {
+          "type": ["string", "null"],
+          "default": null,
+          "scope": "machine",
+          "description": "The path to the local zip file for the converted psyq library."
+        }
+      }
+    },
     "commands": [
       {
         "command": "psxDev.showPanel",
         "title": "Show panel",
-        "category": "PSX.Dev"
-      },
-      {
-        "command": "psxDev.hello",
-        "title": "Hello",
         "category": "PSX.Dev"
       }
     ]

@@ -1,6 +1,9 @@
 'use strict'
 
 const vscode = require('vscode')
+const tools = require('./tools.js')
+
+const terminal = require('./terminal.js')
 
 class PSXDevPanel {
   static currentPanel = undefined
@@ -53,15 +56,20 @@ class PSXDevPanel {
         switch (message.command) {
           case 'alert':
             vscode.window.showErrorMessage(message.text)
+            break
+          case 'test':
+            terminal.run('ls', ['-la'])
+            break
+          case 'refreshTools':
+            tools.refreshAll().then((tools) => {
+              this._panel.webview.postMessage({ command: 'tools', tools })
+            })
+            break
         }
       },
       null,
       this._disposables
     )
-  }
-
-  sendAlert (text) {
-    this._panel.webview.postMessage({ command: 'alert', text })
   }
 
   dispose () {
@@ -105,6 +113,7 @@ class PSXDevPanel {
         <title>PSX.Dev</title>
       </head>
       <body>
+        <vscode-button id="refresh">Refresh</vscode-button>
         <vscode-panels>
           <vscode-panel-tab id="welcome-tab">WELCOME</vscode-panel-tab>
           <vscode-panel-tab id="templates-tab">TEMPLATES</vscode-panel-tab>
@@ -117,8 +126,8 @@ class PSXDevPanel {
               <p>You can access more information about PlayStation 1 development on the <a href="https://psx.dev/" target="_blank">PSX.Dev website</a>. Please do not hesitate to join the Discord server!</p>
             </div>
           </vscode-panel-view>
-          <vscode-panel-view id="templates-view">Templates</vscode-panel-view>
-          <vscode-panel-view id="tools-view">Tools</vscode-panel-view>
+          <vscode-panel-view id="templates-view"><vscode-progress-ring></vscode-progress-ring></vscode-panel-view>
+          <vscode-panel-view id="tools-view"><vscode-progress-ring></vscode-progress-ring></vscode-panel-view>
         </vscode-panels>
         <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
       </body>
@@ -129,25 +138,15 @@ class PSXDevPanel {
 PSXDevPanel.viewType = 'psxDev'
 
 function activate (context) {
+  tools.setExtensionUri(context.extensionUri)
   context.subscriptions.push(
     vscode.commands.registerCommand('psxDev.showPanel', () => {
       PSXDevPanel.createOrShow(context.extensionUri)
     })
   )
-  context.subscriptions.push(
-    vscode.commands.registerCommand('psxDev.hello', () => {
-      const currentPanel = PSXDevPanel.currentPanel
-      if (currentPanel) {
-        currentPanel.sendAlert('Hello')
-      }
-    })
-  )
 
-  // Make sure we register a serializer in activation event
   vscode.window.registerWebviewPanelSerializer(PSXDevPanel.viewType, {
     async deserializeWebviewPanel (webviewPanel, state) {
-      console.log(`Got state: ${state}`)
-      // Reset the webview options so we use latest uri for `localResourceRoots`.
       webviewPanel.webview.options = getWebviewOptions(context.extensionUri)
       PSXDevPanel.revive(webviewPanel, context.extensionUri)
     }
@@ -157,7 +156,10 @@ function activate (context) {
 function getWebviewOptions (extensionUri) {
   return {
     enableScripts: true,
-    localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media'), vscode.Uri.joinPath(extensionUri, 'node_modules')]
+    localResourceRoots: [
+      vscode.Uri.joinPath(extensionUri, 'media'),
+      vscode.Uri.joinPath(extensionUri, 'node_modules')
+    ]
   }
 }
 
