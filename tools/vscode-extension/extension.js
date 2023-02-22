@@ -2,8 +2,7 @@
 
 const vscode = require('vscode')
 const tools = require('./tools.js')
-
-const terminal = require('./terminal.js')
+const pcsxRedux = require('./pcsx-redux.js')
 
 class PSXDevPanel {
   static currentPanel = undefined
@@ -57,13 +56,27 @@ class PSXDevPanel {
           case 'alert':
             vscode.window.showErrorMessage(message.text)
             break
-          case 'test':
-            terminal.run('ls', ['-la'])
-            break
           case 'refreshTools':
             tools.refreshAll().then((tools) => {
               this._panel.webview.postMessage({ command: 'tools', tools })
             })
+            break
+          case 'openUrl':
+            vscode.env.openExternal(vscode.Uri.parse(message.url))
+            break
+          case 'installTools':
+            tools
+              .install(message.tools)
+              .then((requiresReboot) => {
+                if (requiresReboot) {
+                  this._panel.webview.postMessage({ command: 'requireReboot' })
+                } else {
+                  tools.refreshAll()
+                }
+              })
+              .then((tools) => {
+                this._panel.webview.postMessage({ command: 'tools', tools })
+              })
             break
         }
       },
@@ -139,6 +152,8 @@ PSXDevPanel.viewType = 'psxDev'
 
 function activate (context) {
   tools.setExtensionUri(context.extensionUri)
+  tools.setGlobalStorageUri(context.globalStorageUri)
+  pcsxRedux.setGlobalStorageUri(context.globalStorageUri)
   context.subscriptions.push(
     vscode.commands.registerCommand('psxDev.showPanel', () => {
       PSXDevPanel.createOrShow(context.extensionUri)

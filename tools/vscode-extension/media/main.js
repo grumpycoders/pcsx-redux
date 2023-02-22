@@ -10,15 +10,30 @@ import {
   provideVSCodeDesignSystem().register(allComponents)
   const vscode = acquireVsCodeApi()
 
+  let requireReboot = false
+
   window.addEventListener('message', (event) => {
     const message = event.data
     switch (message.command) {
+      case 'requireReboot':
+        requireReboot = true
+        break
       case 'tools':
         {
           const templateView = document.getElementById('templates-view')
           const toolsView = document.getElementById('tools-view')
           templateView.innerHTML = ''
           toolsView.innerHTML = ''
+          if (requireReboot) {
+            const rebootDiv = document.createElement('div')
+            rebootDiv.className = 'reboot'
+            const rebootText = document.createElement('p')
+            rebootText.textContent =
+              'Some tools require a reboot to work properly. Please reboot your system before resuming installing more tools.'
+            rebootDiv.appendChild(rebootText)
+            templateView.appendChild(rebootDiv)
+            toolsView.appendChild(rebootDiv)
+          }
           const toolsDiv = document.createElement('div')
           toolsView.appendChild(toolsDiv)
           for (const [key, tool] of Object.entries(message.tools)) {
@@ -31,16 +46,24 @@ import {
             const toolDescription = document.createElement('p')
             toolDescription.textContent = tool.description
             toolDiv.appendChild(toolDescription)
+            const homepageButton = document.createElement('vscode-button')
+            homepageButton.textContent = 'Homepage'
+            homepageButton.appearance = 'secondary'
+            homepageButton.addEventListener('click', () => {
+              vscode.postMessage({ command: 'openUrl', url: tool.homepage })
+            })
+            toolDiv.appendChild(homepageButton)
+            const spaceTextNode = document.createTextNode('  ')
+            toolDiv.appendChild(spaceTextNode)
             const toolButton = document.createElement('vscode-button')
             if (tool.installed) {
               toolButton.textContent = 'Already installed'
               toolButton.disabled = tool.installed
-              toolButton.appearance = 'secondary'
             } else {
               toolButton.textContent = 'Install'
             }
             toolButton.addEventListener('click', () => {
-              vscode.postMessage({ command: 'installTool', tool: key })
+              vscode.postMessage({ command: 'installTools', tools: [key] })
             })
             toolDiv.appendChild(toolButton)
             const hr = document.createElement('hr')

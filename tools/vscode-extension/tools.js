@@ -4,10 +4,14 @@ const vscode = require('vscode')
 const util = require('node:util')
 const execAsync = require('node:child_process').exec
 const terminal = require('./terminal.js')
+const pcsxRedux = require('./pcsx-redux.js')
 const exec = util.promisify(execAsync)
+const fs = require('node:fs')
 
 const mipsVersion = '12.2.0'
 let extensionUri
+let globalStorageUri
+let requiresReboot = false
 
 async function checkInstalled (name) {
   if (tools[name].installed === undefined) {
@@ -33,6 +37,7 @@ async function installMips () {
     await terminal.run('powershell', [
       '-c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"'
     ])
+    requiresReboot = true
     vscode.window.showInformationMessage(
       'Installing the MIPS tool requires a reboot. Please reboot your computer before proceeding further.'
     )
@@ -63,7 +68,7 @@ async function installToolchain () {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          execAsync('xdg-open apt:mipsel-linux-gnu-g++')
+          terminal.run('sudo', ['apt', 'install', 'mipsel-linux-gnu-g++'])
         } else if (await checkInstalled('trizen')) {
           await terminal.run('trizen', [
             '-S',
@@ -122,6 +127,7 @@ async function installToolchain () {
             '-c',
             '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'
           ])
+          requiresReboot = true
           vscode.window.showInformationMessage(
             'Installing the Brew tool requires a reboot. Please reboot your computer before proceeding further.'
           )
@@ -167,7 +173,7 @@ async function installGDB () {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          execAsync('xdg-open apt:gdb-multiarch')
+          terminal.run('sudo', ['apt', 'install', 'gdb-multiarch'])
         } else if (await checkInstalled('trizen')) {
           await terminal.run('trizen', ['-S', 'gdb-multiarch'])
         } else if (await checkInstalled('brew')) {
@@ -194,6 +200,7 @@ async function installGDB () {
             '-c',
             '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'
           ])
+          requiresReboot = true
           vscode.window.showInformationMessage(
             'Installing the Brew tool requires a reboot. Please reboot your computer before proceeding further.'
           )
@@ -232,7 +239,7 @@ async function installMake () {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          execAsync('xdg-open apt:build-essential')
+          terminal.run('sudo', ['apt', 'install', 'build-essential'])
         } else {
           vscode.window.showErrorMessage(
             'Your Linux distribution is not supported. You need to install the MIPS toolchain manually.'
@@ -255,6 +262,7 @@ async function installMake () {
             '-c',
             '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'
           ])
+          requiresReboot = true
           vscode.window.showInformationMessage(
             'Installing the Brew tool requires a reboot. Please reboot your computer before proceeding further.'
           )
@@ -297,6 +305,7 @@ const tools = {
     type: 'package',
     name: 'MIPS Toolchain',
     description: 'The toolchain used to compile code for the PlayStation 1',
+    homepage: 'https://gcc.gnu.org/',
     install: installToolchain,
     check: checkToolchain
   },
@@ -304,6 +313,7 @@ const tools = {
     type: 'package',
     name: 'GDB Multiarch',
     description: 'The tool to debug code for the PlayStation 1',
+    homepage: 'https://www.sourceware.org/gdb/',
     install: installGDB,
     check: () => checkSimpleCommand('gdb-multiarch --version')
   },
@@ -311,28 +321,65 @@ const tools = {
     type: 'package',
     name: 'GNU Make',
     description: 'Build code and various targets with this tool',
+    homepage: 'https://www.gnu.org/software/make/',
     install: installMake,
     check: () => checkSimpleCommand('make --version')
   },
   git: {
     type: 'package',
     name: 'Git',
-    description: 'Tool to maintain your code, and initialize your project templates',
+    description:
+      'Tool to maintain your code, and initialize your project templates',
+    homepage: 'https://git-scm.com/',
     install: 'https://git-scm.com/downloads',
     check: () => checkSimpleCommand('git --version')
   },
   clangd: {
     type: 'extension',
     name: 'clangd',
-    description: 'A VSCode extension providing code completion within VSCode, and other features',
+    description:
+      'A VSCode extension providing code completion within VSCode, and other features',
+    homepage:
+      'https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd',
     id: 'llvm-vs-code-extensions.vscode-clangd'
   },
   debugger: {
     type: 'extension',
     name: 'Debugger connector',
-    description: 'A VSCode extension to connect to the PlayStation 1 or an emulator, and debug your code',
+    description:
+      'A VSCode extension to connect to the PlayStation 1 or an emulator, and debug your code',
+    homepage:
+      'https://marketplace.visualstudio.com/items?itemName=webfreak.debug',
     id: 'webfreak.debug'
+  },
+  psyq: {
+    type: 'archive',
+    name: 'Psy-Q SDK',
+    description:
+      'The original SDK made by Sony used to develop code for the PlayStation 1. Please note that you are not going to receive a license to use this SDK from Sony by downloading it, and so using it should be at your own risks.',
+    homepage: 'https://psx.arthus.net/sdk/Psy-Q/',
+    filename: 'psyq-4_7-converted-light.zip',
+    url: 'https://psx.arthus.net/sdk/Psy-Q/psyq-4_7-converted-light.zip',
+    locationSetting: 'psyqStoragePath'
+  },
+  pcsxRedux: {
+    type: 'package',
+    name: 'PCSX-Redux',
+    description:
+      'A PlayStation 1 emulator focusing on development features, enabling you to debug your code easily.',
+    homepage: 'https://pcsx-redux.consoledev.net/',
+    install: pcsxRedux.install,
+    check: pcsxRedux.check
   }
+}
+
+function checkLocalFile (filename) {
+  return new Promise((resolve) => {
+    filename = vscode.Uri.joinPath(globalStorageUri, filename)
+    fs.access(filename, fs.constants.F_OK, (err) => {
+      resolve(!err)
+    })
+  })
 }
 
 exports.refreshAll = async () => {
@@ -345,6 +392,8 @@ exports.refreshAll = async () => {
       }
     } else if (tool.type === 'extension') {
       tool.installed = vscode.extensions.getExtension(tool.id) !== undefined
+    } else if (tool.type === 'archive') {
+      tool.installed = await checkLocalFile(tool.filename)
     }
   }
   return tools
@@ -354,17 +403,21 @@ exports.list = tools
 exports.setExtensionUri = (uri) => {
   extensionUri = uri
 }
-exports.install = async (tool) => {
-  if (tools[tool].install) {
-    if (typeof tools[tool].install === 'string') {
-      vscode.env.openExternal(vscode.Uri.parse(tools[tool].install))
-    } else {
-      await tools[tool].install()
+exports.setGlobalStorageUri = (uri) => {
+  globalStorageUri = uri
+}
+exports.install = async (toInstall) => {
+  for (const tool of toInstall) {
+    if (tools[tool].install) {
+      if (typeof tools[tool].install === 'string') {
+        vscode.env.openExternal(vscode.Uri.parse(tools[tool].install))
+      } else {
+        await tools[tool].install()
+      }
+    } else if (tools[tool].type === 'extension') {
+      const extensionId = tools[tool].id
+      await vscode.commands.executeCommand('extension.open', extensionId)
     }
-  } else if (tools[tool].type === 'extension') {
-    vscode.commands.executeCommand(
-      'workbench.extensions.installExtension',
-      tools[tool].id
-    )
   }
+  return requiresReboot
 }

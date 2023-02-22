@@ -2,7 +2,7 @@
   "name": "psx-dev",
   "displayName": "PSX.Dev",
   "description": "Insert Description Here",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -33,22 +33,13 @@
             "id": "showpanel",
             "title": "Show PSX.Dev panel",
             "description": "Thank you for installing the PSX.Dev VSCode extension. In order to use the extension, please \n[show PSX.Dev panel](command:psxDev.showPanel).",
-            "completionEvents": ["onCommand:psxDev.showPanel"]
+            "completionEvents": [
+              "onCommand:psxDev.showPanel"
+            ]
           }
         ]
       }
     ],
-    "configuration": {
-      "title": "PSX.Dev",
-      "properties": {
-        "psxDev.psyqStoragePath": {
-          "type": ["string", "null"],
-          "default": null,
-          "scope": "machine",
-          "description": "The path to the local zip file for the converted psyq library."
-        }
-      }
-    },
     "commands": [
       {
         "command": "psxDev.showPanel",
@@ -59,10 +50,13 @@
   },
   "prettier": "prettier-config-standard",
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "package": "vsce package",
+    "publish": "vsce publish"
   },
   "devDependencies": {
     "@vscode/test-electron": "^2.2.2",
+    "@vscode/vsce": "^2.17.0",
     "eslint": "^8.33.0",
     "glob": "^8.1.0",
     "mocha": "^10.1.0",
