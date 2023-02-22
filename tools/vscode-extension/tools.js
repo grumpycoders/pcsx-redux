@@ -220,6 +220,14 @@ async function installGDB () {
   }
 }
 
+function checkGDB () {
+  if (process.platform === 'win32') {
+    return checkSimpleCommand('gdb --version')
+  } else {
+    return checkSimpleCommand('gdb-multiarch --version')
+  }
+}
+
 async function installMake () {
   switch (process.platform) {
     case 'win32':
@@ -315,7 +323,7 @@ const tools = {
     description: 'The tool to debug code for the PlayStation 1',
     homepage: 'https://www.sourceware.org/gdb/',
     install: installGDB,
-    check: () => checkSimpleCommand('gdb-multiarch --version')
+    check: checkGDB
   },
   make: {
     type: 'package',
