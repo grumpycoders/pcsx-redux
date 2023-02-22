@@ -376,7 +376,7 @@ const tools = {
 function checkLocalFile (filename) {
   return new Promise((resolve) => {
     filename = vscode.Uri.joinPath(globalStorageUri, filename)
-    fs.access(filename, fs.constants.F_OK, (err) => {
+    fs.access(filename.path, fs.constants.F_OK, (err) => {
       resolve(!err)
     })
   })
