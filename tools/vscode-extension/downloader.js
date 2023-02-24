@@ -74,7 +74,7 @@ exports.downloadFile = async (url, output, unzip) => {
       progressResolver()
     })
     .catch((err) => {
-      progressResolver()
+      if (progressResolver) progressResolver()
       throw err
     })
 }

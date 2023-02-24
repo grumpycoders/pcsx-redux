@@ -39,7 +39,7 @@ import {
         requireReboot = true
         break
       case 'projectDirectory':
-        document.getElementById('project-path').value = message.path
+        document.getElementById('project-path').value = message.fsPath
         break
       case 'templates':
         {

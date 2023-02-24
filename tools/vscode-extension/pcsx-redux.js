@@ -59,12 +59,12 @@ function binaryPath() {
         globalStorageUri,
         'pcsx-redux',
         'pcsx-redux.exe'
-      ).path
+      ).fsPath
     case 'linux':
       return vscode.Uri.joinPath(
         globalStorageUri,
         'PCSX-Redux-HEAD-x86_64.AppImage'
-      ).path
+      ).fsPath
     case 'darwin':
       return vscode.Uri.joinPath(
         globalStorageUri,
@@ -72,7 +72,7 @@ function binaryPath() {
         'Contents',
         'MacOS',
         'PCSX-Redux'
-      ).path
+      ).fsPath
   }
 }
 
@@ -99,8 +99,8 @@ exports.install = async () => {
   const updateInfoForPlatform = updateInfo[process.platform]
   const outputDir =
     process.platform === 'win32'
-      ? vscode.Uri.joinPath(globalStorageUri, 'pcsx-redux').path
-      : globalStorageUri.path
+      ? vscode.Uri.joinPath(globalStorageUri, 'pcsx-redux').fsPath
+      : globalStorageUri.fsPath
 
   return mkdirp(outputDir)
     .then(() => {
