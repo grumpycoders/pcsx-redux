@@ -39,13 +39,20 @@ exports.downloadFile = async (url, output, unzip) => {
           const percentCompleted = Math.floor(
             (progressEvent.loaded * 100) / progressEvent.total
           )
-          progressReporter.report({ increment: percentCompleted })
+
+          if (percentCompleted >= 99.9 && unzip) {
+            progressReporter.report({
+              increment: 0,
+              message: 'Decompressing...'
+            })
+          } else {
+            progressReporter.report({ increment: percentCompleted })
+          }
         }
       })
     })
     .then((response) => {
       if (unzip) {
-        progressReporter.report({ increment: 0, message: 'Decompressing...' })
         return new Promise((resolve, reject) => {
           response.data
             .pipe(unzipper.Extract({ path: output }))
@@ -58,12 +65,15 @@ exports.downloadFile = async (url, output, unzip) => {
         })
       } else {
         response.data.pipe(writer)
-        return finished(writer).then(() => { return Promise.resolve(output) })
+        return finished(writer).then(() => {
+          return Promise.resolve(output)
+        })
       }
     })
     .then(() => {
       progressResolver()
-    }).catch((err) => {
+    })
+    .catch((err) => {
       progressResolver()
       throw err
     })

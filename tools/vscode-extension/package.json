@@ -2,7 +2,7 @@
   "name": "psx-dev",
   "displayName": "PSX.Dev",
   "description": "Insert Description Here",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "engines": {
     "vscode": "^1.75.0"
   },

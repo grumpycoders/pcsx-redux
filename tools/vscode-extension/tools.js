@@ -457,7 +457,7 @@ exports.install = async (toInstall, force) => {
 
 exports.maybeInstall = (toInstall) => {
   return checkInstalled(toInstall).then((installed) => {
-    if (!installed) return exports.install(toInstall)
+    if (!installed) return exports.install([toInstall])
     return Promise.resolve(false)
   })
 }

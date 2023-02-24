@@ -94,7 +94,7 @@ class PSXDevPanel {
                   command: 'tools',
                   tools: tools.list
                 })
-                vscode.window.showErrorMessage(err)
+                vscode.window.showErrorMessage(err.message)
               })
             break
           case 'launchRedux':
@@ -104,7 +104,7 @@ class PSXDevPanel {
                 return tools.list.redux.launch()
               })
               .catch((err) => {
-                vscode.window.showErrorMessage(err)
+                vscode.window.showErrorMessage(err.message)
               })
             break
           case 'restorePsyq':

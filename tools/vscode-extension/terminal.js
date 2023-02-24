@@ -13,7 +13,7 @@ exports.run = async function (binary, args, options) {
   if (name === undefined) name = 'PSX.Dev'
   const message = options.message
   const terminal = vscode.window.createTerminal({
-    shellPath: await which(binary),
+    shellPath: await which(binary, { nothrow: true }),
     shellArgs: args,
     name,
     message
