@@ -7,6 +7,7 @@ exports.run = async function (binary, args, options) {
   if (process.platform === 'win32') {
     args = args.join(' ')
   }
+
   if (options === undefined) options = {}
   let name = options.name
   if (name === undefined) name = 'PSX.Dev'

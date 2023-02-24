@@ -9,7 +9,7 @@ const os = require('node:os')
 class PSXDevPanel {
   static currentPanel = undefined
 
-  static createOrShow (extensionUri) {
+  static createOrShow(extensionUri) {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined
@@ -28,11 +28,11 @@ class PSXDevPanel {
     PSXDevPanel.currentPanel = new PSXDevPanel(panel, extensionUri)
   }
 
-  static revive (panel, extensionUri) {
+  static revive(panel, extensionUri) {
     PSXDevPanel.currentPanel = new PSXDevPanel(panel, extensionUri)
   }
 
-  constructor (panel, extensionUri) {
+  constructor(panel, extensionUri) {
     this._disposables = []
     this._panel = panel
     this._extensionUri = extensionUri
@@ -51,6 +51,7 @@ class PSXDevPanel {
       null,
       this._disposables
     )
+
     // Handle messages from the webview
     this._panel.webview.onDidReceiveMessage(
       (message) => {
@@ -59,7 +60,10 @@ class PSXDevPanel {
             vscode.window.showErrorMessage(message.text)
             break
           case 'getTemplates':
-            this._panel.webview.postMessage({ command: 'templates', templates: templates.list })
+            this._panel.webview.postMessage({
+              command: 'templates',
+              templates: templates.list
+            })
             break
           case 'refreshTools':
             tools.refreshAll().then((tools) => {
@@ -75,23 +79,41 @@ class PSXDevPanel {
               .then((requiresReboot) => {
                 if (requiresReboot) {
                   this._panel.webview.postMessage({ command: 'requireReboot' })
-                  vscode.window.showInformationMessage('Some tools require a reboot to work properly. Please reboot your system before resuming installing more tools.')
+                  vscode.window.showInformationMessage(
+                    'Some tools require a reboot to work properly. Please reboot your system before resuming installing more tools.'
+                  )
                 } else {
                   return tools.refreshAll()
                 }
               })
               .then((tools) => {
                 this._panel.webview.postMessage({ command: 'tools', tools })
-              }).catch(() => {
-                this._panel.webview.postMessage({ command: 'tools', tools: tools.list })
+              })
+              .catch((err) => {
+                this._panel.webview.postMessage({
+                  command: 'tools',
+                  tools: tools.list
+                })
+                vscode.window.showErrorMessage(err)
               })
             break
           case 'launchRedux':
-            tools.maybeInstall('redux').then(() => { return tools.list.redux.launch() })
+            tools
+              .maybeInstall('redux')
+              .then(() => {
+                return tools.list.redux.launch()
+              })
+              .catch((err) => {
+                vscode.window.showErrorMessage(err)
+              })
+            break
           case 'restorePsyq':
             break
           case 'requestHomeDirectory':
-            this._panel.webview.postMessage({ command: 'projectDirectory', path: os.homedir() })
+            this._panel.webview.postMessage({
+              command: 'projectDirectory',
+              path: os.homedir()
+            })
             break
           case 'browseForProjectDirectory':
             break
@@ -102,7 +124,7 @@ class PSXDevPanel {
     )
   }
 
-  dispose () {
+  dispose() {
     PSXDevPanel.currentPanel = undefined
     // Clean up our resources
     this._panel.dispose()
@@ -114,12 +136,12 @@ class PSXDevPanel {
     }
   }
 
-  _update () {
+  _update() {
     const webview = this._panel.webview
     webview.html = this._getHtmlForWebview(webview)
   }
 
-  _getHtmlForWebview (webview) {
+  _getHtmlForWebview(webview) {
     const scriptPathOnDisk = vscode.Uri.joinPath(
       this._extensionUri,
       'media',
@@ -175,7 +197,7 @@ class PSXDevPanel {
 
 PSXDevPanel.viewType = 'psxDev'
 
-function activate (context) {
+function activate(context) {
   tools.setExtensionUri(context.extensionUri)
   tools.setGlobalStorageUri(context.globalStorageUri)
   pcsxRedux.setGlobalStorageUri(context.globalStorageUri)
@@ -186,24 +208,30 @@ function activate (context) {
   )
 
   vscode.window.registerWebviewPanelSerializer(PSXDevPanel.viewType, {
-    async deserializeWebviewPanel (webviewPanel, state) {
+    async deserializeWebviewPanel(webviewPanel, state) {
       webviewPanel.webview.options = getWebviewOptions(context.extensionUri)
       PSXDevPanel.revive(webviewPanel, context.extensionUri)
     }
   })
 }
 
-function getWebviewOptions (extensionUri) {
+function getWebviewOptions(extensionUri) {
   return {
     enableScripts: true,
     localResourceRoots: [
       vscode.Uri.joinPath(extensionUri, 'media'),
-      vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'webview-ui-toolkit', 'dist')
+      vscode.Uri.joinPath(
+        extensionUri,
+        'node_modules',
+        '@vscode',
+        'webview-ui-toolkit',
+        'dist'
+      )
     ]
   }
 }
 
-function getNonce () {
+function getNonce() {
   let text = ''
   const possible =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -214,7 +242,7 @@ function getNonce () {
 }
 
 // This method is called when your extension is deactivated
-function deactivate () {}
+function deactivate() {}
 
 module.exports = {
   activate,

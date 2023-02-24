@@ -78,7 +78,7 @@ function binaryPath() {
 
 function checkLocalFile(filename) {
   return new Promise((resolve) => {
-    fs.access(filename.path, fs.constants.F_OK, (err) => {
+    fs.access(filename, fs.constants.F_OK, (err) => {
       resolve(!err)
     })
   })
@@ -170,7 +170,7 @@ exports.install = async () => {
             0o775
           )
         case 'darwin':
-          return dmgMount(output)
+          return dmgMount(outputDir)
             .then((mp) => {
               mountPoint = mp
               return copy(
@@ -192,7 +192,7 @@ exports.launch = async () => {
   if (path === undefined || !(await checkLocalFile(path))) path = 'PCSX-Redux'
   return terminal.run(
     path,
-    ['-stdout', '-lua_stdout', '-interpreter', '-debugger', '-gdb'],
+    ['-stdout', '-lua_stdout', '-interpreter', '-debugger', '-gdb', '-portable', '-noupdate'],
     { name: 'PCSX-Redux' }
   )
 }
