@@ -116,6 +116,22 @@ class PSXDevPanel {
             })
             break
           case 'browseForProjectDirectory':
+            vscode.window
+              .showOpenDialog({
+                canSelectFiles: false,
+                canSelectFolders: true,
+                canSelectMany: false,
+                openLabel: 'Select',
+                title: "Select project's parent directory"
+              })
+              .then((result) => {
+                if (result) {
+                  this._panel.webview.postMessage({
+                    command: 'projectDirectory',
+                    path: result[0].fsPath
+                  })
+                }
+              })
             break
         }
       },

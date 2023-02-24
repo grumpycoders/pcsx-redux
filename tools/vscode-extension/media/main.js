@@ -57,7 +57,7 @@ import {
           const pathInput = document.createElement('vscode-text-field')
           pathInput.id = 'project-path'
           pathInput.placeholder = 'Path'
-          pathInput.textContent = 'Project path'
+          pathInput.textContent = "Project's parent directory"
           pathInput.readonly = true
           templatesDiv.appendChild(pathInput)
           const br = document.createElement('br')
@@ -129,8 +129,8 @@ import {
               vscode.postmessage({
                 command: 'createProjectFromTemplate',
                 template: key,
-                path: 'derp',
-                name: 'derp'
+                path: document.getElementById('project-path').value,
+                name: document.getElementById('project-name').value
               })
             })
             templateDiv.appendChild(templateCreate)
