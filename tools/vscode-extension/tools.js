@@ -400,7 +400,7 @@ const tools = {
 function checkLocalFile (filename) {
   return new Promise((resolve) => {
     filename = vscode.Uri.joinPath(globalStorageUri, filename)
-    fs.access(filename.path, fs.constants.F_OK, (err) => {
+    fs.access(filename.fsPath, fs.constants.F_OK, (err) => {
       resolve(!err)
     })
   })
@@ -448,7 +448,7 @@ exports.install = async (toInstall, force) => {
     } else if (tools[tool].type === 'archive') {
       await downloader.downloadFile(
         tools[tool].url,
-        vscode.Uri.joinPath(globalStorageUri, tools[tool].filename).path
+        vscode.Uri.joinPath(globalStorageUri, tools[tool].filename).fsPath
       )
     }
   }
