@@ -62,10 +62,15 @@
     "glob": "^8.1.0",
     "mocha": "^10.1.0",
     "prettier-config-standard": "^5.0.0",
-    "standard": "^17.0.0"
+    "standard": "*"
   },
   "dependencies": {
     "@vscode/webview-ui-toolkit": "^1.2.1",
+    "axios": "^1.3.3",
+    "dmg": "^0.1.0",
+    "fs-extra": "^11.1.0",
+    "JSONStream": "^1.3.5",
+    "unzipper": "^0.10.11",
     "which": "^3.0.0"
   }
 }

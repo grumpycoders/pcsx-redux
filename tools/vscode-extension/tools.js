@@ -7,6 +7,7 @@ const terminal = require('./terminal.js')
 const pcsxRedux = require('./pcsx-redux.js')
 const exec = util.promisify(execAsync)
 const fs = require('node:fs')
+const downloader = require('./downloader.js')
 
 const mipsVersion = '12.2.0'
 let extensionUri
@@ -32,7 +33,11 @@ function checkSimpleCommand (command) {
   })
 }
 
+let mipsInstalling = false
+
 async function installMips () {
+  if (mipsInstalling) return
+  mipsInstalling = true
   try {
     await terminal.run('powershell', [
       '-c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"'
@@ -68,7 +73,9 @@ async function installToolchain () {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          terminal.run('sudo', ['apt', 'install', 'mipsel-linux-gnu-g++'])
+          terminal.run('sudo', ['apt', 'install', 'mipsel-linux-gnu-g++'], {
+            message: 'Installing the MIPS toolchain requires root privileges.'
+          })
         } else if (await checkInstalled('trizen')) {
           await terminal.run('trizen', [
             '-S',
@@ -173,7 +180,9 @@ async function installGDB () {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          terminal.run('sudo', ['apt', 'install', 'gdb-multiarch'])
+          terminal.run('sudo', ['apt', 'install', 'gdb-multiarch'], {
+            message: 'Installing GDB Multiarch requires root privileges.'
+          })
         } else if (await checkInstalled('trizen')) {
           await terminal.run('trizen', ['-S', 'gdb-multiarch'])
         } else if (await checkInstalled('brew')) {
@@ -247,7 +256,9 @@ async function installMake () {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          terminal.run('sudo', ['apt', 'install', 'build-essential'])
+          terminal.run('sudo', ['apt', 'install', 'build-essential'], {
+            message: 'Installing GNU Make requires root privileges.'
+          })
         } else {
           vscode.window.showErrorMessage(
             'Your Linux distribution is not supported. You need to install the MIPS toolchain manually.'
@@ -288,6 +299,10 @@ async function installMake () {
       )
       return Promise.reject(new Error('Unsupported platform'))
   }
+}
+
+function unpackPsyq(destination) {
+    return Promise.resolve()
 }
 
 const tools = {
@@ -368,14 +383,15 @@ const tools = {
     homepage: 'https://psx.arthus.net/sdk/Psy-Q/',
     filename: 'psyq-4_7-converted-light.zip',
     url: 'https://psx.arthus.net/sdk/Psy-Q/psyq-4_7-converted-light.zip',
-    locationSetting: 'psyqStoragePath'
+    unpack: unpackPsyq
   },
-  pcsxRedux: {
-    type: 'package',
+  redux: {
+    type: 'archive',
     name: 'PCSX-Redux',
     description:
       'A PlayStation 1 emulator focusing on development features, enabling you to debug your code easily.',
     homepage: 'https://pcsx-redux.consoledev.net/',
+    launch: pcsxRedux.launch,
     install: pcsxRedux.install,
     check: pcsxRedux.check
   }
@@ -408,14 +424,18 @@ exports.refreshAll = async () => {
 }
 
 exports.list = tools
+
 exports.setExtensionUri = (uri) => {
   extensionUri = uri
 }
+
 exports.setGlobalStorageUri = (uri) => {
   globalStorageUri = uri
 }
-exports.install = async (toInstall) => {
+
+exports.install = async (toInstall, force) => {
   for (const tool of toInstall) {
+    if (!force && await checkInstalled(toInstall)) continue
     if (tools[tool].install) {
       if (typeof tools[tool].install === 'string') {
         vscode.env.openExternal(vscode.Uri.parse(tools[tool].install))
@@ -425,7 +445,19 @@ exports.install = async (toInstall) => {
     } else if (tools[tool].type === 'extension') {
       const extensionId = tools[tool].id
       await vscode.commands.executeCommand('extension.open', extensionId)
+    } else if (tools[tool].type === 'archive') {
+      await downloader.downloadFile(
+        tools[tool].url,
+        vscode.Uri.joinPath(globalStorageUri, tools[tool].filename).path
+      )
     }
   }
   return requiresReboot
+}
+
+exports.maybeInstall = (toInstall) => {
+  return checkInstalled(toInstall).then((installed) => {
+    if (!installed) return exports.install(toInstall)
+    return Promise.resolve(false)
+  })
 }

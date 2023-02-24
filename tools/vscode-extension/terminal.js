@@ -3,11 +3,20 @@
 const vscode = require('vscode')
 const which = require('which')
 
-exports.run = async function (binary, args) {
+exports.run = async function (binary, args, options) {
   if (process.platform === 'win32') {
     args = args.join(' ')
   }
-  const terminal = vscode.window.createTerminal('PSX.Dev', await which(binary), args)
+  if (options === undefined) options = {}
+  let name = options.name
+  if (name === undefined) name = 'PSX.Dev'
+  const message = options.message
+  const terminal = vscode.window.createTerminal({
+    shellPath: await which(binary),
+    shellArgs: args,
+    name,
+    message
+  })
   terminal.show()
   let resolver
   let rejecter
