@@ -208,8 +208,10 @@ int pcsxMain(int argc, char **argv) {
             fmt::print("Failed to load version.json\n");
             return 1;
         }
-        fmt::print("{{\n  version: \"{}\",\n  changeset: \"{}\",\n  timestamp: \"{:%Y-%m-%d %H:%M:%S}\"\n}}\n",
-                    version.version, version.changeset, fmt::localtime(version.timestamp));
+        fmt::print(
+            "{{\n  version: \"{}\",\n  changeset: \"{}\",\n  timestamp: \"{}\",\n  timestampDecoded: \"{:%Y-%m-%d "
+            "%H:%M:%S}\"\n}}\n",
+            version.version, version.changeset, version.timestamp, fmt::localtime(version.timestamp));
         return 0;
     }
 
