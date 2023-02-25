@@ -29,6 +29,7 @@
 #include "core/r3000a.h"
 #include "core/sstate.h"
 #include "flags.h"
+#include "fmt/chrono.h"
 #include "gui/gui.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
@@ -196,12 +197,24 @@ int pcsxMain(int argc, char **argv) {
         system->m_noGuiLog = true;
     }
     PCSX::g_system = system;
-    PCSX::Emulator *emulator = new PCSX::Emulator();
-    PCSX::g_emulator = emulator;
     std::filesystem::path self = argv[0];
     std::filesystem::path binDir = std::filesystem::absolute(self).parent_path();
     system->setBinDir(binDir);
     system->loadAllLocales();
+
+    if (args.get<bool>("version").value_or(false)) {
+        auto &version = system->getVersion();
+        if (version.failed()) {
+            fmt::print("Failed to load version.json\n");
+            return 1;
+        }
+        fmt::print("{{\n  version: \"{}\",\n  changeset: \"{}\",\n  timestamp: \"{:%Y-%m-%d %H:%M:%S}\"\n}}\n",
+                    version.version, version.changeset, fmt::localtime(version.timestamp));
+        return 0;
+    }
+
+    PCSX::Emulator *emulator = new PCSX::Emulator();
+    PCSX::g_emulator = emulator;
 
     s_gui = new PCSX::GUI(args);
     s_gui->init();
