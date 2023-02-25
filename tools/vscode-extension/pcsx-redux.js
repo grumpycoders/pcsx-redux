@@ -8,7 +8,7 @@ const jsonStream = require('JSONStream')
 const path = require('path')
 const downloader = require('./downloader.js')
 const util = require('node:util')
-const fs = require('node:fs')
+const fs = require('fs-extra')
 const dmg = require('dmg')
 const dmgMount = util.promisify(dmg.mount)
 const dmgUnmount = util.promisify(dmg.unmount)
@@ -165,7 +165,7 @@ exports.install = async () => {
       let mountPoint
       switch (process.platform) {
         case 'linux':
-          return util.promisify(fs.chmod)(
+          return fs.chmod(
             path.join(outputDir, 'PCSX-Redux-HEAD-x86_64.AppImage'),
             0o775
           )
@@ -190,10 +190,30 @@ exports.install = async () => {
 exports.launch = async () => {
   let path = binaryPath()
   if (path === undefined || !(await checkLocalFile(path))) path = 'PCSX-Redux'
+  const cwd = vscode.Uri.joinPath(
+    globalStorageUri,
+    'pcsx-redux-settings'
+  ).fsPath
+  await fs.mkdirp(cwd)
+  const pcdrvOpts = []
+  if (vscode.workspace.workspaceFolders) {
+    pcdrvOpts.push('-pcdrv')
+    pcdrvOpts.push('-pcdrvbase')
+    pcdrvOpts.push(vscode.workspace.workspaceFolders[0].uri.fsPath)
+  }
   return terminal.run(
     path,
-    ['-stdout', '-lua_stdout', '-interpreter', '-debugger', '-gdb', '-portable', '-noupdate'],
-    { name: 'PCSX-Redux' }
+    [
+      '-stdout',
+      '-lua_stdout',
+      '-interpreter',
+      '-debugger',
+      '-gdb',
+      '-portable',
+      '-noupdate',
+      ...pcdrvOpts
+    ],
+    { name: 'PCSX-Redux', cwd }
   )
 }
 

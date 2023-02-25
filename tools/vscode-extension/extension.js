@@ -5,6 +5,7 @@ const tools = require('./tools.js')
 const pcsxRedux = require('./pcsx-redux.js')
 const templates = require('./templates.js')
 const os = require('node:os')
+const taskRunner = require('./taskrunner.js')
 
 class PSXDevPanel {
   static currentPanel = undefined
@@ -98,16 +99,10 @@ class PSXDevPanel {
               })
             break
           case 'launchRedux':
-            tools
-              .maybeInstall('redux')
-              .then(() => {
-                return tools.list.redux.launch()
-              })
-              .catch((err) => {
-                vscode.window.showErrorMessage(err.message)
-              })
+            launchRedux()
             break
           case 'restorePsyq':
+            restorePsyq()
             break
           case 'requestHomeDirectory':
             this._panel.webview.postMessage({
@@ -131,6 +126,19 @@ class PSXDevPanel {
                     path: result[0].fsPath
                   })
                 }
+              })
+            break
+          case 'createProjectFromTemplate':
+            templates
+              .createProjectFromTemplate(tools.list, message)
+              .then((fullPath) => {
+                vscode.commands.executeCommand(
+                  'vscode.openFolder',
+                  vscode.Uri.file(fullPath)
+                )
+              })
+              .catch((err) => {
+                vscode.window.showErrorMessage(err.message)
               })
             break
         }
@@ -213,13 +221,44 @@ class PSXDevPanel {
 
 PSXDevPanel.viewType = 'psxDev'
 
-function activate(context) {
+exports.activate = (context) => {
   tools.setExtensionUri(context.extensionUri)
   tools.setGlobalStorageUri(context.globalStorageUri)
   pcsxRedux.setGlobalStorageUri(context.globalStorageUri)
+
   context.subscriptions.push(
     vscode.commands.registerCommand('psxDev.showPanel', () => {
       PSXDevPanel.createOrShow(context.extensionUri)
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psxDev.buildDebug', () => {
+      taskRunner.run('Build Debug').catch((err) => {
+        vscode.window.showErrorMessage(err.message)
+      })
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psxDev.buildRelease', () => {
+      taskRunner.run('Build Release').catch((err) => {
+        vscode.window.showErrorMessage(err.message)
+      })
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psxDev.clean', () => {
+      taskRunner.run('Clean').catch((err) => {
+        vscode.window.showErrorMessage(err.message)
+      })
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psxDev.launchRedux', () => {
+      launchRedux()
     })
   )
 
@@ -257,10 +296,34 @@ function getNonce() {
   return text
 }
 
-// This method is called when your extension is deactivated
-function deactivate() {}
+function launchRedux() {
+  tools
+    .maybeInstall('redux')
+    .then(() => {
+      return tools.list.redux.launch()
+    })
+    .catch((err) => {
+      vscode.window.showErrorMessage(err.message)
+    })
+}
 
-module.exports = {
-  activate,
-  deactivate
+function restorePsyq() {
+  if (vscode.workspace.workspaceFolders) {
+    tools
+      .maybeInstall('psyq')
+      .then(() => {
+        return tools.list.psyq.unpack(
+          vscode.Uri.joinPath(
+            vscode.workspace.workspaceFolders[0].uri,
+            'third_party',
+            'psyq'
+          ).fsPath
+        )
+      })
+      .catch((err) => {
+        vscode.window.showErrorMessage(err.message)
+      })
+  } else {
+    vscode.window.showErrorMessage('Please open a project first.')
+  }
 }

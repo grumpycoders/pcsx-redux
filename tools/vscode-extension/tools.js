@@ -6,22 +6,24 @@ const execAsync = require('node:child_process').exec
 const terminal = require('./terminal.js')
 const pcsxRedux = require('./pcsx-redux.js')
 const exec = util.promisify(execAsync)
-const fs = require('node:fs')
+const fs = require('fs-extra')
 const downloader = require('./downloader.js')
+const unzipper = require('unzipper')
+const path = require('node:path')
 
 const mipsVersion = '12.2.0'
 let extensionUri
 let globalStorageUri
 let requiresReboot = false
 
-async function checkInstalled (name) {
+async function checkInstalled(name) {
   if (tools[name].installed === undefined) {
     tools[name].installed = await tools[name].check()
   }
   return tools[name].installed
 }
 
-function checkSimpleCommand (command) {
+function checkSimpleCommand(command) {
   return new Promise((resolve) => {
     execAsync(command, (error) => {
       if (error) {
@@ -35,7 +37,7 @@ function checkSimpleCommand (command) {
 
 let mipsInstalling = false
 
-async function installMips () {
+async function installMips() {
   if (mipsInstalling) return
   mipsInstalling = true
   try {
@@ -54,7 +56,7 @@ async function installMips () {
   }
 }
 
-async function installToolchain () {
+async function installToolchain() {
   switch (process.platform) {
     case 'win32':
       try {
@@ -73,7 +75,7 @@ async function installToolchain () {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          terminal.run('sudo', ['apt', 'install', 'mipsel-linux-gnu-g++'], {
+          await terminal.run('sudo', ['apt', 'install', 'mipsel-linux-gnu-g++'], {
             message: 'Installing the MIPS toolchain requires root privileges.'
           })
         } else if (await checkInstalled('trizen')) {
@@ -154,14 +156,14 @@ async function installToolchain () {
   }
 }
 
-function checkToolchain () {
+function checkToolchain() {
   return Promise.any([
     exec('mipsel-linux-gnu-g++ --version'),
     exec('mipsel-none-elf-g++ --version')
   ])
 }
 
-async function installGDB () {
+async function installGDB() {
   switch (process.platform) {
     case 'win32':
       try {
@@ -180,7 +182,7 @@ async function installGDB () {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          terminal.run('sudo', ['apt', 'install', 'gdb-multiarch'], {
+          await terminal.run('sudo', ['apt', 'install', 'gdb-multiarch'], {
             message: 'Installing GDB Multiarch requires root privileges.'
           })
         } else if (await checkInstalled('trizen')) {
@@ -229,7 +231,7 @@ async function installGDB () {
   }
 }
 
-function checkGDB () {
+function checkGDB() {
   if (process.platform === 'win32') {
     return checkSimpleCommand('gdb --version')
   } else {
@@ -237,7 +239,7 @@ function checkGDB () {
   }
 }
 
-async function installMake () {
+async function installMake() {
   switch (process.platform) {
     case 'win32':
       try {
@@ -256,7 +258,7 @@ async function installMake () {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          terminal.run('sudo', ['apt', 'install', 'build-essential'], {
+          await terminal.run('sudo', ['apt', 'install', 'build-essential'], {
             message: 'Installing GNU Make requires root privileges.'
           })
         } else {
@@ -302,7 +304,26 @@ async function installMake () {
 }
 
 function unpackPsyq(destination) {
-    return Promise.resolve()
+  const filename = vscode.Uri.joinPath(
+    globalStorageUri,
+    tools.psyq.filename
+  ).fsPath
+
+  return fs
+    .createReadStream(filename)
+    .pipe(unzipper.Parse())
+    .on('entry', function (entry) {
+      const fragments = entry.path.split('/')
+      fragments.shift()
+      const outputPath = path.join(destination, ...fragments)
+      if (entry.type === 'Directory') {
+        fs.mkdirSync(outputPath, { recursive: true })
+        entry.autodrain()
+      } else {
+        entry.pipe(fs.createWriteStream(outputPath))
+      }
+    })
+    .promise()
 }
 
 const tools = {
@@ -397,10 +418,10 @@ const tools = {
   }
 }
 
-function checkLocalFile (filename) {
+function checkLocalFile(filename) {
   return new Promise((resolve) => {
-    filename = vscode.Uri.joinPath(globalStorageUri, filename)
-    fs.access(filename.fsPath, fs.constants.F_OK, (err) => {
+    filename = vscode.Uri.joinPath(globalStorageUri, filename).fsPath
+    fs.access(filename, fs.constants.F_OK, (err) => {
       resolve(!err)
     })
   })
@@ -435,7 +456,7 @@ exports.setGlobalStorageUri = (uri) => {
 
 exports.install = async (toInstall, force) => {
   for (const tool of toInstall) {
-    if (!force && await checkInstalled(toInstall)) continue
+    if (!force && (await checkInstalled(tool))) continue
     if (tools[tool].install) {
       if (typeof tools[tool].install === 'string') {
         vscode.env.openExternal(vscode.Uri.parse(tools[tool].install))

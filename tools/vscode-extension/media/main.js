@@ -39,7 +39,7 @@ import {
         requireReboot = true
         break
       case 'projectDirectory':
-        document.getElementById('project-path').value = message.fsPath
+        document.getElementById('project-path').value = message.path
         break
       case 'templates':
         {
@@ -86,7 +86,7 @@ import {
             templateDocumentation.appearance = 'secondary'
             if (template.url) {
               templateDocumentation.addEventListener('click', () => {
-                vscode.postmessage({ command: 'openurl', url: template.url })
+                vscode.postMessage({ command: 'openurl', url: template.url })
               })
             } else {
               templateDocumentation.disabled = true
@@ -99,7 +99,7 @@ import {
             templateInstallRequiredTools.textContent = 'Install required tools'
             templateInstallRequiredTools.appearance = 'secondary'
             templateInstallRequiredTools.addEventListener('click', () => {
-              vscode.postmessage({
+              vscode.postMessage({
                 command: 'installTools',
                 tools: template.requiredTools
               })
@@ -113,7 +113,7 @@ import {
               'Install recommended tools'
             templateInstallRecommendedTools.appearance = 'secondary'
             templateInstallRecommendedTools.addEventListener('click', () => {
-              vscode.postmessage({
+              vscode.postMessage({
                 command: 'installTools',
                 tools: template.recommendedTools + template.requiredTools
               })
@@ -126,7 +126,7 @@ import {
             templateCreate.id = 'create-' + key
             templateCreate.disabled = true
             templateCreate.addEventListener('click', () => {
-              vscode.postmessage({
+              vscode.postMessage({
                 command: 'createProjectFromTemplate',
                 template: key,
                 path: document.getElementById('project-path').value,

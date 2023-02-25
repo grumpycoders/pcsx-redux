@@ -16,7 +16,8 @@ exports.run = async function (binary, args, options) {
     shellPath: await which(binary, { nothrow: true }),
     shellArgs: args,
     name,
-    message
+    message,
+    cwd: options.cwd
   })
   terminal.show()
   let resolver
