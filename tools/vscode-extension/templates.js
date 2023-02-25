@@ -114,7 +114,7 @@ You can also use the "PSX.Dev: Clean" command to clean your project, which is us
 Additionally, you can build your project by running "make" in the terminal, or "make BUILD=Debug", and run "make clean" to clean your project.
 There are also Visual Studio Code tasks for building and cleaning your project, which you can find in the "Tasks: Run Task" command.
 
-And finally, you can debug your project by pressing F5. You will first need to have a GDB server running in the background, which you can do by running the "PSX.Dev: Launch PCSX-Redux" command.
+And finally, you can debug your project by pressing F5. You will first need to have a GDB server running in the background, which you can do by running the "PSX.Dev: Launch PCSX-Redux" command. Please note that debugging won't work unless the recommended tools are installed.
 
 Don't forget that you can always open the main PSX.Dev panel by pressing Ctrl+Shift+P and running the "PSX.Dev: Show panel" command, in order to get all of the relevant documentation and links from the TEMPLATES tab.
 `
@@ -437,7 +437,7 @@ const templates = {
     name: 'Empty',
     description:
       'An empty project, with just the barebone setup to get started.',
-    requiredTools: ['git', 'make', 'toolchain', 'gdb'],
+    requiredTools: ['git', 'make', 'toolchain'],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: createEmptyProject
   },
@@ -446,7 +446,7 @@ const templates = {
     description:
       'A project using the Psy-Q SDK. Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.',
     url: 'https://psx.arthus.net/sdk/Psy-Q/DOCS/',
-    requiredTools: ['git', 'make', 'toolchain', 'gdb', 'psyq'],
+    requiredTools: ['git', 'make', 'toolchain', 'psyq'],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: createPsyQProject
   },
@@ -455,7 +455,7 @@ const templates = {
     description:
       'A project using the PSYQo SDK. The PSYQo library is a C++-20 MIT-licensed framework cleanly written from scratch, allowing you to write modern, readable code targetting the PlayStation 1, while still being efficient. Additionally, you will have access to the EASTL library, which is a BSD-3-Clause licensed implementation of the C++ Standard Template Library.',
     url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
-    requiredTools: ['git', 'make', 'toolchain', 'gdb'],
+    requiredTools: ['git', 'make', 'toolchain'],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: createPSYQoProject
   }
