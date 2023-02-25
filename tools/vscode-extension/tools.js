@@ -36,6 +36,7 @@ function checkSimpleCommand(command) {
 }
 
 let mipsInstalling = false
+let win32MipsToolsInstalling = false
 
 async function installMips() {
   if (mipsInstalling) return
@@ -63,6 +64,8 @@ async function installToolchain() {
         if (!(await checkInstalled('mips'))) {
           await installMips()
         } else {
+          if (win32MipsToolsInstalling) return
+          win32MipsToolsInstalling = true
           await terminal.run('mips', ['install', mipsVersion])
         }
       } catch (error) {
@@ -170,6 +173,8 @@ async function installGDB() {
         if (!(await checkInstalled('mips'))) {
           await installMips()
         } else {
+          if (win32MipsToolsInstalling) return
+          win32MipsToolsInstalling = true
           await terminal.run('mips', ['install', mipsVersion])
         }
       } catch (error) {
@@ -246,6 +251,8 @@ async function installMake() {
         if (!(await checkInstalled('mips'))) {
           await installMips()
         } else {
+          if (win32MipsToolsInstalling) return
+          win32MipsToolsInstalling = true
           await terminal.run('mips', ['install', mipsVersion])
         }
       } catch (error) {
