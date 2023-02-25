@@ -86,7 +86,7 @@ import {
             templateDocumentation.appearance = 'secondary'
             if (template.url) {
               templateDocumentation.addEventListener('click', () => {
-                vscode.postMessage({ command: 'openurl', url: template.url })
+                vscode.postMessage({ command: 'openUrl', url: template.url })
               })
             } else {
               templateDocumentation.disabled = true
