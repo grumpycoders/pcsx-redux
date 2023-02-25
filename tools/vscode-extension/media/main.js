@@ -115,7 +115,7 @@ import {
             templateInstallRecommendedTools.addEventListener('click', () => {
               vscode.postMessage({
                 command: 'installTools',
-                tools: template.recommendedTools + template.requiredTools
+                tools: [...template.recommendedTools, ...template.requiredTools]
               })
             })
             templateDiv.appendChild(templateInstallRecommendedTools)
