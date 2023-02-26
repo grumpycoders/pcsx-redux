@@ -83,7 +83,7 @@ async function installToolchain() {
         if (await checkInstalled('apt')) {
           await terminal.run(
             'sudo',
-            ['apt', 'install', 'mipsel-linux-gnu-g++'],
+            ['apt', 'install', 'g++-mipsel-linux-gnu'],
             {
               message: 'Installing the MIPS toolchain requires root privileges.'
             }
