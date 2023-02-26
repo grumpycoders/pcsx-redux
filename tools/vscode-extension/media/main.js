@@ -92,6 +92,22 @@ import {
               templateDocumentation.disabled = true
             }
             templateDiv.appendChild(templateDocumentation)
+            const spaceTextNode0 = document.createTextNode('  ')
+            templateDiv.appendChild(spaceTextNode0)
+            const templateExamples = document.createElement('vscode-button')
+            templateExamples.textContent = 'Examples'
+            templateExamples.appearance = 'secondary'
+            if (template.examples) {
+              templateExamples.addEventListener('click', () => {
+                vscode.postMessage({
+                  command: 'openUrl',
+                  url: template.examples
+                })
+              })
+            } else {
+              templateExamples.disabled = true
+            }
+            templateDiv.appendChild(templateExamples)
             const spaceTextNode1 = document.createTextNode('  ')
             templateDiv.appendChild(spaceTextNode1)
             const templateInstallRequiredTools =
@@ -145,16 +161,21 @@ import {
         {
           toolsView.innerHTML = ''
           if (requireReboot) {
-            const rebootDiv = document.createElement('div')
-            rebootDiv.className = 'reboot'
-            const rebootText = document.createElement('p')
-            rebootText.textContent =
+            const rebootDiv1 = document.createElement('div')
+            rebootDiv1.className = 'reboot'
+            const rebootText1 = document.createElement('p')
+            rebootText1.textContent =
               'Some tools require a reboot to work properly. Please reboot your system before resuming installing more tools.'
-            rebootDiv.appendChild(rebootText)
-            templateView.appendChild(rebootDiv)
-            toolsView.appendChild(rebootDiv)
+            rebootDiv1.appendChild(rebootText1)
+            toolsView.appendChild(rebootDiv1)
             templateView.innerHTML = ''
-            templateView.appendChild(rebootDiv)
+            const rebootDiv2 = document.createElement('div')
+            rebootDiv2.className = 'reboot'
+            const rebootText2 = document.createElement('p')
+            rebootText2.textContent =
+              'Some tools require a reboot to work properly. Please reboot your system before resuming installing more tools.'
+            rebootDiv2.appendChild(rebootText2)
+            templateView.appendChild(rebootDiv2)
             break
           }
           const toolsDiv = document.createElement('div')

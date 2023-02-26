@@ -332,6 +332,7 @@ async function installGit() {
       await downloader.downloadFile(asset.browser_download_url, filename)
       await exec(filename)
       requiresReboot = true
+      break
     }
     default:
       return vscode.env.openExternal(

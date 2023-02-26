@@ -446,6 +446,7 @@ const templates = {
     description:
       'A project using the Psy-Q SDK. Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.',
     url: 'https://psx.arthus.net/sdk/Psy-Q/DOCS/',
+    examples: 'https://github.com/ABelliqueux/nolibgs_hello_worlds',
     requiredTools: ['git', 'make', 'toolchain', 'psyq'],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: createPsyQProject
@@ -455,6 +456,7 @@ const templates = {
     description:
       'A project using the PSYQo SDK. The PSYQo library is a C++-20 MIT-licensed framework cleanly written from scratch, allowing you to write modern, readable code targetting the PlayStation 1, while still being efficient. Additionally, you will have access to the EASTL library, which is a BSD-3-Clause licensed implementation of the C++ Standard Template Library.',
     url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
+    examples: 'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
     requiredTools: ['git', 'make', 'toolchain'],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: createPSYQoProject
