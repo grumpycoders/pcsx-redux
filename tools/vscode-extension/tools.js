@@ -334,6 +334,12 @@ async function installGit() {
       requiresReboot = true
       break
     }
+    case 'linux':
+      if (await checkInstalled('apt')) {
+        return terminal.run('sudo', ['apt', 'install', 'git'], {
+          message: 'Installing Git requires root privileges.'
+        })
+      }
     default:
       return vscode.env.openExternal(
         vscode.Uri.parse('https://git-scm.com/downloads')
