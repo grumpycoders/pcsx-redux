@@ -4,7 +4,7 @@ const vscode = require('vscode')
 const which = require('which')
 
 exports.run = async function (binary, args, options) {
-  if (process.platform === 'win32') {
+  if (process.platform === 'win32' && Array.isArray(args)) {
     args = args.join(' ')
   }
 

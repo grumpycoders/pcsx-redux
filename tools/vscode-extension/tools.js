@@ -3,13 +3,16 @@
 const vscode = require('vscode')
 const util = require('node:util')
 const execAsync = require('node:child_process').exec
+const exec = util.promisify(execAsync)
 const terminal = require('./terminal.js')
 const pcsxRedux = require('./pcsx-redux.js')
-const exec = util.promisify(execAsync)
 const fs = require('fs-extra')
 const downloader = require('./downloader.js')
 const unzipper = require('unzipper')
 const path = require('node:path')
+const { Octokit } = require('@octokit/rest')
+const octokit = new Octokit()
+const os = require('node:os')
 
 const mipsVersion = '12.2.0'
 let extensionUri
@@ -78,9 +81,13 @@ async function installToolchain() {
     case 'linux':
       try {
         if (await checkInstalled('apt')) {
-          await terminal.run('sudo', ['apt', 'install', 'mipsel-linux-gnu-g++'], {
-            message: 'Installing the MIPS toolchain requires root privileges.'
-          })
+          await terminal.run(
+            'sudo',
+            ['apt', 'install', 'mipsel-linux-gnu-g++'],
+            {
+              message: 'Installing the MIPS toolchain requires root privileges.'
+            }
+          )
         } else if (await checkInstalled('trizen')) {
           await terminal.run('trizen', [
             '-S',
@@ -107,7 +114,7 @@ async function installToolchain() {
           vscode.window.showErrorMessage(
             'Your Linux distribution is not supported. You need to install the MIPS toolchain manually.'
           )
-          return Promise.reject(new Error('Unsupported platform'))
+          throw new Error('Unsupported platform')
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -155,7 +162,7 @@ async function installToolchain() {
       vscode.window.showErrorMessage(
         'Your platform is not supported by this extension. Please install the MIPS toolchain manually.'
       )
-      return Promise.reject(new Error('Unsupported platform'))
+      throw new Error('Unsupported platform')
   }
 }
 
@@ -196,9 +203,9 @@ async function installGDB() {
           await terminal.run('brew', ['install', 'gdb-multiarch'])
         } else {
           vscode.window.showErrorMessage(
-            'Your Linux distribution is not supported. You need to install the MIPS toolchain manually.'
+            'Your Linux distribution is not supported. You need to install the MIPS toolchain manually. Alternatively, you can install linuxbrew, and refresh this panel.'
           )
-          return Promise.reject(new Error('Unsupported platform'))
+          throw new Error('Unsupported platform')
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -223,7 +230,7 @@ async function installGDB() {
         }
       } catch (error) {
         vscode.window.showErrorMessage(
-          'An error occurred while installing GDB Multiarch. Please install it manually.'
+          'An error occurred while installing GDB Multiarch. Please install it manually. Alternatively, you can install linuxbrew, and refresh this panel.'
         )
         throw error
       }
@@ -232,7 +239,7 @@ async function installGDB() {
       vscode.window.showErrorMessage(
         'Your platform is not supported by this extension. Please install GDB Multiarch manually.'
       )
-      return Promise.reject(new Error('Unsupported platform'))
+      throw new Error('Unsupported platform')
   }
 }
 
@@ -272,7 +279,7 @@ async function installMake() {
           vscode.window.showErrorMessage(
             'Your Linux distribution is not supported. You need to install the MIPS toolchain manually.'
           )
-          return Promise.reject(new Error('Unsupported platform'))
+          throw new Error('Unsupported platform')
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -306,7 +313,39 @@ async function installMake() {
       vscode.window.showErrorMessage(
         'Your platform is not supported by this extension. Please install GNU Make manually.'
       )
-      return Promise.reject(new Error('Unsupported platform'))
+      throw new Error('Unsupported platform')
+  }
+}
+
+async function installGit() {
+  switch (process.platform) {
+    case 'win32': {
+      const release = await octokit.rest.repos.getLatestRelease({
+        owner: 'git-for-windows',
+        repo: 'git'
+      })
+      const asset = release.data.assets.find(
+        (asset) => {
+          return /^Git-.*-64-bit\.exe/.test(asset.name)
+        }
+      )
+      if (!asset) {
+        vscode.window.showErrorMessage(
+          'Could not find the latest Git for Windows release. Please install it manually.'
+        )
+        return
+      }
+      const filename = path.join(
+        os.tmpdir(),
+        asset.browser_download_url.split('/').pop()
+      )
+      await downloader.downloadFile(asset.browser_download_url, filename)
+      return exec(filename)
+    }
+    default:
+      return vscode.env.openExternal(
+        vscode.Uri.parse('https://git-scm.com/downloads')
+      )
   }
 }
 
@@ -382,7 +421,7 @@ const tools = {
     description:
       'Tool to maintain your code, and initialize your project templates',
     homepage: 'https://git-scm.com/',
-    install: 'https://git-scm.com/downloads',
+    install: installGit,
     check: () => checkSimpleCommand('git --version')
   },
   clangd: {
@@ -462,13 +501,16 @@ exports.setGlobalStorageUri = (uri) => {
 }
 
 exports.install = async (toInstall, force) => {
+  if (requiresReboot) {
+    return true
+  }
   for (const tool of toInstall) {
     if (!force && (await checkInstalled(tool))) continue
     if (tools[tool].install) {
       if (typeof tools[tool].install === 'string') {
         vscode.env.openExternal(vscode.Uri.parse(tools[tool].install))
       } else {
-        await tools[tool].install()
+        await tools[tool].install(force)
       }
     } else if (tools[tool].type === 'extension') {
       const extensionId = tools[tool].id
@@ -480,12 +522,15 @@ exports.install = async (toInstall, force) => {
       )
     }
   }
+  win32MipsToolsInstalling = false
   return requiresReboot
 }
 
-exports.maybeInstall = (toInstall) => {
-  return checkInstalled(toInstall).then((installed) => {
-    if (!installed) return exports.install([toInstall])
-    return Promise.resolve(false)
-  })
+exports.maybeInstall = async (toInstall) => {
+  const installed = await checkInstalled(toInstall)
+  if (!installed && !requiresReboot) {
+    return exports.install([toInstall])
+    win32MipsToolsInstalling = false
+  }
+  return requiresReboot
 }

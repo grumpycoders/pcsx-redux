@@ -13,6 +13,9 @@ const dmg = require('dmg')
 const dmgMount = util.promisify(dmg.mount)
 const dmgUnmount = util.promisify(dmg.unmount)
 const terminal = require('./terminal.js')
+const execAsync = require('node:child_process').exec
+const exec = util.promisify(execAsync)
+const os = require('node:os')
 
 const updateInfo = {
   win32: {
@@ -96,6 +99,16 @@ exports.install = async () => {
       'Unsupported platform. You can still use PCSX-Redux by compiling it from source.'
     )
   }
+
+  if (process.platform === 'win32') {
+    const dllPath = 'C:\\Windows\\System32\\msvcp140_atomic_wait.dll'
+    if (!await checkLocalFile(dllPath)) {
+      const fullPath = path.join(os.tmpdir(), 'Microsoft.VCLibs.x64.14.00.Desktop.appx')
+      downloader.downloadFile('https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx', fullPath)
+      await exec(`powershell Add-AppxPackage ${fullPath}`)
+    }
+  }
+
   const updateInfoForPlatform = updateInfo[process.platform]
   const outputDir =
     process.platform === 'win32'
@@ -151,10 +164,9 @@ exports.install = async () => {
         })
     })
     .then((downloadUrl) => {
-      if (downloadUrl === undefined)
-        return Promise.reject(
-          new Error('Invalid AppCenter catalog information.')
-        )
+      if (downloadUrl === undefined) {
+        throw new Error('Invalid AppCenter catalog information.')
+      }
       return downloader.downloadFile(
         downloadUrl,
         outputDir,

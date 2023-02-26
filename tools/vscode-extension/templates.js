@@ -467,23 +467,21 @@ exports.createProjectFromTemplate = async function (tools, options) {
   const fullPath = path.join(options.path, options.name)
   const template = templates[options.template]
   if (!template) {
-    return Promise.reject(new Error('Unknown template: ' + options.template))
+    throw new Error('Unknown template: ' + options.template)
   }
   if (options.name === '') {
-    return Promise.reject(new Error('The project name cannot be empty.'))
+    throw new Error('The project name cannot be empty.')
   }
   if (!/^[a-zA-Z0-9_-]+$/.test(options.name)) {
-    return Promise.reject(
-      new Error(
-        'The project name contains invalid characters. Please use only letters, numbers, dashes and underscores.'
-      )
+    throw new Error(
+      'The project name contains invalid characters. Please use only letters, numbers, dashes and underscores.'
     )
   }
   if (!(await fs.stat(options.path)).isDirectory()) {
-    return Promise.reject(new Error('The parent path does not exist.'))
+    throw new Error('The parent path does not exist.')
   }
   if (await fs.exists(fullPath)) {
-    return Promise.reject(new Error('The project directory already exists.'))
+    throw new Error('The project directory already exists.')
   }
   let resolver
   let rejecter
