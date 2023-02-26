@@ -243,14 +243,6 @@ async function installGDB() {
   }
 }
 
-function checkGDB() {
-  if (process.platform === 'win32') {
-    return checkSimpleCommand('gdb --version')
-  } else {
-    return checkSimpleCommand('gdb-multiarch --version')
-  }
-}
-
 async function installMake() {
   switch (process.platform) {
     case 'win32':
@@ -324,11 +316,9 @@ async function installGit() {
         owner: 'git-for-windows',
         repo: 'git'
       })
-      const asset = release.data.assets.find(
-        (asset) => {
-          return /^Git-.*-64-bit\.exe/.test(asset.name)
-        }
-      )
+      const asset = release.data.assets.find((asset) => {
+        return /^Git-.*-64-bit\.exe/.test(asset.name)
+      })
       if (!asset) {
         vscode.window.showErrorMessage(
           'Could not find the latest Git for Windows release. Please install it manually.'
@@ -340,7 +330,8 @@ async function installGit() {
         asset.browser_download_url.split('/').pop()
       )
       await downloader.downloadFile(asset.browser_download_url, filename)
-      return exec(filename)
+      await exec(filename)
+      requiresReboot = true
     }
     default:
       return vscode.env.openExternal(
@@ -405,7 +396,7 @@ const tools = {
     description: 'The tool to debug code for the PlayStation 1',
     homepage: 'https://www.sourceware.org/gdb/',
     install: installGDB,
-    check: checkGDB
+    check: () => checkSimpleCommand('gdb-multiarch --version')
   },
   make: {
     type: 'package',

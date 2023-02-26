@@ -301,9 +301,7 @@ function getNonce() {
 function launchRedux() {
   tools
     .maybeInstall('redux')
-    .then(() => {
-      return tools.list.redux.launch()
-    })
+    .then(() => tools.list.redux.launch())
     .catch((err) => {
       vscode.window.showErrorMessage(err.message)
     })
@@ -313,15 +311,15 @@ function restorePsyq() {
   if (vscode.workspace.workspaceFolders) {
     tools
       .maybeInstall('psyq')
-      .then(() => {
-        return tools.list.psyq.unpack(
+      .then(() =>
+        tools.list.psyq.unpack(
           vscode.Uri.joinPath(
             vscode.workspace.workspaceFolders[0].uri,
             'third_party',
             'psyq'
           ).fsPath
         )
-      })
+      )
       .catch((err) => {
         vscode.window.showErrorMessage(err.message)
       })

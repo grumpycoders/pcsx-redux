@@ -103,9 +103,15 @@ exports.install = async () => {
   if (process.platform === 'win32') {
     const dllPath = 'C:\\Windows\\System32\\msvcp140_atomic_wait.dll'
     if (!await checkLocalFile(dllPath)) {
-      const fullPath = path.join(os.tmpdir(), 'Microsoft.VCLibs.x64.14.00.Desktop.appx')
-      downloader.downloadFile('https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx', fullPath)
-      await exec(`powershell Add-AppxPackage ${fullPath}`)
+      const fullPath = path.join(
+        os.tmpdir(),
+        'vc_redist.x64.exe'
+      )
+      await downloader.downloadFile(
+        'https://aka.ms/vs/17/release/vc_redist.x64.exe',
+        fullPath
+      )
+      await exec(fullPath)
     }
   }
 
@@ -116,31 +122,27 @@ exports.install = async () => {
       : globalStorageUri.fsPath
 
   return mkdirp(outputDir)
-    .then(() => {
-      return axios.request({
+    .then(() =>
+      axios.request({
         method: 'get',
         url: updateInfoForPlatform.updateCatalog,
         responseType: 'stream'
       })
-    })
+    )
     .then((response) => {
       return new Promise((resolve, reject) => {
         let highestId = -1
         response.data
-          .on('close', () => {
-            resolve(highestId)
-          })
-          .on('error', (err) => {
-            reject(err)
-          })
+          .on('close', () => resolve(highestId))
+          .on('error', (err) => reject(err))
           .pipe(jsonStream.parse([true]))
           .on('data', (data) => {
             if (data.id > highestId) highestId = data.id
           })
       })
     })
-    .then((updateId) => {
-      return axios
+    .then((updateId) =>
+      axios
         .request({
           method: 'get',
           url: updateInfoForPlatform.updateInfoBase + updateId,
@@ -150,19 +152,15 @@ exports.install = async () => {
           return new Promise((resolve, reject) => {
             let downloadUrl
             response.data
-              .on('close', () => {
-                resolve(downloadUrl)
-              })
-              .on('error', (err) => {
-                reject(err)
-              })
+              .on('close', () => resolve(downloadUrl))
+              .on('error', (err) => reject(err))
               .pipe(jsonStream.parse(['download_url']))
               .on('data', (data) => {
                 downloadUrl = data
               })
           })
         })
-    })
+    )
     .then((downloadUrl) => {
       if (downloadUrl === undefined) {
         throw new Error('Invalid AppCenter catalog information.')
@@ -191,9 +189,7 @@ exports.install = async () => {
                 { overwrite: true }
               )
             })
-            .then(() => {
-              return dmgUnmount(mountPoint)
-            })
+            .then(() => dmgUnmount(mountPoint))
       }
       return Promise.resolve()
     })

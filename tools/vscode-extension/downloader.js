@@ -40,23 +40,15 @@ exports.downloadFile = async (url, output, unzip) => {
         return new Promise((resolve, reject) => {
           response.data
             .pipe(unzipper.Extract({ path: output }))
-            .on('close', () => {
-              resolve(output)
-            })
-            .on('error', (err) => {
-              reject(err)
-            })
+            .on('close', () => resolve(output))
+            .on('error', (err) => reject(err))
         })
       } else {
         response.data.pipe(writer)
-        return finished(writer).then(() => {
-          return Promise.resolve(output)
-        })
+        return finished(writer).then(() => Promise.resolve(output))
       }
     })
-    .then(() => {
-      progressResolver()
-    })
+    .then(() => progressResolver())
     .catch((err) => {
       if (progressResolver) progressResolver()
       throw err
