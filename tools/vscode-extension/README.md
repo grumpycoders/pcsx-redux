@@ -19,5 +19,9 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.2.2
+  - Added commands `Restore Psy-Q`, `Show PCSX-Redux Settings`, and `Update Modules`.
+  - Added support for clangd in the templates.
+  - Small fix to PSYQo template.
 - 0.2.1
   - Initial public release

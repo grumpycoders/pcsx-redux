@@ -2,7 +2,7 @@
   "name": "psx-dev",
   "displayName": "PSX.Dev",
   "description": "PlayStation 1 development made easy",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -65,6 +65,21 @@
       {
         "command": "psxDev.launchRedux",
         "title": "Launch PCSX-Redux",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.restorePsyq",
+        "title": "Restore Psy-Q",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.showReduxSettings",
+        "title": "Show PCSX-Redux Settings",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.updateModules",
+        "title": "Update Modules",
         "category": "PSX.Dev"
       }
     ]

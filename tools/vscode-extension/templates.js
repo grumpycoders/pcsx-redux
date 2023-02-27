@@ -152,7 +152,15 @@ main.c
 include third_party/nugget/common.mk
 `
   )
-  await git.add(['main.c', 'Makefile'])
+  await fs.writeFile(
+    path.join(fullPath, 'compile_flags.txt'),
+    `
+-m32
+-I.
+-Ithird_party/nugget
+    `
+  )
+  await git.add(['main.c', 'Makefile', 'compile_flags.txt'])
 }
 
 async function createPsyQProject(fullPath, name, progressReporter, tools) {
@@ -330,12 +338,21 @@ LDFLAGS += -Wl,--end-group
 include third_party/nugget/common.mk
 `
   )
+  await fs.writeFile(
+    path.join(fullPath, 'compile_flags.txt'),
+    `
+-m32
+-I.
+-Ithird_party/nugget
+-Ithird_party/psyq-iwyu/include
+    `
+  )
   await git.submoduleAdd(
     'https://github.com/johnbaumann/psyq_include_what_you_use.git',
     'third_party/psyq-iwyu'
   )
   await tools.psyq.unpack(path.join(fullPath, 'third_party', 'psyq'))
-  await git.add(['main.c', 'Makefile'])
+  await git.add(['main.c', 'Makefile', 'compile_flags.txt'])
 }
 
 async function createPSYQoProject(fullPath, name, progressReporter) {
@@ -344,6 +361,8 @@ async function createPSYQoProject(fullPath, name, progressReporter) {
   await fs.writeFile(
     path.join(fullPath, 'main.cpp'),
     `
+#include <stdint.h>
+
 #include "third_party/nugget/common/syscalls/syscalls.h"
 #include "third_party/nugget/psyqo/application.hh"
 #include "third_party/nugget/psyqo/font.hh"
@@ -428,7 +447,19 @@ main.cpp
 include third_party/nugget/psyqo/psyqo.mk
 `
   )
-  await git.add(['main.cpp', 'Makefile'])
+  await fs.writeFile(
+    path.join(fullPath, 'compile_flags.txt'),
+    `
+-m32
+-std=c++20
+-fcoroutines-ts
+-I.
+-Ithird_party/nugget
+-Ithird_party/EASTL/include
+-Ithird_party/EABase/include/Common
+    `
+  )
+  await git.add(['main.cpp', 'Makefile', 'compile_flags.txt'])
 }
 
 const templates = {
@@ -457,7 +488,8 @@ const templates = {
     description:
       'A project using the PSYQo SDK. The PSYQo library is a C++-20 MIT-licensed framework cleanly written from scratch, allowing you to write modern, readable code targetting the PlayStation 1, while still being efficient. Additionally, you will have access to the EASTL library, which is a BSD-3-Clause licensed implementation of the C++ Standard Template Library.',
     url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
-    examples: 'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
+    examples:
+      'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
     requiredTools: ['git', 'make', 'toolchain'],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: createPSYQoProject
