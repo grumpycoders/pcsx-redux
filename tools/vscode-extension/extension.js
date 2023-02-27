@@ -8,6 +8,7 @@ const os = require('node:os')
 const taskRunner = require('./taskrunner.js')
 const util = require('node:util')
 const openExplorer = util.promisify(require('open-file-explorer'))
+const terminal = require('./terminal.js')
 
 let globalStorageUri
 
@@ -146,15 +147,7 @@ class PSXDevPanel {
               })
             break
           case 'showReduxSettings':
-            {
-              const pathToOpen = vscode.Uri.joinPath(
-                globalStorageUri,
-                'pcsx-redux-settings'
-              ).fsPath
-              openExplorer(pathToOpen).catch((err) => {
-                vscode.window.showErrorMessage(err.message)
-              })
-            }
+            showReduxSettings()
             break
         }
       },
@@ -280,6 +273,24 @@ exports.activate = (context) => {
     })
   )
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psxDev.restorePsyq', () => {
+      restorePsyq()
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psxDev.showReduxSettings', () => {
+      showReduxSettings()
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psxDev.updateModules', () => {
+      updateModules()
+    })
+  )
+
   vscode.window.registerWebviewPanelSerializer(PSXDevPanel.viewType, {
     async deserializeWebviewPanel(webviewPanel) {
       webviewPanel.webview.options = getWebviewOptions(context.extensionUri)
@@ -335,6 +346,33 @@ function restorePsyq() {
             'psyq'
           ).fsPath
         )
+      )
+      .catch((err) => {
+        vscode.window.showErrorMessage(err.message)
+      })
+  } else {
+    vscode.window.showErrorMessage('Please open a project first.')
+  }
+}
+
+function showReduxSettings() {
+  const pathToOpen = vscode.Uri.joinPath(
+    globalStorageUri,
+    'pcsx-redux-settings'
+  ).fsPath
+  openExplorer(pathToOpen).catch((err) => {
+    vscode.window.showErrorMessage(err.message)
+  })
+}
+
+function updateModules() {
+  if (vscode.workspace.workspaceFolders) {
+    tools
+      .maybeInstall('git')
+      .then(() =>
+        terminal.run('git', ['submodule', 'update', '--init', '--recursive'], {
+          cwd: vscode.workspace.workspaceFolders[0].uri.fsPath
+        })
       )
       .catch((err) => {
         vscode.window.showErrorMessage(err.message)
