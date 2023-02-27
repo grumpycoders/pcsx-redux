@@ -102,11 +102,8 @@ exports.install = async () => {
 
   if (process.platform === 'win32') {
     const dllPath = 'C:\\Windows\\System32\\msvcp140_atomic_wait.dll'
-    if (!await checkLocalFile(dllPath)) {
-      const fullPath = path.join(
-        os.tmpdir(),
-        'vc_redist.x64.exe'
-      )
+    if (!(await checkLocalFile(dllPath))) {
+      const fullPath = path.join(os.tmpdir(), 'vc_redist.x64.exe')
       await downloader.downloadFile(
         'https://aka.ms/vs/17/release/vc_redist.x64.exe',
         fullPath
@@ -121,78 +118,61 @@ exports.install = async () => {
       ? vscode.Uri.joinPath(globalStorageUri, 'pcsx-redux').fsPath
       : globalStorageUri.fsPath
 
-  return mkdirp(outputDir)
-    .then(() =>
-      axios.request({
-        method: 'get',
-        url: updateInfoForPlatform.updateCatalog,
-        responseType: 'stream'
+  await mkdirp(outputDir)
+  const responseCatalog = await axios.request({
+    method: 'get',
+    url: updateInfoForPlatform.updateCatalog,
+    responseType: 'stream'
+  })
+  const updateId = await new Promise((resolve, reject) => {
+    let highestId = -1
+    responseCatalog.data
+      .on('close', () => resolve(highestId))
+      .on('error', (err) => reject(err))
+      .pipe(jsonStream.parse([true]))
+      .on('data', (data) => {
+        if (data.id > highestId) highestId = data.id
       })
-    )
-    .then((response) => {
-      return new Promise((resolve, reject) => {
-        let highestId = -1
-        response.data
-          .on('close', () => resolve(highestId))
-          .on('error', (err) => reject(err))
-          .pipe(jsonStream.parse([true]))
-          .on('data', (data) => {
-            if (data.id > highestId) highestId = data.id
-          })
+  })
+  const response = await axios.request({
+    method: 'get',
+    url: updateInfoForPlatform.updateInfoBase + updateId,
+    responseType: 'stream'
+  })
+  const downloadUrl = await new Promise((resolve, reject) => {
+    let downloadUrl
+    response.data
+      .on('close', () => resolve(downloadUrl))
+      .on('error', (err) => reject(err))
+      .pipe(jsonStream.parse(['download_url']))
+      .on('data', (data) => {
+        downloadUrl = data
       })
-    })
-    .then((updateId) =>
-      axios
-        .request({
-          method: 'get',
-          url: updateInfoForPlatform.updateInfoBase + updateId,
-          responseType: 'stream'
-        })
-        .then((response) => {
-          return new Promise((resolve, reject) => {
-            let downloadUrl
-            response.data
-              .on('close', () => resolve(downloadUrl))
-              .on('error', (err) => reject(err))
-              .pipe(jsonStream.parse(['download_url']))
-              .on('data', (data) => {
-                downloadUrl = data
-              })
-          })
-        })
-    )
-    .then((downloadUrl) => {
-      if (downloadUrl === undefined) {
-        throw new Error('Invalid AppCenter catalog information.')
-      }
-      return downloader.downloadFile(
-        downloadUrl,
-        outputDir,
-        updateInfoForPlatform.fileType === 'zip'
+  })
+
+  if (downloadUrl === undefined) {
+    throw new Error('Invalid AppCenter catalog information.')
+  }
+  await downloader.downloadFile(
+    downloadUrl,
+    outputDir,
+    updateInfoForPlatform.fileType === 'zip'
+  )
+  switch (process.platform) {
+    case 'linux':
+      return fs.chmod(
+        path.join(outputDir, 'PCSX-Redux-HEAD-x86_64.AppImage'),
+        0o775
       )
-    })
-    .then((output) => {
-      let mountPoint
-      switch (process.platform) {
-        case 'linux':
-          return fs.chmod(
-            path.join(outputDir, 'PCSX-Redux-HEAD-x86_64.AppImage'),
-            0o775
-          )
-        case 'darwin':
-          return dmgMount(outputDir)
-            .then((mp) => {
-              mountPoint = mp
-              return copy(
-                path.join(mountPoint, 'PCSX-Redux.app'),
-                path.join(outputDir, 'PCSX-Redux.app'),
-                { overwrite: true }
-              )
-            })
-            .then(() => dmgUnmount(mountPoint))
-      }
-      return Promise.resolve()
-    })
+    case 'darwin':
+      const mountPoint = await dmgMount(outputDir)
+      await copy(
+        path.join(mountPoint, 'PCSX-Redux.app'),
+        path.join(outputDir, 'PCSX-Redux.app'),
+        { overwrite: true }
+      )
+      return dmgUnmount(mountPoint)
+  }
 }
 
 exports.launch = async () => {

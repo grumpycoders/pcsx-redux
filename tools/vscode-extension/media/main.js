@@ -26,7 +26,7 @@ import {
   }
 
   function refreshTemplates() {
-    for (const [key, template] of Object.entries(templates)) {
+    for (const key of Object.keys(templates)) {
       const templateCreate = document.getElementById('create-' + key)
       if (templateCreate) templateCreate.disabled = !checkRequiredTools(key)
     }
@@ -242,6 +242,11 @@ import {
   window.addEventListener('load', () => {
     vscode.postMessage({ command: 'refreshTools' })
     vscode.postMessage({ command: 'getTemplates' })
+    document
+      .getElementById('show-redux-settings')
+      .addEventListener('click', () => {
+        vscode.postMessage({ command: 'showReduxSettings' })
+      })
     document.getElementById('refresh').addEventListener('click', () => {
       toolsView.innerHTML = ''
       const spinner = document.createElement('vscode-progress-ring')

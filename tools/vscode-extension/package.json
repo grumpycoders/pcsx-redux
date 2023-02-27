@@ -2,7 +2,7 @@
   "name": "psx-dev",
   "displayName": "PSX.Dev",
   "description": "PlayStation 1 development made easy",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -71,6 +71,7 @@
   },
   "prettier": "prettier-config-standard",
   "scripts": {
+    "vscode:prepublish": "npm run lint",
     "lint": "eslint .",
     "package": "vsce package",
     "publish": "vsce publish"
@@ -87,10 +88,11 @@
   "dependencies": {
     "@octokit/rest": "^19.0.7",
     "@vscode/webview-ui-toolkit": "^1.2.1",
-    "JSONStream": "^1.3.5",
     "axios": "^1.3.3",
     "dmg": "^0.1.0",
     "fs-extra": "^11.1.0",
+    "JSONStream": "^1.3.5",
+    "open-file-explorer": "^1.0.2",
     "simple-git": "^3.16.1",
     "unzipper": "^0.10.11",
     "which": "^3.0.0"

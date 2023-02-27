@@ -99,12 +99,12 @@ async function installToolchain() {
             extensionUri,
             'scripts',
             'mipsel-none-elf-binutils.rb'
-          )
+          ).fsPath
           const gccScriptPath = vscode.Uri.joinPath(
             extensionUri,
             'scripts',
             'mipsel-none-elf-binutils.rb'
-          )
+          ).fsPath
           await terminal.run('brew', [
             'install',
             binutilsScriptPath,
@@ -130,12 +130,12 @@ async function installToolchain() {
             extensionUri,
             'scripts',
             'mipsel-none-elf-binutils.rb'
-          )
+          ).fsPath
           const gccScriptPath = vscode.Uri.joinPath(
             extensionUri,
             'scripts',
             'mipsel-none-elf-binutils.rb'
-          )
+          ).fsPath
           await terminal.run('brew', [
             'install',
             binutilsScriptPath,
@@ -527,8 +527,9 @@ exports.install = async (toInstall, force) => {
 exports.maybeInstall = async (toInstall) => {
   const installed = await checkInstalled(toInstall)
   if (!installed && !requiresReboot) {
-    return exports.install([toInstall])
+    const ret =  exports.install([toInstall])
     win32MipsToolsInstalling = false
+    return ret
   }
   return requiresReboot
 }

@@ -6,6 +6,10 @@ const pcsxRedux = require('./pcsx-redux.js')
 const templates = require('./templates.js')
 const os = require('node:os')
 const taskRunner = require('./taskrunner.js')
+const util = require('node:util')
+const openExplorer = util.promisify(require('open-file-explorer'))
+
+let globalStorageUri
 
 class PSXDevPanel {
   static currentPanel = undefined
@@ -141,6 +145,17 @@ class PSXDevPanel {
                 vscode.window.showErrorMessage(err.message)
               })
             break
+          case 'showReduxSettings':
+            {
+              const pathToOpen = vscode.Uri.joinPath(
+                globalStorageUri,
+                'pcsx-redux-settings'
+              ).fsPath
+              openExplorer(pathToOpen).catch((err) => {
+                vscode.window.showErrorMessage(err.message)
+              })
+            }
+            break
         }
       },
       null,
@@ -205,7 +220,7 @@ class PSXDevPanel {
               <p>And finally, the <b>Refresh</b> button above will rescan the list of tools installed on your system.</p>
               <hr/>
               <p>Before debugging a PlayStation 1 application, you'll need to have a target able to run PlayStation 1 code accessible through the gdb protocol. You can <vscode-link href="https://unirom.github.io/debug_gdb/" target="_blank">connect to a real PlayStation 1</vscode-link>, or you can run an emulator with a gdb server. You can click the button below to launch the <vscode-link href="https://pcsx-redux.consoledev.net" target="_blank">PCSX-Redux</vscode-link> PlayStation 1 emulator in debugger mode.</p><br/>
-              <vscode-button id="launch-redux">Launch PCSX-Redux</vscode-button><br/>
+              <vscode-button id="show-redux-settings" appearance="secondary">Open Settings folder</vscode-button> <vscode-button id="launch-redux">Launch PCSX-Redux</vscode-button><br/>
               <hr/>
               <p>After cloning a project that uses the Psy-Q library, it'll be necessary to restore it. You can press the button below in order to restore the library into the current workspace.</p><br/>
               <vscode-button id="restore-psyq">Restore Psy-Q</vscode-button><br/>
@@ -227,6 +242,7 @@ exports.activate = (context) => {
   tools.setExtensionUri(context.extensionUri)
   tools.setGlobalStorageUri(context.globalStorageUri)
   pcsxRedux.setGlobalStorageUri(context.globalStorageUri)
+  globalStorageUri = context.globalStorageUri
 
   context.subscriptions.push(
     vscode.commands.registerCommand('psxDev.showPanel', () => {
@@ -265,7 +281,7 @@ exports.activate = (context) => {
   )
 
   vscode.window.registerWebviewPanelSerializer(PSXDevPanel.viewType, {
-    async deserializeWebviewPanel(webviewPanel, state) {
+    async deserializeWebviewPanel(webviewPanel) {
       webviewPanel.webview.options = getWebviewOptions(context.extensionUri)
       PSXDevPanel.revive(webviewPanel, context.extensionUri)
     }

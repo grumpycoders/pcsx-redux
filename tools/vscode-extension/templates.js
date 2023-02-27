@@ -1,6 +1,5 @@
 'use strict'
 
-const vscode = require('vscode')
 const path = require('node:path')
 const fs = require('fs-extra')
 const { simpleGit } = require('simple-git')
@@ -437,6 +436,8 @@ const templates = {
     name: 'Empty',
     description:
       'An empty project, with just the barebone setup to get started.',
+    url: 'https://github.com/pcsx-redux/nugget/blob/main/doc/README.md',
+    examples: 'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips',
     requiredTools: ['git', 'make', 'toolchain'],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: createEmptyProject
