@@ -280,27 +280,6 @@ async function installMake() {
         throw error
       }
       break
-    case 'darwin':
-      try {
-        if (await checkInstalled('brew')) {
-          await terminal.run('brew', ['install', 'gdb-multiarch'])
-        } else {
-          await terminal.run('/bin/bash', [
-            '-c',
-            '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'
-          ])
-          requiresReboot = true
-          vscode.window.showInformationMessage(
-            'Installing the Brew tool requires a reboot. Please reboot your computer before proceeding further.'
-          )
-        }
-      } catch (error) {
-        vscode.window.showErrorMessage(
-          'An error occurred while installing GNU Make. Please install it manually.'
-        )
-        throw error
-      }
-      break
     default:
       vscode.window.showErrorMessage(
         'Your platform is not supported by this extension. Please install GNU Make manually.'
