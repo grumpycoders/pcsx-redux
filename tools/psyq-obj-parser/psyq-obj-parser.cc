@@ -214,9 +214,6 @@ struct PsyqLnkFile {
     std::map<std::string, ELFIO::Elf_Word> localElfSymbols;
     std::map<std::string, uint32_t> functionSizes;
     std::string elfConversionError;
-    Relocation* twoPartsReloc = nullptr;
-    uint32_t twoPartsRelocAddend;
-    uint16_t twoPartsRelocSymbol;
 
     void display();
     bool writeElf(const std::string& prefix, const std::string& out, bool abiNone, bool bigEndian);
@@ -1002,10 +999,6 @@ bool PsyqLnkFile::Section::generateElfRelocations(ElfRelocationPass pass, const 
         bool success = relocation.generateElf(pass, prefix, psyq, this, writer, stra, syma, rela);
         if (!success) return false;
     }
-    if (psyq->twoPartsReloc) {
-        psyq->setElfConversionError("Two parts relocation with only the first part");
-        return false;
-    }
 
     // Pair any stray HI16 relocs with a previous matching one so that relocation addends are handled correctly
     if (pass == ElfRelocationPass::PASS2) {
@@ -1166,10 +1159,6 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
         bool skipped = false;
     } skipped;
     auto simpleSymbolReloc = [&, this](Expression* expr, ELFIO::Elf_Word elfSym = 0, int32_t symbolOffset = 0) {
-        if (psyq->twoPartsReloc) {
-            psyq->setElfConversionError("Two-part relocation missing its second part");
-            return false;
-        }
         if (expr) {
             auto symbol = psyq->symbols.find(expr->symbolIndex);
             if (symbol == psyq->symbols.end()) {
@@ -1335,46 +1324,32 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 // compute the proper addend.
                 switch (type) {
                     case PsyqRelocType::HI16: {
-                        if (psyq->twoPartsReloc) {
-                            psyq->setElfConversionError("Two hi16 relocations in a row for a symbol with addend");
-                            return false;
-                        }
-                        psyq->twoPartsRelocSymbol = expr->symbolIndex;
-                        psyq->twoPartsRelocAddend = addend;
-                        struct QueueTwoParts {
-                            QueueTwoParts(PsyqLnkFile* psyq, Relocation* object) : psyq(psyq), object(object) {}
-                            ~QueueTwoParts() { psyq->twoPartsReloc = object; }
-                            PsyqLnkFile* psyq;
-                            Relocation* object;
-                        };
-                        fmt::print("      :: Delaying relocation, waiting for LO16\n");
-                        QueueTwoParts queue(psyq, this);
-                        return simpleSymbolReloc(nullptr, elfSym);
-                    }
-                    case PsyqRelocType::LO16: {
-                        auto hi = psyq->twoPartsReloc;
-                        psyq->twoPartsReloc = nullptr;
-                        if (!hi) {
-                            psyq->setElfConversionError("Got lo16 for a symbol with added without a prior hi16");
-                            return false;
-                        }
-                        if ((addend != psyq->twoPartsRelocAddend) || (expr->symbolIndex != psyq->twoPartsRelocSymbol)) {
-                            psyq->setElfConversionError("Mismatching hi/lo symbol+addend relocation");
-                            return false;
-                        }
                         bool success = simpleSymbolReloc(nullptr, elfSym);
                         if (!success) return false;
                         ELFIO::Elf_Xword size = section->section->get_size();
                         uint8_t* sectionData = (uint8_t*)malloc(size);
                         memcpy(sectionData, section->section->get_data(), size);
-                        fmt::print("      :: Altering bytestream to account for HI/LO symbol+addend relocation\n");
+                        fmt::print("      :: Altering bytestream to account for HI symbol+addend relocation\n");
+                        addend >>= 16;
                         sectionData[offset + 0] = addend & 0xff;
                         addend >>= 8;
                         sectionData[offset + 1] = addend & 0xff;
                         addend >>= 8;
-                        sectionData[hi->offset + 0] = addend & 0xff;
+                        section->section->set_data((char*)sectionData, size);
+                        free(sectionData);
+                        return true;
+
+                    }
+                    case PsyqRelocType::LO16: {
+                        bool success = simpleSymbolReloc(nullptr, elfSym);
+                        if (!success) return false;
+                        ELFIO::Elf_Xword size = section->section->get_size();
+                        uint8_t* sectionData = (uint8_t*)malloc(size);
+                        memcpy(sectionData, section->section->get_data(), size);
+                        fmt::print("      :: Altering bytestream to account for LO symbol+addend relocation\n");
+                        sectionData[offset + 0] = addend & 0xff;
                         addend >>= 8;
-                        sectionData[hi->offset + 1] = addend & 0xff;
+                        sectionData[offset + 1] = addend & 0xff;
                         addend >>= 8;
                         section->section->set_data((char*)sectionData, size);
                         free(sectionData);
