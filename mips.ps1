@@ -196,10 +196,7 @@ function Install($Version) {
 }
 
 $dest = Get-AbsolutePath ([Environment]::GetFolderPath('ApplicationData') + "/mips")
-$me = $MyInvocation.Value.MyCommand
-if ($me -eq $NULL) {
-    $me = $MyInvocation.InvocationName
-}
+$me = $MyInvocation.MyCommand.Path
 
 $MipsBaseURL = "https://static.grumpycoder.net/pixel/mips/"
 $GdbBaseURL = "https://static.grumpycoder.net/pixel/gdb-multiarch-windows/"
@@ -213,7 +210,7 @@ $ErrorActionPreference = "stop"
 
 # If we're invoked from the installer shortcut, we're going to redownload ourselves
 # and install ourselves. That's a bit redundant, but, sure.
-if ($me -eq "&") {
+if ($MyInvocation.InvocationName -eq "&") {
     $me = [System.IO.Path]::GetTempFileName()
     Invoke-WebRequest -Uri $MyURI -OutFile $me
     $cmd = "self-install"
