@@ -34,13 +34,17 @@ Please consult [the documentation pages](https://pcsx-redux.consoledev.net) for 
 |[MacOS](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-macos/distribution_groups/public)|
 
 ### Note:
-Because Apple is being Apple, after installing the Application from the dmg file, in order to make it work properly, one has to run the following command:
+The macOS version of PCSX-Redux is not currently signed with a developer certificate so you may see a security warning when opening the application.
 
-```
-xattr -r -d com.apple.quarantine /path/to/PCSX-Redux.app
-```
+If you see a dialog with the message:
 
-If anyone has the means and the will to understand the derpiness of MacOS to debug this one, please feel free to send a pull request, or to open a detailed issue describing the root cause of this problem.
+> “PCSX-Redux” can’t be opened because Apple cannot check it for malicious software.
+
+You can allow the application to run by doing either of the following. You only need to do this once for freshly downloaded copies of PCSX-Redux.
+
+- Right-click the app and select Open. This signals an explicit decision on your part that you really want to open it, and adds a new "Open" button to the security warning dialog.
+
+- Alternatively, go to macOS Settings > Privacy & Security. Scroll down to see a section that will let you allow the app.
 
 ## How?
 The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows. The code now comes in two big parts: the emulator itself, and [OpenBIOS](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/openbios), which can be used as an alternative to the retail, copyright protected BIOS.
@@ -60,7 +64,7 @@ Note: If you get an error saying `hresult e_fail has been returned from a call t
 If you want to compile OpenBIOS or other PS1 software, you need to install a MIPS toolchain on Windows. You can do this by copy-pasting the following into a command prompt:
 
 ```powershell
-powershell -c "& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }"
+powershell -c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"
 ```
 
 Then, open a new command prompt, and type the following:
@@ -69,7 +73,7 @@ Then, open a new command prompt, and type the following:
 mips install 12.2.0
 ```
 
-To manually install this script, you can download it from [here](https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1), and then install it with the following command:
+To manually install this script, you can download it from [here](https://bit.ly/mips-ps1), and then install it with the following command:
 
 ```powershell
 powershell -ExecutionPolicy Unrestricted -File mips.ps1 self-install C:\path\to\destination

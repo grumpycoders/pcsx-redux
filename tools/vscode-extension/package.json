@@ -1,0 +1,115 @@
+{
+  "name": "psx-dev",
+  "displayName": "PSX.Dev",
+  "description": "PlayStation 1 development made easy",
+  "version": "0.2.3",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "extensionKind": [
+    "workspace",
+    "ui"
+  ],
+  "publisher": "grumpycoders",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grumpycoders/pcsx-redux.git"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "walkthroughs": [
+      {
+        "id": "psxDev",
+        "title": "PSX.Dev",
+        "description": "PSX.Dev walkthrough",
+        "steps": [
+          {
+            "id": "showpanel",
+            "title": "Show PSX.Dev panel",
+            "description": "Thank you for installing the PSX.Dev VSCode extension. In order to use the extension, please \n[show PSX.Dev panel](command:psxDev.showPanel).",
+            "completionEvents": [
+              "onCommand:psxDev.showPanel"
+            ]
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "psxDev.showPanel",
+        "title": "Show panel",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.buildDebug",
+        "title": "Build Debug",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.buildRelease",
+        "title": "Build Release",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.clean",
+        "title": "Clean",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.launchRedux",
+        "title": "Launch PCSX-Redux",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.restorePsyq",
+        "title": "Restore Psy-Q",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.showReduxSettings",
+        "title": "Show PCSX-Redux Settings",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.updateModules",
+        "title": "Update Modules",
+        "category": "PSX.Dev"
+      }
+    ]
+  },
+  "prettier": "prettier-config-standard",
+  "scripts": {
+    "vscode:prepublish": "npm run lint",
+    "lint": "eslint .",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@vscode/test-electron": "^2.2.2",
+    "@vscode/vsce": "^2.17.0",
+    "eslint": "^8.33.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.1.0",
+    "prettier-config-standard": "^5.0.0",
+    "standard": "*"
+  },
+  "dependencies": {
+    "@octokit/rest": "^19.0.7",
+    "@vscode/webview-ui-toolkit": "^1.2.1",
+    "axios": "^1.3.3",
+    "dmg": "^0.1.0",
+    "fs-extra": "^11.1.0",
+    "JSONStream": "^1.3.5",
+    "open-file-explorer": "^1.0.2",
+    "simple-git": "^3.16.1",
+    "unzipper": "^0.10.11",
+    "which": "^3.0.0"
+  }
+}

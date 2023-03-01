@@ -471,7 +471,7 @@ void PCSX::GUI::init() {
         g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
-        if (emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
+        if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
                 [this](bool success) {
@@ -491,7 +491,9 @@ void PCSX::GUI::init() {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+#ifndef __linux__
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+#endif
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
     // io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 
@@ -1417,7 +1419,7 @@ their TV set to match the aspect ratio of the game.)"));
         ImGui::End();
     }
 
-    if (!g_system->getVersion().failed() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
+    if (!m_args.get<bool>("noupdate") && !g_system->getVersion().failed() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
         if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
 
