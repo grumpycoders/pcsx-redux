@@ -28,7 +28,10 @@ async function createSkeleton(fullPath, name, progressReporter) {
           stopAtConnect: true,
           gdbpath: 'gdb-multiarch',
           windows: {
-            gdbpath: 'gdb.exe'
+            gdbpath: 'gdb-multiarch.exe'
+          },
+          osx: {
+            gdbpath: 'gdb'
           },
           autorun: [
             'monitor reset shellhalt',
