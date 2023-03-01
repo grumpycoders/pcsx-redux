@@ -155,7 +155,7 @@ exports.install = async () => {
   }
   await downloader.downloadFile(
     downloadUrl,
-    outputDir,
+    process.platform === 'darwin' ? path.join(outputDir, 'PCSX-Redux.dmg') : outputDir,
     updateInfoForPlatform.fileType === 'zip'
   )
   switch (process.platform) {
@@ -165,7 +165,7 @@ exports.install = async () => {
         0o775
       )
     case 'darwin':
-      const mountPoint = await dmgMount(outputDir)
+      const mountPoint = await dmgMount(path.join(outputDir, 'PCSX-Redux.dmg'))
       await copy(
         path.join(mountPoint, 'PCSX-Redux.app'),
         path.join(outputDir, 'PCSX-Redux.app'),
