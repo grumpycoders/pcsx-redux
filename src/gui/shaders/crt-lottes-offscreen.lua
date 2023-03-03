@@ -30,7 +30,6 @@ local function Reset()
     useSrgb = false
     enabled = true
     scanlines = true
-    nearest = true
 end
 
 local function Constructor(shaderProgramID)
@@ -67,8 +66,6 @@ function Draw()
     if (lc) then changed = true end
     lc, useSrgb = imgui.Checkbox(t_('Use S-rgb'), useSrgb)
     if (lc) then changed = true end
-    lc, nearest = imgui.Checkbox(t_('Use Nearest'), nearest)
-    if (lc) then changed = true end
 
     if (imgui.Button(t_('Reset to defaults'))) then
         Reset()
@@ -88,13 +85,6 @@ function BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, 
     gl.glUniform1i(locUseSrgb, useSrgb and 1 or 0)
     gl.glUniform1i(locEnabled, enabled and 1 or 0)
     gl.glUniform1f(locScanlines, scanlines)
-    if (nearest) then
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
-    else
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-    end
 end
 
 -- )EOF"
