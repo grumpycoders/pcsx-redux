@@ -135,7 +135,7 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     // and draw our own text for the description of the input box
     ImGui::Text("Search");
     ImGui::SameLine();
-    filter.Draw("##", -100.0f);
+    filter.Draw("##FilterBox", -100.0f);
 
     ImGui::Separator();
     if (m_mono) gui->useMonoFont();
