@@ -217,7 +217,7 @@ async function installGDB() {
     case 'darwin':
       try {
         if (await checkInstalled('brew')) {
-          await terminal.run('brew', ['install', 'gdb-multiarch'])
+          await terminal.run('brew', ['install', 'gdb'])
         } else {
           await terminal.run('/bin/bash', [
             '-c',
@@ -382,7 +382,7 @@ const tools = {
     description: 'The tool to debug code for the PlayStation 1',
     homepage: 'https://www.sourceware.org/gdb/',
     install: installGDB,
-    check: () => checkSimpleCommand('gdb-multiarch --version')
+    check: () => checkGDB()
   },
   make: {
     type: 'package',
@@ -448,6 +448,11 @@ function checkLocalFile(filename) {
       resolve(!err)
     })
   })
+}
+
+function checkGDB() {
+  if (process.platform === 'darwin') return checkSimpleCommand('gdb --version')
+  return checkSimpleCommand('gdb-multiarch --version')
 }
 
 exports.refreshAll = async () => {

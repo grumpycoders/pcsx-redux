@@ -19,6 +19,9 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.2.4
+  - Fixing MacOS installation of GDB and PCSX-Redux.
+  - Fixing templates, trying to call gdb.exe instead of gdb-multiarch.exe on Windows.
 - 0.2.3
   - Fixing MacOS installation of GNU Make trying to install gdb-multiarch instead.
 - 0.2.2
