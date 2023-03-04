@@ -121,6 +121,8 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
         ImGui::EndMenuBar();
     }
 
+    ImGuiTextFilter filter;
+
     ImGui::Checkbox(_("Follow"), &m_follow);
     ImGui::SameLine();
     ImGui::Checkbox(_("Monospace"), &m_mono);
@@ -128,6 +130,9 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     if (ImGui::Button(_("Clear"))) clear();
     ImGui::SameLine();
     bool copy = ImGui::Button(_("Copy"));
+    ImGui::SameLine();
+    filter.Draw("Search", -100.0f);
+
     ImGui::Separator();
     if (m_mono) gui->useMonoFont();
     ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
@@ -136,11 +141,22 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     ImGuiListClipper clipper;
     clipper.Begin(m_activeLogs.size());
 
-    while (clipper.Step()) {
-        for (auto i = m_activeLogs.find(clipper.DisplayStart);
-             i != m_activeLogs.end() && i->getLow() < clipper.DisplayEnd; i++) {
-            auto& s = i->entry;
-            ImGui::TextUnformatted(s.c_str(), s.c_str() + s.length());
+
+
+    if (filter.IsActive()) {  // Filter for logs if filter is active
+        for (auto & m_activeLog : m_activeLogs) {
+            auto& s = m_activeLog.entry;
+            if (filter.PassFilter(s.c_str(), s.c_str() + s.length()))
+                ImGui::TextUnformatted(s.c_str(), s.c_str() + s.length());
+        }
+    } else {
+        // Display logs for selected log class as normal when filter is not active
+        while (clipper.Step()) {
+            for (auto i = m_activeLogs.find(clipper.DisplayStart);
+                 i != m_activeLogs.end() && i->getLow() < clipper.DisplayEnd; i++) {
+                auto& s = i->entry;
+                ImGui::TextUnformatted(s.c_str(), s.c_str() + s.length());
+            }
         }
     }
 
