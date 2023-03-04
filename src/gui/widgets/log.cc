@@ -121,8 +121,6 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
         ImGui::EndMenuBar();
     }
 
-    ImGuiTextFilter filter;
-
     ImGui::Checkbox(_("Follow"), &m_follow);
     ImGui::SameLine();
     ImGui::Checkbox(_("Monospace"), &m_mono);
@@ -131,7 +129,13 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     ImGui::SameLine();
     bool copy = ImGui::Button(_("Copy"));
     ImGui::SameLine();
-    filter.Draw("Search", -100.0f);
+    ImGuiTextFilter filter;
+    // filter.Draw by default puts the label to the right side of the input box.
+    // To rememdy this, and keep the ImGui ID stack happy, we just do ## for the filter ID
+    // and draw our own text for the description of the input box
+    ImGui::Text("Search");
+    ImGui::SameLine();
+    filter.Draw("##", -100.0f);
 
     ImGui::Separator();
     if (m_mono) gui->useMonoFont();
@@ -141,16 +145,14 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     ImGuiListClipper clipper;
     clipper.Begin(m_activeLogs.size());
 
-
-
     if (filter.IsActive()) {  // Filter for logs if filter is active
-        for (auto & m_activeLog : m_activeLogs) {
+        for (auto& m_activeLog : m_activeLogs) {
             auto& s = m_activeLog.entry;
             if (filter.PassFilter(s.c_str(), s.c_str() + s.length()))
                 ImGui::TextUnformatted(s.c_str(), s.c_str() + s.length());
         }
     } else {
-        // Display logs for selected log class as normal when filter is not active
+        // Otherwise, Display logs for selected log class as normal when filter is not active
         while (clipper.Step()) {
             for (auto i = m_activeLogs.find(clipper.DisplayStart);
                  i != m_activeLogs.end() && i->getLow() < clipper.DisplayEnd; i++) {
