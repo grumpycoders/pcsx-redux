@@ -79,23 +79,23 @@ uint8_t PCSX::HW::read8(uint32_t add) {
             hard = PCSX::g_emulator->m_sio1->readData8();
             SIO1_LOG("SIO1.DATA read8 %x; ret = %x\n", add & 0xf, hard);
             break;
-        case 0x1f801054:  // stat register
-            hard = PCSX::g_emulator->m_sio1->readStat8();
+//        case 0x1f801054:  // stat register
+//            hard = PCSX::g_emulator->m_sio1->readStat8();
             // Log command below is overly spammy
             // SIO1_LOG("SIO1.STAT read8 %x; ret = %x\n", add & 0xf, hard);
-            break;
-        case 0x1f801058:  // mode register
-            hard = PCSX::g_emulator->m_sio1->readMode8();
-            SIO1_LOG("SIO1.MODE read8 %x; ret = %x\n", add & 0xf, hard);
-            break;
-        case 0x1f80105a:  // control register
-            hard = PCSX::g_emulator->m_sio1->readCtrl8();
-            SIO1_LOG("SIO1.CTRL read8 %x; ret = %x\n", add & 0xf, hard);
-            break;
-        case 0x1f80105e:  // baudrate register
-            hard = PCSX::g_emulator->m_sio1->readBaud8();
-            SIO1_LOG("SIO1.BAUD read8 %x; ret = %x\n", add & 0xf, hard);
-            break;
+//            break;
+//        case 0x1f801058:  // mode register
+//            hard = PCSX::g_emulator->m_sio1->readMode8();
+//            SIO1_LOG("SIO1.MODE read8 %x; ret = %x\n", add & 0xf, hard);
+//            break;
+//        case 0x1f80105a:  // control register
+//            hard = PCSX::g_emulator->m_sio1->readCtrl8();
+//            SIO1_LOG("SIO1.CTRL read8 %x; ret = %x\n", add & 0xf, hard);
+//            break;
+//        case 0x1f80105e:  // baudrate register
+//            hard = PCSX::g_emulator->m_sio1->readBaud8();
+//            SIO1_LOG("SIO1.BAUD read8 %x; ret = %x\n", add & 0xf, hard);
+//            break;
         case 0x1f801800:
             hard = PCSX::g_emulator->m_cdrom->read0();
             break;
@@ -391,22 +391,22 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             PCSX::g_emulator->m_sio1->writeData8(value);
             SIO1_LOG("SIO1.DATA write8 %x; ret = %x\n", add & 0xf, value);
             break;
-        case 0x1f801054:  // stat register
-            PCSX::g_emulator->m_sio1->writeStat8(value);
-            SIO1_LOG("SIO1.STAT write8 %x; ret = %x\n", add & 0xf, value);
-            break;
-        case 0x1f801058:  // mode register
-            PCSX::g_emulator->m_sio1->writeMode8(value);
-            SIO1_LOG("SIO1.MODE write8 %x; ret = %x\n", add & 0xf, value);
-            break;
-        case 0x1f80105a:  // control register
-            PCSX::g_emulator->m_sio1->writeCtrl8(value);
-            SIO1_LOG("SIO1.CTRL write8 %x; ret = %x\n", add & 0xf, value);
-            break;
-        case 0x1f80105e:  // baudrate register
-            PCSX::g_emulator->m_sio1->writeBaud8(value);
-            SIO1_LOG("SIO1.Baud write8 %x; ret = %x\n", add & 0xf, value);
-            break;
+//        case 0x1f801054:  // stat register
+//            PCSX::g_emulator->m_sio1->writeStat8(value);
+//            SIO1_LOG("SIO1.STAT write8 %x; ret = %x\n", add & 0xf, value);
+//            break;
+//        case 0x1f801058:  // mode register
+//            PCSX::g_emulator->m_sio1->writeMode8(value);
+//            SIO1_LOG("SIO1.MODE write8 %x; ret = %x\n", add & 0xf, value);
+//            break;
+//        case 0x1f80105a:  // control register
+//            PCSX::g_emulator->m_sio1->writeCtrl8(value);
+//            SIO1_LOG("SIO1.CTRL write8 %x; ret = %x\n", add & 0xf, value);
+//            break;
+//        case 0x1f80105e:  // baudrate register
+//            PCSX::g_emulator->m_sio1->writeBaud8(value);
+//            SIO1_LOG("SIO1.Baud write8 %x; ret = %x\n", add & 0xf, value);
+//            break;
         case 0x1f801800:
             PCSX::g_emulator->m_cdrom->write0(value);
             break;
