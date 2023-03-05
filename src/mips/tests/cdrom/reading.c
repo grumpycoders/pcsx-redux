@@ -783,3 +783,81 @@ CESTER_TEST(simpleReadingNopSeriesQuery, test_instances,
     cester_assert_uint_eq(1, responseSize4);
     ramsyscall_printf("Long read, nop series then pause, ack in %ius, ready in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time4);
 )
+
+CESTER_TEST(simpleReadingNoSeekNopQueries, test_instances,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    int setLocDone = setLoc(0x60, 0x02, 0x00);
+    if (!setLocDone) {
+        cester_assert_true(setLocDone);
+        return;
+    }
+
+    initializeTime();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_READN;
+    uint32_t time1 = waitCDRomIRQ();
+    ackCDRomCause();
+    uint8_t response[16];
+    readResponse(response);
+
+    uint8_t runningCause;
+    uint8_t responses[32];
+    uint32_t times[32];
+    int32_t lastResponse = -1;
+    unsigned responseCount = 0;
+
+    do {
+        CDROM_REG0 = 0;
+        CDROM_REG1 = CDL_NOP;
+        uint32_t time = waitCDRomIRQ();
+        runningCause = ackCDRomCause();
+        uint8_t runningResponse[16];
+        readResponse(runningResponse);
+        uint8_t r = runningResponse[0];
+        if (r != lastResponse) {
+            responses[responseCount] = lastResponse = r;
+            times[responseCount] = time;
+            responseCount++;
+        }
+    } while(runningCause == 3);
+
+    uint32_t time2 = waitCDRomIRQ();
+    uint8_t cause = ackCDRomCause();
+    uint8_t response2[16];
+    readResponse(response2);
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_PAUSE;
+
+    uint32_t time3 = waitCDRomIRQ();
+    ackCDRomCause();
+    uint8_t response3[16];
+    readResponse(response3);
+
+    uint32_t time4 = waitCDRomIRQ();
+    ackCDRomCause();
+    uint8_t response4[16];
+    readResponse(response4);
+
+    uint32_t dtime1 = times[0];
+    uint32_t dtime2 = times[1] - times[0];
+    uint32_t dtime3 = times[2] - times[1];
+
+    cester_assert_uint_eq(3, cause);
+    cester_assert_uint_eq(3, responseCount);
+    cester_assert_uint_eq(0x02, responses[0]);
+    cester_assert_uint_eq(0x42, responses[1]);
+    cester_assert_uint_eq(0x22, responses[2]);
+    cester_assert_uint_ge(dtime1, 2000);
+    cester_assert_uint_le(dtime1, 4000);
+    cester_assert_uint_ge(dtime2, 15000);
+    cester_assert_uint_le(dtime2, 50000);
+    cester_assert_uint_ge(dtime3, 700000);
+    cester_assert_uint_le(dtime3, 2000000);
+    ramsyscall_printf("Reading without seeking first, different nop count = %i, response1 = 0x%02x, dtime1 = %ius, response2 = 0x%02x, dtime2 = %ius, response3 = 0x%02x, dtime3 = %ius, time1 = %ius, time2 = %ius, time3 = %ius, time4 = %ius\n", responseCount, responses[0], dtime1, responses[1], dtime2, responses[2], dtime3, time1, time2, time3, time4);
+)
