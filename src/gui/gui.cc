@@ -492,7 +492,9 @@ void PCSX::GUI::init() {
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 #ifndef __linux__
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    if (!m_args.get<bool>("noviewports")) {
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    }
 #endif
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
     // io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
