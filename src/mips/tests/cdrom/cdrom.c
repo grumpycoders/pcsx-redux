@@ -28,6 +28,7 @@ SOFTWARE.
 #include "common/hardware/dma.h"
 #include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"
+#include "common/hardware/pcsxhw.h"
 #include "common/syscalls/syscalls.h"
 
 #undef unix
