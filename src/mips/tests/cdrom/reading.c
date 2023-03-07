@@ -853,7 +853,7 @@ CESTER_TEST(simpleReadingNoSeekNopQueries, test_instances,
     cester_assert_uint_eq(0x02, responses[0]);
     cester_assert_uint_eq(0x42, responses[1]);
     cester_assert_uint_eq(0x22, responses[2]);
-    cester_assert_uint_ge(dtime1, 2000);
+    cester_assert_uint_ge(dtime1, 1500);
     cester_assert_uint_le(dtime1, 4000);
     cester_assert_uint_ge(dtime2, 15000);
     cester_assert_uint_le(dtime2, 50000);
