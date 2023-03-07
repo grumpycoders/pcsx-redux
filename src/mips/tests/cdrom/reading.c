@@ -297,7 +297,7 @@ CESTER_TEST(simpleReadingWithoutAck, test_instances,
     ramsyscall_printf("Long read, ack then pause, ready1 in %ius, ready2 in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time4);
 )
 
-CESTER_SKIP_TEST(simpleReadingWithoutAckNorResponseReadThenInit, test_instances,
+CESTER_TEST(simpleReadingWithoutAckNorResponseReadThenInit, test_instances,
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
