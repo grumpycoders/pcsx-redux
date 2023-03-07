@@ -265,6 +265,7 @@ CESTER_TEST(raceSeekP2to85AckWaitAndNop, test_instance,
 
     cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(3, cause2);
+    cester_assert_uint_eq(5, cause3);
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(0xe0, cause2b);
     cester_assert_uint_eq(2, response1[0]);
