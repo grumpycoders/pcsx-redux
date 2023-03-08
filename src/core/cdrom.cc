@@ -113,10 +113,16 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void fifoScheduledCallback() override {
-        if (m_responseFifo[0].empty() && !m_responseFifo[1].empty()) {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+        if (m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty()) {
             m_responseFifo[0] = m_responseFifo[1];
             m_responseFifo[1].clear();
             psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+            if (debug) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                    "CDRom: response fifo sliding one response, triggering IRQ.\n");
+            }
         }
         maybeStartCommand();
     }
@@ -132,10 +138,22 @@ class CDRomImpl final : public PCSX::CDRom {
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
         if (m_startReading) {
-            m_startReading = false;
-            m_status = Status::ReadingData;
-        }
-        if ((m_status == Status::Idle) || (m_status == Status::Seeking)) {
+            if (m_status == Status::Idle) {
+                m_status = Status::Seeking;
+                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
+                m_status = Status::Seeking;
+                if (m_speedChanged) {
+                    m_speedChanged = false;
+                    seekDelay += 650ms;
+                }
+                m_currentPosition = m_seekPosition;
+                scheduleRead(seekDelay + computeReadDelay());
+                return;
+            } else {
+                m_startReading = false;
+                m_status = Status::ReadingData;
+            }
+        } else if ((m_status == Status::Idle) || (m_status == Status::Seeking)) {
             m_readingType = ReadingType::None;
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: cancelling read.\n");
@@ -218,18 +236,43 @@ class CDRomImpl final : public PCSX::CDRom {
     void scheduleDMA(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRDMA, cycles); }
     void scheduleDMA(std::chrono::nanoseconds delay) { scheduleDMA(PCSX::psxRegisters::durationToCycles(delay)); }
 
+    bool maybeEnqueueResponse(QueueElement &response) {
+        if (m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty()) {
+            m_responseFifo[0] = m_responseFifo[1];
+            m_responseFifo[1] = response;
+            return true;
+        }
+        if (m_responseFifo[0].empty()) {
+            m_responseFifo[0] = response;
+            return true;
+        } else if (m_responseFifo[1].empty()) {
+            m_responseFifo[1] = response;
+        }
+        return false;
+    }
+
     void maybeTriggerIRQ(Cause cause, QueueElement &element) {
         uint8_t causeValue = static_cast<uint8_t>(cause);
         uint8_t bit = 1 << (causeValue - 1);
         if (m_causeMask & bit) {
             element.setValue(cause);
-            if (maybeEnqueueResponse(element)) psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+            bool actuallyTriggering = false;
+            if (maybeEnqueueResponse(element)) {
+                psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+                actuallyTriggering = true;
+            }
             const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                    .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
             if (debug) {
                 auto &regs = PCSX::g_emulator->m_cpu->m_regs;
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] triggering IRQ with cause %d\n", regs.pc,
-                                    regs.cycle, causeValue);
+                if (actuallyTriggering) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] triggering IRQ with cause %d\n",
+                                        regs.pc, regs.cycle, causeValue);
+                } else {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                        "CD-Rom: %08x.%08x] wanted to trigger IRQ with cause %d, but queue is full\n",
+                                        regs.pc, regs.cycle, causeValue);
+                }
             }
         } else {
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -442,6 +485,10 @@ class CDRomImpl final : public PCSX::CDRom {
                     ack = true;
                 }
                 if (ack) {
+                    if (debug) {
+                        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: acked %02x (was %i)\n", value,
+                                            m_responseFifo[0].value);
+                    }
                     m_responseFifo[0].valueRead = true;
                     maybeScheduleNextCommand();
                     return;
@@ -502,8 +549,49 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void maybeStartCommand() {
-        if (m_commandFifo.empty() || !m_responseFifo[1].empty()) return;
+        if (m_commandFifo.empty()) return;
         auto command = m_commandFifo.value;
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+        if (!m_responseFifo[1].empty()) {
+            if (debug) {
+                std::string_view cmdName;
+                if (command > c_cdCmdEnumCount) {
+                    cmdName = "Unknown";
+                } else {
+                    cmdName = magic_enum::enum_names<Commands>()[command];
+                }
+                PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                    "CD-Rom: command %s (%i) pending, but response fifo full; won't start.\n", cmdName,
+                                    command);
+            }
+            return;
+        }
+        // unsure here... it may be per-command.
+        if ((m_status == Status::Seeking) && !m_responseFifo[0].valueRead) {
+            if (debug) {
+                std::string_view cmdName;
+                if (command > c_cdCmdEnumCount) {
+                    cmdName = "Unknown";
+                } else {
+                    cmdName = magic_enum::enum_names<Commands>()[command];
+                }
+                PCSX::g_system->log(
+                    PCSX::LogClass::CDROM,
+                    "CD-Rom: command %s (%i) pending, but state machine busy, and reponse fifo full; won't start.\n",
+                    cmdName, command);
+            }
+            return;
+        }
+        if (debug) {
+            std::string_view cmdName;
+            if (command > c_cdCmdEnumCount) {
+                cmdName = "Unknown";
+            } else {
+                cmdName = magic_enum::enum_names<Commands>()[command];
+            }
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Starting command %s (%i)\n", cmdName, command);
+        }
         static constexpr unsigned c_commandMax = sizeof(c_commandsArgumentsCount) / sizeof(c_commandsArgumentsCount[0]);
         if (command >= c_commandMax) {
             maybeEnqueueError(1, 0x40);
@@ -529,7 +617,17 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void maybeScheduleNextCommand() {
-        if (!responseFifoFull()) scheduleFifo(797us);
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+        if (!responseFifoFull()) {
+            if (debug) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Scheduling queued next command to run.\n");
+            }
+            scheduleFifo(797us);
+        } else if (debug) {
+            PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                "CD-Rom: Won't schedule next command to run as response fifo is full.\n");
+        }
     }
 
     enum class SeekType { DATA, CDDA };
@@ -584,17 +682,12 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 6.
     bool cdlReadN(const QueueElement &command, bool start) {
-        auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
-        if (m_speedChanged) {
-            m_speedChanged = false;
-            seekDelay += 650ms;
-        }
-        scheduleRead(seekDelay + computeReadDelay());
+        m_startReading = true;
+        m_status = Status::Idle;
+        scheduleRead(20ms);
+        m_readingType = ReadingType::Normal;
         QueueElement response;
         response.pushPayloadData(getStatus());
-        m_currentPosition = m_seekPosition;
-        m_startReading = true;
-        m_readingType = ReadingType::Normal;
         maybeTriggerIRQ(Cause::Acknowledge, response);
         maybeScheduleNextCommand();
         return false;

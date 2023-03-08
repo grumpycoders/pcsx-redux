@@ -158,7 +158,8 @@ class CDRom {
         uint8_t payloadIndex = 0;
         bool isPayloadEmpty() const { return payloadSize == payloadIndex; }
         bool isPayloadFull() const { return payloadSize == sizeof(payload); }
-        bool empty() const { return (!hasValue || valueRead) && isPayloadEmpty(); }
+        bool empty() const { return valueEmpty() && isPayloadEmpty(); }
+        bool valueEmpty() const { return !hasValue || valueRead; }
         void clear() {
             hasValue = false;
             valueRead = false;
@@ -191,15 +192,6 @@ class CDRom {
     QueueElement m_commandExecuting;
     QueueElement m_responseFifo[2];
     bool responseFifoFull() { return !m_responseFifo[0].empty() && !m_responseFifo[1].empty(); }
-    bool maybeEnqueueResponse(QueueElement& response) {
-        if (m_responseFifo[0].empty()) {
-            m_responseFifo[0] = response;
-            return true;
-        } else if (m_responseFifo[1].empty()) {
-            m_responseFifo[1] = response;
-        }
-        return false;
-    }
 
   private:
     friend class Widgets::IsoBrowser;
