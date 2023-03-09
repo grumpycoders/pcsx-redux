@@ -597,7 +597,6 @@ CESTER_TEST(simpleReadingNopQuery, test_instances,
     uint8_t response[16];
     readResponse(response);
 
-    initializeTime();
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_NOP;
 
@@ -660,7 +659,7 @@ CESTER_TEST(simpleReadingNopQuery, test_instances,
     cester_assert_uint_eq(0x18, ctrl6);
     cester_assert_uint_eq(0x38, ctrl7);
     cester_assert_uint_eq(0x18, ctrl8);
-    cester_assert_uint_eq(0x42, response1[0]);
+    cester_assert_uint_eq(0x02, response1[0]);
     cester_assert_uint_eq(1, responseSize1);
     cester_assert_uint_eq(0x22, response2[0]);
     cester_assert_uint_eq(1, responseSize2);
