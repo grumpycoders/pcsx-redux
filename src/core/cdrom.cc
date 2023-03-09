@@ -110,6 +110,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_commandExecuting.clear();
         m_responseFifo[0].clear();
         m_responseFifo[1].clear();
+        m_readingState = ReadingState::None;
     }
 
     void fifoScheduledCallback() override {
@@ -137,22 +138,20 @@ class CDRomImpl final : public PCSX::CDRom {
         static const std::chrono::nanoseconds c_retryDelay = 50us;
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
-        if (m_startReading) {
-            if (m_status == Status::Idle) {
-                m_status = Status::Seeking;
-                auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
-                m_status = Status::Seeking;
-                if (m_speedChanged) {
-                    m_speedChanged = false;
-                    seekDelay += 650ms;
-                }
-                m_currentPosition = m_seekPosition;
-                scheduleRead(seekDelay + computeReadDelay());
-                return;
-            } else {
-                m_startReading = false;
-                m_status = Status::ReadingData;
+        if (m_readingState == ReadingState::Seeking) {
+            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
+            m_status = Status::Seeking;
+            if (m_speedChanged) {
+                m_speedChanged = false;
+                seekDelay += 650ms;
             }
+            m_currentPosition = m_seekPosition;
+            scheduleRead(seekDelay + computeReadDelay());
+            m_readingState = ReadingState::Reading;
+            return;
+        } else if (m_readingState == ReadingState::Reading) {
+            m_readingState = ReadingState::None;
+            m_status = Status::ReadingData;
         } else if ((m_status == Status::Idle) || (m_status == Status::Seeking)) {
             m_readingType = ReadingType::None;
             if (debug) {
@@ -553,7 +552,7 @@ class CDRomImpl final : public PCSX::CDRom {
         auto command = m_commandFifo.value;
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
-        if (!m_responseFifo[1].empty()) {
+        if (!m_responseFifo[0].valueRead || !m_responseFifo[1].empty()) {
             if (debug) {
                 std::string_view cmdName;
                 if (command > c_cdCmdEnumCount) {
@@ -564,22 +563,6 @@ class CDRomImpl final : public PCSX::CDRom {
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
                                     "CD-Rom: command %s (%i) pending, but response fifo full; won't start.\n", cmdName,
                                     command);
-            }
-            return;
-        }
-        // unsure here... it may be per-command.
-        if ((m_status == Status::Seeking) && !m_responseFifo[0].valueRead) {
-            if (debug) {
-                std::string_view cmdName;
-                if (command > c_cdCmdEnumCount) {
-                    cmdName = "Unknown";
-                } else {
-                    cmdName = magic_enum::enum_names<Commands>()[command];
-                }
-                PCSX::g_system->log(
-                    PCSX::LogClass::CDROM,
-                    "CD-Rom: command %s (%i) pending, but state machine busy, and reponse fifo full; won't start.\n",
-                    cmdName, command);
             }
             return;
         }
@@ -682,7 +665,6 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 6.
     bool cdlReadN(const QueueElement &command, bool start) {
-        m_startReading = true;
         m_status = Status::Idle;
         scheduleRead(20ms);
         m_readingType = ReadingType::Normal;
@@ -690,6 +672,7 @@ class CDRomImpl final : public PCSX::CDRom {
         response.pushPayloadData(getStatus());
         maybeTriggerIRQ(Cause::Acknowledge, response);
         maybeScheduleNextCommand();
+        m_readingState = ReadingState::Seeking;
         return false;
     }
 
@@ -735,7 +718,9 @@ class CDRomImpl final : public PCSX::CDRom {
             m_speed = Speed::Simple;
             m_status = Status::Idle;
             m_causeMask = 0x1f;
+            m_readingState = ReadingState::None;
             memset(m_lastLocP, 0, sizeof(m_lastLocP));
+            // Probably need to cancel other scheduled tasks here.
             return true;
         } else {
             QueueElement response;
@@ -874,6 +859,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 21.
     bool cdlSeekL(const QueueElement &command, bool start) {
+        m_readingState = ReadingState::None;
         if (start) {
             QueueElement response;
             response.pushPayloadData(getStatus());
@@ -910,6 +896,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 22.
     bool cdlSeekP(const QueueElement &command, bool start) {
+        m_readingState = ReadingState::None;
         if (start) {
             QueueElement response;
             response.pushPayloadData(getStatus());
