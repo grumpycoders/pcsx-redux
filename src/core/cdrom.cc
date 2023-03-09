@@ -139,7 +139,7 @@ class CDRomImpl final : public PCSX::CDRom {
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
         if (m_readingState == ReadingState::Seeking) {
-            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
+            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA, true);
             m_status = Status::Seeking;
             if (m_speedChanged) {
                 m_speedChanged = false;
@@ -615,7 +615,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     enum class SeekType { DATA, CDDA };
 
-    std::chrono::nanoseconds computeSeekDelay(MSF from, MSF to, SeekType seekType) {
+    std::chrono::nanoseconds computeSeekDelay(MSF from, MSF to, SeekType seekType, bool forReading = false) {
         unsigned destTrack = m_iso->getTrack(to);
         if (destTrack == 0) return 650ms;
         if ((seekType == SeekType::DATA) && (m_iso->getTrackType(destTrack) == PCSX::CDRIso::TrackType::CDDA)) {
@@ -629,7 +629,7 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         // TODO: ought to be a decent approximation for now,
         // but may require some tuning later on.
-        return std::chrono::microseconds(distance * 3) + 167ms;
+        return std::chrono::microseconds(distance * 3) + (forReading ? 1ms : 167ms);
     }
 
     std::chrono::nanoseconds computeReadDelay() { return m_speed == Speed::Simple ? 13333us : 6666us; }
