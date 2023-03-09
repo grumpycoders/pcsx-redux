@@ -698,17 +698,23 @@ CESTER_TEST(simpleReadingNopSeriesQuery, test_instances,
 
     initializeTime();
 
-    for (unsigned i = 0; i < 100; i++) {
+    unsigned countToRead = 0;
+    unsigned gotInt1 = 0;
+
+    do {
         CDROM_REG0 = 0;
         CDROM_REG1 = CDL_NOP;
-        uint8_t cause;
+        uint8_t cause = 0;
         do {
             waitCDRomIRQ();
             cause = ackCDRomCause();
-            uint8_t response[16];
             readResponse(response);
+            if (cause == 1) {
+                gotInt1 = 1;
+            }
         } while (cause == 1);
-    }
+        countToRead++;
+    } while (!gotInt1);
 
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_NOP;
@@ -756,6 +762,7 @@ CESTER_TEST(simpleReadingNopSeriesQuery, test_instances,
     CDROM_REG0 = 1;
     uint8_t cause4b = CDROM_REG3_UC;
 
+    cester_assert_uint_lt(countToRead, 80);
     cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(1, cause2);
@@ -778,9 +785,9 @@ CESTER_TEST(simpleReadingNopSeriesQuery, test_instances,
     cester_assert_uint_eq(1, responseSize2);
     cester_assert_uint_eq(0x22, response3[0]);
     cester_assert_uint_eq(1, responseSize3);
-    cester_assert_uint_eq(2, response4[0]);
+    cester_assert_uint_eq(0x02, response4[0]);
     cester_assert_uint_eq(1, responseSize4);
-    ramsyscall_printf("Long read, nop series then pause, ack in %ius, ready in %ius, ack in %ius, complete in %ius\n", time1, time2, time3, time4);
+    ramsyscall_printf("Long read, nop series of %i then pause, ack in %ius, ready in %ius, ack in %ius, complete in %ius\n", countToRead, time1, time2, time3, time4);
 )
 
 CESTER_TEST(simpleReadingNoSeekNopQueries, test_instances,
