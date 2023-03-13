@@ -341,6 +341,10 @@ int PCSX::Memory::sendReadToLua(const uint32_t address, const size_t size) {
             L.push(lua_Number(address));
             L.push(lua_Number(size));
             nresult = L.pcall(2);
+            // Discard anything more than 1 result
+            for (int n = 1; n < nresult; n++) {
+                L.pop();
+            }
         } catch (...) {
             // If there is any error while executing the Lua code,
             // push the string "UnknownMemoryRead" on top of the stack,
@@ -359,8 +363,6 @@ int PCSX::Memory::sendReadToLua(const uint32_t address, const size_t size) {
 
     return nresult;
 }
-
-void PCSX::Memory::sendWriteToLua() {}
 
 void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;

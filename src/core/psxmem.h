@@ -137,15 +137,12 @@ class Memory {
     std::string_view getBiosVersionString();
 
     void LoadEXP1FromFile(std::filesystem::path rom_path);
-    void sendWriteToLua();
     int sendReadToLua(uint32_t address, size_t size);
 
   private:
     
     int m_writeok = 1;
     uint32_t m_biosCRC = 0;
-
-    std::vector<std::string> m_memoryErrors;
 };
 
 }  // namespace PCSX

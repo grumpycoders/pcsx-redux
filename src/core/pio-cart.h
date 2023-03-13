@@ -95,7 +95,8 @@ class PIOCart {
             }
 
             void softwareDataProtectDisable() { m_dataProtectEnabled = false; }
-            void softwareChipErase() {}
+            void softwareChipErase() { memset(g_emulator->m_mem->m_exp1, 0xff, 256 * 1024); }
+                
             void enterSoftwareIDMode() {
                 setLUTSoftwareID();
                 resetCommandBuffer();
