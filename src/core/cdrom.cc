@@ -261,7 +261,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 actuallyTriggering = true;
             }
             const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                                   .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+                                   .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
             if (debug) {
                 auto &regs = PCSX::g_emulator->m_cpu->m_regs;
                 if (actuallyTriggering) {
@@ -533,6 +533,13 @@ class CDRomImpl final : public PCSX::CDRom {
                 .get<PCSX::Emulator::DebugSettings::Debug>()) {
             PCSX::g_emulator->m_debug->checkDMAwrite(3, madr, size);
         }
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] DMA transfer requested to address %08x, size %08x\n",
+                                regs.pc, regs.cycle, madr, size);
+        }
         if (chcr == 0x11400100) {
             scheduleDMA(size / 16);
         } else {
@@ -781,14 +788,14 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_readSpan = ReadSpan::S2340;
                 break;
             case 3:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode:\n", mode);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode: %02x\n", mode);
                 PCSX::g_system->pause();
                 break;
         }
         m_subheaderFilter = (mode & 0x08) != 0;
         m_realtime = (mode & 0x40) != 0;
         if (mode & 0x07) {
-            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode:\n", mode);
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode: %02x\n", mode);
             PCSX::g_system->pause();
         }
         QueueElement response;
