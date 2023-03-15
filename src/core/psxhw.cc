@@ -457,8 +457,7 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
 
     switch (hwadd) {
         case 0x1f801040:
-            PCSX::g_emulator->m_sio->write8((uint8_t)value);
-            PCSX::g_emulator->m_sio->write8((uint8_t)(value >> 8));
+            PCSX::g_emulator->m_sio->write8((uint8_t)value);  // 8-bit reg, ignore upper 16 bits
             SIO0_LOG("sio write16 %x, %x\n", add & 0xf, value);
             break;
         case 0x1f801044:
@@ -478,7 +477,7 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             SIO0_LOG("sio write16 %x, %x\n", add & 0xf, value);
             break;
         case 0x1f801050:  // rx/tx data register
-            PCSX::g_emulator->m_sio1->writeData16(value);
+            PCSX::g_emulator->m_sio1->writeData8(value); // 8-bit reg, ignore upper 16 bits
             SIO1_LOG("SIO1.DATA write16 %x, %x\n", add & 0xf, value);
             break;
         case 0x1f801054:  // stat register
@@ -610,14 +609,11 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
 
     switch (hwadd) {
         case 0x1f801040:
-            PCSX::g_emulator->m_sio->write8((uint8_t)value);
-            PCSX::g_emulator->m_sio->write8((uint8_t)((value & 0xff) >> 8));
-            PCSX::g_emulator->m_sio->write8((uint8_t)((value & 0xff) >> 16));
-            PCSX::g_emulator->m_sio->write8((uint8_t)((value & 0xff) >> 24));
+            PCSX::g_emulator->m_sio->write8((uint8_t)value);  // 8-bit reg, ignore upper 24 bits
             SIO0_LOG("sio write32 %x\n", value);
             break;
         case 0x1f801050:
-            PCSX::g_emulator->m_sio1->writeData32(value);
+            PCSX::g_emulator->m_sio1->writeData8(value);  // 8-bit reg, ignore upper 24 bits
             SIO1_LOG("SIO1.DATA write32 %x\n", value);
             break;
         case 0x1f801054:
