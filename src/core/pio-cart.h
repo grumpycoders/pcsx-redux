@@ -46,11 +46,37 @@ class PIOCart {
     void setSwitch(bool on) { m_switchOn = on & 1; }
 
     uint8_t read8(uint32_t address);
-    uint16_t read16(uint32_t address) { return 0xffff; }      // 2 reads?
-    uint32_t read32(uint32_t address) { return 0xffffffff; }  // 4 read?
+    uint16_t read16(uint32_t address) {
+        // Do 2 8-bit reads
+        uint16_t result;
+        result = read8(address + 0) << 0;
+        result |= read8(address + 1) << 8;
+
+        return result;
+    }
+    uint32_t read32(uint32_t address) {
+        // Do 4 8-bit reads
+        uint32_t result = 0;
+        result = read8(address + 0) << 24;
+        result |= read8(address + 1) << 16;
+        result |= read8(address + 2) << 8;
+        result |= read8(address + 3) << 0;
+        return result;
+    }
+
     void write8(uint32_t address, uint8_t value);
-    void write16(uint32_t address, uint16_t value) {}  // 2 writes?
-    void write32(uint32_t address, uint32_t value) {}  // 4 writes?
+    void write16(uint32_t address, uint16_t value) {
+        // Do 2 8-bit writes
+        write8(address + 0, (value >> 0) & 0xff);
+        write8(address + 1, (value >> 8) & 0xff);
+    }
+    void write32(uint32_t address, uint32_t value) {
+        // Do 4 8-bit writes
+        write8(address + 0, (value >> 0) & 0xff);
+        write8(address + 1, (value >> 8) & 0xff);
+        write8(address + 2, (value >> 16) & 0xff);
+        write8(address + 3, (value >> 24) & 0xff);
+    }
 
   private:
     bool m_switchOn = true;
@@ -96,7 +122,7 @@ class PIOCart {
 
             void softwareDataProtectDisable() { m_dataProtectEnabled = false; }
             void softwareChipErase() { memset(g_emulator->m_mem->m_exp1, 0xff, 256 * 1024); }
-                
+
             void enterSoftwareIDMode() {
                 setLUTSoftwareID();
                 resetCommandBuffer();
@@ -119,8 +145,6 @@ class PIOCart {
                 m_dataProtectEnabled = true;
                 m_pageWriteEnabled = false;
             }
-
-            void sectorErase() {}
 
             void setLUTNormal();
             void setLUTSoftwareID();
