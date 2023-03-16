@@ -19,5 +19,5 @@ set REL=%UPP%!REL:%MAT%=!
 if "!REL!" EQU "!ROOT!" (set REL=) ELSE (set "REL=!REL:\=/!")
 set REL=/!REL!
 
-docker pull grumpycoders/pcsx-redux-build:latest
-docker run --rm --env-file "%ROOT%/env.list" -i -w"/project%REL%" -v "%ROOT%:/project" grumpycoders/pcsx-redux-build:latest make %*
+docker pull ghcr.io/grumpycoders/pcsx-redux-build:latest
+docker run --rm --env-file "%ROOT%/env.list" -i -w"/project%REL%" -v "%ROOT%:/project" ghcr.io/grumpycoders/pcsx-redux-build:latest make %*
