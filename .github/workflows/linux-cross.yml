@@ -10,7 +10,7 @@ jobs:
   cross-arm64:
     runs-on: ubuntu-latest
     container:
-      image: grumpycoders/pcsx-redux-build-cross:latest
+      image: ghcr.io/grumpycoders/pcsx-redux-build-cross:latest
       env:
         CROSS: arm64
         PKG_CONFIG_SYSROOT_DIR: /opt/cross/sysroot

@@ -357,19 +357,19 @@ msgstr "恢复默认值"
 
 #: src/core/pad.cc:769
 msgid "Keyboard Up"
-msgstr "键盘 ↑"
+msgstr "键盘 上"
 
 #: src/core/pad.cc:771
 msgid "Keyboard Right"
-msgstr "键盘 →"
+msgstr "键盘 右"
 
 #: src/core/pad.cc:773
 msgid "Keyboard Down"
-msgstr "键盘 ↓"
+msgstr "键盘 下"
 
 #: src/core/pad.cc:775
 msgid "Keyboard Left"
-msgstr "键盘←"
+msgstr "键盘 左"
 
 #: src/core/pad.cc:777
 msgid "Keyboard Backspace"
@@ -1170,7 +1170,7 @@ msgstr "副字体大小"
 
 #: src/gui/gui.cc:1344
 msgid "Use Widescreen Aspect Ratio"
-msgstr "使用宽屏纵横比"
+msgstr "使用宽屏长宽比"
 
 #: src/gui/gui.cc:1345
 msgid ""
@@ -1193,7 +1193,7 @@ msgstr ""
 "有些游戏有“宽屏”渲染设置，\n"
 "来改变游戏引擎的渲染方式，\n"
 "并要求用户更改设置\n"
-"他们的电视机以匹配游戏的纵横比。"
+"他们的电视机以匹配游戏的长宽比。"
 
 #: src/gui/gui.cc:1364
 msgid "System Configuration"
@@ -1411,11 +1411,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1628
 msgid "NTSC"
-msgstr "NTSC"
+msgstr "NTSC 制式"
 
 #: src/gui/gui.cc:1629
 msgid "PAL"
-msgstr "PAL"
+msgstr "PAL 制式"
 
 #: src/gui/gui.cc:1633
 msgid "System Type"
@@ -2344,7 +2344,7 @@ msgstr "Pattern"
 #: src/gui/widgets/memory_observer.cc:89
 #: src/gui/widgets/memory_observer.cc:278
 msgid "Hex"
-msgstr "Hex"
+msgstr "十六进制"
 
 #: src/gui/widgets/memory_observer.cc:142
 #: src/gui/widgets/memory_observer.cc:395
@@ -2361,7 +2361,7 @@ msgstr "寻找数值"
 #: src/gui/widgets/memory_observer.cc:321
 #: src/gui/widgets/memory_observer.cc:407
 msgid "Access"
-msgstr "Access"
+msgstr "访问"
 
 #: src/gui/widgets/memory_observer.cc:174
 #: src/gui/widgets/memory_observer.cc:355
@@ -2535,7 +2535,7 @@ msgstr "编辑"
 
 #: src/gui/widgets/sio1.cc:159
 msgid "Bit"
-msgstr "Bit"
+msgstr "字节"
 
 #. Column 0
 #: src/gui/widgets/sio1.cc:160
@@ -2712,7 +2712,7 @@ msgstr "恢复被禁用的功能"
 
 #: src/gui/widgets/typed_debugger.cc:842
 msgid "FunctionBreakpoints"
-msgstr "FunctionBreakpoints"
+msgstr "函数断点"
 
 #: src/gui/widgets/typed_debugger.cc:855
 msgid "{}\t(called from {}\t@ {:#x})##{}"

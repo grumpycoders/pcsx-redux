@@ -130,7 +130,7 @@ ssize_t PCSX::CDRIsoFile::read(void* buffer_, size_t size) {
 
     static constexpr size_t c_sectorOffsets[] = {0, 0, 16, 16, 24, 24};
     size_t actualSize = 0;
-    uint32_t lba = m_lba + m_ptrR / 2352;
+    uint32_t lba = m_lba + m_ptrR / sectorSize;
 
     while (toCopy != 0) {
         if (m_cachedLBA != lba) {

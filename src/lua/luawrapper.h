@@ -187,6 +187,8 @@ class Lua {
     bool iscfunction(int i = -1) { return lua_iscfunction(L, i); }
     bool isuserdata(int i = -1) { return lua_isuserdata(L, i); }
     bool islightuserdata(int i = -1) { return lua_islightuserdata(L, i); }
+    bool isproto(int i = -1) { return lua_type(L, i) == 9; }
+    bool iscdata(int i = -1) { return lua_type(L, i) == 10; }
     bool isobject(int i = -1);
 
     int upvalue(int i) { return lua_upvalueindex(i); }
@@ -199,6 +201,10 @@ class Lua {
     template <typename T = void>
     T* touserdata(int i = -1) {
         return reinterpret_cast<T*>(lua_touserdata(L, i));
+    }
+    template <typename T = void>
+    T* topointer(int i = -1) {
+        return reinterpret_cast<T*>(const_cast<void*>(lua_topointer(L, i)));
     }
 
     void concat(int n = 2) { lua_concat(L, n); }

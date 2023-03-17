@@ -230,7 +230,15 @@ sub generateImguiGeneric {
           push(@before, "FLOAT_POINTER_ARG($name)");
           push(@funcArgs, $name);
           push(@after, "END_FLOAT_POINTER($name)");
-          #float a or float a = number
+        # const float *, int count
+        } elsif ($args[$i] =~ m/^ *const float *\* *([^ =\[]*)$/ && $args[$i + 1] =~ m/^ *int  *([^ =\[]*)_count$/) {
+          my $name = $1;
+          push(@before, "FLOAT_ARRAY_ARG($name)");
+          push(@funcArgs, $name);
+          push(@funcArgs, "${name}_count");
+          push(@after, "END_FLOAT_ARRAY($name)");
+          $i++;
+        # float a or float a = number
         } elsif ($args[$i] =~ m/^ *float *([^ =\[]*)( *= *[^ ]*|)$/) {
           my $name = $1;
           if ($2 =~ m/^ *= *([^ ]*)$/) {
@@ -249,9 +257,9 @@ sub generateImguiGeneric {
           }
           push(@funcArgs, $name);
         #const ImVec2& with default or not
-        } elsif ($args[$i] =~ m/^ *const ImVec2& +([^ ]*) *(= * ImVec2 [^ ]* +[^ ]*|) *$/) {
-          my $name = $1;
-          if ($2 =~ m/^= * ImVec2 ([^ ]*) +([^ ]*)$/) {
+        } elsif ($args[$i] =~ m/^ *(const)? ImVec2&? +([^ ]*) *(= * ImVec2 [^ ]* +[^ ]*|) *$/) {
+          my $name = $2;
+          if ($3 =~ m/^= * ImVec2 ([^ ]*) +([^ ]*)$/) {
             push(@before, "OPTIONAL_IM_VEC_2_ARG($name, $1, $2)");
           } else {
             push(@before, "IM_VEC_2_ARG($name)");

@@ -69,16 +69,18 @@ jobs:
         echo '    }' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
         echo '  ]' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
         echo '}' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+    - name: Signing Application
+      run: codesign --force -s - -vvvv PCSX-Redux.app
     - name: Adjusting for dmg folder
       run: |
         mkdir dmgdir
         mv PCSX-Redux.app dmgdir
-        cp dmgdir/PCSX-Redux.app/Contents/Resources/pcsx-redux.icns .
+        cp dmgdir/PCSX-Redux.app/Contents/Resources/AppIcon.icns .
     - name: Creating dmg icon
       run: |
-        sips -i pcsx-redux.icns
-        DeRez -only icns pcsx-redux.icns > icns.rsrc
-        cp pcsx-redux.icns dmgdir/.VolumeIcon.icns
+        sips -i AppIcon.icns
+        DeRez -only icns AppIcon.icns > icns.rsrc
+        cp AppIcon.icns dmgdir/.VolumeIcon.icns
         SetFile -c icnC dmgdir/.VolumeIcon.icns
         SetFile -a C dmgdir
     - name: Creating Application link

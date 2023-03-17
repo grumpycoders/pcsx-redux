@@ -21,6 +21,7 @@
 
 #include <curl/curl.h>
 
+#include <cstdint>
 #include <exception>
 
 struct CurlContext {
@@ -57,6 +58,9 @@ uv_loop_t PCSX::UvThreadOp::s_uvLoop;
 uv_timer_t PCSX::UvThreadOp::s_curlTimeout;
 CURLM *PCSX::UvThreadOp::s_curlMulti = nullptr;
 
+uint64_t PCSX::UvThreadOp::s_readSequence = 0;
+uint64_t PCSX::UvThreadOp::s_writeSequence = 0;
+
 void PCSX::UvThreadOp::startThread() {
     if (s_threadRunning) throw std::runtime_error("UV thread already running");
     std::promise<void> barrier;
@@ -83,7 +87,12 @@ void PCSX::UvThreadOp::startThread() {
         uv_async_init(&s_uvLoop, &s_kicker, [](uv_async_t *async) {
             UvRequest req;
             while (s_queue.Dequeue(req)) {
-                req(async->loop);
+                if (req.sequence == s_readSequence) {
+                    s_readSequence++;
+                    req.functor(async->loop);
+                } else {
+                    s_queue.Enqueue(std::move(req));
+                }
             }
         });
         uv_timer_init(&s_uvLoop, &s_timer);
@@ -171,6 +180,9 @@ int PCSX::UvThreadOp::curlTimerFunction(CURLM *multi, long timeout_ms, void *use
 
 void PCSX::UvThreadOp::stopThread() {
     if (!s_threadRunning) throw std::runtime_error("UV thread isn't running");
+    std::promise<void> barrier;
+    request([&barrier](auto loop) { barrier.set_value(); });
+    barrier.get_future().wait();
     request([](auto loop) {
         uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {});
         uv_close(reinterpret_cast<uv_handle_t *>(&s_timer), [](auto handle) {});
@@ -179,7 +191,7 @@ void PCSX::UvThreadOp::stopThread() {
     s_threadRunning = false;
 }
 
-void PCSX::UvFile::close() {
+void PCSX::UvFile::closeInternal() {
     if (m_download && (m_cacheProgress.load(std::memory_order_acquire) != 1.0)) {
         m_cancelDownload.store(true, std::memory_order_release);
         m_cacheBarrier.get_future().wait();
@@ -189,6 +201,8 @@ void PCSX::UvFile::close() {
     }
     free(m_cache);
     m_cache = nullptr;
+    m_download = false;
+    m_cacheProgress.store(0.0f);
     if (m_handle < 0) return;
     request([handle = m_handle](auto loop) {
         auto req = new uv_fs_t();
@@ -197,6 +211,7 @@ void PCSX::UvFile::close() {
             delete req;
         });
     });
+    m_handle = -1;
 }
 
 void PCSX::UvFile::openwrapper(const char *filename, int flags) {
@@ -396,6 +411,16 @@ ssize_t PCSX::UvFile::read(void *dest, size_t size) {
     }
 
     if (progress == 1.0f) {
+        if ((m_handle >= 0) && !writable()) {
+            request([handle = m_handle](auto loop) {
+                auto req = new uv_fs_t();
+                uv_fs_close(loop, req, handle, [](uv_fs_t *req) {
+                    uv_fs_req_cleanup(req);
+                    delete req;
+                });
+            });
+            m_handle = -1;
+        }
         memcpy(dest, m_cache + m_ptrR, size);
         m_ptrR += size;
         return size;
@@ -518,6 +543,16 @@ ssize_t PCSX::UvFile::readAt(void *dest, size_t size, size_t ptr) {
     }
 
     if (progress == 1.0f) {
+        if ((m_handle >= 0) && !writable()) {
+            request([handle = m_handle](auto loop) {
+                auto req = new uv_fs_t();
+                uv_fs_close(loop, req, handle, [](uv_fs_t *req) {
+                    uv_fs_req_cleanup(req);
+                    delete req;
+                });
+            });
+            m_handle = -1;
+        }
         memcpy(dest, m_cache + ptr, size);
         return size;
     }
@@ -760,7 +795,7 @@ void PCSX::UvFifo::startRead(uv_tcp_t *tcp) {
         });
 }
 
-void PCSX::UvFifo::close() {
+void PCSX::UvFifo::closeInternal() {
     m_closed.store(true);
     request([tcp = m_tcp](uv_loop_t *loop) {
         if (!tcp) return;

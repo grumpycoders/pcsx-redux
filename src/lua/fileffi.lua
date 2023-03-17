@@ -15,82 +15,6 @@
 --   along with this program; if not, write to the
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-ffi.cdef [[
-
-typedef struct { char opaque[?]; } LuaFile;
-typedef struct { uint32_t size; uint8_t data[?]; } LuaBuffer;
-typedef struct { char opaque[?]; } LuaSlice;
-
-enum FileOps {
-    READ,
-    TRUNCATE,
-    CREATE,
-    READWRITE,
-    DOWNLOAD_URL,
-};
-
-enum SeekWheel {
-    SEEK_SET,
-    SEEK_CUR,
-    SEEK_END,
-};
-
-void deleteFile(LuaFile* wrapper);
-
-LuaFile* openFile(const char* filename, enum FileOps t);
-LuaFile* openFileWithCallback(const char* url, void (*callback)());
-
-LuaFile* bufferFileReadOnly(void* data, uint64_t size);
-LuaFile* bufferFile(void* data, uint64_t size);
-LuaFile* bufferFileAcquire(void* data, uint64_t size);
-LuaFile* bufferFileEmpty();
-
-LuaFile* subFile(LuaFile*, uint64_t start, int64_t size);
-
-LuaFile* uvFifo(const char* address, int port);
-
-void closeFile(LuaFile* wrapper);
-
-uint64_t readFileRawPtr(LuaFile* wrapper, void* dst, uint64_t size);
-uint64_t readFileBuffer(LuaFile* wrapper, LuaBuffer* buffer);
-
-uint64_t writeFileRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size);
-uint64_t writeFileBuffer(LuaFile* wrapper, const LuaBuffer* buffer);
-void writeFileMoveSlice(LuaFile* wrapper, LuaSlice* slice);
-
-int64_t rSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel);
-int64_t rTell(LuaFile* wrapper);
-int64_t wSeek(LuaFile* wrapper, int64_t pos, enum SeekWheel wheel);
-int64_t wTell(LuaFile* wrapper);
-
-uint64_t getFileSize(LuaFile*);
-
-uint64_t readFileAtRawPtr(LuaFile* wrapper, void* dst, uint64_t size, uint64_t pos);
-uint64_t readFileAtBuffer(LuaFile* wrapper, LuaBuffer* buffer, uint64_t pos);
-
-uint64_t writeFileAtRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size, uint64_t pos);
-uint64_t writeFileAtBuffer(LuaFile* wrapper, const LuaBuffer* buffer, uint64_t pos);
-void writeFileAtMoveSlice(LuaFile* wrapper, LuaSlice* slice, uint64_t pos);
-
-bool isFileSeekable(LuaFile*);
-bool isFileWritable(LuaFile*);
-bool isFileEOF(LuaFile*);
-bool isFileFailed(LuaFile*);
-bool isFileCacheable(LuaFile*);
-bool isFileCaching(LuaFile*);
-float fileCacheProgress(LuaFile*);
-void startFileCaching(LuaFile*);
-bool startFileCachingWithCallback(LuaFile* wrapper, void (*callback)());
-
-LuaFile* dupFile(LuaFile*);
-
-LuaFile* zReader(LuaFile*, int64_t size, bool raw);
-
-uint64_t getSliceSize(LuaSlice*);
-const void* getSliceData(LuaSlice*);
-void destroySlice(LuaSlice*);
-
-]]
 
 local C = ffi.load 'SUPPORT_FILE'
 
@@ -127,15 +51,20 @@ local bufferMeta = {
             return function(buffer) return ffi.sizeof(buffer) - 4 end
         elseif index == 'resize' then
             return function(buffer, size)
-                if size > buffer.maxsize() then error('buffer size too large') end
+                if size > buffer:maxsize() then error('buffer size too large') end
                 buffer.size = size
             end
+        elseif index == 'pbSlice' then
+            return Support._internal.createPBSliceFromBuffer(buffer)
         end
         error('Unknown index `' .. index .. '` for LuaBuffer')
     end,
     __newindex = function(buffer, index, value)
-        if type(index) == 'number' and index >= 0 and index < buffer.size then buffer.data[index] = value end
-        error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
+        if type(index) == 'number' and index >= 0 and index < buffer.size then
+            buffer.data[index] = value
+        else
+            error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
+        end
     end,
 }
 
@@ -157,9 +86,10 @@ local function read(self, ptr, size)
         return validateBuffer(buf)
     elseif type(ptr) == 'cdata' and size == nil and ffi.typeof(ptr) == LuaBuffer then
         return C.readFileBuffer(self._wrapper, validateBuffer(ptr))
-    else
-        return C.readFileRawPtr(self._wrapper, ptr, size)
+    elseif type(ptr) == 'userdata' and size == nil then
+        return Support._internal.readFileUserData(self._wrapper, ptr)
     end
+    return C.readFileRawPtr(self._wrapper, ptr, size)
 end
 
 local function readAt(self, ptr, size, pos)
@@ -172,14 +102,17 @@ local function readAt(self, ptr, size, pos)
         return validateBuffer(buf)
     elseif type(ptr) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(ptr) == LuaBuffer then
         return C.readFileAtBuffer(self._wrapper, validateBuffer(ptr), size)
-    else
-        return C.readFileAtRawPtr(self._wrapper, ptr, size, pos)
+    elseif type(ptr) == 'userdata' and type(size) == 'number' and pos == nil then
+        return Support._internal.readFileAtUserData(self._wrapper, ptr, size)
     end
+    return C.readFileAtRawPtr(self._wrapper, ptr, size, pos)
 end
 
 local function write(self, data, size)
     if type(data) == 'cdata' and size == nil and ffi.typeof(data) == LuaBuffer then
         return C.writeFileBuffer(self._wrapper, validateBuffer(data))
+    elseif type(data) == 'userdata' and size == nil then
+        return Support._internal.writeFileUserData(self._wrapper, data)
     elseif type(size) == 'number' then
         return C.writeFileRawPtr(self._wrapper, data, size)
     end
@@ -190,6 +123,8 @@ end
 local function writeAt(self, data, size, pos)
     if type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == LuaBuffer then
         return C.writeFileAtBuffer(self._wrapper, validateBuffer(data), size)
+    elseif type(data) == 'userdata' and type(size) == 'number' and pos == nil then
+        return Support._internal.writeFileAtUserData(self._wrapper, data, size)
     elseif type(size) == 'number' and type(pos) == 'number' then
         return C.writeFileAtRawPtr(self._wrapper, data, size, pos)
     end
@@ -241,9 +176,9 @@ local function writeNum(self, num, ctype, pos)
         buf = n
     end
     if pos == nil then
-        C.writeRawPtr(self._wrapper, ffi.cast('void*', buf), size)
+        C.writeFileRawPtr(self._wrapper, ffi.cast('void*', buf), size)
     else
-        C.writeAtRawPtr(self._wrapper, ffi.cast('void*', buf), size, pos)
+        C.writeFileAtRawPtr(self._wrapper, ffi.cast('void*', buf), size, pos)
     end
 end
 
@@ -392,7 +327,9 @@ end
 local function uvFifo(address, port)
     if type(address) ~= 'string' then error('address must be a string') end
     if type(port) ~= 'number' then error('port must be a number') end
-    return createFileWrapper(C.uvFifo(address, port))
+    local ret = createFileWrapper(C.uvFifo(address, port))
+    ret.isConnecting = function(file) return C.uvFifoIsConnecting(file._wrapper) end
+    return ret
 end
 
 if (type(Support) ~= 'table') then Support = {} end
@@ -403,11 +340,14 @@ Support.NewLuaBuffer = function(size)
     return buf
 end
 
+Support.isLuaBuffer = function(obj) return ffi.istype('LuaBuffer', obj) end
+
 Support.File = {
     open = open,
     buffer = buffer,
     zReader = zReader,
     uvFifo = uvFifo,
+    failedFile = function() return createFileWrapper(C.failedFile()) end,
     _createFileWrapper = createFileWrapper,
     _createSliceWrapper = createSliceWrapper,
 }

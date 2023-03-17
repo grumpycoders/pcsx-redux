@@ -24,6 +24,7 @@
 #include <memory>
 #include <string_view>
 
+#include "cdrom/common.h"
 #include "support/file.h"
 
 namespace PCSX {
@@ -33,14 +34,7 @@ class CDRIso;
 class CDRIsoFile : public File {
   public:
     virtual ~CDRIsoFile() {}
-    enum class SectorMode {
-        GUESS,     // will try and guess the sector mode based on flags found in the first sector
-        RAW,       // 2352 bytes per sector
-        M1,        // 2048 bytes per sector
-        M2_RAW,    // 2336 bytes per sector, includes subheader; can't be guessed
-        M2_FORM1,  // 2048 bytes per sector
-        M2_FORM2,  // 2324 bytes per sector
-    };
+
     static constexpr uint32_t c_sectorSizes[] = {2352, 2352, 2048, 2336, 2048, 2324};
     CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size = -1, SectorMode = SectorMode::GUESS);
     virtual bool failed() final override { return m_failed; }
