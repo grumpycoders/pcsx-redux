@@ -1,3 +1,6 @@
+# Visual Studio Code extension
+The easiest to get started with PSYQo, and with development on the PlayStation 1 in general, is through a [Visual Studio Code](https://code.visualstudio.com/) extension. You can [find it in the marketplace](https://marketplace.visualstudio.com/items?itemName=grumpycoders.psx-dev), and [watch a video](https://youtu.be/KbAv-Ao7lzU) to see how to use it.
+
 # The toolchain
 In order to develop for the PlayStation1 using the PSYQo library, a modern C++ toolchain is required. There are several different toolchains available for the PS1, but the PSYQo library is designed to work with at least gcc 10 targeting mips I. Here are some installation methods available:
 

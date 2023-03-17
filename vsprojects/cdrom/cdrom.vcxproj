@@ -293,23 +293,30 @@
     <ClCompile Include="..\..\src\cdrom\file.cc" />
     <ClCompile Include="..\..\src\cdrom\iec-60908b.cc" />
     <ClCompile Include="..\..\src\cdrom\iso9660-reader.cc" />
+    <ClCompile Include="..\..\src\cdrom\iso9660-builder.cc" />
     <ClCompile Include="..\..\src\cdrom\ppf.cc" />
     <ClCompile Include="..\..\third_party\cueparser\cueparser.c" />
     <ClCompile Include="..\..\third_party\cueparser\fileabstract.c" />
     <ClCompile Include="..\..\third_party\cueparser\scheduler.c" />
+    <ClCompile Include="..\..\third_party\iec-60908b\edcecc.c" />
+    <ClCompile Include="..\..\third_party\iec-60908b\tables.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\cdrom\cdriso.h" />
+    <ClInclude Include="..\..\src\cdrom\common.h" />
     <ClInclude Include="..\..\src\cdrom\file.h" />
     <ClInclude Include="..\..\src\cdrom\iec-60908b.h" />
     <ClInclude Include="..\..\src\cdrom\iso9660-highlevel.h" />
     <ClInclude Include="..\..\src\cdrom\iso9660-lowlevel.h" />
     <ClInclude Include="..\..\src\cdrom\iso9660-reader.h" />
+    <ClInclude Include="..\..\src\cdrom\iso9660-builder.h" />
     <ClInclude Include="..\..\src\cdrom\ppf.h" />
     <ClInclude Include="..\..\third_party\cueparser\cueparser.h" />
     <ClInclude Include="..\..\third_party\cueparser\disc.h" />
     <ClInclude Include="..\..\third_party\cueparser\fileabstract.h" />
     <ClInclude Include="..\..\third_party\cueparser\scheduler.h" />
+    <ClInclude Include="..\..\third_party\iec-60908b\edcecc.h" />
+    <ClInclude Include="..\..\third_party\iec-60908b\tables.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

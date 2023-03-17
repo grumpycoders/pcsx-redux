@@ -75,7 +75,40 @@ class impl final : public GPU, public SoftRenderer {
         }
     }
 
-    ScreenShot takeScreenShot() override;
+    virtual ScreenShot takeScreenShot() override {
+        ScreenShot ss;
+        auto startX = PSXDisplay.DisplayPosition.x;
+        auto startY = PSXDisplay.DisplayPosition.y;
+        auto width = PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x;
+        auto height = PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y;
+        ss.width = width;
+        ss.height = height;
+        unsigned factor = PSXDisplay.RGB24 ? 3 : 2;
+        ss.bpp = PSXDisplay.RGB24 ? ScreenShot::BPP_24 : ScreenShot::BPP_16;
+        unsigned size = width * height * factor;
+        char *pixels = reinterpret_cast<char *>(malloc(size));
+        ss.data.acquire(pixels, size);
+        if (PSXDisplay.RGB24) {
+            auto ptr = psxVub;
+            ptr += startX * 3 + startY * 1024 * 2;
+            for (int i = 0; i < height; i++) {
+                std::memcpy(pixels, ptr, width * 3);
+                ptr += 1024 * 2;
+                pixels += width * 3;
+            }
+        } else {
+            auto ptr = psxVuw;
+            ptr += startY * 1024 + startX;
+            for (int i = 0; i < height; i++) {
+                std::memcpy(pixels, ptr, width * sizeof(uint16_t));
+                ptr += 1024;
+                pixels += width * 2;
+            }
+        }
+
+        return ss;
+    }
+
     GLuint m_vramTexture16;
     GLuint m_vramTexture24;
 

@@ -81,6 +81,27 @@ CESTER_TEST(cpu_LWR_LWL_delayed, cpu_tests,
     cester_assert_uint_eq(0x88112233, out);
 )
 
+CESTER_TEST(cpu_delayed_load, cpu_tests,
+    uint32_t buff[1] = {1};
+    // As lw has a delayed load, the old value of the loaded
+    // register is still available for one instruction, so
+    // this test ensures that the delayed load is properly
+    // handled.
+    uint32_t out = cpu_delayed_load(buff, 0);
+    cester_assert_uint_eq(0, out);
+)
+
+CESTER_TEST(cpu_delayed_load_cancelled, cpu_tests,
+    uint32_t buff[1] = {1};
+    // Despite lw having a delayed load, it also interlocks
+    // with other instructions, so if you run a lw and a
+    // move into the same register, the delayed load is
+    // cancelled, and the register will contain the new
+    // value
+    uint32_t out = cpu_delayed_load(buff, 0);
+    cester_assert_uint_eq(0, out);
+)
+
 CESTER_MAYBE_TEST(cpu_BRANCH_BRANCH_slot, cpu_tests,
     // running a branch in a branch delay slot is technically
     // not allowed, but some games still do this, and the

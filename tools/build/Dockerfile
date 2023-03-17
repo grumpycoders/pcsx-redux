@@ -1,4 +1,4 @@
-# Dockerfile for grumpycoders/pcsx-redux-build
+# Dockerfile for ghcr.io/grumpycoders/pcsx-redux-build
 
 FROM ubuntu:22.10
 

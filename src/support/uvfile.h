@@ -87,8 +87,14 @@ class UvThreadOp : public UvThreadOpListType::Node {
     uint8_t* m_cache = nullptr;
     std::atomic<float> m_cacheProgress = 0.0;
     std::promise<void> m_cacheBarrier;
-    typedef std::function<void(uv_loop_t*)> UvRequest;
-    static void request(UvRequest&& req) {
+    struct UvRequest {
+        std::function<void(uv_loop_t*)> functor;
+        uint64_t sequence;
+    };
+    static void request(std::function<void(uv_loop_t*)>&& functor) {
+        UvRequest req;
+        req.functor = std::move(functor);
+        req.sequence = s_writeSequence++;
         s_queue.Enqueue(std::move(req));
         uv_async_send(&s_kicker);
     }
@@ -115,13 +121,16 @@ class UvThreadOp : public UvThreadOpListType::Node {
     static std::atomic<size_t> s_dataDownloadLastTick;
     static constexpr uint64_t c_tick = 500;
 
-    static ConcurrentQueue<UvRequest> s_queue;
     static UvThreadOpListType s_allOps;
+
+  private:
+    static ConcurrentQueue<UvRequest> s_queue;
+    static uint64_t s_writeSequence;
+    static uint64_t s_readSequence;
 };
 
 class UvFile : public File, public UvThreadOp {
   public:
-    virtual void close() final override;
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
     virtual ssize_t wSeek(ssize_t pos, int wheel) final override;
@@ -137,8 +146,9 @@ class UvFile : public File, public UvThreadOp {
     virtual bool eof() final override;
     virtual std::filesystem::path filename() final override { return m_filename; }
     virtual File* dup() final override {
-        return m_download ? new UvFile(m_filename.string(), DOWNLOAD_URL)
-                          : writable() ? new UvFile(m_filename, FileOps::READWRITE) : new UvFile(m_filename);
+        return m_download   ? new UvFile(m_filename.string(), DOWNLOAD_URL)
+               : writable() ? new UvFile(m_filename, FileOps::READWRITE)
+                            : new UvFile(m_filename);
     }
 
     // Open the file in read-only mode.
@@ -175,6 +185,7 @@ class UvFile : public File, public UvThreadOp {
     virtual void startCaching(std::function<void()>&& completed, uv_loop_t* loop) override;
 
   private:
+    virtual void closeInternal() final override;
     virtual bool canCache() const override { return true; }
     void openwrapper(const char* filename, int flags);
     void readCacheChunk(uv_loop_t* loop);
@@ -207,7 +218,6 @@ class UvFile : public File, public UvThreadOp {
 class UvFifo : public File, public UvThreadOp {
   public:
     UvFifo(const std::string_view address, unsigned port);
-    virtual void close() final override;
     virtual bool isClosed() final override { return m_closed.load(); }
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t write(const void* src, size_t size) final override;
@@ -218,6 +228,7 @@ class UvFifo : public File, public UvThreadOp {
     bool isConnecting() { return m_connecting.test(); }
 
   private:
+    virtual void closeInternal() final override;
     UvFifo(uv_tcp_t*);
     void startRead(uv_tcp_t*);
     virtual bool canCache() const override { return false; }

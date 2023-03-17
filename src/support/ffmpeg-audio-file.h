@@ -36,8 +36,7 @@ class FFmpegAudioFile : public File {
     enum Channels { CHANNELS_STEREO, CHANNELS_MONO };
     enum Endianness { ENDIANNESS_LITTLE, ENDIANNESS_BIG };
     FFmpegAudioFile(IO<File> file, Channels, Endianness, unsigned frequency);
-    ~FFmpegAudioFile();
-    virtual void close() final override {}
+    virtual ~FFmpegAudioFile() {}
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_filePtr; }
     virtual ssize_t read(void* dest, size_t size) final override;
@@ -50,6 +49,7 @@ class FFmpegAudioFile : public File {
     virtual bool failed() final override { return m_failed || m_file->failed(); }
 
   private:
+    virtual void closeInternal() final override;
     ssize_t decompSome(void* dest, ssize_t size);
     IO<File> m_file;
     ssize_t m_filePtr = 0;

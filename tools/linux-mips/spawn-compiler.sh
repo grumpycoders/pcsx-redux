@@ -10,9 +10,9 @@
 
 set -ex
 
-wget https://ftp.gnu.org/gnu/binutils/binutils-2.39.tar.gz
-tar xvfz binutils-2.39.tar.gz
-cd binutils-2.39
+wget https://ftp.gnu.org/gnu/binutils/binutils-2.40.tar.gz
+tar xvfz binutils-2.40.tar.gz
+cd binutils-2.40
 ./configure --target=mipsel-none-elf --disable-multilib --disable-nls --disable-werror
 make
 make install-strip
