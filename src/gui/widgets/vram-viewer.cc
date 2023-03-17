@@ -258,7 +258,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     ImVec2 dimensions = m_cornerBR - m_cornerTL;
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
-    ImGui::Image(reinterpret_cast<ImTextureID *>(textureID), m_resolution, texTL, texBR);
+    ImGui::ImageButton(reinterpret_cast<ImTextureID *>(textureID), m_resolution, texTL, texBR, 0);
     if (m_clutDestination && m_selectingClut) {
         m_clutDestination->m_clut = m_mouseUV;
     }
@@ -294,7 +294,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
             const float step = io.MouseWheel > 0.0f ? increment * io.MouseWheel : -1.0f / (increment * io.MouseWheel);
             zoom(step, m_mouseUV);
         }
-    } else if (io.MouseDown[2]) {
+    } else if (io.MouseDown[2] || (io.MouseDown[0] && io.MouseDown[1])) {
         m_cornerTL += io.MouseDelta;
         m_cornerBR = m_cornerTL + dimensions;
     }
