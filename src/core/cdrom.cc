@@ -175,23 +175,38 @@ class CDRomImpl final : public PCSX::CDRom {
                     auto buffer = m_iso->getBuffer();
                     memcpy(m_lastLocL, buffer, sizeof(m_lastLocL));
                     uint32_t size = 0;
-                    switch (m_readSpan) {
-                        case ReadSpan::S2048:
-                            size = 2048;
-                            if (buffer[3] == 1) {
-                                memcpy(m_dataFIFO, buffer + 4, 2048);
-                            } else {
-                                memcpy(m_dataFIFO, buffer + 12, 2048);
+                    bool passToData = true;
+                    if ((buffer[3] == 2) && m_realtime) {
+                        PCSX::IEC60908b::SubHeaders subHeaders;
+                        subHeaders.fromBuffer(buffer + 4);
+                        if (subHeaders.isRealTime() && subHeaders.isAudio()) {
+                            passToData = false;
+                            if (m_subheaderFilter) {
+                                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: filtering not supported yet.\n");
+                                PCSX::g_system->pause();
                             }
-                            break;
-                        case ReadSpan::S2328:
-                            size = 2328;
-                            memcpy(m_dataFIFO, buffer + 12, 2328);
-                            break;
-                        case ReadSpan::S2340:
-                            size = 2340;
-                            memcpy(m_dataFIFO, buffer, 2340);
-                            break;
+                            // TODO: play XA sector.
+                        }
+                    }
+                    if (passToData) {
+                        switch (m_readSpan) {
+                            case ReadSpan::S2048:
+                                size = 2048;
+                                if (buffer[3] == 1) {
+                                    memcpy(m_dataFIFO, buffer + 4, 2048);
+                                } else {
+                                    memcpy(m_dataFIFO, buffer + 12, 2048);
+                                }
+                                break;
+                            case ReadSpan::S2328:
+                                size = 2328;
+                                memcpy(m_dataFIFO, buffer + 12, 2328);
+                                break;
+                            case ReadSpan::S2340:
+                                size = 2340;
+                                memcpy(m_dataFIFO, buffer, 2340);
+                                break;
+                        }
                     }
                     auto readDelay = computeReadDelay();
                     m_dataFIFOIndex = 0;
@@ -200,12 +215,14 @@ class CDRomImpl final : public PCSX::CDRom {
                     m_currentPosition++;
                     if (debug) {
                         std::string msfFormat = fmt::format("{}", m_currentPosition);
-                        PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: advancing to %s.\n",
+                        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: readInterrupt: advancing to %s.\n",
                                             msfFormat);
                     }
-                    QueueElement ready;
-                    ready.pushPayloadData(getStatus());
-                    maybeTriggerIRQ(Cause::DataReady, ready);
+                    if (passToData) {
+                        QueueElement ready;
+                        ready.pushPayloadData(getStatus());
+                        maybeTriggerIRQ(Cause::DataReady, ready);
+                    }
                     scheduleRead(readDelay);
                 }
             } break;
