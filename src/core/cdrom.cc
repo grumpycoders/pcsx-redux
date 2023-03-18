@@ -216,7 +216,7 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
-    void scheduleDmaCallback() override {
+    void scheduledDmaCallback() override {
         if (HW_DMA3_CHCR & SWAP_LE32(0x01000000)) {
             HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
             DMA_INTERRUPT<3>();

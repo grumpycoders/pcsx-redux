@@ -320,7 +320,7 @@ void PCSX::R3000Acpu::branchTest() {
         checkAndUpdate(Schedule::SPUDMA, spuInterrupt);
         checkAndUpdate(Schedule::MDECINDMA, g_emulator->m_mdec->scheduledCallback0);
         checkAndUpdate(Schedule::GPUOTCDMA, gpuotcInterrupt);
-        checkAndUpdate(Schedule::CDRDMA, g_emulator->m_cdrom->scheduleDmaCallback);
+        checkAndUpdate(Schedule::CDRDMA, g_emulator->m_cdrom->scheduledDmaCallback);
         m_regs.lowestTarget = lowestTarget;
     }
     if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_regs.CP0.n.Status & 0x401) == 0x401)) {
