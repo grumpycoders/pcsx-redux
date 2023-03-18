@@ -122,7 +122,7 @@ class CDRomImpl final : public PCSX::CDRom {
             psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                    "CDRom: response fifo sliding one response, triggering IRQ.\n");
+                                    "CD-Rom: response fifo sliding one response, triggering IRQ.\n");
             }
         }
         maybeStartCommand();
@@ -155,7 +155,7 @@ class CDRomImpl final : public PCSX::CDRom {
         } else if ((m_status == Status::Idle) || (m_status == Status::Seeking)) {
             m_readingType = ReadingType::None;
             if (debug) {
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: readInterrupt: cancelling read.\n");
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: readInterrupt: cancelling read.\n");
             }
             return;
         }
@@ -600,6 +600,9 @@ class CDRomImpl final : public PCSX::CDRom {
         if (handler) {
             if ((this->*handler)(m_commandFifo, true)) m_commandExecuting = m_commandFifo;
         } else {
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unsupported command %i (%s).\n", command,
+                                magic_enum::enum_names<Commands>()[command]);
+            PCSX::g_system->pause();
             maybeEnqueueError(1, 0x40);
             maybeScheduleNextCommand();
         }
@@ -742,7 +745,7 @@ class CDRomImpl final : public PCSX::CDRom {
     bool cdlMute(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: Mute - not yet implemented.\n");
+        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Mute - not yet implemented.\n");
         QueueElement response;
         response.pushPayloadData(getStatus());
         maybeTriggerIRQ(Cause::Acknowledge, response);
@@ -754,7 +757,7 @@ class CDRomImpl final : public PCSX::CDRom {
     bool cdlDemute(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CDRom: Demute - not yet implemented.\n");
+        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Demute - not yet implemented.\n");
         QueueElement response;
         response.pushPayloadData(getStatus());
         maybeTriggerIRQ(Cause::Acknowledge, response);
@@ -1114,7 +1117,7 @@ void PCSX::CDRom::parseIso() {
             std::string lineStorage = systemcnf->gets();
             auto line = StringsHelpers::trim(lineStorage);
             if (!StringsHelpers::startsWith(line, "BOOT")) continue;
-            auto pathLoc = line.find("cdrom:");
+            auto pathLoc = line.find("CD-Rom:");
             if (pathLoc == std::string::npos) break;
             auto paths = StringsHelpers::split(line.substr(pathLoc + 6), "/\\");
             if (paths.empty()) break;
