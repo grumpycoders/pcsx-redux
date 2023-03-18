@@ -1133,7 +1133,7 @@ void PCSX::CDRom::parseIso() {
             std::string lineStorage = systemcnf->gets();
             auto line = StringsHelpers::trim(lineStorage);
             if (!StringsHelpers::startsWith(line, "BOOT")) continue;
-            auto pathLoc = line.find("CD-Rom:");
+            auto pathLoc = line.find("cdrom:");
             if (pathLoc == std::string::npos) break;
             auto paths = StringsHelpers::split(line.substr(pathLoc + 6), "/\\");
             if (paths.empty()) break;
