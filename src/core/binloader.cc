@@ -28,8 +28,11 @@
 
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "elfio/elfio.hpp"
 #include "fmt/format.h"
 #include "support/file.h"
+#include "support/stream-file.h"
+#include "support/strings-helpers.h"
 #include "support/zfile.h"
 
 namespace PCSX {
@@ -37,7 +40,6 @@ namespace PCSX {
 namespace {
 
 bool loadCPE(IO<File> file) {
-    file->rSeek(0, SEEK_SET);
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1455043) return false;
     auto& regs = g_emulator->m_cpu->m_regs;
@@ -55,7 +57,7 @@ bool loadCPE(IO<File> file) {
                 uint32_t addr = file->read<uint32_t>();
                 uint32_t size = file->read<uint32_t>();
                 uint8_t* ptr = PSXM(addr);
-                for (auto testaddr = addr; testaddr < addr + size; addr += 0x10000) {
+                for (auto testaddr = addr; testaddr < addr + size; testaddr += 0x10000) {
                     uint8_t* ptr = (uint8_t*)PSXM(testaddr);
                     if (!ptr) throw std::runtime_error("Invalid loading address in CPE file");
                 }
@@ -108,7 +110,6 @@ bool loadCPE(IO<File> file) {
 }
 
 bool loadPSEXE(IO<File> file) {
-    file->rSeek(0, SEEK_SET);
     uint64_t magic = file->read<uint64_t>();
     if (magic != 0x45584520582d5350) return false;
 
@@ -123,7 +124,7 @@ bool loadPSEXE(IO<File> file) {
     uint32_t addr = file->read<uint32_t>();
     uint32_t size = file->read<uint32_t>();
     uint8_t* ptr = PSXM(addr);
-    for (auto testaddr = addr; testaddr < addr + size; addr += 0x10000) {
+    for (auto testaddr = addr; testaddr < addr + size; testaddr += 0x10000) {
         uint8_t* ptr = (uint8_t*)PSXM(testaddr);
         if (!ptr) throw std::runtime_error("Invalid loading address in PS-EXE file");
     }
@@ -153,7 +154,6 @@ bool loadPSEXE(IO<File> file) {
 
 bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
     if (depth >= 10) return false;
-    file->rSeek(0, SEEK_SET);
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1465350) return false;
     uint32_t R = file->read<uint32_t>();
@@ -215,19 +215,61 @@ bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
     return true;
 }
 
+bool loadELF(IO<File> file) {
+    using namespace ELFIO;
+    elfio reader;
+    FileIStream stream(file);
+
+    if (!reader.load(stream)) return false;
+    if (reader.get_class() != ELFCLASS32) return false;
+
+    auto& regs = g_emulator->m_cpu->m_regs;
+    regs.pc = reader.get_entry();
+    if (!PSXM(regs.pc)) throw std::runtime_error("Invalid PC address in ELF file");
+
+    Elf_Half sec_num = reader.sections.size();
+    for (int i = 0; i < sec_num; i++) {
+        const section* psec = reader.sections[i];
+        auto name = psec->get_name();
+
+        if (StringsHelpers::endsWith(name, "_Header")) continue;
+
+        auto type = psec->get_type();
+        if (type != SHT_PROGBITS) continue;
+
+        auto size = psec->get_size();
+        auto data = psec->get_data();
+        auto addr = psec->get_address();
+        uint8_t* ptr = PSXM(addr);
+        for (auto testaddr = addr; testaddr < addr + size; testaddr += 0x10000) {
+            uint8_t* ptr = (uint8_t*)PSXM(testaddr);
+            if (!ptr) throw std::runtime_error("Invalid loading address in ELF file");
+        }
+        std::memcpy(ptr, data, size);
+    }
+
+    return true;
+}
+
 }  // namespace
 
 }  // namespace PCSX
 
 bool PCSX::BinaryLoader::load(const std::filesystem::path& filename) {
-    IO<File> ny(new PosixFile(filename.parent_path() / "libps.exe"));
-    if (!ny->failed()) loadPSEXE(ny);
+    {
+        IO<File> ny(new PosixFile(filename.parent_path() / "libps.exe"));
+        if (!ny->failed()) loadPSEXE(ny);
+    }
 
     IO<File> file(new PosixFile(filename));
 
     if (file->failed()) return false;
     if (loadCPE(file)) return true;
+    file->rSeek(0, SEEK_SET);
     if (loadPSEXE(file)) return true;
+    file->rSeek(0, SEEK_SET);
     if (loadPSF(file)) return true;
+    file->rSeek(0, SEEK_SET);
+    if (loadELF(file)) return true;
     return false;
 }
