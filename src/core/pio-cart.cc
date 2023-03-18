@@ -30,6 +30,7 @@ static constexpr bool between(uint32_t val, uint32_t beg, uint32_t end) {
 
 void PCSX::PIOCart::setLuts() {
     const auto &m_readLUT = g_emulator->m_mem->m_readLUT;
+    const auto &m_writeLUT = g_emulator->m_mem->m_writeLUT;
     const auto &m_exp1 = g_emulator->m_mem->m_exp1;
 
     if (g_emulator->settings.get<Emulator::SettingPIOConnected>().value) {
@@ -41,10 +42,13 @@ void PCSX::PIOCart::setLuts() {
         m_readLUT[0x1f05] = &m_exp1[1 << 16];
         m_pal.reset();
     } else {
-        for (int i = 0; i < 6; i++) {
-            m_readLUT[i + 0x1f00] = m_detachedMemory;
-        }
+        memset(&m_readLUT[0x1f00], NULL, 0x6 * sizeof(void *));
     }
+
+    // NULL by default, wipe to ensure writes are properly intercepted
+    memset(&m_writeLUT[0x1f00], NULL, 0x6 * sizeof(void *));
+    memset(&m_writeLUT[0x9f00], NULL, 0x6 * sizeof(void *));
+    memset(&m_writeLUT[0xbf00], NULL, 0x6 * sizeof(void *));
 
     memcpy(&m_readLUT[0x9f00], &m_readLUT[0x1f00], 0x6 * sizeof(void *));
     memcpy(&m_readLUT[0xbf00], &m_readLUT[0x1f00], 0x6 * sizeof(void *));

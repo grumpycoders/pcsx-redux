@@ -136,7 +136,7 @@ class Memory {
     uint32_t getBiosAdler32() { return m_biosCRC; }
     std::string_view getBiosVersionString();
 
-    void LoadEXP1FromFile(std::filesystem::path rom_path);
+    bool loadEXP1FromFile(std::filesystem::path rom_path);
     int sendReadToLua(uint32_t address, size_t size);
 
   private:

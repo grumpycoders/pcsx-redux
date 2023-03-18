@@ -40,7 +40,7 @@ bool PCSX::Widgets::PIOCart::draw(const char* title) {
         ImGui::SameLine();
         if (ImGui::Button(_("Clear"))) {
             settings.get<Emulator::SettingEXP1Filepath>().value = "";
-            g_emulator->m_mem->LoadEXP1FromFile(g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
+            g_emulator->m_mem->loadEXP1FromFile(g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
             changed = true;
         }
 
@@ -73,7 +73,7 @@ bool PCSX::Widgets::PIOCart::draw(const char* title) {
                     // Maybe we should check the file size here?
                     // Display a warning if the file is too big?
                     settings.get<Emulator::SettingEXP1Filepath>().value = fileToOpen[0];
-                    g_emulator->m_mem->LoadEXP1FromFile(g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
+                    g_emulator->m_mem->loadEXP1FromFile(g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
                     changed = true;
                 }
             }

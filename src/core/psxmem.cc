@@ -28,12 +28,11 @@
 #include <map>
 #include <string_view>
 
+#include "core/pio-cart.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
 #include "mips/common/util/encoder.hh"
 #include "support/file.h"
-
-#include "core/pio-cart.h"
 
 static const std::map<uint32_t, std::string_view> s_knownBioses = {
 #ifdef USE_ADLER
@@ -105,7 +104,10 @@ int PCSX::Memory::init() {
     }
 
     // EXP1
-    g_emulator->m_pioCart->setLuts();
+    if (g_emulator->settings.get<Emulator::SettingPIOConnected>().value) {
+        // Don't overwrite LUTs if not connected, in case these have been set externally
+        g_emulator->m_pioCart->setLuts();
+    }
 
     for (int i = 0; i < 0x08; i++) {
         m_readLUT[i + 0x1fc0] = (uint8_t *)&m_bios[i << 16];
@@ -119,9 +121,10 @@ int PCSX::Memory::init() {
     return 0;
 }
 
-void PCSX::Memory::LoadEXP1FromFile(std::filesystem::path rom_path)  // Load EXP1 cart image
+bool PCSX::Memory::loadEXP1FromFile(std::filesystem::path rom_path)
 {
     const size_t exp1_size = 0x00040000;
+    bool result = false;
 
     auto &exp1Path = rom_path;
     if (!exp1Path.empty()) {
@@ -132,20 +135,30 @@ void PCSX::Memory::LoadEXP1FromFile(std::filesystem::path rom_path)  // Load EXP
 
         if (!f->failed()) {
             size_t rom_size = (f->size() > exp1_size) ? exp1_size : f->size();
+            memset(m_exp1, 0xff, exp1_size);
             f->read(m_exp1, rom_size);
             f->close();
             PCSX::g_system->printf(_("Loaded %i bytes to EXP1 from file: %s\n"), rom_size, exp1Path.string());
+            result = true;
         }
     } else {
+        // Empty path passed to function, wipe memory and treat as success
         memset(m_exp1, 0xff, exp1_size);
+        result = true;
     }
+
+    if(result) {
+        g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value = rom_path;
+    }
+
+    return result;
 }
 
 void PCSX::Memory::reset() {
     const uint32_t bios_size = 0x00080000;
     const uint32_t exp1_size = 0x00040000;
     memset(m_wram, 0, 0x00800000);
-    memset(m_exp1, 0xff, exp1_size);  // Detached memory floating high
+    memset(m_exp1, 0xff, exp1_size);
     memset(m_bios, 0, bios_size);
     static const uint32_t nobios[6] = {
         Mips::Encoder::lui(Mips::Encoder::Reg::V0, 0xbfc0),  // v0 = 0xbfc00000
@@ -204,7 +217,10 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         }
     }
 
-    LoadEXP1FromFile(g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
+    if (!g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value.empty()) {
+        loadEXP1FromFile(g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
+    }
+    
     uint32_t crc = crc32(0L, Z_NULL, 0);
     m_biosCRC = crc = crc32(crc, m_bios, bios_size);
     auto it = s_knownBioses.find(crc);
@@ -231,6 +247,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
+    const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
@@ -242,7 +259,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
             } else {
                 return g_emulator->m_hw->read8(address);
             }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
             return g_emulator->m_pioCart->read8(address);
         } else if (sendReadToLua(address, 1)) {
             auto L = *g_emulator->m_lua;
@@ -263,6 +280,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
+    const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
@@ -274,7 +292,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
             } else {
                 return g_emulator->m_hw->read16(address);
             }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
             return g_emulator->m_pioCart->read8(address);
         } else if (sendReadToLua(address, 2)) {
             auto L = *g_emulator->m_lua;
@@ -295,6 +313,7 @@ uint32_t PCSX::Memory::read32(uint32_t address) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
+    const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
@@ -306,7 +325,7 @@ uint32_t PCSX::Memory::read32(uint32_t address) {
             } else {
                 return g_emulator->m_hw->read32(address);
             }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
             return g_emulator->m_pioCart->read32(address);
         } else if (sendReadToLua(address, 4)) {
             auto L = *g_emulator->m_lua;
@@ -368,6 +387,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
+    const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
@@ -380,7 +400,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
             } else {
                 g_emulator->m_hw->write8(address, value);
             }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
             g_emulator->m_pioCart->write8(address, value);
         } else {
             g_system->log(LogClass::CPU, _("8-bit write to unknown address: %8.8lx\n"), address);
@@ -395,6 +415,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
+    const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
@@ -407,7 +428,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
             } else {
                 g_emulator->m_hw->write16(address, value);
             }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
             g_emulator->m_pioCart->write16(address, value);
         } else {
             g_system->log(LogClass::CPU, _("16-bit write to unknown address: %8.8lx\n"), address);
@@ -422,6 +443,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
+    const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
@@ -434,7 +456,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
             } else {
                 g_emulator->m_hw->write32(address, value);
             }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80) {
+        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
             g_emulator->m_pioCart->write32(address, value);
         } else if (address != 0xfffe0130) {
             if (!m_writeok) g_emulator->m_cpu->Clear(address, 1);
