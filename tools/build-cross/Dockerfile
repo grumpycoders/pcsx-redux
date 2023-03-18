@@ -1,4 +1,4 @@
-# Dockerfile for grumpycoders/pcsx-redux-build-cross
+# Dockerfile for ghcr.io/grumpycoders/pcsx-redux-build-cross
 # IMPORTANT: to build this file, the package qemu-user-static needs to be
 # installed on the host machine.
 

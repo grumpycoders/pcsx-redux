@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: grumpycoders/pcsx-redux-build:latest
+      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
       env:
         TEST_RESULTS: /tmp/test-results
     steps:

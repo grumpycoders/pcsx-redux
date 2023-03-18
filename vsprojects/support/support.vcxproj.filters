@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\elfio">
+      <UniqueIdentifier>{1ddc355b-1f41-4273-93eb-e25da0b86181}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\support\circular.h">
@@ -113,6 +116,51 @@
     </ClInclude>
     <ClInclude Include="..\..\src\support\md5.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elf_types.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_array.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_dump.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_dynamic.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_header.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_modinfo.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_note.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_relocation.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_section.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_segment.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_strings.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_symbols.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_utils.hpp">
+      <Filter>Header Files\elfio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_version.hpp">
+      <Filter>Header Files\elfio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

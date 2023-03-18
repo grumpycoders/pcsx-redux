@@ -61,6 +61,12 @@ static inline std::vector<std::string_view> split(const std::string_view &str, c
 
 static inline bool startsWith(const std::string &s1, const std::string_view &s2) { return s1.rfind(s2, 0) == 0; }
 static inline bool startsWith(const std::string_view &s1, const std::string_view &s2) { return s1.rfind(s2, 0) == 0; }
+static inline bool endsWith(const std::string &s1, const std::string_view &s2) {
+    return (s1.size() >= s2.size()) && (s1.find(s2, s1.size() - s2.size()) == s1.size() - s2.size());
+}
+static inline bool endsWith(const std::string_view &s1, const std::string_view &s2) {
+    return (s1.size() >= s2.size()) && (s1.find(s2, s1.size() - s2.size()) == s1.size() - s2.size());
+}
 
 static inline bool strcasecmp(const std::string_view &lhs, const std::string_view &rhs) {
     return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
