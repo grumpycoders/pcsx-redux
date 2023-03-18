@@ -23,6 +23,7 @@ CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -I.
 CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
+CPPFLAGS += -Ithird_party/ELFIO
 CPPFLAGS += -Ithird_party/fmt/include/
 CPPFLAGS += -Ithird_party/gl3w
 CPPFLAGS += -Ithird_party/googletest/googletest/include
@@ -284,7 +285,7 @@ runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
 psyq-obj-parser: $(SUPPORT_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO -static
+	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -static
 
 ps1-packer: $(SUPPORT_OBJECTS) tools/ps1-packer/ps1-packer.cc
 	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/ps1-packer/ps1-packer.cc -static
