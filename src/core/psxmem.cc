@@ -121,8 +121,7 @@ int PCSX::Memory::init() {
     return 0;
 }
 
-bool PCSX::Memory::loadEXP1FromFile(std::filesystem::path rom_path)
-{
+bool PCSX::Memory::loadEXP1FromFile(std::filesystem::path rom_path) {
     const size_t exp1_size = 0x00040000;
     bool result = false;
 
@@ -147,7 +146,7 @@ bool PCSX::Memory::loadEXP1FromFile(std::filesystem::path rom_path)
         result = true;
     }
 
-    if(result) {
+    if (result) {
         g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value = rom_path;
     }
 
@@ -220,7 +219,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
     if (!g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value.empty()) {
         loadEXP1FromFile(g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
     }
-    
+
     uint32_t crc = crc32(0L, Z_NULL, 0);
     m_biosCRC = crc = crc32(crc, m_bios, bios_size);
     auto it = s_knownBioses.find(crc);
@@ -266,6 +265,10 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
             const uint8_t ret = L.tonumber();
             L.pop();
             return ret;
+        } else if (address == 0x1f000004 || address == 0x1f000084) {
+            // EXP1 not mapped, likely the bios looking for pre/post boot entry point
+            // We probably don't want to pause here so just throw it a dummy value
+            return 0xff;
         } else {
             g_system->log(LogClass::CPU, _("8-bit read from unknown address: %8.8lx\n"), address);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
