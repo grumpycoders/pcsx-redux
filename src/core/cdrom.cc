@@ -536,8 +536,7 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) override {
-        uint32_t size = bcr >> 16;
-        size *= bcr & 0xffff;
+        uint32_t size = bcr & 0xffff;
         size *= 4;
         if (size == 0) size = 0xffffffff;
         size = std::min(m_dataFIFOSize - m_dataFIFOIndex, size);
