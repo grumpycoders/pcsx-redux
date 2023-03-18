@@ -73,6 +73,56 @@ CESTER_TEST(cpu_cop0_basic_write_bp, cpu_tests,
     cester_assert_uint_eq(expectedEPC, s_epc);
 )
 
+CESTER_TEST(cpu_cop0_kseg_write_bp, cpu_tests,
+    uint32_t t;
+    volatile uint32_t * ptr = (volatile uint32_t *) 0x80000058;
+    *ptr = 1;
+    __asm__ volatile(""
+"    lui   %0, 0b1100101010000000\n"
+"    mtc0  %0, $7\n"
+"    li    %0, 0x58\n"
+"    mtc0  %0, $5\n"
+"    li    %0, 0xfffffff0\n"
+"    mtc0  %0, $9\n" : "=r"(t));
+
+    cester_assert_uint_eq(1, *ptr);
+
+    __asm__ volatile("lui $at, 0x8000\nsw $0, 0x58($at)");
+
+    __asm__ volatile("mtc0 $0, $7\n");
+
+    cester_assert_uint_eq(0, *ptr);
+    cester_assert_uint_eq(0, s_got40);
+    cester_assert_uint_eq(0, s_got80);
+    cester_assert_uint_eq(0, s_from);
+    cester_assert_uint_eq(0, s_epc);
+)
+
+CESTER_TEST(cpu_cop0_upper_memory_write_bp, cpu_tests,
+    uint32_t t;
+    volatile uint32_t * ptr = (volatile uint32_t *) 0x00200058;
+    *ptr = 1;
+    __asm__ volatile(""
+"    lui   %0, 0b1100101010000000\n"
+"    mtc0  %0, $7\n"
+"    li    %0, 0x58\n"
+"    mtc0  %0, $5\n"
+"    li    %0, 0xfffffff0\n"
+"    mtc0  %0, $9\n" : "=r"(t));
+
+    cester_assert_uint_eq(1, *ptr);
+
+    __asm__ volatile("lui $at, 0x0020\nsw $0, 0x58($at)");
+
+    __asm__ volatile("mtc0 $0, $7\n");
+
+    cester_assert_uint_eq(0, *ptr);
+    cester_assert_uint_eq(0, s_got40);
+    cester_assert_uint_eq(0, s_got80);
+    cester_assert_uint_eq(0, s_from);
+    cester_assert_uint_eq(0, s_epc);
+)
+
 CESTER_TEST(cpu_cop0_unaligned_write_bp, cpu_tests,
     uint32_t expectedEPC;
     uint32_t t;
