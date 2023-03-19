@@ -284,11 +284,16 @@ pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
-psyq-obj-parser: $(SUPPORT_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -static
+define TOOLDEF
+$(1): $(SUPPORT_OBJECTS) tools/$(1)/$(1).cc
+	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/$(1)/$(1).cc -static
 
-ps1-packer: $(SUPPORT_OBJECTS) tools/ps1-packer/ps1-packer.cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/ps1-packer/ps1-packer.cc -static
+endef
+
+$(call TOOLDEF, exe2elf)
+$(call TOOLDEF, exe2iso)
+$(call TOOLDEF, ps1-packer)
+$(call TOOLDEF, psyq-obj-parser)
 
 .PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage
 
