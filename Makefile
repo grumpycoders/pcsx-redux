@@ -116,8 +116,8 @@ SRCS += third_party/clip/image.cpp
 SRCS += $(wildcard third_party/cueparser/*.c)
 SRCS += third_party/gl3w/GL/gl3w.c
 SRCS += third_party/http-parser/http_parser.c
-SRCS += third_party/ImFileDialog/ImFileDialog.cpp
 SRCS += $(wildcard third_party/iec-60908b/*.c)
+SRCS += third_party/ImFileDialog/ImFileDialog.cpp
 SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/backends/imgui_impl_glfw.cpp
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
@@ -159,12 +159,17 @@ endif
 SUPPORT_SRCS := src/support/file.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
-OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
+OBJECTS := third_party/luajit/src/libluajit.a
+
+TOOLS = exe2elf exe2iso ps1-packer psyq-obj-parser
+
+##############################################################################
+
+OBJECTS += $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
 OBJECTS += $(patsubst %.mm,%.o,$(filter %.mm,$(SRCS)))
-OBJECTS += third_party/luajit/src/libluajit.a
-
 SUPPORT_OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SUPPORT_SRCS)))
 SUPPORT_OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS)))
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
@@ -285,17 +290,16 @@ runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
 define TOOLDEF
-$(1): $(SUPPORT_OBJECTS) tools/$(1)/$(1).cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/$(1)/$(1).cc -static
+$(1): $(SUPPORT_OBJECTS) tools/$(1)/$(1).o
+	$(LD) -o $(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) tools/$(1)/$(1).o -static
 
 endef
 
-$(call TOOLDEF, exe2elf)
-$(call TOOLDEF, exe2iso)
-$(call TOOLDEF, ps1-packer)
-$(call TOOLDEF, psyq-obj-parser)
+$(foreach tool,$(TOOLS),$(eval $(call TOOLDEF,$(tool))))
 
-.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage
+tools: $(TOOLS)
+
+.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage tools
 
 DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
 DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
