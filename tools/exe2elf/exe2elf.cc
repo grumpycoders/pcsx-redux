@@ -23,7 +23,7 @@
 
 #include <vector>
 
-#include "ELFIO/elfio.hpp"
+#include "elfio/elfio.hpp"
 #include "flags.h"
 #include "fmt/format.h"
 #include "support/binstruct.h"
