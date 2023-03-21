@@ -21,7 +21,7 @@ local gpr = {
     r8 = 8, r9 = 9, r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15,
     r16 = 16, r17 = 17, r18 = 18, r19 = 19, r20 = 20, r21 = 21, r22 = 22, r23 = 23,
     r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, r30 = 30, r31 = 31,
-    at = 1, v0 = 2, v1 = 3, a0 = 4, a1 = 5, a2 = 6, a3 = 7,
+    zero = 0, at = 1, v0 = 2, v1 = 3, a0 = 4, a1 = 5, a2 = 6, a3 = 7,
     t0 = 8, t1 = 9, t2 = 10, t3 = 11, t4 = 12, t5 = 13, t6 = 14, t7 = 15,
     s0 = 16, s1 = 17, s2 = 18, s3 = 19, s4 = 20, s5 = 21, s6 = 22, s7 = 23,
     t8 = 24, t9 = 25, k0 = 26, k1 = 27, gp = 28, sp = 29, fp = 30, ra = 31,
@@ -52,6 +52,12 @@ PCSX.Assembler.Internals.checks.gpr = function(reg)
         end
         return reg
     end
+    if type(reg) == "string" then
+        reg = reg:lower()
+        if reg:sub(1, 1) == "$" then
+            reg = reg:sub(2)
+        end
+    end
     if gpr[reg] ~= nil then
         return gpr[reg]
     end
@@ -64,6 +70,12 @@ PCSX.Assembler.Internals.checks.cop0 = function(reg)
             error("Invalid COP0 register: " .. reg)
         end
         return reg
+    end
+    if type(reg) == "string" then
+        reg = reg:lower()
+        if reg:sub(1, 1) == "$" then
+            reg = reg:sub(2)
+        end
     end
     if cop0Registers[reg] ~= nil then
         return cop0Registers[reg]
@@ -78,6 +90,12 @@ PCSX.Assembler.Internals.checks.gte0 = function(reg)
         end
         return reg
     end
+    if type(reg) == "string" then
+        reg = reg:lower()
+        if reg:sub(1, 1) == "$" then
+            reg = reg:sub(2)
+        end
+    end
     if gteRegistersSet0[reg] ~= nil then
         return gteRegistersSet0[reg]
     end
@@ -90,6 +108,12 @@ PCSX.Assembler.Internals.checks.gte1 = function(reg)
             error("Invalid GTE register: " .. reg)
         end
         return reg
+    end
+    if type(reg) == "string" then
+        reg = reg:lower()
+        if reg:sub(1, 1) == "$" then
+            reg = reg:sub(2)
+        end
     end
     if gteRegistersSet1[reg] ~= nil then
         return gteRegistersSet1[reg]
