@@ -19,6 +19,7 @@
 local checkBImm16 = PCSX.Assembler.Internals.checks.bimm16
 local checkGPR = PCSX.Assembler.Internals.checks.gpr
 local checkImm5 = PCSX.Assembler.Internals.checks.imm5
+local checkImm20 = PCSX.Assembler.Internals.checks.imm20
 local checkCOP0 = PCSX.Assembler.Internals.checks.cop0
 
 PCSX.Assembler.Internals.specialInstructions = {
@@ -172,20 +173,32 @@ PCSX.Assembler.Internals.specialInstructions = {
     end,
 
     syscall = function(args)
-        if #args ~= 0 then
-            error("syscall takes no arguments")
+        if #args > 1 then
+            error("syscall takes one or no arguments")
         end
+        if #args == 1 then
         return {
             base = 0x0000000c,
+            imm20 = checkImm20(args[1])
+        }
+        end
+        return {
+            base = 0x0000000c
         }
     end,
 
     break_ = function(args)
-        if #args ~= 0 then
-            error("break takes no arguments")
+        if #args > 1 then
+            error("break takes one or no arguments")
         end
+        if #args == 1 then
         return {
             base = 0x0000000d,
+            imm20 = checkImm20(args[1])
+        }
+        end
+        return {
+            base = 0x0000000d
         }
     end,
 
