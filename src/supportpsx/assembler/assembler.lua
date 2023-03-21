@@ -39,6 +39,16 @@ PCSX.Assembler.Internals.checks.imm26 = function(imm, place)
     error("Argument " .. place .. " must be a number or a label")
 end
 
+PCSX.Assembler.Internals.checks.imm20 = function(imm, place)
+    if type(imm) == "number" then
+        if imm < 0 or imm > 0xfffff then
+            error("Immediate out of range: " .. imm)
+        end
+        return imm
+    end
+    error("Argument " .. place .. " must be a number")
+end
+
 PCSX.Assembler.Internals.checks.bimm16 = function(imm, place)
     if type(imm) == "number" then
         if (imm % 4) ~= 0 then
@@ -144,6 +154,9 @@ PCSX.Assembler.New = function()
         end
         if code.imm5 then
             ret = bit.bor(ret, code.imm5)
+        end
+        if code.imm20 then
+            ret = bit.bor(ret, code.imm20)
         end
         if code.rs then
             ret = bit.bor(ret, bit.lshift(code.rs, 21))
