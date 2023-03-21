@@ -823,6 +823,7 @@ settings, otherwise debugging features may not work.)");
         }
     }
     drawList->ChannelsMerge();
+    ImGui::EndChild();
     ImGui::PopFont();
     if (m_jumpToPC.has_value()) {
         std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPC.value());
@@ -908,7 +909,6 @@ if not success then return msg else return nil end
         if (ImGui::Button(_("Close"))) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
-    ImGui::EndChild();
     ImGui::End();
 
     if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
