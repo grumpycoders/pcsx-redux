@@ -169,6 +169,11 @@ void PCSX::Lua::declareFunc(std::string_view name, LuaLambda&& f, int i) {
     i = getabsolute(i);
     checkstack(5);
     lua_pushlstring(L, name.data(), name.size());
+    push(std::move(f));
+    lua_settable(L, i);
+}
+
+void PCSX::Lua::push(std::function<int(Lua)>&& f) {
     new (lua_newuserdata(L, sizeof(LuaLambda))) LuaLambda(std::move(f));
     newtable();
     push("__gc");
@@ -188,7 +193,6 @@ void PCSX::Lua::declareFunc(std::string_view name, LuaLambda&& f, int i) {
             return lambda->operator()(L);
         },
         1);
-    lua_settable(L, i);
 }
 
 void PCSX::Lua::call(std::string_view f, int i, int nargs) {
