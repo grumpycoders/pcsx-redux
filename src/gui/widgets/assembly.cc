@@ -475,7 +475,8 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     uint32_t pc = virtToReal(m_registers->pc);
     auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
     if (ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value)) {
-        if (g_emulator->settings.get<Emulator::SettingDynarec>() && debugSettings.get<Emulator::DebugSettings::Debug>()) {
+        if (g_emulator->settings.get<Emulator::SettingDynarec>() &&
+            debugSettings.get<Emulator::DebugSettings::Debug>()) {
             gui->addNotification(R"(Debugger and dynarec enabled at the same time.
 Consider turning the dynarec off in the main Emulation
 settings, otherwise debugging features may not work.)");
@@ -527,14 +528,17 @@ settings, otherwise debugging features may not work.)");
     std::map<uint32_t, ImVec2> linesStartPos;
     m_arrows.clear();
 
+    bool openAssembler = false;
+
     while (clipper.Step()) {
         bool skipNext = false;
         bool delaySlotNext = false;
-        typedef std::function<void(uint32_t, const char*, uint32_t)> prependType;
+        typedef std::function<void(uint32_t, const char*, uint32_t, uint32_t, uint32_t)> prependType;
         auto process = [&](uint32_t addr, prependType prepend, PCSX::Disasm* disasm) {
             uint32_t code = 0;
             uint32_t nextCode = 0;
             uint32_t base = 0;
+            uint32_t absAddr = addr;
             const char* section = "UNK";
             if (addr < 0x00800000) {
                 section = "RAM";
@@ -560,7 +564,7 @@ settings, otherwise debugging features may not work.)");
                 }
                 base = 0xbfc00000;
             }
-            prepend(code, section, addr | base);
+            prepend(code, section, addr | base, absAddr, base);
             disasm->process(code, nextCode, addr | base, m_pseudo ? &skipNext : nullptr, &delaySlotNext);
             m_notch = delaySlotNext && m_delaySlotNotch;
             m_notchAfterSkip[1] = delaySlotNext && m_delaySlotNotch && m_pseudo && skipNext;
@@ -568,13 +572,14 @@ settings, otherwise debugging features may not work.)");
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
             process(
-                addr, [](uint32_t, const char*, uint32_t) {}, &dummy);
+                addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
         }
         auto& tree = g_emulator->m_debug->getTree();
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
             uint32_t addr = x * 4;
             const Debug::Breakpoint* currentBP = nullptr;
-            prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr) mutable {
+            prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr, uint32_t absAddr,
+                                uint32_t base) mutable {
                 bool hasBP = false;
                 bool isBPEnabled = false;
 
@@ -695,6 +700,13 @@ settings, otherwise debugging features may not work.)");
                     if (ImGui::MenuItem(_("Toggle Breakpoint"))) {
                         toggleBP();
                     }
+                    if (absAddr < 0x00800000) {
+                        if (ImGui::MenuItem(_("Assemble"))) {
+                            openAssembler = true;
+                            m_assembleAddress = dispAddr;
+                            m_assembleStatus = "";
+                        }
+                    }
                     ImGui::EndPopup();
                 }
                 if (skipNext && m_pseudoFilling) {
@@ -811,7 +823,6 @@ settings, otherwise debugging features may not work.)");
         }
     }
     drawList->ChannelsMerge();
-    ImGui::EndChild();
     ImGui::PopFont();
     if (m_jumpToPC.has_value()) {
         std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPC.value());
@@ -863,6 +874,39 @@ settings, otherwise debugging features may not work.)");
         double scroll_to_px = pctopx * clipper.ItemsHeight;
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         m_jumpToPC.reset();
+    }
+    ImGui::EndChild();
+    if (openAssembler) {
+        ImGui::OpenPopup(_("Assemble"));
+    }
+    if (ImGui::BeginPopupModal(_("Assemble"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text(_("Assemble code for address 0x%08x:"), m_assembleAddress);
+        gui->useMonoFont();
+        ImGui::InputTextMultiline("##assemble", &m_assembleCode);
+        ImGui::Text("%s", m_assembleStatus.c_str());
+        ImGui::PopFont();
+        if (ImGui::Button(_("Assemble"))) {
+            auto L = *g_emulator->m_lua;
+            std::string assembler = fmt::format(R"(
+local success, msg = pcall(function() PCSX.Assembler.New():parse([[
+{}
+]]):compileToMemory(PCSX.getMemPtr(), 0x{:08x}, 0x{:08x}) end)
+if not success then return msg else return nil end
+)",
+                                                m_assembleCode, m_assembleAddress, m_ramBase);
+            L.load(assembler, "inline:assembler");
+            if (L.isnil()) {
+                m_assembleStatus.clear();
+            } else {
+                m_assembleStatus = L.tostring();
+            }
+            L.pop();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(_("Clear"))) m_assembleCode.clear();
+        ImGui::SameLine();
+        if (ImGui::Button(_("Close"))) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
     }
     ImGui::EndChild();
     ImGui::End();

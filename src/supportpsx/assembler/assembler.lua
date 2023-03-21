@@ -193,6 +193,7 @@ PCSX.Assembler.New = function()
                     parseOneString(self, v)
                 end
             end
+            return self
         end,
         compileToUint32Table = function(self, baseAddress)
             local ret = {}
@@ -202,18 +203,18 @@ PCSX.Assembler.New = function()
             end
             return ret
         end,
-        compileToMemory = function(self, memory, baseAddress)
-            local ret = {}
+        compileToMemory = function(self, memory, baseAddress, memoryStartAddress)
+            local offset = baseAddress - memoryStartAddress
             for _, v in ipairs(self.__code) do
                 local compiled = compileOne(v, baseAddress)
-                local realAddress = bit.band(baseAddress, 0x007fffff)
-                memory[realAddress] = bit.band(compiled, 0xff)
-                memory[realAddress + 1] = bit.band(bit.rshift(compiled, 8), 0xff)
-                memory[realAddress + 2] = bit.band(bit.rshift(compiled, 16), 0xff)
-                memory[realAddress + 3] = bit.band(bit.rshift(compiled, 24), 0xff)
+                memory[offset] = bit.band(compiled, 0xff)
+                memory[offset + 1] = bit.band(bit.rshift(compiled, 8), 0xff)
+                memory[offset + 2] = bit.band(bit.rshift(compiled, 16), 0xff)
+                memory[offset + 3] = bit.band(bit.rshift(compiled, 24), 0xff)
                 baseAddress = baseAddress + 4
+                offset = offset + 4
             end
-            return ret
+            return self
         end,
     }
     local wrapper = function(self, f, name, args)
