@@ -40,9 +40,20 @@ enum {
     MAP_EXEC_JAL = 128,
 };
 
-void PCSX::Debug::markMap(uint32_t address, int mask) {
+uint32_t PCSX::Debug::normalizeAddress(uint32_t address) {
     uint32_t base = (address >> 20) & 0xffc;
-    uint32_t real = address & 0x1fffff;
+    uint32_t real = address & 0x7fffff;
+    const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
+    if (!ramExpansion && ((base == 0x000) || (base == 0x800) || (base == 0xa00))) {
+        return address & ~0x00600000;
+    }
+    return address;
+}
+
+void PCSX::Debug::markMap(uint32_t address, int mask) {
+    address = normalizeAddress(address);
+    uint32_t base = (address >> 20) & 0xffc;
+    uint32_t real = address & 0x7fffff;
     if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
         m_mainMemoryMap[real] |= mask;
     } else if ((base == 0x1f0) && (real < sizeof(m_parpMemoryMap))) {
@@ -55,8 +66,9 @@ void PCSX::Debug::markMap(uint32_t address, int mask) {
 }
 
 bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
+    address = normalizeAddress(address);
     uint32_t base = (address >> 20) & 0xffc;
-    uint32_t real = address & 0x1fffff;
+    uint32_t real = address & 0x7fffff;
     if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
         return m_mainMemoryMap[real] & mask;
     } else if ((base == 0x1f0) && (real < sizeof(m_parpMemoryMap))) {
@@ -227,9 +239,9 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
     }
 
     auto end = m_breakpoints.end();
-    address &= ~0xe0000000;
+    uint32_t normalizedAddress = normalizeAddress(address & ~0xe0000000);
 
-    for (auto it = m_breakpoints.find(address, address + width - 1); it != end; it++) {
+    for (auto it = m_breakpoints.find(normalizedAddress, normalizedAddress + width - 1); it != end; it++) {
         if (it->type() != type) continue;
         if (!triggerBP(&*it, address, width, cause)) m_todelete.push_back(&*it);
     }

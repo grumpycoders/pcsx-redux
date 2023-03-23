@@ -76,7 +76,6 @@
     <ClCompile Include="..\..\third_party\imgui_memory_editor\imgui_memory_editor.cpp">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\handlers.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
@@ -84,6 +83,9 @@
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\pio-cart.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
   </ItemGroup>
@@ -157,7 +159,6 @@
     <ClInclude Include="..\..\src\gui\widgets\sio1.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h" />
     <ClInclude Include="..\..\src\gui\widgets\handlers.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
@@ -166,6 +167,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\pio-cart.h">
       <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

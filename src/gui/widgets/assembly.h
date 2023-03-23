@@ -93,6 +93,9 @@ class Assembly : private Disasm {
     std::optional<uint32_t> m_jumpToPC;
     Memory* m_memory;
     uint32_t m_ramBase = 0x80000000;
+    uint32_t m_assembleAddress;
+    std::string m_assembleCode = "";
+    std::string m_assembleStatus = "";
 
     struct symbolInfo {
         uint32_t addr;

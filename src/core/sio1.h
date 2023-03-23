@@ -151,16 +151,6 @@ class SIO1 {
     void writeCtrl16(uint16_t v);
 
     void writeData8(uint8_t v);
-    void writeData16(uint16_t v) {
-        writeData8(v);
-        writeData8(v >> 8);
-    }
-    void writeData32(uint32_t v) {
-        writeData8(v);
-        writeData8(v >> 8);
-        writeData8(v >> 16);
-        writeData8(v >> 24);
-    }
 
     void writeMode8(uint8_t v) { writeMode16(v); };
     void writeMode16(uint16_t v);

@@ -1043,7 +1043,10 @@ void DynaRecCPU::recSH() {
         else if (addr == 0x1f801070) {  // I_STAT
             gen.mov(rax, (uint64_t)&PCSX::g_emulator->m_mem->m_hard[0x1070]);
             if (m_gprs[_Rt_].isConst()) {
-                gen.and_(word[rax], m_gprs[_Rt_].val & 0xFFFF);
+                // Doing an AND directly seems to make Xbyak throw an exception due to the immediate being too big.
+                // Seems to be an xbyak bug? Affects Fromage, and potentially other titles.
+                gen.mov(cx, m_gprs[_Rt_].val & 0xFFFF);
+                gen.and_(word[rax], cx);
             } else {
                 allocateReg(_Rt_);
                 gen.and_(word[rax], m_gprs[_Rt_].allocatedReg.cvt16());

@@ -121,6 +121,7 @@ class Lua {
         checkstack();
         lua_pushcclosure(L, f, n);
     }
+    void push(std::function<int(Lua)>&& f);
     void pop(int idx = 1) { lua_pop(L, idx); }
     int checkstack(int extra = 1) { return lua_checkstack(L, extra); }
 

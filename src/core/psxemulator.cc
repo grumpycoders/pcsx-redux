@@ -42,6 +42,7 @@
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "lua/zlibffi.h"
+#include "supportpsx/assembler.h"
 extern "C" {
 #include "luv/src/luv.h"
 }
@@ -94,6 +95,7 @@ void PCSX::Emulator::setLua() {
     LuaFFI::open_iso(L);
     LuaFFI::open_extra(L);
     LuaBindings::open_events(L);
+    LuaSupportPSX::open_assembler(L);
 
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");
