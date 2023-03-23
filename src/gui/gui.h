@@ -47,6 +47,7 @@
 #include "gui/widgets/luaeditor.h"
 #include "gui/widgets/luainspector.h"
 #include "gui/widgets/memcard_manager.h"
+#include "gui/widgets/pio-cart.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
 #include "gui/widgets/sio1.h"
@@ -111,12 +112,13 @@ class GUI final {
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
     typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
     typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
+    typedef Setting<bool, TYPESTRING("ShowPIOCartConfig"), false> ShowPIOCartConfig;
     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
              ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, MainFontSize, MonoFontSize,
-             GUITheme, EnableRawMouseMotion, WidescreenRatio>
+             GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -329,6 +331,7 @@ class GUI final {
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
+    Widgets::FileDialog m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
     bool m_breakOnVSync = false;
@@ -354,6 +357,7 @@ class GUI final {
 
     Widgets::CallStacks m_callstacks = {settings.get<ShowCallstacks>().value};
 
+    Widgets::PIOCart m_pioCart = {settings.get<ShowPIOCartConfig>().value};
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     EventBus::Listener m_listener;

@@ -1065,7 +1065,7 @@ void DynaRecCPU::recSH() {
         }
 
         else if (addr == 0x1f801070) {  // I_STAT
-            gen.Mov(x0, (uint64_t)&PCSX::g_emulator->m_mem->m_psxH[0x1070]);
+            gen.Mov(x0, (uint64_t)&PCSX::g_emulator->m_mem->m_hard[0x1070]);
             if (m_gprs[_Rt_].isConst()) {
                 gen.Ldrh(w1, MemOperand(x0));
                 gen.Mov(w2, m_gprs[_Rt_].val & 0xFFFF);

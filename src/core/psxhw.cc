@@ -29,6 +29,7 @@
 #include "core/gpu.h"
 #include "core/logger.h"
 #include "core/mdec.h"
+#include "core/pio-cart.h"
 #include "core/psxemulator.h"
 #include "core/sio.h"
 #include "core/sio1.h"
@@ -59,7 +60,7 @@ static constexpr bool addressInRegisterSpace(uint32_t address) {
 void PCSX::HW::reset() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>()) setIrq(0x200);
 
-    memset(PCSX::g_emulator->m_mem->m_psxH, 0, 0x10000);
+    memset(PCSX::g_emulator->m_mem->m_hard, 0, 0x10000);
 
     PCSX::g_emulator->m_mdec->init();
     PCSX::g_emulator->m_cdrom->reset();
@@ -261,6 +262,9 @@ uint32_t PCSX::HW::read32(uint32_t add) {
     uint32_t hwadd = add & 0x1fffffff;
 
     switch (hwadd) {
+        case 0x1f801008:
+            PSXHW_LOG("EXP1 delay/size read %x\n", psxHu32(0x1008));
+            return psxHu32(0x1008);
         case 0x1f801040:
             hard = PCSX::g_emulator->m_sio->read8();
             hard |= PCSX::g_emulator->m_sio->read8() << 8;
@@ -608,6 +612,9 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
     uint32_t hwadd = add & 0x1fffffff;
 
     switch (hwadd) {
+        case 0x1f801008:
+            PSXHW_LOG("EXP1 delay/size write %x\n", value);
+            break;
         case 0x1f801040:
             PCSX::g_emulator->m_sio->write8((uint8_t)value);  // 8-bit reg, ignore upper 24 bits
             SIO0_LOG("sio write32 %x\n", value);

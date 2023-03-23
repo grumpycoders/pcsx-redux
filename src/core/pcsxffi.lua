@@ -165,6 +165,7 @@ end
 
 PCSX = {
     getMemPtr = function() return C.getMemPtr() end,
+    getParPtr = function() return C.getParPtr() end,
     getRomPtr = function() return C.getRomPtr() end,
     getScratchPtr = function() return C.getScratchPtr() end,
     getRegisters = function() return C.getRegisters() end,

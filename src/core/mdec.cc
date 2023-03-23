@@ -371,7 +371,7 @@ void PCSX::MDEC::init(void) {
     memset(&mdec, 0, sizeof(mdec));
     memset(iq_y, 0, sizeof(iq_y));
     memset(iq_uv, 0, sizeof(iq_uv));
-    mdec.rl = (uint16_t *)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
+    mdec.rl = (uint16_t *)&PCSX::g_emulator->m_mem->m_wram[0x100000];
 }
 
 // command register
