@@ -354,7 +354,7 @@ class GUI final {
     std::string m_stringHolder;
     const size_t wramBaseAddr = 0x80000000;
     MemoryEditorWrapper m_mainMemEditors[8] = {
-        {this, settings.get<ShowMemoryEditor1>().value, settings.get<MemoryEditor1Addr>().value, ramBaseAddr},
+        {this, settings.get<ShowMemoryEditor1>().value, settings.get<MemoryEditor1Addr>().value, wramBaseAddr},
         {this, settings.get<ShowMemoryEditor2>().value, settings.get<MemoryEditor2Addr>().value, wramBaseAddr},
         {this, settings.get<ShowMemoryEditor3>().value, settings.get<MemoryEditor3Addr>().value, wramBaseAddr},
         {this, settings.get<ShowMemoryEditor4>().value, settings.get<MemoryEditor4Addr>().value, wramBaseAddr},
