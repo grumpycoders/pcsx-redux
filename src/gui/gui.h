@@ -355,13 +355,13 @@ class GUI final {
     const size_t wramBaseAddr = 0x80000000;
     MemoryEditorWrapper m_mainMemEditors[8] = {
         {this, settings.get<ShowMemoryEditor1>().value, settings.get<MemoryEditor1Addr>().value, ramBaseAddr},
-        {this, settings.get<ShowMemoryEditor2>().value, settings.get<MemoryEditor2Addr>().value, ramBaseAddr},
-        {this, settings.get<ShowMemoryEditor3>().value, settings.get<MemoryEditor3Addr>().value, ramBaseAddr},
-        {this, settings.get<ShowMemoryEditor4>().value, settings.get<MemoryEditor4Addr>().value, ramBaseAddr},
-        {this, settings.get<ShowMemoryEditor5>().value, settings.get<MemoryEditor5Addr>().value, ramBaseAddr},
-        {this, settings.get<ShowMemoryEditor6>().value, settings.get<MemoryEditor6Addr>().value, ramBaseAddr},
-        {this, settings.get<ShowMemoryEditor7>().value, settings.get<MemoryEditor7Addr>().value, ramBaseAddr},
-        {this, settings.get<ShowMemoryEditor8>().value, settings.get<MemoryEditor8Addr>().value, ramBaseAddr},
+        {this, settings.get<ShowMemoryEditor2>().value, settings.get<MemoryEditor2Addr>().value, wramBaseAddr},
+        {this, settings.get<ShowMemoryEditor3>().value, settings.get<MemoryEditor3Addr>().value, wramBaseAddr},
+        {this, settings.get<ShowMemoryEditor4>().value, settings.get<MemoryEditor4Addr>().value, wramBaseAddr},
+        {this, settings.get<ShowMemoryEditor5>().value, settings.get<MemoryEditor5Addr>().value, wramBaseAddr},
+        {this, settings.get<ShowMemoryEditor6>().value, settings.get<MemoryEditor6Addr>().value, wramBaseAddr},
+        {this, settings.get<ShowMemoryEditor7>().value, settings.get<MemoryEditor7Addr>().value, wramBaseAddr},
+        {this, settings.get<ShowMemoryEditor8>().value, settings.get<MemoryEditor8Addr>().value, wramBaseAddr},
     };
     MemoryEditorWrapper m_parallelPortEditor = {this, settings.get<ShowParallelPortEditor>().value,
                                                 settings.get<ParallelPortEditorAddr>().value, 0x1f000000};
