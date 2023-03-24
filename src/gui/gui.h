@@ -352,7 +352,7 @@ class GUI final {
         void draw(void *mem, size_t size) { editor.DrawWindow(title(), mem, size); }
     };
     std::string m_stringHolder;
-    const size_t ramBaseAddr = 0x80000000;
+    const size_t wramBaseAddr = 0x80000000;
     MemoryEditorWrapper m_mainMemEditors[8] = {
         {this, settings.get<ShowMemoryEditor1>().value, settings.get<MemoryEditor1Addr>().value, ramBaseAddr},
         {this, settings.get<ShowMemoryEditor2>().value, settings.get<MemoryEditor2Addr>().value, ramBaseAddr},
