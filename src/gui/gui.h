@@ -101,6 +101,32 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
+    typedef Setting<bool, TYPESTRING("ShowMemoryEditor1")> ShowMemoryEditor1;
+    typedef Setting<bool, TYPESTRING("ShowMemoryEditor2")> ShowMemoryEditor2;
+    typedef Setting<bool, TYPESTRING("ShowMemoryEditor3")> ShowMemoryEditor3;
+    typedef Setting<bool, TYPESTRING("ShowMemoryEditor4")> ShowMemoryEditor4;
+    typedef Setting<bool, TYPESTRING("ShowMemoryEditor5")> ShowMemoryEditor5;
+    typedef Setting<bool, TYPESTRING("ShowMemoryEditor6")> ShowMemoryEditor6;
+    typedef Setting<bool, TYPESTRING("ShowMemoryEditor7")> ShowMemoryEditor7;
+    typedef Setting<bool, TYPESTRING("ShowMemoryEditor8")> ShowMemoryEditor8;
+    typedef Setting<bool, TYPESTRING("ShowParallelPortEditor")> ShowParallelPortEditor;
+    typedef Setting<bool, TYPESTRING("ShowScratchpadEditor")> ShowScratchpadEditor;
+    typedef Setting<bool, TYPESTRING("ShowHWRegsEditor")> ShowHWRegsEditor;
+    typedef Setting<bool, TYPESTRING("ShowBiosEditor")> ShowBiosEditor;
+    typedef Setting<bool, TYPESTRING("ShowVRAMEditor")> ShowVRAMEditor;
+    typedef Setting<size_t, TYPESTRING("MemoryEditor1Addr"), 0> MemoryEditor1Addr;
+    typedef Setting<size_t, TYPESTRING("MemoryEditor2Addr"), 0> MemoryEditor2Addr;
+    typedef Setting<size_t, TYPESTRING("MemoryEditor3Addr"), 0> MemoryEditor3Addr;
+    typedef Setting<size_t, TYPESTRING("MemoryEditor4Addr"), 0> MemoryEditor4Addr;
+    typedef Setting<size_t, TYPESTRING("MemoryEditor5Addr"), 0> MemoryEditor5Addr;
+    typedef Setting<size_t, TYPESTRING("MemoryEditor6Addr"), 0> MemoryEditor6Addr;
+    typedef Setting<size_t, TYPESTRING("MemoryEditor7Addr"), 0> MemoryEditor7Addr;
+    typedef Setting<size_t, TYPESTRING("MemoryEditor8Addr"), 0> MemoryEditor8Addr;
+    typedef Setting<size_t, TYPESTRING("ParallelPortEditorAddr"), 0> ParallelPortEditorAddr;
+    typedef Setting<size_t, TYPESTRING("ScratchpadEditorAddr"), 0> ScratchpadEditorAddr;
+    typedef Setting<size_t, TYPESTRING("HWRegsEditorAddr"), 0> HWRegsEditorAddr;
+    typedef Setting<size_t, TYPESTRING("BiosEditorAddr"), 0> BiosEditorAddr;
+    typedef Setting<size_t, TYPESTRING("VRAMEditorAddr"), 0> VRAMEditorAddr;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
@@ -117,6 +143,13 @@ class GUI final {
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
+             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowMemoryEditor1, ShowMemoryEditor2,
+             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
+             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
+             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
+             MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
+             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowIsoBrowser, MainFontSize,
+             MonoFontSize, GUITheme, EnableRawMouseMotion, WidescreenRatio>
              ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, MainFontSize, MonoFontSize,
              GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig>
         settings;
@@ -304,24 +337,44 @@ class GUI final {
     bool m_showInterruptsScaler = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
-        MemoryEditorWrapper(GUI *gui) {
+        MemoryEditorWrapper(GUI *gui, bool &show, size_t &offsetAddr, size_t baseAddr = 0x0000)
+            : m_show(show), m_offsetAddr(offsetAddr), m_baseAddr(baseAddr) {
             editor.OptShowDataPreview = true;
             editor.OptUpperCaseHex = false;
             editor.PushMonoFont = [gui]() { gui->useMonoFont(); };
         }
-        MemoryEditor editor;
+        bool &m_show;
+        size_t &m_offsetAddr;
+        size_t m_baseAddr;
+        MemoryEditor editor{m_show, m_baseAddr, m_offsetAddr};
         std::function<const char *()> title;
-        bool &show = editor.Open;
-        void MenuItem() { ImGui::MenuItem(title(), nullptr, &show); }
-        void draw(void *mem, size_t size, uint32_t baseAddr = 0) { editor.DrawWindow(title(), mem, size, baseAddr); }
+        // bool &show = editor.Open;
+
+        void MenuItem() { ImGui::MenuItem(title(), nullptr, &m_show); }
+        void draw(void *mem, size_t size) { editor.DrawWindow(title(), mem, size); }
     };
     std::string m_stringHolder;
-    MemoryEditorWrapper m_mainMemEditors[8] = {{this}, {this}, {this}, {this}, {this}, {this}, {this}, {this}};
-    MemoryEditorWrapper m_parallelPortEditor = {this};
-    MemoryEditorWrapper m_scratchPadEditor = {this};
-    MemoryEditorWrapper m_hwrEditor = {this};
-    MemoryEditorWrapper m_biosEditor = {this};
-    MemoryEditorWrapper m_vramEditor = {this};
+    const size_t ramBaseAddr = 0x80000000;
+    MemoryEditorWrapper m_mainMemEditors[8] = {
+        {this, settings.get<ShowMemoryEditor1>().value, settings.get<MemoryEditor1Addr>().value, ramBaseAddr},
+        {this, settings.get<ShowMemoryEditor2>().value, settings.get<MemoryEditor2Addr>().value, ramBaseAddr},
+        {this, settings.get<ShowMemoryEditor3>().value, settings.get<MemoryEditor3Addr>().value, ramBaseAddr},
+        {this, settings.get<ShowMemoryEditor4>().value, settings.get<MemoryEditor4Addr>().value, ramBaseAddr},
+        {this, settings.get<ShowMemoryEditor5>().value, settings.get<MemoryEditor5Addr>().value, ramBaseAddr},
+        {this, settings.get<ShowMemoryEditor6>().value, settings.get<MemoryEditor6Addr>().value, ramBaseAddr},
+        {this, settings.get<ShowMemoryEditor7>().value, settings.get<MemoryEditor7Addr>().value, ramBaseAddr},
+        {this, settings.get<ShowMemoryEditor8>().value, settings.get<MemoryEditor8Addr>().value, ramBaseAddr},
+    };
+    MemoryEditorWrapper m_parallelPortEditor = {this, settings.get<ShowParallelPortEditor>().value,
+                                                settings.get<ParallelPortEditorAddr>().value, 0x1f000000};
+    MemoryEditorWrapper m_scratchPadEditor = {this, settings.get<ShowScratchpadEditor>().value,
+                                              settings.get<ScratchpadEditorAddr>().value, 0x1f800000};
+    MemoryEditorWrapper m_hwrEditor = {this, settings.get<ShowHWRegsEditor>().value,
+                                       settings.get<HWRegsEditorAddr>().value, 0x1f801000};
+    MemoryEditorWrapper m_biosEditor = {this, settings.get<ShowBiosEditor>().value,
+                                        settings.get<BiosEditorAddr>().value, 0xbfc00000};
+    MemoryEditorWrapper m_vramEditor = {this, settings.get<ShowVRAMEditor>().value,
+                                        settings.get<VRAMEditorAddr>().value};
     Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
     Widgets::TypedDebugger m_typedDebugger = {settings.get<ShowTypedDebugger>().value};
     Widgets::MemcardManager m_memcardManager = {settings.get<ShowMemcardManager>().value};

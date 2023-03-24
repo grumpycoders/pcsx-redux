@@ -19,10 +19,9 @@
 #pragma warning (disable: 4996) // warning C4996: 'sprintf': This function or variable may be unsafe.
 #endif
 
-MemoryEditor::MemoryEditor()
+MemoryEditor::MemoryEditor(bool& show, size_t base_addr, size_t &goto_addr) : Open(show), BaseAddr(base_addr), OffsetAddr(goto_addr)
 {
 	// Settings
-	Open = true;
 	ReadOnly = false;
 	Cols = 16;
 	OptShowOptions = true;
@@ -38,15 +37,14 @@ MemoryEditor::MemoryEditor()
 	ReadFn = NULL;
 	WriteFn = NULL;
 	HighlightFn = NULL;
-
 	// State/Internals
 	ContentsWidthChanged = false;
 	DataPreviewAddr = DataEditingAddr = (size_t)-1;
 	DataEditingTakeFocus = false;
-	GotoAddr = (size_t)-1;
 	HighlightMin = HighlightMax = (size_t)-1;
 	PreviewEndianess = 0;
 	PreviewDataType = ImGuiDataType_S32;
+    RestoreOffset = true;
 }
 
 void MemoryEditor::GotoAddrAndHighlight(size_t addr_min, size_t addr_max)
@@ -56,13 +54,13 @@ void MemoryEditor::GotoAddrAndHighlight(size_t addr_min, size_t addr_max)
 	HighlightMax = addr_max;
 }
 
-void MemoryEditor::CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr)
+void MemoryEditor::CalcSizes(Sizes& s, size_t mem_size)
 {
 	if (PushMonoFont) PushMonoFont();
 	ImGuiStyle& style = ImGui::GetStyle();
 	s.AddrDigitsCount = OptAddrDigitsCount;
 	if (s.AddrDigitsCount == 0)
-		for (size_t n = base_display_addr + mem_size - 1; n > 0; n >>= 4)
+		for (size_t n = BaseAddr + mem_size - 1; n > 0; n >>= 4)
 			s.AddrDigitsCount++;
 	s.LineHeight = ImGui::GetTextLineHeight();
 	s.GlyphWidth = ImGui::CalcTextSize("F").x + 1;                  // We assume the font is mono-space
@@ -85,22 +83,21 @@ void MemoryEditor::CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr
 }
 
 // Standalone Memory Editor window
-void MemoryEditor::DrawWindow(const char* title, void* mem_data, size_t mem_size, size_t base_display_addr)
+void MemoryEditor::DrawWindow(const char* title, void* mem_data, size_t mem_size)
 {
 	Sizes s;
-	CalcSizes(s, mem_size, base_display_addr);
+	CalcSizes(s, mem_size);
 	ImGui::SetNextWindowSize(ImVec2(s.WindowWidth, s.WindowWidth * 0.60f), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(s.WindowWidth, FLT_MAX));
 
-	Open = true;
 	if (ImGui::Begin(title, &Open, ImGuiWindowFlags_NoScrollbar))
 	{
 		if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
 			ImGui::OpenPopup("context");
-		DrawContents(mem_data, mem_size, base_display_addr);
+		DrawContents(mem_data, mem_size);
 		if (ContentsWidthChanged)
 		{
-			CalcSizes(s, mem_size, base_display_addr);
+			CalcSizes(s, mem_size);
 			ImGui::SetWindowSize(ImVec2(s.WindowWidth, ImGui::GetWindowSize().y));
 		}
 	}
@@ -108,7 +105,7 @@ void MemoryEditor::DrawWindow(const char* title, void* mem_data, size_t mem_size
 }
 
 // Memory Editor contents only
-void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t base_display_addr)
+void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size)
 {
 	if (Cols < 1)
 		Cols = 1;
@@ -116,7 +113,7 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 
 	ImU8* mem_data = (ImU8*)mem_data_void;
 	Sizes s;
-	CalcSizes(s, mem_size, base_display_addr);
+	CalcSizes(s, mem_size);
 	if (PushMonoFont) PushMonoFont();
 	ImGuiStyle& style = ImGui::GetStyle();
 
@@ -183,7 +180,7 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 		for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++) // display only visible lines
 		{
 			size_t addr = (size_t)(line_i * Cols);
-			ImGui::Text(format_address, s.AddrDigitsCount, base_display_addr + addr);
+			ImGui::Text(format_address, s.AddrDigitsCount, BaseAddr + addr);
 
 			// Draw Hexadecimal
 			for (int n = 0; n < Cols && addr < mem_size; n++, addr++)
@@ -213,7 +210,7 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 					if (DataEditingTakeFocus)
 					{
 						ImGui::SetKeyboardFocusHere(0);
-						AddrInputBuf = formatter_variable_hex(s.AddrDigitsCount, base_display_addr + addr);
+						AddrInputBuf = formatter_variable_hex(s.AddrDigitsCount, BaseAddr + addr);
 						auto byte = ReadFn ? ReadFn(mem_data, addr) : mem_data[addr];
 						DataInputBuf = formatter_byte(byte);
 					}
@@ -354,17 +351,17 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size, size_t bas
 	if (OptShowOptions)
 	{
 		ImGui::Separator();
-		DrawOptionsLine(s, mem_data, mem_size, base_display_addr);
+		DrawOptionsLine(s, mem_data, mem_size);
 	}
 
 	if (lock_show_data_preview)
 	{
 		ImGui::Separator();
-		DrawPreviewLine(s, mem_data, mem_size, base_display_addr);
+		DrawPreviewLine(s, mem_data, mem_size);
 	}
 }
 
-void MemoryEditor::DrawOptionsLine(const Sizes& s, void* mem_data, size_t mem_size, size_t base_display_addr)
+void MemoryEditor::DrawOptionsLine(const Sizes& s, void* mem_data, size_t mem_size)
 {
 	IM_UNUSED(mem_data);
 	ImGuiStyle& style = ImGui::GetStyle();
@@ -387,36 +384,49 @@ void MemoryEditor::DrawOptionsLine(const Sizes& s, void* mem_data, size_t mem_si
 	}
 
 	ImGui::SameLine();
-	ImGui::Text(format_range, s.AddrDigitsCount, base_display_addr, s.AddrDigitsCount, base_display_addr + mem_size - 1);
+	ImGui::Text(format_range, s.AddrDigitsCount, BaseAddr, s.AddrDigitsCount, BaseAddr + mem_size - 1);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth((s.AddrDigitsCount + 1) * s.GlyphWidth + style.FramePadding.x * 2.0f);
-	if (ImGui::InputText("##addr", &AddrInputBuf, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue))
-	{
-		size_t goto_addr;
-		if (sscanf(AddrInputBuf.c_str(), "%" _PRISizeT "X", &goto_addr) == 1)
-		{
-			GotoAddr = goto_addr - base_display_addr;
-			HighlightMin = HighlightMax = (size_t)-1;
-		}
-	}
 
-	if (GotoAddr != (size_t)-1)
-	{
-		if (GotoAddr < mem_size)
-		{
-			ImGui::BeginChild("##scrolling");
-			ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + (GotoAddr / Cols) * ImGui::GetTextLineHeight());
-			ImGui::EndChild();
-			DataEditingAddr = DataPreviewAddr = GotoAddr;
-			DataEditingTakeFocus = true;
-		}
-		GotoAddr = (size_t)-1;
-	}
+    if (RestoreOffset && OffsetAddr > 0) {
+        GotoAddr = OffsetAddr;
+        HighlightMin = HighlightMax = (size_t)-1;
+        RestoreOffset = false;
+    }
+
+    if (ImGui::InputText("##addr", &AddrInputBuf, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
+          size_t goto_addr;
+          if (sscanf(AddrInputBuf.c_str(), "%" _PRISizeT "X", &goto_addr) == 1) {
+                  GotoAddr = goto_addr - BaseAddr;
+                  OffsetAddr = GotoAddr; // Back up the offset since it gets trashed later down the line
+                  HighlightMin = HighlightMax = (size_t)-1;
+          }
+    }
+
+    if (GotoAddr != (size_t)-1) {
+            if (GotoAddr < mem_size) {
+                    ImGui::BeginChild("##scrolling");
+                    ImGui::SetScrollFromPosY(
+                        ImGui::GetCursorStartPos().y +
+                        (GotoAddr / Cols) * ImGui::GetTextLineHeight());
+                    ImGui::EndChild();
+                    DataEditingAddr = DataPreviewAddr = GotoAddr;
+                    DataEditingTakeFocus = true;
+            }
+            GotoAddr = (size_t)-1;
+    }
+
+    // Clear Input Address and reset to beginning of address space
+    ImGui::SameLine();
+    if (ImGui::Button("Reset")) {
+                AddrInputBuf.clear();
+                GotoAddr = 0;
+                OffsetAddr = 0;
+    }
 }
 
-void MemoryEditor::DrawPreviewLine(const Sizes& s, void* mem_data_void, size_t mem_size, size_t base_display_addr)
+void MemoryEditor::DrawPreviewLine(const Sizes& s, void* mem_data_void, size_t mem_size)
 {
-	IM_UNUSED(base_display_addr);
 	ImU8* mem_data = (ImU8*)mem_data_void;
 	ImGuiStyle& style = ImGui::GetStyle();
 	ImGui::AlignTextToFramePadding();

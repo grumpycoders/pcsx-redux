@@ -67,7 +67,7 @@ struct MemoryEditor
     };
 
     // Settings
-    bool            Open;                                       // = true   // set to false when DrawWindow() was closed. ignore if not using DrawWindow().
+    bool&           Open;                                       // = referenced from PCSX-Redux Settings // set to false when DrawWindow() was closed. ignore if not using DrawWindow().
     bool            ReadOnly;                                   // = false  // disable any editing.
     int             Cols;                                       // = 16     // number of columns to display.
     bool            OptShowOptions;                             // = true   // display options button/context menu. when disabled, options will be locked unless you provide your own UI for them.
@@ -84,6 +84,7 @@ struct MemoryEditor
     void            (*WriteFn)(ImU8* data, size_t off, ImU8 d); // = 0      // optional handler to write bytes.
     bool            (*HighlightFn)(const ImU8* data, size_t off);//= 0      // optional handler to return Highlight property (to support non-contiguous highlighting).
     std::function<void()> PushMonoFont = nullptr;
+    size_t&          OffsetAddr; // referenced from PCSX-Redux Settings
 
 private:
     // [Internal State]
@@ -96,11 +97,13 @@ private:
     size_t          GotoAddr;
     size_t          HighlightMin, HighlightMax;
     int             PreviewEndianess;
+    bool            RestoreOffset;
+    size_t          BaseAddr;
 
 public:
     ImGuiDataType   PreviewDataType;
     
-    MemoryEditor();
+    MemoryEditor(bool& show, size_t base_addr, size_t &goto_addr);
     void GotoAddrAndHighlight(size_t addr_min, size_t addr_max);
 
     struct Sizes
@@ -121,13 +124,13 @@ public:
         Sizes() { memset(this, 0, sizeof(*this)); }
     };
 
-    void CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr);
+    void CalcSizes(Sizes& s, size_t mem_size);
     // Standalone Memory Editor window
-    void DrawWindow(const char* title, void* mem_data, size_t mem_size, size_t base_display_addr = 0x0000);
+    void DrawWindow(const char* title, void* mem_data, size_t mem_size);
     // Memory Editor contents only
-    void DrawContents(void* mem_data_void, size_t mem_size, size_t base_display_addr = 0x0000);
-    void DrawOptionsLine(const Sizes& s, void* mem_data, size_t mem_size, size_t base_display_addr);
-    void DrawPreviewLine(const Sizes& s, void* mem_data_void, size_t mem_size, size_t base_display_addr);
+    void DrawContents(void* mem_data_void, size_t mem_size);
+    void DrawOptionsLine(const Sizes& s, void* mem_data, size_t mem_size);
+    void DrawPreviewLine(const Sizes& s, void* mem_data_void, size_t mem_size);
     // Utilities for Data Preview
     const char* DataTypeGetDesc(ImGuiDataType data_type) const;
     size_t DataTypeGetSize(ImGuiDataType data_type) const;
