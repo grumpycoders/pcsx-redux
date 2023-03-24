@@ -44,9 +44,9 @@ typedef Protobuf::MessageField<Thumbnail, TYPESTRING("thumbnail"), 2> ThumbnailF
 
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00800000>, TYPESTRING("ram"), 1> RAM;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00080000>, TYPESTRING("rom"), 2> ROM;
-typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00010000>, TYPESTRING("parallel"), 3> Parallel;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00800000>, TYPESTRING("exp1"), 3> EXP1;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00010000>, TYPESTRING("hardware"), 4> HardwareMemory;
-typedef Protobuf::Message<TYPESTRING("Memory"), RAM, ROM, Parallel, HardwareMemory> Memory;
+typedef Protobuf::Message<TYPESTRING("Memory"), RAM, ROM, EXP1, HardwareMemory> Memory;
 typedef Protobuf::MessageField<Memory, TYPESTRING("memory"), 3> MemoryField;
 
 typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 34, TYPESTRING("gpr"), 1> GPR;

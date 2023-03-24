@@ -542,25 +542,25 @@ settings, otherwise debugging features may not work.)");
             const char* section = "UNK";
             if (addr < 0x00800000) {
                 section = "RAM";
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_psxM + addr);
+                code = *reinterpret_cast<uint32_t*>(m_memory->m_wram + addr);
                 if (addr <= 0x007ffff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_psxM + addr + 4);
+                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_wram + addr + 4);
                 }
                 base = m_ramBase;
             } else if (addr < 0x00810000) {
                 section = "PAR";
                 addr -= 0x00800000;
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_psxP + addr);
+                code = *reinterpret_cast<uint32_t*>(m_memory->m_exp1 + addr);
                 if (addr <= 0x0000fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_psxP + addr + 4);
+                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_exp1 + addr + 4);
                 }
                 base = 0x1f000000;
             } else if (addr < 0x00890000) {
                 section = "ROM";
                 addr -= 0x00810000;
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_psxR + addr);
+                code = *reinterpret_cast<uint32_t*>(m_memory->m_bios + addr);
                 if (addr <= 0x0007fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_psxR + addr + 4);
+                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_bios + addr + 4);
                 }
                 base = 0xbfc00000;
             }

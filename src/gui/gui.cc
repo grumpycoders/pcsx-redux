@@ -1062,6 +1062,7 @@ void PCSX::GUI::endFrame() {
                     m_offscreenShaderEditor.setConfigure();
                     m_outputShaderEditor.setConfigure();
                 }
+                ImGui::MenuItem(_("PIO Cartridge"), nullptr, &m_pioCart.m_show);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -1252,10 +1253,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_luaEditor.draw(_("Lua Editor"), this);
     }
     if (m_events.m_show) {
-        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_psxM), _("Kernel events"));
+        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram), _("Kernel events"));
     }
     if (m_handlers.m_show) {
-        m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_psxM), _("Kernel handlers"));
+        m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram), _("Kernel handlers"));
     }
     if (m_kernelLog.m_show) {
         changed |= m_kernelLog.draw(g_emulator->m_cpu.get(), _("Kernel Calls"));
@@ -1270,32 +1271,32 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             if (editor.show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(g_emulator->m_mem->m_psxM, 8 * 1024 * 1024, 0x80000000);
+                editor.draw(g_emulator->m_mem->m_wram, 8 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
         if (m_parallelPortEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(g_emulator->m_mem->m_psxP, 64 * 1024, 0x1f000000);
+            m_parallelPortEditor.draw(g_emulator->m_mem->m_exp1, 512 * 1024, 0x1f000000);
         }
         counter++;
         if (m_scratchPadEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(g_emulator->m_mem->m_psxH, 1024, 0x1f800000);
+            m_scratchPadEditor.draw(g_emulator->m_mem->m_hard, 1024, 0x1f800000);
         }
         counter++;
         if (m_hwrEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(g_emulator->m_mem->m_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(g_emulator->m_mem->m_hard + 4 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(g_emulator->m_mem->m_psxR, 512 * 1024, 0xbfc00000);
+            m_biosEditor.draw(g_emulator->m_mem->m_bios, 512 * 1024, 0xbfc00000);
         }
         counter++;
         if (m_vramEditor.show) {
@@ -1348,6 +1349,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_offscreenShaderEditor.m_show && m_offscreenShaderEditor.draw(this, _("Offscreen Render"))) {
         // maybe throttle this?
         m_offscreenShaderEditor.compile(this);
+    }
+
+    if (m_pioCart.m_show) {
+        changed |= m_pioCart.draw(_("PIO Cartridge Configuration"));
     }
 
     if (m_sio1.m_show) {
@@ -1622,6 +1627,7 @@ the update and manually apply it.)")));
 bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
+    bool selectEXP1Dialog = false;
     bool showDynarecDebugWarning = false;
     bool showDynarecWarning = false;
     auto& settings = g_emulator->settings;
@@ -1860,15 +1866,24 @@ See the wiki for details.)"));
     }
     ImGui::End();
 
-    if (selectBiosDialog) m_selectBiosDialog.openDialog();
-    if (m_selectBiosDialog.draw()) {
-        std::vector<PCSX::u8string> fileToOpen = m_selectBiosDialog.selected();
-        if (!fileToOpen.empty()) {
-            settings.get<Emulator::SettingBios>().value = fileToOpen[0];
-            changed = true;
+    { // Select BIOS Dialog
+        auto& biospath = settings.get<Emulator::SettingBiosBrowsePath>();
+        if (selectBiosDialog) {
+            if (!biospath.empty()) {
+                m_selectBiosDialog.m_currentPath = biospath.value;
+            }
+            
+            m_selectBiosDialog.openDialog();
+        }
+        if (m_selectBiosDialog.draw()) {
+            biospath = m_selectBiosDialog.m_currentPath;
+            std::vector<PCSX::u8string> fileToOpen = m_selectBiosDialog.selected();
+            if (!fileToOpen.empty()) {
+                settings.get<Emulator::SettingBios>().value = fileToOpen[0];
+                changed = true;
+            }
         }
     }
-
     if (showDynarecDebugWarning && showDynarecWarning) {
         addNotification(R"(Debugger and dynarec enabled at the same time.
 Consider turning either one off, otherwise

@@ -30,6 +30,7 @@
 #include "core/luaiso.h"
 #include "core/mdec.h"
 #include "core/pad.h"
+#include "core/pio-cart.h"
 #include "core/pcsxlua.h"
 #include "core/r3000a.h"
 #include "core/sio.h"
@@ -65,7 +66,8 @@ PCSX::Emulator::Emulator()
       m_spu(new PCSX::SPU::impl()),
       m_pads(new PCSX::Pads()),
       m_lua(new PCSX::Lua()),
-      m_callStacks(new PCSX::CallStacks) {}
+      m_callStacks(new PCSX::CallStacks),
+      m_pioCart(new PCSX::PIOCart) {}
 
 void PCSX::Emulator::setLua() {
     auto L = *m_lua;

@@ -85,7 +85,7 @@ class Lua {
 
     void call(std::string_view funcName, int tableIdx = LUA_GLOBALSINDEX, int nArgs = 0);
     void call(int nArgs = 0);
-    void pcall(int nArgs = 0);
+    int pcall(int nArgs = 0);
 
     void push() {
         checkstack();
