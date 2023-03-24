@@ -101,6 +101,18 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
+    typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
+    typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
+    typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
+    typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
+    typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
+    typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
+    typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
+    typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
+    typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
+    typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
+    typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
+    typedef Setting<bool, TYPESTRING("ShowPIOCartConfig"), false> ShowPIOCartConfig;
     typedef Setting<bool, TYPESTRING("ShowMemoryEditor1")> ShowMemoryEditor1;
     typedef Setting<bool, TYPESTRING("ShowMemoryEditor2")> ShowMemoryEditor2;
     typedef Setting<bool, TYPESTRING("ShowMemoryEditor3")> ShowMemoryEditor3;
@@ -127,32 +139,18 @@ class GUI final {
     typedef Setting<size_t, TYPESTRING("HWRegsEditorAddr"), 0> HWRegsEditorAddr;
     typedef Setting<size_t, TYPESTRING("BiosEditorAddr"), 0> BiosEditorAddr;
     typedef Setting<size_t, TYPESTRING("VRAMEditorAddr"), 0> VRAMEditorAddr;
-    typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
-    typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
-    typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
-    typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
-    typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
-    typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
-    typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
-    typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
-    typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
-    typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
-    typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
-    typedef Setting<bool, TYPESTRING("ShowPIOCartConfig"), false> ShowPIOCartConfig;
-    Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
+     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
-             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowMemoryEditor1, ShowMemoryEditor2,
-             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
-             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
-             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
-             MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
-             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowIsoBrowser, MainFontSize,
-             MonoFontSize, GUITheme, EnableRawMouseMotion, WidescreenRatio>
              ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, MainFontSize, MonoFontSize,
-             GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig>
+             GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6,
+             ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
+             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr,
+             MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
         settings;
+
+
 
     // imgui can't handle more than one "instance", so...
     static GUI *s_gui;

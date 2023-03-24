@@ -418,7 +418,7 @@ void MemoryEditor::DrawOptionsLine(const Sizes& s, void* mem_data, size_t mem_si
 
     // Clear Input Address and reset to beginning of address space
     ImGui::SameLine();
-    if (ImGui::Button("Reset")) {
+    if (ImGui::Button("Clear Input")) {
                 AddrInputBuf.clear();
                 GotoAddr = 0;
                 OffsetAddr = 0;
