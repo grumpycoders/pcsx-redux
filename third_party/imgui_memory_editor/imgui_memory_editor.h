@@ -98,7 +98,7 @@ private:
     size_t          HighlightMin, HighlightMax;
     int             PreviewEndianess;
     bool            RestoreOffset;
-    size_t          BaseAddr;
+    const size_t    BaseAddr;
 
 public:
     ImGuiDataType   PreviewDataType;

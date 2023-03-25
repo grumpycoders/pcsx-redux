@@ -44,7 +44,7 @@ MemoryEditor::MemoryEditor(bool& show, size_t base_addr, size_t &goto_addr) : Op
 	HighlightMin = HighlightMax = (size_t)-1;
 	PreviewEndianess = 0;
 	PreviewDataType = ImGuiDataType_S32;
-    RestoreOffset = true;
+        RestoreOffset = true;
 }
 
 void MemoryEditor::GotoAddrAndHighlight(size_t addr_min, size_t addr_max)

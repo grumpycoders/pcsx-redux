@@ -343,10 +343,9 @@ class GUI final {
         }
         bool &m_show;
         size_t &m_offsetAddr;
-        size_t m_baseAddr;
+        const size_t m_baseAddr;
         MemoryEditor editor{m_show, m_baseAddr, m_offsetAddr};
         std::function<const char *()> title;
-        // bool &show = editor.Open;
 
         void MenuItem() { ImGui::MenuItem(title(), nullptr, &m_show); }
         void draw(void *mem, size_t size) { editor.DrawWindow(title(), mem, size); }
