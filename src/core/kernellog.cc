@@ -64,51 +64,36 @@ static const char *psxerrnoToString(uint32_t ferrno) {
     return errnoStrs[ferrno];
 }
 
-static std::string deviceToString(uint32_t *device) {
-    uint32_t name = device[0];
-    uint32_t flags = device[1];
-    uint32_t blockSize = device[2];
-    uint32_t desc = device[3];
-
-    name = SWAP_LE32(name);
-    flags = SWAP_LE32(flags);
-    blockSize = SWAP_LE32(blockSize);
-    desc = SWAP_LE32(desc);
+static std::string deviceToString(PCSX::IO<PCSX::File> device) {
+    uint32_t name = device->read<uint32_t>();
+    uint32_t flags = device->read<uint32_t>();
+    uint32_t blockSize = device->read<uint32_t>();
+    uint32_t desc = device->read<uint32_t>();
 
     std::string ret = "";
-    ret += fmt::sprintf(".name = 0x%08x:\"%s\" ", name, PSXS(name));
+    device->rSeek(name);
+    ret += fmt::sprintf(".name = 0x%08x:\"%s\" ", name, device->gets<false>());
     ret += fmt::sprintf(".flags = 0x%02x:{%s} ", flags, deviceFlagsToString(flags));
     ret += fmt::sprintf(".blockSize = %i ", blockSize);
-    ret += fmt::sprintf(".desc = 0x%08x:\"%s\" ", desc, PSXS(desc));
+    device->rSeek(desc);
+    ret += fmt::sprintf(".desc = 0x%08x:\"%s\" ", desc, device->gets<false>());
     return ret;
 }
 
-static std::string fileToString(uint32_t *file) {
-    uint32_t flags = file[0];
-    uint32_t deviceId = file[1];
-    uint32_t buffer = file[2];
-    uint32_t count = file[3];
-    uint32_t offset = file[4];
-    uint32_t deviceFlags = file[5];
-    uint32_t ferrno = file[6];
-    uint32_t device = file[7];
-    uint32_t length = file[8];
-    uint32_t lba = file[9];
-    uint32_t fd = file[10];
+static std::string fileToString(PCSX::IO<PCSX::File> file) {
+    uint32_t flags = file->read<uint32_t>();
+    uint32_t deviceId = file->read<uint32_t>();
+    uint32_t buffer = file->read<uint32_t>();
+    uint32_t count = file->read<uint32_t>();
+    uint32_t offset = file->read<uint32_t>();
+    uint32_t deviceFlags = file->read<uint32_t>();
+    uint32_t ferrno = file->read<uint32_t>();
+    uint32_t device = file->read<uint32_t>();
+    uint32_t length = file->read<uint32_t>();
+    uint32_t lba = file->read<uint32_t>();
+    uint32_t fd = file->read<uint32_t>();
 
     std::string ret = "";
-
-    flags = SWAP_LE32(flags);
-    deviceId = SWAP_LE32(deviceId);
-    buffer = SWAP_LE32(buffer);
-    count = SWAP_LE32(count);
-    offset = SWAP_LE32(offset);
-    deviceFlags = SWAP_LE32(deviceFlags);
-    ferrno = SWAP_LE32(ferrno);
-    device = SWAP_LE32(device);
-    length = SWAP_LE32(length);
-    lba = SWAP_LE32(lba);
-    fd = SWAP_LE32(fd);
 
     ret += fmt::sprintf(".flags = %i:{%s} ", flags, fileFlagsToString(flags));
     ret += fmt::sprintf(".deviceId = %i ", deviceId);
@@ -117,7 +102,8 @@ static std::string fileToString(uint32_t *file) {
     ret += fmt::sprintf(".offset = %i ", offset);
     ret += fmt::sprintf(".deviceFlags = %02x:{%s} ", deviceFlags, deviceFlagsToString(deviceFlags));
     ret += fmt::sprintf(".errno = %i:%s ", ferrno, psxerrnoToString(ferrno));
-    ret += fmt::sprintf(".device = 0x%08x:{%s} ", device, deviceToString((uint32_t *)PSXM(device)));
+    file->rSeek(device);
+    ret += fmt::sprintf(".device = 0x%08x:{%s} ", device, deviceToString(file));
     ret += fmt::sprintf(".length = %i ", length);
     ret += fmt::sprintf(".lba = %i ", lba);
     ret += fmt::sprintf(".fd = %i ", fd);
@@ -211,10 +197,15 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
     const char *const name = Kernel::getA0name(call);
     if (name) g_system->log(LogClass::KERNEL, "KernelCall A0:%02X:%s(", call, name);
 
+    IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+    memFile->rSeek(n.a0);
+    auto s0 = memFile->gets<false>();
+    memFile->rSeek(n.a1);
+    auto s1 = memFile->gets<false>();
+
     switch (call) {
         case 0x00: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%04x {%s})", n.a0, PSXS(n.a0), n.a1,
-                          fileFlagsToString(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%04x {%s})", n.a0, s0, n.a1, fileFlagsToString(n.a1));
             break;
         }
         case 0x01: {
@@ -258,11 +249,11 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0x0c: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\",  0x%08x, %i)", n.a0, PSXS(n.a0), n.a1, n.a2);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\",  0x%08x, %i)", n.a0, s0, n.a1, n.a2);
             break;
         }
         case 0x0d: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\",  0x%08x, %i)", n.a0, PSXS(n.a0), n.a1, n.a2);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\",  0x%08x, %i)", n.a0, s0, n.a1, n.a2);
             break;
         }
         case 0x0e: {
@@ -274,15 +265,15 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0x10: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x11: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x12: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x)", n.a0, PSXS(n.a0), n.a1);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x)", n.a0, s0, n.a1);
             break;
         }
         case 0x13: {
@@ -294,69 +285,67 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0x15: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, s0, n.a1, s1);
             break;
         }
         case 0x16: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\", %i)", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1),
-                          n.a2);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\", %i)", n.a0, s0, n.a1, s1, n.a2);
             break;
         }
         case 0x17: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, s0, n.a1, s1);
             break;
         }
         case 0x18: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\", %i)", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1),
-                          n.a2);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\", %i)", n.a0, s0, n.a1, s1, n.a2);
             break;
         }
         case 0x19: {
-            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x:\"%s\")", n.a0, n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x:\"%s\")", n.a0, n.a1, s1);
             break;
         }
         case 0x1a: {
-            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x:\"%s\", %i)", n.a0, n.a1, PSXS(n.a1), n.a2);
+            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x:\"%s\", %i)", n.a0, n.a1, s1, n.a2);
             break;
         }
         case 0x1b: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x1c: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", '%c')", n.a0, PSXS(n.a0), n.a1);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", '%c')", n.a0, s0, n.a1);
             break;
         }
         case 0x1d: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", '%c')", n.a0, PSXS(n.a0), n.a1);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", '%c')", n.a0, s0, n.a1);
             break;
         }
         case 0x1e: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", '%c')", n.a0, PSXS(n.a0), n.a1);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", '%c')", n.a0, s0, n.a1);
             break;
         }
         case 0x1f: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", '%c')", n.a0, PSXS(n.a0), n.a1);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", '%c')", n.a0, s0, n.a1);
             break;
         }
         case 0x20: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, s0, n.a1, s1);
             break;
         }
         case 0x21: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, s0, n.a1, s1);
             break;
         }
         case 0x22: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, s0, n.a1, s1);
             break;
         }
         case 0x23: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, s0, n.a1, s1);
             break;
         }
         case 0x24: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, s0, n.a1, s1);
             break;
         }
         case 0x25: {
@@ -424,13 +413,13 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0x35: {
-            uint32_t cmp = *(uint32_t *)PSXM(n.sp + 0x10);
-            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x, %i, %i, 0x%08x)", n.a0, n.a1, n.a2, n.a3, SWAP_LE32(cmp));
+            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x, %i, %i, 0x%08x)", n.a0, n.a1, n.a2, n.a3,
+                          memFile->readAt<uint32_t>(n.sp + 0x10));
             break;
         }
         case 0x36: {
-            uint32_t cmp = *(uint32_t *)PSXM(n.sp + 0x10);
-            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x, %i, %i, 0x%08x)", n.a0, n.a1, n.a2, n.a3, SWAP_LE32(cmp));
+            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x, %i, %i, 0x%08x)", n.a0, n.a1, n.a2, n.a3,
+                          memFile->readAt<uint32_t>(n.sp + 0x10));
             break;
         }
         case 0x37: {
@@ -462,29 +451,28 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0x3e: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x3f: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", ...)", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", ...)", n.a0, s0);
             break;
         }
         case 0x40: {
-            g_system->log(LogClass::KERNEL, ")", PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, ")", s0);
             break;
         }
         case 0x41: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x)", n.a0, PSXS(n.a0), n.a1);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x)", n.a0, s0, n.a1);
             break;
         }
         case 0x42: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x)", n.a0, PSXS(n.a0), n.a1);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x)", n.a0, s0, n.a1);
             break;
         }
         case 0x43: {
-            uint32_t *header = (uint32_t *)PSXM(n.a0);
-            uint32_t newPc = *header;
-            g_system->log(LogClass::KERNEL, "0x%08x {.pc = 0x%08x}, %i, 0x%08x)", n.a0, SWAP_LE32(newPc), n.a1, n.a2);
+            uint32_t newPc = memFile->readAt<uint32_t>(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {.pc = 0x%08x}, %i, 0x%08x)", n.a0, newPc, n.a1, n.a2);
             break;
         }
         case 0x44: {
@@ -496,13 +484,13 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0x46: {
-            uint32_t src = *(uint32_t *)PSXM(n.sp + 0x10);
-            g_system->log(LogClass::KERNEL, "%i, %i, %i, %i, 0x%08x)", n.a0, n.a1, n.a2, n.a3, SWAP_LE32(src));
+            g_system->log(LogClass::KERNEL, "%i, %i, %i, %i, 0x%08x)", n.a0, n.a1, n.a2, n.a3,
+                          memFile->readAt<uint32_t>(n.sp + 0x10));
             break;
         }
         case 0x47: {
-            uint32_t src = *(uint32_t *)PSXM(n.sp + 0x10);
-            g_system->log(LogClass::KERNEL, "%i, %i, %i, %i, 0x%08x)", n.a0, n.a1, n.a2, n.a3, SWAP_LE32(src));
+            g_system->log(LogClass::KERNEL, "%i, %i, %i, %i, 0x%08x)", n.a0, n.a1, n.a2, n.a3,
+                          memFile->readAt<uint32_t>(n.sp + 0x10));
             break;
         }
         case 0x48: {
@@ -534,7 +522,7 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0x51: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x, 0x%08x)", n.a0, PSXS(n.a0), n.a1, n.a2);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x, 0x%08x)", n.a0, s0, n.a1, n.a2);
             break;
         }
         case 0x54: {
@@ -554,89 +542,89 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0x5c: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x:\"%s\", 0x%04x {%s})", n.a0, fileToString(file), n.a1,
-                          PSXS(n.a1), n.a2, fileFlagsToString(n.a2));
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x:\"%s\", 0x%04x {%s})", n.a0, fileToString(memFile),
+                          n.a1, s1, n.a2, fileFlagsToString(n.a2));
             break;
         }
         case 0x5d: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, %i {%s})", n.a0, fileToString(file), n.a1,
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, %i {%s})", n.a0, fileToString(memFile), n.a1,
                           fileActionToString(n.a1));
             break;
         }
         case 0x5e: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, %i, %i)", n.a0, fileToString(file), n.a1, n.a2);
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, %i, %i)", n.a0, fileToString(memFile), n.a1, n.a2);
             break;
         }
         case 0x5f: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x:\"%s\", 0x%04x {%s})", n.a0, fileToString(file), n.a1,
-                          PSXS(n.a1), n.a2, fileFlagsToString(n.a2));
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x:\"%s\", 0x%04x {%s})", n.a0, fileToString(memFile),
+                          n.a1, s1, n.a2, fileFlagsToString(n.a2));
             break;
         }
         case 0x60: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x, %i)", n.a0, fileToString(file), n.a1, n.a2);
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x, %i)", n.a0, fileToString(memFile), n.a1, n.a2);
             break;
         }
         case 0x61: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, fileToString(file));
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, fileToString(memFile));
             break;
         }
         case 0x62: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, %08x:\"%s\", 0x%08x)", n.a0, fileToString(file), n.a1,
-                          PSXS(n.a1), n.a2);
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, %08x:\"%s\", 0x%08x)", n.a0, fileToString(memFile), n.a1, s1,
+                          n.a2);
             break;
         }
         case 0x63: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x)", n.a0, fileToString(file), n.a1);
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x)", n.a0, fileToString(memFile), n.a1);
             break;
         }
         case 0x64: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x:\"%s\")", n.a0, fileToString(file), n.a1, PSXS(n.a1));
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x:\"%s\")", n.a0, fileToString(memFile), n.a1, s1);
             break;
         }
         case 0x65: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x:\"%s\", 0x%04x {%s})", n.a0, fileToString(file), n.a1,
-                          PSXS(n.a1), n.a2, fileFlagsToString(n.a2));
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x:\"%s\", 0x%04x {%s})", n.a0, fileToString(memFile),
+                          n.a1, s1, n.a2, fileFlagsToString(n.a2));
             break;
         }
         case 0x66: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x, %i)", n.a0, fileToString(file), n.a1, n.a2);
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x, %i)", n.a0, fileToString(memFile), n.a1, n.a2);
             break;
         }
         case 0x67: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x, %i)", n.a0, fileToString(file), n.a1, n.a2);
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x, %i)", n.a0, fileToString(memFile), n.a1, n.a2);
             break;
         }
         case 0x68: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, fileToString(file));
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, fileToString(memFile));
             break;
         }
         case 0x69: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, %08x:\"%s\", 0x%08x)", n.a0, fileToString(file), n.a1,
-                          PSXS(n.a1), n.a2);
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, %08x:\"%s\", 0x%08x)", n.a0, fileToString(memFile), n.a1, s1,
+                          n.a2);
             break;
         }
         case 0x6a: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x)", n.a0, fileToString(file), n.a1);
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s}, 0x%08x)", n.a0, fileToString(memFile), n.a1);
             break;
         }
         case 0x6f: {
-            uint32_t *file = (uint32_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, fileToString(file));
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, fileToString(memFile));
             break;
         }
         case 0x70: {
@@ -652,8 +640,10 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0x78: {
-            uint8_t *msf = (uint8_t *)PSXM(n.a0);
-            g_system->log(LogClass::KERNEL, "0x%08x {%02x:%02x:%02x})", n.a0, msf[0], msf[1], msf[2]);
+            uint8_t m = memFile->readAt<uint8_t>(n.a0);
+            uint8_t s = memFile->readAt<uint8_t>(n.a0 + 1);
+            uint8_t f = memFile->readAt<uint8_t>(n.a0 + 2);
+            g_system->log(LogClass::KERNEL, "0x%08x {%02x:%02x:%02x})", n.a0, m, s, f);
             break;
         }
         case 0x7c: {
@@ -741,7 +731,7 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
             break;
         }
         case 0xa4: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0xa5: {
@@ -855,6 +845,11 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
     auto &n = m_regs.GPR.n;
     const char *const name = Kernel::getB0name(call);
     if (name) g_system->log(LogClass::KERNEL, "KernelCall B0:%02X:%s(", call, name);
+    IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+    memFile->rSeek(n.a0);
+    auto s0 = memFile->gets<false>();
+    memFile->rSeek(n.a1);
+    auto s1 = memFile->gets<false>();
 
     switch (call) {
         case 0x00: {
@@ -891,7 +886,7 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x08: {
-            int id = Kernel::Events::getFirstFreeEvent(reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_wram));
+            int id = Kernel::Events::getFirstFreeEvent(memFile);
             g_system->log(LogClass::KERNEL, "%s, %s, %s, 0x%08x) --> 0x%08x",
                           Kernel::Events::Event::resolveClass(n.a0).c_str(),
                           Kernel::Events::Event::resolveSpec(n.a1).c_str(),
@@ -899,27 +894,27 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x09: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_wram), n.a0};
+            Kernel::Events::Event ev{memFile, n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0a: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_wram), n.a0};
+            Kernel::Events::Event ev{memFile, n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0b: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_wram), n.a0};
+            Kernel::Events::Event ev{memFile, n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0c: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_wram), n.a0};
+            Kernel::Events::Event ev{memFile, n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
         case 0x0d: {
-            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_mem->m_wram), n.a0};
+            Kernel::Events::Event ev{memFile, n.a0};
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
@@ -964,10 +959,9 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x19: {
-            uint32_t *jmpBuf = (uint32_t *)PSXM(n.a0);
-            uint32_t ra = jmpBuf[0];
-            uint32_t sp = jmpBuf[1];
-            g_system->log(LogClass::KERNEL, "0x%08x {.ra = 0x%08x, .sp = 0x%08x})", n.a0, SWAP_LE32(ra), SWAP_LE32(sp));
+            uint32_t ra = memFile->readAt<uint32_t>(n.a0);
+            uint32_t sp = memFile->readAt<uint32_t>(n.a0 + 4);
+            g_system->log(LogClass::KERNEL, "0x%08x {.ra = 0x%08x, .sp = 0x%08x})", n.a0, ra, sp);
             break;
         }
         case 0x20: {
@@ -976,8 +970,7 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x32: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%04x {%s})", n.a0, PSXS(n.a0), n.a1,
-                          fileFlagsToString(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%04x {%s})", n.a0, s0, n.a1, fileFlagsToString(n.a1));
             break;
         }
         case 0x33: {
@@ -1029,19 +1022,19 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x3f: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x40: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x41: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x42: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x)", n.a0, PSXS(n.a0), n.a1);
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x)", n.a0, s0, n.a1);
             break;
         }
         case 0x43: {
@@ -1049,23 +1042,24 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x44: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, s0, n.a1, s1);
             break;
         }
         case 0x45: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x46: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x47: {
-            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, deviceToString((uint32_t *)PSXM(n.a0)));
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, deviceToString(memFile));
             break;
         }
         case 0x48: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x49: {
@@ -1113,7 +1107,8 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x55: {
-            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, fileToString((uint32_t *)PSXM(n.a0)));
+            memFile->rSeek(n.a0);
+            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, fileToString(memFile));
             break;
         }
         case 0x56: {
@@ -1129,7 +1124,7 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             break;
         }
         case 0x59: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, s0);
             break;
         }
         case 0x5b: {
@@ -1176,6 +1171,11 @@ void PCSX::R3000Acpu::logC0KernelCall(uint32_t call) {
     auto &n = m_regs.GPR.n;
     const char *const name = Kernel::getC0name(call);
     if (name) g_system->log(LogClass::KERNEL, "KernelCall C0:%02X:%s(", call, name);
+    IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+    memFile->rSeek(n.a0);
+    auto s0 = memFile->gets<false>();
+    memFile->rSeek(n.a1);
+    auto s1 = memFile->gets<false>();
 
     switch (call) {
         case 0x00: {
@@ -1243,7 +1243,7 @@ void PCSX::R3000Acpu::logC0KernelCall(uint32_t call) {
             break;
         }
         case 0x17: {
-            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x:\"%s\")", n.a0, n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x:\"%s\")", n.a0, n.a1, s1);
             break;
         }
         case 0x18: {
@@ -1251,7 +1251,7 @@ void PCSX::R3000Acpu::logC0KernelCall(uint32_t call) {
             break;
         }
         case 0x19: {
-            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, s0, n.a1, s1);
             break;
         }
         case 0x1a: {

@@ -47,7 +47,7 @@ void PCSX::SIO::init() {
     reset();
     togglePocketstationMode();
     g_emulator->m_pads->init();
-    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+    g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 }
 
 bool PCSX::SIO::isReceiveIRQReady() {
@@ -108,7 +108,7 @@ void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
         case PAD_STATE_IDLE:                                // start pad
             m_regs.status |= StatusFlags::RX_FIFONOTEMPTY;  // Transfer is Ready
-            psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+            g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 
             switch (m_regs.control & ControlFlags::WHICH_PORT) {
                 case SelectedPort::Port1:
@@ -180,7 +180,7 @@ void PCSX::SIO::writePad(uint8_t value) {
 
 void PCSX::SIO::transmitData() {
     m_regs.status &= ~StatusFlags::TX_FINISHED;
-    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+    g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 
     uint8_t m_rxBuffer = 0xff;
 
@@ -241,13 +241,13 @@ void PCSX::SIO::transmitData() {
     m_rxFIFO.push(m_rxBuffer);
     updateFIFOStatus();
     m_regs.data = m_rxBuffer;
-    psxHu8ref(0x1040) = m_rxBuffer;
+    g_emulator->m_mem->writeHardwareRegister<0x1040, uint8_t>(m_rxBuffer);
 
     if (isReceiveIRQReady() && !(m_regs.status & StatusFlags::IRQ)) {
         scheduleInterrupt(SIO_CYCLES);
     }
     m_regs.status |= StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
-    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+    g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 }
 
 void PCSX::SIO::write8(uint8_t value) {
@@ -255,7 +255,7 @@ void PCSX::SIO::write8(uint8_t value) {
 
     m_regs.data = value;
     m_regs.status &= ~StatusFlags::TX_DATACLEAR;
-    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+    g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 
     if (isTransmitReady()) {
         transmitData();
@@ -295,7 +295,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
 
         if (isReceiveIRQReady()) {
             m_regs.status |= StatusFlags::IRQ;
-            psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+            g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
         }
     }
 
@@ -306,7 +306,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_memoryCard[1].deselect();
         m_bufferIndex = 0;
         m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
-        psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+        g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
         m_currentDevice = DeviceType::None;
     }
@@ -315,7 +315,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
 
     if (m_regs.control & ControlFlags::TX_IRQEN) {
         m_regs.status |= StatusFlags::IRQ;
-        psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+        g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
     }
 
     if (wasReady == false && isTransmitReady()) {
@@ -337,7 +337,7 @@ uint8_t PCSX::SIO::read8() {
              m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
              m_buffer[m_bufferIndex < c_padBufferSize - 1 ? m_bufferIndex + 1 : c_padBufferSize - 1]);
 
-    psxHu8ref(0x1040) = ret;
+    g_emulator->m_mem->writeHardwareRegister<0x1040, uint8_t>(ret);
 
     return ret;
 }
@@ -351,8 +351,8 @@ uint16_t PCSX::SIO::readStatus16() {
 void PCSX::SIO::interrupt() {
     SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
     m_regs.status |= StatusFlags::IRQ;
-    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
-    psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
+    g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
+    g_emulator->m_mem->setIRQ(0x80);
 
 #if 0
     // Rhapsody: fixes input problems
@@ -671,5 +671,5 @@ void PCSX::SIO::updateFIFOStatus() {
     } else {
         m_regs.status &= ~StatusFlags::RX_FIFONOTEMPTY;
     }
-    psxHu32ref(0x1044) = SWAP_LEu32(m_regs.status);
+    g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 }

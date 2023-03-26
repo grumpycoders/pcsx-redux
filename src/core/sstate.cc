@@ -53,8 +53,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             Code { g_emulator->m_cpu->m_regs.code },
             Cycle { g_emulator->m_cpu->m_regs.cycle },
             Interrupt { g_emulator->m_cpu->m_regs.interrupt },
-            ICacheAddr { g_emulator->m_cpu->m_regs.ICache_Addr },
-            ICacheCode { g_emulator->m_cpu->m_regs.ICache_Code },
+            ICacheAddr { g_emulator->m_cpu->m_regs.iCacheAddr },
+            ICacheCode { g_emulator->m_cpu->m_regs.iCacheCode },
             NextIsDelaySlot { g_emulator->m_cpu->m_nextIsDelaySlot },
             DelaySlotInfo1 {
                 DelaySlotIndex { g_emulator->m_cpu->m_delayedLoadInfo[0].index },

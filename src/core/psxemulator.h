@@ -65,7 +65,6 @@ namespace PCSX {
 
 class CallStacks;
 class CDRom;
-class Cheats;
 class Counters;
 class Debug;
 class GdbServer;
@@ -186,8 +185,6 @@ class Emulator {
     typedef SettingPath<TYPESTRING("EXP1Filepath")> SettingEXP1Filepath;
     typedef SettingPath<TYPESTRING("EXP1BrowsePath")> SettingEXP1BrowsePath;
     typedef Setting<bool, TYPESTRING("PIOConnected")> SettingPIOConnected;
-    
-    
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
@@ -195,7 +192,8 @@ class Emulator {
              SettingMcd2Inserted, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither, SettingGLErrorReporting,
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
-             SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath, SettingPIOConnected>
+             SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
+             SettingPIOConnected>
         settings;
     class PcsxConfig {
       public:
@@ -241,7 +239,6 @@ class Emulator {
 
     std::unique_ptr<CallStacks> m_callStacks;
     std::unique_ptr<CDRom> m_cdrom;
-    std::unique_ptr<Cheats> m_cheats;
     std::unique_ptr<Counters> m_counters;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;

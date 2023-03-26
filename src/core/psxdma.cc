@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,31 +17,24 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-/*
- * Handles PSX DMA functions.
- */
-
 #include "core/psxdma.h"
 
 #include "core/debug.h"
 #include "spu/interface.h"
 
-// Dma0/1 in Mdec.c
-// Dma3   in CdRom.c
-
 void spuInterrupt() {
-    HW_DMA4_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT<4>();
+    auto &mem = PCSX::g_emulator->m_mem;
+    mem->clearDMABusy<4>();
+    mem->dmaInterrupt<4>();
 }
 
 void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
-    uint16_t *ptr;
+    uint16_t *ptr = PCSX::g_emulator->m_mem->getPointer<uint16_t>(madr);
     uint32_t size;
 
     switch (chcr) {
         case 0x01000201:  // cpu to spu transfer
             PSXDMA_LOG("*** DMA4 SPU - mem2spu *** %x addr = %x size = %x\n", chcr, madr, bcr);
-            ptr = (uint16_t *)PSXM(madr);
             if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA4 SPU - mem2spu *** NULL Pointer!!!\n");
                 break;
@@ -62,7 +55,6 @@ void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
 
         case 0x01000200:  // spu to cpu transfer
             PSXDMA_LOG("*** DMA4 SPU - spu2mem *** %x addr = %x size = %x\n", chcr, madr, bcr);
-            ptr = (uint16_t *)PSXM(madr);
             if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA4 SPU - spu2mem *** NULL Pointer!!!\n");
                 break;
@@ -88,21 +80,19 @@ void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
             break;
     }
 
-    HW_DMA4_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT<4>();
+    spuInterrupt();
 }
 
 void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     uint32_t size;
-    uint32_t *mem = (uint32_t *)PSXM(madr);
+    uint32_t *mem = PCSX::g_emulator->m_mem->getPointer<uint32_t>(madr);
 
     PSXDMA_LOG("*** DMA6 OT *** %x addr = %x size = %x\n", chcr, madr, bcr);
 
     if (chcr == 0x11000002) {
         if (mem == nullptr) {
             PSXDMA_LOG("*** DMA6 OT *** NULL Pointer!!!\n");
-            HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
-            DMA_INTERRUPT<6>();
+            gpuotcInterrupt();
             return;
         }
 
@@ -132,11 +122,11 @@ void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         PSXDMA_LOG("*** DMA6 OT - unknown *** %x addr = %x size = %x\n", chcr, madr, bcr);
     }
 
-    HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT<6>();
+    gpuotcInterrupt();
 }
 
 void gpuotcInterrupt() {
-    HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT<6>();
+    auto &mem = PCSX::g_emulator->m_mem;
+    mem->clearDMABusy<6>();
+    mem->dmaInterrupt<6>();
 }

@@ -329,16 +329,16 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), instructionAddress)
                                                            : fmt::format(f_("Disable##{}"), instructionAddress);
                 if (ImGui::Button(toggleButtonName.c_str())) {
-                    auto* instructionMem = PSXM(instructionAddress & 0xffffff);
+                    IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
                     if (functionToggledOff) {
-                        memcpy(instructionMem, m_disabledInstructions[instructionAddress].data(), 4);
+                        memFile->writeAt(m_disabledInstructions[instructionAddress].data(), 4, instructionAddress);
                         m_disabledInstructions.erase(instructionAddress);
                     } else {
                         uint8_t instructions[4];
-                        memcpy(instructions, instructionMem, 4);
+                        memFile->readAt(instructions, 4, instructionAddress);
                         m_disabledInstructions[instructionAddress] = std::to_array(instructions);
                         constexpr uint32_t nop = Mips::Encoder::nop();
-                        memcpy(instructionMem, &nop, 4);
+                        memFile->writeAt(&nop, 4, instructionAddress);
                     }
                 }
                 ImGui::TableNextColumn();  // New value.
@@ -625,9 +625,9 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     if (m_functions.empty()) {
         ImGui::TextWrapped(
             _("Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate "
-            "a redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
-            "address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples "
-            "whose elements are separated by commas.\n\nFor example:\n"));
+              "a redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
+              "address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples "
+              "whose elements are separated by commas.\n\nFor example:\n"));
         gui->useMonoFont();
         ImGui::TextUnformatted("800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n\n");
         ImGui::PopFont();
@@ -1005,17 +1005,17 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                         auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), row)
                                                                    : fmt::format(f_("Disable##{}"), row);
                         if (ImGui::Button(toggleButtonName.c_str())) {
-                            auto* functionMem = PSXM(currentAddress & 0xffffff);
+                            IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
                             if (functionToggledOff) {
-                                memcpy(functionMem, m_disabledFunctions[currentAddress].data(), 8);
+                                memFile->writeAt(m_disabledFunctions[currentAddress].data(), 8, currentAddress);
                                 m_disabledFunctions.erase(currentAddress);
                             } else {
                                 uint8_t instructions[8];
-                                memcpy(instructions, functionMem, 8);
+                                memFile->readAt(instructions, 8, currentAddress);
                                 m_disabledFunctions[currentAddress] = std::to_array(instructions);
                                 using namespace Mips::Encoder;
                                 constexpr uint32_t jr_ra[2] = {jr(Reg::RA), nop()};
-                                memcpy(functionMem, jr_ra, 8);
+                                memFile->writeAt(jr_ra, 8, currentAddress);
                             }
                         }
                     }

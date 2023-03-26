@@ -33,14 +33,14 @@ namespace PCSX {
 
 class GTE {
   public:
-    uint32_t MFC2() {
+    uint32_t MFC2(uint32_t code) {
         // CPU[Rt] = GTE_D[Rd]
         return MFC2_internal(_Rd_);
     }
 
     uint32_t MFC2(int reg) { return MFC2_internal(reg); }
 
-    uint32_t CFC2() {
+    uint32_t CFC2(uint32_t code) {
         // CPU[Rt] = GTE_C[Rd]
         return PCSX::g_emulator->m_cpu->m_regs.CP2C.p[_Rd_].d;
     }

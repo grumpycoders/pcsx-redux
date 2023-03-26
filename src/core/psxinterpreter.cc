@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -1076,13 +1076,13 @@ void InterpretedCPU::psxCTC0(uint32_t code) { MTC0(_Rd_, _u32(_rRt_)); }
 void InterpretedCPU::psxMFC2(uint32_t code) {
     // load delay = 1 latency
     if (!_Rt_) return;
-    delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->MFC2();
+    delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->MFC2(code);
 }
 
 void InterpretedCPU::psxCFC2(uint32_t code) {
     // load delay = 1 latency
     if (!_Rt_) return;
-    delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->CFC2();
+    delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->CFC2(code);
 }
 
 /*********************************************************
@@ -1596,19 +1596,17 @@ inline void InterpretedCPU::execBlock() {
         }
         // TODO: throw an exception here if pc is out of range
         const uint32_t pc = m_regs.pc;
-        uint32_t code;
         // TODO: throw an exception here if we don't have a pointer
-        auto getCode = [this](uint32_t pc) {
-            uint32_t *codePtr = Read_ICache(pc);
-            return codePtr ? SWAP_LE32(*codePtr) : 0;
-        };
-        code = getCode(pc);
+        uint32_t code = readICache(pc);
 
         m_regs.code = code;
 
         if constexpr (trace) {
+            uint32_t istat = *(uint32_t *)&PCSX::g_emulator->m_mem->m_hard[0x1070];
+            uint32_t imask = *(uint32_t *)&PCSX::g_emulator->m_mem->m_hard[0x1074];
+            std::string irqs = fmt::format("{:08x} {:08x}] ", istat, imask);
             std::string ins = PCSX::Disasm::asString(code, 0, pc, nullptr, true);
-            PCSX::g_system->log(PCSX::LogClass::CPU, "%s\n", ins.c_str());
+            PCSX::g_system->log(PCSX::LogClass::CPU, "%s%s\n", irqs, ins);
         }
 
         m_regs.pc += 4;
@@ -1641,7 +1639,7 @@ inline void InterpretedCPU::execBlock() {
         }
         if constexpr (debug) {
             uint32_t newPC = m_regs.pc;
-            uint32_t newCode = getCode(newPC);
+            uint32_t newCode = readICache(newPC);
             PCSX::g_emulator->m_debug->process(pc, newPC, code, newCode, fromLink);
         }
     } while (!ranDelaySlot && !debug);

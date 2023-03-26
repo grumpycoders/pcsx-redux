@@ -471,7 +471,8 @@ void PCSX::GUI::init() {
         g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
-        if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
+        if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
+            !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
                 [this](bool success) {
@@ -1253,7 +1254,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_luaEditor.draw(_("Lua Editor"), this);
     }
     if (m_events.m_show) {
-        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram), _("Kernel events"));
+        m_events.draw(g_emulator->m_mem->getMemoryAsFile(), _("Kernel events"));
     }
     if (m_handlers.m_show) {
         m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram), _("Kernel handlers"));
@@ -1429,7 +1430,8 @@ their TV set to match the aspect ratio of the game.)"));
         ImGui::End();
     }
 
-    if (!m_args.get<bool>("noupdate") && !g_system->getVersion().failed() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
+    if (!m_args.get<bool>("noupdate") && !g_system->getVersion().failed() &&
+        !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
         if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
 
@@ -1866,13 +1868,13 @@ See the wiki for details.)"));
     }
     ImGui::End();
 
-    { // Select BIOS Dialog
+    {  // Select BIOS Dialog
         auto& biospath = settings.get<Emulator::SettingBiosBrowsePath>();
         if (selectBiosDialog) {
             if (!biospath.empty()) {
                 m_selectBiosDialog.m_currentPath = biospath.value;
             }
-            
+
             m_selectBiosDialog.openDialog();
         }
         if (m_selectBiosDialog.draw()) {

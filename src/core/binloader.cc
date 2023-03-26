@@ -39,7 +39,7 @@ namespace PCSX {
 
 namespace {
 
-bool loadCPE(IO<File> file) {
+bool loadCPE(IO<File> file, IO<File> dest) {
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1455043) return false;
     auto& regs = g_emulator->m_cpu->m_regs;
@@ -56,12 +56,7 @@ bool loadCPE(IO<File> file) {
             case 1: {  // load
                 uint32_t addr = file->read<uint32_t>();
                 uint32_t size = file->read<uint32_t>();
-                uint8_t* ptr = PSXM(addr);
-                for (auto testaddr = addr; testaddr < addr + size; testaddr += 0x10000) {
-                    uint8_t* ptr = (uint8_t*)PSXM(testaddr);
-                    if (!ptr) throw std::runtime_error("Invalid loading address in CPE file");
-                }
-                file->read(ptr, size);
+                dest->writeAt(file->read(size), addr);
             } break;
             case 2: {
                 file->read<uint32_t>();
@@ -99,7 +94,6 @@ bool loadCPE(IO<File> file) {
         if (setRegister) {
             switch (reg) {
                 case 0x90: {
-                    if (!PSXM(value)) throw std::runtime_error("Invalid PC address in CPE file");
                     regs.pc = value;
                 } break;
             }
@@ -109,7 +103,7 @@ bool loadCPE(IO<File> file) {
     return true;
 }
 
-bool loadPSEXE(IO<File> file) {
+bool loadPSEXE(IO<File> file, IO<File> dest) {
     uint64_t magic = file->read<uint64_t>();
     if (magic != 0x45584520582d5350) return false;
 
@@ -119,15 +113,9 @@ bool loadPSEXE(IO<File> file) {
     file->read<uint32_t>();
 
     regs.pc = file->read<uint32_t>();
-    if (!PSXM(regs.pc)) throw std::runtime_error("Invalid PC address in PS-EXE file");
     file->read<uint32_t>();
     uint32_t addr = file->read<uint32_t>();
     uint32_t size = file->read<uint32_t>();
-    uint8_t* ptr = PSXM(addr);
-    for (auto testaddr = addr; testaddr < addr + size; testaddr += 0x10000) {
-        uint8_t* ptr = (uint8_t*)PSXM(testaddr);
-        if (!ptr) throw std::runtime_error("Invalid loading address in PS-EXE file");
-    }
     file->read<uint32_t>();
     file->read<uint32_t>();
     file->read<uint32_t>();
@@ -137,7 +125,7 @@ bool loadPSEXE(IO<File> file) {
     file->rSeek(0x71, SEEK_SET);
     uint8_t region = file->byte();
     file->rSeek(2048, SEEK_SET);
-    file->read(ptr, size);
+    dest->writeAt(file->read(size), addr);
     if (g_emulator->settings.get<Emulator::SettingAutoVideo>()) {  // autodetect system (pal or ntsc)
         switch (region) {
             case 'A':
@@ -152,7 +140,7 @@ bool loadPSEXE(IO<File> file) {
     return true;
 }
 
-bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
+bool loadPSF(IO<File> file, IO<File> dest, bool seenRefresh = false, unsigned depth = 0) {
     if (depth >= 10) return false;
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1465350) return false;
@@ -196,11 +184,11 @@ bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
     if (pairs.find("_lib") != pairs.end()) {
         std::filesystem::path subFilePath(file->filename());
         IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs["_lib"]));
-        if (!subFile->failed()) loadPSF(subFile, seenRefresh, depth++);
+        if (!subFile->failed()) loadPSF(subFile, dest, seenRefresh, depth++);
     }
 
     IO<File> psexe(new ZReader(zpsexe));
-    loadPSEXE(psexe);
+    loadPSEXE(psexe, dest);
 
     unsigned libNum = 2;
 
@@ -209,13 +197,13 @@ bool loadPSF(IO<File> file, bool seenRefresh = false, unsigned depth = 0) {
         if (pairs.find(libName) == pairs.end()) break;
         std::filesystem::path subFilePath(file->filename());
         IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs[libName]));
-        if (!subFile->failed()) loadPSF(subFile, seenRefresh, depth++);
+        if (!subFile->failed()) loadPSF(subFile, dest, seenRefresh, depth++);
     }
 
     return true;
 }
 
-bool loadELF(IO<File> file) {
+bool loadELF(IO<File> file, IO<File> dest) {
     using namespace ELFIO;
     elfio reader;
     FileIStream stream(file);
@@ -225,7 +213,6 @@ bool loadELF(IO<File> file) {
 
     auto& regs = g_emulator->m_cpu->m_regs;
     regs.pc = reader.get_entry();
-    if (!PSXM(regs.pc)) throw std::runtime_error("Invalid PC address in ELF file");
 
     Elf_Half sec_num = reader.sections.size();
     for (int i = 0; i < sec_num; i++) {
@@ -240,12 +227,7 @@ bool loadELF(IO<File> file) {
         auto size = psec->get_size();
         auto data = psec->get_data();
         auto addr = psec->get_address();
-        uint8_t* ptr = PSXM(addr);
-        for (auto testaddr = addr; testaddr < addr + size; testaddr += 0x10000) {
-            uint8_t* ptr = (uint8_t*)PSXM(testaddr);
-            if (!ptr) throw std::runtime_error("Invalid loading address in ELF file");
-        }
-        std::memcpy(ptr, data, size);
+        dest->writeAt(data, size, addr);
     }
 
     return true;
@@ -256,20 +238,22 @@ bool loadELF(IO<File> file) {
 }  // namespace PCSX
 
 bool PCSX::BinaryLoader::load(const std::filesystem::path& filename) {
+    IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+
     {
         IO<File> ny(new PosixFile(filename.parent_path() / "libps.exe"));
-        if (!ny->failed()) loadPSEXE(ny);
+        if (!ny->failed()) loadPSEXE(ny, memFile);
     }
 
     IO<File> file(new PosixFile(filename));
 
     if (file->failed()) return false;
-    if (loadCPE(file)) return true;
+    if (loadCPE(file, memFile)) return true;
     file->rSeek(0, SEEK_SET);
-    if (loadPSEXE(file)) return true;
+    if (loadPSEXE(file, memFile)) return true;
     file->rSeek(0, SEEK_SET);
-    if (loadPSF(file)) return true;
+    if (loadPSF(file, memFile)) return true;
     file->rSeek(0, SEEK_SET);
-    if (loadELF(file)) return true;
+    if (loadELF(file, memFile)) return true;
     return false;
 }
