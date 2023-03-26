@@ -176,6 +176,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     }
                     auto slice = static_cast<File*>(&*file)->read(regs.a2);
                     regs.v0 = 0;
+                    regs.v1 = slice.size();
                     memFile->writeAt(std::move(slice), regs.a3);
                     m_regs.pc += 4;
                     return;
