@@ -132,57 +132,57 @@ uint16_t PCSX::HW::read16(uint32_t add) {
 
     switch (hwadd) {
         case 0x1f801070: {
-            uint32_t istat = g_emulator->m_mem->readHardwareRegister<Memory::ISTAT>();
-            PSXHW_LOG("ISTAT 16bit read %x\n", istat);
-            return istat;
+            uint32_t hard = g_emulator->m_mem->readHardwareRegister<Memory::ISTAT>();
+            PSXHW_LOG("ISTAT 16bit read %x\n", hard);
+            return hard;
         }
         case 0x1f801074: {
-            uint32_t imask = g_emulator->m_mem->readHardwareRegister<Memory::IMASK>();
-            PSXHW_LOG("IMASK 16bit read %x\n", imask);
-            return imask;
+            uint32_t hard = g_emulator->m_mem->readHardwareRegister<Memory::IMASK>();
+            PSXHW_LOG("IMASK 16bit read %x\n", hard);
+            return hard;
         }
         case 0x1f801040:
             hard = g_emulator->m_sio->read8();
             hard |= g_emulator->m_sio->read8() << 8;
             SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
         case 0x1f801044:
             hard = g_emulator->m_sio->readStatus16();
             SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
         case 0x1f801048:
             hard = g_emulator->m_sio->readMode16();
             SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
         case 0x1f80104a:
             hard = g_emulator->m_sio->readCtrl16();
             SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
         case 0x1f80104e:
             hard = g_emulator->m_sio->readBaud16();
             SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
         case 0x1f801050:  // rx/tx data register
             hard = g_emulator->m_sio1->readData16();
             SIO1_LOG("SIO1.DATA read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
         case 0x1f801054:  // stat register
             hard = g_emulator->m_sio1->readStat16();
             // Log command below is overly spammy
             // SIO1_LOG("SIO1.STAT read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
         case 0x1f801058:  // mode register
             hard = g_emulator->m_sio1->readMode16();
             SIO1_LOG("SIO1.MODE read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
         case 0x1f80105a:  // control register
             hard = g_emulator->m_sio1->readCtrl16();
             SIO1_LOG("SIO1.CTRL read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
         case 0x1f80105e:  // baudrate register
             hard = g_emulator->m_sio1->readBaud16();
             SIO1_LOG("SIO1.BAUD read16 %x; ret = %x\n", add & 0xf, hard);
-            return hard;
+            break;
             /* Fixes Armored Core misdetecting the Link cable being detected.
              * We want to turn that thing off and force it to do local multiplayer instead.
              * Thanks Sony for the fix, they fixed it in their PS Classic fork.
@@ -195,39 +195,39 @@ uint16_t PCSX::HW::read16(uint32_t add) {
         case 0x1f801100:
             hard = g_emulator->m_counters->readCounter(0);
             PSXHW_LOG("T0 count read16: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801104:
             hard = g_emulator->m_counters->readMode(0);
             PSXHW_LOG("T0 mode read16: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801108:
             hard = g_emulator->m_counters->readTarget(0);
             PSXHW_LOG("T0 target read16: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801110:
             hard = g_emulator->m_counters->readCounter(1);
             PSXHW_LOG("T1 count read16: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801114:
             hard = g_emulator->m_counters->readMode(1);
             PSXHW_LOG("T1 mode read16: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801118:
             hard = g_emulator->m_counters->readTarget(1);
             PSXHW_LOG("T1 target read16: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801120:
             hard = g_emulator->m_counters->readCounter(2);
             PSXHW_LOG("T2 count read16: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801124:
             hard = g_emulator->m_counters->readMode(2);
             PSXHW_LOG("T2 mode read16: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801128:
             hard = g_emulator->m_counters->readTarget(2);
             PSXHW_LOG("T2 target read16: %x\n", hard);
-            return hard;
+            break;
 
             // case 0x1f802030: hard =   //int_2000????
             // case 0x1f802040: hard =//dip switches...??
@@ -250,6 +250,7 @@ uint16_t PCSX::HW::read16(uint32_t add) {
             return hard;
     }
 
+    uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[add & 0xffff];
     PSXHW_LOG("*Known 16bit read at address %x value %x\n", add, hard);
     return hard;
 }
@@ -260,9 +261,9 @@ uint32_t PCSX::HW::read32(uint32_t add) {
 
     switch (hwadd) {
         case 0x1f801008: {
-            uint32_t ret = g_emulator->m_mem->readHardwareRegister<0x1008>();
-            PSXHW_LOG("EXP1 delay/size read %x\n", ret);
-            return ret;
+            hard = g_emulator->m_mem->readHardwareRegister<0x1008>();
+            PSXHW_LOG("EXP1 delay/size read %x\n", hard);
+            return hard;
         }
         case 0x1f801040:
             hard = g_emulator->m_sio->read8();
@@ -270,39 +271,39 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             hard |= g_emulator->m_sio->read8() << 16;
             hard |= g_emulator->m_sio->read8() << 24;
             SIO0_LOG("sio read32 ;ret = %x\n", hard);
-            return hard;
+            break;
         case 0x1f801050:  // rx/tx data register
             hard = g_emulator->m_sio1->readData32();
             SIO1_LOG("SIO1.DATA read32 ;ret = %x\n", hard);
-            return hard;
+            break;
         case 0x1f801054:  // stat register
             hard = g_emulator->m_sio1->readStat32();
             // Log command below is overly spammy
             // SIO1_LOG("SIO1.STAT read32 ;ret = %x\n", hard);
-            return hard;
+            break;
         case 0x1f801060: {
-            uint32_t ret = g_emulator->m_mem->readHardwareRegister<0x1060>();
-            PSXHW_LOG("RAM size read %x\n", ret);
-            return ret;
+            hard = g_emulator->m_mem->readHardwareRegister<0x1060>();
+            PSXHW_LOG("RAM size read %x\n", hard);
+            return hard;
         }
         case 0x1f801070: {
-            uint32_t istat = g_emulator->m_mem->readHardwareRegister<Memory::ISTAT>();
-            PSXHW_LOG("ISTAT 32bit read %x\n", istat);
-            return istat;
+            hard = g_emulator->m_mem->readHardwareRegister<Memory::ISTAT>();
+            PSXHW_LOG("ISTAT 32bit read %x\n", hard);
+            return hard;
         }
         case 0x1f801074: {
-            uint32_t imask = g_emulator->m_mem->readHardwareRegister<Memory::IMASK>();
-            PSXHW_LOG("IMASK 32bit read %x\n", imask);
-            return imask;
+            hard = g_emulator->m_mem->readHardwareRegister<Memory::IMASK>();
+            PSXHW_LOG("IMASK 32bit read %x\n", hard);
+            return hard;
         }
         case 0x1f801810:
             hard = g_emulator->m_gpu->readData();
             PSXHW_LOG("GPU DATA 32bit read %x\n", hard);
-            return hard;
+            break;
         case 0x1f801814:
             hard = g_emulator->m_gpu->gpuReadStatus();
             PSXHW_LOG("GPU STATUS 32bit read %x\n", hard);
-            return hard;
+            break;
 
         case 0x1f801820:
             hard = g_emulator->m_mdec->read0();
@@ -346,39 +347,39 @@ uint32_t PCSX::HW::read32(uint32_t add) {
         case 0x1f801100:
             hard = g_emulator->m_counters->readCounter(0);
             PSXHW_LOG("T0 count read32: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801104:
             hard = g_emulator->m_counters->readMode(0);
             PSXHW_LOG("T0 mode read32: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801108:
             hard = g_emulator->m_counters->readTarget(0);
             PSXHW_LOG("T0 target read32: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801110:
             hard = g_emulator->m_counters->readCounter(1);
             PSXHW_LOG("T1 count read32: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801114:
             hard = g_emulator->m_counters->readMode(1);
             PSXHW_LOG("T1 mode read32: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801118:
             hard = g_emulator->m_counters->readTarget(1);
             PSXHW_LOG("T1 target read32: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801120:
             hard = g_emulator->m_counters->readCounter(2);
             PSXHW_LOG("T2 count read32: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801124:
             hard = g_emulator->m_counters->readMode(2);
             PSXHW_LOG("T2 mode read32: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801128:
             hard = g_emulator->m_counters->readTarget(2);
             PSXHW_LOG("T2 target read32: %x\n", hard);
-            return hard;
+            break;
         case 0x1f801014:
             hard = g_emulator->m_mem->readHardwareRegister<0x1014>();
             PSXHW_LOG("SPU delay [0x1014] read32: %8.8lx\n", hard);
@@ -394,6 +395,8 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             return hard;
         }
     }
+    uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
+    *ptr = hard;
     PSXHW_LOG("*Known 32bit read at address %x\n", add);
     return hard;
 }
