@@ -38,45 +38,12 @@ class HW {
     void write32(uint32_t add, uint32_t value);
 
   private:
-    bool s_dmaGpuListHackEn = false;
+    bool m_dmaGpuListHackEn = false;
 
     void dma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma3(uint32_t madr, uint32_t bcr, uint32_t chcr);
-
-    template <unsigned n>
-    void dma(uint32_t, uint32_t, uint32_t);
-
-    template <>
-    void dma<0>(uint32_t madr, uint32_t bcr, uint32_t chcr) {
-        PCSX::g_emulator->m_hw->dma0(madr, bcr, chcr);
-    }
-
-    template <>
-    void dma<1>(uint32_t madr, uint32_t bcr, uint32_t chcr) {
-        dma1(madr, bcr, chcr);
-    }
-
-    template <>
-    void dma<2>(uint32_t madr, uint32_t bcr, uint32_t chcr) {
-        dma2(madr, bcr, chcr);
-    }
-
-    template <>
-    void dma<3>(uint32_t madr, uint32_t bcr, uint32_t chcr) {
-        dma3(madr, bcr, chcr);
-    }
-
-    template <>
-    void dma<4>(uint32_t madr, uint32_t bcr, uint32_t chcr) {
-        dma4(madr, bcr, chcr);
-    }
-
-    template <>
-    void dma<6>(uint32_t madr, uint32_t bcr, uint32_t chcr) {
-        dma6(madr, bcr, chcr);
-    }
 
     template <unsigned n>
     void dmaExec(uint32_t chcr) {
@@ -86,7 +53,19 @@ class HW {
         if ((chcr & 0x01000000) && (pcr & (8 << (n * 4)))) {
             uint32_t madr = mem->readHardwareRegister<0x1080 + n * 0x10>();
             uint32_t bcr = mem->readHardwareRegister<0x1084 + n * 0x10>();
-            dma<n>(madr, bcr, chcr);
+            if constexpr (n == 0) {
+                dma0(madr, bcr, chcr);
+            } else if constexpr (n == 1) {
+                dma1(madr, bcr, chcr);
+            } else if constexpr (n == 2) {
+                dma2(madr, bcr, chcr);
+            } else if constexpr (n == 3) {
+                dma3(madr, bcr, chcr);
+            } else if constexpr (n == 4) {
+                dma4(madr, bcr, chcr);
+            } else if constexpr (n == 6) {
+                dma6(madr, bcr, chcr);
+            }
         }
     }
 };

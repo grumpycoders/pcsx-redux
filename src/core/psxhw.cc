@@ -694,14 +694,14 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             uint32_t chcr = value;
             mem->setCHCR<2>(value);
 
-            if (s_dmaGpuListHackEn && (chcr == 0x00000401) && (bcr == 0x0)) {
+            if (m_dmaGpuListHackEn && (chcr == 0x00000401) && (bcr == 0x0)) {
                 uint32_t madr = mem->readHardwareRegister<0x1080 + 2 * 0x10>();
                 dma2(madr, bcr, chcr);
                 break;
             }
             dmaExec<2>(value);  // DMA2 chcr (GPU DMA)
             chcr = mem->getCHCR<2>();
-            if (g_emulator->config().HackFix && chcr == 0x1000401) s_dmaGpuListHackEn = true;
+            if (g_emulator->config().HackFix && chcr == 0x1000401) m_dmaGpuListHackEn = true;
         } break;
         case 0x1f8010b0:
             PSXHW_LOG("DMA3 MADR 32bit write %x\n", value);
@@ -767,7 +767,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             break;
         case 0x1f801814:
             PSXHW_LOG("GPU STATUS 32bit write %x\n", value);
-            if (value & 0x8000000) s_dmaGpuListHackEn = false;
+            if (value & 0x8000000) m_dmaGpuListHackEn = false;
             g_emulator->m_gpu->writeStatus(value);
             break;
 
