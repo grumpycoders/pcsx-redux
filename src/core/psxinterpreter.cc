@@ -1602,11 +1602,8 @@ inline void InterpretedCPU::execBlock() {
         m_regs.code = code;
 
         if constexpr (trace) {
-            uint32_t istat = *(uint32_t *)&PCSX::g_emulator->m_mem->m_hard[0x1070];
-            uint32_t imask = *(uint32_t *)&PCSX::g_emulator->m_mem->m_hard[0x1074];
-            std::string irqs = fmt::format("{:08x} {:08x}] ", istat, imask);
             std::string ins = PCSX::Disasm::asString(code, 0, pc, nullptr, true);
-            PCSX::g_system->log(PCSX::LogClass::CPU, "%s%s\n", irqs, ins);
+            PCSX::g_system->log(PCSX::LogClass::CPU, "%s\n", ins);
         }
 
         m_regs.pc += 4;
