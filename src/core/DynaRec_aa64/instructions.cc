@@ -24,37 +24,37 @@
         return;     \
     }
 
-void DynaRecCPU::recUnknown() {
+void DynaRecCPU::recUnknown(uint32_t code) {
     PCSX::g_system->message("Unknown instruction for dynarec - address %08x, instruction %08x\n", m_pc, m_regs.code);
     recException(Exception::ReservedInstruction);
 }
-void DynaRecCPU::recSpecial() {
-    const auto func = m_recSPC[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)();                                 // Jump into the handler to recompile it
+void DynaRecCPU::recSpecial(uint32_t code) {
+    const auto func = m_recSPC[code & 0x3F];  // Look up the opcode in our decoding LUT
+    (*this.*func)(code);                      // Jump into the handler to recompile it
 }
 
 // The Dynarec doesn't currently handle overflow exceptions, so we treat ADD the same as ADDU
-void DynaRecCPU::recADD() { recADDU(); }
+void DynaRecCPU::recADD(uint32_t code) { recADDU(code); }
 
-void DynaRecCPU::recADDU() {
+void DynaRecCPU::recADDU(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, m_gprs[_Rs_].val + m_gprs[_Rt_].val);
     } else if (m_gprs[_Rs_].isConst()) {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.moveAndAdd(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val);
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.moveAndAdd(m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Add(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
     }
 }
 
-void DynaRecCPU::recADDIU() {
+void DynaRecCPU::recADDIU(uint32_t code) {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
 
@@ -70,31 +70,31 @@ void DynaRecCPU::recADDIU() {
         if (m_gprs[_Rs_].isConst()) {
             markConst(_Rt_, m_gprs[_Rs_].val + _Imm_);
         } else {
-            alloc_rs_wb_rt();
+            alloc_rs_wb_rt(code);
             gen.moveAndAdd(m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg, _Imm_);
         }
     }
 }
 
-void DynaRecCPU::recAND() {
+void DynaRecCPU::recAND(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, m_gprs[_Rs_].val & m_gprs[_Rt_].val);
     } else if (m_gprs[_Rs_].isConst()) {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.andImm(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val);
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.andImm(m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.And(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
     }
 }
 
-void DynaRecCPU::recANDI() {
+void DynaRecCPU::recANDI(uint32_t code) {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
 
@@ -110,13 +110,13 @@ void DynaRecCPU::recANDI() {
         if (m_gprs[_Rs_].isConst()) {
             markConst(_Rt_, m_gprs[_Rs_].val & _ImmU_);
         } else {
-            alloc_rs_wb_rt();
+            alloc_rs_wb_rt(code);
             gen.andImm(m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg, _ImmU_);
         }
     }
 }
 
-void DynaRecCPU::recBEQ() {
+void DynaRecCPU::recBEQ(uint32_t code) {
     const auto target = _Imm_ * 4 + m_pc;
     m_nextIsDelaySlot = true;
 
@@ -140,7 +140,7 @@ void DynaRecCPU::recBEQ() {
         allocateReg(_Rs_);
         gen.Cmp(m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
     } else {
-        alloc_rt_rs();
+        alloc_rt_rs(code);
         gen.Cmp(m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
     }
 
@@ -153,7 +153,7 @@ void DynaRecCPU::recBEQ() {
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
-void DynaRecCPU::recBGTZ() {
+void DynaRecCPU::recBGTZ(uint32_t code) {
     uint32_t target = _Imm_ * 4 + m_pc;
 
     m_nextIsDelaySlot = true;
@@ -188,7 +188,7 @@ void DynaRecCPU::recBGTZ() {
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
-void DynaRecCPU::recBLEZ() {
+void DynaRecCPU::recBLEZ(uint32_t code) {
     uint32_t target = _Imm_ * 4 + m_pc;
 
     m_nextIsDelaySlot = true;
@@ -223,7 +223,7 @@ void DynaRecCPU::recBLEZ() {
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
-void DynaRecCPU::recBNE() {
+void DynaRecCPU::recBNE(uint32_t code) {
     const auto target = _Imm_ * 4 + m_pc;
     m_nextIsDelaySlot = true;
 
@@ -247,7 +247,7 @@ void DynaRecCPU::recBNE() {
         allocateReg(_Rs_);
         gen.Cmp(m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
     } else {
-        alloc_rt_rs();
+        alloc_rt_rs(code);
         gen.Cmp(m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
     }
 
@@ -260,25 +260,25 @@ void DynaRecCPU::recBNE() {
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
 }
 
-void DynaRecCPU::recCOP0() {
+void DynaRecCPU::recCOP0(uint32_t code) {
     switch (_Rs_) {  // figure out the type of COP0 opcode
         case 0:
-            recMFC0();
+            recMFC0(code);
             break;
         case 4:
-            recMTC0();
+            recMTC0(code);
             break;
         case 16:
-            recRFE();
+            recRFE(code);
             break;
         default:
             fmt::print("Unimplemented cop0 op {}\n", _Rs_);
-            recUnknown();
+            recUnknown(code);
             break;
     }
 }
 
-void DynaRecCPU::recDIV() {
+void DynaRecCPU::recDIV(uint32_t code) {
     Label notIntMin, divisionByZero, end;
     bool emitIntMinCheck = true;
 
@@ -328,7 +328,7 @@ void DynaRecCPU::recDIV() {
         }
 
         else {
-            alloc_rt_rs();
+            alloc_rt_rs(code);
             gen.Mov(w0, m_gprs[_Rs_].allocatedReg);  // Dividend in w0
         }
 
@@ -367,7 +367,7 @@ void DynaRecCPU::recDIV() {
     gen.Stp(w2, w3, MemOperand(contextPointer, LO_OFFSET));  // Lo = quotient, Hi = remainder
 }
 
-void DynaRecCPU::recDIVU() {
+void DynaRecCPU::recDIVU(uint32_t code) {
     Label divisionByZero;
 
     if (m_gprs[_Rt_].isConst()) {     // Check divisor if constant
@@ -405,7 +405,7 @@ void DynaRecCPU::recDIVU() {
         }
 
         else {
-            alloc_rt_rs();
+            alloc_rt_rs(code);
             gen.Mov(w0, m_gprs[_Rs_].allocatedReg);  // Dividend in w0
         }
 
@@ -428,7 +428,7 @@ void DynaRecCPU::recDIVU() {
     gen.Stp(w2, w3, MemOperand(contextPointer, LO_OFFSET));  // Lo = quotient, Hi = remainder
 }
 
-void DynaRecCPU::recJ() {
+void DynaRecCPU::recJ(uint32_t code) {
     const uint32_t target = (m_pc & 0xf0000000) | (_Target_ << 2);
     m_nextIsDelaySlot = true;
     m_stopCompiling = true;
@@ -439,14 +439,14 @@ void DynaRecCPU::recJ() {
     m_linkedPC = target;
 }
 
-void DynaRecCPU::recJAL() {
+void DynaRecCPU::recJAL(uint32_t code) {
     maybeCancelDelayedLoad(31);
     markConst(31, m_pc + 4);  // Set $ra to the return value, then treat instruction like a normal J
-    recJ();
+    recJ(code);
 }
 
-void DynaRecCPU::recJALR() {
-    recJR();
+void DynaRecCPU::recJALR(uint32_t code) {
+    recJR(code);
 
     if (_Rd_) {
         maybeCancelDelayedLoad(_Rd_);
@@ -454,7 +454,7 @@ void DynaRecCPU::recJALR() {
     }
 }
 
-void DynaRecCPU::recJR() {
+void DynaRecCPU::recJR(uint32_t code) {
     m_nextIsDelaySlot = true;
     m_stopCompiling = true;
     m_pcWrittenBack = true;
@@ -470,20 +470,20 @@ void DynaRecCPU::recJR() {
     }
 }
 
-void DynaRecCPU::recLUI() {
+void DynaRecCPU::recLUI(uint32_t code) {
     BAILZERO(_Rt_);
 
     maybeCancelDelayedLoad(_Rt_);
     markConst(_Rt_, m_regs.code << 16);
 }
 
-void DynaRecCPU::recLB() { recompileLoad<8, true>(); }
-void DynaRecCPU::recLBU() { recompileLoad<8, false>(); }
-void DynaRecCPU::recLH() { recompileLoad<16, true>(); }
-void DynaRecCPU::recLHU() { recompileLoad<16, false>(); }
-void DynaRecCPU::recLW() { recompileLoad<32, true>(); }
+void DynaRecCPU::recLB(uint32_t code) { recompileLoad<8, true>(code); }
+void DynaRecCPU::recLBU(uint32_t code) { recompileLoad<8, false>(code); }
+void DynaRecCPU::recLH(uint32_t code) { recompileLoad<16, true>(code); }
+void DynaRecCPU::recLHU(uint32_t code) { recompileLoad<16, false>(code); }
+void DynaRecCPU::recLW(uint32_t code) { recompileLoad<32, true>(code); }
 
-void DynaRecCPU::recLWL() {
+void DynaRecCPU::recLWL(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0x00FFFFFF00000018, 0x0000FFFF00000010, 0x000000FF00000008, 0};
@@ -531,7 +531,7 @@ void DynaRecCPU::recLWL() {
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
-            alloc_rs_wb_rt();
+            alloc_rs_wb_rt(code);
             gen.Mov(m_gprs[_Rt_].allocatedReg, previousValue);     // Flush constant value in $rt
             gen.moveAndAdd(w1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in w1 again
             gen.And(w1, w1, 3);                                    // Get the low 2 bits
@@ -551,7 +551,7 @@ void DynaRecCPU::recLWL() {
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
-            alloc_rs_wb_rt();
+            alloc_rs_wb_rt(code);
             gen.moveAndAdd(w1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in w1
             gen.And(w1, w1, 3);                                    // Get the low 2 bits
             gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);             // Base to mask and shift lookup table in x3
@@ -565,7 +565,7 @@ void DynaRecCPU::recLWL() {
     }
 }
 
-void DynaRecCPU::recLWR() {
+void DynaRecCPU::recLWR(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0, 0xFF00000000000008, 0xFFFF000000000010, 0xFFFFFF0000000018};
@@ -613,7 +613,7 @@ void DynaRecCPU::recLWR() {
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
-            alloc_rs_wb_rt();
+            alloc_rs_wb_rt(code);
             gen.Mov(m_gprs[_Rt_].allocatedReg, previousValue);     // Flush constant value in $rt
             gen.moveAndAdd(w1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in w1 again
             gen.And(w1, w1, 3);                                    // Get the low 2 bits
@@ -633,7 +633,7 @@ void DynaRecCPU::recLWR() {
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
-            alloc_rs_wb_rt();
+            alloc_rs_wb_rt(code);
             gen.moveAndAdd(w1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in w1 again
             gen.And(w1, w1, 3);                                    // Get the low 2 bits
             gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);  // Form PC-relative address to mask and shift lookup table
@@ -647,7 +647,7 @@ void DynaRecCPU::recLWR() {
     }
 }
 
-void DynaRecCPU::recMFC0() {
+void DynaRecCPU::recMFC0(uint32_t code) {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
     allocateRegWithoutLoad(_Rt_);
@@ -656,7 +656,7 @@ void DynaRecCPU::recMFC0() {
 }
 
 // TODO: Constant propagation for MFLO/HI, read the result from register if possible instead of reading memory again
-void DynaRecCPU::recMFLO() {
+void DynaRecCPU::recMFLO(uint32_t code) {
     BAILZERO(_Rd_);
 
     maybeCancelDelayedLoad(_Rd_);
@@ -666,7 +666,7 @@ void DynaRecCPU::recMFLO() {
     gen.Ldr(m_gprs[_Rd_].allocatedReg, MemOperand(contextPointer, LO_OFFSET));
 }
 
-void DynaRecCPU::recMFHI() {
+void DynaRecCPU::recMFHI(uint32_t code) {
     BAILZERO(_Rd_);
 
     maybeCancelDelayedLoad(_Rd_);
@@ -677,7 +677,7 @@ void DynaRecCPU::recMFHI() {
 }
 
 template <int size, bool signExtend>
-void DynaRecCPU::recompileLoad() {
+void DynaRecCPU::recompileLoad(uint32_t code) {
     if (m_gprs[_Rs_].isConst()) {  // Store the address in first argument register
         const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_mem->pointerRead(addr);
@@ -729,7 +729,7 @@ void DynaRecCPU::recompileLoad() {
 }
 
 // TODO: Handle all COP0 register writes properly. Don't treat read-only field as writeable!
-void DynaRecCPU::recMTC0() {
+void DynaRecCPU::recMTC0(uint32_t code) {
     if (m_gprs[_Rt_].isConst()) {
         if (_Rd_ == 13) {
             gen.Mov(w0, m_gprs[_Rt_].val & ~0xFC00);
@@ -794,7 +794,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     gen.L(label);  // Execution will jump here if interrupts not enabled
 }
 
-void DynaRecCPU::recMTHI() {
+void DynaRecCPU::recMTHI(uint32_t code) {
     if (m_gprs[_Rs_].isConst()) {
         gen.Mov(w0, m_gprs[_Rs_].val);
         gen.Str(w0, MemOperand(contextPointer, HI_OFFSET));
@@ -804,7 +804,7 @@ void DynaRecCPU::recMTHI() {
     }
 }
 
-void DynaRecCPU::recMTLO() {
+void DynaRecCPU::recMTLO(uint32_t code) {
     if (m_gprs[_Rs_].isConst()) {
         gen.Mov(w0, m_gprs[_Rs_].val);
         gen.Str(w0, MemOperand(contextPointer, LO_OFFSET));
@@ -814,7 +814,7 @@ void DynaRecCPU::recMTLO() {
     }
 }
 
-void DynaRecCPU::recMULT() {
+void DynaRecCPU::recMULT(uint32_t code) {
     if ((m_gprs[_Rs_].isConst() && m_gprs[_Rs_].val == 0) || (m_gprs[_Rt_].isConst() && m_gprs[_Rt_].val == 0)) {
         gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET));  // Set both LO and HI to 0 in a single 64-bit write
         return;
@@ -836,7 +836,7 @@ void DynaRecCPU::recMULT() {
             gen.Mov(w1, m_gprs[_Rt_].val);
             gen.Smull(x0, w1, m_gprs[_Rs_].allocatedReg);
         } else {
-            alloc_rt_rs();
+            alloc_rt_rs(code);
             gen.Smull(x0, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
         }
     }
@@ -845,7 +845,7 @@ void DynaRecCPU::recMULT() {
     gen.Str(x0, MemOperand(contextPointer, LO_OFFSET));
 }
 
-void DynaRecCPU::recMULTU() {
+void DynaRecCPU::recMULTU(uint32_t code) {
     if ((m_gprs[_Rs_].isConst() && m_gprs[_Rs_].val == 0) || (m_gprs[_Rt_].isConst() && m_gprs[_Rt_].val == 0)) {
         gen.Str(xzr, MemOperand(contextPointer, LO_OFFSET));  // Set both LO and HI to 0 in a single 64-bit write
         return;
@@ -867,7 +867,7 @@ void DynaRecCPU::recMULTU() {
             gen.Mov(w1, m_gprs[_Rt_].val);
             gen.Umull(x0, w1, m_gprs[_Rs_].allocatedReg);
         } else {
-            alloc_rt_rs();
+            alloc_rt_rs(code);
             gen.Umull(x0, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
         }
     }
@@ -876,46 +876,46 @@ void DynaRecCPU::recMULTU() {
     gen.Str(x0, MemOperand(contextPointer, LO_OFFSET));
 }
 
-void DynaRecCPU::recNOR() {
+void DynaRecCPU::recNOR(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, ~(m_gprs[_Rs_].val | m_gprs[_Rt_].val));
     } else if (m_gprs[_Rs_].isConst()) {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.Orr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val);
         gen.Mvn(m_gprs[_Rd_].allocatedReg, m_gprs[_Rd_].allocatedReg);
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.Orr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
         gen.Mvn(m_gprs[_Rd_].allocatedReg, m_gprs[_Rd_].allocatedReg);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Orr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
         gen.Mvn(m_gprs[_Rd_].allocatedReg, m_gprs[_Rd_].allocatedReg);
     }
 }
 
-void DynaRecCPU::recOR() {
+void DynaRecCPU::recOR(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, m_gprs[_Rs_].val | m_gprs[_Rt_].val);
     } else if (m_gprs[_Rs_].isConst()) {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.orImm(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val);
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.orImm(m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Orr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
     }
 }
 
-void DynaRecCPU::recORI() {
+void DynaRecCPU::recORI(uint32_t code) {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
 
@@ -931,13 +931,13 @@ void DynaRecCPU::recORI() {
         if (m_gprs[_Rs_].isConst()) {
             markConst(_Rt_, m_gprs[_Rs_].val | _ImmU_);
         } else {
-            alloc_rs_wb_rt();
+            alloc_rs_wb_rt(code);
             gen.orImm(m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg, _ImmU_);
         }
     }
 }
 
-void DynaRecCPU::recREGIMM() {
+void DynaRecCPU::recREGIMM(uint32_t code) {
     const bool isBGEZ = ((m_regs.code >> 16) & 1) != 0;
     const bool link = ((m_regs.code >> 17) & 0xF) == 8;
     const auto target = _Imm_ * 4 + m_pc;
@@ -998,7 +998,7 @@ void DynaRecCPU::recREGIMM() {
     }
 }
 
-void DynaRecCPU::recRFE() {
+void DynaRecCPU::recRFE(uint32_t code) {
     gen.Ldr(w4, MemOperand(contextPointer, COP0_OFFSET(12)));  // w0 = COP0 status register
     gen.And(w1, w4, 0x3c);                                     // mask out the rest of the SR value
     gen.And(w4, w4, ~0xF);                                     // Clear bottom 4 bits of w4
@@ -1008,7 +1008,7 @@ void DynaRecCPU::recRFE() {
     testSoftwareInterrupt<false>();
 }
 
-void DynaRecCPU::recSB() {
+void DynaRecCPU::recSB(uint32_t code) {
     if (m_gprs[_Rs_].isConst()) {
         const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_mem->pointerWrite(addr, 8);
@@ -1049,7 +1049,7 @@ void DynaRecCPU::recSB() {
     }
 }
 
-void DynaRecCPU::recSH() {
+void DynaRecCPU::recSH(uint32_t code) {
     if (m_gprs[_Rs_].isConst()) {
         const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_mem->pointerWrite(addr, 16);
@@ -1119,7 +1119,7 @@ void DynaRecCPU::recSH() {
     }
 }
 
-void DynaRecCPU::recSW() {
+void DynaRecCPU::recSW(uint32_t code) {
     if (m_gprs[_Rs_].isConst()) {
         const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_mem->pointerWrite(addr, 32);
@@ -1159,19 +1159,19 @@ void DynaRecCPU::recSW() {
     }
 }
 
-void DynaRecCPU::recSLL() {
+void DynaRecCPU::recSLL(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, m_gprs[_Rt_].val << _Sa_);
     } else {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.Lsl(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, _Sa_);
     }
 }
 
-void DynaRecCPU::recSLLV() {
+void DynaRecCPU::recSLLV(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
@@ -1183,131 +1183,131 @@ void DynaRecCPU::recSLLV() {
             m_gprs[_Rd_].setWriteback(true);
             gen.Lsl(m_gprs[_Rd_].allocatedReg, m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].val & 0x1F);
         } else {
-            alloc_rt_wb_rd();
+            alloc_rt_wb_rd(code);
             gen.Lsl(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val & 0x1F);
         }
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.Mov(w0, m_gprs[_Rt_].val);
         gen.Lsl(m_gprs[_Rd_].allocatedReg, w0, m_gprs[_Rs_].allocatedReg);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Lsl(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
     }
 }
 
-void DynaRecCPU::recSLT() {
+void DynaRecCPU::recSLT(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, (int32_t)m_gprs[_Rs_].val < (int32_t)m_gprs[_Rt_].val);
     } else if (m_gprs[_Rs_].isConst()) {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.Cmp(m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val);
         gen.Cset(m_gprs[_Rd_].allocatedReg, gt);
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.Cmp(m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
         gen.Cset(m_gprs[_Rd_].allocatedReg, lt);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Cmp(m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].allocatedReg);
         gen.Cset(m_gprs[_Rd_].allocatedReg, lt);
     }
 }
 
-void DynaRecCPU::recSLTI() {
+void DynaRecCPU::recSLTI(uint32_t code) {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
 
     if (m_gprs[_Rs_].isConst()) {
         markConst(_Rt_, (int32_t)m_gprs[_Rs_].val < _Imm_);
     } else {
-        alloc_rs_wb_rt();
+        alloc_rs_wb_rt(code);
         gen.Cmp(m_gprs[_Rs_].allocatedReg, _Imm_);
         gen.Cset(m_gprs[_Rt_].allocatedReg, lt);
     }
 }
 
-void DynaRecCPU::recSLTIU() {
+void DynaRecCPU::recSLTIU(uint32_t code) {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
 
     if (m_gprs[_Rs_].isConst()) {
         markConst(_Rt_, m_gprs[_Rs_].val < (uint32_t)_Imm_);
     } else {
-        alloc_rs_wb_rt();
+        alloc_rs_wb_rt(code);
         gen.Cmp(m_gprs[_Rs_].allocatedReg, _Imm_);
         gen.Cset(m_gprs[_Rt_].allocatedReg, cc);
     }
 }
 
-void DynaRecCPU::recSLTU() {
+void DynaRecCPU::recSLTU(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, m_gprs[_Rs_].val < m_gprs[_Rt_].val);
     } else if (m_gprs[_Rs_].isConst()) {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.Cmp(m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val);
         gen.Cset(m_gprs[_Rd_].allocatedReg, hi);
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.Cmp(m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
         gen.Cset(m_gprs[_Rd_].allocatedReg, lo);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Cmp(m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].allocatedReg);
         gen.Cset(m_gprs[_Rd_].allocatedReg, lo);
     }
 }
 
-void DynaRecCPU::recSRA() {
+void DynaRecCPU::recSRA(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, (int32_t)m_gprs[_Rt_].val >> _Sa_);
     } else {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.Asr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, _Sa_);
     }
 }
 
-void DynaRecCPU::recSRAV() {
+void DynaRecCPU::recSRAV(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, (int32_t)m_gprs[_Rt_].val >> (m_gprs[_Rs_].val & 0x1F));
     } else if (m_gprs[_Rs_].isConst()) {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.Asr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val & 0x1F);
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.Mov(w0, m_gprs[_Rt_].val);
         gen.Asr(m_gprs[_Rd_].allocatedReg, w0, m_gprs[_Rs_].allocatedReg);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Asr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
     }
 }
 
-void DynaRecCPU::recSRL() {
+void DynaRecCPU::recSRL(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, m_gprs[_Rt_].val >> _Sa_);
     } else {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.Lsr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, _Sa_);
     }
 }
 
-void DynaRecCPU::recSRLV() {
+void DynaRecCPU::recSRLV(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
@@ -1319,40 +1319,40 @@ void DynaRecCPU::recSRLV() {
             m_gprs[_Rd_].setWriteback(true);
             gen.Lsr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].val & 0x1F);
         } else {
-            alloc_rt_wb_rd();
+            alloc_rt_wb_rd(code);
             gen.Lsr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val & 0x1F);
         }
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.Mov(w0, m_gprs[_Rt_].val);
         gen.Lsr(m_gprs[_Rd_].allocatedReg, w0, m_gprs[_Rs_].allocatedReg);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Lsr(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
     }
 }
 
-void DynaRecCPU::recSUB() { recSUBU(); }
+void DynaRecCPU::recSUB(uint32_t code) { recSUBU(code); }
 
-void DynaRecCPU::recSUBU() {
+void DynaRecCPU::recSUBU(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, m_gprs[_Rs_].val - m_gprs[_Rt_].val);
     } else if (m_gprs[_Rs_].isConst()) {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.reverseSub(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val);
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.Sub(m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Sub(m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].allocatedReg);
     }
 }
 
-void DynaRecCPU::recSWL() {
+void DynaRecCPU::recSWL(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0xFFFFFF0000000018, 0xFFFF000000000010, 0xFF00000000000008, 0};
@@ -1415,7 +1415,7 @@ void DynaRecCPU::recSWL() {
         call(read32Wrapper);                                     // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
-        alloc_rt_rs();
+        alloc_rt_rs(code);
         gen.moveAndAdd(w2, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in w2 again
 
         gen.And(w5, w2, ~3);  // Align address
@@ -1433,7 +1433,7 @@ void DynaRecCPU::recSWL() {
     }
 }
 
-void DynaRecCPU::recSWR() {
+void DynaRecCPU::recSWR(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0, 0x000000FF00000008, 0x0000FFFF00000010, 0x00FFFFFF00000018};
@@ -1497,7 +1497,7 @@ void DynaRecCPU::recSWR() {
         call(read32Wrapper);                                     // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
-        alloc_rt_rs();
+        alloc_rt_rs(code);
         gen.moveAndAdd(w2, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in w2 again
 
         gen.And(w5, w2, ~3);  // Align address
@@ -1516,27 +1516,27 @@ void DynaRecCPU::recSWR() {
     }
 }
 
-void DynaRecCPU::recSYSCALL() { recException(Exception::Syscall); }
+void DynaRecCPU::recSYSCALL(uint32_t code) { recException(Exception::Syscall); }
 
-void DynaRecCPU::recXOR() {
+void DynaRecCPU::recXOR(uint32_t code) {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {
         markConst(_Rd_, m_gprs[_Rs_].val ^ m_gprs[_Rt_].val);
     } else if (m_gprs[_Rs_].isConst()) {
-        alloc_rt_wb_rd();
+        alloc_rt_wb_rd(code);
         gen.Eor(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].val);
     } else if (m_gprs[_Rt_].isConst()) {
-        alloc_rs_wb_rd();
+        alloc_rs_wb_rd(code);
         gen.Eor(m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].allocatedReg, m_gprs[_Rt_].val);
     } else {
-        alloc_rt_rs_wb_rd();
+        alloc_rt_rs_wb_rd(code);
         gen.Eor(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg);
     }
 }
 
-void DynaRecCPU::recXORI() {
+void DynaRecCPU::recXORI(uint32_t code) {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
 
@@ -1552,7 +1552,7 @@ void DynaRecCPU::recXORI() {
         if (m_gprs[_Rs_].isConst()) {
             markConst(_Rt_, m_gprs[_Rs_].val ^ _ImmU_);
         } else {
-            alloc_rs_wb_rt();
+            alloc_rs_wb_rt(code);
             gen.Eor(m_gprs[_Rt_].allocatedReg, m_gprs[_Rs_].allocatedReg, _ImmU_);
         }
     }
@@ -1571,7 +1571,7 @@ void DynaRecCPU::recException(Exception e) {
     call(exceptionWrapper);  // Call the exception wrapper
 }
 
-void DynaRecCPU::recBREAK() {
+void DynaRecCPU::recBREAK(uint32_t code) {
     flushRegs();  // For PCDRV support, we need to flush all registers before handling the exception.
     recException(Exception::Break);
 }
