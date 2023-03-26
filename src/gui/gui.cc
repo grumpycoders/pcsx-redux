@@ -1273,7 +1273,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         if (m_parallelPortEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(g_emulator->m_mem->m_exp1, 64 * 1024);
+            m_parallelPortEditor.draw(g_emulator->m_mem->m_exp1, 512 * 1024);
         }
         counter++;
         if (m_scratchPadEditor.m_show) {
