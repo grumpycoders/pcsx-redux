@@ -41,7 +41,6 @@
 #include <unordered_set>
 
 #include "clip/clip.h"
-#include "core/binloader.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/debug.h"
@@ -75,8 +74,10 @@
 #include "nanovg/src/nanovg_gl_utils.h"
 #include "spu/interface.h"
 #include "support/bezier.h"
+#include "support/mem4g.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
+#include "supportpsx/binloader.h"
 #include "tracy/Tracy.hpp"
 
 #ifdef _WIN32
@@ -2076,18 +2077,38 @@ void PCSX::GUI::shellReached() {
 
     g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
     bool success = false;
-    auto backupPC = regs.pc;
     try {
-        success = BinaryLoader::load(filename);
+        BinaryLoader::Info info;
+        IO<File> in(new PosixFile(filename));
+        if (in->failed()) {
+            throw std::runtime_error("Failed to open file.");
+        }
+        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info);
+        if (!info.pc.has_value()) {
+            throw std::runtime_error("Binary loaded without any PC to jump to.");
+        }
+        regs.pc = info.pc.value();
+        if (info.sp.has_value()) regs.GPR.n.sp = info.sp.value();
+        if (info.gp.has_value()) regs.GPR.n.gp = info.gp.value();
+        if (g_emulator->settings.get<Emulator::SettingAutoVideo>() && info.region.has_value()) {
+            switch (info.region.value()) {
+                case BinaryLoader::Region::NTSC:
+                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
+                    break;
+                case BinaryLoader::Region::PAL:
+                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
+                    break;
+            }
+        }
     } catch (std::exception& e) {
         g_system->log(LogClass::UI, "Failed to load %s: %s\n", p.string(), e.what());
-        regs.pc = backupPC;
     } catch (...) {
         g_system->log(LogClass::UI, "Failed to load %s: unknown error\n", p.string());
-        regs.pc = backupPC;
     }
     if (success) {
         g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
+    } else {
+        g_system->log(LogClass::UI, "Failed to load %s, unknown file format.\n", p.string());
     }
 
     if (m_exeToLoad.hasToPause()) {
@@ -2101,32 +2122,24 @@ void PCSX::GUI::shellReached() {
 }
 
 void PCSX::GUI::magicOpen(const char* pathStr) {
-    // Try guessing what we're opening using extension only.
-    // Doing magic guesses might be an option, but that's exhausting right now. Maybe later.
-    std::filesystem::path path(pathStr);
-
-    static const std::vector<std::string> exeExtensions = {
-        "EXE", "PSX", "PS-EXE", "PSF", "MINIPSF", "PSFLIB", "CPE", "ELF",
-    };
-
-    const auto& extensionPath = path.extension().string();
-
-    char* extension = (char*)malloc(extensionPath.length());
-    for (int i = 1; i < extensionPath.length(); i++) {
-        extension[i - 1] = toupper(extensionPath[i]);
+    std::filesystem::path path = pathStr;
+    bool success = false;
+    try {
+        BinaryLoader::Info info;
+        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info);
+        if (success) success = info.pc.has_value();
+    } catch (...) {
+        success = false;
     }
-    extension[extensionPath.length() - 1] = 0;
 
-    if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
+    if (success) {
         m_exeToLoad.set(path.u8string());
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
     } else {
-        PCSX::g_emulator->m_cdrom->setIso(new CDRIso(pathStr));
-        PCSX::g_emulator->m_cdrom->check();
+        g_emulator->m_cdrom->setIso(new CDRIso(path));
+        g_emulator->m_cdrom->check();
     }
-
-    free(extension);
 }
 
 std::string PCSX::GUI::buildSaveStateFilename(int i) {

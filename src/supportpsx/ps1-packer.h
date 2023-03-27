@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2020 PCSX-Redux authors                                 *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,14 +19,23 @@
 
 #pragma once
 
-#include "core/system.h"
+#include <optional>
+
+#include "support/file.h"
 
 namespace PCSX {
 
-namespace BinaryLoader {
+namespace PS1Packer {
 
-bool load(const std::filesystem::path& path);
+struct Options {
+    uint32_t tload = 0;
+    bool booty = false;
+    bool shell = false;
+    bool raw = false;
+};
 
-}  // namespace BinaryLoader
+void pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp, const Options &);
+
+}  // namespace PS1Packer
 
 }  // namespace PCSX
