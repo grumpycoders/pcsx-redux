@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -21,5 +21,5 @@
 
 #include "core/r3000a.h"
 
-void PCSX::SPUInterface::interrupt() { psxHu32ref(0x1070) |= SWAP_LEu32(0x200); }
-void PCSX::SPUInterface::scheduleInterrupt() { PCSX::g_emulator->m_cpu->m_regs.spuInterrupt = true; }
+void PCSX::SPUInterface::interrupt() { g_emulator->m_mem->setIRQ(0x200); }
+void PCSX::SPUInterface::scheduleInterrupt() { g_emulator->m_cpu->m_regs.spuInterrupt = true; }

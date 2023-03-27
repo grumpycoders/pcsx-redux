@@ -35,7 +35,7 @@
 #include "support/hashtable.h"
 
 #if defined(__i386__) || defined(_M_IX86)
-#define DYNAREC_X86_32
+#define DYNAREC_NONE  // Hahano
 #elif defined(__x86_64) || defined(_M_AMD64)
 #define DYNAREC_X86_64
 #elif defined(__aarch64__) || defined(_M_ARM64) || defined(__ARM_ARCH_ISA_A64)
@@ -204,8 +204,8 @@ struct psxRegisters {
     std::atomic<bool> spuInterrupt;
     uint32_t intTargets[32];
     uint32_t lowestTarget;
-    uint8_t ICache_Addr[0x1000];
-    uint8_t ICache_Code[0x1000];
+    uint8_t iCacheAddr[0x1000];
+    uint8_t iCacheCode[0x1000];
 };
 
 // U64 and S64 are used to wrap long integer constants.
@@ -385,6 +385,8 @@ class R3000Acpu {
         }
         return g_system->running();
     }
+    void processA0KernelCall(uint32_t call);
+    void processB0KernelCall(uint32_t call);
     void logA0KernelCall(uint32_t call);
     void logB0KernelCall(uint32_t call);
     void logC0KernelCall(uint32_t call);
@@ -409,74 +411,13 @@ class R3000Acpu {
         // printf, but interpreting it is awful. The hope is it'd
         // eventually call one of these 4 functions.
         const uint32_t call = r.t1 & 0xff;
-        if (pc == 0xa0) {
-            switch (call) {
-                case 0x03: {  // write
-                    if (r.a0 != 1) break;
-                    uint32_t size = r.a2;
-                    m_regs.GPR.n.v0 = size;
-                    while (size--) {
-                        uint8_t *ptr = PSXM(r.a1);
-                        r.a1++;
-                        if (!ptr) break;
-                        g_system->biosPutc(*ptr++);
-                    }
-                    break;
-                }
-                case 0x09: {  // putc
-                    g_system->biosPutc(r.a0);
-                    break;
-                }
-                case 0x3c: {  // putchar
-                    g_system->biosPutc(r.a0);
-                    break;
-                }
-                case 0x3e: {  // puts
-                    while (true) {
-                        uint8_t *str = PSXM(r.a0);
-                        r.a0++;
-                        if (!str) break;
-                        uint8_t c = *str;
-                        if (!c) break;
-                        g_system->biosPutc(c);
-                    }
-                    break;
-                }
-            }
-        } else if (pc == 0xb0) {
-            switch (call) {
-                case 0x35: {  // write
-                    if (r.a0 != 1) break;
-                    uint32_t size = r.a2;
-                    m_regs.GPR.n.v0 = size;
-                    while (size--) {
-                        uint8_t *ptr = PSXM(r.a1);
-                        r.a1++;
-                        if (!ptr) break;
-                        g_system->biosPutc(*ptr++);
-                    }
-                    break;
-                }
-                case 0x3b: {  // putc
-                    g_system->biosPutc(r.a0);
-                    break;
-                }
-                case 0x3d: {  // putchar
-                    g_system->biosPutc(r.a0);
-                    break;
-                }
-                case 0x3f: {  // puts
-                    while (true) {
-                        uint8_t *str = PSXM(r.a0);
-                        r.a0++;
-                        if (!str) break;
-                        uint8_t c = *str;
-                        if (!c) break;
-                        g_system->biosPutc(c);
-                    }
-                    break;
-                }
-            }
+        switch (pc) {
+            case 0xa0:
+                processA0KernelCall(call);
+                break;
+            case 0xb0:
+                processB0KernelCall(call);
+                break;
         }
 
         if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::KernelLog>()) {
@@ -501,55 +442,52 @@ Formula One 2001
 */
 
     virtual void invalidateCache() {
-        memset(m_regs.ICache_Addr, 0xff, sizeof(m_regs.ICache_Addr));
-        memset(m_regs.ICache_Code, 0xff, sizeof(m_regs.ICache_Code));
+        memset(m_regs.iCacheAddr, 0xff, sizeof(m_regs.iCacheAddr));
+        memset(m_regs.iCacheCode, 0xff, sizeof(m_regs.iCacheCode));
     }
 
-    inline uint32_t *Read_ICache(uint32_t pc) {
-        uint32_t pc_bank, pc_offset, pc_cache;
-        uint8_t *IAddr, *ICode;
+    inline uint32_t readICache(uint32_t pc) {
+        uint32_t pcBank = pc >> 24;
+        uint32_t pcOffset = pc & 0xffffff;
+        uint32_t pcCache = pc & 0xfff;
 
-        pc_bank = pc >> 24;
-        pc_offset = pc & 0xffffff;
-        pc_cache = pc & 0xfff;
-
-        IAddr = m_regs.ICache_Addr;
-        ICode = m_regs.ICache_Code;
+        uint8_t * iAddr = m_regs.iCacheAddr;
+        uint8_t * iCode = m_regs.iCacheCode;
 
         // cached - RAM
-        if (pc_bank == 0x80 || pc_bank == 0x00) {
-            if (SWAP_LE32(*(uint32_t *)(IAddr + pc_cache)) == pc_offset) {
+        if (pcBank == 0x00 || pcBank == 0x1f || pcBank == 0x80 || pcBank == 0x9f) {
+            if (SWAP_LE32(*(uint32_t *)(iAddr + pcCache)) == pcOffset) {
                 // Cache hit - return last opcode used
-                return (uint32_t *)(ICode + pc_cache);
+                return SWAP_LE32(*((uint32_t *)(iCode + pcCache)));
             } else {
                 // Cache miss - addresses don't match
                 // - default: 0xffffffff (not init)
 
-                // cache line is 4 bytes wide
-                pc_offset &= ~0xf;
-                pc_cache &= ~0xf;
+                // cache line is 4 words wide
+                pcOffset &= ~0xf;
+                pcCache &= ~0xf;
 
                 // address line
-                *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
-                *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
-                *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
-                *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
+                *(uint32_t *)(iAddr + pcCache + 0x0) = SWAP_LE32(pcOffset + 0x0);
+                *(uint32_t *)(iAddr + pcCache + 0x4) = SWAP_LE32(pcOffset + 0x4);
+                *(uint32_t *)(iAddr + pcCache + 0x8) = SWAP_LE32(pcOffset + 0x8);
+                *(uint32_t *)(iAddr + pcCache + 0xc) = SWAP_LE32(pcOffset + 0xc);
 
                 // opcode line
-                pc_offset = pc & ~0xf;
-                *(uint32_t *)(ICode + pc_cache + 0x0) = *(uint32_t *)PSXM(pc_offset + 0x0);
-                *(uint32_t *)(ICode + pc_cache + 0x4) = *(uint32_t *)PSXM(pc_offset + 0x4);
-                *(uint32_t *)(ICode + pc_cache + 0x8) = *(uint32_t *)PSXM(pc_offset + 0x8);
-                *(uint32_t *)(ICode + pc_cache + 0xc) = *(uint32_t *)PSXM(pc_offset + 0xc);
+                pcOffset = pc & ~0xf;
+                *(uint32_t *)(iCode + pcCache + 0x0) =
+                    g_emulator->m_mem->read32(pcOffset + 0x0, Memory::ReadType::Instr);
+                *(uint32_t *)(iCode + pcCache + 0x4) =
+                    g_emulator->m_mem->read32(pcOffset + 0x4, Memory::ReadType::Instr);
+                *(uint32_t *)(iCode + pcCache + 0x8) =
+                    g_emulator->m_mem->read32(pcOffset + 0x8, Memory::ReadType::Instr);
+                *(uint32_t *)(iCode + pcCache + 0xc) =
+                    g_emulator->m_mem->read32(pcOffset + 0xc, Memory::ReadType::Instr);
             }
         }
 
-        /*
-        TODO: Probably should add cached BIOS
-        */
-
         // default
-        return (uint32_t *)PSXM(pc);
+        return g_emulator->m_mem->read32(pc, Memory::ReadType::Instr);
     }
 
   private:

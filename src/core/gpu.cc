@@ -70,11 +70,13 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
 
+        uint32_t head = SWAP_LEu32(*g_emulator->m_mem->getPointer<uint32_t>(addr));
+
         // # 32-bit blocks to transfer
-        size += psxMu8(addr + 3);
+        size += head >> 24;
 
         // next 32-bit pointer
-        addr = psxMu32(addr & ~0x3) & 0xffffff;
+        addr = head & 0xffffff;
         size += 1;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
@@ -97,7 +99,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     switch (chcr) {
         case 0x01000200:  // vram2mem
             PSXDMA_LOG("*** DMA2 GPU - vram2mem *** %lx addr = %lx size = %lx\n", chcr, madr, bcr);
-            ptr = (uint32_t *)PSXM(madr);
+            ptr = g_emulator->m_mem->getPointer<uint32_t>(madr);
             if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA2 GPU - vram2mem *** NULL Pointer!!!\n");
                 break;
@@ -123,7 +125,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             size = (bcr >> 16) * bs;  // BA blocks * BS words (word = 32-bits)
             PSXDMA_LOG("*** DMA 2 - GPU mem2vram *** %lx addr = %lxh, BCR %lxh => size %d = BA(%d) * BS(%xh)\n", chcr,
                        madr, bcr, size, size / bs, size / (bcr >> 16));
-            ptr = (uint32_t *)PSXM(madr);
+            ptr = g_emulator->m_mem->getPointer<uint32_t>(madr);
             if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA2 GPU - mem2vram *** NULL Pointer!!!\n");
                 break;
@@ -164,13 +166,13 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             break;
     }
 
-    HW_DMA2_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT<2>();
+    gpuInterrupt();
 }
 
 void PCSX::GPU::gpuInterrupt() {
-    HW_DMA2_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT<2>();
+    auto &mem = g_emulator->m_mem;
+    mem->clearDMABusy<2>();
+    mem->dmaInterrupt<2>();
 }
 
 void PCSX::GPU::writeStatus(uint32_t status) {

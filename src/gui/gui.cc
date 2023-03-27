@@ -1248,7 +1248,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_luaEditor.draw(_("Lua Editor"), this);
     }
     if (m_events.m_show) {
-        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram), _("Kernel events"));
+        m_events.draw(g_emulator->m_mem->getMemoryAsFile(), _("Kernel events"));
     }
     if (m_handlers.m_show) {
         m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram), _("Kernel handlers"));
@@ -1862,7 +1862,7 @@ See the wiki for details.)"));
     }
     ImGui::End();
 
-    { // Select BIOS Dialog
+    {  // Select BIOS Dialog
         auto& biospath = settings.get<Emulator::SettingBiosBrowsePath>();
         if (selectBiosDialog) {
             if (!biospath.empty()) {

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -16,10 +16,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-/*
- * PSX memory functions.
- */
 
 #include "core/psxmem.h"
 
@@ -117,6 +113,8 @@ int PCSX::Memory::init() {
     memcpy(m_readLUT + 0xbfc0, m_readLUT + 0x1fc0, 0x08 * sizeof(void *));
 
     setLuts();
+
+    m_memoryAsFile = new MemoryAsFile(this);
 
     return 0;
 }
@@ -254,7 +252,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                return psxHu8(address);
+                return m_hard[address];
             } else {
                 return g_emulator->m_hw->read8(address);
             }
@@ -291,7 +289,8 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                return psxHu16(address);
+                uint16_t *ptr = (uint16_t *)&m_hard[address];
+                return SWAP_LEu16(*ptr);
             } else {
                 return g_emulator->m_hw->read16(address);
             }
@@ -312,8 +311,8 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     }
 }
 
-uint32_t PCSX::Memory::read32(uint32_t address) {
-    g_emulator->m_cpu->m_regs.cycle += 1;
+uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
+    if (readType == ReadType::Data) g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
@@ -324,7 +323,8 @@ uint32_t PCSX::Memory::read32(uint32_t address) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                return psxHu32(address);
+                uint32_t *ptr = (uint32_t *)&m_hard[address];
+                return SWAP_LEu32(*ptr);
             } else {
                 return g_emulator->m_hw->read32(address);
             }
@@ -399,7 +399,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                psxHu8(address) = value;
+                m_hard[address] = value;
             } else {
                 g_emulator->m_hw->write8(address, value);
             }
@@ -427,7 +427,8 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                psxHu16ref(address) = SWAP_LEu16(value);
+                uint16_t *ptr = (uint16_t *)&m_hard[address];
+                *ptr = SWAP_LEu16(value);
             } else {
                 g_emulator->m_hw->write16(address, value);
             }
@@ -455,7 +456,8 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                psxHu32ref(address) = SWAP_LEu32(value);
+                uint32_t *ptr = (uint32_t *)&m_hard[address];
+                *ptr = SWAP_LEu32(value);
             } else {
                 g_emulator->m_hw->write32(address, value);
             }
@@ -606,4 +608,84 @@ std::string_view PCSX::Memory::getBiosVersionString() {
     auto it = s_knownBioses.find(m_biosCRC);
     if (it == s_knownBioses.end()) return "Unknown";
     return it->second;
+}
+
+ssize_t PCSX::Memory::MemoryAsFile::rSeek(ssize_t pos, int wheel) {
+    switch (wheel) {
+        case SEEK_SET:
+            m_ptrR = pos;
+            break;
+        case SEEK_END:
+            m_ptrR = c_size - pos;
+            break;
+        case SEEK_CUR:
+            m_ptrR += pos;
+            break;
+    }
+    m_ptrR = std::max(std::min(m_ptrR, c_size), size_t(0));
+    return m_ptrR;
+}
+
+ssize_t PCSX::Memory::MemoryAsFile::wSeek(ssize_t pos, int wheel) {
+    switch (wheel) {
+        case SEEK_SET:
+            m_ptrW = pos;
+            break;
+        case SEEK_END:
+            m_ptrW = c_size - pos;
+            break;
+        case SEEK_CUR:
+            m_ptrW += pos;
+            break;
+    }
+    m_ptrW = std::max(std::min(m_ptrW, c_size), size_t(0));
+    return m_ptrW;
+}
+
+ssize_t PCSX::Memory::MemoryAsFile::readAt(void *dest, size_t size, size_t ptr) {
+    if (ptr >= c_size) return 0;
+    size_t ret = size = cappedSize(size, ptr);
+    while (size) {
+        auto blockSize = std::min(size, c_blockSize - (ptr % c_blockSize));
+        readBlock(dest, blockSize, ptr);
+        size -= blockSize;
+        ptr += blockSize;
+        dest = (char *)dest + blockSize;
+    }
+    return ret;
+}
+
+ssize_t PCSX::Memory::MemoryAsFile::writeAt(const void *src, size_t size, size_t ptr) {
+    if (ptr >= c_size) return 0;
+    size_t ret = size = cappedSize(size, ptr);
+    while (size) {
+        auto blockSize = std::min(size, c_blockSize - (ptr % c_blockSize));
+        writeBlock(src, blockSize, ptr);
+        size -= blockSize;
+        ptr += blockSize;
+        src = (char *)src + blockSize;
+    }
+    return ret;
+}
+
+void PCSX::Memory::MemoryAsFile::readBlock(void *dest, size_t size, size_t ptr) {
+    auto block = m_memory->m_readLUT[ptr / c_blockSize];
+    if (!block) {
+        memset(dest, 0, size);
+        return;
+    }
+    auto offset = ptr % c_blockSize;
+    auto toCopy = std::min(size, c_blockSize - offset);
+    memcpy(dest, block + offset, toCopy);
+}
+
+void PCSX::Memory::MemoryAsFile::writeBlock(const void *src, size_t size, size_t ptr) {
+    // Yes. That's not a bug nor a typo.
+    auto block = m_memory->m_readLUT[ptr / c_blockSize];
+    if (!block) {
+        return;
+    }
+    auto offset = ptr % c_blockSize;
+    auto toCopy = std::min(size, c_blockSize - offset);
+    memcpy(block + offset, src, toCopy);
 }

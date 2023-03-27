@@ -21,7 +21,6 @@
 
 #include "core/callstacks.h"
 #include "core/cdrom.h"
-#include "core/cheat.h"
 #include "core/debug.h"
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
@@ -54,7 +53,6 @@ PCSX::Emulator::Emulator()
       m_gte(new PCSX::GTE()),
       m_sio(new PCSX::SIO()),
       m_cdrom(PCSX::CDRom::factory()),
-      m_cheats(new PCSX::Cheats()),
       m_mdec(new PCSX::MDEC()),
       m_gdbServer(new PCSX::GdbServer()),
       m_webServer(new PCSX::WebServer()),
@@ -145,8 +143,6 @@ int PCSX::Emulator::init() {
 }
 
 void PCSX::Emulator::reset() {
-    m_cheats->FreeCheatSearchResults();
-    m_cheats->FreeCheatSearchMem();
     m_mem->reset();
     m_spu->resetCaptureBuffer();
     m_cpu->psxReset();
@@ -159,9 +155,6 @@ void PCSX::Emulator::reset() {
 }
 
 void PCSX::Emulator::shutdown() {
-    m_cheats->ClearAllCheats();
-    m_cheats->FreeCheatSearchResults();
-    m_cheats->FreeCheatSearchMem();
     m_mem->shutdown();
     m_cpu->psxShutdown();
 
@@ -172,7 +165,6 @@ void PCSX::Emulator::vsync() {
     m_gpu->vblank();
     g_system->m_eventBus->signal<Events::GPU::VSync>({});
     g_system->update(true);
-    m_cheats->ApplyCheats();
 
     if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
         // CreateRewindState();

@@ -24,7 +24,7 @@
 #include "core/system.h"
 #include "imgui.h"
 
-void PCSX::Widgets::Events::draw(const uint32_t* psxMemory, const char* title) {
+void PCSX::Widgets::Events::draw(IO<File> memFile, const char* title) {
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
         return;
@@ -33,7 +33,7 @@ void PCSX::Widgets::Events::draw(const uint32_t* psxMemory, const char* title) {
     static constexpr ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
                                              ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
                                              ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
-    auto events = Kernel::Events::getAllEvents(psxMemory);
+    auto events = Kernel::Events::getAllEvents(memFile);
     if (ImGui::BeginTable("Events", 6, flags)) {
         ImGui::TableSetupColumn(_("ID"));
         ImGui::TableSetupColumn(_("Core"));
