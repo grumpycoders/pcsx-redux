@@ -17,17 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "core/binloader.h"
+#include "supportpsx/binloader.h"
 
-#include <stdint.h>
-
-#include <exception>
-#include <filesystem>
+#include <map>
 #include <string>
-#include <vector>
 
-#include "core/psxemulator.h"
-#include "core/r3000a.h"
 #include "elfio/elfio.hpp"
 #include "fmt/format.h"
 #include "support/file.h"
@@ -39,10 +33,9 @@ namespace PCSX {
 
 namespace {
 
-bool loadCPE(IO<File> file, IO<File> dest) {
+bool loadCPE(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1455043) return false;
-    auto& regs = g_emulator->m_cpu->m_regs;
     file->read<uint16_t>();
 
     uint8_t opcode;
@@ -94,7 +87,7 @@ bool loadCPE(IO<File> file, IO<File> dest) {
         if (setRegister) {
             switch (reg) {
                 case 0x90: {
-                    regs.pc = value;
+                    info.pc = value;
                 } break;
             }
         }
@@ -103,16 +96,14 @@ bool loadCPE(IO<File> file, IO<File> dest) {
     return true;
 }
 
-bool loadPSEXE(IO<File> file, IO<File> dest) {
+bool loadPSEXE(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
     uint64_t magic = file->read<uint64_t>();
     if (magic != 0x45584520582d5350) return false;
 
-    auto& regs = g_emulator->m_cpu->m_regs;
-
     file->read<uint32_t>();
     file->read<uint32_t>();
 
-    regs.pc = file->read<uint32_t>();
+    info.pc = file->read<uint32_t>();
     file->read<uint32_t>();
     uint32_t addr = file->read<uint32_t>();
     uint32_t size = file->read<uint32_t>();
@@ -120,27 +111,25 @@ bool loadPSEXE(IO<File> file, IO<File> dest) {
     file->read<uint32_t>();
     file->read<uint32_t>();
     file->read<uint32_t>();
-    const auto sp = file->read<uint32_t>();
-    if (sp != 0) regs.GPR.n.sp = sp;
+    const auto spInFile = file->read<uint32_t>();
+    if (spInFile != 0) info.sp = spInFile;
     file->rSeek(0x71, SEEK_SET);
-    uint8_t region = file->byte();
+    uint8_t regionByte = file->byte();
     file->rSeek(2048, SEEK_SET);
     dest->writeAt(file->read(size), addr);
-    if (g_emulator->settings.get<Emulator::SettingAutoVideo>()) {  // autodetect system (pal or ntsc)
-        switch (region) {
-            case 'A':
-            case 'J':
-                g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
-                break;
-            case 'E':
-                g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
-                break;
-        }
+    switch (regionByte) {
+        case 'A':
+        case 'J':
+            info.region = BinaryLoader::Region::NTSC;
+            break;
+        case 'E':
+            info.region = BinaryLoader::Region::PAL;
+            break;
     }
     return true;
 }
 
-bool loadPSF(IO<File> file, IO<File> dest, bool seenRefresh = false, unsigned depth = 0) {
+bool loadPSF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, bool seenRefresh = false, unsigned depth = 0) {
     if (depth >= 10) return false;
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1465350) return false;
@@ -174,9 +163,9 @@ bool loadPSF(IO<File> file, IO<File> dest, bool seenRefresh = false, unsigned de
     if (!seenRefresh && pairs.find("refresh") != pairs.end()) {
         const auto& refresh = pairs["refresh"];
         if (refresh == "50") {
-            g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
+            info.region = BinaryLoader::Region::PAL;
         } else if (refresh == "60") {
-            g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
+            info.region = BinaryLoader::Region::NTSC;
         }
         seenRefresh = true;
     }
@@ -184,11 +173,11 @@ bool loadPSF(IO<File> file, IO<File> dest, bool seenRefresh = false, unsigned de
     if (pairs.find("_lib") != pairs.end()) {
         std::filesystem::path subFilePath(file->filename());
         IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs["_lib"]));
-        if (!subFile->failed()) loadPSF(subFile, dest, seenRefresh, depth++);
+        if (!subFile->failed()) loadPSF(subFile, dest, info, seenRefresh, depth++);
     }
 
     IO<File> psexe(new ZReader(zpsexe));
-    loadPSEXE(psexe, dest);
+    loadPSEXE(psexe, dest, info);
 
     unsigned libNum = 2;
 
@@ -197,13 +186,13 @@ bool loadPSF(IO<File> file, IO<File> dest, bool seenRefresh = false, unsigned de
         if (pairs.find(libName) == pairs.end()) break;
         std::filesystem::path subFilePath(file->filename());
         IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs[libName]));
-        if (!subFile->failed()) loadPSF(subFile, dest, seenRefresh, depth++);
+        if (!subFile->failed()) loadPSF(subFile, dest, info, seenRefresh, depth++);
     }
 
     return true;
 }
 
-bool loadELF(IO<File> file, IO<File> dest) {
+bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
     using namespace ELFIO;
     elfio reader;
     FileIStream stream(file);
@@ -211,8 +200,7 @@ bool loadELF(IO<File> file, IO<File> dest) {
     if (!reader.load(stream)) return false;
     if (reader.get_class() != ELFCLASS32) return false;
 
-    auto& regs = g_emulator->m_cpu->m_regs;
-    regs.pc = reader.get_entry();
+    info.pc = reader.get_entry();
 
     Elf_Half sec_num = reader.sections.size();
     for (int i = 0; i < sec_num; i++) {
@@ -237,23 +225,19 @@ bool loadELF(IO<File> file, IO<File> dest) {
 
 }  // namespace PCSX
 
-bool PCSX::BinaryLoader::load(const std::filesystem::path& filename) {
-    IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
-
+bool PCSX::BinaryLoader::load(IO<File> in, IO<File> dest, Info& info) {
     {
-        IO<File> ny(new PosixFile(filename.parent_path() / "libps.exe"));
-        if (!ny->failed()) loadPSEXE(ny, memFile);
+        IO<File> ny(new PosixFile(in->filename().parent_path() / "libps.exe"));
+        if (!ny->failed()) loadPSEXE(ny, dest, info);
     }
 
-    IO<File> file(new PosixFile(filename));
-
-    if (file->failed()) return false;
-    if (loadCPE(file, memFile)) return true;
-    file->rSeek(0, SEEK_SET);
-    if (loadPSEXE(file, memFile)) return true;
-    file->rSeek(0, SEEK_SET);
-    if (loadPSF(file, memFile)) return true;
-    file->rSeek(0, SEEK_SET);
-    if (loadELF(file, memFile)) return true;
+    if (in->failed()) return false;
+    if (loadCPE(in, dest, info)) return true;
+    in->rSeek(0, SEEK_SET);
+    if (loadPSEXE(in, dest, info)) return true;
+    in->rSeek(0, SEEK_SET);
+    if (loadPSF(in, dest, info)) return true;
+    in->rSeek(0, SEEK_SET);
+    if (loadELF(in, dest, info)) return true;
     return false;
 }

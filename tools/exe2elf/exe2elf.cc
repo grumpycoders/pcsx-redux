@@ -26,35 +26,9 @@
 #include "elfio/elfio.hpp"
 #include "flags.h"
 #include "fmt/format.h"
-#include "support/binstruct.h"
 #include "support/file.h"
-#include "support/typestring-wrapper.h"
-
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt64, TYPESTRING("id")> PSExe_ID;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("text")> PSExe_Text;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("data")> PSExe_Data;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("pc")> PSExe_PC;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("gp")> PSExe_GP;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("text_addr")> PSExe_TextAddr;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("text_size")> PSExe_TextSize;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("data_addr")> PSExe_DataAddr;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("data_size")> PSExe_DataSize;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("bss_addr")> PSExe_BssAddr;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("bss_size")> PSExe_BssSize;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("stack_addr")> PSExe_StackAddr;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("stack_size")> PSExe_StackSize;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_sp")> PSExe_SavedSP;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_fp")> PSExe_SavedFP;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_gp")> PSExe_SavedGP;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_ra")> PSExe_SavedRA;
-typedef PCSX::BinStruct::Field<PCSX::BinStruct::UInt32, TYPESTRING("saved_s0")> PSExe_SavedS0;
-typedef PCSX::BinStruct::Struct<TYPESTRING("PSExeHeader"), PSExe_ID, PSExe_Text, PSExe_Data, PSExe_PC, PSExe_GP,
-                                PSExe_TextAddr, PSExe_TextSize, PSExe_DataAddr, PSExe_DataSize, PSExe_BssAddr,
-                                PSExe_BssSize, PSExe_StackAddr, PSExe_StackSize, PSExe_SavedSP, PSExe_SavedFP,
-                                PSExe_SavedGP, PSExe_SavedRA, PSExe_SavedS0>
-    PSExe_Header;
-
-constexpr uint64_t PSEXE = 0x45584520582d5350;
+#include "support/mem4g.h"
+#include "supportpsx/binloader.h"
 
 int main(int argc, char** argv) {
     CommandLine::args args(argc, argv);
@@ -87,30 +61,21 @@ Usage: {} input.ps-exe [-h] -o output.elf
         return -1;
     }
 
-    PSExe_Header inHeader;
-    inHeader.deserialize(file);
-
-    if (inHeader.get<PSExe_ID>() != PSEXE) {
-        fmt::print("File {} isn't a valid ps-exe\n", input);
+    PCSX::BinaryLoader::Info info;
+    PCSX::IO<PCSX::Mem4G> memory(new PCSX::Mem4G());
+    bool success = PCSX::BinaryLoader::load(file, memory, info);
+    if (!success) {
+        fmt::print("Unable to load file: {}\n", input);
+        return -1;
+    }
+    if (!info.pc.has_value()) {
+        fmt::print("File {} is invalid.\n", input);
         return -1;
     }
 
-    uint32_t pc = inHeader.get<PSExe_PC>();
-    uint32_t gp = inHeader.get<PSExe_GP>();
-    uint32_t addr = inHeader.get<PSExe_TextAddr>();
-    uint32_t size = inHeader.get<PSExe_TextSize>();
-    uint32_t bssAddr = inHeader.get<PSExe_BssAddr>();
-    uint32_t bssSize = inHeader.get<PSExe_BssSize>();
-    uint32_t sp = inHeader.get<PSExe_StackAddr>();
-    sp += inHeader.get<PSExe_StackSize>();
-    if (sp == 0) sp = 0x801fff00;
-
-    file->rSeek(2048, SEEK_SET);
-
     std::vector<uint8_t> dataIn;
-    dataIn.resize(size);
-    file->read(dataIn.data(), dataIn.size());
-    file.reset();
+    dataIn.resize(memory->actualSize());
+    memory->readAt(dataIn.data(), dataIn.size(), memory->actualSize());
     while ((dataIn.size() & 3) != 0) dataIn.push_back(0);
     ELFIO::elfio writer;
 
@@ -124,9 +89,9 @@ Usage: {} input.ps-exe [-h] -o output.elf
     text->set_flags(SHF_ALLOC | SHF_EXECINSTR);
     text->set_addr_align(4);
     text->set_data(reinterpret_cast<char*>(dataIn.data()), dataIn.size());
-    text->set_address(addr);
+    text->set_address(memory->lowestAddress());
 
-    writer.set_entry(pc);
+    writer.set_entry(info.pc.value());
 
     writer.save(output.value());
 
