@@ -46,7 +46,7 @@ bool PCSX::CDRIso::parsemds(const char *isofileString) {
     i = fi->read<uint32_t>();
     if (i != 0x4944454d) {
         // not an valid mds file
-        return -1;
+        return false;
     }
 
     // get offset to session block
