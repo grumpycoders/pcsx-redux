@@ -471,7 +471,8 @@ void PCSX::GUI::init() {
         g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
-        if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
+        if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
+            !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
                 [this](bool success) {
@@ -568,16 +569,11 @@ void PCSX::GUI::init() {
             return m_stringHolder.c_str();
         };
         counter++;
-        editor.show = false;
     }
     m_parallelPortEditor.title = []() { return _("Parallel Port"); };
-    m_parallelPortEditor.show = false;
     m_scratchPadEditor.title = []() { return _("Scratch Pad"); };
-    m_scratchPadEditor.show = false;
     m_hwrEditor.title = []() { return _("Hardware Registers"); };
-    m_hwrEditor.show = false;
     m_biosEditor.title = []() { return _("BIOS"); };
-    m_biosEditor.show = false;
     m_vramEditor.title = []() { return _("VRAM"); };
     m_vramEditor.editor.WriteFn = [](uint8_t* data, size_t offset, uint8_t writtenByte) {
         constexpr size_t vramWidth = 1024;
@@ -598,7 +594,6 @@ void PCSX::GUI::init() {
 
         g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
     };
-    m_vramEditor.show = false;
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
@@ -1268,38 +1263,38 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     {
         unsigned counter = 0;
         for (auto& editor : m_mainMemEditors) {
-            if (editor.show) {
+            if (editor.m_show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(g_emulator->m_mem->m_wram, 8 * 1024 * 1024, 0x80000000);
+                editor.draw(g_emulator->m_mem->m_wram, 8 * 1024 * 1024);
             }
             counter++;
         }
-        if (m_parallelPortEditor.show) {
+        if (m_parallelPortEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(g_emulator->m_mem->m_exp1, 512 * 1024, 0x1f000000);
+            m_parallelPortEditor.draw(g_emulator->m_mem->m_exp1, 512 * 1024);
         }
         counter++;
-        if (m_scratchPadEditor.show) {
+        if (m_scratchPadEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(g_emulator->m_mem->m_hard, 1024, 0x1f800000);
+            m_scratchPadEditor.draw(g_emulator->m_mem->m_hard, 1024);
         }
         counter++;
-        if (m_hwrEditor.show) {
+        if (m_hwrEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(g_emulator->m_mem->m_hard + 4 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(g_emulator->m_mem->m_hard + 4 * 1024, 8 * 1024);
         }
         counter++;
-        if (m_biosEditor.show) {
+        if (m_biosEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(g_emulator->m_mem->m_bios, 512 * 1024, 0xbfc00000);
+            m_biosEditor.draw(g_emulator->m_mem->m_bios, 512 * 1024);
         }
         counter++;
-        if (m_vramEditor.show) {
+        if (m_vramEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
 
@@ -1429,7 +1424,8 @@ their TV set to match the aspect ratio of the game.)"));
         ImGui::End();
     }
 
-    if (!m_args.get<bool>("noupdate") && !g_system->getVersion().failed() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
+    if (!m_args.get<bool>("noupdate") && !g_system->getVersion().failed() &&
+        !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
         if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
 
@@ -1872,7 +1868,7 @@ See the wiki for details.)"));
             if (!biospath.empty()) {
                 m_selectBiosDialog.m_currentPath = biospath.value;
             }
-            
+
             m_selectBiosDialog.openDialog();
         }
         if (m_selectBiosDialog.draw()) {
