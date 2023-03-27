@@ -131,6 +131,7 @@ SRCS += third_party/md4c/src/md4c.c
 SRCS += third_party/multipart-parser-c/multipart_parser.c
 SRCS += third_party/nanovg/src/nanovg.c
 SRCS += third_party/tracy/TracyClient.cpp
+SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
 SRCS += third_party/zep/src/mcommon/animation/timer.cpp
@@ -156,7 +157,8 @@ ifeq ($(CROSS),arm64)
         CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
-SUPPORT_SRCS := src/support/file.cc
+SUPPORT_SRCS := src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
+SUPPORT_SRCS += src/supportpsx/binloader.cc src/supportpsx/ps1-packer.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
@@ -291,7 +293,7 @@ runtests: pcsx-redux-tests
 
 define TOOLDEF
 $(1): $(SUPPORT_OBJECTS) tools/$(1)/$(1).o
-	$(LD) -o $(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) tools/$(1)/$(1).o -static
+	$(LD) -o $(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) tools/$(1)/$(1).o -static -lz
 
 endef
 
