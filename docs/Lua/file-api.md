@@ -124,6 +124,7 @@ The Lua VM can create File objects in different ways:
 Support.File.open(filename[, type])
 Support.File.buffer()
 Support.File.buffer(ptr, size[, type])
+Support.File.mem4g()
 Support.File.uvFifo(address, port)
 Support.File.zReader(file[, size[, raw]])
 ```
@@ -146,6 +147,14 @@ When calling `.buffer()` with no argument, this will create an empty read-write 
 - `READWRITE` (or no type): The memory passed as an argument will be copied first.
 - `READ`: The memory passed as an argument will be referenced, and the lifespan of said memory needs to outlast the File object. The File object will be read-only.
 - `ACQUIRE`: It will acquire the pointer passed as an argument, and free it later using `free()`, meaning it needs to have been allocated using `malloc()` in the first place.
+
+The `.mem4g()` constructor will return a sparse buffer that has a virtual 4GB span. It can be used to read and write data in the 4GB range, but will not actually allocate any memory until the data is actually written to. This is useful for doing operations that are similar to that of the PlayStation memory. The `.mem4g()` constructor will return a File object that's fully readable, writable, and seekable. Its size will always be 4GB. The returned object will have 3 additional methods:
+
+- `:lowestAddress()`: Returns the lowest address that has been written to.
+- `:highestAddress()`: Returns the highest address that has been written to.
+- `:actualSize()`: Returns the size of the buffer, which is the highest address minus the lowest address.
+
+This is a useful object to use with the `:subFile()` method, as it will allow you to create a view of a specific range of the 4GB memory. Specifically, `obj:subFile(obj:lowestAddress(), obj:actualSize())` will create a view of the entire memory that has been written to.
 
 ### Network streams
 

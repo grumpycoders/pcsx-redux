@@ -62,5 +62,7 @@ nav:
       - 'Lua/memory-and-registers.md'
       - 'Lua/events.md'
       - 'Lua/breakpoints.md'
+      - 'Lua/assembler.md'
+      - 'Lua/binary.md'
       - 'Lua/case-studies.md'
     - 'openbios.md'
