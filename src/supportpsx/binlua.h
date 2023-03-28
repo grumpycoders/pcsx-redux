@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2020 PCSX-Redux authors                                 *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,27 +19,12 @@
 
 #pragma once
 
-#include <stdint.h>
-
-#include <filesystem>
-#include <optional>
-
-#include "support/file.h"
+#include "lua/luawrapper.h"
 
 namespace PCSX {
 
-namespace BinaryLoader {
-
-enum class Region { UNKNOWN, NTSC, PAL };
-struct Info {
-    std::optional<Region> region;
-    std::optional<uint32_t> pc;
-    std::optional<uint32_t> sp;
-    std::optional<uint32_t> gp;
-};
-
-bool load(IO<File> in, IO<File> dest, Info& info);
-
-}  // namespace BinaryLoader
+namespace LuaSupportPSX {
+void open_binaries(Lua);
+}
 
 }  // namespace PCSX

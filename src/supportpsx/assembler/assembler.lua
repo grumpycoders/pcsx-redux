@@ -229,6 +229,26 @@ PCSX.Assembler.New = function()
             end
             return self
         end,
+        compileToFile = function(self, file, baseAddress, fileStartAddress)
+            if typeof(file) ~= 'table' or file._type ~= 'File' then
+                error("Invalid first argument: not a file")
+            end
+            if type(baseAddress) ~= "number" then
+                error("Invalid second argument: not a number")
+            end
+            if fileStartAddress == nil then fileStartAddress = 0 end
+            if type(fileStartAddress) ~= "number" then
+                error("Invalid third argument: not a number")
+            end
+            local offset = baseAddress - fileStartAddress
+            for _, v in ipairs(self.__code) do
+                local compiled = compileOne(v, baseAddress)
+                file:writeU32At(compiled, offset)
+                baseAddress = baseAddress + 4
+                offset = offset + 4
+            end
+            return self
+        end,
     }
     local wrapper = function(self, f, name, args)
         if #args ~= 1 or type(args[1]) ~= "table" then

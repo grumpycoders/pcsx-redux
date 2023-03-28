@@ -267,7 +267,9 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\supportpsx\assembler.cc" />
     <ClCompile Include="..\..\src\supportpsx\binloader.cc" />
+    <ClCompile Include="..\..\src\supportpsx\binlua.cc" />
     <ClCompile Include="..\..\src\supportpsx\ps1-packer.cc" />
+    <ClCompile Include="..\..\src\supportpsx\ucl-glue.c" />
     <ClCompile Include="..\..\third_party\ucl\src\alloc.c" />
     <ClCompile Include="..\..\third_party\ucl\src\n2e_99.c" />
   </ItemGroup>
@@ -280,11 +282,13 @@
     <None Include="..\..\src\supportpsx\assembler\registers.lua" />
     <None Include="..\..\src\supportpsx\assembler\simple.lua" />
     <None Include="..\..\src\supportpsx\assembler\symbols.lua" />
+    <None Include="..\..\src\supportpsx\binffi.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\supportpsx\assembler.h" />
     <ClInclude Include="..\..\src\supportpsx\binloader.h" />
+    <ClInclude Include="..\..\src\supportpsx\binlua.h" />
     <ClInclude Include="..\..\src\supportpsx\ps1-packer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
