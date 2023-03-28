@@ -252,7 +252,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                return m_hard[address];
+                return m_hard[address & 0x3ff];
             } else {
                 return g_emulator->m_hw->read8(address);
             }
@@ -289,7 +289,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                uint16_t *ptr = (uint16_t *)&m_hard[address];
+                uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
                 return SWAP_LEu16(*ptr);
             } else {
                 return g_emulator->m_hw->read16(address);
@@ -323,7 +323,7 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                uint32_t *ptr = (uint32_t *)&m_hard[address];
+                uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
                 return SWAP_LEu32(*ptr);
             } else {
                 return g_emulator->m_hw->read32(address);
@@ -399,7 +399,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                m_hard[address] = value;
+                m_hard[address & 0x3ff] = value;
             } else {
                 g_emulator->m_hw->write8(address, value);
             }
@@ -427,7 +427,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                uint16_t *ptr = (uint16_t *)&m_hard[address];
+                uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
                 *ptr = SWAP_LEu16(value);
             } else {
                 g_emulator->m_hw->write16(address, value);
@@ -456,7 +456,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
     } else {
         if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
             if ((address & 0xffff) < 0x400) {
-                uint32_t *ptr = (uint32_t *)&m_hard[address];
+                uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
                 *ptr = SWAP_LEu32(value);
             } else {
                 g_emulator->m_hw->write32(address, value);
@@ -502,7 +502,7 @@ const void *PCSX::Memory::pointerRead(uint32_t address) {
 
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400)
-            return &m_hard[address & 0x3FF];
+            return &m_hard[address & 0x3ff];
         else {
             switch (address) {  // IO regs that are safe to read from directly
                 case 0x1f801080:
@@ -550,7 +550,7 @@ const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
 
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400)
-            return &m_hard[address & 0x3FF];
+            return &m_hard[address & 0x3ff];
         else {
             switch (address) {
                 // IO regs that are safe to write to directly. For some of these,
