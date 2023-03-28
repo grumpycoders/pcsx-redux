@@ -1,4 +1,6 @@
 # Memory and registers
+
+## FFI access
 The Lua code can access the emulated memory and registers directly through some FFI bindings:
 
 - `PCSX.getMemPtr()` will return a `cdata[uint8_t*]` representing up to 8MB of emulated memory. This can be written to, but careful about the emulated i-cache in case code is being written to.
@@ -40,5 +42,8 @@ typedef struct {
 } psxRegisters;
 ```
 
+## Safer access
+
 The above methods will return direct pointers into the emulated memory, so it's easy to crash the emulator if you're not careful. The `getMemoryAsFile()` method is safer, but will be slower:
+
 - `PCSX.getMemoryAsFile()` will return a `File` object representing the full 4GB of accessible memory. All operations on this file will be translated to the emulated memory space. This is slower than the direct access methods, but safer. Any read or write operation will be clamped to the emulated memory space, and will not crash the emulator.
