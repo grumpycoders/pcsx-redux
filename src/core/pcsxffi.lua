@@ -82,6 +82,8 @@ LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
 void loadSaveStateFromFile(LuaFile*);
 
+LuaFile* getMemoryAsFile();
+
 void quit();
 ]]
 
@@ -203,6 +205,7 @@ PCSX = {
             error('loadSaveState: requires a Slice or File as input')
         end
     end,
+    getMemoryAsFile = function() return C.getMemoryAsFile() end,
     quit = function() C.quit() end,
 }
 

@@ -332,6 +332,14 @@ local function uvFifo(address, port)
     return ret
 end
 
+local function mem4g()
+    local ret = createFileWrapper(C.mem4g())
+    ret.lowestAddress = function(file) return C.mem4gLowestAddress(file._wrapper) end
+    ret.highestAddress = function(file) return C.mem4gHighestAddress(file._wrapper) end
+    ret.actualSize = function(file) return C.mem4gActualSize(file._wrapper) end
+    return ret
+end
+
 if (type(Support) ~= 'table') then Support = {} end
 
 Support.NewLuaBuffer = function(size)
@@ -347,6 +355,7 @@ Support.File = {
     buffer = buffer,
     zReader = zReader,
     uvFifo = uvFifo,
+    mem4g = mem4g,
     failedFile = function() return createFileWrapper(C.failedFile()) end,
     _createFileWrapper = createFileWrapper,
     _createSliceWrapper = createSliceWrapper,

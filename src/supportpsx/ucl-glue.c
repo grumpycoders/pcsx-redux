@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2020 PCSX-Redux authors                                 *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,29 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include <memory.h>
 
-#include <stdint.h>
+#include "ucl/ucl.h"
 
-#include <filesystem>
-#include <optional>
-
-#include "support/file.h"
-
-namespace PCSX {
-
-namespace BinaryLoader {
-
-enum class Region { UNKNOWN, NTSC, PAL };
-struct Info {
-    std::optional<Region> region;
-    std::optional<uint32_t> pc;
-    std::optional<uint32_t> sp;
-    std::optional<uint32_t> gp;
-};
-
-bool load(IO<File> in, IO<File> dest, Info& info);
-
-}  // namespace BinaryLoader
-
-}  // namespace PCSX
+ucl_voidp ucl_memcpy(ucl_voidp dest, const ucl_voidp src, ucl_uint len) { return memcpy(dest, src, len); }
+ucl_voidp ucl_memset(ucl_voidp s, int c, ucl_uint len) { return memset(s, c, len); }

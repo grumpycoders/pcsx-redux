@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -29,8 +29,8 @@
 #include "core/luaiso.h"
 #include "core/mdec.h"
 #include "core/pad.h"
-#include "core/pio-cart.h"
 #include "core/pcsxlua.h"
+#include "core/pio-cart.h"
 #include "core/r3000a.h"
 #include "core/sio.h"
 #include "core/sio1-server.h"
@@ -41,31 +41,32 @@
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "lua/zlibffi.h"
-#include "supportpsx/assembler.h"
 extern "C" {
 #include "luv/src/luv.h"
 }
 #include "spu/interface.h"
+#include "supportpsx/assembler.h"
+#include "supportpsx/binlua.h"
 
 PCSX::Emulator::Emulator()
-    : m_mem(new PCSX::Memory()),
-      m_counters(new PCSX::Counters()),
-      m_gte(new PCSX::GTE()),
-      m_sio(new PCSX::SIO()),
+    : m_callStacks(new PCSX::CallStacks),
       m_cdrom(PCSX::CDRom::factory()),
-      m_mdec(new PCSX::MDEC()),
+      m_counters(new PCSX::Counters()),
+      m_debug(new PCSX::Debug()),
       m_gdbServer(new PCSX::GdbServer()),
-      m_webServer(new PCSX::WebServer()),
+      m_gte(new PCSX::GTE()),
+      m_hw(new PCSX::HW()),
+      m_lua(new PCSX::Lua()),
+      m_mdec(new PCSX::MDEC()),
+      m_mem(new PCSX::Memory()),
+      m_pads(new PCSX::Pads()),
+      m_pioCart(new PCSX::PIOCart),
+      m_sio(new PCSX::SIO()),
       m_sio1(new PCSX::SIO1()),
       m_sio1Server(new PCSX::SIO1Server()),
       m_sio1Client(new PCSX::SIO1Client()),
-      m_debug(new PCSX::Debug()),
-      m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),
-      m_pads(new PCSX::Pads()),
-      m_lua(new PCSX::Lua()),
-      m_callStacks(new PCSX::CallStacks),
-      m_pioCart(new PCSX::PIOCart) {}
+      m_webServer(new PCSX::WebServer()) {}
 
 void PCSX::Emulator::setLua() {
     auto L = *m_lua;
@@ -94,6 +95,7 @@ void PCSX::Emulator::setLua() {
     LuaFFI::open_extra(L);
     LuaBindings::open_events(L);
     LuaSupportPSX::open_assembler(L);
+    LuaSupportPSX::open_binaries(L);
 
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");

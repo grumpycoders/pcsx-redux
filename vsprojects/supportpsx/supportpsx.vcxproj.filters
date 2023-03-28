@@ -30,6 +30,12 @@
     <ClCompile Include="..\..\src\supportpsx\ps1-packer.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\binlua.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\ucl-glue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -57,6 +63,9 @@
     <None Include="..\..\src\supportpsx\assembler\simple.lua">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="..\..\src\supportpsx\binffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\supportpsx\assembler.h">
@@ -66,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\ps1-packer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\binlua.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

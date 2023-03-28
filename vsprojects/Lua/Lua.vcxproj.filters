@@ -55,30 +55,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\lua\glffi-enum2.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\lua\glffi-enum3.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\lua\glffi-typedefs.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\lua\glffi-enum1.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\lua\glffi-def1.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\lua\glffi-def2.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\lua\glffi-def3.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\lua\glffi-def4.lua">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="..\..\src\lua\fileffi.lua">
       <Filter>Source Files</Filter>
     </None>
@@ -105,6 +81,30 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="..\..\src\lua\fileffi-cdef.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\glffi\glffi-def1.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\glffi\glffi-def2.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\glffi\glffi-def3.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\glffi\glffi-def4.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\glffi\glffi-enum1.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\glffi\glffi-enum2.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\glffi\glffi-enum3.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\third_party\glffi\glffi-typedefs.lua">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
