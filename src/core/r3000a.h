@@ -455,7 +455,7 @@ Formula One 2001
         uint8_t * iCode = m_regs.iCacheCode;
 
         // cached - RAM
-        if (pcBank == 0x00 || pcBank == 0x1f || pcBank == 0x80 || pcBank == 0x9f) {
+        if (pcBank == 0x00 || pcBank == 0x80) {
             if (SWAP_LE32(*(uint32_t *)(iAddr + pcCache)) == pcOffset) {
                 // Cache hit - return last opcode used
                 return SWAP_LE32(*((uint32_t *)(iCode + pcCache)));
