@@ -31,17 +31,12 @@ void PCSX::Widgets::Handlers::draw(const uint32_t* psxMemory, const char* title)
         return;
     }
 
-    uint32_t* data = reinterpret_cast<uint32_t*>(PSXM(0x100));
+    IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
 
-    if (!data) {
-        ImGui::End();
-        return;
-    }
+    uint32_t arrayPointer = memFile->readAt<uint32_t>(0x100);
+    const unsigned count = memFile->readAt<uint32_t>(0x104) / 8;
 
-    const unsigned count = data[1] / 8;
-    uint32_t* array = reinterpret_cast<uint32_t*>(PSXM(SWAP_LE32(data[0])));
-
-    if (!array) {
+    if (!arrayPointer) {
         ImGui::Text(_("Invalid data at 0x100"));
         ImGui::End();
         return;
@@ -51,15 +46,15 @@ void PCSX::Widgets::Handlers::draw(const uint32_t* psxMemory, const char* title)
 
     for (unsigned priority = 0; priority < count; priority++) {
         ImGui::Text(_("Priority %i"), priority);
-        uint32_t infoAddr = SWAP_LE32(array[priority]);
+        uint32_t infoAddr = memFile->readAt<uint32_t>(arrayPointer + priority * 4);
         if (!infoAddr) {
             ImGui::TextUnformatted(_("  No handlers"));
             ImGui::Separator();
             continue;
         }
         while (infoAddr) {
-            uint32_t* infoPtr = reinterpret_cast<uint32_t*>(PSXM(infoAddr));
-            if (!infoPtr) {
+            uint32_t infoStructAddr = memFile->readAt<uint32_t>(infoAddr);
+            if (!infoStructAddr) {
                 ImGui::Text(_("  Corrupted info"));
                 break;
             }
@@ -72,19 +67,19 @@ void PCSX::Widgets::Handlers::draw(const uint32_t* psxMemory, const char* title)
             }
             ImGui::Text(_("  verifier: "));
             ImGui::SameLine();
-            uint32_t verifierAddr = SWAP_LE32(infoPtr[2]);
+            uint32_t verifierAddr = memFile->readAt<uint32_t>(infoStructAddr + 8);
             buttonStr = fmt::format("{:08x}##{}", verifierAddr, counter++);
             if (ImGui::Button(buttonStr.c_str())) {
                 g_system->m_eventBus->signal(Events::GUI::JumpToPC{verifierAddr});
             }
             ImGui::Text(_("  handler: "));
             ImGui::SameLine();
-            uint32_t handlerAddr = SWAP_LE32(infoPtr[1]);
+            uint32_t handlerAddr = memFile->readAt<uint32_t>(infoStructAddr + 4);
             buttonStr = fmt::format("{:08x}##{}", handlerAddr, counter++);
             if (ImGui::Button(buttonStr.c_str())) {
                 g_system->m_eventBus->signal(Events::GUI::JumpToPC{handlerAddr});
             }
-            infoAddr = SWAP_LE32(infoPtr[0]);
+            infoAddr = memFile->readAt<uint32_t>(infoStructAddr);
         }
         ImGui::Separator();
     }

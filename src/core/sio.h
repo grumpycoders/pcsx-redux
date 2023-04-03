@@ -120,8 +120,6 @@ class SIO {
     void togglePocketstationMode();
     static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
 
-    static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
-
   private:
     struct StatusFlags {
         enum : uint16_t {

@@ -553,15 +553,13 @@ void PCSX::GdbClient::processCommand() {
             return;
         }
         size_t i = 0;
+        IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+        memFile->wSeek(off);
         while (len--) {
-            uint8_t* d = PSXM(off);
-            off++;
-            if (d) {
-                uint8_t c = fromHexChar(elements[1][i * 2 + 0]);
-                c <<= 4;
-                c |= fromHexChar(elements[1][i * 2 + 1]);
-                *d = c;
-            }
+            uint8_t c = fromHexChar(elements[1][i * 2 + 0]);
+            c <<= 4;
+            c |= fromHexChar(elements[1][i * 2 + 1]);
+            memFile->write(c);
             i++;
         }
         write("OK");
@@ -569,18 +567,14 @@ void PCSX::GdbClient::processCommand() {
         // read memory
         auto [off, len] = parseCursor(m_cmd.substr(1));
         startStream();
+        IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+        memFile->rSeek(off);
         while (len--) {
-            uint8_t* d = PSXM(off);
-            off++;
-            if (d) {
-                uint8_t v = *d;
-                char s[3] = {0, 0, 0};
-                s[0] = toHex[v >> 4];
-                s[1] = toHex[(v & 0x0f)];
-                stream(s);
-            } else {
-                break;
-            }
+            uint8_t v = memFile->read<uint8_t>();
+            char s[3] = {0, 0, 0};
+            s[0] = toHex[v >> 4];
+            s[1] = toHex[(v & 0x0f)];
+            stream(s);
         }
         stopStream();
     } else if ((m_cmd[0] == 'z') || (m_cmd[0] == 'Z')) {

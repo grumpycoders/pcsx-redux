@@ -235,10 +235,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\core\binloader.cc" />
     <ClCompile Include="..\..\src\core\callstacks.cc" />
     <ClCompile Include="..\..\src\core\cdrom.cc" />
-    <ClCompile Include="..\..\src\core\cheat.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
     <ClCompile Include="..\..\src\core\display.cc" />
@@ -249,8 +247,8 @@
     <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\symbols.cc" />
-    <ClCompile Include="..\..\src\core\DynaRec_x86\iR3000A.cc" />
     <ClCompile Include="..\..\src\core\eventslua.cc" />
+    <ClCompile Include="..\..\src\core\pio-cart.cc" />
     <ClCompile Include="..\..\src\core\gdb-server.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />
     <ClCompile Include="..\..\src\core\gte.cc" />
@@ -284,10 +282,8 @@
     <ClCompile Include="..\..\src\core\web-server.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\core\binloader.h" />
     <ClInclude Include="..\..\src\core\callstacks.h" />
     <ClInclude Include="..\..\src\core\cdrom.h" />
-    <ClInclude Include="..\..\src\core\cheat.h" />
     <ClInclude Include="..\..\src\core\coff.h" />
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
@@ -298,6 +294,7 @@
     <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h" />
     <ClInclude Include="..\..\src\core\eventslua.h" />
+    <ClInclude Include="..\..\src\core\pio-cart.h" />
     <ClInclude Include="..\..\src\core\gdb-server.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />

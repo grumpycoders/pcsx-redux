@@ -149,6 +149,7 @@ void PCSX::Counters::update() {
             diff = std::numeric_limits<uint32_t>::max();
             diff += cycle + 1;
             diff -= prev;
+            diff &= 0xffffffff;
         }
         diff *= 4410000;
         diff /= g_emulator->settings.get<Emulator::SettingScaler>();

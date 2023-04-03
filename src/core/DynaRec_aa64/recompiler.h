@@ -41,6 +41,45 @@
 #define HI_OFFSET ((uintptr_t)&m_regs.GPR.n.hi - (uintptr_t)this)
 #define CYCLE_OFFSET ((uintptr_t)&m_regs.cycle - (uintptr_t)this)
 
+#undef _PC_
+#undef _Op_
+#undef _Funct_
+#undef _Rd_
+#undef _Rt_
+#undef _Rs_
+#undef _Sa_
+#undef _Im_
+#undef _Target_
+#undef _Imm_
+#undef _Target_
+#undef _ImmU_
+#undef _ImmLU_
+#undef _rRs_
+#undef _rRt_
+#undef _rRd_
+#undef _c2dRs_
+#undef _c2dRt_
+#undef _c2dRd_
+#undef _rHi_
+#undef _rLo_
+#undef _JumpTarget_
+#undef _BranchTarget_
+
+#define _PC_ m_regs.pc  // The next PC to be executed
+
+#define _Op_ _fOp_(code)
+#define _Funct_ _fFunct_(code)
+#define _Rd_ _fRd_(code)
+#define _Rt_ _fRt_(code)
+#define _Rs_ _fRs_(code)
+#define _Sa_ _fSa_(code)
+#define _Im_ _fIm_(code)
+#define _Target_ _fTarget_(code)
+
+#define _Imm_ _fImm_(code)
+#define _ImmU_ _fImmU_(code)
+#define _ImmLU_ _fImmLU_(code)
+
 static uint8_t read8Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read8(address); }
 static uint16_t read16Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read16(address); }
 static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
@@ -56,7 +95,7 @@ static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator-
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 
 class DynaRecCPU final : public PCSX::R3000Acpu {
-    using recompilationFunc = void (DynaRecCPU::*)();  // A function pointer to a dynarec member function
+    using recompilationFunc = void (DynaRecCPU::*)(uint32_t code);  // A function pointer to a dynarec member function
 
   private:
     uint64_t m_hostRegisterCache[16];  // An array to backup non-volatile regs temporarily
@@ -130,11 +169,11 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     template <int T, int U>
     void allocateRegisters(std::array<int, T> regsWithoutWb, std::array<int, U> regsWithWb);
-    void alloc_rt_rs();
-    void alloc_rt_wb_rd();
-    void alloc_rs_wb_rd();
-    void alloc_rs_wb_rt();
-    void alloc_rt_rs_wb_rd();
+    void alloc_rt_rs(uint32_t code);
+    void alloc_rt_wb_rd(uint32_t code);
+    void alloc_rs_wb_rd(uint32_t code);
+    void alloc_rs_wb_rt(uint32_t code);
+    void alloc_rt_rs_wb_rd(uint32_t code);
 
     void flushRegs();
     void spillRegisterCache();
@@ -297,109 +336,109 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     // Instruction definitions
-    void recUnknown();
-    void recSpecial();
+    void recUnknown(uint32_t code);
+    void recSpecial(uint32_t code);
 
-    void recADD();
-    void recADDIU();
-    void recADDU();
-    void recAND();
-    void recANDI();
-    void recBEQ();
-    void recBGTZ();
-    void recBLEZ();
-    void recBNE();
-    void recBREAK();
-    void recCFC2();
-    void recCOP0();
-    void recCOP2();
-    void recCTC2();
-    void recDIV();
-    void recDIVU();
-    void recJ();
-    void recJAL();
-    void recJALR();
-    void recJR();
-    void recLB();
-    void recLBU();
-    void recLH();
-    void recLHU();
-    void recLUI();
-    void recLW();
-    void recLWC2();
-    void recLWL();
-    void recLWR();
-    void recMFC0();
-    void recMFC2();
-    void recMFHI();
-    void recMFLO();
-    void recMTC0();
-    void recMTC2();
-    void recMTHI();
-    void recMTLO();
-    void recMULT();
-    void recMULTU();
-    void recNOR();
-    void recOR();
-    void recORI();
-    void recREGIMM();
-    void recRFE();
-    void recSB();
-    void recSH();
-    void recSLL();
-    void recSLLV();
-    void recSLT();
-    void recSLTI();
-    void recSLTIU();
-    void recSLTU();
-    void recSRA();
-    void recSRAV();
-    void recSRL();
-    void recSRLV();
-    void recSUB();
-    void recSUBU();
-    void recSW();
-    void recSWC2();
-    void recSWL();
-    void recSWR();
-    void recSYSCALL();
-    void recXOR();
-    void recXORI();
+    void recADD(uint32_t code);
+    void recADDIU(uint32_t code);
+    void recADDU(uint32_t code);
+    void recAND(uint32_t code);
+    void recANDI(uint32_t code);
+    void recBEQ(uint32_t code);
+    void recBGTZ(uint32_t code);
+    void recBLEZ(uint32_t code);
+    void recBNE(uint32_t code);
+    void recBREAK(uint32_t code);
+    void recCFC2(uint32_t code);
+    void recCOP0(uint32_t code);
+    void recCOP2(uint32_t code);
+    void recCTC2(uint32_t code);
+    void recDIV(uint32_t code);
+    void recDIVU(uint32_t code);
+    void recJ(uint32_t code);
+    void recJAL(uint32_t code);
+    void recJALR(uint32_t code);
+    void recJR(uint32_t code);
+    void recLB(uint32_t code);
+    void recLBU(uint32_t code);
+    void recLH(uint32_t code);
+    void recLHU(uint32_t code);
+    void recLUI(uint32_t code);
+    void recLW(uint32_t code);
+    void recLWC2(uint32_t code);
+    void recLWL(uint32_t code);
+    void recLWR(uint32_t code);
+    void recMFC0(uint32_t code);
+    void recMFC2(uint32_t code);
+    void recMFHI(uint32_t code);
+    void recMFLO(uint32_t code);
+    void recMTC0(uint32_t code);
+    void recMTC2(uint32_t code);
+    void recMTHI(uint32_t code);
+    void recMTLO(uint32_t code);
+    void recMULT(uint32_t code);
+    void recMULTU(uint32_t code);
+    void recNOR(uint32_t code);
+    void recOR(uint32_t code);
+    void recORI(uint32_t code);
+    void recREGIMM(uint32_t code);
+    void recRFE(uint32_t code);
+    void recSB(uint32_t code);
+    void recSH(uint32_t code);
+    void recSLL(uint32_t code);
+    void recSLLV(uint32_t code);
+    void recSLT(uint32_t code);
+    void recSLTI(uint32_t code);
+    void recSLTIU(uint32_t code);
+    void recSLTU(uint32_t code);
+    void recSRA(uint32_t code);
+    void recSRAV(uint32_t code);
+    void recSRL(uint32_t code);
+    void recSRLV(uint32_t code);
+    void recSUB(uint32_t code);
+    void recSUBU(uint32_t code);
+    void recSW(uint32_t code);
+    void recSWC2(uint32_t code);
+    void recSWL(uint32_t code);
+    void recSWR(uint32_t code);
+    void recSYSCALL(uint32_t code);
+    void recXOR(uint32_t code);
+    void recXORI(uint32_t code);
     void recException(Exception e);
 
     // GTE instructions
-    void recGTEMove();
-    void recAVSZ3();
-    void recAVSZ4();
-    void recCC();
-    void recCDP();
-    void recDCPL();
-    void recDPCS();
-    void recDPCT();
-    void recGPF();
-    void recGPL();
-    void recINTPL();
-    void recMVMVA();
-    void recNCCS();
-    void recNCCT();
-    void recNCDS();
-    void recNCDT();
-    void recNCLIP();
-    void recNCS();
-    void recNCT();
-    void recOP();
-    void recRTPS();
-    void recRTPT();
-    void recSQR();
+    void recGTEMove(uint32_t code);
+    void recAVSZ3(uint32_t code);
+    void recAVSZ4(uint32_t code);
+    void recCC(uint32_t code);
+    void recCDP(uint32_t code);
+    void recDCPL(uint32_t code);
+    void recDPCS(uint32_t code);
+    void recDPCT(uint32_t code);
+    void recGPF(uint32_t code);
+    void recGPL(uint32_t code);
+    void recINTPL(uint32_t code);
+    void recMVMVA(uint32_t code);
+    void recNCCS(uint32_t code);
+    void recNCCT(uint32_t code);
+    void recNCDS(uint32_t code);
+    void recNCDT(uint32_t code);
+    void recNCLIP(uint32_t code);
+    void recNCS(uint32_t code);
+    void recNCT(uint32_t code);
+    void recOP(uint32_t code);
+    void recRTPS(uint32_t code);
+    void recRTPT(uint32_t code);
+    void recSQR(uint32_t code);
 
     template <bool isAVSZ4>
-    void recAVSZ();
+    void recAVSZ(uint32_t code);
 
     template <bool loadSR>
     void testSoftwareInterrupt();
 
     template <int size, bool signExtend>
-    void recompileLoad();
+    void recompileLoad(uint32_t code);
 
     const recompilationFunc m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00

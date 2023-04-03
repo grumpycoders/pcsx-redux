@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -79,7 +79,8 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
     auto e = magic_enum::enum_cast<Exception>(ec);
     if (e.has_value()) {
         if (!cop0 && debugSettings.get<Emulator::DebugSettings::PCdrv>() && (e.value() == Exception::Break)) {
-            uint32_t code = (PSXMu32(m_regs.pc) >> 6) & 0xfffff;
+            IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+            uint32_t code = (memFile->readAt<uint32_t>(m_regs.pc) >> 6) & 0xfffff;
             auto& regs = m_regs.GPR.n;
             switch (code) {
                 case 0x101: {  // PCinit
@@ -97,7 +98,8 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         return;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-                    const char* filename = PSXS(m_regs.GPR.n.a0);
+                    memFile->rSeek(m_regs.GPR.n.a0);
+                    auto filename = memFile->gets<false>();
                     PCdrvFiles::iterator file;
                     do {
                         file = m_pcdrvFiles.find(++m_pcdrvIndex);
@@ -124,7 +126,8 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         return;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-                    const char* filename = PSXS(m_regs.GPR.n.a0);
+                    memFile->rSeek(m_regs.GPR.n.a0);
+                    auto filename = memFile->gets<false>();
                     PCdrvFiles::iterator file;
                     do {
                         file = m_pcdrvFiles.find(++m_pcdrvIndex);
@@ -165,11 +168,16 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_regs.pc += 4;
                         return;
                     }
-                    if ((regs.v1 = file->read(PSXM(regs.a3), regs.a2)) < 0) {
+                    if (file->failed() || file->eof()) {
                         regs.v0 = -1;
-                    } else {
-                        regs.v0 = 0;
+                        regs.v1 = -1;
+                        m_regs.pc += 4;
+                        return;
                     }
+                    auto slice = static_cast<File*>(&*file)->read(regs.a2);
+                    regs.v0 = 0;
+                    regs.v1 = slice.size();
+                    memFile->writeAt(std::move(slice), regs.a3);
                     m_regs.pc += 4;
                     return;
                 }
@@ -181,7 +189,8 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_regs.pc += 4;
                         return;
                     }
-                    if ((regs.v1 = file->write(PSXM(regs.a3), regs.a2)) < 0) {
+                    auto slice = memFile->readAt(regs.a2, regs.a3);
+                    if ((regs.v1 = file->write(slice.data(), slice.size())) < 0) {
                         regs.v0 = -1;
                     } else {
                         regs.v0 = 0;
@@ -280,9 +289,9 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
 void PCSX::R3000Acpu::branchTest() {
     const uint32_t cycle = m_regs.cycle;
 
-    if (cycle >= PCSX::g_emulator->m_counters->m_psxNextCounter) PCSX::g_emulator->m_counters->update();
+    if (cycle >= g_emulator->m_counters->m_psxNextCounter) g_emulator->m_counters->update();
 
-    if (m_regs.spuInterrupt.exchange(false)) PCSX::g_emulator->m_spu->interrupt();
+    if (m_regs.spuInterrupt.exchange(false)) g_emulator->m_spu->interrupt();
 
     const uint32_t interrupts = m_regs.scheduleMask;
 
@@ -323,21 +332,21 @@ void PCSX::R3000Acpu::branchTest() {
         checkAndUpdate(Schedule::CDRDMA, g_emulator->m_cdrom->scheduledDmaCallback);
         m_regs.lowestTarget = lowestTarget;
     }
-    if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_regs.CP0.n.Status & 0x401) == 0x401)) {
+    auto& mem = g_emulator->m_mem;
+    auto istat = mem->readHardwareRegister<Memory::ISTAT>();
+    auto imask = mem->readHardwareRegister<Memory::IMASK>();
+    if ((istat & imask) && ((m_regs.CP0.n.Status & 0x401) == 0x401)) {
         // If the next instruction is a GTE instruction sans LWC2/SWC2, there's a hardware bug where the instruction
         // gets executed
-        // But EPC still ends up pointing to the GTE instruction. In this case, the BIOS will add 4 to EPC to skip the
-        // GTE instruction. To deal with this, we do not fire IRQs if the next instruction is a GTE instruction
+        // But EPC still ends up pointing to the GTE instruction. In this case, the BIOS will add 4 to EPC to skip
+        // the GTE instruction. To deal with this, we do not fire IRQs if the next instruction is a GTE instruction
         // https://psx-spx.consoledev.net/cpuspecifications/#interrupts-vs-gte-commands
-        const auto pointer = (uint32_t*)PSXM(m_regs.pc);
-        if (pointer != nullptr) {
-            const auto next = *pointer;           // Fetch next instruction
-            if (((next >> 24) & 0xfe) == 0x4a) {  // Return if it's a GTE instruction
-                return;
-            }
+        uint32_t next = mem->read32(m_regs.pc, Memory::ReadType::Instr);
+        if (((next >> 24) & 0xfe) == 0x4a) {  // Return if it's a GTE instruction
+            return;
         }
 
-        PSXIRQ_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
+        PSXIRQ_LOG("Interrupt: %x %x\n", istat, imask);
         exception(0x400, 0);
     }
 }
@@ -357,4 +366,72 @@ std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::DynaRec() {
     std::unique_ptr<PCSX::R3000Acpu> cpu = getDynaRec();
     if (cpu->Implemented()) return cpu;
     return nullptr;
+}
+
+void PCSX::R3000Acpu::processA0KernelCall(uint32_t call) {
+    auto r = m_regs.GPR.n;
+
+    switch (call) {
+        case 0x03: {  // write
+            if (r.a0 != 1) break;
+            IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+            uint32_t size = r.a2;
+            m_regs.GPR.n.v0 = size;
+            memFile->rSeek(r.a1);
+            while (size--) {
+                g_system->biosPutc(memFile->getc());
+            }
+            break;
+        }
+        case 0x09: {  // putc
+            g_system->biosPutc(r.a0);
+            break;
+        }
+        case 0x3c: {  // putchar
+            g_system->biosPutc(r.a0);
+            break;
+        }
+        case 0x3e: {  // puts
+            IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+            auto str = memFile->gets<false>();
+            for (auto c : str) {
+                g_system->biosPutc(c);
+            }
+            break;
+        }
+    }
+}
+
+void PCSX::R3000Acpu::processB0KernelCall(uint32_t call) {
+    auto r = m_regs.GPR.n;
+
+    switch (call) {
+        case 0x35: {  // write
+            if (r.a0 != 1) break;
+            IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+            uint32_t size = r.a2;
+            m_regs.GPR.n.v0 = size;
+            memFile->rSeek(r.a1);
+            while (size--) {
+                g_system->biosPutc(memFile->getc());
+            }
+            break;
+        }
+        case 0x3b: {  // putc
+            g_system->biosPutc(r.a0);
+            break;
+        }
+        case 0x3d: {  // putchar
+            g_system->biosPutc(r.a0);
+            break;
+        }
+        case 0x3f: {  // puts
+            IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+            auto str = memFile->gets<false>();
+            for (auto c : str) {
+                g_system->biosPutc(c);
+            }
+            break;
+        }
+    }
 }

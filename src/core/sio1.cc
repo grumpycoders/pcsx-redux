@@ -128,7 +128,7 @@ void PCSX::SIO1::sio1StateMachine() {
 
 void PCSX::SIO1::scheduledCallback() {
     SIO1_LOG("SIO1 Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
-    psxHu32ref(0x1070) |= SWAP_LEu32(IRQ8_SIO);
+    g_emulator->m_mem->setIRQ(IRQ8_SIO);
     m_regs.status |= SR_IRQ;
 
     if (!m_sio1fifo || m_sio1fifo->eof()) return;
@@ -147,7 +147,7 @@ uint8_t PCSX::SIO1::readData8() {
     if (m_sio1fifo || !m_sio1fifo->eof()) {
         if (m_regs.status & SR_RXRDY) {
             m_regs.data = m_sio1fifo->byte();
-            psxHu8(0x1050) = m_regs.data;
+            g_emulator->m_mem->writeHardwareRegister<0x1050, uint8_t>(m_regs.data);
         }
     }
     updateStat();
@@ -159,7 +159,7 @@ uint16_t PCSX::SIO1::readData16() {
     if (m_sio1fifo || !m_sio1fifo->eof()) {
         if (m_regs.status & SR_RXRDY) {
             m_sio1fifo->read(&m_regs.data, 2);
-            psxHu16(0x1050) = m_regs.data;
+            g_emulator->m_mem->writeHardwareRegister<0x1050, uint16_t>(m_regs.data);
         }
     }
     updateStat();
@@ -171,7 +171,7 @@ uint32_t PCSX::SIO1::readData32() {
     if (m_sio1fifo || !m_sio1fifo->eof()) {
         if (m_regs.status & SR_RXRDY) {
             m_sio1fifo->read(&m_regs.data, 4);
-            psxHu32(0x1050) = m_regs.data;
+            g_emulator->m_mem->writeHardwareRegister<0x1050, uint32_t>(m_regs.data);
         }
     }
     updateStat();
@@ -253,12 +253,12 @@ void PCSX::SIO1::updateStat() {
     } else {
         m_regs.status &= ~SR_RXRDY;
     }
-    psxHu32ref(0x1054) = SWAP_LEu32(m_regs.status);
+    g_emulator->m_mem->writeHardwareRegister<0x1054>(m_regs.status);
 }
 
 void PCSX::SIO1::writeBaud16(uint16_t v) {
     m_regs.baud = v;
-    psxHu8ref(0x105E) = m_regs.baud;
+    g_emulator->m_mem->writeHardwareRegister<0x105e, uint16_t>(m_regs.baud);
     calcCycleCount();
 }
 
@@ -291,7 +291,7 @@ void PCSX::SIO1::writeCtrl16(uint16_t v) {
     }
 
     if (m_sio1Mode == SIO1Mode::Protobuf) sendFlowControlMessage();
-    psxHu16ref(0x105A) = SWAP_LE16(m_regs.control);
+    g_emulator->m_mem->writeHardwareRegister<0x105a, uint16_t>(m_regs.control);
 }
 
 void PCSX::SIO1::writeData8(uint8_t v) {
@@ -299,7 +299,7 @@ void PCSX::SIO1::writeData8(uint8_t v) {
     if (isTransmitReady()) {
         transmitData();
     }
-    psxHu8ref(0x1050) = m_regs.data;
+    g_emulator->m_mem->writeHardwareRegister<0x1050, uint8_t>(m_regs.data);
 }
 
 void PCSX::SIO1::writeMode16(uint16_t v) { m_regs.mode = v; }
@@ -309,7 +309,7 @@ void PCSX::SIO1::writeStat32(uint32_t v) {
     if (isTransmitReady()) {
         transmitData();
     }
-    psxHu32ref(0x1054) = SWAP_LE32(m_regs.status);
+    g_emulator->m_mem->writeHardwareRegister<0x1054>(m_regs.status);
 }
 
 void PCSX::SIO1::calcCycleCount() {

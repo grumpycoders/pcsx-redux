@@ -119,7 +119,7 @@ class CDRomImpl final : public PCSX::CDRom {
         if (m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty()) {
             m_responseFifo[0] = m_responseFifo[1];
             m_responseFifo[1].clear();
-            psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+            PCSX::g_emulator->m_mem->setIRQ(4);
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
                                     "CD-Rom: response fifo sliding one response, triggering IRQ.\n");
@@ -234,9 +234,10 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void scheduledDmaCallback() override {
-        if (HW_DMA3_CHCR & SWAP_LE32(0x01000000)) {
-            HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
-            DMA_INTERRUPT<3>();
+        auto &mem = PCSX::g_emulator->m_mem;
+        if (mem->isDMABusy<3>()) {
+            mem->clearDMABusy<3>();
+            mem->dmaInterrupt<3>();
         }
     }
 
@@ -274,7 +275,7 @@ class CDRomImpl final : public PCSX::CDRom {
             element.setValue(cause);
             bool actuallyTriggering = false;
             if (maybeEnqueueResponse(element)) {
-                psxHu32ref(0x1070) |= SWAP_LE32(uint32_t(4));
+                PCSX::g_emulator->m_mem->setIRQ(4);
                 actuallyTriggering = true;
             }
             const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -540,10 +541,10 @@ class CDRomImpl final : public PCSX::CDRom {
         size *= 4;
         if (size == 0) size = 0xffffffff;
         size = std::min(m_dataFIFOSize - m_dataFIFOIndex, size);
-        auto ptr = (uint8_t *)PSXM(madr);
-        for (auto i = 0; i < size; i++) {
-            *ptr++ = m_dataFIFO[m_dataFIFOIndex++];
-        }
+        PCSX::IO<PCSX::File> memFile = PCSX::g_emulator->m_mem->getMemoryAsFile();
+        memFile->wSeek(madr);
+        memFile->write(m_dataFIFO + m_dataFIFOIndex, size);
+        m_dataFIFOIndex += size;
         PCSX::g_emulator->m_cpu->Clear(madr, size / 4);
         if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                 .get<PCSX::Emulator::DebugSettings::Debug>()) {
@@ -553,8 +554,9 @@ class CDRomImpl final : public PCSX::CDRom {
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
         if (debug) {
             auto &regs = PCSX::g_emulator->m_cpu->m_regs;
-            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] DMA transfer requested to address %08x, size %08x\n",
-                                regs.pc, regs.cycle, madr, size);
+            PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                "CD-Rom: %08x.%08x] DMA transfer requested to address %08x, size %08x\n", regs.pc,
+                                regs.cycle, madr, size);
         }
         if (chcr == 0x11400100) {
             scheduleDMA(size / 16);

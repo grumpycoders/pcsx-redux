@@ -18,12 +18,6 @@
     <ClCompile Include="..\..\tools\ps1-packer\ps1-packer.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\third_party\ucl\src\alloc.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\third_party\ucl\src\n2e_99.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\tools\ps1-packer\n2e-d.h">

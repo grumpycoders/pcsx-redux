@@ -153,7 +153,7 @@ PCSX::Widgets::TypedDebugger::TypedDebugger(bool& show) : m_show(show), m_listen
     m_listener.listen<PCSX::Events::ExecutionFlow::SaveStateLoaded>([this](const auto& event) {
         // When loading a savestate, ensure instructions and functions that have been toggled off are disabled, just in
         // case they weren't when the savestate was created.
-        uint8_t* const memData = g_emulator->m_mem->m_psxM;
+        uint8_t* const memData = g_emulator->m_mem->m_wram;
         constexpr uint32_t memBase = 0x80000000;
 
         for (const auto& disabledInstruction : m_disabledInstructions) {
@@ -217,14 +217,14 @@ static bool isInRAM(uint32_t address) {
 static uint8_t* getMemoryPointerFor(uint32_t address, uint32_t& outMemBase) {
     if (isInRAM(address)) {
         outMemBase = 0x80000000;
-        return PCSX::g_emulator->m_mem->m_psxM;
+        return PCSX::g_emulator->m_mem->m_wram;
     }
 
     const uint32_t memBase = 0x1f800000;
     const uint32_t memSize = 1024;
     if (address >= memBase && address < memBase + memSize) {
         outMemBase = memBase;
-        return PCSX::g_emulator->m_mem->m_psxH;
+        return PCSX::g_emulator->m_mem->m_hard;
     }
 
     return nullptr;
@@ -329,16 +329,16 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                 auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), instructionAddress)
                                                            : fmt::format(f_("Disable##{}"), instructionAddress);
                 if (ImGui::Button(toggleButtonName.c_str())) {
-                    auto* instructionMem = PSXM(instructionAddress & 0xffffff);
+                    IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
                     if (functionToggledOff) {
-                        memcpy(instructionMem, m_disabledInstructions[instructionAddress].data(), 4);
+                        memFile->writeAt(m_disabledInstructions[instructionAddress].data(), 4, instructionAddress);
                         m_disabledInstructions.erase(instructionAddress);
                     } else {
                         uint8_t instructions[4];
-                        memcpy(instructions, instructionMem, 4);
+                        memFile->readAt(instructions, 4, instructionAddress);
                         m_disabledInstructions[instructionAddress] = std::to_array(instructions);
                         constexpr uint32_t nop = Mips::Encoder::nop();
-                        memcpy(instructionMem, &nop, 4);
+                        memFile->writeAt(&nop, 4, instructionAddress);
                     }
                 }
                 ImGui::TableNextColumn();  // New value.
@@ -625,9 +625,9 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     if (m_functions.empty()) {
         ImGui::TextWrapped(
             _("Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate "
-            "a redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
-            "address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples "
-            "whose elements are separated by commas.\n\nFor example:\n"));
+              "a redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
+              "address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples "
+              "whose elements are separated by commas.\n\nFor example:\n"));
         gui->useMonoFont();
         ImGui::TextUnformatted("800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n\n");
         ImGui::PopFont();
@@ -701,7 +701,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     ImGui::SameLine();
     showReimportButton(_("Reimport functions from updated file"), m_functionsFile, ImportType::Functions);
 
-    uint8_t* const memData = g_emulator->m_mem->m_psxM;
+    uint8_t* const memData = g_emulator->m_mem->m_wram;
     const uint32_t memSize = 1024 * 1024 * (g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
     constexpr uint32_t memBase = 0x80000000;
 
@@ -1005,17 +1005,17 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                         auto toggleButtonName = functionToggledOff ? fmt::format(f_("Re-enable##{}"), row)
                                                                    : fmt::format(f_("Disable##{}"), row);
                         if (ImGui::Button(toggleButtonName.c_str())) {
-                            auto* functionMem = PSXM(currentAddress & 0xffffff);
+                            IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
                             if (functionToggledOff) {
-                                memcpy(functionMem, m_disabledFunctions[currentAddress].data(), 8);
+                                memFile->writeAt(m_disabledFunctions[currentAddress].data(), 8, currentAddress);
                                 m_disabledFunctions.erase(currentAddress);
                             } else {
                                 uint8_t instructions[8];
-                                memcpy(instructions, functionMem, 8);
+                                memFile->readAt(instructions, 8, currentAddress);
                                 m_disabledFunctions[currentAddress] = std::to_array(instructions);
                                 using namespace Mips::Encoder;
                                 constexpr uint32_t jr_ra[2] = {jr(Reg::RA), nop()};
-                                memcpy(functionMem, jr_ra, 8);
+                                memFile->writeAt(jr_ra, 8, currentAddress);
                             }
                         }
                     }

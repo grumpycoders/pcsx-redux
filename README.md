@@ -27,7 +27,6 @@ Please consult [the documentation pages](https://pcsx-redux.consoledev.net) for 
 ## Where?
 |Download page|
 |--------|
-|[Windows Intel 32-bits](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-win32/distribution_groups/public)|
 |[Windows Intel 64-bits](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-win64/distribution_groups/public)|
 |[Windows Intel 64-bits CLI](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-win64-cli/distribution_groups/public)|
 |[Linux Intel 64-bits (AppImage)](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-linux64/distribution_groups/public)|
