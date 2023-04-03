@@ -34,9 +34,10 @@ struct LuaBreakpoint {
     PCSX::Debug::BreakpointUserListType wrapper;
 };
 
-void* getMemPtr() { return PCSX::g_emulator->m_mem->m_psxM; }
-void* getRomPtr() { return PCSX::g_emulator->m_mem->m_psxR; }
-void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_psxH; }
+void* getMemPtr() { return PCSX::g_emulator->m_mem->m_wram; }
+void* getParPtr() { return PCSX::g_emulator->m_mem->m_exp1; }
+void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
+void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_hard; }
 void* getRegisters() { return &PCSX::g_emulator->m_cpu->m_regs; }
 LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type, unsigned width, const char* cause,
                              bool (*invoker)(uint32_t address, unsigned width, const char* cause)) {
@@ -106,9 +107,11 @@ void loadSaveStateFromFile(PCSX::LuaFFI::LuaFile* file) {
     PCSX::SaveStates::load(data.asStringView());
 }
 
-void quit() {
-    PCSX::g_system->quit();
+PCSX::LuaFFI::LuaFile* getMemoryAsFile() {
+    return new PCSX::LuaFFI::LuaFile(PCSX::g_emulator->m_mem->getMemoryAsFile());
 }
+
+void quit() { PCSX::g_system->quit(); }
 
 }  // namespace
 
@@ -146,6 +149,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, createSaveState);
     REGISTER(L, loadSaveStateFromSlice);
     REGISTER(L, loadSaveStateFromFile);
+    REGISTER(L, getMemoryAsFile);
     REGISTER(L, quit);
     L.settable();
     L.pop();
@@ -161,11 +165,74 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.declareFunc(
         "getSaveStateProtoSchema",
-        [](PCSX::Lua L) -> int {
+        [](lua_State* L_) -> int {
+            Lua L(L_);
             std::ostringstream os;
-            PCSX::SaveStates::ProtoFile::dumpSchema(os);
+            SaveStates::ProtoFile::dumpSchema(os);
             L.push(os.str());
             return 1;
+        },
+        -1);
+    L.declareFunc(
+        "insertSymbol",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            if (L.gettop() != 2) {
+                return L.error("Wrong number of arguments to insertSymbol");
+            }
+            uint32_t address = L.checknumber(1);
+            auto name = L.tostring(2);
+            g_emulator->m_cpu->m_symbols[address] = name;
+            return 0;
+        },
+        -1);
+    L.declareFunc(
+        "removeSymbol",
+        [](lua_State* L_) -> int {
+            auto& symbols = g_emulator->m_cpu->m_symbols;
+            Lua L(L_);
+            if (L.gettop() != 1) {
+                return L.error("Wrong number of arguments to insertSymbol");
+            }
+            auto i = symbols.begin();
+            if (L.isnumber()) {
+                i = symbols.find(L.tonumber());
+            } else {
+                auto name = L.tostring();
+                while (i != symbols.end()) {
+                    if (i->second == name) break;
+                    i++;
+                }
+            }
+            if (i != symbols.end()) symbols.erase(i);
+            return 0;
+        },
+        -1);
+    L.declareFunc(
+        "iterateSymbols",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            L.push([](lua_State* L_) -> int {
+                auto& symbols = g_emulator->m_cpu->m_symbols;
+                Lua L(L_);
+                if (L.gettop() != 2) {
+                    return L.error("Wrong number of arguments");
+                }
+                auto iter = symbols.begin();
+                if (L.isnumber(-1)) {
+                    iter = symbols.find(L.tonumber(-1));
+                    if (iter != symbols.end()) iter++;
+                }
+                if (iter != symbols.end()) {
+                    L.push(lua_Number(iter->first));
+                    L.push(iter->second);
+                    return 2;
+                }
+                return 0;
+            });
+            L.push();
+            L.push();
+            return 3;
         },
         -1);
     L.pop();

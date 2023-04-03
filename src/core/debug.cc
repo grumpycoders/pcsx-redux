@@ -312,4 +312,8 @@ void PCSX::Debug::stepOut() {
     m_stepperHasBreakpoint = true;
 }
 
-void PCSX::Debug::updatedPC(uint32_t pc) { process(pc, pc, PSXMu32(pc), PSXMu32(pc), false); }
+void PCSX::Debug::updatedPC(uint32_t pc) {
+    IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+    uint32_t code = memFile->readAt<uint32_t>(pc);
+    process(pc, pc, code, code, false);
+}

@@ -29,7 +29,7 @@ struct SaveStateWrapper;
 
 class Counters {
   private:
-    static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
+    static inline void setIrq(uint32_t irq) { g_emulator->m_mem->setIRQ(irq); }
     uint32_t readCounterInternal(uint32_t index);
     void writeCounterInternal(uint32_t index, uint32_t value);
 

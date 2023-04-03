@@ -24,6 +24,8 @@
 #include <string>
 #include <vector>
 
+#include "support/file.h"
+
 namespace PCSX {
 
 namespace Kernel {
@@ -39,8 +41,8 @@ namespace Events {
 
 class Event {
   public:
-    Event(const uint32_t* psxMemory, uint32_t eventId);
-    Event(const uint32_t* psxMemory, uint32_t classId, uint16_t spec);
+    Event(IO<File> memory, uint32_t eventId);
+    Event(IO<File> memory, uint32_t classId, uint16_t spec);
     Event(const Event&) = default;
     Event(Event&&) = default;
     bool isValid() const { return m_valid; }
@@ -57,8 +59,8 @@ class Event {
     static std::string resolveFlag(uint16_t flag);
 
   private:
-    int findEvent(const uint32_t* psxMemory, uint32_t classId, uint16_t spec);
-    void set(const uint32_t* psxMemory, int id);
+    int findEvent(IO<File> memory, uint32_t classId, uint16_t spec);
+    void set(IO<File> memory, int id);
     bool m_valid = false;
     uint32_t m_id = 0;
     std::string m_class;
@@ -68,8 +70,8 @@ class Event {
     uint32_t m_cb = 0;
 };
 
-std::vector<Event> getAllEvents(const uint32_t* psxMemory);
-int getFirstFreeEvent(const uint32_t* psxMemory);
+std::vector<Event> getAllEvents(IO<File> memory);
+int getFirstFreeEvent(IO<File> memory);
 
 }  // namespace Events
 

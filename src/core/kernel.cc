@@ -44,23 +44,19 @@ enum class Sw {
     BU = 0x00000001,
 };
 
-int PCSX::Kernel::Events::Event::findEvent(const uint32_t* psxMemory, uint32_t classId, uint16_t spec) {
-    uint32_t eventsPtr = SWAP_LE32(psxMemory[0x48]);
-    uint32_t eventsCount = SWAP_LE32(psxMemory[0x49]);
+int PCSX::Kernel::Events::Event::findEvent(IO<File> memory, uint32_t classId, uint16_t spec) {
+    uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
+    uint32_t eventsCount = memory->readAt<uint32_t>(0x49 * 4);
     eventsPtr &= 0x1fffffff;
     eventsPtr >>= 2;
     eventsCount /= 28;
 
     for (unsigned i = 0; i < eventsCount; i++) {
-        const uint32_t* eventData = psxMemory + eventsPtr + i * 7;
+        memory->rSeek(memory->readAt<uint32_t>(eventsPtr + i * 7 * 4));
 
-        uint32_t evtClassId = *eventData++;
-        uint32_t flag = *eventData++;
-        uint32_t evtSpec = *eventData++;
-
-        evtClassId = SWAP_LE32(evtClassId);
-        flag = SWAP_LE32(flag);
-        evtSpec = SWAP_LE32(evtSpec);
+        uint32_t evtClassId = memory->read<uint32_t>();
+        uint32_t flag = memory->read<uint32_t>();
+        uint32_t evtSpec = memory->read<uint32_t>();
 
         if ((classId == evtClassId) && (spec == evtSpec) && (flag != 0)) return i;
     }
@@ -68,25 +64,19 @@ int PCSX::Kernel::Events::Event::findEvent(const uint32_t* psxMemory, uint32_t c
     return -1;
 }
 
-void PCSX::Kernel::Events::Event::set(const uint32_t* psxMemory, int id) {
-    uint32_t eventsPtr = SWAP_LE32(psxMemory[0x48]);
+void PCSX::Kernel::Events::Event::set(IO<File> memory, int id) {
+    uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
     eventsPtr &= 0x1fffffff;
     eventsPtr >>= 2;
     id &= 0xffff;
 
-    const uint32_t* eventData = psxMemory + eventsPtr + id * 7;
+    memory->rSeek(memory->readAt<uint32_t>(eventsPtr + id * 7 * 4));
 
-    uint32_t classId = *eventData++;
-    uint32_t flag = *eventData++;
-    uint32_t spec = *eventData++;
-    uint32_t mode = *eventData++;
-    uint32_t cb = *eventData++;
-
-    m_class = resolveClass(SWAP_LE32(classId));
-    m_flag = resolveFlag(SWAP_LE32(flag));
-    m_spec = resolveSpec(SWAP_LE32(spec));
-    m_mode = resolveMode(SWAP_LE32(mode));
-    m_cb = SWAP_LE32(cb);
+    m_class = memory->read<uint32_t>();
+    m_flag = memory->read<uint32_t>();
+    m_spec = memory->read<uint32_t>();
+    m_mode = memory->read<uint32_t>();
+    m_cb = memory->read<uint32_t>();
 }
 
 std::string PCSX::Kernel::Events::Event::resolveClass(uint32_t classId) {
@@ -134,9 +124,9 @@ std::string PCSX::Kernel::Events::Event::resolveFlag(uint16_t flag) {
     }
 }
 
-PCSX::Kernel::Events::Event::Event(const uint32_t* psxMemory, uint32_t eventId) {
-    uint32_t eventsPtr = SWAP_LE32(psxMemory[0x48]);
-    uint32_t eventsCount = SWAP_LE32(psxMemory[0x49]);
+PCSX::Kernel::Events::Event::Event(IO<File> memory, uint32_t eventId) {
+    uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
+    uint32_t eventsCount = memory->readAt<uint32_t>(0x49 * 4);
     eventsCount /= 28;
 
     uint32_t segment = eventsPtr & 0xe0000000;
@@ -153,11 +143,11 @@ PCSX::Kernel::Events::Event::Event(const uint32_t* psxMemory, uint32_t eventId) 
     if (eventId >= eventsCount) return;  // eventId too high
 
     m_valid = true;
-    set(psxMemory, eventId);
+    set(memory, eventId);
 }
 
-PCSX::Kernel::Events::Event::Event(const uint32_t* psxMemory, uint32_t classId, uint16_t spec) {
-    uint32_t eventsPtr = SWAP_LE32(psxMemory[0x48]);
+PCSX::Kernel::Events::Event::Event(IO<File> memory, uint32_t classId, uint16_t spec) {
+    uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
     uint32_t segment = eventsPtr & 0xe0000000;
     if ((segment != 0x00000000) && (segment != 0x80000000) && (segment != 0xa0000000))
         return;  // events table not in any known segment
@@ -165,15 +155,15 @@ PCSX::Kernel::Events::Event::Event(const uint32_t* psxMemory, uint32_t classId, 
     eventsPtr &= 0x1fffffff;
     if (eventsPtr >= 65536) return;  // events table not in kernel memory
 
-    int id = findEvent(psxMemory, classId, spec);
+    int id = findEvent(memory, classId, spec);
     if (id < 0) return;
 
-    set(psxMemory, id);
+    set(memory, id);
 }
 
-std::vector<PCSX::Kernel::Events::Event> PCSX::Kernel::Events::getAllEvents(const uint32_t* psxMemory) {
-    uint32_t eventsPtr = SWAP_LE32(psxMemory[0x48]);
-    uint32_t eventsCount = SWAP_LE32(psxMemory[0x49]);
+std::vector<PCSX::Kernel::Events::Event> PCSX::Kernel::Events::getAllEvents(IO<File> memory) {
+    uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
+    uint32_t eventsCount = memory->readAt<uint32_t>(0x49 * 4);
     eventsPtr &= 0x1fffffff;
     eventsPtr >>= 2;
     eventsCount /= 28;
@@ -182,16 +172,16 @@ std::vector<PCSX::Kernel::Events::Event> PCSX::Kernel::Events::getAllEvents(cons
     ret.reserve(eventsCount);
 
     for (uint32_t i = 0; i < eventsCount; i++) {
-        Event ev{psxMemory, i | 0xf1000000};
+        Event ev{memory, i | 0xf1000000};
         if (ev.isValid()) ret.push_back(std::move(ev));
     }
 
     return ret;
 }
 
-int PCSX::Kernel::Events::getFirstFreeEvent(const uint32_t* psxMemory) {
-    uint32_t eventsPtr = SWAP_LE32(psxMemory[0x48]);
-    uint32_t eventsCount = SWAP_LE32(psxMemory[0x49]);
+int PCSX::Kernel::Events::getFirstFreeEvent(IO<File> memory) {
+    uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
+    uint32_t eventsCount = memory->readAt<uint32_t>(0x49 * 4);
     eventsPtr &= 0x1fffffff;
     eventsPtr >>= 2;
     eventsCount /= 28;
@@ -200,10 +190,10 @@ int PCSX::Kernel::Events::getFirstFreeEvent(const uint32_t* psxMemory) {
     ret.reserve(eventsCount);
 
     for (uint32_t i = 0; i < eventsCount; i++) {
-        const uint32_t* eventData = psxMemory + eventsPtr + i * 7;
+        memory->rSeek(memory->readAt<uint32_t>(eventsPtr + i * 7 * 4));
 
-        eventData++;
-        uint32_t flag = *eventData++;
+        memory->skip<uint32_t>();
+        uint32_t flag = memory->read<uint32_t>();
 
         flag = SWAP_LE32(flag);
 

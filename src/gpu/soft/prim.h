@@ -61,7 +61,7 @@ class SoftPrim : public SoftRenderer {
     typedef void (SoftPrim::*func_t)(uint8_t *);
     typedef const func_t cfunc_t;
     void cmdSTP(uint8_t *baseAddr);
-    void cmdRequestIRQ(uint8_t *baseAddr) { psxHu32ref(0x1070) |= SWAP_LEu32(0x2); }
+    void cmdRequestIRQ(uint8_t *baseAddr) { g_emulator->m_mem->setIRQ(2); }
     void cmdTexturePage(uint8_t *baseAddr);
     void cmdTextureWindow(uint8_t *baseAddr);
     void cmdDrawAreaStart(uint8_t *baseAddr);

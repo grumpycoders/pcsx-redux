@@ -281,18 +281,18 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
-        const auto p = (uint32_t*)PSXM(m_pc);  // Fetch instruction
-        if (p == nullptr) {                    // Error if it can't be fetched
+        uint32_t* p = PCSX::g_emulator->m_mem->getPointer<uint32_t>(m_pc);
+        if (p == nullptr) {  // Error if it can't be fetched
             return m_invalidBlock;
         }
 
-        m_regs.code = *p;  // Actually read the instruction
-        m_pc += 4;         // Increment recompiler PC
-        count++;           // Increment instruction count
+        uint32_t code = m_regs.code = *p;  // Actually read the instruction
+        m_pc += 4;                         // Increment recompiler PC
+        count++;                           // Increment instruction count
         if ((m_pc & 0xffc00000) == 0xbfc00000) extra++;
 
-        const auto func = m_recBSC[m_regs.code >> 26];  // Look up the opcode in our decoding LUT
-        (*this.*func)();                                // Jump into the handler to recompile it
+        const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
+        (*this.*func)(code);                     // Jump into the handler to recompile it
     }
 
     flushRegs();

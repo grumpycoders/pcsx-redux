@@ -360,6 +360,9 @@
     <ProjectReference Include="..\..\SPU\SPU.vcxproj">
       <Project>{bf968fd3-ef46-45af-b74e-46a41a96276f}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\supportpsx\supportpsx.vcxproj">
+      <Project>{b2e2ad84-9d7f-4976-9572-e415819ffd7f}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\support\support.vcxproj">
       <Project>{0e621321-093c-4d60-bd8b-027fdc2b0f63}</Project>
     </ProjectReference>
