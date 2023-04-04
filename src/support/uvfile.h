@@ -213,6 +213,12 @@ class UvFile : public File, public UvThreadOp {
     uv_buf_t m_cacheBuf;
     uv_fs_t m_cacheReq;
     size_t m_cachePtr = 0;
+    struct PendingCloseInfo {
+        unsigned pendingWrites = 0;
+        bool closePending = false;
+    };
+    static void closeUVHandle(uv_file handle, uv_loop_s* loop, PendingCloseInfo* pendingCloseInfo);
+    PendingCloseInfo* m_pendingCloseInfo = new PendingCloseInfo();
 };
 
 class UvFifo : public File, public UvThreadOp {
