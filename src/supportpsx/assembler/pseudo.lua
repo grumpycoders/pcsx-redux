@@ -320,6 +320,26 @@ PCSX.Assembler.Internals.pseudoInstructions = {
             },
         }
     end,
+
+    subi = function(args)
+        if #args < 2 or #args > 3 then
+            error("subi takes two or three arguments")
+        end
+        if #args == 2 then
+            return {
+                base = 0x24000000,
+                rt = checkGPR(args[1]),
+                rs = checkGPR(args[1]),
+                imm16 = checkImm16(-args[2], 1),
+            }
+        end
+        return {
+            base = 0x24000000,
+            rt = checkGPR(args[1]),
+            rs = checkGPR(args[2]),
+            imm16 = checkImm16(-args[3], 1),
+        }
+    end,
 }
 
 for k, v in pairs(PCSX.Assembler.Internals.pseudoInstructions) do

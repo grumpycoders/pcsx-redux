@@ -230,7 +230,7 @@ PCSX.Assembler.New = function()
             return self
         end,
         compileToFile = function(self, file, baseAddress, fileStartAddress)
-            if typeof(file) ~= 'table' or file._type ~= 'File' then
+            if type(file) ~= 'table' or file._type ~= 'File' then
                 error("Invalid first argument: not a file")
             end
             if type(baseAddress) ~= "number" then
