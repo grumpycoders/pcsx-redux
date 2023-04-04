@@ -118,7 +118,7 @@ PCSX.Binary.createExe = function(src, dest, addr, pc, gp, sp)
         error('Expected a number as sixth argument')
     end
 
-    local size = src.size()
+    local size = src:size()
     size = bit.band(size + 0x7ff, bit.bnot(0x7ff))
 
     dest:writeU32(0x582d5350)
@@ -134,11 +134,11 @@ PCSX.Binary.createExe = function(src, dest, addr, pc, gp, sp)
     dest:writeU32(0)
     dest:writeU32(0)
     dest:writeU32(sp)
-    while dest.size() < 0x800 do
-        dest:writeU32(0)
+    while dest:size() < 0x800 do
+        dest:writeU8(0)
     end
     dest:write(src:read(src:size()))
-    while dest.size() < 0x800 do
+    while bit.band(dest:size(), 0x7ff) ~= 0 do
         dest:writeU8(0)
     end
 end

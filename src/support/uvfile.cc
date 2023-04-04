@@ -504,6 +504,9 @@ ssize_t PCSX::UvFile::write(const void *src, size_t size) {
         });
     });
     m_ptrW += size;
+    if (m_ptrW >= m_size) {
+        m_size = m_ptrW;
+    }
     return size;
 }
 
@@ -550,6 +553,9 @@ void PCSX::UvFile::write(Slice &&slice) {
         });
     });
     m_ptrW += size;
+    if (m_ptrW >= m_size) {
+        m_size = m_ptrW;
+    }
 }
 
 ssize_t PCSX::UvFile::readAt(void *dest, size_t size, size_t ptr) {
