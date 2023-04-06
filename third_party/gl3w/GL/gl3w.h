@@ -48,6 +48,8 @@ GL3W_API int gl3wInit(void);
 GL3W_API int gl3wInit2(GL3WGetProcAddressProc proc);
 GL3W_API int gl3wIsSupported(int major, int minor);
 GL3W_API GL3WglProc gl3wGetProcAddress(const char *proc);
+GL3W_API void gl3wFillCppThrowers();
+GL3W_API int gl3wIsCppThrower(GL3WglProc proc);
 /* gl3w internal state */
 union GL3WProcs {
 	GL3WglProc ptr[1278];
