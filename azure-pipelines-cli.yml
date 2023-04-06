@@ -61,6 +61,10 @@ steps:
   inputs:
     Contents: |
       vsprojects/x64/ReleaseCLI/pcsx-redux.exe
+      vsprojects/x64/ReleaseCLI/exe2elf.exe
+      vsprojects/x64/ReleaseCLI/exe2iso.exe
+      vsprojects/x64/ReleaseCLI/psyq-obj-parser.exe
+      vsprojects/x64/ReleaseCLI/ps1-packer.exe
       vsprojects/x64/ReleaseCLI/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
