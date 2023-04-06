@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "core/system.h"
+#include "core/ui.h"
 #include "flags.h"
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
@@ -75,7 +76,7 @@ namespace PCSX {
 
 enum class LogClass : unsigned;
 
-class GUI final {
+class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
     typedef Setting<bool, TYPESTRING("FullWindowRender"), true> FullWindowRender;
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
@@ -139,18 +140,18 @@ class GUI final {
     typedef Setting<size_t, TYPESTRING("HWRegsEditorAddr"), 0> HWRegsEditorAddr;
     typedef Setting<size_t, TYPESTRING("BiosEditorAddr"), 0> BiosEditorAddr;
     typedef Setting<size_t, TYPESTRING("VRAMEditorAddr"), 0> VRAMEditorAddr;
-     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
+    Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
              ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, MainFontSize, MonoFontSize,
-             GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6,
-             ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
-             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr,
-             MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
+             GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
+             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
+             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
+             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
+             MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
+             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
         settings;
-
-
 
     // imgui can't handle more than one "instance", so...
     static GUI *s_gui;
@@ -459,23 +460,6 @@ class GUI final {
     ImFont *getMonoFont() { return findClosestFont(m_monoFonts); }
     void useMainFont() { ImGui::PushFont(getMainFont()); }
     void useMonoFont() { ImGui::PushFont(getMonoFont()); }
-
-    struct {
-        bool empty() const { return filename.empty(); }
-        void set(const PCSX::u8string &newfilename) {
-            filename = newfilename;
-            pauseAfterLoad = !g_system->running();
-            if (!empty()) {
-                g_system->resume();
-            }
-        }
-        PCSX::u8string &&get() { return std::move(filename); }
-        bool hasToPause() { return pauseAfterLoad; }
-
-      private:
-        PCSX::u8string filename;
-        bool pauseAfterLoad = true;
-    } m_exeToLoad;
 
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
 

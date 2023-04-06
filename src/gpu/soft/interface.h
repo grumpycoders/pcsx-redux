@@ -25,12 +25,12 @@
 
 namespace PCSX {
 
-class GUI;
+class UI;
 
 namespace SoftGPU {
 
 class impl final : public GPU {
-    virtual int32_t init(GUI *) final;
+    virtual int32_t init(UI *) final;
     virtual int32_t shutdown() final;
     virtual uint32_t readData() final {
         uint32_t l;

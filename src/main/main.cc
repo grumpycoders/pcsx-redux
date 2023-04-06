@@ -28,16 +28,18 @@
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
+#include "core/ui.h"
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
 #include "lua/luawrapper.h"
+#include "main/textui.h"
 #include "spu/interface.h"
 #include "support/uvfile.h"
 #include "support/version.h"
 #include "tracy/Tracy.hpp"
 
-static PCSX::GUI *s_gui;
+static PCSX::UI *s_ui;
 
 class SystemImpl final : public PCSX::System {
     virtual void biosPutc(int c) final override {
@@ -49,8 +51,8 @@ class SystemImpl final : public PCSX::System {
         }
     }
     virtual void message(std::string &&s) final override {
-        if (!m_noGuiLog) s_gui->addNotification(s.c_str());
-        if (s_gui->addLog(PCSX::LogClass::UI, s)) {
+        if (!m_noGuiLog) s_ui->addNotification(s.c_str());
+        if (s_ui->addLog(PCSX::LogClass::UI, s)) {
             if (m_enableStdout) ::printf("%s", s.c_str());
             m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
             if (m_logfile) m_logfile->write(std::move(s));
@@ -59,7 +61,7 @@ class SystemImpl final : public PCSX::System {
 
     virtual void log(PCSX::LogClass logClass, std::string &&s) final override {
         if (!m_noGuiLog) {
-            if (!s_gui->addLog(logClass, s)) return;
+            if (!s_ui->addLog(logClass, s)) return;
         }
         if (m_enableStdout) ::printf("%s", s.c_str());
         m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
@@ -68,7 +70,7 @@ class SystemImpl final : public PCSX::System {
 
     virtual void printf(std::string &&s) final override {
         if (!m_noGuiLog) {
-            if (!s_gui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
+            if (!s_ui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
         }
         if (m_enableStdout) ::printf("%s", s.c_str());
         m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
@@ -77,7 +79,7 @@ class SystemImpl final : public PCSX::System {
 
     virtual void luaMessage(const std::string &s, bool error) final override {
         if (!m_noGuiLog) {
-            s_gui->addLuaLog(s, error);
+            s_ui->addLuaLog(s, error);
         }
         if ((error && m_inStartup) || args.get<bool>("lua_stdout", false)) {
             if (error) {
@@ -90,7 +92,7 @@ class SystemImpl final : public PCSX::System {
 
     virtual void update(bool vsync = false) final override {
         // called on vblank to update states
-        s_gui->update(vsync);
+        s_ui->update(vsync);
     }
 
     virtual void softReset() final override {
@@ -218,8 +220,9 @@ int pcsxMain(int argc, char **argv) {
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
 
-    s_gui = new PCSX::GUI(args);
-    s_gui->init();
+    s_ui = args.get<bool>("no-ui").value_or(false) ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI())
+                                                   : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(args));
+    s_ui->init();
     auto &emuSettings = emulator->settings;
     auto &debugSettings = emuSettings.get<PCSX::Emulator::SettingDebugSettings>();
     if (emuSettings.get<PCSX::Emulator::SettingMcd1>().empty()) {
@@ -283,20 +286,20 @@ int pcsxMain(int argc, char **argv) {
     if (logfileArg.empty() && !logfileSet.empty()) system->useLogfile(logfileSet);
 
     emulator->setLua();
-    s_gui->setLua(*emulator->m_lua);
+    s_ui->setLua(*emulator->m_lua);
     emulator->m_spu->init();
     emulator->m_spu->setLua(*emulator->m_lua);
     emulator->m_spu->open();
 
     emulator->init();
-    emulator->m_gpu->init(s_gui);
+    emulator->m_gpu->init(s_ui);
     emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
     emulator->m_gpu->setLinearFiltering();
     emulator->reset();
 
     if (args.get<bool>("run", false)) system->resume();
-    s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
-    if (s_gui->m_exeToLoad.empty()) s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("exe", "").c_str()));
+    s_ui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
+    if (s_ui->m_exeToLoad.empty()) s_ui->m_exeToLoad.set(MAKEU8(args.get<std::string>("exe", "").c_str()));
 
     assert(emulator->m_lua->gettop() == 0);
     auto luaexecs = args.values("exec");
@@ -309,8 +312,8 @@ int pcsxMain(int argc, char **argv) {
             emulator->m_cpu->psxShutdown();
             emulator->m_spu->shutdown();
             emulator->m_gpu->shutdown();
-            s_gui->close();
-            delete s_gui;
+            s_ui->close();
+            delete s_ui;
 
             delete emulator;
             PCSX::g_emulator = nullptr;
@@ -335,7 +338,7 @@ int pcsxMain(int argc, char **argv) {
                 if (system->running()) {
                     emulator->m_cpu->Execute();
                 } else {
-                    s_gui->update();
+                    s_ui->update();
                 }
             }
         } catch (...) {

@@ -29,7 +29,7 @@
 #include "support/slice.h"
 
 namespace PCSX {
-class GUI;
+class UI;
 struct SaveStateWrapper;
 
 class GPU {
@@ -62,7 +62,7 @@ class GPU {
     uint32_t gpuDmaChainSize(uint32_t addr);
 
   public:
-    virtual int init(GUI *) = 0;
+    virtual int init(UI *) = 0;
     virtual int shutdown() = 0;
     virtual uint32_t readData() = 0;
     virtual void startDump() { throw std::runtime_error("Not yet implemented"); }

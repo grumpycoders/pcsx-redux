@@ -230,9 +230,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\main\main.cc" />
+    <ClCompile Include="..\..\src\main\textui.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\main\main.h" />
+    <ClInclude Include="..\..\src\main\textui.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

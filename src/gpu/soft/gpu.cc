@@ -81,8 +81,8 @@ int iFakePrimBusy = 0;
 int iRumbleVal = 0;
 int iRumbleTime = 0;
 
-int32_t PCSX::SoftGPU::impl::init(GUI *gui) {
-    m_gui = gui;
+int32_t PCSX::SoftGPU::impl::init(UI *ui) {
+    m_ui = ui;
     bDoVSyncUpdate = true;
     initDisplay();
 

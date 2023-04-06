@@ -111,10 +111,10 @@ struct PSXDisplay_t {
 // draw.cc
 
 namespace PCSX {
-class GUI;
+class UI;
 }
 
-extern PCSX::GUI *m_gui;
+extern PCSX::UI *m_ui;
 extern bool bVsync_Key;
 
 extern int iFastFwd;

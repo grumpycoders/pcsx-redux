@@ -30,7 +30,7 @@ int iFastFwd = 0;
 PSXPoint_t ptCursorPoint[8];
 uint16_t usCursorActive = 0;
 
-PCSX::GUI *m_gui;
+PCSX::UI *m_ui;
 bool bVsync_Key = false;
 
 static const unsigned int pitch = 4096;
@@ -87,8 +87,10 @@ void ShowGunCursor(unsigned char *surf) {
 static GLuint vramTexture = 0;
 
 void PCSX::SoftGPU::impl::doBufferSwap() {
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) return;
     GLuint textureID = m_vramTexture16;
-    m_gui->setViewport();
+    gui->setViewport();
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
 
@@ -112,11 +114,13 @@ void PCSX::SoftGPU::impl::doBufferSwap() {
         height -= 1.f / 512.f;
     }
 
-    m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {startX, startY}, {width, height}, m_gui->getRenderSize());
-    m_gui->flip();
+    gui->m_offscreenShaderEditor.render(gui, textureID, {startX, startY}, {width, height}, gui->getRenderSize());
+    gui->flip();
 }
 
 void PCSX::SoftGPU::impl::clearVRAM() {
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) return;
     const auto oldTex = OpenGL::getTex2D();
     std::memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
 
@@ -126,6 +130,8 @@ void PCSX::SoftGPU::impl::clearVRAM() {
 }
 
 void PCSX::SoftGPU::impl::setLinearFiltering() {
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) return;
     const auto filter = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value ? GL_LINEAR : GL_NEAREST;
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
@@ -137,6 +143,8 @@ void PCSX::SoftGPU::impl::setLinearFiltering() {
 }
 
 void PCSX::SoftGPU::impl::initDisplay() {
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) return;
     glGenTextures(1, &vramTexture);
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
