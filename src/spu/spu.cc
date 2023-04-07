@@ -300,9 +300,11 @@ inline int PCSX::SPU::impl::iGetNoiseVal(SPUCHAN *pChannel) {
     } else
         fa = (dwNoiseVal >> 2) & 0x7fff;
 
+    static constexpr uint16_t noiseMask = ControlFlags::NoiseShift | ControlFlags::NoiseStep;
+
     // mmm... depending on the noise freq we allow bigger/smaller changes to the previous val
     fa = pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value +
-         ((fa - pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value) / ((0x001f - ((spuCtrl & 0x3f00) >> 9)) + 1));
+         ((fa - pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value) / ((0x001f - ((spuCtrl & noiseMask) >> 9)) + 1));
     if (fa > 32767L) fa = 32767L;
     if (fa < -32767L) fa = -32767L;
     pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value = fa;
@@ -319,7 +321,7 @@ inline void PCSX::SPU::impl::StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 2)  // fmod freq channel
         SB[29].value = fa;
     else {
-        if ((spuCtrl & 0x4000) == 0)
+        if ((spuCtrl & ControlFlags::Mute) == 0)
             fa = 0;  // muted?
         else         // else adjust
         {
@@ -574,7 +576,7 @@ void PCSX::SPU::impl::MainThread() {
 
                             //////////////////////////////////////////// irq check
 
-                            if ((spuCtrl & 0x40))  // some callback and irq active?
+                            if ((spuCtrl & ControlFlags::IRQEnable))  // some callback and irq active?
                             {
                                 if ((pSpuIrq > start - 16 &&  // irq address reached?
                                      pSpuIrq <= start) ||
@@ -771,7 +773,7 @@ void PCSX::SPU::impl::MainThread() {
         if (pMixIrq)  // pMixIRQ will only be set, if the config option is active
         {
             for (ns = 0; ns < NSSIZE; ns++) {
-                if ((spuCtrl & 0x40) && pSpuIrq && pSpuIrq < spuMemC + 0x1000) {
+                if ((spuCtrl & ControlFlags::IRQEnable) && pSpuIrq && pSpuIrq < spuMemC + 0x1000) {
                     for (ch = 0; ch < 4; ch++) {
                         if (pSpuIrq >= pMixIrq + (ch * 0x400) && pSpuIrq < pMixIrq + (ch * 0x400) + 2) {
                             scheduleInterrupt();
