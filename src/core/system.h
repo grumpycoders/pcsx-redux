@@ -92,6 +92,10 @@ struct JumpToMemory {
 struct SelectClut {
     unsigned x, y;
 };
+struct VRAMFocus {
+    int x1, y1;
+    int x2, y2;
+};
 }  // namespace GUI
 struct Keyboard {
     int key, scancode, action, mods;

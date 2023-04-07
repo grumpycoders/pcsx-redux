@@ -176,11 +176,11 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         if (expandAll || m_expandAll) ImGui::SetNextItemOpen(true);
         label = fmt::format("{}##node{}", logged.getName(), n);
         if (ImGui::TreeNode(label.c_str())) {
-            logged.drawLogNode();
+            logged.drawLogNode(n);
             ImGui::TreePop();
         }
         ImGui::EndGroup();
-        if (ImGui::IsItemHovered()) {
+        if (m_hoverHighlight && ImGui::IsItemHovered()) {
             tempHighlight = &logged;
         }
         if (setHighlightRange) {
@@ -199,7 +199,5 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         logger->replay(g_emulator->m_gpu.get());
     }
 
-    if (hasHighlight || tempHighlight) {
-        logger->highlight(tempHighlight, tempHighlight && ImGui::GetIO().KeyCtrl);
-    }
+    logger->highlight(tempHighlight, tempHighlight && ImGui::GetIO().KeyCtrl);
 }

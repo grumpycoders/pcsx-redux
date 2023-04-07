@@ -26,6 +26,7 @@
 #include "GL/gl3w.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
+#include "core/gpulogger.h"
 #include "core/system.h"
 #include "gui/gui.h"
 #include "gui/widgets/vram-viewer.h"
@@ -68,6 +69,8 @@ const float ridge = 1.5f;
 
 uniform bool u_greyscale;
 uniform vec2 u_clut;
+
+uniform sampler2D u_writtenHighlight;
 
 const vec4 grey1 = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 const vec4 grey2 = vec4(0.8f, 0.8f, 0.8f, 1.0f);
@@ -169,12 +172,39 @@ vec4 readTexture(in vec2 pos) {
     return ret;
 }
 
+float sampleTexture(in sampler2D sampler, in ivec2 pos) {
+    if ((pos.x < 0) || (pos.y < 0)) return 0.0;
+    if ((pos.x >= 1024) || (pos.y >= 512)) return 0.0;
+    return texture(sampler, vec2(float(pos.x) / 1024.0, float(pos.y) / 512.0)).r;
+}
+
+float sum9(in sampler2D sampler, in vec2 pos) {
+    vec2 apos = vec2(1024.0f, 512.0f) * pos;
+    ivec2 ipos = ivec2(apos);
+    float sum = 0.0;
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+          sum += sampleTexture(sampler, ipos + ivec2(x, y));
+        }
+    }
+    return sum / 9.0;
+}
+
+vec4 outlineColor(in sampler2D sampler, in vec2 pos) {
+    float sum = sum9(sampler, pos);
+    if ((sum >= 0.999) || (sum <= 0.001)) return vec4(0.0, 0.0, 0.0, 0.0);
+    return vec4(1.0, 0.0, 0.0, 1.0);
+}
+
 void main() {
     float magnifyAmount = u_magnifyAmount;
     vec2 fragCoord = gl_FragCoord.xy - u_origin;
     vec4 fragColor = readTexture(fragUV.st);
     vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
     vec4 magnifyColor = readTexture(magnifyVector + u_mouseUV);
+
+    vec4 outline = outlineColor(u_writtenHighlight, fragUV.st);
+    fragColor = mix(fragColor, outline, outline.a);
 
     float blend = u_magnify ?
         smoothstep(u_magnifyRadius + ridge, u_magnifyRadius, distance(fragCoord, u_mousePos)) :
@@ -217,6 +247,10 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     m_attribLocation24shift = glGetUniformLocation(m_shaderProgram, "u_24shift");
     m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "i_position");
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
+    m_attribLocationWrittenHeatmap = glGetUniformLocation(m_shaderProgram, "u_writtenHeatmap");
+    m_attribLocationReadHeatmap = glGetUniformLocation(m_shaderProgram, "u_readHeatmap");
+    m_attribLocationWrittenHighlight = glGetUniformLocation(m_shaderProgram, "u_writtenHighlight");
+    m_attribLocationReadHighlight = glGetUniformLocation(m_shaderProgram, "u_readHighlight");
 }
 
 PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show), m_listener(g_system->m_eventBus) {
@@ -226,6 +260,9 @@ PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show), m_listener(g_s
             m_clut.x = event.x / 1024.0f;
             m_clut.y = event.y / 512.0f;
         }
+    });
+    m_listener.listen<PCSX::Events::GUI::VRAMFocus>([this](auto event) {
+        focusOn({float(event.x1), float(event.y1)}, {float(event.x2), float(event.y2)});
     });
 }
 
@@ -351,6 +388,20 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
     glVertexAttribPointer(m_attribLocationVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+    glUniform1i(m_attribLocationWrittenHeatmap, 1);
+    glUniform1i(m_attribLocationReadHeatmap, 2);
+    glUniform1i(m_attribLocationWrittenHighlight, 3);
+    glUniform1i(m_attribLocationReadHighlight, 4);
+    auto *logger = g_emulator->m_gpuLogger.get();
+    glActiveTexture(GL_TEXTURE1);
+    logger->bindWrittenHeatmap();
+    glActiveTexture(GL_TEXTURE2);
+    logger->bindReadHeatmap();
+    glActiveTexture(GL_TEXTURE3);
+    logger->bindWrittenHighlight();
+    glActiveTexture(GL_TEXTURE4);
+    logger->bindReadHighlight();
+    glActiveTexture(GL_TEXTURE0);
 }
 
 void PCSX::Widgets::VRAMViewer::resetView() {

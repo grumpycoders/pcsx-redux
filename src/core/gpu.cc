@@ -1010,7 +1010,7 @@ void PCSX::GPU::write0(BlitVramVram *prim) {
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
-void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode() {
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(unsigned n) {
     if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
         if constexpr (shading == Shading::Flat) {
             ImGui::TextUnformatted(_("Shading: Flat"));
@@ -1036,22 +1036,55 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode()
             }
         }
     }
+    int minX = 2048, minY = 1024, maxX = -1024, maxY = -512;
+    int minU = 2048, minV = 1024, maxU = -1024, maxV = -512;
     for (unsigned i = 0; i < count; i++) {
         ImGui::Separator();
         ImGui::Text(_("Vertex %i"), i);
         ImGui::Text("  X: %i, Y: %i", x[i], y[i]);
+        minX = std::min(minX, x[i]);
+        minY = std::min(minY, y[i]);
+        maxX = std::max(maxX, x[i]);
+        maxY = std::max(maxY, y[i]);
         if constexpr ((shading == Shading::Gouraud) && ((textured == Textured::No) || (modulation == Modulation::On))) {
             ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
                         (colors[i] >> 16) & 0xff);
         }
         if constexpr (textured == Textured::Yes) {
             ImGui::Text("  U: %i, V: %i", u[i], v[i]);
+            minU = std::min(minU, int(u[i]));
+            minV = std::min(minV, int(v[i]));
+            maxU = std::max(maxU, int(u[i]));
+            maxV = std::max(maxV, int(v[i]));
+        }
+    }
+    ImGui::Separator();
+    std::string label = fmt::format(f_("Go to primitive##{}"), n);
+    if (ImGui::Button(label.c_str())) {
+        g_system->m_eventBus->signal(Events::GUI::VRAMFocus{minX, minY, maxX, maxY});
+    }
+    if constexpr (textured == Textured::Yes) {
+        ImGui::SameLine();
+        std::string label = fmt::format(f_("Go to texture##{}"), n);
+        if (ImGui::Button(label.c_str())) {
+            g_system->m_eventBus->signal(Events::GUI::VRAMFocus{int(minU + tpage.tx * 64), int(minV + tpage.ty * 256),
+                                                                int(maxU + tpage.tx * 64), int(maxV + tpage.ty * 256)});
+        }
+        if (tpage.texDepth != TexDepth::Tex16Bits) {
+            ImGui::SameLine();
+            std::string label = fmt::format(f_("Go to CLUT##{}"), n);
+            if (ImGui::Button(label.c_str())) {
+                int depth = tpage.texDepth == TexDepth::Tex4Bits ? 16 : 256;
+                g_system->m_eventBus->signal(
+                    Events::GUI::VRAMFocus{int(clutX()), int(clutY()), int(clutX() + depth), int(clutY() + 1)});
+            }
         }
     }
 }
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
-void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode() {
+void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned n) {
+    int minX = x[0], minY = y[0], maxX = x[0], maxY = y[0];
     if constexpr (shading == Shading::Flat) {
         ImGui::TextUnformatted(_("Shading: Flat"));
         ImGui::Text("  R: %i, G: %i, B: %i", (colors[0] >> 0) & 0xff, (colors[0] >> 8) & 0xff,
@@ -1077,11 +1110,20 @@ void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode() {
             ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
                         (colors[i] >> 16) & 0xff);
         }
+        minX = std::min(minX, x[i]);
+        minY = std::min(minY, y[i]);
+        maxX = std::max(maxX, x[i]);
+        maxY = std::max(maxY, y[i]);
+    }
+    ImGui::Separator();
+    std::string label = fmt::format(f_("Go to primitive##{}"), n);
+    if (ImGui::Button(label.c_str())) {
+        g_system->m_eventBus->signal(Events::GUI::VRAMFocus{minX, minY, maxX, maxY});
     }
 }
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
-void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode() {
+void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n) {
     ImGui::Text("  X0: %i, Y0: %i", x, y);
     ImGui::Text("  X1: %i, Y1: %i", x + w, y + h);
     ImGui::Text("  W: %i, H: %i", w, h);
@@ -1096,6 +1138,19 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode() {
         std::string label = fmt::format("  ClutX: {}, ClutY: {}", clutX(), clutY());
         if (ImGui::Button(label.c_str())) {
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
+        }
+    }
+    ImGui::Separator();
+    std::string label = fmt::format(f_("Go to primitive##{}"), n);
+    if (ImGui::Button(label.c_str())) {
+        g_system->m_eventBus->signal(Events::GUI::VRAMFocus{x, y, x + w, y + h});
+    }
+    if constexpr (textured == Textured::Yes) {
+        ImGui::SameLine();
+        std::string label = fmt::format(f_("Go to CLUT##{}"), n);
+        if (ImGui::Button(label.c_str())) {
+            g_system->m_eventBus->signal(
+                Events::GUI::VRAMFocus{int(clutX()), int(clutY()), int(clutX() + 256), int(clutY() + 1)});
         }
     }
 }

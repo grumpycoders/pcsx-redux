@@ -79,6 +79,10 @@ class VRAMViewer {
     int m_attribLocationMode;
     int m_attribLocationClut;
     int m_attribLocation24shift;
+    int m_attribLocationWrittenHeatmap;
+    int m_attribLocationReadHeatmap;
+    int m_attribLocationWrittenHighlight;
+    int m_attribLocationReadHighlight;
 
     bool m_hovered = false;
     bool m_magnify = false;

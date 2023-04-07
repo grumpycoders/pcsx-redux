@@ -49,6 +49,10 @@ class GPULogger {
     void highlight(GPU::Logged* node, bool only = false);
     void enable();
     void disable();
+    void bindWrittenHeatmap() { m_writtenHeatmapTex.bind(); }
+    void bindReadHeatmap() { m_readHeatmapTex.bind(); }
+    void bindWrittenHighlight() { m_writtenHighlightTex.bind(); }
+    void bindReadHighlight() { m_readHighlightTex.bind(); }
 
   private:
     void startNewFrame();
