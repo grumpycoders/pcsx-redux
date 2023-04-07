@@ -291,27 +291,45 @@ inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
 
 inline int PCSX::SPU::impl::iGetNoiseVal(SPUCHAN *pChannel) {
     auto &SB = pChannel->data.get<PCSX::SPU::Chan::SB>().value;
-    int fa;
-
-    if ((dwNoiseVal <<= 1) & 0x80000000L) {
-        dwNoiseVal ^= 0x0040001L;
-        fa = ((dwNoiseVal >> 2) & 0x7fff);
-        fa = -fa;
-    } else
-        fa = (dwNoiseVal >> 2) & 0x7fff;
-
-    static constexpr uint16_t noiseMask = ControlFlags::NoiseShift | ControlFlags::NoiseStep;
-
-    // mmm... depending on the noise freq we allow bigger/smaller changes to the previous val
-    fa = pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value +
-         ((fa - pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value) / ((0x001f - ((spuCtrl & noiseMask) >> 9)) + 1));
-    if (fa > 32767L) fa = 32767L;
-    if (fa < -32767L) fa = -32767L;
-    pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value = fa;
+    const int fa = (int16_t)m_noiseVal;
 
     if (settings.get<Interpolation>() < 2)  // no gauss/cubic interpolation?
         SB[29].value = fa;                  // -> store noise val in "current sample" slot
     return fa;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void PCSX::SPU::impl::NoiseClock() {
+    // Noise Waveform - Dr. Hell (Xebra)
+    static constexpr char NoiseWaveAdd[64] = {1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1,
+                                              1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,
+                                              1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1};
+
+    static constexpr unsigned short NoiseFreqAdd[5] = {0, 84, 140, 180, 210};
+
+    unsigned int level;
+
+    level = 0x8000 >> (m_noiseClock >> 2);
+    level <<= 16;
+
+    m_noiseCount += 0x10000;
+
+    // Dr. Hell - fraction
+    m_noiseCount += NoiseFreqAdd[m_noiseClock & 3];
+    if ((m_noiseCount & 0xffff) >= NoiseFreqAdd[4]) {
+        m_noiseCount += 0x10000;
+        m_noiseCount -= NoiseFreqAdd[m_noiseClock & 3];
+    }
+
+    if (m_noiseCount >= level) {
+        while (m_noiseCount >= level) {
+            m_noiseCount -= level;
+        }
+
+        // Dr. Hell - form
+        m_noiseVal = (m_noiseVal << 1) | NoiseWaveAdd[(m_noiseVal >> 10) & 63];
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -510,6 +528,8 @@ void PCSX::SPU::impl::MainThread() {
 
                 while (ns < NSSIZE)  // loop until 1 ms of data is reached
                 {
+                    NoiseClock();
+
                     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
                         FModChangeFrequency(pChannel, ns);
 
