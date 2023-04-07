@@ -420,30 +420,20 @@ void PCSX::GUI::init() {
     auto& io = ImGui::GetIO();
     {
         io.IniFilename = nullptr;
-        std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator->settings;
         const bool resetUI = m_args.get<bool>("resetui", false);
-        json j;
         bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
-        if (cfg.is_open() && !safeMode) {
-            try {
-                cfg >> j;
-            } catch (...) {
-            }
-            if (!resetUI && (j.count("imgui") == 1) && j["imgui"].is_string()) {
-                std::string imguicfg = j["imgui"];
+        if (loadSettings()) {
+            if (!resetUI && (m_settingsJson.count("imgui") == 1) && m_settingsJson["imgui"].is_string()) {
+                std::string imguicfg = m_settingsJson["imgui"];
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
-            if ((j.count("emulator") == 1) && j["emulator"].is_object()) {
-                emuSettings.deserialize(j["emulator"]);
+            if ((m_settingsJson.count("gui") == 1 && m_settingsJson["gui"].is_object())) {
+                settings.deserialize(m_settingsJson["gui"]);
             }
-            if ((j.count("gui") == 1 && j["gui"].is_object())) {
-                settings.deserialize(j["gui"]);
+            if ((m_settingsJson.count("loggers") == 1 && m_settingsJson["loggers"].is_object())) {
+                m_log.deserialize(m_settingsJson["loggers"]);
             }
-            if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
-                m_log.deserialize(j["loggers"]);
-            }
-
             auto& windowSizeX = settings.get<WindowSizeX>();
             auto& windowSizeY = settings.get<WindowSizeY>();
             if (windowSizeX <= 0 || resetUI) {
@@ -462,16 +452,12 @@ void PCSX::GUI::init() {
             }
 
             glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
-            PCSX::g_emulator->m_spu->setCfg(j);
-            PCSX::g_emulator->m_pads->setCfg(j);
         } else {
-            PCSX::g_emulator->m_pads->setDefaults();
             saveCfg();
         }
 
-        g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
+        finishLoadSettings();
 
-        g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
         if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
             !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(

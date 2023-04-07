@@ -23,6 +23,7 @@
 #include <utility>
 
 #include "core/system.h"
+#include "json.hpp"
 #include "lua/luawrapper.h"
 
 namespace PCSX {
@@ -31,6 +32,7 @@ enum class LogClass : unsigned;
 
 class UI {
   public:
+    UI(const CommandLine::args &args) : m_args(args) {}
     virtual void addNotification(const std::string &notification) = 0;
     virtual bool addLog(LogClass logClass, const std::string &msg) = 0;
     virtual void addLuaLog(const std::string &msg, bool error) = 0;
@@ -55,6 +57,14 @@ class UI {
         PCSX::u8string filename;
         bool pauseAfterLoad = true;
     } m_exeToLoad;
+
+  protected:
+    using json = nlohmann::json;
+    json m_settingsJson;
+    const CommandLine::args &m_args;
+
+    bool loadSettings();
+    void finishLoadSettings();
 };
 
 }  // namespace PCSX

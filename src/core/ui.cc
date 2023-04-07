@@ -17,24 +17,39 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "main/textui.h"
+#include "core/ui.h"
 
-PCSX::TUI::TUI(const CommandLine::args &args) : UI(args) {}
-PCSX::TUI::~TUI() {}
+#include <fstream>
 
-bool PCSX::TUI::addLog(LogClass logClass, const std::string &msg) { return true; }
+#include "core/pad.h"
+#include "core/psxemulator.h"
+#include "core/spu.h"
 
-void PCSX::TUI::addLuaLog(const std::string &msg, bool error) {}
+bool PCSX::UI::loadSettings() {
+    std::ifstream cfg("pcsx.json");
+    auto& emuSettings = g_emulator->settings;
+    bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
+    if (cfg.is_open() && !safeMode) {
+        try {
+            cfg >> m_settingsJson;
+        } catch (...) {
+        }
+        if ((m_settingsJson.count("emulator") == 1) && m_settingsJson["emulator"].is_object()) {
+            emuSettings.deserialize(m_settingsJson["emulator"]);
+        }
 
-void PCSX::TUI::init() {
-    loadSettings();
-    finishLoadSettings();
+        PCSX::g_emulator->m_spu->setCfg(m_settingsJson);
+        PCSX::g_emulator->m_pads->setCfg(m_settingsJson);
+        return true;
+    } else {
+        PCSX::g_emulator->m_pads->setDefaults();
+        return false;
+    }
 }
 
-void PCSX::TUI::setLua(Lua L) {}
-
-void PCSX::TUI::close() {}
-
-void PCSX::TUI::update(bool vsync) {}
-
-void PCSX::TUI::addNotification(const std::string &notification) {}
+void PCSX::UI::finishLoadSettings() {
+    bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
+    auto& emuSettings = g_emulator->settings;
+    g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
+    g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
+}

@@ -25,7 +25,7 @@ namespace PCSX {
 
 class TUI : public UI {
   public:
-    TUI();
+    TUI(const CommandLine::args &args);
     ~TUI();
     bool addLog(LogClass logClass, const std::string &msg) override;
     void addLuaLog(const std::string &msg, bool error) override;

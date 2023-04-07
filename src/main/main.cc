@@ -220,7 +220,7 @@ int pcsxMain(int argc, char **argv) {
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
 
-    s_ui = args.get<bool>("no-ui").value_or(false) ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI())
+    s_ui = args.get<bool>("no-ui").value_or(false) ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI(args))
                                                    : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(args));
     s_ui->init();
     auto &emuSettings = emulator->settings;

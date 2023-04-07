@@ -202,7 +202,7 @@ class GUI final : public UI {
         GUI *m_gui = nullptr;
     };
     std::vector<std::string> getGLerrors() { return std::move(m_glErrors); }
-    GUI(const CommandLine::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
+    GUI(const CommandLine::args &args) : m_listener(g_system->m_eventBus), UI(args) {
         assert(s_gui == nullptr);
         s_gui = this;
     }
@@ -390,8 +390,6 @@ class GUI final : public UI {
     bool m_showCfg = false;
     bool m_showUiCfg = false;
     bool m_showSysCfg = false;
-
-    const CommandLine::args &m_args;
 
     Widgets::VRAMViewer m_mainVRAMviewer = {settings.get<ShowMainVRAMViewer>().value};
     Widgets::VRAMViewer m_clutVRAMviewer = {settings.get<ShowCLUTVRAMViewer>().value};
