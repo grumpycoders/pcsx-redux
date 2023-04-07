@@ -38,6 +38,108 @@
 #include "spu/externals.h"
 #include "spu/interface.h"
 
+enum ADSRState : int32_t {
+    Attack = 0,
+    Decay = 1,
+    Sustain = 2,
+    Release = 3,
+};
+
+inline int PCSX::SPU::ADSR::Attack(SPUCHAN *ch) {
+    uint32_t disp;
+    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+
+    if (ch->ADSRX.get<exAttackModeExp>().value && EnvelopeVol >= 0x60000000) {
+        // Exponential Increase
+        disp = -0x18 + 32;
+    } else {
+        // Linear Increase
+        disp = -0x10 + 32;
+    }
+
+    EnvelopeVol += m_table[ch->ADSRX.get<exAttackRate>().value + disp];
+
+    if (EnvelopeVol < 0) {
+        EnvelopeVol = 0x7FFFFFFF;
+        ch->ADSRX.get<exState>().value = ADSRState::Decay;
+    }
+
+    ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
+    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
+    return EnvelopeVol;
+}
+
+inline int PCSX::SPU::ADSR::Decay(SPUCHAN *ch) {
+    uint32_t disp;
+    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+
+    disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
+    EnvelopeVol -= m_table[ch->ADSRX.get<exDecayRate>().value + disp];
+
+    if (EnvelopeVol < 0) EnvelopeVol = 0;
+
+    // FF7 Cursor / Vagrant Story footsteps - use Neill's 4-bit accuracy
+    if ((EnvelopeVol & 0x78000000) <= ch->ADSRX.get<exSustainLevel>().value) {
+        ch->ADSRX.get<exState>().value = ADSRState::Sustain;
+    }
+
+    ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
+    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
+    return EnvelopeVol;
+}
+
+inline int PCSX::SPU::ADSR::Sustain(SPUCHAN *ch) {
+    uint32_t disp;
+    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+
+    if (ch->ADSRX.get<exSustainIncrease>().value) {
+        disp = -0x10 + 32;
+        if (ch->ADSRX.get<exSustainModeExp>().value) {
+            if (EnvelopeVol >= 0x60000000) disp = -0x18 + 32;
+        }
+        EnvelopeVol += m_table[ch->ADSRX.get<exSustainRate>().value + disp];
+
+        if (EnvelopeVol < 0) {
+            EnvelopeVol = 0x7FFFFFFF;
+        }
+    } else {
+        if (ch->ADSRX.get<exSustainModeExp>().value) {
+            disp = m_tableDisp[((EnvelopeVol >> 28) & 0x7) + 8];
+        } else {
+            disp = -0x0F + 32;
+        }
+        EnvelopeVol -= m_table[ch->ADSRX.get<exSustainRate>().value + disp];
+
+        if (EnvelopeVol < 0) {
+            EnvelopeVol = 0;
+        }
+    }
+    ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
+    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
+    return EnvelopeVol;
+}
+
+inline int PCSX::SPU::ADSR::Release(SPUCHAN *ch) {
+    uint32_t disp;
+    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+
+    if (ch->ADSRX.get<exReleaseModeExp>().value) {
+        disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
+    } else {
+        disp = -0x0C + 32;
+    }
+    EnvelopeVol -= m_table[ch->ADSRX.get<exReleaseRate>().value + disp];
+
+    if (EnvelopeVol < 0) {
+        EnvelopeVol = 0;
+        ch->data.get<Chan::On>().value = false;
+    }
+
+    ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
+    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
+    return EnvelopeVol;
+}
+
 // Init ADSR
 PCSX::SPU::ADSR::Table::Table() {
     memset(m_table, 0,
@@ -70,97 +172,26 @@ PCSX::SPU::ADSR::Table::Table() {
 void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
 {
     pChannel->ADSRX.get<exVolume>().value = 1;  // and init some adsr vars
-    pChannel->ADSRX.get<exState>().value = 0;
+    pChannel->ADSRX.get<exState>().value = ADSRState::Attack;
     pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
 }
 
 int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
-    uint32_t disp;
-    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
-
-    if (ch->data.get<Chan::Stop>().value)  // should be stopped:
-    {                                      // do release
-        if (ch->ADSRX.get<exReleaseModeExp>().value) {
-            disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
-        } else {
-            disp = -0x0C + 32;
-        }
-        EnvelopeVol -= m_table[ch->ADSRX.get<exReleaseRate>().value + disp];
-
-        if (EnvelopeVol < 0) {
-            EnvelopeVol = 0;
-            ch->data.get<Chan::On>().value = false;
-        }
-
-        ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-        ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
-        return EnvelopeVol;
-    } else  // not stopped yet?
-    {
-        if (ch->ADSRX.get<exState>().value == 0)  // -> attack
-        {
-            disp = -0x10 + 32;
-            if (ch->ADSRX.get<exAttackModeExp>().value) {
-                if (EnvelopeVol >= 0x60000000) disp = -0x18 + 32;
-            }
-            EnvelopeVol += m_table[ch->ADSRX.get<exAttackRate>().value + disp];
-
-            if (EnvelopeVol < 0) {
-                EnvelopeVol = 0x7FFFFFFF;
-                ch->ADSRX.get<exState>().value = 1;
-            }
-
-            ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-            ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
-            return EnvelopeVol;
-        }
-        //--------------------------------------------------//
-        if (ch->ADSRX.get<exState>().value == 1)  // -> decay
-        {
-            disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
-            EnvelopeVol -= m_table[ch->ADSRX.get<exDecayRate>().value + disp];
-
-            if (EnvelopeVol < 0) EnvelopeVol = 0;
-
-            // FF7 Cursor / Vagrant Story footsteps - use Neil's 4-bit accuracy
-            if ((EnvelopeVol & 0x78000000) <= ch->ADSRX.get<exSustainLevel>().value) {
-                ch->ADSRX.get<exState>().value = 2;
-            }
-
-            ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-            ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
-            return EnvelopeVol;
-        }
-        //--------------------------------------------------//
-        if (ch->ADSRX.get<exState>().value == 2)  // -> sustain
-        {
-            if (ch->ADSRX.get<exSustainIncrease>().value) {
-                disp = -0x10 + 32;
-                if (ch->ADSRX.get<exSustainModeExp>().value) {
-                    if (EnvelopeVol >= 0x60000000) disp = -0x18 + 32;
-                }
-                EnvelopeVol += m_table[ch->ADSRX.get<exSustainRate>().value + disp];
-
-                if (EnvelopeVol < 0) {
-                    EnvelopeVol = 0x7FFFFFFF;
-                }
-            } else {
-                if (ch->ADSRX.get<exSustainModeExp>().value) {
-                    disp = m_tableDisp[((EnvelopeVol >> 28) & 0x7) + 8];
-                } else {
-                    disp = -0x0F + 32;
-                }
-                EnvelopeVol -= m_table[ch->ADSRX.get<exSustainRate>().value + disp];
-
-                if (EnvelopeVol < 0) {
-                    EnvelopeVol = 0;
-                }
-            }
-            ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-            ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
-            return EnvelopeVol;
-        }
+    if (ch->data.get<Chan::Stop>().value) {
+        ch->ADSRX.get<exState>().value = ADSRState::Release;
     }
+
+    switch (ch->ADSRX.get<exState>().value) {
+        case ADSRState::Attack:
+            return Attack(ch);
+        case ADSRState::Decay:
+            return Decay(ch);
+        case ADSRState::Sustain:
+            return Sustain(ch);
+        case ADSRState::Release:
+            return Release(ch);
+    }
+
     return 0;
 }
 
