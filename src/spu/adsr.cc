@@ -121,7 +121,9 @@ int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
             EnvelopeVol -= m_table[ch->ADSRX.get<exDecayRate>().value + disp];
 
             if (EnvelopeVol < 0) EnvelopeVol = 0;
-            if (EnvelopeVol <= ch->ADSRX.get<exSustainLevel>().value) {
+
+            // FF7 Cursor / Vagrant Story footsteps - use Neil's 4-bit accuracy
+            if ((EnvelopeVol & 0x78000000) <= ch->ADSRX.get<exSustainLevel>().value) {
                 ch->ADSRX.get<exState>().value = 2;
             }
 
