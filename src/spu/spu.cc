@@ -712,43 +712,23 @@ void PCSX::SPU::impl::MainThread() {
         ///////////////////////////////////////////////////////
         // mix all channels (including reverb) into one buffer
 
-        if (settings.get<Mono>())  // no stereo?
-        {
-            int dl, dr;
-            for (ns = 0; ns < NSSIZE; ns++) {
-                SSumL[ns] += MixREVERBLeft(ns);
+        for (ns = 0; ns < NSSIZE; ns++) {
+            SSumL[ns] += MixREVERBLeft(ns);
 
-                dl = SSumL[ns] / voldiv;
-                SSumL[ns] = 0;
-                if (dl < -32767) dl = -32767;
-                if (dl > 32767) dl = 32767;
+            d = SSumL[ns] / voldiv;
+            SSumL[ns] = 0;
+            if (d < -32767) d = -32767;
+            if (d > 32767) d = 32767;
+            *pS++ = d;
 
-                SSumR[ns] += MixREVERBRight();
+            SSumR[ns] += MixREVERBRight();
 
-                dr = SSumR[ns] / voldiv;
-                SSumR[ns] = 0;
-                if (dr < -32767) dr = -32767;
-                if (dr > 32767) dr = 32767;
-                *pS++ = (dl + dr) / 2;
-            }
-        } else  // stereo:
-            for (ns = 0; ns < NSSIZE; ns++) {
-                SSumL[ns] += MixREVERBLeft(ns);
-
-                d = SSumL[ns] / voldiv;
-                SSumL[ns] = 0;
-                if (d < -32767) d = -32767;
-                if (d > 32767) d = 32767;
-                *pS++ = d;
-
-                SSumR[ns] += MixREVERBRight();
-
-                d = SSumR[ns] / voldiv;
-                SSumR[ns] = 0;
-                if (d < -32767) d = -32767;
-                if (d > 32767) d = 32767;
-                *pS++ = d;
-            }
+            d = SSumR[ns] / voldiv;
+            SSumR[ns] = 0;
+            if (d < -32767) d = -32767;
+            if (d > 32767) d = 32767;
+            *pS++ = d;
+        }
 
         //////////////////////////////////////////////////////
         // special irq handling in the decode buffers (0x0000-0x1000)
