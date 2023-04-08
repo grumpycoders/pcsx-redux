@@ -62,23 +62,26 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     while ((dataIn.size() & 3) != 0) dataIn.push_back(0);
 
     std::vector<uint8_t> dataOut;
-    dataOut.resize(dataIn.size() * 1.2 + 2048);
+    dataOut.resize(dataIn.size() * 1.2 + 2064);
     ucl_uint outSize;
     int r;
 
-    r = ucl_nrv2e_99_compress(dataIn.data(), dataIn.size(), dataOut.data(), &outSize, nullptr, 10, nullptr, nullptr);
+    r = ucl_nrv2e_99_compress(dataIn.data(), dataIn.size(), dataOut.data() + (options.raw ? 16 : 0), &outSize, nullptr, 10, nullptr, nullptr);
     if (r != UCL_E_OK) {
         throw std::runtime_error("Fatal error during data compression.\n");
     }
-    dataOut.resize(outSize);
-    pushBytes<uint32_t>(dataOut, 0xdeadbeef);
+    dataOut.resize(outSize + (options.raw ? 16 : 0));
     uint32_t newPC;
     uint32_t compLoad;
     bool inplace;
 
-    while ((dataOut.size() & 3) != 0) dataOut.push_back(0);
-    if (options.tload != 0) {
-        compLoad = options.tload;
+    while ((dataOut.size() & 3) != 0) {
+        dataOut.push_back(0);
+    }
+    uint32_t tload = options.rom ? 0x1f000110 : options.tload;
+
+    if (tload != 0) {
+        compLoad = tload;
         newPC = compLoad + dataOut.size();
         inplace = false;
     } else {
@@ -88,7 +91,16 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     }
     newPC += sizeof(n2e_d::code);
 
-    for (auto b : n2e_d::code) pushBytes(dataOut, b);
+    if (options.raw) {
+        std::vector<uint8_t> stub;
+        pushBytes(stub, lui(Reg::V0, getHI(newPC)));
+        pushBytes(stub, addiu(Reg::V0, Reg::V0, getLO(newPC)));
+        pushBytes(stub, jr(Reg::V0));
+        pushBytes<uint32_t>(stub, 0);
+        std::copy(stub.begin(), stub.end(), dataOut.begin());
+    }
+
+    for (auto b : n2e_d::code) pushBytes<uint32_t>(dataOut, b);
 
     pushBytes(dataOut, lui(Reg::V1, 0x1f80));
     pushBytes(dataOut, sw(Reg::R0, 0x1074, Reg::V1));
@@ -146,35 +158,52 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, jr(Reg::T0));
         pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
     }
-    while (!options.booty && ((dataOut.size() & 0x7ff) != 0)) {
-        dataOut.push_back(0);
-    }
-    while ((dataOut.size() & 3) != 0) {
+    while (!options.booty && !options.rom && !options.raw && ((dataOut.size() & 0x7ff) != 0)) {
         dataOut.push_back(0);
     }
 
     std::vector<uint8_t> header;
-    if (options.booty) {
+    if (options.booty || options.rom) {
         std::vector<uint32_t> stage2;
-        /* 0x24 */ stage2.push_back(lw(Reg::A3, 0, Reg::A1));
-        /* 0x28 */ stage2.push_back(addiu(Reg::A2, Reg::A2, -1));
-        /* 0x2c */ stage2.push_back(sw(Reg::A3, 0, Reg::A0));
-        /* 0x30 */ stage2.push_back(bne(Reg::A2, Reg::R0, -16));
-        /* 0x34 */ stage2.push_back(addiu(Reg::A0, Reg::A0, 4));
-        /* 0x38 */ stage2.push_back(j(0xa0));
-        /* 0x3c */ stage2.push_back(addiu(Reg::T1, Reg::R0, 0x44));
-        /* 0x40 */ stage2.push_back(mtc0(Reg::R0, 7));
-        /* 0x44 */ stage2.push_back(lui(Reg::A0, compLoad >> 16));
-        if ((compLoad & 0xffff) != 0) {
-            /* 0x48 */ stage2.push_back(ori(Reg::A0, Reg::A0, compLoad));
+        if (options.booty) {
+            /* 0x24 */ stage2.push_back(lw(Reg::A3, 0, Reg::A1));
+            /* 0x28 */ stage2.push_back(addiu(Reg::A2, Reg::A2, -1));
+            /* 0x2c */ stage2.push_back(sw(Reg::A3, 0, Reg::A0));
+            /* 0x30 */ stage2.push_back(bne(Reg::A2, Reg::R0, -16));
+            /* 0x34 */ stage2.push_back(addiu(Reg::A0, Reg::A0, 4));
+            /* 0x38 */ stage2.push_back(j(0xa0));
+            /* 0x3c */ stage2.push_back(addiu(Reg::T1, Reg::R0, 0x44));
+            /* 0x40 */ stage2.push_back(mtc0(Reg::R0, 7));
+            /* 0x44 */ stage2.push_back(lui(Reg::A0, compLoad >> 16));
+            if ((compLoad & 0xffff) != 0) {
+                /* 0x48 */ stage2.push_back(ori(Reg::A0, Reg::A0, compLoad));
+            }
+            /* 0x4c */ stage2.push_back(lui(Reg::RA, newPC >> 16));
+            if ((newPC & 0xffff) != 0) {
+                /* 0x50 */ stage2.push_back(ori(Reg::RA, Reg::RA, newPC));
+            }
+            /* 0x54 */ stage2.push_back(lui(Reg::A1, 0xbf00));
+            /* 0x58 */ stage2.push_back(j(0x24));
+            /* 0x5c */ stage2.push_back(ori(Reg::A2, Reg::R0, dataOut.size() / 4));
+        } else {
+            stage2.push_back(lui(Reg::V0, newPC >> 16));
+            if ((newPC & 0xffff) != 0) {
+                stage2.push_back(ori(Reg::V0, Reg::V0, newPC & 0xffff));
+            }
+            stage2.push_back(jr(Reg::V0));
+            stage2.push_back(mtc0(Reg::R0, 7));
+            static constexpr char disclaimer[] = "This is self-decompressing binary,"
+            " suitable for a flash cart rom, "
+            "created by ps1-packer (https://bit.ly/pcsx-redux). "
+            "It is NOT";
+            for (auto b : disclaimer) {
+                header.push_back(b);
+            }
+            while(header.size() < 0x80) {
+                header.push_back(0);
+            }
+            pushBytes<uint32_t>(header, 0x1f0000b4);
         }
-        /* 0x4c */ stage2.push_back(lui(Reg::RA, newPC >> 16));
-        if ((newPC & 0xffff) != 0) {
-            /* 0x50 */ stage2.push_back(ori(Reg::RA, Reg::RA, newPC));
-        }
-        /* 0x54 */ stage2.push_back(lui(Reg::A1, 0xbf00));
-        /* 0x58 */ stage2.push_back(j(0x24));
-        /* 0x5c */ stage2.push_back(ori(Reg::A2, Reg::R0, dataOut.size() / 4));
 
         static constexpr uint8_t license[] = {
             0x4c, 0x69, 0x63, 0x65, 0x6e, 0x73, 0x65, 0x64, 0x20, 0x62, 0x79, 0x20, 0x53, 0x6f, 0x6e, 0x79,
@@ -197,15 +226,19 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(header, mtc0(Reg::T1, 3));
         pushBytes(header, mtc0(Reg::T0, 7));
 
-        int16_t base = 0x24;
+        int16_t base = options.booty ? 0x24 : 0x40;
         uint32_t last = 0;
         for (auto b : stage2) {
-            pushBytes(header, lui(Reg::T0, b >> 16));
-            uint16_t rest = b;
-            if (rest != 0) {
-                pushBytes(header, ori(Reg::T0, Reg::T0, rest));
+            if (b == 0) {
+                last = sw(Reg::R0, base, Reg::R0);
+            } else {
+                pushBytes(header, lui(Reg::T0, b >> 16));
+                uint16_t rest = b;
+                if (rest != 0) {
+                    pushBytes(header, ori(Reg::T0, Reg::T0, rest));
+                }
+                last = sw(Reg::T0, base, Reg::R0);
             }
-            last = sw(Reg::T0, base, Reg::R0);
             pushBytes(header, last);
             base += 4;
         }
@@ -215,6 +248,11 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         header.pop_back();
         pushBytes(header, jr(Reg::RA));
         pushBytes(header, last);
+        if (options.rom) {
+            while (header.size() < (tload & 0xffffff)) {
+                header.push_back(0);
+            }
+        }
     } else if (!options.raw) {
         pushBytes(header, PSEXE);
         pushBytes<uint32_t>(header, 0);

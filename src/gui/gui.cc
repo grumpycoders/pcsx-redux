@@ -397,10 +397,14 @@ void PCSX::GUI::init() {
     if (result) {
         throw std::runtime_error("Unable to initialize OpenGL layer. Check OpenGL drivers.");
     }
+    gl3wFillCppThrowers();
+    if (gl3wIsCppThrower(reinterpret_cast<GL3WglProc>(glDebugMessageCallback))) {
+        glDebugMessageCallback = nullptr;
+    }
 
     m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
     if (!m_nvgContext) {
-        throw std::runtime_error("Unable to initialize NanoVG. Check OpenGL drivers.");
+        g_system->log(LogClass::UI, "Warning: Unable to initialize NanoVG. Check OpenGL drivers.\n");
     }
 
     // Setup ImGui binding
@@ -2175,6 +2179,8 @@ void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2,
     float angle = Bezier::angle(start, c1, c2, end, 1.0f);
     auto vgInnerColor = nvgRGBA(innerColor.x * 255, innerColor.y * 255, innerColor.z * 255, innerColor.w * 255);
     auto vgOuterColor = nvgRGBA(outerColor.x * 255, outerColor.y * 255, outerColor.z * 255, outerColor.w * 255);
+
+    if (!vg) return;
 
     nvgSave(vg);
     nvgLineCap(vg, NVG_BUTT);

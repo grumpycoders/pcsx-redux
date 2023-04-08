@@ -208,6 +208,7 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
         auto name = psec->get_name();
 
         if (StringsHelpers::endsWith(name, "_Header")) continue;
+        if (StringsHelpers::startsWith(name, ".comment")) continue;
 
         auto type = psec->get_type();
         if (type != SHT_PROGBITS) continue;

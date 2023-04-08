@@ -51,6 +51,10 @@ static std::pair<int, std::string> loopMain(int argc, char **argv) {
 // header first. Yes, I know it's wrong, blame Microsoft.
 #include <shellapi.h>
 
+#ifdef _M_AMD64
+#include "sentry.h"
+#endif
+
 static void Complain(const char *msg) { MessageBoxA(nullptr, msg, "Error", MB_ICONERROR | MB_OK); }
 
 #ifndef PCSX_CLI
@@ -59,6 +63,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     LPWSTR *argvw;
     char **argv;
     int argc;
+
+#ifdef _M_AMD64
+    sentry_options_t *options = sentry_options_new();
+    sentry_options_set_dsn(options,
+                           "https://6c203a041de14d57a454889f50151f0f@o502319.ingest.sentry.io/4504971395858432");
+    sentry_options_set_database_path(options, ".sentry-native");
+    sentry_options_set_release(options, "pcsx-redux@head");
+    sentry_options_set_debug(options, 0);
+    sentry_init(options);
+#endif
 
     argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (!argvw) return -1;
@@ -90,6 +104,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
     for (int i = 0; i < argc; i++) free(argv[i]);
     free(argv);
+#ifdef _M_AMD64
+    sentry_close();
+#endif
     return r;
 }
 #endif
