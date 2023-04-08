@@ -98,3 +98,6 @@ DynarecOutput.map
 DynarecProfileData.txt
 DynarecDisassembly.txt
 sstate.proto
+
+# Sentry Native files
+.sentry-native
