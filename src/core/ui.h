@@ -65,6 +65,8 @@ class UI {
 
     bool loadSettings();
     void finishLoadSettings();
+    void setLuaCommon(Lua L);
+    void tick();
 };
 
 }  // namespace PCSX

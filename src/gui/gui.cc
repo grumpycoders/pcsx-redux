@@ -280,18 +280,7 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
 }
 
 void PCSX::GUI::setLua(Lua L) {
-    L.load(R"(
-print("PCSX-Redux Lua Console")
-print(jit.version)
-print((function(status, ...)
-  local ret = "JIT: " .. (status and "ON" or "OFF")
-  for i, v in ipairs({...}) do
-    ret = ret .. " " .. v
-  end
-  return ret
-end)(jit.status()))
-)",
-           "gui startup");
+    setLuaCommon(L);
     LoadImguiBindings(L.getState());
     LuaFFI::open_gl(L);
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
@@ -667,19 +656,7 @@ void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 
 void PCSX::GUI::startFrame() {
     ZoneScoped;
-    uv_run(g_system->getLoop(), UV_RUN_NOWAIT);
-    auto L = *g_emulator->m_lua;
-    L.getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
-    if (!L.isnil()) {
-        try {
-            L.pcall();
-        } catch (...) {
-        }
-        L.push();
-        L.setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
-    } else {
-        L.pop();
-    }
+    tick();
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
 

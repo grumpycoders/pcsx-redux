@@ -53,3 +53,34 @@ void PCSX::UI::finishLoadSettings() {
     g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
     g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
 }
+
+void PCSX::UI::setLuaCommon(Lua L) {
+    L.load(R"(
+print("PCSX-Redux Lua Console")
+print(jit.version)
+print((function(status, ...)
+  local ret = "JIT: " .. (status and "ON" or "OFF")
+  for i, v in ipairs({...}) do
+    ret = ret .. " " .. v
+  end
+  return ret
+end)(jit.status()))
+)",
+           "ui startup");
+}
+
+void PCSX::UI::tick() {
+    uv_run(g_system->getLoop(), UV_RUN_NOWAIT);
+    auto L = *g_emulator->m_lua;
+    L.getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
+    if (!L.isnil()) {
+        try {
+            L.pcall();
+        } catch (...) {
+        }
+        L.push();
+        L.setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
+    } else {
+        L.pop();
+    }
+}

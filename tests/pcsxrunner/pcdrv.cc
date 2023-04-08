@@ -21,14 +21,14 @@
 #include "main/main.h"
 
 TEST(PCdrv, Interpreter) {
-    MainInvoker invoker("-run", "-stdout", "-pcdrv", "-pcdrvbase", ".", "-bios", "src/mips/openbios/openbios.bin",
+    MainInvoker invoker("-no-ui", "-run", "-pcdrv", "-pcdrvbase", ".", "-bios", "src/mips/openbios/openbios.bin",
                         "-testmode", "-interpreter", "-loadexe", "src/mips/tests/pcdrv/pcdrv.ps-exe");
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
 
 TEST(PCdrv, Dynarec) {
-    MainInvoker invoker("-run", "-stdout", "-pcdrv", "-pcdrvbase", ".", "-bios", "src/mips/openbios/openbios.bin",
+    MainInvoker invoker("-no-ui", "-run", "-pcdrv", "-pcdrvbase", ".", "-bios", "src/mips/openbios/openbios.bin",
                         "-testmode", "-dynarec", "-loadexe", "src/mips/tests/pcdrv/pcdrv.ps-exe");
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);

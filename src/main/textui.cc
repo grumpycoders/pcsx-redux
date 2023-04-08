@@ -19,6 +19,9 @@
 
 #include "main/textui.h"
 
+#include <chrono>
+#include <thread>
+
 PCSX::TUI::TUI(const CommandLine::args &args) : UI(args) {}
 PCSX::TUI::~TUI() {}
 
@@ -31,10 +34,16 @@ void PCSX::TUI::init() {
     finishLoadSettings();
 }
 
-void PCSX::TUI::setLua(Lua L) {}
+void PCSX::TUI::setLua(Lua L) { setLuaCommon(L); }
 
 void PCSX::TUI::close() {}
 
-void PCSX::TUI::update(bool vsync) {}
+void PCSX::TUI::update(bool vsync) {
+    tick();
+    if (!g_system->running()) {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(10ms);
+    }
+}
 
 void PCSX::TUI::addNotification(const std::string &notification) {}

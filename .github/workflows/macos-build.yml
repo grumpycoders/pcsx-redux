@@ -24,10 +24,19 @@ jobs:
     - name: Build OpenBIOS
       run: make -C src/mips/openbios -j2
     - name: Upload results for MacOS build job
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: OpenBIOS
         path: src/mips/openbios/openbios.bin
+    - name: Build tests
+      run: |
+        make -C src/mips/openbios -j 2 clean
+        make -C src/mips/tests -j 2 PCSX_TESTS=true
+    - name: Upload results for MacOS build job
+      uses: actions/upload-artifact@v3
+      with:
+        name: tests
+        path: **/*.ps-exe
 
   macos-build-and-test:
     runs-on: macOS-latest
@@ -41,12 +50,22 @@ jobs:
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
       run: git submodule update --init --recursive
-    - name: Build pcsx-redux
-      run: make -j2
+    - name: Build PCSX-Redux
+      run: make -j 2 all pcsx-redux-tests
     - name: Download OpenBIOS build
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: OpenBIOS
+    - name: Download mips tests
+      uses: actions/download-artifact@v3
+      with:
+        name: tests
+    - name: Test
+      run: |
+        export GTEST_OUTPUT=xml:/tmp/test-results/
+        mkdir -p /tmp/test-results
+        cp openbios.bin src/mips/openbios/
+        ./pcsx-redux-tests
     - name: Bundle
       run: ./.github/scripts/create-app.sh
     - name: Create BUILD environment

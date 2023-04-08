@@ -81,7 +81,7 @@ class SystemImpl final : public PCSX::System {
         if (!m_noGuiLog) {
             s_ui->addLuaLog(s, error);
         }
-        if ((error && m_inStartup) || args.get<bool>("lua_stdout", false)) {
+        if ((error && m_inStartup) || args.get<bool>("lua_stdout", false) || args.get<bool>("no-ui", false)) {
             if (error) {
                 fprintf(stderr, "%s\n", s.c_str());
             } else {
@@ -169,11 +169,13 @@ struct Cleaner {
 
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
+    // Command line arguments are parsed after this point.
     const CommandLine::args args(argc, argv);
+    // The UvFile and UvFifo should work past this point.
     PCSX::UvThreadOp::UvThread uvThread;
 
 #if defined(_WIN32) || defined(_WIN64)
-    if (args.get<bool>("stdout")) {
+    if (args.get<bool>("stdout", false) || args.get<bool>("no-ui", false)) {
         if (AllocConsole()) {
             freopen("CONIN$", "r", stdin);
             freopen("CONOUT$", "w", stdout);
@@ -182,20 +184,24 @@ int pcsxMain(int argc, char **argv) {
     }
 #endif
 
+    // This is an easy early-out.
     if (args.get<bool>("dumpproto")) {
         PCSX::SaveStates::ProtoFile::dumpSchema(std::cout);
         return 0;
     }
 
+    // Creating the "system" global object first, making sure anything logging-related is
+    // enabled as much as possible.
     SystemImpl *system = new SystemImpl(args);
-    if (args.get<bool>("testmode").value_or(false)) {
+    if (args.get<bool>("testmode", false)) {
         system->setTestmode();
     }
-    if (args.get<bool>("stdout").value_or(false)) system->m_enableStdout = true;
+    if (args.get<bool>("stdout", false) && !args.get<bool>("tui", false)) system->m_enableStdout = true;
+    if (args.get<bool>("no-ui", false)) system->m_enableStdout = true;
     const auto &logfileArgOpt = args.get<std::string>("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     if (!logfileArg.empty()) system->useLogfile(logfileArg);
-    if (args.get<bool>("testmode").value_or(false) || args.get<bool>("no-gui-log").value_or(false)) {
+    if (args.get<bool>("testmode", false) || args.get<bool>("no-gui-log", false)) {
         system->m_noGuiLog = true;
     }
     PCSX::g_system = system;
@@ -204,7 +210,8 @@ int pcsxMain(int argc, char **argv) {
     system->setBinDir(binDir);
     system->loadAllLocales();
 
-    if (args.get<bool>("version").value_or(false)) {
+    // This is another early out, which can only be done once we have a system object.
+    if (args.get<bool>("version", false)) {
         auto &version = system->getVersion();
         if (version.failed()) {
             fmt::print("Failed to load version.json\n");
@@ -217,12 +224,18 @@ int pcsxMain(int argc, char **argv) {
         return 0;
     }
 
+    // At this point, we're committed to run the emulator, so we first create it, and the UI next.
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
 
-    s_ui = args.get<bool>("no-ui").value_or(false) ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI(args))
-                                                   : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(args));
+    s_ui = args.get<bool>("no-ui", false) ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI(args))
+                                          : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(args));
+    // Settings will be loaded after this initialization.
     s_ui->init();
+    // After settings are loaded, we're fine setting the SPU part of the emulation.
+    emulator->m_spu->init();
+    // Start tweaking / sanitizing settings a bit, while continuing to parse the command line
+    // to handle overrides properly.
     auto &emuSettings = emulator->settings;
     auto &debugSettings = emuSettings.get<PCSX::Emulator::SettingDebugSettings>();
     if (emuSettings.get<PCSX::Emulator::SettingMcd1>().empty()) {
@@ -266,6 +279,7 @@ int pcsxMain(int argc, char **argv) {
         emuSettings.get<PCSX::Emulator::Setting8MB>().value = true;
     }
 
+    // Now it's time to mount our filesystems; iso and pcdrv.
     std::filesystem::path isoToOpen = args.get<std::string>("iso", "");
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("loadiso", "");
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("disk", "");
@@ -279,32 +293,31 @@ int pcsxMain(int argc, char **argv) {
         debugSettings.get<PCSX::Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
     }
 
-    if (!args.get<bool>("stdout", false)) {
-        system->m_enableStdout = emulator->settings.get<PCSX::Emulator::SettingStdout>();
-    }
-    const PCSX::u8string &logfileSet = emulator->settings.get<PCSX::Emulator::SettingLogfile>().string();
-    if (logfileArg.empty() && !logfileSet.empty()) system->useLogfile(logfileSet);
-
+    // Make sure the Lua environment is set.
     emulator->setLua();
     s_ui->setLua(*emulator->m_lua);
-    emulator->m_spu->init();
     emulator->m_spu->setLua(*emulator->m_lua);
-    emulator->m_spu->open();
+    assert(emulator->m_lua->gettop() == 0);
 
+    // Starting up the whole emulator; we delay setting the GPU only now because why not.
+    emulator->m_spu->open();
     emulator->init();
     emulator->m_gpu->init(s_ui);
     emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
     emulator->m_gpu->setLinearFiltering();
     emulator->reset();
 
+    // Looking at setting up what to run exactly within the emulator, if requested.
     if (args.get<bool>("run", false)) system->resume();
     s_ui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
     if (s_ui->m_exeToLoad.empty()) s_ui->m_exeToLoad.set(MAKEU8(args.get<std::string>("exe", "").c_str()));
 
-    assert(emulator->m_lua->gettop() == 0);
-    auto luaexecs = args.values("exec");
+    // And finally, let's run things.
     int exitCode = 0;
     {
+        // First, set up a closer. This makes sure that everything is shut down gracefully,
+        // in the right order, once we exit the scope. This is because of how we're still
+        // allowing exceptions to occur.
         Cleaner cleaner([&emulator, &system, &exitCode]() {
             emulator->m_spu->close();
             emulator->m_cdrom->clearIso();
@@ -323,6 +336,9 @@ int pcsxMain(int argc, char **argv) {
             PCSX::g_system = nullptr;
         });
         try {
+            // Before going into the main loop, let's run all of the Lua "exec" commands
+            // specified on the command line.
+            auto luaexecs = args.values("exec");
             for (auto &luaexec : luaexecs) {
                 try {
                     emulator->m_lua->load(luaexec.data(), "cmdline", false);
@@ -334,14 +350,23 @@ int pcsxMain(int argc, char **argv) {
 
             system->m_inStartup = false;
 
+            // And finally, main loop.
             while (!system->quitting()) {
                 if (system->running()) {
+                    // This will run until paused or interrupted somehow.
                     emulator->m_cpu->Execute();
                 } else {
+                    // The "update" method will be called periodically by the emulator while
+                    // meaning if we want our UI to work, we have to manually call "update"
+                    // when the emulator is paused.
                     s_ui->update();
                 }
             }
         } catch (...) {
+            // This will ensure we don't do certain cleanups that are awaiting other tasks,
+            // which could result in deadlocks on exit in case we encountered a serious problem.
+            // This may cause data loss when writing files, but that's life when encountering
+            // a serious problem in a software.
             system->setEmergencyExit();
             uvThread.setEmergencyExit();
             throw;
