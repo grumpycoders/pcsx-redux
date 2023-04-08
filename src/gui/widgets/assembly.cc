@@ -677,9 +677,8 @@ settings, otherwise debugging features may not work.)");
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
                     toggleBP();
                 }
-                std::string contextMenuTitle = "assembly address menu ";
-                contextMenuTitle += dispAddr;
-                if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
+                std::string contextMenuID = fmt::format("assembly address menu {}", dispAddr);
+                if (ImGui::BeginPopupContextItem(contextMenuID.c_str())) {
                     if (ImGui::MenuItem(_("Copy Address"))) {
                         char fmtAddr[10];
                         std::snprintf(fmtAddr, sizeof(fmtAddr), "%8.8x", dispAddr);
