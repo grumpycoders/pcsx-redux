@@ -73,6 +73,7 @@ steps:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
       **\*.exe
+      !**\crashpad_handler.exe
       !**\exe2elf.exe
       !**\exe2iso.exe
       !**\pcsxrunner.exe
