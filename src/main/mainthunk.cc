@@ -70,7 +70,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
                            "https://6c203a041de14d57a454889f50151f0f@o502319.ingest.sentry.io/4504971395858432");
     sentry_options_set_database_path(options, ".sentry-native");
     sentry_options_set_release(options, "pcsx-redux@head");
-    sentry_options_set_debug(options, 1);
+    sentry_options_set_debug(options, 0);
     sentry_init(options);
 #endif
 
