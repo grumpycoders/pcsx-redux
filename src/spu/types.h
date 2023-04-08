@@ -124,12 +124,11 @@ typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("noise"), 28> Noise;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("fmod"), 29> FMod;
 // another reverb helper
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_num"), 30> RVBNum;
-// old noise val for this channel
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("old_noise"), 31> OldNoise;
+// skip id 31
 typedef Protobuf::Message<TYPESTRING("ChannelData"), New, SBPos, spos, sinc, SB, sval, StartPtr, CurrPtr, LoopPtr, On,
                           Stop, Reverb, ActFreq, UsedFreq, LeftVolume, LeftVolRaw, IgnoreLoop, Mute, RightVolume,
                           RightVolRaw, RawPitch, IrqDone, s_1, s_2, RVBActive, RVBOffset, RVBRepeat, Noise, FMod,
-                          RVBNum, OldNoise>
+                          RVBNum>
     Data;
 }  // namespace Chan
 
