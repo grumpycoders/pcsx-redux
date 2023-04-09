@@ -25,6 +25,29 @@
 
 #include "main/main.h"
 
+#if (defined(_WIN32) || defined(_WIN64)) && defined(_M_AMD64)
+#define USE_SENTRY
+#include "sentry.h"
+#endif
+
+static void setupSentry() {
+#ifdef USE_SENTRY
+    sentry_options_t *options = sentry_options_new();
+    sentry_options_set_dsn(options,
+                           "https://6c203a041de14d57a454889f50151f0f@o502319.ingest.sentry.io/4504971395858432");
+    sentry_options_set_database_path(options, ".sentry-native");
+    sentry_options_set_release(options, "pcsx-redux@head");
+    sentry_options_set_debug(options, 0);
+    sentry_init(options);
+#endif
+}
+
+static void closeSentry() {
+#ifdef USE_SENTRY
+    sentry_close();
+#endif
+}
+
 static std::pair<int, std::string> loopMain(int argc, char **argv) {
     int r = 0;
     std::string errorMsg;
@@ -44,18 +67,18 @@ static std::pair<int, std::string> loopMain(int argc, char **argv) {
 }
 
 #if defined(_WIN32) || defined(_WIN64)
-
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 // Please, clang-format, stop being stubborn and let this windows.h
 // header first. Yes, I know it's wrong, blame Microsoft.
 #include <shellapi.h>
 
-#ifdef _M_AMD64
-#include "sentry.h"
+static void Complain(const char *msg) {
+#ifdef USE_SENTRY
+    sentry_capture_event(sentry_value_new_message_event(SENTRY_LEVEL_FATAL, "exception", msg));
 #endif
-
-static void Complain(const char *msg) { MessageBoxA(nullptr, msg, "Error", MB_ICONERROR | MB_OK); }
+    MessageBoxA(nullptr, msg, "Error", MB_ICONERROR | MB_OK);
+}
 
 #ifndef PCSX_CLI
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
@@ -64,15 +87,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     char **argv;
     int argc;
 
-#ifdef _M_AMD64
-    sentry_options_t *options = sentry_options_new();
-    sentry_options_set_dsn(options,
-                           "https://6c203a041de14d57a454889f50151f0f@o502319.ingest.sentry.io/4504971395858432");
-    sentry_options_set_database_path(options, ".sentry-native");
-    sentry_options_set_release(options, "pcsx-redux@head");
-    sentry_options_set_debug(options, 0);
-    sentry_init(options);
-#endif
+    setupSentry();
 
     argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (!argvw) return -1;
@@ -104,9 +119,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
     for (int i = 0; i < argc; i++) free(argv[i]);
     free(argv);
-#ifdef _M_AMD64
-    sentry_close();
-#endif
+    closeSentry();
     return r;
 }
 #endif
@@ -119,8 +132,8 @@ extern "C" void Complain(const char *msg);
 #include <stdlib.h>
 #include <string.h>
 
-static void Complain(const char* msg) {
-    Display* d = XOpenDisplay(nullptr);
+static void Complain(const char *msg) {
+    Display *d = XOpenDisplay(nullptr);
     if (!d) return;
 
     int s = DefaultScreen(d);
