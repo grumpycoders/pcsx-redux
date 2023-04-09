@@ -845,7 +845,7 @@ void PCSX::GUI::flip() {
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glClearColor(0, 0, 0, 0);
-    glClearDepthf(0.f);
+    glClearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
@@ -1601,7 +1601,7 @@ the update and manually apply it.)")));
     } else {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
-    glClearDepthf(0.0f);
+    glClearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
