@@ -17,14 +17,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#define GLFW_INCLUDE_NONE
 #define _USE_MATH_DEFINES
 #include "core/pad.h"
 
+#include <GLFW/glfw3.h>
 #include <memory.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
+#include "core/psxemulator.h"
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
@@ -32,7 +36,173 @@
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
 
-static PCSX::Pads* s_pads = nullptr;
+class PadsImpl : public PCSX::Pads {
+  public:
+    enum class InputType { Auto, Controller, Keyboard };
+    enum class PadType { Digital = 0, Analog, Mouse, Negcon, Gun, Guncon };
+
+    PadsImpl();
+    void init() override;
+    void shutdown() override;
+    uint8_t startPoll(Port port) override;
+    uint8_t poll(uint8_t value, Port port, uint32_t& padState) override;
+
+    json getCfg() override;
+    void setCfg(const json& j) override;
+    void setDefaults() override;
+    bool configure(PCSX::GUI* gui) override;
+
+    void scanGamepads();
+    void reset() override;
+    void map();
+
+    void setLua(PCSX::Lua L) override;
+
+    bool isPadConnected(int pad) override {
+        if (pad > m_pads.size()) {
+            return false;
+        } else {
+            return m_pads[pad - 1].isControllerConnected();
+        }
+    }
+
+  private:
+    PCSX::EventBus::Listener m_listener;
+    int m_gamepadsMap[16] = {0};
+
+    static constexpr int GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 1;
+    static constexpr int GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 2;
+    static constexpr int GLFW_GAMEPAD_BUTTON_INVALID = GLFW_GAMEPAD_BUTTON_LAST + 3;
+
+    // settings block
+    // Pad keyboard bindings
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadUp"), GLFW_KEY_UP> Keyboard_PadUp;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadRight"), GLFW_KEY_RIGHT> Keyboard_PadRight;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadDown"), GLFW_KEY_DOWN> Keyboard_PadDown;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadLeft"), GLFW_KEY_LEFT> Keyboard_PadLeft;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadCross"), GLFW_KEY_X> Keyboard_PadCross;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadTriangle"), GLFW_KEY_S> Keyboard_PadTriangle;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadSquare"), GLFW_KEY_Z> Keyboard_PadSquare;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadCircle"), GLFW_KEY_D> Keyboard_PadCircle;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadSelect"), GLFW_KEY_BACKSPACE> Keyboard_PadSelect;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadSstart"), GLFW_KEY_ENTER> Keyboard_PadStart;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadL1"), GLFW_KEY_Q> Keyboard_PadL1;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadL2"), GLFW_KEY_A> Keyboard_PadL2;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadL3"), GLFW_KEY_W> Keyboard_PadL3;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadR1"), GLFW_KEY_R> Keyboard_PadR1;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadR2"), GLFW_KEY_F> Keyboard_PadR2;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadR3"), GLFW_KEY_T> Keyboard_PadR3;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_AnalogMode"), GLFW_KEY_UNKNOWN> Keyboard_AnalogMode;
+
+    // Pad controller bindings
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadUp"), GLFW_GAMEPAD_BUTTON_DPAD_UP> Controller_PadUp;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadRight"), GLFW_GAMEPAD_BUTTON_DPAD_RIGHT> Controller_PadRight;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadDown"), GLFW_GAMEPAD_BUTTON_DPAD_DOWN> Controller_PadDown;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadLeft"), GLFW_GAMEPAD_BUTTON_DPAD_LEFT> Controller_PadLeft;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadCross"), GLFW_GAMEPAD_BUTTON_CROSS> Controller_PadCross;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadTriangle"), GLFW_GAMEPAD_BUTTON_TRIANGLE>
+        Controller_PadTriangle;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadSquare"), GLFW_GAMEPAD_BUTTON_SQUARE> Controller_PadSquare;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadCircle"), GLFW_GAMEPAD_BUTTON_CIRCLE> Controller_PadCircle;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadSelect"), GLFW_GAMEPAD_BUTTON_BACK> Controller_PadSelect;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadSstart"), GLFW_GAMEPAD_BUTTON_START> Controller_PadStart;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadL1"), GLFW_GAMEPAD_BUTTON_LEFT_BUMPER> Controller_PadL1;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadL2"), GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER> Controller_PadL2;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadL3"), GLFW_GAMEPAD_BUTTON_LEFT_THUMB> Controller_PadL3;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadR1"), GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER> Controller_PadR1;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadR2"), GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER> Controller_PadR2;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadR3"), GLFW_GAMEPAD_BUTTON_RIGHT_THUMB> Controller_PadR3;
+
+    typedef PCSX::Setting<InputType, TYPESTRING("PadType"), InputType::Auto> SettingInputType;
+    // These typestrings are kind of odd, but it's best not to change so as not to break old config files
+    typedef PCSX::Setting<PadType, TYPESTRING("DeviceType"), PadType::Digital> SettingDeviceType;
+    typedef PCSX::Setting<int, TYPESTRING("ID")> SettingControllerID;
+
+    typedef PCSX::Setting<bool, TYPESTRING("Connected")> SettingConnected;
+    // Default sensitivity = 5/10 = 0.5
+    typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityX"), 5, 10> SettingMouseSensitivityX;
+    typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityY"), 5, 10> SettingMouseSensitivityY;
+
+    typedef PCSX::Settings<
+        Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross, Keyboard_PadTriangle,
+        Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect, Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2,
+        Keyboard_PadL3, Keyboard_PadR1, Keyboard_PadR2, Keyboard_PadR3, Keyboard_AnalogMode, Controller_PadUp,
+        Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross, Controller_PadTriangle,
+        Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart, Controller_PadL1,
+        Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2, Controller_PadR3, SettingInputType,
+        SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
+        PadSettings;
+
+    struct PadData {
+        // status of buttons - every controller fills this field
+        uint16_t buttonStatus;
+
+        // overriding from Lua
+        uint16_t overrides = 0xffff;
+
+        // Analog stick values in range (0 - 255) where 128 = center
+        uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
+    };
+
+    enum class PadCommands : uint8_t {
+        Idle = 0x00,
+        Read = 0x42,
+        SetConfigMode = 0x43,
+        SetAnalogMode = 0x44,
+        GetAnalogMode = 0x45,
+        Unknown46 = 0x46,
+        Unknown47 = 0x47,
+        Unknown4C = 0x4C,
+        UnlockRumble = 0x4D
+    };
+
+    struct Pad {
+        uint8_t startPoll();
+        uint8_t read();
+        uint8_t poll(uint8_t value, uint32_t& padState);
+        uint8_t doDualshockCommand(uint32_t& padState);
+        void getButtons();
+        bool isControllerButtonPressed(int button, GLFWgamepadstate* state);
+        bool isControllerConnected() { return m_settings.get<SettingConnected>(); }
+
+        json getCfg();
+        void setCfg(const json& j);
+        void setDefaults(bool firstController);
+        void map();
+        void reset();
+
+        bool configure();
+        void keyboardEvent(const PCSX::Events::Keyboard&);
+        int& getButtonFromGUIIndex(int buttonIndex);
+
+        int m_scancodes[16];
+        int m_padMapping[16];
+        PadType m_type;
+        PadData m_data;
+
+        int m_padID = 0;
+        int m_buttonToWait = -1;
+        bool m_changed = false;
+
+        bool m_configMode = false;
+        bool m_analogMode = false;
+
+        PadSettings m_settings;
+
+        uint8_t m_buf[256];
+        int m_bufferLen = 0, m_currentByte = 0;
+        uint8_t m_cmd = magic_enum::enum_integer(PadCommands::Idle);
+
+        uint8_t m_stdpar[8] = {0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_mousepar[6] = {0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_analogpar[8] = {0x73, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    };
+
+    std::array<Pad, 2> m_pads;
+    unsigned m_selectedPadForConfig = 0;
+};
+
+static PadsImpl* s_pads = nullptr;
 
 static ImGuiKey GlfwKeyToImGuiKey(int key) {
     switch (key) {
@@ -251,16 +421,16 @@ static ImGuiKey GlfwKeyToImGuiKey(int key) {
     }
 }
 
-void PCSX::Pads::init() {
-    scanGamepads();
+void PadsImpl::init() {
     s_pads = this;
+    scanGamepads();
     glfwSetJoystickCallback([](int jid, int event) {
         s_pads->scanGamepads();
         s_pads->map();
     });
-    g_system->findResource(
+    PCSX::g_system->findResource(
         [](const std::filesystem::path& filename) -> bool {
-            IO<File> database(new PosixFile(filename));
+            PCSX::IO<PCSX::File> database(new PCSX::PosixFile(filename));
             if (database->failed()) {
                 return false;
             }
@@ -277,20 +447,20 @@ void PCSX::Pads::init() {
     map();
 }
 
-void PCSX::Pads::shutdown() {
+void PadsImpl::shutdown() {
     glfwSetJoystickCallback(nullptr);
     s_pads = nullptr;
 }
 
-PCSX::Pads::Pads() : m_listener(g_system->m_eventBus) {
-    m_listener.listen<Events::Keyboard>([this](const auto& event) {
+PadsImpl::PadsImpl() : m_listener(PCSX::g_system->m_eventBus) {
+    m_listener.listen<PCSX::Events::Keyboard>([this](const auto& event) {
         if (m_showCfg) {
             m_pads[m_selectedPadForConfig].keyboardEvent(event);
         }
     });
 }
 
-void PCSX::Pads::scanGamepads() {
+void PadsImpl::scanGamepads() {
     static_assert((1 + GLFW_JOYSTICK_LAST - GLFW_JOYSTICK_1) <= sizeof(m_gamepadsMap) / sizeof(m_gamepadsMap[0]));
     for (auto& m : m_gamepadsMap) {
         m = -1;
@@ -303,12 +473,12 @@ void PCSX::Pads::scanGamepads() {
     }
 }
 
-void PCSX::Pads::reset() {
+void PadsImpl::reset() {
     m_pads[0].reset();
     m_pads[1].reset();
 }
 
-void PCSX::Pads::Pad::reset() {
+void PadsImpl::Pad::reset() {
     m_analogMode = false;
     m_configMode = false;
     m_cmd = magic_enum::enum_integer(PadCommands::Idle);
@@ -318,13 +488,13 @@ void PCSX::Pads::Pad::reset() {
     m_data.overrides = 0xffff;
 }
 
-void PCSX::Pads::map() {
+void PadsImpl::map() {
     m_pads[0].map();
     m_pads[1].map();
 }
 
-void PCSX::Pads::Pad::map() {
-    m_padID = g_emulator->m_pads->m_gamepadsMap[m_settings.get<SettingControllerID>()];
+void PadsImpl::Pad::map() {
+    m_padID = s_pads->m_gamepadsMap[m_settings.get<SettingControllerID>()];
     m_type = m_settings.get<SettingDeviceType>();
 
     // L3/R3 are only avalable on analog controllers
@@ -376,7 +546,7 @@ void PCSX::Pads::Pad::map() {
 static constexpr float THRESHOLD = 0.85f;
 
 // Certain buttons on controllers are actually axis that can be pressed, half-pressed, etc.
-bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* state) {
+bool PadsImpl::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* state) {
     int mapped = m_padMapping[button];
     switch (mapped) {
         case GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER:
@@ -393,7 +563,7 @@ bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* st
 
 static constexpr float π(float fraction = 1.0f) { return fraction * M_PI; }
 
-void PCSX::Pads::Pad::getButtons() {
+void PadsImpl::Pad::getButtons() {
     PadData& pad = m_data;
     if (!m_settings.get<SettingConnected>()) {
         pad.buttonStatus = 0xffff;
@@ -422,12 +592,12 @@ void PCSX::Pads::Pad::getButtons() {
     }
 
     if (m_padID >= 0) {
-        int glfwID = g_emulator->m_pads->m_gamepadsMap[m_padID];
+        int glfwID = s_pads->m_gamepadsMap[m_padID];
         if ((glfwID >= GLFW_JOYSTICK_1) && (glfwID <= GLFW_JOYSTICK_LAST)) {
             hasPad = glfwGetGamepadState(glfwID, &state);
             if (!hasPad) {
                 const char* guid = glfwGetJoystickGUID(glfwID);
-                g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
+                PCSX::g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
                 m_padID = -1;
             }
         }
@@ -508,18 +678,18 @@ void PCSX::Pads::Pad::getButtons() {
     pad.buttonStatus = result ^ 0xffff;  // Controls are inverted, so 0 = pressed
 }
 
-uint8_t PCSX::Pads::startPoll(Port port) {
+uint8_t PadsImpl::startPoll(Port port) {
     int index = magic_enum::enum_integer(port);
     m_pads[index].getButtons();
     return m_pads[index].startPoll();
 }
 
-uint8_t PCSX::Pads::poll(uint8_t value, Port port, uint32_t& padState) {
+uint8_t PadsImpl::poll(uint8_t value, Port port, uint32_t& padState) {
     int index = magic_enum::enum_integer(port);
     return m_pads[index].poll(value, padState);
 }
 
-uint8_t PCSX::Pads::Pad::poll(uint8_t value, uint32_t& padState) {
+uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
     if (m_currentByte == 0) {
         m_cmd = value;
         m_currentByte = 1;
@@ -579,7 +749,7 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value, uint32_t& padState) {
     return m_buf[m_currentByte++];
 }
 
-uint8_t PCSX::Pads::Pad::doDualshockCommand(uint32_t& padState) {
+uint8_t PadsImpl::Pad::doDualshockCommand(uint32_t& padState) {
     m_bufferLen = 8;
 
     if (m_cmd == magic_enum::enum_integer(PadCommands::SetConfigMode)) {
@@ -630,12 +800,12 @@ uint8_t PCSX::Pads::Pad::doDualshockCommand(uint32_t& padState) {
     }
 }
 
-uint8_t PCSX::Pads::Pad::startPoll() {
+uint8_t PadsImpl::Pad::startPoll() {
     m_currentByte = 0;
     return 0xff;
 }
 
-uint8_t PCSX::Pads::Pad::read() {
+uint8_t PadsImpl::Pad::read() {
     const PadData& pad = m_data;
     uint16_t buttonStatus = pad.buttonStatus & pad.overrides;
     if (!m_settings.get<SettingConnected>()) {
@@ -706,7 +876,7 @@ uint8_t PCSX::Pads::Pad::read() {
     }
 }
 
-bool PCSX::Pads::configure(PCSX::GUI* gui) {
+bool PadsImpl::configure(PCSX::GUI* gui) {
     // Check for analog mode toggle key
     for (auto& pad : m_pads) {
         if (pad.m_type == PadType::Analog && pad.m_settings.get<Keyboard_AnalogMode>() != GLFW_KEY_UNKNOWN) {
@@ -795,7 +965,7 @@ static std::string glfwKeyToString(int key) {
     return fmt::format(f_("Keyboard {}"), str);
 }
 
-void PCSX::Pads::Pad::keyboardEvent(const Events::Keyboard& event) {
+void PadsImpl::Pad::keyboardEvent(const PCSX::Events::Keyboard& event) {
     if (m_buttonToWait == -1) {
         return;
     }
@@ -805,7 +975,7 @@ void PCSX::Pads::Pad::keyboardEvent(const Events::Keyboard& event) {
     map();
 }
 
-bool PCSX::Pads::Pad::configure() {
+bool PadsImpl::Pad::configure() {
     static std::function<const char*()> const c_inputDevices[] = {
         []() { return _("Auto"); },
         []() { return _("Controller"); },
@@ -937,11 +1107,11 @@ bool PCSX::Pads::Pad::configure() {
 
     const char* preview = _("No gamepad selected or connected");
     auto& id = m_settings.get<SettingControllerID>().value;
-    int glfwjid = id >= 0 ? g_emulator->m_pads->m_gamepadsMap[id] : -1;
+    int glfwjid = id >= 0 ? s_pads->m_gamepadsMap[id] : -1;
 
     std::vector<const char*> gamepadsNames;
 
-    for (auto& m : g_emulator->m_pads->m_gamepadsMap) {
+    for (auto& m : s_pads->m_gamepadsMap) {
         if (m == -1) {
             continue;
         }
@@ -973,7 +1143,7 @@ bool PCSX::Pads::Pad::configure() {
     return changed;
 }
 
-int& PCSX::Pads::Pad::getButtonFromGUIIndex(int buttonIndex) {
+int& PadsImpl::Pad::getButtonFromGUIIndex(int buttonIndex) {
     switch (buttonIndex) {
         case 0:
             return m_settings.get<Keyboard_PadCross>().value;
@@ -1015,16 +1185,16 @@ int& PCSX::Pads::Pad::getButtonFromGUIIndex(int buttonIndex) {
     }
 }
 
-json PCSX::Pads::getCfg() {
+json PadsImpl::getCfg() {
     json ret;
     ret[0] = m_pads[0].getCfg();
     ret[1] = m_pads[1].getCfg();
     return ret;
 }
 
-json PCSX::Pads::Pad::getCfg() { return m_settings.serialize(); }
+json PadsImpl::Pad::getCfg() { return m_settings.serialize(); }
 
-void PCSX::Pads::setCfg(const json& j) {
+void PadsImpl::setCfg(const json& j) {
     if (j.count("pads") && j["pads"].is_array()) {
         auto padsCfg = j["pads"];
         if (padsCfg.size() >= 1) {
@@ -1042,17 +1212,17 @@ void PCSX::Pads::setCfg(const json& j) {
     }
 }
 
-void PCSX::Pads::Pad::setCfg(const json& j) {
+void PadsImpl::Pad::setCfg(const json& j) {
     m_settings.deserialize(j);
     map();
 }
 
-void PCSX::Pads::setDefaults() {
+void PadsImpl::setDefaults() {
     m_pads[0].setDefaults(true);
     m_pads[1].setDefaults(false);
 }
 
-void PCSX::Pads::Pad::setDefaults(bool firstController) {
+void PadsImpl::Pad::setDefaults(bool firstController) {
     m_settings.reset();
     if (firstController) {
         m_settings.get<SettingConnected>() = true;
@@ -1060,8 +1230,8 @@ void PCSX::Pads::Pad::setDefaults(bool firstController) {
     map();
 }
 
-void PCSX::Pads::setLua(Lua L) {
-    auto getButton = [this](Lua L, unsigned pad) -> int {
+void PadsImpl::setLua(PCSX::Lua L) {
+    auto getButton = [this](PCSX::Lua L, unsigned pad) -> int {
         int n = L.gettop();
         if (n == 0) {
             return L.error("Not enough arguments to getButton");
@@ -1075,7 +1245,7 @@ void PCSX::Pads::setLua(Lua L) {
         return 1;
     };
 
-    auto setOverride = [this](Lua L, unsigned pad) -> int {
+    auto setOverride = [this](PCSX::Lua L, unsigned pad) -> int {
         int n = L.gettop();
         if (n == 0) {
             return L.error("Not enough arguments to setOverride");
@@ -1090,7 +1260,7 @@ void PCSX::Pads::setLua(Lua L) {
         return 0;
     };
 
-    auto clearOverride = [this](Lua L, unsigned pad) -> int {
+    auto clearOverride = [this](PCSX::Lua L, unsigned pad) -> int {
         int n = L.gettop();
         if (n == 0) {
             return L.error("Not enough arguments to clearOverride");
@@ -1169,11 +1339,11 @@ void PCSX::Pads::setLua(Lua L) {
 
     // push first pad stuff here
     L.declareFunc(
-        "getButton", [getButton](Lua L) -> int { return getButton(L, 0); }, -1);
+        "getButton", [getButton](PCSX::Lua L) -> int { return getButton(L, 0); }, -1);
     L.declareFunc(
-        "setOverride", [setOverride](Lua L) -> int { return setOverride(L, 0); }, -1);
+        "setOverride", [setOverride](PCSX::Lua L) -> int { return setOverride(L, 0); }, -1);
     L.declareFunc(
-        "clearOverride", [clearOverride](Lua L) -> int { return clearOverride(L, 0); }, -1);
+        "clearOverride", [clearOverride](PCSX::Lua L) -> int { return clearOverride(L, 0); }, -1);
 
     L.pop();
     L.pop();
@@ -1185,11 +1355,11 @@ void PCSX::Pads::setLua(Lua L) {
 
     // push second pad stuff here
     L.declareFunc(
-        "getButton", [getButton](Lua L) -> int { return getButton(L, 1); }, -1);
+        "getButton", [getButton](PCSX::Lua L) -> int { return getButton(L, 1); }, -1);
     L.declareFunc(
-        "setOverride", [setOverride](Lua L) -> int { return setOverride(L, 1); }, -1);
+        "setOverride", [setOverride](PCSX::Lua L) -> int { return setOverride(L, 1); }, -1);
     L.declareFunc(
-        "clearOverride", [clearOverride](Lua L) -> int { return clearOverride(L, 1); }, -1);
+        "clearOverride", [clearOverride](PCSX::Lua L) -> int { return clearOverride(L, 1); }, -1);
 
     L.pop();
     L.pop();
@@ -1201,3 +1371,5 @@ void PCSX::Pads::setLua(Lua L) {
 
     assert(L.gettop() == 0);
 }
+
+PCSX::Pads* PCSX::Pads::factory() { return s_pads = new PadsImpl(); }

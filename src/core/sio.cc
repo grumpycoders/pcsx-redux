@@ -93,7 +93,7 @@ bool PCSX::SIO::isTransmitReady() {
 
 void PCSX::SIO::reset() {
     m_rxFIFO.clear();
-    m_padState = PAD_STATE_IDLE;
+    m_padState = Pads::PAD_STATE_IDLE;
     m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
     m_regs.mode = 0;
     m_regs.control = 0;
@@ -106,7 +106,7 @@ void PCSX::SIO::reset() {
 
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
-        case PAD_STATE_IDLE:                                // start pad
+        case Pads::PAD_STATE_IDLE:                          // start pad
             m_regs.status |= StatusFlags::RX_FIFONOTEMPTY;  // Transfer is Ready
             g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 
@@ -130,11 +130,11 @@ void PCSX::SIO::writePad(uint8_t value) {
 
             m_maxBufferIndex = 2;
             m_bufferIndex = 0;
-            m_padState = PAD_STATE_READ_COMMAND;
+            m_padState = Pads::PAD_STATE_READ_COMMAND;
             break;
 
-        case PAD_STATE_READ_COMMAND:
-            m_padState = PAD_STATE_READ_DATA;
+        case Pads::PAD_STATE_READ_COMMAND:
+            m_padState = Pads::PAD_STATE_READ_DATA;
             m_bufferIndex = 1;
             switch (m_regs.control & ControlFlags::WHICH_PORT) {
                 case SelectedPort::Port1:
@@ -152,7 +152,7 @@ void PCSX::SIO::writePad(uint8_t value) {
             }
             break;
 
-        case PAD_STATE_READ_DATA:
+        case Pads::PAD_STATE_READ_DATA:
             m_bufferIndex++;
             switch (m_regs.control & ControlFlags::WHICH_PORT) {
                 case SelectedPort::Port1:
@@ -164,14 +164,14 @@ void PCSX::SIO::writePad(uint8_t value) {
             }
 
             if (m_bufferIndex == m_maxBufferIndex) {
-                m_padState = PAD_STATE_IDLE;
+                m_padState = Pads::PAD_STATE_IDLE;
                 m_currentDevice = DeviceType::Ignore;
                 return;
             }
             break;
     }
 
-    if (m_padState == PAD_STATE_BAD_COMMAND) {
+    if (m_padState == Pads::PAD_STATE_BAD_COMMAND) {
         return;
     }
 
@@ -232,7 +232,7 @@ void PCSX::SIO::transmitData() {
 
         default:
             m_currentDevice = DeviceType::None;
-            m_padState = PAD_STATE_IDLE;
+            m_padState = Pads::PAD_STATE_IDLE;
             m_memoryCard[0].deselect();
             m_memoryCard[1].deselect();
             break;
@@ -283,7 +283,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
     if (deselected || portChanged) {
         // Select line de-activated, reset state machines
         m_currentDevice = DeviceType::None;
-        m_padState = PAD_STATE_IDLE;
+        m_padState = Pads::PAD_STATE_IDLE;
         m_memoryCard[0].deselect();
         m_memoryCard[1].deselect();
         m_bufferIndex = 0;
@@ -301,7 +301,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
 
     if (m_regs.control & ControlFlags::RESET) {
         m_rxFIFO.clear();
-        m_padState = PAD_STATE_IDLE;
+        m_padState = Pads::PAD_STATE_IDLE;
         m_memoryCard[0].deselect();
         m_memoryCard[1].deselect();
         m_bufferIndex = 0;
