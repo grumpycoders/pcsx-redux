@@ -818,6 +818,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             break;
         case 0x1f802084: {
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+            memFile->rSeek(value);
             g_system->message("%s", memFile->gets<false>());
             break;
         }
