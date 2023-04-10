@@ -549,6 +549,9 @@ void PCSX::GUI::init() {
     }
 
     glDisable(GL_CULL_FACE);
+    // The depth test isn't supposed to be enabled by default, but
+    // it seems to be anyway on some drivers, so let's kill it there.
+    glDisable(GL_DEPTH_TEST);
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
     glGenTextures(2, m_offscreenTextures);
