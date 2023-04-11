@@ -319,6 +319,10 @@ end)(jit.status()))
 void PCSX::GUI::init() {
     int result;
 
+    if (m_args.get<bool>("noshaders", false)) {
+        m_disableShaders = true;
+    }
+
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
@@ -885,7 +889,11 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        if (m_disableShaders) {
+            ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
+        } else {
+            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        }
         ImGui::End();
         ImGui::PopStyleVar(2);
     } else {
@@ -902,7 +910,11 @@ void PCSX::GUI::endFrame() {
             }
             normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            if (m_disableShaders) {
+                ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
+            } else {
+                m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            }
         }
         ImGui::End();
         if (!outputShown) m_fullWindowRender = true;
