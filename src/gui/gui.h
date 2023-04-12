@@ -411,7 +411,6 @@ class GUI final : public UI {
 
     EventBus::Listener m_listener;
 
-    void shellReached();
     std::string buildSaveStateFilename(int i);
     void saveSaveState(const std::filesystem::path &filename);
     void loadSaveState(const std::filesystem::path &filename);

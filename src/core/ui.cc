@@ -21,9 +21,16 @@
 
 #include <fstream>
 
+#include "core/callstacks.h"
+#include "core/debug.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/spu.h"
+#include "supportpsx/binloader.h"
+
+PCSX::UI::UI(const CommandLine::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
+    m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
+}
 
 bool PCSX::UI::loadSettings() {
     std::ifstream cfg("pcsx.json");
@@ -82,5 +89,60 @@ void PCSX::UI::tick() {
         L.setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
     } else {
         L.pop();
+    }
+}
+
+void PCSX::UI::shellReached() {
+    auto& regs = g_emulator->m_cpu->m_regs;
+    uint32_t oldPC = regs.pc;
+    if (g_emulator->settings.get<Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
+
+    if (m_exeToLoad.empty()) return;
+    PCSX::u8string filename = m_exeToLoad.get();
+    std::filesystem::path p = filename;
+
+    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
+    bool success = false;
+    try {
+        BinaryLoader::Info info;
+        IO<File> in(new PosixFile(filename));
+        if (in->failed()) {
+            throw std::runtime_error("Failed to open file.");
+        }
+        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info);
+        if (!info.pc.has_value()) {
+            throw std::runtime_error("Binary loaded without any PC to jump to.");
+        }
+        regs.pc = info.pc.value();
+        if (info.sp.has_value()) regs.GPR.n.sp = info.sp.value();
+        if (info.gp.has_value()) regs.GPR.n.gp = info.gp.value();
+        if (g_emulator->settings.get<Emulator::SettingAutoVideo>() && info.region.has_value()) {
+            switch (info.region.value()) {
+                case BinaryLoader::Region::NTSC:
+                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
+                    break;
+                case BinaryLoader::Region::PAL:
+                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
+                    break;
+            }
+        }
+    } catch (std::exception& e) {
+        g_system->log(LogClass::UI, "Failed to load %s: %s\n", p.string(), e.what());
+    } catch (...) {
+        g_system->log(LogClass::UI, "Failed to load %s: unknown error\n", p.string());
+    }
+    if (success) {
+        g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
+    } else {
+        g_system->log(LogClass::UI, "Failed to load %s, unknown file format.\n", p.string());
+    }
+
+    if (m_exeToLoad.hasToPause()) {
+        g_system->pause();
+    }
+
+    if (oldPC != regs.pc) {
+        g_emulator->m_callStacks->potentialRA(regs.pc, regs.GPR.n.sp);
+        g_emulator->m_debug->updatedPC(regs.pc);
     }
 }
