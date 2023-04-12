@@ -133,14 +133,20 @@ PCSX.Assembler.New = function()
         local bimm16 = code.bimm16
         if bimm16 then
             if type(bimm16) == "string" then
-                local symbol = PCSX.Assembler.Internals.resolveSymbol(bimm16)
-                if not symbol then
-                    error("Unknown symbol: " .. bimm16)
+                local address = baseAddress
+                if bimm16:sub(1, 1) == '@' then
+                    address = tonumber(bimm16:sub(2))
+                else
+                    local symbol = PCSX.Assembler.Internals.resolveSymbol(bimm16)
+                    if not symbol then
+                        error("Unknown symbol: " .. bimm16)
+                    end
+                    address = symbol.address
                 end
-                if (symbol.address % 4) ~= 0 then
+                if (address % 4) ~= 0 then
                     error("Branch address must be a multiple of 4: " .. bimm16)
                 end
-                local offset = (symbol.address - baseAddress) / 4
+                local offset = (address - baseAddress - 4) / 4
                 if offset < -0x8000 or offset > 0x7fff then
                     error("Branch out of range: " .. bimm16)
                 end
