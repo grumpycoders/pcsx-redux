@@ -67,6 +67,7 @@ void luaMessage(const char* msg, bool error);
 void luaLog(const char* msg);
 void jumpToPC(uint32_t address);
 void jumpToMemory(uint32_t address, unsigned width);
+void invalidateCache();
 
 typedef enum { BPP_16, BPP_24 } ScreenShotBPP;
 
@@ -174,6 +175,7 @@ PCSX = {
     addBreakpoint = addBreakpoint,
     pauseEmulator = function() C.pauseEmulator() end,
     resumeEmulator = function() C.resumeEmulator() end,
+    invalidateCache = function() C.invalidateCache() end,
     softResetEmulator = function() C.softResetEmulator() end,
     hardResetEmulator = function() C.hardResetEmulator() end,
     log = function(...) printLike(C.luaLog, ...) end,
