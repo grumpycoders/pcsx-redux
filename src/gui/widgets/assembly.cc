@@ -529,6 +529,7 @@ settings, otherwise debugging features may not work.)");
     m_arrows.clear();
 
     bool openAssembler = false;
+    bool openSymbolAdder = false;
 
     while (clipper.Step()) {
         bool skipNext = false;
@@ -679,6 +680,16 @@ settings, otherwise debugging features may not work.)");
                 }
                 std::string contextMenuID = fmt::format("assembly address menu {}", dispAddr);
                 if (ImGui::BeginPopupContextItem(contextMenuID.c_str())) {
+                    if (symbols.size() == 0) {
+                        if (ImGui::MenuItem(_("Create symbol here"))) {
+                            openSymbolAdder = true;
+                            m_symbolAddress = dispAddr;
+                        }
+                    } else {
+                        if (ImGui::MenuItem(_("Remove symbol"))) {
+                            cpu->m_symbols.erase(dispAddr);
+                        }
+                    }
                     if (ImGui::MenuItem(_("Copy Address"))) {
                         char fmtAddr[10];
                         std::snprintf(fmtAddr, sizeof(fmtAddr), "%8.8x", dispAddr);
@@ -876,6 +887,24 @@ settings, otherwise debugging features may not work.)");
         m_jumpToPC.reset();
     }
     ImGui::EndChild();
+    if (openSymbolAdder) {
+        ImGui::OpenPopup(_("Add symbol"));
+    }
+    if (ImGui::BeginPopupModal(_("Add symbol"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text(_("Add symbol for address 0x%08x:"), m_symbolAddress);
+        ImGui::InputText("##symbol", &m_addSymbolName);
+        if (ImGui::Button(_("Add"))) {
+            cpu->m_symbols[m_symbolAddress] = m_addSymbolName;
+            m_addSymbolName.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(_("Cancel"))) {
+            m_addSymbolName.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
     if (openAssembler) {
         ImGui::OpenPopup(_("Assemble"));
     }
