@@ -51,10 +51,6 @@ end
 
 PCSX.Assembler.Internals.checks.bimm16 = function(imm, place)
     if type(imm) == "number" then
-        if (imm % 4) ~= 0 then
-            error("Immediate must be a multiple of 4: " .. imm)
-        end
-        imm = imm / 4
         if imm < -0x8000 or imm > 0x7fff then
             error("Immediate out of range: " .. imm)
         end
@@ -92,7 +88,7 @@ PCSX.Assembler.New = function()
         local hi16 = code.hi16
         if hi16 then
             if type(hi16) == "string" then
-                local symbol = PCSX.Assembler.resolveSymbol(hi16)
+                local symbol = PCSX.Assembler.Internals.resolveSymbol(hi16)
                 if not symbol then
                     error("Unknown symbol: " .. hi16)
                 end
@@ -106,7 +102,7 @@ PCSX.Assembler.New = function()
         local lo16 = code.lo16
         if lo16 then
             if type(lo16) == "string" then
-                local symbol = PCSX.Assembler.resolveSymbol(lo16)
+                local symbol = PCSX.Assembler.Internals.resolveSymbol(lo16)
                 if not symbol then
                     error("Unknown symbol: " .. lo16)
                 end
@@ -117,7 +113,7 @@ PCSX.Assembler.New = function()
         local imm26 = code.imm26
         if imm26 then
             if type(imm26) == "string" then
-                local symbol = PCSX.Assembler.resolveSymbol(imm26)
+                local symbol = PCSX.Assembler.Internals.resolveSymbol(imm26)
                 if not symbol then
                     error("Unknown symbol: " .. imm26)
                 end
@@ -137,7 +133,7 @@ PCSX.Assembler.New = function()
         local bimm16 = code.bimm16
         if bimm16 then
             if type(bimm16) == "string" then
-                local symbol = PCSX.Assembler.resolveSymbol(bimm16)
+                local symbol = PCSX.Assembler.Internals.resolveSymbol(bimm16)
                 if not symbol then
                     error("Unknown symbol: " .. bimm16)
                 end
@@ -185,10 +181,11 @@ PCSX.Assembler.New = function()
         for _, v in ipairs(parts) do
             v = trim(v)
             if v ~= "" then
-                if string.match(v, "^%d") then
-                    table.insert(args, tonumber(v))
-                else
+                local maybeNumber = tonumber(v)
+                if maybeNumber == nil then
                     table.insert(args, v)
+                else
+                    table.insert(args, maybeNumber)
                 end
             end
         end
