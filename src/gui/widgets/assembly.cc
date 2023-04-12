@@ -930,6 +930,8 @@ if not success then return msg else return nil end
                 m_assembleStatus = L.tostring();
             }
             L.pop();
+            // Invalidate iCache when assembling to ensure cached instructions are not executed
+            g_emulator->m_cpu->invalidateCache();
         }
         ImGui::SameLine();
         if (ImGui::Button(_("Clear"))) m_assembleCode.clear();
