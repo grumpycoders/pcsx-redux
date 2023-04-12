@@ -926,6 +926,8 @@ if not success then return msg else return nil end
             L.load(assembler, "inline:assembler");
             if (L.isnil()) {
                 m_assembleStatus.clear();
+                // Invalidate iCache on successful assemble to ensure cached instructions are not executed
+                g_emulator->m_cpu->invalidateCache();
             } else {
                 m_assembleStatus = L.tostring();
             }
