@@ -175,9 +175,9 @@ PCSX = {
     addBreakpoint = addBreakpoint,
     pauseEmulator = function() C.pauseEmulator() end,
     resumeEmulator = function() C.resumeEmulator() end,
-    invalidateCache = function() C.invalidateCache() end,
     softResetEmulator = function() C.softResetEmulator() end,
     hardResetEmulator = function() C.hardResetEmulator() end,
+    invalidateCache = function() C.invalidateCache() end,
     log = function(...) printLike(C.luaLog, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
     nextTick = function(f)
