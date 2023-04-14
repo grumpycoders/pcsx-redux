@@ -47,7 +47,7 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     unsigned outputTypeCount = (raw ? 1 : 0) + (booty ? 1 : 0) + (rom ? 1 : 0) + (cpe ? 1 : 0);
     if (asksForHelp || !oneInput || !hasOutput || (outputTypeCount > 1)) {
         fmt::print(R"(
-Usage: {} input.ps-exe [-h] [-tload addr] [-shell] [-raw | -booty | -rom] -o output.ps-exe
+Usage: {} input.ps-exe [-h] [-tload addr] [-shell] [-raw | -booty | -rom | -cpe] -o output.ps-exe
   input.ps-exe      mandatory: specify the input binary file.
   -o output.ps-exe  mandatory: name of the output file.
   -h                displays this help information and exit.
