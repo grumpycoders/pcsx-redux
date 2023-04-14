@@ -39,6 +39,7 @@ void* getParPtr() { return PCSX::g_emulator->m_mem->m_exp1; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
 void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_hard; }
 void* getRegisters() { return &PCSX::g_emulator->m_cpu->m_regs; }
+
 LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type, unsigned width, const char* cause,
                              bool (*invoker)(uint32_t address, unsigned width, const char* cause)) {
     LuaBreakpoint* ret = new LuaBreakpoint();
@@ -78,6 +79,7 @@ void jumpToPC(uint32_t pc) { PCSX::g_system->m_eventBus->signal(PCSX::Events::GU
 void jumpToMemory(uint32_t address, unsigned width) {
     PCSX::g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{address, width});
 }
+void invalidateCache() { PCSX::g_emulator->m_cpu->invalidateCache(); }
 
 struct LuaScreenShot {
     PCSX::Slice* data;
@@ -145,6 +147,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, luaLog);
     REGISTER(L, jumpToPC);
     REGISTER(L, jumpToMemory);
+    REGISTER(L, invalidateCache);
     REGISTER(L, takeScreenShot);
     REGISTER(L, createSaveState);
     REGISTER(L, loadSaveStateFromSlice);
