@@ -43,7 +43,8 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     const bool raw = args.get<bool>("raw").value_or(false);
     const bool booty = args.get<bool>("booty").value_or(false);
     const bool rom = args.get<bool>("rom").value_or(false);
-    unsigned outputTypeCount = (raw ? 1 : 0) + (booty ? 1 : 0) + (rom ? 1 : 0);
+    const bool cpe = args.get<bool>("cpe").value_or(false);
+    unsigned outputTypeCount = (raw ? 1 : 0) + (booty ? 1 : 0) + (rom ? 1 : 0) + (cpe ? 1 : 0);
     if (asksForHelp || !oneInput || !hasOutput || (outputTypeCount > 1)) {
         fmt::print(R"(
 Usage: {} input.ps-exe [-h] [-tload addr] [-shell] [-raw | -booty | -rom] -o output.ps-exe
@@ -57,6 +58,7 @@ These options control the output format, and are mutually exclusive:
   -raw              outputs a raw file.
   -booty            outputs a counter-booty payload.
   -rom              outputs a bootable rom, which can be used in a cheat cart.
+  -cpe              outputs a CPE file instead of a ps-exe one.
 If none of these options is provided, a ps-exe file will be emitted by default.
 
 Valid input binary files can be in the following formats:
@@ -93,6 +95,7 @@ Valid input binary files can be in the following formats:
     options.booty = booty;
     options.raw = raw;
     options.rom = rom;
+    options.cpe = cpe;
     options.shell = shell;
     options.tload = tload;
     PCSX::IO<PCSX::File> out(new PCSX::PosixFile(output.value().c_str(), PCSX::FileOps::TRUNCATE));
