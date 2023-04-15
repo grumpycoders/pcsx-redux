@@ -140,7 +140,7 @@ When Sony released the Playstation Classic recently, I came to realize two thing
 The codebase still requires a lot of cleanup, and the current product isn't properly usable yet. Despite that, a lot can already be achieved using the product in its current state. If you want to help with localization, you can find the translation project [on transifex](https://www.transifex.com/grumpycoders/pcsx-redux/languages/).
 
 ### What works?
-- Dynamic Recompiler (x86-32, x86-64, experimental arm64 support)
+- Dynamic Recompiler (x86-64, experimental arm64 support)
 - interpreted CPU
 - software GPU
 - OpenGL GPU (highly experimental, still in active development)
