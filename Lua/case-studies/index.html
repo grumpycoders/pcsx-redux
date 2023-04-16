@@ -843,19 +843,19 @@
 <p>The game modes are <a href="https://github.com/wurlyfox/crashutils/blob/da21a40a3e8928762eb58b551a54a6e6f8ed73e9/doc/crash/disasm_guide.txt#L131">listed here</a>.</p>
 <p>In Crash 1, there is a level that was included in the game but cut from the final level selection due to difficulty, 'Stormy Ascent'. This level can be accessed only by manipulating the game mode value that is passed to the main game routine. There is a gameshark code that points us to the memory location and value that needs to be written in order to set the game mode to the Story Ascent level.</p>
 <ul>
-<li><code>30011DB0 0022</code> - This is telling us to write the value 0x0022 at memory location <code>0x8001db0</code> 0x0022 is the value of the Stormy Ascent level we want to play.</li>
+<li><code>30011DB0 0022</code> - This is telling us to write the value <code>0x0022</code> at memory location <code>0x80011db0</code> 0x0022 is the value of the Stormy Ascent level we want to play.</li>
 </ul>
 <p>The issue is that GameShark uses a hook to achieve setting this value at the correct time. We will set up a breakpoint to see where the main game routine is.</p>
 <p>Setting the breakpoint can be done through the Breakpoint UI or in the Lua console. There is a link to a video at the bottom of the article showing the entire procedure.</p>
-<p>Breakpoints can alternatively be set through the Lua console. In PCSX-Redux top menu, click Debug → Show Lua Console</p>
-<p>We are going to add a breakpoint to pause execution when memory address 0x8001db0 is read. This will show where the main game loop is located in memory.</p>
+<p>Breakpoints can alternatively be set through the Lua console. In PCSX-Redux top menu, click <code>Debug → Show Lua Console</code></p>
+<p>We are going to add a breakpoint to pause execution when memory address <code>0x80011db0</code> is read. This will show where the main game loop is located in memory.</p>
 <p>In the Lua console, paste the following hit enter.</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="n">bp</span> <span class="o">=</span> <span class="n">PCSX</span><span class="p">.</span><span class="n">addBreakpoint</span><span class="p">(</span><span class="mh">0x80011db0</span><span class="p">,</span> <span class="s1">&#39;Read&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Find main loop&#39;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
 <p>You should see where the breakpoint was added in the Lua console, as well as in the Breakpoints UI. Note that we need to assign the result of the function to a variable to avoid garbage collection.</p>
-<p>Now open Debug → Show Assembly</p>
+<p>Now open <code>Debug → Show Assembly</code></p>
 <p>Start the emulator with Crash Bandicoot 1 SCUS94900</p>
-<p>Right before the BIOS screen ends, the emulator should pause. In the assembly window we can see a yellow arrow pointing to <code>0x80042068</code>. We can see this is a <code>lw</code> instruction that is reading a value from <code>0x8001db0</code>. This is the main game loop reading the game mode value from memory!</p>
+<p>Right before the BIOS screen ends, the emulator should pause. In the assembly window we can see a yellow arrow pointing to <code>0x80042068</code>. We can see this is a <code>lw</code> instruction that is reading a value from <code>0x80011db0</code>. This is the main game loop reading the game mode value from memory!</p>
 <p>Now that we know where the main game loop is located in memory, we can set a conditional breakpoint to properly set the game mode value when the main game routine is executed.</p>
 <p>This breakpoint will be triggered when the main game loop at <code>0x80042068</code> is executed, and ensure the value at <code>0x80011db0</code> is set to <code>0x0022</code></p>
 <p>In the Lua console, paste the following and hit enter.</p>
