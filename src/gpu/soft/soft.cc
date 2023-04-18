@@ -2676,11 +2676,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
             if (drawW < xmax) xmax = drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                XAdjust = (posX >> 16) & drawX;
-                tC1 = vram[static_cast<int32_t>((((posY >> 16) & drawY) << 11) + YAdjust + (XAdjust >> 1))];
+                XAdjust = (posX >> 16) & maskX;
+                tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + (XAdjust >> 1))];
                 tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
-                XAdjust = ((posX + difX) >> 16) & drawX;
-                tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & drawY) << 11) + YAdjust + (XAdjust >> 1))];
+                XAdjust = ((posX + difX) >> 16) & maskX;
+                tC2 = vram[static_cast<int32_t>(((((posY + difY) >> 16) & maskY) << 11) + YAdjust + (XAdjust >> 1))];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
                 uint32_t *pdest = (uint32_t *)&vram16[(i << 10) + j];
@@ -2690,8 +2690,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(int16_t x1, int16_t y1, int16_t 
                 posY += difY2;
             }
             if (j == xmax) {
-                XAdjust = (posX >> 16) & drawX;
-                tC1 = vram[static_cast<int32_t>((((posY >> 16) & drawY) << 11) + YAdjust + (XAdjust >> 1))];
+                XAdjust = (posX >> 16) & maskX;
+                tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + (XAdjust >> 1))];
                 tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
                 getTextureTransColShade(&vram16[(i << 10) + j], vram16[clutP + tC1]);
             }
