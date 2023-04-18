@@ -24,32 +24,32 @@
 #define COP2_CONTROL_OFFSET(reg) ((uintptr_t)&m_regs.CP2C.r[(reg)] - (uintptr_t)this)
 #define COP2_DATA_OFFSET(reg) ((uintptr_t)&m_regs.CP2D.r[(reg)] - (uintptr_t)this)
 
-void DynaRecCPU::recCOP2() {
-    const auto func = m_recGTE[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)();                                 // Jump into the handler to recompile it
+void DynaRecCPU::recCOP2(uint32_t code) {
+    const auto func = m_recGTE[code & 0x3f];  // Look up the opcode in our decoding LUT
+    (*this.*func)(code);                      // Jump into the handler to recompile it
 }
 
-void DynaRecCPU::recGTEMove() {
+void DynaRecCPU::recGTEMove(uint32_t code) {
     switch (_Rs_) {
         case 0:
-            recMFC2();
+            recMFC2(code);
             break;
         case 2:
-            recCFC2();
+            recCFC2(code);
             break;
         case 4:
-            recMTC2();
+            recMTC2(code);
             break;
         case 6:
-            recCTC2();
+            recCTC2(code);
             break;
         default:
-            recUnknown();
+            recUnknown(code);
             break;
     }
 }
 
-void DynaRecCPU::recCTC2() {
+void DynaRecCPU::recCTC2(uint32_t code) {
     if (m_gprs[_Rt_].isConst()) {
         switch (_Rd_) {
             case 4:  // These registers are signed 16-bit values. Reading from them returns their value sign-extended to
@@ -112,7 +112,7 @@ void DynaRecCPU::recCTC2() {
     }
 }
 
-void DynaRecCPU::recMTC2() {
+void DynaRecCPU::recMTC2(uint32_t code) {
     switch (_Rd_) {
         case 15:
             gen.Ldr(x0, MemOperand(contextPointer, COP2_DATA_OFFSET(13)));  // SXY0 = SXY1 and SXY1 = SXY2
@@ -185,7 +185,7 @@ void DynaRecCPU::recMTC2() {
 
 static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg); }
 
-void DynaRecCPU::recMFC2() {
+void DynaRecCPU::recMFC2(uint32_t code) {
     if (_Rt_) {
         allocateRegWithoutLoad(_Rt_);
         m_gprs[_Rt_].setWriteback(true);
@@ -240,7 +240,7 @@ void DynaRecCPU::recMFC2() {
     }
 }
 
-void DynaRecCPU::recCFC2() {
+void DynaRecCPU::recCFC2(uint32_t code) {
     if (_Rt_) {
         maybeCancelDelayedLoad(_Rt_);
         allocateRegWithoutLoad(_Rt_);
@@ -249,7 +249,7 @@ void DynaRecCPU::recCFC2() {
     }
 }
 
-void DynaRecCPU::recLWC2() {
+void DynaRecCPU::recLWC2(uint32_t code) {
     if (m_gprs[_Rs_].isConst()) {  // Store address in arg1
         gen.Mov(arg1, m_gprs[_Rs_].val + _Imm_);
     } else {
@@ -284,7 +284,7 @@ void DynaRecCPU::recLWC2() {
     }
 }
 
-void DynaRecCPU::recSWC2() {
+void DynaRecCPU::recSWC2(uint32_t code) {
     gen.Mov(arg1, _Rt_);
     call(MFC2Wrapper);  // Fetch the COP2 data reg in w0
     gen.Mov(arg2, w0);  // Value to write in arg2
@@ -303,7 +303,7 @@ void DynaRecCPU::recSWC2() {
 #define GTE_FALLBACK(name)                                                                          \
     static void name##Wrapper(uint32_t instruction) { PCSX::g_emulator->m_gte->name(instruction); } \
                                                                                                     \
-    void DynaRecCPU::rec##name() {                                                                  \
+    void DynaRecCPU::rec##name(uint32_t code) {                                                     \
         gen.Mov(arg1, m_regs.code);                                                                 \
         call(name##Wrapper);                                                                        \
     }

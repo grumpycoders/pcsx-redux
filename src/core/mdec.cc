@@ -371,7 +371,7 @@ void PCSX::MDEC::init(void) {
     memset(&mdec, 0, sizeof(mdec));
     memset(iq_y, 0, sizeof(iq_y));
     memset(iq_uv, 0, sizeof(iq_uv));
-    mdec.rl = (uint16_t *)&PCSX::g_emulator->m_mem->m_psxM[0x100000];
+    mdec.rl = (uint16_t *)&PCSX::g_emulator->m_mem->m_wram[0x100000];
 }
 
 // command register
@@ -412,7 +412,7 @@ void PCSX::MDEC::dma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
 
     switch (cmd >> 28) {
         case 0x3:  // decode
-            mdec.rl = (uint16_t *)PSXM(adr);
+            mdec.rl = g_emulator->m_mem->getPointer<uint16_t>(adr);
             /* now the mdec is busy till all data are decoded */
             mdec.reg1 |= MDEC1_BUSY;
             /* detect the end of decoding */
@@ -433,7 +433,7 @@ void PCSX::MDEC::dma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
 
         case 0x4:  // quantization table upload
         {
-            uint8_t *p = (uint8_t *)PSXM(adr);
+            uint8_t *p = g_emulator->m_mem->getPointer<uint8_t>(adr);
             // printf("uploading new quantization table\n");
             // printmatrixu8(p);
             // printmatrixu8(p + 64);
@@ -455,13 +455,13 @@ void PCSX::MDEC::dma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
             break;
     }
 
-    HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT<0>();
+    mdec0Interrupt();
 }
 
 void PCSX::MDEC::mdec0Interrupt() {
-    HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT<0>();
+    auto &mem = g_emulator->m_mem;
+    mem->clearDMABusy<0>();
+    mem->dmaInterrupt<0>();
 }
 
 #define SIZE_OF_24B_BLOCK (16 * 16 * 3)
@@ -491,7 +491,7 @@ void PCSX::MDEC::dma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
         mdec.pending_dma1.chcr = chcr;
         /* do not free the dma */
     } else {
-        image = (uint8_t *)PSXM(adr);
+        image = g_emulator->m_mem->getPointer<uint8_t>(adr);
 
         if (mdec.reg0 & MDEC0_RGB24) {
             /* 16 bits decoding
@@ -585,17 +585,15 @@ void PCSX::MDEC::mdec1Interrupt() {
     /* this else if avoid to read outside memory */
     if (mdec.rl >= mdec.rl_end) {
         mdec.reg1 &= ~MDEC1_STP;
-        HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
-        DMA_INTERRUPT<0>();
+        mdec0Interrupt();
         mdec.reg1 &= ~MDEC1_BUSY;
     } else if (SWAP_LE16(*(mdec.rl)) == MDEC_END_OF_DATA) {
         mdec.reg1 &= ~MDEC1_STP;
-        HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
-        DMA_INTERRUPT<0>();
+        mdec0Interrupt();
         mdec.reg1 &= ~MDEC1_BUSY;
     }
 
-    HW_DMA1_CHCR &= SWAP_LE32(~0x01000000);
-    DMA_INTERRUPT<1>();
-    return;
+    auto &mem = g_emulator->m_mem;
+    mem->clearDMABusy<1>();
+    mem->dmaInterrupt<1>();
 }

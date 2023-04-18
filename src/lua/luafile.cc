@@ -22,6 +22,7 @@
 #include "core/system.h"
 #include "lua-protobuf/pb.h"
 #include "lua/luawrapper.h"
+#include "support/mem4g.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
 
@@ -254,6 +255,11 @@ int createPBSliceFromBuffer(PCSX::Lua L) {
     return lpb_newslice(L.getState(), reinterpret_cast<char*>(ptr + 1), *ptr);
 }
 
+LuaFile* mem4g() { return new LuaFile(new PCSX::Mem4G()); }
+uint32_t mem4gLowestAddress(LuaFile* file) { return file->file.asA<PCSX::Mem4G>()->lowestAddress(); }
+uint32_t mem4gHighestAddress(LuaFile* file) { return file->file.asA<PCSX::Mem4G>()->highestAddress(); }
+uint32_t mem4gActualSize(LuaFile* file) { return file->file.asA<PCSX::Mem4G>()->actualSize(); }
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -322,6 +328,11 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getSliceSize);
     REGISTER(L, getSliceData);
     REGISTER(L, destroySlice);
+
+    REGISTER(L, mem4g);
+    REGISTER(L, mem4gLowestAddress);
+    REGISTER(L, mem4gHighestAddress);
+    REGISTER(L, mem4gActualSize);
 
     L.settable();
     L.pop();

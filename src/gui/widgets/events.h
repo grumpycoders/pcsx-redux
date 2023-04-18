@@ -23,6 +23,8 @@
 
 #include <string>
 
+#include "support/file.h"
+
 namespace PCSX {
 
 namespace Widgets {
@@ -30,7 +32,7 @@ namespace Widgets {
 class Events {
   public:
     Events(bool& show) : m_show(show) {}
-    void draw(const uint32_t* psxMemory, const char* title);
+    void draw(IO<File> memFile, const char* title);
 
     bool& m_show;
 };

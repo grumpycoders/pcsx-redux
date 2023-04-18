@@ -169,6 +169,11 @@ void PCSX::Lua::declareFunc(std::string_view name, LuaLambda&& f, int i) {
     i = getabsolute(i);
     checkstack(5);
     lua_pushlstring(L, name.data(), name.size());
+    push(std::move(f));
+    lua_settable(L, i);
+}
+
+void PCSX::Lua::push(std::function<int(Lua)>&& f) {
     new (lua_newuserdata(L, sizeof(LuaLambda))) LuaLambda(std::move(f));
     newtable();
     push("__gc");
@@ -188,7 +193,6 @@ void PCSX::Lua::declareFunc(std::string_view name, LuaLambda&& f, int i) {
             return lambda->operator()(L);
         },
         1);
-    lua_settable(L, i);
 }
 
 void PCSX::Lua::call(std::string_view f, int i, int nargs) {
@@ -223,15 +227,23 @@ void PCSX::Lua::call(int nargs) {
     }
 }
 
-void PCSX::Lua::pcall(int nargs) {
+int PCSX::Lua::pcall(int nargs) {
     push([](lua_State* L_) -> int {
         Lua L(L_);
         return L.pushLuaContext(true);
     });
-    insert();
-    int r = lua_pcall(L, nargs, LUA_MULTRET, 1);
-    remove();
-    if (r == 0) return;
+
+    const int errfunc = gettop() - (nargs + 1);
+    insert(-2 - nargs);
+    const int top = gettop();
+
+    int r = lua_pcall(L, nargs, LUA_MULTRET, errfunc);
+    remove(errfunc);
+
+    if (r == 0) {
+        const int nresult = gettop() - top + nargs + 2;
+        return nresult;
+    }
 
     int n = 1;
     int t = gettop();

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,12 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __PSXDMA_H__
-#define __PSXDMA_H__
+#pragma once
 
 #include "core/psxemulator.h"
-#include "core/psxhw.h"
-#include "core/psxmem.h"
 #include "core/r3000a.h"
 
 static inline void scheduleGPUDMAIRQ(uint32_t eCycle) {
@@ -45,15 +42,7 @@ static inline void scheduleGPUOTCDMAIRQ(uint32_t eCycle) {
     PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_GPUOTCDMA, eCycle);
 }
 
-/*
-DMA5 = N/A (PIO)
-*/
-
-// void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
 void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr);
 void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr);
 void spuInterrupt();
 void gpuotcInterrupt();
-// void dmaInterrupt();
-
-#endif

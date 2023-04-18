@@ -32,6 +32,7 @@ namespace PCSX {
 
 class Debug {
   public:
+    uint32_t normalizeAddress(uint32_t address);
     static inline std::function<const char*()> s_breakpoint_type_names[] = {
         []() { return _("Exec"); }, []() { return _("Read"); }, []() { return _("Write"); }};
     enum class BreakpointType { Exec, Read, Write };

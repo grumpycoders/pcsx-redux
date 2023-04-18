@@ -53,6 +53,27 @@ namespace psyqo {
 namespace Fragments {
 
 /**
+ * @brief A fragment containing a single primitive.
+ *
+ * @details This fragment contains a single primitive. The primitive type
+ * can be a compounded structure of multiple primitive types.
+ * @tparam T The primitive type.
+ */
+
+template <typename T>
+struct SimpleFragment {
+    constexpr size_t maxSize() const { return 1; }
+    SimpleFragment() {
+        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(T)),
+                      "Spurious padding in simple fragment");
+    }
+    typedef T FragmentBaseType;
+    constexpr size_t getActualFragmentSize() const { return sizeof(T) / sizeof(uint32_t); }
+    uint32_t head;
+    T primitive;
+};
+
+/**
  * @brief A maximum fixed sized fragment of similar primitives.
  *
  * @details This fragment is a simple sequence of identical primitives.

@@ -29,7 +29,7 @@ local sliceMeta = {
         elseif index == 'data' then
             return C.getSliceData(slice._wrapper)
         elseif index == 'size' then
-            return C.getSliceSize(slice._wrapper)
+            return tonumber(C.getSliceSize(slice._wrapper))
         end
         error('Unknown index `' .. index .. '` for LuaSlice')
     end,
@@ -224,7 +224,7 @@ local function createFileWrapper(wrapper)
         rTell = function(self) return C.rTell(self._wrapper) end,
         wSeek = wSeek,
         wTell = function(self) return C.wTell(self._wrapper) end,
-        size = function(self) return C.getFileSize(self._wrapper) end,
+        size = function(self) return tonumber(C.getFileSize(self._wrapper)) end,
         seekable = function(self) return C.isFileSeekable(self._wrapper) end,
         writable = function(self) return C.isFileWritable(self._wrapper) end,
         eof = function(self) return C.isFileEOF(self._wrapper) end,
@@ -332,6 +332,14 @@ local function uvFifo(address, port)
     return ret
 end
 
+local function mem4g()
+    local ret = createFileWrapper(C.mem4g())
+    ret.lowestAddress = function(file) return C.mem4gLowestAddress(file._wrapper) end
+    ret.highestAddress = function(file) return C.mem4gHighestAddress(file._wrapper) end
+    ret.actualSize = function(file) return C.mem4gActualSize(file._wrapper) end
+    return ret
+end
+
 if (type(Support) ~= 'table') then Support = {} end
 
 Support.NewLuaBuffer = function(size)
@@ -347,6 +355,7 @@ Support.File = {
     buffer = buffer,
     zReader = zReader,
     uvFifo = uvFifo,
+    mem4g = mem4g,
     failedFile = function() return createFileWrapper(C.failedFile()) end,
     _createFileWrapper = createFileWrapper,
     _createSliceWrapper = createSliceWrapper,

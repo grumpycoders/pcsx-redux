@@ -69,14 +69,27 @@ steps:
     Contents: |
       vsprojects/x64/ReleaseWithClangCL/pcsx-redux.main
       vsprojects/x64/ReleaseWithClangCL/pcsx-redux.exe
+      vsprojects/x64/ReleaseWithClangCL/crashpad_handler.exe
+      vsprojects/x64/ReleaseWithClangCL/exe2elf.exe
+      vsprojects/x64/ReleaseWithClangCL/exe2iso.exe
+      vsprojects/x64/ReleaseWithClangCL/psyq-obj-parser.exe
+      vsprojects/x64/ReleaseWithClangCL/ps1-packer.exe
       vsprojects/x64/ReleaseWithClangCL/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      vsprojects/x64/ReleaseWithClangCL/*.pdb
+    TargetFolder: '$(build.artifactStagingDirectory)/pdbs'
 
 - task: VSTest@2
   inputs:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
       **\*.exe
+      !**\crashpad_handler.exe
+      !**\exe2elf.exe
       !**\exe2iso.exe
       !**\pcsxrunner.exe
       !**\pcsx-redux.main

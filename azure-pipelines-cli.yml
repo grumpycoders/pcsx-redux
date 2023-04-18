@@ -61,14 +61,27 @@ steps:
   inputs:
     Contents: |
       vsprojects/x64/ReleaseCLI/pcsx-redux.exe
+      vsprojects/x64/ReleaseCLI/crashpad_handler.exe
+      vsprojects/x64/ReleaseCLI/exe2elf.exe
+      vsprojects/x64/ReleaseCLI/exe2iso.exe
+      vsprojects/x64/ReleaseCLI/psyq-obj-parser.exe
+      vsprojects/x64/ReleaseCLI/ps1-packer.exe
       vsprojects/x64/ReleaseCLI/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      vsprojects/x64/ReleaseCLI/*.pdb
+    TargetFolder: '$(build.artifactStagingDirectory)/pdbs'
 
 - task: VSTest@2
   inputs:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
       **\*.exe
+      !**\crashpad_handler.exe
+      !**\exe2elf.exe
       !**\exe2iso.exe
       !**\pcsxrunner.exe
       !**\pcsx-wrapper.exe

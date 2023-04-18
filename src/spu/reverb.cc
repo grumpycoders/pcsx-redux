@@ -100,7 +100,7 @@ void PCSX::SPU::impl::SetREVERB(unsigned short val) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
-    if (pChannel->data.get<Chan::Reverb>().value && (spuCtrl & 0x80))  // reverb possible?
+    if (pChannel->data.get<Chan::Reverb>().value && (spuCtrl & ControlFlags::ReverbMasterEnable))  // reverb possible?
     {
         if (settings.get<Reverb>() == 2)
             pChannel->data.get<Chan::RVBActive>().value = true;
@@ -221,7 +221,7 @@ int PCSX::SPU::impl::MixREVERBLeft(int ns) {
 
         if (iCnt & 1)  // we work on every second left value: downsample to 22 khz
         {
-            if (spuCtrl & 0x80)  // -> reverb on? oki
+            if (spuCtrl & ControlFlags::ReverbMasterEnable)  // -> reverb on? oki
             {
                 int ACC0, ACC1, FB_A0, FB_A1, FB_B0, FB_B1;
 

@@ -41,7 +41,6 @@
 #include <unordered_set>
 
 #include "clip/clip.h"
-#include "core/binloader.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/debug.h"
@@ -74,8 +73,10 @@
 #include "nanovg/src/nanovg_gl_utils.h"
 #include "spu/interface.h"
 #include "support/bezier.h"
+#include "support/mem4g.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
+#include "supportpsx/binloader.h"
 #include "tracy/Tracy.hpp"
 
 #ifdef _WIN32
@@ -317,6 +318,10 @@ end)(jit.status()))
 void PCSX::GUI::init() {
     int result;
 
+    if (m_args.get<bool>("noshaders", false)) {
+        m_disableShaders = true;
+    }
+
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
@@ -406,10 +411,14 @@ void PCSX::GUI::init() {
     if (result) {
         throw std::runtime_error("Unable to initialize OpenGL layer. Check OpenGL drivers.");
     }
+    gl3wFillCppThrowers();
+    if (gl3wIsCppThrower(reinterpret_cast<GL3WglProc>(glDebugMessageCallback))) {
+        glDebugMessageCallback = nullptr;
+    }
 
     m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
     if (!m_nvgContext) {
-        throw std::runtime_error("Unable to initialize NanoVG. Check OpenGL drivers.");
+        g_system->log(LogClass::UI, "Warning: Unable to initialize NanoVG. Check OpenGL drivers.\n");
     }
 
     // Setup ImGui binding
@@ -470,7 +479,8 @@ void PCSX::GUI::init() {
         g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
-        if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() && !g_system->getVersion().failed()) {
+        if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
+            !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
                 [this](bool success) {
@@ -542,6 +552,9 @@ void PCSX::GUI::init() {
     }
 
     glDisable(GL_CULL_FACE);
+    // The depth test isn't supposed to be enabled by default, but
+    // it seems to be anyway on some drivers, so let's kill it there.
+    glDisable(GL_DEPTH_TEST);
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
     glGenTextures(2, m_offscreenTextures);
@@ -567,16 +580,11 @@ void PCSX::GUI::init() {
             return m_stringHolder.c_str();
         };
         counter++;
-        editor.show = false;
     }
     m_parallelPortEditor.title = []() { return _("Parallel Port"); };
-    m_parallelPortEditor.show = false;
     m_scratchPadEditor.title = []() { return _("Scratch Pad"); };
-    m_scratchPadEditor.show = false;
     m_hwrEditor.title = []() { return _("Hardware Registers"); };
-    m_hwrEditor.show = false;
     m_biosEditor.title = []() { return _("BIOS"); };
-    m_biosEditor.show = false;
     m_vramEditor.title = []() { return _("VRAM"); };
     m_vramEditor.editor.WriteFn = [](uint8_t* data, size_t offset, uint8_t writtenByte) {
         constexpr size_t vramWidth = 1024;
@@ -597,7 +605,6 @@ void PCSX::GUI::init() {
 
         g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
     };
-    m_vramEditor.show = false;
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
@@ -844,7 +851,7 @@ void PCSX::GUI::flip() {
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glClearColor(0, 0, 0, 0);
-    glClearDepthf(0.f);
+    glClearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
@@ -881,7 +888,11 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        if (m_disableShaders) {
+            ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
+        } else {
+            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        }
         ImGui::End();
         ImGui::PopStyleVar(2);
     } else {
@@ -898,7 +909,11 @@ void PCSX::GUI::endFrame() {
             }
             normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            if (m_disableShaders) {
+                ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
+            } else {
+                m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            }
         }
         ImGui::End();
         if (!outputShown) m_fullWindowRender = true;
@@ -1061,6 +1076,7 @@ void PCSX::GUI::endFrame() {
                     m_offscreenShaderEditor.setConfigure();
                     m_outputShaderEditor.setConfigure();
                 }
+                ImGui::MenuItem(_("PIO Cartridge"), nullptr, &m_pioCart.m_show);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -1251,10 +1267,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_luaEditor.draw(_("Lua Editor"), this);
     }
     if (m_events.m_show) {
-        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_psxM), _("Kernel events"));
+        m_events.draw(g_emulator->m_mem->getMemoryAsFile(), _("Kernel events"));
     }
     if (m_handlers.m_show) {
-        m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_psxM), _("Kernel handlers"));
+        m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram), _("Kernel handlers"));
     }
     if (m_kernelLog.m_show) {
         changed |= m_kernelLog.draw(g_emulator->m_cpu.get(), _("Kernel Calls"));
@@ -1266,38 +1282,38 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     {
         unsigned counter = 0;
         for (auto& editor : m_mainMemEditors) {
-            if (editor.show) {
+            if (editor.m_show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(g_emulator->m_mem->m_psxM, 8 * 1024 * 1024, 0x80000000);
+                editor.draw(g_emulator->m_mem->m_wram, 8 * 1024 * 1024);
             }
             counter++;
         }
-        if (m_parallelPortEditor.show) {
+        if (m_parallelPortEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(g_emulator->m_mem->m_psxP, 64 * 1024, 0x1f000000);
+            m_parallelPortEditor.draw(g_emulator->m_mem->m_exp1, 512 * 1024);
         }
         counter++;
-        if (m_scratchPadEditor.show) {
+        if (m_scratchPadEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(g_emulator->m_mem->m_psxH, 1024, 0x1f800000);
+            m_scratchPadEditor.draw(g_emulator->m_mem->m_hard, 1024);
         }
         counter++;
-        if (m_hwrEditor.show) {
+        if (m_hwrEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(g_emulator->m_mem->m_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(g_emulator->m_mem->m_hard + 4 * 1024, 8 * 1024);
         }
         counter++;
-        if (m_biosEditor.show) {
+        if (m_biosEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(g_emulator->m_mem->m_psxR, 512 * 1024, 0xbfc00000);
+            m_biosEditor.draw(g_emulator->m_mem->m_bios, 512 * 1024);
         }
         counter++;
-        if (m_vramEditor.show) {
+        if (m_vramEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
 
@@ -1347,6 +1363,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_offscreenShaderEditor.m_show && m_offscreenShaderEditor.draw(this, _("Offscreen Render"))) {
         // maybe throttle this?
         m_offscreenShaderEditor.compile(this);
+    }
+
+    if (m_pioCart.m_show) {
+        changed |= m_pioCart.draw(_("PIO Cartridge Configuration"));
     }
 
     if (m_sio1.m_show) {
@@ -1423,7 +1443,8 @@ their TV set to match the aspect ratio of the game.)"));
         ImGui::End();
     }
 
-    if (!m_args.get<bool>("noupdate") && !g_system->getVersion().failed() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
+    if (!m_args.get<bool>("noupdate") && !g_system->getVersion().failed() &&
+        !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
         if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
 
@@ -1594,7 +1615,7 @@ the update and manually apply it.)")));
     } else {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
-    glClearDepthf(0.0f);
+    glClearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -1621,6 +1642,7 @@ the update and manually apply it.)")));
 bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
+    bool selectEXP1Dialog = false;
     bool showDynarecDebugWarning = false;
     bool showDynarecWarning = false;
     auto& settings = g_emulator->settings;
@@ -1859,15 +1881,24 @@ See the wiki for details.)"));
     }
     ImGui::End();
 
-    if (selectBiosDialog) m_selectBiosDialog.openDialog();
-    if (m_selectBiosDialog.draw()) {
-        std::vector<PCSX::u8string> fileToOpen = m_selectBiosDialog.selected();
-        if (!fileToOpen.empty()) {
-            settings.get<Emulator::SettingBios>().value = fileToOpen[0];
-            changed = true;
+    {  // Select BIOS Dialog
+        auto& biospath = settings.get<Emulator::SettingBiosBrowsePath>();
+        if (selectBiosDialog) {
+            if (!biospath.empty()) {
+                m_selectBiosDialog.m_currentPath = biospath.value;
+            }
+
+            m_selectBiosDialog.openDialog();
+        }
+        if (m_selectBiosDialog.draw()) {
+            biospath = m_selectBiosDialog.m_currentPath;
+            std::vector<PCSX::u8string> fileToOpen = m_selectBiosDialog.selected();
+            if (!fileToOpen.empty()) {
+                settings.get<Emulator::SettingBios>().value = fileToOpen[0];
+                changed = true;
+            }
         }
     }
-
     if (showDynarecDebugWarning && showDynarecWarning) {
         addNotification(R"(Debugger and dynarec enabled at the same time.
 Consider turning either one off, otherwise
@@ -2064,18 +2095,38 @@ void PCSX::GUI::shellReached() {
 
     g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
     bool success = false;
-    auto backupPC = regs.pc;
     try {
-        success = BinaryLoader::load(filename);
+        BinaryLoader::Info info;
+        IO<File> in(new PosixFile(filename));
+        if (in->failed()) {
+            throw std::runtime_error("Failed to open file.");
+        }
+        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info);
+        if (!info.pc.has_value()) {
+            throw std::runtime_error("Binary loaded without any PC to jump to.");
+        }
+        regs.pc = info.pc.value();
+        if (info.sp.has_value()) regs.GPR.n.sp = info.sp.value();
+        if (info.gp.has_value()) regs.GPR.n.gp = info.gp.value();
+        if (g_emulator->settings.get<Emulator::SettingAutoVideo>() && info.region.has_value()) {
+            switch (info.region.value()) {
+                case BinaryLoader::Region::NTSC:
+                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
+                    break;
+                case BinaryLoader::Region::PAL:
+                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
+                    break;
+            }
+        }
     } catch (std::exception& e) {
         g_system->log(LogClass::UI, "Failed to load %s: %s\n", p.string(), e.what());
-        regs.pc = backupPC;
     } catch (...) {
         g_system->log(LogClass::UI, "Failed to load %s: unknown error\n", p.string());
-        regs.pc = backupPC;
     }
     if (success) {
         g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
+    } else {
+        g_system->log(LogClass::UI, "Failed to load %s, unknown file format.\n", p.string());
     }
 
     if (m_exeToLoad.hasToPause()) {
@@ -2089,32 +2140,24 @@ void PCSX::GUI::shellReached() {
 }
 
 void PCSX::GUI::magicOpen(const char* pathStr) {
-    // Try guessing what we're opening using extension only.
-    // Doing magic guesses might be an option, but that's exhausting right now. Maybe later.
-    std::filesystem::path path(pathStr);
-
-    static const std::vector<std::string> exeExtensions = {
-        "EXE", "PSX", "PS-EXE", "PSF", "MINIPSF", "PSFLIB", "CPE", "ELF",
-    };
-
-    const auto& extensionPath = path.extension().string();
-
-    char* extension = (char*)malloc(extensionPath.length());
-    for (int i = 1; i < extensionPath.length(); i++) {
-        extension[i - 1] = toupper(extensionPath[i]);
+    std::filesystem::path path = pathStr;
+    bool success = false;
+    try {
+        BinaryLoader::Info info;
+        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info);
+        if (success) success = info.pc.has_value();
+    } catch (...) {
+        success = false;
     }
-    extension[extensionPath.length() - 1] = 0;
 
-    if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
+    if (success) {
         m_exeToLoad.set(path.u8string());
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
     } else {
-        PCSX::g_emulator->m_cdrom->setIso(new CDRIso(pathStr));
-        PCSX::g_emulator->m_cdrom->check();
+        g_emulator->m_cdrom->setIso(new CDRIso(path));
+        g_emulator->m_cdrom->check();
     }
-
-    free(extension);
 }
 
 std::string PCSX::GUI::buildSaveStateFilename(int i) {
@@ -2187,6 +2230,8 @@ void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2,
     float angle = Bezier::angle(start, c1, c2, end, 1.0f);
     auto vgInnerColor = nvgRGBA(innerColor.x * 255, innerColor.y * 255, innerColor.z * 255, innerColor.w * 255);
     auto vgOuterColor = nvgRGBA(outerColor.x * 255, outerColor.y * 255, outerColor.z * 255, outerColor.w * 255);
+
+    if (!vg) return;
 
     nvgSave(vg);
     nvgLineCap(vg, NVG_BUTT);
