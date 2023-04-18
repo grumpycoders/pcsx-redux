@@ -31,6 +31,8 @@ SOFTWARE.
 int initCard(int padStarted);
 int startCard();
 int stopCard();
+uint8_t getCardStatus(int port);
+uint8_t waitCardStatus(int port);
 
 void mcResetStatus();
 int mcWaitForStatus();
