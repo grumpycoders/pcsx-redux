@@ -155,7 +155,7 @@ PCSX.Assembler.New = function()
             ret = bit.bor(ret, bit.band(bimm16, 0xffff))
         end
         if code.imm5 then
-            ret = bit.bor(ret, code.imm5)
+            ret = bit.bor(ret, bit.lshift(code.imm5, 6))
         end
         if code.imm20 then
             ret = bit.bor(ret, bit.lshift(code.imm20, 6))
