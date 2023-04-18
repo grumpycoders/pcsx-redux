@@ -615,17 +615,19 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
 
     s_usedAddr[0] = s_usedAddr[1] = s_usedAddr[2] = 0xffffff;
 
+    const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
+
     do {
-        addr &= 0x1ffffc;
+        addr &= ramExpansion ? 0x7ffffc : 0x1ffffc;
 
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
 
         // # 32-bit blocks to transfer
-        hwAddr >> 2;
-        uint32_t header = memory[hwAddr];
+        addr >>= 2;
+        uint32_t header = memory[addr];
         uint32_t transferSize = header >> 24;
-        const uint32_t *feed = memory + hwAddr + 4;
+        const uint32_t *feed = memory + addr + 1;
         Buffer buf(feed, transferSize);
         while (!buf.isEmpty()) {
             m_processor->processWrite(buf);
