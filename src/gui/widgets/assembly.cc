@@ -529,6 +529,7 @@ settings, otherwise debugging features may not work.)");
     m_arrows.clear();
 
     bool openAssembler = false;
+    bool openSymbolAdder = false;
 
     while (clipper.Step()) {
         bool skipNext = false;
@@ -677,9 +678,18 @@ settings, otherwise debugging features may not work.)");
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
                     toggleBP();
                 }
-                std::string contextMenuTitle = "assembly address menu ";
-                contextMenuTitle += dispAddr;
-                if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
+                std::string contextMenuID = fmt::format("assembly address menu {}", dispAddr);
+                if (ImGui::BeginPopupContextItem(contextMenuID.c_str())) {
+                    if (symbols.size() == 0) {
+                        if (ImGui::MenuItem(_("Create symbol here"))) {
+                            openSymbolAdder = true;
+                            m_symbolAddress = dispAddr;
+                        }
+                    } else {
+                        if (ImGui::MenuItem(_("Remove symbol"))) {
+                            cpu->m_symbols.erase(dispAddr);
+                        }
+                    }
                     if (ImGui::MenuItem(_("Copy Address"))) {
                         char fmtAddr[10];
                         std::snprintf(fmtAddr, sizeof(fmtAddr), "%8.8x", dispAddr);
@@ -877,6 +887,24 @@ settings, otherwise debugging features may not work.)");
         m_jumpToPC.reset();
     }
     ImGui::EndChild();
+    if (openSymbolAdder) {
+        ImGui::OpenPopup(_("Add symbol"));
+    }
+    if (ImGui::BeginPopupModal(_("Add symbol"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text(_("Add symbol for address 0x%08x:"), m_symbolAddress);
+        ImGui::InputText("##symbol", &m_addSymbolName);
+        if (ImGui::Button(_("Add"))) {
+            cpu->m_symbols[m_symbolAddress] = m_addSymbolName;
+            m_addSymbolName.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(_("Cancel"))) {
+            m_addSymbolName.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
     if (openAssembler) {
         ImGui::OpenPopup(_("Assemble"));
     }
@@ -898,6 +926,8 @@ if not success then return msg else return nil end
             L.load(assembler, "inline:assembler");
             if (L.isnil()) {
                 m_assembleStatus.clear();
+                // Invalidate iCache on successful assemble to ensure cached instructions are not executed
+                g_emulator->m_cpu->invalidateCache();
             } else {
                 m_assembleStatus = L.tostring();
             }

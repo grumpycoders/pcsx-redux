@@ -29,7 +29,7 @@ local sliceMeta = {
         elseif index == 'data' then
             return C.getSliceData(slice._wrapper)
         elseif index == 'size' then
-            return C.getSliceSize(slice._wrapper)
+            return tonumber(C.getSliceSize(slice._wrapper))
         end
         error('Unknown index `' .. index .. '` for LuaSlice')
     end,
@@ -224,7 +224,7 @@ local function createFileWrapper(wrapper)
         rTell = function(self) return C.rTell(self._wrapper) end,
         wSeek = wSeek,
         wTell = function(self) return C.wTell(self._wrapper) end,
-        size = function(self) return C.getFileSize(self._wrapper) end,
+        size = function(self) return tonumber(C.getFileSize(self._wrapper)) end,
         seekable = function(self) return C.isFileSeekable(self._wrapper) end,
         writable = function(self) return C.isFileWritable(self._wrapper) end,
         eof = function(self) return C.isFileEOF(self._wrapper) end,

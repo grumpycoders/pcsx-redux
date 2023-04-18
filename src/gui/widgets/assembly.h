@@ -94,8 +94,10 @@ class Assembly : private Disasm {
     Memory* m_memory;
     uint32_t m_ramBase = 0x80000000;
     uint32_t m_assembleAddress;
+    uint32_t m_symbolAddress;
     std::string m_assembleCode = "";
     std::string m_assembleStatus = "";
+    std::string m_addSymbolName = "";
 
     struct symbolInfo {
         uint32_t addr;

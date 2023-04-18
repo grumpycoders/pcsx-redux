@@ -99,6 +99,9 @@ DynarecProfileData.txt
 DynarecDisassembly.txt
 sstate.proto
 
+# Sentry Native files
+.sentry-native
+
 # nops' configuration file
 comport.txt
 

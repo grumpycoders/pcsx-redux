@@ -59,7 +59,7 @@ PCSX::Emulator::Emulator()
       m_lua(new PCSX::Lua()),
       m_mdec(new PCSX::MDEC()),
       m_mem(new PCSX::Memory()),
-      m_pads(new PCSX::Pads()),
+      m_pads(PCSX::Pads::factory()),
       m_pioCart(new PCSX::PIOCart),
       m_sio(new PCSX::SIO()),
       m_sio1(new PCSX::SIO1()),

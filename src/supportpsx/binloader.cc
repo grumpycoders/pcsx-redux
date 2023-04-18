@@ -36,7 +36,7 @@ namespace {
 bool loadCPE(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1455043) return false;
-    file->read<uint16_t>();
+    file->skip<uint16_t>();
 
     uint8_t opcode;
 
@@ -208,6 +208,7 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
         auto name = psec->get_name();
 
         if (StringsHelpers::endsWith(name, "_Header")) continue;
+        if (StringsHelpers::startsWith(name, ".comment")) continue;
 
         auto type = psec->get_type();
         if (type != SHT_PROGBITS) continue;

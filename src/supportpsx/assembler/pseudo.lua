@@ -141,7 +141,7 @@ PCSX.Assembler.Internals.pseudoInstructions = {
         end
         return {
             base = 0x10000000,
-            imm16 = checkBImm16(args[1], 1),
+            bimm16 = checkBImm16(args[1], 1),
         }
     end,
 
@@ -151,7 +151,7 @@ PCSX.Assembler.Internals.pseudoInstructions = {
         end
         return {
             base = 0x04110000,
-            imm16 = checkBImm16(args[1], 1),
+            bimm16 = checkBImm16(args[1], 1),
         }
     end,
 
@@ -170,7 +170,7 @@ PCSX.Assembler.Internals.pseudoInstructions = {
                 base = 0x14000000,
                 rs = 1,
                 rt = 0,
-                imm16 = checkBImm16(args[3], 2),
+                bimm16 = checkBImm16(args[3], 2),
             },
         }
     end,
@@ -190,7 +190,7 @@ PCSX.Assembler.Internals.pseudoInstructions = {
                 base = 0x14000000,
                 rs = 1,
                 rt = 0,
-                imm16 = checkBImm16(args[3], 2),
+                bimm16 = checkBImm16(args[3], 2),
             },
         }
     end,
@@ -210,7 +210,7 @@ PCSX.Assembler.Internals.pseudoInstructions = {
                 base = 0x14000000,
                 rs = 1,
                 rt = 0,
-                imm16 = checkBImm16(args[3], 2),
+                bimm16 = checkBImm16(args[3], 2),
             },
         }
     end,
@@ -230,7 +230,7 @@ PCSX.Assembler.Internals.pseudoInstructions = {
                 base = 0x14000000,
                 rs = 1,
                 rt = 0,
-                imm16 = checkBImm16(args[3], 2),
+                bimm16 = checkBImm16(args[3], 2),
             },
         }
     end,
@@ -244,7 +244,7 @@ PCSX.Assembler.Internals.pseudoInstructions = {
                 base = 0x10000000,
                 rs = checkGPR(args[1]),
                 rt = checkGPR(args[2]),
-                imm16 = checkBImm16(args[3], 1),
+                bimm16 = checkBImm16(args[3], 1),
             },
         }
     end,

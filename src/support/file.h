@@ -237,13 +237,13 @@ class File {
     }
 
     uint8_t byte() {
-        uint8_t r;
+        uint8_t r = 0;
         read(&r, 1);
         return r;
     }
 
     uint8_t byteAt(size_t pos) {
-        uint8_t r;
+        uint8_t r = 0;
         readAt(&r, 1, pos);
         return r;
     }

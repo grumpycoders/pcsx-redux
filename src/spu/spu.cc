@@ -291,25 +291,45 @@ inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
 
 inline int PCSX::SPU::impl::iGetNoiseVal(SPUCHAN *pChannel) {
     auto &SB = pChannel->data.get<PCSX::SPU::Chan::SB>().value;
-    int fa;
-
-    if ((dwNoiseVal <<= 1) & 0x80000000L) {
-        dwNoiseVal ^= 0x0040001L;
-        fa = ((dwNoiseVal >> 2) & 0x7fff);
-        fa = -fa;
-    } else
-        fa = (dwNoiseVal >> 2) & 0x7fff;
-
-    // mmm... depending on the noise freq we allow bigger/smaller changes to the previous val
-    fa = pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value +
-         ((fa - pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value) / ((0x001f - ((spuCtrl & 0x3f00) >> 9)) + 1));
-    if (fa > 32767L) fa = 32767L;
-    if (fa < -32767L) fa = -32767L;
-    pChannel->data.get<PCSX::SPU::Chan::OldNoise>().value = fa;
+    const int fa = (int16_t)m_noiseVal;
 
     if (settings.get<Interpolation>() < 2)  // no gauss/cubic interpolation?
         SB[29].value = fa;                  // -> store noise val in "current sample" slot
     return fa;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void PCSX::SPU::impl::NoiseClock() {
+    // Noise Waveform - Dr. Hell (Xebra)
+    static constexpr char NoiseWaveAdd[64] = {1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1,
+                                              1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,
+                                              1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1};
+
+    static constexpr unsigned short NoiseFreqAdd[5] = {0, 84, 140, 180, 210};
+
+    unsigned int level;
+
+    level = 0x8000 >> (m_noiseClock >> 2);
+    level <<= 16;
+
+    m_noiseCount += 0x10000;
+
+    // Dr. Hell - fraction
+    m_noiseCount += NoiseFreqAdd[m_noiseClock & 3];
+    if ((m_noiseCount & 0xffff) >= NoiseFreqAdd[4]) {
+        m_noiseCount += 0x10000;
+        m_noiseCount -= NoiseFreqAdd[m_noiseClock & 3];
+    }
+
+    if (m_noiseCount >= level) {
+        while (m_noiseCount >= level) {
+            m_noiseCount -= level;
+        }
+
+        // Dr. Hell - form
+        m_noiseVal = (m_noiseVal << 1) | NoiseWaveAdd[(m_noiseVal >> 10) & 63];
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -319,7 +339,7 @@ inline void PCSX::SPU::impl::StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 2)  // fmod freq channel
         SB[29].value = fa;
     else {
-        if ((spuCtrl & 0x4000) == 0)
+        if ((spuCtrl & ControlFlags::Mute) == 0)
             fa = 0;  // muted?
         else         // else adjust
         {
@@ -508,6 +528,8 @@ void PCSX::SPU::impl::MainThread() {
 
                 while (ns < NSSIZE)  // loop until 1 ms of data is reached
                 {
+                    NoiseClock();
+
                     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
                         FModChangeFrequency(pChannel, ns);
 
@@ -574,7 +596,7 @@ void PCSX::SPU::impl::MainThread() {
 
                             //////////////////////////////////////////// irq check
 
-                            if ((spuCtrl & 0x40))  // some callback and irq active?
+                            if ((spuCtrl & ControlFlags::IRQEnable))  // some callback and irq active?
                             {
                                 if ((pSpuIrq > start - 16 &&  // irq address reached?
                                      pSpuIrq <= start) ||
@@ -710,43 +732,23 @@ void PCSX::SPU::impl::MainThread() {
         ///////////////////////////////////////////////////////
         // mix all channels (including reverb) into one buffer
 
-        if (settings.get<Mono>())  // no stereo?
-        {
-            int dl, dr;
-            for (ns = 0; ns < NSSIZE; ns++) {
-                SSumL[ns] += MixREVERBLeft(ns);
+        for (ns = 0; ns < NSSIZE; ns++) {
+            SSumL[ns] += MixREVERBLeft(ns);
 
-                dl = SSumL[ns] / voldiv;
-                SSumL[ns] = 0;
-                if (dl < -32767) dl = -32767;
-                if (dl > 32767) dl = 32767;
+            d = SSumL[ns] / voldiv;
+            SSumL[ns] = 0;
+            if (d < -32767) d = -32767;
+            if (d > 32767) d = 32767;
+            *pS++ = d;
 
-                SSumR[ns] += MixREVERBRight();
+            SSumR[ns] += MixREVERBRight();
 
-                dr = SSumR[ns] / voldiv;
-                SSumR[ns] = 0;
-                if (dr < -32767) dr = -32767;
-                if (dr > 32767) dr = 32767;
-                *pS++ = (dl + dr) / 2;
-            }
-        } else  // stereo:
-            for (ns = 0; ns < NSSIZE; ns++) {
-                SSumL[ns] += MixREVERBLeft(ns);
-
-                d = SSumL[ns] / voldiv;
-                SSumL[ns] = 0;
-                if (d < -32767) d = -32767;
-                if (d > 32767) d = 32767;
-                *pS++ = d;
-
-                SSumR[ns] += MixREVERBRight();
-
-                d = SSumR[ns] / voldiv;
-                SSumR[ns] = 0;
-                if (d < -32767) d = -32767;
-                if (d > 32767) d = 32767;
-                *pS++ = d;
-            }
+            d = SSumR[ns] / voldiv;
+            SSumR[ns] = 0;
+            if (d < -32767) d = -32767;
+            if (d > 32767) d = 32767;
+            *pS++ = d;
+        }
 
         //////////////////////////////////////////////////////
         // special irq handling in the decode buffers (0x0000-0x1000)
@@ -771,7 +773,7 @@ void PCSX::SPU::impl::MainThread() {
         if (pMixIrq)  // pMixIRQ will only be set, if the config option is active
         {
             for (ns = 0; ns < NSSIZE; ns++) {
-                if ((spuCtrl & 0x40) && pSpuIrq && pSpuIrq < spuMemC + 0x1000) {
+                if ((spuCtrl & ControlFlags::IRQEnable) && pSpuIrq && pSpuIrq < spuMemC + 0x1000) {
                     for (ch = 0; ch < 4; ch++) {
                         if (pSpuIrq >= pMixIrq + (ch * 0x400) && pSpuIrq < pMixIrq + (ch * 0x400) + 2) {
                             scheduleInterrupt();
