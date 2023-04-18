@@ -324,12 +324,13 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     m_pc = pc & ~3;
     m_firstInstruction = true;
     m_fullLoadDelayEmulation = fullLoadDelayEmulation;
+    auto& memory = PCSX::g_emulator->m_mem;
 
     // If we somehow ended up compiling a block at an invalid PC, throw an error.
     if (!isPcValid(m_pc)) return m_invalidBlock;
 
     const auto startingPC = m_pc;
-    int count = 0;                                      // How many instructions have we compiled?
+    unsigned count = 0;                                 // How many instructions have we compiled?
     DynarecCallback* callback = getBlockPointer(m_pc);  // Pointer to where we'll store the addr of the emitted code
 
     if (align) {
@@ -363,7 +364,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     }
     handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.
 
-    const auto shouldContinue = [&]() {
+    const auto shouldContinue = [this, &count]() {
         if (m_nextIsDelaySlot) {
             return true;
         }
@@ -376,7 +377,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         return true;
     };
 
-    const auto processDelayedLoad = [&]() {
+    const auto processDelayedLoad = [this]() {
         m_currentDelayedLoad ^= 1;
         auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
 
@@ -391,20 +392,23 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         }
     };
 
-    const auto compileInstruction = [&]() {
+    const auto compileInstruction = [this, &count, &memory]() -> bool {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
         // Fetch instruction. We make sure this function is called with a valid PC, otherwise it will crash
-        m_regs.code = *(uint32_t*)PSXM(m_pc);
+        uint32_t* ptr = memory->getPointer<uint32_t>(m_pc);
+        if (!ptr) return false;
+        uint32_t code = m_regs.code = *ptr;
         m_pc += 4;  // Increment recompiler PC
         count++;    // Increment instruction count
 
-        const auto func = m_recBSC[m_regs.code >> 26];  // Look up the opcode in our decoding LUT
-        (*this.*func)();                                // Jump into the handler to recompile it
+        const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
+        (*this.*func)(code);                     // Jump into the handler to recompile it
+        return true;
     };
 
-    const auto resolveInitialLoadDelay = [&]() {
+    const auto resolveInitialLoadDelay = [this]() {
         if (!m_fullLoadDelayEmulation) return;
         flushRegs();
 
@@ -419,17 +423,17 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     };
 
     // For the first instruction in the block: Check if there's a pending load as well
-    compileInstruction();
+    if (!compileInstruction()) {
+        return m_invalidBlock;
+    }
     resolveInitialLoadDelay();
     processDelayedLoad();
     m_firstInstruction = false;
 
     while (shouldContinue()) {
-        // Throw error if the PC is not pointing to a valid code address
-        if (PSXM(m_pc) == nullptr) {
+        if (!compileInstruction()) {
             return m_invalidBlock;
         }
-        compileInstruction();
         processDelayedLoad();
     }
 
@@ -458,9 +462,9 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     return *callback;
 }
 
-void DynaRecCPU::recSpecial() {
-    const auto func = m_recSPC[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)();                                 // Jump into the handler to recompile it
+void DynaRecCPU::recSpecial(uint32_t code) {
+    const auto func = m_recSPC[code & 0x3f];  // Look up the opcode in our decoding LUT
+    (*this.*func)(code);                      // Jump into the handler to recompile it
 }
 
 // Checks if the block being compiled is one of the kernel call vectors
@@ -544,15 +548,11 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
     // Always emulate load delays when there's a load in a branch delay slot
     if (m_stopCompiling && index != 0) return LoadDelayDependencyType::DependencyAcrossBlocks;
 
-    const auto p = (uint32_t*)PSXM(m_pc);
-    if (p == nullptr) {  // Can't prefetch next instruction, will error
-        return LoadDelayDependencyType::NoDependency;
-    }
     if (index == 0) {  // Loads to $zero go to the void, so don't bother emulating it as a delayed load
         return LoadDelayDependencyType::NoDependency;
     }
 
-    const uint32_t instruction = *p;
+    const uint32_t instruction = PCSX::g_emulator->m_mem->read32(m_pc, PCSX::Memory::ReadType::Instr);
     const auto rt = (instruction >> 16) & 0x1f;
     const auto rs = (instruction >> 21) & 0x1f;
     const auto opcode = instruction >> 26;

@@ -24,32 +24,32 @@
 #define COP2_CONTROL_OFFSET(reg) ((uintptr_t)&m_regs.CP2C.r[(reg)] - (uintptr_t)this)
 #define COP2_DATA_OFFSET(reg) ((uintptr_t)&m_regs.CP2D.r[(reg)] - (uintptr_t)this)
 
-void DynaRecCPU::recCOP2() {
+void DynaRecCPU::recCOP2(uint32_t code) {
     const auto func = m_recGTE[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)();                                 // Jump into the handler to recompile it
+    (*this.*func)(code);                             // Jump into the handler to recompile it
 }
 
-void DynaRecCPU::recGTEMove() {
+void DynaRecCPU::recGTEMove(uint32_t code) {
     switch (_Rs_) {
         case 0:
-            recMFC2();
+            recMFC2(code);
             break;
         case 2:
-            recCFC2();
+            recCFC2(code);
             break;
         case 4:
-            recMTC2();
+            recMTC2(code);
             break;
         case 6:
-            recCTC2();
+            recCTC2(code);
             break;
         default:
-            recUnknown();
+            recUnknown(code);
             break;
     }
 }
 
-void DynaRecCPU::recCTC2() {
+void DynaRecCPU::recCTC2(uint32_t code) {
     if (m_gprs[_Rt_].isConst()) {
         switch (_Rd_) {
             case 4:  // These registers are signed 16-bit values. Reading from them returns their value sign-extended to
@@ -109,7 +109,7 @@ void DynaRecCPU::recCTC2() {
     }
 }
 
-void DynaRecCPU::recMTC2() {
+void DynaRecCPU::recMTC2(uint32_t code) {
     switch (_Rd_) {
         case 15:                                                         // SXYP
             gen.mov(rax, qword[contextPointer + COP2_DATA_OFFSET(13)]);  // SXY0 = SXY1 and SXY1 = SXY2
@@ -232,7 +232,7 @@ void DynaRecCPU::loadGTEDataRegister(Reg32 dest, int index) {
     }
 }
 
-void DynaRecCPU::recMFC2() {
+void DynaRecCPU::recMFC2(uint32_t code) {
     if (!_Rt_) return;
 
     const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
@@ -278,7 +278,7 @@ void DynaRecCPU::recMFC2() {
     }
 }
 
-void DynaRecCPU::recCFC2() {
+void DynaRecCPU::recCFC2(uint32_t code) {
     if (!_Rt_) return;
 
     const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
@@ -308,7 +308,7 @@ void DynaRecCPU::recCFC2() {
     }
 }
 
-void DynaRecCPU::recLWC2() {
+void DynaRecCPU::recLWC2(uint32_t code) {
     if (m_gprs[_Rs_].isConst()) {  // Store address in arg2
         gen.mov(arg2, m_gprs[_Rs_].val + _Imm_);
     } else {
@@ -364,7 +364,7 @@ void DynaRecCPU::recLWC2() {
     }
 }
 
-void DynaRecCPU::recSWC2() {
+void DynaRecCPU::recSWC2(uint32_t code) {
     loadGTEDataRegister(arg3, _Rt_);  // Load the register we'll write to memory in arg3
 
     // Address in arg2
@@ -379,7 +379,7 @@ void DynaRecCPU::recSWC2() {
 }
 
 template <bool isAVSZ4>
-void DynaRecCPU::recAVSZ() {
+void DynaRecCPU::recAVSZ(uint32_t code) {
     Xbyak::Label noOverflow, label1, end, checkIfBelowLim, notBelowLim;
 
     constexpr Reg32 flag = arg1;  // Register for FLAG
@@ -446,13 +446,13 @@ void DynaRecCPU::recAVSZ() {
     gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(31)], flag);  // Writeback FLAG
 }
 
-void DynaRecCPU::recAVSZ3() { recAVSZ<false>(); }
-void DynaRecCPU::recAVSZ4() { recAVSZ<true>(); }
+void DynaRecCPU::recAVSZ3(uint32_t code) { recAVSZ<false>(code); }
+void DynaRecCPU::recAVSZ4(uint32_t code) { recAVSZ<true>(code); }
 
-#define GTE_FALLBACK(name)             \
-    void DynaRecCPU::rec##name() {     \
-        gen.mov(arg2, m_regs.code);    \
-        callGTEFunc(&PCSX::GTE::name); \
+#define GTE_FALLBACK(name)                      \
+    void DynaRecCPU::rec##name(uint32_t code) { \
+        gen.mov(arg2, code);                    \
+        callGTEFunc(&PCSX::GTE::name);          \
     }
 
 GTE_FALLBACK(CC);

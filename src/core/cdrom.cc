@@ -206,7 +206,7 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     inline void setIrq(void) {
-        if (m_stat & m_reg2) psxHu32ref(0x1070) |= SWAP_LE32((uint32_t)0x4);
+        if (m_stat & m_reg2) PCSX::g_emulator->m_mem->setIRQ(4);
     }
 
     void adjustTransferIndex(void) {
@@ -258,7 +258,7 @@ class CDRomImpl : public PCSX::CDRom {
         */
 
         // signal CDDA data ready
-        psxHu32ref(0x1070) |= SWAP_LE32((uint32_t)0x200);
+        PCSX::g_emulator->m_mem->setIRQ(0x200);
 
         // time for next full buffer
         // scheduleDecodeBufferIRQ( PCSX::g_emulator->m_psxClockSpeed / 44100 * 0x200 );
@@ -1111,7 +1111,10 @@ class CDRomImpl : public PCSX::CDRom {
             return;
         }
 
-        if ((psxHu32ref(0x1070) & psxHu32ref(0x1074) & SWAP_LE32((uint32_t)0x4)) && !m_readRescheduled) {
+        uint32_t istat = PCSX::g_emulator->m_mem->readHardwareRegister<PCSX::Memory::ISTAT>();
+        uint32_t imask = PCSX::g_emulator->m_mem->readHardwareRegister<PCSX::Memory::IMASK>();
+
+        if ((istat & imask & 4) && !m_readRescheduled) {
             // HACK: with PCSX::Emulator::BIAS 2, emulated CPU is often slower than real thing,
             // game may be unfinished with prev data read, so reschedule
             // (Brave Fencer Musashi)
@@ -1218,7 +1221,7 @@ class CDRomImpl : public PCSX::CDRom {
         m_ctrl |= (PRMEMPT | PRMWRDY);  // Parameter fifo empty, parameter not fifo full
 
         CDROM_IO_LOG("cdr r0: %02x\n", m_ctrl);
-        return psxHu8(0x1800) = m_ctrl;
+        return m_ctrl;
     }
 
     void write0(uint8_t rt) final {
@@ -1227,15 +1230,14 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     uint8_t read1(void) final {
+        uint8_t ret = 0;
         if ((m_resultP & 0xf) < m_resultC) {
-            psxHu8(0x1801) = m_result[m_resultP & 0xf];
-        } else {
-            psxHu8(0x1801) = 0;
+            ret = m_result[m_resultP & 0xf];
         }
         m_resultP++;
         if (m_resultP == m_resultC) m_resultReady = 0;
-        CDROM_IO_LOG("cdr r1: %02x\n", psxHu8(0x1801));
-        return psxHu8(0x1801);
+        CDROM_IO_LOG("cdr r1: %02x\n", ret);
+        return ret;
     }
 
     void write1(uint8_t rt) final {
@@ -1362,13 +1364,14 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     uint8_t read3(void) final {
+        uint8_t ret;
         if (m_ctrl & 0x1) {
-            psxHu8(0x1803) = m_stat | 0xE0;
+            ret = m_stat | 0xE0;
         } else {
-            psxHu8(0x1803) = m_reg2 | 0xE0;
+            ret = m_reg2 | 0xE0;
         }
-        CDROM_IO_LOG("cdr r3: %02x\n", psxHu8(0x1803));
-        return psxHu8(0x1803);
+        CDROM_IO_LOG("cdr r3: %02x\n", ret);
+        return ret;
     }
 
     void write3(uint8_t rt) final {
@@ -1422,7 +1425,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         switch (chcr) {
             case 0x11000000:
-            case 0x11400100:
+            case 0x11400100: {
                 if (m_read == 0) {
                     CDROM_LOG("dma() Log: *** DMA 3 *** NOT READY\n");
                     break;
@@ -1447,11 +1450,8 @@ class CDRomImpl : public PCSX::CDRom {
                     }
                 }
 
-                ptr = (uint8_t *)PSXM(madr);
-                if (ptr == NULL) {
-                    CDROM_LOG("dma() Log: *** DMA 3 *** NULL Pointer!\n");
-                    break;
-                }
+                PCSX::IO<PCSX::File> memFile = PCSX::g_emulator->m_mem->getMemoryAsFile();
+                memFile->wSeek(madr);
 
                 /*
                 GS CDX: Enhancement CD crash
@@ -1460,8 +1460,7 @@ class CDRomImpl : public PCSX::CDRom {
                 - Spams DMA3 and gets buffer overrun
                 */
                 for (i = 0; i < cdsize; ++i) {
-                    ptr[i] = m_transfer[m_transferIndex];
-                    m_transferIndex++;
+                    memFile->write<uint8_t>(m_transfer[m_transferIndex++]);
                     adjustTransferIndex();
                 }
                 if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -1476,6 +1475,7 @@ class CDRomImpl : public PCSX::CDRom {
                     scheduleCDDMAIRQ((cdsize / 4) * 1);
                 }
                 return;
+            }
 
             default:
                 CDROM_LOG("dma() Log: Unknown cddma %x\n", chcr);
@@ -1486,9 +1486,10 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     void dmaInterrupt() final {
-        if (HW_DMA3_CHCR & SWAP_LE32(0x01000000)) {
-            HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
-            DMA_INTERRUPT<3>();
+        auto &mem = PCSX::g_emulator->m_mem;
+        if (mem->isDMABusy<3>()) {
+            mem->clearDMABusy<3>();
+            mem->dmaInterrupt<3>();
         }
     }
 

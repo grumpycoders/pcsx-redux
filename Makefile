@@ -23,6 +23,7 @@ CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -I.
 CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
+CPPFLAGS += -Ithird_party/ELFIO
 CPPFLAGS += -Ithird_party/fmt/include/
 CPPFLAGS += -Ithird_party/gl3w
 CPPFLAGS += -Ithird_party/googletest/googletest/include
@@ -114,9 +115,10 @@ SRCS += third_party/clip/clip.cpp
 SRCS += third_party/clip/image.cpp
 SRCS += $(wildcard third_party/cueparser/*.c)
 SRCS += third_party/gl3w/GL/gl3w.c
+SRCS += third_party/gl3w/GL/gl3w-throwers.cc
 SRCS += third_party/http-parser/http_parser.c
-SRCS += third_party/ImFileDialog/ImFileDialog.cpp
 SRCS += $(wildcard third_party/iec-60908b/*.c)
+SRCS += third_party/ImFileDialog/ImFileDialog.cpp
 SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/backends/imgui_impl_glfw.cpp
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
@@ -130,6 +132,7 @@ SRCS += third_party/md4c/src/md4c.c
 SRCS += third_party/multipart-parser-c/multipart_parser.c
 SRCS += third_party/nanovg/src/nanovg.c
 SRCS += third_party/tracy/TracyClient.cpp
+SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
 SRCS += third_party/zep/src/mcommon/animation/timer.cpp
@@ -155,15 +158,21 @@ ifeq ($(CROSS),arm64)
         CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
-SUPPORT_SRCS := src/support/file.cc
+SUPPORT_SRCS := src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
+SUPPORT_SRCS += src/supportpsx/binloader.cc src/supportpsx/ps1-packer.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
-OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
+OBJECTS := third_party/luajit/src/libluajit.a
+
+TOOLS = exe2elf exe2iso ps1-packer psyq-obj-parser
+
+##############################################################################
+
+OBJECTS += $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
 OBJECTS += $(patsubst %.mm,%.o,$(filter %.mm,$(SRCS)))
-OBJECTS += third_party/luajit/src/libluajit.a
-
 SUPPORT_OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SUPPORT_SRCS)))
 SUPPORT_OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS)))
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
@@ -222,7 +231,7 @@ appimage:
 
 ifeq ($(CROSS),arm64)
 third_party/luajit/src/libluajit.a:
-	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=gcc-10 CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=10.15
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=cc CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=10.15
 else
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=10.15
@@ -283,13 +292,17 @@ pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
-psyq-obj-parser: $(SUPPORT_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO -static
+define TOOLDEF
+$(1): $(SUPPORT_OBJECTS) tools/$(1)/$(1).o
+	$(LD) -o $(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) tools/$(1)/$(1).o -static -lz
 
-ps1-packer: $(SUPPORT_OBJECTS) tools/ps1-packer/ps1-packer.cc
-	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) tools/ps1-packer/ps1-packer.cc -static
+endef
 
-.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage
+$(foreach tool,$(TOOLS),$(eval $(call TOOLDEF,$(tool))))
+
+tools: $(TOOLS)
+
+.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage tools
 
 DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
 DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))

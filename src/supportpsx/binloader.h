@@ -19,13 +19,26 @@
 
 #pragma once
 
-#include "core/system.h"
+#include <stdint.h>
+
+#include <filesystem>
+#include <optional>
+
+#include "support/file.h"
 
 namespace PCSX {
 
 namespace BinaryLoader {
 
-bool load(const std::filesystem::path& path);
+enum class Region { UNKNOWN, NTSC, PAL };
+struct Info {
+    std::optional<Region> region;
+    std::optional<uint32_t> pc;
+    std::optional<uint32_t> sp;
+    std::optional<uint32_t> gp;
+};
+
+bool load(IO<File> in, IO<File> dest, Info& info);
 
 }  // namespace BinaryLoader
 

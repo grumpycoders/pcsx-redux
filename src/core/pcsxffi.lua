@@ -67,6 +67,7 @@ void luaMessage(const char* msg, bool error);
 void luaLog(const char* msg);
 void jumpToPC(uint32_t address);
 void jumpToMemory(uint32_t address, unsigned width);
+void invalidateCache();
 
 typedef enum { BPP_16, BPP_24 } ScreenShotBPP;
 
@@ -81,6 +82,8 @@ LuaScreenShot takeScreenShot();
 LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
 void loadSaveStateFromFile(LuaFile*);
+
+LuaFile* getMemoryAsFile();
 
 void quit();
 ]]
@@ -165,6 +168,7 @@ end
 
 PCSX = {
     getMemPtr = function() return C.getMemPtr() end,
+    getParPtr = function() return C.getParPtr() end,
     getRomPtr = function() return C.getRomPtr() end,
     getScratchPtr = function() return C.getScratchPtr() end,
     getRegisters = function() return C.getRegisters() end,
@@ -173,6 +177,7 @@ PCSX = {
     resumeEmulator = function() C.resumeEmulator() end,
     softResetEmulator = function() C.softResetEmulator() end,
     hardResetEmulator = function() C.hardResetEmulator() end,
+    invalidateCache = function() C.invalidateCache() end,
     log = function(...) printLike(C.luaLog, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
     nextTick = function(f)
@@ -202,6 +207,7 @@ PCSX = {
             error('loadSaveState: requires a Slice or File as input')
         end
     end,
+    getMemoryAsFile = function() return C.getMemoryAsFile() end,
     quit = function() C.quit() end,
 }
 

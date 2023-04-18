@@ -58,8 +58,8 @@ class GPU {
 
     // These functions do not touch GPUSTAT. GPU backends should mirror the IRQ status into GPUSTAT
     // when readStatus is called
-    void requestIRQ1() { psxHu32ref(0x1070) |= SWAP_LEu32(0x2); }
-    void acknowledgeIRQ1() { psxHu32ref(0x1070) &= ~SWAP_LEu32(0x2); }
+    void requestIRQ1() { g_emulator->m_mem->setIRQ(2); }
+    void acknowledgeIRQ1() { g_emulator->m_mem->clearIRQ(2); }
 
     bool m_showCfg = false;
     bool m_showDebug = false;

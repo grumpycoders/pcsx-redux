@@ -22,6 +22,7 @@
 #include "cdrom/iec-60908b.h"
 #include "flags.h"
 #include "fmt/format.h"
+#include "iec-60908b/edcecc.h"
 #include "support/file.h"
 
 static void storeU32(uint32_t value, uint8_t* buffer) {
@@ -145,7 +146,7 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
                 memset(sector, 0, sizeof(sector));
                 memcpy(sector + 16, licenseData + 2336 * i, 2336);
                 makeHeader(sector, i);
-                if (regen) PCSX::IEC60908b::computeEDCECC(sector);
+                if (regen) compute_edcecc(sector);
                 out->write(sector, sizeof(sector));
             }
             wroteLicense = true;
@@ -154,7 +155,7 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
             for (unsigned i = 0; i < 16; i++) {
                 memcpy(sector, licenseData + 2352 * i, 2352);
                 makeHeader(sector, i);
-                if (regen) PCSX::IEC60908b::computeEDCECC(sector);
+                if (regen) compute_edcecc(sector);
                 out->write(sector, sizeof(sector));
             }
             wroteLicense = true;
@@ -166,7 +167,7 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
         for (unsigned i = 0; i < 16; i++) {
             memset(sector, 0, sizeof(sector));
             makeHeader(sector, i);
-            if (regen) PCSX::IEC60908b::computeEDCECC(sector);
+            if (regen) compute_edcecc(sector);
             out->write(sector, sizeof(sector));
         }
     }
@@ -178,14 +179,14 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
         // This function will fill the sector with the right data, as
         // necessary for the PS1 bios.
         getSector(sector + 24, i, exeSize, exeOffset);
-        if (regen) PCSX::IEC60908b::computeEDCECC(sector);
+        if (regen) compute_edcecc(sector);
         out->write(sector, sizeof(sector));
     }
     // Potential padding before the start of the exe.
     for (unsigned i = 19; i < exeOffset; i++) {
         memset(sector, 0, sizeof(sector));
         makeHeader(sector, i);
-        if (regen) PCSX::IEC60908b::computeEDCECC(sector);
+        if (regen) compute_edcecc(sector);
         out->write(sector, sizeof(sector));
     }
     unsigned LBA = exeOffset;
@@ -194,7 +195,7 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
         memset(sector, 0, sizeof(sector));
         makeHeader(sector, LBA++);
         file->read(sector + 24, 2048);
-        if (regen) PCSX::IEC60908b::computeEDCECC(sector);
+        if (regen) compute_edcecc(sector);
         out->write(sector, sizeof(sector));
     }
     if (pad) {
@@ -202,7 +203,7 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
         for (unsigned i = 0; i < 150; i++) {
             memset(sector, 0, sizeof(sector));
             makeHeader(sector, LBA++);
-            if (regen) PCSX::IEC60908b::computeEDCECC(sector);
+            if (regen) compute_edcecc(sector);
             out->write(sector, sizeof(sector));
         }
     }

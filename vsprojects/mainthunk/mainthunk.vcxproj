@@ -464,6 +464,9 @@
     <ProjectReference Include="..\SPU\SPU.vcxproj">
       <Project>{bf968fd3-ef46-45af-b74e-46a41a96276f}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\supportpsx\supportpsx.vcxproj">
+      <Project>{b2e2ad84-9d7f-4976-9572-e415819ffd7f}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\support\support.vcxproj">
       <Project>{0e621321-093c-4d60-bd8b-027fdc2b0f63}</Project>
     </ProjectReference>
@@ -495,6 +498,7 @@
     <Import Project="..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets')" />
     <Import Project="..\packages\glfw.3.3.8\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.8\build\native\glfw.targets')" />
     <Import Project="..\packages\libFFmpeg-lite.lgpl2.native.5.1.2.2\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\packages\libFFmpeg-lite.lgpl2.native.5.1.2.2\build\native\libffmpeg-lite.lgpl2.native.targets')" />
+    <Import Project="..\packages\x64sentry-native.0.6.1\build\x64sentry-native.targets" Condition="Exists('..\packages\x64sentry-native.0.6.1\build\x64sentry-native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -503,5 +507,6 @@
     <Error Condition="!Exists('..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.0-beta3c\build\native\luajit.native.targets'))" />
     <Error Condition="!Exists('..\packages\glfw.3.3.8\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.8\build\native\glfw.targets'))" />
     <Error Condition="!Exists('..\packages\libFFmpeg-lite.lgpl2.native.5.1.2.2\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\libFFmpeg-lite.lgpl2.native.5.1.2.2\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
+    <Error Condition="!Exists('..\packages\x64sentry-native.0.6.1\build\x64sentry-native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\x64sentry-native.0.6.1\build\x64sentry-native.targets'))" />
   </Target>
 </Project>

@@ -53,6 +53,7 @@ template <class T>
 concept IntegralConcept = std::is_integral<T>::value;
 
 class File {
+  public:
 #if defined(__cpp_lib_byteswap) && !defined(_WIN32)
     using byte_swap = std::byte_swap;
 #else
@@ -69,7 +70,6 @@ class File {
         }
     }
 #endif
-  public:
     enum FileType { RO_STREAM, RW_STREAM, RO_SEEKABLE, RW_SEEKABLE };
     virtual ~File() {
         if (m_refCount.load() != 0) {
@@ -104,12 +104,7 @@ class File {
         wSeek(old, SEEK_SET);
         return ret;
     }
-    virtual void writeAt(Slice&& slice, size_t ptr) {
-        auto old = wTell();
-        wSeek(ptr, SEEK_SET);
-        write(slice.data(), slice.size());
-        wSeek(old, SEEK_SET);
-    }
+    virtual void writeAt(Slice&& slice, size_t ptr) { writeAt(slice.data(), slice.size(), ptr); }
     virtual bool eof() { return rTell() == size(); }
     virtual std::filesystem::path filename() { return ""; }
     virtual File* dup() { throw std::runtime_error("Cannot duplicate file"); };
@@ -146,13 +141,19 @@ class File {
         }
     }
 
+    template <bool splitOnEOL = true>
     std::string gets() {
         int c;
         std::string ret;
         while (true) {
             c = getc();
-            if ((c == 0) || (c == -1) || (c == '\n') || (c == '\r')) {
+            if ((c == 0) || (c == -1)) {
                 return ret;
+            }
+            if constexpr (splitOnEOL) {
+                if ((c == '\n') || (c == '\r')) {
+                    return ret;
+                }
             }
             ret += c;
         }
@@ -236,18 +237,23 @@ class File {
     }
 
     uint8_t byte() {
-        uint8_t r;
+        uint8_t r = 0;
         read(&r, 1);
         return r;
     }
 
     uint8_t byteAt(size_t pos) {
-        uint8_t r;
+        uint8_t r = 0;
         readAt(&r, 1, pos);
         return r;
     }
 
     void skip(size_t amount) { rSeek(amount, SEEK_CUR); }
+
+    template <IntegralConcept T>
+    void skip() {
+        skip(sizeof(T));
+    }
 
   protected:
     File(FileType filetype) : m_filetype(filetype) {}

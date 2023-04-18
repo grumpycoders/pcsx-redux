@@ -53,15 +53,15 @@
   <ItemGroup>
     <None Include="..\..\src\lua\fileffi-cdef.lua" />
     <None Include="..\..\src\lua\fileffi.lua" />
-    <None Include="..\..\src\lua\glffi-def1.lua" />
-    <None Include="..\..\src\lua\glffi-def2.lua" />
-    <None Include="..\..\src\lua\glffi-def3.lua" />
-    <None Include="..\..\src\lua\glffi-def4.lua" />
-    <None Include="..\..\src\lua\glffi-enum1.lua" />
-    <None Include="..\..\src\lua\glffi-enum2.lua" />
-    <None Include="..\..\src\lua\glffi-enum3.lua" />
-    <None Include="..\..\src\lua\glffi-typedefs.lua" />
     <None Include="..\..\third_party\ffi-reflect\reflect.lua" />
+    <None Include="..\..\third_party\glffi\glffi-def1.lua" />
+    <None Include="..\..\third_party\glffi\glffi-def2.lua" />
+    <None Include="..\..\third_party\glffi\glffi-def3.lua" />
+    <None Include="..\..\third_party\glffi\glffi-def4.lua" />
+    <None Include="..\..\third_party\glffi\glffi-enum1.lua" />
+    <None Include="..\..\third_party\glffi\glffi-enum2.lua" />
+    <None Include="..\..\third_party\glffi\glffi-enum3.lua" />
+    <None Include="..\..\third_party\glffi\glffi-typedefs.lua" />
     <None Include="..\..\third_party\lua-protobuf\descriptor.pb.lua" />
     <None Include="..\..\third_party\lua-protobuf\lexer.lua" />
     <None Include="..\..\third_party\lua-protobuf\protoc.lua" />

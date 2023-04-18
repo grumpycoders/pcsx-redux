@@ -92,6 +92,11 @@ LuaFile* zReader(LuaFile*, int64_t size, bool raw);
 uint64_t getSliceSize(LuaSlice*);
 const void* getSliceData(LuaSlice*);
 void destroySlice(LuaSlice*);
+
+LuaFile* mem4g();
+uint32_t mem4gLowestAddress(LuaFile*);
+uint32_t mem4gHighestAddress(LuaFile*);
+uint32_t mem4gActualSize(LuaFile*);
 ]]
 
 -- )EOF"

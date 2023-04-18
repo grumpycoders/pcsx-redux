@@ -295,6 +295,7 @@
     <ClInclude Include="..\..\src\support\imgui-helpers.h" />
     <ClInclude Include="..\..\src\support\list.h" />
     <ClInclude Include="..\..\src\support\md5.h" />
+    <ClInclude Include="..\..\src\support\mem4g.h" />
     <ClInclude Include="..\..\src\support\opengl.h" />
     <ClInclude Include="..\..\src\support\stream-file.h" />
     <ClInclude Include="..\..\src\support\strings-helpers.h" />
@@ -311,6 +312,21 @@
     <ClInclude Include="..\..\src\support\zip.h" />
     <ClInclude Include="..\..\third_party\cq\concurrent_queue.h" />
     <ClInclude Include="..\..\third_party\cq\reclaimer.h" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_array.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_dump.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_dynamic.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_header.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_modinfo.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_note.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_relocation.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_section.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_segment.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_strings.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_symbols.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_utils.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_version.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elf_types.hpp" />
     <ClInclude Include="..\..\third_party\interval_tree.h" />
     <ClInclude Include="..\..\third_party\json.hpp" />
     <ClInclude Include="..\..\third_party\typestring.hh" />
@@ -320,6 +336,7 @@
     <ClCompile Include="..\..\src\support\ffmpeg-audio-file.cc" />
     <ClCompile Include="..\..\src\support\file.cc" />
     <ClCompile Include="..\..\src\support\md5.cc" />
+    <ClCompile Include="..\..\src\support\mem4g.cc" />
     <ClCompile Include="..\..\src\support\sjis_conv.cc" />
     <ClCompile Include="..\..\src\support\uvfile.cc" />
     <ClCompile Include="..\..\src\support\version-linux.cc" />

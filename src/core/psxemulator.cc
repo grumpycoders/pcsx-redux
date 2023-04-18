@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -21,7 +21,6 @@
 
 #include "core/callstacks.h"
 #include "core/cdrom.h"
-#include "core/cheat.h"
 #include "core/debug.h"
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
@@ -32,6 +31,7 @@
 #include "core/mdec.h"
 #include "core/pad.h"
 #include "core/pcsxlua.h"
+#include "core/pio-cart.h"
 #include "core/r3000a.h"
 #include "core/sio.h"
 #include "core/sio1-server.h"
@@ -46,27 +46,29 @@ extern "C" {
 #include "luv/src/luv.h"
 }
 #include "spu/interface.h"
+#include "supportpsx/assembler.h"
+#include "supportpsx/binlua.h"
 
 PCSX::Emulator::Emulator()
-    : m_mem(new PCSX::Memory()),
+    : m_callStacks(new PCSX::CallStacks),
+      m_cdrom(PCSX::CDRom::factory()),
       m_counters(new PCSX::Counters()),
+      m_debug(new PCSX::Debug()),
+      m_gdbServer(new PCSX::GdbServer()),
       m_gpuLogger(new PCSX::GPULogger()),
       m_gte(new PCSX::GTE()),
-      m_sio(new PCSX::SIO()),
-      m_cdrom(PCSX::CDRom::factory()),
-      m_cheats(new PCSX::Cheats()),
+      m_hw(new PCSX::HW()),
+      m_lua(new PCSX::Lua()),
       m_mdec(new PCSX::MDEC()),
-      m_gdbServer(new PCSX::GdbServer()),
-      m_webServer(new PCSX::WebServer()),
+      m_mem(new PCSX::Memory()),
+      m_pads(PCSX::Pads::factory()),
+      m_pioCart(new PCSX::PIOCart),
+      m_sio(new PCSX::SIO()),
       m_sio1(new PCSX::SIO1()),
       m_sio1Server(new PCSX::SIO1Server()),
       m_sio1Client(new PCSX::SIO1Client()),
-      m_debug(new PCSX::Debug()),
-      m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),
-      m_pads(new PCSX::Pads()),
-      m_lua(new PCSX::Lua()),
-      m_callStacks(new PCSX::CallStacks) {}
+      m_webServer(new PCSX::WebServer()) {}
 
 void PCSX::Emulator::setLua() {
     auto L = *m_lua;
@@ -94,6 +96,8 @@ void PCSX::Emulator::setLua() {
     LuaFFI::open_iso(L);
     LuaFFI::open_extra(L);
     LuaBindings::open_events(L);
+    LuaSupportPSX::open_assembler(L);
+    LuaSupportPSX::open_binaries(L);
 
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");
@@ -143,8 +147,6 @@ int PCSX::Emulator::init() {
 }
 
 void PCSX::Emulator::reset() {
-    m_cheats->FreeCheatSearchResults();
-    m_cheats->FreeCheatSearchMem();
     m_mem->reset();
     m_spu->resetCaptureBuffer();
     m_cpu->psxReset();
@@ -157,9 +159,6 @@ void PCSX::Emulator::reset() {
 }
 
 void PCSX::Emulator::shutdown() {
-    m_cheats->ClearAllCheats();
-    m_cheats->FreeCheatSearchResults();
-    m_cheats->FreeCheatSearchMem();
     m_mem->shutdown();
     m_cpu->psxShutdown();
 
@@ -170,7 +169,6 @@ void PCSX::Emulator::vsync() {
     m_gpu->vblank();
     g_system->m_eventBus->signal<Events::GPU::VSync>({});
     g_system->update(true);
-    m_cheats->ApplyCheats();
 
     if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
         // CreateRewindState();
