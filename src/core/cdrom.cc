@@ -73,6 +73,14 @@ class CDRomImpl final : public PCSX::CDRom {
         CdlReadToc = 30,
     };
 
+    std::string_view commandName(uint8_t command) {
+        if (command > c_cdCmdEnumCount) {
+            return "Unknown";
+        } else {
+            return magic_enum::enum_names<Commands>()[command];
+        }
+    }
+
     static constexpr size_t c_cdCmdEnumCount = magic_enum::enum_count<Commands>();
     static constexpr bool isValidBCD(uint8_t value) { return (value & 0x0f) <= 9 && (value & 0xf0) <= 0x90; }
     static std::optional<PCSX::IEC60908b::MSF> getMSF(const uint8_t *msf) {
@@ -579,26 +587,15 @@ class CDRomImpl final : public PCSX::CDRom {
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
         if (!m_responseFifo[0].valueRead || !m_responseFifo[1].empty()) {
             if (debug) {
-                std::string_view cmdName;
-                if (command > c_cdCmdEnumCount) {
-                    cmdName = "Unknown";
-                } else {
-                    cmdName = magic_enum::enum_names<Commands>()[command];
-                }
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                    "CD-Rom: command %s (%i) pending, but response fifo full; won't start.\n", cmdName,
-                                    command);
+                                    "CD-Rom: command %s (%i) pending, but response fifo full; won't start.\n",
+                                    commandName(command), command);
             }
             return;
         }
         if (debug) {
-            std::string_view cmdName;
-            if (command > c_cdCmdEnumCount) {
-                cmdName = "Unknown";
-            } else {
-                cmdName = magic_enum::enum_names<Commands>()[command];
-            }
-            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Starting command %s (%i)\n", cmdName, command);
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Starting command %s (%i)\n", commandName(command),
+                                command);
         }
         static constexpr unsigned c_commandMax = sizeof(c_commandsArgumentsCount) / sizeof(c_commandsArgumentsCount[0]);
         if (command >= c_commandMax) {
@@ -619,7 +616,7 @@ class CDRomImpl final : public PCSX::CDRom {
             if ((this->*handler)(m_commandFifo, true)) m_commandExecuting = m_commandFifo;
         } else {
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unsupported command %i (%s).\n", command,
-                                magic_enum::enum_names<Commands>()[command]);
+                                commandName(command));
             PCSX::g_system->pause();
             maybeEnqueueError(1, 0x40);
             maybeScheduleNextCommand();
@@ -1110,7 +1107,7 @@ class CDRomImpl final : public PCSX::CDRom {
                                         regs.pc, regs.cycle, command.value);
                 } else {
                     PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: %s\n", regs.pc, regs.cycle,
-                                        magic_enum::enum_names<Commands>()[command.value]);
+                                        commandName(command.value));
                 }
                 break;
         }
