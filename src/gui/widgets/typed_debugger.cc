@@ -77,7 +77,12 @@ void PCSX::Widgets::TypedDebugger::import(std::string_view fileContents, ImportT
             }
 
             FieldOrArgumentData data;
-            const std::regex dataRegex(R"(([\w\s\*\[\]]+),(\w+),(\d+))");
+            // Allow the data type and field name to be just about anything, as
+            // long as it's between commas. While usually C/C++/whatever
+            // identifiers have some rules, in Ghidra you can really just set
+            // just about any label you want so be as generous as possible when
+            // accepting input.
+            const std::regex dataRegex(R"(([^,]+),([^,]+),(\d+))");
             std::smatch matches;
             if (std::regex_match(s, matches, dataRegex)) {
                 data.type = matches[1].str();
