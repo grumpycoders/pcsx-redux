@@ -501,9 +501,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         const auto basic_offset = startAddress - memBase;
         uint8_t* memValue = memData + basic_offset;
         const auto* nodeType = node->type.c_str();
-        printValue(nodeType, memValue);
+        printValue(nodeType, node->size, memValue);
         ImGui::TableNextColumn();  // New value.
-        displayNewValueInput(nodeType, memValue);
+        displayNewValueInput(nodeType, node->size, memValue);
         ImGui::TextDisabled("--");
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
@@ -512,38 +512,57 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
     }
 }
 
-void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address) {
+// Print value of the given type at the given address. If type is not a known
+// primitive, it'll try to print something based on its size anyway.
+void PCSX::Widgets::TypedDebugger::printValue(const char* type, size_t type_size, void* address) {
     static char s[64];
-    if (equals(type, "char")) {
-        int8_t fieldValue = 0;
-        memcpy(&fieldValue, address, 1);
-        ImGui::Text("Value: %d (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "uchar") || equals(type, "u_char")) {
-        uint8_t fieldValue = 0;
-        memcpy(&fieldValue, address, 1);
-        ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "short")) {
-        int16_t fieldValue = 0;
-        memcpy(&fieldValue, address, 2);
-        ImGui::Text("Value: %hi (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "ushort") || equals(type, "u_short")) {
-        uint16_t fieldValue = 0;
-        memcpy(&fieldValue, address, 2);
-        ImGui::Text("Value: %hu (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "int") || equals(type, "long")) {
-        int32_t fieldValue = 0;
-        memcpy(&fieldValue, address, 4);
-        ImGui::Text("Value: %i (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "uint") || equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long")) {
-        uint32_t fieldValue = 0;
-        memcpy(&fieldValue, address, 4);
-        ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
-    } else {
-        ImGui::Text("Cannot yet print out value of type %s", type);
+
+    switch (type_size) {
+        case 1:
+            if (equals(type, "char")) {
+                int8_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %d (0x%x)", fieldValue, fieldValue);
+            } else {
+                // We have a uchar or something of size 1.
+                uint8_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
+            }
+            break;
+        case 2:
+            if (equals(type, "short")) {
+                int16_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %hi (0x%x)", fieldValue, fieldValue);
+            } else {
+                // We have a ushort or something of size 2.
+                uint16_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %hu (0x%x)", fieldValue, fieldValue);
+            }
+            break;
+        case 4:
+            if (equals(type, "int") || equals(type, "long")) {
+                int32_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %i (0x%x)", fieldValue, fieldValue);
+            } else {
+                // We have uint or something of size 4.
+                uint32_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
+            }
+            break;
+        default:
+            ImGui::Text("Cannot yet print out value of type %s (size %zu)", type, type_size);
     }
 }
 
-void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, void* address) {
+// Make an input widget for the value at the given address of the given type. If
+// type is not a known primitive, it'll try to allow editing of the value
+// anyway.
+void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, size_t type_size, void* address) {
     static char s[64];
     static const int8_t step = 1;
     static const int8_t stepFast = 100;
@@ -551,38 +570,52 @@ void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, void* 
     const auto unsignedFormat = m_hex ? "%x" : "%u";
     const auto inputFlags = ImGuiInputTextFlags_EnterReturnsTrue |
                             (m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal);
-    if (equals(type, "char")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S8, &m_newValue, &step,
-                               &stepFast, signedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 1);
-        }
-    } else if (equals(type, "uchar") || equals(type, "u_char")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U8, &m_newValue, &step,
-                               &stepFast, unsignedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 1);
-        }
-    } else if (equals(type, "short")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S16, &m_newValue, &step,
-                               &stepFast, signedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 2);
-        }
-    } else if (equals(type, "ushort") || equals(type, "u_short")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U16, &m_newValue, &step,
-                               &stepFast, unsignedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 2);
-        }
-    } else if (equals(type, "int") || equals(type, "long")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S32, &m_newValue, &step,
-                               &stepFast, signedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 4);
-        }
-    } else if (equals(type, "uint") || equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U32, &m_newValue, &step,
-                               &stepFast, unsignedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 4);
-        }
-    } else {
-        ImGui::Text("Cannot yet input value of type %s", type);
+
+    switch (type_size) {
+        case 1:
+            if (equals(type, "char")) {
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S8, &m_newValue,
+                                       &step, &stepFast, signedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            } else {
+                // We have a uchar or something of size 1.
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U8, &m_newValue,
+                                       &step, &stepFast, unsignedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            }
+            break;
+        case 2:
+            if (equals(type, "short")) {
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S16,
+                                       &m_newValue, &step, &stepFast, signedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            } else {
+                // We have a ushort or something of size 2.
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U16,
+                                       &m_newValue, &step, &stepFast, unsignedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            }
+            break;
+        case 4:
+            if (equals(type, "int") || equals(type, "long")) {
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S32,
+                                       &m_newValue, &step, &stepFast, signedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, 4);
+                }
+            } else {
+                // We have uint or something of size 4.
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U32,
+                                       &m_newValue, &step, &stepFast, unsignedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            }
+            break;
+        default:
+            ImGui::Text("Cannot yet input value of type %s (size: %zu)", type, type_size);
     }
 }
 
@@ -881,7 +914,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                             ImGui::TableNextColumn();  // Size.
                             ImGui::Text("%zu", registerValue->size);
                             ImGui::TableNextColumn();  // Value.
-                            printValue(registerValue->type.c_str(), &registerValue->value);
+                            printValue(registerValue->type.c_str(), registerValue->size, &registerValue->value);
                             ImGui::TableNextColumn();  // New value.
                             ImGui::TableNextColumn();  // Breakpoints.
                         } else {
