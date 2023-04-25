@@ -403,6 +403,12 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::TableNextColumn();  // Value.
         if (isPointer) {
             ImGui::Text("0x%x", startAddress);
+            ImGui::SameLine();
+            const auto showMemButtonName = fmt::format(f_("Show in memory editor##{}{}"), currentAddress, extraImGuiId);
+            if (ImGui::Button(showMemButtonName.c_str())) {
+                const uint32_t editorAddress = startAddress - memBase;
+                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
+            }
         } else {
             ImGui::TextDisabled("--");
         }
