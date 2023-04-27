@@ -81,7 +81,8 @@ Valid input binary files can be in the following formats:
 
     PCSX::BinaryLoader::Info info;
     PCSX::IO<PCSX::Mem4G> memory(new PCSX::Mem4G());
-    bool success = PCSX::BinaryLoader::load(file, memory, info);
+    std::map<uint32_t, std::string> symbols;
+    bool success = PCSX::BinaryLoader::load(file, memory, info, symbols);
     if (!success) {
         fmt::print("Unable to load file: {}\n", input);
         return -1;
