@@ -22,7 +22,9 @@
 #include <stdint.h>
 
 #include <filesystem>
+#include <map>
 #include <optional>
+#include <string>
 
 #include "support/file.h"
 
@@ -38,7 +40,7 @@ struct Info {
     std::optional<uint32_t> gp;
 };
 
-bool load(IO<File> in, IO<File> dest, Info& info);
+bool load(IO<File> in, IO<File> dest, Info& info, std::map<uint32_t, std::string>& symbols);
 
 }  // namespace BinaryLoader
 
