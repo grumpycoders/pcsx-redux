@@ -66,19 +66,19 @@ RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /c/binutils-2.40 && /c/binutils-2.40/co
 
 RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /c/binutils-2.40/libiberty && sed -i s/\\\\buint\\\\b/unsigned/ rust-demangle.c'
 
-RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/binutils-2.40 all -j12'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/binutils-2.40 all -j8'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/binutils-2.40 install-strip'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'cp /c/binutils-2.40/COPYING* /DIST'
 
 RUN C:\msys64\usr\bin\bash.exe -l -c 'mkdir /c/gcc-13.1.0/build && cd /c/gcc-13.1.0/build && ../configure --target=mipsel-none-elf --without-isl --disable-nls --disable-threads --disable-shared --disable-libssp --disable-libstdcxx-pch --disable-libgomp --disable-werror --without-headers --disable-hosted-libstdcxx --with-as=/DIST/bin/mipsel-none-elf-as --with-ld=/DIST/bin/mipsel-none-elf-ld --enable-languages=c,c++ --prefix=/DIST || (cat /BUILD/config.log && exit 1)'
-RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-13.1.0/build all-gcc -j12'
-RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-13.1.0/build all-target-libgcc -j12'
-RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-13.1.0/build all-target-libstdc++-v3 -j12'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-13.1.0/build all-gcc -j8'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-13.1.0/build all-target-libgcc -j8'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-13.1.0/build all-target-libstdc++-v3 -j8'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-13.1.0/build install-strip-gcc install-strip-target-libgcc install-strip-target-libstdc++-v3'
 
 RUN C:\msys64\usr\bin\bash.exe -l -c 'for t in cat cp echo mkdir rm touch which ; do cp /usr/bin/$t.exe /DIST/bin ; done'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'cp /mingw64/bin/mingw32-make.exe /DIST/bin/make.exe'
-RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /DIST && find . -name *.exe | while read bin ; do ldd $bin | cut -f2 -d\> | cut -f2 -d\  | grep -v /c/Windows/S | while read f ; do cp $f $(dirname $bin) ; done ; done'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /DIST && find . -name *.exe | while read bin ; do ldd $bin | cut -f2 -d\> | cut -f2 -d\  | grep -v /c/Windows/S | while read f ; do cp $f $(dirname $bin) ; done ; done || true'
 
 RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /DIST && zip /c/g++-mipsel-none-elf-13.1.0.zip . -r'
 
