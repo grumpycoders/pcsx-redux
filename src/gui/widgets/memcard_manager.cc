@@ -99,11 +99,17 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     if (ImGui::Checkbox(_("Memory Card 1 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
         changed = true;
+        if (!g_emulator->m_sio->isCardInserted(0)) {
+            g_emulator->m_sio->toggleDeviceConnections();
+        }
     }
     ImGui::SameLine();
     if (ImGui::Checkbox(_("Memory Card 2 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value)) {
         changed = true;
+        if (!g_emulator->m_sio->isCardInserted(1)) {
+            g_emulator->m_sio->toggleDeviceConnections();
+        }
     }
 
     if (ImGui::Checkbox(_("Card 1 Pocketstation"),
@@ -257,13 +263,11 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     };
 
     if (ImGui::BeginTabBar("Cards")) {
-        if (ImGui::BeginTabItem(_("Memory Card 1"))) {
-            draw(1, 2);
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem(_("Memory Card 2"))) {
-            draw(2, 1);
-            ImGui::EndTabItem();
+        for (int i = 0; i < 4; i++) {
+            if (ImGui::BeginTabItem(fmt::format(f_("Memory Card {}"), i + 1).c_str())) {
+                draw(1, 2);
+                ImGui::EndTabItem();
+            }
         }
         ImGui::EndTabBar();
     }

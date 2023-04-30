@@ -21,8 +21,10 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "core/memorycard.h"
+#include "core/pads.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -76,8 +78,32 @@ class SIO {
     static constexpr size_t c_blockSize = c_sectorSize * 64;  // 40h sectors per block
     static constexpr size_t c_cardSize = c_blockSize * 16;    // 16 blocks per frame(directory+15 saves)
     static constexpr size_t c_cardCount = 2;
+    static constexpr size_t c_padCount = 2;
 
-    SIO() { reset(); }
+    SIO() {
+        
+        for (int i = 0; i < c_cardCount; i++) {
+            MemoryCard card = MemoryCard(this, i);
+            m_memoryCard.push_back(card);
+        }
+
+        for (int i = 0; i < c_padCount; i++) {
+            Pad pad = Pad(this, i);
+            m_pads.push_back(pad);
+        }
+
+        reset();
+    }
+    
+    ~SIO() {
+        if (m_memoryCard.size() > 0) {
+            m_memoryCard.clear();
+        }
+        
+        if (m_pads.size() > 0) {
+            m_pads.clear();
+        }
+    }
 
     void write8(uint8_t value);
     void writeStatus16(uint16_t value);
@@ -95,7 +121,7 @@ class SIO {
     void init();
     void interrupt();
     void reset();
-
+        
     bool copyMcdFile(McdBlock block);
     void eraseMcdFile(const McdBlock &block);
     void eraseMcdFile(int mcd, int block) {
@@ -116,7 +142,38 @@ class SIO {
         if (mcd == 1) return 2;
         return 1;
     }
+    const PCSX::u8string getCardPath(int index) {
+        PCSX::u8string path;
 
+        switch (index) {
+            case 0:
+                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str();
+                break;
+
+            case 1:
+                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str();
+                break;
+        }
+
+        return path;
+    }
+    bool isCardInserted(int index) {
+        bool connected = false;
+
+        switch (index) {
+            case 0:
+                connected = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>();
+                break;
+
+            case 1:
+                connected = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>();
+                break;
+        }
+
+        return connected;
+    }
+    
+    void toggleDeviceConnections();
     void togglePocketstationMode();
     static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
 
@@ -220,7 +277,6 @@ class SIO {
         std::queue<T> queue_;
     };
 
-    friend MemoryCard;
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
     static constexpr size_t c_padBufferSize = 0x1010;
@@ -237,7 +293,8 @@ class SIO {
     }
     void transmitData();
     void updateFIFOStatus();
-    void writePad(uint8_t value);
+    uint8_t writeCard(uint8_t value);
+    uint8_t writePad(uint8_t value);
 
     SIORegisters m_regs = {
         .status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED,  // Transfer Ready and the Buffer is Empty
@@ -251,7 +308,8 @@ class SIO {
     uint32_t m_maxBufferIndex;
     uint32_t m_padState;
 
-    MemoryCard m_memoryCard[c_cardCount] = {this, this};
+    std::vector<MemoryCard> m_memoryCard;
+    std::vector<Pad> m_pads;
 
     FIFO<uint8_t, 8> m_rxFIFO;
 };

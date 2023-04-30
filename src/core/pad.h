@@ -29,10 +29,13 @@ using json = nlohmann::json;
 namespace PCSX {
 
 class GUI;
+class SIO;
 
 class Pads {
   public:
     enum class Port { Port1 = 0, Port2 };
+
+    Pads(SIO* parent) : m_sio(parent) {}
 
     virtual void init() = 0;
     virtual void shutdown() = 0;
@@ -59,6 +62,7 @@ class Pads {
         PAD_STATE_BAD_COMMAND = 3,
     };
 
+    SIO* m_sio = nullptr;
     static Pads* factory();
 };
 

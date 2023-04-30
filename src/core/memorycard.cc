@@ -244,8 +244,11 @@ uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value) {
         case 135:  // 00h
             m_directoryFlag = Flags::DirectoryRead;
             data_out = Responses::GoodReadWrite;
-            memcpy(&m_mcdData[m_sector * 128], &m_tempBuffer, c_sectorSize);
-            m_savedToDisk = false;
+            if (memcmp(&m_mcdData, &m_tempBuffer, c_sectorSize) != 0) {
+                memcpy(&m_mcdData[m_sector * 128], &m_tempBuffer, c_sectorSize);
+                m_savedToDisk = false;
+                commit(m_sio->getCardPath(m_deviceIndex));
+            }
             break;
     }
 

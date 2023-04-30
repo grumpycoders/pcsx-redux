@@ -36,12 +36,14 @@
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
 
+class PCSX::SIO;
+
 class PadsImpl : public PCSX::Pads {
   public:
     enum class InputType { Auto, Controller, Keyboard };
     enum class PadType { Digital = 0, Analog, Mouse, Negcon, Gun, Guncon };
 
-    PadsImpl();
+    PadsImpl(PCSX::SIO m_sio);
     void init() override;
     void shutdown() override;
     uint8_t startPoll(Port port) override;
@@ -157,6 +159,8 @@ class PadsImpl : public PCSX::Pads {
     };
 
     struct Pad {
+        Pad(PCSX::SIO* parent, uint8_t device_index) : m_sio(parent), m_deviceIndex(device_index) {}
+        void acknowledge() { m_sio->acknowledge(); }
         uint8_t startPoll();
         uint8_t read();
         uint8_t poll(uint8_t value, uint32_t& padState);
@@ -164,6 +168,7 @@ class PadsImpl : public PCSX::Pads {
         void getButtons();
         bool isControllerButtonPressed(int button, GLFWgamepadstate* state);
         bool isControllerConnected() { return m_settings.get<SettingConnected>(); }
+        uint8_t transceive(uint8_t value);
 
         json getCfg();
         void setCfg(const json& j);
@@ -196,9 +201,19 @@ class PadsImpl : public PCSX::Pads {
         uint8_t m_stdpar[8] = {0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         uint8_t m_mousepar[6] = {0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
         uint8_t m_analogpar[8] = {0x73, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+        static constexpr size_t c_padBufferSize = 0x1010;
+
+        uint8_t m_buffer[c_padBufferSize];
+        uint32_t m_bufferIndex;
+        uint32_t m_maxBufferIndex;
+        uint32_t m_padState;
+
+        PCSX::SIO* m_sio = nullptr;
+        uint8_t m_deviceIndex = 0;
     };
 
-    std::array<Pad, 2> m_pads;
+    std::array<Pad, 2> m_pads = {Pad(m_sio, 0), Pad(m_sio, 1)};
     unsigned m_selectedPadForConfig = 0;
 };
 
@@ -452,7 +467,7 @@ void PadsImpl::shutdown() {
     s_pads = nullptr;
 }
 
-PadsImpl::PadsImpl() : m_listener(PCSX::g_system->m_eventBus) {
+PadsImpl::PadsImpl(PCSX::SIO m_sio) : m_listener(PCSX::g_system->m_eventBus) {
     m_listener.listen<PCSX::Events::Keyboard>([this](const auto& event) {
         if (m_showCfg) {
             m_pads[m_selectedPadForConfig].keyboardEvent(event);
@@ -676,6 +691,50 @@ void PadsImpl::Pad::getButtons() {
     for (unsigned i = 0; i < 16; i++) result |= buttons[i] << i;
 
     pad.buttonStatus = result ^ 0xffff;  // Controls are inverted, so 0 = pressed
+}
+
+uint8_t PadsImpl::Pad::transceive(uint8_t value) {
+    uint8_t data_out = 0xff;
+
+     switch (m_padState) {
+        case Pads::PAD_STATE_IDLE:                          // start pad
+            m_buffer[0] = startPoll();
+            m_maxBufferIndex = 2;
+            m_bufferIndex = 0;
+            m_padState = Pads::PAD_STATE_READ_COMMAND;
+            break;
+
+        case Pads::PAD_STATE_READ_COMMAND:
+            m_padState = Pads::PAD_STATE_READ_DATA;
+            m_bufferIndex = 1;
+            m_buffer[m_bufferIndex] = poll(value, m_padState);
+
+            if (!(m_buffer[m_bufferIndex] & 0x0f)) {
+                m_maxBufferIndex = 2 + 32;
+            } else {
+                m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
+            }
+
+            break;
+
+        case Pads::PAD_STATE_READ_DATA:
+            m_bufferIndex++;
+            m_buffer[m_bufferIndex] = poll(value, m_padState);
+
+            if (m_bufferIndex == m_maxBufferIndex) {
+                m_padState = Pads::PAD_STATE_BAD_COMMAND;
+            }
+            break;
+    }
+
+    data_out = m_buffer[m_bufferIndex];
+
+    if (m_padState == Pads::PAD_STATE_BAD_COMMAND) {
+    } else {
+        acknowledge();
+    }
+
+    return data_out;
 }
 
 uint8_t PadsImpl::startPoll(Port port) {

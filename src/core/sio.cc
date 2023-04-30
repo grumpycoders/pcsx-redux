@@ -27,6 +27,7 @@
 
 #include "core/memorycard.h"
 #include "core/pad.h"
+#include "core/pads.h"
 #include "support/sjis_conv.h"
 #include "support/strings-helpers.h"
 
@@ -99,90 +100,91 @@ void PCSX::SIO::reset() {
     m_regs.control = 0;
     m_regs.baud = 0;
     m_bufferIndex = 0;
-    m_memoryCard[0].deselect();
-    m_memoryCard[1].deselect();
+    
+    for (int i = 0; i < c_cardCount; i++) {
+        m_memoryCard[i].deselect();
+    }
+    
     m_currentDevice = DeviceType::None;
 }
 
-void PCSX::SIO::writePad(uint8_t value) {
-    switch (m_padState) {
-        case Pads::PAD_STATE_IDLE:                          // start pad
-            m_regs.status |= StatusFlags::RX_FIFONOTEMPTY;  // Transfer is Ready
-            g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
+uint8_t PCSX::SIO::writeCard(uint8_t value) {
+    const int portIndex = ((m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port1) ? 0 : 1;
+    uint8_t rx_buffer = 0xff;
 
-            switch (m_regs.control & ControlFlags::WHICH_PORT) {
-                case SelectedPort::Port1:
-                    if (!PCSX::g_emulator->m_pads->isPadConnected(1)) {
-                        m_buffer[0] = 0xff;
-                        return;
-                    }
-
-                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port1);
-                    break;
-                case SelectedPort::Port2:
-                    if (!PCSX::g_emulator->m_pads->isPadConnected(2)) {
-                        m_buffer[0] = 0xff;
-                        return;
-                    }
-                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port2);
-                    break;
-            }
-
-            m_maxBufferIndex = 2;
-            m_bufferIndex = 0;
-            m_padState = Pads::PAD_STATE_READ_COMMAND;
-            break;
-
-        case Pads::PAD_STATE_READ_COMMAND:
-            m_padState = Pads::PAD_STATE_READ_DATA;
-            m_bufferIndex = 1;
-            switch (m_regs.control & ControlFlags::WHICH_PORT) {
-                case SelectedPort::Port1:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
-                    break;
-                case SelectedPort::Port2:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
-                    break;
-            }
-
-            if (!(m_buffer[m_bufferIndex] & 0x0f)) {
-                m_maxBufferIndex = 2 + 32;
-            } else {
-                m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
-            }
-            break;
-
-        case Pads::PAD_STATE_READ_DATA:
-            m_bufferIndex++;
-            switch (m_regs.control & ControlFlags::WHICH_PORT) {
-                case SelectedPort::Port1:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port1, m_padState);
-                    break;
-                case SelectedPort::Port2:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port::Port2, m_padState);
-                    break;
-            }
-
-            if (m_bufferIndex == m_maxBufferIndex) {
-                m_padState = Pads::PAD_STATE_IDLE;
-                m_currentDevice = DeviceType::Ignore;
-                return;
-            }
-            break;
+    if (isCardInserted(portIndex)) {
+        rx_buffer = m_memoryCard[portIndex].transceive(m_regs.data);
+    } else {
+        m_currentDevice = DeviceType::Ignore;
     }
+
+    return rx_buffer;
+}
+
+uint8_t PCSX::SIO::writePad(uint8_t value) {
+    const Pads::Port port =
+        ((m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port1) ? Pads::Port::Port1 : Pads::Port::Port2;
+    const int portIndex = (static_cast<uint16_t>(port) == SelectedPort::Port1) ? 1 : 2;
+    const bool isConnected = g_emulator->m_pads->isPadConnected(portIndex);
+
+    uint8_t rx_buffer = 0xff;
+
+    if (!isConnected) {
+        m_buffer[0] = 0xff;
+        m_bufferIndex = 0;
+        m_padState = Pads::PAD_STATE_BAD_COMMAND;
+    } else {
+        switch (m_padState) {
+            case Pads::PAD_STATE_IDLE:                          // start pad
+                m_regs.status |= StatusFlags::RX_FIFONOTEMPTY;  // Transfer is Ready
+                g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
+
+                m_buffer[0] = g_emulator->m_pads->startPoll(port);
+                m_maxBufferIndex = 2;
+                m_bufferIndex = 0;
+                m_padState = Pads::PAD_STATE_READ_COMMAND;
+                break;
+
+            case Pads::PAD_STATE_READ_COMMAND:
+                m_padState = Pads::PAD_STATE_READ_DATA;
+                m_bufferIndex = 1;
+                m_buffer[m_bufferIndex] = g_emulator->m_pads->poll(value, port, m_padState);
+
+                if (!(m_buffer[m_bufferIndex] & 0x0f)) {
+                    m_maxBufferIndex = 2 + 32;
+                } else {
+                    m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
+                }
+
+                break;
+
+            case Pads::PAD_STATE_READ_DATA:
+                m_bufferIndex++;
+                m_buffer[m_bufferIndex] = g_emulator->m_pads->poll(value, port, m_padState);
+
+                if (m_bufferIndex == m_maxBufferIndex) {
+                    m_padState = Pads::PAD_STATE_BAD_COMMAND;
+                    m_currentDevice = DeviceType::Ignore;
+                }
+                break;
+        }
+    }
+
+    rx_buffer = m_buffer[m_bufferIndex];
 
     if (m_padState == Pads::PAD_STATE_BAD_COMMAND) {
-        return;
+    } else {
+        acknowledge();
     }
 
-    acknowledge();
+    return rx_buffer;
 }
 
 void PCSX::SIO::transmitData() {
     m_regs.status &= ~StatusFlags::TX_FINISHED;
     g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 
-    uint8_t m_rxBuffer = 0xff;
+    uint8_t rx_buffer = 0xff;
 
     if (m_currentDevice == DeviceType::None) {
         m_currentDevice = m_regs.data;
@@ -191,57 +193,24 @@ void PCSX::SIO::transmitData() {
     switch (m_currentDevice) {
         case DeviceType::PAD:
             // Pad Process events
-            writePad(m_regs.data);
-            m_rxBuffer = m_buffer[m_bufferIndex];
+            rx_buffer = writePad(m_regs.data);
             break;
 
         case DeviceType::MemoryCard:
-            switch (m_regs.control & ControlFlags::WHICH_PORT) {
-                case SelectedPort::Port1:
-                    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
-                        m_rxBuffer = m_memoryCard[0].transceive(m_regs.data);
-                        if (m_memoryCard[0].dataChanged()) {
-                            m_memoryCard[0].commit(
-                                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str());
-                        }
-                    } else {
-                        m_memoryCard[0].m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
-                        m_currentDevice = DeviceType::Ignore;
-                        m_memoryCard[0].deselect();
-                    }
-                    break;
-
-                case SelectedPort::Port2:
-                    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
-                        m_rxBuffer = m_memoryCard[1].transceive(m_regs.data);
-                        if (m_memoryCard[1].dataChanged()) {
-                            m_memoryCard[1].commit(
-                                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
-                        }
-                    } else {
-                        m_memoryCard[1].m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
-                        m_currentDevice = DeviceType::Ignore;
-                        m_memoryCard[1].deselect();
-                    }
-                    break;
-            }
+            rx_buffer = writeCard(m_regs.data);
             break;
 
         case DeviceType::Ignore:
             break;
 
         default:
-            m_currentDevice = DeviceType::None;
-            m_padState = Pads::PAD_STATE_IDLE;
-            m_memoryCard[0].deselect();
-            m_memoryCard[1].deselect();
-            break;
+            m_currentDevice = DeviceType::Ignore;
     }
 
-    m_rxFIFO.push(m_rxBuffer);
+    m_rxFIFO.push(rx_buffer);
     updateFIFOStatus();
-    m_regs.data = m_rxBuffer;
-    g_emulator->m_mem->writeHardwareRegister<0x1040, uint8_t>(m_rxBuffer);
+    m_regs.data = rx_buffer;
+    g_emulator->m_mem->writeHardwareRegister<0x1040, uint8_t>(rx_buffer);
 
     if (isReceiveIRQReady() && !(m_regs.status & StatusFlags::IRQ)) {
         scheduleInterrupt(SIO_CYCLES);
@@ -284,8 +253,13 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         // Select line de-activated, reset state machines
         m_currentDevice = DeviceType::None;
         m_padState = Pads::PAD_STATE_IDLE;
-        m_memoryCard[0].deselect();
-        m_memoryCard[1].deselect();
+        for (int i = 0; i < c_cardCount; i++) {
+            m_memoryCard[i].deselect();
+        }
+
+        for (int i = 0; i < c_padCount; i++) {
+            m_pads[i].deselect();
+        }
         m_bufferIndex = 0;
     }
 
@@ -302,8 +276,11 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
     if (m_regs.control & ControlFlags::RESET) {
         m_rxFIFO.clear();
         m_padState = Pads::PAD_STATE_IDLE;
-        m_memoryCard[0].deselect();
-        m_memoryCard[1].deselect();
+        
+        for (int i = 0; i < c_cardCount; i++) {
+            m_memoryCard[i].deselect();
+        }
+        
         m_bufferIndex = 0;
         m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
         g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
@@ -498,15 +475,12 @@ void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
 }
 
 char *PCSX::SIO::getMcdData(int mcd) {
-    switch (mcd) {
-        case 1:
-            return m_memoryCard[0].getMcdData();
-        case 2:
-            return m_memoryCard[1].getMcdData();
-        default:
-            throw std::runtime_error("Attempt to access invalid memory card");
-            return nullptr;
-            break;
+    const int index = mcd - 1;
+    if (index < 0 || index >= m_memoryCard.size()) {
+        throw std::runtime_error("Attempt to access invalid memory card");
+        return nullptr;
+    } else {
+        return m_memoryCard[index].getMcdData();
     }
 }
 
@@ -637,16 +611,14 @@ bool PCSX::SIO::copyMcdFile(McdBlock block) {
 // Back up the entire memory card to a file
 // mcd: The memory card to back up (1 or 2)
 void PCSX::SIO::saveMcd(int mcd) {
-    switch (mcd) {
-        case 1: {
-            const auto path = g_emulator->settings.get<Emulator::SettingMcd1>().string();
-            m_memoryCard[0].saveMcd(path);
-            break;
-        }
-        case 2: {
-            const auto path = g_emulator->settings.get<Emulator::SettingMcd2>().string();
-            m_memoryCard[1].saveMcd(path);
-            break;
+    const int card_index = mcd - 1;
+    m_memoryCard[card_index].saveMcd(getCardPath(card_index));
+}
+
+void PCSX::SIO::toggleDeviceConnections() {
+    for (int i = 0; i < c_cardCount; i++) {
+        if (!isCardInserted(i)) {
+            m_memoryCard[i].unplug();
         }
     }
 }

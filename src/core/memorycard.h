@@ -21,6 +21,8 @@
 
 #include <stdint.h>
 
+#include <new>
+
 #include "core/sstate.h"
 
 namespace PCSX {
@@ -28,11 +30,22 @@ class SIO;
 
 class MemoryCard {
   public:
-    MemoryCard() : m_sio(nullptr) { memset(m_mcdData, 0, c_cardSize); }
-    MemoryCard(SIO *parent) : m_sio(parent) { memset(m_mcdData, 0, c_cardSize); }
+    MemoryCard() { init(); }
+    MemoryCard(SIO *parent, uint8_t device_index) : m_sio(parent), m_deviceIndex(device_index) { init(); }
+
+    ~MemoryCard(){};
 
     // Hardware events
     void acknowledge();
+    void init() {
+        if (m_mcdData) {
+            memset(m_mcdData, 0, c_cardSize);
+        }
+
+        if (m_tempBuffer) {
+            memset(m_tempBuffer, 0, c_blockSize);
+        }
+    }
     void deselect() {
         memset(&m_tempBuffer, 0, c_sectorSize);
         m_currentCommand = Commands::None;
@@ -41,15 +54,26 @@ class MemoryCard {
         m_sector = 0;
         m_spdr = Responses::IdleHighZ;
     }
+    void unplug() {
+        deselect();
+        m_directoryFlag = Flags::DirectoryUnread;
+    }
 
     // File system / data manipulation
     void commit(const PCSX::u8string path) {
-        if (!m_savedToDisk) {
-            saveMcd(path);
+        for (int retry_count = 0; retry_count < 3; retry_count++ ) {
+            if (!m_savedToDisk) {
+                saveMcd(path);
+            }
+
+            if (m_savedToDisk) {
+                break;
+            } else {
+                PCSX::g_system->message(_("Failed to save card %d, attempt %d/3"), m_deviceIndex + 1, retry_count + 1);
+            }
         }
     }
     void createMcd(const PCSX::u8string mcd);
-    bool dataChanged() { return !m_savedToDisk; }
     void disablePocketstation() { m_pocketstationEnabled = false; };
     void enablePocketstation() { m_pocketstationEnabled = true; };
     char *getMcdData() { return m_mcdData; }
@@ -111,7 +135,7 @@ class MemoryCard {
     uint8_t tickPS_ExecCustom(uint8_t value);    // 5Dh
 
     char m_mcdData[c_cardSize];
-    uint8_t m_tempBuffer[c_sectorSize];
+    uint8_t m_tempBuffer[c_blockSize];
     bool m_savedToDisk = false;
 
     uint8_t m_checksumIn = 0, m_checksumOut = 0;
@@ -128,7 +152,8 @@ class MemoryCard {
     bool m_pocketstationEnabled = false;
     uint16_t m_directoryIndex = 0;
 
-    SIO *m_sio;
+    SIO *m_sio = nullptr;
+    uint8_t m_deviceIndex = 0;
 };
 
 }  // namespace PCSX
