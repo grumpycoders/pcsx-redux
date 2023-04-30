@@ -32,7 +32,7 @@ SOFTWARE.
 #include <EASTL/utility.h>
 #include <stdint.h>
 
-#include "common/hardware/hwregs.h"
+#include "psyqo/hardware/gpu.hh"
 #include "psyqo/primitives.hh"
 
 namespace psyqo {
@@ -222,7 +222,7 @@ class GPU {
     /**
      * @brief Sends a raw 32 bits value to the GP0 register of the GPU.
      */
-    static void sendRaw(uint32_t data) { GPU_DATA = data; }
+    static void sendRaw(uint32_t data) { Hardware::GPU::Data = data; }
     template <typename Primitive>
 
     /**
