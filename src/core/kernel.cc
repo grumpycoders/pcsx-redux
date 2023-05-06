@@ -48,11 +48,10 @@ int PCSX::Kernel::Events::Event::findEvent(IO<File> memory, uint32_t classId, ui
     uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
     uint32_t eventsCount = memory->readAt<uint32_t>(0x49 * 4);
     eventsPtr &= 0x1fffffff;
-    eventsPtr >>= 2;
-    eventsCount /= 28;
+    eventsCount /= 7 * 4;
 
     for (unsigned i = 0; i < eventsCount; i++) {
-        memory->rSeek(memory->readAt<uint32_t>(eventsPtr + i * 7 * 4));
+        memory->rSeek(eventsPtr + i * 7 * 4);
 
         uint32_t evtClassId = memory->read<uint32_t>();
         uint32_t flag = memory->read<uint32_t>();
@@ -67,15 +66,14 @@ int PCSX::Kernel::Events::Event::findEvent(IO<File> memory, uint32_t classId, ui
 void PCSX::Kernel::Events::Event::set(IO<File> memory, int id) {
     uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
     eventsPtr &= 0x1fffffff;
-    eventsPtr >>= 2;
     id &= 0xffff;
 
-    memory->rSeek(memory->readAt<uint32_t>(eventsPtr + id * 7 * 4));
+    memory->rSeek(eventsPtr + id * 7 * 4);
 
-    m_class = memory->read<uint32_t>();
-    m_flag = memory->read<uint32_t>();
-    m_spec = memory->read<uint32_t>();
-    m_mode = memory->read<uint32_t>();
+    m_class = resolveClass(memory->read<uint32_t>());
+    m_flag = resolveFlag(memory->read<uint32_t>());
+    m_spec = resolveSpec(memory->read<uint32_t>());
+    m_mode = resolveMode(memory->read<uint32_t>());
     m_cb = memory->read<uint32_t>();
 }
 
@@ -127,20 +125,23 @@ std::string PCSX::Kernel::Events::Event::resolveFlag(uint16_t flag) {
 PCSX::Kernel::Events::Event::Event(IO<File> memory, uint32_t eventId) {
     uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
     uint32_t eventsCount = memory->readAt<uint32_t>(0x49 * 4);
-    eventsCount /= 28;
+    eventsCount /= 7 * 4;
 
     uint32_t segment = eventsPtr & 0xe0000000;
-    if ((segment != 0x00000000) && (segment != 0x80000000) && (segment != 0xa0000000))
-        return;  // events table not in any known segment
+    // events table in any known segment?
+    if ((segment != 0x00000000) && (segment != 0x80000000) && (segment != 0xa0000000)) return;
 
     eventsPtr &= 0x1fffffff;
-    if (eventsPtr >= 65536) return;  // events table not in kernel memory
+    // events table in kernel memory?
+    if (eventsPtr >= 65536) return;
 
-    if ((eventId & 0xffff0000) != 0xf1000000) return;  // not an eventId
+    // is an eventId?
+    if ((eventId & 0xffff0000) != 0xf1000000) return;
 
     m_id = eventId;
     eventId &= 0x0000ffff;
-    if (eventId >= eventsCount) return;  // eventId too high
+    // eventId too high?
+    if (eventId >= eventsCount) return;
 
     m_valid = true;
     set(memory, eventId);
@@ -149,11 +150,12 @@ PCSX::Kernel::Events::Event::Event(IO<File> memory, uint32_t eventId) {
 PCSX::Kernel::Events::Event::Event(IO<File> memory, uint32_t classId, uint16_t spec) {
     uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
     uint32_t segment = eventsPtr & 0xe0000000;
-    if ((segment != 0x00000000) && (segment != 0x80000000) && (segment != 0xa0000000))
-        return;  // events table not in any known segment
+    // events table in any known segment?
+    if ((segment != 0x00000000) && (segment != 0x80000000) && (segment != 0xa0000000)) return;
 
     eventsPtr &= 0x1fffffff;
-    if (eventsPtr >= 65536) return;  // events table not in kernel memory
+    // events table in kernel memory?
+    if (eventsPtr >= 65536) return;
 
     int id = findEvent(memory, classId, spec);
     if (id < 0) return;
@@ -165,8 +167,7 @@ std::vector<PCSX::Kernel::Events::Event> PCSX::Kernel::Events::getAllEvents(IO<F
     uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
     uint32_t eventsCount = memory->readAt<uint32_t>(0x49 * 4);
     eventsPtr &= 0x1fffffff;
-    eventsPtr >>= 2;
-    eventsCount /= 28;
+    eventsCount /= 7 * 4;
 
     std::vector<Event> ret;
     ret.reserve(eventsCount);
@@ -183,19 +184,13 @@ int PCSX::Kernel::Events::getFirstFreeEvent(IO<File> memory) {
     uint32_t eventsPtr = memory->readAt<uint32_t>(0x48 * 4);
     uint32_t eventsCount = memory->readAt<uint32_t>(0x49 * 4);
     eventsPtr &= 0x1fffffff;
-    eventsPtr >>= 2;
-    eventsCount /= 28;
+    eventsCount /= 7 * 4;
 
     std::vector<Event> ret;
     ret.reserve(eventsCount);
 
     for (uint32_t i = 0; i < eventsCount; i++) {
-        memory->rSeek(memory->readAt<uint32_t>(eventsPtr + i * 7 * 4));
-
-        memory->skip<uint32_t>();
-        uint32_t flag = memory->read<uint32_t>();
-
-        flag = SWAP_LE32(flag);
+        uint32_t flag = memory->readAt<uint32_t>(eventsPtr + i * 7 * 4 + 4);
 
         if (flag == 0) return i;
     }
