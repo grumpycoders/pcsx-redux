@@ -98,7 +98,7 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
             d |= m;
             b >>= 2;
         }
-        GPU_DATA = d;
+        Hardware::GPU::Data = d;
     }
 }
 

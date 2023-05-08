@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "imgui.h"
+#include "support/eventbus.h"
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64) || defined(_M_AMD64)
 #define MEMORY_OBSERVER_X86  // Do not include immintrin/xbyak or use avx intrinsics unless we're compiling for x86
 #if defined(__GNUC__) || defined(__clang__)
@@ -68,8 +69,8 @@ class MemoryObserver {
 
     enum class ScanType {
         ExactValue,
-        BiggerThan,
-        SmallerThan,
+        GreaterThan,
+        LessThan,
         Changed,
         Unchanged,
         Increased,
@@ -77,13 +78,16 @@ class MemoryObserver {
         UnknownInitialValue
     };
 
-    enum class ScanValueType { Char, Uchar, Short, Ushort, Int };
+    enum class ScanValueType { Char, Uchar, Short, Ushort, Int, Uint };
     static uint8_t getStrideFromValueType(ScanValueType valueType);
-    int getValueAsSelectedType(int memValue);
+    int64_t getValueAsSelectedType(int64_t memValue);
 
     struct AddressValuePair {
         uint32_t address = 0;
-        int scannedValue = 0;
+        int64_t scannedValue = 0;
+
+        bool frozen = false;
+        int64_t frozenValue = 0;
     };
 
     ScanType m_scanType = ScanType::ExactValue;
@@ -92,7 +96,8 @@ class MemoryObserver {
     bool m_hex = false;
     bool m_fixedPoint = false;
     bool m_useSIMD = false;
-    int m_value = 0;
+    int64_t m_value = 0;
+    EventBus::Listener m_listener;  // For value freezing.
 
     /**
      * Pattern search.

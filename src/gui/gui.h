@@ -307,6 +307,7 @@ class GUI final : public UI {
   private:
     GLFWwindow *m_window = nullptr;
     bool m_hasCoreProfile = false;
+    bool m_disableShaders = false;
     int &m_glfwPosX = settings.get<WindowPosX>().value;
     int &m_glfwPosY = settings.get<WindowPosY>().value;
     int &m_glfwSizeX = settings.get<WindowSizeX>().value;

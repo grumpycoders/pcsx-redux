@@ -164,6 +164,6 @@ SECTIONS {
     /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }
 
     .scratchpad (NOLOAD) : {
-        $(.scratchpad)
+        *(.scratchpad)
     } > dcache
 }

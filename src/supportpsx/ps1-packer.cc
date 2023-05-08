@@ -66,7 +66,8 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     ucl_uint outSize;
     int r;
 
-    r = ucl_nrv2e_99_compress(dataIn.data(), dataIn.size(), dataOut.data() + (options.raw ? 16 : 0), &outSize, nullptr, 10, nullptr, nullptr);
+    r = ucl_nrv2e_99_compress(dataIn.data(), dataIn.size(), dataOut.data() + (options.raw ? 16 : 0), &outSize, nullptr,
+                              10, nullptr, nullptr);
     if (r != UCL_E_OK) {
         throw std::runtime_error("Fatal error during data compression.\n");
     }
@@ -158,7 +159,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, jr(Reg::T0));
         pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
     }
-    while (!options.booty && !options.rom && !options.raw && ((dataOut.size() & 0x7ff) != 0)) {
+    while (!options.cpe && !options.booty && !options.rom && !options.raw && ((dataOut.size() & 0x7ff) != 0)) {
         dataOut.push_back(0);
     }
 
@@ -192,14 +193,15 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
             }
             stage2.push_back(jr(Reg::V0));
             stage2.push_back(mtc0(Reg::R0, 7));
-            static constexpr char disclaimer[] = "This is self-decompressing binary,"
-            " suitable for a flash cart rom, "
-            "created by ps1-packer (https://bit.ly/pcsx-redux). "
-            "It is NOT";
+            static constexpr char disclaimer[] =
+                "This is self-decompressing binary,"
+                " suitable for a flash cart rom, "
+                "created by ps1-packer (https://bit.ly/pcsx-redux). "
+                "It is NOT";
             for (auto b : disclaimer) {
                 header.push_back(b);
             }
-            while(header.size() < 0x80) {
+            while (header.size() < 0x80) {
                 header.push_back(0);
             }
             pushBytes<uint32_t>(header, 0x1f0000b4);
@@ -253,6 +255,16 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
                 header.push_back(0);
             }
         }
+    } else if (options.cpe) {
+        pushBytes<uint32_t>(header, 0x1455043);
+        pushBytes<uint16_t>(header, 0x0008);
+        pushBytes<uint8_t>(header, 3);
+        pushBytes<uint16_t>(header, 0x0090);
+        pushBytes<uint32_t>(header, newPC);
+        pushBytes<uint8_t>(header, 1);
+        pushBytes<uint32_t>(header, compLoad);
+        pushBytes<uint32_t>(header, dataOut.size());
+        dataOut.push_back(0);
     } else if (!options.raw) {
         pushBytes(header, PSEXE);
         pushBytes<uint32_t>(header, 0);

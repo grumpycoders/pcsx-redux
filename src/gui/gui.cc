@@ -308,6 +308,10 @@ void PCSX::GUI::setLua(Lua L) {
 void PCSX::GUI::init() {
     int result;
 
+    if (m_args.get<bool>("noshaders", false)) {
+        m_disableShaders = true;
+    }
+
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
@@ -523,6 +527,9 @@ void PCSX::GUI::init() {
     }
 
     glDisable(GL_CULL_FACE);
+    // The depth test isn't supposed to be enabled by default, but
+    // it seems to be anyway on some drivers, so let's kill it there.
+    glDisable(GL_DEPTH_TEST);
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
     glGenTextures(2, m_offscreenTextures);
@@ -578,7 +585,7 @@ void PCSX::GUI::init() {
     m_outputShaderEditor.init();
 
     m_listener.listen<Events::GUI::JumpToMemory>([this](auto& event) {
-        const uint32_t base = (event.address >> 20) & 0xffc;
+        const uint32_t base = (event.address >> 20) & 0xff8;
         const uint32_t real = event.address & 0x7fffff;
         const uint32_t size = event.size;
         auto changeDataType = [](MemoryEditor* editor, int size) {
@@ -807,7 +814,7 @@ void PCSX::GUI::flip() {
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glClearColor(0, 0, 0, 0);
-    glClearDepthf(0.f);
+    glClearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
@@ -844,7 +851,11 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        if (m_disableShaders) {
+            ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
+        } else {
+            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        }
         ImGui::End();
         ImGui::PopStyleVar(2);
     } else {
@@ -861,7 +872,11 @@ void PCSX::GUI::endFrame() {
             }
             normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            if (m_disableShaders) {
+                ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
+            } else {
+                m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            }
         }
         ImGui::End();
         if (!outputShown) m_fullWindowRender = true;
@@ -1563,7 +1578,7 @@ the update and manually apply it.)")));
     } else {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
-    glClearDepthf(0.0f);
+    glClearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -2037,7 +2052,8 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
     bool success = false;
     try {
         BinaryLoader::Info info;
-        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info);
+        std::map<uint32_t, std::string> symbols;
+        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info, symbols);
         if (success) success = info.pc.has_value();
     } catch (...) {
         success = false;

@@ -109,7 +109,7 @@ void PCSX::UI::shellReached() {
         if (in->failed()) {
             throw std::runtime_error("Failed to open file.");
         }
-        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info);
+        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info, g_emulator->m_cpu->m_symbols);
         if (!info.pc.has_value()) {
             throw std::runtime_error("Binary loaded without any PC to jump to.");
         }
