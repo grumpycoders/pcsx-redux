@@ -1,0 +1,7 @@
+-m32
+-std=c++20
+-fcoroutines-ts
+-I.
+-I..
+-I../../../third_party/EASTL/include
+-I../../../third_party/EABase/include/Common
