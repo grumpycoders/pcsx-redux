@@ -70,8 +70,8 @@ void CDRomLoaderExample::createScene() {
     m_font.uploadSystemFont(gpu());
     pushScene(&cdromLoaderExampleScene);
     m_cdromLoader.readFile("SYSTEM.CNF;1", cdromLoaderExample.gpu(), cdromLoaderExample.m_isoParser,
-                           [this](const eastl::vector<uint8_t>& buffer) {
-        m_buffer = buffer;
+                           [this](eastl::vector<uint8_t>&& buffer) {
+        m_buffer = eastl::move(buffer);
         m_callbackCalled = true;
     });
 }
