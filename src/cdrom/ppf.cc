@@ -108,7 +108,7 @@ bool PCSX::PPF::load(std::filesystem::path iso) {
     if (!proper) return false;
 
     // next byte == version
-    auto version = m_version = ppf->read<uint8_t>();
+    auto version = ppf->read<uint8_t>();
     proper = (version == 0) || (version == 1) || (version == 2);
     if (!proper) return false;
 
@@ -190,7 +190,7 @@ bool PCSX::PPF::load(std::filesystem::path iso) {
 void PCSX::PPF::save(std::filesystem::path iso) {
     simplify();
     iso.replace_extension("ppf");
-    IO<File> ppf(new PosixFile(iso, FileOps::READWRITE));
+    IO<File> ppf(new PosixFile(iso, FileOps::TRUNCATE));
     ppf->writeString("PPF10");
     ppf->write<uint8_t>(0);
     m_description.resize(50);
@@ -217,12 +217,14 @@ void PCSX::PPF::calculatePatch(const uint8_t* in, const uint8_t* out, IEC60908b:
     uint32_t len = 0;
     uint32_t pos = 0;
     for (unsigned i = 0; i < 2352; i++) {
-        if (in[i] == out[i]) {
+        if (in[i] != out[i]) {
             len++;
         } else {
             if (len != 0) {
-                injectPatch({reinterpret_cast<const char*>(in), len}, pos, msf);
+                injectPatch({reinterpret_cast<const char*>(out + pos), len}, pos, msf);
             }
+            len = 0;
+            pos = i + 1;
         }
     }
 }
