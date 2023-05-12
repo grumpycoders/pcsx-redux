@@ -173,6 +173,8 @@ There is some limited API for working with ISO files.
 :failed()       -- Returns true if the Iso file failed in some ways. The Iso object is defunct if this is true.
 :createReader() -- Returns an ISOReader object off the Iso file.
 :open(lba[, size[, mode]]) -- Returns a File object off the specified span of sectors.
+:clearPPF()     -- Clears out all of the currently applied patches.
+:savePPF()      -- Saves the currently applied patches to a PPF file named after the ISO file.
 ```
 
 The `:open` method has some magic built-in. The size argument is optional, and if missing, the code will attempt to guess the size of the underlying file within the Iso. This can only work on MODE2 FORM1 or FORM2 sectors, and will result in a failed File object otherwise. The mode argument is optional, and can be one of the following:
@@ -186,9 +188,12 @@ The `:open` method has some magic built-in. The size argument is optional, and i
 
 The resulting File object will cache a single full sector in memory, meaning that small sequential reads won't read the same sector over and over from the disk.
 
+The resulting File object will be writable, which will temporarily patch the CD-Rom image file in memory. It is possible to flush the patches to a PPF file by calling the `:savePPF()` method of the corresponding Iso object. When writing to one of these files, the filesystem metadata information will not be updated, meaning that the size of the file will not change, despite it being possible to write past the end of the file and overflow on the next sectors.
+
 The ISOReader object has the following methods:
 
 ```lua
 :open(filename) -- Returns a File object off the specified file within the ISO.
 ```
 
+This method is basically a helper over the `:open()` method of the Iso object, and will automatically guess the mode and size of the file.
