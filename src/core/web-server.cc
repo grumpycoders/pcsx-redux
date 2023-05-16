@@ -31,6 +31,8 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "http-parser/http_parser.h"
+#include "lua/luawrapper.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "multipart-parser-c/multipart_parser.h"
 #include "support/file.h"
 #include "support/hashtable.h"
@@ -297,6 +299,96 @@ class FlowExecutor : public PCSX::WebExecutor {
     virtual ~FlowExecutor() = default;
 };
 
+class LuaExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return PCSX::StringsHelpers::startsWith(urldata.path, c_prefix);
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        auto L = *PCSX::g_emulator->m_lua;
+        L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+        L.getfieldtable("WebServer");
+        L.getfieldtable("Handlers");
+        L.getfield(request.urlData.path.substr(c_prefix.length()));
+        auto x = L.type();
+        if (L.isfunction()) {
+            L.newtable();
+            L.push("urlData");
+            L.newtable();
+            L.push("schema");
+            L.push(request.urlData.schema);
+            L.settable();
+            L.push("host");
+            L.push(request.urlData.host);
+            L.settable();
+            L.push("port");
+            L.push(request.urlData.port);
+            L.settable();
+            L.push("path");
+            L.push(request.urlData.path);
+            L.settable();
+            L.push("query");
+            L.push(request.urlData.query);
+            L.settable();
+            L.push("fragment");
+            L.push(request.urlData.fragment);
+            L.settable();
+            L.push("userInfo");
+            L.push(request.urlData.userInfo);
+            L.settable();
+            L.settable();
+            L.push("method");
+            L.push(magic_enum::enum_name(request.method).substr(5));
+            L.settable();
+            L.push("headers");
+            L.newtable();
+            for (auto& header : request.headers) {
+                L.getfieldtable(header.first);
+                L.push(lua_Number(L.length() + 1));
+                L.push(header.second);
+                L.settable();
+                L.pop();
+            }
+            L.settable();
+            L.push("form");
+            L.newtable();
+            for (auto& variable : request.form) {
+                L.getfieldtable(variable.first);
+                L.push(lua_Number(L.length() + 1));
+                L.push(variable.second);
+                L.settable();
+                L.pop();
+            }
+            L.settable();
+            L.pcall(1);
+            if (L.isstring()) {
+                auto response = L.tostring();
+                if (PCSX::StringsHelpers::startsWith(response, "HTTP/")) {
+                    client->write(std::move(response));
+                } else {
+                    std::string message = std::string(
+                                              "HTTP/1.1 200 OK\r\n"
+                                              "Content-Length: ") +
+                                          std::to_string(response.size()) + std::string("\r\n\r\n") + response;
+                    client->write(std::move(message));
+                }
+            } else {
+                client->write("HTTP/1.1 500 Internal Server Error\r\n\r\nThe Lua script didn't return a string.\r\n");
+            }
+        } else {
+            client->write("HTTP/1.1 404 Not Found\r\n\r\nURL Not found.\r\n");
+        }
+
+        while (L.gettop()) L.pop();
+
+        return true;
+    }
+
+  public:
+    const std::string_view c_prefix = "/api/v1/lua/";
+    LuaExecutor() = default;
+    virtual ~LuaExecutor() = default;
+};
+
 }  // namespace
 
 std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(const std::string& query) {
@@ -348,6 +440,7 @@ PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new AssemblyExecutor());
     m_executors.push_back(new CacheExecutor());
     m_executors.push_back(new FlowExecutor());
+    m_executors.push_back(new LuaExecutor());
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
         if (debugSettings.get<Emulator::DebugSettings::WebServer>() && (m_serverStatus != SERVER_STARTED)) {
