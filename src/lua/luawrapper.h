@@ -191,6 +191,7 @@ class Lua {
     bool isproto(int i = -1) { return lua_type(L, i) == 9; }
     bool iscdata(int i = -1) { return lua_type(L, i) == 10; }
     bool isobject(int i = -1);
+    size_t length(int i = -1) { return lua_objlen(L, i); }
 
     int upvalue(int i) { return lua_upvalueindex(i); }
 
