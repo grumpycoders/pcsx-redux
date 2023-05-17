@@ -359,20 +359,31 @@ class LuaExecutor : public PCSX::WebExecutor {
                 L.pop();
             }
             L.settable();
-            L.pcall(1);
-            if (L.isstring()) {
-                auto response = L.tostring();
-                if (PCSX::StringsHelpers::startsWith(response, "HTTP/")) {
-                    client->write(std::move(response));
+            try {
+                L.pcall(1);
+                if (L.isstring()) {
+                    auto response = L.tostring();
+                    if (PCSX::StringsHelpers::startsWith(response, "HTTP/")) {
+                        client->write(std::move(response));
+                    } else {
+                        std::string message = std::string(
+                                                  "HTTP/1.1 200 OK\r\n"
+                                                  "Content-Length: ") +
+                                              std::to_string(response.size()) + std::string("\r\n\r\n") + response;
+                        client->write(std::move(message));
+                    }
                 } else {
-                    std::string message = std::string(
-                                              "HTTP/1.1 200 OK\r\n"
-                                              "Content-Length: ") +
-                                          std::to_string(response.size()) + std::string("\r\n\r\n") + response;
-                    client->write(std::move(message));
+                    client->write(
+                        "HTTP/1.1 500 Internal Server Error\r\n\r\nThe Lua script didn't return a string.\r\n");
                 }
-            } else {
-                client->write("HTTP/1.1 500 Internal Server Error\r\n\r\nThe Lua script didn't return a string.\r\n");
+            } catch (std::exception& e) {
+                std::string message = "HTTP/1.1 500 Internal Server Error\r\n\r\n";
+                message += e.what();
+                message += "\r\n";
+                client->write(std::move(message));
+            } catch (...) {
+                client->write(
+                    "HTTP/1.1 500 Internal Server Error\r\n\r\An unknown error occured while running Lua code.\r\n");
             }
         } else {
             client->write("HTTP/1.1 404 Not Found\r\n\r\nURL Not found.\r\n");
