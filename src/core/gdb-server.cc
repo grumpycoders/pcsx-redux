@@ -478,11 +478,13 @@ void PCSX::GdbClient::processCommand() {
     if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerTrace>()) {
         g_system->log(LogClass::GDB, "GDB --> PCSX %s\n", m_cmd.c_str());
     }
-    static const std::string qSupported = "qSupported:";
-    static const std::string qXferFeatures = "qXfer:features:read:target.xml:";
-    static const std::string qXferThreads = "qXfer:threads:read::";
-    static const std::string qXferMemMap = "qXfer:memory-map:read::";
-    static const std::string qSymbol = "qSymbol:";
+    using namespace std::literals;
+
+    static const auto qSupported = "qSupported:"sv;
+    static const auto qXferFeatures = "qXfer:features:read:target.xml:"sv;
+    static const auto qXferThreads = "qXfer:threads:read::"sv;
+    static const auto qXferMemMap = "qXfer:memory-map:read::"sv;
+    static const auto qSymbol = "qSymbol:"sv;
     if (m_cmd == "!") {
         // extended mode?
         write("OK");
@@ -498,8 +500,8 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
         close();
     } else if (m_cmd == "qC") {
-        // return current thread id - always 00
-        write("QC00");
+        // return current thread id - always p1.t1
+        write("QCp1.t1");
     } else if (m_cmd == "qAttached") {
         // query if attached to existing process - always true
         write("1");
@@ -664,13 +666,21 @@ void PCSX::GdbClient::processCommand() {
     } else if (StringsHelpers::startsWith(m_cmd, "vKill;")) {
         write("OK");
     } else if (StringsHelpers::startsWith(m_cmd, qSupported)) {
-        // do we care about any features gdb supports?
-        // auto elements = split(m_cmd.substr(qSupported.length()), ";");
-        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
-            write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;qXfer:memory-map:read+;QStartNoAckMode+");
-        } else {
-            write("PacketSize=4000;qXfer:threads:read+;QStartNoAckMode+");
+        auto elements = StringsHelpers::split(m_cmd.substr(qSupported.length()), ";");
+        bool multiprocess = false;
+        for (const auto& element : elements) {
+            if (element == "multiprocess+") {
+                multiprocess = true;
+            }
         }
+        std::string answer = "PacketSize=47ff;qXfer:threads:read+;QStartNoAckMode+";
+        if (multiprocess) {
+            answer += ";multiprocess+";
+        }
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
+            answer += ";qXfer:features:read+;qXfer:memory-map:read+";
+        }
+        write(std::move(answer));
     } else if (StringsHelpers::startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
@@ -693,7 +703,8 @@ void PCSX::GdbClient::processCommand() {
                g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
     } else if (StringsHelpers::startsWith(m_cmd, qXferThreads)) {
-        writePaged("<?xml version=\"1.0\"?><threads></threads>", m_cmd.substr(qXferThreads.length()));
+        writePaged("<threads><thread id=\"p1.t1\" core=\"0\" name=\"MainThread\"/></threads>",
+                   m_cmd.substr(qXferThreads.length()));
     } else {
         g_system->log(LogClass::GDB, "Unknown GDB command: %s\n", m_cmd.c_str());
         write("");
