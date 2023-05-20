@@ -8,12 +8,12 @@ The request object has the following fields:
 - `headers` is a table of the headers in the request.
 - `method` is the HTTP method of the request.
 - `urlData` is a table with more information about the URL. It has the following string fields:
-  - `fragment`
-  - `host`
-  - `path`
-  - `port`
-  - `query`
-  - `schema`
-  - `userInfo`
+    - `fragment`
+    - `host`
+    - `path`
+    - `port`
+    - `query`
+    - `schema`
+    - `userInfo`
 
 If the returned string starts with the characters "HTTP/", then the web server will consider the response string is a full HTTP response with headers, and will send it as-is to the client. Otherwise, the response string will be sent as the body of a normal 200 response.
