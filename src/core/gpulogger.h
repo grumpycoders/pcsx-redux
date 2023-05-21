@@ -41,7 +41,6 @@ class GPULogger {
     template <typename T>
     void addNode(const T& data, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
         if (m_enabled) {
-            T* node = new T(data);
             addNodeInternal(new T(data), origin, value, length);
         }
     }
