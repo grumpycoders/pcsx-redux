@@ -30,7 +30,9 @@
 
 static void ShowHelpMarker(const char* desc) {
     ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGui::TextUnformatted("(?)");
+    ImGui::PopStyleColor();
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -104,7 +106,9 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
     auto iso = cdrom->m_iso.get();
 
     if (iso->failed()) {
-        ImGui::TextWrapped(_("No iso or invalid iso loaded."));
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextUnformatted(_("No iso or invalid iso loaded."));
+        ImGui::PopTextWrapPos();
         ImGui::End();
         return;
     }

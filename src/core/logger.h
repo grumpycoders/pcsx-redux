@@ -47,6 +47,7 @@ enum class LogClass : unsigned {
     SYSTEM,         // system logs from the emulator itself
     LUA,            // logs emitted by the Lua VM
     SPU,            // spu information
+    GPU,            // gpu information
 };
 
 template <LogClass logClass, bool enabled>

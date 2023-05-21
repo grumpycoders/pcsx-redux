@@ -164,10 +164,14 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
 
                 ImGui::TableSetColumnIndex(2);
                 if (block.isChained()) {
-                    ImGui::TextDisabled(_("Chained block"));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::TextUnformatted(_("Chained block"));
+                    ImGui::PopStyleColor();
                     continue;
                 } else if (block.isErased()) {
-                    ImGui::TextDisabled(_("Free block"));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::TextUnformatted(_("Free block"));
+                    ImGui::PopStyleColor();
                     continue;
                 } else {
                     if (gui->hasJapanese()) {
@@ -385,7 +389,9 @@ void PCSX::Widgets::MemcardManager::saveUndoBuffer(std::unique_ptr<uint8_t[]>&& 
 
 void PCSX::Widgets::MemcardManager::ShowHelpMarker(const char* desc) {
     ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGui::TextUnformatted("(?)");
+    ImGui::PopStyleColor();
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
