@@ -261,9 +261,10 @@ bool PCSX::SoftGPU::impl::configure() {
 
 void PCSX::SoftGPU::impl::debug() {
     if (ImGui::Begin(_("Soft GPU debugger"), &m_showDebug)) {
-        ImGui::Text(
-            _("Debugging featurs are not supported when using the software renderer yet\nConsider enabling the OpenGL "
-              "GPU option instead"));
+        ImGui::TextUnformatted(
+            _("Debugging features are not supported when using the software renderer yet\nConsider enabling the "
+              "OpenGL "
+              "GPU option instead."));
         ImGui::End();
     }
 }

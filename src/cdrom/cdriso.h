@@ -54,6 +54,7 @@ class CDRIso {
     uint8_t* getBuffer();
     const IEC60908b::Sub* getBufferSub();
     bool readCDDA(const IEC60908b::MSF msf, unsigned char* buffer);
+    PPF* getPPF() { return &m_ppf; }
 
     bool failed();
 
@@ -136,7 +137,7 @@ class CDRIso {
         IEC60908b::MSF length;
         IO<File> handle = nullptr;                                         // for multi-track images CDDA
         enum cddatype_t { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;  // BIN, WAV, MP3, APE
-        uint32_t start_offset = 0;  // byte offset from start of above file
+        uint32_t start_offset = 0;                                         // byte offset from start of above file
     };
 
     static constexpr unsigned MAXTRACKS = 100; /* How many tracks can a CD hold? */
