@@ -114,7 +114,9 @@ static constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingFixedFit | I
 
 void ShowHelpMarker(const char* desc) {
     ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGui::TextUnformatted("(?)");
+    ImGui::PopStyleColor();
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);

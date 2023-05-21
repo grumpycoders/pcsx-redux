@@ -308,15 +308,17 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
         ImGui::TableNextColumn();  // Name.
         bool open = ImGui::TreeNodeEx(fmt::format(f_("Display log entries##{}{}"), node->name.c_str(), address).c_str(),
                                       ImGuiTreeNodeFlags_SpanFullWidth);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::TableNextColumn();  // Type.
-        ImGui::TextDisabled("--");
+        ImGui::TextUnformatted("--");
         ImGui::TableNextColumn();  // Size.
-        ImGui::TextDisabled("--");
+        ImGui::TextUnformatted("--");
         ImGui::TableNextColumn();  // Value.
-        ImGui::TextDisabled("--");
+        ImGui::TextUnformatted("--");
         ImGui::TableNextColumn();  // New value.
-        ImGui::TextDisabled("--");
+        ImGui::TextUnformatted("--");
         ImGui::TableNextColumn();  // Breakpoints.
+        ImGui::PopStyleColor();
         if (open) {
             uint32_t accumulatedOffset = 0;
             for (const auto& logEntry : node->logEntries) {
@@ -347,7 +349,9 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                     }
                 }
                 ImGui::TableNextColumn();  // New value.
-                ImGui::TextDisabled("--");
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                ImGui::TextUnformatted("--");
+                ImGui::PopStyleColor();
                 ImGui::TableNextColumn();  // Breakpoints.
             }
             ImGui::TreePop();
@@ -415,10 +419,14 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
             }
         } else {
-            ImGui::TextDisabled("--");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::TextUnformatted("--");
+            ImGui::PopStyleColor();
         }
         ImGui::TableNextColumn();  // New value.
-        ImGui::TextDisabled("--");
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::TextUnformatted("--");
+        ImGui::PopStyleColor();
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
             displayBreakpointOptions(node, currentAddress);
@@ -456,7 +464,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
             }
             ImGui::TableNextColumn();  // New value.
-            ImGui::TextDisabled("--");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::TextUnformatted("--");
+            ImGui::PopStyleColor();
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
                 displayBreakpointOptions(node, currentAddress);
@@ -483,7 +493,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                 }
             }
             ImGui::TableNextColumn();  // New value.
-            ImGui::TextDisabled("--");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::TextUnformatted("--");
+            ImGui::PopStyleColor();
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
                 displayBreakpointOptions(node, currentAddress);
@@ -510,7 +522,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         printValue(nodeType, node->size, memValue);
         ImGui::TableNextColumn();  // New value.
         displayNewValueInput(nodeType, node->size, memValue);
-        ImGui::TextDisabled("--");
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::TextUnformatted("--");
+        ImGui::PopStyleColor();
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
             displayBreakpointOptions(node, currentAddress);
@@ -633,11 +647,13 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
     bool showImportDataTypesFileDialog = false;
     if (m_structs.empty()) {
-        ImGui::TextWrapped(
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextUnformatted(
             _("Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will "
               "generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the "
               "data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples "
               "whose elements are separated by commas.\n\nFor example:\n"));
+        ImGui::PopTextWrapPos();
         gui->useMonoFont();
         ImGui::TextUnformatted("CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n\n");
         ImGui::PopFont();
@@ -667,11 +683,13 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
     bool showImportFunctionsFileDialog = false;
     if (m_functions.empty()) {
-        ImGui::TextWrapped(
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextUnformatted(
             _("Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate "
               "a redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
               "address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples "
               "whose elements are separated by commas.\n\nFor example:\n"));
+        ImGui::PopTextWrapPos();
         gui->useMonoFont();
         ImGui::TextUnformatted("800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n\n");
         ImGui::PopFont();
