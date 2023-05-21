@@ -32,14 +32,14 @@ PCSX.Assembler.Internals.specialInstructions = {
                 base = 0x00000000,
                 rd = checkGPR(args[1]),
                 rt = checkGPR(args[1]),
-                sa = checkImm5(args[2], 2),
+                imm5 = checkImm5(args[2], 2),
             }
         end
         return {
             base = 0x00000000,
             rd = checkGPR(args[1]),
             rt = checkGPR(args[2]),
-            sa = checkImm5(args[3], 3),
+            imm5 = checkImm5(args[3], 3),
     }
     end,
 
@@ -52,14 +52,14 @@ PCSX.Assembler.Internals.specialInstructions = {
                 base = 0x00000002,
                 rd = checkGPR(args[1]),
                 rt = checkGPR(args[1]),
-                sa = checkImm5(args[2], 2),
+                imm5 = checkImm5(args[2], 2),
             }
         end
         return {
             base = 0x00000002,
             rd = checkGPR(args[1]),
             rt = checkGPR(args[2]),
-            sa = checkImm5(args[3], 3),
+            imm5 = checkImm5(args[3], 3),
         }
     end,
 
@@ -72,14 +72,14 @@ PCSX.Assembler.Internals.specialInstructions = {
                 base = 0x00000003,
                 rd = checkGPR(args[1]),
                 rt = checkGPR(args[1]),
-                sa = checkImm5(args[2], 2),
+                imm5 = checkImm5(args[2], 2),
             }
         end
         return {
             base = 0x00000003,
             rd = checkGPR(args[1]),
             rt = checkGPR(args[2]),
-            sa = checkImm5(args[3], 3),
+            imm5 = checkImm5(args[3], 3),
 
         }
     end,
@@ -93,14 +93,14 @@ PCSX.Assembler.Internals.specialInstructions = {
                 base = 0x00000004,
                 rd = checkGPR(args[1]),
                 rt = checkGPR(args[1]),
-                sa = checkImm5(args[2], 2),
+                imm5 = checkImm5(args[2], 2),
             }
         end
         return {
             base = 0x00000004,
             rd = checkGPR(args[1]),
             rt = checkGPR(args[2]),
-            sa = checkImm5(args[3], 3),
+            imm5 = checkImm5(args[3], 3),
         }
     end,
 
@@ -113,14 +113,14 @@ PCSX.Assembler.Internals.specialInstructions = {
                 base = 0x00000006,
                 rd = checkGPR(args[1]),
                 rt = checkGPR(args[1]),
-                sa = checkImm5(args[2], 2),
+                imm5 = checkImm5(args[2], 2),
             }
         end
         return {
             base = 0x00000006,
             rd = checkGPR(args[1]),
             rt = checkGPR(args[2]),
-            sa = checkImm5(args[3], 3),
+            imm5 = checkImm5(args[3], 3),
         }
     end,
 
@@ -133,14 +133,14 @@ PCSX.Assembler.Internals.specialInstructions = {
                 base = 0x00000007,
                 rd = checkGPR(args[1]),
                 rt = checkGPR(args[1]),
-                sa = checkImm5(args[2], 2),
+                imm5 = checkImm5(args[2], 2),
             }
         end
         return {
             base = 0x00000007,
             rd = checkGPR(args[1]),
             rt = checkGPR(args[2]),
-            sa = checkImm5(args[3], 3),
+            imm5 = checkImm5(args[3], 3),
         }
     end,
 

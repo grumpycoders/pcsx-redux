@@ -29,9 +29,11 @@ namespace PS1Packer {
 
 struct Options {
     uint32_t tload = 0;
-    bool booty = false;
     bool shell = false;
+    bool booty = false;
     bool raw = false;
+    bool rom = false;
+    bool cpe = false;
 };
 
 void pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp, const Options &);

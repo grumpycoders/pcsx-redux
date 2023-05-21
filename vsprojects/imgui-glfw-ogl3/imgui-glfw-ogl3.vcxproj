@@ -262,6 +262,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\third_party\gl3w\GL\gl3w-throwers.cc" />
     <ClCompile Include="..\..\third_party\gl3w\GL\gl3w.c" />
     <ClCompile Include="..\..\third_party\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\third_party\imgui\backends\imgui_impl_opengl3.cpp" />
@@ -274,6 +275,7 @@
     <ClCompile Include="..\..\third_party\imgui\misc\freetype\imgui_freetype.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\third_party\gl3w\GL\gl3w-list.h" />
     <ClInclude Include="..\..\third_party\imgui\backends\imgui_impl_glfw.h" />
     <ClInclude Include="..\..\third_party\imgui\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="..\..\third_party\imgui\examples\libs\gl3w\GL\gl3w.h" />

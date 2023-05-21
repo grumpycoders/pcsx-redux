@@ -63,7 +63,11 @@ class ISO9660Parser {
      *
      * @details This struct serves as a persistent storage for an asynchronous read
      * request. Its purpose is to be embedded outside of the parser, so it can
-     * keep track of the current state of the request.
+     * keep track of the current state of the request. IMPORTANT: The buffer
+     * pointer needs to hold at least enough sectors to hold the file. Even if the
+     * file size isn't a multiple of 2048, the buffer needs to be a multiple of
+     * 2048. The buffer is not owned by the parser, and it's the user's
+     * responsibility to ensure it's valid during the whole request.
      */
     struct ReadRequest {
         struct DirEntry entry;
@@ -119,6 +123,23 @@ class ISO9660Parser {
      * @param[in] request The request to fill.
      */
     TaskQueue::Task scheduleReadRequest(ReadRequest* request);
+
+    /**
+     * @brief Returns the state of the parser.
+     *
+     * @details This method returns true if the parser was initialized successfully,
+     * and false otherwise.
+     *
+     * @return The root directory entry.
+     */
+    bool initialized() { return m_initialized; }
+
+    /**
+     * @brief Returns the CDRom object used by the parser.
+     *
+     * @return The CDRom object.
+     */
+    CDRom* getCDRom() { return m_cdrom; }
 
   private:
     void parseDirEntry(const uint8_t* data, DirEntry* entry);

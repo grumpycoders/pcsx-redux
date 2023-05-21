@@ -195,6 +195,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
         case H_SPUctrl:
             spuCtrl = val;
+            m_noiseClock = (spuCtrl & (ControlFlags::NoiseShift | ControlFlags::NoiseStep)) >> 8;
             break;
 
         case H_SPUstat:

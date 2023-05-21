@@ -301,7 +301,7 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             PSXHW_LOG("GPU DATA 32bit read %x\n", hard);
             break;
         case 0x1f801814:
-            hard = g_emulator->m_gpu->gpuReadStatus();
+            hard = PCSX::g_emulator->m_gpu->readStatus();
             PSXHW_LOG("GPU STATUS 32bit read %x\n", hard);
             break;
 
@@ -818,6 +818,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             break;
         case 0x1f802084: {
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+            memFile->rSeek(value);
             g_system->message("%s", memFile->gets<false>());
             break;
         }

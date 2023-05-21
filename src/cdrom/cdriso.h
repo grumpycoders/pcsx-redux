@@ -60,6 +60,7 @@ class CDRIso {
     uint8_t* getBuffer();
     const IEC60908b::Sub* getBufferSub();
     bool readCDDA(const IEC60908b::MSF msf, unsigned char* buffer);
+    PPF* getPPF() { return &m_ppf; }
 
     unsigned m_cdrIsoMultidiskCount;
     unsigned m_cdrIsoMultidiskSelect;

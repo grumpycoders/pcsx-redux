@@ -31,9 +31,11 @@ struct BinaryLoaderInfo {
 
 struct PS1PackerOptions {
     uint32_t tload;
-    bool booty;
     bool shell;
+    bool booty;
     bool raw;
+    bool rom;
+    bool cpe;
 };
 
 bool binaryLoaderLoad(LuaFile* src, LuaFile* dest, struct BinaryLoaderInfo* info);
@@ -93,6 +95,8 @@ PCSX.Binary.pack = function(src, dest, addr, pc, gp, sp, options)
     opts.booty = options.booty and true or false
     opts.shell = options.shell and true or false
     opts.raw = options.raw and true or false
+    opts.rom = options.rom and true or false
+    opts.cpe = options.cpe and true or false
     C.ps1PackerPack(src._wrapper, dest._wrapper, addr, pc, gp, sp, opts)
 end
 
@@ -118,7 +122,7 @@ PCSX.Binary.createExe = function(src, dest, addr, pc, gp, sp)
         error('Expected a number as sixth argument')
     end
 
-    local size = src.size()
+    local size = src:size()
     size = bit.band(size + 0x7ff, bit.bnot(0x7ff))
 
     dest:writeU32(0x582d5350)
@@ -134,13 +138,41 @@ PCSX.Binary.createExe = function(src, dest, addr, pc, gp, sp)
     dest:writeU32(0)
     dest:writeU32(0)
     dest:writeU32(sp)
-    while dest.size() < 0x800 do
-        dest:writeU32(0)
-    end
-    dest:write(src:read(src:size()))
-    while dest.size() < 0x800 do
+    while dest:size() < 0x800 do
         dest:writeU8(0)
     end
+    dest:write(src:read(src:size()))
+    while bit.band(dest:size(), 0x7ff) ~= 0 do
+        dest:writeU8(0)
+    end
+end
+
+PCSX.Binary.createCpe = function(src, dest, addr, pc)
+    if type(src) ~= 'table' or src._type ~= 'File' then
+        error('Expected a File object as first argument')
+    end
+    if type(dest) ~= 'table' or dest._type ~= 'File' then
+        error('Expected a File object as second argument')
+    end
+    if type(addr) ~= 'number' then
+        error('Expected a number as third argument')
+    end
+    if type(pc) ~= 'number' then
+        error('Expected a number as fourth argument')
+    end
+
+    local size = src:size()
+
+    dest:writeU32(0x01455043)
+    dest:writeU16(0x0008)
+    dest:writeU8(3)
+    dest:writeU16(0x0090)
+    dest:writeU32(pc)
+    dest:writeU8(1)
+    dest:writeU32(addr)
+    dest:writeU32(size)
+    dest:write(src:read(src:size()))
+    dest:writeU8(0)
 end
 
 if type(PCSX.Misc) ~= 'table' then PCSX.Misc = {} end

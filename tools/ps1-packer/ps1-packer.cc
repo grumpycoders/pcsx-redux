@@ -40,18 +40,33 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     const uint32_t tload = std::stoul(args.get<std::string>("tload").value_or("0"), nullptr, 0);
     const bool oneInput = inputs.size() == 1;
     const bool shell = args.get<bool>("shell").value_or(false);
-    const bool booty = args.get<bool>("booty").value_or(false);
     const bool raw = args.get<bool>("raw").value_or(false);
-    if (asksForHelp || !oneInput || !hasOutput) {
+    const bool booty = args.get<bool>("booty").value_or(false);
+    const bool rom = args.get<bool>("rom").value_or(false);
+    const bool cpe = args.get<bool>("cpe").value_or(false);
+    unsigned outputTypeCount = (raw ? 1 : 0) + (booty ? 1 : 0) + (rom ? 1 : 0) + (cpe ? 1 : 0);
+    if (asksForHelp || !oneInput || !hasOutput || (outputTypeCount > 1)) {
         fmt::print(R"(
-Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
-  input.ps-exe      mandatory: specify the input ps-exe file.
+Usage: {} input.ps-exe [-h] [-tload addr] [-shell] [-raw | -booty | -rom | -cpe] -o output.ps-exe
+  input.ps-exe      mandatory: specify the input binary file.
   -o output.ps-exe  mandatory: name of the output file.
   -h                displays this help information and exit.
-  -raw              output raw file instead of a ps-exe.
   -tload            force loading at this address instead of doing in-place.
-  -shell            adds a kernel reset stub; see documentation for details.
+  -shell            adds a kernel reset stub.
+
+These options control the output format, and are mutually exclusive:
+  -raw              outputs a raw file.
   -booty            outputs a counter-booty payload.
+  -rom              outputs a bootable rom, which can be used in a cheat cart.
+  -cpe              outputs a CPE file instead of a ps-exe one.
+If none of these options is provided, a ps-exe file will be emitted by default.
+
+Valid input binary files can be in the following formats:
+ - PS-EXE (needs the "PS-X EXE" signature)
+ - ELF
+ - CPE
+ - PSF
+ - MiniPSF
 )",
                    argv[0]);
         return -1;
@@ -66,7 +81,8 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
 
     PCSX::BinaryLoader::Info info;
     PCSX::IO<PCSX::Mem4G> memory(new PCSX::Mem4G());
-    bool success = PCSX::BinaryLoader::load(file, memory, info);
+    std::map<uint32_t, std::string> symbols;
+    bool success = PCSX::BinaryLoader::load(file, memory, info, symbols);
     if (!success) {
         fmt::print("Unable to load file: {}\n", input);
         return -1;
@@ -79,6 +95,8 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell | -booty] -o output.ps-exe
     PCSX::PS1Packer::Options options;
     options.booty = booty;
     options.raw = raw;
+    options.rom = rom;
+    options.cpe = cpe;
     options.shell = shell;
     options.tload = tload;
     PCSX::IO<PCSX::File> out(new PCSX::PosixFile(output.value().c_str(), PCSX::FileOps::TRUNCATE));

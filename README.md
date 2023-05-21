@@ -14,7 +14,7 @@ To discuss PlayStation 1 development, hacking, and reverse engineering in genera
 # PCSX-Redux
 
 ## What?
-This is yet another fork of the Playstation emulator, PCSX. While the work here is very much in progress, the goal is roughly the following:
+The PCSX-Redux project is a collection of tools, research, hardware design, and libraries aiming at development and reverse engineering on the PlayStation 1. The core product itself, PCSX-Redux, is yet another fork of the Playstation emulator, PCSX. While the work here is very much in progress, the goal is roughly the following:
 
  - Bring the codebase to more up to date code standards.
  - Get rid of the plugin system and create a single monolithic codebase that handles all aspects of the playstation emulation.
@@ -22,7 +22,9 @@ This is yet another fork of the Playstation emulator, PCSX. While the work here 
  - Improve the debugging experience.
  - Improve the rendering experience.
 
-Please consult [the documentation pages](https://pcsx-redux.consoledev.net) for more information. 
+Please consult [the documentation pages](https://pcsx-redux.consoledev.net) for more information on the emulator itself.
+
+The [tools](tools) directory contains a few tools that can be used to work with PlayStation 1 software. The [wiki](https://github.com/grumpycoders/pcsx-redux/wiki) directory contains a few research information that are not directly related to the emulator itself. The [mips](src/mips) directory contains various pieces of code targeting the PlayStation 1, and importantly, the OpenBIOS project, which is a MIPS R3000A BIOS implementation that can be used to boot PlayStation 1 games without the need for a retail BIOS. And the [hardware](hardware) directory contains various hardware designs that can be used with the PlayStation 1.
 
 ## Where?
 |Download page|
@@ -69,7 +71,7 @@ powershell -c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"
 Then, open a new command prompt, and type the following:
 
 ```
-mips install 12.2.0
+mips install 13.1.0
 ```
 
 To manually install this script, you can download it from [here](https://bit.ly/mips-ps1), and then install it with the following command:
@@ -138,7 +140,7 @@ When Sony released the Playstation Classic recently, I came to realize two thing
 The codebase still requires a lot of cleanup, and the current product isn't properly usable yet. Despite that, a lot can already be achieved using the product in its current state. If you want to help with localization, you can find the translation project [on transifex](https://www.transifex.com/grumpycoders/pcsx-redux/languages/).
 
 ### What works?
-- Dynamic Recompiler (x86-32, x86-64, experimental arm64 support)
+- Dynamic Recompiler (x86-64, experimental arm64 support)
 - interpreted CPU
 - software GPU
 - OpenGL GPU (highly experimental, still in active development)

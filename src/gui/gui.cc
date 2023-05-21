@@ -56,7 +56,6 @@
 #include "core/web-server.h"
 #include "flags.h"
 #include "fmt/chrono.h"
-#include "gpu/soft/externals.h"
 #include "gui/gui.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
@@ -155,7 +154,9 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 
 static void ShowHelpMarker(const char* desc) {
     ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGui::TextUnformatted("(?)");
+    ImGui::PopStyleColor();
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -319,6 +320,10 @@ end)(jit.status()))
 void PCSX::GUI::init() {
     int result;
 
+    if (m_args.get<bool>("noshaders", false)) {
+        m_disableShaders = true;
+    }
+
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
@@ -408,10 +413,14 @@ void PCSX::GUI::init() {
     if (result) {
         throw std::runtime_error("Unable to initialize OpenGL layer. Check OpenGL drivers.");
     }
+    gl3wFillCppThrowers();
+    if (gl3wIsCppThrower(reinterpret_cast<GL3WglProc>(glDebugMessageCallback))) {
+        glDebugMessageCallback = nullptr;
+    }
 
     m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
     if (!m_nvgContext) {
-        throw std::runtime_error("Unable to initialize NanoVG. Check OpenGL drivers.");
+        g_system->log(LogClass::UI, "Warning: Unable to initialize NanoVG. Check OpenGL drivers.\n");
     }
 
     // Setup ImGui binding
@@ -545,6 +554,9 @@ void PCSX::GUI::init() {
     }
 
     glDisable(GL_CULL_FACE);
+    // The depth test isn't supposed to be enabled by default, but
+    // it seems to be anyway on some drivers, so let's kill it there.
+    glDisable(GL_DEPTH_TEST);
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
     glGenTextures(2, m_offscreenTextures);
@@ -600,7 +612,7 @@ void PCSX::GUI::init() {
     m_outputShaderEditor.init();
 
     m_listener.listen<Events::GUI::JumpToMemory>([this](auto& event) {
-        const uint32_t base = (event.address >> 20) & 0xffc;
+        const uint32_t base = (event.address >> 20) & 0xff8;
         const uint32_t real = event.address & 0x7fffff;
         const uint32_t size = event.size;
         auto changeDataType = [](MemoryEditor* editor, int size) {
@@ -841,7 +853,7 @@ void PCSX::GUI::flip() {
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glClearColor(0, 0, 0, 0);
-    glClearDepthf(0.f);
+    glClearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
@@ -878,7 +890,11 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        if (m_disableShaders) {
+            ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
+        } else {
+            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        }
         ImGui::End();
         ImGui::PopStyleVar(2);
     } else {
@@ -895,7 +911,11 @@ void PCSX::GUI::endFrame() {
             }
             normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            if (m_disableShaders) {
+                ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
+            } else {
+                m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            }
         }
         ImGui::End();
         if (!outputShown) m_fullWindowRender = true;
@@ -1170,7 +1190,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 uint32_t frameCount = g_emulator->m_spu->getFrameCount();
                 ImGui::Text(_("%.2f ms audio buffer (%i frames)"), 1000.0f * frameCount / 44100.0f, frameCount);
             } else {
-                ImGui::Text(_("Idle"));
+                ImGui::TextUnformatted(_("Idle"));
             }
 
             ImGui::EndMainMenuBar();
@@ -1594,7 +1614,7 @@ the update and manually apply it.)")));
     } else {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
-    glClearDepthf(0.0f);
+    glClearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -1948,7 +1968,7 @@ bool PCSX::GUI::about() {
     ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
     if (ImGui::Begin(_("About"), &m_showAbout)) {
-        ImGui::Text("PCSX-Redux");
+        ImGui::TextUnformatted("PCSX-Redux");
         ImGui::Separator();
         auto someString = [](const char* str, GLenum index) {
             const char* value = (const char*)glGetString(index);
@@ -2079,7 +2099,7 @@ void PCSX::GUI::shellReached() {
         if (in->failed()) {
             throw std::runtime_error("Failed to open file.");
         }
-        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info);
+        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info, g_emulator->m_cpu->m_symbols);
         if (!info.pc.has_value()) {
             throw std::runtime_error("Binary loaded without any PC to jump to.");
         }
@@ -2122,7 +2142,8 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
     bool success = false;
     try {
         BinaryLoader::Info info;
-        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info);
+        std::map<uint32_t, std::string> symbols;
+        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info, symbols);
         if (success) success = info.pc.has_value();
     } catch (...) {
         success = false;
@@ -2208,6 +2229,8 @@ void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2,
     float angle = Bezier::angle(start, c1, c2, end, 1.0f);
     auto vgInnerColor = nvgRGBA(innerColor.x * 255, innerColor.y * 255, innerColor.z * 255, innerColor.w * 255);
     auto vgOuterColor = nvgRGBA(outerColor.x * 255, outerColor.y * 255, outerColor.z * 255, outerColor.w * 255);
+
+    if (!vg) return;
 
     nvgSave(vg);
     nvgLineCap(vg, NVG_BUTT);
