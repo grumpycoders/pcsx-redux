@@ -33,7 +33,17 @@ namespace PCSX {
 
 namespace {
 
-bool loadCPE(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
+void eraseSymbolsInSpan(uint32_t low, uint32_t high, std::map<uint32_t, std::string>& symbols) {
+    for (auto s = symbols.begin(); s != symbols.end();) {
+        if (s->first >= low && s->first < high) {
+            s = symbols.erase(s);
+        } else {
+            s++;
+        }
+    }
+}
+
+bool loadCPE(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<uint32_t, std::string>& symbols) {
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1455043) return false;
     file->skip<uint16_t>();
@@ -50,6 +60,7 @@ bool loadCPE(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
                 uint32_t addr = file->read<uint32_t>();
                 uint32_t size = file->read<uint32_t>();
                 dest->writeAt(file->read(size), addr);
+                eraseSymbolsInSpan(addr, addr + size, symbols);
             } break;
             case 2: {
                 file->read<uint32_t>();
@@ -96,7 +107,7 @@ bool loadCPE(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
     return true;
 }
 
-bool loadPSEXE(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
+bool loadPSEXE(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<uint32_t, std::string>& symbols) {
     uint64_t magic = file->read<uint64_t>();
     if (magic != 0x45584520582d5350) return false;
 
@@ -117,6 +128,7 @@ bool loadPSEXE(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
     uint8_t regionByte = file->byte();
     file->rSeek(2048, SEEK_SET);
     dest->writeAt(file->read(size), addr);
+    eraseSymbolsInSpan(addr, addr + size, symbols);
     switch (regionByte) {
         case 'A':
         case 'J':
@@ -129,7 +141,8 @@ bool loadPSEXE(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
     return true;
 }
 
-bool loadPSF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, bool seenRefresh = false, unsigned depth = 0) {
+bool loadPSF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<uint32_t, std::string>& symbols,
+             bool seenRefresh = false, unsigned depth = 0) {
     if (depth >= 10) return false;
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1465350) return false;
@@ -173,11 +186,11 @@ bool loadPSF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, bool seenRe
     if (pairs.find("_lib") != pairs.end()) {
         std::filesystem::path subFilePath(file->filename());
         IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs["_lib"]));
-        if (!subFile->failed()) loadPSF(subFile, dest, info, seenRefresh, depth++);
+        if (!subFile->failed()) loadPSF(subFile, dest, info, symbols, seenRefresh, depth++);
     }
 
     IO<File> psexe(new ZReader(zpsexe));
-    loadPSEXE(psexe, dest, info);
+    loadPSEXE(psexe, dest, info, symbols);
 
     unsigned libNum = 2;
 
@@ -186,13 +199,13 @@ bool loadPSF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, bool seenRe
         if (pairs.find(libName) == pairs.end()) break;
         std::filesystem::path subFilePath(file->filename());
         IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs[libName]));
-        if (!subFile->failed()) loadPSF(subFile, dest, info, seenRefresh, depth++);
+        if (!subFile->failed()) loadPSF(subFile, dest, info, symbols, seenRefresh, depth++);
     }
 
     return true;
 }
 
-bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
+bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<uint32_t, std::string>& symbols) {
     using namespace ELFIO;
     elfio reader;
     FileIStream stream(file);
@@ -203,8 +216,8 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
     info.pc = reader.get_entry();
 
     Elf_Half sec_num = reader.sections.size();
-    for (int i = 0; i < sec_num; i++) {
-        const section* psec = reader.sections[i];
+    for (unsigned i = 0; i < sec_num; i++) {
+        section* psec = reader.sections[i];
         auto name = psec->get_name();
 
         if (StringsHelpers::endsWith(name, "_Header")) continue;
@@ -217,6 +230,27 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
         auto data = psec->get_data();
         auto addr = psec->get_address();
         dest->writeAt(data, size, addr);
+        eraseSymbolsInSpan(addr, addr + size, symbols);
+    }
+
+    for (unsigned i = 0; i < sec_num; i++) {
+        section* psec = reader.sections[i];
+        auto name = psec->get_name();
+
+        auto type = psec->get_type();
+        if (type != SHT_SYMTAB) continue;
+        const ELFIO::symbol_section_accessor symbolstab(reader, psec);
+        for (unsigned s = 0; s < symbolstab.get_symbols_num(); s++) {
+            std::string name;
+            Elf64_Addr value;
+            Elf_Xword size;
+            unsigned char bind;
+            unsigned char type;
+            Elf_Half section_index;
+            unsigned char other;
+            symbolstab.get_symbol(s, name, value, size, bind, type, section_index, other);
+            symbols[value] = name;
+        }
     }
 
     return true;
@@ -226,19 +260,19 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info) {
 
 }  // namespace PCSX
 
-bool PCSX::BinaryLoader::load(IO<File> in, IO<File> dest, Info& info) {
+bool PCSX::BinaryLoader::load(IO<File> in, IO<File> dest, Info& info, std::map<uint32_t, std::string>& symbols) {
     {
         IO<File> ny(new PosixFile(in->filename().parent_path() / "libps.exe"));
-        if (!ny->failed()) loadPSEXE(ny, dest, info);
+        if (!ny->failed()) loadPSEXE(ny, dest, info, symbols);
     }
 
     if (in->failed()) return false;
-    if (loadCPE(in, dest, info)) return true;
+    if (loadCPE(in, dest, info, symbols)) return true;
     in->rSeek(0, SEEK_SET);
-    if (loadPSEXE(in, dest, info)) return true;
+    if (loadPSEXE(in, dest, info, symbols)) return true;
     in->rSeek(0, SEEK_SET);
-    if (loadPSF(in, dest, info)) return true;
+    if (loadPSF(in, dest, info, symbols)) return true;
     in->rSeek(0, SEEK_SET);
-    if (loadELF(in, dest, info)) return true;
+    if (loadELF(in, dest, info, symbols)) return true;
     return false;
 }

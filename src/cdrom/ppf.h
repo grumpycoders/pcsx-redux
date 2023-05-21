@@ -44,7 +44,7 @@ class PPF {
     void maybePatchSector(uint8_t *sector, IEC60908b::MSF) const;
     // inject a new patch in memory based on the difference between two sectors
     void calculatePatch(const uint8_t *in, const uint8_t *out, IEC60908b::MSF);
-    // inject a new patch in memory using an offset - this allowed to straddle across sectors
+    // inject a new patch in memory using an offset - this is allowed to straddle across sectors
     void injectPatch(std::string_view data, uint32_t offset, IEC60908b::MSF);
 
     void simplify();
@@ -79,7 +79,6 @@ class PPF {
         ~Patch() = default;
     };
     Patches m_patches;
-    unsigned m_version;
 };
 
 }  // namespace PCSX

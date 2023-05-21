@@ -37,7 +37,7 @@ void PCSX::Widgets::Handlers::draw(const uint32_t* psxMemory, const char* title)
     const unsigned count = memFile->readAt<uint32_t>(0x104) / 8;
 
     if (!arrayPointer) {
-        ImGui::Text(_("Invalid data at 0x100"));
+        ImGui::TextUnformatted(_("Invalid data at 0x100"));
         ImGui::End();
         return;
     }
@@ -55,7 +55,7 @@ void PCSX::Widgets::Handlers::draw(const uint32_t* psxMemory, const char* title)
         while (infoAddr) {
             uint32_t infoStructAddr = memFile->readAt<uint32_t>(infoAddr);
             if (!infoStructAddr) {
-                ImGui::Text(_("  Corrupted info"));
+                ImGui::TextUnformatted(_("  Corrupted info"));
                 break;
             }
             std::string buttonStr;
@@ -65,14 +65,14 @@ void PCSX::Widgets::Handlers::draw(const uint32_t* psxMemory, const char* title)
             if (ImGui::Button(buttonStr.c_str())) {
                 g_system->m_eventBus->signal(Events::GUI::JumpToMemory{infoAddr, 16});
             }
-            ImGui::Text(_("  verifier: "));
+            ImGui::TextUnformatted(_("  verifier: "));
             ImGui::SameLine();
             uint32_t verifierAddr = memFile->readAt<uint32_t>(infoStructAddr + 8);
             buttonStr = fmt::format("{:08x}##{}", verifierAddr, counter++);
             if (ImGui::Button(buttonStr.c_str())) {
                 g_system->m_eventBus->signal(Events::GUI::JumpToPC{verifierAddr});
             }
-            ImGui::Text(_("  handler: "));
+            ImGui::TextUnformatted(_("  handler: "));
             ImGui::SameLine();
             uint32_t handlerAddr = memFile->readAt<uint32_t>(infoStructAddr + 4);
             buttonStr = fmt::format("{:08x}##{}", handlerAddr, counter++);

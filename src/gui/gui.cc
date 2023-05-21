@@ -155,7 +155,9 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 
 static void ShowHelpMarker(const char* desc) {
     ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGui::TextUnformatted("(?)");
+    ImGui::PopStyleColor();
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -611,7 +613,7 @@ void PCSX::GUI::init() {
     m_outputShaderEditor.init();
 
     m_listener.listen<Events::GUI::JumpToMemory>([this](auto& event) {
-        const uint32_t base = (event.address >> 20) & 0xffc;
+        const uint32_t base = (event.address >> 20) & 0xff8;
         const uint32_t real = event.address & 0x7fffff;
         const uint32_t size = event.size;
         auto changeDataType = [](MemoryEditor* editor, int size) {
@@ -1192,7 +1194,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 uint32_t frameCount = g_emulator->m_spu->getFrameCount();
                 ImGui::Text(_("%.2f ms audio buffer (%i frames)"), 1000.0f * frameCount / 44100.0f, frameCount);
             } else {
-                ImGui::Text(_("Idle"));
+                ImGui::TextUnformatted(_("Idle"));
             }
 
             ImGui::EndMainMenuBar();
@@ -1972,7 +1974,7 @@ bool PCSX::GUI::about() {
     ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
     if (ImGui::Begin(_("About"), &m_showAbout)) {
-        ImGui::Text("PCSX-Redux");
+        ImGui::TextUnformatted("PCSX-Redux");
         ImGui::Separator();
         auto someString = [](const char* str, GLenum index) {
             const char* value = (const char*)glGetString(index);
@@ -2103,7 +2105,7 @@ void PCSX::GUI::shellReached() {
         if (in->failed()) {
             throw std::runtime_error("Failed to open file.");
         }
-        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info);
+        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info, g_emulator->m_cpu->m_symbols);
         if (!info.pc.has_value()) {
             throw std::runtime_error("Binary loaded without any PC to jump to.");
         }
@@ -2146,7 +2148,8 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
     bool success = false;
     try {
         BinaryLoader::Info info;
-        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info);
+        std::map<uint32_t, std::string> symbols;
+        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info, symbols);
         if (success) success = info.pc.has_value();
     } catch (...) {
         success = false;

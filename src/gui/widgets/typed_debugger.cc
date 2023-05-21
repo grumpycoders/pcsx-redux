@@ -77,7 +77,12 @@ void PCSX::Widgets::TypedDebugger::import(std::string_view fileContents, ImportT
             }
 
             FieldOrArgumentData data;
-            const std::regex dataRegex(R"(([\w\s\*\[\]]+),(\w+),(\d+))");
+            // Allow the data type and field name to be just about anything, as
+            // long as it's between commas. While usually C/C++/whatever
+            // identifiers have some rules, in Ghidra you can really just set
+            // just about any label you want so be as generous as possible when
+            // accepting input.
+            const std::regex dataRegex(R"(([^,]+),([^,]+),(\d+))");
             std::smatch matches;
             if (std::regex_match(s, matches, dataRegex)) {
                 data.type = matches[1].str();
@@ -303,15 +308,17 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
         ImGui::TableNextColumn();  // Name.
         bool open = ImGui::TreeNodeEx(fmt::format(f_("Display log entries##{}{}"), node->name.c_str(), address).c_str(),
                                       ImGuiTreeNodeFlags_SpanFullWidth);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::TableNextColumn();  // Type.
-        ImGui::TextDisabled("--");
+        ImGui::TextUnformatted("--");
         ImGui::TableNextColumn();  // Size.
-        ImGui::TextDisabled("--");
+        ImGui::TextUnformatted("--");
         ImGui::TableNextColumn();  // Value.
-        ImGui::TextDisabled("--");
+        ImGui::TextUnformatted("--");
         ImGui::TableNextColumn();  // New value.
-        ImGui::TextDisabled("--");
+        ImGui::TextUnformatted("--");
         ImGui::TableNextColumn();  // Breakpoints.
+        ImGui::PopStyleColor();
         if (open) {
             uint32_t accumulatedOffset = 0;
             for (const auto& logEntry : node->logEntries) {
@@ -342,7 +349,9 @@ void PCSX::Widgets::TypedDebugger::displayBreakpointOptions(WatchTreeNode* node,
                     }
                 }
                 ImGui::TableNextColumn();  // New value.
-                ImGui::TextDisabled("--");
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                ImGui::TextUnformatted("--");
+                ImGui::PopStyleColor();
                 ImGui::TableNextColumn();  // Breakpoints.
             }
             ImGui::TreePop();
@@ -403,11 +412,21 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         ImGui::TableNextColumn();  // Value.
         if (isPointer) {
             ImGui::Text("0x%x", startAddress);
+            ImGui::SameLine();
+            const auto showMemButtonName = fmt::format(f_("Show in memory editor##{}{}"), currentAddress, extraImGuiId);
+            if (ImGui::Button(showMemButtonName.c_str())) {
+                const uint32_t editorAddress = startAddress - memBase;
+                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
+            }
         } else {
-            ImGui::TextDisabled("--");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::TextUnformatted("--");
+            ImGui::PopStyleColor();
         }
         ImGui::TableNextColumn();  // New value.
-        ImGui::TextDisabled("--");
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::TextUnformatted("--");
+        ImGui::PopStyleColor();
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
             displayBreakpointOptions(node, currentAddress);
@@ -445,7 +464,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, 4});
             }
             ImGui::TableNextColumn();  // New value.
-            ImGui::TextDisabled("--");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::TextUnformatted("--");
+            ImGui::PopStyleColor();
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
                 displayBreakpointOptions(node, currentAddress);
@@ -472,7 +493,9 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                 }
             }
             ImGui::TableNextColumn();  // New value.
-            ImGui::TextDisabled("--");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::TextUnformatted("--");
+            ImGui::PopStyleColor();
             ImGui::TableNextColumn();  // Breakpoints.
             if (watchView) {
                 displayBreakpointOptions(node, currentAddress);
@@ -496,10 +519,12 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         const auto basic_offset = startAddress - memBase;
         uint8_t* memValue = memData + basic_offset;
         const auto* nodeType = node->type.c_str();
-        printValue(nodeType, memValue);
+        printValue(nodeType, node->size, memValue);
         ImGui::TableNextColumn();  // New value.
-        displayNewValueInput(nodeType, memValue);
-        ImGui::TextDisabled("--");
+        displayNewValueInput(nodeType, node->size, memValue);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::TextUnformatted("--");
+        ImGui::PopStyleColor();
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
             displayBreakpointOptions(node, currentAddress);
@@ -507,38 +532,57 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
     }
 }
 
-void PCSX::Widgets::TypedDebugger::printValue(const char* type, void* address) {
+// Print value of the given type at the given address. If type is not a known
+// primitive, it'll try to print something based on its size anyway.
+void PCSX::Widgets::TypedDebugger::printValue(const char* type, size_t type_size, void* address) {
     static char s[64];
-    if (equals(type, "char")) {
-        int8_t fieldValue = 0;
-        memcpy(&fieldValue, address, 1);
-        ImGui::Text("Value: %d (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "uchar") || equals(type, "u_char")) {
-        uint8_t fieldValue = 0;
-        memcpy(&fieldValue, address, 1);
-        ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "short")) {
-        int16_t fieldValue = 0;
-        memcpy(&fieldValue, address, 2);
-        ImGui::Text("Value: %hi (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "ushort") || equals(type, "u_short")) {
-        uint16_t fieldValue = 0;
-        memcpy(&fieldValue, address, 2);
-        ImGui::Text("Value: %hu (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "int") || equals(type, "long")) {
-        int32_t fieldValue = 0;
-        memcpy(&fieldValue, address, 4);
-        ImGui::Text("Value: %i (0x%x)", fieldValue, fieldValue);
-    } else if (equals(type, "uint") || equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long")) {
-        uint32_t fieldValue = 0;
-        memcpy(&fieldValue, address, 4);
-        ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
-    } else {
-        ImGui::Text("Cannot yet print out value of type %s", type);
+
+    switch (type_size) {
+        case 1:
+            if (equals(type, "char")) {
+                int8_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %d (0x%x)", fieldValue, fieldValue);
+            } else {
+                // We have a uchar or something of size 1.
+                uint8_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
+            }
+            break;
+        case 2:
+            if (equals(type, "short")) {
+                int16_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %hi (0x%x)", fieldValue, fieldValue);
+            } else {
+                // We have a ushort or something of size 2.
+                uint16_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %hu (0x%x)", fieldValue, fieldValue);
+            }
+            break;
+        case 4:
+            if (equals(type, "int") || equals(type, "long")) {
+                int32_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %i (0x%x)", fieldValue, fieldValue);
+            } else {
+                // We have uint or something of size 4.
+                uint32_t fieldValue = 0;
+                memcpy(&fieldValue, address, type_size);
+                ImGui::Text("Value: %u (0x%x)", fieldValue, fieldValue);
+            }
+            break;
+        default:
+            ImGui::Text("Cannot yet print out value of type %s (size %zu)", type, type_size);
     }
 }
 
-void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, void* address) {
+// Make an input widget for the value at the given address of the given type. If
+// type is not a known primitive, it'll try to allow editing of the value
+// anyway.
+void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, size_t type_size, void* address) {
     static char s[64];
     static const int8_t step = 1;
     static const int8_t stepFast = 100;
@@ -546,38 +590,52 @@ void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, void* 
     const auto unsignedFormat = m_hex ? "%x" : "%u";
     const auto inputFlags = ImGuiInputTextFlags_EnterReturnsTrue |
                             (m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal);
-    if (equals(type, "char")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S8, &m_newValue, &step,
-                               &stepFast, signedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 1);
-        }
-    } else if (equals(type, "uchar") || equals(type, "u_char")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U8, &m_newValue, &step,
-                               &stepFast, unsignedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 1);
-        }
-    } else if (equals(type, "short")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S16, &m_newValue, &step,
-                               &stepFast, signedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 2);
-        }
-    } else if (equals(type, "ushort") || equals(type, "u_short")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U16, &m_newValue, &step,
-                               &stepFast, unsignedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 2);
-        }
-    } else if (equals(type, "int") || equals(type, "long")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S32, &m_newValue, &step,
-                               &stepFast, signedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 4);
-        }
-    } else if (equals(type, "uint") || equals(type, "u_int") || equals(type, "ulong") || equals(type, "u_long")) {
-        if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U32, &m_newValue, &step,
-                               &stepFast, unsignedFormat, inputFlags)) {
-            memcpy(address, &m_newValue, 4);
-        }
-    } else {
-        ImGui::Text("Cannot yet input value of type %s", type);
+
+    switch (type_size) {
+        case 1:
+            if (equals(type, "char")) {
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S8, &m_newValue,
+                                       &step, &stepFast, signedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            } else {
+                // We have a uchar or something of size 1.
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U8, &m_newValue,
+                                       &step, &stepFast, unsignedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            }
+            break;
+        case 2:
+            if (equals(type, "short")) {
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S16,
+                                       &m_newValue, &step, &stepFast, signedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            } else {
+                // We have a ushort or something of size 2.
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U16,
+                                       &m_newValue, &step, &stepFast, unsignedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            }
+            break;
+        case 4:
+            if (equals(type, "int") || equals(type, "long")) {
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S32,
+                                       &m_newValue, &step, &stepFast, signedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, 4);
+                }
+            } else {
+                // We have uint or something of size 4.
+                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U32,
+                                       &m_newValue, &step, &stepFast, unsignedFormat, inputFlags)) {
+                    memcpy(address, &m_newValue, type_size);
+                }
+            }
+            break;
+        default:
+            ImGui::Text("Cannot yet input value of type %s (size: %zu)", type, type_size);
     }
 }
 
@@ -589,11 +647,13 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
     bool showImportDataTypesFileDialog = false;
     if (m_structs.empty()) {
-        ImGui::TextWrapped(
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextUnformatted(
             _("Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will "
               "generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the "
               "data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples "
               "whose elements are separated by commas.\n\nFor example:\n"));
+        ImGui::PopTextWrapPos();
         gui->useMonoFont();
         ImGui::TextUnformatted("CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n\n");
         ImGui::PopFont();
@@ -623,11 +683,13 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
 
     bool showImportFunctionsFileDialog = false;
     if (m_functions.empty()) {
-        ImGui::TextWrapped(
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextUnformatted(
             _("Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate "
               "a redux_funcs.txt file in its folder, or from any text file where each line specifies the function "
               "address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples "
               "whose elements are separated by commas.\n\nFor example:\n"));
+        ImGui::PopTextWrapPos();
         gui->useMonoFont();
         ImGui::TextUnformatted("800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n\n");
         ImGui::PopFont();
@@ -876,7 +938,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
                             ImGui::TableNextColumn();  // Size.
                             ImGui::Text("%zu", registerValue->size);
                             ImGui::TableNextColumn();  // Value.
-                            printValue(registerValue->type.c_str(), &registerValue->value);
+                            printValue(registerValue->type.c_str(), registerValue->size, &registerValue->value);
                             ImGui::TableNextColumn();  // New value.
                             ImGui::TableNextColumn();  // Breakpoints.
                         } else {

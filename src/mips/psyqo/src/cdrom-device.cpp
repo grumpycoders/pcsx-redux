@@ -28,17 +28,17 @@ SOFTWARE.
 
 #include <EASTL/atomic.h>
 
-#include "common/hardware/cdrom.h"
 #include "common/hardware/dma.h"
-#include "common/hardware/hwregs.h"
-#include "common/hardware/irq.h"
 #include "common/kernel/events.h"
 #include "common/syscalls/syscalls.h"
+#include "psyqo/hardware/cdrom.hh"
+#include "psyqo/hardware/cpu.hh"
+#include "psyqo/hardware/sbus.hh"
 #include "psyqo/kernel.hh"
 #include "psyqo/msf.hh"
 
 void psyqo::CDRomDevice::prepare() {
-    IMASK = IMASK | IRQ_CDROM;
+    Hardware::CPU::IMask.set(Hardware::CPU::IRQ::CDRom);
     Kernel::enableDma(Kernel::DMA::CDRom);
     m_event = Kernel::openEvent(EVENT_CDROM, 0x1000, EVENT_MODE_CALLBACK, [this]() { irq(); });
     syscall_setIrqAutoAck(2, 1);
@@ -53,12 +53,9 @@ void psyqo::CDRomDevice::reset(eastl::function<void(bool)> &&callback) {
     m_callback = eastl::move(callback);
     m_action = RESET;
     eastl::atomic_signal_fence(eastl::memory_order_release);
-    CDROM_REG0_UC = 1;
-    CDROM_REG3_UC = 0x1f;
-    CDROM_REG0_UC = 1;
-    CDROM_REG2_UC = 0x1f;
-    CDROM_REG0_UC = 0;
-    CDROM_REG1_UC = CDL_INIT;
+    Hardware::CDRom::Cause = 0x1f;
+    Hardware::CDRom::CauseMask = 0x1f;
+    Hardware::CDRom::Command.send(Hardware::CDRom::CDL::INIT);
 }
 
 psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReset() {
@@ -77,28 +74,21 @@ void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buff
     MSF msf(sector + 150);
     uint8_t bcd[3];
     msf.toBCD(bcd);
-    CDROM_REG0_UC = 0;
-    CDROM_REG2_UC = bcd[0];
-    CDROM_REG2_UC = bcd[1];
-    CDROM_REG2_UC = bcd[2];
-    CDROM_REG1_UC = CDL_SETLOC;
+    Hardware::CDRom::Command.send(Hardware::CDRom::CDL::SETLOC, bcd[0], bcd[1], bcd[2]);
 }
 
 void psyqo::CDRomDevice::irq() {
-    CDROM_REG0_UC = 1;
-    uint8_t irqReason = CDROM_REG3_UC;
+    uint8_t cause = Hardware::CDRom::Cause;
 
-    if (irqReason & 7) {
-        CDROM_REG0_UC = 1;
-        CDROM_REG3_UC = 7;
+    if (cause & 7) {
+        Hardware::CDRom::Cause = 7;
     }
 
-    if (irqReason & 0x18) {
-        CDROM_REG0_UC = 1;
-        CDROM_REG3_UC = irqReason & 0x18;
+    if (cause & 0x18) {
+        Hardware::CDRom::Cause = 0x18;
     }
 
-    switch (irqReason & 7) {
+    switch (cause & 7) {
         case 1:
             dataReady();
             break;
@@ -118,15 +108,13 @@ void psyqo::CDRomDevice::irq() {
 }
 
 void psyqo::CDRomDevice::dataReady() {
-    uint8_t status = CDROM_REG1_UC;
-    CDROM_REG0_UC = 0;
-    CDROM_REG0_UC;
-    CDROM_REG3_UC = 0;
-    CDROM_REG3_UC;
-    CDROM_REG0_UC = 0;
-    CDROM_REG3_UC = 0x80;
-    SBUS_DEV5_CTRL = 0x20943;
-    SBUS_COM_CTRL = 0x132c;
+    uint8_t status = Hardware::CDRom::Response;
+    Hardware::CDRom::Ctrl.throwAway();
+    Hardware::CDRom::DataRequest = 0;
+    Hardware::CDRom::InterruptControl.throwAway();
+    Hardware::CDRom::DataRequest = 0x80;
+    Hardware::SBus::Dev5Ctrl = 0x20943;
+    Hardware::SBus::ComCtrl = 0x132c;
     eastl::atomic_signal_fence(eastl::memory_order_acquire);
     DMA_CTRL[DMA_CDROM].MADR = reinterpret_cast<uintptr_t>(m_ptr);
     DMA_CTRL[DMA_CDROM].BCR = 512 | 0x10000;
@@ -134,8 +122,7 @@ void psyqo::CDRomDevice::dataReady() {
     m_ptr += 2048;
     if (--m_count == 0) {
         m_action = PAUSE;
-        CDROM_REG0 = 0;
-        CDROM_REG1 = CDL_PAUSE;
+        Hardware::CDRom::Command.send(Hardware::CDRom::CDL::PAUSE);
     }
     eastl::atomic_signal_fence(eastl::memory_order_release);
 }
@@ -159,20 +146,17 @@ void psyqo::CDRomDevice::complete() {
 }
 
 void psyqo::CDRomDevice::acknowledge() {
-    uint8_t status = CDROM_REG1;
+    uint8_t status = Hardware::CDRom::Response;
     switch (m_action) {
         case RESET:
             break;
         case SETLOC:
             m_action = SETMODE;
-            CDROM_REG0_UC = 0;
-            CDROM_REG2_UC = 0x80;
-            CDROM_REG1_UC = CDL_SETMODE;
+            Hardware::CDRom::Command.send(Hardware::CDRom::CDL::SETMODE, 0x80);
             break;
         case SETMODE:
             m_action = READ;
-            CDROM_REG0_UC = 0;
-            CDROM_REG1_UC = CDL_READN;
+            Hardware::CDRom::Command.send(Hardware::CDRom::CDL::READN);
             break;
         case READ:
             break;

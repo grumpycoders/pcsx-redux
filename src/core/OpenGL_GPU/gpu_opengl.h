@@ -43,7 +43,7 @@ class OpenGL_GPU final : public GPU {
     GLuint getVRAMTexture() override;
     void setLinearFiltering() override;
     Slice getVRAM(Ownership) override;
-    void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) override;
+    void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels, PartialUpdateVram) override;
     void restoreStatus(uint32_t status) { m_gpustat = status; }
 
   private:

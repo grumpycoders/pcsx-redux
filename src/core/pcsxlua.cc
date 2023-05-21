@@ -46,7 +46,12 @@ LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type,
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
         address, type, width, std::string("Lua Breakpoint ") + cause,
         [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
-            return invoker(address, width, cause);
+            try {
+                return invoker(address, width, cause);
+            } catch (...) {
+                PCSX::g_system->luaMessage("Lua Breakpoint invoker threw an exception, deleting breakpoint", true);
+                return false;
+            }
         });
 
     ret->wrapper.push_back(bp);

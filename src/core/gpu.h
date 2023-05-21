@@ -119,7 +119,9 @@ class GPU {
 
     enum class Ownership { BORROW, ACQUIRE };
     virtual Slice getVRAM(Ownership = Ownership::BORROW) = 0;
-    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) = 0;
+    enum class PartialUpdateVram : bool { Synchronous, Asynchronous };
+    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels,
+                                   PartialUpdateVram = PartialUpdateVram::Asynchronous) = 0;
 
     struct ScreenShot {
         Slice data;

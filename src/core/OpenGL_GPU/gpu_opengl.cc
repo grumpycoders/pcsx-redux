@@ -566,16 +566,17 @@ PCSX::Slice PCSX::OpenGL_GPU::getVRAM(Ownership) {
     return slice;
 }
 
-void PCSX::OpenGL_GPU::partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) {
+void PCSX::OpenGL_GPU::partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels,
+                                         PartialUpdateVram updateType) {
     renderBatch();
 
     OpenGL::bindScreenFramebuffer();
-    const auto oldTex = OpenGL::getTex2D();
+    const auto oldTex = updateType == PartialUpdateVram::Asynchronous ? OpenGL::getTex2D() : GLint(-1);
     m_vramTexture.bind();
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, pixels);
 
-    glBindTexture(GL_TEXTURE_2D, oldTex);
+    if (updateType == PartialUpdateVram::Asynchronous) glBindTexture(GL_TEXTURE_2D, oldTex);
     m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
 
     m_syncVRAM = true;
