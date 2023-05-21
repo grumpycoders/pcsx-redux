@@ -61,7 +61,7 @@ class impl final : public GPU, public SoftRenderer {
         return ret;
     }
 
-    void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) override {
+    void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels, PartialUpdateVram) override {
         auto ptr = m_vram16;
         ptr += y * 1024 + x;
         for (int i = 0; i < h; i++) {

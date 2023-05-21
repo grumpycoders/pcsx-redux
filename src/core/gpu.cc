@@ -861,7 +861,7 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf) {
         clipped = GPU::clip(x, y, w, h);
         m_state = READ_COMMAND;
         m_gpu->m_defaultProcessor.setActive();
-        m_gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>());
+        m_gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>(), PartialUpdateVram::Synchronous);
     }
 }
 
@@ -988,7 +988,7 @@ void PCSX::GPU::write0(BlitVramVram *prim) {
         slice.borrow(inSlice, ((l + sY) * 1024 + sX) * sizeof(uint16_t), w * sizeof(uint16_t));
         memcpy(rect.data() + l * w, slice.data(), slice.size());
     }
-    partialUpdateVRAM(dX, dY, w, h, rect.data());
+    partialUpdateVRAM(dX, dY, w, h, rect.data(), PartialUpdateVram::Synchronous);
 }
 
 PCSX::GPU::CtrlDisplayMode::CtrlDisplayMode(uint32_t value) {
