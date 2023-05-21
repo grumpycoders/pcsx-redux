@@ -133,7 +133,7 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     // filter.Draw by default puts the label to the right side of the input box.
     // To rememdy this, and keep the ImGui ID stack happy, we just do ## for the filter ID
     // and draw our own text for the description of the input box
-    ImGui::Text("Search");
+    ImGui::TextUnformatted("Search");
     ImGui::SameLine();
     filter.Draw("##FilterBox", -100.0f);
 

@@ -78,7 +78,9 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             ImGui::SameLine();
             ImGui::TextUnformatted(" :: ");
             ImGui::SameLine();
-            ImGui::TextDisabled("<heuristic>");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::TextUnformatted("<heuristic>");
+            ImGui::PopStyleColor();
             ImGui::SameLine();
             ImGui::TextUnformatted(" :: ");
             ImGui::SameLine();
