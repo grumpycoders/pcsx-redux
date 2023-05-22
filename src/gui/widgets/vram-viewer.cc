@@ -499,7 +499,7 @@ void PCSX::Widgets::VRAMViewer::moveTo(ImVec2 pos) {
 
 void PCSX::Widgets::VRAMViewer::focusOn(ImVec2 topLeft, ImVec2 bottomRight) {
     m_cornerTL = {0.0f, 0.0f};
-    ImVec2 dimensions = bottomRight - topLeft;
+    ImVec2 dimensions = bottomRight - topLeft + ImVec2{1.0f, 1.0f};
     float r = dimensions.y / dimensions.x;
     if (r > 2.0f) {
         dimensions.x = dimensions.y / 2.0f;
