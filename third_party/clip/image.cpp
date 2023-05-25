@@ -163,6 +163,7 @@ bool image::import_from_png(const uint8_t *data, size_t size) {
 image image::to_bgra8888() const {
   const auto& spec = m_spec;
   if (is_bgra8888()) return *this;
+  unsigned increment = spec.bits_per_pixel / 8;
   clip::image_spec newspec;
   newspec.bits_per_pixel = 32;
   newspec.red_mask = 0xff0000;
@@ -178,7 +179,7 @@ image image::to_bgra8888() const {
   newspec.bytes_per_row = newspec.width * 4;
   image ret(newspec);
   uint32_t* dst = reinterpret_cast<uint32_t*>(ret.data());
-  uint32_t* src = (uint32_t*)data();
+  uint8_t* src = (uint8_t*)data();
   const auto conv = [](uint32_t in, std::bitset<32> mask, uint32_t shift) -> uint8_t {
     if (mask.count() == 0) return 0xff;
     uint8_t r = (in & mask.to_ulong()) >> shift;
@@ -191,15 +192,15 @@ image image::to_bgra8888() const {
   for (int y=0; y<spec.height; ++y) {
     auto src_line_start = src;
     for (int x=0; x<spec.width; ++x) {
-      uint32_t c = *src;
+      uint32_t c = *(uint32_t*)src;
       *dst = (conv(c, spec.red_mask,   spec.red_shift  ) << 16) |
              (conv(c, spec.green_mask, spec.green_shift) <<  8) |
              (conv(c, spec.blue_mask,  spec.blue_shift )      ) |
              (conv(c, spec.alpha_mask, spec.alpha_shift) << 24);
       ++dst;
-      ++src;
+      src += increment;
     }
-    src = (uint32_t*)(((uint8_t*)src_line_start) + spec.bytes_per_row);
+    src = ((uint8_t*)src_line_start) + spec.bytes_per_row;
   }
   return ret;
 }
@@ -207,6 +208,7 @@ image image::to_bgra8888() const {
 image image::to_rgba8888() const {
   const auto& spec = m_spec;
   if (is_rgba8888()) return *this;
+  unsigned increment = spec.bits_per_pixel / 8;
   clip::image_spec newspec;
   newspec.bits_per_pixel = 32;
   newspec.red_mask = 0xff;
@@ -222,7 +224,7 @@ image image::to_rgba8888() const {
   newspec.bytes_per_row = newspec.width * 4;
   image ret(newspec);
   uint32_t* dst = reinterpret_cast<uint32_t*>(ret.data());
-  uint32_t* src = (uint32_t*)data();
+  uint8_t* src = (uint8_t*)data();
   const auto conv = [](uint32_t in, std::bitset<32> mask, uint32_t shift) -> uint8_t {
     if (mask.count() == 0) return 0xff;
     uint8_t r = (in & mask.to_ulong()) >> shift;
@@ -235,15 +237,15 @@ image image::to_rgba8888() const {
   for (int y=0; y<spec.height; ++y) {
     auto src_line_start = src;
     for (int x=0; x<spec.width; ++x) {
-      uint32_t c = *src;
+      uint32_t c = *(uint32_t*)src;
       *dst = (conv(c, spec.red_mask,   spec.red_shift  )      ) |
              (conv(c, spec.green_mask, spec.green_shift) <<  8) |
              (conv(c, spec.blue_mask,  spec.blue_shift ) << 16) |
              (conv(c, spec.alpha_mask, spec.alpha_shift) << 24);
       ++dst;
-      ++src;
+      src += increment;
     }
-    src = (uint32_t*)(((uint8_t*)src_line_start) + spec.bytes_per_row);
+    src = ((uint8_t*)src_line_start) + spec.bytes_per_row;
   }
   return ret;
 }
