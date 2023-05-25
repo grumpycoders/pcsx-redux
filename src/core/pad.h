@@ -35,12 +35,13 @@ class Pads {
   public:
     enum class Port { Port1 = 0, Port2 };
 
-    Pads(SIO* parent) : m_sio(parent) {}
-
     virtual void init() = 0;
     virtual void shutdown() = 0;
+
+    // Pad specific
     virtual uint8_t startPoll(Port port) = 0;
     virtual uint8_t poll(uint8_t value, Port port, uint32_t& padState) = 0;
+    // Pad specific
 
     virtual json getCfg() = 0;
     virtual void setCfg(const json& j) = 0;
@@ -62,7 +63,6 @@ class Pads {
         PAD_STATE_BAD_COMMAND = 3,
     };
 
-    SIO* m_sio = nullptr;
     static Pads* factory();
 };
 

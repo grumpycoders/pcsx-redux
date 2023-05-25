@@ -74,6 +74,7 @@ class HW;
 class Lua;
 class MDEC;
 class Memory;
+class MemoryCards;
 class Pads;
 class R3000Acpu;
 class SIO;
@@ -185,6 +186,27 @@ class Emulator {
     typedef SettingPath<TYPESTRING("EXP1Filepath")> SettingEXP1Filepath;
     typedef SettingPath<TYPESTRING("EXP1BrowsePath")> SettingEXP1BrowsePath;
     typedef Setting<bool, TYPESTRING("PIOConnected")> SettingPIOConnected;
+    typedef Setting<bool, TYPESTRING("Mcd3Inserted"), false> SettingMcd3Inserted;
+    typedef Setting<bool, TYPESTRING("Mcd4Inserted"), false> SettingMcd4Inserted;
+    typedef Setting<bool, TYPESTRING("Mcd5Inserted"), false> SettingMcd5Inserted;
+    typedef Setting<bool, TYPESTRING("Mcd6Inserted"), false> SettingMcd6Inserted;
+    typedef Setting<bool, TYPESTRING("Mcd7Inserted"), false> SettingMcd7Inserted;
+    typedef Setting<bool, TYPESTRING("Mcd8Inserted"), false> SettingMcd8Inserted;
+    typedef Setting<bool, TYPESTRING("Mcd3Pocketstation"), false> SettingMcd3Pocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd4Pocketstation"), false> SettingMcd4Pocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd5Pocketstation"), false> SettingMcd5Pocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd6Pocketstation"), false> SettingMcd6Pocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd7Pocketstation"), false> SettingMcd7Pocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd8Pocketstation"), false> SettingMcd8Pocketstation;
+    typedef Setting<bool, TYPESTRING("Port1Multitap"), false> SettingPort1Multitap;
+    typedef Setting<bool, TYPESTRING("Port2Multitap"), false> SettingPort2Multitap;
+    typedef SettingPath<TYPESTRING("Mcd3")> SettingMcd3;
+    typedef SettingPath<TYPESTRING("Mcd4")> SettingMcd4;
+    typedef SettingPath<TYPESTRING("Mcd5")> SettingMcd5;
+    typedef SettingPath<TYPESTRING("Mcd6")> SettingMcd6;
+    typedef SettingPath<TYPESTRING("Mcd7")> SettingMcd7;
+    typedef SettingPath<TYPESTRING("Mcd8")> SettingMcd8;
+    
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
@@ -193,7 +215,11 @@ class Emulator {
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
              SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected>
+             SettingPIOConnected, SettingMcd3Inserted, SettingMcd4Inserted, SettingMcd5Inserted, SettingMcd6Inserted,
+             SettingMcd7Inserted, SettingMcd8Inserted, SettingMcd3Pocketstation, SettingMcd4Pocketstation,
+             SettingMcd5Pocketstation, SettingMcd6Pocketstation, SettingMcd7Pocketstation, SettingMcd8Pocketstation,
+             SettingPort1Multitap, SettingPort2Multitap, SettingMcd3, SettingMcd4, SettingMcd5, SettingMcd6,
+             SettingMcd7, SettingMcd8>
         settings;
     class PcsxConfig {
       public:
@@ -248,6 +274,7 @@ class Emulator {
     std::unique_ptr<Lua> m_lua;
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<Memory> m_mem;
+    std::unique_ptr<MemoryCards> m_memoryCards;
     std::unique_ptr<Pads> m_pads;
     std::unique_ptr<PIOCart> m_pioCart;
     std::unique_ptr<R3000Acpu> m_cpu;

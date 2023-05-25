@@ -42,64 +42,18 @@ struct SIORegisters {
 
 class SIO {
   public:
-    struct McdBlock {
-        McdBlock() { reset(); }
-        int mcd;
-        int number;
-        std::string titleAscii;
-        std::string titleSjis;
-        std::string titleUtf8;
-        std::string id;
-        std::string name;
-        uint32_t fileSize;
-        uint32_t iconCount;
-        uint16_t icon[16 * 16 * 3];
-        uint32_t allocState;
-        int16_t nextBlock;
-        void reset() {
-            mcd = 0;
-            number = 0;
-            titleAscii.clear();
-            titleSjis.clear();
-            titleUtf8.clear();
-            id.clear();
-            name.clear();
-            fileSize = 0;
-            iconCount = 0;
-            memset(icon, 0, sizeof(icon));
-            allocState = 0;
-            nextBlock = -1;
-        }
-        bool isErased() const { return (allocState & 0xa0) == 0xa0; }
-        bool isChained() const { return (allocState & ~1) == 0x52; }
-    };
-
-    static constexpr size_t c_sectorSize = 8 * 16;            // 80h bytes per sector/frame
-    static constexpr size_t c_blockSize = c_sectorSize * 64;  // 40h sectors per block
-    static constexpr size_t c_cardSize = c_blockSize * 16;    // 16 blocks per frame(directory+15 saves)
-    static constexpr size_t c_cardCount = 2;
     static constexpr size_t c_padCount = 2;
 
     SIO() {
-        
-        for (int i = 0; i < c_cardCount; i++) {
-            MemoryCard card = MemoryCard(this, i);
-            m_memoryCard.push_back(card);
-        }
-
         for (int i = 0; i < c_padCount; i++) {
-            Pad pad = Pad(this, i);
+            Pad pad = Pad(i);
             m_pads.push_back(pad);
         }
 
         reset();
     }
     
-    ~SIO() {
-        if (m_memoryCard.size() > 0) {
-            m_memoryCard.clear();
-        }
-        
+    ~SIO() {       
         if (m_pads.size() > 0) {
             m_pads.clear();
         }
@@ -121,62 +75,7 @@ class SIO {
     void init();
     void interrupt();
     void reset();
-        
-    bool copyMcdFile(McdBlock block);
-    void eraseMcdFile(const McdBlock &block);
-    void eraseMcdFile(int mcd, int block) {
-        McdBlock info;
-        getMcdBlockInfo(mcd, block, info);
-        eraseMcdFile(info);
-    }
-    int findFirstFree(int mcd);
-    unsigned getFreeSpace(int mcd);
-    unsigned getFileBlockCount(McdBlock block);
-    void getMcdBlockInfo(int mcd, int block, McdBlock &info);
-    char *getMcdData(int mcd);
-    char *getMcdData(const McdBlock &block) { return getMcdData(block.mcd); }
-    void loadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);
-    void saveMcd(int mcd);
-    static constexpr int otherMcd(int mcd) {
-        if ((mcd != 1) && (mcd != 2)) throw std::runtime_error("Bad memory card number");
-        if (mcd == 1) return 2;
-        return 1;
-    }
-    const PCSX::u8string getCardPath(int index) {
-        PCSX::u8string path;
-
-        switch (index) {
-            case 0:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str();
-                break;
-
-            case 1:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str();
-                break;
-        }
-
-        return path;
-    }
-    bool isCardInserted(int index) {
-        bool connected = false;
-
-        switch (index) {
-            case 0:
-                connected = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>();
-                break;
-
-            case 1:
-                connected = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>();
-                break;
-        }
-
-        return connected;
-    }
     
-    void toggleDeviceConnections();
-    void togglePocketstationMode();
-    static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
-
   private:
     struct StatusFlags {
         enum : uint16_t {
@@ -295,6 +194,7 @@ class SIO {
     void updateFIFOStatus();
     uint8_t writeCard(uint8_t value);
     uint8_t writePad(uint8_t value);
+    uint8_t writePad2(uint8_t value);
 
     SIORegisters m_regs = {
         .status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED,  // Transfer Ready and the Buffer is Empty
@@ -308,7 +208,6 @@ class SIO {
     uint32_t m_maxBufferIndex;
     uint32_t m_padState;
 
-    std::vector<MemoryCard> m_memoryCard;
     std::vector<Pad> m_pads;
 
     FIFO<uint8_t, 8> m_rxFIFO;

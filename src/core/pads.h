@@ -26,8 +26,6 @@
 
 namespace PCSX {
 
-class SIO;
-
 class Pad {
   public:
     struct PadState {
@@ -68,8 +66,8 @@ class Pad {
         None = 0xFFFF             // (no controller connected, pins floating High-Z)
     };
 
-    Pad() : m_sio(nullptr), m_padIndex(0xff) {}
-    Pad(SIO* parent, uint8_t pad_index) : m_sio(parent), m_padIndex(pad_index) {}
+    Pad() : m_padIndex(0xff) {}
+    Pad(uint8_t pad_index) : m_padIndex(pad_index) {}
 
     void deselect();
 
@@ -137,7 +135,6 @@ class Pad {
 
     PadState m_padState;
 
-    SIO* m_sio;
     uint8_t m_padIndex;
 };
 }  // namespace PCSX

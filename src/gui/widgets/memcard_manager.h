@@ -53,20 +53,21 @@ class MemcardManager {
 
     GLuint m_iconTextures[15] = {0};
 
-    clip::image getIconRGBA8888(const SIO::McdBlock& block);
+    clip::image getIconRGBA8888(const MemoryCards::McdBlock& block);
 
-    void drawIcon(const SIO::McdBlock& block);
-    void exportPNG(const SIO::McdBlock& block);
-    void copyToClipboard(const SIO::McdBlock& block);
-    void getPocketstationIcon(uint32_t* pixels, const SIO::McdBlock& block);
+    void drawIcon(const MemoryCards::McdBlock& block);
+    void exportPNG(const MemoryCards::McdBlock& block);
+    void copyToClipboard(const MemoryCards::McdBlock& block);
+    void getPocketstationIcon(uint32_t* pixels, const MemoryCards::McdBlock& block);
 
     void saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action);
     void ShowHelpMarker(const char* desc);
 
     std::unique_ptr<uint8_t[]> getLatest() {
-        std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(SIO::c_cardSize * 2);
-        std::memcpy(data.get(), g_emulator->m_sio->getMcdData(1), SIO::c_cardSize);
-        std::memcpy(data.get() + SIO::c_cardSize, g_emulator->m_sio->getMcdData(2), SIO::c_cardSize);
+        const auto card_size = MemoryCards::c_cardSize;
+        std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(card_size * 2);
+        std::memcpy(data.get(), g_emulator->m_memoryCards->getCardData(1), card_size);
+        std::memcpy(data.get() + card_size, g_emulator->m_memoryCards->getCardData(2), card_size);
 
         return data;
     }

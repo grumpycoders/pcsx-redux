@@ -21,8 +21,6 @@
 
 #include "core/sio.h"
 
-void PCSX::Pad::acknowledge() { m_sio->acknowledge(); }
-
 void PCSX::Pad::deselect() {
     m_currentCommand = Commands::None;
     m_commandTicks = 0;
@@ -77,7 +75,7 @@ uint8_t PCSX::Pad::tickRead(uint8_t value) {
     }
 
     m_commandTicks++;
-    acknowledge();
+    //acknowledge();
 
     return data_out;
 }
@@ -93,7 +91,7 @@ uint8_t PCSX::Pad::transceive(uint8_t value) {
         case Commands::Access:
             // Update button state
             m_spdr = static_cast<uint16_t>(m_padType) & 0xff;
-            acknowledge();
+            //acknowledge();
             break;
 
         case Commands::Read:
