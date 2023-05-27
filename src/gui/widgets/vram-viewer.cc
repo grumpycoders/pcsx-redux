@@ -59,9 +59,10 @@ uniform vec2 u_mouseUV;
 uniform vec2 u_cornerTL;
 uniform vec2 u_cornerBR;
 uniform int u_24shift;
+uniform float u_monitorDPI;
 in vec2 fragUV;
 out vec4 outColor;
-layout(origin_upper_left) in vec4 gl_FragCoord;
+in vec4 gl_FragCoord;
 uniform bool u_magnify;
 uniform float u_magnifyRadius;
 uniform float u_magnifyAmount;
@@ -205,9 +206,10 @@ void main() {
 
     vec4 outline = outlineColor(u_writtenHighlight, fragUV.st);
     fragColor = mix(fragColor, outline, outline.a);
+    vec2 mousePos = vec2(u_mousePos.x - u_origin.x * 2.0, u_resolution.y - u_mousePos.y);
 
     float blend = u_magnify ?
-        smoothstep(u_magnifyRadius + ridge, u_magnifyRadius, distance(fragCoord, u_mousePos)) :
+        smoothstep(u_magnifyRadius + ridge, u_magnifyRadius, distance(fragCoord, mousePos)) :
         0.0f;
 
     outColor = mix(fragColor, magnifyColor, blend);
@@ -235,6 +237,9 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     m_attribLocationMouseUV = glGetUniformLocation(m_shaderProgram, "u_mouseUV");
     m_attribLocationResolution = glGetUniformLocation(m_shaderProgram, "u_resolution");
     m_attribLocationOrigin = glGetUniformLocation(m_shaderProgram, "u_origin");
+    m_attribLocationMonitorResolution = glGetUniformLocation(m_shaderProgram, "u_monitorResolution");
+    m_attribLocationMonitorPosition = glGetUniformLocation(m_shaderProgram, "u_monitorPosition");
+    m_attribLocationMonitorDPI = glGetUniformLocation(m_shaderProgram, "u_monitorDPI");
     m_attribLocationMagnify = glGetUniformLocation(m_shaderProgram, "u_magnify");
     m_attribLocationMagnifyRadius = glGetUniformLocation(m_shaderProgram, "u_magnifyRadius");
     m_attribLocationMagnifyAmount = glGetUniformLocation(m_shaderProgram, "u_magnifyAmount");
@@ -273,9 +278,12 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     m_textureID = textureID;
     m_resolution = ImGui::GetContentRegionAvail();
     m_origin = ImGui::GetCursorScreenPos();
-    auto basePos = m_basePos = ImGui::GetWindowViewport()->Pos;
-    auto mousePos = ImGui::GetIO().MousePos - basePos;
-    m_mousePos = mousePos - m_origin;
+    auto viewport = ImGui::GetWindowViewport();
+    auto monitor = ImGui::GetViewportPlatformMonitor(viewport);
+    m_monitorResolution = monitor->MainSize;
+    m_monitorPosition = monitor->MainPos;
+    m_monitorDPI = monitor->DpiScale;
+    m_mousePos = ImGui::GetIO().MousePos;
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(
@@ -309,7 +317,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
 
     ImVec2 texSpan = texBR - texTL;
     if (hovered) {
-        m_mouseUV = texTL + texSpan * (m_mousePos + basePos) / m_resolution;
+        m_mouseUV = texTL + texSpan * (m_mousePos - m_origin) / m_resolution;
     }
 
     if (!hovered) {
@@ -364,6 +372,9 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniform2f(m_attribLocationMouseUV, m_mouseUV.x, m_mouseUV.y);
     glUniform2f(m_attribLocationResolution, m_resolution.x, m_resolution.y);
     glUniform2f(m_attribLocationOrigin, m_origin.x, m_origin.y);
+    glUniform2f(m_attribLocationMonitorResolution, m_monitorResolution.x, m_monitorResolution.y);
+    glUniform2f(m_attribLocationMonitorPosition, m_monitorPosition.x, m_monitorPosition.y);
+    glUniform1f(m_attribLocationMonitorDPI, m_monitorDPI);
     glUniform1i(m_attribLocationMagnify, m_magnify);
     if (m_magnifyAmount < 0.0f) {
         glUniform1f(m_attribLocationMagnifyAmount, -1.0f / m_magnifyAmount);

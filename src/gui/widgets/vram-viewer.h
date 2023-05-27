@@ -69,6 +69,9 @@ class VRAMViewer {
     int m_attribLocationMouseUV;
     int m_attribLocationResolution;
     int m_attribLocationOrigin;
+    int m_attribLocationMonitorResolution;
+    int m_attribLocationMonitorPosition;
+    int m_attribLocationMonitorDPI;
     int m_attribLocationMagnify;
     int m_attribLocationMagnifyRadius;
     int m_attribLocationMagnifyAmount;
@@ -91,10 +94,12 @@ class VRAMViewer {
     ImVec2 m_mousePos;
     ImVec2 m_mouseUV;
     ImVec2 m_resolution;
+    ImVec2 m_monitorResolution;
+    ImVec2 m_monitorPosition;
+    float m_monitorDPI;
     ImVec2 m_origin;
     ImVec2 m_cornerTL = {0.0f, 0.0f};
     ImVec2 m_cornerBR = {1024.0f, 512.0f};
-    ImVec2 m_basePos;
     float m_DPI = 1.0f;
     GLuint m_textureID;
 
