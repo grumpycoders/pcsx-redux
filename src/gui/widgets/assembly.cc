@@ -95,7 +95,8 @@ class DummyAsm : public PCSX::Disasm {
     virtual void CP2D(uint8_t reg) final {}
     virtual void HI() final {}
     virtual void LO() final {}
-    virtual void Imm(uint16_t value) final {}
+    virtual void Imm16(int16_t value) final {}
+    virtual void Imm16u(uint16_t value) final {}
     virtual void Imm32(uint32_t value) final {}
     virtual void Target(uint32_t value) final {}
     virtual void Sa(uint8_t value) final {}
@@ -218,7 +219,34 @@ void PCSX::Widgets::Assembly::LO() {
         ImGui::EndTooltip();
     }
 }
-void PCSX::Widgets::Assembly::Imm(uint16_t value) {
+void PCSX::Widgets::Assembly::Imm16(int16_t value) {
+    comma();
+    sameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
+    if (value < 0) {
+        ImGui::Text(" -0x%4.4x", -value);
+    } else {
+        ImGui::Text(" 0x%4.4x", value);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::Text("= %u", value);
+        if (value < 0) {
+            union {
+                uint16_t x;
+                int16_t y;
+            } v;
+            v.y = value;
+            ImGui::Text("= 0x%4.4x", v.x);
+            ImGui::Text("= -%i", -value);
+        }
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+    ImGui::PopStyleColor();
+}
+void PCSX::Widgets::Assembly::Imm16u(uint16_t value) {
     comma();
     sameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
