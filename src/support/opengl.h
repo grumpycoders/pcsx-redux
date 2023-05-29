@@ -182,7 +182,7 @@ struct Texture {
   private:
     GLuint m_handle = 0;
     int m_width, m_height;
-    GLenum m_binding;
+    GLenum m_binding = GL_TEXTURE_2D;
     int m_samples = 1;  // For MSAA
 };
 
