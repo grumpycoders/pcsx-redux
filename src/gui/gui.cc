@@ -1085,92 +1085,113 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
-                ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
-                ImGui::MenuItem(_("Show Lua Inspector"), nullptr, &m_luaInspector.m_show);
-                ImGui::MenuItem(_("Show Lua editor"), nullptr, &m_luaEditor.m_show);
-                if (ImGui::BeginMenu(_("VRAM viewers"))) {
-                    ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
-                    ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
-                    unsigned counter = 1;
-                    for (auto& viewer : m_VRAMviewers) {
-                        std::string title = _("Show VRAM viewer #") + std::to_string(counter);
-                        ImGui::MenuItem(title.c_str(), nullptr, &viewer.m_show);
-                        counter++;
-                    }
+                if (ImGui::BeginMenu(_("Lua"))) {
+                    ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
+                    ImGui::MenuItem(_("Show Lua Inspector"), nullptr, &m_luaInspector.m_show);
+                    ImGui::MenuItem(_("Show Lua editor"), nullptr, &m_luaEditor.m_show);
                     ImGui::EndMenu();
                 }
-                ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
-                ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
-                if (PCSX::g_emulator->m_cpu->isDynarec()) {
-                    ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, &m_disassembly.m_show);
-                } else {
-                    ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, false, false);
-                    ShowHelpMarker(_(
-                        R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
+                ImGui::Separator();
+                if (ImGui::BeginMenu(_("CPU"))) {
+                    ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
+                    ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
+                    if (PCSX::g_emulator->m_cpu->isDynarec()) {
+                        ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, &m_disassembly.m_show);
+                    } else {
+                        ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, false, false);
+                        ShowHelpMarker(_(
+                            R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
 in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
-                }
-                ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
-                ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
-                ImGui::MenuItem(_("Show GPU logger"), nullptr, &m_gpuLogger.m_show);
-                if (ImGui::BeginMenu(_("Memory Editors"))) {
-                    for (auto& editor : m_mainMemEditors) {
-                        editor.MenuItem();
                     }
-                    m_parallelPortEditor.MenuItem();
-                    m_scratchPadEditor.MenuItem();
-                    m_hwrEditor.MenuItem();
-                    m_biosEditor.MenuItem();
-                    m_vramEditor.MenuItem();
-                    ImGui::EndMenu();
-                }
-                ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
-                ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
-                ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
-                ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
-                ImGui::MenuItem(_("Kernel Handlers"), nullptr, &m_handlers.m_show);
-                ImGui::MenuItem(_("Kernel Calls"), nullptr, &m_kernelLog.m_show);
-                if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
-                    ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
-                    constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
-                    unsigned& s = debugSettings.get<Emulator::DebugSettings::FirstChanceException>().value;
-                    for (auto& e : exceptions) {
-                        unsigned f = 1 << static_cast<std::underlying_type<PCSX::R3000Acpu::Exception>::type>(e.first);
-                        bool selected = s & f;
-                        changed |= ImGui::MenuItem(std::string(e.second).c_str(), nullptr, &selected);
-                        if (selected) {
-                            s |= f;
-                        } else {
-                            s &= ~f;
+                    ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
+                    ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
+                    if (ImGui::BeginMenu(_("Memory Editors"))) {
+                        for (auto& editor : m_mainMemEditors) {
+                            editor.MenuItem();
                         }
+                        m_parallelPortEditor.MenuItem();
+                        m_scratchPadEditor.MenuItem();
+                        m_hwrEditor.MenuItem();
+                        m_biosEditor.MenuItem();
+                        m_vramEditor.MenuItem();
+                        ImGui::EndMenu();
                     }
-                    ImGui::PopItemFlag();
+                    ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
+                    ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
+                    ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
+                    if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
+                        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+                        constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
+                        unsigned& s = debugSettings.get<Emulator::DebugSettings::FirstChanceException>().value;
+                        for (auto& e : exceptions) {
+                            unsigned f =
+                                1 << static_cast<std::underlying_type<PCSX::R3000Acpu::Exception>::type>(e.first);
+                            bool selected = s & f;
+                            changed |= ImGui::MenuItem(std::string(e.second).c_str(), nullptr, &selected);
+                            if (selected) {
+                                s |= f;
+                            } else {
+                                s &= ~f;
+                            }
+                        }
+                        ImGui::PopItemFlag();
+                        ImGui::EndMenu();
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("GPU"))) {
+                    if (ImGui::BeginMenu(_("VRAM viewers"))) {
+                        ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
+                        ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
+                        unsigned counter = 1;
+                        for (auto& viewer : m_VRAMviewers) {
+                            std::string title = _("Show VRAM viewer #") + std::to_string(counter);
+                            ImGui::MenuItem(title.c_str(), nullptr, &viewer.m_show);
+                            counter++;
+                        }
+                        ImGui::EndMenu();
+                    }
+                    ImGui::MenuItem(_("Show GPU logger"), nullptr, &m_gpuLogger.m_show);
+                    ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator->m_gpu->m_showDebug);
+                    if (ImGui::MenuItem(_("Start GPU dump"))) {
+                        PCSX::g_emulator->m_gpu->startDump();
+                    }
+                    if (ImGui::MenuItem(_("Stop GPU dump"))) {
+                        PCSX::g_emulator->m_gpu->stopDump();
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("SPU"))) {
+                    ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("CD-Rom"))) {
+                    ImGui::MenuItem(_("Show Iso Browser"), nullptr, &m_isoBrowser.m_show);
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("Misc hardware"))) {
+                    ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
                     ImGui::EndMenu();
                 }
                 ImGui::Separator();
-                ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
-                ImGui::Separator();
-                ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator->m_gpu->m_showDebug);
-                ImGui::Separator();
-                ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
-                ImGui::Separator();
-                ImGui::MenuItem(_("Show Iso Browser"), nullptr, &m_isoBrowser.m_show);
-                ImGui::Separator();
-                if (ImGui::MenuItem(_("Start GPU dump"))) {
-                    PCSX::g_emulator->m_gpu->startDump();
+                if (ImGui::BeginMenu(_("Kernel"))) {
+                    ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
+                    ImGui::MenuItem(_("Kernel Handlers"), nullptr, &m_handlers.m_show);
+                    ImGui::MenuItem(_("Kernel Calls"), nullptr, &m_kernelLog.m_show);
+                    ImGui::EndMenu();
                 }
-                if (ImGui::MenuItem(_("Stop GPU dump"))) {
-                    PCSX::g_emulator->m_gpu->stopDump();
+                if (ImGui::BeginMenu(_("Rendering"))) {
+                    if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
+                        m_setupScreenSize = true;
+                    }
+                    if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
+                        setFullscreen(m_fullscreen);
+                        m_setupScreenSize = true;
+                    }
+                    ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
+                    ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
+                    ImGui::EndMenu();
                 }
-                ImGui::Separator();
-                if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
-                    m_setupScreenSize = true;
-                }
-                if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
-                    setFullscreen(m_fullscreen);
-                    m_setupScreenSize = true;
-                }
-                ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
-                ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
