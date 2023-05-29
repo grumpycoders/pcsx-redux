@@ -528,7 +528,7 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
     }
     if (ImGui::BeginPopupModal(_("Read Highlight Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::ColorPicker4(
-            "##ColorPicker", (float *)&m_readColor,
+            "##ReadColorPicker", (float *)&m_readColor,
             ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) {
             ImGui::CloseCurrentPopup();
@@ -540,7 +540,7 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
     }
     if (ImGui::BeginPopupModal(_("Written Highlight Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::ColorPicker4(
-            "##ColorPicker", (float *)&m_writtenColor,
+            "##WrittenColorPicker", (float *)&m_writtenColor,
             ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) {
             ImGui::CloseCurrentPopup();
