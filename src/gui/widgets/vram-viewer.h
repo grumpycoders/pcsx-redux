@@ -60,59 +60,66 @@ class VRAMViewer {
     bool m_isMain = false;
 
     GLuint m_shaderProgram = 0;
-    int m_attribLocationTex;
-    int m_attribLocationProjMtx;
-    int m_attribLocationVtxPos;
-    int m_attribLocationVtxUV;
+
+    int m_attribLocation24shift;
+    int m_attribLocationAlpha;
+    int m_attribLocationClut;
+    int m_attribLocationCornerBR;
+    int m_attribLocationCornerTL;
+    int m_attribLocationGreyscale;
     int m_attribLocationHovered;
+    int m_attribLocationMagnify;
+    int m_attribLocationMagnifyAmount;
+    int m_attribLocationMagnifyRadius;
+    int m_attribLocationMode;
+    int m_attribLocationMonitorDPI;
+    int m_attribLocationMonitorPosition;
+    int m_attribLocationMonitorResolution;
     int m_attribLocationMousePos;
     int m_attribLocationMouseUV;
-    int m_attribLocationResolution;
     int m_attribLocationOrigin;
-    int m_attribLocationMonitorResolution;
-    int m_attribLocationMonitorPosition;
-    int m_attribLocationMonitorDPI;
-    int m_attribLocationMagnify;
-    int m_attribLocationMagnifyRadius;
-    int m_attribLocationMagnifyAmount;
-    int m_attribLocationCornerTL;
-    int m_attribLocationCornerBR;
-    int m_attribLocationAlpha;
-    int m_attribLocationGreyscale;
-    int m_attribLocationMode;
-    int m_attribLocationClut;
-    int m_attribLocation24shift;
-    int m_attribLocationWrittenHeatmap;
+    int m_attribLocationProjMtx;
+    int m_attribLocationReadColor;
     int m_attribLocationReadHeatmap;
-    int m_attribLocationWrittenHighlight;
     int m_attribLocationReadHighlight;
+    int m_attribLocationResolution;
+    int m_attribLocationTex;
+    int m_attribLocationVtxPos;
+    int m_attribLocationVtxUV;
+    int m_attribLocationWrittenColor;
+    int m_attribLocationWrittenHeatmap;
+    int m_attribLocationWrittenHighlight;
 
+    float m_DPI = 1.0f;
+    GLuint m_textureID;
+
+    bool m_selectingClut = false;
+
+    int m_24shift = 0;
+    bool m_alpha = false;
+    ImVec2 m_clut;
+    ImVec2 m_cornerBR = {1024.0f, 512.0f};
+    ImVec2 m_cornerTL = {0.0f, 0.0f};
+    bool m_greyscale = false;
     bool m_hovered = false;
     bool m_magnify = false;
     float m_magnifyAmount = 5.0f;
     float m_magnifyRadius = 150.0f;
-    ImVec2 m_mousePos;
-    ImVec2 m_mouseUV;
-    ImVec2 m_resolution;
-    ImVec2 m_monitorResolution;
-    ImVec2 m_monitorPosition;
-    float m_monitorDPI;
-    ImVec2 m_origin;
-    ImVec2 m_cornerTL = {0.0f, 0.0f};
-    ImVec2 m_cornerBR = {1024.0f, 512.0f};
-    float m_DPI = 1.0f;
-    GLuint m_textureID;
-
     enum : int {
         VRAM_24BITS,
         VRAM_16BITS,
         VRAM_8BITS,
         VRAM_4BITS,
     } m_vramMode = VRAM_16BITS;
-    bool m_alpha = false;
-    bool m_greyscale = false;
-    bool m_selectingClut = false;
-    int m_24shift = 0;
+    float m_monitorDPI;
+    ImVec2 m_monitorPosition;
+    ImVec2 m_monitorResolution;
+    ImVec2 m_mousePos;
+    ImVec2 m_mouseUV;
+    ImVec2 m_origin;
+    ImVec4 m_readColor = ImVec4{0.0f, 1.0f, 0.0f, 1.0f};
+    ImVec2 m_resolution;
+    ImVec4 m_writtenColor = ImVec4{1.0f, 0.0f, 0.0f, 1.0f};
 
   public:
     bool &m_show;
@@ -121,7 +128,6 @@ class VRAMViewer {
     std::function<std::string()> m_title;
 
     bool m_hasClut = false;
-    ImVec2 m_clut;
     VRAMViewer *m_clutDestination = nullptr;
 
     bool m_firstShown = false;

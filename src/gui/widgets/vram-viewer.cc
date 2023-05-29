@@ -35,9 +35,12 @@
 
 static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
+
 in vec2 i_position;
 in vec2 i_texUV;
+
 uniform mat4 u_projMatrix;
+
 out vec2 fragUV;
 
 void main() {
@@ -48,30 +51,33 @@ void main() {
 
 static const GLchar *s_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
-uniform sampler2D u_vramTexture;
-uniform vec2 u_origin;
-uniform vec2 u_resolution;
-uniform vec2 u_mousePos;
-uniform bool u_hovered;
-uniform bool u_alpha;
-uniform int u_mode;
-uniform vec2 u_mouseUV;
-uniform vec2 u_cornerTL;
-uniform vec2 u_cornerBR;
+
 uniform int u_24shift;
-uniform float u_monitorDPI;
-in vec2 fragUV;
-out vec4 outColor;
-in vec4 gl_FragCoord;
+uniform bool u_alpha;
+uniform vec2 u_clut;
+uniform vec2 u_cornerBR;
+uniform vec2 u_cornerTL;
+uniform bool u_hovered;
+uniform bool u_greyscale;
 uniform bool u_magnify;
 uniform float u_magnifyRadius;
 uniform float u_magnifyAmount;
-const float ridge = 1.5f;
-
-uniform bool u_greyscale;
-uniform vec2 u_clut;
-
+uniform int u_mode;
+uniform float u_monitorDPI;
+uniform vec2 u_mousePos;
+uniform vec2 u_mouseUV;
+uniform vec4 u_readColor;
+uniform vec2 u_resolution;
+uniform vec2 u_origin;
+uniform sampler2D u_vramTexture;
+uniform vec4 u_writtenColor;
 uniform sampler2D u_writtenHighlight;
+
+in vec2 fragUV;
+out vec4 outColor;
+in vec4 gl_FragCoord;
+
+const float ridge = 1.5f;
 
 const vec4 grey1 = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 const vec4 grey2 = vec4(0.8f, 0.8f, 0.8f, 1.0f);
@@ -194,7 +200,7 @@ float sum9(in sampler2D sampler, in vec2 pos) {
 vec4 outlineColor(in sampler2D sampler, in vec2 pos) {
     float sum = sum9(sampler, pos);
     if ((sum >= 0.999) || (sum <= 0.001)) return vec4(0.0, 0.0, 0.0, 0.0);
-    return vec4(1.0, 0.0, 0.0, 1.0);
+    return u_writtenColor;
 }
 
 void main() {
@@ -230,32 +236,35 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     if (!status.isOk()) return;
 
     m_shaderProgram = m_editor.getProgram();
-    m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "u_vramTexture");
-    m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
+
+    m_attribLocation24shift = glGetUniformLocation(m_shaderProgram, "u_24shift");
+    m_attribLocationAlpha = glGetUniformLocation(m_shaderProgram, "u_alpha");
+    m_attribLocationClut = glGetUniformLocation(m_shaderProgram, "u_clut");
+    m_attribLocationCornerBR = glGetUniformLocation(m_shaderProgram, "u_cornerBR");
+    m_attribLocationCornerTL = glGetUniformLocation(m_shaderProgram, "u_cornerTL");
+    m_attribLocationGreyscale = glGetUniformLocation(m_shaderProgram, "u_greyscale");
     m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "u_hovered");
+    m_attribLocationMagnify = glGetUniformLocation(m_shaderProgram, "u_magnify");
+    m_attribLocationMagnifyAmount = glGetUniformLocation(m_shaderProgram, "u_magnifyAmount");
+    m_attribLocationMagnifyRadius = glGetUniformLocation(m_shaderProgram, "u_magnifyRadius");
+    m_attribLocationMode = glGetUniformLocation(m_shaderProgram, "u_mode");
+    m_attribLocationMonitorDPI = glGetUniformLocation(m_shaderProgram, "u_monitorDPI");
+    m_attribLocationMonitorPosition = glGetUniformLocation(m_shaderProgram, "u_monitorPosition");
+    m_attribLocationMonitorResolution = glGetUniformLocation(m_shaderProgram, "u_monitorResolution");
     m_attribLocationMousePos = glGetUniformLocation(m_shaderProgram, "u_mousePos");
     m_attribLocationMouseUV = glGetUniformLocation(m_shaderProgram, "u_mouseUV");
-    m_attribLocationResolution = glGetUniformLocation(m_shaderProgram, "u_resolution");
     m_attribLocationOrigin = glGetUniformLocation(m_shaderProgram, "u_origin");
-    m_attribLocationMonitorResolution = glGetUniformLocation(m_shaderProgram, "u_monitorResolution");
-    m_attribLocationMonitorPosition = glGetUniformLocation(m_shaderProgram, "u_monitorPosition");
-    m_attribLocationMonitorDPI = glGetUniformLocation(m_shaderProgram, "u_monitorDPI");
-    m_attribLocationMagnify = glGetUniformLocation(m_shaderProgram, "u_magnify");
-    m_attribLocationMagnifyRadius = glGetUniformLocation(m_shaderProgram, "u_magnifyRadius");
-    m_attribLocationMagnifyAmount = glGetUniformLocation(m_shaderProgram, "u_magnifyAmount");
-    m_attribLocationCornerTL = glGetUniformLocation(m_shaderProgram, "u_cornerTL");
-    m_attribLocationCornerBR = glGetUniformLocation(m_shaderProgram, "u_cornerBR");
-    m_attribLocationAlpha = glGetUniformLocation(m_shaderProgram, "u_alpha");
-    m_attribLocationGreyscale = glGetUniformLocation(m_shaderProgram, "u_greyscale");
-    m_attribLocationMode = glGetUniformLocation(m_shaderProgram, "u_mode");
-    m_attribLocationClut = glGetUniformLocation(m_shaderProgram, "u_clut");
-    m_attribLocation24shift = glGetUniformLocation(m_shaderProgram, "u_24shift");
+    m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
+    m_attribLocationReadColor = glGetUniformLocation(m_shaderProgram, "u_readColor");
+    m_attribLocationReadHeatmap = glGetUniformLocation(m_shaderProgram, "u_readHeatmap");
+    m_attribLocationReadHighlight = glGetUniformLocation(m_shaderProgram, "u_readHighlight");
+    m_attribLocationResolution = glGetUniformLocation(m_shaderProgram, "u_resolution");
+    m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "u_vramTexture");
     m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "i_position");
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
+    m_attribLocationWrittenColor = glGetUniformLocation(m_shaderProgram, "u_writtenColor");
     m_attribLocationWrittenHeatmap = glGetUniformLocation(m_shaderProgram, "u_writtenHeatmap");
-    m_attribLocationReadHeatmap = glGetUniformLocation(m_shaderProgram, "u_readHeatmap");
     m_attribLocationWrittenHighlight = glGetUniformLocation(m_shaderProgram, "u_writtenHighlight");
-    m_attribLocationReadHighlight = glGetUniformLocation(m_shaderProgram, "u_readHighlight");
 }
 
 PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show), m_listener(g_system->m_eventBus) {
@@ -365,16 +374,18 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glGetUniformfv(imguiProgramID, projMatrixLocation, &currentProjection[0][0]);
 
     glUseProgram(m_shaderProgram);
-    glUniform1i(m_attribLocationTex, 0);
-    glUniformMatrix4fv(m_attribLocationProjMtx, 1, GL_FALSE, &currentProjection[0][0]);
+
+    glUniform1i(m_attribLocation24shift, m_24shift);
+    glUniform1i(m_attribLocationAlpha, m_alpha);
+    glUniform2f(m_attribLocationClut, m_clut.x, m_clut.y);
+    glUniform2f(m_attribLocationCornerBR, m_cornerBR.x, m_cornerBR.y);
+    glUniform2f(m_attribLocationCornerTL, m_cornerTL.x, m_cornerTL.y);
+    if (!m_hasClut && m_vramMode >= 2) {
+        glUniform1i(m_attribLocationGreyscale, 1);
+    } else {
+        glUniform1i(m_attribLocationGreyscale, m_greyscale);
+    }
     glUniform1i(m_attribLocationHovered, m_hovered);
-    glUniform2f(m_attribLocationMousePos, m_mousePos.x, m_mousePos.y);
-    glUniform2f(m_attribLocationMouseUV, m_mouseUV.x, m_mouseUV.y);
-    glUniform2f(m_attribLocationResolution, m_resolution.x, m_resolution.y);
-    glUniform2f(m_attribLocationOrigin, m_origin.x, m_origin.y);
-    glUniform2f(m_attribLocationMonitorResolution, m_monitorResolution.x, m_monitorResolution.y);
-    glUniform2f(m_attribLocationMonitorPosition, m_monitorPosition.x, m_monitorPosition.y);
-    glUniform1f(m_attribLocationMonitorDPI, m_monitorDPI);
     glUniform1i(m_attribLocationMagnify, m_magnify);
     if (m_magnifyAmount < 0.0f) {
         glUniform1f(m_attribLocationMagnifyAmount, -1.0f / m_magnifyAmount);
@@ -382,27 +393,29 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
         glUniform1f(m_attribLocationMagnifyAmount, m_magnifyAmount);
     }
     glUniform1f(m_attribLocationMagnifyRadius, m_magnifyRadius);
-    glUniform2f(m_attribLocationCornerTL, m_cornerTL.x, m_cornerTL.y);
-    glUniform2f(m_attribLocationCornerBR, m_cornerBR.x, m_cornerBR.y);
-    glUniform1i(m_attribLocationAlpha, m_alpha);
-    if (!m_hasClut && m_vramMode >= 2) {
-        glUniform1i(m_attribLocationGreyscale, 1);
-    } else {
-        glUniform1i(m_attribLocationGreyscale, m_greyscale);
-    }
     glUniform1i(m_attribLocationMode, m_vramMode);
-    glUniform2f(m_attribLocationClut, m_clut.x, m_clut.y);
-    glUniform1i(m_attribLocation24shift, m_24shift);
+    glUniform1f(m_attribLocationMonitorDPI, m_monitorDPI);
+    glUniform2f(m_attribLocationMonitorPosition, m_monitorPosition.x, m_monitorPosition.y);
+    glUniform2f(m_attribLocationMonitorResolution, m_monitorResolution.x, m_monitorResolution.y);
+    glUniform2f(m_attribLocationMousePos, m_mousePos.x, m_mousePos.y);
+    glUniform2f(m_attribLocationMouseUV, m_mouseUV.x, m_mouseUV.y);
+    glUniform2f(m_attribLocationOrigin, m_origin.x, m_origin.y);
+    glUniformMatrix4fv(m_attribLocationProjMtx, 1, GL_FALSE, &currentProjection[0][0]);
+    glUniform4f(m_attribLocationReadColor, m_readColor.x, m_readColor.y, m_readColor.z, m_readColor.w);
+    glUniform1i(m_attribLocationReadHeatmap, 2);
+    glUniform1i(m_attribLocationReadHighlight, 4);
+    glUniform2f(m_attribLocationResolution, m_resolution.x, m_resolution.y);
+    glUniform1i(m_attribLocationTex, 0);
     glEnableVertexAttribArray(m_attribLocationVtxPos);
-    glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
+    glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+    glUniform4f(m_attribLocationWrittenColor, m_writtenColor.x, m_writtenColor.y, m_writtenColor.z, m_writtenColor.w);
     glUniform1i(m_attribLocationWrittenHeatmap, 1);
-    glUniform1i(m_attribLocationReadHeatmap, 2);
     glUniform1i(m_attribLocationWrittenHighlight, 3);
-    glUniform1i(m_attribLocationReadHighlight, 4);
+
     auto *logger = g_emulator->m_gpuLogger.get();
     glActiveTexture(GL_TEXTURE1);
     logger->bindWrittenHeatmap();
@@ -424,6 +437,31 @@ void PCSX::Widgets::VRAMViewer::resetView() {
 }
 
 void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
+#if 0
+    if (ImGui::Begin("Debug me")) {
+        ImGui::Text("Hovered: %s", m_hovered ? "true" : "false");
+        ImGui::Text("Mouse pos: (%.1f, %.1f)", m_mousePos.x, m_mousePos.y);
+        ImGui::Text("Mouse UV: (%.1f, %.1f)", m_mouseUV.x, m_mouseUV.y);
+        ImGui::Text("Resolution: (%.1f, %.1f)", m_resolution.x, m_resolution.y);
+        ImGui::Text("Origin: (%.1f, %.1f)", m_origin.x, m_origin.y);
+        ImGui::Text("Monitor resolution: (%.1f, %.1f)", m_monitorResolution.x, m_monitorResolution.y);
+        ImGui::Text("Monitor position: (%.1f, %.1f)", m_monitorPosition.x, m_monitorPosition.y);
+        ImGui::Text("Monitor DPI: %.1f", m_monitorDPI);
+        ImGui::Text("Magnify: %s", m_magnify ? "true" : "false");
+        ImGui::Text("Magnify amount: %.1f", m_magnifyAmount);
+        ImGui::Text("Magnify radius: %.1f", m_magnifyRadius);
+        ImGui::Text("Corner TL: (%.1f, %.1f)", m_cornerTL.x, m_cornerTL.y);
+        ImGui::Text("Corner BR: (%.1f, %.1f)", m_cornerBR.x, m_cornerBR.y);
+        ImGui::Text("Alpha: %s", m_alpha ? "true" : "false");
+        ImGui::Text("Greyscale: %s", m_greyscale ? "true" : "false");
+        ImGui::Text("VRAM mode: %d", m_vramMode);
+        ImGui::Text("CLUT: (%.1f, %.1f)", m_clut.x, m_clut.y);
+        ImGui::Text("24 bits shift: %d", m_24shift);
+    }
+    ImGui::End();
+#endif
+    bool openReadColorPicker = false;
+    bool openWrittenColorPicker = false;
     auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
     if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
         m_DPI = ImGui::GetWindowDpiScale();
@@ -469,6 +507,12 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
                 ImGui::EndMenu();
             }
             ImGui::Separator();
+            if (ImGui::BeginMenu(_("Configuration"))) {
+                ImGui::MenuItem(_("Select read highlight color"), nullptr, &openReadColorPicker);
+                ImGui::MenuItem(_("Select written highlight color"), nullptr, &openWrittenColorPicker);
+                ImGui::EndMenu();
+            }
+            ImGui::Separator();
             ImGui::Separator();
             ImGui::Text("%.0f : %.0f", std::floor(m_mouseUV.x * 1024.0f), std::floor(m_mouseUV.y * 512.0f));
             if (m_hasClut) {
@@ -478,6 +522,30 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
             ImGui::EndMenuBar();
         }
         drawVRAM(gui, VRAMTexture);
+    }
+    if (openReadColorPicker) {
+        ImGui::OpenPopup(_("Read Highlight Color Picker"));
+    }
+    if (ImGui::BeginPopupModal(_("Read Highlight Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::ColorPicker4(
+            "##ColorPicker", (float *)&m_readColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
+        if (ImGui::Button(_("OK"))) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    if (openWrittenColorPicker) {
+        ImGui::OpenPopup(_("Written Highlight Color Picker"));
+    }
+    if (ImGui::BeginPopupModal(_("Written Highlight Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::ColorPicker4(
+            "##ColorPicker", (float *)&m_writtenColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
+        if (ImGui::Button(_("OK"))) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
     }
     ImGui::End();
 
