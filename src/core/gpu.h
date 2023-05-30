@@ -432,6 +432,7 @@ class GPU {
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
         void getVertices(AddTri &&, PixelOp) override {}
+        TWindow() {}
         TWindow(uint32_t value);
         TWindow(const TWindow &other) = default;
         TWindow(TWindow &&other) = default;
@@ -477,6 +478,7 @@ class GPU {
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
         void getVertices(AddTri &&, PixelOp) override {}
+        DrawingOffset() {}
         DrawingOffset(uint32_t value);
         DrawingOffset(const DrawingOffset &other) = default;
         DrawingOffset(DrawingOffset &&other) = default;
@@ -522,7 +524,9 @@ class GPU {
         [[no_unique_address]] TextureUnitType u[count];
         [[no_unique_address]] TextureUnitType v[count];
         [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
+        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TWindow, Empty>::type twindow;
         [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
+        DrawingOffset offset;
         TextureUnitType clutX() {
             if constexpr (textured == Textured::Yes) {
                 return (clutraw & 0x3f) * 16;
@@ -572,6 +576,7 @@ class GPU {
 
         Storage<int> x, y;
         Storage<uint32_t> colors;
+        DrawingOffset offset;
 
       private:
         GPUStats stats;
@@ -600,7 +605,10 @@ class GPU {
             color;
         [[no_unique_address]] TextureUnitType u;
         [[no_unique_address]] TextureUnitType v;
+        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
+        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TWindow, Empty>::type twindow;
         [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
+        DrawingOffset offset;
         TextureUnitType clutX() {
             if constexpr (textured == Textured::Yes) {
                 return (clutraw & 0x3f) * 16;
@@ -791,6 +799,10 @@ class GPU {
 
     IO<Fifo> m_readFifo = new Fifo();
     Slice m_vramReadSlice;
+
+    TPage m_lastTPage;
+    TWindow m_lastTWindow;
+    DrawingOffset m_lastOffset;
 
     virtual void write0(ClearCache *) = 0;
     virtual void write0(FastFill *) = 0;

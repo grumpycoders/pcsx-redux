@@ -71,6 +71,7 @@ uniform vec2 u_resolution;
 uniform vec2 u_origin;
 uniform sampler2D u_vramTexture;
 uniform vec4 u_writtenColor;
+uniform sampler2D u_readHighlight;
 uniform sampler2D u_writtenHighlight;
 
 in vec2 fragUV;
@@ -106,7 +107,7 @@ vec4 readTexture(in vec2 pos) {
     int c = texelToRaw(t);
 
     switch (u_mode) {
-    case 0:
+    case 3:
         {
             ret.a = 1.0f;
             vec4 tb = texture(u_vramTexture, pos - vec2(1.0 / 1024.0f, 0.0f));
@@ -138,10 +139,10 @@ vec4 readTexture(in vec2 pos) {
             }
         }
         break;
-    case 1:
+    case 2:
         ret = t;
         break;
-    case 2:
+    case 1:
         scale = 255.0f;
         if (fpos.x < 0.5f) {
             p = (c >> 0) & 0xff;
@@ -149,7 +150,7 @@ vec4 readTexture(in vec2 pos) {
             p = (c >> 8) & 0xff;
         }
         break;
-    case 3:
+    case 0:
         scale = 15.0f;
         if (fpos.x < 0.25f) {
             p = (c >> 0) & 0xf;
@@ -163,7 +164,7 @@ vec4 readTexture(in vec2 pos) {
         break;
     }
 
-    if (u_mode >= 2) {
+    if (u_mode < 2) {
         if (u_greyscale) {
             ret = vec4(float(p) / scale);
             ret.a = 1.0f;
@@ -197,10 +198,10 @@ float sum9(in sampler2D sampler, in vec2 pos) {
     return sum / 9.0;
 }
 
-vec4 outlineColor(in sampler2D sampler, in vec2 pos) {
+vec4 outlineColor(in sampler2D sampler, in vec4 color, in vec2 pos) {
     float sum = sum9(sampler, pos);
     if ((sum >= 0.999) || (sum <= 0.001)) return vec4(0.0, 0.0, 0.0, 0.0);
-    return u_writtenColor;
+    return color;
 }
 
 void main() {
@@ -210,8 +211,10 @@ void main() {
     vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
     vec4 magnifyColor = readTexture(magnifyVector + u_mouseUV);
 
-    vec4 outline = outlineColor(u_writtenHighlight, fragUV.st);
-    fragColor = mix(fragColor, outline, outline.a);
+    vec4 readOutline = outlineColor(u_readHighlight, u_readColor, fragUV.st);
+    fragColor = mix(fragColor, readOutline, readOutline.a);
+    vec4 writtenOutline = outlineColor(u_writtenHighlight, u_writtenColor, fragUV.st);
+    fragColor = mix(fragColor, writtenOutline, writtenOutline.a);
     vec2 mousePos = vec2(u_mousePos.x - u_origin.x * 2.0, u_resolution.y - u_mousePos.y);
 
     float blend = u_magnify ?
@@ -276,6 +279,35 @@ PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show), m_listener(g_s
         }
     });
     m_listener.listen<PCSX::Events::GUI::VRAMFocus>([this](auto event) {
+        if (!m_isMain) return;
+        bool changed = false;
+        switch (event.vramMode) {
+            case PCSX::Events::GUI::VRAMFocus::VRAM_4BITS:
+                if (m_vramMode != VRAM_4BITS) {
+                    m_vramMode = VRAM_4BITS;
+                    changed = true;
+                }
+                break;
+            case PCSX::Events::GUI::VRAMFocus::VRAM_8BITS:
+                if (m_vramMode != VRAM_8BITS) {
+                    m_vramMode = VRAM_8BITS;
+                    changed = true;
+                }
+                break;
+            case PCSX::Events::GUI::VRAMFocus::VRAM_16BITS:
+                if (m_vramMode != VRAM_16BITS) {
+                    m_vramMode = VRAM_16BITS;
+                    changed = true;
+                }
+                break;
+            case PCSX::Events::GUI::VRAMFocus::VRAM_24BITS:
+                if (m_vramMode != VRAM_24BITS) {
+                    m_vramMode = VRAM_24BITS;
+                    changed = true;
+                }
+                break;
+        }
+        if (changed) modeChanged();
         focusOn({float(event.x1), float(event.y1)}, {float(event.x2), float(event.y2)});
     });
 }
@@ -380,7 +412,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniform2f(m_attribLocationClut, m_clut.x, m_clut.y);
     glUniform2f(m_attribLocationCornerBR, m_cornerBR.x, m_cornerBR.y);
     glUniform2f(m_attribLocationCornerTL, m_cornerTL.x, m_cornerTL.y);
-    if (!m_hasClut && m_vramMode >= 2) {
+    if (!m_hasClut && m_vramMode < 2) {
         glUniform1i(m_attribLocationGreyscale, 1);
     } else {
         glUniform1i(m_attribLocationGreyscale, m_greyscale);
@@ -514,7 +546,9 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
             }
             ImGui::Separator();
             ImGui::Separator();
-            ImGui::Text("%.0f : %.0f", std::floor(m_mouseUV.x * 1024.0f), std::floor(m_mouseUV.y * 512.0f));
+            float divisor = m_vramMode == VRAM_4BITS ? 4.0f : m_vramMode == VRAM_8BITS ? 2.0f : 1.0f;
+            ImGui::Text("Cursor: %.2f : %.2f", std::floor(m_mouseUV.x * 1024.0f * divisor) / divisor,
+                        std::floor(m_mouseUV.y * 512.0f * divisor) / divisor);
             if (m_hasClut) {
                 ImGui::Separator();
                 ImGui::Text("CLUT: %.0f : %.0f", std::floor(m_clut.x * 1024.0f), std::floor(m_clut.y * 512.0f));

@@ -51,7 +51,7 @@ class VRAMViewer {
 
   private:
     void drawEditor(GUI *gui);
-    static inline const float RATIOS[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
+    static inline const float RATIOS[] = {0.125f, 0.25f, 0.5f, 0.75f};
     void drawVRAM(GUI *gui, GLuint textureID);
     void compileShader(GUI *gui);
     void modeChanged();
@@ -106,10 +106,10 @@ class VRAMViewer {
     float m_magnifyAmount = 5.0f;
     float m_magnifyRadius = 150.0f;
     enum : int {
-        VRAM_24BITS,
-        VRAM_16BITS,
-        VRAM_8BITS,
         VRAM_4BITS,
+        VRAM_8BITS,
+        VRAM_16BITS,
+        VRAM_24BITS,
     } m_vramMode = VRAM_16BITS;
     float m_monitorDPI;
     ImVec2 m_monitorPosition;
@@ -117,9 +117,9 @@ class VRAMViewer {
     ImVec2 m_mousePos;
     ImVec2 m_mouseUV;
     ImVec2 m_origin;
-    ImVec4 m_readColor = ImVec4{0.0f, 1.0f, 0.0f, 1.0f};
+    ImVec4 m_readColor = ImVec4{0.0f, 1.0f, 0.0f, 0.375f};
     ImVec2 m_resolution;
-    ImVec4 m_writtenColor = ImVec4{1.0f, 0.0f, 0.0f, 1.0f};
+    ImVec4 m_writtenColor = ImVec4{1.0f, 0.0f, 0.0f, 0.375f};
 
   public:
     bool &m_show;

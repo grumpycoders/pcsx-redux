@@ -76,6 +76,8 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer
                     } else if (m_count == 1) {
                         value &= 0b0000100111111111;
                         tpage = TPage(value);
+                        uint32_t lastTPage = m_gpu->m_lastTPage.raw & ~0b0000100111111111;
+                        m_gpu->m_lastTPage = TPage(lastTPage | value);
                     }
                 }
             }
@@ -83,6 +85,10 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer
     }
     m_count = 0;
     m_state = READ_COLOR;
+    if constexpr (textured == Textured::Yes) {
+        twindow = TWindow(m_gpu->m_lastTWindow.raw);
+    }
+    offset = m_gpu->m_lastOffset;
     m_gpu->m_defaultProcessor.setActive();
     g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
     m_gpu->write0(this);
@@ -139,6 +145,7 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer & buf, Logged::Ori
         m_count = 0;
     }
     m_state = READ_COLOR;
+    offset = m_gpu->m_lastOffset;
     m_gpu->m_defaultProcessor.setActive();
     if ((colors.size() >= 2) && ((colors.size() == x.size()))) {
         g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
@@ -203,6 +210,11 @@ void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer & buf, Lo
             }
     }
     m_state = READ_COLOR;
+    if constexpr (textured == Textured::Yes) {
+        tpage = TPage(m_gpu->m_lastTPage.raw);
+        twindow = TWindow(m_gpu->m_lastTWindow.raw);
+    }
+    offset = m_gpu->m_lastOffset;
     m_gpu->m_defaultProcessor.setActive();
     g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
     m_gpu->write0(this);
@@ -712,11 +724,13 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                 switch (command) {
                     case 1: {  // tpage
                         TPage prim(packetInfo);
+                        m_gpu->m_lastTPage = TPage(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 2: {  // twindow
                         TWindow prim(packetInfo);
+                        m_gpu->m_lastTWindow = TWindow(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                         m_gpu->write0(&prim);
                     } break;
@@ -732,6 +746,7 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                     } break;
                     case 5: {  // drawing offset
                         DrawingOffset prim(packetInfo);
+                        m_gpu->m_lastOffset = DrawingOffset(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
                         m_gpu->write0(&prim);
                     } break;
@@ -1047,20 +1062,25 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
     for (unsigned i = 0; i < count; i++) {
         ImGui::Separator();
         ImGui::Text(_("Vertex %i"), i);
-        ImGui::Text("  X: %i, Y: %i", x[i], y[i]);
-        minX = std::min(minX, x[i]);
-        minY = std::min(minY, y[i]);
-        maxX = std::max(maxX, x[i]);
-        maxY = std::max(maxY, y[i]);
+        ImGui::Text("  X: %i + %i = %i, Y: %i + %i = %i", x[i], offset.x, x[i] + offset.x, y[i], offset.y,
+                    y[i] + offset.y);
+        minX = std::min(minX, x[i] + offset.x);
+        minY = std::min(minY, y[i] + offset.y);
+        maxX = std::max(maxX, x[i] + offset.x);
+        maxY = std::max(maxY, y[i] + offset.y);
         if constexpr ((shading == Shading::Gouraud) && ((textured == Textured::No) || (modulation == Modulation::On))) {
             ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
                         (colors[i] >> 16) & 0xff);
         }
         if constexpr (textured == Textured::Yes) {
-            ImGui::Text("  U: %i, V: %i", u[i], v[i]);
-            minU = std::min(minU, int(u[i]));
+            unsigned tx = tpage.tx * 64;
+            unsigned ty = tpage.ty * 256;
+            unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+            ImGui::Text("  U: %i >> %i + %i = %i, V: %i + %i = %i", u[i], shift, tx, (u[i] >> shift) + tx, v[i], ty,
+                        v[i] + ty);
+            minU = std::min(minU, int(u[i] >> shift));
             minV = std::min(minV, int(v[i]));
-            maxU = std::max(maxU, int(u[i]));
+            maxU = std::max(maxU, int(u[i] >> shift));
             maxV = std::max(maxV, int(v[i]));
         }
     }
@@ -1070,11 +1090,17 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
         g_system->m_eventBus->signal(Events::GUI::VRAMFocus{minX, minY, maxX, maxY});
     }
     if constexpr (textured == Textured::Yes) {
+        unsigned tx = tpage.tx * 64;
+        unsigned ty = tpage.ty * 256;
         ImGui::SameLine();
         std::string label = fmt::format(f_("Go to texture##{}"), n);
         if (ImGui::Button(label.c_str())) {
-            g_system->m_eventBus->signal(Events::GUI::VRAMFocus{int(minU + tpage.tx * 64), int(minV + tpage.ty * 256),
-                                                                int(maxU + tpage.tx * 64), int(maxV + tpage.ty * 256)});
+            const auto mode = tpage.texDepth == TexDepth::Tex16Bits  ? Events::GUI::VRAMFocus::VRAM_16BITS
+                              : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
+                                                                     : Events::GUI::VRAMFocus::VRAM_4BITS;
+            g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
+            g_system->m_eventBus->signal(
+                Events::GUI::VRAMFocus{int(minU + tx), int(minV + ty), int(maxU + tx), int(maxV + ty), mode});
         }
         if (tpage.texDepth != TexDepth::Tex16Bits) {
             ImGui::SameLine();
@@ -1106,20 +1132,22 @@ void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned n) {
         if constexpr (lineType == LineType::Poly) {
             ImGui::Text(_("Line %i"), i);
         }
-        ImGui::Text("  X0: %i, Y0: %i", x[i - 1], y[i - 1]);
+        ImGui::Text("  X0: %i + %i = %i, Y0: %i + %i = %i", x[i - 1], offset.x, x[i - 1] + offset.x, y[i - 1], offset.y,
+                    y[i - 1] + offset.y);
         if constexpr (shading == Shading::Gouraud) {
             ImGui::Text("  R: %i, G: %i, B: %i", (colors[i - 1] >> 0) & 0xff, (colors[i - 1] >> 8) & 0xff,
                         (colors[i - 1] >> 16) & 0xff);
         }
-        ImGui::Text("  X1: %i, Y1: %i", x[i], y[i]);
+        ImGui::Text("  X1: %i + %i = %i, Y1: %i + %i = %i", x[i], offset.x, x[i] + offset.x, y[i], offset.y,
+                    y[i] + offset.y);
         if constexpr (shading == Shading::Gouraud) {
             ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
                         (colors[i] >> 16) & 0xff);
         }
-        minX = std::min(minX, x[i]);
-        minY = std::min(minY, y[i]);
-        maxX = std::max(maxX, x[i]);
-        maxY = std::max(maxY, y[i]);
+        minX = std::min(minX, x[i] + offset.x);
+        minY = std::min(minY, y[i] + offset.y);
+        maxX = std::max(maxX, x[i] + offset.x);
+        maxY = std::max(maxY, y[i] + offset.y);
     }
     ImGui::Separator();
     std::string label = fmt::format(f_("Go to primitive##{}"), n);
@@ -1130,8 +1158,9 @@ void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned n) {
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n) {
-    ImGui::Text("  X0: %i, Y0: %i", x, y);
-    ImGui::Text("  X1: %i, Y1: %i", x + w, y + h);
+    ImGui::Text("  X0: %i + %i = %i, Y0: %i + %i = %i", x, offset.x, x + offset.x, y, offset.y, y + offset.y);
+    ImGui::Text("  X1: %i + %i = %i, Y1: %i + %i = %i", x + w, offset.x, x + w + offset.x, y + h, offset.y,
+                y + h + offset.y);
     ImGui::Text("  W: %i, H: %i", w, h);
     if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
         ImGui::Text("  R: %i, G: %i, B: %i", (color >> 0) & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
@@ -1140,7 +1169,10 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n)
         ImGui::TextUnformatted(_("Semi-transparency blending"));
     }
     if constexpr (textured == Textured::Yes) {
-        ImGui::Text("  U: %i, V: %i", u, v);
+        unsigned tx = tpage.tx * 64;
+        unsigned ty = tpage.ty * 256;
+        unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+        ImGui::Text("  U: %i >> %i + %i = %i, V: %i + %i = %i", u, shift, tx, (u >> shift) + tx, v, ty, v + ty);
         std::string label = fmt::format("  ClutX: {}, ClutY: {}", clutX(), clutY());
         if (ImGui::Button(label.c_str())) {
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
@@ -1149,14 +1181,30 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n)
     ImGui::Separator();
     std::string label = fmt::format(f_("Go to primitive##{}"), n);
     if (ImGui::Button(label.c_str())) {
-        g_system->m_eventBus->signal(Events::GUI::VRAMFocus{x, y, x + w, y + h});
+        g_system->m_eventBus->signal(
+            Events::GUI::VRAMFocus{x + offset.x, y + offset.y, x + w + offset.x, y + h + offset.y});
     }
     if constexpr (textured == Textured::Yes) {
+        unsigned tx = tpage.tx * 64;
+        unsigned ty = tpage.ty * 256;
+        unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
         ImGui::SameLine();
-        std::string label = fmt::format(f_("Go to CLUT##{}"), n);
+        std::string label = fmt::format(f_("Go to texture##{}"), n);
         if (ImGui::Button(label.c_str())) {
-            g_system->m_eventBus->signal(
-                Events::GUI::VRAMFocus{int(clutX()), int(clutY()), int(clutX() + 256), int(clutY() + 1)});
+            const auto mode = tpage.texDepth == TexDepth::Tex16Bits  ? Events::GUI::VRAMFocus::VRAM_16BITS
+                              : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
+                                                                     : Events::GUI::VRAMFocus::VRAM_4BITS;
+            g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
+            g_system->m_eventBus->signal(Events::GUI::VRAMFocus{int((u >> shift) + tx), int(v + ty),
+                                                                int(((u + w) >> shift) + tx), int(v + h + ty), mode});
+        }
+        if (tpage.texDepth != TexDepth::Tex16Bits) {
+            ImGui::SameLine();
+            std::string label = fmt::format(f_("Go to CLUT##{}"), n);
+            if (ImGui::Button(label.c_str())) {
+                g_system->m_eventBus->signal(
+                    Events::GUI::VRAMFocus{int(clutX()), int(clutY()), int(clutX() + 256), int(clutY() + 1)});
+            }
         }
     }
 }
@@ -1186,9 +1234,10 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::generateStats
         pixelArea += triangleArea(x[1], x[2], x[3], y[1], y[2], y[3]);
     }
     if constexpr (textured == Textured::Yes) {
-        textureArea += triangleArea(u[0], u[1], u[2], v[0], v[1], v[2]);
+        unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+        textureArea += triangleArea(u[0] >> shift, u[1] >> shift, u[2] >> shift, v[0], v[1], v[2]);
         if constexpr (shape == Shape::Quad) {
-            textureArea += triangleArea(u[1], u[2], u[3], v[1], v[2], v[3]);
+            textureArea += triangleArea(u[1] >> shift, u[2] >> shift, u[3] >> shift, v[1], v[2], v[3]);
         }
     }
 
@@ -1203,6 +1252,7 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::generateStats
     }
     stats.texelReads = textureArea;
 }
+
 template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
 void PCSX::GPU::Line<shading, lineType, blend>::generateStatsInfo() {
     unsigned pixels = 0;
@@ -1227,16 +1277,19 @@ template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Texture
 void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::cumulateStats(GPUStats *accum) {
     *accum += stats;
 }
+
 template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
 void PCSX::GPU::Line<shading, lineType, blend>::cumulateStats(GPUStats *accum) {
     *accum += stats;
 }
+
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Rect<size, textured, blend, modulation>::cumulateStats(GPUStats *stats) {
     auto s = h * w;
     stats->pixelWrites += s;
     if constexpr (textured == Textured::Yes) {
-        stats->texelReads += s;
+        unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+        stats->texelReads += s >> shift;
         stats->sprites++;
     } else {
         stats->rectangles++;
@@ -1250,21 +1303,29 @@ template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Texture
           PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x[0], y[0]}, {x[1], y[1]}, {x[2], y[2]});
+        add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y});
         if constexpr (shape == Shape::Quad) {
-            add({x[1], y[1]}, {x[2], y[2]}, {x[3], y[3]});
+            add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
+                {x[3] + offset.x, y[3] + offset.y});
         }
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x[0], y[0]}, {x[1], y[1]}, {x[2], y[2]});
+            add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y},
+                {x[2] + offset.x, y[2] + offset.y});
             if constexpr (shape == Shape::Quad) {
-                add({x[1], y[1]}, {x[2], y[2]}, {x[3], y[3]});
+                add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
+                    {x[3] + offset.x, y[3] + offset.y});
             }
         }
         if constexpr (textured == Textured::Yes) {
-            add({int(u[0]), int(v[0])}, {int(u[1]), int(v[1])}, {int(u[2]), int(v[2])});
+            unsigned tx = tpage.tx * 64;
+            unsigned ty = tpage.ty * 256;
+            unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+            add({int((u[0] >> shift) + tx), int(v[0] + ty)}, {int((u[1] >> shift) + tx), int(v[1] + ty)},
+                {int((u[2] >> shift) + tx), int(v[2] + ty)});
             if constexpr (shape == Shape::Quad) {
-                add({int(u[1]), int(v[1])}, {int(u[2]), int(v[2])}, {int(u[3]), int(v[3])});
+                add({int((u[1] >> shift) + tx), int(v[1] + ty)}, {int((u[2] >> shift) + tx), int(v[2] + ty)},
+                    {int((u[3] >> shift) + tx), int(v[3] + ty)});
             }
             if (tpage.texDepth == TexDepth::Tex4Bits) {
                 addLine(std::move(add), clutX(), clutY(), clutX() + 16, clutY());
@@ -1274,6 +1335,7 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::getVertices(A
         }
     }
 }
+
 template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
 void PCSX::GPU::Line<shading, lineType, blend>::getVertices(AddTri &&add, PixelOp op) {
     if constexpr (blend == Blend::Off) {
@@ -1286,23 +1348,30 @@ void PCSX::GPU::Line<shading, lineType, blend>::getVertices(AddTri &&add, PixelO
         auto y0 = y[i - 1];
         auto y1 = y[i];
 
-        addLine(std::move(add), x0, y0, x1, y1);
+        addLine(std::move(add), x0 + offset.x, y0 + offset.y, x1 + offset.x, y1 + offset.y);
     }
 }
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x, y}, {x + w, y}, {x + w, y + h});
-        add({x + w, y + h}, {x, y + h}, {x, y});
+        add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
+        add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x, y}, {x + w, y}, {x + w, y + h});
-            add({x + w, y + h}, {x, y + h}, {x, y});
+            add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
+            add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
         }
         if constexpr (textured == Textured::Yes) {
-            add({int(u), int(v)}, {int(u + w), int(v)}, {int(u + w), int(v + h)});
-            add({int(u + w), int(v + h)}, {int(u), int(v + h)}, {int(u), int(v)});
+            unsigned tx = tpage.tx * 64;
+            unsigned ty = tpage.ty * 256;
+            unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+            unsigned minU = u >> shift;
+            unsigned minV = v;
+            unsigned maxU = (u + w) >> shift;
+            unsigned maxV = v + h;
+            add({int(minU + tx), int(minV + ty)}, {int(maxU + tx), int(minV + ty)}, {int(maxU + tx), int(maxV + ty)});
+            add({int(maxU + tx), int(maxV + ty)}, {int(minU + tx), int(maxV + ty)}, {int(minU + tx), int(minV + ty)});
         }
     }
 }
