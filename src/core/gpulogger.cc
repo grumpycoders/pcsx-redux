@@ -112,7 +112,10 @@ void PCSX::GPULogger::enable() {
     m_hasFramebuffers = true;
 }
 
-void PCSX::GPULogger::disable() { m_hasFramebuffers = false; }
+void PCSX::GPULogger::disable() {
+    m_hasFramebuffers = false;
+    m_vram.reset();
+}
 
 void PCSX::GPULogger::addTri(OpenGL::ivec2& v1, OpenGL::ivec2& v2, OpenGL::ivec2& v3) {
     if ((m_verticesCount + 3) >= m_vertices.size()) flush();
@@ -131,9 +134,12 @@ void PCSX::GPULogger::flush() {
 void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
     auto frame = m_frameCounter;
 
+    bool gotNewFrame = false;
     for (auto i = m_list.begin(); (i != m_list.end()) && (i->frame != frame); i = m_list.begin()) {
         delete &*i;
+        gotNewFrame = true;
     }
+    if (gotNewFrame) startNewFrame();
 
     node->origin = origin;
     node->value = value;
@@ -169,7 +175,7 @@ void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin ori
 void PCSX::GPULogger::startNewFrame() { m_vram = g_emulator->m_gpu->getVRAM(GPU::Ownership::ACQUIRE); }
 
 void PCSX::GPULogger::replay(GPU* gpu) {
-    gpu->partialUpdateVRAM(0, 0, 1024, 512, m_vram.data<uint16_t>());
+    if (m_vram.data()) gpu->partialUpdateVRAM(0, 0, 1024, 512, m_vram.data<uint16_t>());
     for (auto& node : m_list) {
         if (node.enabled) node.execute(gpu);
     }
