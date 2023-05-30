@@ -657,7 +657,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
         const uint32_t *feed = memory + addr + 1;
         Buffer buf(feed, transferSize);
         while (!buf.isEmpty()) {
-            m_processor->processWrite(buf, Logged::Origin::CHAIN_DMA, addr, transferSize);
+            m_processor->processWrite(buf, Logged::Origin::CHAIN_DMA, addr << 2, transferSize);
         }
 
         // next 32-bit pointer
@@ -666,7 +666,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
 }
 
-void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32_t value, uint32_t length) {
+void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32_t originValue, uint32_t length) {
     while (!buf.isEmpty()) {
         uint32_t value = buf.get();
         bool gotUnknown = false;
@@ -681,12 +681,12 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                     case 0x01: {  // clear cache
                         ClearCache prim;
                         m_gpu->write0(&prim);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                     } break;
                     case 0x02: {  // fast fill
                         buf.rewind();
                         m_gpu->m_fastFill.setActive();
-                        m_gpu->m_fastFill.processWrite(buf, origin, value, length);
+                        m_gpu->m_fastFill.processWrite(buf, origin, originValue, length);
                     } break;
                     default: {
                         gotUnknown = true;
@@ -696,63 +696,63 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
             case 1: {  // Polygon primitive
                 buf.rewind();
                 m_gpu->m_polygons[command]->setActive();
-                m_gpu->m_processor->processWrite(buf, origin, value, length);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 2: {  // Line primitive
                 buf.rewind();
                 m_gpu->m_lines[command]->setActive();
-                m_gpu->m_processor->processWrite(buf, origin, value, length);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 3: {  // Rectangle primitive
                 buf.rewind();
                 m_gpu->m_rects[command]->setActive();
-                m_gpu->m_processor->processWrite(buf, origin, value, length);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 4: {  // Move data in VRAM
                 m_gpu->m_blitVramVram.setActive();
-                m_gpu->m_processor->processWrite(buf, origin, value, length);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 5: {  // Write data to VRAM
                 m_gpu->m_blitRamVram.setActive();
-                m_gpu->m_processor->processWrite(buf, origin, value, length);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 6: {  // Read data from VRAM
                 m_gpu->m_blitVramRam.setActive();
-                m_gpu->m_processor->processWrite(buf, origin, value, length);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 7: {  // Environment command
                 switch (command) {
                     case 1: {  // tpage
                         TPage prim(packetInfo);
                         m_gpu->m_lastTPage = TPage(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 2: {  // twindow
                         TWindow prim(packetInfo);
                         m_gpu->m_lastTWindow = TWindow(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 3: {  // drawing area top left
                         DrawingAreaStart prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 4: {  // drawing area bottom right
                         DrawingAreaEnd prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 5: {  // drawing offset
                         DrawingOffset prim(packetInfo);
                         m_gpu->m_lastOffset = DrawingOffset(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 6: {  // mask bit
                         MaskBit prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, value, length);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                     } break;
                     default: {
