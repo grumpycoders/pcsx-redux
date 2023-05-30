@@ -231,7 +231,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         const char* card_ids[] = {"1A", "2A", "1B", "1C", "1D", "2B", "2C", "2D"};
         const int draw_order[] = {0, 2, 3, 4, 1, 5, 6, 7};
 
-        bool* const inserted_settings[] = {
+        bool* inserted_settings[] = {
             &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value,   // Slot 1 Port A
             &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value,   // Slot 2 Port A
             &g_emulator->settings.get<Emulator::SettingMcd3Inserted>().value,   // Slot 1 Port B
@@ -241,7 +241,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
             &g_emulator->settings.get<Emulator::SettingMcd7Inserted>().value,   // Slot 2 Port C
             &g_emulator->settings.get<Emulator::SettingMcd8Inserted>().value};  // Slot 2 Port D
 
-        bool* const pocketstation_settings[] = {
+        bool* pocketstation_settings[] = {
             &g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value,   // Slot 1 Port A
             &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value,   // Slot 2 Port A
             &g_emulator->settings.get<Emulator::SettingMcd3Pocketstation>().value,   // Slot 1 Port B
@@ -255,7 +255,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
             const int card_index = draw_order[i];
             char display_name[3];
 
-            strncpy(display_name, card_ids[card_index], 2);
+            strncpy(display_name, card_ids[card_index], 3);
 
             if (card_ids[card_index][0] == '1') {
                 if (!PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPort1Multitap>()) {
@@ -283,7 +283,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
 
                 if (ImGui::Checkbox(fmt::format(f_("Card {} Pocketstation"), display_name).c_str(),
                                     pocketstation_settings[card_index])) {
-                    g_emulator->m_memoryCards->togglePocketstationMode();
+                    g_emulator->m_memoryCards->setPocketstationEnabled(card_index, pocketstation_settings[card_index]);
                     changed = true;
                 }
 

@@ -46,7 +46,6 @@ void PCSX::SIO::acknowledge() {
 void PCSX::SIO::init() {
     reset();
     g_emulator->m_memoryCards->init();
-    g_emulator->m_memoryCards->togglePocketstationMode();
     g_emulator->m_pads->init();
     g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 }
@@ -94,12 +93,10 @@ bool PCSX::SIO::isTransmitReady() {
 
 void PCSX::SIO::reset() {
     m_rxFIFO.clear();
-    m_padState = Pads::PAD_STATE_IDLE;
     m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
     m_regs.mode = 0;
     m_regs.control = 0;
     m_regs.baud = 0;
-    m_bufferIndex = 0;
 
     //g_emulator->m_memoryCards->reset(); // Card not initialized yet
 
@@ -108,10 +105,11 @@ void PCSX::SIO::reset() {
 
 uint8_t PCSX::SIO::writeCard(uint8_t value) {
     const int portIndex = ((m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port1) ? 0 : 1;
+    const bool isConnected = g_emulator->m_memoryCards->isCardInserted(portIndex);
     uint8_t rx_buffer = 0xff;
     bool ack = false;
 
-    if (g_emulator->m_memoryCards->isCardInserted(portIndex)) {
+    if (isConnected) {
         rx_buffer = g_emulator->m_memoryCards->m_memoryCard[portIndex].transceive(m_regs.data, &ack);
     } else {
         m_currentDevice = DeviceType::Ignore;
@@ -124,81 +122,19 @@ uint8_t PCSX::SIO::writeCard(uint8_t value) {
     return rx_buffer;
 }
 
-uint8_t PCSX::SIO::writePad2(uint8_t value) {
+uint8_t PCSX::SIO::writePad(uint8_t value) {
     const int portIndex = ((m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port1) ? 0 : 1;
     const bool isConnected = g_emulator->m_pads->isPadConnected(portIndex);
-    
+    uint8_t rx_buffer = 0xff;    
     bool ack = false;
-    uint8_t rx_buffer = 0xff;
     
     if (isConnected) {
-        //rx_buffer = g_emulator->m_pads->m_pad[portIndex].transceive(m_regs.data, &ack);
+        rx_buffer = g_emulator->m_pads->transceive(portIndex, m_regs.data, &ack);
     } else {
         m_currentDevice = DeviceType::Ignore;
     }   
 
     if (ack) {
-        acknowledge();
-    }
-
-    return rx_buffer;
-}
-
-uint8_t PCSX::SIO::writePad(uint8_t value) {
-    const Pads::Port port =
-        ((m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port1) ? Pads::Port::Port1 : Pads::Port::Port2;
-    const int portIndex = (static_cast<uint16_t>(port) == SelectedPort::Port1) ? 1 : 2;
-    const bool isConnected = g_emulator->m_pads->isPadConnected(portIndex);
-
-    bool ack = false;
-    uint8_t rx_buffer = 0xff;
-
-    if (!isConnected) {
-        m_buffer[0] = 0xff;
-        m_bufferIndex = 0;
-        m_padState = Pads::PAD_STATE_BAD_COMMAND;
-    } else {
-        switch (m_padState) {
-            case Pads::PAD_STATE_IDLE:                          // start pad
-                m_regs.status |= StatusFlags::RX_FIFONOTEMPTY;  // Transfer is Ready
-                g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
-
-                m_buffer[0] = g_emulator->m_pads->startPoll(port);
-                m_maxBufferIndex = 2;
-                m_bufferIndex = 0;
-                m_padState = Pads::PAD_STATE_READ_COMMAND;
-                break;
-
-            case Pads::PAD_STATE_READ_COMMAND:
-                m_padState = Pads::PAD_STATE_READ_DATA;
-                m_bufferIndex = 1;
-                m_buffer[m_bufferIndex] = g_emulator->m_pads->poll(value, port, m_padState);
-
-                if (!(m_buffer[m_bufferIndex] & 0x0f)) {
-                    m_maxBufferIndex = 2 + 32;
-                } else {
-                    m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
-                }
-
-                break;
-
-            case Pads::PAD_STATE_READ_DATA:
-                m_bufferIndex++;
-                m_buffer[m_bufferIndex] = g_emulator->m_pads->poll(value, port, m_padState);
-
-                if (m_bufferIndex == m_maxBufferIndex) {
-                    m_padState = Pads::PAD_STATE_BAD_COMMAND;
-                    m_currentDevice = DeviceType::Ignore;
-                }
-                break;
-        }
-    }
-
-    // tstbuffer = m_pads[portIndex - 1].transceive(value, ack);
-    rx_buffer = m_buffer[m_bufferIndex];
-
-    if (m_padState == Pads::PAD_STATE_BAD_COMMAND) {
-    } else {
         acknowledge();
     }
 
@@ -218,8 +154,6 @@ void PCSX::SIO::transmitData() {
 
     switch (m_currentDevice) {
         case DeviceType::PAD:
-            // Pad Process events
-            // test_buffer =
             rx_buffer = writePad(m_regs.data);
             break;
 
@@ -247,7 +181,7 @@ void PCSX::SIO::transmitData() {
 }
 
 void PCSX::SIO::write8(uint8_t value) {
-    SIO0_LOG("sio write8 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
+    SIO0_LOG("sio write8 %x\n", value);
 
     m_regs.data = value;
     m_regs.status &= ~StatusFlags::TX_DATACLEAR;
@@ -265,27 +199,22 @@ void PCSX::SIO::writeMode16(uint16_t value) { m_regs.mode = value; }
 void PCSX::SIO::writeCtrl16(uint16_t value) {
     const bool deselected = (m_regs.control & ControlFlags::SELECT_ENABLE) && (!(value & ControlFlags::SELECT_ENABLE));
     const bool selected = (!(m_regs.control & ControlFlags::SELECT_ENABLE)) && (value & ControlFlags::SELECT_ENABLE);
-    const bool portChanged = (m_regs.control & ControlFlags::WHICH_PORT) && (!(value & ControlFlags::WHICH_PORT));
-    const bool wasReady = isTransmitReady();
+    const bool port_changed = (m_regs.control & ControlFlags::WHICH_PORT) && (!(value & ControlFlags::WHICH_PORT));
+    const bool was_ready = isTransmitReady();
 
     m_regs.control = value;
 
-    SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x)\n", value, m_bufferIndex, m_padState);
+    SIO0_LOG("sio ctrlwrite16 %x\n", value);
 
     if (selected && (m_regs.control & ControlFlags::TX_IRQEN) && !(m_regs.status & StatusFlags::IRQ)) {
         scheduleInterrupt(SIO_CYCLES);
     }
 
-    if (deselected || portChanged) {
+    if (deselected || port_changed) {
         // Select line de-activated, reset state machines
         m_currentDevice = DeviceType::None;
-        m_padState = Pads::PAD_STATE_IDLE;
         g_emulator->m_memoryCards->deselect();
-
-        for (int i = 0; i < c_padCount; i++) {
-            m_pads[i].deselect();
-        }
-        m_bufferIndex = 0;
+        g_emulator->m_pads->deselect();
     }
 
     if (m_regs.control & ControlFlags::RESET_ERR) {
@@ -300,11 +229,10 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
 
     if (m_regs.control & ControlFlags::RESET) {
         m_rxFIFO.clear();
-        m_padState = Pads::PAD_STATE_IDLE;
 
         g_emulator->m_memoryCards->deselect();
+        g_emulator->m_pads->deselect();
 
-        m_bufferIndex = 0;
         m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
         g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
         PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
@@ -318,7 +246,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
     }
 
-    if (wasReady == false && isTransmitReady()) {
+    if (was_ready == false && isTransmitReady()) {
         transmitData();
     }
 }
@@ -333,9 +261,7 @@ uint8_t PCSX::SIO::read8() {
         updateFIFOStatus();
     }
 
-    SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_regs.status,
-             m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
-             m_buffer[m_bufferIndex < c_padBufferSize - 1 ? m_bufferIndex + 1 : c_padBufferSize - 1]);
+    SIO0_LOG("sio read8 ;ret = %x\n", ret);
 
     g_emulator->m_mem->writeHardwareRegister<0x1040, uint8_t>(ret);
 

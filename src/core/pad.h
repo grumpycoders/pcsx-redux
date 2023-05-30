@@ -35,13 +35,17 @@ class Pads {
   public:
     enum class Port { Port1 = 0, Port2 };
 
+    class InputDevice {
+        virtual void* getPadState() = 0;
+        virtual bool isButtonPressed(int button) = 0;
+        virtual void updateInput() = 0;
+    };
+
     virtual void init() = 0;
     virtual void shutdown() = 0;
-
-    // Pad specific
-    virtual uint8_t startPoll(Port port) = 0;
-    virtual uint8_t poll(uint8_t value, Port port, uint32_t& padState) = 0;
-    // Pad specific
+    
+    virtual void deselect() = 0;
+    virtual uint8_t transceive(int index, uint8_t value, bool* ack) = 0;
 
     virtual json getCfg() = 0;
     virtual void setCfg(const json& j) = 0;

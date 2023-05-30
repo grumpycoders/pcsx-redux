@@ -223,14 +223,8 @@ int pcsxMain(int argc, char **argv) {
     auto &emuSettings = emulator->settings;
     auto &debugSettings = emuSettings.get<PCSX::Emulator::SettingDebugSettings>();
 
-    auto argPath1 = args.get<std::string>("memcard1");
-    auto argPath2 = args.get<std::string>("memcard2");
-    if (argPath1.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd1>().value = argPath1.value();
-    if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>().value = argPath1.value();
-    PCSX::u8string path1 = emuSettings.get<PCSX::Emulator::SettingMcd1>().string();
-    PCSX::u8string path2 = emuSettings.get<PCSX::Emulator::SettingMcd2>().string();
+    PCSX::g_emulator->m_memoryCards->loadMcds(args);
 
-    PCSX::g_emulator->m_memoryCards->loadMcds();
     auto biosCfg = args.get<std::string>("bios");
     if (biosCfg.has_value()) emuSettings.get<PCSX::Emulator::SettingBios>() = biosCfg.value();
 

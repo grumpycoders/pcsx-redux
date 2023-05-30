@@ -44,20 +44,9 @@ class SIO {
   public:
     static constexpr size_t c_padCount = 2;
 
-    SIO() {
-        for (int i = 0; i < c_padCount; i++) {
-            Pad pad = Pad(i);
-            m_pads.push_back(pad);
-        }
+    SIO() { reset(); }
 
-        reset();
-    }
-    
-    ~SIO() {       
-        if (m_pads.size() > 0) {
-            m_pads.clear();
-        }
-    }
+    ~SIO() {}
 
     void write8(uint8_t value);
     void writeStatus16(uint16_t value);
@@ -75,7 +64,7 @@ class SIO {
     void init();
     void interrupt();
     void reset();
-    
+
   private:
     struct StatusFlags {
         enum : uint16_t {
@@ -113,13 +102,6 @@ class SIO {
         MCDST_CHANGED = 0x08,
     };
 
-    struct PAD_Commands {
-        enum : uint8_t {
-            Read = 0x42,  // Read Command
-            None = 0x00,  // No command, idle state
-            Error = 0xFF  // Bad command
-        };
-    };
     struct DeviceType {
         enum : uint8_t {
             None = 0x00,        // No device selected yet
@@ -194,21 +176,12 @@ class SIO {
     void updateFIFOStatus();
     uint8_t writeCard(uint8_t value);
     uint8_t writePad(uint8_t value);
-    uint8_t writePad2(uint8_t value);
 
     SIORegisters m_regs = {
         .status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED,  // Transfer Ready and the Buffer is Empty
     };
 
     uint8_t m_currentDevice = DeviceType::None;
-
-    // Pads
-    uint8_t m_buffer[c_padBufferSize];
-    uint32_t m_bufferIndex;
-    uint32_t m_maxBufferIndex;
-    uint32_t m_padState;
-
-    std::vector<Pad> m_pads;
 
     FIFO<uint8_t, 8> m_rxFIFO;
 };

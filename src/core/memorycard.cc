@@ -24,24 +24,29 @@
 #include "core/sio.h"
 #include "support/sjis_conv.h"
 
-void PCSX::MemoryCards::loadMcds() {
-    auto &emuSettings = g_emulator->settings;
-    
+void PCSX::MemoryCards::loadMcds(const CommandLine::args &args) {
+    auto &settings = g_emulator->settings;
+
     std::filesystem::path *card_paths[] = {
-        &emuSettings.get<PCSX::Emulator::SettingMcd1>().value, &emuSettings.get<PCSX::Emulator::SettingMcd2>().value,
-        &emuSettings.get<PCSX::Emulator::SettingMcd3>().value, &emuSettings.get<PCSX::Emulator::SettingMcd4>().value,
-        &emuSettings.get<PCSX::Emulator::SettingMcd5>().value, &emuSettings.get<PCSX::Emulator::SettingMcd6>().value,
-        &emuSettings.get<PCSX::Emulator::SettingMcd7>().value, &emuSettings.get<PCSX::Emulator::SettingMcd8>().value,
+        &settings.get<PCSX::Emulator::SettingMcd1>().value, &settings.get<PCSX::Emulator::SettingMcd2>().value,
+        &settings.get<PCSX::Emulator::SettingMcd3>().value, &settings.get<PCSX::Emulator::SettingMcd4>().value,
+        &settings.get<PCSX::Emulator::SettingMcd5>().value, &settings.get<PCSX::Emulator::SettingMcd6>().value,
+        &settings.get<PCSX::Emulator::SettingMcd7>().value, &settings.get<PCSX::Emulator::SettingMcd8>().value,
     };
 
     for (int i = 0; i < 8; i++) {
-        if (i >= m_memoryCard.size()) {
-            continue;
+        auto argPath = args.get<std::string>(fmt::format("memcard{}", i + 1));
+        if (argPath.has_value()) {
+            *card_paths[i] = argPath.value();
         }
-        
+
         if (card_paths[i]->u8string().empty()) {
             std::string path = std::format("memcard{}.mcd", i + 1);
             *card_paths[i] = path;
+        }
+
+        if (i >= m_memoryCard.size()) {
+            continue;
         }
 
         loadMcd(card_paths[i]->u8string(), m_memoryCard[i].getCardData());
@@ -313,7 +318,7 @@ bool PCSX::MemoryCards::copyMcdFile(McdBlock block) {
 }
 
 // Back up the entire memory card to a file
-// mcd: The memory card to back up (1 or 2)
+// index: The memory card to back up (0-7)
 bool PCSX::MemoryCards::saveMcd(int index) {
     return saveMcd(getMcdPath(index), m_memoryCard[index].getCardData(), 0, c_cardSize);
 }
@@ -324,18 +329,18 @@ void PCSX::MemoryCards::resetCard(int index) {
     }
 }
 
-void PCSX::MemoryCards::togglePocketstationMode() {
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Pocketstation>()) {
-        m_memoryCard[0].enablePocketstation();
-    } else {
-        m_memoryCard[0].disablePocketstation();
-    }
+void PCSX::MemoryCards::setPocketstationEnabled(int index, bool enabled) {
+    bool* pocketstation_settings[] = {
+        &g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value,   // Slot 1 Port A
+        &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value,   // Slot 2 Port A
+        &g_emulator->settings.get<Emulator::SettingMcd3Pocketstation>().value,   // Slot 1 Port B
+        &g_emulator->settings.get<Emulator::SettingMcd4Pocketstation>().value,   // Slot 1 Port C
+        &g_emulator->settings.get<Emulator::SettingMcd5Pocketstation>().value,   // Slot 1 Port D
+        &g_emulator->settings.get<Emulator::SettingMcd6Pocketstation>().value,   // Slot 2 Port B
+        &g_emulator->settings.get<Emulator::SettingMcd7Pocketstation>().value,   // Slot 2 Port C
+        &g_emulator->settings.get<Emulator::SettingMcd8Pocketstation>().value};  // Slot 2 Port D
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Pocketstation>()) {
-        m_memoryCard[1].enablePocketstation();
-    } else {
-        m_memoryCard[1].disablePocketstation();
-    }
+    m_memoryCard[index].setPocketstationEnabled(enabled);    
 }
 
 void PCSX::MemoryCard::commit() {
@@ -349,7 +354,7 @@ void PCSX::MemoryCard::commit() {
     }
 }
 
-uint8_t PCSX::MemoryCard::transceive(uint8_t value, bool* ack) {
+uint8_t PCSX::MemoryCard::transceive(uint8_t value, bool *ack) {
     uint8_t data_out = m_spdr;
 
     if (m_currentCommand == Commands::None || m_currentCommand == Commands::Access) {
@@ -412,7 +417,7 @@ uint8_t PCSX::MemoryCard::transceive(uint8_t value, bool* ack) {
     return data_out;
 }
 
-inline uint8_t PCSX::MemoryCard::tickReadCommand(uint8_t value, bool* ack) {
+inline uint8_t PCSX::MemoryCard::tickReadCommand(uint8_t value, bool *ack) {
     uint8_t data_out = 0xFF;
 
     switch (m_commandTicks) {
@@ -661,7 +666,7 @@ inline uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value, bool *ack) {
 }
 
 // To-do: "All the code starting here is terrible and needs to be rewritten"
-bool PCSX::MemoryCards::loadMcd(const PCSX::u8string str, char* data) {
+bool PCSX::MemoryCards::loadMcd(const PCSX::u8string str, char *data) {
     const char *fname = reinterpret_cast<const char *>(str.c_str());
     size_t bytesRead;
 
@@ -711,7 +716,7 @@ bool PCSX::MemoryCards::loadMcd(const PCSX::u8string str, char* data) {
             result = true;
         }
     }
-    
+
     return result;
 }
 

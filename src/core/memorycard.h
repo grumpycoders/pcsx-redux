@@ -61,8 +61,7 @@ class MemoryCard {
         m_directoryFlag = Flags::DirectoryUnread;
     }
 
-    void disablePocketstation() { m_pocketstationEnabled = false; };
-    void enablePocketstation() { m_pocketstationEnabled = true; };
+    void setPocketstationEnabled(bool enabled) { m_pocketstationEnabled = enabled; };
 
     // File system / data manipulation
     void commit();
@@ -166,7 +165,9 @@ class MemoryCards {
         }
     }
 
-    void init() { togglePocketstationMode(); }
+    void init() { 
+        //setPocketstationEnabled();
+    }
 
     void reset() {
         for (int i = 0; i < m_memoryCard.size(); i++) {
@@ -226,7 +227,7 @@ class MemoryCards {
 
     // File operations
     void createMcd(const PCSX::u8string mcd);
-    void loadMcds();
+    void loadMcds(const CommandLine::args &args);
     bool saveMcd(int card_index);
 
     bool loadMcd(const PCSX::u8string str, char *data);
@@ -237,41 +238,22 @@ class MemoryCards {
         if (mcd == 1) return 2;
         return 1;
     }
+
     PCSX::u8string getMcdPath(int index) {
-        PCSX::u8string path;
 
-        switch (index) {
-            case 0:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str();
-                break;
-            case 1:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str();
-                break;
-            case 2:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd3>().string().c_str();
-                break;
-            case 3:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd4>().string().c_str();
-                break;
-            case 4:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd5>().string().c_str();
-                break;
-            case 5:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd6>().string().c_str();
-                break;
-            case 6:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd7>().string().c_str();
-                break;
-            case 7:
-                path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd8>().string().c_str();
-                break;
-        }
+        std::filesystem::path *paths[] = {      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd3>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd4>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd5>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd6>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd7>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd8>().value};
 
-        return path;
+        PCSX::u8string thepath = paths[index]->u8string();
+        return thepath;
     }
     bool isCardInserted(int index) {
-        bool connected = false;
-
         bool *const inserted_lut[] = {&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>().value,
                                       &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>().value,
                                       &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd3Inserted>().value,
@@ -281,16 +263,12 @@ class MemoryCards {
                                       &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd7Inserted>().value,
                                       &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd8Inserted>().value};
 
-        if (index >= 0 && index < 8) {
-            connected = *inserted_lut;
-        }
-
-        return connected;
+        return *inserted_lut[index];
     }
 
     static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
     void resetCard(int index);
-    void togglePocketstationMode();
+    void setPocketstationEnabled(int index, bool enabled);
 
     static constexpr size_t c_cardCount = 8;
     std::vector<MemoryCard> m_memoryCard;
