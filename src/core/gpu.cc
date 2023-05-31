@@ -89,7 +89,7 @@ template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
 void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
     uint32_t value = buf.get();
     if constexpr (lineType == LineType::Poly) {
-        if ((value & 0xf000f000) != 0x50005000) {
+        while ((value & 0xf000f000) != 0x50005000) {
             switch (m_state) {
                 case READ_COLOR:
                     colors.push_back(value & 0xffffff);
