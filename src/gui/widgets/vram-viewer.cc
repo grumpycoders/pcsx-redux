@@ -516,11 +516,13 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
                 }
                 ImGui::EndMenu();
             }
-            ImGui::Separator();
-            if (ImGui::BeginMenu(_("Configuration"))) {
-                ImGui::MenuItem(_("Select read highlight color"), nullptr, &openReadColorPicker);
-                ImGui::MenuItem(_("Select written highlight color"), nullptr, &openWrittenColorPicker);
-                ImGui::EndMenu();
+            if (m_isMain) {
+                ImGui::Separator();
+                if (ImGui::BeginMenu(_("Configuration"))) {
+                    ImGui::MenuItem(_("Select read highlight color"), nullptr, &openReadColorPicker);
+                    ImGui::MenuItem(_("Select written highlight color"), nullptr, &openWrittenColorPicker);
+                    ImGui::EndMenu();
+                }
             }
             ImGui::Separator();
             ImGui::Separator();
