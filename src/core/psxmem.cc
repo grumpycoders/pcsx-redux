@@ -386,6 +386,41 @@ int PCSX::Memory::sendReadToLua(const uint32_t address, const size_t size) {
     return nresult;
 }
 
+bool PCSX::Memory::sendWriteToLua(const uint32_t address, const size_t size, uint32_t value) {
+    auto L = *g_emulator->m_lua;
+    bool write_handled = false;
+
+    L.getfield("UnknownMemoryWrite", LUA_GLOBALSINDEX);
+    if (!L.isnil()) {
+        try {
+            const int top = L.gettop();
+            L.push(lua_Number(address));
+            L.push(lua_Number(size));
+            L.push(lua_Number(value));
+            int nresult = L.pcall(3);
+
+            if (nresult > 0) {
+                // Discard anything more than 1 result
+                for (int n = 1; n < nresult; n++) {
+                    L.pop();
+                }
+
+                write_handled = L.toboolean();
+                L.pop();
+            }
+
+        } catch (...) {
+            L.push("UnknownMemoryWrite");
+            L.push();
+            L.settable(LUA_GLOBALSINDEX);
+        }
+    } else {
+        L.pop();
+    }
+
+    return write_handled;
+}
+
 void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
@@ -405,6 +440,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
             }
         } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
             g_emulator->m_pioCart->write8(address, value);
+        } else if (sendWriteToLua(address, 1, value)) {
         } else {
             g_system->log(LogClass::CPU, _("8-bit write to unknown address: %8.8lx\n"), address);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
@@ -434,6 +470,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
             }
         } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
             g_emulator->m_pioCart->write16(address, value);
+        } else if (sendWriteToLua(address, 2, value)) {
         } else {
             g_system->log(LogClass::CPU, _("16-bit write to unknown address: %8.8lx\n"), address);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
@@ -490,7 +527,12 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
                     setLuts();
                     break;
                 default:
-                    PSXMEM_LOG("unk %8.8lx = %x\n", address, value);
+                    if (!sendWriteToLua(address, 4, value)) {
+                        g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);
+                        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+                            g_system->pause();
+                        }
+                    }
                     break;
             }
         }
