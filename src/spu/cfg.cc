@@ -20,20 +20,7 @@
 #include "core/system.h"
 #include "imgui.h"
 #include "spu/interface.h"
-
-static void ShowHelpMarker(const char *desc) {
-    ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGui::TextUnformatted("(?)");
-    ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
+#include "support/imgui-helpers.h"
 
 bool PCSX::SPU::impl::configure() {
     ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
@@ -68,7 +55,7 @@ bool PCSX::SPU::impl::configure() {
         ImGui::EndCombo();
     }
     deviceChanged |= ImGui::Checkbox(_("Use Null Sync"), &settings.get<NullSync>().value);
-    ShowHelpMarker(_(R"(More precise CPU-SPU synchronization,
+    ImGuiHelpers::ShowHelpMarker(_(R"(More precise CPU-SPU synchronization,
 at the cost of extra power required.)"));
     if (deviceChanged) {
         m_audioOut.reinit();
@@ -77,15 +64,15 @@ at the cost of extra power required.)"));
 
     changed |= ImGui::Checkbox(_("Muted"), &settings.get<Mute>().value);
     changed |= ImGui::Checkbox(_("Enable streaming"), &settings.get<Streaming>().value);
-    ShowHelpMarker(_(R"(Uncheck this to mute the streaming channel
+    ImGuiHelpers::ShowHelpMarker(_(R"(Uncheck this to mute the streaming channel
 from the main CPU to the SPU. This includes
 XA audio and audio tracks.)"));
     const char *volumeValues[] = {_("Low"), _("Medium"), _("Loud"), _("Loudest")};
     changed |= ImGui::Combo(_("Volume"), &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
-    ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
+    ImGuiHelpers::ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
 in sync, by changing its pitch. Consumes more CPU.)"));
     changed |= ImGui::Checkbox(_("Pause SPU waiting for CPU IRQ"), &settings.get<SPUIRQWait>().value);
-    ShowHelpMarker(_(R"(Suspends the SPU processing during an IRQ, waiting
+    ImGuiHelpers::ShowHelpMarker(_(R"(Suspends the SPU processing during an IRQ, waiting
 for the main CPU to acknowledge it. Fixes issues
 with some games, but slows SPU processing.)"));
     const char *reverbValues[] = {_("None - fastest"), _("Simple - only handles the most common effects"),
@@ -97,9 +84,9 @@ with some games, but slows SPU processing.)"));
     changed |= ImGui::Combo(_("Interpolation"), &settings.get<Interpolation>().value, interpolationValues,
                             IM_ARRAYSIZE(interpolationValues));
     changed |= ImGui::Checkbox(_("Mono"), &settings.get<Mono>().value);
-    ShowHelpMarker(_("Downmixes stereo to mono."));
+    ImGuiHelpers::ShowHelpMarker(_("Downmixes stereo to mono."));
     changed |= ImGui::Checkbox(_("Capture/decode buffer IRQ"), &settings.get<DBufIRQ>().value);
-    ShowHelpMarker(
+    ImGuiHelpers::ShowHelpMarker(
         _("Activates SPU IRQs based on writes to the decode/capture buffer. This option is necessary for some games."));
 
     ImGui::End();

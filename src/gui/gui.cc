@@ -154,20 +154,6 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
     s_this->magicOpen(paths[0]);
 }
 
-static void ShowHelpMarker(const char* desc) {
-    ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGui::TextUnformatted("(?)");
-    ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
-
 void LoadImguiBindings(lua_State* lState);
 
 ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine) {
@@ -1131,7 +1117,7 @@ void PCSX::GUI::endFrame() {
                         ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, &m_disassembly.m_show);
                     } else {
                         ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, false, false);
-                        ShowHelpMarker(_(
+                        ImGuiHelpers::ShowHelpMarker(_(
                             R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
 in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
@@ -1473,7 +1459,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             needFontReload |= ImGui::SliderInt(_("Mono Font Size"), &settings.get<MonoFontSize>().value, 8, 48);
             bool ratioChanged =
                 ImGui::Checkbox(_("Use Widescreen Aspect Ratio"), &settings.get<WidescreenRatio>().value);
-            ShowHelpMarker(_(R"(Sets the output screen ratio to 16:9 instead of 4:3.
+            ImGuiHelpers::ShowHelpMarker(_(R"(Sets the output screen ratio to 16:9 instead of 4:3.
 
 Note that this setting is NOT the popular hack
 to force games into widescreen mode, but rather an
@@ -1732,19 +1718,19 @@ bool PCSX::GUI::configure() {
             }
         }
 
-        ShowHelpMarker(_(R"(Activates the dynamic recompiler CPU core.
+        ImGuiHelpers::ShowHelpMarker(_(R"(Activates the dynamic recompiler CPU core.
 It is significantly faster than the interpreted CPU,
 however it doesn't play nicely with the debugger.
 Changing this setting requires a reboot to take effect.
 The dynarec core isn't available for all CPUs, so
 this setting may not have any effect for you.)"));
         bool memChanged = ImGui::Checkbox(_("8MB"), &settings.get<Emulator::Setting8MB>().value);
-        ShowHelpMarker(_(R"(Emulates an installed 8MB system,
+        ImGuiHelpers::ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
         changed |=
             ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
-        ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
+        ImGuiHelpers::ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
 This is not recommended for normal use at the moment,
 as it is not fully implemented yet. It is recommended
 to use the software renderer instead. Requires a restart
@@ -1783,7 +1769,7 @@ when changing this setting.)"));
         }
 
         changed |= ImGui::Checkbox(_("Fast boot"), &settings.get<Emulator::SettingFastBoot>().value);
-        ShowHelpMarker(_(R"(This will cause the BIOS to skip the shell,
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will cause the BIOS to skip the shell,
 which may include additional checks.
 Also will make the boot time substantially
 faster by not displaying the logo.)"));
@@ -1799,7 +1785,7 @@ faster by not displaying the logo.)"));
             }
         }
 
-        ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticeable extent.)"));
         if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
@@ -1811,12 +1797,12 @@ can slow down emulation to a noticeable extent.)"));
                 g_emulator->m_gdbServer->stopServer();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a gdb-server that you can
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a gdb-server that you can
 connect to with any gdb-remote compliant client.
 You also need to enable the debugger.)"));
         changed |=
             ImGui::Checkbox(_("GDB send manifest"), &debugSettings.get<Emulator::DebugSettings::GdbManifest>().value);
-        ShowHelpMarker(_(R"(Enables sending the processor's manifest
+        ImGuiHelpers::ShowHelpMarker(_(R"(Enables sending the processor's manifest
 from the gdb server. Keep this enabled, unless
 you want to connect IDA to this server, as it
 has a bug in its manifest parser.)"));
@@ -1842,7 +1828,7 @@ has a bug in its manifest parser.)"));
             ImGui::InputInt(_("GDB Server Port"), &debugSettings.get<Emulator::DebugSettings::GdbServerPort>().value);
         changed |=
             ImGui::Checkbox(_("GDB Server Trace"), &debugSettings.get<Emulator::DebugSettings::GdbServerTrace>().value);
-        ShowHelpMarker(_(R"(The GDB server will start tracing its
+        ImGuiHelpers::ShowHelpMarker(_(R"(The GDB server will start tracing its
 protocol into the logs, which can be helpful to debug
 the gdb server system itself.)"));
         if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
@@ -1854,7 +1840,7 @@ the gdb server system itself.)"));
                 g_emulator->m_webServer->stopServer();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a web-server, that you can
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a web-server, that you can
 query using a REST api. See the wiki for details.
 The debugger might be required in some cases.)"));
         changed |=
@@ -1868,7 +1854,7 @@ The debugger might be required in some cases.)"));
                 g_emulator->m_sio1Server->stopServer();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a tcp server, that will
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp server, that will
 relay information between tcp and sio1.
 See the wiki for details.)"));
         changed |=
@@ -1886,7 +1872,7 @@ See the wiki for details.)"));
                 g_emulator->m_sio1Client->stopClient();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
 to another PCSX-Redux server to relay information between tcp and sio1.
 See the wiki for details.)"));
         changed |=
@@ -2086,7 +2072,7 @@ bool PCSX::GUI::about() {
                 } else {
                     ImGui::TextUnformatted(_("OpenGL error reporting: disabled"));
                     if (!glDebugMessageCallback) {
-                        ShowHelpMarker(
+                        ImGuiHelpers::ShowHelpMarker(
                             _("OpenGL error reporting has been disabled because your OpenGL driver is too old. Error "
                               "reporting requires at least OpenGL 4.3. Please update your graphics drivers, or "
                               "contact your GPU vendor for up to date OpenGL drivers. Disabled OpenGL error reporting "
@@ -2097,7 +2083,7 @@ bool PCSX::GUI::about() {
 
                 changed |= ImGui::Checkbox(_("Enable OpenGL error reporting"),
                                            &g_emulator->settings.get<Emulator::SettingGLErrorReporting>().value);
-                ShowHelpMarker(
+                ImGuiHelpers::ShowHelpMarker(
                     _("OpenGL error reporting is necessary for properly reporting OpenGL problems. "
                       "However it requires OpenGL 4.3+ and might have performance repercussions on "
                       "some computers. (Requires a restart of the emulator)"));

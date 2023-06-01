@@ -39,5 +39,19 @@ static void normalizeDimensions(ImVec2& vec, float ratio) {
     vec.y = std::max(vec.y, 1.0f);
 }
 
+static void ShowHelpMarker(const char* desc) {
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGui::TextUnformatted("(?)");
+    ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
+
 }  // namespace ImGuiHelpers
 }  // namespace PCSX

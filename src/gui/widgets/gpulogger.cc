@@ -23,6 +23,7 @@
 #include "core/psxemulator.h"
 #include "core/system.h"
 #include "fmt/format.h"
+#include "support/imgui-helpers.h"
 
 void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -37,13 +38,26 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
             logger->disable();
         }
     }
+    ImGuiHelpers::ShowHelpMarker(
+        _("Logs each frame's draw calls. When enabled, all the commands sent to the GPU will be logged and displayed "
+          "here. This will contain only a single frame worth of commands. The feature can be pretty demanding in CPU "
+          "and memory."));
     ImGui::Checkbox(_("Breakpoint on vsync"), &logger->m_breakOnVSync);
     ImGui::SameLine();
     if (ImGui::Button(_("Resume"))) {
         g_system->resume();
     }
     ImGui::Checkbox(_("Replay frame"), &m_replay);
+    ImGuiHelpers::ShowHelpMarker(
+        _("When enabled, the framebuffer will be constantly redrawned using the selected commands, allowing to see the "
+          "resulting output immediately. This doesn't make sense to have this enabled when: (1) the CPU is running and "
+          "(2) the GPU logging isn't enabled. Selection of which commands to replay is done using the first checkbox "
+          "in the logger display below. The [T] button will select all commands for replay from the top and until this "
+          "command."));
     ImGui::Checkbox(_("Show origins"), &m_showOrigins);
+    ImGuiHelpers::ShowHelpMarker(
+        _("When enabled, the logger display will also show where did the command come from, which can be useful to "
+          "debug or reverse engineer, but will also clutter the logger view."));
     bool collapseAll = false;
     bool expandAll = false;
     bool disableFromHere = false;
@@ -52,20 +66,32 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     GPU::Logged* tempHighlight = nullptr;
     bool hasHighlight = false;
     m_setHighlightRange = false;
-    if (ImGui::Button(_("Collapse all nodes"))) {
-        collapseAll = true;
+    if (ImGui::BeginTable("Buttons", 2, ImGuiTableFlags_SizingFixedFit)) {
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        if (ImGui::Button(_("Collapse all nodes"))) {
+            collapseAll = true;
+        }
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Checkbox(_("Keep collapsed"), &m_collapseAll);
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        if (ImGui::Button(_("Expand all nodes"))) {
+            expandAll = true;
+        }
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Checkbox(_("Keep expanded"), &m_expandAll);
+        ImGui::EndTable();
     }
-    ImGui::SameLine();
-    ImGui::Checkbox(_("Keep collapsed"), &m_collapseAll);
-    if (ImGui::Button(_("Expand all nodes"))) {
-        expandAll = true;
-    }
-    ImGui::SameLine();
-    ImGui::Checkbox(_("Keep expanded"), &m_expandAll);
-    if (ImGui::Button(_("Remove all highlights"))) {
+    ImGui::Separator();
+    if (ImGui::Button(_("Remove all highlight selections"))) {
         removeHighlight = true;
     }
     ImGui::Checkbox(_("Highlight on hover"), &m_hoverHighlight);
+    ImGuiHelpers::ShowHelpMarker(
+        _("When enabled, hovering a command in the logger view will highlight it in the vram display. Individual "
+          "commands can be selected for highlight by using the second checkbox in the logger view. The [B] and [E] "
+          "buttons can be used to specify the beginning and the end of a span of commands to highlight."));
 
     std::string label;
 
