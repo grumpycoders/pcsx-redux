@@ -44,13 +44,13 @@ bool PCSX::Widgets::PIOCart::draw(const char* title) {
             changed = true;
         }
 
-        ImGui::Text(_("On/Off Switch:"));
+        ImGui::TextUnformatted(_("On/Off Switch:"));
         ImGui::SameLine();
         if (ImGui::Checkbox("##ToggleSwitch", &m_switchOn)) {
             g_emulator->m_pioCart->setSwitch(m_switchOn);
         }
         ImGui::SameLine();
-        ImGui::Text(m_switchOn ? _("On") : _("Off"));
+        ImGui::TextUnformatted(m_switchOn ? _("On") : _("Off"));
 
         if (ImGui::Checkbox(_("Connected"), &settings.get<Emulator::SettingPIOConnected>().value)) {
             g_emulator->m_pioCart->setLuts();

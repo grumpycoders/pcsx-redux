@@ -56,7 +56,6 @@
 #include "core/web-server.h"
 #include "flags.h"
 #include "fmt/chrono.h"
-#include "gpu/soft/externals.h"
 #include "gui/gui.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
@@ -155,7 +154,9 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 
 static void ShowHelpMarker(const char* desc) {
     ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGui::TextUnformatted("(?)");
+    ImGui::PopStyleColor();
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -318,6 +319,10 @@ end)(jit.status()))
 
 void PCSX::GUI::init() {
     int result;
+
+    if (m_args.get<bool>("noshaders", false)) {
+        m_disableShaders = true;
+    }
 
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
@@ -607,7 +612,7 @@ void PCSX::GUI::init() {
     m_outputShaderEditor.init();
 
     m_listener.listen<Events::GUI::JumpToMemory>([this](auto& event) {
-        const uint32_t base = (event.address >> 20) & 0xffc;
+        const uint32_t base = (event.address >> 20) & 0xff8;
         const uint32_t real = event.address & 0x7fffff;
         const uint32_t size = event.size;
         auto changeDataType = [](MemoryEditor* editor, int size) {
@@ -860,6 +865,37 @@ void PCSX::GUI::endFrame() {
     const int h = m_framebufferSize.y;
 
     auto& io = ImGui::GetIO();
+    if (ImGui::IsKeyDown(ImGuiKey_PrintScreen) && io.KeyCtrl) {
+        auto screenshot = g_emulator->m_gpu->takeScreenShot();
+        clip::image_spec spec;
+        spec.width = screenshot.width;
+        spec.height = screenshot.height;
+        if (screenshot.bpp == GPU::ScreenShot::BPP_16) {
+            spec.bits_per_pixel = 16;
+            spec.bytes_per_row = screenshot.width * 2;
+            spec.red_mask = 0x7c00;
+            spec.green_mask = 0x3e0;
+            spec.blue_mask = 0x1f;
+            spec.alpha_mask = 0;
+            spec.red_shift = 10;
+            spec.green_shift = 5;
+            spec.blue_shift = 0;
+            spec.alpha_shift = 0;
+        } else {
+            spec.bits_per_pixel = 24;
+            spec.bytes_per_row = screenshot.width * 3;
+            spec.red_mask = 0xff0000;
+            spec.green_mask = 0xff00;
+            spec.blue_mask = 0xff;
+            spec.alpha_mask = 0;
+            spec.red_shift = 16;
+            spec.green_shift = 8;
+            spec.blue_shift = 0;
+            spec.alpha_shift = 0;
+        }
+        clip::image img(screenshot.data.data(), spec);
+        clip::set_image(img.to_rgba8888());
+    }
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     auto& emuSettings = PCSX::g_emulator->settings;
@@ -885,7 +921,11 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        if (m_disableShaders) {
+            ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
+        } else {
+            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
+        }
         ImGui::End();
         ImGui::PopStyleVar(2);
     } else {
@@ -902,7 +942,11 @@ void PCSX::GUI::endFrame() {
             }
             normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            if (m_disableShaders) {
+                ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
+            } else {
+                m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
+            }
         }
         ImGui::End();
         if (!outputShown) m_fullWindowRender = true;
@@ -1180,7 +1224,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 uint32_t frameCount = g_emulator->m_spu->getFrameCount();
                 ImGui::Text(_("%.2f ms audio buffer (%i frames)"), 1000.0f * frameCount / 44100.0f, frameCount);
             } else {
-                ImGui::Text(_("Idle"));
+                ImGui::TextUnformatted(_("Idle"));
             }
 
             ImGui::EndMainMenuBar();
@@ -1959,7 +2003,7 @@ bool PCSX::GUI::about() {
     ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
     if (ImGui::Begin(_("About"), &m_showAbout)) {
-        ImGui::Text("PCSX-Redux");
+        ImGui::TextUnformatted("PCSX-Redux");
         ImGui::Separator();
         auto someString = [](const char* str, GLenum index) {
             const char* value = (const char*)glGetString(index);
@@ -2090,7 +2134,7 @@ void PCSX::GUI::shellReached() {
         if (in->failed()) {
             throw std::runtime_error("Failed to open file.");
         }
-        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info);
+        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info, g_emulator->m_cpu->m_symbols);
         if (!info.pc.has_value()) {
             throw std::runtime_error("Binary loaded without any PC to jump to.");
         }
@@ -2133,7 +2177,8 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
     bool success = false;
     try {
         BinaryLoader::Info info;
-        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info);
+        std::map<uint32_t, std::string> symbols;
+        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info, symbols);
         if (success) success = info.pc.has_value();
     } catch (...) {
         success = false;

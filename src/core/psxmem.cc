@@ -29,6 +29,7 @@
 #include "core/r3000a.h"
 #include "mips/common/util/encoder.hh"
 #include "support/file.h"
+#include "supportpsx/binloader.h"
 
 static const std::map<uint32_t, std::string_view> s_knownBioses = {
 #ifdef USE_ADLER
@@ -208,7 +209,11 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         }
 
         if (!f->failed()) {
-            f->read(m_bios, bios_size);
+            BinaryLoader::Info i;
+            if (!BinaryLoader::load(f, getMemoryAsFile(), i, g_emulator->m_cpu->m_symbols)) {
+                f->rSeek(0);
+                f->read(m_bios, bios_size);
+            }
             f->close();
             PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
         }

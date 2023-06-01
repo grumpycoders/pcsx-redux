@@ -242,7 +242,7 @@ void *B0table[0x60] = {
     mcAllowNewCard, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
     unimplementedThunk, unimplementedThunk, getC0table, getB0table, // 54
     mcGetLastDevice, unimplementedThunk, unimplementedThunk, setSIO0AutoAck, // 58
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 5c
+    getCardStatus, waitCardStatus, unimplementedThunk, unimplementedThunk, // 5c
 };
 
 void *C0table[0x20] = {

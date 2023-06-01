@@ -63,7 +63,8 @@ class Disasm {
     virtual void CP2D(uint8_t reg) = 0;
     virtual void HI() = 0;
     virtual void LO() = 0;
-    virtual void Imm(uint16_t value) = 0;
+    virtual void Imm16(int16_t value) = 0;
+    virtual void Imm16u(uint16_t value) = 0;
     virtual void Imm32(uint32_t value) = 0;
     virtual void Target(uint32_t value) = 0;
     virtual void Sa(uint8_t value) = 0;

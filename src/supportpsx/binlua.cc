@@ -41,11 +41,12 @@ struct BinaryLoaderInfo {
 
 bool binaryLoaderLoad(PCSX::LuaFFI::LuaFile* src, PCSX::LuaFFI::LuaFile* dest, BinaryLoaderInfo* info) {
     PCSX::BinaryLoader::Info i;
+    std::map<uint32_t, std::string> symbols;
     info->region = PCSX::BinaryLoader::Region::UNKNOWN;
     info->pc = 0;
     info->sp = 0;
     info->gp = 0;
-    bool ret = PCSX::BinaryLoader::load(src->file, dest->file, i);
+    bool ret = PCSX::BinaryLoader::load(src->file, dest->file, i, symbols);
     if (ret) {
         info->region = i.region.value_or(PCSX::BinaryLoader::Region::UNKNOWN);
         info->pc = i.pc.value_or(0);

@@ -69,7 +69,7 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     if (m_showError) {
         ImGui::OpenPopup(_("Disassembler Error"));
         if (ImGui::BeginPopupModal(_("Disassembler Error"), NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text(_("Disassembly Failed.\nCheck Logs"));
+            ImGui::TextUnformatted(_("Disassembly Failed.\nCheck Logs"));
             if (ImGui::Button(_("Close"))) {
                 ImGui::CloseCurrentPopup();
                 m_showError = false;

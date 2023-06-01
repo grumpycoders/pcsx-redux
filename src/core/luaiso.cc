@@ -38,6 +38,8 @@ struct LuaIso {
 
 void deleteIso(LuaIso* wrapper) { delete wrapper; }
 bool isIsoFailed(LuaIso* wrapper) { return wrapper->iso->failed(); }
+void isoClearPPF(LuaIso* wrapper) { wrapper->iso->getPPF()->clear(); }
+void isoSavePPF(LuaIso* wrapper) { wrapper->iso->getPPF()->save(wrapper->iso->getIsoPath()); }
 LuaIso* getCurrentIso() { return new LuaIso(PCSX::g_emulator->m_cdrom->getIso()); }
 
 PCSX::ISO9660Reader* createIsoReader(LuaIso* wrapper) { return new PCSX::ISO9660Reader(wrapper->iso); }
@@ -81,6 +83,8 @@ static void registerAllSymbols(PCSX::Lua L) {
 
     REGISTER(L, deleteIso);
     REGISTER(L, isIsoFailed);
+    REGISTER(L, isoClearPPF);
+    REGISTER(L, isoSavePPF);
     REGISTER(L, getCurrentIso);
     REGISTER(L, createIsoReader);
     REGISTER(L, deleteIsoReader);
