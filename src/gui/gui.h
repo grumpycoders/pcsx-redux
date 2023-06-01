@@ -290,19 +290,6 @@ class GUI final {
     void interruptsScaler();
 
   public:
-    static void normalizeDimensions(ImVec2 &vec, float ratio) {
-        float r = vec.y / vec.x;
-        if (r > ratio) {
-            vec.y = vec.x * ratio;
-        } else {
-            vec.x = vec.y / ratio;
-        }
-        vec.x = roundf(vec.x);
-        vec.y = roundf(vec.y);
-        vec.x = std::max(vec.x, 1.0f);
-        vec.y = std::max(vec.y, 1.0f);
-    }
-
     const ImVec2 &getRenderSize() { return m_renderSize; }
 
   private:

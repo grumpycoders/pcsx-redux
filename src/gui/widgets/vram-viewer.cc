@@ -32,6 +32,7 @@
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "support/imgui-helpers.h"
 
 static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
@@ -469,29 +470,6 @@ void PCSX::Widgets::VRAMViewer::resetView() {
 }
 
 void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
-#if 0
-    if (ImGui::Begin("Debug me")) {
-        ImGui::Text("Hovered: %s", m_hovered ? "true" : "false");
-        ImGui::Text("Mouse pos: (%.1f, %.1f)", m_mousePos.x, m_mousePos.y);
-        ImGui::Text("Mouse UV: (%.1f, %.1f)", m_mouseUV.x, m_mouseUV.y);
-        ImGui::Text("Resolution: (%.1f, %.1f)", m_resolution.x, m_resolution.y);
-        ImGui::Text("Origin: (%.1f, %.1f)", m_origin.x, m_origin.y);
-        ImGui::Text("Monitor resolution: (%.1f, %.1f)", m_monitorResolution.x, m_monitorResolution.y);
-        ImGui::Text("Monitor position: (%.1f, %.1f)", m_monitorPosition.x, m_monitorPosition.y);
-        ImGui::Text("Monitor DPI: %.1f", m_monitorDPI);
-        ImGui::Text("Magnify: %s", m_magnify ? "true" : "false");
-        ImGui::Text("Magnify amount: %.1f", m_magnifyAmount);
-        ImGui::Text("Magnify radius: %.1f", m_magnifyRadius);
-        ImGui::Text("Corner TL: (%.1f, %.1f)", m_cornerTL.x, m_cornerTL.y);
-        ImGui::Text("Corner BR: (%.1f, %.1f)", m_cornerBR.x, m_cornerBR.y);
-        ImGui::Text("Alpha: %s", m_alpha ? "true" : "false");
-        ImGui::Text("Greyscale: %s", m_greyscale ? "true" : "false");
-        ImGui::Text("VRAM mode: %d", m_vramMode);
-        ImGui::Text("CLUT: (%.1f, %.1f)", m_clut.x, m_clut.y);
-        ImGui::Text("24 bits shift: %d", m_24shift);
-    }
-    ImGui::End();
-#endif
     bool openReadColorPicker = false;
     bool openWrittenColorPicker = false;
     auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
@@ -620,6 +598,7 @@ void PCSX::Widgets::VRAMViewer::focusOn(ImVec2 topLeft, ImVec2 bottomRight) {
         dimensions.y = dimensions.x * 2.0f;
     }
     dimensions = m_resolution / dimensions;
+    ImGuiHelpers::normalizeDimensions(dimensions, RATIOS[m_vramMode]);
     m_cornerBR = ImVec2(512.0f / RATIOS[m_vramMode], 512.0f) * std::max(dimensions.x, dimensions.y);
     moveTo(topLeft);
     ImVec2 center = (topLeft + (bottomRight - topLeft) / 2) / ImVec2(1024.0f, 512.0f);

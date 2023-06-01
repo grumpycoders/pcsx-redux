@@ -25,6 +25,7 @@
 
 // And only then we can load the rest
 #define GLFW_INCLUDE_NONE
+#define IMGUI_DEFINE_MATH_OPERATORS
 #define NANOVG_GLES3_IMPLEMENTATION
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
@@ -720,7 +721,7 @@ void PCSX::GUI::startFrame() {
         h = std::max<int>(h, 1);
         m_framebufferSize = ImVec2(w, h);
         m_renderSize = m_fullWindowRender ? ImVec2(w, h) : m_outputWindowSize;
-        normalizeDimensions(m_renderSize, renderRatio);
+        ImGuiHelpers::normalizeDimensions(m_renderSize, renderRatio);
 
         // Reset texture and framebuffer storage
         glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[0]);
@@ -941,7 +942,7 @@ void PCSX::GUI::endFrame() {
                 m_outputWindowSize = textureSize;
                 m_setupScreenSize = true;
             }
-            normalizeDimensions(textureSize, renderRatio);
+            ImGuiHelpers::normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
             if (m_disableShaders) {
                 ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));

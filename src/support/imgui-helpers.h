@@ -19,50 +19,25 @@
 
 #pragma once
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "imgui.h"
 
-static inline ImVec2 operator*(const ImVec2& lhs, const float rhs) { return ImVec2(lhs.x * rhs, lhs.y * rhs); }
-static inline ImVec2 operator/(const ImVec2& lhs, const float rhs) { return ImVec2(lhs.x / rhs, lhs.y / rhs); }
-static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
-static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
-static inline ImVec2 operator*(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x * rhs.x, lhs.y * rhs.y); }
-static inline ImVec2 operator/(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x / rhs.x, lhs.y / rhs.y); }
-static inline ImVec2& operator*=(ImVec2& lhs, const float rhs) {
-    lhs.x *= rhs;
-    lhs.y *= rhs;
-    return lhs;
+namespace PCSX {
+namespace ImGuiHelpers {
+
+static void normalizeDimensions(ImVec2& vec, float ratio) {
+    float r = vec.y / vec.x;
+    if (r > ratio) {
+        vec.y = vec.x * ratio;
+    } else {
+        vec.x = vec.y / ratio;
+    }
+    vec.x = roundf(vec.x);
+    vec.y = roundf(vec.y);
+    vec.x = std::max(vec.x, 1.0f);
+    vec.y = std::max(vec.y, 1.0f);
 }
-static inline ImVec2& operator/=(ImVec2& lhs, const float rhs) {
-    lhs.x /= rhs;
-    lhs.y /= rhs;
-    return lhs;
-}
-static inline ImVec2& operator+=(ImVec2& lhs, const ImVec2& rhs) {
-    lhs.x += rhs.x;
-    lhs.y += rhs.y;
-    return lhs;
-}
-static inline ImVec2& operator-=(ImVec2& lhs, const ImVec2& rhs) {
-    lhs.x -= rhs.x;
-    lhs.y -= rhs.y;
-    return lhs;
-}
-static inline ImVec2& operator*=(ImVec2& lhs, const ImVec2& rhs) {
-    lhs.x *= rhs.x;
-    lhs.y *= rhs.y;
-    return lhs;
-}
-static inline ImVec2& operator/=(ImVec2& lhs, const ImVec2& rhs) {
-    lhs.x /= rhs.x;
-    lhs.y /= rhs.y;
-    return lhs;
-}
-static inline ImVec4 operator+(const ImVec4& lhs, const ImVec4& rhs) {
-    return ImVec4(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w);
-}
-static inline ImVec4 operator-(const ImVec4& lhs, const ImVec4& rhs) {
-    return ImVec4(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w);
-}
-static inline ImVec4 operator*(const ImVec4& lhs, const ImVec4& rhs) {
-    return ImVec4(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w);
-}
+
+}  // namespace ImGuiHelpers
+}  // namespace PCSX
