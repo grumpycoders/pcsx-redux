@@ -866,6 +866,37 @@ void PCSX::GUI::endFrame() {
     const int h = m_framebufferSize.y;
 
     auto& io = ImGui::GetIO();
+    if (ImGui::IsKeyDown(ImGuiKey_PrintScreen) && io.KeyCtrl) {
+        auto screenshot = g_emulator->m_gpu->takeScreenShot();
+        clip::image_spec spec;
+        spec.width = screenshot.width;
+        spec.height = screenshot.height;
+        if (screenshot.bpp == GPU::ScreenShot::BPP_16) {
+            spec.bits_per_pixel = 16;
+            spec.bytes_per_row = screenshot.width * 2;
+            spec.red_mask = 0x7c00;
+            spec.green_mask = 0x3e0;
+            spec.blue_mask = 0x1f;
+            spec.alpha_mask = 0;
+            spec.red_shift = 10;
+            spec.green_shift = 5;
+            spec.blue_shift = 0;
+            spec.alpha_shift = 0;
+        } else {
+            spec.bits_per_pixel = 24;
+            spec.bytes_per_row = screenshot.width * 3;
+            spec.red_mask = 0xff0000;
+            spec.green_mask = 0xff00;
+            spec.blue_mask = 0xff;
+            spec.alpha_mask = 0;
+            spec.red_shift = 16;
+            spec.green_shift = 8;
+            spec.blue_shift = 0;
+            spec.alpha_shift = 0;
+        }
+        clip::image img(screenshot.data.data(), spec);
+        clip::set_image(img.to_rgba8888());
+    }
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     auto& emuSettings = PCSX::g_emulator->settings;
