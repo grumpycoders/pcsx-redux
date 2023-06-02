@@ -20,9 +20,11 @@
 #include "core/gpu.h"
 
 #include "core/debug.h"
+#include "core/gpulogger.h"
 #include "core/pgxp_mem.h"
 #include "core/psxdma.h"
 #include "core/psxhw.h"
+#include "imgui/imgui.h"
 #include "magic_enum/include/magic_enum.hpp"
 
 #define GPUSTATUS_READYFORVRAM 0x08000000
@@ -34,7 +36,7 @@ namespace PCSX {
 // clang-format off
 // clang-format doesn't understand duff's device pattern...
 template <GPU::Shading shading, GPU::Shape shape, GPU::Textured textured, GPU::Blend blend, GPU::Modulation modulation>
-void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer &buf) {
+void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer & buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     switch (m_state) {
         for (/* m_count = 0 */; m_count < count; m_count++) {
@@ -74,6 +76,8 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer
                     } else if (m_count == 1) {
                         value &= 0b0000100111111111;
                         tpage = TPage(value);
+                        uint32_t lastTPage = m_gpu->m_lastTPage.raw & ~0b0000100111111111;
+                        m_gpu->m_lastTPage = TPage(lastTPage | value);
                     }
                 }
             }
@@ -81,15 +85,20 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer
     }
     m_count = 0;
     m_state = READ_COLOR;
+    if constexpr (textured == Textured::Yes) {
+        twindow = TWindow(m_gpu->m_lastTWindow.raw);
+    }
+    offset = m_gpu->m_lastOffset;
     m_gpu->m_defaultProcessor.setActive();
+    g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
     m_gpu->write0(this);
 }
 
 template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
-void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
+void GPU::Line<shading, lineType, blend>::processWrite(Buffer & buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     if constexpr (lineType == LineType::Poly) {
-        if ((value & 0xf000f000) != 0x50005000) {
+        while ((value & 0xf000f000) != 0x50005000) {
             switch (m_state) {
                 case READ_COLOR:
                     colors.push_back(value & 0xffffff);
@@ -136,8 +145,10 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
         m_count = 0;
     }
     m_state = READ_COLOR;
+    offset = m_gpu->m_lastOffset;
     m_gpu->m_defaultProcessor.setActive();
     if ((colors.size() >= 2) && ((colors.size() == x.size()))) {
+        g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
         m_gpu->write0(this);
     } else {
         g_system->log(LogClass::GPU, "Got an invalid line command...\n");
@@ -150,7 +161,7 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer &buf) {
 }
 
 template <GPU::Size size, GPU::Textured textured, GPU::Blend blend, GPU::Modulation modulation>
-void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer &buf) {
+void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer & buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     switch (m_state) {
         case READ_COLOR:
@@ -199,7 +210,13 @@ void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer &buf) {
             }
     }
     m_state = READ_COLOR;
+    if constexpr (textured == Textured::Yes) {
+        tpage = TPage(m_gpu->m_lastTPage.raw);
+        twindow = TWindow(m_gpu->m_lastTWindow.raw);
+    }
+    offset = m_gpu->m_lastOffset;
     m_gpu->m_defaultProcessor.setActive();
+    g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
     m_gpu->write0(this);
 }
 // clang-format on
@@ -531,55 +548,65 @@ void PCSX::GPU::gpuInterrupt() {
     mem->dmaInterrupt<2>();
 }
 
-void PCSX::GPU::writeStatus(uint32_t status) {
-    uint32_t cmd = (status >> 24) & 0xff;
+void PCSX::GPU::writeStatus(uint32_t value) {
+    uint32_t cmd = (value >> 24) & 0xff;
     bool gotUnknown = false;
 
-    m_statusControl[cmd] = status;
+    m_statusControl[cmd] = value;
 
     switch (cmd) {
         case 0: {
             m_readFifo->reset();
             m_processor->reset();
             m_defaultProcessor.setActive();
-            CtrlReset ctrlReset;
-            write1(&ctrlReset);
+            CtrlReset ctrl;
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         case 1: {
-            CtrlClearFifo ctrlClearFifo;
-            write1(&ctrlClearFifo);
+            CtrlClearFifo ctrl;
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         case 2: {
-            CtrlIrqAck ctrlIrqAck;
-            write1(&ctrlIrqAck);
+            CtrlIrqAck ctrl;
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         case 3: {
-            CtrlDisplayEnable ctrlDisplayEnable(status);
-            write1(&ctrlDisplayEnable);
+            CtrlDisplayEnable ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         case 4: {
-            CtrlDmaSetting ctrlDmaSetting(status);
-            write1(&ctrlDmaSetting);
+            CtrlDmaSetting ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         case 5: {
-            CtrlDisplayStart ctrlDisplayStart(status);
-            write1(&ctrlDisplayStart);
+            CtrlDisplayStart ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         case 6: {
-            CtrlHorizontalDisplayRange ctrlHorizontalDisplayRange(status);
-            write1(&ctrlHorizontalDisplayRange);
+            CtrlHorizontalDisplayRange ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         case 7: {
-            CtrlVerticalDisplayRange ctrlVerticalDisplayRange(status);
-            write1(&ctrlVerticalDisplayRange);
+            CtrlVerticalDisplayRange ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         case 8: {
-            CtrlDisplayMode ctrlDisplayMode(status);
-            write1(&ctrlDisplayMode);
+            CtrlDisplayMode ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         case 16: {
-            CtrlQuery ctrlQuery(status);
-            write1(&ctrlQuery);
+            CtrlQuery ctrl(value);
+            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            write1(&ctrl);
         } break;
         default: {
             gotUnknown = true;
@@ -587,7 +614,7 @@ void PCSX::GPU::writeStatus(uint32_t status) {
     }
 
     if (gotUnknown) {
-        g_system->log(LogClass::GPU, "Got an unknown GPU control word: %08x\n", status);
+        g_system->log(LogClass::GPU, "Got an unknown GPU control word: %08x\n", value);
     }
 }
 
@@ -595,13 +622,13 @@ uint32_t PCSX::GPU::readData() { return m_readFifo.asA<File>()->read<uint32_t>()
 
 void PCSX::GPU::writeData(uint32_t value) {
     Buffer buf(value);
-    m_processor->processWrite(buf);
+    m_processor->processWrite(buf, Logged::Origin::DATAWRITE, value, 1);
 }
 
 void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t hwAddr) {
     Buffer buf(feed, transferSize);
     while (!buf.isEmpty()) {
-        m_processor->processWrite(buf);
+        m_processor->processWrite(buf, Logged::Origin::DIRECT_DMA, hwAddr, transferSize);
     }
 }
 
@@ -630,7 +657,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
         const uint32_t *feed = memory + addr + 1;
         Buffer buf(feed, transferSize);
         while (!buf.isEmpty()) {
-            m_processor->processWrite(buf);
+            m_processor->processWrite(buf, Logged::Origin::CHAIN_DMA, addr << 2, transferSize);
         }
 
         // next 32-bit pointer
@@ -639,7 +666,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
 }
 
-void PCSX::GPU::Command::processWrite(Buffer &buf) {
+void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32_t originValue, uint32_t length) {
     while (!buf.isEmpty()) {
         uint32_t value = buf.get();
         bool gotUnknown = false;
@@ -647,7 +674,6 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
         const uint8_t command = (value >> 24) & 0x1f;  // 5 next bits = "command", which may be a bitfield
 
         const uint32_t packetInfo = value & 0xffffff;
-        GPU::Logged *logged = nullptr;
 
         switch (cmdType) {
             case 0:  // GPU command
@@ -655,11 +681,12 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
                     case 0x01: {  // clear cache
                         ClearCache prim;
                         m_gpu->write0(&prim);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                     } break;
                     case 0x02: {  // fast fill
                         buf.rewind();
                         m_gpu->m_fastFill.setActive();
-                        m_gpu->m_fastFill.processWrite(buf);
+                        m_gpu->m_fastFill.processWrite(buf, origin, originValue, length);
                     } break;
                     default: {
                         gotUnknown = true;
@@ -669,61 +696,64 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
             case 1: {  // Polygon primitive
                 buf.rewind();
                 m_gpu->m_polygons[command]->setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 2: {  // Line primitive
                 buf.rewind();
                 m_gpu->m_lines[command]->setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 3: {  // Rectangle primitive
                 buf.rewind();
                 m_gpu->m_rects[command]->setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 4: {  // Move data in VRAM
                 m_gpu->m_blitVramVram.setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 5: {  // Write data to VRAM
                 m_gpu->m_blitRamVram.setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 6: {  // Read data from VRAM
                 m_gpu->m_blitVramRam.setActive();
-                m_gpu->m_processor->processWrite(buf);
+                m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 7: {  // Environment command
                 switch (command) {
                     case 1: {  // tpage
-                        TPage tpage(packetInfo);
-                        logged = &tpage;
-                        m_gpu->write0(&tpage);
+                        TPage prim(packetInfo);
+                        m_gpu->m_lastTPage = TPage(packetInfo);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->write0(&prim);
                     } break;
                     case 2: {  // twindow
-                        TWindow twindow(packetInfo);
-                        logged = &twindow;
-                        m_gpu->write0(&twindow);
+                        TWindow prim(packetInfo);
+                        m_gpu->m_lastTWindow = TWindow(packetInfo);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->write0(&prim);
                     } break;
                     case 3: {  // drawing area top left
-                        DrawingAreaStart start(packetInfo);
-                        logged = &start;
-                        m_gpu->write0(&start);
+                        DrawingAreaStart prim(packetInfo);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->write0(&prim);
                     } break;
                     case 4: {  // drawing area bottom right
-                        DrawingAreaEnd end(packetInfo);
-                        logged = &end;
-                        m_gpu->write0(&end);
+                        DrawingAreaEnd prim(packetInfo);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->write0(&prim);
                     } break;
                     case 5: {  // drawing offset
-                        DrawingOffset offset(packetInfo);
-                        logged = &offset;
-                        m_gpu->write0(&offset);
+                        DrawingOffset prim(packetInfo);
+                        m_gpu->m_lastOffset = DrawingOffset(packetInfo);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->write0(&prim);
                     } break;
                     case 6: {  // mask bit
-                        MaskBit mask(packetInfo);
-                        logged = &mask;
-                        m_gpu->write0(&mask);
+                        MaskBit prim(packetInfo);
+                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->write0(&prim);
                     } break;
                     default: {
                         gotUnknown = true;
@@ -737,7 +767,7 @@ void PCSX::GPU::Command::processWrite(Buffer &buf) {
     }
 }
 
-void PCSX::GPU::FastFill::processWrite(Buffer &buf) {
+void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     switch (m_state) {
         case READ_COLOR:
@@ -763,12 +793,13 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf) {
             clipped = GPU::clip(x, y, w, h);
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
+            g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
             m_gpu->write0(this);
             return;
     }
 }
 
-void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf) {
+void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value;
     switch (m_state) {
         case READ_COMMAND:
@@ -803,12 +834,13 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf) {
             clipped |= GPU::clip(dX, dY, w, h);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
+            g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
             m_gpu->write0(this);
             return;
     }
 }
 
-void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf) {
+void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value;
     size_t size;
     bool done = false;
@@ -861,11 +893,14 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf) {
         clipped = GPU::clip(x, y, w, h);
         m_state = READ_COMMAND;
         m_gpu->m_defaultProcessor.setActive();
+        g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
         m_gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>(), PartialUpdateVram::Synchronous);
     }
 }
 
-void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf) {
+void PCSX::GPU::BlitRamVram::execute(GPU *gpu) { gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>()); }
+
+void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value;
     switch (m_state) {
         case READ_COMMAND:
@@ -891,6 +926,7 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf) {
             clipped = GPU::clip(x, y, w, h);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
+            g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
             m_gpu->m_vramReadSlice = m_gpu->getVRAM();
             for (auto l = y; l < y + h; l++) {
                 Slice slice;
@@ -991,28 +1027,351 @@ void PCSX::GPU::write0(BlitVramVram *prim) {
     partialUpdateVRAM(dX, dY, w, h, rect.data(), PartialUpdateVram::Synchronous);
 }
 
-PCSX::GPU::CtrlDisplayMode::CtrlDisplayMode(uint32_t value) {
-    if ((value >> 6) & 1) {
-        switch (value & 3) {
-            case 0:
-                hres = HR_368;
-                break;
-            case 1:
-                hres = HR_384;
-                break;
-            case 2:
-                hres = HR_512;
-                break;
-            case 3:
-                hres = HR_640;
-                break;
+// These technically belong to gpulogger.cc, but due to the templatisation instanciation, they need to be here
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
+          PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(unsigned n) {
+    if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
+        if constexpr (shading == Shading::Flat) {
+            ImGui::TextUnformatted(_("Shading: Flat"));
+            ImGui::Text("  R: %i, G: %i, B: %i", (colors[0] >> 0) & 0xff, (colors[0] >> 8) & 0xff,
+                        (colors[0] >> 16) & 0xff);
+        } else if constexpr (shading == Shading::Gouraud) {
+            ImGui::TextUnformatted(_("Shading: Gouraud"));
         }
-    } else {
-        hres = magic_enum::enum_cast<decltype(hres)>(value & 3).value();
     }
-    vres = magic_enum::enum_cast<decltype(vres)>((value >> 2) & 1).value();
-    mode = magic_enum::enum_cast<decltype(mode)>((value >> 3) & 1).value();
-    depth = magic_enum::enum_cast<decltype(depth)>((value >> 4) & 1).value();
-    interlace = (value >> 5) & 1;
-    widthRaw = ((value >> 6) & 1) | ((value & 3) << 1);
+    if constexpr (textured == Textured::Yes) {
+        ImGui::TextUnformatted(_("Textured"));
+    }
+    if constexpr (blend == Blend::Semi) {
+        ImGui::TextUnformatted(_("Semi-transparency blending"));
+    }
+    if constexpr (textured == Textured::Yes) {
+        ImGui::Separator();
+        tpage.drawLogNodeCommon();
+        if (tpage.texDepth != TexDepth::Tex16Bits) {
+            std::string label = fmt::format("  ClutX: {}, ClutY: {}", clutX(), clutY());
+            if (ImGui::Button(label.c_str())) {
+                g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
+            }
+        }
+    }
+    int minX = 2048, minY = 1024, maxX = -1024, maxY = -512;
+    int minU = 2048, minV = 1024, maxU = -1024, maxV = -512;
+    for (unsigned i = 0; i < count; i++) {
+        ImGui::Separator();
+        ImGui::Text(_("Vertex %i"), i);
+        ImGui::Text("  X: %i + %i = %i, Y: %i + %i = %i", x[i], offset.x, x[i] + offset.x, y[i], offset.y,
+                    y[i] + offset.y);
+        minX = std::min(minX, x[i] + offset.x);
+        minY = std::min(minY, y[i] + offset.y);
+        maxX = std::max(maxX, x[i] + offset.x);
+        maxY = std::max(maxY, y[i] + offset.y);
+        if constexpr ((shading == Shading::Gouraud) && ((textured == Textured::No) || (modulation == Modulation::On))) {
+            ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
+                        (colors[i] >> 16) & 0xff);
+        }
+        if constexpr (textured == Textured::Yes) {
+            unsigned tx = tpage.tx * 64;
+            unsigned ty = tpage.ty * 256;
+            unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+            ImGui::Text("  U: %i >> %i + %i = %i, V: %i + %i = %i", u[i], shift, tx, (u[i] >> shift) + tx, v[i], ty,
+                        v[i] + ty);
+            minU = std::min(minU, int(u[i] >> shift));
+            minV = std::min(minV, int(v[i]));
+            maxU = std::max(maxU, int(u[i] >> shift));
+            maxV = std::max(maxV, int(v[i]));
+        }
+    }
+    ImGui::Separator();
+    std::string label = fmt::format(f_("Go to primitive##{}"), n);
+    if (ImGui::Button(label.c_str())) {
+        g_system->m_eventBus->signal(Events::GUI::VRAMFocus{minX, minY, maxX, maxY});
+    }
+    if constexpr (textured == Textured::Yes) {
+        unsigned tx = tpage.tx * 64;
+        unsigned ty = tpage.ty * 256;
+        ImGui::SameLine();
+        std::string label = fmt::format(f_("Go to texture##{}"), n);
+        if (ImGui::Button(label.c_str())) {
+            const auto mode = tpage.texDepth == TexDepth::Tex16Bits  ? Events::GUI::VRAMFocus::VRAM_16BITS
+                              : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
+                                                                     : Events::GUI::VRAMFocus::VRAM_4BITS;
+            g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
+            g_system->m_eventBus->signal(
+                Events::GUI::VRAMFocus{int(minU + tx), int(minV + ty), int(maxU + tx), int(maxV + ty), mode});
+        }
+        if (tpage.texDepth != TexDepth::Tex16Bits) {
+            ImGui::SameLine();
+            std::string label = fmt::format(f_("Go to CLUT##{}"), n);
+            if (ImGui::Button(label.c_str())) {
+                int depth = tpage.texDepth == TexDepth::Tex4Bits ? 16 : 256;
+                g_system->m_eventBus->signal(
+                    Events::GUI::VRAMFocus{int(clutX()), int(clutY()), int(clutX() + depth), int(clutY() + 1)});
+            }
+        }
+    }
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned n) {
+    int minX = x[0], minY = y[0], maxX = x[0], maxY = y[0];
+    if constexpr (shading == Shading::Flat) {
+        ImGui::TextUnformatted(_("Shading: Flat"));
+        ImGui::Text("  R: %i, G: %i, B: %i", (colors[0] >> 0) & 0xff, (colors[0] >> 8) & 0xff,
+                    (colors[0] >> 16) & 0xff);
+    } else if constexpr (shading == Shading::Gouraud) {
+        ImGui::TextUnformatted(_("Shading: Gouraud"));
+    }
+    if constexpr (blend == Blend::Semi) {
+        ImGui::TextUnformatted(_("Semi-transparency blending"));
+    }
+    for (unsigned i = 1; i < colors.size(); i++) {
+        ImGui::Separator();
+        if constexpr (lineType == LineType::Poly) {
+            ImGui::Text(_("Line %i"), i);
+        }
+        ImGui::Text("  X0: %i + %i = %i, Y0: %i + %i = %i", x[i - 1], offset.x, x[i - 1] + offset.x, y[i - 1], offset.y,
+                    y[i - 1] + offset.y);
+        if constexpr (shading == Shading::Gouraud) {
+            ImGui::Text("  R: %i, G: %i, B: %i", (colors[i - 1] >> 0) & 0xff, (colors[i - 1] >> 8) & 0xff,
+                        (colors[i - 1] >> 16) & 0xff);
+        }
+        ImGui::Text("  X1: %i + %i = %i, Y1: %i + %i = %i", x[i], offset.x, x[i] + offset.x, y[i], offset.y,
+                    y[i] + offset.y);
+        if constexpr (shading == Shading::Gouraud) {
+            ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
+                        (colors[i] >> 16) & 0xff);
+        }
+        minX = std::min(minX, x[i] + offset.x);
+        minY = std::min(minY, y[i] + offset.y);
+        maxX = std::max(maxX, x[i] + offset.x);
+        maxY = std::max(maxY, y[i] + offset.y);
+    }
+    ImGui::Separator();
+    std::string label = fmt::format(f_("Go to primitive##{}"), n);
+    if (ImGui::Button(label.c_str())) {
+        g_system->m_eventBus->signal(Events::GUI::VRAMFocus{minX, minY, maxX, maxY});
+    }
+}
+
+template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n) {
+    ImGui::Text("  X0: %i + %i = %i, Y0: %i + %i = %i", x, offset.x, x + offset.x, y, offset.y, y + offset.y);
+    ImGui::Text("  X1: %i + %i = %i, Y1: %i + %i = %i", x + w, offset.x, x + w + offset.x, y + h, offset.y,
+                y + h + offset.y);
+    ImGui::Text("  W: %i, H: %i", w, h);
+    if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
+        ImGui::Text("  R: %i, G: %i, B: %i", (color >> 0) & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
+    }
+    if constexpr (blend == Blend::Semi) {
+        ImGui::TextUnformatted(_("Semi-transparency blending"));
+    }
+    if constexpr (textured == Textured::Yes) {
+        unsigned tx = tpage.tx * 64;
+        unsigned ty = tpage.ty * 256;
+        unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+        ImGui::Text("  U: %i >> %i + %i = %i, V: %i + %i = %i", u, shift, tx, (u >> shift) + tx, v, ty, v + ty);
+        std::string label = fmt::format("  ClutX: {}, ClutY: {}", clutX(), clutY());
+        if (ImGui::Button(label.c_str())) {
+            g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
+        }
+    }
+    ImGui::Separator();
+    std::string label = fmt::format(f_("Go to primitive##{}"), n);
+    if (ImGui::Button(label.c_str())) {
+        g_system->m_eventBus->signal(
+            Events::GUI::VRAMFocus{x + offset.x, y + offset.y, x + w + offset.x, y + h + offset.y});
+    }
+    if constexpr (textured == Textured::Yes) {
+        unsigned tx = tpage.tx * 64;
+        unsigned ty = tpage.ty * 256;
+        unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+        ImGui::SameLine();
+        std::string label = fmt::format(f_("Go to texture##{}"), n);
+        if (ImGui::Button(label.c_str())) {
+            const auto mode = tpage.texDepth == TexDepth::Tex16Bits  ? Events::GUI::VRAMFocus::VRAM_16BITS
+                              : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
+                                                                     : Events::GUI::VRAMFocus::VRAM_4BITS;
+            g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
+            g_system->m_eventBus->signal(Events::GUI::VRAMFocus{int((u >> shift) + tx), int(v + ty),
+                                                                int(((u + w) >> shift) + tx), int(v + h + ty), mode});
+        }
+        if (tpage.texDepth != TexDepth::Tex16Bits) {
+            ImGui::SameLine();
+            std::string label = fmt::format(f_("Go to CLUT##{}"), n);
+            if (ImGui::Button(label.c_str())) {
+                g_system->m_eventBus->signal(
+                    Events::GUI::VRAMFocus{int(clutX()), int(clutY()), int(clutX() + 256), int(clutY() + 1)});
+            }
+        }
+    }
+}
+
+static float triangleArea(float x1, float x2, float x3, float y1, float y2, float y3) {
+    float adx = x1 - x2;
+    float ady = y1 - y2;
+    float bdx = x1 - x3;
+    float bdy = y1 - y3;
+    float cdx = x2 - x3;
+    float cdy = y2 - y3;
+    float a = sqrtf(adx * adx + ady * ady);
+    float b = sqrtf(bdx * bdx + bdy * bdy);
+    float c = sqrtf(cdx * cdx + cdy * cdy);
+    float s = (a + b + c) / 2;
+    return sqrtf(s * (s - a) * (s - b) * (s - c));
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
+          PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::generateStatsInfo() {
+    float pixelArea = 0.0f;
+    float textureArea = 0.0f;
+
+    pixelArea = triangleArea(x[0], x[1], x[2], y[0], y[1], y[2]);
+    if constexpr (shape == Shape::Quad) {
+        pixelArea += triangleArea(x[1], x[2], x[3], y[1], y[2], y[3]);
+    }
+    if constexpr (textured == Textured::Yes) {
+        unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+        textureArea += triangleArea(u[0] >> shift, u[1] >> shift, u[2] >> shift, v[0], v[1], v[2]);
+        if constexpr (shape == Shape::Quad) {
+            textureArea += triangleArea(u[1] >> shift, u[2] >> shift, u[3] >> shift, v[1], v[2], v[3]);
+        }
+    }
+
+    if constexpr (textured == Textured::Yes) {
+        stats.texturedTriangles = shape == Shape::Quad ? 2 : 1;
+    } else {
+        stats.triangles = shape == Shape::Quad ? 2 : 1;
+    }
+    stats.pixelWrites = pixelArea;
+    if constexpr (blend == Blend::Semi) {
+        stats.pixelReads = pixelArea;
+    }
+    stats.texelReads = textureArea;
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::GPU::Line<shading, lineType, blend>::generateStatsInfo() {
+    unsigned pixels = 0;
+    for (unsigned i = 1; i < colors.size(); i++) {
+        auto dx = std::abs(x[i] - x[i - 1]);
+        auto dy = std::abs(y[i] - y[i - 1]);
+        if (dx > dy) {
+            pixels += dx;
+        } else {
+            pixels += dy;
+        }
+    }
+
+    stats.pixelWrites += pixels;
+    if constexpr (blend == Blend::Semi) {
+        stats.pixelReads += pixels;
+    }
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
+          PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::cumulateStats(GPUStats *accum) {
+    *accum += stats;
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::GPU::Line<shading, lineType, blend>::cumulateStats(GPUStats *accum) {
+    *accum += stats;
+}
+
+template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Rect<size, textured, blend, modulation>::cumulateStats(GPUStats *stats) {
+    auto s = h * w;
+    stats->pixelWrites += s;
+    if constexpr (textured == Textured::Yes) {
+        unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+        stats->texelReads += s >> shift;
+        stats->sprites++;
+    } else {
+        stats->rectangles++;
+    }
+    if constexpr (blend == Blend::Semi) {
+        stats->pixelReads += s;
+    }
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
+          PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
+    if (op == PixelOp::WRITE) {
+        add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y});
+        if constexpr (shape == Shape::Quad) {
+            add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
+                {x[3] + offset.x, y[3] + offset.y});
+        }
+    } else if (op == PixelOp::READ) {
+        if constexpr (blend == Blend::Semi) {
+            add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y},
+                {x[2] + offset.x, y[2] + offset.y});
+            if constexpr (shape == Shape::Quad) {
+                add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
+                    {x[3] + offset.x, y[3] + offset.y});
+            }
+        }
+        if constexpr (textured == Textured::Yes) {
+            unsigned tx = tpage.tx * 64;
+            unsigned ty = tpage.ty * 256;
+            unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+            add({int((u[0] >> shift) + tx), int(v[0] + ty)}, {int((u[1] >> shift) + tx), int(v[1] + ty)},
+                {int((u[2] >> shift) + tx), int(v[2] + ty)});
+            if constexpr (shape == Shape::Quad) {
+                add({int((u[1] >> shift) + tx), int(v[1] + ty)}, {int((u[2] >> shift) + tx), int(v[2] + ty)},
+                    {int((u[3] >> shift) + tx), int(v[3] + ty)});
+            }
+            if (tpage.texDepth == TexDepth::Tex4Bits) {
+                addLine(std::move(add), clutX(), clutY(), clutX() + 16, clutY());
+            } else if (tpage.texDepth == TexDepth::Tex8Bits) {
+                addLine(std::move(add), clutX(), clutY(), clutX() + 256, clutY());
+            }
+        }
+    }
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::GPU::Line<shading, lineType, blend>::getVertices(AddTri &&add, PixelOp op) {
+    if constexpr (blend == Blend::Off) {
+        if (op == PixelOp::READ) return;
+    }
+    auto count = colors.size();
+    for (unsigned i = 1; i < count; i++) {
+        auto x0 = x[i - 1];
+        auto x1 = x[i];
+        auto y0 = y[i - 1];
+        auto y1 = y[i];
+
+        addLine(std::move(add), x0 + offset.x, y0 + offset.y, x1 + offset.x, y1 + offset.y);
+    }
+}
+
+template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
+void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
+    if (op == PixelOp::WRITE) {
+        add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
+        add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+    } else if (op == PixelOp::READ) {
+        if constexpr (blend == Blend::Semi) {
+            add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
+            add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+        }
+        if constexpr (textured == Textured::Yes) {
+            unsigned tx = tpage.tx * 64;
+            unsigned ty = tpage.ty * 256;
+            unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
+            unsigned minU = u >> shift;
+            unsigned minV = v;
+            unsigned maxU = (u + w) >> shift;
+            unsigned maxV = v + h;
+            add({int(minU + tx), int(minV + ty)}, {int(maxU + tx), int(minV + ty)}, {int(maxU + tx), int(maxV + ty)});
+            add({int(maxU + tx), int(maxV + ty)}, {int(minU + tx), int(maxV + ty)}, {int(minU + tx), int(minV + ty)});
+        }
+    }
 }

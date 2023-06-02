@@ -26,21 +26,8 @@
 #include "core/cdrom.h"
 #include "fmt/format.h"
 #include "imgui/imgui.h"
+#include "support/imgui-helpers.h"
 #include "support/uvfile.h"
-
-static void ShowHelpMarker(const char* desc) {
-    ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGui::TextUnformatted("(?)");
-    ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
 
 PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
     auto time = std::chrono::steady_clock::now();
@@ -143,7 +130,7 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
             m_crcCalculator = computeCRC(iso);
         }
 
-        ShowHelpMarker(_(R"(Computes the CRC32 of each track, and of
+        ImGuiHelpers::ShowHelpMarker(_(R"(Computes the CRC32 of each track, and of
 the whole disk. The CRC32 is computed on the raw data,
 after decompression of the tracks. This is useful to
 check the disk image against redump's information.

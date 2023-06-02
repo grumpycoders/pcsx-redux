@@ -41,6 +41,7 @@
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
+#include "gui/widgets/gpulogger.h"
 #include "gui/widgets/handlers.h"
 #include "gui/widgets/isobrowser.h"
 #include "gui/widgets/kernellog.h"
@@ -103,6 +104,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
+    typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
@@ -144,7 +146,7 @@ class GUI final : public UI {
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
-             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, MainFontSize, MonoFontSize,
+             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, MainFontSize, MonoFontSize,
              GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
              ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
              ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
@@ -289,19 +291,6 @@ class GUI final : public UI {
     void interruptsScaler();
 
   public:
-    static void normalizeDimensions(ImVec2 &vec, float ratio) {
-        float r = vec.y / vec.x;
-        if (r > ratio) {
-            vec.y = vec.x * ratio;
-        } else {
-            vec.x = vec.y / ratio;
-        }
-        vec.x = roundf(vec.x);
-        vec.y = roundf(vec.y);
-        vec.x = std::max(vec.x, 1.0f);
-        vec.y = std::max(vec.y, 1.0f);
-    }
-
     const ImVec2 &getRenderSize() { return m_renderSize; }
 
   private:
@@ -386,7 +375,6 @@ class GUI final : public UI {
     Widgets::FileDialog m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
-    bool m_breakOnVSync = false;
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
@@ -409,6 +397,8 @@ class GUI final : public UI {
 
     Widgets::PIOCart m_pioCart = {settings.get<ShowPIOCartConfig>().value};
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
+
+    Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
 
     EventBus::Listener m_listener;
 

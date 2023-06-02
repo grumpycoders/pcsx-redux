@@ -41,7 +41,6 @@ local function Constructor(shaderProgramID)
     locGrey = gl.glGetUniformLocation(shaderProgramID, 'u_grey')
     Reset()
 end
-
 Constructor(shaderProgramID)
 
 function Image(textureID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
@@ -53,11 +52,11 @@ function Image(textureID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
 end
 
 function Draw()
-    if (not configureme) then return end
+    if not configureme then return end
     local shoulddraw, lc
     local changed = false
     shoulddraw, configureme = imgui.Begin(t_('Output CRT Shader Configuration'), true)
-    if (not shoulddraw) then
+    if not shoulddraw then
         imgui.End()
         return true
     end
@@ -71,9 +70,9 @@ function Draw()
     local masknames = { t_('Trinitron'), t_('Trinitron 2x'), t_('Trio') }
     local maskname = masknames[masktype]
     shoulddraw = imgui.BeginCombo(t_('Mask type'), maskname)
-    if (shoulddraw) then
+    if shoulddraw then
         for i = 1, 3 do
-            if (imgui.Selectable(masknames[i], i == masktype)) then
+            if imgui.Selectable(masknames[i], i == masktype) then
                 masktype = i
                 changed = true
             end

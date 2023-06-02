@@ -47,11 +47,11 @@ end
 Constructor(shaderProgramID)
 
 function Draw()
-    if (not configureme) then return end
+    if not configureme then return end
     local shoulddraw, lc
     local changed = false
     shoulddraw, configureme = imgui.Begin(t_('Offscreen CRT shader Configuration'), true)
-    if (not shoulddraw) then
+    if not shoulddraw then
         imgui.End()
         return true
     end

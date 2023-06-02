@@ -19,39 +19,30 @@
 
 #pragma once
 
-#define IMGUI_DEFINE_MATH_OPERATORS
+#include <stdint.h>
 
-#include "imgui.h"
+#include <limits>
 
 namespace PCSX {
-namespace ImGuiHelpers {
+class GPULogger;
+namespace Widgets {
 
-static void normalizeDimensions(ImVec2& vec, float ratio) {
-    float r = vec.y / vec.x;
-    if (r > ratio) {
-        vec.y = vec.x * ratio;
-    } else {
-        vec.x = vec.y / ratio;
-    }
-    vec.x = roundf(vec.x);
-    vec.y = roundf(vec.y);
-    vec.x = std::max(vec.x, 1.0f);
-    vec.y = std::max(vec.y, 1.0f);
-}
+class GPULogger {
+  public:
+    GPULogger(bool& show) : m_show(show) {}
+    void draw(PCSX::GPULogger* logger, const char* title);
 
-static void ShowHelpMarker(const char* desc) {
-    ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGui::TextUnformatted("(?)");
-    ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
+    bool& m_show;
+    bool m_replay = false;
+    bool m_showOrigins = false;
+    bool m_expandAll = false;
+    bool m_collapseAll = false;
+    bool m_setHighlightRange = false;
+    bool m_hoverHighlight = false;
+    uint64_t m_frameCounterOrigin = 0;
+    unsigned m_beginHighlight = 0;
+    unsigned m_endHighlight = std::numeric_limits<unsigned>::max();
+};
 
-}  // namespace ImGuiHelpers
+}  // namespace Widgets
 }  // namespace PCSX
