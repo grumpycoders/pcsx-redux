@@ -33,30 +33,23 @@
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
 
-void PCSX::OpenGL_GPU::reset() {
+void PCSX::OpenGL_GPU::resetBackend() {
     m_gpustat = 0x14802000;
 
-    m_haveCommand = false;
     m_lastTransparency = Transparency::Opaque;
     m_lastBlendingMode = -1;
-    m_readingMode = TransferMode::CommandTransfer;
-    m_writingMode = TransferMode::CommandTransfer;
     m_drawMode = 0;
     m_rectTexpage = 0;
-    m_remainingWords = 0;
-    m_vramReadBufferSize = 0;
-    m_FIFOIndex = 0;
     m_vertexCount = 0;
     m_syncVRAM = true;
     m_display.reset();
-    m_vramWriteBuffer.clear();
 
     m_drawAreaLeft = m_drawAreaTop = 0;
     m_drawAreaBottom = vramHeight;
     m_drawAreaRight = vramWidth;
     updateDrawArea();
 
-    m_drawingOffset = OpenGL::ivec2({0, 0});
+    m_drawingOffset = OpenGL::ivec2(0, 0);
 
     m_program.use();
     setDrawOffset(0x00000000);
@@ -83,12 +76,10 @@ void PCSX::OpenGL_GPU::clearVRAM(float r, float g, float b, float a) {
 void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 
 // Do not forget to call this with an active OpenGL context.
-int PCSX::OpenGL_GPU::init(GUI* gui) {
+int PCSX::OpenGL_GPU::initBackend(GUI *gui) {
     m_gui = gui;
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.resize(vertexBufferSize);
-    m_vramReadBuffer.resize(vramWidth * vramHeight);
-    m_vramWriteBuffer.reserve(vramWidth * vramHeight);
 
     m_vbo.createFixedSize(sizeof(Vertex) * vertexBufferSize, GL_STREAM_DRAW);
     m_vbo.bind();
@@ -150,7 +141,7 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
     glPixelStorei(GL_PACK_ALIGNMENT, 2);
 
-    static const char* vertSource = R"(
+    static const char *vertSource = R"(
         #version 330 core
 
         // inPos: The vertex position.
@@ -205,7 +196,7 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
         }
     )";
 
-    static const char* fragSource = R"(
+    static const char *fragSource = R"(
         #version 330 core
         in vec4 vertexColor;
         in vec2 texCoords;
@@ -306,7 +297,7 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
     m_shaderEditor.setText(vertSource, fragSource, "");
     auto status = m_shaderEditor.compile(m_gui);
     if (!status.isOk()) return -1;
-    m_program.m_handle = m_shaderEditor.getProgram();
+    m_program.setProgram(m_shaderEditor.getProgram());
 
     m_program.use();
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
@@ -318,7 +309,6 @@ int PCSX::OpenGL_GPU::init(GUI* gui) {
     glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
 
     reset();
-    initCommands();
     setOpenGLContext();
     return 0;
 }
@@ -339,145 +329,9 @@ void PCSX::OpenGL_GPU::setLinearFiltering() {
 
 int PCSX::OpenGL_GPU::shutdown() { return 0; }
 
-uint32_t PCSX::OpenGL_GPU::readStatus() {
+uint32_t PCSX::OpenGL_GPU::readStatusInternal() {
     return 0b01011110100000000000000000000000;
     // return m_gpustat;
-}
-
-uint32_t PCSX::OpenGL_GPU::readData() {
-    uint32_t ret;
-    readDataMem(&ret, 1);
-    return ret;
-}
-
-void PCSX::OpenGL_GPU::readDataMem(uint32_t* destination, int size) {
-    for (int i = 0; i < size; i++) {
-        if (m_readingMode == TransferMode::VRAMTransfer) {
-            if (m_vramReadBufferSize == 1) m_readingMode = TransferMode::CommandTransfer;
-            *destination++ = m_vramReadBuffer[m_vramReadBufferIndex++];
-            m_vramReadBufferSize--;
-        } else {
-            // g_system->printf("Unimplemented GPUREAD read :(\n");
-            return;
-        }
-    }
-}
-
-void PCSX::OpenGL_GPU::writeData(uint32_t value) { writeDataMem(&value, 1); }
-
-void PCSX::OpenGL_GPU::writeDataMem(uint32_t* source, int size) {
-    ZoneScoped;  // Let Tracy do its thing
-
-    while (size) {
-        const uint32_t word = *source++;  // Fetch word, inc pointer. TODO: Better bounds checking.
-        size--;
-
-        if (!m_haveCommand) {
-            startGP0Command(word);
-        } else {
-            if (m_writingMode == TransferMode::VRAMTransfer) {
-                if (m_remainingWords == 0) {  // Texture transfer finished
-                    renderBatch();
-                    m_writingMode = TransferMode::CommandTransfer;
-                    m_haveCommand = false;
-
-                    OpenGL::bindScreenFramebuffer();
-                    m_vramTexture.bind();
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, m_vramTransferRect.x, m_vramTransferRect.y,
-                                    m_vramTransferRect.width, m_vramTransferRect.height, GL_RGBA,
-                                    GL_UNSIGNED_SHORT_1_5_5_5_REV, m_vramWriteBuffer.data());
-                    m_sampleTexture.bind();
-                    m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
-                    m_syncVRAM = true;
-                    m_vramWriteBuffer.clear();
-
-                    // Since the texture transfer has ended, this word actually marks the start of a new GP0 command
-                    startGP0Command(word);
-                    continue;
-                }
-                m_remainingWords--;
-                m_vramWriteBuffer.push_back(word);
-                continue;
-            }
-
-            m_remainingWords--;
-            m_cmdFIFO[m_FIFOIndex++] = word;
-            if (m_remainingWords == 0) {
-                m_haveCommand = false;
-                const auto func = m_cmdFuncs[m_cmd];
-                (*this.*func)();
-            }
-        }
-    }
-}
-
-// GP1 command writes
-void PCSX::OpenGL_GPU::writeStatusInternal(uint32_t value) {
-    const uint32_t cmd = value >> 24;
-    switch (cmd) {
-        // Reset GPU. TODO: This should perform some more operations
-        case 0:
-            m_display.reset();
-            setDisplayEnable(false);
-            acknowledgeIRQ1();
-            break;
-
-        case 2:
-            acknowledgeIRQ1();
-            break;
-
-        // Enable/Disable display
-        case 3: {
-            const bool enabled = (value & 1) == 0;
-            setDisplayEnable(enabled);
-            break;
-        }
-
-        // Set display area start
-        case 5:
-            m_display.setDisplayStart(value);
-            break;
-
-        // Set display area width
-        case 6:
-            m_display.setHorizontalRange(value);
-            break;
-
-        // Set display area height
-        case 7:
-            m_display.setVerticalRange(value);
-            break;
-
-        case 8:
-            m_display.setMode(value);
-            break;
-
-        default:
-            // PCSX::g_system->printf("Unknown GP1 command: %02X\n", cmd);
-            break;
-    }
-}
-
-int32_t PCSX::OpenGL_GPU::dmaChain(uint32_t* baseAddr, uint32_t addr) {
-    int counter = 0;
-    do {
-        // if (iGPUHeight == 512) addr &= 0x1FFFFC;
-        if (counter++ > 2000000) break;
-        // if (::CheckForEndlessLoop(addr)) break;
-
-        const uint32_t header = baseAddr[addr >> 2];  // Header of linked list node
-        const uint32_t size = header >> 24;           // Number of words to transfer for this node
-
-        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-            g_emulator->m_debug->checkDMAread(2, addr, (size + 1) * 4);
-        }
-
-        if (size > 0) writeDataMem(&baseAddr[(addr + 4) >> 2], size);
-
-        addr = header & 0xffffff;
-    } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
-                                   // 0xFF'FFFF any pointer with bit 23 set will do.
-    return 0;
 }
 
 bool PCSX::OpenGL_GPU::configure() {
@@ -486,7 +340,7 @@ bool PCSX::OpenGL_GPU::configure() {
     if (m_shaderEditor.m_show && m_shaderEditor.draw(m_gui, "Hardware renderer shader editor")) {
         const auto status = m_shaderEditor.compile(m_gui);
         if (status.isOk()) {
-            m_program.m_handle = m_shaderEditor.getProgram();
+            m_program.setProgram(m_shaderEditor.getProgram());
             const auto lastProgram = OpenGL::getProgram();
 
             m_program.use();
@@ -508,7 +362,7 @@ bool PCSX::OpenGL_GPU::configure() {
     }
 
     if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
-        static const char* polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
+        static const char *polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
         constexpr OpenGL::FillMode polygonModes[] = {OpenGL::FillPoly, OpenGL::DrawWire, OpenGL::DrawPoints};
 
         if (ImGui::BeginCombo(_("Polygon rendering mode"), polygonModeNames[m_polygonModeIndex])) {
@@ -556,10 +410,10 @@ bool PCSX::OpenGL_GPU::configure() {
 
 void PCSX::OpenGL_GPU::debug() {
     if (ImGui::Begin(_("OpenGL GPU Debugger"), &m_showDebug)) {
-        const auto width = m_display.m_size.x();
-        const auto height = m_display.m_size.y();
-        const auto startX = m_display.m_start.x();
-        const auto startY = m_display.m_start.y();
+        const auto width = m_display.size.x();
+        const auto height = m_display.size.y();
+        const auto startX = m_display.start.x();
+        const auto startY = m_display.start.y();
 
         ImGui::Text(_("Display horizontal range: %d-%d"), startX, startX + width);
         ImGui::Text(_("Display vertical range: %d-%d"), startY, startY + height);
@@ -611,14 +465,15 @@ void PCSX::OpenGL_GPU::setScissorArea() {
 }
 
 GLuint PCSX::OpenGL_GPU::getVRAMTexture() {
-    if (!m_multisampled)
+    if (!m_multisampled) {
         return m_vramTexture.handle();
-    else
+    } else {
         return m_vramTextureNoMSAA.handle();
+    }
 }
 
 // Called at the end of a frame
-void PCSX::OpenGL_GPU::vblank() {
+void PCSX::OpenGL_GPU::vblank(bool fromGui) {
     renderBatch();
 
     // Set the fill mode to fill before passing the OpenGL context to the GUI
@@ -643,12 +498,12 @@ void PCSX::OpenGL_GPU::vblank() {
     }
 
     m_gui->setViewport();
-    m_gui->flip();  // Set up offscreen framebuffer before rendering
+    if (!fromGui) m_gui->flip();  // Set up offscreen framebuffer before rendering
 
-    float startX = m_display.m_startNormalized.x();
-    float startY = m_display.m_startNormalized.y();
-    float width = m_display.m_sizeNormalized.x();
-    float height = m_display.m_sizeNormalized.y();
+    float startX = m_display.startNormalized.x();
+    float startY = m_display.startNormalized.y();
+    float width = m_display.sizeNormalized.x();
+    float height = m_display.sizeNormalized.y();
 
     m_gui->m_offscreenShaderEditor.render(m_gui, m_displayTexture, {startX, startY}, {width, height},
                                           m_gui->getRenderSize());
@@ -689,7 +544,7 @@ void PCSX::OpenGL_GPU::renderBatch() {
 }
 
 void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
-    m_display.m_enabled = setting;
+    m_display.enabled = setting;
     if (!setting) {
         m_displayTexture = m_blankTexture.handle();
     } else {
@@ -697,9 +552,9 @@ void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
     }
 }
 
-PCSX::Slice PCSX::OpenGL_GPU::getVRAM() {
+PCSX::Slice PCSX::OpenGL_GPU::getVRAM(Ownership) {
     static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
-    uint16_t* pixels = (uint16_t*)malloc(texSize);
+    uint16_t *pixels = (uint16_t *)malloc(texSize);
     glFlush();
     const auto oldTex = OpenGL::getTex2D();
     glBindTexture(GL_TEXTURE_2D, getVRAMTexture());
@@ -711,10 +566,428 @@ PCSX::Slice PCSX::OpenGL_GPU::getVRAM() {
     return slice;
 }
 
-void PCSX::OpenGL_GPU::partialUpdateVRAM(int x, int y, int w, int h, const uint16_t* pixels) {
-    const auto oldTex = OpenGL::getTex2D();
-    glBindTexture(GL_TEXTURE_2D, getVRAMTexture());
+void PCSX::OpenGL_GPU::partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels,
+                                         PartialUpdateVram updateType) {
+    renderBatch();
+
+    OpenGL::bindScreenFramebuffer();
+    const auto oldTex = updateType == PartialUpdateVram::Asynchronous ? OpenGL::getTex2D() : GLint(-1);
+    m_vramTexture.bind();
+
     glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, pixels);
-    glBindTexture(GL_TEXTURE_2D, oldTex);
+
+    if (updateType == PartialUpdateVram::Asynchronous) glBindTexture(GL_TEXTURE_2D, oldTex);
+    m_fbo.bind(OpenGL::DrawAndReadFramebuffer);
+
     m_syncVRAM = true;
 }
+
+template <PCSX::OpenGL_GPU::Transparency setting>
+void PCSX::OpenGL_GPU::setTransparency() {
+    // Check if we had transparency previously disabled and it just got enabled or vice versa
+    if (m_lastTransparency != setting) {
+        renderBatch();
+        if constexpr (setting == Transparency::Opaque) {
+            m_lastBlendingMode = -1;
+            OpenGL::disableBlend();
+        } else {
+            OpenGL::enableBlend();
+        }
+
+        m_lastTransparency = setting;
+    }
+}
+
+void PCSX::OpenGL_GPU::setBlendingModeFromTexpage(uint32_t texpage) {
+    const auto newBlendingMode = (texpage >> 5) & 3;
+
+    if (m_lastBlendingMode != newBlendingMode) {
+        renderBatch();  // This must be executed before we set the new blend mode
+        m_lastBlendingMode = newBlendingMode;
+        OpenGL::setBlendFactor(GL_SRC1_COLOR, GL_SRC1_ALPHA, GL_ONE, GL_ZERO);
+
+        switch (newBlendingMode) {
+            case 0:  // B/2 + F/2
+                OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
+                setBlendFactors(0.5, 0.5);
+                break;
+            case 1:  // B + F
+                OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
+                setBlendFactors(1.0, 1.0);
+                break;
+            case 2:  // B - F. We special handle this in the renderBatch() function
+                break;
+            case 3:  // B + F/4
+                OpenGL::setBlendEquation(OpenGL::BlendEquation::Add);
+                setBlendFactors(0.25, 1.0);
+                break;
+        }
+    }
+}
+
+void PCSX::OpenGL_GPU::setBlendFactors(float sourceFactor, float destFactor) {
+    if (m_blendFactors.x() != sourceFactor || m_blendFactors.y() != destFactor) {
+        m_blendFactors.x() = sourceFactor;
+        m_blendFactors.y() = destFactor;
+
+        glUniform4f(m_blendFactorsLoc, sourceFactor, sourceFactor, sourceFactor, destFactor);
+    }
+}
+
+void PCSX::OpenGL_GPU::drawTri(int *x, int *y, uint32_t *colors) {
+    maybeRenderBatch<3>();
+
+    m_vertices[m_vertexCount++] = Vertex(x[0], y[0], colors[0]);
+    m_vertices[m_vertexCount++] = Vertex(x[1], y[1], colors[1]);
+    m_vertices[m_vertexCount++] = Vertex(x[2], y[2], colors[2]);
+}
+
+void PCSX::OpenGL_GPU::drawTriTextured(int *x, int *y, uint32_t *colors, uint16_t clut, uint16_t texpage, unsigned *u,
+                                       unsigned *v) {
+    maybeRenderBatch<3>();
+
+    m_vertices[m_vertexCount++] = Vertex(x[0], y[0], colors[0], clut, texpage, u[0], v[0]);
+    m_vertices[m_vertexCount++] = Vertex(x[1], y[1], colors[1], clut, texpage, u[1], v[1]);
+    m_vertices[m_vertexCount++] = Vertex(x[2], y[2], colors[2], clut, texpage, u[2], v[2]);
+}
+
+void PCSX::OpenGL_GPU::drawRect(int x, int y, int w, int h, uint32_t color) {
+    maybeRenderBatch<6>();
+    m_vertices[m_vertexCount++] = Vertex(x, y, color);
+    m_vertices[m_vertexCount++] = Vertex(x + w, y, color);
+    m_vertices[m_vertexCount++] = Vertex(x + w, y + h, color);
+    m_vertices[m_vertexCount++] = Vertex(x + w, y + h, color);
+    m_vertices[m_vertexCount++] = Vertex(x, y + h, color);
+    m_vertices[m_vertexCount++] = Vertex(x, y, color);
+}
+
+void PCSX::OpenGL_GPU::drawRectTextured(int x, int y, int w, int h, uint32_t color, uint16_t clut, unsigned u,
+                                        unsigned v) {
+    maybeRenderBatch<6>();
+    const uint32_t texpage = m_rectTexpage;
+    m_vertices[m_vertexCount++] = Vertex(x, y, color, clut, texpage, u, v);
+    m_vertices[m_vertexCount++] = Vertex(x + w, y, color, clut, texpage, u + w, v);
+    m_vertices[m_vertexCount++] = Vertex(x + w, y + h, color, clut, texpage, u + w, v + h);
+    m_vertices[m_vertexCount++] = Vertex(x + w, y + h, color, clut, texpage, u + w, v + h);
+    m_vertices[m_vertexCount++] = Vertex(x, y + h, color, clut, texpage, u, v + h);
+    m_vertices[m_vertexCount++] = Vertex(x, y, color, clut, texpage, u, v);
+}
+
+void PCSX::OpenGL_GPU::drawLine(int x1, int y1, uint32_t color1, int x2, int y2, uint32_t color2) {
+    maybeRenderBatch<6>();
+
+    const int32_t dx = x2 - x1;
+    const int32_t dy = y2 - y1;
+
+    const auto absDx = std::abs(dx);
+    const auto absDy = std::abs(dy);
+
+    // Both vertices coincide, render 1x1 rectangle with the colour and coords of v1
+    if (dx == 0 && dy == 0) {
+        m_vertices[m_vertexCount++] = Vertex(x1, y1, color1);
+        m_vertices[m_vertexCount++] = Vertex(x1 + 1, y1, color1);
+        m_vertices[m_vertexCount++] = Vertex(x1 + 1, y1 + 1, color1);
+
+        m_vertices[m_vertexCount++] = Vertex(x1 + 1, y1 + 1, color1);
+        m_vertices[m_vertexCount++] = Vertex(x1, y1 + 1, color1);
+        m_vertices[m_vertexCount++] = Vertex(x1, y1, color1);
+    } else {
+        int xOffset, yOffset;
+        if (absDx > absDy) {  // x-major line
+            xOffset = 0;
+            yOffset = 1;
+
+            // Align line depending on whether dx is positive or not
+            dx > 0 ? x2++ : x1++;
+        } else {  // y-major line
+            xOffset = 1;
+            yOffset = 0;
+
+            // Align line depending on whether dy is positive or not
+            dy > 0 ? y2++ : y1++;
+        }
+
+        m_vertices[m_vertexCount++] = Vertex(x1, y1, color1);
+        m_vertices[m_vertexCount++] = Vertex(x2, y2, color2);
+        m_vertices[m_vertexCount++] = Vertex(x2 + xOffset, y2 + yOffset, color2);
+
+        m_vertices[m_vertexCount++] = Vertex(x2 + xOffset, y2 + yOffset, color2);
+        m_vertices[m_vertexCount++] = Vertex(x1 + xOffset, y1 + yOffset, color1);
+        m_vertices[m_vertexCount++] = Vertex(x1, y1, color1);
+    }
+}
+
+void PCSX::OpenGL_GPU::write0(ClearCache *) {
+    renderBatch();
+    m_syncVRAM = true;
+}
+
+void PCSX::OpenGL_GPU::write0(TPage *prim) { m_rectTexpage = prim->raw; }
+
+// Set texture window, regardless of whether the window config changed
+void PCSX::OpenGL_GPU::setTexWindowUnchecked(uint32_t cmd) {
+    renderBatch();
+    m_lastTexwindowSetting = cmd & 0xfffff;  // Only keep bottom 20 bits
+
+    const uint32_t maskX = (cmd & 0x1f) * 8;          // Window mask x in 8 pixel steps
+    const uint32_t maskY = ((cmd >> 5) & 0x1f) * 8;   // Window mask y in 8 pixel steps
+    const uint32_t offsX = ((cmd >> 10) & 0x1f) * 8;  // Window offset x in 8 pixel steps
+    const uint32_t offsY = ((cmd >> 15) & 0x1f) * 8;  // Window offset y in 8 pixel steps
+
+    // Upload data to GPU
+    glUniform4i(m_texWindowLoc, ~maskX, ~maskY, offsX & maskX, offsY & maskY);
+}
+
+// Set texture window, provided the window config actually changed
+void PCSX::OpenGL_GPU::setTexWindow(uint32_t cmd) {
+    cmd &= 0xfffff;  // Only keep bottom 20 bits
+    if (m_lastTexwindowSetting != cmd) {
+        setTexWindowUnchecked(cmd);
+    }
+}
+
+void PCSX::OpenGL_GPU::write0(TWindow *prim) { setTexWindow(prim->raw); }
+
+void PCSX::OpenGL_GPU::write0(MaskBit *) {}
+
+void PCSX::OpenGL_GPU::write0(DrawingAreaStart *prim) {
+    m_drawAreaLeft = prim->x;
+    m_drawAreaTop = prim->y;
+    updateDrawArea();
+}
+
+void PCSX::OpenGL_GPU::write0(DrawingAreaEnd *prim) {
+    m_drawAreaRight = prim->x;
+    m_drawAreaBottom = prim->y;
+    updateDrawArea();
+}
+
+void PCSX::OpenGL_GPU::setDrawOffset(uint32_t cmd) {
+    m_updateDrawOffset = false;
+    m_lastDrawOffsetSetting = cmd & 0x3fffff;  // Discard the bits we don't care about
+
+    // Offset is a signed number in [-1024, 1023]
+    const auto offsetX = (int32_t)cmd << 21 >> 21;
+    const auto offsetY = (int32_t)cmd << 10 >> 21;
+
+    m_drawingOffset.x() = offsetX;
+    m_drawingOffset.y() = offsetY;
+
+    // The 0.5 offsets help fix some holes in rendering, in places like the PS logo
+    // TODO: This might not work when upscaling?
+    float adjustedOffsets[2] = {static_cast<float>(offsetX) + 0.5f, static_cast<float>(offsetY) - 0.5f};
+    glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
+}
+
+void PCSX::OpenGL_GPU::write0(DrawingOffset *prim) {
+    renderBatch();
+    const uint32_t word = prim->raw & 0x3fffff;
+
+    // Queue a draw offset update if it changed
+    if (word != m_lastDrawOffsetSetting) {
+        m_updateDrawOffset = true;
+        m_lastDrawOffsetSetting = word;
+    }
+}
+
+void PCSX::OpenGL_GPU::write0(FastFill *prim) {
+    renderBatch();
+    const auto colour = prim->color;
+    const float r = float(colour & 0xff) / 255.f;
+    const float g = float((colour >> 8) & 0xff) / 255.f;
+    const float b = float((colour >> 16) & 0xff) / 255.f;
+
+    OpenGL::setClearColor(r, g, b, 1.f);
+    OpenGL::setScissor(prim->x, prim->y, prim->w, prim->h);
+    OpenGL::clearColor();
+    setScissorArea();
+}
+
+void PCSX::OpenGL_GPU::write0(BlitVramVram *prim) {
+    renderBatch();
+    OpenGL::disableScissor();  // We disable scissor testing because it affects glBlitFramebuffer
+
+    // TODO: Sanitize this
+    const auto srcX = prim->sX;
+    const auto srcY = prim->sY;
+    const auto destX = prim->dX;
+    const auto destY = prim->dY;
+
+    uint32_t width = prim->w;
+    uint32_t height = prim->h;
+
+    width = ((width - 1) & 0x3ff) + 1;
+    height = ((height - 1) & 0x1ff) + 1;
+
+    glBlitFramebuffer(srcX, srcY, srcX + width, srcY + height, destX, destY, destX + width, destY + height,
+                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    OpenGL::enableScissor();
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
+          PCSX::GPU::Modulation modulation>
+void PCSX::OpenGL_GPU::polyExec(Poly<shading, shape, textured, blend, modulation> *prim) {
+    if constexpr (blend == Blend::Off) {
+        setTransparency<Transparency::Opaque>();
+    } else if constexpr (blend == Blend::Semi) {
+        setTransparency<Transparency::Transparent>();
+    }
+    if constexpr (textured == Textured::No) {
+        if constexpr (blend == Blend::Semi) {
+            setBlendingModeFromTexpage(m_rectTexpage);
+        }
+        drawTri(&prim->x[0], &prim->y[0], &prim->colors[0]);
+        if constexpr (shape == Shape::Quad) {
+            drawTri(&prim->x[1], &prim->y[1], &prim->colors[1]);
+        }
+    } else if constexpr (textured == Textured::Yes) {
+        if constexpr (blend == Blend::Semi) {
+            setBlendingModeFromTexpage(prim->tpage.raw);
+        }
+        drawTriTextured(&prim->x[0], &prim->y[0], &prim->colors[0], prim->clutraw, prim->tpage.raw, &prim->u[0],
+                        &prim->v[0]);
+        if constexpr (shape == Shape::Quad) {
+            drawTriTextured(&prim->x[1], &prim->y[1], &prim->colors[1], prim->clutraw, prim->tpage.raw, &prim->u[1],
+                            &prim->v[1]);
+        }
+    }
+}
+
+template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
+void PCSX::OpenGL_GPU::lineExec(Line<shading, lineType, blend> *prim) {
+    auto count = prim->colors.size();
+
+    if constexpr (blend == Blend::Off) {
+        setTransparency<Transparency::Opaque>();
+    } else if constexpr (blend == Blend::Semi) {
+        setTransparency<Transparency::Transparent>();
+    }
+
+    for (unsigned i = 1; i < count; i++) {
+        auto x0 = prim->x[i - 1];
+        auto x1 = prim->x[i];
+        auto y0 = prim->y[i - 1];
+        auto y1 = prim->y[i];
+        auto c0 = prim->colors[i - 1];
+        auto c1 = prim->colors[i];
+
+        drawLine(x0, y0, c0, x1, y1, c1);
+    }
+}
+
+template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
+void PCSX::OpenGL_GPU::rectExec(Rect<size, textured, blend, modulation> *prim) {
+    if constexpr (blend == Blend::Off) {
+        setTransparency<Transparency::Opaque>();
+    } else if constexpr (blend == Blend::Semi) {
+        setTransparency<Transparency::Transparent>();
+        setBlendingModeFromTexpage(m_rectTexpage);
+    }
+    if constexpr (textured == Textured::No) {
+        drawRect(prim->x, prim->y, prim->w, prim->h, prim->color);
+    } else if constexpr (textured == Textured::Yes) {
+        uint32_t color = 0x808080;
+        if constexpr (modulation == Modulation::On) {
+            color = prim->color;
+        }
+        drawRectTextured(prim->x, prim->y, prim->w, prim->h, color, prim->clutraw, prim->u, prim->v);
+    }
+}
+
+void PCSX::OpenGL_GPU::write1(CtrlReset *) {
+    // TODO: This should perform some more operations
+    m_display.reset();
+    setDisplayEnable(false);
+    acknowledgeIRQ1();
+}
+
+void PCSX::OpenGL_GPU::write1(CtrlClearFifo *) {}
+
+void PCSX::OpenGL_GPU::write1(CtrlIrqAck *) { acknowledgeIRQ1(); }
+
+void PCSX::OpenGL_GPU::write1(CtrlDisplayEnable *ctrl) { setDisplayEnable(ctrl->enable); }
+
+void PCSX::OpenGL_GPU::write1(CtrlDmaSetting *) {}
+
+void PCSX::OpenGL_GPU::write1(CtrlDisplayStart *ctrl) { m_display.set(ctrl); }
+void PCSX::OpenGL_GPU::write1(CtrlHorizontalDisplayRange *ctrl) { m_display.set(ctrl); }
+void PCSX::OpenGL_GPU::write1(CtrlVerticalDisplayRange *ctrl) { m_display.set(ctrl); }
+void PCSX::OpenGL_GPU::write1(CtrlDisplayMode *ctrl) { m_display.set(ctrl); }
+
+void PCSX::OpenGL_GPU::write1(CtrlQuery *) {}
+
+// clang-format off
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { polyExec(prim); }
+void PCSX::OpenGL_GPU::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *prim) { polyExec(prim); }
+
+void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *prim) { lineExec(prim); }
+void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *prim) { lineExec(prim); }
+void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *prim) { lineExec(prim); }
+void PCSX::OpenGL_GPU::write0(Line<Shading::Flat, LineType::Poly, Blend::Semi> *prim) { lineExec(prim); }
+void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Off> *prim) { lineExec(prim); }
+void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Semi> *prim) { lineExec(prim); }
+void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *prim) { lineExec(prim); }
+void PCSX::OpenGL_GPU::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *prim) { lineExec(prim); }
+
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *prim) { rectExec(prim); }
+void PCSX::OpenGL_GPU::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *prim) { rectExec(prim); }

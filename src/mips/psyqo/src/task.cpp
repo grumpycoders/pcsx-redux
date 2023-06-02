@@ -86,7 +86,7 @@ void psyqo::TaskQueue::runNext() {
 void psyqo::TaskQueue::runCatch() {
     m_running = false;
     if (m_catch && m_finally) {
-        auto finally = m_finally;
+        auto finally = eastl::move(m_finally);
         m_catch(this);
         finally(this);
     } else {

@@ -25,6 +25,7 @@
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
+#include "support/imgui-helpers.h"
 
 void PCSX::Widgets::MemcardManager::initTextures() {
     // Initialize the OpenGL textures used for the icon images
@@ -112,7 +113,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         changed = true;
     }
     ImGui::SameLine();
-    ShowHelpMarker(
+    ImGuiHelpers::ShowHelpMarker(
         _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
           "allowing apps to be saved/exported."));
     ImGui::SameLine();
@@ -122,7 +123,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         changed = true;
     }
     ImGui::SameLine();
-    ShowHelpMarker(
+    ImGuiHelpers::ShowHelpMarker(
         _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
           "allowing apps to be saved/exported."));
 
@@ -164,10 +165,14 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
 
                 ImGui::TableSetColumnIndex(2);
                 if (block.isChained()) {
-                    ImGui::TextDisabled(_("Chained block"));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::TextUnformatted(_("Chained block"));
+                    ImGui::PopStyleColor();
                     continue;
                 } else if (block.isErased()) {
-                    ImGui::TextDisabled(_("Free block"));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::TextUnformatted(_("Free block"));
+                    ImGui::PopStyleColor();
                     continue;
                 } else {
                     if (gui->hasJapanese()) {
@@ -381,16 +386,4 @@ void PCSX::Widgets::MemcardManager::copyToClipboard(const SIO::McdBlock& block) 
 void PCSX::Widgets::MemcardManager::saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action) {
     m_undo.resize(m_undoIndex++);
     m_undo.push_back({action, std::move(tosave)});
-}
-
-void PCSX::Widgets::MemcardManager::ShowHelpMarker(const char* desc) {
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
 }

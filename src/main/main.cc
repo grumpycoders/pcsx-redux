@@ -263,6 +263,14 @@ int pcsxMain(int argc, char **argv) {
         emuSettings.get<PCSX::Emulator::Setting8MB>().value = true;
     }
 
+    if (args.get<bool>("fastboot", false)) {
+        emuSettings.get<PCSX::Emulator::SettingFastBoot>().value = true;
+    }
+
+    if (args.get<bool>("no-fastboot", false)) {
+        emuSettings.get<PCSX::Emulator::SettingFastBoot>().value = false;
+    }
+
     std::filesystem::path isoToOpen = args.get<std::string>("iso", "");
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("loadiso", "");
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("disk", "");

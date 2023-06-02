@@ -31,9 +31,9 @@ typedef struct { char opaque[?]; } IsoReader;
 typedef struct { uint8_t m, s, f; } MSF;
 
 void deleteIso(LuaIso* wrapper);
-
 bool isIsoFailed(LuaIso* wrapper);
-
+void isoClearPPF(LuaIso* wrapper);
+void isoSavePPF(LuaIso* wrapper);
 LuaIso* getCurrentIso();
 
 IsoReader* createIsoReader(LuaIso* wrapper);
@@ -68,6 +68,8 @@ local function createIsoWrapper(wrapper)
         _wrapper = ffi.gc(wrapper, C.deleteIso),
         failed = function(self) return C.isIsoFailed(self._wrapper) end,
         createReader = function(self) return createIsoReaderWrapper(C.createIsoReader(self._wrapper)) end,
+        clearPPF = function(self) C.isoClearPPF(self._wrapper) end,
+        savePPF = function(self) C.isoSavePPF(self._wrapper) end,
         open = function(self, lba, size, mode)
             if type(size) == 'string' and mode == nil then
                 mode = size

@@ -21,18 +21,7 @@
 
 #include "core/debug.h"
 #include "imgui.h"
-
-static void ShowHelpMarker(const char* desc) {
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
+#include "support/imgui-helpers.h"
 
 static ImVec4 s_currentColor = ImColor(0xff, 0xeb, 0x3b);
 
@@ -47,7 +36,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     if (ImGui::Button(_("Clear maps"))) {
         debugger->clearMaps();
     }
-    ShowHelpMarker(
+    ImGuiHelpers::ShowHelpMarker(
         _("The mapping feature is a simple concept, but requires some amount of explanation. See the documentation "
           "website for more details, in the Advanced Features section."));
     ImGui::Checkbox(_("Map execution"), &debugger->m_mapping_e);

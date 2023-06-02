@@ -888,7 +888,7 @@ namespace eastl
 				return;
 
 			typedef typename eastl::iterator_traits<ForwardIterator>::value_type value_type;
-			memset(first, 0, sizeof(value_type) * n);
+			__builtin_memset(first, 0, sizeof(value_type) * n);
 		}
 	}
 

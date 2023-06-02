@@ -19,20 +19,30 @@
 
 #pragma once
 
-#define OPAQUEON 10
-#define OPAQUEOFF 11
+#include <stdint.h>
 
-#define KEY_RESETTEXSTORE 1
-#define KEY_SHOWFPS 2
-#define KEY_RESETOPAQUE 4
-#define KEY_RESETDITHER 8
-#define KEY_RESETFILTER 16
-#define KEY_RESETADVBLEND 32
-//#define KEY_BLACKWHITE    64
-#define KEY_BADTEXTURES 128
-#define KEY_CHECKTHISOUT 256
+#include <limits>
 
-#define RED(x) (x & 0xff)
-#define BLUE(x) ((x >> 16) & 0xff)
-#define GREEN(x) ((x >> 8) & 0xff)
-#define COLOR(x) (x & 0xffffff)
+namespace PCSX {
+class GPULogger;
+namespace Widgets {
+
+class GPULogger {
+  public:
+    GPULogger(bool& show) : m_show(show) {}
+    void draw(PCSX::GPULogger* logger, const char* title);
+
+    bool& m_show;
+    bool m_replay = false;
+    bool m_showOrigins = false;
+    bool m_expandAll = false;
+    bool m_collapseAll = false;
+    bool m_setHighlightRange = false;
+    bool m_hoverHighlight = false;
+    uint64_t m_frameCounterOrigin = 0;
+    unsigned m_beginHighlight = 0;
+    unsigned m_endHighlight = std::numeric_limits<unsigned>::max();
+};
+
+}  // namespace Widgets
+}  // namespace PCSX

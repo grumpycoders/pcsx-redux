@@ -95,7 +95,8 @@ class DummyAsm : public PCSX::Disasm {
     virtual void CP2D(uint8_t reg) final {}
     virtual void HI() final {}
     virtual void LO() final {}
-    virtual void Imm(uint16_t value) final {}
+    virtual void Imm16(int16_t value) final {}
+    virtual void Imm16u(uint16_t value) final {}
     virtual void Imm32(uint32_t value) final {}
     virtual void Target(uint32_t value) final {}
     virtual void Sa(uint8_t value) final {}
@@ -113,7 +114,7 @@ void PCSX::Widgets::Assembly::sameLine() { ImGui::SameLine(0.0f, 0.0f); }
 void PCSX::Widgets::Assembly::comma() {
     if (m_gotArg) {
         sameLine();
-        ImGui::Text(",");
+        ImGui::TextUnformatted(",");
     }
     m_gotArg = true;
 }
@@ -121,7 +122,7 @@ void PCSX::Widgets::Assembly::Invalid() {
     m_gotArg = false;
     sameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, s_invalidColor);
-    ImGui::Text("(**invalid**)");
+    ImGui::TextUnformatted("(**invalid**)");
     ImGui::PopStyleColor();
 }
 
@@ -129,7 +130,9 @@ void PCSX::Widgets::Assembly::OpCode(const char* str) {
     m_gotArg = false;
     sameLine();
     if (m_notch || m_notchAfterSkip[0]) {
-        ImGui::TextDisabled("~ ");
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::TextUnformatted("~ ");
+        ImGui::PopStyleColor();
         sameLine();
         ImGui::Text("%-6s", str);
     } else {
@@ -139,7 +142,7 @@ void PCSX::Widgets::Assembly::OpCode(const char* str) {
 void PCSX::Widgets::Assembly::GPR(uint8_t reg) {
     comma();
     sameLine();
-    ImGui::Text(" $");
+    ImGui::TextUnformatted(" $");
     sameLine();
     ImGui::TextUnformatted(s_disRNameGPR[reg]);
     if (ImGui::IsItemHovered()) {
@@ -153,7 +156,7 @@ void PCSX::Widgets::Assembly::GPR(uint8_t reg) {
 void PCSX::Widgets::Assembly::CP0(uint8_t reg) {
     comma();
     sameLine();
-    ImGui::Text(" $");
+    ImGui::TextUnformatted(" $");
     sameLine();
     ImGui::TextUnformatted(s_disRNameCP0[reg]);
     if (ImGui::IsItemHovered()) {
@@ -167,7 +170,7 @@ void PCSX::Widgets::Assembly::CP0(uint8_t reg) {
 void PCSX::Widgets::Assembly::CP2C(uint8_t reg) {
     comma();
     sameLine();
-    ImGui::Text(" $");
+    ImGui::TextUnformatted(" $");
     sameLine();
     ImGui::TextUnformatted(s_disRNameCP2C[reg]);
     if (ImGui::IsItemHovered()) {
@@ -181,7 +184,7 @@ void PCSX::Widgets::Assembly::CP2C(uint8_t reg) {
 void PCSX::Widgets::Assembly::CP2D(uint8_t reg) {
     comma();
     sameLine();
-    ImGui::Text(" $");
+    ImGui::TextUnformatted(" $");
     sameLine();
     ImGui::TextUnformatted(s_disRNameCP2D[reg]);
     if (ImGui::IsItemHovered()) {
@@ -195,7 +198,7 @@ void PCSX::Widgets::Assembly::CP2D(uint8_t reg) {
 void PCSX::Widgets::Assembly::HI() {
     comma();
     sameLine();
-    ImGui::Text(" $hi");
+    ImGui::TextUnformatted(" $hi");
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -207,7 +210,7 @@ void PCSX::Widgets::Assembly::HI() {
 void PCSX::Widgets::Assembly::LO() {
     comma();
     sameLine();
-    ImGui::Text(" $lo");
+    ImGui::TextUnformatted(" $lo");
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -216,7 +219,34 @@ void PCSX::Widgets::Assembly::LO() {
         ImGui::EndTooltip();
     }
 }
-void PCSX::Widgets::Assembly::Imm(uint16_t value) {
+void PCSX::Widgets::Assembly::Imm16(int16_t value) {
+    comma();
+    sameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
+    if (value < 0) {
+        ImGui::Text(" -0x%4.4x", -value);
+    } else {
+        ImGui::Text(" 0x%4.4x", value);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::Text("= %u", value);
+        if (value < 0) {
+            union {
+                uint16_t x;
+                int16_t y;
+            } v;
+            v.y = value;
+            ImGui::Text("= 0x%4.4x", v.x);
+            ImGui::Text("= -%i", -value);
+        }
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+    ImGui::PopStyleColor();
+}
+void PCSX::Widgets::Assembly::Imm16u(uint16_t value) {
     comma();
     sameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
@@ -721,7 +751,9 @@ settings, otherwise debugging features may not work.)");
                 }
                 if (skipNext && m_pseudoFilling) {
                     ImGui::SameLine(0.0f, 0.0f);
-                    ImGui::TextDisabled(" (pseudo)");
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::TextUnformatted(" (pseudo)");
+                    ImGui::PopStyleColor();
                 }
             };
             m_notchAfterSkip[0] = m_notchAfterSkip[1];

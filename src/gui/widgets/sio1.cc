@@ -23,6 +23,7 @@
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
+#include "support/imgui-helpers.h"
 
 struct PCSX::SIO1RegisterText {
     const char* description;
@@ -112,18 +113,6 @@ static constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingFixedFit | I
                                               ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable |
                                               ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
 
-void ShowHelpMarker(const char* desc) {
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
-
 template <typename T>
 void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1RegisterText* regText) {
     constexpr unsigned bitLength = sizeof(T) * 8;
@@ -182,7 +171,7 @@ void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1Re
                     case 1:
                         ImGui::TextUnformatted(regText[row].description);
                         ImGui::SameLine();
-                        ShowHelpMarker(regText[row].notes);
+                        ImGuiHelpers::ShowHelpMarker(regText[row].notes);
                         break;
 
                     case 2:
