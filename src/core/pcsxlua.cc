@@ -136,6 +136,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     L.push("PCSX");
     L.newtable();
     REGISTER(L, getMemPtr);
+    REGISTER(L, getParPtr);
     REGISTER(L, getRomPtr);
     REGISTER(L, getScratchPtr);
     REGISTER(L, getRegisters);

@@ -51,6 +51,7 @@ enum BreakpointType { Exec, Read, Write };
 typedef struct { uint8_t opaque[?]; } Breakpoint;
 
 uint8_t* getMemPtr();
+uint8_t* getParPtr();
 uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
