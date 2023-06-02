@@ -81,8 +81,6 @@ class GPU {
     int init(GUI *);
     virtual int initBackend(GUI *) = 0;
     virtual int shutdown() = 0;
-    void startDump() { throw std::runtime_error("Not yet implemented"); }
-    void stopDump() { throw std::runtime_error("Not yet implemented"); }
     uint32_t readData();
     virtual uint32_t readStatusInternal() = 0;
     void writeData(uint32_t gdata);

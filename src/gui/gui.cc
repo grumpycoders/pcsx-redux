@@ -1171,12 +1171,6 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
                     ImGui::MenuItem(_("Show GPU logger"), nullptr, &m_gpuLogger.m_show);
                     ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator->m_gpu->m_showDebug);
-                    if (ImGui::MenuItem(_("Start GPU dump"))) {
-                        PCSX::g_emulator->m_gpu->startDump();
-                    }
-                    if (ImGui::MenuItem(_("Stop GPU dump"))) {
-                        PCSX::g_emulator->m_gpu->stopDump();
-                    }
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("SPU"))) {
