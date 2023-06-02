@@ -47,8 +47,12 @@ nav:
     - 'menus.md'
     - 'compiling.md'
     - 'cli_flags.md'
-    - 'advanced_features.md'
-    - 'gdb-server.md'
+    - Debugging:
+      - 'Debugging/introduction.md'
+      - 'Debugging/gdb-server.md'
+      - 'Debugging/misc-features.md'
+      - 'Debugging/vram-viewer.md'
+      - 'Debugging/gpu-logger.md'
     - 'mips_api.md'
     - 'web_server.md'
     - Lua:
