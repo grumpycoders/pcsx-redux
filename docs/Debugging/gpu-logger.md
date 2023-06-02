@@ -25,7 +25,7 @@ The GPU logger can highlight primitives in the VRAM viewer. One or more primitiv
 
 Checking the `Highlight on hover` checkbox will temporarily outline a primitive when hovering it in the logger. This can be useful to quickly identify the corresponding primitive in the VRAM viewer by flicking the mouse over the logger.
 
-Checking the second checkbox in a logger node will permanently highlight the corresponding primitive in the VRAM viewer. The `[B]` and `[E]` buttons will select the beginning and the end of span of primitives, and highlight them in the VRAM viewer.
+Checking the second checkbox in a logger node will permanently highlight the corresponding primitive in the VRAM viewer. The `[B]` and `[E]` buttons will select the beginning and the end of a span of primitives, and highlight them in the VRAM viewer.
 
 ## Replay System
 
