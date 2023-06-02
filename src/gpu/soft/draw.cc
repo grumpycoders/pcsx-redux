@@ -24,7 +24,7 @@
 #include "gpu/soft/soft.h"
 #include "gui/gui.h"
 
-void PCSX::SoftGPU::impl::doBufferSwap() {
+void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
     m_gui->setViewport();
     GLuint textureID;
 
@@ -53,7 +53,7 @@ void PCSX::SoftGPU::impl::doBufferSwap() {
     }
 
     m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {startX, startY}, {width, height}, m_gui->getRenderSize());
-    m_gui->flip();
+    if (!fromGui) m_gui->flip();
 }
 
 void PCSX::SoftGPU::impl::clearVRAM() {

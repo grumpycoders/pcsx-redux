@@ -89,6 +89,19 @@ struct JumpToMemory {
     uint32_t address;
     unsigned size;
 };
+struct SelectClut {
+    unsigned x, y;
+};
+struct VRAMFocus {
+    int x1, y1;
+    int x2, y2;
+    enum : int {
+        VRAM_4BITS,
+        VRAM_8BITS,
+        VRAM_16BITS,
+        VRAM_24BITS,
+    } vramMode = VRAM_16BITS;
+};
 }  // namespace GUI
 struct Keyboard {
     int key, scancode, action, mods;

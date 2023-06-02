@@ -32,7 +32,7 @@ class impl final : public GPU, public SoftRenderer {
     int32_t initBackend(GUI *) override;
     int32_t shutdown() override;
     uint32_t readStatusInternal() override;
-    void vblank() override;
+    void vblank(bool fromGui) override;
     bool configure() override;
     void debug() override;
 
@@ -47,17 +47,21 @@ class impl final : public GPU, public SoftRenderer {
 
     void restoreStatus(uint32_t status) override;
 
-    void updateDisplay();
+    void updateDisplay(bool fromGui);
     void initDisplay();
-    void doBufferSwap();
+    void doBufferSwap(bool fromGui);
 
     void changeDispOffsetsX();
     void changeDispOffsetsY();
     void updateDisplayIfChanged();
 
-    Slice getVRAM() override {
+    Slice getVRAM(Ownership ownership) override {
         Slice ret;
-        ret.borrow(m_vram16, 1024 * 512 * 2);
+        if (ownership == Ownership::BORROW) {
+            ret.borrow(m_vram16, 1024 * 512 * 2);
+        } else {
+            ret.copy(m_vram16, 1024 * 512 * 2);
+        }
         return ret;
     }
 

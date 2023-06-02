@@ -49,7 +49,7 @@ void PCSX::OpenGL_GPU::resetBackend() {
     m_drawAreaRight = vramWidth;
     updateDrawArea();
 
-    m_drawingOffset = OpenGL::ivec2({0, 0});
+    m_drawingOffset = OpenGL::ivec2(0, 0);
 
     m_program.use();
     setDrawOffset(0x00000000);
@@ -297,7 +297,7 @@ int PCSX::OpenGL_GPU::initBackend(GUI *gui) {
     m_shaderEditor.setText(vertSource, fragSource, "");
     auto status = m_shaderEditor.compile(m_gui);
     if (!status.isOk()) return -1;
-    m_program.m_handle = m_shaderEditor.getProgram();
+    m_program.setProgram(m_shaderEditor.getProgram());
 
     m_program.use();
     m_drawingOffsetLoc = OpenGL::uniformLocation(m_program, "u_vertexOffsets");
@@ -340,7 +340,7 @@ bool PCSX::OpenGL_GPU::configure() {
     if (m_shaderEditor.m_show && m_shaderEditor.draw(m_gui, "Hardware renderer shader editor")) {
         const auto status = m_shaderEditor.compile(m_gui);
         if (status.isOk()) {
-            m_program.m_handle = m_shaderEditor.getProgram();
+            m_program.setProgram(m_shaderEditor.getProgram());
             const auto lastProgram = OpenGL::getProgram();
 
             m_program.use();
@@ -473,7 +473,7 @@ GLuint PCSX::OpenGL_GPU::getVRAMTexture() {
 }
 
 // Called at the end of a frame
-void PCSX::OpenGL_GPU::vblank() {
+void PCSX::OpenGL_GPU::vblank(bool fromGui) {
     renderBatch();
 
     // Set the fill mode to fill before passing the OpenGL context to the GUI
@@ -498,7 +498,7 @@ void PCSX::OpenGL_GPU::vblank() {
     }
 
     m_gui->setViewport();
-    m_gui->flip();  // Set up offscreen framebuffer before rendering
+    if (!fromGui) m_gui->flip();  // Set up offscreen framebuffer before rendering
 
     float startX = m_display.startNormalized.x();
     float startY = m_display.startNormalized.y();
@@ -552,7 +552,7 @@ void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
     }
 }
 
-PCSX::Slice PCSX::OpenGL_GPU::getVRAM() {
+PCSX::Slice PCSX::OpenGL_GPU::getVRAM(Ownership) {
     static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
     uint16_t *pixels = (uint16_t *)malloc(texSize);
     glFlush();

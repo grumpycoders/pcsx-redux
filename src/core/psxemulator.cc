@@ -25,6 +25,7 @@
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/gpulogger.h"
 #include "core/gte.h"
 #include "core/luaiso.h"
 #include "core/mdec.h"
@@ -54,6 +55,7 @@ PCSX::Emulator::Emulator()
       m_counters(new PCSX::Counters()),
       m_debug(new PCSX::Debug()),
       m_gdbServer(new PCSX::GdbServer()),
+      m_gpuLogger(new PCSX::GPULogger()),
       m_gte(new PCSX::GTE()),
       m_hw(new PCSX::HW()),
       m_lua(new PCSX::Lua()),
