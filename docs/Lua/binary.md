@@ -37,6 +37,6 @@ PCSX.Binary.pack(bytes, dst, m4g:lowestAddress(), info.pc, info.gp, info.sp)
 
 Additionally, the `PCSX.Misc` module has the following functions:
 
-- `PCSX.Misc.uclPack(src, dest)`: compresses the input binary stream into a ucl-compressed stream. The input must be a `File` object, and the output must be a `File` object. The output stream will be written at its current write pointer, and will be compressed using the UCL-NRV2E compression algorithm, which is a variant of the UCL compression algorithm. The output stream can be decompressed in-place with very little memory overhead. Simply place the compressed data at the end of the decompression buffer + 16 bytes. The stream doesn't require to be aligned in any particular way.
+- `PCSX.Misc.uclPack(src, dest)`: compresses the input binary stream into a ucl-compressed stream. Both the input and output arguments must be `File` objects. The output stream will be written at its current write pointer, and will be compressed using the UCL-NRV2E compression algorithm, which is a variant of the UCL compression algorithm. The output stream can be decompressed in-place with very little memory overhead. Simply place the compressed data at the end of the decompression buffer + 16 bytes. The stream doesn't require to be aligned in any particular way.
 - `PCSX.Misc.writeUclDecomp(dest)`: writes a MIPS UCL-NRV2E decompression routine to the output `File` object, at its current write pointer. The function returns the number of bytes written, which at the moment is 340 bytes. The code is position independent, and has the following function signature:
-    - `void decompress(uint8_t* src, uint8_t* dest);`
+    - `void decompress(const uint8_t* src, uint8_t* dest);`
