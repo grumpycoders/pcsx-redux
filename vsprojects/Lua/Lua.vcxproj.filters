@@ -67,7 +67,6 @@
     <None Include="..\..\third_party\zlibffi\zlibffi.lua">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="packages.config" />
     <None Include="..\..\third_party\lua-protobuf\protoc.lua">
       <Filter>Source Files</Filter>
     </None>
@@ -107,5 +106,6 @@
     <None Include="..\..\third_party\glffi\glffi-typedefs.lua">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
