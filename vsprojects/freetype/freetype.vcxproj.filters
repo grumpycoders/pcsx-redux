@@ -133,6 +133,18 @@
     <Filter Include="Source Files\type42">
       <UniqueIdentifier>{cb53440c-bd07-4db6-b8ea-0468bdf7186a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\sdf">
+      <UniqueIdentifier>{764dafc8-6b8f-4c3c-be35-7080e5515c04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\sdf">
+      <UniqueIdentifier>{edb06bd8-cb65-4470-b94a-cc7c25a5cef1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\svg">
+      <UniqueIdentifier>{4451cc41-9bcb-4beb-b545-28d3b0832886}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\svg">
+      <UniqueIdentifier>{0abbe046-67c7-4ca1-a8b3-f47655e260c1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\third_party\freetype\src\autofit\afangles.c">
@@ -618,6 +630,27 @@
     <ClCompile Include="..\..\third_party\freetype\src\type42\type42.c">
       <Filter>Source Files\type42</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\ftbsdf.c">
+      <Filter>Source Files\sdf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\ftsdf.c">
+      <Filter>Source Files\sdf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\ftsdfcommon.c">
+      <Filter>Source Files\sdf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\ftsdfrend.c">
+      <Filter>Source Files\sdf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\sdf.c">
+      <Filter>Source Files\sdf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\svg\ftsvg.c">
+      <Filter>Source Files\svg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\svg\svg.c">
+      <Filter>Source Files\svg</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\third_party\freetype\src\autofit\afangles.h">
@@ -1030,6 +1063,24 @@
     </ClInclude>
     <ClInclude Include="..\..\third_party\freetype\src\type42\t42types.h">
       <Filter>Header Files\type42</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\freetype\src\sdf\ftsdf.h">
+      <Filter>Header Files\sdf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\freetype\src\sdf\ftsdfcommon.h">
+      <Filter>Header Files\sdf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\freetype\src\sdf\ftsdferrs.h">
+      <Filter>Header Files\sdf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\freetype\src\sdf\ftsdfrend.h">
+      <Filter>Header Files\sdf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\freetype\src\svg\ftsvg.h">
+      <Filter>Header Files\svg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\freetype\src\svg\svgtypes.h">
+      <Filter>Header Files\svg</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
