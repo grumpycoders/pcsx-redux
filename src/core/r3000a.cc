@@ -132,7 +132,12 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     do {
                         file = m_pcdrvFiles.find(++m_pcdrvIndex);
                     } while (file != m_pcdrvFiles.end());
-                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename));
+                    auto path = basepath / filename;
+                    if (regs.a1 == 0) {
+                        file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(path));
+                    } else {
+                        file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(path, FileOps::READWRITE));
+                    }
                     file->m_relativeFilename = filename;
                     if (file->failed()) {
                         regs.v0 = -1;
@@ -224,7 +229,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                             return;
                     }
                     auto ret = file->writable() ? file->wSeek(regs.a2, wheel) : file->rSeek(regs.a2, wheel);
-                    if (ret == 0) {
+                    if (ret >= 0) {
                         regs.v0 = 0;
                         regs.v1 = file->writable() ? file->wTell() : file->rTell();
                     } else {

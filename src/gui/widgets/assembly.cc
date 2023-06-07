@@ -813,18 +813,18 @@ settings, otherwise debugging features may not work.)");
             cp1.x = columnX;
             cp1.y = p0.y - thickness * direction;
             drawList->ChannelsSetCurrent(1 + column * 2);
-            drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
+            drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
             drawList->ChannelsSetCurrent(0 + column * 2);
-            drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+            drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
             if (dst != linesStartPos.end()) {
                 float dx = dst->second.x + ImGui::GetTextLineHeight() / 2;
                 float dy = dst->second.y + glyphWidth / 2;
                 p0.x = columnX;
                 p0.y = dy - direction * ImGui::GetTextLineHeight() / 2;
                 drawList->ChannelsSetCurrent(1 + column * 2);
-                drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowColor), thickness);
+                drawList->AddBezierCubic(p0, p1, p0, p1, ImColor(s_arrowColor), thickness);
                 drawList->ChannelsSetCurrent(0 + column * 2);
-                drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+                drawList->AddBezierCubic(p0, p1, p0, p1, ImColor(s_arrowOutlineColor), thickness + 4);
                 p1.x = dx + glyphWidth / 4;
                 p1.y = dy;
                 cp1.x = p0.x - thickness;
@@ -833,9 +833,9 @@ settings, otherwise debugging features may not work.)");
                 cp0.y = p1.y + thickness * direction;
                 p1.x -= thickness;
                 drawList->ChannelsSetCurrent(1 + column * 2);
-                drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
+                drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
                 drawList->ChannelsSetCurrent(0 + column * 2);
-                drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+                drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
                 ImVec2 a, b, c;
                 a = b = c = p1;
                 a.x += thickness;
@@ -858,9 +858,9 @@ settings, otherwise debugging features may not work.)");
                 out.x = p1.x;
                 out.y = height * 2 * direction;
                 drawList->ChannelsSetCurrent(1 + column * 2);
-                drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowColor), thickness);
+                drawList->AddBezierCubic(p1, out, p1, out, ImColor(s_arrowColor), thickness);
                 drawList->ChannelsSetCurrent(0 + column * 2);
-                drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowOutlineColor), thickness + 4);
+                drawList->AddBezierCubic(p1, out, p1, out, ImColor(s_arrowOutlineColor), thickness + 4);
             }
         }
     }
