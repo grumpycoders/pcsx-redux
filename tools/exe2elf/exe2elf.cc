@@ -80,14 +80,14 @@ Usage: {} input.ps-exe [-h] -o output.elf
     while ((dataIn.size() & 3) != 0) dataIn.push_back(0);
     ELFIO::elfio writer;
 
-    writer.create(ELFCLASS32, ELFDATA2LSB);
-    writer.set_os_abi(ELFOSABI_NONE);
-    writer.set_type(ET_EXEC);
-    writer.set_machine(EM_MIPS);
+    writer.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
+    writer.set_os_abi(ELFIO::ELFOSABI_NONE);
+    writer.set_type(ELFIO::ET_EXEC);
+    writer.set_machine(ELFIO::EM_MIPS);
 
     ELFIO::section* text = writer.sections.add(".text");
-    text->set_type(SHT_PROGBITS);
-    text->set_flags(SHF_ALLOC | SHF_EXECINSTR);
+    text->set_type(ELFIO::SHT_PROGBITS);
+    text->set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_EXECINSTR);
     text->set_addr_align(4);
     text->set_data(reinterpret_cast<char*>(dataIn.data()), dataIn.size());
     text->set_address(memory->lowestAddress());
