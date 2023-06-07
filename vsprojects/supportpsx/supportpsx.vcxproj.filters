@@ -38,7 +38,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
     <None Include="..\..\src\supportpsx\assembler\assembler.lua">
       <Filter>Source Files</Filter>
     </None>
@@ -66,6 +65,7 @@
     <None Include="..\..\src\supportpsx\binffi.lua">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\supportpsx\assembler.h">
