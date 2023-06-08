@@ -168,6 +168,6 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - better customization
 - more generic dynarec
 - hook more emulator functions to Lua
-- ...
+- see [TODO](TODO.md) for more
 
 [![Redux definition](https://pbs.twimg.com/media/ENJhNwGWwAEbrGb?format=jpg)](https://twitter.com/MerriamWebster/status/1212357808026341376)
