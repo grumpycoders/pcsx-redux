@@ -74,6 +74,10 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
         {"pt_BR.po", {}, nullptr},
     },
     {
+        "Ukrainska",
+        {"uk.po", {}, reinterpret_cast<const ImWchar*>(Range::CYRILLIC)},
+    },
+    {
         "Zhongwen",
         {"zh_CN.po",
          {{MAKEU8("NotoSansSC-Regular.otf"), reinterpret_cast<const ImWchar*>(Range::CHINESE_FULL)}},
