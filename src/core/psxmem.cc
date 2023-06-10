@@ -662,12 +662,12 @@ void PCSX::Memory::setLuts() {
 
 void PCSX::Memory::sendSetLutsToLua() {
     auto L = *g_emulator->m_lua;
-    L.getfield("setLuts", LUA_GLOBALSINDEX);
+    L.getfield("SetLuts", LUA_GLOBALSINDEX);
     if (!L.isnil()) {
         try {
             L.pcall();
         } catch (...) {
-            L.push("setLuts");
+            L.push("SetLuts");
             L.push();
             L.settable(LUA_GLOBALSINDEX);
         }
