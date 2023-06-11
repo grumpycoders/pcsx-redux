@@ -51,9 +51,12 @@ enum BreakpointType { Exec, Read, Write };
 typedef struct { uint8_t opaque[?]; } Breakpoint;
 
 uint8_t* getMemPtr();
+uint8_t* getParPtr();
 uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
+uint8_t** getReadLUT();
+uint8_t** getWriteLUT();
 Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause));
 void enableBreakpoint(Breakpoint*);
 void disableBreakpoint(Breakpoint*);
@@ -172,6 +175,8 @@ PCSX = {
     getRomPtr = function() return C.getRomPtr() end,
     getScratchPtr = function() return C.getScratchPtr() end,
     getRegisters = function() return C.getRegisters() end,
+    getReadLUT = function() return C.getReadLUT() end,
+    getWriteLUT = function() return C.getWriteLUT() end,
     addBreakpoint = addBreakpoint,
     pauseEmulator = function() C.pauseEmulator() end,
     resumeEmulator = function() C.resumeEmulator() end,
