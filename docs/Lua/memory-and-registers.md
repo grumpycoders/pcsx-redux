@@ -8,6 +8,8 @@ The Lua code can access the emulated memory and registers directly through some 
 - `PCSX.getRomPtr()` will return a `cdata[uint8_t*]` representing up to 512kB of the BIOS memory space. This can be written to.
 - `PCSX.getScratchPtr()` will return a `cdata[uint8_t*]` representing up to 1kB for the scratchpad memory space.
 - `PCSX.getRegisters()` will return a structured cdata representing all the registers present in the CPU:
+- `PCSX.getReadLUT()` will return a `cdata[uint8_t**]` representing the read LUT for the CPU.
+- `PCSX.getWriteLUT()` will return a `cdata[uint8_t**]` representing the write LUT for the CPU.
 
 ```c
 typedef union {
@@ -47,3 +49,12 @@ typedef struct {
 The above methods will return direct pointers into the emulated memory, so it's easy to crash the emulator if you're not careful. The `getMemoryAsFile()` method is safer, but will be slower:
 
 - `PCSX.getMemoryAsFile()` will return a `File` object representing the full 4GB of accessible memory. All operations on this file will be translated to the emulated memory space. This is slower than the direct access methods, but safer. Any read or write operation will be clamped to the emulated memory space, and will not crash the emulator.
+
+## Memory mapping
+
+PCSX-Redux will attempt to forward reads and writes for memory not mapped in the LUTs. This is useful for debugging, but will be slower than the direct access methods.
+
+-`UnknownMemoryRead(address, size)` will be called when a read is attempted to an unmapped memory address. The function should return an 8, 16, or 32-bit value to be returned to the CPU.
+-`UnknownMemoryWrite(address, size, value)` will be called when a write is attempted to an unmapped memory address. The function should return `true` or `false` indicating whether the write was handled.
+-`SetLuts()` will be called when the LUTs are updated. This is useful for overriding the LUTs for any memory-mapped hardware.
+
