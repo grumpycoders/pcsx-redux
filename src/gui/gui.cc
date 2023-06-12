@@ -520,7 +520,7 @@ void PCSX::GUI::init() {
         s_gui->changeScale(viewport->DpiScale);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
-    ImGui_ImplOpenGL3_Init(nullptr);
+    ImGui_ImplOpenGL3_Init(IMGUI_SHADER_VERSION);
 
     if (glDebugMessageCallback &&
         (g_emulator->settings.get<Emulator::SettingGLErrorReporting>() || m_args.get<bool>("testmode", false))) {

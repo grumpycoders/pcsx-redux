@@ -256,6 +256,8 @@ void PCSX::Widgets::ShaderEditor::init() {
     m_quadVertices[2].positions[1] = 1.0;
     m_quadVertices[3].positions[0] = 1.0;
     m_quadVertices[3].positions[1] = 1.0;
+
+    setDefaults();
 }
 
 PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,

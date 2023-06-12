@@ -63,10 +63,12 @@
 #include "widgets/memory_observer.h"
 #include "widgets/typed_debugger.h"
 
-#if defined(__APPLE__)
+#ifdef __APPLE__
 #define GL_SHADER_VERSION "#version 410\n"
+#define IMGUI_SHADER_VERSION "#version 410"
 #else
 #define GL_SHADER_VERSION "#version 300 es\n"
+#define IMGUI_SHADER_VERSION nullptr
 #endif
 
 struct GLFWwindow;
