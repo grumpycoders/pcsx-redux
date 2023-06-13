@@ -226,6 +226,42 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
     }
 }
 
+PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base)
+    : m_baseFilename(base), m_index(++s_index) {
+    setDefaults();
+    std::filesystem::path f = base;
+    {
+        f.replace_extension("vert");
+        std::ifstream in(f, std::ifstream::in);
+        if (in) {
+            std::ostringstream code;
+            code << in.rdbuf();
+            in.close();
+            m_vertexShaderEditor.setText(code.str());
+        }
+    }
+    {
+        f.replace_extension("frag");
+        std::ifstream in(f, std::ifstream::in);
+        if (in) {
+            std::ostringstream code;
+            code << in.rdbuf();
+            in.close();
+            m_pixelShaderEditor.setText(code.str());
+        }
+    }
+    {
+        f.replace_extension("lua");
+        std::ifstream in(f, std::ifstream::in);
+        if (in) {
+            std::ostringstream code;
+            code << in.rdbuf();
+            in.close();
+            m_luaEditor.setText(code.str());
+        }
+    }
+}
+
 PCSX::Widgets::ShaderEditor::~ShaderEditor() {
     if (m_shaderProgram != 0) {
         glDeleteProgram(m_shaderProgram);
