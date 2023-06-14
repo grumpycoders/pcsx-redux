@@ -146,11 +146,11 @@ class GUI final : public UI {
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
-             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, MainFontSize, MonoFontSize,
-             GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
-             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
-             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
-             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
+             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, MainFontSize,
+             MonoFontSize, GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1,
+             ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6,
+             ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor,
+             ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
              MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
              ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
         settings;
@@ -438,6 +438,8 @@ class GUI final : public UI {
     bool m_updateAvailable = false;
     bool m_updateDownloading = false;
     bool m_aboutSelectAuthors = false;
+
+    void setDefaultShaders();
 
   public:
     bool hasJapanese() { return m_hasJapanese; }

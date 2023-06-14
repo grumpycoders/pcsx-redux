@@ -77,7 +77,6 @@ uniform sampler2D u_writtenHighlight;
 
 in vec2 fragUV;
 out vec4 outColor;
-in vec4 gl_FragCoord;
 
 const float ridge = 1.5f;
 

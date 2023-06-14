@@ -45,7 +45,7 @@ static inline int PCcreat(const char *name, int perms) {
     return -1;
 }
 
-static inline int PCopen(char *name, int flags, int perms) {
+static inline int PCopen(const char *name, int flags, int perms) {
     register int a2 asm("a2") = flags;
     register const char *a0 asm("a0") = name;
     register const char *a1 asm("a1") = name;

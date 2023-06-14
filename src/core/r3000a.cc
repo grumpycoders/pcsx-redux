@@ -132,7 +132,12 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     do {
                         file = m_pcdrvFiles.find(++m_pcdrvIndex);
                     } while (file != m_pcdrvFiles.end());
-                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename));
+                    auto path = basepath / filename;
+                    if (regs.a1 == 0) {
+                        file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(path));
+                    } else {
+                        file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(path, FileOps::READWRITE));
+                    }
                     file->m_relativeFilename = filename;
                     if (file->failed()) {
                         regs.v0 = -1;
@@ -224,7 +229,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                             return;
                     }
                     auto ret = file->writable() ? file->wSeek(regs.a2, wheel) : file->rSeek(regs.a2, wheel);
-                    if (ret == 0) {
+                    if (ret >= 0) {
                         regs.v0 = 0;
                         regs.v1 = file->writable() ? file->wTell() : file->rTell();
                     } else {
@@ -323,23 +328,23 @@ void PCSX::R3000Acpu::branchTest() {
     uint32_t* targets = m_regs.intTargets;
 
     if ((interrupts != 0) && (((int32_t)(m_regs.lowestTarget - cycle)) <= 0)) {
-#define checkAndUpdate(irq, act)                                \
-    {                                                           \
-        constexpr uint32_t mask = 1 << irq;                     \
-        if ((interrupts & mask) != 0) {                         \
-            uint32_t target = targets[irq];                     \
-            int32_t dist = target - cycle;                      \
-            if (dist > 0) {                                     \
-                if (lowestDistance > dist) {                    \
-                    lowestDistance = dist;                      \
-                    lowestTarget = target;                      \
-                }                                               \
-            } else {                                            \
-                m_regs.interrupt &= ~mask;                      \
-                PSXIRQ_LOG("Triggering interrupt %08x\n", irq); \
-                act();                                          \
-            }                                                   \
-        }                                                       \
+#define checkAndUpdate(irq, act)                                                          \
+    {                                                                                     \
+        constexpr uint32_t mask = 1 << irq;                                               \
+        if ((interrupts & mask) != 0) {                                                   \
+            uint32_t target = targets[irq];                                               \
+            int32_t dist = target - cycle;                                                \
+            if (dist > 0) {                                                               \
+                if (lowestDistance > dist) {                                              \
+                    lowestDistance = dist;                                                \
+                    lowestTarget = target;                                                \
+                }                                                                         \
+            } else {                                                                      \
+                m_regs.interrupt &= ~mask;                                                \
+                PSXIRQ_LOG("Triggering interrupt %08x\n", magic_enum::enum_integer(irq)); \
+                act();                                                                    \
+            }                                                                             \
+        }                                                                                 \
     }
         checkAndUpdate(PSXINT_SIO, g_emulator->m_sio->interrupt);
         checkAndUpdate(PSXINT_SIO1, g_emulator->m_sio1->interrupt);

@@ -294,6 +294,28 @@ void PCSX::GUI::setLua(Lua L) {
     }
 }
 
+void PCSX::GUI::setDefaultShaders() {
+    m_offscreenShaderEditor.setDefaults();
+    auto offscreenStatus = m_offscreenShaderEditor.compile(this);
+    m_outputShaderEditor.setDefaults();
+    auto outputStatus = m_outputShaderEditor.compile(this);
+
+    if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+        m_offscreenShaderEditor.setFallbacks();
+        m_outputShaderEditor.setFallbacks();
+        offscreenStatus = m_offscreenShaderEditor.compile(this);
+        outputStatus = m_outputShaderEditor.compile(this);
+    }
+    if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+        g_system->log(LogClass::UI, "Failed to compile output shaders. You won't be able to see anything");
+        g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
+        g_system->log(LogClass::UI, "%s", outputStatus.getError());
+    }
+
+    m_offscreenShaderEditor.reset(this);
+    m_outputShaderEditor.reset(this);
+}
+
 void PCSX::GUI::init() {
     int result;
 
@@ -1007,26 +1029,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
                 if (ImGui::BeginMenu(_("Shader presets"))) {
                     if (ImGui::MenuItem(_("Default shader"))) {
-                        m_offscreenShaderEditor.setDefaults();
-                        auto offscreenStatus = m_offscreenShaderEditor.compile(this);
-                        m_outputShaderEditor.setDefaults();
-                        auto outputStatus = m_outputShaderEditor.compile(this);
-
-                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
-                            m_offscreenShaderEditor.setFallbacks();
-                            m_outputShaderEditor.setFallbacks();
-                            offscreenStatus = m_offscreenShaderEditor.compile(this);
-                            outputStatus = m_outputShaderEditor.compile(this);
-                        }
-                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
-                            g_system->log(LogClass::UI,
-                                          "Failed to compile output shaders. You won't be able to see anything");
-                            g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
-                            g_system->log(LogClass::UI, "%s", outputStatus.getError());
-                        }
-
-                        m_offscreenShaderEditor.reset(this);
-                        m_outputShaderEditor.reset(this);
+                        setDefaultShaders();
                     }
                     if (ImGui::MenuItem(_("CRT-lottes shader"))) {
                         m_offscreenShaderEditor.setText(Shaders::CrtLottes::Offscreen::vert().data(),
@@ -1164,6 +1167,9 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
                     ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
                     ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
+                    if (ImGui::MenuItem(_("Reset shaders"), nullptr)) {
+                        setDefaultShaders();
+                    }
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenu();
