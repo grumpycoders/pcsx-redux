@@ -35,7 +35,7 @@ PCSX::UI::UI(const CommandLine::args &args) : m_args(args), m_listener(g_system-
 bool PCSX::UI::loadSettings() {
     std::ifstream cfg("pcsx.json");
     auto& emuSettings = g_emulator->settings;
-    bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
+    bool safeMode = m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
     if (cfg.is_open() && !safeMode) {
         try {
             cfg >> m_settingsJson;
@@ -55,7 +55,7 @@ bool PCSX::UI::loadSettings() {
 }
 
 void PCSX::UI::finishLoadSettings() {
-    bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
+    bool safeMode = m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
     auto& emuSettings = g_emulator->settings;
     g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
     g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});

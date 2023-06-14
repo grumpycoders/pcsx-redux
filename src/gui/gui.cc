@@ -429,7 +429,7 @@ void PCSX::GUI::init() {
         io.IniFilename = nullptr;
         auto& emuSettings = PCSX::g_emulator->settings;
         const bool resetUI = m_args.get<bool>("resetui", false);
-        bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
+        bool safeMode = m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
         if (loadSettings()) {
             if (!resetUI && (m_settingsJson.count("imgui") == 1) && m_settingsJson["imgui"].is_string()) {
                 std::string imguicfg = m_settingsJson["imgui"];

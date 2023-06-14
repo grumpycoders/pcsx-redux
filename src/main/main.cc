@@ -81,7 +81,8 @@ class SystemImpl final : public PCSX::System {
         if (!m_noGuiLog) {
             s_ui->addLuaLog(s, error);
         }
-        if ((error && m_inStartup) || args.get<bool>("lua_stdout", false) || args.get<bool>("no-ui", false)) {
+        if ((error && m_inStartup) || args.get<bool>("lua_stdout", false) || args.get<bool>("no-ui", false) ||
+            args.get<bool>("cli", false)) {
             if (error) {
                 fprintf(stderr, "%s\n", s.c_str());
             } else {
@@ -175,7 +176,7 @@ int pcsxMain(int argc, char **argv) {
     PCSX::UvThreadOp::UvThread uvThread;
 
 #if defined(_WIN32) || defined(_WIN64)
-    if (args.get<bool>("stdout", false) || args.get<bool>("no-ui", false)) {
+    if (args.get<bool>("stdout", false) || args.get<bool>("no-ui", false) || args.get<bool>("cli", false)) {
         if (AllocConsole()) {
             freopen("CONIN$", "r", stdin);
             freopen("CONOUT$", "w", stdout);
@@ -197,11 +198,11 @@ int pcsxMain(int argc, char **argv) {
         system->setTestmode();
     }
     if (args.get<bool>("stdout", false) && !args.get<bool>("tui", false)) system->m_enableStdout = true;
-    if (args.get<bool>("no-ui", false)) system->m_enableStdout = true;
+    if (args.get<bool>("no-ui", false) || args.get<bool>("cli", false)) system->m_enableStdout = true;
     const auto &logfileArgOpt = args.get<std::string>("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     if (!logfileArg.empty()) system->useLogfile(logfileArg);
-    if (args.get<bool>("testmode", false) || args.get<bool>("no-gui-log", false)) {
+    if (args.get<bool>("testmode", false) || args.get<bool>("no-gui-log", false) || args.get<bool>("cli", false)) {
         system->m_noGuiLog = true;
     }
     PCSX::g_system = system;
@@ -228,8 +229,9 @@ int pcsxMain(int argc, char **argv) {
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
 
-    s_ui = args.get<bool>("no-ui", false) ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI(args))
-                                          : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(args));
+    s_ui = args.get<bool>("no-ui", false) || args.get<bool>("cli", false)
+               ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI(args))
+               : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(args));
     // Settings will be loaded after this initialization.
     s_ui->init();
     // After settings are loaded, we're fine setting the SPU part of the emulation.
