@@ -112,6 +112,7 @@ class GUI final {
     typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
     typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
+    typedef Setting<bool, TYPESTRING("AllowMouseCaptureToggle"), false> AllowMouseCaptureToggle;
     typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
     typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
     typedef Setting<bool, TYPESTRING("ShowPIOCartConfig"), false> ShowPIOCartConfig;
@@ -146,12 +147,12 @@ class GUI final {
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
              ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, MainFontSize,
-             MonoFontSize, GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1,
-             ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6,
-             ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor,
-             ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
-             MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
-             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
+             MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig,
+             ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5,
+             ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor,
+             ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr,
+             MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr,
+             ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -218,7 +219,7 @@ class GUI final {
     void flip();
     void setViewport();
     void setFullscreen(bool fullscreen);
-    void setRawMouseMotion(bool value);
+    void setRawMouseMotion();
     bool addLog(LogClass logClass, const std::string &msg) {
         return m_log.addLog(magic_enum::enum_integer(logClass), msg);
     }
@@ -470,6 +471,7 @@ class GUI final {
         bool pauseAfterLoad = true;
     } m_exeToLoad;
 
+    bool &allowMouseCaptureToggle() { return settings.get<AllowMouseCaptureToggle>().value; }
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
 
     void drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end,
