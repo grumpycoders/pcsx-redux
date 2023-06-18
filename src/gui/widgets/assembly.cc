@@ -700,7 +700,11 @@ settings, otherwise debugging features may not work.)");
                             code);
                 auto toggleBP = [&]() {
                     if (hasBP) {
-                        g_emulator->m_debug->removeBreakpoint(currentBP);
+                        if (currentBP->enabled()) {
+                            currentBP->disable();
+                        } else {
+                            currentBP->enable();
+                        }
                     } else {
                         g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"));
                     }
@@ -739,6 +743,15 @@ settings, otherwise debugging features may not work.)");
                     }
                     if (ImGui::MenuItem(_("Toggle Breakpoint"))) {
                         toggleBP();
+                    }
+                    if (hasBP) {
+                        if (ImGui::MenuItem(_("Remove Breakpoint"))) {
+                            g_emulator->m_debug->removeBreakpoint(currentBP);
+                        }
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                        ImGui::TextUnformatted(_("Remove Breakpoint"));
+                        ImGui::PopStyleColor();
                     }
                     if (absAddr < 0x00800000) {
                         if (ImGui::MenuItem(_("Assemble"))) {
