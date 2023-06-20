@@ -243,12 +243,12 @@ class MemoryCards {
 
         std::filesystem::path *paths[] = {      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().value,
                                                 &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().value,
-                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd3>().value,
-                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd4>().value,
-                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd5>().value,
-                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd6>().value,
-                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd7>().value,
-                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd8>().value};
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1B>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1C>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1D>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2B>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2C>().value,
+                                                &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2D>().value};
 
         PCSX::u8string thepath = paths[index]->u8string();
         return thepath;
@@ -256,12 +256,12 @@ class MemoryCards {
     bool isCardInserted(int index) {
         bool *const inserted_lut[] = {&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>().value,
                                       &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>().value,
-                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd3Inserted>().value,
-                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd4Inserted>().value,
-                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd5Inserted>().value,
-                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd6Inserted>().value,
-                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd7Inserted>().value,
-                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd8Inserted>().value};
+                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1BInserted>().value,
+                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1CInserted>().value,
+                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1DInserted>().value,
+                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2BInserted>().value,
+                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2CInserted>().value,
+                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2DInserted>().value};
 
         return *inserted_lut[index];
     }

@@ -60,7 +60,7 @@ class PadsImpl : public PCSX::Pads {
         if (pad > m_pads.size()) {
             return false;
         } else {
-            return m_pads[pad].isControllerConnected();
+            return m_pads[pad].isPadConnected();
         }
     }
 
@@ -171,8 +171,8 @@ class PadsImpl : public PCSX::Pads {
         uint8_t poll(uint8_t value, uint32_t& padState);
         uint8_t doDualshockCommand(uint32_t& padState);
         void getButtons();
-        bool isControllerButtonPressed(int button, GLFWgamepadstate* state);
-        bool isControllerConnected() { return m_settings.get<SettingConnected>(); }
+        bool isPadButtonPressed(int button, GLFWgamepadstate* state);
+        bool isPadConnected() { return m_settings.get<SettingConnected>(); }
 
         void deselect() {
             m_bufferIndex = 0;
@@ -570,7 +570,7 @@ void PadsImpl::Pad::map() {
 static constexpr float THRESHOLD = 0.85f;
 
 // Certain buttons on controllers are actually axis that can be pressed, half-pressed, etc.
-bool PadsImpl::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* state) {
+bool PadsImpl::Pad::isPadButtonPressed(int button, GLFWgamepadstate* state) {
     int mapped = m_padMapping[button];
     switch (mapped) {
         case GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER:
@@ -640,7 +640,7 @@ void PadsImpl::Pad::getButtons() {
 
     bool buttons[16];
     for (unsigned i = 0; i < 16; i++) {
-        buttons[i] = isControllerButtonPressed(i, &state);
+        buttons[i] = isPadButtonPressed(i, &state);
     }
 
     // For digital gamepads, make the PS1 dpad controllable with our gamepad's left analog stick

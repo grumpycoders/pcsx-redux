@@ -186,26 +186,26 @@ class Emulator {
     typedef SettingPath<TYPESTRING("EXP1Filepath")> SettingEXP1Filepath;
     typedef SettingPath<TYPESTRING("EXP1BrowsePath")> SettingEXP1BrowsePath;
     typedef Setting<bool, TYPESTRING("PIOConnected")> SettingPIOConnected;
-    typedef Setting<bool, TYPESTRING("Mcd3Inserted"), false> SettingMcd3Inserted;
-    typedef Setting<bool, TYPESTRING("Mcd4Inserted"), false> SettingMcd4Inserted;
-    typedef Setting<bool, TYPESTRING("Mcd5Inserted"), false> SettingMcd5Inserted;
-    typedef Setting<bool, TYPESTRING("Mcd6Inserted"), false> SettingMcd6Inserted;
-    typedef Setting<bool, TYPESTRING("Mcd7Inserted"), false> SettingMcd7Inserted;
-    typedef Setting<bool, TYPESTRING("Mcd8Inserted"), false> SettingMcd8Inserted;
-    typedef Setting<bool, TYPESTRING("Mcd3Pocketstation"), false> SettingMcd3Pocketstation;
-    typedef Setting<bool, TYPESTRING("Mcd4Pocketstation"), false> SettingMcd4Pocketstation;
-    typedef Setting<bool, TYPESTRING("Mcd5Pocketstation"), false> SettingMcd5Pocketstation;
-    typedef Setting<bool, TYPESTRING("Mcd6Pocketstation"), false> SettingMcd6Pocketstation;
-    typedef Setting<bool, TYPESTRING("Mcd7Pocketstation"), false> SettingMcd7Pocketstation;
-    typedef Setting<bool, TYPESTRING("Mcd8Pocketstation"), false> SettingMcd8Pocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd1BInserted"), false> SettingMcd1BInserted;
+    typedef Setting<bool, TYPESTRING("Mcd1CInserted"), false> SettingMcd1CInserted;
+    typedef Setting<bool, TYPESTRING("Mcd1DInserted"), false> SettingMcd1DInserted;
+    typedef Setting<bool, TYPESTRING("Mcd2BInserted"), false> SettingMcd2BInserted;
+    typedef Setting<bool, TYPESTRING("Mcd2CInserted"), false> SettingMcd2CInserted;
+    typedef Setting<bool, TYPESTRING("Mcd8Inserted"), false> SettingMcd2DInserted;
+    typedef Setting<bool, TYPESTRING("Mcd1BPocketstation"), false> SettingMcd1BPocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd1CPocketstation"), false> SettingMcd1CPocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd1DPocketstation"), false> SettingMcd1DPocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd2BPocketstation"), false> SettingMcd2BPocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd2CPocketstation"), false> SettingMcd2CPocketstation;
+    typedef Setting<bool, TYPESTRING("Mcd2DPocketstation"), false> SettingMcd2DPocketstation;
     typedef Setting<bool, TYPESTRING("Port1Multitap"), false> SettingPort1Multitap;
     typedef Setting<bool, TYPESTRING("Port2Multitap"), false> SettingPort2Multitap;
-    typedef SettingPath<TYPESTRING("Mcd3")> SettingMcd3;
-    typedef SettingPath<TYPESTRING("Mcd4")> SettingMcd4;
-    typedef SettingPath<TYPESTRING("Mcd5")> SettingMcd5;
-    typedef SettingPath<TYPESTRING("Mcd6")> SettingMcd6;
-    typedef SettingPath<TYPESTRING("Mcd7")> SettingMcd7;
-    typedef SettingPath<TYPESTRING("Mcd8")> SettingMcd8;
+    typedef SettingPath<TYPESTRING("Mcd1B")> SettingMcd1B;
+    typedef SettingPath<TYPESTRING("Mcd1C")> SettingMcd1C;
+    typedef SettingPath<TYPESTRING("Mcd1D")> SettingMcd1D;
+    typedef SettingPath<TYPESTRING("Mcd2B")> SettingMcd2B;
+    typedef SettingPath<TYPESTRING("Mcd2C")> SettingMcd2C;
+    typedef SettingPath<TYPESTRING("Mcd2D")> SettingMcd2D;
     
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
@@ -215,11 +215,11 @@ class Emulator {
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
              SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected, SettingMcd3Inserted, SettingMcd4Inserted, SettingMcd5Inserted, SettingMcd6Inserted,
-             SettingMcd7Inserted, SettingMcd8Inserted, SettingMcd3Pocketstation, SettingMcd4Pocketstation,
-             SettingMcd5Pocketstation, SettingMcd6Pocketstation, SettingMcd7Pocketstation, SettingMcd8Pocketstation,
-             SettingPort1Multitap, SettingPort2Multitap, SettingMcd3, SettingMcd4, SettingMcd5, SettingMcd6,
-             SettingMcd7, SettingMcd8>
+             SettingPIOConnected, SettingMcd1BInserted, SettingMcd1CInserted, SettingMcd1DInserted, SettingMcd2BInserted,
+             SettingMcd2CInserted, SettingMcd2DInserted, SettingMcd1BPocketstation, SettingMcd1CPocketstation,
+             SettingMcd1DPocketstation, SettingMcd2BPocketstation, SettingMcd2CPocketstation, SettingMcd2DPocketstation,
+             SettingPort1Multitap, SettingPort2Multitap, SettingMcd1B, SettingMcd1C, SettingMcd1D, SettingMcd2B,
+             SettingMcd2C, SettingMcd2D>
         settings;
     class PcsxConfig {
       public:

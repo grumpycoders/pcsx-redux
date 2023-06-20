@@ -26,22 +26,23 @@
 
 void PCSX::MemoryCards::loadMcds(const CommandLine::args &args) {
     auto &settings = g_emulator->settings;
+    const char *card_ids[] = {"1", "2", "1b", "1c", "1d", "2b", "2c", "2d"};
 
     std::filesystem::path *card_paths[] = {
         &settings.get<PCSX::Emulator::SettingMcd1>().value, &settings.get<PCSX::Emulator::SettingMcd2>().value,
-        &settings.get<PCSX::Emulator::SettingMcd3>().value, &settings.get<PCSX::Emulator::SettingMcd4>().value,
-        &settings.get<PCSX::Emulator::SettingMcd5>().value, &settings.get<PCSX::Emulator::SettingMcd6>().value,
-        &settings.get<PCSX::Emulator::SettingMcd7>().value, &settings.get<PCSX::Emulator::SettingMcd8>().value,
+        &settings.get<PCSX::Emulator::SettingMcd1B>().value, &settings.get<PCSX::Emulator::SettingMcd1C>().value,
+        &settings.get<PCSX::Emulator::SettingMcd1D>().value, &settings.get<PCSX::Emulator::SettingMcd2B>().value,
+        &settings.get<PCSX::Emulator::SettingMcd2C>().value, &settings.get<PCSX::Emulator::SettingMcd2D>().value,
     };
 
     for (int i = 0; i < 8; i++) {
-        auto argPath = args.get<std::string>(fmt::format("memcard{}", i + 1));
+        auto argPath = args.get<std::string>(fmt::format("memcard{}", card_ids[i]));
         if (argPath.has_value()) {
             *card_paths[i] = argPath.value();
         }
 
         if (card_paths[i]->u8string().empty()) {
-            std::string path = std::format("memcard{}.mcd", i + 1);
+            std::string path = std::format("memcard{}.mcd", card_ids[i]);
             *card_paths[i] = path;
         }
 
@@ -333,12 +334,12 @@ void PCSX::MemoryCards::setPocketstationEnabled(int index, bool enabled) {
     bool* pocketstation_settings[] = {
         &g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value,   // Slot 1 Port A
         &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value,   // Slot 2 Port A
-        &g_emulator->settings.get<Emulator::SettingMcd3Pocketstation>().value,   // Slot 1 Port B
-        &g_emulator->settings.get<Emulator::SettingMcd4Pocketstation>().value,   // Slot 1 Port C
-        &g_emulator->settings.get<Emulator::SettingMcd5Pocketstation>().value,   // Slot 1 Port D
-        &g_emulator->settings.get<Emulator::SettingMcd6Pocketstation>().value,   // Slot 2 Port B
-        &g_emulator->settings.get<Emulator::SettingMcd7Pocketstation>().value,   // Slot 2 Port C
-        &g_emulator->settings.get<Emulator::SettingMcd8Pocketstation>().value};  // Slot 2 Port D
+        &g_emulator->settings.get<Emulator::SettingMcd1BPocketstation>().value,   // Slot 1 Port B
+        &g_emulator->settings.get<Emulator::SettingMcd1CPocketstation>().value,   // Slot 1 Port C
+        &g_emulator->settings.get<Emulator::SettingMcd1DPocketstation>().value,   // Slot 1 Port D
+        &g_emulator->settings.get<Emulator::SettingMcd2BPocketstation>().value,   // Slot 2 Port B
+        &g_emulator->settings.get<Emulator::SettingMcd2CPocketstation>().value,   // Slot 2 Port C
+        &g_emulator->settings.get<Emulator::SettingMcd2DPocketstation>().value};  // Slot 2 Port D
 
     m_memoryCard[index].setPocketstationEnabled(enabled);    
 }

@@ -84,33 +84,38 @@ bool PCSX::SIO::isReceiveIRQReady() {
 }
 
 bool PCSX::SIO::isTransmitReady() {
-    const bool txEnabled = m_regs.control & ControlFlags::TX_ENABLE;
-    const bool txFinished = m_regs.status & StatusFlags::TX_FINISHED;
-    const bool txDataNotEmpty = !(m_regs.status & StatusFlags::TX_DATACLEAR);
+    const bool tx_enabled = m_regs.control & ControlFlags::TX_ENABLE;
+    const bool tx_finished = m_regs.status & StatusFlags::TX_FINISHED;
+    const bool tx_data_empty = m_regs.status & StatusFlags::TX_DATACLEAR;
 
-    return (txEnabled && txFinished && txDataNotEmpty);
+    return (tx_enabled && tx_finished && !tx_data_empty);
 }
 
 void PCSX::SIO::reset() {
-    m_rxFIFO.clear();
-    m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
     m_regs.mode = 0;
     m_regs.control = 0;
     m_regs.baud = 0;
 
-    //g_emulator->m_memoryCards->reset(); // Card not initialized yet
-
+    m_rxFIFO.clear();
     m_currentDevice = DeviceType::None;
+    m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
+    if (g_emulator) {
+        g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
+        g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
+        g_emulator->m_memoryCards->deselect();
+        g_emulator->m_pads->deselect();
+    }
 }
 
 uint8_t PCSX::SIO::writeCard(uint8_t value) {
-    const int portIndex = ((m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port1) ? 0 : 1;
-    const bool isConnected = g_emulator->m_memoryCards->isCardInserted(portIndex);
-    uint8_t rx_buffer = 0xff;
-    bool ack = false;
+    const int port_index = ((m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port1) ? 0 : 1;
+    const bool is_connected = g_emulator->m_memoryCards->isCardInserted(port_index);
 
-    if (isConnected) {
-        rx_buffer = g_emulator->m_memoryCards->m_memoryCard[portIndex].transceive(m_regs.data, &ack);
+    bool ack = false;
+    uint8_t rx_buffer = 0xff;
+
+    if (is_connected) {
+        rx_buffer = g_emulator->m_memoryCards->m_memoryCard[port_index].transceive(m_regs.data, &ack);
     } else {
         m_currentDevice = DeviceType::Ignore;
     }
@@ -123,16 +128,17 @@ uint8_t PCSX::SIO::writeCard(uint8_t value) {
 }
 
 uint8_t PCSX::SIO::writePad(uint8_t value) {
-    const int portIndex = ((m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port1) ? 0 : 1;
-    const bool isConnected = g_emulator->m_pads->isPadConnected(portIndex);
-    uint8_t rx_buffer = 0xff;    
+    const int port_index = ((m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port1) ? 0 : 1;
+    const bool is_connected = g_emulator->m_pads->isPadConnected(port_index);
+
     bool ack = false;
-    
-    if (isConnected) {
-        rx_buffer = g_emulator->m_pads->transceive(portIndex, m_regs.data, &ack);
+    uint8_t rx_buffer = 0xff;
+
+    if (is_connected) {
+        rx_buffer = g_emulator->m_pads->transceive(port_index, m_regs.data, &ack);
     } else {
         m_currentDevice = DeviceType::Ignore;
-    }   
+    }
 
     if (ack) {
         acknowledge();
@@ -146,7 +152,6 @@ void PCSX::SIO::transmitData() {
     g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 
     uint8_t rx_buffer = 0xff;
-    uint8_t test_buffer = 0xff;
 
     if (m_currentDevice == DeviceType::None) {
         m_currentDevice = m_regs.data;
@@ -228,15 +233,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
     }
 
     if (m_regs.control & ControlFlags::RESET) {
-        m_rxFIFO.clear();
-
-        g_emulator->m_memoryCards->deselect();
-        g_emulator->m_pads->deselect();
-
-        m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
-        g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
-        PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
-        m_currentDevice = DeviceType::None;
+        reset();
     }
 
     updateFIFOStatus();

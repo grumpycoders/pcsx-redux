@@ -232,24 +232,24 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         const int draw_order[] = {0, 2, 3, 4, 1, 5, 6, 7};
 
         bool* inserted_settings[] = {
-            &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value,   // Slot 1 Port A
-            &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value,   // Slot 2 Port A
-            &g_emulator->settings.get<Emulator::SettingMcd3Inserted>().value,   // Slot 1 Port B
-            &g_emulator->settings.get<Emulator::SettingMcd4Inserted>().value,   // Slot 1 Port C
-            &g_emulator->settings.get<Emulator::SettingMcd5Inserted>().value,   // Slot 1 Port D
-            &g_emulator->settings.get<Emulator::SettingMcd6Inserted>().value,   // Slot 2 Port B
-            &g_emulator->settings.get<Emulator::SettingMcd7Inserted>().value,   // Slot 2 Port C
-            &g_emulator->settings.get<Emulator::SettingMcd8Inserted>().value};  // Slot 2 Port D
+            &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd1BInserted>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd1CInserted>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd1DInserted>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd2BInserted>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd2CInserted>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd2DInserted>().value};
 
         bool* pocketstation_settings[] = {
-            &g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value,   // Slot 1 Port A
-            &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value,   // Slot 2 Port A
-            &g_emulator->settings.get<Emulator::SettingMcd3Pocketstation>().value,   // Slot 1 Port B
-            &g_emulator->settings.get<Emulator::SettingMcd4Pocketstation>().value,   // Slot 1 Port C
-            &g_emulator->settings.get<Emulator::SettingMcd5Pocketstation>().value,   // Slot 1 Port D
-            &g_emulator->settings.get<Emulator::SettingMcd6Pocketstation>().value,   // Slot 2 Port B
-            &g_emulator->settings.get<Emulator::SettingMcd7Pocketstation>().value,   // Slot 2 Port C
-            &g_emulator->settings.get<Emulator::SettingMcd8Pocketstation>().value};  // Slot 2 Port D
+            &g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd1BPocketstation>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd1CPocketstation>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd1DPocketstation>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd2BPocketstation>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd2CPocketstation>().value,
+            &g_emulator->settings.get<Emulator::SettingMcd2DPocketstation>().value};
 
         for (int i = 0; i < 8; i++) {
             const int card_index = draw_order[i];
