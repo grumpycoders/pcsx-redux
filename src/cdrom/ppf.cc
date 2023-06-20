@@ -196,8 +196,10 @@ void PCSX::PPF::save(std::filesystem::path iso) {
     m_description.resize(50);
     ppf->writeString(m_description);
     for (auto& patch : m_patches) {
+        auto msf = patch.getKey();
+        auto ppfOffset = (msf.toLBA() - 150) * 2352;
         for (auto& d : patch.data) {
-            uint32_t offset = d.first;
+            uint32_t offset = d.first + ppfOffset;
             uint32_t len = d.second.size();
             auto bytes = reinterpret_cast<const uint8_t*>(d.second.data());
             while (len != 0) {

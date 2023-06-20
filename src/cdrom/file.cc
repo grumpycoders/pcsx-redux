@@ -184,7 +184,7 @@ ssize_t PCSX::CDRIsoFile::write(const void* buffer_, size_t size) {
     uint32_t toCopy = size;
 
     size_t actualSize = 0;
-    uint32_t lba = m_lba + m_ptrR / sectorSize;
+    uint32_t lba = m_lba + m_ptrW / sectorSize;
     IEC60908b::MSF msf(lba + 150);
 
     while (toCopy != 0) {
