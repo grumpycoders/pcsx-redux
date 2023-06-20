@@ -177,7 +177,7 @@ There is some limited API for working with ISO files.
 :savePPF()      -- Saves the currently applied patches to a PPF file named after the ISO file.
 ```
 
-The `:open` method has some magic built-in. The size argument is optional, and if missing, the code will attempt to guess the size of the underlying file within the Iso. This can only work on MODE2 FORM1 or FORM2 sectors, and will result in a failed File object otherwise. The mode argument is optional, and can be one of the following:
+The `:open` method has some magic built-in. The size argument is optional, and if missing, the code will attempt to guess the size of the underlying file within the Iso. It will represent the size of the virtual file in bytes. The size guessing mechanism can only work on MODE2 FORM1 or FORM2 sectors, and will result in a failed File object otherwise. The mode argument is optional, and can be one of the following:
 
 - `'GUESS'`: will attempt to guess the mode of the file. This is the default.
 - `'RAW'`: the returned File object will read 2352 bytes per sector.
@@ -188,7 +188,7 @@ The `:open` method has some magic built-in. The size argument is optional, and i
 
 The resulting File object will cache a single full sector in memory, meaning that small sequential reads won't read the same sector over and over from the disk.
 
-The resulting File object will be writable, which will temporarily patch the CD-Rom image file in memory. It is possible to flush the patches to a PPF file by calling the `:savePPF()` method of the corresponding Iso object. When writing to one of these files, the filesystem metadata information will not be updated, meaning that the size of the file will not change, despite it being possible to write past the end of the file and overflow on the next sectors.
+The resulting File object will be writable, which will temporarily patch the CD-Rom image file in memory. It is possible to flush the patches to a PPF file by calling the `:savePPF()` method of the corresponding Iso object. When writing to one of these files, the filesystem metadata information will not be updated, meaning that the size of the file on the filesystem will not change, despite it being possible to write past the end of it and overflow on the next sectors. Note that while the virtual File object will enlarge to accommodate the writes, it will not be filled with zeroes as with typical filesystem operations, but instead will be filled with the existing data from the iso image.
 
 The ISOReader object has the following methods:
 
