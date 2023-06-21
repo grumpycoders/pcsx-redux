@@ -383,7 +383,7 @@ class LuaExecutor : public PCSX::WebExecutor {
                 client->write(std::move(message));
             } catch (...) {
                 client->write(
-                    "HTTP/1.1 500 Internal Server Error\r\n\r\An unknown error occured while running Lua code.\r\n");
+                    "HTTP/1.1 500 Internal Server Error\r\n\r\nAn unknown error occured while running Lua code.\r\n");
             }
         } else {
             client->write("HTTP/1.1 404 Not Found\r\n\r\nURL Not found.\r\n");
