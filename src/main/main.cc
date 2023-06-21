@@ -299,6 +299,7 @@ int pcsxMain(int argc, char **argv) {
     emulator->init();
     emulator->m_gpu->init(s_gui);
     emulator->m_gpu->setDither(emuSettings.get<PCSX::Emulator::SettingDither>());
+    emulator->m_gpu->setCachedDithering(emuSettings.get<PCSX::Emulator::SettingCachedDithering>());
     emulator->m_gpu->setLinearFiltering();
     emulator->reset();
 

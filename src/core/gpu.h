@@ -111,6 +111,7 @@ class GPU {
     virtual void clearVRAM() = 0;
     virtual GLuint getVRAMTexture() = 0;
     virtual void setLinearFiltering() = 0;
+    virtual void setCachedDithering(bool value) = 0;
 
     static std::unique_ptr<GPU> getSoft();
     static std::unique_ptr<GPU> getOpenGL();
