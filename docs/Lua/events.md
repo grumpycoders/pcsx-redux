@@ -23,3 +23,4 @@ The `eventName` argument is a string that can have the following values:
  - `GUI::JumpToPC`: The UI is being asked to move the assembly view cursor to the specified address. The callback will be called with a table that contains a number named `pc`, indicating the address to jump to.
  - `GUI::JumpToMemory`: The UI is being asked to move the memory view cursor to the specified address. The callback will be called with a table that contains a number named `address`, indicating the address to jump to, and `size`, indicating the number of bytes to highlight.
  - `Keyboard`: The emulator is dispatching keyboard events. The callback will be called with a table containing four numbers: `key`, `scancode`, `action`, and `mods`. They are the same values as the glfw callback set by `glfwSetKeyCallback`.
+ - `Memory::SetLuts`: The emulator has updated the memory LUTs. The callback will be called with no arguments.

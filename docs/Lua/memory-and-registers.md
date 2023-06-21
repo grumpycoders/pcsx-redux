@@ -56,5 +56,3 @@ PCSX-Redux will attempt to forward reads and writes for memory not mapped in the
 
 -`UnknownMemoryRead(address, size)` will be called when a read is attempted to an unmapped memory address. The function should return an 8, 16, or 32-bit value to be returned to the CPU.
 -`UnknownMemoryWrite(address, size, value)` will be called when a write is attempted to an unmapped memory address. The function should return `true` or `false` indicating whether the write was handled.
--`SetLuts()` will be called when the LUTs are updated. This is useful for overriding the LUTs for any memory-mapped hardware.
-
