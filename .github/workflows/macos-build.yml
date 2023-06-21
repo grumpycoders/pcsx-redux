@@ -36,7 +36,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: tests
-        path: **/*.ps-exe
+        path: '**/*.ps-exe'
 
   macos-build-and-test:
     runs-on: macOS-latest
@@ -108,8 +108,8 @@ jobs:
       run: hdiutil create -volname PCSX-Redux-$BUILD -srcfolder dmgdir -ov -format UDZO PCSX-Redux-$BUILD.dmg
     - name: Applying icon to dmg file
       run: |
-       Rez -append icns.rsrc -o PCSX-Redux-$BUILD.dmg
-       SetFile -a C PCSX-Redux-$BUILD.dmg
+        Rez -append icns.rsrc -o PCSX-Redux-$BUILD.dmg
+        SetFile -a C PCSX-Redux-$BUILD.dmg
     - name: Removing temporary dmg folder
       run: rm -rf dmgdir
     - name: Upload DMG
