@@ -35,6 +35,7 @@
 #include "imgui.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
+#include "support/imgui-helpers.h"
 
 class PadsImpl : public PCSX::Pads {
   public:
@@ -911,6 +912,12 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
 
     bool changed = false;
     changed |= ImGui::Checkbox(_("Use raw input for mouse"), &gui->isRawMouseMotionEnabled());
+    PCSX::ImGuiHelpers::ShowHelpMarker(
+        _("When enabled, the cursor will be hidden and captured when the emulator is running. This is useful for games "
+          "that require mouse input."));
+    changed |= ImGui::Checkbox(_("Allow mouse capture toggle"), &gui->allowMouseCaptureToggle());
+    PCSX::ImGuiHelpers::ShowHelpMarker(
+        _("When enabled, pressing CTRL and ALT will toggle the setting above, raw input"));
 
     if (ImGui::BeginCombo(_("Pad"), c_padNames[m_selectedPadForConfig]())) {
         for (unsigned i = 0; i < 2; i++) {

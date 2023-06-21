@@ -25,6 +25,7 @@
 #include "gpu/soft/interface.h"
 #include "gpu/soft/soft.h"
 #include "imgui.h"
+#include "support/imgui-helpers.h"
 #include "tracy/Tracy.hpp"
 
 #define GPUSTATUS_DMABITS 0x60000000
@@ -239,14 +240,23 @@ bool PCSX::SoftGPU::impl::configure() {
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-    static const char *ditherValues[] = {"No dithering (fastest)", "Game-dependent dithering (slow)",
-                                         "Always dither g-shaded polygons (slowest)"};
+    const char *ditherValues[] = {_("No dithering (fastest)"), _("Game-dependent dithering (slow)"),
+                                  _("Always dither g-shaded polygons (slowest)")};
 
     if (ImGui::Begin(_("Soft GPU configuration"), &m_showCfg)) {
-        if (ImGui::Combo("Dithering", &m_useDither, ditherValues, 3)) {
+        if (ImGui::Combo(_("Dithering"), &m_useDither, ditherValues, 3)) {
             changed = true;
             g_emulator->settings.get<Emulator::SettingDither>() = m_useDither;
         }
+
+        if (ImGui::Checkbox(_("Use cached dithering tables"),
+                            &g_emulator->settings.get<Emulator::SettingCachedDithering>().value)) {
+            changed = true;
+            setCachedDithering(g_emulator->settings.get<Emulator::SettingCachedDithering>());
+        }
+        ImGuiHelpers::ShowHelpMarker(
+            _("Dithering tables are cached in memory for faster processing. Dithering will be done much faster, at the "
+              "cost of a 512MB cache."));
 
         if (ImGui::Checkbox(_("Use linear filtering"),
                             &g_emulator->settings.get<Emulator::SettingLinearFiltering>().value)) {
@@ -655,7 +665,7 @@ void PCSX::SoftGPU::impl::write1(CtrlReset *) {
     m_statusRet = 0x14802000;
     m_softDisplay.Disabled = 1;
     m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
-    resetRenderer();    
+    resetRenderer();
     acknowledgeIRQ1();
     m_softDisplay.RGB24 = false;
     m_softDisplay.Interlaced = false;

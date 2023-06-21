@@ -280,12 +280,83 @@ void PCSX::SoftGPU::SoftRenderer::applyOffset4() {
 
 static constexpr uint8_t s_dithertable[16] = {7, 0, 6, 1, 2, 5, 3, 4, 1, 6, 0, 7, 4, 3, 5, 2};
 
-void PCSX::SoftGPU::SoftRenderer::applyDither(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) {
+static uint16_t *s_ditherLUT = nullptr;
+
+static void prepareDitherLut() {
+    uint32_t r, g, b, s;
+    assert(s_ditherLUT == nullptr);
+    s_ditherLUT = new uint16_t[256 * 256 * 256 * 16];
+    uint16_t *ditherLUT = s_ditherLUT;
+    for (r = 0; r < 256; r++) {
+        for (g = 0; g < 256; g++) {
+            for (b = 0; b < 256; b++) {
+                for (s = 0; s < 16; s++) {
+                    uint8_t coeff;
+                    uint8_t rlow, glow, blow;
+                    uint8_t rc, gc, bc;
+                    rc = r;
+                    gc = g;
+                    bc = b;
+
+                    coeff = s_dithertable[s];
+
+                    rlow = rc & 7;
+                    glow = gc & 7;
+                    blow = bc & 7;
+
+                    rc >>= 3;
+                    gc >>= 3;
+                    bc >>= 3;
+
+                    if ((rc < 0x1f) && rlow > coeff) rc++;
+                    if ((gc < 0x1f) && glow > coeff) gc++;
+                    if ((bc < 0x1f) && blow > coeff) bc++;
+
+                    *ditherLUT++ = ((uint16_t)bc << 10) | ((uint16_t)gc << 5) | (uint16_t)rc;
+                }
+            }
+        }
+    }
+}
+
+void PCSX::SoftGPU::SoftRenderer::enableCachedDithering() {
+    if (!s_ditherLUT) prepareDitherLut();
+}
+
+void PCSX::SoftGPU::SoftRenderer::disableCachedDithering() {
+    if (s_ditherLUT) delete[] s_ditherLUT;
+    s_ditherLUT = nullptr;
+}
+
+PCSX::SoftGPU::SoftRenderer::~SoftRenderer() {
+    if (s_ditherLUT) delete[] s_ditherLUT;
+    s_ditherLUT = nullptr;
+}
+
+static void applyDitherCached(uint16_t *pdest, uint16_t *base, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) {
+    int x, y;
+
+    x = pdest - base;
+    y = x >> 10;
+    x -= (y << 10);
+
+    uint32_t index = r;
+    index <<= 8;
+    index |= g;
+    index <<= 8;
+    index |= b;
+    index <<= 4;
+    index |= (y & 3) * 4 + (x & 3);
+
+    *pdest = s_ditherLUT[index] | sM;
+}
+
+static void applyDither(uint16_t *pdest, uint16_t *base, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) {
     uint8_t coeff;
     uint8_t rlow, glow, blow;
     int x, y;
 
-    x = pdest - m_vram16;
+    x = pdest - base;
     y = x >> 10;
     x -= (y << 10);
 
@@ -299,9 +370,9 @@ void PCSX::SoftGPU::SoftRenderer::applyDither(uint16_t *pdest, uint32_t r, uint3
     g >>= 3;
     b >>= 3;
 
-    if ((r < 0x1F) && rlow > coeff) r++;
-    if ((g < 0x1F) && glow > coeff) g++;
-    if ((b < 0x1F) && blow > coeff) b++;
+    if ((r < 0x1f) && rlow > coeff) r++;
+    if ((g < 0x1f) && glow > coeff) g++;
+    if ((b < 0x1f) && blow > coeff) b++;
 
     *pdest = ((uint16_t)b << 10) | ((uint16_t)g << 5) | (uint16_t)r | sM;
 }
@@ -310,6 +381,7 @@ void PCSX::SoftGPU::SoftRenderer::applyDither(uint16_t *pdest, uint32_t r, uint3
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 
+template <bool useCachedDither>
 void PCSX::SoftGPU::SoftRenderer::getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3) {
     int32_t r, g, b;
 
@@ -346,11 +418,15 @@ void PCSX::SoftGPU::SoftRenderer::getShadeTransColDither(uint16_t *pdest, int32_
         g = m3;
     }
 
-    if (r & 0x7FFFFF00) r = 0xff;
-    if (b & 0x7FFFFF00) b = 0xff;
-    if (g & 0x7FFFFF00) g = 0xff;
+    if (r & 0x7fffff00) r = 0xff;
+    if (b & 0x7fffff00) b = 0xff;
+    if (g & 0x7fffff00) g = 0xff;
 
-    applyDither(pdest, r, b, g, m_setMask16);
+    if constexpr (useCachedDither) {
+        applyDitherCached(pdest, m_vram16, r, b, g, m_setMask16);
+    } else {
+        applyDither(pdest, m_vram16, r, b, g, m_setMask16);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -362,7 +438,7 @@ void PCSX::SoftGPU::SoftRenderer::getShadeTransCol(uint16_t *pdest, uint16_t col
         int32_t r, g, b;
 
         if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
-            *pdest = ((((*pdest) & 0x7bde) >> 1) + (((color)&0x7bde) >> 1)) | m_setMask16;  // 0x8000;
+            *pdest = ((((*pdest) & 0x7bde) >> 1) + ((color & 0x7bde) >> 1)) | m_setMask16;  // 0x8000;
             return;
         } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
             r = (XCOL1(*pdest)) + ((XCOL1(color)));
@@ -381,9 +457,9 @@ void PCSX::SoftGPU::SoftRenderer::getShadeTransCol(uint16_t *pdest, uint16_t col
             g = (XCOL3(*pdest)) + ((XCOL3(color)) >> 2);
         }
 
-        if (r & 0x7FFFFFE0) r = 0x1f;
-        if (b & 0x7FFFFC00) b = 0x3e0;
-        if (g & 0x7FFF8000) g = 0x7c00;
+        if (r & 0x7fffffe0) r = 0x1f;
+        if (b & 0x7ffffc00) b = 0x3e0;
+        if (g & 0x7fff8000) g = 0x7c00;
 
         *pdest = (XPSXCOL(r, g, b)) | m_setMask16;  // 0x8000;
     } else {
@@ -399,7 +475,7 @@ void PCSX::SoftGPU::SoftRenderer::getShadeTransCol32(uint32_t *pdest, uint32_t c
 
         if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             if (!m_checkMask) {
-                *pdest = ((((*pdest) & 0x7bde7bde) >> 1) + (((color)&0x7bde7bde) >> 1)) | m_setMask32;  // 0x80008000;
+                *pdest = ((((*pdest) & 0x7bde7bde) >> 1) + ((color & 0x7bde7bde) >> 1)) | m_setMask32;  // 0x80008000;
                 return;
             }
             r = (X32ACOL1(*pdest) >> 1) + ((X32ACOL1(color)) >> 1);
@@ -440,18 +516,18 @@ void PCSX::SoftGPU::SoftRenderer::getShadeTransCol32(uint32_t *pdest, uint32_t c
             g = (X32COL3(*pdest)) + ((X32BCOL3(color)) >> 2);
         }
 
-        if (r & 0x7FE00000) r = 0x1f0000 | (r & 0xFFFF);
-        if (r & 0x7FE0) r = 0x1f | (r & 0xFFFF0000);
-        if (b & 0x7FE00000) b = 0x1f0000 | (b & 0xFFFF);
-        if (b & 0x7FE0) b = 0x1f | (b & 0xFFFF0000);
-        if (g & 0x7FE00000) g = 0x1f0000 | (g & 0xFFFF);
-        if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
+        if (r & 0x7fe00000) r = 0x1f0000 | (r & 0xffff);
+        if (r & 0x7fe0) r = 0x1f | (r & 0xffff0000);
+        if (b & 0x7fe00000) b = 0x1f0000 | (b & 0xffff);
+        if (b & 0x7fe0) b = 0x1f | (b & 0xffff0000);
+        if (g & 0x7fe00000) g = 0x1f0000 | (g & 0xffff);
+        if (g & 0x7fe0) g = 0x1f | (g & 0xffff0000);
 
         if (m_checkMask) {
             uint32_t ma = *pdest;
             *pdest = (X32PSXCOL(r, g, b)) | m_setMask32;  // 0x80008000;
-            if (ma & 0x80000000) *pdest = (ma & 0xFFFF0000) | (*pdest & 0xFFFF);
-            if (ma & 0x00008000) *pdest = (ma & 0xFFFF) | (*pdest & 0xFFFF0000);
+            if (ma & 0x80000000) *pdest = (ma & 0xffff0000) | (*pdest & 0xffff);
+            if (ma & 0x00008000) *pdest = (ma & 0xffff) | (*pdest & 0xffff0000);
             return;
         }
         *pdest = (X32PSXCOL(r, g, b)) | m_setMask32;  // 0x80008000;
@@ -459,8 +535,8 @@ void PCSX::SoftGPU::SoftRenderer::getShadeTransCol32(uint32_t *pdest, uint32_t c
         if (m_checkMask) {
             uint32_t ma = *pdest;
             *pdest = color | m_setMask32;  // 0x80008000;
-            if (ma & 0x80000000) *pdest = (ma & 0xFFFF0000) | (*pdest & 0xFFFF);
-            if (ma & 0x00008000) *pdest = (ma & 0xFFFF) | (*pdest & 0xFFFF0000);
+            if (ma & 0x80000000) *pdest = (ma & 0xffff0000) | (*pdest & 0xffff);
+            if (ma & 0x00008000) *pdest = (ma & 0xffff) | (*pdest & 0xffff0000);
             return;
         }
 
@@ -484,7 +560,7 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShade(uint16_t *pdest, uint1
         if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             uint16_t d;
             d = ((*pdest) & 0x7bde) >> 1;
-            color = ((color)&0x7bde) >> 1;
+            color = (color & 0x7bde) >> 1;
             r = (XCOL1(d)) + ((((XCOL1(color))) * m_m1) >> 7);
             b = (XCOL2(d)) + ((((XCOL2(color))) * m_m2) >> 7);
             g = (XCOL3(d)) + ((((XCOL3(color))) * m_m3) >> 7);
@@ -510,9 +586,9 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShade(uint16_t *pdest, uint1
         g = ((XCOL3(color)) * m_m3) >> 7;
     }
 
-    if (r & 0x7FFFFFE0) r = 0x1f;
-    if (b & 0x7FFFFC00) b = 0x3e0;
-    if (g & 0x7FFF8000) g = 0x7c00;
+    if (r & 0x7fffffe0) r = 0x1f;
+    if (b & 0x7ffffc00) b = 0x3e0;
+    if (g & 0x7fff8000) g = 0x7c00;
 
     *pdest = (XPSXCOL(r, g, b)) | l;
 }
@@ -531,9 +607,9 @@ inline void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeSolid(uint16_t *
     b = ((XCOL2(color)) * m_m2) >> 7;
     g = ((XCOL3(color)) * m_m3) >> 7;
 
-    if (r & 0x7FFFFFE0) r = 0x1f;
-    if (b & 0x7FFFFC00) b = 0x3e0;
-    if (g & 0x7FFF8000) g = 0x7c00;
+    if (r & 0x7fffffe0) r = 0x1f;
+    if (b & 0x7ffffc00) b = 0x3e0;
+    if (g & 0x7fff8000) g = 0x7c00;
 
     *pdest = (XPSXCOL(r, g, b)) | l;
 }
@@ -554,7 +630,7 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeSemi(uint16_t *pdest, u
         if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             uint16_t d;
             d = ((*pdest) & 0x7bde) >> 1;
-            color = ((color)&0x7bde) >> 1;
+            color = (color & 0x7bde) >> 1;
             r = (XCOL1(d)) + ((((XCOL1(color))) * m_m1) >> 7);
             b = (XCOL2(d)) + ((((XCOL2(color))) * m_m2) >> 7);
             g = (XCOL3(d)) + ((((XCOL3(color))) * m_m3) >> 7);
@@ -580,9 +656,9 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeSemi(uint16_t *pdest, u
         g = ((XCOL3(color)) * m_m3) >> 7;
     }
 
-    if (r & 0x7FFFFFE0) r = 0x1f;
-    if (b & 0x7FFFFC00) b = 0x3e0;
-    if (g & 0x7FFF8000) g = 0x7c00;
+    if (r & 0x7fffffe0) r = 0x1f;
+    if (b & 0x7ffffc00) b = 0x3e0;
+    if (g & 0x7fff8000) g = 0x7c00;
 
     *pdest = (XPSXCOL(r, g, b)) | l;
 }
@@ -598,45 +674,45 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShade32(uint32_t *pdest, uin
 
     if (m_drawSemiTrans && (color & 0x80008000)) {
         if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
-            r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * m_m1)) & 0xFF00FF00) >> 8);
-            b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * m_m2)) & 0xFF00FF00) >> 8);
-            g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * m_m3)) & 0xFF00FF00) >> 8);
+            r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * m_m1)) & 0xff00ff00) >> 8);
+            b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * m_m2)) & 0xff00ff00) >> 8);
+            g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * m_m3)) & 0xff00ff00) >> 8);
         } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
-            r = (X32COL1(*pdest)) + (((((X32COL1(color))) * m_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32COL2(color))) * m_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32COL3(color))) * m_m3) & 0xFF80FF80) >> 7);
+            r = (X32COL1(*pdest)) + (((((X32COL1(color))) * m_m1) & 0xff80ff80) >> 7);
+            b = (X32COL2(*pdest)) + (((((X32COL2(color))) * m_m2) & 0xff80ff80) >> 7);
+            g = (X32COL3(*pdest)) + (((((X32COL3(color))) * m_m3) & 0xff80ff80) >> 7);
         } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             int32_t t;
-            r = (((((X32COL1(color))) * m_m1) & 0xFF80FF80) >> 7);
+            r = (((((X32COL1(color))) * m_m1) & 0xff80ff80) >> 7);
             t = (*pdest & 0x001f0000) - (r & 0x003f0000);
             if (t & 0x80000000) t = 0;
             r = (*pdest & 0x0000001f) - (r & 0x0000003f);
             if (r & 0x80000000) r = 0;
             r |= t;
 
-            b = (((((X32COL2(color))) * m_m2) & 0xFF80FF80) >> 7);
+            b = (((((X32COL2(color))) * m_m2) & 0xff80ff80) >> 7);
             t = ((*pdest >> 5) & 0x001f0000) - (b & 0x003f0000);
             if (t & 0x80000000) t = 0;
             b = ((*pdest >> 5) & 0x0000001f) - (b & 0x0000003f);
             if (b & 0x80000000) b = 0;
             b |= t;
 
-            g = (((((X32COL3(color))) * m_m3) & 0xFF80FF80) >> 7);
+            g = (((((X32COL3(color))) * m_m3) & 0xff80ff80) >> 7);
             t = ((*pdest >> 10) & 0x001f0000) - (g & 0x003f0000);
             if (t & 0x80000000) t = 0;
             g = ((*pdest >> 10) & 0x0000001f) - (g & 0x0000003f);
             if (g & 0x80000000) g = 0;
             g |= t;
         } else {
-            r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * m_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * m_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * m_m3) & 0xFF80FF80) >> 7);
+            r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * m_m1) & 0xff80ff80) >> 7);
+            b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * m_m2) & 0xff80ff80) >> 7);
+            g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * m_m3) & 0xff80ff80) >> 7);
         }
 
         if (!(color & 0x8000)) {
-            r = (r & 0xffff0000) | ((((X32COL1(color)) * m_m1) & 0x0000FF80) >> 7);
-            b = (b & 0xffff0000) | ((((X32COL2(color)) * m_m2) & 0x0000FF80) >> 7);
-            g = (g & 0xffff0000) | ((((X32COL3(color)) * m_m3) & 0x0000FF80) >> 7);
+            r = (r & 0xffff0000) | ((((X32COL1(color)) * m_m1) & 0x0000ff80) >> 7);
+            b = (b & 0xffff0000) | ((((X32COL2(color)) * m_m2) & 0x0000ff80) >> 7);
+            g = (g & 0xffff0000) | ((((X32COL3(color)) * m_m3) & 0x0000ff80) >> 7);
         }
         if (!(color & 0x80000000)) {
             r = (r & 0xffff) | ((((X32COL1(color)) * m_m1) & 0xFF800000) >> 7);
@@ -645,17 +721,17 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShade32(uint32_t *pdest, uin
         }
 
     } else {
-        r = (((X32COL1(color)) * m_m1) & 0xFF80FF80) >> 7;
-        b = (((X32COL2(color)) * m_m2) & 0xFF80FF80) >> 7;
-        g = (((X32COL3(color)) * m_m3) & 0xFF80FF80) >> 7;
+        r = (((X32COL1(color)) * m_m1) & 0xff80ff80) >> 7;
+        b = (((X32COL2(color)) * m_m2) & 0xff80ff80) >> 7;
+        g = (((X32COL3(color)) * m_m3) & 0xff80ff80) >> 7;
     }
 
-    if (r & 0x7FE00000) r = 0x1f0000 | (r & 0xFFFF);
-    if (r & 0x7FE0) r = 0x1f | (r & 0xFFFF0000);
-    if (b & 0x7FE00000) b = 0x1f0000 | (b & 0xFFFF);
-    if (b & 0x7FE0) b = 0x1f | (b & 0xFFFF0000);
-    if (g & 0x7FE00000) g = 0x1f0000 | (g & 0xFFFF);
-    if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
+    if (r & 0x7fe00000) r = 0x1f0000 | (r & 0xffff);
+    if (r & 0x7fe0) r = 0x1f | (r & 0xffff0000);
+    if (b & 0x7fe00000) b = 0x1f0000 | (b & 0xffff);
+    if (b & 0x7fe0) b = 0x1f | (b & 0xffff0000);
+    if (g & 0x7fe00000) g = 0x1f0000 | (g & 0xffff);
+    if (g & 0x7fe0) g = 0x1f | (g & 0xffff0000);
 
     if (m_checkMask) {
         uint32_t ma = *pdest;
@@ -664,8 +740,8 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShade32(uint32_t *pdest, uin
 
         if ((color & 0xffff) == 0) *pdest = (ma & 0xffff) | (*pdest & 0xffff0000);
         if ((color & 0xffff0000) == 0) *pdest = (ma & 0xffff0000) | (*pdest & 0xffff);
-        if (ma & 0x80000000) *pdest = (ma & 0xFFFF0000) | (*pdest & 0xFFFF);
-        if (ma & 0x00008000) *pdest = (ma & 0xFFFF) | (*pdest & 0xFFFF0000);
+        if (ma & 0x80000000) *pdest = (ma & 0xffff0000) | (*pdest & 0xffff);
+        if (ma & 0x00008000) *pdest = (ma & 0xffff) | (*pdest & 0xffff0000);
 
         return;
     }
@@ -688,16 +764,16 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShade32Solid(uint32_t *pdest
 
     if (color == 0) return;
 
-    r = (((X32COL1(color)) * m_m1) & 0xFF80FF80) >> 7;
-    b = (((X32COL2(color)) * m_m2) & 0xFF80FF80) >> 7;
-    g = (((X32COL3(color)) * m_m3) & 0xFF80FF80) >> 7;
+    r = (((X32COL1(color)) * m_m1) & 0xff80ff80) >> 7;
+    b = (((X32COL2(color)) * m_m2) & 0xff80ff80) >> 7;
+    g = (((X32COL3(color)) * m_m3) & 0xff80ff80) >> 7;
 
-    if (r & 0x7FE00000) r = 0x1f0000 | (r & 0xFFFF);
-    if (r & 0x7FE0) r = 0x1f | (r & 0xFFFF0000);
-    if (b & 0x7FE00000) b = 0x1f0000 | (b & 0xFFFF);
-    if (b & 0x7FE0) b = 0x1f | (b & 0xFFFF0000);
-    if (g & 0x7FE00000) g = 0x1f0000 | (g & 0xFFFF);
-    if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
+    if (r & 0x7fe00000) r = 0x1f0000 | (r & 0xffff);
+    if (r & 0x7fe0) r = 0x1f | (r & 0xffff0000);
+    if (b & 0x7fe00000) b = 0x1f0000 | (b & 0xffff);
+    if (b & 0x7fe0) b = 0x1f | (b & 0xffff0000);
+    if (g & 0x7fe00000) g = 0x1f0000 | (g & 0xffff);
+    if (g & 0x7fe0) g = 0x1f | (g & 0xffff0000);
 
     if ((color & 0xffff) == 0) {
         *pdest = (*pdest & 0xffff) | (((X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000)) & 0xffff0000);
@@ -720,45 +796,45 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColG32Semi(uint32_t *pdest, uin
 
     if (m_drawSemiTrans && (color & 0x80008000)) {
         if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
-            r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * m_m1)) & 0xFF00FF00) >> 8);
-            b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * m_m2)) & 0xFF00FF00) >> 8);
-            g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * m_m3)) & 0xFF00FF00) >> 8);
+            r = ((((X32TCOL1(*pdest)) + ((X32COL1(color)) * m_m1)) & 0xff00ff00) >> 8);
+            b = ((((X32TCOL2(*pdest)) + ((X32COL2(color)) * m_m2)) & 0xff00ff00) >> 8);
+            g = ((((X32TCOL3(*pdest)) + ((X32COL3(color)) * m_m3)) & 0xff00ff00) >> 8);
         } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
-            r = (X32COL1(*pdest)) + (((((X32COL1(color))) * m_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32COL2(color))) * m_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32COL3(color))) * m_m3) & 0xFF80FF80) >> 7);
+            r = (X32COL1(*pdest)) + (((((X32COL1(color))) * m_m1) & 0xff80ff80) >> 7);
+            b = (X32COL2(*pdest)) + (((((X32COL2(color))) * m_m2) & 0xff80ff80) >> 7);
+            g = (X32COL3(*pdest)) + (((((X32COL3(color))) * m_m3) & 0xff80ff80) >> 7);
         } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
             int32_t t;
-            r = (((((X32COL1(color))) * m_m1) & 0xFF80FF80) >> 7);
+            r = (((((X32COL1(color))) * m_m1) & 0xff80ff80) >> 7);
             t = (*pdest & 0x001f0000) - (r & 0x003f0000);
             if (t & 0x80000000) t = 0;
             r = (*pdest & 0x0000001f) - (r & 0x0000003f);
             if (r & 0x80000000) r = 0;
             r |= t;
 
-            b = (((((X32COL2(color))) * m_m2) & 0xFF80FF80) >> 7);
+            b = (((((X32COL2(color))) * m_m2) & 0xff80ff80) >> 7);
             t = ((*pdest >> 5) & 0x001f0000) - (b & 0x003f0000);
             if (t & 0x80000000) t = 0;
             b = ((*pdest >> 5) & 0x0000001f) - (b & 0x0000003f);
             if (b & 0x80000000) b = 0;
             b |= t;
 
-            g = (((((X32COL3(color))) * m_m3) & 0xFF80FF80) >> 7);
+            g = (((((X32COL3(color))) * m_m3) & 0xff80ff80) >> 7);
             t = ((*pdest >> 10) & 0x001f0000) - (g & 0x003f0000);
             if (t & 0x80000000) t = 0;
             g = ((*pdest >> 10) & 0x0000001f) - (g & 0x0000003f);
             if (g & 0x80000000) g = 0;
             g |= t;
         } else {
-            r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * m_m1) & 0xFF80FF80) >> 7);
-            b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * m_m2) & 0xFF80FF80) >> 7);
-            g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * m_m3) & 0xFF80FF80) >> 7);
+            r = (X32COL1(*pdest)) + (((((X32BCOL1(color)) >> 2) * m_m1) & 0xff80ff80) >> 7);
+            b = (X32COL2(*pdest)) + (((((X32BCOL2(color)) >> 2) * m_m2) & 0xff80ff80) >> 7);
+            g = (X32COL3(*pdest)) + (((((X32BCOL3(color)) >> 2) * m_m3) & 0xff80ff80) >> 7);
         }
 
         if (!(color & 0x8000)) {
-            r = (r & 0xffff0000) | ((((X32COL1(color)) * m_m1) & 0x0000FF80) >> 7);
-            b = (b & 0xffff0000) | ((((X32COL2(color)) * m_m2) & 0x0000FF80) >> 7);
-            g = (g & 0xffff0000) | ((((X32COL3(color)) * m_m3) & 0x0000FF80) >> 7);
+            r = (r & 0xffff0000) | ((((X32COL1(color)) * m_m1) & 0x0000ff80) >> 7);
+            b = (b & 0xffff0000) | ((((X32COL2(color)) * m_m2) & 0x0000ff80) >> 7);
+            g = (g & 0xffff0000) | ((((X32COL3(color)) * m_m3) & 0x0000ff80) >> 7);
         }
         if (!(color & 0x80000000)) {
             r = (r & 0xffff) | ((((X32COL1(color)) * m_m1) & 0xFF800000) >> 7);
@@ -767,17 +843,17 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColG32Semi(uint32_t *pdest, uin
         }
 
     } else {
-        r = (((X32COL1(color)) * m_m1) & 0xFF80FF80) >> 7;
-        b = (((X32COL2(color)) * m_m2) & 0xFF80FF80) >> 7;
-        g = (((X32COL3(color)) * m_m3) & 0xFF80FF80) >> 7;
+        r = (((X32COL1(color)) * m_m1) & 0xff80ff80) >> 7;
+        b = (((X32COL2(color)) * m_m2) & 0xff80ff80) >> 7;
+        g = (((X32COL3(color)) * m_m3) & 0xff80ff80) >> 7;
     }
 
-    if (r & 0x7FE00000) r = 0x1f0000 | (r & 0xFFFF);
-    if (r & 0x7FE0) r = 0x1f | (r & 0xFFFF0000);
-    if (b & 0x7FE00000) b = 0x1f0000 | (b & 0xFFFF);
-    if (b & 0x7FE0) b = 0x1f | (b & 0xFFFF0000);
-    if (g & 0x7FE00000) g = 0x1f0000 | (g & 0xFFFF);
-    if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
+    if (r & 0x7fe00000) r = 0x1f0000 | (r & 0xffff);
+    if (r & 0x7fe0) r = 0x1f | (r & 0xffff0000);
+    if (b & 0x7fe00000) b = 0x1f0000 | (b & 0xffff);
+    if (b & 0x7fe0) b = 0x1f | (b & 0xffff0000);
+    if (g & 0x7fe00000) g = 0x1f0000 | (g & 0xffff);
+    if (g & 0x7fe0) g = 0x1f | (g & 0xffff0000);
 
     if (m_checkMask) {
         uint32_t ma = *pdest;
@@ -786,8 +862,8 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColG32Semi(uint32_t *pdest, uin
 
         if ((color & 0xffff) == 0) *pdest = (ma & 0xffff) | (*pdest & 0xffff0000);
         if ((color & 0xffff0000) == 0) *pdest = (ma & 0xffff0000) | (*pdest & 0xffff);
-        if (ma & 0x80000000) *pdest = (ma & 0xFFFF0000) | (*pdest & 0xFFFF);
-        if (ma & 0x00008000) *pdest = (ma & 0xFFFF) | (*pdest & 0xFFFF0000);
+        if (ma & 0x80000000) *pdest = (ma & 0xffff0000) | (*pdest & 0xffff);
+        if (ma & 0x00008000) *pdest = (ma & 0xffff) | (*pdest & 0xffff0000);
 
         return;
     }
@@ -805,6 +881,7 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColG32Semi(uint32_t *pdest, uin
 
 ////////////////////////////////////////////////////////////////////////
 
+template <bool useCachedDither>
 void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeXDither(uint16_t *pdest, uint16_t color, int32_t m1,
                                                                  int32_t m2, int32_t m3) {
     int32_t r, g, b;
@@ -848,11 +925,15 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeXDither(uint16_t *pdest
         g = m3;
     }
 
-    if (r & 0x7FFFFF00) r = 0xff;
-    if (b & 0x7FFFFF00) b = 0xff;
-    if (g & 0x7FFFFF00) g = 0xff;
+    if (r & 0x7fffff00) r = 0xff;
+    if (b & 0x7fffff00) b = 0xff;
+    if (g & 0x7fffff00) g = 0xff;
 
-    applyDither(pdest, r, b, g, m_setMask16 | (color & 0x8000));
+    if constexpr (useCachedDither) {
+        applyDitherCached(pdest, m_vram16, r, b, g, m_setMask16 | (color & 0x8000));
+    } else {
+        applyDither(pdest, m_vram16, r, b, g, m_setMask16 | (color & 0x8000));
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -872,7 +953,7 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeX(uint16_t *pdest, uint
         if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
             uint16_t d;
             d = ((*pdest) & 0x7bde) >> 1;
-            color = ((color)&0x7bde) >> 1;
+            color = (color & 0x7bde) >> 1;
             r = (XCOL1(d)) + ((((XCOL1(color))) * m1) >> 7);
             b = (XCOL2(d)) + ((((XCOL2(color))) * m2) >> 7);
             g = (XCOL3(d)) + ((((XCOL3(color))) * m3) >> 7);
@@ -898,9 +979,9 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeX(uint16_t *pdest, uint
         g = ((XCOL3(color)) * m3) >> 7;
     }
 
-    if (r & 0x7FFFFFE0) r = 0x1f;
-    if (b & 0x7FFFFC00) b = 0x3e0;
-    if (g & 0x7FFF8000) g = 0x7c00;
+    if (r & 0x7fffffe0) r = 0x1f;
+    if (b & 0x7ffffc00) b = 0x3e0;
+    if (g & 0x7fff8000) g = 0x7c00;
 
     *pdest = (XPSXCOL(r, g, b)) | l;
 }
@@ -917,9 +998,9 @@ inline void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeXSolid(uint16_t 
     b = ((XCOL2(color)) * m2) >> 7;
     g = ((XCOL3(color)) * m3) >> 7;
 
-    if (r & 0x7FFFFFE0) r = 0x1f;
-    if (b & 0x7FFFFC00) b = 0x3e0;
-    if (g & 0x7FFF8000) g = 0x7c00;
+    if (r & 0x7fffffe0) r = 0x1f;
+    if (b & 0x7ffffc00) b = 0x3e0;
+    if (g & 0x7fff8000) g = 0x7c00;
 
     *pdest = (XPSXCOL(r, g, b)) | m_setMask16 | (color & 0x8000);
 }
@@ -932,16 +1013,16 @@ inline void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeX32Solid(uint32_
 
     if (color == 0) return;
 
-    r = (((X32COL1(color)) * m1) & 0xFF80FF80) >> 7;
-    b = (((X32COL2(color)) * m2) & 0xFF80FF80) >> 7;
-    g = (((X32COL3(color)) * m3) & 0xFF80FF80) >> 7;
+    r = (((X32COL1(color)) * m1) & 0xff80ff80) >> 7;
+    b = (((X32COL2(color)) * m2) & 0xff80ff80) >> 7;
+    g = (((X32COL3(color)) * m3) & 0xff80ff80) >> 7;
 
-    if (r & 0x7FE00000) r = 0x1f0000 | (r & 0xFFFF);
-    if (r & 0x7FE0) r = 0x1f | (r & 0xFFFF0000);
-    if (b & 0x7FE00000) b = 0x1f0000 | (b & 0xFFFF);
-    if (b & 0x7FE0) b = 0x1f | (b & 0xFFFF0000);
-    if (g & 0x7FE00000) g = 0x1f0000 | (g & 0xFFFF);
-    if (g & 0x7FE0) g = 0x1f | (g & 0xFFFF0000);
+    if (r & 0x7fe00000) r = 0x1f0000 | (r & 0xffff);
+    if (r & 0x7fe0) r = 0x1f | (r & 0xffff0000);
+    if (b & 0x7fe00000) b = 0x1f0000 | (b & 0xffff);
+    if (b & 0x7fe0) b = 0x1f | (b & 0xffff0000);
+    if (g & 0x7fe00000) g = 0x1f0000 | (g & 0xffff);
+    if (g & 0x7fe0) g = 0x1f | (g & 0xffff0000);
 
     if ((color & 0xffff) == 0) {
         *pdest = (*pdest & 0xffff) | (((X32PSXCOL(r, g, b)) | m_setMask32 | (color & 0x80008000)) & 0xffff0000);
@@ -976,10 +1057,10 @@ void PCSX::SoftGPU::SoftRenderer::fillSoftwareAreaTrans(int16_t x0, int16_t y0, 
     y0 = std::max(y0, static_cast<int16_t>(m_drawY));
 
     if (y0 >= GPU_HEIGHT) return;
-    if (x0 > 1023) return;
+    if (x0 >= GPU_WIDTH) return;
 
     if (y1 > GPU_HEIGHT) y1 = GPU_HEIGHT;
-    if (x1 > 1024) x1 = 1024;
+    if (x1 > GPU_WIDTH) x1 = GPU_WIDTH;
 
     dx = x1 - x0;
     dy = y1 - y0;
@@ -995,8 +1076,8 @@ void PCSX::SoftGPU::SoftRenderer::fillSoftwareAreaTrans(int16_t x0, int16_t y0, 
         // slow fill
         uint16_t *DSTPtr;
         uint16_t LineOffset;
-        DSTPtr = m_vram16 + (1024 * y0) + x0;
-        LineOffset = 1024 - dx;
+        DSTPtr = m_vram16 + (GPU_WIDTH * y0) + x0;
+        LineOffset = GPU_WIDTH - dx;
         for (i = 0; i < dy; i++) {
             for (j = 0; j < dx; j++) getShadeTransCol(DSTPtr++, col);
             DSTPtr += LineOffset;
@@ -1007,7 +1088,7 @@ void PCSX::SoftGPU::SoftRenderer::fillSoftwareAreaTrans(int16_t x0, int16_t y0, 
         uint16_t LineOffset;
         uint32_t lcol = m_setMask32 | (((uint32_t)(col)) << 16) | col;
         dx >>= 1;
-        DSTPtr = (uint32_t *)(m_vram16 + (1024 * y0) + x0);
+        DSTPtr = (uint32_t *)(m_vram16 + (GPU_WIDTH * y0) + x0);
         LineOffset = 512 - dx;
 
         if (!m_checkMask && !m_drawSemiTrans) {
@@ -1033,10 +1114,10 @@ void PCSX::SoftGPU::SoftRenderer::fillSoftwareArea(int16_t x0, int16_t y0, int16
     if (x0 > x1) return;
 
     if (y0 >= GPU_HEIGHT) return;
-    if (x0 > 1023) return;
+    if (x0 >= GPU_WIDTH) return;
 
     if (y1 > GPU_HEIGHT) y1 = GPU_HEIGHT;
-    if (x1 > 1024) x1 = 1024;
+    if (x1 > GPU_WIDTH) x1 = GPU_WIDTH;
 
     dx = x1 - x0;
     dy = y1 - y0;
@@ -1044,8 +1125,8 @@ void PCSX::SoftGPU::SoftRenderer::fillSoftwareArea(int16_t x0, int16_t y0, int16
         uint16_t *DSTPtr;
         uint16_t LineOffset;
 
-        DSTPtr = m_vram16 + (1024 * y0) + x0;
-        LineOffset = 1024 - dx;
+        DSTPtr = m_vram16 + (GPU_WIDTH * y0) + x0;
+        LineOffset = GPU_WIDTH - dx;
 
         for (i = 0; i < dy; i++) {
             for (j = 0; j < dx; j++) *DSTPtr++ = col;
@@ -1057,7 +1138,7 @@ void PCSX::SoftGPU::SoftRenderer::fillSoftwareArea(int16_t x0, int16_t y0, int16
         uint32_t lcol = (((int32_t)col) << 16) | col;
 
         dx >>= 1;
-        DSTPtr = (uint32_t *)(m_vram16 + (1024 * y0) + x0);
+        DSTPtr = (uint32_t *)(m_vram16 + (GPU_WIDTH * y0) + x0);
         LineOffset = 512 - dx;
 
         for (i = 0; i < dy; i++) {
@@ -1278,19 +1359,19 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShade3(int16_t x1, int16_t y1, in
     v1 = m_vtx;
     v1->x = x1 << 16;
     v1->y = y1;
-    v1->R = (rgb1)&0x00ff0000;
+    v1->R = rgb1 & 0x00ff0000;
     v1->G = (rgb1 << 8) & 0x00ff0000;
     v1->B = (rgb1 << 16) & 0x00ff0000;
     v2 = m_vtx + 1;
     v2->x = x2 << 16;
     v2->y = y2;
-    v2->R = (rgb2)&0x00ff0000;
+    v2->R = rgb2 & 0x00ff0000;
     v2->G = (rgb2 << 8) & 0x00ff0000;
     v2->B = (rgb2 << 16) & 0x00ff0000;
     v3 = m_vtx + 2;
     v3->x = x3 << 16;
     v3->y = y3;
-    v3->R = (rgb3)&0x00ff0000;
+    v3->R = rgb3 & 0x00ff0000;
     v3->G = (rgb3 << 8) & 0x00ff0000;
     v3->B = (rgb3 << 16) & 0x00ff0000;
 
@@ -1584,7 +1665,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
     v1->y = y1;
     v1->u = tx1 << 16;
     v1->v = ty1 << 16;
-    v1->R = (rgb1)&0x00ff0000;
+    v1->R = rgb1 & 0x00ff0000;
     v1->G = (rgb1 << 8) & 0x00ff0000;
     v1->B = (rgb1 << 16) & 0x00ff0000;
 
@@ -1593,7 +1674,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
     v2->y = y2;
     v2->u = tx2 << 16;
     v2->v = ty2 << 16;
-    v2->R = (rgb2)&0x00ff0000;
+    v2->R = rgb2 & 0x00ff0000;
     v2->G = (rgb2 << 8) & 0x00ff0000;
     v2->B = (rgb2 << 16) & 0x00ff0000;
 
@@ -1602,7 +1683,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured3(int16_t x1, int16_
     v3->y = y3;
     v3->u = tx3 << 16;
     v3->v = ty3 << 16;
-    v3->R = (rgb3)&0x00ff0000;
+    v3->R = rgb3 & 0x00ff0000;
     v3->G = (rgb3 << 8) & 0x00ff0000;
     v3->B = (rgb3 << 16) & 0x00ff0000;
 
@@ -2168,7 +2249,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
     v1->y = y1;
     v1->u = tx1 << 16;
     v1->v = ty1 << 16;
-    v1->R = (rgb1)&0x00ff0000;
+    v1->R = rgb1 & 0x00ff0000;
     v1->G = (rgb1 << 8) & 0x00ff0000;
     v1->B = (rgb1 << 16) & 0x00ff0000;
 
@@ -2177,7 +2258,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
     v2->y = y2;
     v2->u = tx2 << 16;
     v2->v = ty2 << 16;
-    v2->R = (rgb2)&0x00ff0000;
+    v2->R = rgb2 & 0x00ff0000;
     v2->G = (rgb2 << 8) & 0x00ff0000;
     v2->B = (rgb2 << 16) & 0x00ff0000;
 
@@ -2186,7 +2267,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
     v3->y = y3;
     v3->u = tx3 << 16;
     v3->v = ty3 << 16;
-    v3->R = (rgb3)&0x00ff0000;
+    v3->R = rgb3 & 0x00ff0000;
     v3->G = (rgb3 << 8) & 0x00ff0000;
     v3->B = (rgb3 << 16) & 0x00ff0000;
 
@@ -2195,7 +2276,7 @@ bool PCSX::SoftGPU::SoftRenderer::setupSectionsShadeTextured4(int16_t x1, int16_
     v4->y = y4;
     v4->u = tx4 << 16;
     v4->v = ty4 << 16;
-    v4->R = (rgb4)&0x00ff0000;
+    v4->R = rgb4 & 0x00ff0000;
     v4->G = (rgb4 << 8) & 0x00ff0000;
     v4->B = (rgb4 << 16) & 0x00ff0000;
 
@@ -3627,6 +3708,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
 // POLY 3/4 G-SHADED
 ////////////////////////////////////////////////////////////////////////
 
+template <bool useCachedDither>
 void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
                                               int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     int i, j, xmin, xmax, ymin, ymax;
@@ -3730,7 +3812,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
                 }
 
                 for (j = xmin; j <= xmax; j++) {
-                    getShadeTransColDither(&vram16[(i << 10) + j], (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
+                    getShadeTransColDither<useCachedDither>(&vram16[(i << 10) + j], (cB1 >> 16), (cG1 >> 16),
+                                                            (cR1 >> 16));
 
                     cR1 += difR;
                     cG1 += difG;
@@ -3775,22 +3858,32 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftRenderer::drawPolyShade3(int32_t rgb1, int32_t rgb2, int32_t rgb3) {
-    drawPoly3Gi(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+    if (s_ditherLUT) {
+        drawPoly3Gi<true>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+    } else {
+        drawPoly3Gi<false>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+    }
 }
 
 // draw two g-shaded tris for right psx shading emulation
 
 void PCSX::SoftGPU::SoftRenderer::drawPolyShade4(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4) {
-    drawPoly3Gi(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, rgb2, rgb4, rgb3);
-    drawPoly3Gi(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+    if (s_ditherLUT) {
+        drawPoly3Gi<true>(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, rgb2, rgb4, rgb3);
+        drawPoly3Gi<true>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+    } else {
+        drawPoly3Gi<false>(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, rgb2, rgb4, rgb3);
+        drawPoly3Gi<false>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                                                 int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
-                                                 int16_t ty3, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
-                                                 int32_t col3) {
+template <bool useCachedDither>
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                  int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
+                                                  int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
+                                                  int32_t col2, int32_t col3) {
     int i, j, xmin, xmax, ymin, ymax;
     int32_t cR1, cG1, cB1;
     int32_t difR, difB, difG, difR2, difB2, difG2;
@@ -3927,8 +4020,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
                 tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + (XAdjust >> 1))];
                 tC1 = (tC1 >> ((XAdjust & 1) << 2)) & 0xf;
                 if (ditherMode) {
-                    getTextureTransColShadeXDither(&vram16[(i << 10) + j], vram16[clutP + tC1], (cB1 >> 16),
-                                                   (cG1 >> 16), (cR1 >> 16));
+                    getTextureTransColShadeXDither<useCachedDither>(&vram16[(i << 10) + j], vram16[clutP + tC1],
+                                                                    (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
                 } else {
                     getTextureTransColShadeX(&vram16[(i << 10) + j], vram16[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
                                              (cR1 >> 16));
@@ -3946,21 +4039,38 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
 
 ////////////////////////////////////////////////////////////////////////
 
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                                 int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                                 int16_t ty3, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
+                                                 int32_t col3) {
+    if (s_ditherLUT) {
+        drawPoly3TGEx4i<true>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
+    } else {
+        drawPoly3TGEx4i<false>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
+    }
+}
+
 void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
                                                  int16_t x4, int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2,
                                                  int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4, int16_t ty4,
                                                  int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3,
                                                  int32_t col4) {
-    drawPoly3TGEx4(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
-    drawPoly3TGEx4(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
+    if (s_ditherLUT) {
+        drawPoly3TGEx4i<true>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
+        drawPoly3TGEx4i<true>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
+    } else {
+        drawPoly3TGEx4i<false>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
+        drawPoly3TGEx4i<false>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                                                 int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
-                                                 int16_t ty3, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
-                                                 int32_t col3) {
+template <bool useCachedDither>
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
+                                                  int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
+                                                  int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
+                                                  int32_t col2, int32_t col3) {
     int i, j, xmin, xmax, ymin, ymax;
     int32_t cR1, cG1, cB1;
     int32_t difR, difB, difG, difR2, difB2, difG2;
@@ -4089,8 +4199,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
             for (j = xmin; j <= xmax; j++) {
                 tC1 = vram[static_cast<int32_t>((((posY >> 16) & maskY) << 11) + YAdjust + ((posX >> 16) & maskX))];
                 if (ditherMode) {
-                    getTextureTransColShadeXDither(&vram16[(i << 10) + j], vram16[clutP + tC1], (cB1 >> 16),
-                                                   (cG1 >> 16), (cR1 >> 16));
+                    getTextureTransColShadeXDither<useCachedDither>(&vram16[(i << 10) + j], vram16[clutP + tC1],
+                                                                    (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
                 } else {
                     getTextureTransColShadeX(&vram16[(i << 10) + j], vram16[clutP + tC1], (cB1 >> 16), (cG1 >> 16),
                                              (cR1 >> 16));
@@ -4108,20 +4218,37 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t
 
 ////////////////////////////////////////////////////////////////////////
 
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                                 int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                                 int16_t ty3, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
+                                                 int32_t col3) {
+    if (s_ditherLUT) {
+        drawPoly3TGEx8i<true>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
+    } else {
+        drawPoly3TGEx8i<false>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
+    }
+}
+
 void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
                                                  int16_t x4, int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2,
                                                  int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4, int16_t ty4,
                                                  int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3,
                                                  int32_t col4) {
-    drawPoly3TGEx8(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
-    drawPoly3TGEx8(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
+    if (s_ditherLUT) {
+        drawPoly3TGEx8i<true>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
+        drawPoly3TGEx8i<true>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
+    } else {
+        drawPoly3TGEx8i<false>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
+        drawPoly3TGEx8i<false>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                                               int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
-                                               int16_t ty3, int32_t col1, int32_t col2, int32_t col3) {
+template <bool useCachedDither>
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGDi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                                int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                                int16_t ty3, int32_t col1, int32_t col2, int32_t col3) {
     int i, j, xmin, xmax, ymin, ymax;
     int32_t cR1, cG1, cB1;
     int32_t difR, difB, difG, difR2, difB2, difG2;
@@ -4247,7 +4374,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
 
             for (j = xmin; j <= xmax; j++) {
                 if (ditherMode) {
-                    getTextureTransColShadeXDither(
+                    getTextureTransColShadeXDither<useCachedDither>(
                         &vram16[(i << 10) + j],
                         vram16[((((posY >> 16) & maskY) + globalTextAddrY + textureWindow.y0) << 10) +
                                ((posX >> 16) & maskX) + globalTextAddrX + textureWindow.x0],
@@ -4272,12 +4399,27 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x
 
 ////////////////////////////////////////////////////////////////////////
 
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                               int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                               int16_t ty3, int32_t col1, int32_t col2, int32_t col3) {
+    if (s_ditherLUT) {
+        drawPoly3TGDi<true>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3);
+    } else {
+        drawPoly3TGDi<false>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3);
+    }
+}
+
 void PCSX::SoftGPU::SoftRenderer::drawPoly4TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
                                                int16_t x4, int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2,
                                                int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4, int16_t ty4,
                                                int32_t col1, int32_t col2, int32_t col3, int32_t col4) {
-    drawPoly3TGD(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, col2, col4, col3);
-    drawPoly3TGD(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, col1, col2, col3);
+    if (s_ditherLUT) {
+        drawPoly3TGDi<true>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, col2, col4, col3);
+        drawPoly3TGDi<true>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, col1, col2, col3);
+    } else {
+        drawPoly3TGDi<false>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, col2, col4, col3);
+        drawPoly3TGDi<false>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, col1, col2, col3);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

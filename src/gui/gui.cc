@@ -135,9 +135,8 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
     }
 }
 
-void PCSX::GUI::setRawMouseMotion(bool value) {
-    isRawMouseMotionEnabled() = value;
-    if (value) {
+void PCSX::GUI::setRawMouseMotion() {
+    if (isRawMouseMotionEnabled()) {
         if (glfwRawMouseMotionSupported()) {
             glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
@@ -361,7 +360,7 @@ void PCSX::GUI::init() {
     });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
         glfwSwapInterval(0);
-        setRawMouseMotion(isRawMouseMotionEnabled());
+        setRawMouseMotion();
     });
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -768,8 +767,9 @@ void PCSX::GUI::startFrame() {
     }
     if (io.KeyAlt) {
         if (ImGui::IsKeyPressed(ImGuiKey_Enter)) setFullscreen(!m_fullscreen);
-        if (io.KeyCtrl) {
-            setRawMouseMotion(!isRawMouseMotionEnabled());
+        if (io.KeyCtrl && allowMouseCaptureToggle()) {
+            isRawMouseMotionEnabled() = !isRawMouseMotionEnabled();
+            setRawMouseMotion();
         }
     }
 

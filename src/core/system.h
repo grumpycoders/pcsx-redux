@@ -106,6 +106,9 @@ struct VRAMFocus {
 struct Keyboard {
     int key, scancode, action, mods;
 };
+namespace Memory {
+struct SetLuts {};
+}  // namespace Memory
 }  // namespace Events
 
 class System {

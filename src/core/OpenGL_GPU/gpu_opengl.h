@@ -38,6 +38,7 @@ class OpenGL_GPU final : public GPU {
     void debug() override;
 
     void setDither(int setting) override { m_useDither = setting; }
+    void setCachedDithering(bool cached) override {}
     void clearVRAM() override;
     void resetBackend() override;
     GLuint getVRAMTexture() override;
