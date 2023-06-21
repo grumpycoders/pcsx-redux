@@ -196,6 +196,8 @@ void PCSX::LuaBindings::open_events(Lua L) {
                 createListener<Events::GUI::JumpToMemory>(L);
             } else if (name == "Keyboard") {
                 createListener<Events::Keyboard>(L);
+            } else if (name == "Memory::SetLuts") {
+                createListener<Events::Memory::SetLuts>(L);
             } else {
                 return L.error("createListener: unknown event name");
             }

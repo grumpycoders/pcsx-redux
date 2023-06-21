@@ -657,23 +657,7 @@ void PCSX::Memory::setLuts() {
         memset(m_writeLUT + 0x8000, 0, 0x80 * sizeof(void *));
         memset(m_writeLUT + 0xa000, 0, 0x80 * sizeof(void *));
     }
-    sendSetLutsToLua();
-}
-
-void PCSX::Memory::sendSetLutsToLua() {
-    auto L = *g_emulator->m_lua;
-    L.getfield("SetLuts", LUA_GLOBALSINDEX);
-    if (!L.isnil()) {
-        try {
-            L.pcall();
-        } catch (...) {
-            L.push("SetLuts");
-            L.push();
-            L.settable(LUA_GLOBALSINDEX);
-        }
-    } else {
-        L.pop();
-    }
+    g_system->m_eventBus->signal(PCSX::Events::Memory::SetLuts{});
 }
 
 std::string_view PCSX::Memory::getBiosVersionString() {
