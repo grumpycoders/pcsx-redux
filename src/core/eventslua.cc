@@ -19,6 +19,7 @@
 
 #include "core/eventslua.h"
 
+#include "core/logger.h"
 #include "core/system.h"
 #include "support/eventbus.h"
 
@@ -110,7 +111,13 @@ void createListener(PCSX::Lua L) {
         L.getfield(ref, true);
         L.getfield("callback");
         pushEvent(L, e);
-        L.pcall(1);
+        try {
+            L.pcall(1);
+        } catch (std::exception& e) {
+            PCSX::g_system->log(PCSX::LogClass::LUA, "Error in event listener: %s", e.what());
+        } catch (...) {
+            PCSX::g_system->log(PCSX::LogClass::LUA, "Unknown error in event listener");
+        }
     });
 
     int a = L.gettop();
