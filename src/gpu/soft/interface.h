@@ -44,6 +44,13 @@ class impl final : public GPU, public SoftRenderer {
     }
     GLuint getVRAMTexture() override { return m_vramTexture16; }
     void setLinearFiltering() override;
+    void setCachedDithering(bool value) override {
+        if (value) {
+            enableCachedDithering();
+        } else {
+            disableCachedDithering();
+        }
+    }
 
     void restoreStatus(uint32_t status) override;
 

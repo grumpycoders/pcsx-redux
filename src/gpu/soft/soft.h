@@ -28,6 +28,7 @@ namespace PCSX {
 namespace SoftGPU {
 
 struct SoftRenderer {
+    ~SoftRenderer();
     inline void resetRenderer() {
         m_globalTextAddrX = 0;
         m_globalTextAddrY = 0;
@@ -91,6 +92,7 @@ struct SoftRenderer {
     int m_ditherMode = 0;
     int m_drawX, m_drawY, m_drawW, m_drawH;
 
+    static constexpr int GPU_WIDTH = 1024;
     static constexpr int GPU_HEIGHT = 512;
     static constexpr int GPU_HEIGHT_MASK = 511;
 
@@ -118,8 +120,6 @@ struct SoftRenderer {
     void applyOffset2();
     void applyOffset3();
     void applyOffset4();
-
-    void applyDither(uint16_t *pdest, uint32_t r, uint32_t g, uint32_t b, uint16_t sM);
 
     void fillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
     void fillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
@@ -151,6 +151,7 @@ struct SoftRenderer {
                                      int16_t ty3, int16_t tx4, int16_t ty4, int32_t rgb1, int32_t rgb2, int32_t rgb3,
                                      int32_t rgb4);
 
+    template <bool useCachedDither>
     void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
     void getShadeTransCol(uint16_t *pdest, uint16_t color);
     void getShadeTransCol32(uint32_t *pdest, uint32_t color);
@@ -160,6 +161,7 @@ struct SoftRenderer {
     void getTextureTransColShade32(uint32_t *pdest, uint32_t color);
     void getTextureTransColShade32Solid(uint32_t *pdest, uint32_t color);
     void getTextureTransColG32Semi(uint32_t *pdest, uint32_t color);
+    template <bool useCachedDither>
     void getTextureTransColShadeXDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
     void getTextureTransColShadeX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
     void getTextureTransColShadeXSolid(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
@@ -189,20 +191,32 @@ struct SoftRenderer {
     void drawPoly4TD_S(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                        int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
                        int16_t ty4);
+    template <bool useCachedDither>
     void drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1, int32_t rgb2,
                      int32_t rgb3);
+    template <bool useCachedDither>
+    void drawPoly3TGEx4i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
+                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
+                         int32_t col1, int32_t col2, int32_t col3);
     void drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
                         int32_t col1, int32_t col2, int32_t col3);
     void drawPoly4TGEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                         int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
                         int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
+    template <bool useCachedDither>
+    void drawPoly3TGEx8i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
+                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
+                         int32_t col1, int32_t col2, int32_t col3);
     void drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
                         int32_t col1, int32_t col2, int32_t col3);
     void drawPoly4TGEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                         int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
                         int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
+    template <bool useCachedDither>
+    void drawPoly3TGDi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
+                       int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int32_t col1, int32_t col2, int32_t col3);
     void drawPoly3TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                       int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int32_t col1, int32_t col2, int32_t col3);
     void drawPoly4TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
@@ -220,6 +234,9 @@ struct SoftRenderer {
     void line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
     void vertLineFlat(int x, int y0, int y1, uint16_t col);
     void horzLineFlat(int y, int x0, int x1, uint16_t col);
+
+    void enableCachedDithering();
+    void disableCachedDithering();
 
   private:
     int rightSectionFlat3();
