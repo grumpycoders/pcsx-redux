@@ -83,6 +83,7 @@ steps:
       !**\crashpad_handler.exe
       !**\exe2elf.exe
       !**\exe2iso.exe
+      !**\pcsxrunner.exe
       !**\pcsx-wrapper.exe
       !**\pcsx-redux.exe
       !**\psyq-obj-parser.exe

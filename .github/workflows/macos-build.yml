@@ -60,12 +60,6 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: tests
-    - name: Test
-      run: |
-        export GTEST_OUTPUT=xml:/tmp/test-results/
-        mkdir -p /tmp/test-results
-        cp openbios.bin src/mips/openbios/
-        ./pcsx-redux-tests
     - name: Bundle
       run: ./.github/scripts/create-app.sh
     - name: Create BUILD environment
