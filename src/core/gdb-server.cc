@@ -21,6 +21,7 @@
 
 #include <assert.h>
 
+#include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -712,25 +713,55 @@ void PCSX::GdbClient::processCommand() {
 }
 
 void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
-    if (StringsHelpers::startsWith(cmd, "reset")) {
-        g_system->softReset();
-        writeEscaped("Emulation reset\n");
-        auto words = StringsHelpers::split(cmd, " ");
-        if (words.size() == 2) {
-            if (words[1] == "halt") {
-                writeEscaped("Emulation paused\n");
-                g_system->pause();
-            } else if (words[1] == "shellhalt") {
-                writeEscaped("Emulation running until shell\n");
-                m_waitingForShell = true;
-                g_system->resume();
-                // let's not reply to gdb just yet, until we've reached the shell
-                // and are ready to load a binary.
-                return;
-            } else if (words[1] == "hard") {
-                writeEscaped("Emulation hard-reset\n");
-                g_system->hardReset();
+    auto words = StringsHelpers::split(cmd, " ");
+    if (words[0] == "reset") {
+        bool hard = false;
+        bool halt = false;
+        bool shellhalt = false;
+
+        for (size_t i = 1; i < words.size(); i++) {
+            if (words[i] == "hard") {
+                hard = true;
+            } else if (words[i] == "halt") {
+                halt = true;
+            } else if (words[i] == "shellhalt") {
+                shellhalt = true;
             }
+        }
+
+        if (halt && shellhalt) {
+            writeEscaped("Cannot use both halt and shellhalt\n");
+            return;
+        }
+
+        if (hard) {
+            writeEscaped("Emulation hard-reset\n");
+            g_system->hardReset();
+        } else {
+            writeEscaped("Emulation reset\n");
+            g_system->softReset();
+        }
+
+        if (halt) {
+            writeEscaped("Emulation paused\n");
+            g_system->pause();
+        } else if (shellhalt) {
+            writeEscaped("Emulation running until shell\n");
+            m_waitingForShell = true;
+            g_system->resume();
+            // let's not reply to gdb just yet, until we've reached the shell
+            // and are ready to load a binary.
+            return;
+        }
+    } else if (words[0] == "mountcd") {
+        if (words.size() != 2) {
+            writeEscaped("Usage: mountcd <path>\n");
+        } else {
+            writeEscaped("Mounting CD image\n");
+            auto pathCmd = cmd.substr(8);
+            auto pathView = StringsHelpers::trim(pathCmd);
+            g_emulator->m_cdrom->setIso(new CDRIso(pathView));
+            g_emulator->m_cdrom->check();
         }
     }
     write("OK");
