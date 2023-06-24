@@ -417,8 +417,15 @@ void PCSX::GUI::init() {
         glDebugMessageCallback = nullptr;
     }
 
-    m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
-    if (!m_nvgContext) {
+    auto vg = m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
+    if (vg) {
+        g_system->findResource(
+            [vg](auto path) -> bool {
+                int res = nvgCreateFont(vg, "noto-sans-regular", path.string().c_str());
+                return res >= 0;
+            },
+            MAKEU8("NotoSans-Regular.ttf"), "fonts", std::filesystem::path("third_party") / "noto");
+    } else {
         g_system->log(LogClass::UI, "Warning: Unable to initialize NanoVG. Check OpenGL drivers.\n");
     }
 
