@@ -359,6 +359,26 @@ nvg = {
             outerColor.a = 1.0
         end
         C.nvgDrawBezierArrow(self.ctx, width, startX, startY, c1X, c1Y, c2X, c2Y, endX, endY, innerColor, outerColor)
+
+    queueNvgRender = function(self, func)
+        local viewportId = C.imguiGetViewportId()
+        local viewportQueue = self._queue[viewportId]
+        if viewportQueue == nil then
+            viewportQueue = {}
+            self._queue[viewportId] = viewportQueue
+        end
+        viewportQueue[#viewportQueue + 1] = func
+    end,
+    _queue = {},
+    _processQueueForViewportId = function(self, viewportId)
+        local viewportQueue = self._queue[viewportId]
+        if viewportQueue == nil then
+            return
+        end
+        for i = 1, #viewportQueue do
+            viewportQueue[i]()
+        end
+        self._queue[viewportId] = nil
     end,
 }
 

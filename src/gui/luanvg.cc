@@ -20,6 +20,7 @@
 #include "gui/luanvg.h"
 
 #include "gui/gui.h"
+#include "imgui/imgui.h"
 #include "lua/luawrapper.h"
 #include "nanovg/src/nanovg.h"
 
@@ -29,6 +30,8 @@ void guiDrawBezierArrow(PCSX::GUI* gui, float width, float startX, float startY,
                         float c2Y, float endX, float endY, ImVec4 innerColor, ImVec4 outerColor) {
     gui->drawBezierArrow(width, {startX, startY}, {c1X, c1Y}, {c2X, c2Y}, {endX, endY}, innerColor, outerColor);
 }
+
+unsigned imguiGetViewportId() { return ImGui::GetWindowViewport()->ID; }
 
 template <typename T, size_t S>
 void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
@@ -141,6 +144,7 @@ void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, nvgTextBreakLines);
 
     REGISTER(L, guiDrawBezierArrow);
+    REGISTER(L, imguiGetViewportId);
 
     L.settable();
     L.pop();

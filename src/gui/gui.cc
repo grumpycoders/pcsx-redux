@@ -1627,14 +1627,100 @@ the update and manually apply it.)")));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    int winWidth, winHeight;
+    int fbWidth, fbHeight;
+    float pxRatio;
+    auto vg = m_nvgContext;
+    if (vg) {
+        glfwGetWindowSize(m_window, &winWidth, &winHeight);
+        glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
+        pxRatio = (float)fbWidth / (float)winWidth;
+        nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+        while (L.gettop()) L.pop();
+        L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+        L.push("_gui");
+        L.push(this);
+        L.settable();
+        L.push("_ctx");
+        L.push(vg);
+        L.settable();
+        L.getfield("_processQueueForViewportId", -1);
+        L.copy(-2);
+        L.push(lua_Number(platform_io.Viewports[0]->ID));
+        try {
+            L.pcall(2);
+            bool gotGLerror = false;
+            for (const auto& error : m_glErrors) {
+                m_luaConsole.addError(error);
+                if (m_args.get<bool>("lua_stdout", false)) {
+                    fprintf(stderr, "%s\n", error.c_str());
+                }
+                gotGLerror = true;
+            }
+            m_glErrors.clear();
+            if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+        } catch (...) {
+        }
+        nvgEndFrame(vg);
+        while (L.gettop()) L.pop();
+    }
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
+        // Skip the main viewport (index 0), which is always fully handled by the application!
+        for (int i = 1; i < platform_io.Viewports.Size; i++) {
+            ImGuiViewport* viewport = platform_io.Viewports[i];
+            if (viewport->Flags & ImGuiViewportFlags_IsMinimized) continue;
+            if (platform_io.Platform_RenderWindow) platform_io.Platform_RenderWindow(viewport, nullptr);
+            if (platform_io.Renderer_RenderWindow) platform_io.Renderer_RenderWindow(viewport, nullptr);
+            if (vg) {
+                auto window = *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+                glfwGetWindowSize(window, &winWidth, &winHeight);
+                glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+                pxRatio = (float)fbWidth / (float)winWidth;
+                nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+                L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+                L.getfield("_processQueueForViewportId", -1);
+                L.copy(-2);
+                L.push(lua_Number(viewport->ID));
+                try {
+                    L.pcall(2);
+                    bool gotGLerror = false;
+                    for (const auto& error : m_glErrors) {
+                        m_luaConsole.addError(error);
+                        if (m_args.get<bool>("lua_stdout", false)) {
+                            fprintf(stderr, "%s\n", error.c_str());
+                        }
+                        gotGLerror = true;
+                    }
+                    m_glErrors.clear();
+                    if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+                } catch (...) {
+                }
+                nvgEndFrame(vg);
+                while (L.gettop()) L.pop();
+            }
+        }
+        for (int i = 1; i < platform_io.Viewports.Size; i++) {
+            ImGuiViewport* viewport = platform_io.Viewports[i];
+            if (viewport->Flags & ImGuiViewportFlags_IsMinimized) continue;
+            if (platform_io.Platform_SwapBuffers) platform_io.Platform_SwapBuffers(viewport, nullptr);
+            if (platform_io.Renderer_SwapBuffers) platform_io.Renderer_SwapBuffers(viewport, nullptr);
+        }
         glfwMakeContextCurrent(m_window);
     }
 
     glfwSwapBuffers(m_window);
+
+    L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+    L.push("_gui");
+    L.push();
+    L.settable();
+    L.push("_ctx");
+    L.push();
+    L.settable();
+    while (L.gettop()) L.pop();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {

@@ -154,6 +154,7 @@ int nvgTextBreakLines(NVGcontext* ctx, const char* string, const char* end, floa
 
 void guiDrawBezierArrow(void* gui, float width, float startX, float startY, float c1X, float c1Y, float c2X, float c2Y,
                         float endX, float endY, NVGcolor innerColor, NVGcolor outerColor);
+unsigned imguiGetViewportId();
 ]]
 
 -- )EOF"
