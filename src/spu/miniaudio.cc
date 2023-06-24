@@ -38,7 +38,8 @@ PCSX::SPU::MiniAudio::MiniAudio(PCSX::SPU::SettingsType& settings)
     }
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
         if (ma_device_start(&m_device) != MA_SUCCESS) {
-            throw std::runtime_error("Unable to start audio device");
+            uninit();
+            init(true);
         }
         if (!m_settings.get<NullSync>()) return;
         if (ma_device_start(&m_deviceNull) != MA_SUCCESS) {
@@ -78,7 +79,7 @@ void PCSX::SPU::MiniAudio::init(bool safe) {
     };
 
     if (ma_device_init(&m_contextNull, &m_configNull, &m_deviceNull) != MA_SUCCESS) {
-        throw std::runtime_error("Unable to initialize audio device");
+        throw std::runtime_error("Unable to initialize NULL audio device");
     }
 
     // Then probe for actual device, and initialize it
@@ -87,7 +88,6 @@ void PCSX::SPU::MiniAudio::init(bool safe) {
     if (safe) {
         backends[0] = ma_backend_null;
         count = 1;
-        m_settings.get<Backend>().value = ma_get_backend_name(ma_backend_null);
     } else {
         bool found = false;
         for (unsigned i = 0; i <= ma_backend_null; i++) {
@@ -151,13 +151,30 @@ void PCSX::SPU::MiniAudio::init(bool safe) {
     };
 
     if (ma_device_init(&m_context, &m_config, &m_device) != MA_SUCCESS) {
-        throw std::runtime_error("Unable to initialize audio device");
+        if (safe) {
+            throw std::runtime_error("Unable to initialize NULL audio device");
+        }
+        uninit();
+        init(true);
     }
 }
 
 void PCSX::SPU::MiniAudio::uninit() {
     ma_device_uninit(&m_device);
     ma_device_uninit(&m_deviceNull);
+}
+
+void PCSX::SPU::MiniAudio::maybeRestart() {
+    if (!g_system->running()) return;
+
+    if (ma_device_start(&m_device) != MA_SUCCESS) {
+        uninit();
+        init(true);
+    }
+    if (!m_settings.get<NullSync>()) return;
+    if (ma_device_start(&m_deviceNull) != MA_SUCCESS) {
+        throw std::runtime_error("Unable to start NULL audio device");
+    }
 }
 
 void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 frameCount) {

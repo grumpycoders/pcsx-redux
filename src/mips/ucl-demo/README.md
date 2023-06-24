@@ -7,13 +7,13 @@ The file `ucl-demo.cpp` contains the code for the demo, and should have most of 
 Creating a compressed file can be done using the `compress.lua` script, which for example can be run as follows to compress the `compress.lua` script itself:
 
 ```
-pcsx-redux -stdout -lua_stdout -testmode -no-gui-logs -noupdate -exec "dofile 'compress.lua' compress('compress.lua', 'demo.bin') PCSX.quit()"
+pcsx-redux -cli -exec "dofile 'compress.lua' compress('compress.lua', 'demo.bin') PCSX.quit()"
 ```
 
 Then, once the demo.bin file is created, running the demo can be done as follows:
 
 ```
-pcsx-redux -stdout -lua_stdout -testmode -no-gui-logs -noupdate -pcdrv -pcdrvbase . -run -exe ucl-demo.ps-exe
+pcsx-redux -stdout -noupdate -pcdrv -pcdrvbase . -run -exe ucl-demo.ps-exe
 ```
 
 The compression code which is bound to Lua simply uses the `ucl_nrv2e_99_compress` API function call from the UCL library, and can be used independently in other projects to create more custom assets.

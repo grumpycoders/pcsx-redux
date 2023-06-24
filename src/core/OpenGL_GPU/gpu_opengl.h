@@ -29,7 +29,7 @@
 namespace PCSX {
 class OpenGL_GPU final : public GPU {
     // Interface functions
-    int initBackend(GUI *) override;
+    int initBackend(UI *) override;
     int shutdown() override;
     uint32_t readStatusInternal() override;
     void setOpenGLContext() override;

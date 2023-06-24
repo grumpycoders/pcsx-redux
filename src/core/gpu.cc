@@ -403,11 +403,11 @@ PCSX::GPU::GPU() {
     m_rects[0x1f] = &s_rect1f;
 }
 
-int PCSX::GPU::init(GUI *gui) {
+int PCSX::GPU::init(UI *ui) {
     for (auto poly : m_polygons) poly->setGPU(this);
     for (auto line : m_lines) line->setGPU(this);
     for (auto rect : m_rects) rect->setGPU(this);
-    return initBackend(gui);
+    return initBackend(ui);
 }
 
 inline bool PCSX::GPU::CheckForEndlessLoop(uint32_t laddr) {

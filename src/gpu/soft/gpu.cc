@@ -38,8 +38,8 @@
 #define GPUSTATUS_DOUBLEHEIGHT 0x00080000
 #define GPUSTATUS_WIDTHBITS 0x00070000
 
-int32_t PCSX::SoftGPU::impl::initBackend(GUI *gui) {
-    m_gui = gui;
+int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
+    m_ui = ui;
     m_doVSyncUpdate = true;
     initDisplay();
 

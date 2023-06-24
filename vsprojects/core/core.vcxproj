@@ -279,6 +279,7 @@
     <ClCompile Include="..\..\src\core\spu.cc" />
     <ClCompile Include="..\..\src\core\sstate.cc" />
     <ClCompile Include="..\..\src\core\system.cc" />
+    <ClCompile Include="..\..\src\core\ui.cc" />
     <ClCompile Include="..\..\src\core\web-server.cc" />
   </ItemGroup>
   <ItemGroup>
@@ -324,6 +325,7 @@
     <ClInclude Include="..\..\src\core\spu.h" />
     <ClInclude Include="..\..\src\core\sstate.h" />
     <ClInclude Include="..\..\src\core\system.h" />
+    <ClInclude Include="..\..\src\core\ui.h" />
     <ClInclude Include="..\..\src\core\web-server.h" />
     <ClInclude Include="..\..\src\mips\common\util\encoder.hh" />
   </ItemGroup>

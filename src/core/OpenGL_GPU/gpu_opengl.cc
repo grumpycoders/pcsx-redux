@@ -76,8 +76,8 @@ void PCSX::OpenGL_GPU::clearVRAM(float r, float g, float b, float a) {
 void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 
 // Do not forget to call this with an active OpenGL context.
-int PCSX::OpenGL_GPU::initBackend(GUI *gui) {
-    m_gui = gui;
+int PCSX::OpenGL_GPU::initBackend(UI *ui) {
+    m_gui = dynamic_cast<GUI*>(ui);
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.resize(vertexBufferSize);
 

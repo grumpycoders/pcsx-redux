@@ -268,18 +268,7 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
 }
 
 void PCSX::GUI::setLua(Lua L) {
-    L.load(R"(
-print("PCSX-Redux Lua Console")
-print(jit.version)
-print((function(status, ...)
-  local ret = "JIT: " .. (status and "ON" or "OFF")
-  for i, v in ipairs({...}) do
-    ret = ret .. " " .. v
-  end
-  return ret
-end)(jit.status()))
-)",
-           "gui startup");
+    setLuaCommon(L);
     LoadImguiBindings(L.getState());
     LuaFFI::open_gl(L);
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
@@ -365,7 +354,6 @@ void PCSX::GUI::init() {
     }
 
     m_listener.listen<Events::Quitting>([this](const auto& event) { saveCfg(); });
-    m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         glfwSwapInterval(m_idleSwapInterval);
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -438,30 +426,20 @@ void PCSX::GUI::init() {
     auto& io = ImGui::GetIO();
     {
         io.IniFilename = nullptr;
-        std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator->settings;
         const bool resetUI = m_args.get<bool>("resetui", false);
-        json j;
-        bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
-        if (cfg.is_open() && !safeMode) {
-            try {
-                cfg >> j;
-            } catch (...) {
-            }
-            if (!resetUI && (j.count("imgui") == 1) && j["imgui"].is_string()) {
-                std::string imguicfg = j["imgui"];
+        bool safeMode = m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
+        if (loadSettings()) {
+            if (!resetUI && (m_settingsJson.count("imgui") == 1) && m_settingsJson["imgui"].is_string()) {
+                std::string imguicfg = m_settingsJson["imgui"];
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
-            if ((j.count("emulator") == 1) && j["emulator"].is_object()) {
-                emuSettings.deserialize(j["emulator"]);
+            if ((m_settingsJson.count("gui") == 1 && m_settingsJson["gui"].is_object())) {
+                settings.deserialize(m_settingsJson["gui"]);
             }
-            if ((j.count("gui") == 1 && j["gui"].is_object())) {
-                settings.deserialize(j["gui"]);
+            if ((m_settingsJson.count("loggers") == 1 && m_settingsJson["loggers"].is_object())) {
+                m_log.deserialize(m_settingsJson["loggers"]);
             }
-            if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
-                m_log.deserialize(j["loggers"]);
-            }
-
             auto& windowSizeX = settings.get<WindowSizeX>();
             auto& windowSizeY = settings.get<WindowSizeY>();
             if (windowSizeX <= 0 || resetUI) {
@@ -480,16 +458,12 @@ void PCSX::GUI::init() {
             }
 
             glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
-            PCSX::g_emulator->m_spu->setCfg(j);
-            PCSX::g_emulator->m_pads->setCfg(j);
         } else {
-            PCSX::g_emulator->m_pads->setDefaults();
             saveCfg();
         }
 
-        g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
+        finishLoadSettings();
 
-        g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
         if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
             !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
@@ -702,19 +676,7 @@ void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 
 void PCSX::GUI::startFrame() {
     ZoneScoped;
-    uv_run(g_system->getLoop(), UV_RUN_NOWAIT);
-    auto L = *g_emulator->m_lua;
-    L.getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
-    if (!L.isnil()) {
-        try {
-            L.pcall();
-        } catch (...) {
-        }
-        L.push();
-        L.setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
-    } else {
-        L.pop();
-    }
+    tick();
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
 
@@ -2125,61 +2087,6 @@ void PCSX::GUI::update(bool vsync) {
     // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
     // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.
     g_emulator->m_gpu->setOpenGLContext();
-}
-
-void PCSX::GUI::shellReached() {
-    auto& regs = g_emulator->m_cpu->m_regs;
-    uint32_t oldPC = regs.pc;
-    if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
-
-    if (m_exeToLoad.empty()) return;
-    PCSX::u8string filename = m_exeToLoad.get();
-    std::filesystem::path p = filename;
-
-    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
-    bool success = false;
-    try {
-        BinaryLoader::Info info;
-        IO<File> in(new PosixFile(filename));
-        if (in->failed()) {
-            throw std::runtime_error("Failed to open file.");
-        }
-        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info, g_emulator->m_cpu->m_symbols);
-        if (!info.pc.has_value()) {
-            throw std::runtime_error("Binary loaded without any PC to jump to.");
-        }
-        regs.pc = info.pc.value();
-        if (info.sp.has_value()) regs.GPR.n.sp = info.sp.value();
-        if (info.gp.has_value()) regs.GPR.n.gp = info.gp.value();
-        if (g_emulator->settings.get<Emulator::SettingAutoVideo>() && info.region.has_value()) {
-            switch (info.region.value()) {
-                case BinaryLoader::Region::NTSC:
-                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
-                    break;
-                case BinaryLoader::Region::PAL:
-                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
-                    break;
-            }
-        }
-    } catch (std::exception& e) {
-        g_system->log(LogClass::UI, "Failed to load %s: %s\n", p.string(), e.what());
-    } catch (...) {
-        g_system->log(LogClass::UI, "Failed to load %s: unknown error\n", p.string());
-    }
-    if (success) {
-        g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
-    } else {
-        g_system->log(LogClass::UI, "Failed to load %s, unknown file format.\n", p.string());
-    }
-
-    if (m_exeToLoad.hasToPause()) {
-        g_system->pause();
-    }
-
-    if (oldPC != regs.pc) {
-        g_emulator->m_callStacks->potentialRA(regs.pc, regs.GPR.n.sp);
-        g_emulator->m_debug->updatedPC(regs.pc);
-    }
 }
 
 void PCSX::GUI::magicOpen(const char* pathStr) {

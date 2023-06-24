@@ -41,7 +41,15 @@ class MainInvoker {
         }
         delete m_args;
     }
-    int invoke() { return pcsxMain(m_count, m_args); }
+    int invoke() {
+        fprintf(stderr, "Starting PCSX-Redux test with arguments:\n");
+        for (int i = 0; i < m_count; i++) {
+            fprintf(stderr, "  %s\n", m_args[i]);
+        }
+        int r = pcsxMain(m_count, m_args);
+        fprintf(stderr, "PCSX-Redux test finished with exit code %d\n", r);
+        return r;
+    }
 
   private:
     int m_count;
