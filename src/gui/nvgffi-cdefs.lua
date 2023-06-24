@@ -20,39 +20,39 @@ ffi.cdef [[
 typedef struct NVGcontext NVGcontext;
 
 struct NVGcolor {
-	union {
-		float rgba[4];
-		struct {
-			float r,g,b,a;
-		};
-	};
+    union {
+        float rgba[4];
+        struct {
+            float r,g,b,a;
+        };
+    };
 };
 typedef struct NVGcolor NVGcolor;
 
 struct NVGpaint {
-	float xform[6];
-	float extent[2];
-	float radius;
-	float feather;
-	NVGcolor innerColor;
-	NVGcolor outerColor;
-	int image;
+    float xform[6];
+    float extent[2];
+    float radius;
+    float feather;
+    NVGcolor innerColor;
+    NVGcolor outerColor;
+    int image;
 };
 typedef struct NVGpaint NVGpaint;
 
 struct NVGglyphPosition {
-	const char* str;
-	float x;
-	float minx, maxx;
+    const char* str;
+    float x;
+    float minx, maxx;
 };
 typedef struct NVGglyphPosition NVGglyphPosition;
 
 struct NVGtextRow {
-	const char* start;
-	const char* end;
-	const char* next;
-	float width;
-	float minx, maxx;
+    const char* start;
+    const char* end;
+    const char* next;
+    float width;
+    float minx, maxx;
 };
 typedef struct NVGtextRow NVGtextRow;
 
