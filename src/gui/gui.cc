@@ -59,6 +59,7 @@
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
+#include "gui/luanvg.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
 #include "imgui.h"
@@ -271,6 +272,7 @@ void PCSX::GUI::setLua(Lua L) {
     setLuaCommon(L);
     LoadImguiBindings(L.getState());
     LuaFFI::open_gl(L);
+    LuaFFI::open_nvg(L);
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");
     L.push("gui");
@@ -428,7 +430,8 @@ void PCSX::GUI::init() {
         io.IniFilename = nullptr;
         auto& emuSettings = PCSX::g_emulator->settings;
         const bool resetUI = m_args.get<bool>("resetui", false);
-        bool safeMode = m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
+        bool safeMode =
+            m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
         if (loadSettings()) {
             if (!resetUI && (m_settingsJson.count("imgui") == 1) && m_settingsJson["imgui"].is_string()) {
                 std::string imguicfg = m_settingsJson["imgui"];

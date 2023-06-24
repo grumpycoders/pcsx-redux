@@ -236,6 +236,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\gui\gui.cc" />
+    <ClCompile Include="..\..\src\gui\luanvg.cc" />
     <ClCompile Include="..\..\src\gui\resources-unix.cc" />
     <ClCompile Include="..\..\src\gui\resources-win32.cc" />
     <ClCompile Include="..\..\src\gui\shaders\crt-lottes.cc" />
@@ -268,6 +269,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h" />
+    <ClInclude Include="..\..\src\gui\luanvg.h" />
     <ClInclude Include="..\..\src\gui\resources.h" />
     <ClInclude Include="..\..\src\gui\shaders\crt-lottes.h" />
     <ClInclude Include="..\..\src\gui\widgets\assembly.h" />
@@ -297,6 +299,8 @@
     <ClInclude Include="..\..\third_party\imgui_memory_editor\imgui_memory_editor.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\gui\nvgffi-cdefs.lua" />
+    <None Include="..\..\src\gui\nvgffi.lua" />
     <None Include="..\..\src\gui\shaders\crt-lottes-offscreen.lua" />
     <None Include="..\..\src\gui\shaders\crt-lottes-output.lua" />
     <None Include="packages.config" />
