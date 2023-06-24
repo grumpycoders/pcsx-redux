@@ -40,14 +40,6 @@ struct NVGpaint {
 };
 typedef struct NVGpaint NVGpaint;
 
-struct NVGcompositeOperationState {
-	int srcRGB;
-	int dstRGB;
-	int srcAlpha;
-	int dstAlpha;
-};
-typedef struct NVGcompositeOperationState NVGcompositeOperationState;
-
 struct NVGglyphPosition {
 	const char* str;
 	float x;

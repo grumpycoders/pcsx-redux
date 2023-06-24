@@ -76,6 +76,21 @@ nvg = {
         FLIPY = 8,
         PREMULTIPLIED = 16,
     },
+    Color = {
+        New = function(r, g, b, a)
+            local c = ffi.new('NVGcolor')
+            c.r = r or 0
+            c.g = g or 0
+            c.b = b or 0
+            c.a = a or 0
+            return c
+        end,
+    },
+    Paint = {
+        New = function()
+            return ffi.new('NVGpaint')
+        end,
+    },
     GlobalCompositeOperation = function(self, op)
         C.nvgGlobalCompositeOperation(self.ctx, op)
     end,
