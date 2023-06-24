@@ -328,6 +328,23 @@ nvg = {
         local ret = C.nvgTextBreakLines(self.ctx, string, nil, breakRowWidth, rows, #string)
         return ret, rows
     end,
+    DrawBezierArrow = function(self, width, startX, startY, c1X, c1Y, c2X, c2Y, endX, endY, innerColor, outerColor)
+        if innerColor == nil then
+            innerColor = ffi.new("NVGcolor")
+            innerColor.r = 1.0
+            innerColor.g = 1.0
+            innerColor.b = 1.0
+            innerColor.a = 1.0
+        end
+        if outerColor == nil then
+            outerColor = ffi.new("NVGcolor")
+            outerColor.r = 0.5
+            outerColor.g = 0.5
+            outerColor.b = 0.5
+            outerColor.a = 1.0
+        end
+        C.nvgDrawBezierArrow(self.ctx, width, startX, startY, c1X, c1Y, c2X, c2Y, endX, endY, innerColor, outerColor)
+    end,
 }
 
 -- )EOF"

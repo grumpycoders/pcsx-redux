@@ -19,11 +19,19 @@
 
 #include "gui/luanvg.h"
 
+#include "gui/gui.h"
 #include "lua/luawrapper.h"
 #include "nanovg/src/nanovg.h"
 
+namespace {
+
+void guiDrawBezierArrow(PCSX::GUI* gui, float width, float startX, float startY, float c1X, float c1Y, float c2X,
+                        float c2Y, float endX, float endY, ImVec4 innerColor, ImVec4 outerColor) {
+    gui->drawBezierArrow(width, {startX, startY}, {c1X, c1Y}, {c2X, c2Y}, {endX, endY}, innerColor, outerColor);
+}
+
 template <typename T, size_t S>
-static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
+void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
     L.push<S>(name);
     L.push((void*)ptr);
     L.settable();
@@ -31,7 +39,7 @@ static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
 
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
-static void registerAllSymbols(PCSX::Lua L) {
+void registerAllSymbols(PCSX::Lua L) {
     L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("NANOVG");
     L.newtable();
@@ -132,9 +140,13 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, nvgTextMetrics);
     REGISTER(L, nvgTextBreakLines);
 
+    REGISTER(L, guiDrawBezierArrow);
+
     L.settable();
     L.pop();
 }
+
+}  // namespace
 
 void PCSX::LuaFFI::open_nvg(Lua L) {
     registerAllSymbols(L);

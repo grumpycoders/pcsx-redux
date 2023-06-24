@@ -159,6 +159,9 @@ void nvgTextBoxBounds(NVGcontext* ctx, float x, float y, float breakRowWidth, co
 int nvgTextGlyphPositions(NVGcontext* ctx, float x, float y, const char* string, const char* end, NVGglyphPosition* positions, int maxPositions);
 void nvgTextMetrics(NVGcontext* ctx, float* ascender, float* descender, float* lineh);
 int nvgTextBreakLines(NVGcontext* ctx, const char* string, const char* end, float breakRowWidth, NVGtextRow* rows, int maxRows);
+
+void guiDrawBezierArrow(void* gui, float width, float startX, float startY, float c1X, float c1Y, float c2X, float c2Y,
+                        float endX, float endY, NVGcolor innerColor, NVGcolor outerColor);
 ]]
 
 -- )EOF"
