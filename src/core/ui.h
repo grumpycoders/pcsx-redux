@@ -34,6 +34,7 @@ enum class LogClass : unsigned;
 class UI {
   public:
     UI(const CommandLine::args &args);
+    virtual ~UI() = default;
     virtual void addNotification(const std::string &notification) = 0;
     virtual bool addLog(LogClass logClass, const std::string &msg) = 0;
     virtual void addLuaLog(const std::string &msg, bool error) = 0;
