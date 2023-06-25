@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2020 PCSX-Redux authors                                 *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -20,18 +20,15 @@
 #include "gui/luanvg.h"
 
 #include "gui/gui.h"
-#include "imgui/imgui.h"
 #include "lua/luawrapper.h"
 #include "nanovg/src/nanovg.h"
 
 namespace {
 
-void guiDrawBezierArrow(PCSX::GUI* gui, float width, float startX, float startY, float c1X, float c1Y, float c2X,
-                        float c2Y, float endX, float endY, ImVec4 innerColor, ImVec4 outerColor) {
-    gui->drawBezierArrow(width, {startX, startY}, {c1X, c1Y}, {c2X, c2Y}, {endX, endY}, innerColor, outerColor);
+void guiDrawBezierArrow(PCSX::GUI* gui, float width, ImVec2 p1, ImVec2 c1, ImVec2 c2, ImVec2 p2, ImVec4 innerColor,
+                        ImVec4 outerColor) {
+    gui->drawBezierArrow(width, p1, c1, c2, p2, innerColor, outerColor);
 }
-
-unsigned imguiGetViewportId() { return ImGui::GetWindowViewport()->ID; }
 
 template <typename T, size_t S>
 void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
@@ -144,7 +141,6 @@ void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, nvgTextBreakLines);
 
     REGISTER(L, guiDrawBezierArrow);
-    REGISTER(L, imguiGetViewportId);
 
     L.settable();
     L.pop();

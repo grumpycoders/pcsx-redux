@@ -152,9 +152,7 @@ int nvgTextGlyphPositions(NVGcontext* ctx, float x, float y, const char* string,
 void nvgTextMetrics(NVGcontext* ctx, float* ascender, float* descender, float* lineh);
 int nvgTextBreakLines(NVGcontext* ctx, const char* string, const char* end, float breakRowWidth, NVGtextRow* rows, int maxRows);
 
-void guiDrawBezierArrow(void* gui, float width, float startX, float startY, float c1X, float c1Y, float c2X, float c2Y,
-                        float endX, float endY, NVGcolor innerColor, NVGcolor outerColor);
-unsigned imguiGetViewportId();
+void guiDrawBezierArrow(void* gui, float width, ImVec2 p1, ImVec2 c1, ImVec2 c2, ImVec2 p2, NVGcolor innerColor, NVGcolor outerColor);
 ]]
 
 -- )EOF"

@@ -343,18 +343,22 @@ nvg = {
         local ret = C.nvgTextBreakLines(self._ctx, string, nil, breakRowWidth, rows, #string)
         return ret, rows
     end,
-    drawBezierArrow = function(self, width, startX, startY, c1X, c1Y, c2X, c2Y, endX, endY, innerColor, outerColor)
+    drawBezierArrow = function(self, width, p1, c1, c2, p2, innerColor, outerColor)
         if innerColor == nil then
             innerColor = self.Color.New(1.0, 1.0, 1.0)
         end
         if outerColor == nil then
             outerColor = self.Color.New(0.5, 0.5, 0.5)
         end
-        C.nvgDrawBezierArrow(self._gui, width, startX, startY, c1X, c1Y, c2X, c2Y, endX, endY, innerColor, outerColor)
+        local p1 = imgui.extra.ImVec2.New(p1.x, p1.y)
+        local c1 = imgui.extra.ImVec2.New(c1.x, c1.y)
+        local c2 = imgui.extra.ImVec2.New(c2.x, c2.y)
+        local p2 = imgui.extra.ImVec2.New(p2.x, p2.y)
+        C.nvgDrawBezierArrow(self._gui, width, p1, c1, c2, p2, innerColor, outerColor)
     end,
 
     queueNvgRender = function(self, func)
-        local viewportId = C.imguiGetViewportId()
+        local viewportId = imgui.extra.getCurrentViewportId()
         local viewportQueue = self._queue[viewportId]
         if viewportQueue == nil then
             viewportQueue = {}

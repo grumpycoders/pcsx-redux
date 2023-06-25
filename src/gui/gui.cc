@@ -59,6 +59,7 @@
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
+#include "gui/luaimguiextra.h"
 #include "gui/luanvg.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
@@ -271,6 +272,7 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
 void PCSX::GUI::setLua(Lua L) {
     setLuaCommon(L);
     LoadImguiBindings(L.getState());
+    LuaFFI::open_imguiextra(L);
     LuaFFI::open_gl(L);
     LuaFFI::open_nvg(L);
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);

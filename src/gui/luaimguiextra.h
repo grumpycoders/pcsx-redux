@@ -25,7 +25,7 @@ namespace PCSX {
 
 namespace LuaFFI {
 
-void open_nvg(Lua L);
+void open_imguiextra(Lua L);
 
 }
 
