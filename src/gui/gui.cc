@@ -419,7 +419,7 @@ void PCSX::GUI::init() {
         glDebugMessageCallback = nullptr;
     }
 
-    auto vg = m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
+    auto vg = m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
     if (vg) {
         g_system->findResource(
             [vg](auto path) -> bool {
