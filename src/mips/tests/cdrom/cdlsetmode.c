@@ -129,5 +129,5 @@ CESTER_TEST(cdlSetModeWithTooManyArgs, test_instance,
     // Typical value seems to be around 750us.
     cester_assert_uint_ge(errorTime, 500);
     cester_assert_uint_lt(errorTime, 7000);
-    ramsyscall_printf("No args setMode: errored in %ius\n", errorTime);
+    ramsyscall_printf("Too many args setMode: errored in %ius\n", errorTime);
 )
