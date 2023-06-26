@@ -281,6 +281,13 @@ void PCSX::GUI::setLua(Lua L) {
     LuaFFI::open_imguiextra(L);
     LuaFFI::open_gl(L);
     LuaFFI::open_nvg(L);
+    {
+        static int lualoader = 1;
+        static const char* guiextra = (
+#include "gui/extra.lua"
+        );
+        L.load(guiextra, "internal:gui/extra.lua");
+    }
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");
     L.push("gui");
