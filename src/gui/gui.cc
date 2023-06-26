@@ -656,6 +656,7 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
+    nvgDeleteGLES3(m_nvgContext);
 }
 
 void PCSX::GUI::saveCfg() {
