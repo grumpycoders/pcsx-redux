@@ -160,6 +160,7 @@ class GUI final : public UI {
     static GUI *s_gui;
     void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_onChangedViewportOldCallback)(ImGuiViewport *viewport) = nullptr;
+    void (*m_destroyWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     static void glfwKeyCallbackTrampoline(GLFWwindow *window, int key, int scancode, int action, int mods) {
         s_gui->glfwKeyCallback(window, key, scancode, action, mods);
     }
@@ -304,6 +305,7 @@ class GUI final : public UI {
     int &m_glfwSizeY = settings.get<WindowSizeY>().value;
     GLuint m_VRAMTexture = 0;
     NVGcontext *m_nvgContext = nullptr;
+    std::map<unsigned, void *> m_nvgSubContextes;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};

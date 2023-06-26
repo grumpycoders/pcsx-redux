@@ -123,6 +123,12 @@ extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
     if (!exp) thrower(msg);
 }
 
+static GLFWwindow* getGLFWwindowFromImGuiViewport(ImGuiViewport* viewport) {
+    // absolutely horrendous hack, but the only way we have to grab the
+    // GLFWwindow pointer from an ImGuiViewport without changing the backend...
+    return *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+}
+
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
 
 void PCSX::GUI::setFullscreen(bool fullscreen) {
@@ -516,15 +522,26 @@ void PCSX::GUI::init() {
     m_createWindowOldCallback = platform_io.Platform_CreateWindow;
     platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
         if (s_gui->m_createWindowOldCallback) s_gui->m_createWindowOldCallback(viewport);
-        // absolutely horrendous hack, but the only way we have to grab the
-        // newly created GLFWwindow pointer...
-        auto window = *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+        auto window = getGLFWwindowFromImGuiViewport(viewport);
         glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
+        auto id = viewport->ID;
+        s_gui->m_nvgSubContextes[id] = nvgCreateSubContextGL(s_gui->m_nvgContext);
     };
     m_onChangedViewportOldCallback = platform_io.Platform_OnChangedViewport;
     platform_io.Platform_OnChangedViewport = [](ImGuiViewport* viewport) {
         if (s_gui->m_onChangedViewportOldCallback) s_gui->m_onChangedViewportOldCallback(viewport);
         s_gui->changeScale(viewport->DpiScale);
+    };
+    m_destroyWindowOldCallback = platform_io.Platform_DestroyWindow;
+    platform_io.Platform_DestroyWindow = [](ImGuiViewport* viewport) {
+        auto id = viewport->ID;
+        auto& subContextes = s_gui->m_nvgSubContextes;
+        auto subContext = subContextes.find(id);
+        if (subContext != subContextes.end()) {
+            nvgDeleteSubContextGL(subContext->second);
+            subContextes.erase(subContext);
+        }
+        if (s_gui->m_destroyWindowOldCallback) s_gui->m_destroyWindowOldCallback(viewport);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     // Some bad GPU drivers (*cough* Intel) don't like mixed shaders versions,
@@ -656,6 +673,10 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
+    for (auto& subContext : m_nvgSubContextes) {
+        nvgDeleteSubContextGL(subContext.second);
+    }
+    m_nvgSubContextes.clear();
     nvgDeleteGLES3(m_nvgContext);
 }
 
@@ -1646,6 +1667,7 @@ the update and manually apply it.)")));
         glfwGetWindowSize(m_window, &winWidth, &winHeight);
         glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
         pxRatio = (float)fbWidth / (float)winWidth;
+        nvgSwitchMainContextGL(vg);
         nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
         while (L.gettop()) L.pop();
         L.getfieldtable("nvg", LUA_GLOBALSINDEX);
@@ -1687,10 +1709,11 @@ the update and manually apply it.)")));
             if (platform_io.Platform_RenderWindow) platform_io.Platform_RenderWindow(viewport, nullptr);
             if (platform_io.Renderer_RenderWindow) platform_io.Renderer_RenderWindow(viewport, nullptr);
             if (vg) {
-                auto window = *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+                auto window = getGLFWwindowFromImGuiViewport(viewport);
                 glfwGetWindowSize(window, &winWidth, &winHeight);
                 glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
                 pxRatio = (float)fbWidth / (float)winWidth;
+                nvgSwitchSubContextGL(vg, m_nvgSubContextes[viewport->ID]);
                 nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
                 L.getfieldtable("nvg", LUA_GLOBALSINDEX);
                 L.getfield("_processQueueForViewportId", -1);
