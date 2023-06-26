@@ -1676,6 +1676,8 @@ the update and manually apply it.)")));
         while (L.gettop()) L.pop();
     }
 
+    glfwSwapBuffers(m_window);
+
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGui::UpdatePlatformWindows();
         // Skip the main viewport (index 0), which is always fully handled by the application!
@@ -1711,17 +1713,11 @@ the update and manually apply it.)")));
                 nvgEndFrame(vg);
                 while (L.gettop()) L.pop();
             }
-        }
-        for (int i = 1; i < platform_io.Viewports.Size; i++) {
-            ImGuiViewport* viewport = platform_io.Viewports[i];
-            if (viewport->Flags & ImGuiViewportFlags_IsMinimized) continue;
             if (platform_io.Platform_SwapBuffers) platform_io.Platform_SwapBuffers(viewport, nullptr);
             if (platform_io.Renderer_SwapBuffers) platform_io.Renderer_SwapBuffers(viewport, nullptr);
         }
         glfwMakeContextCurrent(m_window);
     }
-
-    glfwSwapBuffers(m_window);
 
     L.getfieldtable("nvg", LUA_GLOBALSINDEX);
     L.push("_gui");
