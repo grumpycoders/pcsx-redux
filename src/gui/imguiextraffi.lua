@@ -22,10 +22,10 @@ typedef struct { float x, y; } ImVec2;
 unsigned imguiGetCurrentViewportId();
 unsigned imguiGetViewportFlags(unsigned id);
 void imguiSetViewportFlags(unsigned id, unsigned flags);
-ImVec2 imguiGetViewportPos(unsigned id);
-ImVec2 imguiGetViewportSize(unsigned id);
-ImVec2 imguiGetViewportWorkPos(unsigned id);
-ImVec2 imguiGetViewportWorkSize(unsigned id);
+void imguiGetViewportPos(unsigned id, ImVec2*);
+void imguiGetViewportSize(unsigned id, ImVec2*);
+void imguiGetViewportWorkPos(unsigned id, ImVec2*);
+void imguiGetViewportWorkSize(unsigned id, ImVec2*);
 float imguiGetViewportDpiScale(unsigned id);
 ]]
 
@@ -43,10 +43,26 @@ imgui.extra = {
     getCurrentViewportId = C.imguiGetCurrentViewportId,
     getViewportFlags = C.imguiGetViewportFlags,
     setViewportFlags = C.imguiSetViewportFlags,
-    getViewportPos = C.imguiGetViewportPos,
-    getViewportSize = C.imguiGetViewportSize,
-    getViewportWorkPos = C.imguiGetViewportWorkPos,
-    getViewportWorkSize = C.imguiGetViewportWorkSize,
+    getViewportPos = function(id)
+        local ret = ffi.new('ImVec2[1]')
+        C.imguiGetViewportPos(id, ret)
+        return ret[0]
+    end,
+    getViewportSize = function(id)
+        local ret = ffi.new('ImVec2[1]')
+        C.imguiGetViewportSize(id, ret)
+        return ret[0]
+    end,
+    getViewportWorkPos = function(id)
+        local ret = ffi.new('ImVec2[1]')
+        C.imguiGetViewportWorkPos(id, ret)
+        return ret[0]
+    end,
+    getViewportWorkSize = function(id)
+        local ret = ffi.new('ImVec2[1]')
+        C.imguiGetViewportWorkSize(id, ret)
+        return ret[0]
+    end,
     getViewportDpiScale = C.imguiGetViewportDpiScale,
 }
 

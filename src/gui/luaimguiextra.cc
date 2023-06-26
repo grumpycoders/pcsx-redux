@@ -27,10 +27,10 @@ namespace {
 unsigned imguiGetCurrentViewportId() { return ImGui::GetWindowViewport()->ID; }
 unsigned imguiGetViewportFlags(unsigned id) { return ImGui::FindViewportByID(id)->Flags; }
 void imguiSetViewportFlags(unsigned id, unsigned flags) { ImGui::FindViewportByID(id)->Flags = flags; }
-ImVec2 imguiGetViewportPos(unsigned id) { return ImGui::FindViewportByID(id)->Pos; }
-ImVec2 imguiGetViewportSize(unsigned id) { return ImGui::FindViewportByID(id)->Size; }
-ImVec2 imguiGetViewportWorkPos(unsigned id) { return ImGui::FindViewportByID(id)->WorkPos; }
-ImVec2 imguiGetViewportWorkSize(unsigned id) { return ImGui::FindViewportByID(id)->WorkSize; }
+void imguiGetViewportPos(unsigned id, ImVec2* ret) { *ret = ImGui::FindViewportByID(id)->Pos; }
+void imguiGetViewportSize(unsigned id, ImVec2* ret) { *ret = ImGui::FindViewportByID(id)->Size; }
+void imguiGetViewportWorkPos(unsigned id, ImVec2* ret) { *ret = ImGui::FindViewportByID(id)->WorkPos; }
+void imguiGetViewportWorkSize(unsigned id, ImVec2* ret) { *ret = ImGui::FindViewportByID(id)->WorkSize; }
 float imguiGetViewportDpiScale(unsigned id) { return ImGui::FindViewportByID(id)->DpiScale; }
 
 template <typename T, size_t S>
