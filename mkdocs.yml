@@ -59,6 +59,7 @@ nav:
       - 'Lua/introduction.md'
       - 'Lua/libraries.md'
       - 'Lua/redux-basics.md'
+      - 'Lua/rendering.md'
       - 'Lua/file-api.md'
       - 'Lua/web-server.md'
       - 'Lua/memory-and-registers.md'

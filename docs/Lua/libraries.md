@@ -10,6 +10,9 @@ A good portion of [ImGui](https://github.com/ocornut/imgui) is bound to the Lua 
 OpenGL is bound directly to the Lua API through FFI bindings, loosely inspired and adapted from [LuaJIT-OpenCL](https://github.com/malkia/luajit-opencl
 ). Some usage examples can be seen in [the CRT-Lottes shader configuration page](https://github.com/grumpycoders/pcsx-redux/blob/eadd59e764d526636d900fada6f3dd0057035690/src/gui/shaders/crt-lottes.cc#L141-L146).
 
+## NanoVG
+The [NanoVG](https://github.com/grumpycoders/nanovg) library is mostly bound to the Lua API through FFI bindings, with some additional glue code. More explanation can be found in the [rendering](rendering.md) page.
+
 ## Luv
 For network access and interaction, PCSX-Redux uses [libuv](https://libuv.org/) internally, and is exposed to the Lua API through [Luv](https://github.com/luvit/luv), tho its loop is tied to the main thread one, meaning it'll run only once per frame. There is another layer of network API available through the File API, which is more convenient and faster for simple tasks.
 
