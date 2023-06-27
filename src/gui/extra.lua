@@ -23,8 +23,8 @@ PCSX.Helpers.UI = {
         local wX, wY = imgui.GetWindowPos()
         local viewportId = imgui.extra.getCurrentViewportId()
         local viewportPos = imgui.extra.getViewportPos(viewportId)
-        cX = cX + wX - viewportPos.x + x / imageW * w
-        cY = cY + wY - viewportPos.y + y / imageH * h
+        cX = cX + wX - viewportPos.x + x / w * imageW
+        cY = cY + wY - viewportPos.y + y / h * imageH
         return cX, cY
     end,
 }
