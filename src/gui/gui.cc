@@ -59,6 +59,8 @@
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
+#include "gui/luaimguiextra.h"
+#include "gui/luanvg.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
 #include "imgui.h"
@@ -119,6 +121,12 @@ extern "C" void pcsxStaticImguiUserError(const char* msg) {
 
 extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
     if (!exp) thrower(msg);
+}
+
+static GLFWwindow* getGLFWwindowFromImGuiViewport(ImGuiViewport* viewport) {
+    // absolutely horrendous hack, but the only way we have to grab the
+    // GLFWwindow pointer from an ImGuiViewport without changing the backend...
+    return *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
 }
 
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
@@ -270,7 +278,16 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
 void PCSX::GUI::setLua(Lua L) {
     setLuaCommon(L);
     LoadImguiBindings(L.getState());
+    LuaFFI::open_imguiextra(L);
     LuaFFI::open_gl(L);
+    LuaFFI::open_nvg(L);
+    {
+        static int lualoader = 1;
+        static const char* guiextra = (
+#include "gui/extra.lua"
+        );
+        L.load(guiextra, "internal:gui/extra.lua");
+    }
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");
     L.push("gui");
@@ -415,8 +432,15 @@ void PCSX::GUI::init() {
         glDebugMessageCallback = nullptr;
     }
 
-    m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
-    if (!m_nvgContext) {
+    auto vg = m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
+    if (vg) {
+        g_system->findResource(
+            [vg](auto path) -> bool {
+                int res = nvgCreateFont(vg, "noto-sans-regular", path.string().c_str());
+                return res >= 0;
+            },
+            MAKEU8("NotoSans-Regular.ttf"), "fonts", std::filesystem::path("third_party") / "noto");
+    } else {
         g_system->log(LogClass::UI, "Warning: Unable to initialize NanoVG. Check OpenGL drivers.\n");
     }
 
@@ -428,7 +452,8 @@ void PCSX::GUI::init() {
         io.IniFilename = nullptr;
         auto& emuSettings = PCSX::g_emulator->settings;
         const bool resetUI = m_args.get<bool>("resetui", false);
-        bool safeMode = m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
+        bool safeMode =
+            m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
         if (loadSettings()) {
             if (!resetUI && (m_settingsJson.count("imgui") == 1) && m_settingsJson["imgui"].is_string()) {
                 std::string imguicfg = m_settingsJson["imgui"];
@@ -504,15 +529,26 @@ void PCSX::GUI::init() {
     m_createWindowOldCallback = platform_io.Platform_CreateWindow;
     platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
         if (s_gui->m_createWindowOldCallback) s_gui->m_createWindowOldCallback(viewport);
-        // absolutely horrendous hack, but the only way we have to grab the
-        // newly created GLFWwindow pointer...
-        auto window = *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+        auto window = getGLFWwindowFromImGuiViewport(viewport);
         glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
+        auto id = viewport->ID;
+        s_gui->m_nvgSubContextes[id] = nvgCreateSubContextGL(s_gui->m_nvgContext);
     };
     m_onChangedViewportOldCallback = platform_io.Platform_OnChangedViewport;
     platform_io.Platform_OnChangedViewport = [](ImGuiViewport* viewport) {
         if (s_gui->m_onChangedViewportOldCallback) s_gui->m_onChangedViewportOldCallback(viewport);
         s_gui->changeScale(viewport->DpiScale);
+    };
+    m_destroyWindowOldCallback = platform_io.Platform_DestroyWindow;
+    platform_io.Platform_DestroyWindow = [](ImGuiViewport* viewport) {
+        auto id = viewport->ID;
+        auto& subContextes = s_gui->m_nvgSubContextes;
+        auto subContext = subContextes.find(id);
+        if (subContext != subContextes.end()) {
+            nvgDeleteSubContextGL(subContext->second);
+            subContextes.erase(subContext);
+        }
+        if (s_gui->m_destroyWindowOldCallback) s_gui->m_destroyWindowOldCallback(viewport);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     // Some bad GPU drivers (*cough* Intel) don't like mixed shaders versions,
@@ -644,6 +680,11 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
+    for (auto& subContext : m_nvgSubContextes) {
+        nvgDeleteSubContextGL(subContext.second);
+    }
+    m_nvgSubContextes.clear();
+    nvgDeleteGLES3(m_nvgContext);
 }
 
 void PCSX::GUI::saveCfg() {
@@ -1624,14 +1665,98 @@ the update and manually apply it.)")));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-        glfwMakeContextCurrent(m_window);
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    int winWidth, winHeight;
+    int fbWidth, fbHeight;
+    float pxRatio;
+    auto vg = m_nvgContext;
+    if (vg) {
+        glfwGetWindowSize(m_window, &winWidth, &winHeight);
+        glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
+        pxRatio = (float)fbWidth / (float)winWidth;
+        nvgSwitchMainContextGL(vg);
+        nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+        while (L.gettop()) L.pop();
+        L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+        L.push("_gui");
+        L.push(this);
+        L.settable();
+        L.push("_ctx");
+        L.push(vg);
+        L.settable();
+        L.getfield("_processQueueForViewportId", -1);
+        L.copy(-2);
+        L.push(lua_Number(platform_io.Viewports[0]->ID));
+        try {
+            L.pcall(2);
+            bool gotGLerror = false;
+            for (const auto& error : m_glErrors) {
+                m_luaConsole.addError(error);
+                if (m_args.get<bool>("lua_stdout", false)) {
+                    fprintf(stderr, "%s\n", error.c_str());
+                }
+                gotGLerror = true;
+            }
+            m_glErrors.clear();
+            if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+        } catch (...) {
+        }
+        nvgEndFrame(vg);
+        while (L.gettop()) L.pop();
     }
 
     glfwSwapBuffers(m_window);
+
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        ImGui::UpdatePlatformWindows();
+        // Skip the main viewport (index 0), which is always fully handled by the application!
+        for (int i = 1; i < platform_io.Viewports.Size; i++) {
+            ImGuiViewport* viewport = platform_io.Viewports[i];
+            if (viewport->Flags & ImGuiViewportFlags_IsMinimized) continue;
+            if (platform_io.Platform_RenderWindow) platform_io.Platform_RenderWindow(viewport, nullptr);
+            if (platform_io.Renderer_RenderWindow) platform_io.Renderer_RenderWindow(viewport, nullptr);
+            if (vg) {
+                auto window = getGLFWwindowFromImGuiViewport(viewport);
+                glfwGetWindowSize(window, &winWidth, &winHeight);
+                glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+                pxRatio = (float)fbWidth / (float)winWidth;
+                nvgSwitchSubContextGL(vg, m_nvgSubContextes[viewport->ID]);
+                nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+                L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+                L.getfield("_processQueueForViewportId", -1);
+                L.copy(-2);
+                L.push(lua_Number(viewport->ID));
+                try {
+                    L.pcall(2);
+                    bool gotGLerror = false;
+                    for (const auto& error : m_glErrors) {
+                        m_luaConsole.addError(error);
+                        if (m_args.get<bool>("lua_stdout", false)) {
+                            fprintf(stderr, "%s\n", error.c_str());
+                        }
+                        gotGLerror = true;
+                    }
+                    m_glErrors.clear();
+                    if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+                } catch (...) {
+                }
+                nvgEndFrame(vg);
+                while (L.gettop()) L.pop();
+            }
+            if (platform_io.Platform_SwapBuffers) platform_io.Platform_SwapBuffers(viewport, nullptr);
+            if (platform_io.Renderer_SwapBuffers) platform_io.Renderer_SwapBuffers(viewport, nullptr);
+        }
+        glfwMakeContextCurrent(m_window);
+    }
+
+    L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+    L.push("_gui");
+    L.push();
+    L.settable();
+    L.push("_ctx");
+    L.push();
+    L.settable();
+    while (L.gettop()) L.pop();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
