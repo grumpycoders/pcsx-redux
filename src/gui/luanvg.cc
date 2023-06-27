@@ -30,6 +30,29 @@ void guiDrawBezierArrow(PCSX::GUI* gui, float width, ImVec2 p1, ImVec2 c1, ImVec
     gui->drawBezierArrow(width, p1, c1, c2, p2, innerColor, outerColor);
 }
 
+void nvgRGBWrapper(unsigned char r, unsigned char g, unsigned char b, NVGcolor* ret) { *ret = nvgRGB(r, g, b); }
+void nvgRGBfWrapper(float r, float g, float b, NVGcolor* ret) { *ret = nvgRGBf(r, g, b); }
+void nvgRGBAWrapper(unsigned char r, unsigned char g, unsigned char b, unsigned char a, NVGcolor* ret) { *ret = nvgRGBA(r, g, b, a); }
+void nvgRGBAfWrapper(float r, float g, float b, float a, NVGcolor* ret) { *ret = nvgRGBAf(r, g, b, a); }
+void nvgLerpRGBAWrapper(NVGcolor c0, NVGcolor c1, float u, NVGcolor* ret) { *ret = nvgLerpRGBA(c0, c1, u); }
+void nvgTransRGBAWrapper(NVGcolor c0, unsigned char a, NVGcolor* ret) { *ret = nvgTransRGBA(c0, a); }
+void nvgTransRGBAfWrapper(NVGcolor c0, float a, NVGcolor* ret) { *ret = nvgTransRGBAf(c0, a); }
+void nvgHSLWrapper(float h, float s, float l, NVGcolor* ret) { *ret = nvgHSL(h, s, l); }
+void nvgHSLAWrapper(float h, float s, float l, unsigned char a, NVGcolor* ret) { *ret = nvgHSLA(h, s, l, a); }
+
+void nvgLinearGradientWrapper(NVGcontext* ctx, float sx, float sy, float ex, float ey, NVGcolor icol, NVGcolor ocol, NVGpaint* ret) {
+    *ret = nvgLinearGradient(ctx, sx, sy, ex, ey, icol, ocol);
+}
+void nvgBoxGradientWrapper(NVGcontext* ctx, float x, float y, float w, float h, float r, float f, NVGcolor icol, NVGcolor ocol, NVGpaint* ret) {
+    *ret = nvgBoxGradient(ctx, x, y, w, h, r, f, icol, ocol);
+}
+void nvgRadialGradientWrapper(NVGcontext* ctx, float cx, float cy, float inr, float outr, NVGcolor icol, NVGcolor ocol, NVGpaint* ret) {
+    *ret = nvgRadialGradient(ctx, cx, cy, inr, outr, icol, ocol);
+}
+void nvgImagePatternWrapper(NVGcontext* ctx, float ox, float oy, float ex, float ey, float angle, int image, float alpha, NVGpaint* ret) {
+    *ret = nvgImagePattern(ctx, ox, oy, ex, ey, angle, image, alpha);
+}
+
 template <typename T, size_t S>
 void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
     L.push<S>(name);
@@ -47,15 +70,15 @@ void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, nvgGlobalCompositeOperation);
     REGISTER(L, nvgGlobalCompositeBlendFunc);
     REGISTER(L, nvgGlobalCompositeBlendFuncSeparate);
-    REGISTER(L, nvgRGB);
-    REGISTER(L, nvgRGBf);
-    REGISTER(L, nvgRGBA);
-    REGISTER(L, nvgRGBAf);
-    REGISTER(L, nvgLerpRGBA);
-    REGISTER(L, nvgTransRGBA);
-    REGISTER(L, nvgTransRGBAf);
-    REGISTER(L, nvgHSL);
-    REGISTER(L, nvgHSLA);
+    REGISTER(L, nvgRGBWrapper);
+    REGISTER(L, nvgRGBfWrapper);
+    REGISTER(L, nvgRGBAWrapper);
+    REGISTER(L, nvgRGBAfWrapper);
+    REGISTER(L, nvgLerpRGBAWrapper);
+    REGISTER(L, nvgTransRGBAWrapper);
+    REGISTER(L, nvgTransRGBAfWrapper);
+    REGISTER(L, nvgHSLWrapper);
+    REGISTER(L, nvgHSLAWrapper);
     REGISTER(L, nvgSave);
     REGISTER(L, nvgRestore);
     REGISTER(L, nvgReset);
@@ -93,10 +116,10 @@ void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, nvgUpdateImage);
     REGISTER(L, nvgImageSize);
     REGISTER(L, nvgDeleteImage);
-    REGISTER(L, nvgLinearGradient);
-    REGISTER(L, nvgBoxGradient);
-    REGISTER(L, nvgRadialGradient);
-    REGISTER(L, nvgImagePattern);
+    REGISTER(L, nvgLinearGradientWrapper);
+    REGISTER(L, nvgBoxGradientWrapper);
+    REGISTER(L, nvgRadialGradientWrapper);
+    REGISTER(L, nvgImagePatternWrapper);
     REGISTER(L, nvgScissor);
     REGISTER(L, nvgIntersectScissor);
     REGISTER(L, nvgResetScissor);

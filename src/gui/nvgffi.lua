@@ -100,15 +100,51 @@ nvg = {
     globalCompositeBlendFuncSeparate = function(self, srcRGB, dstRGB, srcAlpha, dstAlpha)
         C.nvgGlobalCompositeBlendFuncSeparate(self._ctx, srcRGB, dstRGB, srcAlpha, dstAlpha)
     end,
-    RGB = C.nvgRGB,
-    RGBf = C.nvgRGBf,
-    RGBA = C.nvgRGBA,
-    RGBAf = C.nvgRGBAf,
-    lerpRGBA = C.nvgLerpRGBA,
-    transRGBA = C.nvgTransRGBA,
-    transRGBAf = C.nvgTransRGBAf,
-    HSL = C.nvgHSL,
-    HSLA = C.nvgHSLA,
+    RGB = function(r, g, b)
+        ret = ffi.new('NVGcolor[1]')
+        C.nvgRGBWrapper(r, g, b, ret)
+        return ret[0]
+    end,
+    RGBf = function(r, g, b)
+        ret = ffi.new('NVGcolor[1]')
+        C.nvgRGBfWrapper(r, g, b, ret)
+        return ret[0]
+    end,
+    RGBA = function(r, g, b, a)
+        ret = ffi.new('NVGcolor[1]')
+        C.nvgRGBAWrapper(r, g, b, a, ret)
+        return ret[0]
+    end,
+    RGBAf = function(r, g, b, a)
+        ret = ffi.new('NVGcolor[1]')
+        C.nvgRGBAfWrapper(r, g, b, a, ret)
+        return ret[0]
+    end,
+    lerpRGBA = function(c0, c1, u)
+        ret = ffi.new('NVGcolor[1]')
+        C.nvgLerpRGBAWrapper(c0, c1, u, ret)
+        return ret[0]
+    end,
+    transRGBA = function(c0, a)
+        ret = ffi.new('NVGcolor[1]')
+        C.nvgTransRGBAWrapper(c0, a, ret)
+        return ret[0]
+    end,
+    transRGBAf = function(c0, a)
+        ret = ffi.new('NVGcolor[1]')
+        C.nvgTransRGBAfWrapper(c0, a, ret)
+        return ret[0]
+    end,
+    HSL = function(h, s, l)
+        ret = ffi.new('NVGcolor[1]')
+        C.nvgHSLWrapper(h, s, l, ret)
+        return ret[0]
+    end,
+    HSLA = function(h, s, l, a)
+        ret = ffi.new('NVGcolor[1]')
+        C.nvgHSLAWrapper(h, s, l, a, ret)
+        return ret[0]
+    end,
     save = function(self)
         C.nvgSave(self._ctx)
     end,
@@ -194,16 +230,24 @@ nvg = {
         C.nvgDeleteImage(self._ctx, image)
     end,
     linearGradient = function(self, sx, sy, ex, ey, icol, ocol)
-        return C.nvgLinearGradient(self._ctx, sx, sy, ex, ey, icol, ocol)
+        local ret = ffi.new('NVGpaint[1]')
+        C.nvgLinearGradientWrapper(self._ctx, sx, sy, ex, ey, icol, ocol, ret)
+        return ret[0]
     end,
     boxGradient = function(self, x, y, w, h, r, f, icol, ocol)
-        return C.nvgBoxGradient(self._ctx, x, y, w, h, r, f, icol, ocol)
+        local ret = ffi.new('NVGpaint[1]')
+        C.nvgBoxGradientWrapper(self._ctx, x, y, w, h, r, f, icol, ocol, ret)
+        return ret[0]
     end,
     radialGradient = function(self, cx, cy, inr, outr, icol, ocol)
-        return C.nvgRadialGradient(self._ctx, cx, cy, inr, outr, icol, ocol)
+        local ret = ffi.new('NVGpaint[1]')
+        C.nvgRadialGradientWrapper(self._ctx, cx, cy, inr, outr, icol, ocol, ret)
+        return ret[0]
     end,
     imagePattern = function(self, ox, oy, ex, ey, angle, image, alpha)
-        return C.nvgImagePattern(self._ctx, ox, oy, ex, ey, angle, image, alpha)
+        local ret = ffi.new('NVGpaint[1]')
+        C.nvgImagePatternWrapper(self._ctx, ox, oy, ex, ey, angle, image, alpha, ret)
+        return ret[0]
     end,
     scissor = function(self, x, y, w, h)
         C.nvgScissor(self._ctx, x, y, w, h)
