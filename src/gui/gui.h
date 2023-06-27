@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "core/system.h"
+#include "core/ui.h"
 #include "flags.h"
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
@@ -76,7 +77,7 @@ namespace PCSX {
 
 enum class LogClass : unsigned;
 
-class GUI final {
+class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
     typedef Setting<bool, TYPESTRING("FullWindowRender"), true> FullWindowRender;
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
@@ -112,6 +113,7 @@ class GUI final {
     typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
     typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
+    typedef Setting<bool, TYPESTRING("AllowMouseCaptureToggle"), false> AllowMouseCaptureToggle;
     typedef Setting<bool, TYPESTRING("RawMouseMotion"), false> EnableRawMouseMotion;
     typedef Setting<bool, TYPESTRING("WidescreenRatio"), false> WidescreenRatio;
     typedef Setting<bool, TYPESTRING("ShowPIOCartConfig"), false> ShowPIOCartConfig;
@@ -145,19 +147,20 @@ class GUI final {
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
              ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
-             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, MainFontSize, MonoFontSize,
-             GUITheme, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
-             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
-             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
-             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
-             MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
-             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
+             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, MainFontSize,
+             MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig,
+             ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5,
+             ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor,
+             ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr,
+             MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr,
+             ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
         settings;
 
     // imgui can't handle more than one "instance", so...
     static GUI *s_gui;
     void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_onChangedViewportOldCallback)(ImGuiViewport *viewport) = nullptr;
+    void (*m_destroyWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     static void glfwKeyCallbackTrampoline(GLFWwindow *window, int key, int scancode, int action, int mods) {
         s_gui->glfwKeyCallback(window, key, scancode, action, mods);
     }
@@ -203,7 +206,7 @@ class GUI final {
         GUI *m_gui = nullptr;
     };
     std::vector<std::string> getGLerrors() { return std::move(m_glErrors); }
-    GUI(const CommandLine::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
+    GUI(const CommandLine::args &args) : m_listener(g_system->m_eventBus), UI(args) {
         assert(s_gui == nullptr);
         s_gui = this;
     }
@@ -218,7 +221,7 @@ class GUI final {
     void flip();
     void setViewport();
     void setFullscreen(bool fullscreen);
-    void setRawMouseMotion(bool value);
+    void setRawMouseMotion();
     bool addLog(LogClass logClass, const std::string &msg) {
         return m_log.addLog(magic_enum::enum_integer(logClass), msg);
     }
@@ -302,6 +305,7 @@ class GUI final {
     int &m_glfwSizeY = settings.get<WindowSizeY>().value;
     GLuint m_VRAMTexture = 0;
     NVGcontext *m_nvgContext = nullptr;
+    std::map<unsigned, void *> m_nvgSubContextes;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
@@ -379,8 +383,6 @@ class GUI final {
     bool m_showUiCfg = false;
     bool m_showSysCfg = false;
 
-    const CommandLine::args &m_args;
-
     Widgets::VRAMViewer m_mainVRAMviewer = {settings.get<ShowMainVRAMViewer>().value};
     Widgets::VRAMViewer m_clutVRAMviewer = {settings.get<ShowCLUTVRAMViewer>().value};
     Widgets::VRAMViewer m_VRAMviewers[4] = {{settings.get<ShowVRAMViewer1>().value},
@@ -403,7 +405,6 @@ class GUI final {
 
     EventBus::Listener m_listener;
 
-    void shellReached();
     std::string buildSaveStateFilename(int i);
     void saveSaveState(const std::filesystem::path &filename);
     void loadSaveState(const std::filesystem::path &filename);
@@ -441,6 +442,8 @@ class GUI final {
     bool m_updateDownloading = false;
     bool m_aboutSelectAuthors = false;
 
+    void setDefaultShaders();
+
   public:
     bool hasJapanese() { return m_hasJapanese; }
     bool m_setupScreenSize = true;
@@ -451,23 +454,7 @@ class GUI final {
     void useMainFont() { ImGui::PushFont(getMainFont()); }
     void useMonoFont() { ImGui::PushFont(getMonoFont()); }
 
-    struct {
-        bool empty() const { return filename.empty(); }
-        void set(const PCSX::u8string &newfilename) {
-            filename = newfilename;
-            pauseAfterLoad = !g_system->running();
-            if (!empty()) {
-                g_system->resume();
-            }
-        }
-        PCSX::u8string &&get() { return std::move(filename); }
-        bool hasToPause() { return pauseAfterLoad; }
-
-      private:
-        PCSX::u8string filename;
-        bool pauseAfterLoad = true;
-    } m_exeToLoad;
-
+    bool &allowMouseCaptureToggle() { return settings.get<AllowMouseCaptureToggle>().value; }
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
 
     void drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end,

@@ -141,6 +141,7 @@ class Memory {
 
     bool loadEXP1FromFile(std::filesystem::path rom_path);
     int sendReadToLua(uint32_t address, size_t size);
+    bool sendWriteToLua(uint32_t address, size_t size, uint32_t value);
 
     class MemoryAsFile : public File {
       public:

@@ -94,6 +94,12 @@
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\luanvg.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\luaimguiextra.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h">
@@ -183,6 +189,12 @@
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gui\luanvg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\luaimguiextra.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -191,6 +203,15 @@
     </None>
     <None Include="..\..\src\gui\shaders\crt-lottes-output.lua">
       <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="..\..\src\gui\nvgffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\nvgffi-cdefs.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\imguiextraffi.lua">
+      <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

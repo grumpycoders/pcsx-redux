@@ -59,6 +59,8 @@
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
+#include "gui/luaimguiextra.h"
+#include "gui/luanvg.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
 #include "imgui.h"
@@ -121,6 +123,12 @@ extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
     if (!exp) thrower(msg);
 }
 
+static GLFWwindow* getGLFWwindowFromImGuiViewport(ImGuiViewport* viewport) {
+    // absolutely horrendous hack, but the only way we have to grab the
+    // GLFWwindow pointer from an ImGuiViewport without changing the backend...
+    return *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+}
+
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
 
 void PCSX::GUI::setFullscreen(bool fullscreen) {
@@ -135,9 +143,8 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
     }
 }
 
-void PCSX::GUI::setRawMouseMotion(bool value) {
-    isRawMouseMotionEnabled() = value;
-    if (value) {
+void PCSX::GUI::setRawMouseMotion() {
+    if (isRawMouseMotionEnabled()) {
         if (glfwRawMouseMotionSupported()) {
             glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
@@ -269,20 +276,18 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
 }
 
 void PCSX::GUI::setLua(Lua L) {
-    L.load(R"(
-print("PCSX-Redux Lua Console")
-print(jit.version)
-print((function(status, ...)
-  local ret = "JIT: " .. (status and "ON" or "OFF")
-  for i, v in ipairs({...}) do
-    ret = ret .. " " .. v
-  end
-  return ret
-end)(jit.status()))
-)",
-           "gui startup");
+    setLuaCommon(L);
     LoadImguiBindings(L.getState());
+    LuaFFI::open_imguiextra(L);
     LuaFFI::open_gl(L);
+    LuaFFI::open_nvg(L);
+    {
+        static int lualoader = 1;
+        static const char* guiextra = (
+#include "gui/extra.lua"
+        );
+        L.load(guiextra, "internal:gui/extra.lua");
+    }
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");
     L.push("gui");
@@ -303,6 +308,28 @@ end)(jit.status()))
         g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
         g_system->log(LogClass::UI, "%s", outputStatus.getError());
     }
+}
+
+void PCSX::GUI::setDefaultShaders() {
+    m_offscreenShaderEditor.setDefaults();
+    auto offscreenStatus = m_offscreenShaderEditor.compile(this);
+    m_outputShaderEditor.setDefaults();
+    auto outputStatus = m_outputShaderEditor.compile(this);
+
+    if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+        m_offscreenShaderEditor.setFallbacks();
+        m_outputShaderEditor.setFallbacks();
+        offscreenStatus = m_offscreenShaderEditor.compile(this);
+        outputStatus = m_outputShaderEditor.compile(this);
+    }
+    if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+        g_system->log(LogClass::UI, "Failed to compile output shaders. You won't be able to see anything");
+        g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
+        g_system->log(LogClass::UI, "%s", outputStatus.getError());
+    }
+
+    m_offscreenShaderEditor.reset(this);
+    m_outputShaderEditor.reset(this);
 }
 
 void PCSX::GUI::init() {
@@ -344,14 +371,13 @@ void PCSX::GUI::init() {
     }
 
     m_listener.listen<Events::Quitting>([this](const auto& event) { saveCfg(); });
-    m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         glfwSwapInterval(m_idleSwapInterval);
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
         glfwSwapInterval(0);
-        setRawMouseMotion(isRawMouseMotionEnabled());
+        setRawMouseMotion();
     });
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -406,8 +432,15 @@ void PCSX::GUI::init() {
         glDebugMessageCallback = nullptr;
     }
 
-    m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
-    if (!m_nvgContext) {
+    auto vg = m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
+    if (vg) {
+        g_system->findResource(
+            [vg](auto path) -> bool {
+                int res = nvgCreateFont(vg, "noto-sans-regular", path.string().c_str());
+                return res >= 0;
+            },
+            MAKEU8("NotoSans-Regular.ttf"), "fonts", std::filesystem::path("third_party") / "noto");
+    } else {
         g_system->log(LogClass::UI, "Warning: Unable to initialize NanoVG. Check OpenGL drivers.\n");
     }
 
@@ -417,30 +450,21 @@ void PCSX::GUI::init() {
     auto& io = ImGui::GetIO();
     {
         io.IniFilename = nullptr;
-        std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator->settings;
         const bool resetUI = m_args.get<bool>("resetui", false);
-        json j;
-        bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
-        if (cfg.is_open() && !safeMode) {
-            try {
-                cfg >> j;
-            } catch (...) {
-            }
-            if (!resetUI && (j.count("imgui") == 1) && j["imgui"].is_string()) {
-                std::string imguicfg = j["imgui"];
+        bool safeMode =
+            m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
+        if (loadSettings()) {
+            if (!resetUI && (m_settingsJson.count("imgui") == 1) && m_settingsJson["imgui"].is_string()) {
+                std::string imguicfg = m_settingsJson["imgui"];
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
-            if ((j.count("emulator") == 1) && j["emulator"].is_object()) {
-                emuSettings.deserialize(j["emulator"]);
+            if ((m_settingsJson.count("gui") == 1 && m_settingsJson["gui"].is_object())) {
+                settings.deserialize(m_settingsJson["gui"]);
             }
-            if ((j.count("gui") == 1 && j["gui"].is_object())) {
-                settings.deserialize(j["gui"]);
+            if ((m_settingsJson.count("loggers") == 1 && m_settingsJson["loggers"].is_object())) {
+                m_log.deserialize(m_settingsJson["loggers"]);
             }
-            if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
-                m_log.deserialize(j["loggers"]);
-            }
-
             auto& windowSizeX = settings.get<WindowSizeX>();
             auto& windowSizeY = settings.get<WindowSizeY>();
             if (windowSizeX <= 0 || resetUI) {
@@ -459,16 +483,12 @@ void PCSX::GUI::init() {
             }
 
             glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
-            PCSX::g_emulator->m_spu->setCfg(j);
-            PCSX::g_emulator->m_pads->setCfg(j);
         } else {
-            PCSX::g_emulator->m_pads->setDefaults();
             saveCfg();
         }
 
-        g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
+        finishLoadSettings();
 
-        g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
         if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
             !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
@@ -509,15 +529,26 @@ void PCSX::GUI::init() {
     m_createWindowOldCallback = platform_io.Platform_CreateWindow;
     platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
         if (s_gui->m_createWindowOldCallback) s_gui->m_createWindowOldCallback(viewport);
-        // absolutely horrendous hack, but the only way we have to grab the
-        // newly created GLFWwindow pointer...
-        auto window = *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+        auto window = getGLFWwindowFromImGuiViewport(viewport);
         glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
+        auto id = viewport->ID;
+        s_gui->m_nvgSubContextes[id] = nvgCreateSubContextGL(s_gui->m_nvgContext);
     };
     m_onChangedViewportOldCallback = platform_io.Platform_OnChangedViewport;
     platform_io.Platform_OnChangedViewport = [](ImGuiViewport* viewport) {
         if (s_gui->m_onChangedViewportOldCallback) s_gui->m_onChangedViewportOldCallback(viewport);
         s_gui->changeScale(viewport->DpiScale);
+    };
+    m_destroyWindowOldCallback = platform_io.Platform_DestroyWindow;
+    platform_io.Platform_DestroyWindow = [](ImGuiViewport* viewport) {
+        auto id = viewport->ID;
+        auto& subContextes = s_gui->m_nvgSubContextes;
+        auto subContext = subContextes.find(id);
+        if (subContext != subContextes.end()) {
+            nvgDeleteSubContextGL(subContext->second);
+            subContextes.erase(subContext);
+        }
+        if (s_gui->m_destroyWindowOldCallback) s_gui->m_destroyWindowOldCallback(viewport);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     // Some bad GPU drivers (*cough* Intel) don't like mixed shaders versions,
@@ -649,6 +680,11 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
+    for (auto& subContext : m_nvgSubContextes) {
+        nvgDeleteSubContextGL(subContext.second);
+    }
+    m_nvgSubContextes.clear();
+    nvgDeleteGLES3(m_nvgContext);
 }
 
 void PCSX::GUI::saveCfg() {
@@ -681,19 +717,7 @@ void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 
 void PCSX::GUI::startFrame() {
     ZoneScoped;
-    uv_run(g_system->getLoop(), UV_RUN_NOWAIT);
-    auto L = *g_emulator->m_lua;
-    L.getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
-    if (!L.isnil()) {
-        try {
-            L.pcall();
-        } catch (...) {
-        }
-        L.push();
-        L.setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
-    } else {
-        L.pop();
-    }
+    tick();
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
 
@@ -784,8 +808,9 @@ void PCSX::GUI::startFrame() {
     }
     if (io.KeyAlt) {
         if (ImGui::IsKeyPressed(ImGuiKey_Enter)) setFullscreen(!m_fullscreen);
-        if (io.KeyCtrl) {
-            setRawMouseMotion(!isRawMouseMotionEnabled());
+        if (io.KeyCtrl && allowMouseCaptureToggle()) {
+            isRawMouseMotionEnabled() = !isRawMouseMotionEnabled();
+            setRawMouseMotion();
         }
     }
 
@@ -1042,26 +1067,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
                 if (ImGui::BeginMenu(_("Shader presets"))) {
                     if (ImGui::MenuItem(_("Default shader"))) {
-                        m_offscreenShaderEditor.setDefaults();
-                        auto offscreenStatus = m_offscreenShaderEditor.compile(this);
-                        m_outputShaderEditor.setDefaults();
-                        auto outputStatus = m_outputShaderEditor.compile(this);
-
-                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
-                            m_offscreenShaderEditor.setFallbacks();
-                            m_outputShaderEditor.setFallbacks();
-                            offscreenStatus = m_offscreenShaderEditor.compile(this);
-                            outputStatus = m_outputShaderEditor.compile(this);
-                        }
-                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
-                            g_system->log(LogClass::UI,
-                                          "Failed to compile output shaders. You won't be able to see anything");
-                            g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
-                            g_system->log(LogClass::UI, "%s", outputStatus.getError());
-                        }
-
-                        m_offscreenShaderEditor.reset(this);
-                        m_outputShaderEditor.reset(this);
+                        setDefaultShaders();
                     }
                     if (ImGui::MenuItem(_("CRT-lottes shader"))) {
                         m_offscreenShaderEditor.setText(Shaders::CrtLottes::Offscreen::vert().data(),
@@ -1199,6 +1205,9 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
                     ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
                     ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
+                    if (ImGui::MenuItem(_("Reset shaders"), nullptr)) {
+                        setDefaultShaders();
+                    }
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenu();
@@ -1653,14 +1662,98 @@ the update and manually apply it.)")));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-        glfwMakeContextCurrent(m_window);
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    int winWidth, winHeight;
+    int fbWidth, fbHeight;
+    float pxRatio;
+    auto vg = m_nvgContext;
+    if (vg) {
+        glfwGetWindowSize(m_window, &winWidth, &winHeight);
+        glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
+        pxRatio = (float)fbWidth / (float)winWidth;
+        nvgSwitchMainContextGL(vg);
+        nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+        while (L.gettop()) L.pop();
+        L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+        L.push("_gui");
+        L.push(this);
+        L.settable();
+        L.push("_ctx");
+        L.push(vg);
+        L.settable();
+        L.getfield("_processQueueForViewportId", -1);
+        L.copy(-2);
+        L.push(lua_Number(platform_io.Viewports[0]->ID));
+        try {
+            L.pcall(2);
+            bool gotGLerror = false;
+            for (const auto& error : m_glErrors) {
+                m_luaConsole.addError(error);
+                if (m_args.get<bool>("lua_stdout", false)) {
+                    fprintf(stderr, "%s\n", error.c_str());
+                }
+                gotGLerror = true;
+            }
+            m_glErrors.clear();
+            if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+        } catch (...) {
+        }
+        nvgEndFrame(vg);
+        while (L.gettop()) L.pop();
     }
 
     glfwSwapBuffers(m_window);
+
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        ImGui::UpdatePlatformWindows();
+        // Skip the main viewport (index 0), which is always fully handled by the application!
+        for (int i = 1; i < platform_io.Viewports.Size; i++) {
+            ImGuiViewport* viewport = platform_io.Viewports[i];
+            if (viewport->Flags & ImGuiViewportFlags_IsMinimized) continue;
+            if (platform_io.Platform_RenderWindow) platform_io.Platform_RenderWindow(viewport, nullptr);
+            if (platform_io.Renderer_RenderWindow) platform_io.Renderer_RenderWindow(viewport, nullptr);
+            if (vg) {
+                auto window = getGLFWwindowFromImGuiViewport(viewport);
+                glfwGetWindowSize(window, &winWidth, &winHeight);
+                glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+                pxRatio = (float)fbWidth / (float)winWidth;
+                nvgSwitchSubContextGL(vg, m_nvgSubContextes[viewport->ID]);
+                nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+                L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+                L.getfield("_processQueueForViewportId", -1);
+                L.copy(-2);
+                L.push(lua_Number(viewport->ID));
+                try {
+                    L.pcall(2);
+                    bool gotGLerror = false;
+                    for (const auto& error : m_glErrors) {
+                        m_luaConsole.addError(error);
+                        if (m_args.get<bool>("lua_stdout", false)) {
+                            fprintf(stderr, "%s\n", error.c_str());
+                        }
+                        gotGLerror = true;
+                    }
+                    m_glErrors.clear();
+                    if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+                } catch (...) {
+                }
+                nvgEndFrame(vg);
+                while (L.gettop()) L.pop();
+            }
+            if (platform_io.Platform_SwapBuffers) platform_io.Platform_SwapBuffers(viewport, nullptr);
+            if (platform_io.Renderer_SwapBuffers) platform_io.Renderer_SwapBuffers(viewport, nullptr);
+        }
+        glfwMakeContextCurrent(m_window);
+    }
+
+    L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+    L.push("_gui");
+    L.push();
+    L.settable();
+    L.push("_ctx");
+    L.push();
+    L.settable();
+    while (L.gettop()) L.pop();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
@@ -2115,61 +2208,6 @@ void PCSX::GUI::update(bool vsync) {
     // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
     // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.
     g_emulator->m_gpu->setOpenGLContext();
-}
-
-void PCSX::GUI::shellReached() {
-    auto& regs = g_emulator->m_cpu->m_regs;
-    uint32_t oldPC = regs.pc;
-    if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
-
-    if (m_exeToLoad.empty()) return;
-    PCSX::u8string filename = m_exeToLoad.get();
-    std::filesystem::path p = filename;
-
-    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
-    bool success = false;
-    try {
-        BinaryLoader::Info info;
-        IO<File> in(new PosixFile(filename));
-        if (in->failed()) {
-            throw std::runtime_error("Failed to open file.");
-        }
-        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info, g_emulator->m_cpu->m_symbols);
-        if (!info.pc.has_value()) {
-            throw std::runtime_error("Binary loaded without any PC to jump to.");
-        }
-        regs.pc = info.pc.value();
-        if (info.sp.has_value()) regs.GPR.n.sp = info.sp.value();
-        if (info.gp.has_value()) regs.GPR.n.gp = info.gp.value();
-        if (g_emulator->settings.get<Emulator::SettingAutoVideo>() && info.region.has_value()) {
-            switch (info.region.value()) {
-                case BinaryLoader::Region::NTSC:
-                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
-                    break;
-                case BinaryLoader::Region::PAL:
-                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
-                    break;
-            }
-        }
-    } catch (std::exception& e) {
-        g_system->log(LogClass::UI, "Failed to load %s: %s\n", p.string(), e.what());
-    } catch (...) {
-        g_system->log(LogClass::UI, "Failed to load %s: unknown error\n", p.string());
-    }
-    if (success) {
-        g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
-    } else {
-        g_system->log(LogClass::UI, "Failed to load %s, unknown file format.\n", p.string());
-    }
-
-    if (m_exeToLoad.hasToPause()) {
-        g_system->pause();
-    }
-
-    if (oldPC != regs.pc) {
-        g_emulator->m_callStacks->potentialRA(regs.pc, regs.GPR.n.sp);
-        g_emulator->m_debug->updatedPC(regs.pc);
-    }
 }
 
 void PCSX::GUI::magicOpen(const char* pathStr) {

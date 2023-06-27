@@ -29,7 +29,7 @@
 namespace PCSX {
 class OpenGL_GPU final : public GPU {
     // Interface functions
-    int initBackend(GUI *) override;
+    int initBackend(UI *) override;
     int shutdown() override;
     uint32_t readStatusInternal() override;
     void setOpenGLContext() override;
@@ -38,6 +38,7 @@ class OpenGL_GPU final : public GPU {
     void debug() override;
 
     void setDither(int setting) override { m_useDither = setting; }
+    void setCachedDithering(bool cached) override {}
     void clearVRAM() override;
     void resetBackend() override;
     GLuint getVRAMTexture() override;

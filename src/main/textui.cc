@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2020 PCSX-Redux authors                                 *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,19 +17,33 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "gtest/gtest.h"
-#include "main/main.h"
+#include "main/textui.h"
 
-TEST(libc, Interpreter) {
-    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
-                        "-loadexe", "src/mips/tests/libc/libc.ps-exe");
-    int ret = invoker.invoke();
-    EXPECT_EQ(ret, 0);
+#include <chrono>
+#include <thread>
+
+PCSX::TUI::TUI(const CommandLine::args &args) : UI(args) {}
+PCSX::TUI::~TUI() {}
+
+bool PCSX::TUI::addLog(LogClass logClass, const std::string &msg) { return true; }
+
+void PCSX::TUI::addLuaLog(const std::string &msg, bool error) {}
+
+void PCSX::TUI::init() {
+    loadSettings();
+    finishLoadSettings();
 }
 
-TEST(libc, Dynarec) {
-    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
-                        "-loadexe", "src/mips/tests/libc/libc.ps-exe");
-    int ret = invoker.invoke();
-    EXPECT_EQ(ret, 0);
+void PCSX::TUI::setLua(Lua L) { setLuaCommon(L); }
+
+void PCSX::TUI::close() {}
+
+void PCSX::TUI::update(bool vsync) {
+    tick();
+    if (!g_system->running()) {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(10ms);
+    }
 }
+
+void PCSX::TUI::addNotification(const std::string &notification) {}

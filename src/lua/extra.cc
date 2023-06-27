@@ -38,7 +38,7 @@ void PCSX::LuaFFI::open_extra(Lua L) {
     luaopen_pb_unsafe(L.getState());
     L.setfield("pb.unsafe");
 
-    static int lualoader = 1;
+    static int lualoader = 6;
     static const char* pprint = (
 #include "pprint.lua/pprint.lua"
     );

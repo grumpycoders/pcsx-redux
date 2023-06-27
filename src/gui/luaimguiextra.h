@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2020 PCSX-Redux authors                                 *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,19 +17,16 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "gtest/gtest.h"
-#include "main/main.h"
+#pragma once
 
-TEST(libc, Interpreter) {
-    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
-                        "-loadexe", "src/mips/tests/libc/libc.ps-exe");
-    int ret = invoker.invoke();
-    EXPECT_EQ(ret, 0);
+#include "lua/luawrapper.h"
+
+namespace PCSX {
+
+namespace LuaFFI {
+
+void open_imguiextra(Lua L);
+
 }
 
-TEST(libc, Dynarec) {
-    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
-                        "-loadexe", "src/mips/tests/libc/libc.ps-exe");
-    int ret = invoker.invoke();
-    EXPECT_EQ(ret, 0);
-}
+}  // namespace PCSX
