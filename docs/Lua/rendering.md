@@ -100,6 +100,22 @@ The code is expected to export a few functions:
   executed, as it needs to grab a portion of the VRAM texture to be rendered
   to the offscreen texture.
 
+Additionally, it is possible to programmatically set the content of the editors using the following methods:
+
+```lua
+PCSX.GUI.OffscreenShader.setDefaults()
+PCSX.GUI.OffscreenShader.setTextVS(text)
+PCSX.GUI.OffscreenShader.setTextPS(text)
+PCSX.GUI.OffscreenShader.setTextL(text)
+PCSX.GUI.OutputShader.setDefaults()
+PCSX.GUI.OutputShader.setTextVS(text)
+PCSX.GUI.OutputShader.setTextPS(text)
+PCSX.GUI.OutputShader.setTextL(text)
+```
+
+The `setDefaults` method will set the default shader code, and the `setText*` methods will set the
+shader code to the given string. The `text` argument can be either an actual string, or a [`File` object](file-api.md).
+
 ## ImGui
 
 The ImGui API is bound to Lua, and can be used to draw UI elements. The
