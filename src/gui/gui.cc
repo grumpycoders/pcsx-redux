@@ -70,6 +70,7 @@
 #include "imgui_stdlib.h"
 #include "json.hpp"
 #include "lua/glffi.h"
+#include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "nanovg/src/nanovg.h"
@@ -293,6 +294,84 @@ void PCSX::GUI::setLua(Lua L) {
     L.push("gui");
     settings.pushValue(L);
     L.settable();
+    L.pop();
+    auto setText = [this](Lua L, Widgets::ShaderEditor* editor,
+                          void (Widgets::ShaderEditor::*setText)(std::string_view)) -> int {
+        if (L.gettop() != 1) {
+            return L.error(_("One argument needed to the setText* functions"));
+        }
+        std::optional<std::string> text;
+        if (L.istable(-1)) {
+            L.getfield("_type");
+            if (L.tostring(-1) == "File") {
+                L.pop();
+                L.getfield("_wrapper");
+                auto wrapper = *L.topointer<LuaFFI::LuaFile*>(-1);
+                text = wrapper->file->readStringAt(wrapper->file->size(), 0);
+            }
+            L.pop();
+        }
+        if (!text.has_value()) {
+            text = L.tostring(-1);
+        }
+        if (!text.has_value()) {
+            return L.error(
+                _("The argument to the setText* functions need to be convertible to a string, or be a File object"));
+        }
+        (editor->*setText)(text.value());
+        auto status = editor->compile(this);
+        if (!status.isOk()) {
+            return L.error(fmt::format(f_("Error compiling new shader code: {}"), status.getError()));
+        }
+        return 0;
+    };
+    L.getfieldtable("GUI");
+    L.getfieldtable("OffscreenShader");
+    L.declareFunc(
+        "setDefaults",
+        [this](Lua L) -> int {
+            m_offscreenShaderEditor.setDefaults();
+            auto status = m_offscreenShaderEditor.compile(this);
+            if (!status.isOk()) {
+                m_offscreenShaderEditor.setFallbacks();
+                m_offscreenShaderEditor.compile(this);
+            }
+            return 0;
+        },
+        -1);
+    L.declareFunc(
+        "setTextVS",
+        [this, setText](Lua L) { return setText(L, &m_offscreenShaderEditor, &Widgets::ShaderEditor::setTextVS); }, -1);
+    L.declareFunc(
+        "setTextPS",
+        [this, setText](Lua L) { return setText(L, &m_offscreenShaderEditor, &Widgets::ShaderEditor::setTextPS); }, -1);
+    L.declareFunc(
+        "setTextL",
+        [this, setText](Lua L) { return setText(L, &m_offscreenShaderEditor, &Widgets::ShaderEditor::setTextL); }, -1);
+    L.pop();
+    L.getfieldtable("OutputShader");
+    L.declareFunc(
+        "setDefaults",
+        [this](Lua L) -> int {
+            m_outputShaderEditor.setDefaults();
+            auto status = m_outputShaderEditor.compile(this);
+            if (!status.isOk()) {
+                m_outputShaderEditor.setFallbacks();
+                m_outputShaderEditor.compile(this);
+            }
+            return 0;
+        },
+        -1);
+    L.declareFunc(
+        "setTextVS",
+        [this, setText](Lua L) { return setText(L, &m_outputShaderEditor, &Widgets::ShaderEditor::setTextVS); }, -1);
+    L.declareFunc(
+        "setTextPS",
+        [this, setText](Lua L) { return setText(L, &m_outputShaderEditor, &Widgets::ShaderEditor::setTextPS); }, -1);
+    L.declareFunc(
+        "setTextL",
+        [this, setText](Lua L) { return setText(L, &m_outputShaderEditor, &Widgets::ShaderEditor::setTextL); }, -1);
+    L.pop();
     L.pop();
     L.pop();
     auto offscreenStatus = m_offscreenShaderEditor.compile(this);
