@@ -201,6 +201,10 @@ Most of the NanoVG API is bound to Lua, with the exception of the following func
 - `nvgCreateImage`
 - `nvgCreateImageMem`
 
+In addition, the enums and some constructors for the structures used in NanoVG are available
+as extra values and functions. Please refer [to the Lua source code](https://github.com/grumpycoders/pcsx-redux/blob/main/src/gui/nvgffi.lua)
+for more details.
+
 The general idea is that the emulator will call `nvgBeginFrame` and `nvgEndFrame` before
 and after the Lua code is executed, and the Lua code will be able to call
 the other functions to draw the vector graphics.
