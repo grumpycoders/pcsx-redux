@@ -19,13 +19,14 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 #include <utility>
 
 #include "core/system.h"
+#include "flags.h"
 #include "json.hpp"
 #include "lua/luawrapper.h"
-#include "flags.h"
 
 namespace PCSX {
 
@@ -38,7 +39,7 @@ class UI {
     virtual void addNotification(const std::string &notification) = 0;
     virtual bool addLog(LogClass logClass, const std::string &msg) = 0;
     virtual void addLuaLog(const std::string &msg, bool error) = 0;
-    virtual void init() = 0;
+    virtual void init(std::function<void()> applyArguments) = 0;
     virtual void setLua(Lua L) = 0;
     virtual void close() = 0;
     virtual void update(bool vsync = false) = 0;

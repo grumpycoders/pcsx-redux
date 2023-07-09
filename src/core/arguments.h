@@ -19,21 +19,40 @@
 
 #pragma once
 
-#include "core/ui.h"
+#include <stdint.h>
+
+#include "flags.h"
 
 namespace PCSX {
 
-class TUI : public UI {
+class Arguments {
   public:
-    TUI(const CommandLine::args &args);
-    ~TUI();
-    bool addLog(LogClass logClass, const std::string &msg) override;
-    void addLuaLog(const std::string &msg, bool error) override;
-    void init(std::function<void()> applyArguments) override;
-    void setLua(Lua L) override;
-    void close() override;
-    void update(bool vsync = false) override;
-    void addNotification(const std::string &notification) override;
+    Arguments(const CommandLine::args& args);
+    Arguments(const Arguments&) = delete;
+    Arguments(Arguments&&) = delete;
+    Arguments& operator=(const Arguments&) = delete;
+    Arguments& operator=(Arguments&&) = delete;
+
+    // Returns true if stdout should be enabled.
+    // Enabled with the flags -stdout (but not when -tui is used), -no-ui, or -cli.
+    bool isStdoutEnabled() const { return m_stdoutEnabled; }
+
+    // Returns true if Lua should be displaying its console output to stdout.
+    // Enabled with the flags -lua_stdout, -no-ui, or -cli.
+    bool isLuaStdoutEnabled() const { return m_luaStdoutEnabled; }
+
+    // Returns true if the GUI logs window should be enabled.
+    // Disabled with -testmode or -no-gui-log.
+    bool enableGUILogs() const { return m_guiLogsEnabled; }
+
+    // Returns true if the the flag -testmode was used.
+    bool isTestModeEnabled() const { return m_testModeEnabled; }
+
+  private:
+    bool m_luaStdoutEnabled = false;
+    bool m_stdoutEnabled = false;
+    bool m_guiLogsEnabled = true;
+    bool m_testModeEnabled = false;
 };
 
 }  // namespace PCSX

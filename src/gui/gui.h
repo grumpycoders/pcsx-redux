@@ -214,7 +214,7 @@ class GUI final : public UI {
         assert(s_gui == this);
         s_gui = nullptr;
     }
-    void init();
+    void init(std::function<void()> applyArguments) override;
     void setLua(Lua L);
     void close();
     void update(bool vsync = false);

@@ -411,7 +411,7 @@ void PCSX::GUI::setDefaultShaders() {
     m_outputShaderEditor.reset(this);
 }
 
-void PCSX::GUI::init() {
+void PCSX::GUI::init(std::function<void()> applyArguments) {
     int result;
 
     if (m_args.get<bool>("noshaders", false)) {
@@ -566,6 +566,7 @@ void PCSX::GUI::init() {
             saveCfg();
         }
 
+        applyArguments();
         finishLoadSettings();
 
         if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&

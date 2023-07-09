@@ -40,12 +40,9 @@ int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("Copyright (C) 2019-2023 PCSX-Redux authors\n"));
     const auto& args = g_system->getArgs();
 
-    if (args.get<bool>("interpreter"))
-        g_emulator->m_cpu = Cpus::Interpreted();
-    else if (args.get<bool>("dynarec"))
+    if (g_emulator->settings.get<Emulator::SettingDynarec>()) {
         g_emulator->m_cpu = Cpus::DynaRec();
-    else if (g_emulator->settings.get<Emulator::SettingDynarec>())
-        g_emulator->m_cpu = Cpus::DynaRec();
+    }
 
     if (!g_emulator->m_cpu) g_emulator->m_cpu = Cpus::Interpreted();
 
@@ -244,7 +241,8 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
             }
         }
         ec = 1 << ec;
-        if (!g_system->testmode() && ((debugSettings.get<Emulator::DebugSettings::FirstChanceException>() & ec) != 0)) {
+        if (!g_system->getArgs().isTestModeEnabled() &&
+            ((debugSettings.get<Emulator::DebugSettings::FirstChanceException>() & ec) != 0)) {
             auto name = magic_enum::enum_name(e.value());
             g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_regs.pc).c_str());
             g_system->pause(true);
