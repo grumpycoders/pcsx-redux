@@ -185,6 +185,9 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
                                           const std::string_view &dPS, const std::string_view &dL)
     : m_baseFilename(base), m_index(++s_index) {
     std::filesystem::path f = base;
+    if (f.is_relative()) {
+        f = g_system->getConfigDir() / f;
+    }
     {
         f.replace_extension("vert");
         std::ifstream in(f, std::ifstream::in);
@@ -226,10 +229,12 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
     }
 }
 
-PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base)
-    : m_baseFilename(base), m_index(++s_index) {
+PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base) : m_baseFilename(base), m_index(++s_index) {
     setDefaults();
     std::filesystem::path f = base;
+    if (f.is_relative()) {
+        f = g_system->getConfigDir() / f;
+    }
     {
         f.replace_extension("vert");
         std::ifstream in(f, std::ifstream::in);
@@ -385,6 +390,9 @@ PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
 
     auto L = *g_emulator->m_lua;
     std::filesystem::path f = m_baseFilename;
+    if (f.is_relative()) {
+        f = g_system->getConfigDir() / f;
+    }
 
     if (m_autocompile) {
         m_lastLuaErrors.clear();

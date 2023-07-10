@@ -124,7 +124,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    virtual const PCSX::Arguments &getArgs() final override { return m_args; }
+    virtual const PCSX::Arguments &getArgs() const final override { return m_args; }
 
     std::string m_putcharBuffer;
     PCSX::IO<PCSX::UvFile> m_logfile;

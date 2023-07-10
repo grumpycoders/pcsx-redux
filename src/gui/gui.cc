@@ -765,7 +765,7 @@ void PCSX::GUI::close() {
 }
 
 void PCSX::GUI::saveCfg() {
-    std::ofstream cfg("pcsx.json");
+    std::ofstream cfg(g_system->getConfigDir() / "pcsx.json");
     json j;
 
     if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {

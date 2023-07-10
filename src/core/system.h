@@ -122,7 +122,7 @@ class System {
     virtual void hardReset() = 0;
     // Putc used by bios syscalls
     virtual void biosPutc(int c) = 0;
-    virtual const Arguments &getArgs() = 0;
+    virtual const Arguments &getArgs() const = 0;
 
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
@@ -225,6 +225,7 @@ class System {
     }
 
     std::filesystem::path getBinDir() const { return m_binDir; }
+    std::filesystem::path getConfigDir() const;
     const VersionInfo &getVersion() const { return m_version; }
 
     // needs to be odd, and is a replica of ImGui's range tables

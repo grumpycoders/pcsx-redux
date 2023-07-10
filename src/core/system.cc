@@ -290,3 +290,12 @@ bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& 
     // No luck here...
     return false;
 }
+
+std::filesystem::path PCSX::System::getConfigDir() const {
+#ifdef _WIN32
+    std::filesystem::path configDir = std::filesystem::path(getenv("APPDATA")) / "pcsx-redux";
+#else
+    std::filesystem::path configDir = std::filesystem::path(getenv("HOME")) / ".config" / "pcsx-redux";
+#endif
+    return getArgs().isPortable() ? "" : configDir;
+}

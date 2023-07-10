@@ -33,7 +33,7 @@ PCSX::UI::UI() : m_listener(g_system->m_eventBus) {
 }
 
 bool PCSX::UI::loadSettings() {
-    std::ifstream cfg("pcsx.json");
+    std::ifstream cfg(g_system->getConfigDir() / "pcsx.json");
     auto& emuSettings = g_emulator->settings;
     if (cfg.is_open() && !g_system->getArgs().isSafeModeEnabled()) {
         try {

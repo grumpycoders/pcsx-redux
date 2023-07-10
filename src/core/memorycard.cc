@@ -333,9 +333,12 @@ uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value) {
 }
 
 // To-do: "All the code starting here is terrible and needs to be rewritten"
-void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
+void PCSX::MemoryCard::loadMcd(PCSX::u8string mcd) {
     char *data = m_mcdData;
-    const char *fname = reinterpret_cast<const char *>(str.c_str());
+    if (std::filesystem::path(mcd).is_relative()) {
+        mcd = (g_system->getConfigDir() / mcd).u8string();
+    }
+    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     size_t bytesRead;
 
     m_directoryFlag = Flags::DirectoryUnread;
@@ -343,7 +346,7 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
     FILE *f = fopen(fname, "rb");
     if (f == nullptr) {
         PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), fname);
-        createMcd(str);
+        createMcd(mcd);
         f = fopen(fname, "rb");
         if (f != nullptr) {
             struct stat buf;
@@ -386,7 +389,10 @@ void PCSX::MemoryCard::loadMcd(const PCSX::u8string str) {
     }
 }
 
-void PCSX::MemoryCard::saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
+void PCSX::MemoryCard::saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
+    if (std::filesystem::path(mcd).is_relative()) {
+        mcd = (g_system->getConfigDir() / mcd).u8string();
+    }
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     FILE *f = fopen(fname, "r+b");
 
@@ -419,7 +425,10 @@ void PCSX::MemoryCard::saveMcd(const PCSX::u8string mcd, const char *data, uint3
     }
 }
 
-void PCSX::MemoryCard::createMcd(const PCSX::u8string mcd) {
+void PCSX::MemoryCard::createMcd(PCSX::u8string mcd) {
+    if (std::filesystem::path(mcd).is_relative()) {
+        mcd = (g_system->getConfigDir() / mcd).u8string();
+    }
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     int s = c_cardSize;
 
