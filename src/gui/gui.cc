@@ -765,7 +765,7 @@ void PCSX::GUI::close() {
 }
 
 void PCSX::GUI::saveCfg() {
-    std::ofstream cfg(g_system->getConfigDir() / "pcsx.json");
+    std::ofstream cfg(g_system->getPersistentDir() / "pcsx.json");
     json j;
 
     if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
@@ -2334,14 +2334,20 @@ std::string PCSX::GUI::buildSaveStateFilename(int i) {
     }
 }
 
-void PCSX::GUI::saveSaveState(const std::filesystem::path& filename) {
+void PCSX::GUI::saveSaveState(std::filesystem::path filename) {
+    if (filename.is_relative()) {
+        filename = g_system->getPersistentDir() / filename;
+    }
     // TODO: yeet this to libuv's threadpool.
     ZWriter save(new UvFile(filename, FileOps::TRUNCATE), ZWriter::GZIP);
     if (!save.failed()) save.writeString(SaveStates::save());
     save.close();
 }
 
-void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
+void PCSX::GUI::loadSaveState(std::filesystem::path filename) {
+    if (filename.is_relative()) {
+        filename = g_system->getPersistentDir() / filename;
+    }
     ZReader save(new PosixFile(filename));
     if (save.failed()) return;
     std::ostringstream os;

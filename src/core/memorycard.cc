@@ -336,7 +336,7 @@ uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value) {
 void PCSX::MemoryCard::loadMcd(PCSX::u8string mcd) {
     char *data = m_mcdData;
     if (std::filesystem::path(mcd).is_relative()) {
-        mcd = (g_system->getConfigDir() / mcd).u8string();
+        mcd = (g_system->getPersistentDir() / mcd).u8string();
     }
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     size_t bytesRead;
@@ -391,7 +391,7 @@ void PCSX::MemoryCard::loadMcd(PCSX::u8string mcd) {
 
 void PCSX::MemoryCard::saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
     if (std::filesystem::path(mcd).is_relative()) {
-        mcd = (g_system->getConfigDir() / mcd).u8string();
+        mcd = (g_system->getPersistentDir() / mcd).u8string();
     }
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     FILE *f = fopen(fname, "r+b");
@@ -427,7 +427,7 @@ void PCSX::MemoryCard::saveMcd(PCSX::u8string mcd, const char *data, uint32_t ad
 
 void PCSX::MemoryCard::createMcd(PCSX::u8string mcd) {
     if (std::filesystem::path(mcd).is_relative()) {
-        mcd = (g_system->getConfigDir() / mcd).u8string();
+        mcd = (g_system->getPersistentDir() / mcd).u8string();
     }
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     int s = c_cardSize;

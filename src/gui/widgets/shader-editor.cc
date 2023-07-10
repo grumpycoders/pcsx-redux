@@ -186,7 +186,7 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
     : m_baseFilename(base), m_index(++s_index) {
     std::filesystem::path f = base;
     if (f.is_relative()) {
-        f = g_system->getConfigDir() / f;
+        f = g_system->getPersistentDir() / f;
     }
     {
         f.replace_extension("vert");
@@ -233,7 +233,7 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base) : m_baseFilen
     setDefaults();
     std::filesystem::path f = base;
     if (f.is_relative()) {
-        f = g_system->getConfigDir() / f;
+        f = g_system->getPersistentDir() / f;
     }
     {
         f.replace_extension("vert");
@@ -391,7 +391,7 @@ PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     auto L = *g_emulator->m_lua;
     std::filesystem::path f = m_baseFilename;
     if (f.is_relative()) {
-        f = g_system->getConfigDir() / f;
+        f = g_system->getPersistentDir() / f;
     }
 
     if (m_autocompile) {

@@ -405,8 +405,8 @@ class GUI final : public UI {
     EventBus::Listener m_listener;
 
     std::string buildSaveStateFilename(int i);
-    void saveSaveState(const std::filesystem::path &filename);
-    void loadSaveState(const std::filesystem::path &filename);
+    void saveSaveState(std::filesystem::path filename);
+    void loadSaveState(std::filesystem::path filename);
 
     void applyTheme(int theme);
     void cherryTheme();

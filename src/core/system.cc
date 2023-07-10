@@ -291,7 +291,7 @@ bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& 
     return false;
 }
 
-std::filesystem::path PCSX::System::getConfigDir() const {
+std::filesystem::path PCSX::System::getPersistentDir() const {
 #ifdef _WIN32
     std::filesystem::path configDir = std::filesystem::path(getenv("APPDATA")) / "pcsx-redux";
 #else

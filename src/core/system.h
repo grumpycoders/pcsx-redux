@@ -225,7 +225,7 @@ class System {
     }
 
     std::filesystem::path getBinDir() const { return m_binDir; }
-    std::filesystem::path getConfigDir() const;
+    std::filesystem::path getPersistentDir() const;
     const VersionInfo &getVersion() const { return m_version; }
 
     // needs to be odd, and is a replica of ImGui's range tables
