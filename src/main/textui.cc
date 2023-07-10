@@ -29,8 +29,9 @@ bool PCSX::TUI::addLog(LogClass logClass, const std::string &msg) { return true;
 
 void PCSX::TUI::addLuaLog(const std::string &msg, bool error) {}
 
-void PCSX::TUI::init() {
+void PCSX::TUI::init(std::function<void()> applyArguments) {
     loadSettings();
+    applyArguments();
     finishLoadSettings();
 }
 

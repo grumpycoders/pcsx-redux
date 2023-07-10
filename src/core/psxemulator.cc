@@ -124,22 +124,7 @@ int PCSX::Emulator::init() {
 
     const auto& args = g_system->getArgs();
 
-    if (args.get<bool>("openglgpu")) {
-        settings.get<SettingHardwareRenderer>() = true;
-    }
-    if (args.get<bool>("softgpu")) {
-        settings.get<SettingHardwareRenderer>() = false;
-    }
-
     m_gpu = settings.get<SettingHardwareRenderer>() ? GPU::getOpenGL() : GPU::getSoft();
-
-    // Enable or disable Kiosk Mode if command line flags are set
-    if (args.get<bool>("kiosk")) {
-        settings.get<SettingKioskMode>() = true;
-    }
-    if (args.get<bool>("no-kiosk")) {
-        settings.get<SettingKioskMode>() = false;
-    }
 
     setPGXPMode(m_config.PGXP_Mode);
     m_sio->init();

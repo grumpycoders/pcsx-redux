@@ -17,23 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include "core/arguments.h"
 
-#include "core/ui.h"
-
-namespace PCSX {
-
-class TUI : public UI {
-  public:
-    TUI(const CommandLine::args &args);
-    ~TUI();
-    bool addLog(LogClass logClass, const std::string &msg) override;
-    void addLuaLog(const std::string &msg, bool error) override;
-    void init(std::function<void()> applyArguments) override;
-    void setLua(Lua L) override;
-    void close() override;
-    void update(bool vsync = false) override;
-    void addNotification(const std::string &notification) override;
-};
-
-}  // namespace PCSX
+PCSX::Arguments::Arguments(const CommandLine::args& args) {
+    if (args.get<bool>("lua_stdout") || args.get<bool>("no-ui") || args.get<bool>("cli")) {
+        m_luaStdoutEnabled = true;
+    }
+    if (args.get<bool>("stdout") && !args.get<bool>("tui")) m_stdoutEnabled = true;
+    if (args.get<bool>("no-ui") || args.get<bool>("cli")) m_stdoutEnabled = true;
+    if (args.get<bool>("testmode") || args.get<bool>("no-gui-log")) m_guiLogsEnabled = false;
+    if (args.get<bool>("testmode")) m_testModeEnabled = true;
+}

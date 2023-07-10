@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-#include "flags.h"
+#include "core/arguments.h"
 #include "fmt/format.h"
 #include "fmt/printf.h"
 #include "imgui.h"
@@ -122,25 +122,25 @@ class System {
     virtual void hardReset() = 0;
     // Putc used by bios syscalls
     virtual void biosPutc(int c) = 0;
-    virtual const CommandLine::args &getArgs() = 0;
+    virtual const Arguments &getArgs() = 0;
 
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &... args) {
+    void printf(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         printf(std::move(s));
     }
     virtual void printf(std::string &&) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &... args) {
+    void log(LogClass logClass, const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, std::move(s));
     }
     virtual void log(LogClass, std::string &&) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &... args) {
+    void message(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         message(std::move(s));
     }
@@ -240,8 +240,6 @@ class System {
 
     uv_loop_t *getLoop() { return &m_loop; }
 
-    bool testmode() { return m_testmode; }
-
   private:
     uv_loop_t m_loop;
     std::map<uint64_t, std::string> m_i18n;
@@ -261,7 +259,6 @@ class System {
     std::filesystem::path m_binDir;
     PCSX::VersionInfo m_version;
     bool m_emergencyExit = true;
-    bool m_testmode = false;
 };
 
 extern System *g_system;
