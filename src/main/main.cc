@@ -52,7 +52,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
     virtual void message(std::string &&s) final override {
-        if (m_args.enableGUILogs()) s_ui->addNotification(s.c_str());
+        if (m_args.isGUILogsEnabled()) s_ui->addNotification(s.c_str());
         if (s_ui->addLog(PCSX::LogClass::UI, s)) {
             if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
             m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
@@ -61,7 +61,7 @@ class SystemImpl final : public PCSX::System {
     }
 
     virtual void log(PCSX::LogClass logClass, std::string &&s) final override {
-        if (m_args.enableGUILogs()) {
+        if (m_args.isGUILogsEnabled()) {
             if (!s_ui->addLog(logClass, s)) return;
         }
         if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
@@ -70,7 +70,7 @@ class SystemImpl final : public PCSX::System {
     }
 
     virtual void printf(std::string &&s) final override {
-        if (m_args.enableGUILogs()) {
+        if (m_args.isGUILogsEnabled()) {
             if (!s_ui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
         }
         if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
@@ -79,7 +79,7 @@ class SystemImpl final : public PCSX::System {
     }
 
     virtual void luaMessage(const std::string &s, bool error) final override {
-        if (m_args.enableGUILogs()) {
+        if (m_args.isGUILogsEnabled()) {
             s_ui->addLuaLog(s, error);
         }
         if ((error && m_inStartup) || m_args.isLuaStdoutEnabled()) {
@@ -216,8 +216,8 @@ int pcsxMain(int argc, char **argv) {
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
 
-    s_ui = args.get<bool>("no-ui") || args.get<bool>("cli") ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI(args))
-                                                            : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(args));
+    s_ui = args.get<bool>("no-ui") || args.get<bool>("cli") ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI())
+                                                            : reinterpret_cast<PCSX::UI *>(new PCSX::GUI());
     // Settings will be loaded after this initialization.
     s_ui->init([&emulator, &args, &system]() {
         // Start tweaking / sanitizing settings a bit, while continuing to parse the command line

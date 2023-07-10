@@ -22,7 +22,7 @@
 #include <chrono>
 #include <thread>
 
-PCSX::TUI::TUI(const CommandLine::args &args) : UI(args) {}
+PCSX::TUI::TUI() {}
 PCSX::TUI::~TUI() {}
 
 bool PCSX::TUI::addLog(LogClass logClass, const std::string &msg) { return true; }

@@ -206,7 +206,7 @@ class GUI final : public UI {
         GUI *m_gui = nullptr;
     };
     std::vector<std::string> getGLerrors() { return std::move(m_glErrors); }
-    GUI(const CommandLine::args &args) : m_listener(g_system->m_eventBus), UI(args) {
+    GUI() : m_listener(g_system->m_eventBus) {
         assert(s_gui == nullptr);
         s_gui = this;
     }
@@ -298,7 +298,6 @@ class GUI final : public UI {
   private:
     GLFWwindow *m_window = nullptr;
     bool m_hasCoreProfile = false;
-    bool m_disableShaders = false;
     int &m_glfwPosX = settings.get<WindowPosX>().value;
     int &m_glfwPosY = settings.get<WindowPosY>().value;
     int &m_glfwSizeX = settings.get<WindowSizeX>().value;
