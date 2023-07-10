@@ -47,6 +47,7 @@ int PCSX::R3000Acpu::psxInit() {
     if (!g_emulator->m_cpu) g_emulator->m_cpu = Cpus::Interpreted();
 
     PGXP_Init();
+    g_system->printf(_("CPU type: %s\n"), g_emulator->m_cpu->getName().c_str());
 
     return g_emulator->m_cpu->Init();
 }

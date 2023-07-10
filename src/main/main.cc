@@ -298,7 +298,7 @@ int pcsxMain(int argc, char **argv) {
         if (args.get<bool>("dynarec")) {
             emuSettings.get<PCSX::Emulator::SettingDynarec>() = true;
         }
-        if (args.get<bool>("interpreted")) {
+        if (args.get<bool>("interpreter")) {
             emuSettings.get<PCSX::Emulator::SettingDynarec>() = false;
         }
 
