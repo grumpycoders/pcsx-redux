@@ -414,30 +414,29 @@ void PCSX::GUI::setDefaultShaders() {
 void PCSX::GUI::init(std::function<void()> applyArguments) {
     int result;
 
-    if (m_args.get<bool>("noshaders", false)) {
-        m_disableShaders = true;
-    }
-
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
     };
-    m_luaConsole.setCmdExec([this](const std::string& cmd) {
+    bool luaStdout = g_system->getArgs().isLuaStdoutEnabled();
+    m_luaConsole.setCmdExec([this, luaStdout](const std::string& cmd) {
         ScopedOnlyLog scopedOnlyLog(this);
         try {
             g_emulator->m_lua->load(cmd, "console", false);
             g_emulator->m_lua->pcall();
             for (const auto& error : m_glErrors) {
                 m_luaConsole.addError(error);
-                if (m_args.get<bool>("lua_stdout", false)) {
-                    fprintf(stderr, "%s\n", error.c_str());
+                if (luaStdout) {
+                    fputs(error.c_str(), stderr);
+                    fputc('\n', stderr);
                 }
             }
             m_glErrors.clear();
         } catch (std::exception& e) {
             m_luaConsole.addError(e.what());
-            if (m_args.get<bool>("lua_stdout", false)) {
-                fprintf(stderr, "%s\n", e.what());
+            if (luaStdout) {
+                fputs(e.what(), stderr);
+                fputc('\n', stderr);
             }
         }
     });
@@ -529,12 +528,10 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     auto& io = ImGui::GetIO();
     {
         io.IniFilename = nullptr;
-        auto& emuSettings = PCSX::g_emulator->settings;
-        const bool resetUI = m_args.get<bool>("resetui", false);
-        bool safeMode =
-            m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
+        auto& emuSettings = g_emulator->settings;
         if (loadSettings()) {
-            if (!resetUI && (m_settingsJson.count("imgui") == 1) && m_settingsJson["imgui"].is_string()) {
+            if (!g_system->getArgs().isUIResetRequested() && (m_settingsJson.count("imgui") == 1) &&
+                m_settingsJson["imgui"].is_string()) {
                 std::string imguicfg = m_settingsJson["imgui"];
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
@@ -546,13 +543,13 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
             }
             auto& windowSizeX = settings.get<WindowSizeX>();
             auto& windowSizeY = settings.get<WindowSizeY>();
-            if (windowSizeX <= 0 || resetUI) {
+            if (windowSizeX <= 0 || g_system->getArgs().isUIResetRequested()) {
                 windowSizeX.reset();
             }
-            if (windowSizeY <= 0 || resetUI) {
+            if (windowSizeY <= 0 || g_system->getArgs().isUIResetRequested()) {
                 windowSizeY.reset();
             }
-            if (resetUI) {
+            if (g_system->getArgs().isUIResetRequested()) {
                 settings.get<WindowPosX>().reset();
                 settings.get<WindowPosY>().reset();
             }
@@ -569,7 +566,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         applyArguments();
         finishLoadSettings();
 
-        if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
+        if (!g_system->getArgs().isUpdateDisabled() && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
             !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
@@ -591,7 +588,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 #ifndef __linux__
-    if (!m_args.get<bool>("noviewports")) {
+    if (!g_system->getArgs().isViewportsDisabled()) {
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     }
 #endif
@@ -637,7 +634,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     ImGui_ImplOpenGL3_Init(m_hasCoreProfile ? GL_SHADER_VERSION : nullptr);
 
     if (glDebugMessageCallback &&
-        (g_emulator->settings.get<Emulator::SettingGLErrorReporting>() || m_args.get<bool>("testmode", false))) {
+        (g_emulator->settings.get<Emulator::SettingGLErrorReporting>() || g_system->getArgs().isTestModeEnabled())) {
         m_reportGLErrors = true;
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glEnable(GL_DEBUG_OUTPUT);
@@ -768,7 +765,7 @@ void PCSX::GUI::close() {
 }
 
 void PCSX::GUI::saveCfg() {
-    std::ofstream cfg("pcsx.json");
+    std::ofstream cfg(g_system->getPersistentDir() / "pcsx.json");
     json j;
 
     if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
@@ -1014,7 +1011,7 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        if (m_disableShaders) {
+        if (g_system->getArgs().isShadersDisabled()) {
             ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
         } else {
             m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
@@ -1035,7 +1032,7 @@ void PCSX::GUI::endFrame() {
             }
             ImGuiHelpers::normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            if (m_disableShaders) {
+            if (g_system->getArgs().isShadersDisabled()) {
                 ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
             } else {
                 m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
@@ -1569,7 +1566,7 @@ their TV set to match the aspect ratio of the game.)"));
         ImGui::End();
     }
 
-    if (!m_args.get<bool>("noupdate") && !g_system->getVersion().failed() &&
+    if (!g_system->getArgs().isUpdateDisabled() && !g_system->getVersion().failed() &&
         !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
         if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
@@ -1717,8 +1714,9 @@ the update and manually apply it.)")));
             bool gotGLerror = false;
             for (const auto& error : m_glErrors) {
                 m_luaConsole.addError(error);
-                if (m_args.get<bool>("lua_stdout", false)) {
-                    fprintf(stderr, "%s\n", error.c_str());
+                if (g_system->getArgs().isLuaStdoutEnabled()) {
+                    fputs(error.c_str(), stderr);
+                    fputc('\n', stderr);
                 }
                 gotGLerror = true;
             }
@@ -1772,8 +1770,9 @@ the update and manually apply it.)")));
             bool gotGLerror = false;
             for (const auto& error : m_glErrors) {
                 m_luaConsole.addError(error);
-                if (m_args.get<bool>("lua_stdout", false)) {
-                    fprintf(stderr, "%s\n", error.c_str());
+                if (g_system->getArgs().isLuaStdoutEnabled()) {
+                    fputs(error.c_str(), stderr);
+                    fputc('\n', stderr);
                 }
                 gotGLerror = true;
             }
@@ -1811,8 +1810,9 @@ the update and manually apply it.)")));
                     bool gotGLerror = false;
                     for (const auto& error : m_glErrors) {
                         m_luaConsole.addError(error);
-                        if (m_args.get<bool>("lua_stdout", false)) {
-                            fprintf(stderr, "%s\n", error.c_str());
+                        if (g_system->getArgs().isLuaStdoutEnabled()) {
+                            fputs(error.c_str(), stderr);
+                            fputc('\n', stderr);
                         }
                         gotGLerror = true;
                     }
@@ -2334,14 +2334,20 @@ std::string PCSX::GUI::buildSaveStateFilename(int i) {
     }
 }
 
-void PCSX::GUI::saveSaveState(const std::filesystem::path& filename) {
+void PCSX::GUI::saveSaveState(std::filesystem::path filename) {
+    if (filename.is_relative()) {
+        filename = g_system->getPersistentDir() / filename;
+    }
     // TODO: yeet this to libuv's threadpool.
     ZWriter save(new UvFile(filename, FileOps::TRUNCATE), ZWriter::GZIP);
     if (!save.failed()) save.writeString(SaveStates::save());
     save.close();
 }
 
-void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
+void PCSX::GUI::loadSaveState(std::filesystem::path filename) {
+    if (filename.is_relative()) {
+        filename = g_system->getPersistentDir() / filename;
+    }
     ZReader save(new PosixFile(filename));
     if (save.failed()) return;
     std::ostringstream os;

@@ -43,16 +43,48 @@ class Arguments {
 
     // Returns true if the GUI logs window should be enabled.
     // Disabled with -testmode or -no-gui-log.
-    bool enableGUILogs() const { return m_guiLogsEnabled; }
+    bool isGUILogsEnabled() const { return m_guiLogsEnabled; }
 
     // Returns true if the the flag -testmode was used.
     bool isTestModeEnabled() const { return m_testModeEnabled; }
+
+    // Returns true if the the flag -portable was used, if the executable is
+    // located in the same directory as the pcsx.json file, or if the
+    // executable is being run from its source tree.
+    bool isPortable() const { return m_portable; }
+
+    // Returns true if the safe mode was enabled. This implies
+    // that the pcsx.json file won't be loaded.
+    // Enabled with the flags -safe, -testmode, or -cli.
+    bool isSafeModeEnabled() const { return m_safeModeEnabled; }
+
+    // Returns true if the user requested to reset the UI.
+    // Enabled with the flag -resetui.
+    bool isUIResetRequested() const { return m_uiResetRequested; }
+
+    // Returns true if the user requested that no shaders be used.
+    // Enabled with the flag -noshaders.
+    bool isShadersDisabled() const { return m_shadersDisabled; }
+
+    // Returns true if the user requested that no update be performed.
+    // Enabled with the flag -noupdate.
+    bool isUpdateDisabled() const { return m_updateDisabled; }
+
+    // Returns true if the user requested that viewports be disabled.
+    // Enabled with the flag -noviewports.
+    bool isViewportsDisabled() const { return m_viewportsDisabled; }
 
   private:
     bool m_luaStdoutEnabled = false;
     bool m_stdoutEnabled = false;
     bool m_guiLogsEnabled = true;
     bool m_testModeEnabled = false;
+    bool m_portable = false;
+    bool m_safeModeEnabled = false;
+    bool m_uiResetRequested = false;
+    bool m_shadersDisabled = false;
+    bool m_updateDisabled = false;
+    bool m_viewportsDisabled = false;
 };
 
 }  // namespace PCSX

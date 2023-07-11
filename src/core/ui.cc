@@ -28,15 +28,14 @@
 #include "core/spu.h"
 #include "supportpsx/binloader.h"
 
-PCSX::UI::UI(const CommandLine::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
+PCSX::UI::UI() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
 }
 
 bool PCSX::UI::loadSettings() {
-    std::ifstream cfg("pcsx.json");
+    std::ifstream cfg(g_system->getPersistentDir() / "pcsx.json");
     auto& emuSettings = g_emulator->settings;
-    bool safeMode = m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
-    if (cfg.is_open() && !safeMode) {
+    if (cfg.is_open() && !g_system->getArgs().isSafeModeEnabled()) {
         try {
             cfg >> m_settingsJson;
         } catch (...) {
@@ -55,10 +54,9 @@ bool PCSX::UI::loadSettings() {
 }
 
 void PCSX::UI::finishLoadSettings() {
-    bool safeMode = m_args.get<bool>("safe", false) || m_args.get<bool>("testmode", false) || m_args.get<bool>("cli", false);
     auto& emuSettings = g_emulator->settings;
     g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
-    g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
+    g_system->m_eventBus->signal(Events::SettingsLoaded{g_system->getArgs().isSafeModeEnabled()});
 }
 
 void PCSX::UI::setLuaCommon(Lua L) {
