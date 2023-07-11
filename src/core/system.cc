@@ -292,6 +292,7 @@ bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& 
 }
 
 std::filesystem::path PCSX::System::getPersistentDir() const {
+    if (getArgs().isPortable()) return "";
 #ifdef _WIN32
     char* homeDir;
     auto ret = _dupenv_s(&homeDir, nullptr, "APPDATA");
@@ -311,5 +312,5 @@ std::filesystem::path PCSX::System::getPersistentDir() const {
             return "";
         }
     }
-    return getArgs().isPortable() ? "" : persistentDir;
+    return persistentDir;
 }
