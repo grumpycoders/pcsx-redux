@@ -300,6 +300,7 @@ std::filesystem::path PCSX::System::getPersistentDir() const {
         return "";
     }
     std::filesystem::path persistentDir = std::filesystem::path(homeDir) / "pcsx-redux";
+    free(homeDir);
 #else
     char* homeDir = getenv("HOME");
     if (!homeDir) {
