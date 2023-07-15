@@ -86,8 +86,8 @@
 
 #ifdef _WIN32
 extern "C" {
-_declspec(dllexport) DWORD NvOptimusEnablement = 1;
-_declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
+__declspec(dllexport) DWORD NvOptimusEnablement = 1;
+__declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
 }
 
 void PCSX::GUI::openUrl(const std::string_view& url) {
