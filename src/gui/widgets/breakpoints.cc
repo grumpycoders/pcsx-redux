@@ -38,7 +38,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     }
     ImGuiHelpers::ShowHelpMarker(
         _("The mapping feature is a simple concept, but requires some amount of explanation. See the documentation "
-          "website for more details, in the Advanced Features section."));
+          "website for more details, in the Misc Features subsection of the Debugging section."));
     ImGui::Checkbox(_("Map execution"), &debugger->m_mapping_e);
     ImGui::Checkbox(_("Map byte reads         "), &debugger->m_mapping_r8);
     ImGui::SameLine();
