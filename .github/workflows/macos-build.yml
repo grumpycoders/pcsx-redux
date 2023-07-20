@@ -39,7 +39,7 @@ jobs:
         path: '**/*.ps-exe'
 
   macos-build-and-test:
-    runs-on: macOS-latest
+    runs-on: macos-11
     needs: build-openbios
     steps:
     - uses: actions/checkout@v1
