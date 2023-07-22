@@ -271,7 +271,7 @@ void gameMainThunk(struct psxExeHeader *binaryInfo, int argc, char **argv) {
     exec(binaryInfo, argc, argv);
 }
 
-extern struct BuildId __build_id;
+extern struct BuildId __build_id, __build_id_end;
 
 static void boot(char *systemCnfPath, char *binaryPath) {
     POST = 1;
@@ -297,17 +297,19 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     POST = 5;
     /* this is a bit specific to OpenBIOS to retrieve the buildid from the raw data */
     {
-        char buildIDstring[65];
-        uint32_t count = __build_id.descsz;
-        if (count > 32) count = 32;
-        const uint8_t *buildId = __build_id.strings + __build_id.namesz;
-        static const char *const hex = "0123456789abcdef";
-        for (int i = 0; i < count; i++) {
-            uint8_t c = buildId[i];
-            buildIDstring[i * 2 + 0] = hex[c & 0xf];
-            buildIDstring[i * 2 + 1] = hex[(c >> 4) & 0xf];
+        char buildIDstring[65] = "unknown";
+        if (&__build_id != &__build_id_end) {
+            uint32_t count = __build_id.descsz;
+            if (count > 32) count = 32;
+            const uint8_t *buildId = __build_id.strings + __build_id.namesz;
+            static const char *const hex = "0123456789abcdef";
+            for (int i = 0; i < count; i++) {
+                uint8_t c = buildId[i];
+                buildIDstring[i * 2 + 0] = hex[c & 0xf];
+                buildIDstring[i * 2 + 1] = hex[(c >> 4) & 0xf];
+            }
+            buildIDstring[count * 2] = 0;
         }
-        buildIDstring[count * 2] = 0;
         psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2023 PCSX-Redux authors.\n",
                   buildIDstring);
     }
