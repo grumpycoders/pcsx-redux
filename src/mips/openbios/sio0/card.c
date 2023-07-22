@@ -48,10 +48,10 @@ void mcResetStatus() {
     g_mcErrors[2] = 0;
     g_mcErrors[3] = 0;
 
-    syscall_undeliverEvent(EVENT_VBLANK, 0x0004);
-    syscall_undeliverEvent(EVENT_VBLANK, 0x8000);
-    syscall_undeliverEvent(EVENT_VBLANK, 0x2000);
-    syscall_undeliverEvent(EVENT_VBLANK, 0x0100);
+    syscall_undeliverEvent(EVENT_BU, 0x0004);
+    syscall_undeliverEvent(EVENT_BU, 0x8000);
+    syscall_undeliverEvent(EVENT_BU, 0x2000);
+    syscall_undeliverEvent(EVENT_BU, 0x0100);
 }
 
 int mcWaitForStatus() {

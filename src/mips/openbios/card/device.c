@@ -205,7 +205,7 @@ struct File *g_buOpFile[2];
 static int s_buOpError[2];
 
 int buRelativeToAbsoluteSector(int port, int block, int sector) {
-    while (sector >= 0x3f) {
+    while (sector > 0x3f) {
         block = g_buDirEntries[port][block].nextBlock;
         sector = sector - 0x40;
         if (block == -1) return -1;
