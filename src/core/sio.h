@@ -109,7 +109,13 @@ class SIO {
     void getMcdBlockInfo(int mcd, int block, McdBlock &info);
     char *getMcdData(int mcd);
     char *getMcdData(const McdBlock &block) { return getMcdData(block.mcd); }
-    void loadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);
+    void loadMcd(const PCSX::u8string &path, int mcd) {
+        if (mcd > 0 && mcd <= c_cardCount) m_memoryCard[mcd - 1].loadMcd(path);
+    }
+    void loadMcds(const PCSX::u8string &mcd1, const PCSX::u8string &mcd2) {
+        m_memoryCard[0].loadMcd(mcd1);
+        m_memoryCard[1].loadMcd(mcd2);
+    }
     void saveMcd(int mcd);
     static constexpr int otherMcd(int mcd) {
         if ((mcd != 1) && (mcd != 2)) throw std::runtime_error("Bad memory card number");

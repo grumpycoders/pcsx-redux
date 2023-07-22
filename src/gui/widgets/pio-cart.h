@@ -33,7 +33,7 @@ class PIOCart {
     bool& m_show;
 
   private:
-    Widgets::FileDialog m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
+    Widgets::FileDialog<> m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
     int m_flashSizeIndex;
     bool m_switchOn = 1;
 };

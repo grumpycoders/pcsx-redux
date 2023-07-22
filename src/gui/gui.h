@@ -371,10 +371,10 @@ class GUI final : public UI {
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
     Widgets::Assembly m_assembly = {settings.get<ShowAssembly>().value};
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
-    Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
-    Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
-    Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
-    Widgets::FileDialog m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
+    Widgets::FileDialog<> m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
+    Widgets::FileDialog<> m_openBinaryDialog = {[]() { return _("Open Binary"); }};
+    Widgets::FileDialog<> m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
+    Widgets::FileDialog<> m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
 
