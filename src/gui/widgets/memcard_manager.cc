@@ -26,6 +26,7 @@
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "support/imgui-helpers.h"
+#include "support/uvfile.h"
 
 void PCSX::Widgets::MemcardManager::initTextures() {
     // Initialize the OpenGL textures used for the icon images
@@ -50,9 +51,65 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
 
-    if (!ImGui::Begin(title, &m_show)) {
+    if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return false;
+    }
+
+    bool showImportMemoryCardDialog = false;
+    bool showExportMemoryCardDialog = false;
+
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu(_("File"))) {
+            if (ImGui::MenuItem(_("Import file into memory card 1"))) {
+                showImportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 1;
+            }
+            if (ImGui::MenuItem(_("Import file into memory card 2"))) {
+                showImportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 2;
+            }
+            if (ImGui::MenuItem(_("Export memory card 1 to file"))) {
+                showExportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 1;
+            }
+            if (ImGui::MenuItem(_("Export memory card 2 to file"))) {
+                showExportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 2;
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+
+    if (showImportMemoryCardDialog) {
+        m_importMemoryCardDialog.openDialog();
+    }
+
+    if (m_importMemoryCardDialog.draw()) {
+        std::vector<PCSX::u8string> fileToOpen = m_importMemoryCardDialog.selected();
+        if (!fileToOpen.empty()) {
+            g_emulator->m_sio->loadMcd(fileToOpen[0], m_memoryCardImportExportIndex);
+            g_emulator->m_sio->saveMcd(m_memoryCardImportExportIndex);
+            clearUndoBuffer();
+        }
+    }
+
+    if (showExportMemoryCardDialog) {
+        m_exportMemoryCardDialog.openDialog();
+    }
+
+    if (m_exportMemoryCardDialog.draw()) {
+        std::vector<PCSX::u8string> fileToOpen = m_exportMemoryCardDialog.selected();
+        if (!fileToOpen.empty()) {
+            IO<File> out = new UvFile(fileToOpen[0], FileOps::TRUNCATE);
+            if (!out->failed()) {
+                const auto dataCard = g_emulator->m_sio->getMcdData(m_memoryCardImportExportIndex);
+                Slice slice;
+                slice.copy(dataCard, 128 * 1024);
+                out->writeAt(std::move(slice), 0);
+            }
+        }
     }
 
     const bool undoDisabled = m_undo.size() == 0;
@@ -92,8 +149,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         ImGui::EndDisabled();
     }
     if (ImGui::Button(_("Clear Undo buffer"))) {
-        m_undo.clear();
-        m_undoIndex = 0;
+        clearUndoBuffer();
     }
 
     // Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.

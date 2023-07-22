@@ -362,11 +362,6 @@ void PCSX::SIO::interrupt() {
 #endif
 }
 
-void PCSX::SIO::loadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
-    m_memoryCard[0].loadMcd(mcd1);
-    m_memoryCard[1].loadMcd(mcd2);
-}
-
 void PCSX::SIO::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
     if (block < 1 || block > 15) {
         throw std::runtime_error(_("Wrong block number"));
