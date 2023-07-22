@@ -2297,10 +2297,13 @@ void PCSX::GUI::update(bool vsync) {
 void PCSX::GUI::magicOpen(const char* pathStr) {
     std::filesystem::path path = pathStr;
     bool success = false;
+    IO<File> file = new PosixFile(path);
+
+    // Is this something that looks like a binary we can load ?
     try {
         BinaryLoader::Info info;
         std::map<uint32_t, std::string> symbols;
-        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info, symbols);
+        success = BinaryLoader::load(file, new Mem4G(), info, symbols);
         if (success) success = info.pc.has_value();
     } catch (...) {
         success = false;
@@ -2310,10 +2313,39 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
         m_exeToLoad.set(path.u8string());
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
-    } else {
-        g_emulator->m_cdrom->setIso(new CDRIso(path));
-        g_emulator->m_cdrom->check();
+        return;
     }
+
+    // Is this something that looks like a bios maybe ?
+    if (file->size() == 512 * 1024) {
+        // bit of a crude way to check if it's a bios, but it's good enough
+        // we're assuming all bioses start with setting the timings for the
+        // bios bus, which is basically these instructions:
+
+        //     li    $t0, (19 << 16) | 0x243f
+        //     sw    $t0, SBUS_DEV2_CTRL
+        //     nop
+
+        // this code translates to the following bytes:
+        static constexpr uint8_t biosSignature[] = {0x13, 0x00, 0x08, 0x3c, 0x3f, 0x24, 0x08, 0x35, 0x80, 0x1f,
+                                                    0x01, 0x3c, 0x10, 0x10, 0x28, 0xac, 0x00, 0x00, 0x00, 0x00};
+        // we could potentially also check the rest, but I think some bioses
+        // may differ there, so we'll just check the first 20 bytes for now
+
+        uint8_t buffer[sizeof(biosSignature)];
+        file->readAt(buffer, sizeof(buffer), 0);
+
+        if (memcmp(buffer, biosSignature, sizeof(biosSignature)) == 0) {
+            g_system->hardReset();
+            g_system->log(LogClass::UI, "Temporary overriding bios with %s and hard resetting.\n", path.string());
+            file->readAt(g_emulator->m_mem->m_bios, 512 * 1024, 0);
+            return;
+        }
+    }
+
+    // Iso loader is last because its detection is the most broken at the moment.
+    g_emulator->m_cdrom->setIso(new CDRIso(path));
+    g_emulator->m_cdrom->check();
 }
 
 std::string PCSX::GUI::buildSaveStateFilename(int i) {
