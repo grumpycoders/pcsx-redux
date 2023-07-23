@@ -37,5 +37,6 @@ PCSX::Arguments::Arguments(const CommandLine::args& args) {
     if (args.get<bool>("resetui")) m_uiResetRequested = true;
     if (args.get<bool>("noshaders")) m_shadersDisabled = true;
     if (args.get<bool>("noupdate")) m_updateDisabled = true;
-    if (args.get<bool>("noviewports")) m_viewportsDisabled = true;
+    if (args.get<bool>("viewports")) m_viewportsEnabled = true;
+    if (args.get<bool>("no-viewports")) m_viewportsEnabled = false;
 }

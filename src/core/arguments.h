@@ -70,9 +70,9 @@ class Arguments {
     // Enabled with the flag -noupdate.
     bool isUpdateDisabled() const { return m_updateDisabled; }
 
-    // Returns true if the user requested that viewports be disabled.
-    // Enabled with the flag -noviewports.
-    bool isViewportsDisabled() const { return m_viewportsDisabled; }
+    // Returns true if the user requested that viewports be enabled.
+    // Toggled with the flags -viewports / -no-viewports.
+    bool isViewportsEnabled() const { return m_viewportsEnabled; }
 
   private:
     bool m_luaStdoutEnabled = false;
@@ -84,7 +84,11 @@ class Arguments {
     bool m_uiResetRequested = false;
     bool m_shadersDisabled = false;
     bool m_updateDisabled = false;
-    bool m_viewportsDisabled = false;
+#ifdef __linux__
+    bool m_viewportsEnabled = false;
+#else
+    bool m_viewportsEnabled = true;
+#endif
 };
 
 }  // namespace PCSX
