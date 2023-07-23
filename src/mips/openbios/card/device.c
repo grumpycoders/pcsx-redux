@@ -582,7 +582,7 @@ int dev_bu_format(struct File *file) {
     return 0;
 }
 
-int dev_bu_rename(struct File *file, const char *oldName, void *, const char *newName) {
+int dev_bu_rename(struct File *file, const char *oldName, void *unused, const char *newName) {
     file->errno = PSXEBUSY;
     int deviceId = file->deviceId;
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
