@@ -434,10 +434,69 @@ int dev_bu_write(struct File *file, void *buffer, int size) {
     return size;
 }
 
-void dev_bu_erase() {
-    uint32_t ra;
-    asm("move %0, $ra\n" : "=r"(ra));
-    dev_bu_unimplemented("mcErase", ra);
+int dev_bu_erase(struct File *file, const char *path) {
+    file->errno = PSXEBUSY;
+    int deviceId = file->deviceId;
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+
+    if (g_buOperation[port] != 0) return 1;
+
+    mcResetStatus();
+    if (!buDevInit(deviceId)) return 1;
+
+    syscall_setDeviceStatus(0);
+    int index = buNextFileInternal(deviceId, 0, path);
+    if (index == -1) {
+        file->errno = PSXENOENT;
+        return 1;
+    }
+    int bitmap[15];
+    for (unsigned i = 0; i < 15; i++) {
+        bitmap[i] = 0;
+    }
+    struct BuDirectoryEntry *entry = &g_buDirEntries[port][index];
+    entry->allocState = 0xa1;
+    bitmap[index] = 0x51;
+    int size = entry->fileSize;
+    int nextBlock = entry->nextBlock;
+    if (size < 0) size += 0x1fff;
+    int count = (size >> 13) - 1;
+    if (count > 0) {
+        entry = &g_buDirEntries[port][nextBlock];
+        while ((entry->nextBlock != -1) && (entry->allocState == 0x52)) {
+            int block = nextBlock;
+            nextBlock = entry->nextBlock;
+            entry->allocState = 0xa2;
+            count--;
+            bitmap[block] = 0x52;
+            if (count < 1) break;
+            entry = &g_buDirEntries[port][nextBlock];
+        }
+    }
+    if (count > 0) {
+        entry = &g_buDirEntries[port][nextBlock];
+        if ((entry->nextBlock == -1) && (entry->allocState == 0x53)) {
+            entry->allocState = 0xa3;
+            bitmap[nextBlock] = 0x52;
+        }
+    }
+
+    if (buWriteTOC(deviceId, bitmap) != 0) {
+        for (unsigned i = 0; i < 15; i++) {
+            if (bitmap[i]) {
+                entry = &g_buDirEntries[port][i];
+                entry->fileSize = 0;
+                entry->nextBlock = -1;
+                entry->allocState = 0xa0;
+            }
+        }
+        file->errno = PSXEBUSY;
+        return 1;
+    }
+
+    file->errno = PSXENOERR;
+    return 0;
 }
 
 void dev_bu_undelete() {
