@@ -408,4 +408,6 @@ int psxerase(const char* path) {
         file->flags = 0;
         return 0;
     }
+    file->flags = 0;
+    return 1;
 }
