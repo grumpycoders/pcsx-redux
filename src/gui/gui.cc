@@ -587,11 +587,9 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-#ifndef __linux__
-    if (!g_system->getArgs().isViewportsDisabled()) {
+    if (g_system->getArgs().isViewportsEnabled()) {
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     }
-#endif
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
     // io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 
