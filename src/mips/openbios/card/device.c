@@ -118,7 +118,7 @@ int dev_bu_open(struct File *file, const char *path, int mode) {
         syscall_setDeviceStatus(0);
         firstIndex = buNextFileInternal(deviceId, 0, path);
         if (firstIndex != -1) {
-            file->errno = PSXENOENT;
+            file->errno = PSXEEXIST;
             return 1;
         }
         int availableBlocks = 0;
