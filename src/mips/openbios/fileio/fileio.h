@@ -68,6 +68,9 @@ struct DirEntry *firstFile(const char *filepath, struct DirEntry *entry);
 struct DirEntry *nextFile(struct DirEntry *entry);
 int format(const char *deviceName);
 
+int psxrename(const char *oldName, const char *newName);
+int psxerase(const char *path);
+
 extern struct File *g_firstFile;
 
 int getDeviceStatus();

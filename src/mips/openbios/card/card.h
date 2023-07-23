@@ -47,7 +47,7 @@ void dev_bu_undelete();
 struct DirEntry *dev_bu_firstFile(struct File *file, const char *filename, struct DirEntry *entry);
 struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry);
 int dev_bu_format(struct File *file);
-int dev_bu_rename(struct File *file, const char *oldName, void *, const char *newName);
+int dev_bu_rename(struct File *file, const char *oldName, struct File *unused, const char *newName);
 void dev_bu_deinit();
 
 extern int g_buOpSectorStart[2];
