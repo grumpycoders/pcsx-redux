@@ -582,10 +582,42 @@ int dev_bu_format(struct File *file) {
     return 0;
 }
 
-void dev_bu_rename() {
-    uint32_t ra;
-    asm("move %0, $ra\n" : "=r"(ra));
-    dev_bu_unimplemented("mcRename", ra);
+int dev_bu_rename(struct File *file, const char *oldName, void *, const char *newName) {
+    file->errno = PSXEBUSY;
+    int deviceId = file->deviceId;
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+
+    if (g_buOperation[port] != 0) return 1;
+
+    mcResetStatus();
+    if (!buDevInit(deviceId)) return 1;
+
+    syscall_setDeviceStatus(0);
+    if (buNextFileInternal(deviceId, 0, newName) != -1) {
+        file->errno = PSXEEXIST;
+        return 1;
+    }
+    int index = buNextFileInternal(deviceId, 0, oldName);
+    if (index == -1) {
+        file->errno = PSXENOENT;
+        return 1;
+    }
+    int bitmap[15];
+    for (unsigned i = 0; i < 15; i++) {
+        bitmap[i] = 0;
+    }
+    char *entryToUpdate = g_buDirEntries[port][index].name;
+    strcpy(entryToUpdate, newName);
+    bitmap[index] = 0x51;
+    if (buWriteTOC(deviceId, bitmap) != 0) {
+        strcpy(entryToUpdate, oldName);
+        file->errno = PSXEBUSY;
+        return 1;
+    }
+
+    file->errno = PSXENOERR;
+    return 0;
 }
 
 void dev_bu_deinit() {
