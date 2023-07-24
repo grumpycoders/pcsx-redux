@@ -33,9 +33,10 @@ void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
     GLuint textureID;
 
     if (m_softDisplay.RGB24) {
+        auto offset = (m_softDisplay.DisplayPosition.x * 2) % 3;
         textureID = m_vramTexture24;
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, m_vram16);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, m_vram + offset);
     } else {
         textureID = m_vramTexture16;
         glBindTexture(GL_TEXTURE_2D, textureID);
