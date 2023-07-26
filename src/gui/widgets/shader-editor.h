@@ -48,11 +48,15 @@ class ShaderEditor {
 
     bool m_show = false;
 
-    void setText(const char* VS, const char* PS, const char* L) {
-        m_vertexShaderEditor.setText(VS);
-        m_pixelShaderEditor.setText(PS);
-        m_luaEditor.setText(L);
+    void setText(std::string_view VS, std::string_view PS, std::string_view L) {
+        setTextVS(VS);
+        setTextPS(PS);
+        setTextL(L);
     }
+
+    void setTextVS(std::string_view VS) { m_vertexShaderEditor.setText(std::string(VS)); }
+    void setTextPS(std::string_view PS) { m_pixelShaderEditor.setText(std::string(PS)); }
+    void setTextL(std::string_view L) { m_luaEditor.setText(std::string(L)); }
 
     void setDefaults();
     void setFallbacks();

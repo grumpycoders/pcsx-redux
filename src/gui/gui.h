@@ -206,7 +206,7 @@ class GUI final : public UI {
         GUI *m_gui = nullptr;
     };
     std::vector<std::string> getGLerrors() { return std::move(m_glErrors); }
-    GUI(const CommandLine::args &args) : m_listener(g_system->m_eventBus), UI(args) {
+    GUI() : m_listener(g_system->m_eventBus) {
         assert(s_gui == nullptr);
         s_gui = this;
     }
@@ -214,7 +214,7 @@ class GUI final : public UI {
         assert(s_gui == this);
         s_gui = nullptr;
     }
-    void init();
+    void init(std::function<void()> applyArguments) override;
     void setLua(Lua L);
     void close();
     void update(bool vsync = false);
@@ -298,7 +298,6 @@ class GUI final : public UI {
   private:
     GLFWwindow *m_window = nullptr;
     bool m_hasCoreProfile = false;
-    bool m_disableShaders = false;
     int &m_glfwPosX = settings.get<WindowPosX>().value;
     int &m_glfwPosY = settings.get<WindowPosY>().value;
     int &m_glfwSizeX = settings.get<WindowSizeX>().value;
@@ -372,10 +371,10 @@ class GUI final : public UI {
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
     Widgets::Assembly m_assembly = {settings.get<ShowAssembly>().value};
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
-    Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
-    Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
-    Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
-    Widgets::FileDialog m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
+    Widgets::FileDialog<> m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
+    Widgets::FileDialog<> m_openBinaryDialog = {[]() { return _("Open Binary"); }};
+    Widgets::FileDialog<> m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
+    Widgets::FileDialog<> m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
 
@@ -406,8 +405,8 @@ class GUI final : public UI {
     EventBus::Listener m_listener;
 
     std::string buildSaveStateFilename(int i);
-    void saveSaveState(const std::filesystem::path &filename);
-    void loadSaveState(const std::filesystem::path &filename);
+    void saveSaveState(std::filesystem::path filename);
+    void loadSaveState(std::filesystem::path filename);
 
     void applyTheme(int theme);
     void cherryTheme();

@@ -290,3 +290,28 @@ bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& 
     // No luck here...
     return false;
 }
+
+std::filesystem::path PCSX::System::getPersistentDir() const {
+    if (getArgs().isPortable()) return "";
+#ifdef _WIN32
+    char* homeDir;
+    auto ret = _dupenv_s(&homeDir, nullptr, "APPDATA");
+    if ((ret != 0) || (!homeDir)) {
+        return "";
+    }
+    std::filesystem::path persistentDir = std::filesystem::path(homeDir) / "pcsx-redux";
+    free(homeDir);
+#else
+    char* homeDir = getenv("HOME");
+    if (!homeDir) {
+        return "";
+    }
+    std::filesystem::path persistentDir = std::filesystem::path(homeDir) / ".config" / "pcsx-redux";
+#endif
+    if (!std::filesystem::exists(persistentDir)) {
+        if (!std::filesystem::create_directories(persistentDir)) {
+            return "";
+        }
+    }
+    return persistentDir;
+}

@@ -19,13 +19,13 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 #include <utility>
 
 #include "core/system.h"
 #include "json.hpp"
 #include "lua/luawrapper.h"
-#include "flags.h"
 
 namespace PCSX {
 
@@ -33,12 +33,12 @@ enum class LogClass : unsigned;
 
 class UI {
   public:
-    UI(const CommandLine::args &args);
+    UI();
     virtual ~UI() = default;
     virtual void addNotification(const std::string &notification) = 0;
     virtual bool addLog(LogClass logClass, const std::string &msg) = 0;
     virtual void addLuaLog(const std::string &msg, bool error) = 0;
-    virtual void init() = 0;
+    virtual void init(std::function<void()> applyArguments) = 0;
     virtual void setLua(Lua L) = 0;
     virtual void close() = 0;
     virtual void update(bool vsync = false) = 0;
@@ -63,7 +63,6 @@ class UI {
   protected:
     using json = nlohmann::json;
     json m_settingsJson;
-    const CommandLine::args &m_args;
     EventBus::Listener m_listener;
 
     bool loadSettings();

@@ -235,6 +235,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\core\arguments.cc" />
     <ClCompile Include="..\..\src\core\callstacks.cc" />
     <ClCompile Include="..\..\src\core\cdrom.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
@@ -283,6 +284,7 @@
     <ClCompile Include="..\..\src\core\web-server.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\core\arguments.h" />
     <ClInclude Include="..\..\src\core\callstacks.h" />
     <ClInclude Include="..\..\src\core\cdrom.h" />
     <ClInclude Include="..\..\src\core\coff.h" />

@@ -30,7 +30,18 @@
 namespace PCSX {
 namespace Widgets {
 
-class FileDialog : private ifd::FileDialog {
+class FileDialogBase : protected ifd::FileDialog {
+  public:
+    virtual void* CreateTexture(uint8_t* data, int w, int h, char fmt) override;
+
+  protected:
+    void setDeleteTexture();
+};
+
+enum class FileDialogMode { Open, MultiSelect, Save };
+
+template <FileDialogMode mode = FileDialogMode::Open>
+class FileDialog : public FileDialogBase {
   public:
     FileDialog(std::function<const char*()> title) : m_title(title) {
         setToCurrentPath();
@@ -39,7 +50,12 @@ class FileDialog : private ifd::FileDialog {
     virtual ~FileDialog() = default;
     void setToCurrentPath() { m_currentPath = std::filesystem::current_path(); }
     void openDialog() {
-        Open(m_title(), m_title(), "*.*", false, reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
+        if constexpr (mode == FileDialogMode::Open) {
+            Open(m_title(), m_title(), "*.*", mode == FileDialogMode::MultiSelect,
+                 reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
+        } else if constexpr (mode == FileDialogMode::Save) {
+            Save(m_title(), m_title(), "*.*", reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
+        }
     }
     const std::vector<PCSX::u8string>& selected() const { return m_results; }
     bool draw() {
@@ -56,10 +72,7 @@ class FileDialog : private ifd::FileDialog {
     }
     std::filesystem::path m_currentPath;
 
-    virtual void* CreateTexture(uint8_t* data, int w, int h, char fmt) override;
-
   private:
-    void setDeleteTexture();
     const std::function<const char*()> m_title;
     std::vector<PCSX::u8string> m_results;
 };
