@@ -160,7 +160,10 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
     }
 
     if (m_step == STEP_NONE) return;
-    if (!m_wasInISR && g_emulator->m_cpu->m_inISR) return;
+    if (!m_wasInISR && g_emulator->m_cpu->m_inISR) {
+        uint32_t cause = (regs.CP0.n.Cause >> 2) & 0x1f;
+        if (cause == 0) return;
+    }
 
     switch (m_step) {
         case STEP_IN: {
