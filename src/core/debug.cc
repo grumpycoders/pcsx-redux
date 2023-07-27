@@ -160,9 +160,11 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
     }
 
     if (m_step == STEP_NONE) return;
+    bool skipStepOverAndOut = false;
     if (!m_wasInISR && g_emulator->m_cpu->m_inISR) {
         uint32_t cause = (regs.CP0.n.Cause >> 2) & 0x1f;
         if (cause == 0) return;
+        skipStepOverAndOut = true;
     }
 
     switch (m_step) {
@@ -170,7 +172,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
             triggerBP(nullptr, newPC, 4, _("Step in"));
         } break;
         case STEP_OVER: {
-            if (!m_stepperHasBreakpoint) {
+            if (!m_stepperHasBreakpoint && !skipStepOverAndOut) {
                 if (linked) {
                     uint32_t sp = regs.GPR.n.sp;
                     m_stepperHasBreakpoint = true;
@@ -188,7 +190,10 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
             }
         } break;
         case STEP_OUT: {
-            if (!m_stepperHasBreakpoint) triggerBP(nullptr, newPC, 4, _("Step out (no callstack)"));
+            if (!m_stepperHasBreakpoint && !skipStepOverAndOut) {
+                triggerBP(nullptr, newPC, 4, _("Step out (no callstack)"));
+            }
+            break;
         }
     }
 }
