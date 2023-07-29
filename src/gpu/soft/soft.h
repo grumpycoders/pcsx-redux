@@ -81,8 +81,8 @@ struct SoftRenderer {
         int32_t PAL;
         int32_t InterlacedNew;
         int32_t Interlaced;
-        int32_t RGB24New;
-        int32_t RGB24;
+        bool RGB24New;
+        bool RGB24;
         ShortPoint DrawOffset;
         int32_t Disabled;
         SoftRect Range;

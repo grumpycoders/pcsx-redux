@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -65,7 +66,8 @@ class ShaderEditor {
 
     bool draw(GUI*, const char* title);
     void renderWithImgui(GUI* gui, ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
-    void render(GUI*, GLuint textureID, const ImVec2& srcLoc, const ImVec2& srcSize, const ImVec2& dstSize);
+    void render(GUI*, GLuint textureID, const ImVec2& srcLoc, const ImVec2& srcSize, const ImVec2& dstSize,
+                std::initializer_list<lua_Number> extraArgs = {});
 
     void setConfigure(bool configure = true);
     void configure(GUI*);

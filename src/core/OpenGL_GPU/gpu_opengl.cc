@@ -77,7 +77,7 @@ void PCSX::OpenGL_GPU::clearVRAM() { clearVRAM(0.f, 0.f, 0.f, 1.f); }
 
 // Do not forget to call this with an active OpenGL context.
 int PCSX::OpenGL_GPU::initBackend(UI *ui) {
-    m_gui = dynamic_cast<GUI*>(ui);
+    m_gui = dynamic_cast<GUI *>(ui);
     // Reserve some size for vertices & vram transfers to avoid dynamic allocations later.
     m_vertices.resize(vertexBufferSize);
 
@@ -308,6 +308,105 @@ int PCSX::OpenGL_GPU::initBackend(UI *ui) {
     const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
     glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently binded texture
 
+    m_vramTexture24.create(1024, 512, GL_RGBA8);
+    m_fbo24.createWithDrawTexture(m_vramTexture24);
+    m_shaderEditor24.init();
+    m_shaderEditor24.reset(m_gui);
+    m_shaderEditor24.setDefaults();
+    m_shaderEditor24.setText(R"(#version 330 core
+
+precision highp float;
+layout (location = 0) in vec2 Position;
+layout (location = 1) in vec2 UV;
+layout (location = 2) in vec4 Color;
+out vec2 Frag_UV;
+out vec4 Frag_Color;
+void main() {
+    Frag_UV = UV;
+    Frag_Color = Color;
+    gl_Position = vec4(Position.xy, 0, 1);
+}
+)",
+                             R"(#version 330 core
+
+precision highp float;
+uniform sampler2D u_vramTexture;
+in vec2 Frag_UV;
+in vec4 Frag_Color;
+layout (location = 0) out vec4 Out_Color;
+
+uniform int u_24shift = 0;
+
+int texelToRaw(in vec4 t) {
+    int c = (int(t.r * 31.0f + 0.5f) <<  0) |
+            (int(t.g * 31.0f + 0.5f) <<  5) |
+            (int(t.b * 31.0f + 0.5f) << 10) |
+            (int(t.a) << 15);
+    return c;
+}
+
+vec4 readTexture(in vec2 pos) {
+    vec2 apos = vec2(1024.0f, 512.0f) * pos;
+    vec2 fpos = fract(apos);
+    ivec2 ipos = ivec2(apos);
+    vec4 ret = vec4(0.0f);
+    if (pos.x > 1.0f) return ret;
+    if (pos.y > 1.0f) return ret;
+    if (pos.x < 0.0f) return ret;
+    if (pos.y < 0.0f) return ret;
+
+    float scale = 0.0f;
+    int p = 0;
+    vec4 t = texture(u_vramTexture, pos);
+    int c = texelToRaw(t);
+
+    ret.a = 1.0f;
+    vec4 tb = texture(u_vramTexture, pos - vec2(1.0 / 1024.0f, 0.0f));
+    vec4 ta = texture(u_vramTexture, pos + vec2(1.0 / 1024.0f, 0.0f));
+    int cb = texelToRaw(tb);
+    int ca = texelToRaw(ta);
+    switch ((ipos.x + u_24shift) % 3) {
+        case 0:
+            ret.r = float((c >> 0) & 0xff) / 255.0f;
+            ret.g = float((c >> 8) & 0xff) / 255.0f;
+            ret.b = float((ca >> 0) & 0xff) / 255.0f;
+            break;
+        case 1:
+            if (fpos.x < 0.5f) {
+                ret.r = float((cb >> 0) & 0xff) / 255.0f;
+                ret.g = float((cb >> 8) & 0xff) / 255.0f;
+                ret.b = float((c >> 0) & 0xff) / 255.0f;
+            } else {
+                ret.r = float((c >> 8) & 0xff) / 255.0f;
+                ret.g = float((ca >> 0) & 0xff) / 255.0f;
+                ret.b = float((ca >> 8) & 0xff) / 255.0f;
+            }
+            break;
+        case 2:
+            ret.r = float((cb >> 8) & 0xff) / 255.0f;
+            ret.g = float((c >> 0) & 0xff) / 255.0f;
+            ret.b = float((c >> 8) & 0xff) / 255.0f;
+            break;
+    }
+
+    return ret;
+}
+
+void main() {
+    Out_Color = readTexture(Frag_UV.st);
+    Out_Color.a = 1.0;
+}
+)",
+                             R"(
+local loc24shift = gl.glGetUniformLocation(shaderProgramID, 'u_24shift')
+
+function BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, srcSizeY, dstSizeX, dstSizeY, shift)
+    gl.glUniform1i(loc24shift, shift)
+end
+)");
+    status = m_shaderEditor24.compile(m_gui);
+    if (!status.isOk()) return -1;
+
     reset();
     setOpenGLContext();
     return 0;
@@ -490,23 +589,38 @@ void PCSX::OpenGL_GPU::vblank(bool fromGui) {
         OpenGL::disableBlend();
     }
 
-    // We can't draw the MSAA texture directly. So if we're using MSAA, we copy the texture to a non-MSAA texture.
-    if (m_multisampled) {
-        m_fbo.bind(OpenGL::ReadFramebuffer);
-        m_fboNoMSAA.bind(OpenGL::DrawFramebuffer);
-        glBlitFramebuffer(0, 0, 1024, 512, 0, 0, 1024, 512, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    GLuint texture;
+    if (!m_display.enabled) {
+        texture = m_blankTexture.handle();
+    } else {
+        // We can't draw the MSAA texture directly. So if we're using MSAA, we copy the texture to a non-MSAA texture.
+        if (m_multisampled) {
+            m_fbo.bind(OpenGL::ReadFramebuffer);
+            m_fboNoMSAA.bind(OpenGL::DrawFramebuffer);
+            glBlitFramebuffer(0, 0, 1024, 512, 0, 0, 1024, 512, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            texture = m_vramTextureNoMSAA.handle();
+        } else {
+            texture = m_vramTexture.handle();
+        }
     }
-
-    m_gui->setViewport();
-    if (!fromGui) m_gui->flip();  // Set up offscreen framebuffer before rendering
 
     float startX = m_display.startNormalized.x();
     float startY = m_display.startNormalized.y();
     float width = m_display.sizeNormalized.x();
     float height = m_display.sizeNormalized.y();
 
-    m_gui->m_offscreenShaderEditor.render(m_gui, m_displayTexture, {startX, startY}, {width, height},
-                                          m_gui->getRenderSize());
+    if (m_display.info.depth == CtrlDisplayMode::CD_24BITS) {
+        m_fbo24.bind(OpenGL::DrawFramebuffer);
+        OpenGL::setViewport(1024, 512);
+        m_shaderEditor24.render(m_gui, texture, {0, 0}, {1, 1}, {1024, 512}, {lua_Number(m_display.start.x() * 2)});
+        texture = m_vramTexture24.handle();
+        width *= 1.5f;
+    }
+
+    m_gui->setViewport();
+    if (!fromGui) m_gui->flip();  // Set up offscreen framebuffer before rendering
+
+    m_gui->m_offscreenShaderEditor.render(m_gui, texture, {startX, startY}, {width, height}, m_gui->getRenderSize());
 }
 
 void PCSX::OpenGL_GPU::renderBatch() {
@@ -543,14 +657,7 @@ void PCSX::OpenGL_GPU::renderBatch() {
     }
 }
 
-void PCSX::OpenGL_GPU::setDisplayEnable(bool setting) {
-    m_display.enabled = setting;
-    if (!setting) {
-        m_displayTexture = m_blankTexture.handle();
-    } else {
-        m_displayTexture = m_multisampled ? m_vramTextureNoMSAA.handle() : m_vramTexture.handle();
-    }
-}
+void PCSX::OpenGL_GPU::setDisplayEnable(bool enabled) { m_display.enabled = enabled; }
 
 PCSX::Slice PCSX::OpenGL_GPU::getVRAM(Ownership) {
     static constexpr uint32_t texSize = 1024 * 512 * sizeof(uint16_t);
