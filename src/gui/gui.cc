@@ -1794,32 +1794,35 @@ the update and manually apply it.)")));
             if (platform_io.Renderer_RenderWindow) platform_io.Renderer_RenderWindow(viewport, nullptr);
             if (vg) {
                 auto window = getGLFWwindowFromImGuiViewport(viewport);
-                glfwGetWindowSize(window, &winWidth, &winHeight);
-                glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-                pxRatio = (float)fbWidth / (float)winWidth;
-                nvgSwitchSubContextGL(vg, m_nvgSubContextes[viewport->ID]);
-                nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
-                L.getfieldtable("nvg", LUA_GLOBALSINDEX);
-                L.getfield("_processQueueForViewportId", -1);
-                L.copy(-2);
-                L.push(lua_Number(viewport->ID));
-                try {
-                    L.pcall(2);
-                    bool gotGLerror = false;
-                    for (const auto& error : m_glErrors) {
-                        m_luaConsole.addError(error);
-                        if (g_system->getArgs().isLuaStdoutEnabled()) {
-                            fputs(error.c_str(), stderr);
-                            fputc('\n', stderr);
+                auto nvgSubContext = m_nvgSubContextes.find(viewport->ID);
+                if (nvgSubContext != m_nvgSubContextes.end()) {
+                    glfwGetWindowSize(window, &winWidth, &winHeight);
+                    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+                    pxRatio = (float)fbWidth / (float)winWidth;
+                    nvgSwitchSubContextGL(vg, nvgSubContext->second);
+                    nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+                    L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+                    L.getfield("_processQueueForViewportId", -1);
+                    L.copy(-2);
+                    L.push(lua_Number(viewport->ID));
+                    try {
+                        L.pcall(2);
+                        bool gotGLerror = false;
+                        for (const auto& error : m_glErrors) {
+                            m_luaConsole.addError(error);
+                            if (g_system->getArgs().isLuaStdoutEnabled()) {
+                                fputs(error.c_str(), stderr);
+                                fputc('\n', stderr);
+                            }
+                            gotGLerror = true;
                         }
-                        gotGLerror = true;
+                        m_glErrors.clear();
+                        if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+                    } catch (...) {
                     }
-                    m_glErrors.clear();
-                    if (gotGLerror) throw("OpenGL error while running NanoVG queue");
-                } catch (...) {
+                    nvgEndFrame(vg);
+                    while (L.gettop()) L.pop();
                 }
-                nvgEndFrame(vg);
-                while (L.gettop()) L.pop();
             }
             if (platform_io.Platform_SwapBuffers) platform_io.Platform_SwapBuffers(viewport, nullptr);
             if (platform_io.Renderer_SwapBuffers) platform_io.Renderer_SwapBuffers(viewport, nullptr);
