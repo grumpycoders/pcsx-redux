@@ -523,9 +523,9 @@ void PCSX::OpenGL_GPU::debug() {
         if (ImGui::Button(_("Clear VRAM"))) {
             clearVRAM(m_clearColour.r(), m_clearColour.g(), m_clearColour.b());
         }
-
-        ImGui::End();
     }
+
+    ImGui::End();
 }
 
 // Called at the start of a UI frame to restore context
