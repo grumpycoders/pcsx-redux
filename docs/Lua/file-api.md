@@ -167,7 +167,10 @@ The `zReader` function will create a read-only File object which decompresses th
 ## Iso files
 There is some limited API for working with ISO files.
 
-- `PCSX.getCurrentIso()` will return an `Iso` object representing the currently loaded ISO file by the emulator. The following methods are available:
+- `PCSX.getCurrentIso()` will return an `Iso` object representing the currently loaded ISO file by the emulator.
+- `PCSX.openIso(pathOrFile)` will return an `Iso` object opened from the specified argument, which can either be a filesystem path, or a `File` object.
+
+The following methods are available on the `Iso` object:
 
 ```lua
 :failed()       -- Returns true if the Iso file failed in some ways. The Iso object is defunct if this is true.
