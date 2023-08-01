@@ -1048,7 +1048,7 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu(_("File"))) {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
                 if (ImGui::MenuItem(_("Close Disk Image"))) {
-                    PCSX::g_emulator->m_cdrom->setIso(new CDRIso());
+                    PCSX::g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
                     PCSX::g_emulator->m_cdrom->check();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {

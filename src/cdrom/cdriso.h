@@ -33,10 +33,13 @@ namespace PCSX {
 
 class CDRIso {
   public:
-    CDRIso();
     CDRIso(const std::filesystem::path& path) : CDRIso() {
         m_isoPath = path;
-        open();
+        open(new UvFile(m_isoPath));
+    }
+    CDRIso(IO<File> isoFile) : CDRIso() {
+        m_isoPath = isoFile->filename();
+        open(isoFile);
     }
     ~CDRIso() {
         close();
@@ -64,7 +67,8 @@ class CDRIso {
     bool CheckSBI(const uint8_t* time);
 
   private:
-    bool open();
+    CDRIso();
+    bool open(IO<File> isoFile);
     void close();
 
     std::filesystem::path m_isoPath;

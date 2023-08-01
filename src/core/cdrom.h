@@ -47,7 +47,7 @@ struct CdrStat {
 class CDRom {
   public:
     using MSF = PCSX::IEC60908b::MSF;
-    CDRom() : m_iso(new CDRIso()) {}
+    CDRom() : m_iso(new CDRIso(new FailedFile)) {}
     virtual ~CDRom() {}
     static CDRom* factory();
     bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }

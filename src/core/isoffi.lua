@@ -34,6 +34,8 @@ bool isIsoFailed(LuaIso* wrapper);
 void isoClearPPF(LuaIso* wrapper);
 void isoSavePPF(LuaIso* wrapper);
 LuaIso* getCurrentIso();
+LuaIso* openIso(const char* path);
+LuaIso* openIsoFromFile(LuaFile* wrapper);
 
 IsoReader* createIsoReader(LuaIso* wrapper);
 void deleteIsoReader(IsoReader* isoReader);
@@ -100,6 +102,13 @@ local function createIsoBuilderWrapper(wrapper)
 end
 
 PCSX.getCurrentIso = function() return createIsoWrapper(C.getCurrentIso()) end
+PCSX.openIso = function(arg)
+    if type(arg) == 'string' then
+        return createIsoWrapper(C.openIso(arg))
+    else
+        return createIsoWrapper(C.openIsoFromFile(arg._wrapper))
+    end
+end
 PCSX.isoBuilder = function(file) return createIsoBuilderWrapper(C.createIsoBuilder(file._wrapper)) end
 
 -- )EOF"
