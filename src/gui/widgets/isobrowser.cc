@@ -66,7 +66,7 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
         if (ImGui::BeginMenu(_("File"))) {
             showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
             if (ImGui::MenuItem(_("Close Disk Image"))) {
-                g_emulator->m_cdrom->setIso(new CDRIso());
+                g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
                 g_emulator->m_cdrom->check();
             }
             ImGui::EndMenu();
