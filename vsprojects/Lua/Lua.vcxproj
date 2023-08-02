@@ -41,6 +41,7 @@
     <ClCompile Include="..\..\src\lua\luawrapper.cc" />
     <ClCompile Include="..\..\src\lua\zlibffi.cc" />
     <ClCompile Include="..\..\third_party\lua-protobuf\pb.c" />
+    <ClCompile Include="..\..\third_party\luafilesystem\src\lfs.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\lua\extra.h" />
@@ -49,6 +50,7 @@
     <ClInclude Include="..\..\src\lua\luawrapper.h" />
     <ClInclude Include="..\..\src\lua\zlibffi.h" />
     <ClInclude Include="..\..\third_party\lua-protobuf\pb.h" />
+    <ClInclude Include="..\..\third_party\luafilesystem\src\lfs.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\lua\fileffi-cdef.lua" />

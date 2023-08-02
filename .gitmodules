@@ -85,3 +85,6 @@
 [submodule "third_party/nanosvg"]
 	path = third_party/nanosvg
 	url = https://github.com/grumpycoders/nanosvg
+[submodule "third_party/luafilesystem"]
+	path = third_party/luafilesystem
+	url = https://github.com/lunarmodules/luafilesystem.git
