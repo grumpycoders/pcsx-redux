@@ -94,7 +94,7 @@ end
 
 local function readAt(self, ptr, size, pos)
     if type(ptr) == 'number' and type(size) == 'number' and pos == nil then
-        ptr = size
+        pos = size
         size = ptr
         local buf = Support.NewLuaBuffer(size)
         size = C.readFileAtBuffer(self._wrapper, buf, pos)
