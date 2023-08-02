@@ -42,6 +42,7 @@
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "lua/zlibffi.h"
+#include "luafilesystem/src/lfs.h"
 extern "C" {
 #include "luv/src/luv.h"
 }
@@ -91,6 +92,8 @@ void PCSX::Emulator::setLua() {
     L.push("luv");
     luaopen_luv(L.getState());
     L.settable(LUA_GLOBALSINDEX);
+    luaopen_lfs(L.getState());
+    L.pop(3);
     LuaFFI::open_file(L);
     LuaFFI::open_pcsx(L);
     LuaFFI::open_iso(L);
