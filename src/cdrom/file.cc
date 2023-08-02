@@ -157,11 +157,12 @@ ssize_t PCSX::CDRIsoFile::read(void* buffer_, size_t size) {
     while (toCopy != 0) {
         if (m_cachedLBA != lba) {
             m_cachedLBA = lba;
-            auto res = m_iso->readSectors(lba++, m_cachedSector, 1);
+            auto res = m_iso->readSectors(lba, m_cachedSector, 1);
             if (res != 1) return -1;
         }
         size_t blocSize = std::min(toCopy, c_sectorSizes[modeIndex] - sectorOffset);
         memcpy(buffer + actualSize, m_cachedSector + c_sectorOffsets[modeIndex] + sectorOffset, blocSize);
+        lba++;
         sectorOffset = 0;
         actualSize += blocSize;
         toCopy -= blocSize;
