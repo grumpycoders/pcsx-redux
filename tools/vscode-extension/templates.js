@@ -521,6 +521,9 @@ exports.createProjectFromTemplate = async function (tools, options) {
   if (await fs.exists(fullPath)) {
     throw new Error('The project directory already exists.')
   }
+  if (fullPath.includes(' ')) {
+    throw new Error('The project path cannot contain spaces.')
+  }
   let resolver
   let rejecter
   const { progressReporter, progressResolver } =
