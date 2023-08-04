@@ -44,9 +44,11 @@ void PCSX::SIO::acknowledge() {
 }
 
 void PCSX::SIO::init() {
-    reset();
     g_emulator->m_memoryCards->init();
     g_emulator->m_pads->init();
+
+    reset();
+    
     g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
 }
 
