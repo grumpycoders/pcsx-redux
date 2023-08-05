@@ -88,7 +88,7 @@ void loadSaveStateFromFile(LuaFile*);
 
 LuaFile* getMemoryAsFile();
 
-void quit();
+void quit(int code);
 ]]
 
 local C = ffi.load 'PCSX'
@@ -213,7 +213,7 @@ PCSX = {
         end
     end,
     getMemoryAsFile = function() return C.getMemoryAsFile() end,
-    quit = function() C.quit() end,
+    quit = function(code) C.quit(code or 0) end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end
