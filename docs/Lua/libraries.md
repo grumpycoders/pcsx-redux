@@ -27,3 +27,9 @@ The [PPrint](https://github.com/jagt/pprint.lua) library is loaded globally as t
 
 ## Lua-Protobuf
 The [Lua-Protobuf](https://github.com/starwing/lua-protobuf) library is available, but not loaded by default. All of its documented API should be usable straight with no additional work. It has been slightly modified, but nothing that should be visible to the user. There is some limited glue between its API and PCSX's.
+
+## luafilesystem
+The [luafilesystem](https://github.com/lunarmodules/luafilesystem) library is loaded globally as the `lfs` symbol. It's a library that provides access to the filesystem.
+
+## LPeg
+The [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/) library is available, but not loaded by default. It's a library that provides a pattern-matching library for Lua, which can be useful to create ad-hoc arbitrary parsers.
