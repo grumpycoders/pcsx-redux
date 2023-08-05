@@ -440,6 +440,9 @@
     <ProjectReference Include="..\libuv\libuv.vcxproj">
       <Project>{4b88e4f6-56b3-4f66-bee8-0a4a21937bee}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\lpeg\lpeg.vcxproj">
+      <Project>{ce54ed92-4645-4ae9-bdc8-c0b9607765f8}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\Lua\Lua.vcxproj">
       <Project>{f0dabab6-069e-4b31-9bfc-296ce2fe23a6}</Project>
     </ProjectReference>

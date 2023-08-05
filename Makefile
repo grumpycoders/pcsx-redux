@@ -126,6 +126,7 @@ SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/imgui_md/imgui_md.cpp
 SRCS += third_party/imgui_memory_editor/imgui_memory_editor.cpp
+SRCS += $(wildcard third_party/lpeg/*.c)
 SRCS += third_party/lua-protobuf/pb.c
 SRCS += third_party/luafilesystem/src/lfs.c
 SRCS += third_party/luv/src/luv.c

@@ -40,6 +40,7 @@ find a link to the vendored version itself.
  - [json](https://github.com/nlohmann/json) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/json.hpp))
  - [libcester](https://github.com/exoticlibraries/libcester)
  - [libuv](https://github.com/libuv/libuv)
+ - [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/)
  - [lua-protobuf](https://github.com/starwing/lua-protobuf) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/lua-protobuf))
  - [luafilesystem](https://github.com/lunarmodules/luafilesystem)
  - [LuaJIT](https://github.com/LuaJIT/LuaJIT) ([vendored](https://github.com/grumpycoders/LuaJIT/tree/vendored-clib-virtual))
