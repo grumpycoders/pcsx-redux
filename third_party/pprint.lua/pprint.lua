@@ -17,7 +17,7 @@ pprint.defaults = {
     show_function = false,
     show_thread = false,
     show_userdata = false,
-	show_cdata = false,
+    show_cdata = false,
     -- additional display trigger
     show_metatable = false,     -- show metatable
     show_all = false,           -- override other show settings and show everything
@@ -30,6 +30,7 @@ pprint.defaults = {
     level_width = 80,           -- max width per indent level
     wrap_string = true,         -- wrap string when it's longer than level_width
     wrap_array = false,         -- wrap every array elements
+    string_is_utf8 = true,      -- treat string as utf8, and count utf8 char when wrapping, if possible
     sort_keys = true,           -- sort table keys
 }
 
@@ -46,16 +47,62 @@ local ESCAPE_MAP = {
 }
 
 -- generic utilities
-local function escape(s)
-    s = s:gsub('([%c\\])', ESCAPE_MAP)
-    local dq = s:find('"') 
-    local sq = s:find("'")
-    if dq and sq then
-        return s:gsub('"', '\\"'), '"'
-    elseif sq then
-        return s, '"'
-    else
-        return s, "'"
+local tokenize_string = function(s)
+    local t = {}
+    for i = 1, #s do
+        local c = s:sub(i, i)
+        local b = c:byte()
+        local e = ESCAPE_MAP[c]
+        if (b >= 0x20 and b < 0x80) or e then
+            local s = e or c
+            t[i] = { char = s, len = #s }
+        else
+            t[i] = { char = string.format('\\x%02x', b), len = 4 }
+        end
+        if c == '"' then
+            t.has_double_quote = true
+        elseif c == "'" then
+            t.has_single_quote = true
+        end
+    end
+    return t
+end
+local tokenize_utf8_string = tokenize_string
+
+local has_lpeg, lpeg = pcall(require, 'lpeg')
+
+if has_lpeg then
+    local function utf8_valid_char(c)
+        return { char = c, len = 1 }
+    end
+
+    local function utf8_invalid_char(c)
+        local b = c:byte()
+        local e = ESCAPE_MAP[c]
+        if (b >= 0x20 and b < 0x80) or e then
+            local s = e or c
+            return { char = s, len = #s }
+        else
+            return { char = string.format('\\x%02x', b), len = 4 }
+        end
+    end
+
+    local cont = lpeg.R('\x80\xbf')
+    local utf8_char =
+        lpeg.R('\x20\x7f') +
+        lpeg.R('\xc0\xdf') * cont +
+        lpeg.R('\xe0\xef') * cont * cont +
+        lpeg.R('\xf0\xf7') * cont * cont * cont
+
+    local utf8_capture = (((utf8_char / utf8_valid_char) + (lpeg.P(1) / utf8_invalid_char)) ^ 0) * -1
+
+    tokenize_utf8_string = function(s)
+        local dq = s:find('"')
+        local sq = s:find("'")
+        local t = table.pack(utf8_capture:match(s))
+        t.has_double_quote = not not dq
+        t.has_single_quote = not not sq
+        return t
     end
 end
 
@@ -206,9 +253,11 @@ function pprint.pformat(obj, option, printer)
     local status = {
         indent = '', -- current indent
         len = 0,     -- current line length
+        printed_something = false, -- used to remove leading new lines
     }
 
     local wrapped_printer = function(s)
+        status.printed_something = true
         printer(last)
         last = s
     end
@@ -218,6 +267,7 @@ function pprint.pformat(obj, option, printer)
     end
 
     local function _n(d)
+        if not status.printed_something then return end
         wrapped_printer('\n')
         wrapped_printer(status.indent)
         if d then
@@ -274,26 +324,85 @@ function pprint.pformat(obj, option, printer)
     end
 
     local function string_formatter(s, force_long_quote)
-        local s, quote = escape(s)
-        local quote_len = force_long_quote and 4 or 2
-        if quote_len + #s + status.len > option.level_width then
+        local tokens = option.string_is_utf8 and tokenize_utf8_string(s) or tokenize_string(s)
+        local string_len = 0
+        local escape_quotes = tokens.has_double_quote and tokens.has_single_quote
+        for _, token in ipairs(tokens) do
+            if escape_quotes and token.char == '"' then
+                string_len = string_len + 2
+            else
+                string_len = string_len + token.len
+            end
+        end
+        local quote_len = 2
+        local long_quote_dashes = 0
+        local function compute_long_quote_dashes()
+            local keep_looking = true
+            while keep_looking do
+                if s:find('%]' .. string.rep('=', long_quote_dashes) .. '%]') then
+                    long_quote_dashes = long_quote_dashes + 1
+                else
+                    keep_looking = false
+                end
+            end
+        end
+        if force_long_quote then
+            compute_long_quote_dashes()
+            quote_len = 2 + long_quote_dashes
+        end
+        if quote_len + string_len + status.len > option.level_width then
             _n()
             -- only wrap string when is longer than level_width
-            if option.wrap_string and #s + quote_len > option.level_width then
-                -- keep the quotes together
-                _p('[[')
-                while #s + status.len >= option.level_width do
-                    local seg = option.level_width - status.len
-                    _p(string.sub(s, 1, seg), true)
-                    _n()
-                    s = string.sub(s, seg+1)
+            if option.wrap_string and string_len + quote_len > option.level_width then
+                if not force_long_quote then
+                    compute_long_quote_dashes()
+                    quote_len = 2 + long_quote_dashes
                 end
-                _p(s) -- print the remaining parts
-                return ']]' 
+                -- keep the quotes together
+                local dashes = string.rep('=', long_quote_dashes)
+                _p('[' .. dashes .. '[', true)
+                local status_len = status.len
+                local line_len = 0
+                local line = ''
+                for _, token in ipairs(tokens) do
+                    if line_len + token.len + status_len > option.level_width then
+                        _n()
+                        _p(line, true)
+                        line_len = token.len
+                        line = token.char
+                    else
+                        line_len = line_len + token.len
+                        line = line .. token.char
+                    end
+                end
+
+                return line .. ']' .. dashes .. ']'
             end
         end
 
-        return force_long_quote and '[['..s..']]' or quote..s..quote
+        if tokens.has_double_quote and tokens.has_single_quote and not force_long_quote then
+            for i, token in ipairs(tokens) do
+                if token.char == '"' then
+                    tokens[i].char = '\\"'
+                end
+            end
+        end
+        local flat_table = {}
+        for _, token in ipairs(tokens) do
+            table.insert(flat_table, token.char)
+        end
+        local concat = table.concat(flat_table)
+
+        if force_long_quote then
+            local dashes = string.rep('=', long_quote_dashes)
+            return '[' .. dashes .. '[' .. concat .. ']' .. dashes .. ']'
+        elseif tokens.has_single_quote then
+            -- use double quote
+            return '"' .. concat .. '"'
+        else
+            -- use single quote
+            return "'" .. concat .. "'"
+        end
     end
 
     local function table_formatter(t)
