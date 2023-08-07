@@ -72,7 +72,7 @@ powershell -c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"
 Then, open a new command prompt, and type the following:
 
 ```
-mips install 13.1.0
+mips install 13.2.0
 ```
 
 To manually install this script, you can download it from [here](https://bit.ly/mips-ps1), and then install it with the following command:
