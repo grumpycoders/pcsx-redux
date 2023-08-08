@@ -185,6 +185,9 @@ Set a BIOS file into the configuration, and do a hard reset of the emulator.
 The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 )"));
 
+    uint32_t nobioscrc = crc32(0L, Z_NULL, 0);
+    nobioscrc = crc32(nobioscrc, m_bios, bios_size);
+
     // Load BIOS
     {
         auto &biosPath = g_emulator->settings.get<Emulator::SettingBios>().value;
@@ -230,7 +233,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         g_system->printf(_("Known BIOS detected: %s (%08x)\n"), it->second, crc);
     } else if (strncmp((const char *)&m_bios[0x78], "OpenBIOS", 8) == 0) {
         g_system->printf(_("OpenBIOS detected (%08x)\n"), crc);
-    } else {
+    } else if (crc != nobioscrc) {
         g_system->printf(_("Unknown bios loaded (%08x)\n"), crc);
     }
 }
