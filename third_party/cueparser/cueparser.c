@@ -668,7 +668,13 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
     schedule_read(parser, file, scheduler);
 }
 
-static void parse_eof(struct CueParser* parser, struct CueScheduler* scheduler) {
+static void parse_eof(struct CueParser* parser, struct CueFile* file, struct CueScheduler* scheduler) {
+    if (parser->state != CUE_PARSER_START) {
+        parser->amount = 1;
+        parser->start = "\n";
+        parse(parser, file, scheduler);
+        return;
+    }
     if (parser->currentFile) {
         if (parser->currentFile->references == 1) {
             end_parse(parser, scheduler, "cuesheet has too many FILE without TRACK");
@@ -703,7 +709,7 @@ static void read_bytes(struct CueFile* file, struct CueScheduler* scheduler, int
                        uint8_t* buffer) {
     struct CueParser* parser = file->user;
     if (amount == 0) {
-        parse_eof(parser, scheduler);
+        parse_eof(parser, file, scheduler);
     } else {
         parser->amount = amount;
         parser->cursor += amount;
