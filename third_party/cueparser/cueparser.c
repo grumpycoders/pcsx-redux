@@ -99,20 +99,20 @@ static void end_closure_call(struct CueClosure* closure_) {
     closure->parser->cb(closure->parser, closure->scheduler, closure->error);
 }
 
-static void reset_word(char* word) { *(uint8_t*)&word[255] = 255; }
+static void reset_word(char* word) { *(uint8_t*)&word[255] = 0; }
 
 static int append_to_word(char* word, int c) {
     uint8_t* b = (uint8_t*)word;
-    int len = 255 - b[255];
+    int len = b[255];
     if (len == 255) return 0;
     word[len++] = c;
-    b[255] = 255 - len;
+    b[255] = len;
     return 1;
 }
 
 static int word_len(char* word) {
     uint8_t* b = (uint8_t*)word;
-    return 255 - b[255];
+    return b[255];
 }
 
 static void end_word(char* word) {
