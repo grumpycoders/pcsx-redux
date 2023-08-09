@@ -56,7 +56,7 @@
     <ClInclude Include="..\..\third_party\lua-protobuf\pb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\third_party\luafilesystem\lfs.h">
+    <ClInclude Include="..\..\third_party\luafilesystem\src\lfs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -113,5 +113,8 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="..\..\third_party\pprint.lua\pprint-internals.lua">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

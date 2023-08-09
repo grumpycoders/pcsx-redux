@@ -68,6 +68,7 @@
     <None Include="..\..\third_party\lua-protobuf\lexer.lua" />
     <None Include="..\..\third_party\lua-protobuf\protoc.lua" />
     <None Include="..\..\third_party\lua-protobuf\toplevel.lua" />
+    <None Include="..\..\third_party\pprint.lua\pprint-internals.lua" />
     <None Include="..\..\third_party\pprint.lua\pprint.lua" />
     <None Include="..\..\third_party\zlibffi\zlibffi.lua" />
     <None Include="packages.config" />
