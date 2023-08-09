@@ -51,6 +51,7 @@ enum Keyword {
     KW_CDTEXTFILE = 0xbbd08639,
     KW_DCP = 0x0b87bad2,
     KW_FILE = 0x7c7e1383,
+    KW_FLAC = 0x7c7e292d,
     KW_FLAGS = 0x0c434e1a,
     KW_INDEX = 0x0cda305b,
     KW_ISRC = 0x7c8344ae,
@@ -60,6 +61,8 @@ enum Keyword {
     KW_MODE2_2352 = 0x0e924d5d,
     KW_MOTOROLA = 0x7ba98cec,
     KW_MP3 = 0x0b87c98b,
+    KW_OGG = 0x0b87e14a,
+    KW_OPUS = 0x7c84409c,
     KW_PERFORMER = 0xcc7e14e3,
     KW_POSTGAP = 0xb61fc6ab,
     KW_PRE = 0x0b880de2,
@@ -402,9 +405,25 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                         parser->currentFile->size(parser->currentFile, scheduler, 1, size_cb);
                         return;
                         break;
+                    case KW_OGG:
+                        parser->currentFileType = CUE_FILE_TYPE_OGG;
+                        parser->currentFile->size(parser->currentFile, scheduler, 1, size_cb);
+                        return;
+                        break;
+                    case KW_OPUS:
+                        parser->currentFileType = CUE_FILE_TYPE_OPUS;
+                        parser->currentFile->size(parser->currentFile, scheduler, 1, size_cb);
+                        return;
+                        break;
+                    case KW_FLAC:
+                        parser->currentFileType = CUE_FILE_TYPE_FLAC;
+                        parser->currentFile->size(parser->currentFile, scheduler, 1, size_cb);
+                        return;
+                        break;
                     default:
                         end_parse(parser, scheduler, "cuesheet unknown FILE filetype");
                         return;
+                        break;
                 }
                 break;
             case CUE_PARSER_FLAGS: {
