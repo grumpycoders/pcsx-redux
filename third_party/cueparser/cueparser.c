@@ -234,7 +234,10 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
             continue;
         }
         if (parser->inRem) {
-            if (isEOL) parser->inRem = 0;
+            if (isEOL) {
+                parser->inRem = 0;
+                new_keyword(parser);
+            }
             continue;
         }
         if (parser->afterQuotes) {
