@@ -30,6 +30,10 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <assert.h>
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavutil/avutil.h>
+}
 
 #include <algorithm>
 #include <cmath>
@@ -2276,6 +2280,65 @@ bool PCSX::GUI::about() {
                     ImGui::Text("%s", extension);
                 }
                 ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(_("FFmpeg information"))) {
+                ImGui::Text(_("Version: %s"), av_version_info());
+                ImGui::Text(_("License: %s"), avutil_license());
+                ImGui::TextWrapped(_("Configuration: %s"), avutil_configuration());
+                ImGui::Separator();
+                ImGui::TextUnformatted(_("List of supported codecs:"));
+                const AVCodecDescriptor* codec = nullptr;
+                std::vector<const AVCodecDescriptor*> codecs;
+                unsigned nb_codecs = 0;
+                while ((codec = avcodec_descriptor_next(codec))) nb_codecs++;
+                codecs.reserve(nb_codecs);
+                codec = nullptr;
+                while ((codec = avcodec_descriptor_next(codec))) codecs.push_back(codec);
+                std::sort(codecs.begin(), codecs.end(), [](auto& a, auto& b) {
+                    if (a->type == b->type) {
+                        return strcmp(a->name, b->name) < 0;
+                    }
+                    return a->type < b->type;
+                });
+
+                auto getMediaType = [](AVMediaType type) -> const char* {
+                    switch (type) {
+                        case AVMEDIA_TYPE_VIDEO:
+                            return "Video";
+                        case AVMEDIA_TYPE_AUDIO:
+                            return "Audio";
+                        case AVMEDIA_TYPE_DATA:
+                            return "Data";
+                        case AVMEDIA_TYPE_SUBTITLE:
+                            return "Subtitle";
+                        case AVMEDIA_TYPE_ATTACHMENT:
+                            return "Attachment";
+                        default:
+                            return "Unknown";
+                    }
+                };
+
+                auto previousType = AVMEDIA_TYPE_UNKNOWN;
+
+                useMonoFont();
+                for (auto& codec : codecs) {
+                    auto type = codec->type;
+                    if (type != previousType) {
+                        ImGui::Separator();
+                        useMainFont();
+                        ImGui::Text(_("Codecs of type %s"), getMediaType(type));
+                        ImGui::PopFont();
+                        previousType = type;
+                    }
+                    std::string_view name = codec->name;
+                    if (StringsHelpers::endsWith(name, "_deprecated")) continue;
+                    ImGui::Text("%c%c%c%c %-20s %s", avcodec_find_decoder(codec->id) ? 'D' : '.',
+                                avcodec_find_encoder(codec->id) ? 'E' : '.',
+                                (codec->props & AV_CODEC_PROP_LOSSY) ? 'L' : '.',
+                                (codec->props & AV_CODEC_PROP_LOSSLESS) ? 'S' : '.', codec->name, codec->long_name);
+                }
+                ImGui::PopFont();
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();
