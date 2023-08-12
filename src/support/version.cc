@@ -62,7 +62,7 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
                 }
                 std::sort(catalog.begin(), catalog.end(),
                           [](const nlohmann::json& a, const nlohmann::json& b) { return a["id"] > b["id"]; });
-                auto latest = catalog[0].template get<std::string>();
+                auto latest = catalog[0];
                 if (latest["version"].template get<std::string>() == versionInfo.version) {
                     callback(false);
                     return;
