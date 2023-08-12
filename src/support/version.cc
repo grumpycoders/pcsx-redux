@@ -32,11 +32,11 @@ void PCSX::VersionInfo::loadFromFile(IO<File> file) {
     json = nlohmann::json::parse(container.begin(), container.end());
 
     try {
-        version = json["version"];
-        changeset = json["changeset"];
-        timestamp = json["timestamp"];
-        updateCatalog = json["updateInfo"][0]["updateCatalog"];
-        updateInfoBase = json["updateInfo"][0]["updateInfoBase"];
+        version = json["version"].template get<std::string>();
+        changeset = json["changeset"].template get<std::string>();
+        timestamp = json["timestamp"].template get<std::time_t>();
+        updateCatalog = json["updateInfo"][0]["updateCatalog"].template get<std::string>();
+        updateInfoBase = json["updateInfo"][0]["updateInfoBase"].template get<std::string>();
     } catch (...) {
         clear();
     }
@@ -62,13 +62,13 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
                 }
                 std::sort(catalog.begin(), catalog.end(),
                           [](const nlohmann::json& a, const nlohmann::json& b) { return a["id"] > b["id"]; });
-                auto latest = catalog[0];
-                if (latest["version"] == versionInfo.version) {
+                auto latest = catalog[0].template get<std::string>();
+                if (latest["version"].template get<std::string>() == versionInfo.version) {
                     callback(false);
                     return;
                 }
-                m_updateId = latest["id"];
-                m_updateVersion = latest["version"];
+                m_updateId = latest["id"].template get<std::string>();
+                m_updateVersion = latest["version"].template get<std::string>();
             } catch (...) {
                 callback(false);
                 return;
@@ -95,7 +95,7 @@ bool PCSX::Update::downloadAndApplyUpdate(const VersionInfo& versionInfo, std::f
                 FileAsContainer container(m_download);
                 nlohmann::json update;
                 update = nlohmann::json::parse(container.begin(), container.end());
-                url = update["download_url"];
+                url = update["download_url"].template get<std::string>();
             } catch (...) {
                 callback(false);
                 return;
@@ -130,7 +130,7 @@ bool PCSX::Update::getDownloadUrl(const VersionInfo& versionInfo, std::function<
                 FileAsContainer container(m_download);
                 nlohmann::json update;
                 update = nlohmann::json::parse(container.begin(), container.end());
-                url = update["download_url"];
+                url = update["download_url"].template get<std::string>();
             } catch (...) {
                 callback("");
                 return;
