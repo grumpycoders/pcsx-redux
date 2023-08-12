@@ -67,7 +67,7 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
                     callback(false);
                     return;
                 }
-                m_updateId = latest["id"].template get<std::string>();
+                m_updateId = latest["id"].template get<unsigned>();
                 m_updateVersion = latest["version"].template get<std::string>();
             } catch (...) {
                 callback(false);
