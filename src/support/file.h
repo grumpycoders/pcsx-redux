@@ -172,7 +172,7 @@ class File {
     void writeString(const std::string_view& str) { write(str.data(), str.size()); }
     void writeStringAt(const std::string_view& str, ssize_t pos) { writeAt(str.data(), str.size(), pos); }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <std::integral T, std::endian endianess = std::endian::little>
     T read() {
         T ret = T(0);
         read(&ret, sizeof(T));
@@ -182,7 +182,7 @@ class File {
         return ret;
     }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <std::integral T, std::endian endianess = std::endian::little>
     T peek() {
         T ret = T(0);
         readAt(&ret, sizeof(T), rTell());
@@ -192,7 +192,7 @@ class File {
         return ret;
     }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <std::integral T, std::endian endianess = std::endian::little>
     T readAt(size_t pos) {
         T ret = T(0);
         readAt(&ret, sizeof(T), pos);
@@ -202,7 +202,7 @@ class File {
         return ret;
     }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <std::integral T, std::endian endianess = std::endian::little>
     void write(T val) {
         if constexpr (endianess != std::endian::native) {
             val = PolyFill::byteSwap(val);
@@ -210,7 +210,7 @@ class File {
         write(&val, sizeof(T));
     }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <std::integral T, std::endian endianess = std::endian::little>
     void writeAt(T val, size_t pos) {
         if constexpr (endianess != std::endian::native) {
             val = PolyFill::byteSwap(val);
@@ -232,7 +232,7 @@ class File {
 
     void skip(size_t amount) { rSeek(amount, SEEK_CUR); }
 
-    template <IntegralConcept T>
+    template <std::integral T>
     void skip() {
         skip(sizeof(T));
     }
