@@ -18,7 +18,7 @@ else
 HAS_SUBMODULES = true
 endif
 
-CXXFLAGS += -std=c++2a
+CXXFLAGS += -std=c++2b
 CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -I.
 CPPFLAGS += -Isrc
