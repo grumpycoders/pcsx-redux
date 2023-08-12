@@ -27,22 +27,26 @@ namespace PCSX {
 
 namespace PolyFill {
 
-    template <std::integral T>
-    static constexpr T byteSwap(T val) {
+// MacOS / AppleClang is bad.
+template <class T>
+concept IntegralConcept = std::is_integral<T>::value;
+
+template <IntegralConcept T>
+static constexpr T byteSwap(T val) {
 #if defined(__cpp_lib_byteswap) && (__cpp_lib_byteswap >= 202110L)
-        return std::byteswap<T>(val);
+    return std::byteswap<T>(val);
 #else
-        if constexpr (sizeof(T) == 1) {
-            return val;
-        } else {
-            T ret = 0;
-            for (size_t i = 0; i < sizeof(T); i++) {
-                ret |= static_cast<T>(static_cast<uint8_t>(val >> (i * 8)) << ((sizeof(T) - i - 1) * 8));
-            }
-            return ret;
+    if constexpr (sizeof(T) == 1) {
+        return val;
+    } else {
+        T ret = 0;
+        for (size_t i = 0; i < sizeof(T); i++) {
+            ret |= static_cast<T>(static_cast<uint8_t>(val >> (i * 8)) << ((sizeof(T) - i - 1) * 8));
         }
-#endif
+        return ret;
     }
+#endif
+}
 
 }
 
