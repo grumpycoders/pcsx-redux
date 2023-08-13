@@ -32,6 +32,7 @@
 #include <assert.h>
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 }
 
@@ -2287,6 +2288,25 @@ bool PCSX::GUI::about() {
                 ImGui::Text(_("License: %s"), avutil_license());
                 ImGui::TextWrapped(_("Configuration: %s"), avutil_configuration());
                 ImGui::Separator();
+
+                ImGui::TextUnformatted(_("List of supported formats:"));
+                const AVInputFormat* format = nullptr;
+                void* opaque = nullptr;
+                std::vector<const AVInputFormat*> formats;
+                unsigned nb_formats = 0;
+                while ((format = av_demuxer_iterate(&opaque))) nb_formats++;
+                formats.reserve(nb_formats);
+                opaque = nullptr;
+                while ((format = av_demuxer_iterate(&opaque))) formats.push_back(format);
+                std::sort(formats.begin(), formats.end(),
+                          [](auto& a, auto& b) { return strcmp(a->name, b->name) < 0; });
+                useMonoFont();
+                for (auto& format : formats) {
+                    ImGui::Text("  %-25s %s", format->name, format->long_name);
+                }
+                ImGui::PopFont();
+                ImGui::Separator();
+
                 ImGui::TextUnformatted(_("List of supported codecs:"));
                 const AVCodecDescriptor* codec = nullptr;
                 std::vector<const AVCodecDescriptor*> codecs;
