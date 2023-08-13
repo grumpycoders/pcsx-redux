@@ -140,7 +140,7 @@ class CDRIso {
         IEC60908b::MSF start;
         IEC60908b::MSF length;
         IO<File> handle = nullptr;                                         // for multi-track images CDDA
-        enum cddatype_t { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;  // BIN, WAV, MP3, APE
+        enum CDDAType { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;    // BIN, WAV, MP3, APE
         uint32_t start_offset = 0;                                         // byte offset from start of above file
     };
 

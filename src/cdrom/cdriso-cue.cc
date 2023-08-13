@@ -80,30 +80,30 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
         }
         file->opaque = fi;
         file->destroy = [](CueFile *file) {
-            UvFile *fi = reinterpret_cast<UvFile *>(file->opaque);
+            File *fi = reinterpret_cast<File *>(file->opaque);
             delete fi;
             file->opaque = nullptr;
         };
         file->close = [](CueFile *file, CueScheduler *scheduler, void (*cb)(CueFile *, CueScheduler *)) {
-            UvFile *fi = reinterpret_cast<UvFile *>(file->opaque);
+            File *fi = reinterpret_cast<File *>(file->opaque);
             fi->close();
             File_schedule_close(file, scheduler, cb);
         };
         file->size = [](CueFile *file, CueScheduler *scheduler, int compressed,
                         void (*cb)(CueFile *, CueScheduler *, uint64_t)) {
-            UvFile *fi = reinterpret_cast<UvFile *>(file->opaque);
-            if (compressed) {
-                FFmpegAudioFile *cfi = new FFmpegAudioFile(fi, FFmpegAudioFile::CHANNELS_STEREO,
-                                                           FFmpegAudioFile::ENDIANNESS_LITTLE, 44100);
+            File *fi = reinterpret_cast<File *>(file->opaque);
+            if (compressed && dynamic_cast<UvFile *>(fi)) {
+                FFmpegAudioFile *cfi =
+                    new FFmpegAudioFile(fi, FFmpegAudioFile::Channels::Stereo, FFmpegAudioFile::Endianness::Little,
+                                        FFmpegAudioFile::SampleFormat::S16, 44100);
                 file->opaque = cfi;
-                File_schedule_size(file, scheduler, cfi->size(), cb);
-            } else {
-                File_schedule_size(file, scheduler, fi->size(), cb);
+                fi = cfi;
             }
+            File_schedule_size(file, scheduler, fi->size(), cb);
         };
         file->read = [](CueFile *file, CueScheduler *scheduler, uint32_t amount, uint64_t cursor, uint8_t *buffer,
                         void (*cb)(CueFile *, CueScheduler *, int error, uint32_t amount, uint8_t *buffer)) {
-            UvFile *fi = reinterpret_cast<UvFile *>(file->opaque);
+            File *fi = reinterpret_cast<File *>(file->opaque);
             if (cursor >= fi->size()) {
                 File_schedule_read(file, scheduler, 0, 0, nullptr, cb);
             } else {
@@ -135,7 +135,7 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
                         Context *context = reinterpret_cast<Context *>(scheduler->opaque);
                         if (error) {
                             context->failed = true;
-                            g_system->log(LogClass::CDROM_IO, "Error parsing Cue File: %s", error);
+                            PCSX::g_system->printf("Error parsing Cue File: %s", error);
                         }
                     });
 
