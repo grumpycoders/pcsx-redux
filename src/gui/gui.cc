@@ -2333,7 +2333,7 @@ bool PCSX::GUI::about() {
                     }
                     std::string_view name = codec->name;
                     if (StringsHelpers::endsWith(name, "_deprecated")) continue;
-                    ImGui::Text("%c%c%c%c %-20s %s", avcodec_find_decoder(codec->id) ? 'D' : '.',
+                    ImGui::Text("  %c%c%c%c %-20s %s", avcodec_find_decoder(codec->id) ? 'D' : '.',
                                 avcodec_find_encoder(codec->id) ? 'E' : '.',
                                 (codec->props & AV_CODEC_PROP_LOSSY) ? 'L' : '.',
                                 (codec->props & AV_CODEC_PROP_LOSSLESS) ? 'S' : '.', codec->name, codec->long_name);
