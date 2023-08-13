@@ -97,6 +97,12 @@ LuaFile* mem4g();
 uint32_t mem4gLowestAddress(LuaFile*);
 uint32_t mem4gHighestAddress(LuaFile*);
 uint32_t mem4gActualSize(LuaFile*);
+
+enum FFmpegAudioFileChannels { Stereo, Mono };
+enum FFmpegAudioFileEndianness { Little, Big };
+enum FFmpegAudioFileSampleFormat { U8, S16, S32, F32, D64 };
+LuaFile* ffmpegAudioFile(LuaFile* file, enum FFmpegAudioFileChannels, enum FFmpegAudioFileEndianness, enum FFmpegAudioFileSampleFormat, unsigned frequency);
+
 ]]
 
 -- )EOF"
