@@ -2307,7 +2307,7 @@ bool PCSX::GUI::about() {
                 ImGui::PopFont();
                 ImGui::Separator();
 
-                ImGui::TextUnformatted(_("List of supported codecs:"));
+                ImGui::TextUnformatted(_("List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"));
                 const AVCodecDescriptor* codec = nullptr;
                 std::vector<const AVCodecDescriptor*> codecs;
                 unsigned nb_codecs = 0;
@@ -2347,7 +2347,7 @@ bool PCSX::GUI::about() {
                     if (type != previousType) {
                         ImGui::Separator();
                         useMainFont();
-                        ImGui::Text(_("Codecs of type %s"), getMediaType(type));
+                        ImGui::Text(_("%s codecs"), getMediaType(type));
                         ImGui::PopFont();
                         previousType = type;
                     }
