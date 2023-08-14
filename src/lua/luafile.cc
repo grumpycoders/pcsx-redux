@@ -22,6 +22,7 @@
 #include "core/system.h"
 #include "lua-protobuf/pb.h"
 #include "lua/luawrapper.h"
+#include "support/ffmpeg-audio-file.h"
 #include "support/mem4g.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
@@ -260,6 +261,12 @@ uint32_t mem4gLowestAddress(LuaFile* file) { return file->file.asA<PCSX::Mem4G>(
 uint32_t mem4gHighestAddress(LuaFile* file) { return file->file.asA<PCSX::Mem4G>()->highestAddress(); }
 uint32_t mem4gActualSize(LuaFile* file) { return file->file.asA<PCSX::Mem4G>()->actualSize(); }
 
+LuaFile* ffmpegAudioFile(LuaFile* file, PCSX::FFmpegAudioFile::Channels channels,
+                         PCSX::FFmpegAudioFile::Endianness endianness, PCSX::FFmpegAudioFile::SampleFormat sampleFormat,
+                         unsigned frequency) {
+    return new LuaFile(new PCSX::FFmpegAudioFile(file->file, channels, endianness, sampleFormat, frequency));
+}
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -333,6 +340,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, mem4gLowestAddress);
     REGISTER(L, mem4gHighestAddress);
     REGISTER(L, mem4gActualSize);
+
+    REGISTER(L, ffmpegAudioFile);
 
     L.settable();
     L.pop();

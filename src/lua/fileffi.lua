@@ -340,6 +340,12 @@ local function mem4g()
     return ret
 end
 
+local function ffmpegAudioFile(file, options)
+    if type(options) ~= 'table' then options = {} end
+    local channels, endianness, sampleFormat, frequency = options.channels, options.endianness, options.sampleFormat, options.frequency
+    return createFileWrapper(C.ffmpegAudioFile(file._wrapper, channels or 'Stereo', endianness or 'Little', sampleFormat or 'S16', frequency or 44100))
+end
+
 if (type(Support) ~= 'table') then Support = {} end
 
 Support.NewLuaBuffer = function(size)
@@ -357,6 +363,7 @@ Support.File = {
     uvFifo = uvFifo,
     mem4g = mem4g,
     failedFile = function() return createFileWrapper(C.failedFile()) end,
+    ffmpegAudioFile = ffmpegAudioFile,
     _createFileWrapper = createFileWrapper,
     _createSliceWrapper = createSliceWrapper,
 }

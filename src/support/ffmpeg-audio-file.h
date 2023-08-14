@@ -33,9 +33,10 @@ namespace PCSX {
 
 class FFmpegAudioFile : public File {
   public:
-    enum Channels { CHANNELS_STEREO, CHANNELS_MONO };
-    enum Endianness { ENDIANNESS_LITTLE, ENDIANNESS_BIG };
-    FFmpegAudioFile(IO<File> file, Channels, Endianness, unsigned frequency);
+    enum class Channels { Stereo, Mono };
+    enum class Endianness { Little, Big };
+    enum class SampleFormat { U8, S16, S32, F32, D64 };
+    FFmpegAudioFile(IO<File> file, Channels, Endianness, SampleFormat, unsigned frequency);
     virtual ~FFmpegAudioFile() {}
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_filePtr; }
@@ -45,11 +46,15 @@ class FFmpegAudioFile : public File {
         throw std::runtime_error("Unable to determine file size");
     }
     virtual bool eof() final override { return m_hitEOF; }
-    virtual File* dup() final override { return new FFmpegAudioFile(m_file, m_channels, m_endianess, m_frequency); };
+    virtual File* dup() final override {
+        return new FFmpegAudioFile(m_file, m_channels, m_endianess, m_sampleFormat, m_frequency);
+    };
     virtual bool failed() final override { return m_failed || m_file->failed(); }
 
   private:
     virtual void closeInternal() final override;
+    AVSampleFormat getSampleFormat() const;
+    unsigned getSampleSize() const;
     ssize_t decompSome(void* dest, ssize_t size);
     IO<File> m_file;
     ssize_t m_filePtr = 0;
@@ -58,6 +63,7 @@ class FFmpegAudioFile : public File {
     bool m_failed = false;
     Channels m_channels;
     Endianness m_endianess;
+    SampleFormat m_sampleFormat;
     unsigned m_frequency;
     AVFormatContext* m_formatContext = nullptr;
     AVIOContext* m_ioContext = nullptr;
