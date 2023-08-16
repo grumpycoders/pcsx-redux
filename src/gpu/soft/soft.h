@@ -89,7 +89,7 @@ struct SoftRenderer {
     };
 
     SoftRect m_textureWindow;
-    int m_ditherMode = 0;
+    bool m_ditherMode = false;
     int m_drawX, m_drawY, m_drawW, m_drawH;
 
     static constexpr int GPU_WIDTH = 1024;
