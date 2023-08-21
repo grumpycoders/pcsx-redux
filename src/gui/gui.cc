@@ -1787,8 +1787,6 @@ the update and manually apply it.)")));
         while (L.gettop()) L.pop();
     }
 
-    glfwSwapBuffers(m_window);
-
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGui::UpdatePlatformWindows();
         // Skip the main viewport (index 0), which is always fully handled by the application!
@@ -1834,6 +1832,7 @@ the update and manually apply it.)")));
         }
         glfwMakeContextCurrent(m_window);
     }
+    glfwSwapBuffers(m_window);
 
     L.getfieldtable("nvg", LUA_GLOBALSINDEX);
     L.push("_gui");
