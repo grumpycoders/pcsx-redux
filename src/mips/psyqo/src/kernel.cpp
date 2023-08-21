@@ -75,6 +75,8 @@ KernelEventFunction allocateEventFunction(eastl::function<void()>&& lambda) {
 void psyqo::Kernel::abort(const char* msg) {
     pcsx_message(msg);
     pcsx_debugbreak();
+    syscall_puts(msg);
+    syscall_putchar('\n');
     while (1)
         ;
 }
