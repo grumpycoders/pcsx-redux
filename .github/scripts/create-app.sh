@@ -55,7 +55,7 @@ PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleName string ${APP}"
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundlePackageType string APPL"
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add NSHumanReadableCopyright string Copyright PCSX-Redux Authors"
 
-PlistBuddy Alber.app/Contents/Info.plist -c "add LSMinimumSystemVersion string 10.15"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add LSMinimumSystemVersion string 10.15"
 
 # Install dylib dependencies in ./Contents/Frameworks.
 # Update the dyld load commands for these.
