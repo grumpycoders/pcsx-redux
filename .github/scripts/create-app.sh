@@ -48,6 +48,15 @@ PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleIconFile string AppIco
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add NSHighResolutionCapable bool true"
 PlistBuddy ${APPROOT}/Contents/version.plist -c "add ProjectName string ${APP}"
 
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleExecutable string ${APP}"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleDevelopmentRegion string en"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleInfoDictionaryVersion string 6.0"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleName string ${APP}"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundlePackageType string APPL"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add NSHumanReadableCopyright string Copyright PCSX-Redux Authors"
+
+PlistBuddy Alber.app/Contents/Info.plist -c "add LSMinimumSystemVersion string 10.15"
+
 # Install dylib dependencies in ./Contents/Frameworks.
 # Update the dyld load commands for these.
 dylibbundler -od -b -x ${APPROOT}/Contents/MacOS/${APP} -d ${APPROOT}/Contents/Frameworks/ -p @rpath
