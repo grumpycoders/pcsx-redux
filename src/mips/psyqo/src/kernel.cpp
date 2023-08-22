@@ -73,12 +73,12 @@ KernelEventFunction allocateEventFunction(eastl::function<void()>&& lambda) {
 }  // namespace
 
 void psyqo::Kernel::abort(const char* msg) {
+    fastEnterCriticalSection();
     pcsx_message(msg);
     pcsx_debugbreak();
     syscall_puts(msg);
     syscall_putchar('\n');
-    while (1)
-        ;
+    while (1) asm("");
 }
 
 uint32_t psyqo::Kernel::openEvent(uint32_t classId, uint32_t spec, uint32_t mode, eastl::function<void()>&& lambda) {
