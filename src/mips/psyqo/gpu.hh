@@ -46,6 +46,23 @@ enum DmaCallback {
 
 }
 
+namespace timer_literals {
+
+/**
+ * @brief Literal operators for time units.
+ *
+ * @details These operators can be used to specify time units suitable
+ * for the GPU's `armTimer` and `armPeriodicTimer` methods. For example,
+ * `gpu().armPeriodicTimer(1_s, callback)` will create a timer that
+ * fires every second.
+ */
+constexpr uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
+constexpr uint32_t operator""_us(unsigned long long int value) { return value; }
+constexpr uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
+constexpr uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+
+}  // namespace timer_literals
+
 /**
  * @brief The singleton GPU class.
  *
