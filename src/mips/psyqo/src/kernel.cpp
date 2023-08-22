@@ -72,7 +72,7 @@ KernelEventFunction allocateEventFunction(eastl::function<void()>&& lambda) {
 
 }  // namespace
 
-void psyqo::Kernel::abort(const char* msg) {
+__attribute__((noreturn)) void psyqo::Kernel::abort(const char* msg) {
     fastEnterCriticalSection();
     pcsx_message(msg);
     pcsx_debugbreak();

@@ -89,7 +89,7 @@ enum class DMA : unsigned {
 /**
  * @brief Stops the execution of the application.
  */
-void abort(const char* msg);
+__attribute__((noreturn)) void abort(const char* msg);
 
 /**
  * @brief A C++ wrapper around the `openEvent` syscall.
