@@ -26,9 +26,10 @@ SOFTWARE.
 
 #pragma once
 
+#include "psyqo/application.hh"
+
 namespace psyqo {
 
-class Application;
 class GPU;
 
 /**
@@ -81,17 +82,17 @@ class Scene {
     /**
      * @brief Alias for `Application::pushScene`.
      */
-    void pushScene(Scene* scene);
+    void pushScene(Scene* scene) { m_parent->pushScene(scene); }
 
     /**
      * @brief Alias for `Application::popScene`.
      */
-    Scene* popScene();
+    Scene* popScene() { return m_parent->popScene(); }
 
     /**
      * @brief Alias for `Application::gpu()`.
      */
-    psyqo::GPU& gpu();
+    psyqo::GPU& gpu() { return m_parent->gpu(); }
 
   private:
     Application* m_parent;
