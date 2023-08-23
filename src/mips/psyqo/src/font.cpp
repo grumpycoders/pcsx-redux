@@ -30,7 +30,7 @@ SOFTWARE.
 #include <stdarg.h>
 
 #include "psyqo/gpu.hh"
-#include "system-font.c"
+#include "system-font.inc"
 
 void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
     const Vertex clutPosition = {{.x = 960, .y = 464}};

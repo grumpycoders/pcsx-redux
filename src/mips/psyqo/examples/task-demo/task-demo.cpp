@@ -119,7 +119,8 @@ void TaskDemo::createScene() {
         .butCatch([this](auto queue) {
             m_text = "Failure, retrying...";
             syscall_puts("Failure, retrying...\n");
-            gpu().armTimer(gpu().now() + 1 * 1000 * 1000, [queue](auto) { queue->run(); });
+            using namespace psyqo::timer_literals;
+            gpu().armTimer(gpu().now() + 1_s, [queue](auto) { queue->run(); });
         })
         .run();
 }
