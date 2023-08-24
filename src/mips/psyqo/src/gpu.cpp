@@ -52,8 +52,14 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
                  (config.config.videoInterlace << 5) | (config.config.hResolutionExtended << 6);
     // Horizontal Range
     Hardware::GPU::Ctrl = 0x06000000 | 0x260 | (0xc60 << 12);
+    
     // Vertical Range
-    Hardware::GPU::Ctrl = 0x07000000 | 16 | (255 << 10);
+    if (config.config.videoMode == Configuration::VM_NTSC) {
+        Hardware::GPU::Ctrl = 0x07000000 | 16 | (255 << 10);
+    } else {
+        Hardware::GPU::Ctrl = 0x07046C2B;
+    }
+    
     // Display Area
     Hardware::GPU::Ctrl = 0x05000000;
 
