@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include <stdint.h>
 
-#include "eastl/array.h"
+#include <EASTL/array.h>
 #include "psyqo/fixed-point.hh"
 
 namespace psyqo {

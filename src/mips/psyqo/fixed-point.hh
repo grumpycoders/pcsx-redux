@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include <eastl/functional.h>
+#include <EASTL/functional.h>
 #include <stdint.h>
 
 #include <compare>
