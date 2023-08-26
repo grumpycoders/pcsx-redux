@@ -170,6 +170,13 @@ _boot:
     mtc0  $t0, $12
     nop
 
+    /* Also extra, in case we booted from a cart, we
+       move the flushCache pointer at 0x310 to our
+       own storage, so we can use it later. */
+    lw    $t0, 0x310($0)
+    lui   $t1, %hi(flushCacheFromRealBiosPtr)
+    sw    $t0, %lo(flushCacheFromRealBiosPtr)($t1)
+
     /* Now we are ready for a typical crt0.
        The original bios does not do this, most likely
        for speed reasons. It would be more efficient to
@@ -240,39 +247,40 @@ _cartBoot:
     lw    $t1, (%lo(cartBootCop0Hook)+0x04)($t9)
     lw    $t2, (%lo(cartBootCop0Hook)+0x08)($t9)
     lw    $t3, (%lo(cartBootCop0Hook)+0x0c)($t9)
-    lw    $t4, (%lo(cartBootCop0Hook)+0x10)($t9)
-    lw    $t5, (%lo(cartBootCop0Hook)+0x14)($t9)
     sw    $t0, 0x40($0)
     sw    $t1, 0x44($0)
     sw    $t2, 0x48($0)
-    sw    $t3, 0x4c($0)
-    sw    $t4, 0x50($0)
     /* ironically, what we just did technically requires
        calling flushCache, but since our whole point here
        is to grab its pointer, we obviously cannot, and
        we're going to rely on determinicity instead, which
        means some emulators may break on this  */
     jr    $ra
-    sw    $t5, 0x54($0)
+    sw    $t3, 0x4c($0)
 
 cartBootCop0Hook:
-    /* and finally, store the flushCache pointer at
-       address 0x5c, where hopefully nobody will write to,
-       so we can jump back to it from our thunk, before
-       jumping to _reset, in order to proceed with the
-       normal boot process - don't forget to disable the
-       breakpoint otherwise we'll be in trouble */
-    lw    $t0, 0x310($0)
-    la    $t1, _reset
-    sw    $t0, 0x5c($0)
-    j     $t1
+    /* and finally, after the above breakpoint triggers,
+       we jump to _reset in order to boot our own
+       version of the bios and kernel, but don't
+       forget to disable the breakpoint, otherwise
+       we'll be in trouble */
+    la    $t0, _reset
+    j     $t0
     mtc0  $0, $7
 
     .global flushCacheFromRealBios
     .type flushCacheFromRealBios, @function
 
 flushCacheFromRealBios:
-    lw    $t0, 0x5c($0)
+    lui   $t0, %hi(flushCacheFromRealBiosPtr)
+    lw    $t0, %lo(flushCacheFromRealBiosPtr)($0)
     nop
     jr    $t0
     nop
+
+    .section .data, "ax", @progbits
+    .align 2
+    .global flushCacheFromRealBiosPtr
+flushCacheFromRealBiosPtr:
+    .word 0
+
