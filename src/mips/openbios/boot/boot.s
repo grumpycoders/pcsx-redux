@@ -231,9 +231,10 @@ _cartBoot:
     lui   $t0, 0b1100101010000000
     li    $t1, 0x0314
     li    $t2, 0xffff
-    mtc0  $t0, $7
+    mtc0  $0, $7
     mtc0  $t1, $5
     mtc0  $t2, $9
+    mtc0  $t0, $7
     lui   $t9, %hi(cartBootCop0Hook)
     lw    $t0, (%lo(cartBootCop0Hook)+0x00)($t9)
     lw    $t1, (%lo(cartBootCop0Hook)+0x04)($t9)
