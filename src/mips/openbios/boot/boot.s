@@ -162,6 +162,14 @@ _boot:
     mtc0  $0, $13
     nop
 
+    /* Extra from OpenBIOS, not in the original BIOS:
+       Enable cop2, as some games may rely on it being
+       enabled as a side effect of the shell running,
+       and our replacement shell does not enable it. */
+    lui   $t0, 0x4000
+    mtc0  $t0, $12
+    nop
+
     /* Now we are ready for a typical crt0.
        The original bios does not do this, most likely
        for speed reasons. It would be more efficient to
