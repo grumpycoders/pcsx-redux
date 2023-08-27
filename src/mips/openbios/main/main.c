@@ -268,6 +268,9 @@ void gameMainThunk(struct psxExeHeader *binaryInfo, int argc, char **argv) {
         if (cdromReset() < 0) syscall_exception(0x44, 0x38b);
     }
     enterCriticalSection();
+    // Fixing SaGa Frontier (USA) when in fastboot mode, as it relies
+    // on the side effect of the shell running to enable the display.
+    GPU_STATUS = 0x03000000;
     exec(binaryInfo, argc, argv);
 }
 

@@ -23,6 +23,7 @@
 
 #include "core/callstacks.h"
 #include "core/debug.h"
+#include "core/gpu.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/spu.h"
@@ -93,7 +94,12 @@ void PCSX::UI::tick() {
 void PCSX::UI::shellReached() {
     auto& regs = g_emulator->m_cpu->m_regs;
     uint32_t oldPC = regs.pc;
-    if (g_emulator->settings.get<Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
+    if (g_emulator->settings.get<Emulator::SettingFastBoot>()) {
+        regs.pc = regs.GPR.n.ra;
+        // Enables display as some games like SaGa Frontier (USA)
+        // rely on the side effect of the shell to do that for them.
+        g_emulator->m_gpu->writeStatus(0x03000000);
+    }
 
     if (m_exeToLoad.empty()) return;
     PCSX::u8string filename = m_exeToLoad.get();
