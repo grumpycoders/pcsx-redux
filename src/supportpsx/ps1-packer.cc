@@ -114,9 +114,9 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, bgezal(Reg::R0, 36));
         pushBytes(dataOut, addiu(Reg::S0, Reg::R0, 0xa0));
         // this goes to 0x40
-        pushBytes(dataOut, 0x40803800);  // mtc0 $0, $t7
+        pushBytes(dataOut, mtc0(Reg::R0, 7));
         pushBytes(dataOut, jr(Reg::RA));
-        pushBytes(dataOut, 0x42000010);  // rfe
+        pushBytes(dataOut, rfe());
         // this goes to 0x80030000
         pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
         pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
@@ -146,9 +146,10 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, lui(Reg::T0, 0b1100101010000000));
         pushBytes(dataOut, lui(Reg::T1, 0x8003));
         pushBytes(dataOut, addiu(Reg::T2, Reg::R0, -1));
-        pushBytes(dataOut, 0x40883800);  // mtc0 $t0, $7
-        pushBytes(dataOut, 0x40892800);  // mtc0 $t1, $5
-        pushBytes(dataOut, 0x408a4800);  // mtc0 $t2, $9
+        pushBytes(dataOut, mtc0(Reg::R0, 7));
+        pushBytes(dataOut, mtc0(Reg::T1, 5));
+        pushBytes(dataOut, mtc0(Reg::T2, 9));
+        pushBytes(dataOut, mtc0(Reg::T0, 7));
 
         pushBytes(dataOut, jr(Reg::S0));
         pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
