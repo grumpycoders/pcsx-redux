@@ -99,6 +99,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(stub, jr(Reg::V0));
         pushBytes<uint32_t>(stub, 0);
         std::copy(stub.begin(), stub.end(), dataOut.begin());
+        compLoad += stub.size();
     }
 
     for (auto b : n2e_d::code) pushBytes<uint32_t>(dataOut, b);
