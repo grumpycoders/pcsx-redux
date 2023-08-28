@@ -104,12 +104,13 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
 
     for (auto b : n2e_d::code) pushBytes<uint32_t>(dataOut, b);
 
+    pushBytes(dataOut, addiu(Reg::T8, Reg::RA, 0));
     pushBytes(dataOut, lui(Reg::V1, 0x1f80));
     pushBytes(dataOut, sw(Reg::R0, 0x1074, Reg::V1));
     pushBytes(dataOut, lui(Reg::A0, getHI(compLoad)));
     pushBytes(dataOut, addiu(Reg::A0, Reg::A0, getLO(compLoad)));
     pushBytes(dataOut, lui(Reg::A1, getHI(addr)));
-    pushBytes(dataOut, bgezal(Reg::R0, -((int16_t)(sizeof(n2e_d::code) + 6 * 4))));
+    pushBytes(dataOut, bgezal(Reg::R0, -((int16_t)(sizeof(n2e_d::code) + 7 * 4))));
     pushBytes(dataOut, addiu(Reg::A1, Reg::A1, getLO(addr)));
     if (options.shell) {
         pushBytes(dataOut, bgezal(Reg::R0, 36));
@@ -156,10 +157,12 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
     } else {
         pushBytes(dataOut, addiu(Reg::T0, Reg::R0, 0xa0));
-        pushBytes(dataOut, lui(Reg::RA, getHI(pc)));
-        pushBytes(dataOut, addiu(Reg::RA, Reg::RA, getLO(pc)));
-        pushBytes(dataOut, jr(Reg::T0));
+        pushBytes(dataOut, jalr(Reg::T0));
         pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
+        pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
+        pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
+        pushBytes(dataOut, jr(Reg::T0));
+        pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
     }
     while (!options.cpe && !options.booty && !options.rom && !options.raw && ((dataOut.size() & 0x7ff) != 0)) {
         dataOut.push_back(0);
