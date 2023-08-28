@@ -106,6 +106,14 @@ _boot:
     li    $t0, 0x80777
     sw    $t0, SBUS_DEV8_CTRL
 
+    /* Extra from OpenBIOS, not in the original BIOS:
+       in case we booted from a cart, we move the
+       flushCache pointer at 0x310 to our own storage,
+       so we can use it later. */
+    lw    $t0, 0x310($0)
+    lui   $t1, %hi(__flush_cache_real_bios_ptr)
+    sw    $t0, %lo(__flush_cache_real_bios_ptr)($t1)
+
     /* clearing out all registers */
     .set push
     .set noat
@@ -169,13 +177,6 @@ _boot:
     lui   $t0, 0x4000
     mtc0  $t0, $12
     nop
-
-    /* Also extra, in case we booted from a cart, we
-       move the flushCache pointer at 0x310 to our
-       own storage, so we can use it later. */
-    lw    $t0, 0x310($0)
-    lui   $t1, %hi(flushCacheFromRealBiosPtr)
-    sw    $t0, %lo(flushCacheFromRealBiosPtr)($t1)
 
     /* Now we are ready for a typical crt0.
        The original bios does not do this, most likely
@@ -272,15 +273,8 @@ cartBootCop0Hook:
     .type flushCacheFromRealBios, @function
 
 flushCacheFromRealBios:
-    lui   $t0, %hi(flushCacheFromRealBiosPtr)
-    lw    $t0, %lo(flushCacheFromRealBiosPtr)($0)
+    lui   $t0, %hi(__flush_cache_real_bios_ptr)
+    lw    $t0, %lo(__flush_cache_real_bios_ptr)($t0)
     nop
     jr    $t0
     nop
-
-    .section .data, "ax", @progbits
-    .align 2
-    .global flushCacheFromRealBiosPtr
-flushCacheFromRealBiosPtr:
-    .word 0
-

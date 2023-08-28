@@ -181,6 +181,12 @@ SECTIONS {
         __bss_end = .;
     } > kseg0
 
+    .flushCacheHack (NOLOAD) : {
+        . = ALIGN(4);
+        __flush_cache_real_bios_ptr = .;
+        LONG(0);
+    } > kseg0
+
     __heap_start = .;
 
     __end = .;
@@ -191,7 +197,6 @@ SECTIONS {
         *(.font2)
         . = ALIGN(0x1000);
     } > consts
-
 
     /DISCARD/ : { *(.MIPS.abiflags) }
 
