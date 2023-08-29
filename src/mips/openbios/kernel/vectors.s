@@ -308,10 +308,31 @@ exceptionVector:
       This results in the address 0x80 being wrongly dereferenced by
       CdControlF to read its parameters, and the retail bios will have
       enough zeroes here to make it work properly, tho it will be at
-      1x speed instead of the intended 2x. We pad with a nop to ensure
-      a behavior that is somewhat similar to the retail bios. */
+      1x speed instead of the intended 2x.
 
-    nop
+      Now, we cannot just use a nop here, even though it would be the
+      simplest way to ensure a valid CdControlF call, because then,
+      Batman - Gotham City Racer NTSC (SLUS-01141) replaces this
+      code by reading the exception handler until a nop is found:
+
+                             copyHandler                                     XREF[1]:     FUN_80016a34:80016a68 (c)   
+        8002668c 80  00  04  24    li         src ,0x80
+        80026690 02  80  02  3c    lui        v0,0x8002
+        80026694 a8  67  42  24    addiu      dst ,dst ,0x67a8
+                             LAB_80026698                                    XREF[1]:     800266a4 (j)   
+        80026698 00  00  88  8c    lw         opcode ,0x0 (src )=>DAT_00000080
+        8002669c 04  00  84  20    addi       src ,src ,0x4
+        800266a0 00  00  48  ac    sw         opcode ,0x0 (dst )=>DAT_800267a8
+        800266a4 fc  ff  00  15    bne        opcode ,zero ,LAB_80026698
+        800266a8 04  00  42  20    _addi      dst ,dst ,0x4
+
+      So if we want to keep the game working, we need to have a valid
+      no-op instruction that is not a nop.
+
+      Using lui $0, 0x80 will not only accomplish these goals, but also
+      ensure that a CdControlF(0x80) actually sets the drive at 2x speed. */
+
+    lui   $0, 0x80
     li    $k0, %lo(exceptionHandler)
     jr    $k0
     nop
