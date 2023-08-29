@@ -32,7 +32,7 @@ SOFTWARE.
 static __attribute__((always_inline)) uint8_t* safeMemZero(uint8_t* ptr, int size) {
     if (!ptr || size <= 0) return NULL;
     uint8_t* orig = ptr;
-    for (; size >= 0; ptr++) {
+    for (; size > 0; ptr++) {
         size--;
         *ptr = 0;
     }
