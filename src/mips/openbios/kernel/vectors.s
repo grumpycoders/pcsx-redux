@@ -330,10 +330,37 @@ exceptionVector:
       no-op instruction that is not a nop.
 
       Using lui $0, 0x80 will not only accomplish these goals, but also
-      ensure that a CdControlF(0x80) actually sets the drive at 2x speed. */
+      ensure that a CdControlF(0x80) actually sets the drive at 2x speed.
 
-    lui   $0, 0x80
-    li    $k0, %lo(exceptionHandler)
+      However, Need for Speed - High Stakes will run this code to detect
+      the presence of a debugger:
+
+                             detectDevBIOS                                   XREF[1]:     FUN_800f4390:800f43bc (c)   
+        8010769c 86  00  04  94    lhu        a0,0x86 (zero )
+        801076a0 5a  37  02  24    li         v0,0x375a
+        801076a4 05  00  82  10    beq        a0,v0,LAB_801076bc
+        801076a8 5a  27  03  24    _li        v1,0x275a
+        801076ac 04  00  83  10    beq        a0,v1,LAB_801076c0
+        801076b0 21  10  00  00    _clear     ret
+        801076b4 08  00  e0  03    jr         ra
+        801076b8 ff  ff  02  24    _li        ret ,-0x1
+                             LAB_801076bc                                    XREF[1]:     801076a4 (j)   
+        801076bc 01  00  02  24    li         ret ,0x1
+                             LAB_801076c0                                    XREF[1]:     801076ac (j)   
+        801076c0 08  00  e0  03    jr         ra
+        801076c4 00  00  00  00    _nop
+
+      In other words, it will check if the 16-bits value at 0x86 is 0x275a
+      for a retail bios, or 0x375a for a debugger. If it is neither, it
+      will return the code -1, for an error. 0x375a corresponds to
+      `ori $k0, $k0, xxx`, and 0x275a corresponds to `addiu $k0, $k0, xxx`.
+
+      At this point, our only safe option is to use a `la`, which will
+      expand into lui / addiu, with the low portion of the lui being
+      0x0000, to satisfy all of our constraints.
+      */
+
+    la    $k0, exceptionHandler
     jr    $k0
     nop
 
