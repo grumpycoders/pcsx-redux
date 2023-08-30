@@ -88,7 +88,8 @@ noCOP2adjustmentNeeded:
 /* These 4 blocs of 4 nops are each for an early exception handler slot.
    Only registers at, v0, v1, and ra are saved at this point. The first
    slot is used by the memory card driver. The second is used by the
-   lightgun driver. These are sometimes cleared out by patches. */
+   lightgun driver, and a custom handler from the game Point Blank.
+   These are sometimes cleared out by patches. */
 
 exceptionHandlerPatchSlot1:
     nop

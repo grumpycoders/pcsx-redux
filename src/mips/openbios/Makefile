@@ -48,6 +48,7 @@ patches/hash.c \
 patches/patches.c \
 \
 patches/clear_card_1.c \
+patches/custom_handler_1.c \
 patches/initgun_1.c \
 patches/patch_card_info_1.c \
 patches/patch_card_1.c \
