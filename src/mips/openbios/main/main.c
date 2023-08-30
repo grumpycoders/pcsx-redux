@@ -161,7 +161,7 @@ static void findWordItem(const char *systemCnf, uint32_t *item, const char *name
                 value |= c - 'a' + 10;
             }
         } else {
-            if ((c == 0) || (c == '\n') || (c == '\r')) {
+            if ((c == 0) || isspace(c)) {
                 *item = value;
                 psxprintf("%s\t%08x\n", name, value);
             }
