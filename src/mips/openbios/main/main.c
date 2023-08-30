@@ -126,7 +126,7 @@ static char s_binaryPath[128];
 // Specifically, the BOOT line parser will try to parse a command
 // line argument. There are multiple ways this can happen on a
 // retail bios, but this parser will chose to separate it using
-// the tabulation character ('\t', or character 9).
+// the tabulation character ('\t', or character 9) or a space.
 // Last but not least, the retail bios will screw things up
 // fairly badly if the file isn't terminated using CRLFs.
 static void findWordItem(const char *systemCnf, uint32_t *item, const char *name) {
@@ -194,7 +194,7 @@ static void findStringItem(const char *systemCnf, char *const binaryPath, char *
         c = *systemCnf++;
         if (isspace(c) && !started) continue;
         started = 1;
-        if ((parseArg = (c == '\t'))) break;
+        if ((parseArg = (c == '\t') || (c == ' '))) break;
         if ((c == '\r') || (c == '\n') || (c == 0)) break;
         *binPtr++ = c;
     }
