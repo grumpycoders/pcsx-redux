@@ -29,7 +29,7 @@ SOFTWARE.
 #include "psyqo/bezier.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
-#include "psyqo/primitives/quads.hh"
+#include "psyqo/primitives/lines.hh"
 #include "psyqo/scene.hh"
 #include "psyqo/trigonometry.hh"
 
@@ -43,15 +43,16 @@ class Bezier final : public psyqo::Application {
 
   public:
     psyqo::Font<> m_font;
+    psyqo::Trig<> m_trig;
 };
 
 class BezierScene final : public psyqo::Scene {
     void frame() override;
     psyqo::Prim::Line m_line{{.r = 0xff, .g = 0x80, .b = 0x33}};
-    int m_p1 = 0;
-    int m_p2 = 0;
-    int m_direction1 = 2;
-    int m_direction2 = 3;
+    psyqo::Angle m_angle1 = 0.0_pi;
+    psyqo::Angle m_angle2 = 0.0_pi;
+    constexpr static psyqo::Angle m_angleStep1 = 0.0135_pi;
+    constexpr static psyqo::Angle m_angleStep2 = 0.017_pi;
 };
 
 // We're instantiating the two objects above right now.
@@ -79,20 +80,10 @@ void BezierScene::frame() {
     const psyqo::Vec2 a = {0.0_fp, 100.0_fp};
     const psyqo::Vec2 b = {320.0_fp, 100.0_fp};
     psyqo::Vec2 m = a;
-    m_p1 += m_direction1;
-    m_p2 += m_direction2;
-    if (m_p1 < 0) {
-        m_direction1 = 2;
-    } else if (m_p1 > 240) {
-        m_direction1 = -2;
-    }
-    if (m_p2 < 0) {
-        m_direction2 = 3;
-    } else if (m_p2 > 240) {
-        m_direction2 = -3;
-    }
-    psyqo::FixedPoint<> p1(m_p1, 0);
-    psyqo::FixedPoint<> p2(m_p2, 0);
+    m_angle1 += m_angleStep1;
+    m_angle2 += m_angleStep2;
+    psyqo::FixedPoint<> p1 = bezier.m_trig.sin(m_angle1) * 100.0_fp + 100.0_fp;
+    psyqo::FixedPoint<> p2 = bezier.m_trig.sin(m_angle2) * 100.0_fp + 100.0_fp;
     // Clear the screen and draw the Bezier lines
     gpu().clear({{.r = 0x68, .g = 0xb0, .b = 0xd8}});
     psyqo::FixedPoint<> t = 0.05_fp;
