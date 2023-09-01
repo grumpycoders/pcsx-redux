@@ -121,6 +121,9 @@ struct Coroutine {
         if (!m_handle) return true;
         bool isDone = m_handle.done();
         if (isDone) {
+            if constexpr (!std::is_void<T>::value) {
+                m_value = eastl::move(m_handle.promise().m_value);
+            }
             m_handle.destroy();
             m_handle = nullptr;
         }
@@ -142,8 +145,8 @@ struct Coroutine {
 
   private:
     struct PromiseVoid {
-        Coroutine get_return_object() {
-            return Coroutine{eastl::move(std::coroutine_handle<Promise>::from_promise(*this))};
+        Coroutine<> get_return_object() {
+            return Coroutine<>{eastl::move(std::coroutine_handle<Promise>::from_promise(*this))};
         }
         std::suspend_always initial_suspend() { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
@@ -151,15 +154,14 @@ struct Coroutine {
         void return_void() {}
     };
     struct PromiseValue {
-        PromiseValue(Coroutine<T> *c) : coroutine(c) {}
         Coroutine<T> get_return_object() {
             return Coroutine{eastl::move(std::coroutine_handle<Promise>::from_promise(*this))};
         }
         std::suspend_always initial_suspend() { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
-        void return_value(T &&value) { coroutine->m_value = eastl::move(value); }
-        Coroutine<T> coroutine = nullptr;
+        void return_value(T &&value) { m_value = eastl::move(value); }
+        T m_value;
     };
     typedef typename std::conditional<std::is_void<T>::value, PromiseVoid, PromiseValue>::type Promise;
     Coroutine(std::coroutine_handle<Promise> &&handle) : m_handle(eastl::move(handle)) {}
