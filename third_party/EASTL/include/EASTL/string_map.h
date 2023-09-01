@@ -157,7 +157,7 @@ string_map<T, Predicate, Allocator>::strduplicate(const char* str)
 {
 	size_t len = strlen(str);
 	char* result = (char*)base::base_type::get_allocator().allocate(len + 1);
-	memcpy(result, str, len+1);
+	__builtin_memcpy(result, str, len+1);
 	return result;
 }
 

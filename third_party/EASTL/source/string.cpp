@@ -288,7 +288,7 @@ namespace eastl
 		if(sourceSize > destSize)
 		   sourceSize = destSize;
 
-		memmove(pDest, pSrc, sourceSize * sizeof(*pSrcEnd));
+		__builtin_memmove(pDest, pSrc, sourceSize * sizeof(*pSrcEnd));
 
 		pSrc  += sourceSize;
 		pDest += sourceSize; // Intentionally add sourceSize here.
@@ -338,7 +338,7 @@ namespace eastl
 		if(sourceSize > destSize)
 		   sourceSize = destSize;
 
-		memmove(pDest, pSrc, sourceSize * sizeof(*pSrcEnd));
+		__builtin_memmove(pDest, pSrc, sourceSize * sizeof(*pSrcEnd));
 
 		pSrc  += sourceSize;
 		pDest += sourceSize; // Intentionally add sourceSize here.
@@ -396,7 +396,7 @@ namespace eastl
 		if(sourceSize > destSize)
 		   sourceSize = destSize;
 
-		memmove(pDest, pSrc, sourceSize * sizeof(*pSrcEnd));
+		__builtin_memmove(pDest, pSrc, sourceSize * sizeof(*pSrcEnd));
 
 		pSrc  += sourceSize;
 		pDest += sourceSize; // Intentionally add sourceSize here.

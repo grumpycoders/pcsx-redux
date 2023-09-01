@@ -491,7 +491,7 @@ namespace eastl
 		  mHash(h),
 		  mEqual(eq)
 	{
-		memset(mBucketArray, 0, kBucketCount * sizeof(mBucketArray[0]));
+		__builtin_memset(mBucketArray, 0, kBucketCount * sizeof(mBucketArray[0]));
 		mBucketArray[kBucketCount] = reinterpret_cast<node_type*>((uintptr_t)~0);
 	}
 
@@ -875,7 +875,7 @@ namespace eastl
 	inline void intrusive_hashtable<K, V, H, Eq, bC, bM, bU>::clear()
 	{
 		// To consider: In debug builds set the node mpNext to NULL.
-		memset(mBucketArray, 0, kBucketCount * sizeof(mBucketArray[0]));
+		__builtin_memset(mBucketArray, 0, kBucketCount * sizeof(mBucketArray[0]));
 		mnElementCount = 0;
 	}
 
