@@ -37,8 +37,8 @@ psyqo::Vec2 psyqo::Bezier::cubic(const psyqo::Vec2& a, const psyqo::Vec2& b, con
     FixedPoint<> mt3 = mt2 * mt;
 
     FixedPoint<> f1 = mt3;
-    FixedPoint<> f2 = mt2 * t * 3.0_fp;
-    FixedPoint<> f3 = mt * t2 * 3.0_fp;
+    FixedPoint<> f2 = mt2 * t * 3;
+    FixedPoint<> f3 = mt * t2 * 3;
     FixedPoint<> f4 = t3;
 
     FixedPoint<> x = a.x * f1 + b.x * f2 + c.x * f3 + d.x * f4;
