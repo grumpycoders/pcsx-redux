@@ -149,6 +149,16 @@ class FixedPoint {
         return (value + scale / 2) / scale;
     }
 
+    template<std::integral U>
+    constexpr U integer() const {
+        if constexpr (std::is_signed<T>::value) {
+            if (value < 0) {
+                return U((value - scale / 2) / scale);
+            }
+        }
+        return U((value + scale / 2) / scale);
+    }
+
     /**
      * @brief Prints out the fixed point number.
      *
