@@ -237,10 +237,14 @@ class GPU {
     static void waitReady();
 
     /**
-     * @brief Sends a raw 32 bits value to the GP0 register of the GPU.
+     * @brief Waits until the GPU's FIFO is ready to receive data.
+     */
+    static void waitFifo();
+
+    /**
+     * @brief Sends a raw 32 bits value to the Data register of the GPU.
      */
     static void sendRaw(uint32_t data) { Hardware::GPU::Data = data; }
-    template <typename Primitive>
 
     /**
      * @brief Sends a primitive to the GPU. This is a blocking call.
@@ -248,12 +252,14 @@ class GPU {
      * @details This method will immediately send the specified primitive to the GPU.
      * @param primitive The primitive to send to the GPU.
      */
+    template <typename Primitive>
     static void sendPrimitive(const Primitive &primitive) {
         static_assert((sizeof(Primitive) % 4) == 0, "Primitive's size must be a multiple of 4");
         waitReady();
         const uint32_t *ptr = reinterpret_cast<const uint32_t *>(&primitive);
         size_t size = sizeof(Primitive) / sizeof(uint32_t);
         for (int i = 0; i < size; i++) {
+            if constexpr (sizeof(Primitive) > 56) waitFifo();
             sendRaw(*ptr++);
         }
     }

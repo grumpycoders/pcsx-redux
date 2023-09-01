@@ -43,23 +43,30 @@ void psyqo::GPU::waitReady() {
         ;
 }
 
+void psyqo::GPU::waitFifo() {
+    while ((Hardware::GPU::Ctrl & uint32_t(0x02000000)) == 0)
+        ;
+}
+
 void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     // Reset
     Hardware::GPU::Ctrl = 0;
+    // FIFO polling mode
+    Hardware::GPU::Ctrl = 0x04000001;
     // Display Mode
     Hardware::GPU::Ctrl = 0x08000000 | (config.config.hResolution << 0) | (config.config.vResolution << 2) |
                  (config.config.videoMode << 3) | (config.config.colorDepth << 4) |
                  (config.config.videoInterlace << 5) | (config.config.hResolutionExtended << 6);
     // Horizontal Range
     Hardware::GPU::Ctrl = 0x06000000 | 0x260 | (0xc60 << 12);
-    
+
     // Vertical Range
     if (config.config.videoMode == Configuration::VM_NTSC) {
         Hardware::GPU::Ctrl = 0x07000000 | 16 | (255 << 10);
     } else {
-        Hardware::GPU::Ctrl = 0x07046C2B;
+        Hardware::GPU::Ctrl = 0x07046c2b;
     }
-    
+
     // Display Area
     Hardware::GPU::Ctrl = 0x05000000;
 
@@ -115,7 +122,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     Kernel::enableDma(Kernel::DMA::GPU);
     Kernel::registerDmaEvent(Kernel::DMA::GPU, [this]() {
         // DMA disabled
-        Hardware::GPU::Ctrl = 0x04000000;
+        Hardware::GPU::Ctrl = 0x04000001;
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
         if (m_flushCacheAfterDMA) {
             Prim::FlushCache fc;
