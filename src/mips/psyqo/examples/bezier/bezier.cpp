@@ -49,7 +49,7 @@ class Bezier final : public psyqo::Application {
 
 class BezierScene final : public psyqo::Scene {
     void frame() override;
-    psyqo::Prim::PolyLine<20> m_lines{{.r = 0xff, .g = 0x80, .b = 0x33}};
+    psyqo::Prim::PolyLine<20> m_lines{{.r = 0xff, .g = 0xff, .b = 0xff}};
     psyqo::Angle m_angle1 = 0.0_pi;
     psyqo::Angle m_angle2 = 0.0_pi;
     constexpr static psyqo::Angle c_angleStep1 = 0.0135_pi;
@@ -102,7 +102,7 @@ void BezierScene::frame() {
     auto p2y = bezier.m_trig.sin(angle2) * 200.0_fp + 240.0_fp;
     psyqo::Vec2 p1({p1x, p1y}), p2({640.0_fp - p2x, p2y});
     // Clear the screen and draw the Bezier lines
-    gpu().clear({{.r = 0x68, .g = 0xb0, .b = 0xd8}});
+    gpu().clear({{.r = 0, .g = 0, .b = 0}});
     psyqo::FixedPoint<> t;
     for (int i = 1; i < 20; i++) {
         t += 0.05_fp;
