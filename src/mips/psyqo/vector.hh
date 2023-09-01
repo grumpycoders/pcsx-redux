@@ -25,11 +25,13 @@ SOFTWARE.
 */
 
 #include "psyqo/fixed-point.hh"
+#include "psyqo/primitives/common.hh"
 
 namespace psyqo {
 
 struct Vec2 {
     FixedPoint<> x, y;
+    operator Vertex() const { return {{ .x = x.integer<int16_t>(), .y = y.integer<int16_t>() }}; }
 };
 
 struct Vec3 {
