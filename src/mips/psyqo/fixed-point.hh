@@ -116,6 +116,21 @@ class FixedPoint {
     constexpr FixedPoint& operator=(const FixedPoint&) = default;
 
     /**
+     * @brief Construct a new Fixed Point number from a different
+     * fixed point number.
+     */
+    template<unsigned otherPrecisionBits = 12, std::integral U = int32_t>
+    explicit FixedPoint(FixedPoint<otherPrecisionBits, U> other) {
+        if constexpr (precisionBits == otherPrecisionBits) {
+            *this = other;
+        } else if constexpr (precisionBits > otherPrecisionBits) {
+            value = other.value << (precisionBits - otherPrecisionBits);
+        } else if constexpr (precisionBits < otherPrecisionBits) {
+            value = other.value >> (otherPrecisionBits - precisionBits);
+        }
+    }
+
+    /**
      * @brief Returns the integer part of the fixed point number.
      *
      * @details This returns the integer part of the fixed point,
@@ -132,6 +147,16 @@ class FixedPoint {
             }
         }
         return (value + scale / 2) / scale;
+    }
+
+    template<std::integral U>
+    constexpr U integer() const {
+        if constexpr (std::is_signed<T>::value) {
+            if (value < 0) {
+                return U((value - scale / 2) / scale);
+            }
+        }
+        return U((value + scale / 2) / scale);
     }
 
     /**
@@ -186,7 +211,7 @@ class FixedPoint {
     constexpr FixedPoint operator*(FixedPoint other) const {
         upType t = value;
         t *= other.value;
-        t /= precisionBits;
+        t /= scale;
         FixedPoint ret;
         ret.value = t;
         return ret;

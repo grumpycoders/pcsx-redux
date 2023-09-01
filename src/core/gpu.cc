@@ -462,6 +462,8 @@ uint32_t PCSX::GPU::readStatus() {
     if ((ret & GPUSTATUS_IDLE) == 0) ret &= ~GPUSTATUS_READYFORVRAM;
 #endif
     if (m_readFifo->size() != 0) ret |= GPUSTATUS_READYFORVRAM;
+    // Let's pretend our input fifo is always ready for more data.
+    if ((ret & 0x60000000) == 0x20000000) ret |= 0x02000000;
     return ret;
 }
 
