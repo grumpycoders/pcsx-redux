@@ -59,7 +59,7 @@ class MathScene final : public psyqo::Scene {
     // This is our step size. We'll add it to m_angle every frame.
     // Its value is 0.01*Pi radians, or 1.8 degrees. The float literal
     // is converted to a psyqo::Angle object by the compiler.
-    constexpr static psyqo::Angle m_angleStep = 0.01_pi;
+    constexpr static psyqo::Angle c_angleStep = 0.01_pi;
     // This is the quad we'll draw.
     psyqo::Prim::Quad m_quad{{.r = 0xff, .g = 0x80, .b = 0x33}};
 };
@@ -86,7 +86,7 @@ void Math::createScene() {
 
 void MathScene::frame() {
     // We'll rotate the quad by a small amount every frame.
-    m_angle += m_angleStep;
+    m_angle += c_angleStep;
     // If the angle is greater than 2*Pi, we'll subtract 2*Pi from it.
     // This is to prevent the angle from growing too large and overflowing,
     // as it is still an integer internally.
