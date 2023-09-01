@@ -161,13 +161,9 @@ void psyqo::GPU::flip() {
         pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     } while ((m_previousFrameCount == m_frameCount) || (m_chainStatus == CHAIN_TRANSFERRING));
-    m_chainStatus = CHAIN_IDLE;
-    eastl::atomic_signal_fence(eastl::memory_order_release);
 
-    m_previousFrameCount = m_frameCount;
     auto parity = m_parity;
     parity ^= 1;
-    m_parity = parity;
     if (!m_interlaced) {
         bool firstBuffer = !parity;
         // Set Display Area
@@ -176,7 +172,22 @@ void psyqo::GPU::flip() {
         } else {
             Hardware::GPU::Ctrl = 0x05000000;
         }
+    } else if (!pcsx_present()) {
+        while (1) {
+            uint32_t stat = Hardware::GPU::Ctrl;
+            int isDrawingEven = (stat & 0x80000000) == 0;
+            int isMaskingEven = (stat & 0x00002000) == 0;
+            if (parity && isDrawingEven && !isMaskingEven) break;
+            if (!parity && !isDrawingEven && isMaskingEven) break;
+            pumpCallbacks();
+        }
     }
+
+    m_chainStatus = CHAIN_IDLE;
+    m_parity = parity;
+    m_previousFrameCount = m_frameCount;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+
     enableScissor();
     Kernel::Internal::beginFrame();
     if (m_chainHead) {
