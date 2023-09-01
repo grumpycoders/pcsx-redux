@@ -441,7 +441,7 @@ namespace eastl
 				if (EASTL_UNLIKELY(first == last))
 					return dest;
 
-				return (T*)memcpy(dest, first, (size_t)((uintptr_t)last - (uintptr_t)first)) + (last - first);
+				return (T*)__builtin_memcpy(dest, first, (size_t)((uintptr_t)last - (uintptr_t)first)) + (last - first);
 			}
 
 			template <typename T>
