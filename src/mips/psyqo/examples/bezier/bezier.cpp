@@ -122,10 +122,10 @@ void BezierScene::frame() {
     auto angle2 = psyqo::Angle(bezier.m_trig.sin(m_angle2)) / 2;
 
     // Calculate the control points based on the angles.
-    auto p1x = bezier.m_trig.cos(angle1) * 200.0_fp;
-    auto p1y = bezier.m_trig.sin(angle1) * 200.0_fp + 240.0_fp;
-    auto p2x = bezier.m_trig.cos(angle2) * 200.0_fp;
-    auto p2y = bezier.m_trig.sin(angle2) * 200.0_fp + 240.0_fp;
+    auto p1x = bezier.m_trig.cos(angle1) * 200;
+    auto p1y = bezier.m_trig.sin(angle1) * 200 + 240.0_fp;
+    auto p2x = bezier.m_trig.cos(angle2) * 200;
+    auto p2y = bezier.m_trig.sin(angle2) * 200 + 240.0_fp;
 
     if (p1x < 0) p1x = -p1x;
     if (p2x < 0) p2x = -p2x;
