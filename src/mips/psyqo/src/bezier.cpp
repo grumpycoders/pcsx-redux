@@ -46,3 +46,25 @@ psyqo::Vec2 psyqo::Bezier::cubic(const psyqo::Vec2& a, const psyqo::Vec2& b, con
 
     return {x, y};
 }
+
+psyqo::Vec3 psyqo::Bezier::cubic(const psyqo::Vec3& a, const psyqo::Vec3& b, const psyqo::Vec3& c, const psyqo::Vec3& d,
+                                 psyqo::FixedPoint<> t) {
+    using namespace psyqo::fixed_point_literals;
+    FixedPoint<> t2 = t * t;
+    FixedPoint<> t3 = t2 * t;
+
+    FixedPoint<> mt = 1.0_fp - t;
+    FixedPoint<> mt2 = mt * mt;
+    FixedPoint<> mt3 = mt2 * mt;
+
+    FixedPoint<> f1 = mt3;
+    FixedPoint<> f2 = mt2 * t * 3;
+    FixedPoint<> f3 = mt * t2 * 3;
+    FixedPoint<> f4 = t3;
+
+    FixedPoint<> x = a.x * f1 + b.x * f2 + c.x * f3 + d.x * f4;
+    FixedPoint<> y = a.y * f1 + b.y * f2 + c.y * f3 + d.y * f4;
+    FixedPoint<> z = a.z * f1 + b.z * f2 + c.z * f3 + d.z * f4;
+
+    return {x, y, z};
+}
