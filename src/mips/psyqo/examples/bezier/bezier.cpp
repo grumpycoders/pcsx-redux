@@ -24,12 +24,14 @@ SOFTWARE.
 
 */
 
+#include "psyqo/bezier.hh"
+
 #include "common/syscalls/syscalls.h"
 #include "psyqo/application.hh"
-#include "psyqo/bezier.hh"
 #include "psyqo/font.hh"
+#include "psyqo/fragments.hh"
 #include "psyqo/gpu.hh"
-#include "psyqo/primitives/lines.hh"
+#include "psyqo/primitives/quads.hh"
 #include "psyqo/scene.hh"
 #include "psyqo/trigonometry.hh"
 
@@ -49,8 +51,8 @@ class Bezier final : public psyqo::Application {
 
 class BezierScene final : public psyqo::Scene {
     void frame() override;
-    // This will hold the lines that make up the Bezier curve.
-    psyqo::Prim::PolyLine<20> m_lines{{.r = 0xff, .g = 0xff, .b = 0xff}};
+    // This will hold the quad fan that make up the Bezier curve.
+    eastl::array<psyqo::Prim::Quad, 20> m_quads;
     // The two angles representing the control points.
     psyqo::Angle m_angle1 = 0.0_pi;
     psyqo::Angle m_angle2 = 0.0_pi;
@@ -60,12 +62,21 @@ class BezierScene final : public psyqo::Scene {
     // The beginning and end points of the Bezier curve.
     constexpr static psyqo::Vec2 a = {0.0_fp, 240.0_fp};
     constexpr static psyqo::Vec2 b = {640.0_fp, 240.0_fp};
+
   public:
     BezierScene() {
-        // Set the first and last points of the Bezier curve in the PolyLine,
-        // since they will never change.
-        m_lines.points[0] = a;
-        m_lines.points[20] = b;
+        // Our quad fan will be made up of 20 quads. All of the points
+        // at the bottom of the quads are simply following the x axis,
+        // 32 pixels apart. The y coordinate is always 480, which is
+        // the height of the screen. The top points are calculated
+        // every frame using the Bezier curve, except for the last
+        // point, which is always the end point of the curve.
+        for (unsigned i = 0; i < 20; i++) {
+            m_quads[i].setColor({.r = 0xff, .g = 0x80, .b = 0x33});
+            m_quads[i].pointC = psyqo::Vertex{{ .x = int16_t(i * 32), .y = 480}};
+            m_quads[i].pointD = psyqo::Vertex{{ .x = int16_t(i * 32 + 32), .y = 480}};
+        }
+        m_quads[19].pointB = b;
     }
 };
 
@@ -122,17 +133,21 @@ void BezierScene::frame() {
     psyqo::Vec2 p1({p1x, p1y}), p2({640.0_fp - p2x, p2y});
 
     // Clear the screen.
-    gpu().clear({{.r = 0, .g = 0, .b = 0}});
+    gpu().clear({{.r = 0x68, .g = 0xb0, .b = 0xd8}});
 
-    // Calculate the points of the Bezier curve and store them in the PolyLine.
+    // Calculate the points of the Bezier curve and store them in our Quad fan.
     psyqo::FixedPoint<> t;
-    for (int i = 1; i < 20; i++) {
+    psyqo::Vertex m = a;
+    for (int i = 0; i < 19; i++) {
         t += 0.05_fp;
-        m_lines.points[i] = psyqo::Bezier::cubic(a, p1, p2, b, t);
+        m_quads[i].pointA = m;
+        m = m_quads[i].pointB = psyqo::Bezier::cubic(a, p1, p2, b, t);
     }
+    m_quads[19].pointA = m;
 
-    // Draw the PolyLine.
-    gpu().sendPrimitive(m_lines);
+    // Draw the Quad fan.
+    gpu().sendPrimitive(m_quads);
+
 
 #ifdef DEBUG_BEZIER
     // Draw the control points.
