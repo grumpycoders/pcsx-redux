@@ -212,7 +212,7 @@ PCSX = {
             error('loadSaveState: requires a Slice or File as input')
         end
     end,
-    getMemoryAsFile = function() return C.getMemoryAsFile() end,
+    getMemoryAsFile = function() return Support.File._createFileWrapper(C.getMemoryAsFile()) end,
     quit = function(code) C.quit(code or 0) end,
 }
 
