@@ -158,8 +158,6 @@ void CueParser_close(struct CueParser* parser, struct CueScheduler* scheduler,
             parser->currentFile->user = parser;
             parser->currentFile->close(parser->currentFile, scheduler, close_cb);
         }
-    } else {
-        parser->currentFile = NULL;
     }
 }
 
