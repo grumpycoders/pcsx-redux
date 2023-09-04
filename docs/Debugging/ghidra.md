@@ -11,7 +11,7 @@ Since version 10.3, Ghidra now supports debugging MIPS targets. This allows for 
 
 ## Setting up Ghidra
 
-Before starting Ghidra, as of version 10.3, the MIPS CPU isn't terribly well defined. One needs to go to the installation files of Ghidra, and edit the file `Ghidra/Processors/MIPS/data/languages/mips.ldef`. In this file, find the lines `<external_name tool="gnu" name="mips:4000"/>`, and change them to `<external_name tool="gnu" name="mips:3000"/>`. This will allow Ghidra to properly recognize the MIPS CPU used by the PlayStation 1.
+Before starting Ghidra, until version 10.3.3, the MIPS CPU isn't terribly well defined. One needs to go to the installation files of Ghidra, and edit the file `Ghidra/Processors/MIPS/data/languages/mips.ldef`. In this file, find the lines `<external_name tool="gnu" name="mips:4000"/>`, and change them to `<external_name tool="gnu" name="mips:3000"/>`. This will allow Ghidra to properly recognize the MIPS CPU used by the PlayStation 1. This step is no longer necessary starting with Ghidra 10.3.3.
 
 ## Setting up Ghidra's debugger
 
