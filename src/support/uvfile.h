@@ -218,7 +218,7 @@ class UvFile : public File, public UvThreadOp {
         bool closePending = false;
     };
     static void closeUVHandle(uv_file handle, uv_loop_s* loop, PendingCloseInfo* pendingCloseInfo);
-    PendingCloseInfo* m_pendingCloseInfo = new PendingCloseInfo();
+    PendingCloseInfo* m_pendingCloseInfo = nullptr;
 };
 
 class UvFifo : public File, public UvThreadOp {

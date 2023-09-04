@@ -81,6 +81,7 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
         file->opaque = fi;
         file->destroy = [](CueFile *file) {
             File *fi = reinterpret_cast<File *>(file->opaque);
+            fi->close();
             delete fi;
             file->opaque = nullptr;
         };

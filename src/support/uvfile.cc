@@ -266,7 +266,10 @@ void PCSX::UvFile::openwrapper(const char *filename, int flags) {
     }
     m_handle = handle;
     m_size = size;
-    if (handle >= 0) m_failed = false;
+    if (handle >= 0) {
+        m_failed = false;
+        m_pendingCloseInfo = new PendingCloseInfo();
+    }
 }
 
 PCSX::UvFile::UvFile(const char *filename) : File(RO_SEEKABLE), m_filename(filename) {
