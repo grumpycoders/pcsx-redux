@@ -40,3 +40,21 @@ The returned breakpoint object will have a few methods attached to it:
 - `:remove()`
 
 A removed breakpoint will no longer have any effect whatsoever, and none of its methods will do anything. Remember it is possible for the user to still manually remove a breakpoint from the UI.
+
+Note that the breakpoint will run outside of any safe Lua environment, so it's possible to crash the emulator by doing something wrong which would normally be caught by the safe environment of the main thread. This is to ensure that the breakpoint can run as fast as possible. In order to avoid this, it's possible to wrap the invoker callback in a `pcall` call, which will catch any error and display it in the logs. For example:
+
+```lua
+local someActualFunction = function(address, width, cause)
+    -- body
+end
+bp = PCSX.addBreakpoint(0x80030000, 'Write', 4, 'Shell write tracing', function(address, width, cause)
+    local success, msg = pcall(function()
+        someActualFunction(address, width, cause)
+    end)
+    if not success then
+        print('Error while running Lua breakpoint callback: ' .. msg)
+    end
+end)
+```
+
+This will ensure that the breakpoint will never crash the emulator, and will instead display the error in the logs, but it will also slow down the execution of the breakpoint. It's up to the user to decide whether or not this is acceptable.
