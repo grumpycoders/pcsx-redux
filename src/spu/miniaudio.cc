@@ -162,6 +162,7 @@ void PCSX::SPU::MiniAudio::init(bool safe) {
 void PCSX::SPU::MiniAudio::uninit() {
     ma_device_uninit(&m_device);
     ma_device_uninit(&m_deviceNull);
+    ma_context_uninit(&m_context);
 }
 
 void PCSX::SPU::MiniAudio::maybeRestart() {

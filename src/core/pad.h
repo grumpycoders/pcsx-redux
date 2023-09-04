@@ -34,6 +34,8 @@ class Pads {
   public:
     enum class Port { Port1 = 0, Port2 };
 
+    virtual ~Pads() = default;
+
     virtual void init() = 0;
     virtual void shutdown() = 0;
     virtual uint8_t startPoll(Port port) = 0;
