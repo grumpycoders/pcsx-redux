@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  coverage:
+  asan:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/grumpycoders/pcsx-redux-build:latest
