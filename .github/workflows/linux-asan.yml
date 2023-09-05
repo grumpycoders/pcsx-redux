@@ -24,10 +24,10 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           make -j 2 all pcsx-redux-tests
-          make -C src/mips/openbios -j 2 BUILD=SmallDebug
+          make -C src/mips/openbios -j 2 BUILD=Release
           cp src/mips/openbios/openbios.bin .
           make -C src/mips/openbios clean
-          make -C src/mips/tests -j 2 PCSX_TESTS=true
+          make -C src/mips/tests -j 2 PCSX_TESTS=true BUILD=Release
           cp ./openbios.bin src/mips/openbios/
       - name: Test
         run: |
