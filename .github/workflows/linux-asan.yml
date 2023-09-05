@@ -1,0 +1,34 @@
+name: Linux CI asan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
+      env:
+        TEST_RESULTS: /tmp/test-results
+        BUILD: asan
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          set-safe-directory: true
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          make -j 2 all pcsx-redux-tests
+          make -C src/mips/openbios -j 2
+          cp src/mips/openbios/openbios.bin .
+          make -C src/mips/openbios clean
+          make -C src/mips/tests -j 2 PCSX_TESTS=true
+          cp ./openbios.bin src/mips/openbios/
+      - name: Test
+        run: |
+          xvfb-run catchsegv ./pcsx-redux-tests
