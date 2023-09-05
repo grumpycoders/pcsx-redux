@@ -31,4 +31,4 @@ jobs:
           cp ./openbios.bin src/mips/openbios/
       - name: Test
         run: |
-          xvfb-run catchsegv ./pcsx-redux-tests
+          xvfb-run ./pcsx-redux-tests
