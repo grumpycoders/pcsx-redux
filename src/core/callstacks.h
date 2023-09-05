@@ -74,6 +74,7 @@ class CallStacks {
             m_currentSP = 0;
         });
     }
+    ~CallStacks() { m_callstacks.destroyAll(); }
     void setSP(uint32_t oldSP, uint32_t newSP);
     void offsetSP(uint32_t oldSP, int32_t offset);
     void storeRA(uint32_t sp, uint32_t ra);
