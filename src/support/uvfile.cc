@@ -110,6 +110,7 @@ void PCSX::UvThreadOp::startThread() {
             c_tick, c_tick);
         barrier.set_value();
         uv_run(&s_uvLoop, UV_RUN_DEFAULT);
+        curl_multi_cleanup(s_curlMulti);
         uv_loop_close(&s_uvLoop);
     });
     f.wait();
