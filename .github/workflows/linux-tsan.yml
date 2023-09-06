@@ -1,0 +1,34 @@
+name: Linux CI tsan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  tsan:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
+      env:
+        TEST_RESULTS: /tmp/test-results
+        BUILD: tsan
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          set-safe-directory: true
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          make -j 2 all pcsx-redux-tests
+          make -C src/mips/openbios -j 2 BUILD=Release
+          cp src/mips/openbios/openbios.bin .
+          make -C src/mips/openbios clean
+          make -C src/mips/tests -j 2 PCSX_TESTS=true BUILD=Release
+          cp ./openbios.bin src/mips/openbios/
+      - name: Test
+        run: |
+          xvfb-run ./pcsx-redux-tests
