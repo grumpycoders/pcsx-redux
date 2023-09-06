@@ -81,6 +81,7 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
         file->opaque = fi;
         file->destroy = [](CueFile *file) {
             File *fi = reinterpret_cast<File *>(file->opaque);
+            fi->close();
             delete fi;
             file->opaque = nullptr;
         };
@@ -140,7 +141,15 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
                     });
 
     Scheduler_run(&scheduler);
-    CueParser_destroy(&parser);
+    CueParser_close(&parser, &scheduler, [](CueParser *parser, CueScheduler *scheduler, const char *error) {
+        Context *context = reinterpret_cast<Context *>(scheduler->opaque);
+        if (error) {
+            context->failed = true;
+            PCSX::g_system->printf("Error closing cue parser: %s", error);
+        }
+        CueParser_destroy(parser);
+    });
+    Scheduler_run(&scheduler);
 
     File_schedule_close(&cue, &scheduler, [](CueFile *file, CueScheduler *scheduler) { file->destroy(file); });
     if (context.failed) {
@@ -148,8 +157,10 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
             CueTrack *track = &disc.tracks[i];
             if (track->file) {
                 if (track->file->references == 1) {
-                    File_schedule_close(track->file, &scheduler,
-                                        [](CueFile *file, CueScheduler *scheduler) { file->destroy(file); });
+                    File_schedule_close(track->file, &scheduler, [](CueFile *file, CueScheduler *scheduler) {
+                        file->destroy(file);
+                        free(file);
+                    });
                 } else {
                     track->file->references--;
                 }
@@ -172,6 +183,12 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
         m_ti[i].start = IEC60908b::MSF(track->indices[1] + 150);
         m_ti[i].pregap = IEC60908b::MSF(track->indices[1] - track->indices[0]);
         m_ti[i].length = IEC60908b::MSF(track->size);
+        if (track->file->references == 1) {
+            free(track->file);
+        } else {
+            track->file->references--;
+        }
+        track->file = nullptr;
     }
 
     m_numtracks = disc.trackCount;

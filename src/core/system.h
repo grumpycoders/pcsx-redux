@@ -259,7 +259,7 @@ class System {
   protected:
     std::filesystem::path m_binDir;
     PCSX::VersionInfo m_version;
-    bool m_emergencyExit = true;
+    bool m_emergencyExit = false;
 };
 
 extern System *g_system;
