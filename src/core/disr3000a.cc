@@ -267,7 +267,7 @@ declare(disADDI) {
 declare(disADDIU) {
     if (_Rs_ == 0) {
         // this is the common pseudo-instruction to load an immediate 16 bits value
-        dOpCode("move");
+        dOpCode("li");
         GPR(_Rt_);
     } else {
         dOpCode("addiu");
@@ -285,7 +285,7 @@ declare(disANDI) {
 declare(disORI) {
     if (_Rs_ == 0) {
         // while rare, this can also be used to load an immediate 16-bits value
-        dOpCode("move");
+        dOpCode("li");
         GPR(_Rt_);
     } else {
         dOpCode("ori");
