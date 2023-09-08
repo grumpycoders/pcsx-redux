@@ -14,7 +14,7 @@ const { Octokit } = require('@octokit/rest')
 const octokit = new Octokit()
 const os = require('node:os')
 
-const mipsVersion = '13.1.0'
+const mipsVersion = '13.2.0'
 let extensionUri
 let globalStorageUri
 let requiresReboot = false

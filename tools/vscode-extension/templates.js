@@ -12,6 +12,45 @@ const stringify = (obj) => {
 async function createSkeleton(fullPath, name, progressReporter) {
   await fs.mkdirp(path.join(fullPath, '.vscode'))
   await fs.writeFile(
+    path.join(fullPath, '.vscode', 'c_cpp_properties.json'),
+    stringify({
+      configurations: [
+        {
+          compilerPath:
+            '${env:AppData}\\mips\\mips\\bin\\mipsel-none-elf-gcc.exe',
+          cStandard: 'c17',
+          cppStandard: 'c++20',
+          defines: ['__STDC_HOSTED__ = 0'],
+          includePath: [
+            '${workspaceFolder}/',
+            '${workspaceFolder}/third_party/nugget',
+            '${workspaceFolder}/third_party/nugget/third_party/eastl/include',
+            '${workspaceFolder}/third_party/nugget/third_party/eabase/include/common',
+            '${env:AppData}/mips/mips/include'
+          ],
+          intelliSenseMode: 'gcc-x86',
+          name: 'Win32'
+        },
+        {
+          compilerPath: 'mipsel-linux-gnu-gcc',
+          cStandard: 'c17',
+          cppStandard: 'c++20',
+          defines: ['__STDC_HOSTED__ = 0'],
+          includePath: [
+            '${workspaceFolder}/',
+            '${workspaceFolder}/third_party/nugget',
+            '${workspaceFolder}/third_party/nugget/third_party/eastl/include',
+            '${workspaceFolder}/third_party/nugget/third_party/eabase/include/common',
+            '/usr/mipsel-linux-gnu/include'
+          ],
+          intelliSenseMode: 'gcc-x86',
+          name: 'linux'
+        }
+      ],
+      version: 4
+    })
+  )
+  await fs.writeFile(
     path.join(fullPath, '.vscode', 'launch.json'),
     stringify({
       version: '0.2.0',
