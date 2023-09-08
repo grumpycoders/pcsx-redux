@@ -19,6 +19,9 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.2.7
+  - Adding c_cpp_properties.json to the templates.
+  - Bumping Windows mips toolchain to 13.2.0.
 - 0.2.6
   - Bumping gcc to 13.2.0.
   - Bumping binutils to 2.41
