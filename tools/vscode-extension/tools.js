@@ -19,14 +19,14 @@ let extensionUri
 let globalStorageUri
 let requiresReboot = false
 
-async function checkInstalled(name) {
+async function checkInstalled (name) {
   if (tools[name].installed === undefined) {
     tools[name].installed = await tools[name].check()
   }
   return tools[name].installed
 }
 
-function checkSimpleCommand(command) {
+function checkSimpleCommand (command) {
   return new Promise((resolve) => {
     execAsync(command, (error) => {
       if (error) {
@@ -41,7 +41,7 @@ function checkSimpleCommand(command) {
 let mipsInstalling = false
 let win32MipsToolsInstalling = false
 
-async function installMips() {
+async function installMips () {
   if (mipsInstalling) return
   mipsInstalling = true
   try {
@@ -60,7 +60,7 @@ async function installMips() {
   }
 }
 
-async function installToolchain() {
+async function installToolchain () {
   switch (process.platform) {
     case 'win32':
       try {
@@ -166,14 +166,14 @@ async function installToolchain() {
   }
 }
 
-function checkToolchain() {
+function checkToolchain () {
   return Promise.any([
     exec('mipsel-linux-gnu-g++ --version'),
     exec('mipsel-none-elf-g++ --version')
   ])
 }
 
-async function installGDB() {
+async function installGDB () {
   switch (process.platform) {
     case 'win32':
       try {
@@ -243,7 +243,7 @@ async function installGDB() {
   }
 }
 
-async function installMake() {
+async function installMake () {
   switch (process.platform) {
     case 'win32':
       try {
@@ -288,7 +288,7 @@ async function installMake() {
   }
 }
 
-async function installGit() {
+async function installGit () {
   switch (process.platform) {
     case 'win32': {
       const release = await octokit.rest.repos.getLatestRelease({
@@ -326,7 +326,7 @@ async function installGit() {
   }
 }
 
-function unpackPsyq(destination) {
+function unpackPsyq (destination) {
   const filename = vscode.Uri.joinPath(
     globalStorageUri,
     tools.psyq.filename
@@ -441,7 +441,7 @@ const tools = {
   }
 }
 
-function checkLocalFile(filename) {
+function checkLocalFile (filename) {
   return new Promise((resolve) => {
     filename = vscode.Uri.joinPath(globalStorageUri, filename).fsPath
     fs.access(filename, fs.constants.F_OK, (err) => {
@@ -450,7 +450,7 @@ function checkLocalFile(filename) {
   })
 }
 
-function checkGDB() {
+function checkGDB () {
   if (process.platform === 'darwin') return checkSimpleCommand('gdb --version')
   return checkSimpleCommand('gdb-multiarch --version')
 }
@@ -511,7 +511,7 @@ exports.install = async (toInstall, force) => {
 exports.maybeInstall = async (toInstall) => {
   const installed = await checkInstalled(toInstall)
   if (!installed && !requiresReboot) {
-    const ret =  exports.install([toInstall])
+    const ret = exports.install([toInstall])
     win32MipsToolsInstalling = false
     return ret
   }

@@ -19,6 +19,9 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.2.8
+  - Adding main page button to update submodules.
+  - Creating categories for templates.
 - 0.2.7
   - Adding c_cpp_properties.json to the templates.
   - Bumping Windows mips toolchain to 13.2.0.
