@@ -1,0 +1,7 @@
+-m32
+-std=c++20
+-fcoroutines-ts
+-I.
+-Ithird_party/nugget
+-Ithird_party/EASTL/include
+-Ithird_party/EABase/include/Common
