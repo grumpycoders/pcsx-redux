@@ -2,6 +2,7 @@
 
 const path = require('node:path')
 const fs = require('fs-extra')
+const Mustache = require('mustache')
 const { simpleGit } = require('simple-git')
 const progressNotification = require('./progressnotification.js')
 
@@ -156,102 +157,41 @@ third_party/psyq
   return git
 }
 
+async function copyTemplate (git, fullPath, name, template) {
+  const files = await fs.readdir(template)
+  for (const file of files) {
+    const filePath = path.join(template, file)
+    const stats = await fs.stat(filePath)
+    if (stats.isFile()) {
+      const content = await fs.readFile(filePath, 'utf8')
+      const rendered = Mustache.render(content, { projectName: name })
+      await fs.writeFile(path.join(fullPath, file), rendered)
+      await git.add(file)
+    } else if (stats.isDirectory()) {
+      await fs.mkdirp(path.join(fullPath, file))
+      await copyTemplate(git, path.join(fullPath, file), name, filePath)
+    }
+  }
+}
+
 async function createEmptyBareMetalProject (fullPath, name, progressReporter) {
   const git = await createSkeleton(fullPath, name, progressReporter)
-  await fs.copy(
-    path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty'),
-    fullPath
-  )
-  await fs.writeFile(
-    path.join(fullPath, 'Makefile'),
-    `
-TARGET = ${name}
-TYPE = ps-exe
-
-SRCS = \
-third_party/nugget/common/syscalls/printf.c \
-third_party/nugget/common/crt0/crt0.s \
-main.c
-
-include third_party/nugget/common.mk
-`
-  )
-  await git.add(['main.c', 'Makefile', 'compile_flags.txt'])
+  await copyTemplate(git, fullPath, name, path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty'))
 }
 
 async function createPsyQCubeProject (fullPath, name, progressReporter, tools) {
   const git = await createSkeleton(fullPath, name, progressReporter)
-  await fs.copy(
-    path.join(extensionUri.fsPath, 'templates', 'psyq', 'cube'),
-    fullPath
-  )
-  await fs.writeFile(
-    path.join(fullPath, 'Makefile'),
-    `
-TARGET = ${name}
-TYPE = ps-exe
-
-SRCS = \
-third_party/nugget/common/crt0/crt0.s \
-main.c
-
-CPPFLAGS += -Ithird_party/psyq-iwyu/include
-LDFLAGS += -Lthird_party/psyq/lib
-LDFLAGS += -Wl,--start-group
-LDFLAGS += -lapi
-LDFLAGS += -lc
-LDFLAGS += -lc2
-LDFLAGS += -lcard
-LDFLAGS += -lcd
-LDFLAGS += -lcomb
-LDFLAGS += -lds
-LDFLAGS += -letc
-LDFLAGS += -lgpu
-LDFLAGS += -lgs
-LDFLAGS += -lgte
-LDFLAGS += -lgun
-LDFLAGS += -lhmd
-LDFLAGS += -lmath
-LDFLAGS += -lmcrd
-LDFLAGS += -lmcx
-LDFLAGS += -lpad
-LDFLAGS += -lpress
-LDFLAGS += -lsio
-LDFLAGS += -lsnd
-LDFLAGS += -lspu
-LDFLAGS += -ltap
-LDFLAGS += -Wl,--end-group
-
-include third_party/nugget/common.mk
-`
-  )
+  await copyTemplate(git, fullPath, name, path.join(extensionUri.fsPath, 'templates', 'psyq', 'cube'))
   await git.submoduleAdd(
     'https://github.com/johnbaumann/psyq_include_what_you_use.git',
     'third_party/psyq-iwyu'
   )
   await tools.psyq.unpack(path.join(fullPath, 'third_party', 'psyq'))
-  await git.add(['main.c', 'Makefile', 'compile_flags.txt'])
 }
 
 async function createPSYQoHelloProject (fullPath, name, progressReporter) {
   const git = await createSkeleton(fullPath, name, progressReporter)
-  await fs.copy(
-    path.join(extensionUri.fsPath, 'templates', 'psyqo', 'hello'),
-    fullPath
-  )
-  await fs.writeFile(
-    path.join(fullPath, 'Makefile'),
-    `
-TARGET = ${name}
-TYPE = ps-exe
-
-SRCS = \
-main.cpp
-
-include third_party/nugget/psyqo/psyqo.mk
-`
-  )
-  await git.add(['main.cpp', 'Makefile', 'compile_flags.txt'])
+  await copyTemplate(git, fullPath, name, path.join(extensionUri.fsPath, 'templates', 'psyqo', 'hello'))
 }
 
 const templates = {
