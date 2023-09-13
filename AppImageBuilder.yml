@@ -18,17 +18,17 @@ AppDir:
     - amd64
     allow_unauthenticated: true
     sources:
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic main restricted
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-updates main restricted
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic universe
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-updates universe
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic multiverse
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-updates multiverse
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-backports main
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ lunar main restricted
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ lunar-updates main restricted
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ lunar universe
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ lunar-updates universe
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ lunar multiverse
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ lunar-updates multiverse
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ lunar-backports main
         restricted universe multiverse
-    - sourceline: deb http://security.ubuntu.com/ubuntu kinetic-security main restricted
-    - sourceline: deb http://security.ubuntu.com/ubuntu kinetic-security universe
-    - sourceline: deb http://security.ubuntu.com/ubuntu kinetic-security multiverse
+    - sourceline: deb http://security.ubuntu.com/ubuntu lunar-security main restricted
+    - sourceline: deb http://security.ubuntu.com/ubuntu lunar-security universe
+    - sourceline: deb http://security.ubuntu.com/ubuntu lunar-security multiverse
     include:
     - libbz2-1.0:amd64
     - libcom-err2:amd64
