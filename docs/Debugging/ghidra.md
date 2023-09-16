@@ -7,7 +7,7 @@ Since version 10.3, Ghidra now supports debugging MIPS targets. This allows for 
 - A gdb "multiarch" binary is required. For Windows, you can get it from [here](https://static.grumpycoder.net/pixel/gdb-multiarch-windows/). For Linux, you can get it from your distribution's package manager; on Ubuntu and Debian, this is the package `gdb-multiarch`. And for MacOS, you can use the [brew package manager](https://brew.sh/) to install it; this is the package `gdb`.
 - Ghidra 10.3 or newer. You can get it from [here](https://ghidra-sre.org/).
 - PCSX-Redux either configured to disable Dynarec, enable the debugger, and enable the gdb server, or started using the following command-line arguments: `-interpreter -debugger -gdb`.
-- The [following file](https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/tools/ghidra_scripts/ghidra_debugger_scripts) downloaded somewhere on your computer.
+- The [following file](https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/tools/ghidra_scripts/ghidra_debugger_scripts) downloaded somewhere on your computer, naming it `ghidra_debugger_scripts`. 
 
 ## Setting up Ghidra
 
