@@ -83,8 +83,10 @@ powershell -ExecutionPolicy Unrestricted -File mips.ps1 self-install C:\path\to\
 
 You can leave the installation path blank to install the script in the Application Data folder.
 
+Once the toolchain is installed, you can compile OpenBIOS using `make -C src/mips/openbios`.
+
 ### Linux
-Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. You will also need a few libraries on your system for this to work. Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/build/Dockerfile#L22) for a list of library packages to install. Alternatively, if you do not want to use Docker, you can also simply install the dependencies listed below and run `make`.
+Run `./dockermake.sh appimage`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. This will create an [AppImage](https://appimage.org/) file, called `PCSX-Redux-HEAD-x86_64.AppImage`, which a self-hosted binary containing all of its required dependencies. Alternatively, if you do not want to use Docker, you can also simply install the dependencies listed below and run `make`.
 
 #### GNU/Linux Dependencies
 
