@@ -12,7 +12,9 @@ To discuss this emulator specifically, please join our Discord server:
 
 [![Discord](https://discord.com/api/guilds/567975889879695361/widget.png?style=banner2)](https://discord.gg/KG5uCqw)
 
-To discuss PlayStation 1 development, hacking, and reverse engineering in general, please join the PSX.Dev Discord server: [![Discord](https://img.shields.io/discord/642647820683444236)](https://discord.gg/QByKPpH)
+To discuss PlayStation 1 development, hacking, and reverse engineering in general, please join the PSX.Dev Discord server:
+
+[![Discord](https://discord.com/api/guilds/642647820683444236/widget.png?style=banner2)](https://discord.gg/QByKPpH)
 
 # PCSX-Redux
 
