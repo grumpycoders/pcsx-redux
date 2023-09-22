@@ -8,9 +8,13 @@
 |Linux build|[![Linux CI](https://github.com/grumpycoders/pcsx-redux/workflows/Linux%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22Linux+CI%22+branch%3Amain)|[Linux Intel 64-bits (AppImage)](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-linux64/distribution_groups/public)|
 |MacOS build|[![MacOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22macOS+CI%22+branch%3Amain)|[MacOS](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-macos/distribution_groups/public)|
 
-To discuss this emulator specifically, please join our Discord server: [![Discord](https://img.shields.io/discord/567975889879695361)](https://discord.gg/KG5uCqw)
+To discuss this emulator specifically, please join our Discord server:
 
-To discuss PlayStation 1 development, hacking, and reverse engineering in general, please join the PSX.Dev Discord server: [![Discord](https://img.shields.io/discord/642647820683444236)](https://discord.gg/QByKPpH)
+[![Discord](https://discord.com/api/guilds/567975889879695361/widget.png?style=banner2)](https://discord.gg/KG5uCqw)
+
+To discuss PlayStation 1 development, hacking, and reverse engineering in general, please join the PSX.Dev Discord server:
+
+[![Discord](https://discord.com/api/guilds/642647820683444236/widget.png?style=banner2)](https://discord.gg/QByKPpH)
 
 # PCSX-Redux
 
