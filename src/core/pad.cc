@@ -1246,9 +1246,10 @@ void PadsImpl::setLua(PCSX::Lua L) {
         if (!L.isnumber(1)) {
             return L.error("Invalid argument to getButton");
         }
+        auto buttons = m_pads[pad].m_data.buttonStatus;
         auto overrides = m_pads[pad].m_data.overrides;
         unsigned button = L.checknumber(1);
-        L.push((overrides & (1 << button)) == 0);
+        L.push(((overrides & buttons) & (1 << button)) == 0);
         return 1;
     };
 
