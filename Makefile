@@ -58,6 +58,7 @@ else
 endif
 CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
 CPPFLAGS_ubsan += -O1 -fsanitize=undefined -fno-omit-frame-pointer
+CPPFLAGS_lto += -O3 -flto=auto -fno-fat-lto-objects -flto-partition=one
 CPPFLAGS_ReleaseWithTracy += -O3 -DTRACY_ENABLE
 
 ifeq ($(CC_IS_CLANG),true)
@@ -93,6 +94,7 @@ else
 endif
 LDFLAGS_asan += -fsanitize=address
 LDFLAGS_ubsan += -fsanitize=undefined
+LDFLAGS_lto += -O3 -flto=auto -flto-partition=one
 
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
 LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
