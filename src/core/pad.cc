@@ -1282,7 +1282,7 @@ void PadsImpl::setLua(PCSX::Lua L) {
 
     L.getfieldtable("settings");
     L.getfieldtable("pads");
-    auto pushSettings = [this, L](unsigned pad) {
+    auto pushSettings = [this, L](unsigned pad) mutable {
         L.push(lua_Number(pad + 1));
         m_pads[pad].m_settings.pushValue(L);
         L.settable();
@@ -1297,7 +1297,7 @@ void PadsImpl::setLua(PCSX::Lua L) {
 
     // pads callbacks
 
-    auto setCallbacks = [this, L](unsigned pad) {
+    auto setCallbacks = [this, L](unsigned pad) mutable {
         L.getfieldtable(pad + 1);
         L.getfieldtable("pads");
         L.getfieldtable(1);
