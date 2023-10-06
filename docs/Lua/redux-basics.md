@@ -68,6 +68,8 @@ Each Pad table has the following functions:
 getButton(button)     -- Returns true if the specified button is pressed.
 setOverride(button)   -- Overrides the specified button.
 clearOverride(button) -- Clears the override for the specified button.
+setAnalogMode(bool)   -- Sets or clears the analog mode of this pad.
+map()                 -- Forces the pad to be remapped. Useful after changing pad settings.
 ```
 
 The button constants can be found in `PCSX.CONSTS.PAD.BUTTON`.
