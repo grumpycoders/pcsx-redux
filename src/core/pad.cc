@@ -1238,51 +1238,6 @@ void PadsImpl::Pad::setDefaults(bool firstController) {
 }
 
 void PadsImpl::setLua(PCSX::Lua L) {
-    auto getButton = [this](PCSX::Lua L, unsigned pad) -> int {
-        int n = L.gettop();
-        if (n == 0) {
-            return L.error("Not enough arguments to getButton");
-        }
-        if (!L.isnumber(1)) {
-            return L.error("Invalid argument to getButton");
-        }
-        auto buttons = m_pads[pad].m_data.buttonStatus;
-        auto overrides = m_pads[pad].m_data.overrides;
-        unsigned button = L.checknumber(1);
-        L.push(((overrides & buttons) & (1 << button)) == 0);
-        return 1;
-    };
-
-    auto setOverride = [this](PCSX::Lua L, unsigned pad) -> int {
-        int n = L.gettop();
-        if (n == 0) {
-            return L.error("Not enough arguments to setOverride");
-        }
-        if (!L.isnumber(1)) {
-            return L.error("Invalid argument to setOverride");
-        }
-        auto& overrides = m_pads[pad].m_data.overrides;
-        unsigned button = L.checknumber(1);
-        button = 1 << button;
-        overrides &= ~button;
-        return 0;
-    };
-
-    auto clearOverride = [this](PCSX::Lua L, unsigned pad) -> int {
-        int n = L.gettop();
-        if (n == 0) {
-            return L.error("Not enough arguments to clearOverride");
-        }
-        if (!L.isnumber(1)) {
-            return L.error("Invalid argument to clearOverride");
-        }
-        auto& overrides = m_pads[pad].m_data.overrides;
-        unsigned button = L.checknumber(1);
-        button = 1 << button;
-        overrides |= button;
-        return 0;
-    };
-
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
 
     // setting constants
@@ -1327,12 +1282,13 @@ void PadsImpl::setLua(PCSX::Lua L) {
 
     L.getfieldtable("settings");
     L.getfieldtable("pads");
-    L.push(lua_Number(1));
-    m_pads[0].m_settings.pushValue(L);
-    L.settable();
-    L.push(lua_Number(2));
-    m_pads[0].m_settings.pushValue(L);
-    L.settable();
+    auto pushSettings = [this, L](unsigned pad) {
+        L.push(lua_Number(pad + 1));
+        m_pads[pad].m_settings.pushValue(L);
+        L.settable();
+    };
+    pushSettings(0);
+    pushSettings(1);
     L.pop();
     L.pop();
 
@@ -1341,37 +1297,79 @@ void PadsImpl::setLua(PCSX::Lua L) {
 
     // pads callbacks
 
-    L.getfieldtable(1);
-    L.getfieldtable("pads");
-    L.getfieldtable(1);
+    auto setCallbacks = [this, L](unsigned pad) {
+        L.getfieldtable(pad + 1);
+        L.getfieldtable("pads");
+        L.getfieldtable(1);
 
-    // push first pad stuff here
-    L.declareFunc(
-        "getButton", [getButton](PCSX::Lua L) -> int { return getButton(L, 0); }, -1);
-    L.declareFunc(
-        "setOverride", [setOverride](PCSX::Lua L) -> int { return setOverride(L, 0); }, -1);
-    L.declareFunc(
-        "clearOverride", [clearOverride](PCSX::Lua L) -> int { return clearOverride(L, 0); }, -1);
+        L.declareFunc(
+            "getButton", [this, pad](PCSX::Lua L) -> int {
+                int n = L.gettop();
+                if (n == 0) {
+                    return L.error("Not enough arguments to getButton");
+                }
+                if (!L.isnumber(1)) {
+                    return L.error("Invalid argument to getButton");
+                }
+                auto buttons = m_pads[pad].m_data.buttonStatus;
+                auto overrides = m_pads[pad].m_data.overrides;
+                unsigned button = L.checknumber(1);
+                L.push(((overrides & buttons) & (1 << button)) == 0);
+                return 1;
+            }, -1);
+        L.declareFunc(
+            "setOverride", [this, pad](PCSX::Lua L) -> int {
+                int n = L.gettop();
+                if (n == 0) {
+                    return L.error("Not enough arguments to setOverride");
+                }
+                if (!L.isnumber(1)) {
+                    return L.error("Invalid argument to setOverride");
+                }
+                auto& overrides = m_pads[pad].m_data.overrides;
+                unsigned button = L.checknumber(1);
+                button = 1 << button;
+                overrides &= ~button;
+                return 0;
+            }, -1);
+        L.declareFunc(
+            "clearOverride", [this, pad](PCSX::Lua L) -> int {
+                int n = L.gettop();
+                if (n == 0) {
+                    return L.error("Not enough arguments to clearOverride");
+                }
+                if (!L.isnumber(1)) {
+                    return L.error("Invalid argument to clearOverride");
+                }
+                auto& overrides = m_pads[pad].m_data.overrides;
+                unsigned button = L.checknumber(1);
+                button = 1 << button;
+                overrides |= button;
+                return 0;
+            }, -1);
+        L.declareFunc(
+            "setAnalogMode", [this, pad](PCSX::Lua L) -> int {
+                int n = L.gettop();
+                if (n == 0) {
+                    m_pads[pad].m_analogMode = false;
+                } else {
+                    m_pads[pad].m_analogMode = L.toboolean();
+                }
+                return 0;
+            }, -1);
+        L.declareFunc(
+            "map", [this, pad](PCSX::Lua L) -> int {
+                m_pads[pad].map();
+                return 0;
+            }, -1);
 
-    L.pop();
-    L.pop();
-    L.pop();
+        L.pop();
+        L.pop();
+        L.pop();
+    };
 
-    L.getfieldtable(2);
-    L.getfieldtable("pads");
-    L.getfieldtable(1);
-
-    // push second pad stuff here
-    L.declareFunc(
-        "getButton", [getButton](PCSX::Lua L) -> int { return getButton(L, 1); }, -1);
-    L.declareFunc(
-        "setOverride", [setOverride](PCSX::Lua L) -> int { return setOverride(L, 1); }, -1);
-    L.declareFunc(
-        "clearOverride", [clearOverride](PCSX::Lua L) -> int { return clearOverride(L, 1); }, -1);
-
-    L.pop();
-    L.pop();
-    L.pop();
+    setCallbacks(0);
+    setCallbacks(1);
 
     L.pop();
     L.pop();
