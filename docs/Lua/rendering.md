@@ -181,6 +181,21 @@ Some extra functions are bound to Lua beyond the API listed above:
   specified viewport. The DPI scale is returned as a number. A value of 1.0
   means that the DPI scale for this viewport is 100%.
 
+  - `imgui.extra.InputText(label, text[, flags])` will create an input text
+  widget. The `label` is the label to display next to the input text, and the
+  `text` is the current text to display in the input text. The `flags` are
+  optional, and are the same flags as the ones used by the `imgui::InputText`
+  C++ function. The function will return a boolean indicating if the text has
+  changed or not, and the new text.
+
+  - `imgui.extra.InputTextWithHint(label, hint, text[, flags])` will create an
+  input text widget. The `label` is the label to display next to the input
+  text, and the `hint` is the hint to display in the input text when the text
+  is empty. The `text` is the current text to display in the input text. The
+  `flags` are optional, and are the same flags as the ones used by the
+  `imgui::InputTextWithHint` C++ function. The function will return a boolean
+  indicating if the text has changed or not, and the new text.
+
 ## NanoVG
 
 The NanoVG library is bound to Lua, and can be used to draw arbitrary vector graphics
