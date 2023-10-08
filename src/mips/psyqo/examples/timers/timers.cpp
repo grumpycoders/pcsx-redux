@@ -111,7 +111,8 @@ void TimersScene::start(Scene::StartReason reason) {
     });
     if (reason == Scene::StartReason::Create) {
         // If we are getting created, create a 500ms periodic timer too.
-        m_timerId = timers.gpu().armPeriodicTimer(500'000, [this](auto) { m_fasterCounter++; });
+        using namespace psyqo::timer_literals;
+        m_timerId = timers.gpu().armPeriodicTimer(500_ms, [this](auto) { m_fasterCounter++; });
     } else {
         // Otherwise, if we're getting resumed, we're going to resume our timer.
         timers.gpu().resumeTimer(m_timerId);

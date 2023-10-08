@@ -120,7 +120,7 @@ PCSX::LuaFFI::LuaFile* getMemoryAsFile() {
     return new PCSX::LuaFFI::LuaFile(PCSX::g_emulator->m_mem->getMemoryAsFile());
 }
 
-void quit() { PCSX::g_system->quit(); }
+void quit(int code) { PCSX::g_system->quit(code); }
 
 }  // namespace
 

@@ -126,7 +126,7 @@ static char s_binaryPath[128];
 // Specifically, the BOOT line parser will try to parse a command
 // line argument. There are multiple ways this can happen on a
 // retail bios, but this parser will chose to separate it using
-// the tabulation character ('\t', or character 9).
+// the tabulation character ('\t', or character 9) or a space.
 // Last but not least, the retail bios will screw things up
 // fairly badly if the file isn't terminated using CRLFs.
 static void findWordItem(const char *systemCnf, uint32_t *item, const char *name) {
@@ -161,7 +161,7 @@ static void findWordItem(const char *systemCnf, uint32_t *item, const char *name
                 value |= c - 'a' + 10;
             }
         } else {
-            if ((c == 0) || (c == '\n') || (c == '\r')) {
+            if ((c == 0) || isspace(c)) {
                 *item = value;
                 psxprintf("%s\t%08x\n", name, value);
             }
@@ -194,7 +194,7 @@ static void findStringItem(const char *systemCnf, char *const binaryPath, char *
         c = *systemCnf++;
         if (isspace(c) && !started) continue;
         started = 1;
-        if ((parseArg = (c == '\t'))) break;
+        if ((parseArg = (c == '\t') || (c == ' '))) break;
         if ((c == '\r') || (c == '\n') || (c == 0)) break;
         *binPtr++ = c;
     }
@@ -268,6 +268,9 @@ void gameMainThunk(struct psxExeHeader *binaryInfo, int argc, char **argv) {
         if (cdromReset() < 0) syscall_exception(0x44, 0x38b);
     }
     enterCriticalSection();
+    // Fixing SaGa Frontier (USA) when in fastboot mode, as it relies
+    // on the side effect of the shell running to enable the display.
+    GPU_STATUS = 0x03000000;
     exec(binaryInfo, argc, argv);
 }
 

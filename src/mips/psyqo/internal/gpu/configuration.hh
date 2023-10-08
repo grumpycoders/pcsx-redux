@@ -77,6 +77,7 @@ struct psyqo::GPU::Configuration {
     }
     Configuration &set(Interlace interlace) {
         config.videoInterlace = interlace == Interlace::INTERLACED ? VI_ON : VI_OFF;
+        config.vResolution = interlace == Interlace::INTERLACED ? VR_480 : VR_240;
         return *this;
     }
 

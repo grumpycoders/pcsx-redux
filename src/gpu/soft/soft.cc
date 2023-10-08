@@ -152,12 +152,12 @@ void PCSX::SoftGPU::SoftRenderer::texturePage(GPU::TPage *prim) {
     m_globalTextAddrY = prim->ty << 8;
 
     if (m_useDither == 2) {
-        m_ditherMode = 2;
+        m_ditherMode = true;
     } else {
         if (prim->dither) {
-            m_ditherMode = m_useDither;
+            m_ditherMode = m_useDither != 0;
         } else {
-            m_ditherMode = 0;
+            m_ditherMode = false;
         }
     }
 
@@ -3752,7 +3752,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
     const auto setMask16 = m_setMask16;
     const auto setMask32 = m_setMask32;
 
-    if (!m_checkMask && !m_drawSemiTrans && m_ditherMode != 2) {
+    if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (m_leftX >> 16);
             xmax = (m_rightX >> 16) - 1;
@@ -3792,7 +3792,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
         return;
     }
 
-    if (m_ditherMode == 2) {
+    if (m_ditherMode) {
         for (i = ymin; i <= ymax; i++) {
             xmin = (m_leftX >> 16);
             xmax = (m_rightX >> 16) - 1;
@@ -3939,7 +3939,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4i(int16_t x1, int16_t y1, int16_
     const auto setMask32 = m_setMask32;
     const auto ditherMode = m_ditherMode;
 
-    if (!m_checkMask && !m_drawSemiTrans && !m_ditherMode) {
+    if (!m_checkMask && !m_drawSemiTrans && !ditherMode) {
         for (i = ymin; i <= ymax; i++) {
             xmin = ((m_leftX) >> 16);
             xmax = ((m_rightX) >> 16) - 1;  //!!!!!!!!!!!!!

@@ -99,7 +99,7 @@ struct Setting<type, irqus::typestring<C...>, defaultValue> {
         return *this;
     }
     json serialize() const { return value; }
-    void deserialize(const json &j) { value = j; }
+    void deserialize(const json &j) { value = j.template get<type>(); }
     void reset() { value = defaultValue; }
     type value = defaultValue;
 };
@@ -151,7 +151,7 @@ struct SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
     }
     const char *c_str() const { return value.c_str(); }
     json serialize() const { return value; }
-    void deserialize(const json &j) { value = j; }
+    void deserialize(const json &j) { value = j.template get<std::string>(); }
     void reset() { value = defaultValue::data(); }
     type value = defaultValue::data();
 };
@@ -210,7 +210,7 @@ struct SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     // Also, https://github.com/nlohmann/json/issues/1914
     json serialize() const { return reinterpret_cast<const char *>(value.u8string().c_str()); }
     void deserialize(const json &j) {
-        std::string str = j;
+        std::string str = j.template get<std::string>();
         value = str;
     }
     void reset() { value = defaultValue::data(); }
@@ -263,7 +263,7 @@ struct SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
         return *this;
     }
     json serialize() const { return value; }
-    void deserialize(const json &j) { value = j; }
+    void deserialize(const json &j) { value = j.template get<float>(); }
     void reset() { value = (float)defaultValue / (float)divisor; }
     float value = (float)defaultValue / (float)divisor;
 };

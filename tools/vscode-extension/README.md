@@ -19,6 +19,17 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.2.8
+  - Adding main page button to update submodules.
+  - Creating categories for templates.
+- 0.2.7
+  - Adding c_cpp_properties.json to the templates.
+  - Bumping Windows mips toolchain to 13.2.0.
+- 0.2.6
+  - Bumping gcc to 13.2.0.
+  - Bumping binutils to 2.41
+  - Bumping gdb to 13.2.0
+  - Preventing creating projects with spaces in the path.
 - 0.2.5
   - Bumping gcc to 13.1.0.
 - 0.2.4

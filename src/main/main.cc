@@ -359,9 +359,9 @@ int pcsxMain(int argc, char **argv) {
             emulator->m_spu->close();
             emulator->m_cdrom->clearIso();
 
-            emulator->m_cpu->psxShutdown();
             emulator->m_spu->shutdown();
             emulator->m_gpu->shutdown();
+            emulator->shutdown();
             s_ui->close();
             delete s_ui;
 

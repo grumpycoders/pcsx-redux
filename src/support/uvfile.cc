@@ -110,7 +110,13 @@ void PCSX::UvThreadOp::startThread() {
             c_tick, c_tick);
         barrier.set_value();
         uv_run(&s_uvLoop, UV_RUN_DEFAULT);
-        uv_loop_close(&s_uvLoop);
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {});
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_timer), [](auto handle) {});
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_curlTimeout), [](auto handle) {});
+        while (uv_loop_close(&s_uvLoop) == UV_EBUSY) {
+            uv_run(&s_uvLoop, UV_RUN_NOWAIT);
+        }
+        curl_multi_cleanup(s_curlMulti);
     });
     f.wait();
 }
@@ -184,8 +190,9 @@ void PCSX::UvThreadOp::stopThread() {
     request([&barrier](auto loop) { barrier.set_value(); });
     barrier.get_future().wait();
     request([](auto loop) {
-        uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {});
-        uv_close(reinterpret_cast<uv_handle_t *>(&s_timer), [](auto handle) {});
+        uv_unref(reinterpret_cast<uv_handle_t *>(&s_kicker));
+        uv_unref(reinterpret_cast<uv_handle_t *>(&s_timer));
+        uv_unref(reinterpret_cast<uv_handle_t *>(&s_curlTimeout));
     });
     s_uvThread.join();
     s_threadRunning = false;
@@ -266,7 +273,10 @@ void PCSX::UvFile::openwrapper(const char *filename, int flags) {
     }
     m_handle = handle;
     m_size = size;
-    if (handle >= 0) m_failed = false;
+    if (handle >= 0) {
+        m_failed = false;
+        m_pendingCloseInfo = new PendingCloseInfo();
+    }
 }
 
 PCSX::UvFile::UvFile(const char *filename) : File(RO_SEEKABLE), m_filename(filename) {

@@ -13,17 +13,17 @@ set -ex
 
 PREFIX=${PREFIX:-"/usr/local"}
 
-wget https://ftp.gnu.org/gnu/binutils/binutils-2.40.tar.gz
-tar xvfz binutils-2.40.tar.gz
-cd binutils-2.40
+wget https://ftp.gnu.org/gnu/binutils/binutils-2.41.tar.gz
+tar xvfz binutils-2.41.tar.gz
+cd binutils-2.41
 ./configure --target=mipsel-none-elf --disable-multilib --disable-nls --disable-werror --prefix=$PREFIX
 make
 make install-strip
 cd ..
 
-wget https://ftp.gnu.org/gnu/gcc/gcc-13.1.0/gcc-13.1.0.tar.gz
-tar xvfz gcc-13.1.0.tar.gz
-cd gcc-13.1.0
+wget https://ftp.gnu.org/gnu/gcc/gcc-13.2.0/gcc-13.2.0.tar.gz
+tar xvfz gcc-13.2.0.tar.gz
+cd gcc-13.2.0
 ./contrib/download_prerequisites
 mkdir build
 cd build

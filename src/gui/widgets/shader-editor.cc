@@ -830,7 +830,7 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
 }
 
 void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec2 &srcLoc, const ImVec2 &srcSize,
-                                         const ImVec2 &dstSize) {
+                                         const ImVec2 &dstSize, std::initializer_list<lua_Number> extraArgs) {
     if (m_shaderProgram == 0) {
         compile(gui);
     }
@@ -912,9 +912,12 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
                 L.push(srcSize.y);
                 L.push(dstSize.x);
                 L.push(dstSize.y);
+                for (auto arg : extraArgs) {
+                    L.push(arg);
+                }
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
                 try {
-                    L.pcall(8);
+                    L.pcall(8 + extraArgs.size());
                     bool gotGLerror = false;
                     auto errors = gui->getGLerrors();
                     for (const auto &error : errors) {

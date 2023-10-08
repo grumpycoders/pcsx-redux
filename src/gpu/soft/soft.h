@@ -81,15 +81,15 @@ struct SoftRenderer {
         int32_t PAL;
         int32_t InterlacedNew;
         int32_t Interlaced;
-        int32_t RGB24New;
-        int32_t RGB24;
+        bool RGB24New;
+        bool RGB24;
         ShortPoint DrawOffset;
         int32_t Disabled;
         SoftRect Range;
     };
 
     SoftRect m_textureWindow;
-    int m_ditherMode = 0;
+    bool m_ditherMode = false;
     int m_drawX, m_drawY, m_drawW, m_drawH;
 
     static constexpr int GPU_WIDTH = 1024;

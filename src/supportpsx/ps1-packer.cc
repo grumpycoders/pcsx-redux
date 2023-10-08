@@ -97,26 +97,28 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(stub, lui(Reg::V0, getHI(newPC)));
         pushBytes(stub, addiu(Reg::V0, Reg::V0, getLO(newPC)));
         pushBytes(stub, jr(Reg::V0));
-        pushBytes<uint32_t>(stub, 0);
+        pushBytes(stub, nop());
         std::copy(stub.begin(), stub.end(), dataOut.begin());
+        compLoad += stub.size();
     }
 
     for (auto b : n2e_d::code) pushBytes<uint32_t>(dataOut, b);
 
+    pushBytes(dataOut, addiu(Reg::T8, Reg::RA, 0));
     pushBytes(dataOut, lui(Reg::V1, 0x1f80));
     pushBytes(dataOut, sw(Reg::R0, 0x1074, Reg::V1));
     pushBytes(dataOut, lui(Reg::A0, getHI(compLoad)));
     pushBytes(dataOut, addiu(Reg::A0, Reg::A0, getLO(compLoad)));
     pushBytes(dataOut, lui(Reg::A1, getHI(addr)));
-    pushBytes(dataOut, bgezal(Reg::R0, -((int16_t)(sizeof(n2e_d::code) + 6 * 4))));
+    pushBytes(dataOut, bgezal(Reg::R0, -((int16_t)(sizeof(n2e_d::code) + 7 * 4))));
     pushBytes(dataOut, addiu(Reg::A1, Reg::A1, getLO(addr)));
     if (options.shell) {
         pushBytes(dataOut, bgezal(Reg::R0, 36));
         pushBytes(dataOut, addiu(Reg::S0, Reg::R0, 0xa0));
         // this goes to 0x40
-        pushBytes(dataOut, 0x40803800);  // mtc0 $0, $t7
+        pushBytes(dataOut, mtc0(Reg::R0, 7));
         pushBytes(dataOut, jr(Reg::RA));
-        pushBytes(dataOut, 0x42000010);  // rfe
+        pushBytes(dataOut, rfe());
         // this goes to 0x80030000
         pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
         pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
@@ -146,18 +148,21 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, lui(Reg::T0, 0b1100101010000000));
         pushBytes(dataOut, lui(Reg::T1, 0x8003));
         pushBytes(dataOut, addiu(Reg::T2, Reg::R0, -1));
-        pushBytes(dataOut, 0x40883800);  // mtc0 $t0, $7
-        pushBytes(dataOut, 0x40892800);  // mtc0 $t1, $5
-        pushBytes(dataOut, 0x408a4800);  // mtc0 $t2, $9
+        pushBytes(dataOut, mtc0(Reg::R0, 7));
+        pushBytes(dataOut, mtc0(Reg::T1, 5));
+        pushBytes(dataOut, mtc0(Reg::T2, 9));
+        pushBytes(dataOut, mtc0(Reg::T0, 7));
 
         pushBytes(dataOut, jr(Reg::S0));
         pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
     } else {
         pushBytes(dataOut, addiu(Reg::T0, Reg::R0, 0xa0));
-        pushBytes(dataOut, lui(Reg::RA, getHI(pc)));
-        pushBytes(dataOut, addiu(Reg::RA, Reg::RA, getLO(pc)));
-        pushBytes(dataOut, jr(Reg::T0));
+        pushBytes(dataOut, jalr(Reg::T0));
         pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
+        pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
+        pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
+        pushBytes(dataOut, jr(Reg::T0));
+        pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
     }
     while (!options.cpe && !options.booty && !options.rom && !options.raw && ((dataOut.size() & 0x7ff) != 0)) {
         dataOut.push_back(0);

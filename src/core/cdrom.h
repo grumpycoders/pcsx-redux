@@ -42,7 +42,7 @@ class IsoBrowser;
 class CDRom {
   public:
     using MSF = IEC60908b::MSF;
-    CDRom() : m_iso(new CDRIso()) {}
+    CDRom() : m_iso(new CDRIso(new FailedFile)) {}
     virtual ~CDRom() {}
     static CDRom* factory();
     bool isLidOpen();

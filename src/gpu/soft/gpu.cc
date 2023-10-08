@@ -275,8 +275,8 @@ void PCSX::SoftGPU::impl::debug() {
             _("Debugging features are not supported when using the software renderer yet\nConsider enabling the "
               "OpenGL "
               "GPU option instead."));
-        ImGui::End();
     }
+    ImGui::End();
 }
 
 static constexpr inline uint16_t BGR24to16(uint32_t BGR) {

@@ -30,6 +30,11 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <assert.h>
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+}
 
 #include <algorithm>
 #include <cmath>
@@ -1048,7 +1053,7 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu(_("File"))) {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
                 if (ImGui::MenuItem(_("Close Disk Image"))) {
-                    PCSX::g_emulator->m_cdrom->setIso(new CDRIso());
+                    PCSX::g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
                     PCSX::g_emulator->m_cdrom->parseIso();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
@@ -1779,8 +1784,6 @@ the update and manually apply it.)")));
         while (L.gettop()) L.pop();
     }
 
-    glfwSwapBuffers(m_window);
-
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGui::UpdatePlatformWindows();
         // Skip the main viewport (index 0), which is always fully handled by the application!
@@ -1791,38 +1794,42 @@ the update and manually apply it.)")));
             if (platform_io.Renderer_RenderWindow) platform_io.Renderer_RenderWindow(viewport, nullptr);
             if (vg) {
                 auto window = getGLFWwindowFromImGuiViewport(viewport);
-                glfwGetWindowSize(window, &winWidth, &winHeight);
-                glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-                pxRatio = (float)fbWidth / (float)winWidth;
-                nvgSwitchSubContextGL(vg, m_nvgSubContextes[viewport->ID]);
-                nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
-                L.getfieldtable("nvg", LUA_GLOBALSINDEX);
-                L.getfield("_processQueueForViewportId", -1);
-                L.copy(-2);
-                L.push(lua_Number(viewport->ID));
-                try {
-                    L.pcall(2);
-                    bool gotGLerror = false;
-                    for (const auto& error : m_glErrors) {
-                        m_luaConsole.addError(error);
-                        if (g_system->getArgs().isLuaStdoutEnabled()) {
-                            fputs(error.c_str(), stderr);
-                            fputc('\n', stderr);
+                auto nvgSubContext = m_nvgSubContextes.find(viewport->ID);
+                if (nvgSubContext != m_nvgSubContextes.end()) {
+                    glfwGetWindowSize(window, &winWidth, &winHeight);
+                    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+                    pxRatio = (float)fbWidth / (float)winWidth;
+                    nvgSwitchSubContextGL(vg, nvgSubContext->second);
+                    nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+                    L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+                    L.getfield("_processQueueForViewportId", -1);
+                    L.copy(-2);
+                    L.push(lua_Number(viewport->ID));
+                    try {
+                        L.pcall(2);
+                        bool gotGLerror = false;
+                        for (const auto& error : m_glErrors) {
+                            m_luaConsole.addError(error);
+                            if (g_system->getArgs().isLuaStdoutEnabled()) {
+                                fputs(error.c_str(), stderr);
+                                fputc('\n', stderr);
+                            }
+                            gotGLerror = true;
                         }
-                        gotGLerror = true;
+                        m_glErrors.clear();
+                        if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+                    } catch (...) {
                     }
-                    m_glErrors.clear();
-                    if (gotGLerror) throw("OpenGL error while running NanoVG queue");
-                } catch (...) {
+                    nvgEndFrame(vg);
+                    while (L.gettop()) L.pop();
                 }
-                nvgEndFrame(vg);
-                while (L.gettop()) L.pop();
             }
             if (platform_io.Platform_SwapBuffers) platform_io.Platform_SwapBuffers(viewport, nullptr);
             if (platform_io.Renderer_SwapBuffers) platform_io.Renderer_SwapBuffers(viewport, nullptr);
         }
         glfwMakeContextCurrent(m_window);
     }
+    glfwSwapBuffers(m_window);
 
     L.getfieldtable("nvg", LUA_GLOBALSINDEX);
     L.push("_gui");
@@ -2269,6 +2276,84 @@ bool PCSX::GUI::about() {
                     ImGui::Text("%s", extension);
                 }
                 ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(_("FFmpeg information"))) {
+                ImGui::Text(_("Version: %s"), av_version_info());
+                ImGui::Text(_("License: %s"), avutil_license());
+                ImGui::TextWrapped(_("Configuration: %s"), avutil_configuration());
+                ImGui::Separator();
+
+                ImGui::TextUnformatted(_("List of supported formats:"));
+                const AVInputFormat* format = nullptr;
+                void* opaque = nullptr;
+                std::vector<const AVInputFormat*> formats;
+                unsigned nb_formats = 0;
+                while ((format = av_demuxer_iterate(&opaque))) nb_formats++;
+                formats.reserve(nb_formats);
+                opaque = nullptr;
+                while ((format = av_demuxer_iterate(&opaque))) formats.push_back(format);
+                std::sort(formats.begin(), formats.end(),
+                          [](auto& a, auto& b) { return strcmp(a->name, b->name) < 0; });
+                useMonoFont();
+                for (auto& format : formats) {
+                    ImGui::Text("  %-25s %s", format->name, format->long_name);
+                }
+                ImGui::PopFont();
+                ImGui::Separator();
+
+                ImGui::TextUnformatted(_("List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"));
+                const AVCodecDescriptor* codec = nullptr;
+                std::vector<const AVCodecDescriptor*> codecs;
+                unsigned nb_codecs = 0;
+                while ((codec = avcodec_descriptor_next(codec))) nb_codecs++;
+                codecs.reserve(nb_codecs);
+                codec = nullptr;
+                while ((codec = avcodec_descriptor_next(codec))) codecs.push_back(codec);
+                std::sort(codecs.begin(), codecs.end(), [](auto& a, auto& b) {
+                    if (a->type == b->type) {
+                        return strcmp(a->name, b->name) < 0;
+                    }
+                    return a->type < b->type;
+                });
+
+                auto getMediaType = [](AVMediaType type) -> const char* {
+                    switch (type) {
+                        case AVMEDIA_TYPE_VIDEO:
+                            return "Video";
+                        case AVMEDIA_TYPE_AUDIO:
+                            return "Audio";
+                        case AVMEDIA_TYPE_DATA:
+                            return "Data";
+                        case AVMEDIA_TYPE_SUBTITLE:
+                            return "Subtitle";
+                        case AVMEDIA_TYPE_ATTACHMENT:
+                            return "Attachment";
+                        default:
+                            return "Unknown";
+                    }
+                };
+
+                auto previousType = AVMEDIA_TYPE_UNKNOWN;
+
+                useMonoFont();
+                for (auto& codec : codecs) {
+                    auto type = codec->type;
+                    if (type != previousType) {
+                        ImGui::Separator();
+                        useMainFont();
+                        ImGui::Text(_("%s codecs"), getMediaType(type));
+                        ImGui::PopFont();
+                        previousType = type;
+                    }
+                    std::string_view name = codec->name;
+                    if (StringsHelpers::endsWith(name, "_deprecated")) continue;
+                    ImGui::Text("  %c%c%c%c %-20s %s", avcodec_find_decoder(codec->id) ? 'D' : '.',
+                                avcodec_find_encoder(codec->id) ? 'E' : '.',
+                                (codec->props & AV_CODEC_PROP_LOSSY) ? 'L' : '.',
+                                (codec->props & AV_CODEC_PROP_LOSSLESS) ? 'S' : '.', codec->name, codec->long_name);
+                }
+                ImGui::PopFont();
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();

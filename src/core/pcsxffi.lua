@@ -88,7 +88,7 @@ void loadSaveStateFromFile(LuaFile*);
 
 LuaFile* getMemoryAsFile();
 
-void quit();
+void quit(int code);
 ]]
 
 local C = ffi.load 'PCSX'
@@ -183,7 +183,7 @@ PCSX = {
     softResetEmulator = function() C.softResetEmulator() end,
     hardResetEmulator = function() C.hardResetEmulator() end,
     invalidateCache = function() C.invalidateCache() end,
-    log = function(...) printLike(C.luaLog, ...) end,
+    log = function(...) printLike(function(msg) C.luaLog(msg .. '\n') end, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
     nextTick = function(f)
         local oldCleanup = AfterPollingCleanup
@@ -212,8 +212,8 @@ PCSX = {
             error('loadSaveState: requires a Slice or File as input')
         end
     end,
-    getMemoryAsFile = function() return C.getMemoryAsFile() end,
-    quit = function() C.quit() end,
+    getMemoryAsFile = function() return Support.File._createFileWrapper(C.getMemoryAsFile()) end,
+    quit = function(code) C.quit(code or 0) end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end

@@ -55,6 +55,7 @@ enum patch_behavior remove_ChgclrPAD_2_execute(uint32_t* ra);
 enum patch_behavior send_pad_1_execute(uint32_t* ra);
 enum patch_behavior send_pad_2_execute(uint32_t* ra);
 enum patch_behavior clear_card_1_execute(uint32_t* ra);
+enum patch_behavior custom_handler_1_execute(uint32_t* ra);
 enum patch_behavior initgun_1_execute(uint32_t* ra);
 enum patch_behavior patch_card_1_execute(uint32_t* ra);
 enum patch_behavior patch_card_2_execute(uint32_t* ra);
@@ -124,6 +125,11 @@ static const struct patch C0patches[] = {
         .hash = 0x95c14c17,
         .execute = clear_card_1_execute,
         .name = "_clear_card#1",
+    },
+    {
+        .hash = 0xf80aeee3,
+        .execute = custom_handler_1_execute,
+        .name = "custom_handler#1",
     },
     {
         .hash = 0x5753f599,

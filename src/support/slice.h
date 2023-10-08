@@ -121,9 +121,7 @@ class Slice {
     }
     void acquire(std::string &&str) { m_data = std::move(str); }
     void acquire(void *data, uint32_t size) {
-        m_data = Owned{size, malloc(size)};
-        std::get<Owned>(m_data).ptr = data;
-        std::get<Owned>(m_data).size = size;
+        m_data = Owned{size, data};
     }
     void borrow(const Slice &other, uint32_t from = 0, uint32_t amount = std::numeric_limits<uint32_t>::max()) {
         const uint8_t *ptr = static_cast<const uint8_t *>(other.data());

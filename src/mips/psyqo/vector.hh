@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2022 PCSX-Redux authors
+Copyright (c) 2023 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,12 +24,22 @@ SOFTWARE.
 
 */
 
-#include "psyqo/scene.hh"
+#include "psyqo/fixed-point.hh"
+#include "psyqo/primitives/common.hh"
 
-#include "psyqo/application.hh"
+namespace psyqo {
 
-void psyqo::Scene::pushScene(Scene* scene) { m_parent->pushScene(scene); }
+struct Vec2 {
+    FixedPoint<> x, y;
+    operator Vertex() const { return {{ .x = x.integer<int16_t>(), .y = y.integer<int16_t>() }}; }
+};
 
-psyqo::Scene* psyqo::Scene::popScene() { return m_parent->popScene(); }
+struct Vec3 {
+    FixedPoint<> x, y, z;
+};
 
-psyqo::GPU& psyqo::Scene::gpu() { return m_parent->gpu(); }
+struct Vec4 {
+    FixedPoint<> x, y, z, w;
+};
+
+}  // namespace psyqo

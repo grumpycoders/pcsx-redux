@@ -56,6 +56,18 @@ struct Triangle {
         command |= 0x02000000;
         return *this;
     }
+    Triangle& setPointA(Vertex v) {
+        pointA = v;
+        return *this;
+    }
+    Triangle& setPointB(Vertex v) {
+        pointB = v;
+        return *this;
+    }
+    Triangle& setPointC(Vertex v) {
+        pointC = v;
+        return *this;
+    }
 
   private:
     uint32_t command;
@@ -135,6 +147,18 @@ struct GouraudTriangle {
     }
     GouraudTriangle& setSemiTrans() {
         command |= 0x02000000;
+        return *this;
+    }
+    GouraudTriangle& setPointA(Vertex v) {
+        pointA = v;
+        return *this;
+    }
+    GouraudTriangle& setPointB(Vertex v) {
+        pointB = v;
+        return *this;
+    }
+    GouraudTriangle& setPointC(Vertex v) {
+        pointC = v;
         return *this;
     }
 

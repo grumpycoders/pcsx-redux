@@ -35,6 +35,8 @@ bool isIsoFailed(LuaIso* wrapper);
 void isoClearPPF(LuaIso* wrapper);
 void isoSavePPF(LuaIso* wrapper);
 LuaIso* getCurrentIso();
+LuaIso* openIso(const char* path);
+LuaIso* openIsoFromFile(LuaFile* wrapper);
 
 IsoReader* createIsoReader(LuaIso* wrapper);
 void deleteIsoReader(IsoReader* isoReader);
@@ -109,6 +111,62 @@ local function createIsoBuilderWrapper(wrapper)
 end
 
 PCSX.getCurrentIso = function() return createIsoWrapper(C.getCurrentIso()) end
+PCSX.openIso = function(arg)
+    if type(arg) == 'string' then
+        return createIsoWrapper(C.openIso(arg))
+    else
+        return createIsoWrapper(C.openIsoFromFile(arg._wrapper))
+    end
+end
 PCSX.isoBuilder = function(file) return createIsoBuilderWrapper(C.createIsoBuilder(file._wrapper)) end
+PCSX.isoTools = {
+    fromBCD = function(bcd)
+        local dec = 0
+        local mul = 1
+        while bcd ~= 0 do
+            local digit = bcd % 16
+            if digit >= 10 then
+                error('Invalid BCD digit: ' .. digit)
+            end
+            dec = dec + mul * digit
+            mul = mul * 10
+            bcd = math.floor(bcd / 16)
+        end
+        return dec
+    end,
+    toBCD = function(dec)
+        local bcd = 0
+        local mul = 1
+        while dec ~= 0 do
+            local digit = dec % 10
+            bcd = bcd + mul * digit
+            mul = mul * 16
+            dec = math.floor(dec / 10)
+        end
+        return bcd
+    end,
+    fromMSF = function(m, s, f)
+        m = PCSX.isoTools.fromBCD(m)
+        s = PCSX.isoTools.fromBCD(s)
+        f = PCSX.isoTools.fromBCD(f)
+        if s >= 60 then
+            error('Invalid MSF seconds: ' .. s)
+        end
+        if f >= 75 then
+            error('Invalid MSF frames: ' .. f)
+        end
+        return (m * 60 + s) * 75 + f - 150
+    end,
+    toMSF = function(lba)
+        lba = lba + 150
+        local f = lba % 75
+        lba = lba - f
+        lba = lba / 75
+        local s = lba % 60
+        lba = lba - s
+        local m = lba / 60
+        return m, s, f
+    end,
+}
 
 -- )EOF"

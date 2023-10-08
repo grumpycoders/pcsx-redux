@@ -257,19 +257,14 @@ void PCSX::CDRIso::printTracks() {
     }
 }
 
-// This function is invoked by the front-end when opening an ISO
-// file for playback
-bool PCSX::CDRIso::open(void) {
-    // is it already open?
-    if (m_cdHandle) return true;
-
-    m_cdHandle.setFile(new UvFile(m_isoPath));
-    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
-        m_cdHandle.asA<UvFile>()->startCaching();
-    }
+bool PCSX::CDRIso::open(IO<File> isoFile) {
+    m_cdHandle = isoFile;
     if (m_cdHandle->failed()) {
         m_cdHandle.reset();
         return false;
+    }
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>() && m_cdHandle.isA<UvFile>()) {
+        m_cdHandle.asA<UvFile>()->startCaching();
     }
 
     PCSX::g_system->printf(_("Loaded CD Image: %s"), m_isoPath.string());

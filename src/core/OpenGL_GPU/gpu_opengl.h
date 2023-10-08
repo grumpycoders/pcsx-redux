@@ -103,6 +103,11 @@ class OpenGL_GPU final : public GPU {
     // For CPU->VRAM texture transfers
     OpenGL::Texture m_sampleTexture;
 
+    // For the 16-bits to 24-bits conversion
+    OpenGL::Framebuffer m_fbo24;
+    OpenGL::Texture m_vramTexture24;
+    Widgets::ShaderEditor m_shaderEditor24 = {"16-to-24"};
+
     std::vector<Vertex> m_vertices;
     OpenGL::Rect m_scissorBox;
     int m_drawAreaLeft, m_drawAreaRight, m_drawAreaTop, m_drawAreaBottom;
@@ -123,10 +128,6 @@ class OpenGL_GPU final : public GPU {
     GLint m_texWindowLoc;
     GLint m_blendFactorsLoc;
     GLint m_blendFactorsIfOpaqueLoc;
-    // The handle of the texture to actually display on screen.
-    // The handle of either m_vramTexture, m_vramTextureNoMSAA or m_blankTexture
-    // Depending on whether the display and MSAA are enabled
-    GLuint m_displayTexture;
 
     int m_vertexCount = 0;
     bool m_updateDrawOffset = false;

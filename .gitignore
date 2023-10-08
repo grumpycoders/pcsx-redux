@@ -79,6 +79,9 @@ fb.bat
 *.idb
 
 # Runtime files in ./resources
+16-to-24.frag
+16-to-24.lua
+16-to-24.vert
 offscreen.frag
 offscreen.lua
 offscreen.vert
@@ -110,3 +113,6 @@ comport.txt
 
 # Various editors' backup files
 *.bak
+
+# NVIDIA Nsight
+GPUCache
