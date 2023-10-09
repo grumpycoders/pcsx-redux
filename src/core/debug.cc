@@ -74,7 +74,7 @@ bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
     } else if ((base == 0x1f8) && (real < sizeof(m_scratchPadMap))) {
         return m_scratchPadMap[real] & mask;
     } else if ((base == 0xbfc) && (shortReal < sizeof(m_biosMemoryMap))) {
-        return m_biosMemoryMap[real] & mask;
+        return m_biosMemoryMap[shortReal] & mask;
     }
     return false;
 }
