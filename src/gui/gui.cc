@@ -1065,6 +1065,8 @@ void PCSX::GUI::endFrame() {
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
 
+                static constexpr char globalSaveState[] = "global.sstate";
+
                 if (ImGui::BeginMenu(_("Save state slots"))) {
                     if (ImGui::MenuItem(_("Quick-save slot"), "F1")) {
                         saveSaveState(buildSaveStateFilename(0));
@@ -1080,6 +1082,10 @@ void PCSX::GUI::endFrame() {
                     ImGui::EndMenu();
                 }
 
+                if (ImGui::MenuItem(_("Save global state"))) {
+                    saveSaveState(globalSaveState);
+                }
+
                 if (ImGui::BeginMenu(_("Load state slots"))) {
                     if (ImGui::MenuItem(_("Quick-save slot"), "F2")) loadSaveState(buildSaveStateFilename(0));
 
@@ -1089,12 +1095,6 @@ void PCSX::GUI::endFrame() {
                     }
 
                     ImGui::EndMenu();
-                }
-
-                static constexpr char globalSaveState[] = "global.sstate";
-
-                if (ImGui::MenuItem(_("Save global state"))) {
-                    saveSaveState(globalSaveState);
                 }
 
                 if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveState);
