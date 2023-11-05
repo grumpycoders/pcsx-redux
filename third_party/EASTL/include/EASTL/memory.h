@@ -441,7 +441,7 @@ namespace eastl
 				if (EASTL_UNLIKELY(first == last))
 					return dest;
 
-				return (T*)memcpy(dest, first, (size_t)((uintptr_t)last - (uintptr_t)first)) + (last - first);
+				return (T*)__builtin_memcpy(dest, first, (size_t)((uintptr_t)last - (uintptr_t)first)) + (last - first);
 			}
 
 			template <typename T>
@@ -888,7 +888,7 @@ namespace eastl
 				return;
 
 			typedef typename eastl::iterator_traits<ForwardIterator>::value_type value_type;
-			memset(first, 0, sizeof(value_type) * n);
+			__builtin_memset(first, 0, sizeof(value_type) * n);
 		}
 	}
 

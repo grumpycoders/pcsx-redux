@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2022 PCSX-Redux authors                                 *
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,22 +17,34 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include "main/textui.h"
 
-#define OPAQUEON 10
-#define OPAQUEOFF 11
+#include <chrono>
+#include <thread>
 
-#define KEY_RESETTEXSTORE 1
-#define KEY_SHOWFPS 2
-#define KEY_RESETOPAQUE 4
-#define KEY_RESETDITHER 8
-#define KEY_RESETFILTER 16
-#define KEY_RESETADVBLEND 32
-//#define KEY_BLACKWHITE    64
-#define KEY_BADTEXTURES 128
-#define KEY_CHECKTHISOUT 256
+PCSX::TUI::TUI() {}
+PCSX::TUI::~TUI() {}
 
-#define RED(x) (x & 0xff)
-#define BLUE(x) ((x >> 16) & 0xff)
-#define GREEN(x) ((x >> 8) & 0xff)
-#define COLOR(x) (x & 0xffffff)
+bool PCSX::TUI::addLog(LogClass logClass, const std::string &msg) { return true; }
+
+void PCSX::TUI::addLuaLog(const std::string &msg, bool error) {}
+
+void PCSX::TUI::init(std::function<void()> applyArguments) {
+    loadSettings();
+    applyArguments();
+    finishLoadSettings();
+}
+
+void PCSX::TUI::setLua(Lua L) { setLuaCommon(L); }
+
+void PCSX::TUI::close() {}
+
+void PCSX::TUI::update(bool vsync) {
+    tick();
+    if (!g_system->running()) {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(10ms);
+    }
+}
+
+void PCSX::TUI::addNotification(const std::string &notification) {}

@@ -31,12 +31,11 @@ SOFTWARE.
 #include <EASTL/fixed_vector.h>
 #include <stdint.h>
 
-#include "common/hardware/hwregs.h"
-#include "common/hardware/irq.h"
 #include "common/hardware/pcsxhw.h"
 #include "common/kernel/events.h"
 #include "common/syscalls/syscalls.h"
 #include "common/util/encoder.hh"
+#include "psyqo/hardware/cpu.hh"
 
 namespace {
 
@@ -73,11 +72,13 @@ KernelEventFunction allocateEventFunction(eastl::function<void()>&& lambda) {
 
 }  // namespace
 
-void psyqo::Kernel::abort(const char* msg) {
+[[noreturn]] void psyqo::Kernel::abort(const char* msg) {
+    fastEnterCriticalSection();
     pcsx_message(msg);
     pcsx_debugbreak();
-    while (1)
-        ;
+    syscall_puts(msg);
+    syscall_putchar('\n');
+    while (1) asm("");
 }
 
 uint32_t psyqo::Kernel::openEvent(uint32_t classId, uint32_t spec, uint32_t mode, eastl::function<void()>&& lambda) {
@@ -111,7 +112,7 @@ void psyqo::Kernel::enableDma(DMA channel_, unsigned priority) {
     if (channel >= static_cast<unsigned>(DMA::Max)) {
         psyqo::Kernel::abort("enableDma: invalid dma channel");
     }
-    uint32_t dpcr = DPCR;
+    uint32_t dpcr = Hardware::CPU::DPCR;
     if (priority > 7) priority = 7;
     unsigned shift = channel * 4;
     uint32_t mask = 15 << shift;
@@ -120,7 +121,7 @@ void psyqo::Kernel::enableDma(DMA channel_, unsigned priority) {
     mask |= 8;
     mask <<= shift;
     dpcr |= mask;
-    DPCR = dpcr;
+    Hardware::CPU::DPCR = dpcr;
 }
 
 void psyqo::Kernel::disableDma(DMA channel_) {
@@ -128,11 +129,11 @@ void psyqo::Kernel::disableDma(DMA channel_) {
     if (channel >= static_cast<unsigned>(DMA::Max)) {
         psyqo::Kernel::abort("disableDma: invalid dma channel");
     }
-    uint32_t dpcr = DPCR;
+    uint32_t dpcr = Hardware::CPU::DPCR;
     unsigned shift = channel * 4;
     uint32_t mask = 15 << shift;
     dpcr &= ~mask;
-    DPCR = dpcr;
+    Hardware::CPU::DPCR = dpcr;
 }
 
 void psyqo::Kernel::unregisterDmaEvent(unsigned slot) {
@@ -160,7 +161,7 @@ void psyqo::Kernel::Internal::prepare() {
     syscall_dequeueCDRomHandlers();
     syscall_setDefaultExceptionJmpBuf();
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
-        uint32_t dicr = DICR;
+        uint32_t dicr = Hardware::CPU::DICR;
         uint32_t dirqs = dicr >> 24;
         dicr &= 0xffffff;
         uint32_t ack = 0x80;
@@ -174,7 +175,7 @@ void psyqo::Kernel::Internal::prepare() {
 
         ack <<= 24;
         dicr |= ack;
-        DICR = dicr;
+        Hardware::CPU::DICR = dicr;
 
         for (unsigned irq = 0; irq < 7; irq++) {
             uint32_t mask = 1 << irq;
@@ -186,11 +187,11 @@ void psyqo::Kernel::Internal::prepare() {
         }
     });
     syscall_enableEvent(event);
-    IMASK = IMASK | IRQ_DMA;
-    uint32_t dicr = DICR;
+    Hardware::CPU::IMask.set(Hardware::CPU::IRQ::DMA);
+    uint32_t dicr = Hardware::CPU::DICR;
     dicr &= 0xffffff;
     dicr |= 0x800000;
-    DICR = dicr;
+    Hardware::CPU::DICR = dicr;
     syscall_setIrqAutoAck(3, 1);
 
     for (auto& i : getInitializers()) i();

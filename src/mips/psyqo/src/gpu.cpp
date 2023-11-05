@@ -30,32 +30,45 @@ SOFTWARE.
 #include <EASTL/fixed_list.h>
 #include <EASTL/functional.h>
 
+#include "common/hardware/counters.h"
 #include "common/hardware/dma.h"
-#include "common/hardware/hwregs.h"
-#include "common/hardware/irq.h"
 #include "common/hardware/pcsxhw.h"
 #include "common/kernel/events.h"
 #include "common/syscalls/syscalls.h"
+#include "psyqo/hardware/cpu.hh"
 #include "psyqo/kernel.hh"
 
 void psyqo::GPU::waitReady() {
-    while ((GPU_STATUS & 0x04000000) == 0)
+    while ((Hardware::GPU::Ctrl & uint32_t(0x04000000)) == 0)
+        ;
+}
+
+void psyqo::GPU::waitFifo() {
+    while ((Hardware::GPU::Ctrl & uint32_t(0x02000000)) == 0)
         ;
 }
 
 void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     // Reset
-    GPU_STATUS = 0;
+    Hardware::GPU::Ctrl = 0;
+    // FIFO polling mode
+    Hardware::GPU::Ctrl = 0x04000001;
     // Display Mode
-    GPU_STATUS = 0x08000000 | (config.config.hResolution << 0) | (config.config.vResolution << 2) |
+    Hardware::GPU::Ctrl = 0x08000000 | (config.config.hResolution << 0) | (config.config.vResolution << 2) |
                  (config.config.videoMode << 3) | (config.config.colorDepth << 4) |
                  (config.config.videoInterlace << 5) | (config.config.hResolutionExtended << 6);
     // Horizontal Range
-    GPU_STATUS = 0x06000000 | 0x260 | (0xc60 << 12);
+    Hardware::GPU::Ctrl = 0x06000000 | 0x260 | (0xc60 << 12);
+
     // Vertical Range
-    GPU_STATUS = 0x07000000 | 16 | (255 << 10);
+    if (config.config.videoMode == Configuration::VM_NTSC) {
+        Hardware::GPU::Ctrl = 0x07000000 | 16 | (255 << 10);
+    } else {
+        Hardware::GPU::Ctrl = 0x07046c2b;
+    }
+
     // Display Area
-    GPU_STATUS = 0x05000000;
+    Hardware::GPU::Ctrl = 0x05000000;
 
     COUNTERS[1].mode = 0x100;
     COUNTERS[1].value = 0;
@@ -105,11 +118,11 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     ff.rect = Rect{0, 0, 1024, 512};
     sendPrimitive(ff);
     // Enable Display
-    GPU_STATUS = 0x03000000;
+    Hardware::GPU::Ctrl = 0x03000000;
     Kernel::enableDma(Kernel::DMA::GPU);
     Kernel::registerDmaEvent(Kernel::DMA::GPU, [this]() {
         // DMA disabled
-        GPU_STATUS = 0x04000000;
+        Hardware::GPU::Ctrl = 0x04000001;
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
         if (m_flushCacheAfterDMA) {
             Prim::FlushCache fc;
@@ -125,10 +138,10 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
         eastl::atomic_signal_fence(eastl::memory_order_release);
     });
     // Enable DMA interrupt for GPU
-    auto dicr = DICR;
+    auto dicr = Hardware::CPU::DICR;
     dicr &= 0xffffff;
     dicr |= 0x040000;
-    DICR = dicr;
+    Hardware::CPU::DICR = dicr;
 }
 
 namespace {
@@ -148,22 +161,33 @@ void psyqo::GPU::flip() {
         pumpCallbacks();
         eastl::atomic_signal_fence(eastl::memory_order_acquire);
     } while ((m_previousFrameCount == m_frameCount) || (m_chainStatus == CHAIN_TRANSFERRING));
-    m_chainStatus = CHAIN_IDLE;
-    eastl::atomic_signal_fence(eastl::memory_order_release);
 
-    m_previousFrameCount = m_frameCount;
     auto parity = m_parity;
     parity ^= 1;
-    m_parity = parity;
     if (!m_interlaced) {
         bool firstBuffer = !parity;
         // Set Display Area
         if (firstBuffer) {
-            GPU_STATUS = 0x05000000 | (256 << 10);
+            Hardware::GPU::Ctrl = 0x05000000 | (256 << 10);
         } else {
-            GPU_STATUS = 0x05000000;
+            Hardware::GPU::Ctrl = 0x05000000;
+        }
+    } else if (!pcsx_present()) {
+        while (1) {
+            uint32_t stat = Hardware::GPU::Ctrl;
+            int isDrawingEven = (stat & 0x80000000) == 0;
+            int isMaskingEven = (stat & 0x00002000) == 0;
+            if (parity && isDrawingEven && !isMaskingEven) break;
+            if (!parity && !isDrawingEven && isMaskingEven) break;
+            pumpCallbacks();
         }
     }
+
+    m_chainStatus = CHAIN_IDLE;
+    m_parity = parity;
+    m_previousFrameCount = m_frameCount;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+
     enableScissor();
     Kernel::Internal::beginFrame();
     if (m_chainHead) {
@@ -282,8 +306,8 @@ void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect region, eastl::function
     sendPrimitive(upload);
 
     // Activating CPU->GPU DMA
-    GPU_STATUS = 0x04000002;
-    while ((GPU_STATUS & 0x10000000) == 0)
+    Hardware::GPU::Ctrl = 0x04000002;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0)
         ;
     DMA_CTRL[DMA_GPU].MADR = ptr;
     DMA_CTRL[DMA_GPU].BCR = bcr;
@@ -332,8 +356,8 @@ void psyqo::GPU::sendFragment(const uint32_t *data, size_t count, eastl::functio
     bcr |= bs;
 
     // Activating CPU->GPU DMA
-    GPU_STATUS = 0x04000002;
-    while ((GPU_STATUS & 0x10000000) == 0)
+    Hardware::GPU::Ctrl = 0x04000002;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0)
         ;
     DMA_CTRL[DMA_GPU].MADR = ptr;
     DMA_CTRL[DMA_GPU].BCR = bcr;
@@ -377,8 +401,8 @@ void psyqo::GPU::sendChain(eastl::function<void()> &&callback, DMA::DmaCallback 
     m_dmaCallback = eastl::move(callback);
 
     // Activating CPU->GPU DMA
-    GPU_STATUS = 0x04000002;
-    while ((GPU_STATUS & 0x10000000) == 0)
+    Hardware::GPU::Ctrl = 0x04000002;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0)
         ;
     DMA_CTRL[DMA_GPU].MADR = ptr;
     DMA_CTRL[DMA_GPU].BCR = 0;

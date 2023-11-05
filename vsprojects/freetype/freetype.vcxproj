@@ -949,6 +949,47 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\third_party\freetype\src\raster\raster.c" />
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\ftbsdf.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\ftsdf.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\ftsdfcommon.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\ftsdfrend.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\sdf\sdf.c" />
     <ClCompile Include="..\..\third_party\freetype\src\sfnt\pngshim.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -1121,6 +1162,17 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\third_party\freetype\src\smooth\smooth.c" />
+    <ClCompile Include="..\..\third_party\freetype\src\svg\ftsvg.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\freetype\src\svg\svg.c" />
     <ClCompile Include="..\..\third_party\freetype\src\truetype\truetype.c" />
     <ClCompile Include="..\..\third_party\freetype\src\truetype\ttdriver.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -1381,6 +1433,10 @@
     <ClInclude Include="..\..\third_party\freetype\src\raster\ftraster.h" />
     <ClInclude Include="..\..\third_party\freetype\src\raster\ftrend1.h" />
     <ClInclude Include="..\..\third_party\freetype\src\raster\rasterrs.h" />
+    <ClInclude Include="..\..\third_party\freetype\src\sdf\ftsdf.h" />
+    <ClInclude Include="..\..\third_party\freetype\src\sdf\ftsdfcommon.h" />
+    <ClInclude Include="..\..\third_party\freetype\src\sdf\ftsdferrs.h" />
+    <ClInclude Include="..\..\third_party\freetype\src\sdf\ftsdfrend.h" />
     <ClInclude Include="..\..\third_party\freetype\src\sfnt\pngshim.h" />
     <ClInclude Include="..\..\third_party\freetype\src\sfnt\sfdriver.h" />
     <ClInclude Include="..\..\third_party\freetype\src\sfnt\sferrors.h" />
@@ -1401,6 +1457,8 @@
     <ClInclude Include="..\..\third_party\freetype\src\smooth\ftgrays.h" />
     <ClInclude Include="..\..\third_party\freetype\src\smooth\ftsmerrs.h" />
     <ClInclude Include="..\..\third_party\freetype\src\smooth\ftsmooth.h" />
+    <ClInclude Include="..\..\third_party\freetype\src\svg\ftsvg.h" />
+    <ClInclude Include="..\..\third_party\freetype\src\svg\svgtypes.h" />
     <ClInclude Include="..\..\third_party\freetype\src\truetype\ttdriver.h" />
     <ClInclude Include="..\..\third_party\freetype\src\truetype\tterrors.h" />
     <ClInclude Include="..\..\third_party\freetype\src\truetype\ttgload.h" />

@@ -21,7 +21,7 @@
 
 #include "GL/gl3w.h"
 
-void* PCSX::Widgets::FileDialog::CreateTexture(uint8_t* data, int w, int h, char fmt) {
+void* PCSX::Widgets::FileDialogBase::CreateTexture(uint8_t* data, int w, int h, char fmt) {
     GLuint tex;
 
     glGenTextures(1, &tex);
@@ -37,7 +37,7 @@ void* PCSX::Widgets::FileDialog::CreateTexture(uint8_t* data, int w, int h, char
     return (void*)tex;
 }
 
-void PCSX::Widgets::FileDialog::setDeleteTexture() {
+void PCSX::Widgets::FileDialogBase::setDeleteTexture() {
     DeleteTexture = [](void* tex) {
         GLuint texID = reinterpret_cast<uintptr_t>(tex);
         glDeleteTextures(1, &texID);

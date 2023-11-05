@@ -33,10 +33,13 @@ namespace PCSX {
 
 class CDRIso {
   public:
-    CDRIso();
     CDRIso(const std::filesystem::path& path) : CDRIso() {
         m_isoPath = path;
-        open();
+        open(new UvFile(m_isoPath));
+    }
+    CDRIso(IO<File> isoFile) : CDRIso() {
+        m_isoPath = isoFile->filename();
+        open(isoFile);
     }
     ~CDRIso() {
         close();
@@ -54,6 +57,7 @@ class CDRIso {
     uint8_t* getBuffer();
     const IEC60908b::Sub* getBufferSub();
     bool readCDDA(const IEC60908b::MSF msf, unsigned char* buffer);
+    PPF* getPPF() { return &m_ppf; }
 
     bool failed();
 
@@ -63,7 +67,8 @@ class CDRIso {
     bool CheckSBI(const uint8_t* time);
 
   private:
-    bool open();
+    CDRIso();
+    bool open(IO<File> isoFile);
     void close();
 
     std::filesystem::path m_isoPath;
@@ -135,8 +140,8 @@ class CDRIso {
         IEC60908b::MSF start;
         IEC60908b::MSF length;
         IO<File> handle = nullptr;                                         // for multi-track images CDDA
-        enum cddatype_t { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;  // BIN, WAV, MP3, APE
-        uint32_t start_offset = 0;  // byte offset from start of above file
+        enum CDDAType { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;    // BIN, WAV, MP3, APE
+        uint32_t start_offset = 0;                                         // byte offset from start of above file
     };
 
     static constexpr unsigned MAXTRACKS = 100; /* How many tracks can a CD hold? */

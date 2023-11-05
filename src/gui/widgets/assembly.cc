@@ -95,7 +95,8 @@ class DummyAsm : public PCSX::Disasm {
     virtual void CP2D(uint8_t reg) final {}
     virtual void HI() final {}
     virtual void LO() final {}
-    virtual void Imm(uint16_t value) final {}
+    virtual void Imm16(int16_t value) final {}
+    virtual void Imm16u(uint16_t value) final {}
     virtual void Imm32(uint32_t value) final {}
     virtual void Target(uint32_t value) final {}
     virtual void Sa(uint8_t value) final {}
@@ -113,7 +114,7 @@ void PCSX::Widgets::Assembly::sameLine() { ImGui::SameLine(0.0f, 0.0f); }
 void PCSX::Widgets::Assembly::comma() {
     if (m_gotArg) {
         sameLine();
-        ImGui::Text(",");
+        ImGui::TextUnformatted(",");
     }
     m_gotArg = true;
 }
@@ -121,7 +122,7 @@ void PCSX::Widgets::Assembly::Invalid() {
     m_gotArg = false;
     sameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, s_invalidColor);
-    ImGui::Text("(**invalid**)");
+    ImGui::TextUnformatted("(**invalid**)");
     ImGui::PopStyleColor();
 }
 
@@ -129,7 +130,9 @@ void PCSX::Widgets::Assembly::OpCode(const char* str) {
     m_gotArg = false;
     sameLine();
     if (m_notch || m_notchAfterSkip[0]) {
-        ImGui::TextDisabled("~ ");
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::TextUnformatted("~ ");
+        ImGui::PopStyleColor();
         sameLine();
         ImGui::Text("%-6s", str);
     } else {
@@ -139,7 +142,7 @@ void PCSX::Widgets::Assembly::OpCode(const char* str) {
 void PCSX::Widgets::Assembly::GPR(uint8_t reg) {
     comma();
     sameLine();
-    ImGui::Text(" $");
+    ImGui::TextUnformatted(" $");
     sameLine();
     ImGui::TextUnformatted(s_disRNameGPR[reg]);
     if (ImGui::IsItemHovered()) {
@@ -153,7 +156,7 @@ void PCSX::Widgets::Assembly::GPR(uint8_t reg) {
 void PCSX::Widgets::Assembly::CP0(uint8_t reg) {
     comma();
     sameLine();
-    ImGui::Text(" $");
+    ImGui::TextUnformatted(" $");
     sameLine();
     ImGui::TextUnformatted(s_disRNameCP0[reg]);
     if (ImGui::IsItemHovered()) {
@@ -167,7 +170,7 @@ void PCSX::Widgets::Assembly::CP0(uint8_t reg) {
 void PCSX::Widgets::Assembly::CP2C(uint8_t reg) {
     comma();
     sameLine();
-    ImGui::Text(" $");
+    ImGui::TextUnformatted(" $");
     sameLine();
     ImGui::TextUnformatted(s_disRNameCP2C[reg]);
     if (ImGui::IsItemHovered()) {
@@ -181,7 +184,7 @@ void PCSX::Widgets::Assembly::CP2C(uint8_t reg) {
 void PCSX::Widgets::Assembly::CP2D(uint8_t reg) {
     comma();
     sameLine();
-    ImGui::Text(" $");
+    ImGui::TextUnformatted(" $");
     sameLine();
     ImGui::TextUnformatted(s_disRNameCP2D[reg]);
     if (ImGui::IsItemHovered()) {
@@ -195,7 +198,7 @@ void PCSX::Widgets::Assembly::CP2D(uint8_t reg) {
 void PCSX::Widgets::Assembly::HI() {
     comma();
     sameLine();
-    ImGui::Text(" $hi");
+    ImGui::TextUnformatted(" $hi");
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -207,7 +210,7 @@ void PCSX::Widgets::Assembly::HI() {
 void PCSX::Widgets::Assembly::LO() {
     comma();
     sameLine();
-    ImGui::Text(" $lo");
+    ImGui::TextUnformatted(" $lo");
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -216,7 +219,34 @@ void PCSX::Widgets::Assembly::LO() {
         ImGui::EndTooltip();
     }
 }
-void PCSX::Widgets::Assembly::Imm(uint16_t value) {
+void PCSX::Widgets::Assembly::Imm16(int16_t value) {
+    comma();
+    sameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
+    if (value < 0) {
+        ImGui::Text(" -0x%4.4x", -value);
+    } else {
+        ImGui::Text(" 0x%4.4x", value);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::Text("= %u", value);
+        if (value < 0) {
+            union {
+                uint16_t x;
+                int16_t y;
+            } v;
+            v.y = value;
+            ImGui::Text("= 0x%4.4x", v.x);
+            ImGui::Text("= -%i", -value);
+        }
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+    ImGui::PopStyleColor();
+}
+void PCSX::Widgets::Assembly::Imm16u(uint16_t value) {
     comma();
     sameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
@@ -670,7 +700,11 @@ settings, otherwise debugging features may not work.)");
                             code);
                 auto toggleBP = [&]() {
                     if (hasBP) {
-                        g_emulator->m_debug->removeBreakpoint(currentBP);
+                        if (currentBP->enabled()) {
+                            currentBP->disable();
+                        } else {
+                            currentBP->enable();
+                        }
                     } else {
                         g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"));
                     }
@@ -710,6 +744,15 @@ settings, otherwise debugging features may not work.)");
                     if (ImGui::MenuItem(_("Toggle Breakpoint"))) {
                         toggleBP();
                     }
+                    if (hasBP) {
+                        if (ImGui::MenuItem(_("Remove Breakpoint"))) {
+                            g_emulator->m_debug->removeBreakpoint(currentBP);
+                        }
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                        ImGui::TextUnformatted(_("Remove Breakpoint"));
+                        ImGui::PopStyleColor();
+                    }
                     if (absAddr < 0x00800000) {
                         if (ImGui::MenuItem(_("Assemble"))) {
                             openAssembler = true;
@@ -721,7 +764,9 @@ settings, otherwise debugging features may not work.)");
                 }
                 if (skipNext && m_pseudoFilling) {
                     ImGui::SameLine(0.0f, 0.0f);
-                    ImGui::TextDisabled(" (pseudo)");
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::TextUnformatted(" (pseudo)");
+                    ImGui::PopStyleColor();
                 }
             };
             m_notchAfterSkip[0] = m_notchAfterSkip[1];
@@ -781,18 +826,18 @@ settings, otherwise debugging features may not work.)");
             cp1.x = columnX;
             cp1.y = p0.y - thickness * direction;
             drawList->ChannelsSetCurrent(1 + column * 2);
-            drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
+            drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
             drawList->ChannelsSetCurrent(0 + column * 2);
-            drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+            drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
             if (dst != linesStartPos.end()) {
                 float dx = dst->second.x + ImGui::GetTextLineHeight() / 2;
                 float dy = dst->second.y + glyphWidth / 2;
                 p0.x = columnX;
                 p0.y = dy - direction * ImGui::GetTextLineHeight() / 2;
                 drawList->ChannelsSetCurrent(1 + column * 2);
-                drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowColor), thickness);
+                drawList->AddBezierCubic(p0, p1, p0, p1, ImColor(s_arrowColor), thickness);
                 drawList->ChannelsSetCurrent(0 + column * 2);
-                drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+                drawList->AddBezierCubic(p0, p1, p0, p1, ImColor(s_arrowOutlineColor), thickness + 4);
                 p1.x = dx + glyphWidth / 4;
                 p1.y = dy;
                 cp1.x = p0.x - thickness;
@@ -801,9 +846,9 @@ settings, otherwise debugging features may not work.)");
                 cp0.y = p1.y + thickness * direction;
                 p1.x -= thickness;
                 drawList->ChannelsSetCurrent(1 + column * 2);
-                drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
+                drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
                 drawList->ChannelsSetCurrent(0 + column * 2);
-                drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+                drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
                 ImVec2 a, b, c;
                 a = b = c = p1;
                 a.x += thickness;
@@ -826,9 +871,9 @@ settings, otherwise debugging features may not work.)");
                 out.x = p1.x;
                 out.y = height * 2 * direction;
                 drawList->ChannelsSetCurrent(1 + column * 2);
-                drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowColor), thickness);
+                drawList->AddBezierCubic(p1, out, p1, out, ImColor(s_arrowColor), thickness);
                 drawList->ChannelsSetCurrent(0 + column * 2);
-                drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowOutlineColor), thickness + 4);
+                drawList->AddBezierCubic(p1, out, p1, out, ImColor(s_arrowOutlineColor), thickness + 4);
             }
         }
     }

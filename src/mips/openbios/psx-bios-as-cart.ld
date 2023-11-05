@@ -198,6 +198,12 @@ SECTIONS {
         __bss_end = .;
     } > kseg0
 
+    .flushCacheHack (NOLOAD) : {
+        . = ALIGN(4);
+        __flush_cache_real_bios_ptr = .;
+        LONG(0);
+    } > kseg0
+
     __heap_start = .;
 
     __end = .;

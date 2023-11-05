@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2022 PCSX-Redux authors
+Copyright (c) 2023 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,12 +24,8 @@ SOFTWARE.
 
 */
 
-#include "psyqo/scene.hh"
+#include "psyqo/hardware/sbus.hh"
 
-#include "psyqo/application.hh"
-
-void psyqo::Scene::pushScene(Scene* scene) { m_parent->pushScene(scene); }
-
-psyqo::Scene* psyqo::Scene::popScene() { return m_parent->popScene(); }
-
-psyqo::GPU& psyqo::Scene::gpu() { return m_parent->gpu(); }
+psyqo::Hardware::Register<0x0014> psyqo::Hardware::SBus::Dev4Ctrl;
+psyqo::Hardware::Register<0x0018> psyqo::Hardware::SBus::Dev5Ctrl;
+psyqo::Hardware::Register<0x0020> psyqo::Hardware::SBus::ComCtrl;

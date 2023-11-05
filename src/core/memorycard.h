@@ -226,12 +226,12 @@ class MemoryCards {
     char *getCardData(const McdBlock &block) { return getCardData(block.mcd); }
 
     // File operations
-    void createMcd(const PCSX::u8string mcd);
+    void createMcd(PCSX::u8string mcd);
     void loadMcds(const CommandLine::args &args);
     bool saveMcd(int card_index);
 
-    bool loadMcd(const PCSX::u8string str, char *data);
-    bool saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+    bool loadMcd(PCSX::u8string mcd, char *data);
+    bool saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
     // void saveMcd(const PCSX::u8string path) { saveMcd(path, m_mcdData, 0, c_cardSize); }
     static constexpr int otherMcd(int mcd) {
         if ((mcd != 1) && (mcd != 2)) throw std::runtime_error("Bad memory card number");

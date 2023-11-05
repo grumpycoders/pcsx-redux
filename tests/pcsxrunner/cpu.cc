@@ -21,14 +21,14 @@
 #include "main/main.h"
 
 TEST(CPU, Interpreter) {
-    MainInvoker invoker("-run", "-stdout", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
                         "-loadexe", "src/mips/tests/cpu/cpu.ps-exe");
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
 
 TEST(CPU, Dynarec) {
-    MainInvoker invoker("-run", "-stdout", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
                         "-loadexe", "src/mips/tests/cpu/cpu.ps-exe");
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);

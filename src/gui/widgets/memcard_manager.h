@@ -28,6 +28,7 @@
 #include "GL/gl3w.h"
 #include "clip/clip.h"
 #include "core/sio.h"
+#include "gui/widgets/filedialog.h"
 #include "imgui.h"
 
 namespace PCSX {
@@ -61,7 +62,6 @@ class MemcardManager {
     void getPocketstationIcon(uint32_t* pixels, const MemoryCards::McdBlock& block);
 
     void saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action);
-    void ShowHelpMarker(const char* desc);
 
     std::unique_ptr<uint8_t[]> getLatest() {
         const auto card_size = MemoryCards::c_cardSize;
@@ -74,6 +74,15 @@ class MemcardManager {
 
     int m_undoIndex = 0;
     std::unique_ptr<uint8_t[]> m_latest;
+    Widgets::FileDialog<> m_importMemoryCardDialog = {[]() { return _("Import Memory Card file"); }};
+    Widgets::FileDialog<FileDialogMode::Save> m_exportMemoryCardDialog = {
+        []() { return _("Export Memory Card file"); }};
+    unsigned m_memoryCardImportExportIndex = 0;
+
+    void clearUndoBuffer() {
+        m_undo.clear();
+        m_undoIndex = 0;
+    }
 };
 
 }  // namespace Widgets

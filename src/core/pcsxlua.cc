@@ -39,6 +39,8 @@ void* getParPtr() { return PCSX::g_emulator->m_mem->m_exp1; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
 void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_hard; }
 void* getRegisters() { return &PCSX::g_emulator->m_cpu->m_regs; }
+void* getReadLUT() { return PCSX::g_emulator->m_mem->m_readLUT; }
+void* getWriteLUT() { return PCSX::g_emulator->m_mem->m_writeLUT; }
 
 LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type, unsigned width, const char* cause,
                              bool (*invoker)(uint32_t address, unsigned width, const char* cause)) {
@@ -46,7 +48,12 @@ LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type,
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
         address, type, width, std::string("Lua Breakpoint ") + cause,
         [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
-            return invoker(address, width, cause);
+            try {
+                return invoker(address, width, cause);
+            } catch (...) {
+                PCSX::g_system->luaMessage("Lua Breakpoint invoker threw an exception, deleting breakpoint", true);
+                return false;
+            }
         });
 
     ret->wrapper.push_back(bp);
@@ -113,7 +120,7 @@ PCSX::LuaFFI::LuaFile* getMemoryAsFile() {
     return new PCSX::LuaFFI::LuaFile(PCSX::g_emulator->m_mem->getMemoryAsFile());
 }
 
-void quit() { PCSX::g_system->quit(); }
+void quit(int code) { PCSX::g_system->quit(code); }
 
 }  // namespace
 
@@ -131,9 +138,12 @@ static void registerAllSymbols(PCSX::Lua L) {
     L.push("PCSX");
     L.newtable();
     REGISTER(L, getMemPtr);
+    REGISTER(L, getParPtr);
     REGISTER(L, getRomPtr);
     REGISTER(L, getScratchPtr);
     REGISTER(L, getRegisters);
+    REGISTER(L, getReadLUT);
+    REGISTER(L, getWriteLUT);
     REGISTER(L, addBreakpoint);
     REGISTER(L, enableBreakpoint);
     REGISTER(L, disableBreakpoint);

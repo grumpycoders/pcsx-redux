@@ -21,6 +21,7 @@
 
 #include <assert.h>
 
+#include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -36,15 +37,6 @@ PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& args = g_system->getArgs();
         auto& settings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
-        if (args.get<bool>("gdb", false)) {
-            settings.get<Emulator::DebugSettings::GdbServer>() = true;
-        }
-        if (args.get<bool>("no-gdb", false)) {
-            settings.get<Emulator::DebugSettings::GdbServer>() = false;
-        }
-        if (args.get<int>("gdb-port").has_value()) {
-            settings.get<Emulator::DebugSettings::GdbServerPort>() = args.get<int>("gdb-port").value();
-        }
         if (settings.get<Emulator::DebugSettings::GdbServer>() && (m_serverStatus != SERVER_STARTED)) {
             startServer(g_system->getLoop(), settings.get<Emulator::DebugSettings::GdbServerPort>());
         }
@@ -478,11 +470,13 @@ void PCSX::GdbClient::processCommand() {
     if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerTrace>()) {
         g_system->log(LogClass::GDB, "GDB --> PCSX %s\n", m_cmd.c_str());
     }
-    static const std::string qSupported = "qSupported:";
-    static const std::string qXferFeatures = "qXfer:features:read:target.xml:";
-    static const std::string qXferThreads = "qXfer:threads:read::";
-    static const std::string qXferMemMap = "qXfer:memory-map:read::";
-    static const std::string qSymbol = "qSymbol:";
+    using namespace std::literals;
+
+    static const auto qSupported = "qSupported:"sv;
+    static const auto qXferFeatures = "qXfer:features:read:target.xml:"sv;
+    static const auto qXferThreads = "qXfer:threads:read::"sv;
+    static const auto qXferMemMap = "qXfer:memory-map:read::"sv;
+    static const auto qSymbol = "qSymbol:"sv;
     if (m_cmd == "!") {
         // extended mode?
         write("OK");
@@ -498,8 +492,8 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
         close();
     } else if (m_cmd == "qC") {
-        // return current thread id - always 00
-        write("QC00");
+        // return current thread id - always p1.t1
+        write("QCp1.t1");
     } else if (m_cmd == "qAttached") {
         // query if attached to existing process - always true
         write("1");
@@ -664,13 +658,21 @@ void PCSX::GdbClient::processCommand() {
     } else if (StringsHelpers::startsWith(m_cmd, "vKill;")) {
         write("OK");
     } else if (StringsHelpers::startsWith(m_cmd, qSupported)) {
-        // do we care about any features gdb supports?
-        // auto elements = split(m_cmd.substr(qSupported.length()), ";");
-        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
-            write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;qXfer:memory-map:read+;QStartNoAckMode+");
-        } else {
-            write("PacketSize=4000;qXfer:threads:read+;QStartNoAckMode+");
+        auto elements = StringsHelpers::split(m_cmd.substr(qSupported.length()), ";");
+        bool multiprocess = false;
+        for (const auto& element : elements) {
+            if (element == "multiprocess+") {
+                multiprocess = true;
+            }
         }
+        std::string answer = "PacketSize=47ff;qXfer:threads:read+;QStartNoAckMode+";
+        if (multiprocess) {
+            answer += ";multiprocess+";
+        }
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
+            answer += ";qXfer:features:read+;qXfer:memory-map:read+";
+        }
+        write(std::move(answer));
     } else if (StringsHelpers::startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
@@ -693,7 +695,8 @@ void PCSX::GdbClient::processCommand() {
                g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
     } else if (StringsHelpers::startsWith(m_cmd, qXferThreads)) {
-        writePaged("<?xml version=\"1.0\"?><threads></threads>", m_cmd.substr(qXferThreads.length()));
+        writePaged("<threads><thread id=\"p1.t1\" core=\"0\" name=\"MainThread\"/></threads>",
+                   m_cmd.substr(qXferThreads.length()));
     } else {
         g_system->log(LogClass::GDB, "Unknown GDB command: %s\n", m_cmd.c_str());
         write("");
@@ -701,25 +704,55 @@ void PCSX::GdbClient::processCommand() {
 }
 
 void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
-    if (StringsHelpers::startsWith(cmd, "reset")) {
-        g_system->softReset();
-        writeEscaped("Emulation reset\n");
-        auto words = StringsHelpers::split(cmd, " ");
-        if (words.size() == 2) {
-            if (words[1] == "halt") {
-                writeEscaped("Emulation paused\n");
-                g_system->pause();
-            } else if (words[1] == "shellhalt") {
-                writeEscaped("Emulation running until shell\n");
-                m_waitingForShell = true;
-                g_system->resume();
-                // let's not reply to gdb just yet, until we've reached the shell
-                // and are ready to load a binary.
-                return;
-            } else if (words[1] == "hard") {
-                writeEscaped("Emulation hard-reset\n");
-                g_system->hardReset();
+    auto words = StringsHelpers::split(cmd, " ");
+    if (words[0] == "reset") {
+        bool hard = false;
+        bool halt = false;
+        bool shellhalt = false;
+
+        for (size_t i = 1; i < words.size(); i++) {
+            if (words[i] == "hard") {
+                hard = true;
+            } else if (words[i] == "halt") {
+                halt = true;
+            } else if (words[i] == "shellhalt") {
+                shellhalt = true;
             }
+        }
+
+        if (halt && shellhalt) {
+            writeEscaped("Cannot use both halt and shellhalt\n");
+            return;
+        }
+
+        if (hard) {
+            writeEscaped("Emulation hard-reset\n");
+            g_system->hardReset();
+        } else {
+            writeEscaped("Emulation reset\n");
+            g_system->softReset();
+        }
+
+        if (halt) {
+            writeEscaped("Emulation paused\n");
+            g_system->pause();
+        } else if (shellhalt) {
+            writeEscaped("Emulation running until shell\n");
+            m_waitingForShell = true;
+            g_system->resume();
+            // let's not reply to gdb just yet, until we've reached the shell
+            // and are ready to load a binary.
+            return;
+        }
+    } else if (words[0] == "mountcd") {
+        if (words.size() != 2) {
+            writeEscaped("Usage: mountcd <path>\n");
+        } else {
+            writeEscaped("Mounting CD image\n");
+            auto pathCmd = cmd.substr(8);
+            auto pathView = StringsHelpers::trim(pathCmd);
+            g_emulator->m_cdrom->setIso(new CDRIso(pathView));
+            g_emulator->m_cdrom->check();
         }
     }
     write("OK");

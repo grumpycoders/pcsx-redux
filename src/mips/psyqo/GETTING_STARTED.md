@@ -43,7 +43,7 @@ The computer might need to be rebooted after the installation of this script.
 Next, run the following command to install the proper toolchain and its dependencies:
 
 ```cmd
-mips install 12.2.0
+mips install 13.2.0
 ```
 
 ## Docker

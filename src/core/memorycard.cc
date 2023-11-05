@@ -667,8 +667,11 @@ inline uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value, bool *ack) {
 }
 
 // To-do: "All the code starting here is terrible and needs to be rewritten"
-bool PCSX::MemoryCards::loadMcd(const PCSX::u8string str, char *data) {
-    const char *fname = reinterpret_cast<const char *>(str.c_str());
+bool PCSX::MemoryCards::loadMcd(PCSX::u8string mcd, char *data) {
+    if (std::filesystem::path(mcd).is_relative()) {
+        mcd = (g_system->getPersistentDir() / mcd).u8string();
+    }
+    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     size_t bytesRead;
 
     bool result = false;
@@ -676,7 +679,7 @@ bool PCSX::MemoryCards::loadMcd(const PCSX::u8string str, char *data) {
     FILE *f = fopen(fname, "rb");
     if (f == nullptr) {
         PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), fname);
-        createMcd(str);
+        createMcd(mcd);
         f = fopen(fname, "rb");
         if (f != nullptr) {
             struct stat buf;
@@ -721,7 +724,11 @@ bool PCSX::MemoryCards::loadMcd(const PCSX::u8string str, char *data) {
     return result;
 }
 
-bool PCSX::MemoryCards::saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
+
+bool PCSX::MemoryCards::saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
+    if (std::filesystem::path(mcd).is_relative()) {
+        mcd = (g_system->getPersistentDir() / mcd).u8string();
+    }
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     FILE *f = fopen(fname, "r+b");
     bool result = false;
@@ -757,7 +764,10 @@ bool PCSX::MemoryCards::saveMcd(const PCSX::u8string mcd, const char *data, uint
     return result;
 }
 
-void PCSX::MemoryCards::createMcd(const PCSX::u8string mcd) {
+void PCSX::MemoryCards::createMcd(PCSX::u8string mcd) {
+    if (std::filesystem::path(mcd).is_relative()) {
+        mcd = (g_system->getPersistentDir() / mcd).u8string();
+    }
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     int s = c_cardSize;
 

@@ -159,7 +159,15 @@ struct StringDisasm : public PCSX::Disasm {
             append("(%08x)", PCSX::g_emulator->m_cpu->m_regs.GPR.n.lo);
         }
     }
-    virtual void Imm(uint16_t value) final {
+    virtual void Imm16(int16_t value) final {
+        comma();
+        if (value < 0) {
+            append("-0x%4.4x", -value);
+        } else {
+            append("0x%4.4x", value);
+        }
+    }
+    virtual void Imm16u(uint16_t value) final {
         comma();
         append("0x%4.4x", value);
     }
@@ -238,7 +246,8 @@ struct StringDisasm : public PCSX::Disasm {
         reset();   \
         OpCode(i); \
     } while (0)
-#define dImm() Imm(_Im_)
+#define dImm16() Imm16(_Im_)
+#define dImm16u() Imm16u(_Im_)
 #define dTarget() Target(_Target_)
 #define dSa() Sa(_Sa_)
 #define dOfB(size) OfB(_Im_, _Rs_, size)
@@ -253,55 +262,55 @@ declare(disADDI) {
     dOpCode("addi");
     GPR(_Rt_);
     if (_Rt_ != _Rs_) GPR(_Rs_);
-    dImm();
+    dImm16();
 }
 declare(disADDIU) {
     if (_Rs_ == 0) {
         // this is the common pseudo-instruction to load an immediate 16 bits value
-        dOpCode("move");
+        dOpCode("li");
         GPR(_Rt_);
     } else {
         dOpCode("addiu");
         GPR(_Rt_);
         if (_Rt_ != _Rs_) GPR(_Rs_);
     }
-    dImm();
+    dImm16();
 }
 declare(disANDI) {
     dOpCode("andi");
     GPR(_Rt_);
     if (_Rt_ != _Rs_) GPR(_Rs_);
-    dImm();
+    dImm16u();
 }
 declare(disORI) {
     if (_Rs_ == 0) {
         // while rare, this can also be used to load an immediate 16-bits value
-        dOpCode("move");
+        dOpCode("li");
         GPR(_Rt_);
     } else {
         dOpCode("ori");
         GPR(_Rt_);
         if (_Rt_ != _Rs_) GPR(_Rs_);
     }
-    dImm();
+    dImm16u();
 }
 declare(disSLTI) {
     dOpCode("slti");
     GPR(_Rt_);
     if (_Rt_ != _Rs_) GPR(_Rs_);
-    dImm();
+    dImm16();
 }
 declare(disSLTIU) {
     dOpCode("sltiu");
     GPR(_Rt_);
     if (_Rt_ != _Rs_) GPR(_Rs_);
-    dImm();
+    dImm16u();
 }
 declare(disXORI) {
     dOpCode("xori");
     GPR(_Rt_);
     if (_Rt_ != _Rs_) GPR(_Rs_);
-    dImm();
+    dImm16u();
 }
 
 /*********************************************************
@@ -653,7 +662,7 @@ declare(disLUI) {
         // complex for a simpe disassembler such as this
         dOpCode("lui");
         GPR(_Rt_);
-        dImm();
+        dImm16u();
     }
 }
 

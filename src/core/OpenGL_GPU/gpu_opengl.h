@@ -29,32 +29,26 @@
 namespace PCSX {
 class OpenGL_GPU final : public GPU {
     // Interface functions
-    virtual int init(GUI *) final;
-    virtual int shutdown() final;
-    virtual uint32_t readData() final;
-    virtual void readDataMem(uint32_t *dest, int size) final;
-    virtual uint32_t readStatus() final;
-    virtual void writeData(uint32_t value) final;
-    virtual void writeDataMem(uint32_t *source, int size) final;
-    virtual void writeStatusInternal(uint32_t value) final;
-    virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
-    virtual void setOpenGLContext() final;
-    virtual void vblank() final;
-    virtual bool configure() final;
-    virtual void debug() final;
+    int initBackend(UI *) override;
+    int shutdown() override;
+    uint32_t readStatusInternal() override;
+    void setOpenGLContext() override;
+    void vblank(bool fromGui) override;
+    bool configure() override;
+    void debug() override;
 
-    virtual void setDither(int setting) final { m_useDither = setting; }
-    virtual void clearVRAM() final;
-    virtual void reset() final;
-    virtual GLuint getVRAMTexture() final;
-    virtual void setLinearFiltering() final;
-    virtual Slice getVRAM() final;
-    virtual void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels) final;
-    virtual void restoreStatus(uint32_t status) { m_gpustat = status; }
+    void setDither(int setting) override { m_useDither = setting; }
+    void setCachedDithering(bool cached) override {}
+    void clearVRAM() override;
+    void resetBackend() override;
+    GLuint getVRAMTexture() override;
+    void setLinearFiltering() override;
+    Slice getVRAM(Ownership) override;
+    void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels, PartialUpdateVram) override;
+    void restoreStatus(uint32_t status) { m_gpustat = status; }
 
   private:
     // Actual emulation stuff
-    using GP0Func = void (OpenGL_GPU::*)();  // A function pointer to a drawing function
     struct Vertex {
         OpenGL::ivec2 positions;
         uint32_t colour;
@@ -67,47 +61,21 @@ class OpenGL_GPU final : public GPU {
 
         Vertex() : Vertex(0, 0, 0) {}
 
-        Vertex(uint32_t x, uint32_t y, uint32_t col) {
-            positions.x() = int(x) << 21 >> 21;
-            positions.y() = int(y) << 21 >> 21;
+        Vertex(int x, int y, uint32_t col) {
+            positions.x() = x;
+            positions.y() = y;
             colour = col;
             texpage = c_untexturedPrimitiveTexpage;
         }
 
-        Vertex(uint32_t position, uint32_t col) {
-            const int x = position & 0xffff;
-            const int y = (position >> 16) & 0xffff;
-            positions.x() = x << 21 >> 21;
-            positions.y() = y << 21 >> 21;
-            colour = col;
-            texpage = c_untexturedPrimitiveTexpage;
-        }
-
-        Vertex(uint32_t position, uint32_t col, uint16_t clut, uint16_t texpage, uint32_t texcoords)
+        Vertex(int x, int y, uint32_t col, uint16_t clut, uint16_t texpage, unsigned u, unsigned v)
             : colour(col), clut(clut), texpage(texpage) {
-            const int x = position & 0xffff;
-            const int y = (position >> 16) & 0xffff;
-            positions.x() = x << 21 >> 21;
-            positions.y() = y << 21 >> 21;
-
-            uv.u() = texcoords & 0xff;
-            uv.v() = (texcoords >> 8) & 0xff;
-        }
-
-        Vertex(uint32_t x, uint32_t y, uint32_t col, uint16_t clut, uint16_t texpage, uint16_t u, uint16_t v)
-            : colour(col), clut(clut), texpage(texpage) {
-            positions.x() = int(x) << 21 >> 21;
-            positions.y() = int(y) << 21 >> 21;
+            positions.x() = x;
+            positions.y() = y;
 
             uv.u() = u;
             uv.v() = v;
         }
-    };
-
-    // One of the 2 points in a line
-    struct LinePoint {
-        uint32_t coords;
-        uint32_t colour;
     };
 
     enum class TransferMode { CommandTransfer, VRAMTransfer };
@@ -119,9 +87,6 @@ class OpenGL_GPU final : public GPU {
     static constexpr int vramWidth = 1024;
     static constexpr int vramHeight = 512;
     static constexpr int vertexBufferSize = 0x100000;
-
-    TransferMode m_readingMode;
-    TransferMode m_writingMode;
 
     OpenGL::Program m_program;
     OpenGL::VertexArray m_vao;
@@ -137,18 +102,19 @@ class OpenGL_GPU final : public GPU {
 
     // For CPU->VRAM texture transfers
     OpenGL::Texture m_sampleTexture;
-    OpenGL::Rect m_vramTransferRect;
-    std::vector<uint32_t> m_vramWriteBuffer;
-    std::vector<uint32_t> m_vramReadBuffer;
+
+    // For the 16-bits to 24-bits conversion
+    OpenGL::Framebuffer m_fbo24;
+    OpenGL::Texture m_vramTexture24;
+    Widgets::ShaderEditor m_shaderEditor24 = {"16-to-24"};
 
     std::vector<Vertex> m_vertices;
-    std::array<uint32_t, 16> m_cmdFIFO;
     OpenGL::Rect m_scissorBox;
     int m_drawAreaLeft, m_drawAreaRight, m_drawAreaTop, m_drawAreaBottom;
 
     OpenGL::ivec2 m_drawingOffset;
     // Clear colour used in the debugger
-    OpenGL::vec3 m_clearColour = OpenGL::vec3({0.f, 0.f, 0.f});
+    OpenGL::vec3 m_clearColour = OpenGL::vec3(0.f, 0.f, 0.f);
     // Specifies how and whether to fill renderer polygons
     OpenGL::FillMode m_polygonMode = OpenGL::FillPoly;
     // x: The factor to multiply the destination (framebuffer) colour with
@@ -162,29 +128,19 @@ class OpenGL_GPU final : public GPU {
     GLint m_texWindowLoc;
     GLint m_blendFactorsLoc;
     GLint m_blendFactorsIfOpaqueLoc;
-    // The handle of the texture to actually display on screen.
-    // The handle of either m_vramTexture, m_vramTextureNoMSAA or m_blankTexture
-    // Depending on whether the display and MSAA are enabled
-    GLuint m_displayTexture;
-
-    int m_FIFOIndex;
-    int m_cmd;
 
     int m_vertexCount = 0;
-    int m_remainingWords = 0;
-    bool m_haveCommand = false;
     bool m_updateDrawOffset = false;
     bool m_syncVRAM = true;
-    bool m_drawnStuff = false;
     uint32_t m_rectTexpage = 0;  // Rects have their own texpage settings
-    uint32_t m_vramReadBufferSize = 0;
-    uint32_t m_vramReadBufferIndex = 0;
     uint32_t m_lastTexwindowSetting = 0;
     uint32_t m_lastDrawOffsetSetting = 0;
     uint32_t m_drawMode;
 
-    GP0Func m_cmdFuncs[256];
-
+    template <int count>
+    void maybeRenderBatch() {
+        if ((m_vertexCount + count) >= vertexBufferSize) renderBatch();
+    }
     void renderBatch();
     void clearVRAM(float r, float g, float b, float a = 1.0);
     void updateDrawArea();
@@ -194,13 +150,11 @@ class OpenGL_GPU final : public GPU {
     void setTexWindowUnchecked(uint32_t cmd);
     void setDisplayEnable(bool setting);
 
-    enum class RectSize { Variable, Rect1, Rect8, Rect16 };
-
     // For untextured primitives, there's flat and gouraud shading.
     // For textured primitives, RawTexture and RawTextureGouraud work the same way, except the latter has unused colour
     // parameters RawTextureGouraud is used a lot by some games, like Castlevania TextureBlendFlat is texture blending
     // with a flat colour, TextureBlendGouraud is texture blending with a gouraud shaded colour
-    enum class Shading { Flat, Gouraud, RawTexture, RawTextureGouraud, TextureBlendFlat, TextureBlendGouraud };
+    enum class GLShading { Flat, Gouraud, RawTexture, RawTextureGouraud, TextureBlendFlat, TextureBlendGouraud };
 
     enum class Transparency { Opaque, Transparent };
 
@@ -216,28 +170,11 @@ class OpenGL_GPU final : public GPU {
     // And 0x808080 as the blend colour
     static constexpr uint32_t c_rawTextureBlendColour = 0x808080;
 
-    template <Shading shading, Transparency transparency, int firstVertex = 0>
-    void drawTri();
-
-    template <Shading shading, Transparency transparency>
-    void drawQuad();
-
-    template <Shading shading, Transparency transparency, int firstVertex = 0>
-    void drawTriTextured();
-
-    template <Shading shading, Transparency transparency>
-    void drawQuadTextured();
-
-    template <RectSize size, Transparency transparency>
-    void drawRect();
-
-    template <RectSize size, Shading shading, Transparency transparency>
-    void drawRectTextured();
-
-    template <Shading shading, Transparency transparency>
-    void drawLine();
-
-    void drawLineInternal(const LinePoint &p1, const LinePoint &p2);
+    void drawTri(int *x, int *y, uint32_t *colors);
+    void drawTriTextured(int *x, int *y, uint32_t *colors, uint16_t clut, uint16_t texpage, unsigned *u, unsigned *v);
+    void drawRect(int x, int y, int w, int h, uint32_t color);
+    void drawRectTextured(int x, int y, int w, int h, uint32_t color, uint16_t clut, unsigned u, unsigned v);
+    void drawLine(int x1, int y1, uint32_t color1, int x2, int y2, uint32_t color2);
 
     template <Transparency setting>
     void setTransparency();
@@ -245,23 +182,109 @@ class OpenGL_GPU final : public GPU {
     void setBlendingModeFromTexpage(uint32_t texpage);
     void setBlendFactors(float sourceFactor, float destFactor);
 
-    // GP0/GP1 command funcs
-    void initCommands();
-    void startGP0Command(uint32_t commandWord);
+    void write0(ClearCache *) override;
+    void write0(FastFill *) override;
 
-    void cmdUnimplemented();
-    void cmdClearTexCache();
-    void cmdFillRect();
-    void cmdCopyRectToVRAM();
-    void cmdCopyRectFromVRAM();
-    void cmdCopyRectVRAMToVRAM();
-    void cmdRequestIRQ() { requestIRQ1(); }
-    void cmdSetDrawMode();
-    void cmdSetTexWindow();
-    void cmdSetDrawAreaTopLeft();
-    void cmdSetDrawAreaBottomRight();
-    void cmdSetDrawOffset();
-    void cmdSetDrawMask();
-    void cmdNop();
+    template <Shading shading, Shape shape, Textured textured, Blend blend, Modulation modulation>
+    void polyExec(Poly<shading, shape, textured, blend, modulation> *);
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Flat, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Tri, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+
+    template <Shading shading, LineType lineType, Blend blend>
+    void lineExec(Line<shading, lineType, blend> *);
+    void write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *) override;
+    void write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *) override;
+    void write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *) override;
+    void write0(Line<Shading::Flat, LineType::Poly, Blend::Semi> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Simple, Blend::Off> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Simple, Blend::Semi> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) override;
+    void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) override;
+
+    template <Size size, Textured textured, Blend blend, Modulation modulation>
+    void rectExec(Rect<size, textured, blend, modulation> *);
+    void write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::Off> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
+    void write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::On> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *) override;
+    void write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *) override;
+
+    void write0(BlitVramVram *) override;
+
+    void write0(TPage *) override;
+    void write0(TWindow *) override;
+    void write0(DrawingAreaStart *) override;
+    void write0(DrawingAreaEnd *) override;
+    void write0(DrawingOffset *) override;
+    void write0(MaskBit *) override;
+
+    void write1(CtrlReset *) override;
+    void write1(CtrlClearFifo *) override;
+    void write1(CtrlIrqAck *) override;
+    void write1(CtrlDisplayEnable *) override;
+    void write1(CtrlDmaSetting *) override;
+    void write1(CtrlDisplayStart *) override;
+    void write1(CtrlHorizontalDisplayRange *) override;
+    void write1(CtrlVerticalDisplayRange *) override;
+    void write1(CtrlDisplayMode *) override;
+    void write1(CtrlQuery *) override;
 };
+
 }  // namespace PCSX

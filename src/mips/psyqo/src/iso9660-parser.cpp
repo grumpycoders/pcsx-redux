@@ -204,7 +204,8 @@ void psyqo::ISO9660Parser::findDirEntry() {
     while (offset < 2048) {
         auto entry = &m_buffer[offset];
         if (entry[0] == 0) break;
-        if (getEntryName(entry) == name) {
+        auto entryName = getEntryName(entry);
+        if (entryName == name) {
             if (m_path.empty()) {
                 parseDirEntry(entry, m_dirEntry);
                 auto callback = eastl::move(m_callback);

@@ -25,6 +25,7 @@
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/gpulogger.h"
 #include "core/gte.h"
 #include "core/luaiso.h"
 #include "core/mdec.h"
@@ -41,6 +42,7 @@
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "lua/zlibffi.h"
+#include "luafilesystem/src/lfs.h"
 extern "C" {
 #include "luv/src/luv.h"
 }
@@ -48,12 +50,15 @@ extern "C" {
 #include "supportpsx/assembler.h"
 #include "supportpsx/binlua.h"
 
+extern "C" int luaopen_lpeg(lua_State* L);
+
 PCSX::Emulator::Emulator()
     : m_callStacks(new PCSX::CallStacks),
       m_cdrom(PCSX::CDRom::factory()),
       m_counters(new PCSX::Counters()),
       m_debug(new PCSX::Debug()),
       m_gdbServer(new PCSX::GdbServer()),
+      m_gpuLogger(new PCSX::GPULogger()),
       m_gte(new PCSX::GTE()),
       m_hw(new PCSX::HW()),
       m_lua(new PCSX::Lua()),
@@ -90,6 +95,10 @@ void PCSX::Emulator::setLua() {
     L.push("luv");
     luaopen_luv(L.getState());
     L.settable(LUA_GLOBALSINDEX);
+    luaopen_lfs(L.getState());
+    L.pop(3);
+    luaopen_lpeg(L.getState());
+    L.pop(2);
     LuaFFI::open_file(L);
     LuaFFI::open_pcsx(L);
     LuaFFI::open_iso(L);
@@ -123,22 +132,7 @@ int PCSX::Emulator::init() {
 
     const auto& args = g_system->getArgs();
 
-    if (args.get<bool>("openglgpu")) {
-        settings.get<SettingHardwareRenderer>() = true;
-    }
-    if (args.get<bool>("softgpu")) {
-        settings.get<SettingHardwareRenderer>() = false;
-    }
-
     m_gpu = settings.get<SettingHardwareRenderer>() ? GPU::getOpenGL() : GPU::getSoft();
-
-    // Enable or disable Kiosk Mode if command line flags are set
-    if (args.get<bool>("kiosk")) {
-        settings.get<SettingKioskMode>() = true;
-    }
-    if (args.get<bool>("no-kiosk")) {
-        settings.get<SettingKioskMode>() = false;
-    }
 
     setPGXPMode(m_config.PGXP_Mode);
     m_sio->init();

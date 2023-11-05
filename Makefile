@@ -10,7 +10,7 @@ CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo fals
 
 PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
 
-LOCALES := el es_ES fr pt_BR zh_CN
+LOCALES := el es_ES fr pt_BR uk zh_CN
 
 ifeq ($(wildcard third_party/imgui/imgui.h),)
 HAS_SUBMODULES = false
@@ -18,7 +18,7 @@ else
 HAS_SUBMODULES = true
 endif
 
-CXXFLAGS += -std=c++2a
+CXXFLAGS += -std=c++2b
 CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -I.
 CPPFLAGS += -Isrc
@@ -58,6 +58,7 @@ else
 endif
 CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
 CPPFLAGS_ubsan += -O1 -fsanitize=undefined -fno-omit-frame-pointer
+CPPFLAGS_lto += -O3 -flto=auto -fno-fat-lto-objects -flto-partition=one
 CPPFLAGS_ReleaseWithTracy += -O3 -DTRACY_ENABLE
 
 ifeq ($(CC_IS_CLANG),true)
@@ -93,6 +94,7 @@ else
 endif
 LDFLAGS_asan += -fsanitize=address
 LDFLAGS_ubsan += -fsanitize=undefined
+LDFLAGS_lto += -O3 -flto=auto -flto-partition=one
 
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
 LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
@@ -126,7 +128,9 @@ SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/imgui_md/imgui_md.cpp
 SRCS += third_party/imgui_memory_editor/imgui_memory_editor.cpp
+SRCS += $(wildcard third_party/lpeg/*.c)
 SRCS += third_party/lua-protobuf/pb.c
+SRCS += third_party/luafilesystem/src/lfs.c
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/md4c/src/md4c.c
 SRCS += third_party/multipart-parser-c/multipart_parser.c
@@ -262,11 +266,14 @@ $(TARGET): $(OBJECTS)
 	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 clean:
-	rm -f $(OBJECTS) $(TARGET) $(DEPS) gtest-all.o
+	rm -f $(OBJECTS) $(TARGET) $(DEPS) gtest-all.o gtest_main.o
 	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
 
 gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
 	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc
+
+gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
+	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest_main.cc
 
 gitclean:
 	git clean -f -d -x
@@ -286,8 +293,8 @@ regen-i18n:
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 
-pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o
-	$(LD) -o pcsx-redux-tests $(NONMAIN_OBJECTS) gtest-all.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include third_party/googletest/googletest/src/gtest_main.cc $(LDFLAGS)
+pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o gtest_main.o
+	$(LD) -o pcsx-redux-tests $(NONMAIN_OBJECTS) gtest-all.o gtest_main.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include $(LDFLAGS)
 
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests

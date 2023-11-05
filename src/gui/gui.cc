@@ -25,10 +25,16 @@
 
 // And only then we can load the rest
 #define GLFW_INCLUDE_NONE
+#define IMGUI_DEFINE_MATH_OPERATORS
 #define NANOVG_GLES3_IMPLEMENTATION
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <assert.h>
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+}
 
 #include <algorithm>
 #include <cmath>
@@ -46,6 +52,7 @@
 #include "core/debug.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/gpulogger.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -56,8 +63,9 @@
 #include "core/web-server.h"
 #include "flags.h"
 #include "fmt/chrono.h"
-#include "gpu/soft/externals.h"
 #include "gui/gui.h"
+#include "gui/luaimguiextra.h"
+#include "gui/luanvg.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
 #include "imgui.h"
@@ -67,6 +75,7 @@
 #include "imgui_stdlib.h"
 #include "json.hpp"
 #include "lua/glffi.h"
+#include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "nanovg/src/nanovg.h"
@@ -82,8 +91,8 @@
 
 #ifdef _WIN32
 extern "C" {
-_declspec(dllexport) DWORD NvOptimusEnablement = 1;
-_declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
+__declspec(dllexport) DWORD NvOptimusEnablement = 1;
+__declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
 }
 
 void PCSX::GUI::openUrl(const std::string_view& url) {
@@ -120,6 +129,12 @@ extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
     if (!exp) thrower(msg);
 }
 
+static GLFWwindow* getGLFWwindowFromImGuiViewport(ImGuiViewport* viewport) {
+    // absolutely horrendous hack, but the only way we have to grab the
+    // GLFWwindow pointer from an ImGuiViewport without changing the backend...
+    return *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+}
+
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
 
 void PCSX::GUI::setFullscreen(bool fullscreen) {
@@ -134,9 +149,8 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
     }
 }
 
-void PCSX::GUI::setRawMouseMotion(bool value) {
-    isRawMouseMotionEnabled() = value;
-    if (value) {
+void PCSX::GUI::setRawMouseMotion() {
+    if (isRawMouseMotionEnabled()) {
         if (glfwRawMouseMotionSupported()) {
             glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
@@ -151,18 +165,6 @@ static PCSX::GUI* s_this = nullptr;
 static void drop_callback(GLFWwindow* window, int count, const char** paths) {
     if (count != 1) return;
     s_this->magicOpen(paths[0]);
-}
-
-static void ShowHelpMarker(const char* desc) {
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
 }
 
 void LoadImguiBindings(lua_State* lState);
@@ -280,25 +282,101 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
 }
 
 void PCSX::GUI::setLua(Lua L) {
-    L.load(R"(
-print("PCSX-Redux Lua Console")
-print(jit.version)
-print((function(status, ...)
-  local ret = "JIT: " .. (status and "ON" or "OFF")
-  for i, v in ipairs({...}) do
-    ret = ret .. " " .. v
-  end
-  return ret
-end)(jit.status()))
-)",
-           "gui startup");
+    setLuaCommon(L);
     LoadImguiBindings(L.getState());
+    LuaFFI::open_imguiextra(L);
     LuaFFI::open_gl(L);
+    LuaFFI::open_nvg(L);
+    {
+        static int lualoader = 1;
+        static const char* guiextra = (
+#include "gui/extra.lua"
+        );
+        L.load(guiextra, "internal:gui/extra.lua");
+    }
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");
     L.push("gui");
     settings.pushValue(L);
     L.settable();
+    L.pop();
+    auto setText = [this](Lua L, Widgets::ShaderEditor* editor,
+                          void (Widgets::ShaderEditor::*setText)(std::string_view)) -> int {
+        if (L.gettop() != 1) {
+            return L.error(_("One argument needed to the setText* functions"));
+        }
+        std::optional<std::string> text;
+        if (L.istable(-1)) {
+            L.getfield("_type");
+            if (L.tostring(-1) == "File") {
+                L.pop();
+                L.getfield("_wrapper");
+                auto wrapper = *L.topointer<LuaFFI::LuaFile*>(-1);
+                text = wrapper->file->readStringAt(wrapper->file->size(), 0);
+            }
+            L.pop();
+        }
+        if (!text.has_value()) {
+            text = L.tostring(-1);
+        }
+        if (!text.has_value()) {
+            return L.error(
+                _("The argument to the setText* functions need to be convertible to a string, or be a File object"));
+        }
+        (editor->*setText)(text.value());
+        auto status = editor->compile(this);
+        if (!status.isOk()) {
+            return L.error(fmt::format(f_("Error compiling new shader code: {}"), status.getError()));
+        }
+        return 0;
+    };
+    L.getfieldtable("GUI");
+    L.getfieldtable("OffscreenShader");
+    L.declareFunc(
+        "setDefaults",
+        [this](Lua L) -> int {
+            m_offscreenShaderEditor.setDefaults();
+            auto status = m_offscreenShaderEditor.compile(this);
+            if (!status.isOk()) {
+                m_offscreenShaderEditor.setFallbacks();
+                m_offscreenShaderEditor.compile(this);
+            }
+            return 0;
+        },
+        -1);
+    L.declareFunc(
+        "setTextVS",
+        [this, setText](Lua L) { return setText(L, &m_offscreenShaderEditor, &Widgets::ShaderEditor::setTextVS); }, -1);
+    L.declareFunc(
+        "setTextPS",
+        [this, setText](Lua L) { return setText(L, &m_offscreenShaderEditor, &Widgets::ShaderEditor::setTextPS); }, -1);
+    L.declareFunc(
+        "setTextL",
+        [this, setText](Lua L) { return setText(L, &m_offscreenShaderEditor, &Widgets::ShaderEditor::setTextL); }, -1);
+    L.pop();
+    L.getfieldtable("OutputShader");
+    L.declareFunc(
+        "setDefaults",
+        [this](Lua L) -> int {
+            m_outputShaderEditor.setDefaults();
+            auto status = m_outputShaderEditor.compile(this);
+            if (!status.isOk()) {
+                m_outputShaderEditor.setFallbacks();
+                m_outputShaderEditor.compile(this);
+            }
+            return 0;
+        },
+        -1);
+    L.declareFunc(
+        "setTextVS",
+        [this, setText](Lua L) { return setText(L, &m_outputShaderEditor, &Widgets::ShaderEditor::setTextVS); }, -1);
+    L.declareFunc(
+        "setTextPS",
+        [this, setText](Lua L) { return setText(L, &m_outputShaderEditor, &Widgets::ShaderEditor::setTextPS); }, -1);
+    L.declareFunc(
+        "setTextL",
+        [this, setText](Lua L) { return setText(L, &m_outputShaderEditor, &Widgets::ShaderEditor::setTextL); }, -1);
+    L.pop();
     L.pop();
     L.pop();
     auto offscreenStatus = m_offscreenShaderEditor.compile(this);
@@ -316,33 +394,54 @@ end)(jit.status()))
     }
 }
 
-void PCSX::GUI::init() {
-    int result;
+void PCSX::GUI::setDefaultShaders() {
+    m_offscreenShaderEditor.setDefaults();
+    auto offscreenStatus = m_offscreenShaderEditor.compile(this);
+    m_outputShaderEditor.setDefaults();
+    auto outputStatus = m_outputShaderEditor.compile(this);
 
-    if (m_args.get<bool>("noshaders", false)) {
-        m_disableShaders = true;
+    if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+        m_offscreenShaderEditor.setFallbacks();
+        m_outputShaderEditor.setFallbacks();
+        offscreenStatus = m_offscreenShaderEditor.compile(this);
+        outputStatus = m_outputShaderEditor.compile(this);
     }
+    if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
+        g_system->log(LogClass::UI, "Failed to compile output shaders. You won't be able to see anything");
+        g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
+        g_system->log(LogClass::UI, "%s", outputStatus.getError());
+    }
+
+    m_offscreenShaderEditor.reset(this);
+    m_outputShaderEditor.reset(this);
+}
+
+void PCSX::GUI::init(std::function<void()> applyArguments) {
+    int result;
 
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
     };
-    m_luaConsole.setCmdExec([this](const std::string& cmd) {
+    bool luaStdout = g_system->getArgs().isLuaStdoutEnabled();
+    m_luaConsole.setCmdExec([this, luaStdout](const std::string& cmd) {
         ScopedOnlyLog scopedOnlyLog(this);
         try {
             g_emulator->m_lua->load(cmd, "console", false);
             g_emulator->m_lua->pcall();
             for (const auto& error : m_glErrors) {
                 m_luaConsole.addError(error);
-                if (m_args.get<bool>("lua_stdout", false)) {
-                    fprintf(stderr, "%s\n", error.c_str());
+                if (luaStdout) {
+                    fputs(error.c_str(), stderr);
+                    fputc('\n', stderr);
                 }
             }
             m_glErrors.clear();
         } catch (std::exception& e) {
             m_luaConsole.addError(e.what());
-            if (m_args.get<bool>("lua_stdout", false)) {
-                fprintf(stderr, "%s\n", e.what());
+            if (luaStdout) {
+                fputs(e.what(), stderr);
+                fputc('\n', stderr);
             }
         }
     });
@@ -355,14 +454,13 @@ void PCSX::GUI::init() {
     }
 
     m_listener.listen<Events::Quitting>([this](const auto& event) { saveCfg(); });
-    m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         glfwSwapInterval(m_idleSwapInterval);
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
         glfwSwapInterval(0);
-        setRawMouseMotion(isRawMouseMotionEnabled());
+        setRawMouseMotion();
     });
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -417,8 +515,15 @@ void PCSX::GUI::init() {
         glDebugMessageCallback = nullptr;
     }
 
-    m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
-    if (!m_nvgContext) {
+    auto vg = m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
+    if (vg) {
+        g_system->findResource(
+            [vg](auto path) -> bool {
+                int res = nvgCreateFont(vg, "noto-sans-regular", path.string().c_str());
+                return res >= 0;
+            },
+            MAKEU8("NotoSans-Regular.ttf"), "fonts", std::filesystem::path("third_party") / "noto");
+    } else {
         g_system->log(LogClass::UI, "Warning: Unable to initialize NanoVG. Check OpenGL drivers.\n");
     }
 
@@ -428,39 +533,28 @@ void PCSX::GUI::init() {
     auto& io = ImGui::GetIO();
     {
         io.IniFilename = nullptr;
-        std::ifstream cfg("pcsx.json");
-        auto& emuSettings = PCSX::g_emulator->settings;
-        const bool resetUI = m_args.get<bool>("resetui", false);
-        json j;
-        bool safeMode = m_args.get<bool>("safe").value_or(false) || m_args.get<bool>("testmode").value_or(false);
-        if (cfg.is_open() && !safeMode) {
-            try {
-                cfg >> j;
-            } catch (...) {
-            }
-            if (!resetUI && (j.count("imgui") == 1) && j["imgui"].is_string()) {
-                std::string imguicfg = j["imgui"];
+        auto& emuSettings = g_emulator->settings;
+        if (loadSettings()) {
+            if (!g_system->getArgs().isUIResetRequested() && (m_settingsJson.count("imgui") == 1) &&
+                m_settingsJson["imgui"].is_string()) {
+                std::string imguicfg = m_settingsJson["imgui"];
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
-            if ((j.count("emulator") == 1) && j["emulator"].is_object()) {
-                emuSettings.deserialize(j["emulator"]);
+            if ((m_settingsJson.count("gui") == 1 && m_settingsJson["gui"].is_object())) {
+                settings.deserialize(m_settingsJson["gui"]);
             }
-            if ((j.count("gui") == 1 && j["gui"].is_object())) {
-                settings.deserialize(j["gui"]);
+            if ((m_settingsJson.count("loggers") == 1 && m_settingsJson["loggers"].is_object())) {
+                m_log.deserialize(m_settingsJson["loggers"]);
             }
-            if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
-                m_log.deserialize(j["loggers"]);
-            }
-
             auto& windowSizeX = settings.get<WindowSizeX>();
             auto& windowSizeY = settings.get<WindowSizeY>();
-            if (windowSizeX <= 0 || resetUI) {
+            if (windowSizeX <= 0 || g_system->getArgs().isUIResetRequested()) {
                 windowSizeX.reset();
             }
-            if (windowSizeY <= 0 || resetUI) {
+            if (windowSizeY <= 0 || g_system->getArgs().isUIResetRequested()) {
                 windowSizeY.reset();
             }
-            if (resetUI) {
+            if (g_system->getArgs().isUIResetRequested()) {
                 settings.get<WindowPosX>().reset();
                 settings.get<WindowPosY>().reset();
             }
@@ -470,17 +564,14 @@ void PCSX::GUI::init() {
             }
 
             glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
-            PCSX::g_emulator->m_spu->setCfg(j);
-            PCSX::g_emulator->m_pads->setCfg(j);
         } else {
-            PCSX::g_emulator->m_pads->setDefaults();
             saveCfg();
         }
 
-        g_system->activateLocale(emuSettings.get<Emulator::SettingLocale>());
+        applyArguments();
+        finishLoadSettings();
 
-        g_system->m_eventBus->signal(Events::SettingsLoaded{safeMode});
-        if (!m_args.get<bool>("noupdate") && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
+        if (!g_system->getArgs().isUpdateDisabled() && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
             !g_system->getVersion().failed()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
@@ -501,11 +592,9 @@ void PCSX::GUI::init() {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-#ifndef __linux__
-    if (!m_args.get<bool>("noviewports")) {
+    if (g_system->getArgs().isViewportsEnabled()) {
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     }
-#endif
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
     // io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 
@@ -520,15 +609,26 @@ void PCSX::GUI::init() {
     m_createWindowOldCallback = platform_io.Platform_CreateWindow;
     platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
         if (s_gui->m_createWindowOldCallback) s_gui->m_createWindowOldCallback(viewport);
-        // absolutely horrendous hack, but the only way we have to grab the
-        // newly created GLFWwindow pointer...
-        auto window = *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+        auto window = getGLFWwindowFromImGuiViewport(viewport);
         glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
+        auto id = viewport->ID;
+        s_gui->m_nvgSubContextes[id] = nvgCreateSubContextGL(s_gui->m_nvgContext);
     };
     m_onChangedViewportOldCallback = platform_io.Platform_OnChangedViewport;
     platform_io.Platform_OnChangedViewport = [](ImGuiViewport* viewport) {
         if (s_gui->m_onChangedViewportOldCallback) s_gui->m_onChangedViewportOldCallback(viewport);
         s_gui->changeScale(viewport->DpiScale);
+    };
+    m_destroyWindowOldCallback = platform_io.Platform_DestroyWindow;
+    platform_io.Platform_DestroyWindow = [](ImGuiViewport* viewport) {
+        auto id = viewport->ID;
+        auto& subContextes = s_gui->m_nvgSubContextes;
+        auto subContext = subContextes.find(id);
+        if (subContext != subContextes.end()) {
+            nvgDeleteSubContextGL(subContext->second);
+            subContextes.erase(subContext);
+        }
+        if (s_gui->m_destroyWindowOldCallback) s_gui->m_destroyWindowOldCallback(viewport);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     // Some bad GPU drivers (*cough* Intel) don't like mixed shaders versions,
@@ -537,7 +637,7 @@ void PCSX::GUI::init() {
     ImGui_ImplOpenGL3_Init(m_hasCoreProfile ? GL_SHADER_VERSION : nullptr);
 
     if (glDebugMessageCallback &&
-        (g_emulator->settings.get<Emulator::SettingGLErrorReporting>() || m_args.get<bool>("testmode", false))) {
+        (g_emulator->settings.get<Emulator::SettingGLErrorReporting>() || g_system->getArgs().isTestModeEnabled())) {
         m_reportGLErrors = true;
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glEnable(GL_DEBUG_OUTPUT);
@@ -660,10 +760,15 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
+    for (auto& subContext : m_nvgSubContextes) {
+        nvgDeleteSubContextGL(subContext.second);
+    }
+    m_nvgSubContextes.clear();
+    nvgDeleteGLES3(m_nvgContext);
 }
 
 void PCSX::GUI::saveCfg() {
-    std::ofstream cfg("pcsx.json");
+    std::ofstream cfg(g_system->getPersistentDir() / "pcsx.json");
     json j;
 
     if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
@@ -692,19 +797,7 @@ void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 
 void PCSX::GUI::startFrame() {
     ZoneScoped;
-    uv_run(g_system->getLoop(), UV_RUN_NOWAIT);
-    auto L = *g_emulator->m_lua;
-    L.getfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
-    if (!L.isnil()) {
-        try {
-            L.pcall();
-        } catch (...) {
-        }
-        L.push();
-        L.setfield("AfterPollingCleanup", LUA_GLOBALSINDEX);
-    } else {
-        L.pop();
-    }
+    tick();
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
 
@@ -718,7 +811,7 @@ void PCSX::GUI::startFrame() {
         h = std::max<int>(h, 1);
         m_framebufferSize = ImVec2(w, h);
         m_renderSize = m_fullWindowRender ? ImVec2(w, h) : m_outputWindowSize;
-        normalizeDimensions(m_renderSize, renderRatio);
+        ImGuiHelpers::normalizeDimensions(m_renderSize, renderRatio);
 
         // Reset texture and framebuffer storage
         glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[0]);
@@ -795,8 +888,9 @@ void PCSX::GUI::startFrame() {
     }
     if (io.KeyAlt) {
         if (ImGui::IsKeyPressed(ImGuiKey_Enter)) setFullscreen(!m_fullscreen);
-        if (io.KeyCtrl) {
-            setRawMouseMotion(!isRawMouseMotionEnabled());
+        if (io.KeyCtrl && allowMouseCaptureToggle()) {
+            isRawMouseMotionEnabled() = !isRawMouseMotionEnabled();
+            setRawMouseMotion();
         }
     }
 
@@ -864,6 +958,37 @@ void PCSX::GUI::endFrame() {
     const int h = m_framebufferSize.y;
 
     auto& io = ImGui::GetIO();
+    if (ImGui::IsKeyDown(ImGuiKey_PrintScreen) && io.KeyCtrl) {
+        auto screenshot = g_emulator->m_gpu->takeScreenShot();
+        clip::image_spec spec;
+        spec.width = screenshot.width;
+        spec.height = screenshot.height;
+        if (screenshot.bpp == GPU::ScreenShot::BPP_16) {
+            spec.bits_per_pixel = 16;
+            spec.bytes_per_row = screenshot.width * 2;
+            spec.red_mask = 0x7c00;
+            spec.green_mask = 0x3e0;
+            spec.blue_mask = 0x1f;
+            spec.alpha_mask = 0;
+            spec.red_shift = 10;
+            spec.green_shift = 5;
+            spec.blue_shift = 0;
+            spec.alpha_shift = 0;
+        } else {
+            spec.bits_per_pixel = 24;
+            spec.bytes_per_row = screenshot.width * 3;
+            spec.red_mask = 0xff0000;
+            spec.green_mask = 0xff00;
+            spec.blue_mask = 0xff;
+            spec.alpha_mask = 0;
+            spec.red_shift = 16;
+            spec.green_shift = 8;
+            spec.blue_shift = 0;
+            spec.alpha_shift = 0;
+        }
+        clip::image img(screenshot.data.data(), spec);
+        clip::set_image(img.to_rgba8888());
+    }
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     auto& emuSettings = PCSX::g_emulator->settings;
@@ -889,7 +1014,7 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        if (m_disableShaders) {
+        if (g_system->getArgs().isShadersDisabled()) {
             ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
         } else {
             m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
@@ -908,9 +1033,9 @@ void PCSX::GUI::endFrame() {
                 m_outputWindowSize = textureSize;
                 m_setupScreenSize = true;
             }
-            normalizeDimensions(textureSize, renderRatio);
+            ImGuiHelpers::normalizeDimensions(textureSize, renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            if (m_disableShaders) {
+            if (g_system->getArgs().isShadersDisabled()) {
                 ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
             } else {
                 m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
@@ -928,7 +1053,7 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu(_("File"))) {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
                 if (ImGui::MenuItem(_("Close Disk Image"))) {
-                    PCSX::g_emulator->m_cdrom->setIso(new CDRIso());
+                    PCSX::g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
                     PCSX::g_emulator->m_cdrom->check();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
@@ -939,6 +1064,8 @@ void PCSX::GUI::endFrame() {
                     std::ofstream schema("sstate.proto");
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
+
+                static constexpr char globalSaveState[] = "global.sstate";
 
                 if (ImGui::BeginMenu(_("Save state slots"))) {
                     if (ImGui::MenuItem(_("Quick-save slot"), "F1")) {
@@ -955,6 +1082,10 @@ void PCSX::GUI::endFrame() {
                     ImGui::EndMenu();
                 }
 
+                if (ImGui::MenuItem(_("Save global state"))) {
+                    saveSaveState(globalSaveState);
+                }
+
                 if (ImGui::BeginMenu(_("Load state slots"))) {
                     if (ImGui::MenuItem(_("Quick-save slot"), "F2")) loadSaveState(buildSaveStateFilename(0));
 
@@ -964,12 +1095,6 @@ void PCSX::GUI::endFrame() {
                     }
 
                     ImGui::EndMenu();
-                }
-
-                static constexpr char globalSaveState[] = "global.sstate";
-
-                if (ImGui::MenuItem(_("Save global state"))) {
-                    saveSaveState(globalSaveState);
                 }
 
                 if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveState);
@@ -1025,26 +1150,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
                 if (ImGui::BeginMenu(_("Shader presets"))) {
                     if (ImGui::MenuItem(_("Default shader"))) {
-                        m_offscreenShaderEditor.setDefaults();
-                        auto offscreenStatus = m_offscreenShaderEditor.compile(this);
-                        m_outputShaderEditor.setDefaults();
-                        auto outputStatus = m_outputShaderEditor.compile(this);
-
-                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
-                            m_offscreenShaderEditor.setFallbacks();
-                            m_outputShaderEditor.setFallbacks();
-                            offscreenStatus = m_offscreenShaderEditor.compile(this);
-                            outputStatus = m_outputShaderEditor.compile(this);
-                        }
-                        if (!offscreenStatus.isOk() || !outputStatus.isOk()) {
-                            g_system->log(LogClass::UI,
-                                          "Failed to compile output shaders. You won't be able to see anything");
-                            g_system->log(LogClass::UI, "%s", offscreenStatus.getError());
-                            g_system->log(LogClass::UI, "%s", outputStatus.getError());
-                        }
-
-                        m_offscreenShaderEditor.reset(this);
-                        m_outputShaderEditor.reset(this);
+                        setDefaultShaders();
                     }
                     if (ImGui::MenuItem(_("CRT-lottes shader"))) {
                         m_offscreenShaderEditor.setText(Shaders::CrtLottes::Offscreen::vert().data(),
@@ -1083,92 +1189,110 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
-                ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
-                ImGui::MenuItem(_("Show Lua Inspector"), nullptr, &m_luaInspector.m_show);
-                ImGui::MenuItem(_("Show Lua editor"), nullptr, &m_luaEditor.m_show);
-                if (ImGui::BeginMenu(_("VRAM viewers"))) {
-                    ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
-                    ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
-                    unsigned counter = 1;
-                    for (auto& viewer : m_VRAMviewers) {
-                        std::string title = _("Show VRAM viewer #") + std::to_string(counter);
-                        ImGui::MenuItem(title.c_str(), nullptr, &viewer.m_show);
-                        counter++;
-                    }
+                if (ImGui::BeginMenu(_("Lua"))) {
+                    ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
+                    ImGui::MenuItem(_("Show Lua Inspector"), nullptr, &m_luaInspector.m_show);
+                    ImGui::MenuItem(_("Show Lua editor"), nullptr, &m_luaEditor.m_show);
                     ImGui::EndMenu();
                 }
-                ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
-                ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
-                if (PCSX::g_emulator->m_cpu->isDynarec()) {
-                    ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, &m_disassembly.m_show);
-                } else {
-                    ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, false, false);
-                    ShowHelpMarker(_(
-                        R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
+                ImGui::Separator();
+                if (ImGui::BeginMenu(_("CPU"))) {
+                    ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
+                    ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
+                    if (PCSX::g_emulator->m_cpu->isDynarec()) {
+                        ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, &m_disassembly.m_show);
+                    } else {
+                        ImGui::MenuItem(_("Show DynaRec Disassembly"), nullptr, false, false);
+                        ImGuiHelpers::ShowHelpMarker(_(
+                            R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
 in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
-                }
-                ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
-                ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
-                ImGui::MenuItem(_("Breakpoint on vsync"), nullptr, &m_breakOnVSync);
-                if (ImGui::BeginMenu(_("Memory Editors"))) {
-                    for (auto& editor : m_mainMemEditors) {
-                        editor.MenuItem();
                     }
-                    m_parallelPortEditor.MenuItem();
-                    m_scratchPadEditor.MenuItem();
-                    m_hwrEditor.MenuItem();
-                    m_biosEditor.MenuItem();
-                    m_vramEditor.MenuItem();
-                    ImGui::EndMenu();
-                }
-                ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
-                ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
-                ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
-                ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
-                ImGui::MenuItem(_("Kernel Handlers"), nullptr, &m_handlers.m_show);
-                ImGui::MenuItem(_("Kernel Calls"), nullptr, &m_kernelLog.m_show);
-                if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
-                    ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
-                    constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
-                    unsigned& s = debugSettings.get<Emulator::DebugSettings::FirstChanceException>().value;
-                    for (auto& e : exceptions) {
-                        unsigned f = 1 << static_cast<std::underlying_type<PCSX::R3000Acpu::Exception>::type>(e.first);
-                        bool selected = s & f;
-                        changed |= ImGui::MenuItem(std::string(e.second).c_str(), nullptr, &selected);
-                        if (selected) {
-                            s |= f;
-                        } else {
-                            s &= ~f;
+                    ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
+                    ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
+                    if (ImGui::BeginMenu(_("Memory Editors"))) {
+                        for (auto& editor : m_mainMemEditors) {
+                            editor.MenuItem();
                         }
+                        m_parallelPortEditor.MenuItem();
+                        m_scratchPadEditor.MenuItem();
+                        m_hwrEditor.MenuItem();
+                        m_biosEditor.MenuItem();
+                        m_vramEditor.MenuItem();
+                        ImGui::EndMenu();
                     }
-                    ImGui::PopItemFlag();
+                    ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
+                    ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
+                    ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
+                    if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
+                        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+                        constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
+                        unsigned& s = debugSettings.get<Emulator::DebugSettings::FirstChanceException>().value;
+                        for (auto& e : exceptions) {
+                            unsigned f =
+                                1 << static_cast<std::underlying_type<PCSX::R3000Acpu::Exception>::type>(e.first);
+                            bool selected = s & f;
+                            changed |= ImGui::MenuItem(std::string(e.second).c_str(), nullptr, &selected);
+                            if (selected) {
+                                s |= f;
+                            } else {
+                                s &= ~f;
+                            }
+                        }
+                        ImGui::PopItemFlag();
+                        ImGui::EndMenu();
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("GPU"))) {
+                    if (ImGui::BeginMenu(_("VRAM viewers"))) {
+                        ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
+                        ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
+                        unsigned counter = 1;
+                        for (auto& viewer : m_VRAMviewers) {
+                            std::string title = _("Show VRAM viewer #") + std::to_string(counter);
+                            ImGui::MenuItem(title.c_str(), nullptr, &viewer.m_show);
+                            counter++;
+                        }
+                        ImGui::EndMenu();
+                    }
+                    ImGui::MenuItem(_("Show GPU logger"), nullptr, &m_gpuLogger.m_show);
+                    ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator->m_gpu->m_showDebug);
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("SPU"))) {
+                    ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("CD-Rom"))) {
+                    ImGui::MenuItem(_("Show Iso Browser"), nullptr, &m_isoBrowser.m_show);
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("Misc hardware"))) {
+                    ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
                     ImGui::EndMenu();
                 }
                 ImGui::Separator();
-                ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
-                ImGui::Separator();
-                ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator->m_gpu->m_showDebug);
-                ImGui::Separator();
-                ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
-                ImGui::Separator();
-                ImGui::MenuItem(_("Show Iso Browser"), nullptr, &m_isoBrowser.m_show);
-                ImGui::Separator();
-                if (ImGui::MenuItem(_("Start GPU dump"))) {
-                    PCSX::g_emulator->m_gpu->startDump();
+                if (ImGui::BeginMenu(_("Kernel"))) {
+                    ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
+                    ImGui::MenuItem(_("Kernel Handlers"), nullptr, &m_handlers.m_show);
+                    ImGui::MenuItem(_("Kernel Calls"), nullptr, &m_kernelLog.m_show);
+                    ImGui::EndMenu();
                 }
-                if (ImGui::MenuItem(_("Stop GPU dump"))) {
-                    PCSX::g_emulator->m_gpu->stopDump();
+                if (ImGui::BeginMenu(_("Rendering"))) {
+                    if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
+                        m_setupScreenSize = true;
+                    }
+                    if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
+                        setFullscreen(m_fullscreen);
+                        m_setupScreenSize = true;
+                    }
+                    ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
+                    ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
+                    if (ImGui::MenuItem(_("Reset shaders"), nullptr)) {
+                        setDefaultShaders();
+                    }
+                    ImGui::EndMenu();
                 }
-                ImGui::Separator();
-                if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
-                    m_setupScreenSize = true;
-                }
-                if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
-                    setFullscreen(m_fullscreen);
-                    m_setupScreenSize = true;
-                }
-                ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
-                ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -1192,7 +1316,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 uint32_t frameCount = g_emulator->m_spu->getFrameCount();
                 ImGui::Text(_("%.2f ms audio buffer (%i frames)"), 1000.0f * frameCount / 44100.0f, frameCount);
             } else {
-                ImGui::Text(_("Idle"));
+                ImGui::TextUnformatted(_("Idle"));
             }
 
             ImGui::EndMainMenuBar();
@@ -1385,6 +1509,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
     if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
+    if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"));
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
@@ -1417,7 +1542,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             needFontReload |= ImGui::SliderInt(_("Mono Font Size"), &settings.get<MonoFontSize>().value, 8, 48);
             bool ratioChanged =
                 ImGui::Checkbox(_("Use Widescreen Aspect Ratio"), &settings.get<WidescreenRatio>().value);
-            ShowHelpMarker(_(R"(Sets the output screen ratio to 16:9 instead of 4:3.
+            ImGuiHelpers::ShowHelpMarker(_(R"(Sets the output screen ratio to 16:9 instead of 4:3.
 
 Note that this setting is NOT the popular hack
 to force games into widescreen mode, but rather an
@@ -1444,7 +1569,7 @@ their TV set to match the aspect ratio of the game.)"));
         ImGui::End();
     }
 
-    if (!m_args.get<bool>("noupdate") && !g_system->getVersion().failed() &&
+    if (!g_system->getArgs().isUpdateDisabled() && !g_system->getVersion().failed() &&
         !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
         if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
@@ -1592,8 +1717,9 @@ the update and manually apply it.)")));
             bool gotGLerror = false;
             for (const auto& error : m_glErrors) {
                 m_luaConsole.addError(error);
-                if (m_args.get<bool>("lua_stdout", false)) {
-                    fprintf(stderr, "%s\n", error.c_str());
+                if (g_system->getArgs().isLuaStdoutEnabled()) {
+                    fputs(error.c_str(), stderr);
+                    fputc('\n', stderr);
                 }
                 gotGLerror = true;
             }
@@ -1620,14 +1746,102 @@ the update and manually apply it.)")));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    int winWidth, winHeight;
+    int fbWidth, fbHeight;
+    float pxRatio;
+    auto vg = m_nvgContext;
+    if (vg) {
+        glfwGetWindowSize(m_window, &winWidth, &winHeight);
+        glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
+        pxRatio = (float)fbWidth / (float)winWidth;
+        nvgSwitchMainContextGL(vg);
+        nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+        while (L.gettop()) L.pop();
+        L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+        L.push("_gui");
+        L.push(this);
+        L.settable();
+        L.push("_ctx");
+        L.push(vg);
+        L.settable();
+        L.getfield("_processQueueForViewportId", -1);
+        L.copy(-2);
+        L.push(lua_Number(platform_io.Viewports[0]->ID));
+        try {
+            L.pcall(2);
+            bool gotGLerror = false;
+            for (const auto& error : m_glErrors) {
+                m_luaConsole.addError(error);
+                if (g_system->getArgs().isLuaStdoutEnabled()) {
+                    fputs(error.c_str(), stderr);
+                    fputc('\n', stderr);
+                }
+                gotGLerror = true;
+            }
+            m_glErrors.clear();
+            if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+        } catch (...) {
+        }
+        nvgEndFrame(vg);
+        while (L.gettop()) L.pop();
+    }
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
+        // Skip the main viewport (index 0), which is always fully handled by the application!
+        for (int i = 1; i < platform_io.Viewports.Size; i++) {
+            ImGuiViewport* viewport = platform_io.Viewports[i];
+            if (viewport->Flags & ImGuiViewportFlags_IsMinimized) continue;
+            if (platform_io.Platform_RenderWindow) platform_io.Platform_RenderWindow(viewport, nullptr);
+            if (platform_io.Renderer_RenderWindow) platform_io.Renderer_RenderWindow(viewport, nullptr);
+            if (vg) {
+                auto window = getGLFWwindowFromImGuiViewport(viewport);
+                auto nvgSubContext = m_nvgSubContextes.find(viewport->ID);
+                if (nvgSubContext != m_nvgSubContextes.end()) {
+                    glfwGetWindowSize(window, &winWidth, &winHeight);
+                    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+                    pxRatio = (float)fbWidth / (float)winWidth;
+                    nvgSwitchSubContextGL(vg, nvgSubContext->second);
+                    nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+                    L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+                    L.getfield("_processQueueForViewportId", -1);
+                    L.copy(-2);
+                    L.push(lua_Number(viewport->ID));
+                    try {
+                        L.pcall(2);
+                        bool gotGLerror = false;
+                        for (const auto& error : m_glErrors) {
+                            m_luaConsole.addError(error);
+                            if (g_system->getArgs().isLuaStdoutEnabled()) {
+                                fputs(error.c_str(), stderr);
+                                fputc('\n', stderr);
+                            }
+                            gotGLerror = true;
+                        }
+                        m_glErrors.clear();
+                        if (gotGLerror) throw("OpenGL error while running NanoVG queue");
+                    } catch (...) {
+                    }
+                    nvgEndFrame(vg);
+                    while (L.gettop()) L.pop();
+                }
+            }
+            if (platform_io.Platform_SwapBuffers) platform_io.Platform_SwapBuffers(viewport, nullptr);
+            if (platform_io.Renderer_SwapBuffers) platform_io.Renderer_SwapBuffers(viewport, nullptr);
+        }
         glfwMakeContextCurrent(m_window);
     }
-
     glfwSwapBuffers(m_window);
+
+    L.getfieldtable("nvg", LUA_GLOBALSINDEX);
+    L.push("_gui");
+    L.push();
+    L.settable();
+    L.push("_ctx");
+    L.push();
+    L.settable();
+    while (L.gettop()) L.pop();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
@@ -1676,19 +1890,19 @@ bool PCSX::GUI::configure() {
             }
         }
 
-        ShowHelpMarker(_(R"(Activates the dynamic recompiler CPU core.
+        ImGuiHelpers::ShowHelpMarker(_(R"(Activates the dynamic recompiler CPU core.
 It is significantly faster than the interpreted CPU,
 however it doesn't play nicely with the debugger.
 Changing this setting requires a reboot to take effect.
 The dynarec core isn't available for all CPUs, so
 this setting may not have any effect for you.)"));
         bool memChanged = ImGui::Checkbox(_("8MB"), &settings.get<Emulator::Setting8MB>().value);
-        ShowHelpMarker(_(R"(Emulates an installed 8MB system,
+        ImGuiHelpers::ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
         changed |=
             ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
-        ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
+        ImGuiHelpers::ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
 This is not recommended for normal use at the moment,
 as it is not fully implemented yet. It is recommended
 to use the software renderer instead. Requires a restart
@@ -1727,7 +1941,7 @@ when changing this setting.)"));
         }
 
         changed |= ImGui::Checkbox(_("Fast boot"), &settings.get<Emulator::SettingFastBoot>().value);
-        ShowHelpMarker(_(R"(This will cause the BIOS to skip the shell,
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will cause the BIOS to skip the shell,
 which may include additional checks.
 Also will make the boot time substantially
 faster by not displaying the logo.)"));
@@ -1743,7 +1957,7 @@ faster by not displaying the logo.)"));
             }
         }
 
-        ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticeable extent.)"));
         if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
@@ -1755,12 +1969,12 @@ can slow down emulation to a noticeable extent.)"));
                 g_emulator->m_gdbServer->stopServer();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a gdb-server that you can
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a gdb-server that you can
 connect to with any gdb-remote compliant client.
 You also need to enable the debugger.)"));
         changed |=
             ImGui::Checkbox(_("GDB send manifest"), &debugSettings.get<Emulator::DebugSettings::GdbManifest>().value);
-        ShowHelpMarker(_(R"(Enables sending the processor's manifest
+        ImGuiHelpers::ShowHelpMarker(_(R"(Enables sending the processor's manifest
 from the gdb server. Keep this enabled, unless
 you want to connect IDA to this server, as it
 has a bug in its manifest parser.)"));
@@ -1786,7 +2000,7 @@ has a bug in its manifest parser.)"));
             ImGui::InputInt(_("GDB Server Port"), &debugSettings.get<Emulator::DebugSettings::GdbServerPort>().value);
         changed |=
             ImGui::Checkbox(_("GDB Server Trace"), &debugSettings.get<Emulator::DebugSettings::GdbServerTrace>().value);
-        ShowHelpMarker(_(R"(The GDB server will start tracing its
+        ImGuiHelpers::ShowHelpMarker(_(R"(The GDB server will start tracing its
 protocol into the logs, which can be helpful to debug
 the gdb server system itself.)"));
         if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
@@ -1798,7 +2012,7 @@ the gdb server system itself.)"));
                 g_emulator->m_webServer->stopServer();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a web-server, that you can
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a web-server, that you can
 query using a REST api. See the wiki for details.
 The debugger might be required in some cases.)"));
         changed |=
@@ -1812,7 +2026,7 @@ The debugger might be required in some cases.)"));
                 g_emulator->m_sio1Server->stopServer();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a tcp server, that will
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp server, that will
 relay information between tcp and sio1.
 See the wiki for details.)"));
         changed |=
@@ -1830,7 +2044,7 @@ See the wiki for details.)"));
                 g_emulator->m_sio1Client->stopClient();
             }
         }
-        ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
+        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
 to another PCSX-Redux server to relay information between tcp and sio1.
 See the wiki for details.)"));
         changed |=
@@ -1971,7 +2185,7 @@ bool PCSX::GUI::about() {
     ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
     if (ImGui::Begin(_("About"), &m_showAbout)) {
-        ImGui::Text("PCSX-Redux");
+        ImGui::TextUnformatted("PCSX-Redux");
         ImGui::Separator();
         auto someString = [](const char* str, GLenum index) {
             const char* value = (const char*)glGetString(index);
@@ -2030,7 +2244,7 @@ bool PCSX::GUI::about() {
                 } else {
                     ImGui::TextUnformatted(_("OpenGL error reporting: disabled"));
                     if (!glDebugMessageCallback) {
-                        ShowHelpMarker(
+                        ImGuiHelpers::ShowHelpMarker(
                             _("OpenGL error reporting has been disabled because your OpenGL driver is too old. Error "
                               "reporting requires at least OpenGL 4.3. Please update your graphics drivers, or "
                               "contact your GPU vendor for up to date OpenGL drivers. Disabled OpenGL error reporting "
@@ -2041,7 +2255,7 @@ bool PCSX::GUI::about() {
 
                 changed |= ImGui::Checkbox(_("Enable OpenGL error reporting"),
                                            &g_emulator->settings.get<Emulator::SettingGLErrorReporting>().value);
-                ShowHelpMarker(
+                ImGuiHelpers::ShowHelpMarker(
                     _("OpenGL error reporting is necessary for properly reporting OpenGL problems. "
                       "However it requires OpenGL 4.3+ and might have performance repercussions on "
                       "some computers. (Requires a restart of the emulator)"));
@@ -2054,6 +2268,9 @@ bool PCSX::GUI::about() {
                 someString(_("Renderer"), GL_RENDERER);
                 someString(_("Version"), GL_VERSION);
                 someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
+                GLint textureUnits;
+                glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &textureUnits);
+                ImGui::Text(_("Texture units: %d"), textureUnits);
                 GLint n, i;
                 glGetIntegerv(GL_NUM_EXTENSIONS, &n);
                 ImGui::TextUnformatted(_("Extensions:"));
@@ -2063,6 +2280,84 @@ bool PCSX::GUI::about() {
                     ImGui::Text("%s", extension);
                 }
                 ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(_("FFmpeg information"))) {
+                ImGui::Text(_("Version: %s"), av_version_info());
+                ImGui::Text(_("License: %s"), avutil_license());
+                ImGui::TextWrapped(_("Configuration: %s"), avutil_configuration());
+                ImGui::Separator();
+
+                ImGui::TextUnformatted(_("List of supported formats:"));
+                const AVInputFormat* format = nullptr;
+                void* opaque = nullptr;
+                std::vector<const AVInputFormat*> formats;
+                unsigned nb_formats = 0;
+                while ((format = av_demuxer_iterate(&opaque))) nb_formats++;
+                formats.reserve(nb_formats);
+                opaque = nullptr;
+                while ((format = av_demuxer_iterate(&opaque))) formats.push_back(format);
+                std::sort(formats.begin(), formats.end(),
+                          [](auto& a, auto& b) { return strcmp(a->name, b->name) < 0; });
+                useMonoFont();
+                for (auto& format : formats) {
+                    ImGui::Text("  %-25s %s", format->name, format->long_name);
+                }
+                ImGui::PopFont();
+                ImGui::Separator();
+
+                ImGui::TextUnformatted(_("List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"));
+                const AVCodecDescriptor* codec = nullptr;
+                std::vector<const AVCodecDescriptor*> codecs;
+                unsigned nb_codecs = 0;
+                while ((codec = avcodec_descriptor_next(codec))) nb_codecs++;
+                codecs.reserve(nb_codecs);
+                codec = nullptr;
+                while ((codec = avcodec_descriptor_next(codec))) codecs.push_back(codec);
+                std::sort(codecs.begin(), codecs.end(), [](auto& a, auto& b) {
+                    if (a->type == b->type) {
+                        return strcmp(a->name, b->name) < 0;
+                    }
+                    return a->type < b->type;
+                });
+
+                auto getMediaType = [](AVMediaType type) -> const char* {
+                    switch (type) {
+                        case AVMEDIA_TYPE_VIDEO:
+                            return "Video";
+                        case AVMEDIA_TYPE_AUDIO:
+                            return "Audio";
+                        case AVMEDIA_TYPE_DATA:
+                            return "Data";
+                        case AVMEDIA_TYPE_SUBTITLE:
+                            return "Subtitle";
+                        case AVMEDIA_TYPE_ATTACHMENT:
+                            return "Attachment";
+                        default:
+                            return "Unknown";
+                    }
+                };
+
+                auto previousType = AVMEDIA_TYPE_UNKNOWN;
+
+                useMonoFont();
+                for (auto& codec : codecs) {
+                    auto type = codec->type;
+                    if (type != previousType) {
+                        ImGui::Separator();
+                        useMainFont();
+                        ImGui::Text(_("%s codecs"), getMediaType(type));
+                        ImGui::PopFont();
+                        previousType = type;
+                    }
+                    std::string_view name = codec->name;
+                    if (StringsHelpers::endsWith(name, "_deprecated")) continue;
+                    ImGui::Text("  %c%c%c%c %-20s %s", avcodec_find_decoder(codec->id) ? 'D' : '.',
+                                avcodec_find_encoder(codec->id) ? 'E' : '.',
+                                (codec->props & AV_CODEC_PROP_LOSSY) ? 'L' : '.',
+                                (codec->props & AV_CODEC_PROP_LOSSLESS) ? 'S' : '.', codec->name, codec->long_name);
+                }
+                ImGui::PopFont();
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();
@@ -2080,73 +2375,18 @@ void PCSX::GUI::update(bool vsync) {
     // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
     // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.
     g_emulator->m_gpu->setOpenGLContext();
-    if (vsync && m_breakOnVSync) {
-        g_system->pause();
-    }
-}
-
-void PCSX::GUI::shellReached() {
-    auto& regs = g_emulator->m_cpu->m_regs;
-    uint32_t oldPC = regs.pc;
-    if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
-
-    if (m_exeToLoad.empty()) return;
-    PCSX::u8string filename = m_exeToLoad.get();
-    std::filesystem::path p = filename;
-
-    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
-    bool success = false;
-    try {
-        BinaryLoader::Info info;
-        IO<File> in(new PosixFile(filename));
-        if (in->failed()) {
-            throw std::runtime_error("Failed to open file.");
-        }
-        success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info, g_emulator->m_cpu->m_symbols);
-        if (!info.pc.has_value()) {
-            throw std::runtime_error("Binary loaded without any PC to jump to.");
-        }
-        regs.pc = info.pc.value();
-        if (info.sp.has_value()) regs.GPR.n.sp = info.sp.value();
-        if (info.gp.has_value()) regs.GPR.n.gp = info.gp.value();
-        if (g_emulator->settings.get<Emulator::SettingAutoVideo>() && info.region.has_value()) {
-            switch (info.region.value()) {
-                case BinaryLoader::Region::NTSC:
-                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
-                    break;
-                case BinaryLoader::Region::PAL:
-                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
-                    break;
-            }
-        }
-    } catch (std::exception& e) {
-        g_system->log(LogClass::UI, "Failed to load %s: %s\n", p.string(), e.what());
-    } catch (...) {
-        g_system->log(LogClass::UI, "Failed to load %s: unknown error\n", p.string());
-    }
-    if (success) {
-        g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
-    } else {
-        g_system->log(LogClass::UI, "Failed to load %s, unknown file format.\n", p.string());
-    }
-
-    if (m_exeToLoad.hasToPause()) {
-        g_system->pause();
-    }
-
-    if (oldPC != regs.pc) {
-        g_emulator->m_callStacks->potentialRA(regs.pc, regs.GPR.n.sp);
-        g_emulator->m_debug->updatedPC(regs.pc);
-    }
 }
 
 void PCSX::GUI::magicOpen(const char* pathStr) {
     std::filesystem::path path = pathStr;
     bool success = false;
+    IO<File> file = new PosixFile(path);
+
+    // Is this something that looks like a binary we can load ?
     try {
         BinaryLoader::Info info;
         std::map<uint32_t, std::string> symbols;
-        success = BinaryLoader::load(new PosixFile(path), new Mem4G(), info, symbols);
+        success = BinaryLoader::load(file, new Mem4G(), info, symbols);
         if (success) success = info.pc.has_value();
     } catch (...) {
         success = false;
@@ -2156,10 +2396,39 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
         m_exeToLoad.set(path.u8string());
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
-    } else {
-        g_emulator->m_cdrom->setIso(new CDRIso(path));
-        g_emulator->m_cdrom->check();
+        return;
     }
+
+    // Is this something that looks like a bios maybe ?
+    if (file->size() == 512 * 1024) {
+        // bit of a crude way to check if it's a bios, but it's good enough
+        // we're assuming all bioses start with setting the timings for the
+        // bios bus, which is basically these instructions:
+
+        //     li    $t0, (19 << 16) | 0x243f
+        //     sw    $t0, SBUS_DEV2_CTRL
+        //     nop
+
+        // this code translates to the following bytes:
+        static constexpr uint8_t biosSignature[] = {0x13, 0x00, 0x08, 0x3c, 0x3f, 0x24, 0x08, 0x35, 0x80, 0x1f,
+                                                    0x01, 0x3c, 0x10, 0x10, 0x28, 0xac, 0x00, 0x00, 0x00, 0x00};
+        // we could potentially also check the rest, but I think some bioses
+        // may differ there, so we'll just check the first 20 bytes for now
+
+        uint8_t buffer[sizeof(biosSignature)];
+        file->readAt(buffer, sizeof(buffer), 0);
+
+        if (memcmp(buffer, biosSignature, sizeof(biosSignature)) == 0) {
+            g_system->hardReset();
+            g_system->log(LogClass::UI, "Temporary overriding bios with %s and hard resetting.\n", path.string());
+            file->readAt(g_emulator->m_mem->m_bios, 512 * 1024, 0);
+            return;
+        }
+    }
+
+    // Iso loader is last because its detection is the most broken at the moment.
+    g_emulator->m_cdrom->setIso(new CDRIso(path));
+    g_emulator->m_cdrom->check();
 }
 
 std::string PCSX::GUI::buildSaveStateFilename(int i) {
@@ -2180,14 +2449,20 @@ std::string PCSX::GUI::buildSaveStateFilename(int i) {
     }
 }
 
-void PCSX::GUI::saveSaveState(const std::filesystem::path& filename) {
+void PCSX::GUI::saveSaveState(std::filesystem::path filename) {
+    if (filename.is_relative()) {
+        filename = g_system->getPersistentDir() / filename;
+    }
     // TODO: yeet this to libuv's threadpool.
     ZWriter save(new UvFile(filename, FileOps::TRUNCATE), ZWriter::GZIP);
     if (!save.failed()) save.writeString(SaveStates::save());
     save.close();
 }
 
-void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
+void PCSX::GUI::loadSaveState(std::filesystem::path filename) {
+    if (filename.is_relative()) {
+        filename = g_system->getPersistentDir() / filename;
+    }
     ZReader save(new PosixFile(filename));
     if (save.failed()) return;
     std::ostringstream os;

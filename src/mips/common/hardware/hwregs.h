@@ -28,14 +28,7 @@ SOFTWARE.
 
 #include <stdint.h>
 
-struct Counter {
-    uint16_t value;
-    uint16_t padding1;
-    uint16_t mode;
-    uint16_t padding2;
-    uint16_t target;
-    uint8_t padding[6];
-};
+#include "common/hardware/counters.h"
 
 struct SIO {
     uint8_t fifo;
@@ -68,8 +61,6 @@ struct SIO {
 
 #define DPCR HW_U32(0x1f8010f0)
 #define DICR HW_U32(0x1f8010f4)
-
-#define COUNTERS ((volatile struct Counter *)0xbf801100)
 
 #define GPU_DATA HW_U32(0x1f801810)
 #define GPU_STATUS HW_U32(0x1f801814)

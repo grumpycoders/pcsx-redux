@@ -69,7 +69,7 @@ fb.bat
 *.sstate9
 
 # GPU dump files
-*.dump 
+*.dump
 
 # IDA database files
 *.id0
@@ -79,6 +79,9 @@ fb.bat
 *.idb
 
 # Runtime files in ./resources
+16-to-24.frag
+16-to-24.lua
+16-to-24.vert
 offscreen.frag
 offscreen.lua
 offscreen.vert
@@ -101,3 +104,9 @@ sstate.proto
 
 # Sentry Native files
 .sentry-native
+
+# NOPS leftovers
+comport.txt
+
+# NVIDIA Nsight
+GPUCache

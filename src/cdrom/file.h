@@ -36,12 +36,16 @@ class CDRIsoFile : public File {
     virtual ~CDRIsoFile() {}
 
     static constexpr uint32_t c_sectorSizes[] = {2352, 2352, 2048, 2336, 2048, 2324};
+    static constexpr size_t c_sectorOffsets[] = {0, 0, 16, 16, 24, 24};
     CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size = -1, SectorMode = SectorMode::GUESS);
     virtual bool failed() final override { return m_failed; }
     virtual ssize_t rSeek(ssize_t pos, int wheel) override;
     virtual ssize_t rTell() override { return m_ptrR; }
+    virtual ssize_t wSeek(ssize_t pos, int wheel) override;
+    virtual ssize_t wTell() override { return m_ptrW; }
     virtual size_t size() override { return m_size; }
     virtual ssize_t read(void* dest, size_t size) override;
+    virtual ssize_t write(const void* src, size_t size) override;
     virtual File* dup() override { return new CDRIsoFile(m_iso, m_lba, m_size, m_mode); };
 
   private:
@@ -52,6 +56,7 @@ class CDRIsoFile : public File {
     uint32_t m_size;
     SectorMode m_mode;
     size_t m_ptrR = 0;
+    size_t m_ptrW = 0;
 
     bool m_failed = false;
 };

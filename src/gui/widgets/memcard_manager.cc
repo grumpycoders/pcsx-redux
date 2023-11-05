@@ -25,6 +25,8 @@
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
+#include "support/imgui-helpers.h"
+#include "support/uvfile.h"
 
 void PCSX::Widgets::MemcardManager::initTextures() {
     // Initialize the OpenGL textures used for the icon images
@@ -51,9 +53,65 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
 
-    if (!ImGui::Begin(title, &m_show)) {
+    if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return false;
+    }
+
+    bool showImportMemoryCardDialog = false;
+    bool showExportMemoryCardDialog = false;
+
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu(_("File"))) {
+            if (ImGui::MenuItem(_("Import file into memory card 1"))) {
+                showImportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 1;
+            }
+            if (ImGui::MenuItem(_("Import file into memory card 2"))) {
+                showImportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 2;
+            }
+            if (ImGui::MenuItem(_("Export memory card 1 to file"))) {
+                showExportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 1;
+            }
+            if (ImGui::MenuItem(_("Export memory card 2 to file"))) {
+                showExportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 2;
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+
+    if (showImportMemoryCardDialog) {
+        m_importMemoryCardDialog.openDialog();
+    }
+
+    if (m_importMemoryCardDialog.draw()) {
+        std::vector<PCSX::u8string> fileToOpen = m_importMemoryCardDialog.selected();
+        if (!fileToOpen.empty()) {
+            g_emulator->m_memoryCards->loadMcd(fileToOpen[0], g_emulator->m_memoryCards->m_memoryCard[m_memoryCardImportExportIndex].getCardData());
+            g_emulator->m_memoryCards->saveMcd(m_memoryCardImportExportIndex);
+            clearUndoBuffer();
+        }
+    }
+
+    if (showExportMemoryCardDialog) {
+        m_exportMemoryCardDialog.openDialog();
+    }
+
+    if (m_exportMemoryCardDialog.draw()) {
+        std::vector<PCSX::u8string> fileToOpen = m_exportMemoryCardDialog.selected();
+        if (!fileToOpen.empty()) {
+            IO<File> out = new UvFile(fileToOpen[0], FileOps::TRUNCATE);
+            if (!out->failed()) {
+                const auto dataCard = g_emulator->m_memoryCards->getCardData(m_memoryCardImportExportIndex);
+                Slice slice;
+                slice.copy(dataCard, 128 * 1024);
+                out->writeAt(std::move(slice), 0);
+            }
+        }
     }
 
     const bool undoDisabled = m_undo.size() == 0;
@@ -93,8 +151,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         ImGui::EndDisabled();
     }
     if (ImGui::Button(_("Clear Undo buffer"))) {
-        m_undo.clear();
-        m_undoIndex = 0;
+        clearUndoBuffer();
     }
 
     ImGui::SliderInt(_("Icon size"), &m_iconSize, 16, 512);
@@ -135,10 +192,14 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
 
                 ImGui::TableSetColumnIndex(2);
                 if (block.isChained()) {
-                    ImGui::TextDisabled(_("Chained block"));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::TextUnformatted(_("Chained block"));
+                    ImGui::PopStyleColor();
                     continue;
                 } else if (block.isErased()) {
-                    ImGui::TextDisabled(_("Free block"));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::TextUnformatted(_("Free block"));
+                    ImGui::PopStyleColor();
                     continue;
                 } else {
                     if (gui->hasJapanese()) {
@@ -288,7 +349,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                 }
 
                 ImGui::SameLine();
-                ShowHelpMarker(
+                PCSX::ImGuiHelpers::ShowHelpMarker(
                     _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, "
                       "possibly allowing apps to be saved/exported."));
 
@@ -412,16 +473,4 @@ void PCSX::Widgets::MemcardManager::copyToClipboard(const MemoryCards::McdBlock&
 void PCSX::Widgets::MemcardManager::saveUndoBuffer(std::unique_ptr<uint8_t[]>&& tosave, const std::string& action) {
     m_undo.resize(m_undoIndex++);
     m_undo.push_back({action, std::move(tosave)});
-}
-
-void PCSX::Widgets::MemcardManager::ShowHelpMarker(const char* desc) {
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
 }

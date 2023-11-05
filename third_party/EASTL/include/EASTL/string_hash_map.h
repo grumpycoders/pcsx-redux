@@ -179,7 +179,7 @@ string_hash_map<T, Hash, Predicate, Allocator>::strduplicate(const char* str)
 {
 	size_t len = strlen(str);
 	char* result = (char*)EASTLAlloc(base::base_type::get_allocator(), (len + 1));
-	memcpy(result, str, len+1);
+	__builtin_memcpy(result, str, len+1);
 	return result;
 }
 

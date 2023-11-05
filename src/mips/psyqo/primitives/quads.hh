@@ -63,6 +63,22 @@ struct Quad {
         command |= 0x02000000;
         return *this;
     }
+    Quad& setPointA(Vertex v) {
+        pointA = v;
+        return *this;
+    }
+    Quad& setPointB(Vertex v) {
+        pointB = v;
+        return *this;
+    }
+    Quad& setPointC(Vertex v) {
+        pointC = v;
+        return *this;
+    }
+    Quad& setPointD(Vertex v) {
+        pointD = v;
+        return *this;
+    }
 
   private:
     uint32_t command;
@@ -148,6 +164,22 @@ struct GouraudQuad {
     }
     GouraudQuad& setSemiTrans() {
         command |= 0x02000000;
+        return *this;
+    }
+    GouraudQuad& setPointA(Vertex v) {
+        pointA = v;
+        return *this;
+    }
+    GouraudQuad& setPointB(Vertex v) {
+        pointB = v;
+        return *this;
+    }
+    GouraudQuad& setPointC(Vertex v) {
+        pointC = v;
+        return *this;
+    }
+    GouraudQuad& setPointD(Vertex v) {
+        pointD = v;
         return *this;
     }
 

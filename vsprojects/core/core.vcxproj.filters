@@ -127,13 +127,19 @@
     <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc">
       <Filter>Source Files\OpenGL GPU</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\OpenGL_GPU\command_processor.cc">
-      <Filter>Source Files\OpenGL GPU</Filter>
+    <ClCompile Include="..\..\src\core\gpulogger.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\memorycard.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\pio-cart.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\ui.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\arguments.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\pads.cc">
@@ -264,6 +270,9 @@
     <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h">
       <Filter>Header Files\OpenGL GPU</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\gpulogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\memorycard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -271,6 +280,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\pads.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\ui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\arguments.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

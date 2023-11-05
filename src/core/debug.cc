@@ -54,14 +54,13 @@ void PCSX::Debug::markMap(uint32_t address, int mask) {
     address = normalizeAddress(address);
     uint32_t base = (address >> 20) & 0xffc;
     uint32_t real = address & 0x7fffff;
+    uint32_t shortReal = address & 0x3fffff;
     if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
         m_mainMemoryMap[real] |= mask;
-    } else if ((base == 0x1f0) && (real < sizeof(m_parpMemoryMap))) {
-        m_parpMemoryMap[real] |= mask;
     } else if ((base == 0x1f8) && (real < sizeof(m_scratchPadMap))) {
         m_scratchPadMap[real] |= mask;
-    } else if ((base == 0xbfc) && (real < sizeof(m_biosMemoryMap))) {
-        m_biosMemoryMap[real] |= mask;
+    } else if ((base == 0xbfc) && (shortReal < sizeof(m_biosMemoryMap))) {
+        m_biosMemoryMap[shortReal] |= mask;
     }
 }
 
@@ -69,14 +68,13 @@ bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
     address = normalizeAddress(address);
     uint32_t base = (address >> 20) & 0xffc;
     uint32_t real = address & 0x7fffff;
+    uint32_t shortReal = address & 0x3fffff;
     if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
         return m_mainMemoryMap[real] & mask;
-    } else if ((base == 0x1f0) && (real < sizeof(m_parpMemoryMap))) {
-        return m_parpMemoryMap[real] & mask;
     } else if ((base == 0x1f8) && (real < sizeof(m_scratchPadMap))) {
         return m_scratchPadMap[real] & mask;
-    } else if ((base == 0xbfc) && (real < sizeof(m_biosMemoryMap))) {
-        return m_biosMemoryMap[real] & mask;
+    } else if ((base == 0xbfc) && (shortReal < sizeof(m_biosMemoryMap))) {
+        return m_biosMemoryMap[shortReal] & mask;
     }
     return false;
 }
@@ -160,14 +158,19 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
     }
 
     if (m_step == STEP_NONE) return;
-    if (!m_wasInISR && g_emulator->m_cpu->m_inISR) return;
+    bool skipStepOverAndOut = false;
+    if (!m_wasInISR && g_emulator->m_cpu->m_inISR) {
+        uint32_t cause = (regs.CP0.n.Cause >> 2) & 0x1f;
+        if (cause == 0) return;
+        skipStepOverAndOut = true;
+    }
 
     switch (m_step) {
         case STEP_IN: {
             triggerBP(nullptr, newPC, 4, _("Step in"));
         } break;
         case STEP_OVER: {
-            if (!m_stepperHasBreakpoint) {
+            if (!m_stepperHasBreakpoint && !skipStepOverAndOut) {
                 if (linked) {
                     uint32_t sp = regs.GPR.n.sp;
                     m_stepperHasBreakpoint = true;
@@ -185,7 +188,10 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
             }
         } break;
         case STEP_OUT: {
-            if (!m_stepperHasBreakpoint) triggerBP(nullptr, newPC, 4, _("Step out (no callstack)"));
+            if (!m_stepperHasBreakpoint && !skipStepOverAndOut) {
+                triggerBP(nullptr, newPC, 4, _("Step out (no callstack)"));
+            }
+            break;
         }
     }
 }

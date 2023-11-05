@@ -8,20 +8,9 @@ SRCS = \
 ../common/crt0/crt0cxx.s \
 ../common/crt0/cxxglue.c \
 ../common/syscalls/printf.s \
-src/adler32.cpp \
-src/alloc.c \
-src/application.cpp \
-src/cdrom.cpp \
-src/cdrom-device.cpp \
-src/font.cpp \
-src/gpu.cpp \
-src/iso9660-parser.cpp \
-src/kernel.cpp \
-src/msf.cpp \
-src/scene.cpp \
-src/simplepad.cpp \
-src/task.cpp \
-src/xprintf.c \
+$(wildcard src/hardware/*.cpp) \
+$(wildcard src/*.cpp) \
+$(wildcard src/*.c) \
 
 CPPFLAGS = -Werror -I../../../third_party/EASTL/include -I../../../third_party/EABase/include/Common
 CXXFLAGS = -std=c++20

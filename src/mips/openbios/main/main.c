@@ -126,7 +126,7 @@ static char s_binaryPath[128];
 // Specifically, the BOOT line parser will try to parse a command
 // line argument. There are multiple ways this can happen on a
 // retail bios, but this parser will chose to separate it using
-// the tabulation character ('\t', or character 9).
+// the tabulation character ('\t', or character 9) or a space.
 // Last but not least, the retail bios will screw things up
 // fairly badly if the file isn't terminated using CRLFs.
 static void findWordItem(const char *systemCnf, uint32_t *item, const char *name) {
@@ -161,7 +161,7 @@ static void findWordItem(const char *systemCnf, uint32_t *item, const char *name
                 value |= c - 'a' + 10;
             }
         } else {
-            if ((c == 0) || (c == '\n') || (c == '\r')) {
+            if ((c == 0) || isspace(c)) {
                 *item = value;
                 psxprintf("%s\t%08x\n", name, value);
             }
@@ -194,7 +194,7 @@ static void findStringItem(const char *systemCnf, char *const binaryPath, char *
         c = *systemCnf++;
         if (isspace(c) && !started) continue;
         started = 1;
-        if ((parseArg = (c == '\t'))) break;
+        if ((parseArg = (c == '\t') || (c == ' '))) break;
         if ((c == '\r') || (c == '\n') || (c == 0)) break;
         *binPtr++ = c;
     }
@@ -268,10 +268,13 @@ void gameMainThunk(struct psxExeHeader *binaryInfo, int argc, char **argv) {
         if (cdromReset() < 0) syscall_exception(0x44, 0x38b);
     }
     enterCriticalSection();
+    // Fixing SaGa Frontier (USA) when in fastboot mode, as it relies
+    // on the side effect of the shell running to enable the display.
+    GPU_STATUS = 0x03000000;
     exec(binaryInfo, argc, argv);
 }
 
-extern struct BuildId __build_id;
+extern struct BuildId __build_id, __build_id_end;
 
 static void boot(char *systemCnfPath, char *binaryPath) {
     POST = 1;
@@ -297,17 +300,19 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     POST = 5;
     /* this is a bit specific to OpenBIOS to retrieve the buildid from the raw data */
     {
-        char buildIDstring[65];
-        uint32_t count = __build_id.descsz;
-        if (count > 32) count = 32;
-        const uint8_t *buildId = __build_id.strings + __build_id.namesz;
-        static const char *const hex = "0123456789abcdef";
-        for (int i = 0; i < count; i++) {
-            uint8_t c = buildId[i];
-            buildIDstring[i * 2 + 0] = hex[c & 0xf];
-            buildIDstring[i * 2 + 1] = hex[(c >> 4) & 0xf];
+        char buildIDstring[65] = "unknown";
+        if (&__build_id != &__build_id_end) {
+            uint32_t count = __build_id.descsz;
+            if (count > 32) count = 32;
+            const uint8_t *buildId = __build_id.strings + __build_id.namesz;
+            static const char *const hex = "0123456789abcdef";
+            for (int i = 0; i < count; i++) {
+                uint8_t c = buildId[i];
+                buildIDstring[i * 2 + 0] = hex[c & 0xf];
+                buildIDstring[i * 2 + 1] = hex[(c >> 4) & 0xf];
+            }
+            buildIDstring[count * 2] = 0;
         }
-        buildIDstring[count * 2] = 0;
         psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2023 PCSX-Redux authors.\n",
                   buildIDstring);
     }

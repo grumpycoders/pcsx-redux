@@ -42,13 +42,13 @@ void PCSX::PIOCart::setLuts() {
         m_readLUT[0x1f05] = &m_exp1[1 << 16];
         m_pal.reset();
     } else {
-        memset(&m_readLUT[0x1f00], NULL, 0x6 * sizeof(void *));
+        memset(&m_readLUT[0x1f00], 0, 0x6 * sizeof(void *));
     }
 
-    // NULL by default, wipe to ensure writes are properly intercepted
-    memset(&m_writeLUT[0x1f00], NULL, 0x6 * sizeof(void *));
-    memset(&m_writeLUT[0x9f00], NULL, 0x6 * sizeof(void *));
-    memset(&m_writeLUT[0xbf00], NULL, 0x6 * sizeof(void *));
+    // nullptr by default, wipe to ensure writes are properly intercepted
+    memset(&m_writeLUT[0x1f00], 0, 0x6 * sizeof(void *));
+    memset(&m_writeLUT[0x9f00], 0, 0x6 * sizeof(void *));
+    memset(&m_writeLUT[0xbf00], 0, 0x6 * sizeof(void *));
 
     memcpy(&m_readLUT[0x9f00], &m_readLUT[0x1f00], 0x6 * sizeof(void *));
     memcpy(&m_readLUT[0xbf00], &m_readLUT[0x1f00], 0x6 * sizeof(void *));
@@ -133,7 +133,7 @@ void PCSX::PIOCart::PAL::setLUTFlashBank(uint8_t bank) {
     const auto &m_readLUT = g_emulator->m_mem->m_readLUT;
     const auto &m_exp1 = g_emulator->m_mem->m_exp1;
 
-    if (m_readLUT == NULL || m_exp1 == NULL) return;
+    if (m_readLUT == nullptr || m_exp1 == nullptr) return;
 
     switch (bank) {
         case 0:

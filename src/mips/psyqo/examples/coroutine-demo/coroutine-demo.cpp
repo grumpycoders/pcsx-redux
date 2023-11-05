@@ -59,9 +59,10 @@ psyqo::Coroutine<> coroutine(CoroutineDemo *demo) {
     psyqo::Coroutine<>::Awaiter awaiter = coroutine->awaiter();
     bool success = false;
     bool doneOnce = false;
+    using namespace psyqo::timer_literals;
     while (!success) {
         if (doneOnce) {
-            demo->gpu().armTimer(demo->gpu().now() + 1 * 1000 * 1000, [coroutine](auto) { coroutine->resume(); });
+            demo->gpu().armTimer(demo->gpu().now() + 1_s, [coroutine](auto) { coroutine->resume(); });
             co_await awaiter;
         }
         doneOnce = true;
@@ -82,7 +83,7 @@ psyqo::Coroutine<> coroutine(CoroutineDemo *demo) {
     doneOnce = false;
     while (true) {
         if (doneOnce) {
-            demo->gpu().armTimer(demo->gpu().now() + 1 * 1000 * 1000, [coroutine](auto) { coroutine->resume(); });
+            demo->gpu().armTimer(demo->gpu().now() + 1_s, [coroutine](auto) { coroutine->resume(); });
             co_await awaiter;
         }
         doneOnce = true;

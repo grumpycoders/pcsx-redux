@@ -20,14 +20,13 @@
 #include "cdrom/cdriso.h"
 
 bool PCSX::CDRIso::LoadSBI(const char *filename) {
-    IO<File> sbihandle;
+    IO<File> sbihandle(new UvFile(filename));
     char buffer[16];
 
-    sbihandle.setFile(new UvFile(filename));
+    if (sbihandle->failed()) return false;
     if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
         sbihandle.asA<UvFile>()->startCaching();
     }
-    if (sbihandle->failed()) return false;
 
     // init
     sbicount = 0;

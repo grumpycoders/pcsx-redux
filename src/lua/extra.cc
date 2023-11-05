@@ -38,9 +38,12 @@ void PCSX::LuaFFI::open_extra(Lua L) {
     luaopen_pb_unsafe(L.getState());
     L.setfield("pb.unsafe");
 
-    static int lualoader = 1;
+    static int lualoader = 7;
     static const char* pprint = (
 #include "pprint.lua/pprint.lua"
+    );
+    static const char* pprint_internals = (
+#include "pprint.lua/pprint-internals.lua"
     );
     static const char* reflectFFI = (
 #include "ffi-reflect/reflect.lua"
@@ -58,6 +61,7 @@ void PCSX::LuaFFI::open_extra(Lua L) {
 #include "lua-protobuf/protoc.lua"
     );
     L.load(pprint, "internal:pprinter.lua/pprint.lua");
+    L.load(pprint_internals, "internal:pprinter.lua/pprint-internals.lua");
     L.load(reflectFFI, "internal:ffi-reflect/reflect.lua");
 
     L.load(protobufLexer, "internal:lua-protobuf/lexer.lua");

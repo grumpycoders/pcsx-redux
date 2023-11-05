@@ -185,6 +185,9 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
                                           const std::string_view &dPS, const std::string_view &dL)
     : m_baseFilename(base), m_index(++s_index) {
     std::filesystem::path f = base;
+    if (f.is_relative()) {
+        f = g_system->getPersistentDir() / f;
+    }
     {
         f.replace_extension("vert");
         std::ifstream in(f, std::ifstream::in);
@@ -194,7 +197,8 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
             in.close();
             m_vertexShaderEditor.setText(code.str());
         } else {
-            m_vertexShaderEditor.setText(c_defaultVertexShader);
+            std::string code(dVS);
+            m_vertexShaderEditor.setText(code.c_str());
         }
     }
     {
@@ -206,7 +210,8 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
             in.close();
             m_pixelShaderEditor.setText(code.str());
         } else {
-            m_pixelShaderEditor.setText(c_defaultPixelShader);
+            std::string code(dPS);
+            m_pixelShaderEditor.setText(code.c_str());
         }
     }
     {
@@ -218,7 +223,46 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
             in.close();
             m_luaEditor.setText(code.str());
         } else {
-            m_luaEditor.setText(c_defaultLuaInvoker);
+            std::string code(dL);
+            m_luaEditor.setText(code.c_str());
+        }
+    }
+}
+
+PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base) : m_baseFilename(base), m_index(++s_index) {
+    setDefaults();
+    std::filesystem::path f = base;
+    if (f.is_relative()) {
+        f = g_system->getPersistentDir() / f;
+    }
+    {
+        f.replace_extension("vert");
+        std::ifstream in(f, std::ifstream::in);
+        if (in) {
+            std::ostringstream code;
+            code << in.rdbuf();
+            in.close();
+            m_vertexShaderEditor.setText(code.str());
+        }
+    }
+    {
+        f.replace_extension("frag");
+        std::ifstream in(f, std::ifstream::in);
+        if (in) {
+            std::ostringstream code;
+            code << in.rdbuf();
+            in.close();
+            m_pixelShaderEditor.setText(code.str());
+        }
+    }
+    {
+        f.replace_extension("lua");
+        std::ifstream in(f, std::ifstream::in);
+        if (in) {
+            std::ostringstream code;
+            code << in.rdbuf();
+            in.close();
+            m_luaEditor.setText(code.str());
         }
     }
 }
@@ -346,6 +390,9 @@ PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
 
     auto L = *g_emulator->m_lua;
     std::filesystem::path f = m_baseFilename;
+    if (f.is_relative()) {
+        f = g_system->getPersistentDir() / f;
+    }
 
     if (m_autocompile) {
         m_lastLuaErrors.clear();
@@ -783,7 +830,7 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
 }
 
 void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec2 &srcLoc, const ImVec2 &srcSize,
-                                         const ImVec2 &dstSize) {
+                                         const ImVec2 &dstSize, std::initializer_list<lua_Number> extraArgs) {
     if (m_shaderProgram == 0) {
         compile(gui);
     }
@@ -865,9 +912,12 @@ void PCSX::Widgets::ShaderEditor::render(GUI *gui, GLuint textureID, const ImVec
                 L.push(srcSize.y);
                 L.push(dstSize.x);
                 L.push(dstSize.y);
+                for (auto arg : extraArgs) {
+                    L.push(arg);
+                }
                 GUI::ScopedOnlyLog scopedOnlyLog(gui);
                 try {
-                    L.pcall(8);
+                    L.pcall(8 + extraArgs.size());
                     bool gotGLerror = false;
                     auto errors = gui->getGLerrors();
                     for (const auto &error : errors) {

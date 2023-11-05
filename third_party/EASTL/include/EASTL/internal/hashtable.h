@@ -1659,7 +1659,7 @@ namespace eastl
 		EASTL_CT_ASSERT(kHashtableAllocFlagBuckets == 0x00400000); // Currently we expect this to be so, because the allocator has a copy of this enum.
 		node_type** const pBucketArray = (node_type**)EASTLAllocAlignedFlags(mAllocator, (n + 1) * sizeof(node_type*), EASTL_ALIGN_OF(node_type*), 0, kHashtableAllocFlagBuckets);
 		//eastl::fill(pBucketArray, pBucketArray + n, (node_type*)NULL);
-		memset(pBucketArray, 0, n * sizeof(node_type*));
+		__builtin_memset(pBucketArray, 0, n * sizeof(node_type*));
 		pBucketArray[n] = reinterpret_cast<node_type*>((uintptr_t)~0);
 		return pBucketArray;
 	}
@@ -3014,7 +3014,7 @@ namespace eastl
 			mpBucketArray = (node_type**)&gpEmptyBucketArray[0];
 		#else
 			void* p = &gpEmptyBucketArray[0];
-			memcpy(&mpBucketArray, &p, sizeof(mpBucketArray)); // Other compilers implement strict aliasing and casting is thus unsafe.
+			__builtin_memcpy(&mpBucketArray, &p, sizeof(mpBucketArray)); // Other compilers implement strict aliasing and casting is thus unsafe.
 		#endif
 
 		mnElementCount = 0;

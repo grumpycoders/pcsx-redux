@@ -39,7 +39,7 @@
 #include "support/circular.h"
 #include "support/eventbus.h"
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__linux__)
 #define HAS_ATOMIC_WAIT 1
 #else
 #define HAS_ATOMIC_WAIT 0
@@ -59,15 +59,7 @@ class MiniAudio {
     void reinit() {
         uninit();
         init();
-        if (g_system->running()) {
-            if (ma_device_start(&m_device) != MA_SUCCESS) {
-                throw std::runtime_error("Unable to start audio device");
-            }
-            if (!m_settings.get<NullSync>()) return;
-            if (ma_device_start(&m_deviceNull) != MA_SUCCESS) {
-                throw std::runtime_error("Unable to start NULL audio device");
-            }
-        }
+        maybeRestart();
     }
     const std::vector<std::string>& getBackends() { return m_backends; }
     const std::vector<std::string>& getDevices() { return m_devices; }
@@ -121,6 +113,7 @@ class MiniAudio {
     void callbackNull(ma_device* device, float* output, ma_uint32 frameCount);
     void init(bool safe = false);
     void uninit();
+    void maybeRestart();
 
     ma_context m_context;
     ma_device_config m_config;

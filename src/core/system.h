@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-#include "flags.h"
+#include "core/arguments.h"
 #include "fmt/format.h"
 #include "fmt/printf.h"
 #include "imgui.h"
@@ -89,10 +89,26 @@ struct JumpToMemory {
     uint32_t address;
     unsigned size;
 };
+struct SelectClut {
+    unsigned x, y;
+};
+struct VRAMFocus {
+    int x1, y1;
+    int x2, y2;
+    enum : int {
+        VRAM_4BITS,
+        VRAM_8BITS,
+        VRAM_16BITS,
+        VRAM_24BITS,
+    } vramMode = VRAM_16BITS;
+};
 }  // namespace GUI
 struct Keyboard {
     int key, scancode, action, mods;
 };
+namespace Memory {
+struct SetLuts {};
+}  // namespace Memory
 }  // namespace Events
 
 class System {
@@ -106,25 +122,25 @@ class System {
     virtual void hardReset() = 0;
     // Putc used by bios syscalls
     virtual void biosPutc(int c) = 0;
-    virtual const CommandLine::args &getArgs() = 0;
+    virtual const Arguments &getArgs() const = 0;
 
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &... args) {
+    void printf(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         printf(std::move(s));
     }
     virtual void printf(std::string &&) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &... args) {
+    void log(LogClass logClass, const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, std::move(s));
     }
     virtual void log(LogClass, std::string &&) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &... args) {
+    void message(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         message(std::move(s));
     }
@@ -209,6 +225,7 @@ class System {
     }
 
     std::filesystem::path getBinDir() const { return m_binDir; }
+    std::filesystem::path getPersistentDir() const;
     const VersionInfo &getVersion() const { return m_version; }
 
     // needs to be odd, and is a replica of ImGui's range tables
@@ -223,8 +240,6 @@ class System {
     };
 
     uv_loop_t *getLoop() { return &m_loop; }
-
-    bool testmode() { return m_testmode; }
 
   private:
     uv_loop_t m_loop;
@@ -244,8 +259,7 @@ class System {
   protected:
     std::filesystem::path m_binDir;
     PCSX::VersionInfo m_version;
-    bool m_emergencyExit = true;
-    bool m_testmode = false;
+    bool m_emergencyExit = false;
 };
 
 extern System *g_system;

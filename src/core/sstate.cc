@@ -191,7 +191,7 @@ std::string PCSX::SaveStates::save() {
     g_emulator->m_counters->serialize(&wrapper);
     g_emulator->m_mdec->serialize(&wrapper);
 
-    g_emulator->m_cpu->listAllPCdevFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
+    g_emulator->m_cpu->listAllPCdrvFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
         state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
     });
 
@@ -322,7 +322,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
     g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
 
-    g_emulator->m_cpu->closeAllPCdevFiles();
+    g_emulator->m_cpu->closeAllPCdrvFiles();
     for (auto& file : state.get<PCdrvFilesField>().value) {
         uint16_t fd = file.get<PCdrvFD>().value;
         std::string filename = file.get<PCdrvFilename>().value;

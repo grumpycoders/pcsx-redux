@@ -21,225 +21,265 @@
 
 #include <stdint.h>
 
-#include "gpu/soft/externals.h"
+#include "core/gpu.h"
 
 namespace PCSX {
 
 namespace SoftGPU {
 
-class SoftRenderer {
-  protected:
-    bool bUsingTWin = false;
-    TWin_t TWin;
-    uint16_t usMirror = 0;  // sprite mirror
-    int iDither = 0;
-    int drawX, drawY, drawW, drawH;
+struct SoftRenderer {
+    ~SoftRenderer();
+    inline void resetRenderer() {
+        m_globalTextAddrX = 0;
+        m_globalTextAddrY = 0;
+        m_globalTextTP = GPU::TexDepth::Tex4Bits;
+        m_globalTextABR = GPU::BlendFunction::HalfBackAndHalfFront;
+        m_drawX = m_drawY = 0;
+        m_drawW = m_drawH = 0;
+        m_checkMask = false;
+        m_setMask16 = 0;
+        m_setMask32 = 0;
+    }
 
-    bool DrawSemiTrans = false;
-    int16_t g_m1 = 255, g_m2 = 255, g_m3 = 255;
-    int16_t ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords
+    int m_useDither = 0;
 
-    int32_t GlobalTextAddrX;
-    int32_t GlobalTextAddrY;
-    int32_t GlobalTextTP;
-    int32_t GlobalTextABR;
+    bool checkCoord4();
+    bool checkCoord3();
 
-    bool bCheckMask = false;
-    uint16_t sSetMask = 0;
-    uint32_t lSetMask = 0;
+    void texturePage(GPU::TPage *prim);
+    void twindow(GPU::TWindow *prim);
+    void drawingAreaStart(GPU::DrawingAreaStart *prim);
+    void drawingAreaEnd(GPU::DrawingAreaEnd *prim);
+    void drawingOffset(GPU::DrawingOffset *prim);
+    void maskBit(GPU::MaskBit *prim);
 
-    void offsetPSXLine();
-    void offsetPSX2();
-    void offsetPSX3();
-    void offsetPSX4();
+    struct Point {
+        int32_t x;
+        int32_t y;
+    };
 
-    void FillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
-    void FillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
-    void drawPoly3G(int32_t rgb1, int32_t rgb2, int32_t rgb3);
-    void drawPoly4G(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
-    void drawPoly3F(int32_t rgb);
-    void drawPoly4F(int32_t rgb);
-    void drawPoly4FT(unsigned char *baseAddr);
-    void drawPoly4GT(unsigned char *baseAddr);
-    void drawPoly3FT(unsigned char *baseAddr);
-    void drawPoly3GT(unsigned char *baseAddr);
-    void DrawSoftwareSprite(unsigned char *baseAddr, int16_t w, int16_t h, int32_t tx, int32_t ty);
-    void DrawSoftwareSpriteTWin(unsigned char *baseAddr, int32_t w, int32_t h);
-    void DrawSoftwareSpriteMirror(unsigned char *baseAddr, int32_t w, int32_t h);
-    void DrawSoftwareLineShade(int32_t rgb0, int32_t rgb1);
-    void DrawSoftwareLineFlat(int32_t rgb);
+    struct ShortPoint {
+        int16_t x;
+        int16_t y;
+    };
 
-    int16_t Ymin;
-    int16_t Ymax;
+    struct SoftRect {
+        int16_t x0;
+        int16_t x1;
+        int16_t y0;
+        int16_t y1;
+    };
 
-    bool IsNoRect();
+    struct SoftDisplay {
+        Point DisplayModeNew;
+        Point DisplayMode;
+        Point DisplayPosition;
+        Point DisplayEnd;
 
-    bool SetupSections_F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3);
-    bool SetupSections_G(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1,
-                         int32_t rgb2, int32_t rgb3);
-    bool SetupSections_FT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3);
-    bool SetupSections_GT(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int32_t rgb1, int32_t rgb2,
-                          int32_t rgb3);
-    bool SetupSections_F4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                          int16_t y4);
-    bool SetupSections_FT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                           int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                           int16_t tx4, int16_t ty4);
-    bool SetupSections_GT4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                           int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                           int16_t tx4, int16_t ty4, int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
+        int32_t Double;
+        int32_t Height;
+        int32_t PAL;
+        int32_t InterlacedNew;
+        int32_t Interlaced;
+        bool RGB24New;
+        bool RGB24;
+        ShortPoint DrawOffset;
+        int32_t Disabled;
+        SoftRect Range;
+    };
 
-    void GetShadeTransCol_Dither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
-    void GetShadeTransCol(uint16_t *pdest, uint16_t color);
-    void GetShadeTransCol32(uint32_t *pdest, uint32_t color);
-    void GetTextureTransColG(uint16_t *pdest, uint16_t color);
-    void GetTextureTransColG_S(uint16_t *pdest, uint16_t color);
-    void GetTextureTransColG_SPR(uint16_t *pdest, uint16_t color);
-    void GetTextureTransColG32(uint32_t *pdest, uint32_t color);
-    void GetTextureTransColG32_S(uint32_t *pdest, uint32_t color);
-    void GetTextureTransColG32_SPR(uint32_t *pdest, uint32_t color);
-    void GetTextureTransColGX_Dither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
-    void GetTextureTransColGX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
-    void GetTextureTransColGX_S(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
-    void GetTextureTransColGX32_S(uint32_t *pdest, uint32_t color, int16_t m1, int16_t m2, int16_t m3);
-    void DrawSoftwareSprite_IL(unsigned char *baseAddr, int16_t w, int16_t h, int32_t tx, int32_t ty);
+    SoftRect m_textureWindow;
+    bool m_ditherMode = false;
+    int m_drawX, m_drawY, m_drawW, m_drawH;
+
+    static constexpr int GPU_WIDTH = 1024;
+    static constexpr int GPU_HEIGHT = 512;
+    static constexpr int GPU_HEIGHT_MASK = 511;
+
+    bool m_drawSemiTrans = false;
+    int16_t m_m1 = 255, m_m2 = 255, m_m3 = 255;
+    int16_t m_y0, m_x0, m_y1, m_x1, m_y2, m_x2, m_y3, m_x3;  // global psx vertex coords
+
+    int32_t m_globalTextAddrX;
+    int32_t m_globalTextAddrY;
+    GPU::TexDepth m_globalTextTP;
+    GPU::BlendFunction m_globalTextABR;
+
+    bool m_checkMask = false;
+    uint16_t m_setMask16 = 0;
+    uint32_t m_setMask32 = 0;
+    int32_t m_statusRet;
+    uint32_t m_textureWindowRaw;
+    uint32_t m_drawingStartRaw;
+    uint32_t m_drawingEndRaw;
+    uint32_t m_drawingOffsetRaw;
+    SoftDisplay m_softDisplay;
+    uint8_t *m_vram;
+    uint16_t *m_vram16;
+
+    void applyOffset2();
+    void applyOffset3();
+    void applyOffset4();
+
+    void fillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
+    void fillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
+    void drawPolyShade3(int32_t rgb1, int32_t rgb2, int32_t rgb3);
+    void drawPolyShade4(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
+    void drawPolyFlat3(int32_t rgb);
+    void drawPolyFlat4(int32_t rgb);
+    void drawSoftwareLineShade(int32_t rgb0, int32_t rgb1);
+    void drawSoftwareLineFlat(int32_t rgb);
+
+    int16_t m_yMin;
+    int16_t m_yMax;
+
+    bool setupSectionsFlat3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3);
+    bool setupSectionsShade3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1,
+                             int32_t rgb2, int32_t rgb3);
+    bool setupSectionsFlatTextured3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
+                                    int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3);
+    bool setupSectionsShadeTextured3(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                     int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
+                                     int32_t rgb1, int32_t rgb2, int32_t rgb3);
+    bool setupSectionsFlat4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
+                            int16_t y4);
+    bool setupSectionsFlatTextured4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
+                                    int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                    int16_t ty3, int16_t tx4, int16_t ty4);
+    bool setupSectionsShadeTextured4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
+                                     int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                     int16_t ty3, int16_t tx4, int16_t ty4, int32_t rgb1, int32_t rgb2, int32_t rgb3,
+                                     int32_t rgb4);
+
+    template <bool useCachedDither>
+    void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
+    void getShadeTransCol(uint16_t *pdest, uint16_t color);
+    void getShadeTransCol32(uint32_t *pdest, uint32_t color);
+    void getTextureTransColShade(uint16_t *pdest, uint16_t color);
+    void getTextureTransColShadeSolid(uint16_t *pdest, uint16_t color);
+    void getTextureTransColShadeSemi(uint16_t *pdest, uint16_t color);
+    void getTextureTransColShade32(uint32_t *pdest, uint32_t color);
+    void getTextureTransColShade32Solid(uint32_t *pdest, uint32_t color);
+    void getTextureTransColG32Semi(uint32_t *pdest, uint32_t color);
+    template <bool useCachedDither>
+    void getTextureTransColShadeXDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
+    void getTextureTransColShadeX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
+    void getTextureTransColShadeXSolid(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
+    void getTextureTransColShadeX32Solid(uint32_t *pdest, uint32_t color, int16_t m1, int16_t m2, int16_t m3);
     void drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb);
-    void drawPoly3TD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
-                     int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3);
     void drawPoly3TEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                        int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
-    void drawPoly3TEx4_IL(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
-    void drawPoly3TEx4_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
-    void drawPoly4TEx4_TRI(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                           int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                           int16_t tx4, int16_t ty4, int16_t clX, int16_t clY);
     void drawPoly4TEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                        int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
                        int16_t ty4, int16_t clX, int16_t clY);
-    void drawPoly4TEx4_IL(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                          int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                          int16_t tx4, int16_t ty4, int16_t clX, int16_t clY);
-    void drawPoly4TEx4_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                          int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                          int16_t tx4, int16_t ty4, int16_t clX, int16_t clY);
-    void drawPoly4TEx4_TW_S(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                            int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                            int16_t tx4, int16_t ty4, int16_t clX, int16_t clY);
+    void drawPoly4TEx4_S(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
+                         int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
+                         int16_t ty4, int16_t clX, int16_t clY);
     void drawPoly3TEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                        int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
-    void drawPoly3TEx8_IL(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
-    void drawPoly3TEx8_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
-    void drawPoly4TEx8_TRI(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                           int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                           int16_t tx4, int16_t ty4, int16_t clX, int16_t clY);
     void drawPoly4TEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                        int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
                        int16_t ty4, int16_t clX, int16_t clY);
-    void drawPoly4TEx8_IL(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                          int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                          int16_t tx4, int16_t ty4, int16_t clX, int16_t clY);
-    void drawPoly4TEx8_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                          int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                          int16_t tx4, int16_t ty4, int16_t clX, int16_t clY);
-    void drawPoly4TEx8_TW_S(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                            int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                            int16_t tx4, int16_t ty4, int16_t clX, int16_t clY);
-    void drawPoly3TD_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                        int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3);
-    void drawPoly4TD_TRI(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
+    void drawPoly4TEx8_S(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                          int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                         int16_t ty4);
+                         int16_t ty4, int16_t clX, int16_t clY);
+    void drawPoly3TD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
+                     int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3);
     void drawPoly4TD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                      int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
                      int16_t ty4);
-    void drawPoly4TD_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
-                        int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                        int16_t ty4);
-    void drawPoly4TD_TW_S(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                          int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                          int16_t tx4, int16_t ty4);
+    void drawPoly4TD_S(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
+                       int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
+                       int16_t ty4);
+    template <bool useCachedDither>
     void drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1, int32_t rgb2,
                      int32_t rgb3);
+    template <bool useCachedDither>
+    void drawPoly3TGEx4i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
+                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
+                         int32_t col1, int32_t col2, int32_t col3);
     void drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
                         int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly3TGEx4_IL(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                           int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
-                           int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly3TGEx4_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                           int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
-                           int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly4TGEx4_TRI_IL(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                               int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                               int16_t tx4, int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
-                               int32_t col3, int32_t col4);
-    void drawPoly4TGEx4_TRI(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                            int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                            int16_t tx4, int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
-                            int32_t col3, int32_t col4);
     void drawPoly4TGEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                         int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                        int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col4, int32_t col3);
-    void drawPoly4TGEx4_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                           int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                           int16_t tx4, int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3,
-                           int32_t col4);
+                        int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
+    template <bool useCachedDither>
+    void drawPoly3TGEx8i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
+                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
+                         int32_t col1, int32_t col2, int32_t col3);
     void drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
                         int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly3TGEx8_IL(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                           int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
-                           int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly3TGEx8_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                           int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
-                           int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly4TGEx8_TRI_IL(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                               int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                               int16_t tx4, int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
-                               int32_t col3, int32_t col4);
-    void drawPoly4TGEx8_TRI(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                            int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                            int16_t tx4, int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
-                            int32_t col3, int32_t col4);
     void drawPoly4TGEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                         int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                        int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col4, int32_t col3);
-    void drawPoly4TGEx8_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                           int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                           int16_t tx4, int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3,
-                           int32_t col4);
+                        int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
+    template <bool useCachedDither>
+    void drawPoly3TGDi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
+                       int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int32_t col1, int32_t col2, int32_t col3);
     void drawPoly3TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                       int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly3TGD_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int32_t col1, int32_t col2,
-                         int32_t col3);
-    void drawPoly4TGD_TRI(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                          int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3,
-                          int16_t tx4, int16_t ty4, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
     void drawPoly4TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                       int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                      int16_t ty4, int32_t col1, int32_t col2, int32_t col4, int32_t col3);
-    void drawPoly4TGD_TW(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
-                         int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                         int16_t ty4, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
-    void Line_E_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
-    void Line_S_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
-    void Line_N_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
-    void Line_E_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
-    void VertLineShade(int x, int y0, int y1, uint32_t rgb0, uint32_t rgb1);
-    void HorzLineShade(int y, int x0, int x1, uint32_t rgb0, uint32_t rgb1);
-    void Line_E_SE_Flat(int x0, int y0, int x1, int y1, uint16_t colour);
-    void Line_S_SE_Flat(int x0, int y0, int x1, int y1, uint16_t colour);
-    void Line_N_NE_Flat(int x0, int y0, int x1, int y1, uint16_t colour);
-    void Line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t colour);
-    void VertLineFlat(int x, int y0, int y1, uint16_t colour);
-    void HorzLineFlat(int y, int x0, int x1, uint16_t colour);
+                      int16_t ty4, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
+    void line_E_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
+    void line_S_SE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
+    void line_N_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
+    void line_E_NE_Shade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
+    void vertLineShade(int x, int y0, int y1, uint32_t rgb0, uint32_t rgb1);
+    void horzLineShade(int y, int x0, int x1, uint32_t rgb0, uint32_t rgb1);
+    void line_E_SE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
+    void line_S_SE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
+    void line_N_NE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
+    void line_E_NE_Flat(int x0, int y0, int x1, int y1, uint16_t col);
+    void vertLineFlat(int x, int y0, int y1, uint16_t col);
+    void horzLineFlat(int y, int x0, int x1, uint16_t col);
+
+    void enableCachedDithering();
+    void disableCachedDithering();
+
+  private:
+    int rightSectionFlat3();
+    int leftSectionFlat3();
+    bool nextRowFlat3();
+    int rightSectionShade3();
+    int leftSectionShade3();
+    bool nextRowShade3();
+    int rightSectionFlatTextured3();
+    int leftSectionFlatTextured3();
+    bool nextRowFlatTextured3();
+    int rightSectionShadeTextured3();
+    int leftSectionShadeTextured3();
+    bool nextRowShadeTextured3();
+    int rightSectionFlat4();
+    int leftSectionFlat4();
+    int rightSectionFlatTextured4();
+    int leftSectionFlatTextured4();
+    bool nextRowFlatTextured4();
+    int rightSectionShadeTextured4();
+    int leftSectionShadeTextured4();
+    struct SoftVertex {
+        int x, y;
+        int u, v;
+        int32_t R, G, B;
+    };
+
+    SoftVertex m_vtx[4];
+    SoftVertex *m_leftArray[4], *m_rightArray[4];
+    int m_leftSection, m_rightSection;
+    int m_leftSectionHeight, m_rightSectionHeight;
+    int m_leftX, m_deltaLeftX, m_rightX, m_deltaRightX;
+    int m_leftU, m_deltaLeftU, m_leftV, m_deltaLeftV;
+    int m_rightU, m_deltaRightU, m_rightV, m_deltaRightV;
+    int m_leftR, deltaLeftR, m_rightR, m_deltaRightR;
+    int m_leftG, m_deltaLeftG, m_rightG, m_deltaRightG;
+    int m_leftB, m_deltaLeftB, m_rightB, m_deltaRightB;
+
+    static constexpr inline int shl10idiv(int x, int y) {
+        int64_t bi = x;
+        bi <<= 10;
+        return bi / y;
+    }
 };
 
 }  // namespace SoftGPU

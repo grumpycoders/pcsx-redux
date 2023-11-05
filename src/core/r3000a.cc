@@ -40,16 +40,14 @@ int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("Copyright (C) 2019-2023 PCSX-Redux authors\n"));
     const auto& args = g_system->getArgs();
 
-    if (args.get<bool>("interpreter"))
-        g_emulator->m_cpu = Cpus::Interpreted();
-    else if (args.get<bool>("dynarec"))
+    if (g_emulator->settings.get<Emulator::SettingDynarec>()) {
         g_emulator->m_cpu = Cpus::DynaRec();
-    else if (g_emulator->settings.get<Emulator::SettingDynarec>())
-        g_emulator->m_cpu = Cpus::DynaRec();
+    }
 
     if (!g_emulator->m_cpu) g_emulator->m_cpu = Cpus::Interpreted();
 
     PGXP_Init();
+    g_system->printf(_("CPU type: %s\n"), g_emulator->m_cpu->getName().c_str());
 
     return g_emulator->m_cpu->Init();
 }
@@ -59,6 +57,15 @@ void PCSX::R3000Acpu::psxReset() {
 
     memset(&m_regs, 0, sizeof(m_regs));
     m_shellStarted = false;
+    m_inISR = false;
+    m_nextIsDelaySlot = false;
+    m_inDelaySlot = false;
+    m_delayedLoadInfo[0].active = false;
+    m_delayedLoadInfo[0].pcActive = false;
+    m_delayedLoadInfo[1].active = false;
+    m_delayedLoadInfo[1].pcActive = false;
+    m_currentDelayedLoad = false;
+    closeAllPCdrvFiles();
 
     m_regs.pc = 0xbfc00000;  // Start in bootstrap
 
@@ -82,16 +89,17 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
             uint32_t code = (memFile->readAt<uint32_t>(m_regs.pc) >> 6) & 0xfffff;
             auto& regs = m_regs.GPR.n;
+            uint16_t fd = 0;
             switch (code) {
                 case 0x101: {  // PCinit
-                    closeAllPCdevFiles();
+                    closeAllPCdrvFiles();
                     regs.v0 = 0;
                     regs.v1 = 0;
                     m_regs.pc += 4;
                     return;
                 }
                 case 0x102: {  // PCcreat
-                    if (m_pcdrvFiles.size() > std::numeric_limits<decltype(m_pcdrvIndex)>::max()) {
+                    if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
@@ -100,26 +108,23 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     memFile->rSeek(m_regs.GPR.n.a0);
                     auto filename = memFile->gets<false>();
-                    PCdrvFiles::iterator file;
-                    do {
-                        file = m_pcdrvFiles.find(++m_pcdrvIndex);
-                    } while (file != m_pcdrvFiles.end());
-                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename, FileOps::TRUNCATE));
+                    fd = m_availableFDs.front();
+                    auto file = m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename, FileOps::TRUNCATE));
                     file->m_relativeFilename = filename;
-                    if (file->failed()) {
+                    if ((*file)->failed()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        file->close();
                         delete &*file;
                     } else {
+                        m_availableFDs.pop_front();
                         regs.v0 = 0;
-                        regs.v1 = file->getKey();
+                        regs.v1 = fd;
                     }
                     m_regs.pc += 4;
                     return;
                 }
                 case 0x103: {  // PCopen
-                    if (m_pcdrvFiles.size() > std::numeric_limits<decltype(m_pcdrvIndex)>::max()) {
+                    if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
@@ -129,33 +134,37 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     memFile->rSeek(m_regs.GPR.n.a0);
                     auto filename = memFile->gets<false>();
                     PCdrvFiles::iterator file;
-                    do {
-                        file = m_pcdrvFiles.find(++m_pcdrvIndex);
-                    } while (file != m_pcdrvFiles.end());
-                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename));
+                    auto path = basepath / filename;
+                    fd = m_availableFDs.front();
+                    if (regs.a1 == 0) {
+                        file = m_pcdrvFiles.insert(fd, new PCdrvFile(path));
+                    } else {
+                        file = m_pcdrvFiles.insert(fd, new PCdrvFile(path, FileOps::READWRITE));
+                    }
                     file->m_relativeFilename = filename;
-                    if (file->failed()) {
+                    if ((*file)->failed()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        file->close();
                         delete &*file;
                     } else {
+                        m_availableFDs.pop_front();
                         regs.v0 = 0;
-                        regs.v1 = file->getKey();
+                        regs.v1 = fd;
                     }
                     m_regs.pc += 4;
                     return;
                 }
                 case 0x104: {  // PCclose
-                    auto file = m_pcdrvFiles.find(m_regs.GPR.n.a0);
+                    fd = m_regs.GPR.n.a0;
+                    auto file = m_pcdrvFiles.find(fd);
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                     } else {
                         regs.v0 = 0;
                         regs.v1 = 0;
-                        file->close();
                         delete &*file;
+                        m_availableFDs.push_back(fd);
                     }
                     m_regs.pc += 4;
                     return;
@@ -168,13 +177,13 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_regs.pc += 4;
                         return;
                     }
-                    if (file->failed() || file->eof()) {
+                    if ((*file)->failed() || (*file)->eof()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
                         return;
                     }
-                    auto slice = static_cast<File*>(&*file)->read(regs.a2);
+                    auto slice = (*file)->read(regs.a2);
                     regs.v0 = 0;
                     regs.v1 = slice.size();
                     memFile->writeAt(std::move(slice), regs.a3);
@@ -190,7 +199,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         return;
                     }
                     auto slice = memFile->readAt(regs.a2, regs.a3);
-                    if ((regs.v1 = file->write(slice.data(), slice.size())) < 0) {
+                    if ((regs.v1 = (*file)->write(slice.data(), slice.size())) < 0) {
                         regs.v0 = -1;
                     } else {
                         regs.v0 = 0;
@@ -223,10 +232,10 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                             m_regs.pc += 4;
                             return;
                     }
-                    auto ret = file->writable() ? file->wSeek(regs.a2, wheel) : file->rSeek(regs.a2, wheel);
-                    if (ret == 0) {
+                    auto ret = (*file)->writable() ? (*file)->wSeek(regs.a2, wheel) : (*file)->rSeek(regs.a2, wheel);
+                    if (ret >= 0) {
                         regs.v0 = 0;
-                        regs.v1 = file->writable() ? file->wTell() : file->rTell();
+                        regs.v1 = (*file)->writable() ? (*file)->wTell() : (*file)->rTell();
                     } else {
                         regs.v0 = -1;
                         regs.v1 = ret;
@@ -239,7 +248,8 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
             }
         }
         ec = 1 << ec;
-        if (!g_system->testmode() && ((debugSettings.get<Emulator::DebugSettings::FirstChanceException>() & ec) != 0)) {
+        if (!g_system->getArgs().isTestModeEnabled() &&
+            ((debugSettings.get<Emulator::DebugSettings::FirstChanceException>() & ec) != 0)) {
             auto name = magic_enum::enum_name(e.value());
             g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_regs.pc).c_str());
             g_system->pause(true);
@@ -251,9 +261,9 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
     // Set the EPC & PC
     if (bd) {
         code |= 0x80000000;
-        m_regs.CP0.n.EPC = (m_regs.pc - 4);
+        m_regs.CP0.n.EPC = m_regs.pc - 4;
     } else {
-        m_regs.CP0.n.EPC = (m_regs.pc);
+        m_regs.CP0.n.EPC = m_regs.pc;
     }
 
     if (m_regs.CP0.n.Status & 0x400000) {
@@ -275,6 +285,12 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
     m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename));
+    for (auto f = m_availableFDs.begin(); f != m_availableFDs.end(); f++) {
+        if (*f == fd) {
+            m_availableFDs.erase(f);
+            break;
+        }
+    }
 }
 
 void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd, FileOps::Create) {
@@ -282,8 +298,14 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
     auto f = new PCdrvFile(basepath / filename, FileOps::CREATE);
-    f->wSeek(0, SEEK_END);
+    (*f)->wSeek(0, SEEK_END);
     m_pcdrvFiles.insert(fd, f);
+    for (auto f = m_availableFDs.begin(); f != m_availableFDs.end(); f++) {
+        if (*f == fd) {
+            m_availableFDs.erase(f);
+            break;
+        }
+    }
 }
 
 void PCSX::R3000Acpu::branchTest() {
@@ -323,23 +345,23 @@ void PCSX::R3000Acpu::branchTest() {
     uint32_t* targets = m_regs.intTargets;
 
     if ((interrupts != 0) && (((int32_t)(m_regs.lowestTarget - cycle)) <= 0)) {
-#define checkAndUpdate(irq, act)                                \
-    {                                                           \
-        constexpr uint32_t mask = 1 << irq;                     \
-        if ((interrupts & mask) != 0) {                         \
-            uint32_t target = targets[irq];                     \
-            int32_t dist = target - cycle;                      \
-            if (dist > 0) {                                     \
-                if (lowestDistance > dist) {                    \
-                    lowestDistance = dist;                      \
-                    lowestTarget = target;                      \
-                }                                               \
-            } else {                                            \
-                m_regs.interrupt &= ~mask;                      \
-                PSXIRQ_LOG("Triggering interrupt %08x\n", irq); \
-                act();                                          \
-            }                                                   \
-        }                                                       \
+#define checkAndUpdate(irq, act)                                                          \
+    {                                                                                     \
+        constexpr uint32_t mask = 1 << irq;                                               \
+        if ((interrupts & mask) != 0) {                                                   \
+            uint32_t target = targets[irq];                                               \
+            int32_t dist = target - cycle;                                                \
+            if (dist > 0) {                                                               \
+                if (lowestDistance > dist) {                                              \
+                    lowestDistance = dist;                                                \
+                    lowestTarget = target;                                                \
+                }                                                                         \
+            } else {                                                                      \
+                m_regs.interrupt &= ~mask;                                                \
+                PSXIRQ_LOG("Triggering interrupt %08x\n", magic_enum::enum_integer(irq)); \
+                act();                                                                    \
+            }                                                                             \
+        }                                                                                 \
     }
         checkAndUpdate(PSXINT_SIO, g_emulator->m_sio->interrupt);
         checkAndUpdate(PSXINT_SIO1, g_emulator->m_sio1->interrupt);

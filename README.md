@@ -1,5 +1,6 @@
 ![Debugger screenshot](https://pcsx-redux.consoledev.net/images/debugger1.png)
 
+<a href='https://ko-fi.com/nicolasnoble' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
 
 |Platform|Build status|Download|
 |--------|------------|--------|
@@ -7,9 +8,13 @@
 |Linux build|[![Linux CI](https://github.com/grumpycoders/pcsx-redux/workflows/Linux%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22Linux+CI%22+branch%3Amain)|[Linux Intel 64-bits (AppImage)](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-linux64/distribution_groups/public)|
 |MacOS build|[![MacOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22macOS+CI%22+branch%3Amain)|[MacOS](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-macos/distribution_groups/public)|
 
-To discuss this emulator specifically, please join our Discord server: [![Discord](https://img.shields.io/discord/567975889879695361)](https://discord.gg/KG5uCqw)
+To discuss this emulator specifically, please join our Discord server:
 
-To discuss PlayStation 1 development, hacking, and reverse engineering in general, please join the PSX.Dev Discord server: [![Discord](https://img.shields.io/discord/642647820683444236)](https://discord.gg/QByKPpH)
+[![Discord](https://discord.com/api/guilds/567975889879695361/widget.png?style=banner2)](https://discord.gg/KG5uCqw)
+
+To discuss PlayStation 1 development, hacking, and reverse engineering in general, please join the PSX.Dev Discord server:
+
+[![Discord](https://discord.com/api/guilds/642647820683444236/widget.png?style=banner2)](https://discord.gg/QByKPpH)
 
 # PCSX-Redux
 
@@ -71,7 +76,7 @@ powershell -c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"
 Then, open a new command prompt, and type the following:
 
 ```
-mips install 12.2.0
+mips install 13.2.0
 ```
 
 To manually install this script, you can download it from [here](https://bit.ly/mips-ps1), and then install it with the following command:
@@ -82,8 +87,10 @@ powershell -ExecutionPolicy Unrestricted -File mips.ps1 self-install C:\path\to\
 
 You can leave the installation path blank to install the script in the Application Data folder.
 
+Once the toolchain is installed, you can compile OpenBIOS using `make -C src/mips/openbios`.
+
 ### Linux
-Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. You will also need a few libraries on your system for this to work. Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/build/Dockerfile#L22) for a list of library packages to install. Alternatively, if you do not want to use Docker, you can also simply install the dependencies listed below and run `make`.
+Run `./dockermake.sh appimage`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. This will create an [AppImage](https://appimage.org/) file, called `PCSX-Redux-HEAD-x86_64.AppImage`, which a self-hosted binary containing all of its required dependencies. Alternatively, if you do not want to use Docker, you can also simply install the dependencies listed below and run `make`.
 
 #### GNU/Linux Dependencies
 
@@ -137,7 +144,7 @@ Since the inception of this codebase, several people have contributed to it. Ple
 When Sony released the Playstation Classic recently, I came to realize two things: first, the state of the Playstation emulation isn't that great, and second, the only half-decent debugging tool still available for this console is that old telnet debugger I wrote eons ago, while other emulators out there for other consoles gained a lot of debugging superpowers. I think it was time for the Playstation emulation to get to better standards with regards to debuggability. I also felt I had a responsability to cleaning up some of the horrors I've introduced myself in the codebase long ago, and that made me cry a little looking at them. Hopefully, I got better at programming. Hopefully.
 
 ## Status?
-The codebase still requires a lot of cleanup, and the current product isn't properly usable yet. Despite that, a lot can already be achieved using the product in its current state. If you want to help with localization, you can find the translation project [on transifex](https://www.transifex.com/grumpycoders/pcsx-redux/languages/).
+The codebase still requires a lot of cleanup, and while the product is usable in its current state and lots can be achieved with it, there is still ways to go for reaching the first stable release. If you want to help with localization, you can find the translation project [on transifex](https://www.transifex.com/grumpycoders/pcsx-redux/languages/).
 
 ### What works?
 - Dynamic Recompiler (x86-64, experimental arm64 support)
@@ -168,6 +175,6 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - better customization
 - more generic dynarec
 - hook more emulator functions to Lua
-- ...
+- see [TODO](TODO.md) for more
 
 [![Redux definition](https://pbs.twimg.com/media/ENJhNwGWwAEbrGb?format=jpg)](https://twitter.com/MerriamWebster/status/1212357808026341376)

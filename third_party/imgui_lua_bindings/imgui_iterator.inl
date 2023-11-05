@@ -397,14 +397,14 @@ OPTIONAL_INT_ARG(count, 1)
 CALL_FUNCTION_NO_RET(PopStyleVar, count)
 POP_END_STACK(3)
 END_IMGUI_FUNC
-//    IMGUI_API void          PushAllowKeyboardFocus(bool allow_keyboard_focus);              // == tab stop enable. Allow focusing using TAB/Shift-TAB, enabled by default but you can disable it for certain widgets
-IMGUI_FUNCTION(PushAllowKeyboardFocus)
-BOOL_ARG(allow_keyboard_focus)
-CALL_FUNCTION_NO_RET(PushAllowKeyboardFocus, allow_keyboard_focus)
+//    IMGUI_API void          PushTabStop(bool tab_stop);                                     // == tab stop enable. Allow focusing using TAB/Shift-TAB, enabled by default but you can disable it for certain widgets
+IMGUI_FUNCTION(PushTabStop)
+BOOL_ARG(tab_stop)
+CALL_FUNCTION_NO_RET(PushTabStop, tab_stop)
 END_IMGUI_FUNC
-//    IMGUI_API void          PopAllowKeyboardFocus();
-IMGUI_FUNCTION(PopAllowKeyboardFocus)
-CALL_FUNCTION_NO_RET(PopAllowKeyboardFocus)
+//    IMGUI_API void          PopTabStop();
+IMGUI_FUNCTION(PopTabStop)
+CALL_FUNCTION_NO_RET(PopTabStop)
 END_IMGUI_FUNC
 //    IMGUI_API void          PushButtonRepeat(bool repeat);                                  // in 'repeat' mode, Button*() functions return repeated true in a typematic manner (using io.KeyRepeatDelay/io.KeyRepeatRate setting). Note that you can call IsItemActive() after any Button() to tell if the button is held in the current frame.
 IMGUI_FUNCTION(PushButtonRepeat)
@@ -632,7 +632,7 @@ END_IMGUI_FUNC
 //    IMGUI_API void          TextUnformatted(const char* text, const char* text_end = NULL); // raw text without formatting. Roughly equivalent to Text("%s", text) but: A) doesn't require null terminated string if 'text_end' is specified, B) it's faster, no memory copy is done, no buffer size limits, recommended for long chunks of text.
 IMGUI_FUNCTION(TextUnformatted)
 LABEL_ARG(text)
-OPTIONAL_LABEL_ARG(text_end)
+OPTIONAL_LABEL_ARG(text_end, NULL)
 CALL_FUNCTION_NO_RET(TextUnformatted, text, text_end)
 END_IMGUI_FUNC
 //    IMGUI_API void          Text(const char* fmt, ...)                                      IM_FMTARGS(1); // formatted text
@@ -659,6 +659,11 @@ END_IMGUI_FUNC
 // Unsupported arg type  ...)                                IM_FMTARGS(1
 //    IMGUI_API void          BulletTextV(const char* fmt, va_list args)                      IM_FMTLIST(1);
 // Unsupported arg type  va_list args)                      IM_FMTLIST(1
+//    IMGUI_API void          SeparatorText(const char* label);                               // currently: formatted text with an horizontal line
+IMGUI_FUNCTION(SeparatorText)
+LABEL_ARG(label)
+CALL_FUNCTION_NO_RET(SeparatorText, label)
+END_IMGUI_FUNC
 //    IMGUI_API bool          Button(const char* label, const ImVec2& size = ImVec2 0  0);   // button
 IMGUI_FUNCTION(Button)
 LABEL_ARG(label)
@@ -733,7 +738,7 @@ END_IMGUI_FUNC
 IMGUI_FUNCTION(ProgressBar)
 NUMBER_ARG(fraction)
 OPTIONAL_IM_VEC_2_ARG(size_arg, -FLT_MIN, 0)
-OPTIONAL_LABEL_ARG(overlay)
+OPTIONAL_LABEL_ARG(overlay, NULL)
 CALL_FUNCTION_NO_RET(ProgressBar, fraction, size_arg, overlay)
 END_IMGUI_FUNC
 //    IMGUI_API void          Bullet();                                                       // draw a small circle + keep the cursor on the same line. advance cursor x position by GetTreeNodeToLabelSpacing(), same distance that TreeNode() uses
@@ -799,7 +804,7 @@ FLOAT_POINTER_ARG(v)
 OPTIONAL_NUMBER_ARG(v_speed, 1.0f)
 OPTIONAL_NUMBER_ARG(v_min, 0.0f)
 OPTIONAL_NUMBER_ARG(v_max, 0.0f)
-LABEL_ARG(format)
+OPTIONAL_LABEL_ARG(format, "%.3f")
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(DragFloat, bool, label, v, v_speed, v_min, v_max, format, flags)
 PUSH_BOOL(ret)
@@ -819,8 +824,8 @@ FLOAT_POINTER_ARG(v_current_max)
 OPTIONAL_NUMBER_ARG(v_speed, 1.0f)
 OPTIONAL_NUMBER_ARG(v_min, 0.0f)
 OPTIONAL_NUMBER_ARG(v_max, 0.0f)
-LABEL_ARG(format)
-OPTIONAL_LABEL_ARG(format_max)
+OPTIONAL_LABEL_ARG(format, "%.3f")
+OPTIONAL_LABEL_ARG(format_max, NULL)
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(DragFloatRange2, bool, label, v_current_min, v_current_max, v_speed, v_min, v_max, format, format_max, flags)
 PUSH_BOOL(ret)
@@ -834,7 +839,7 @@ INT_POINTER_ARG(v)
 OPTIONAL_NUMBER_ARG(v_speed, 1.0f)
 OPTIONAL_INT_ARG(v_min, 0)
 OPTIONAL_INT_ARG(v_max, 0)
-LABEL_ARG(format)
+OPTIONAL_LABEL_ARG(format, "%d")
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(DragInt, bool, label, v, v_speed, v_min, v_max, format, flags)
 PUSH_BOOL(ret)
@@ -854,8 +859,8 @@ INT_POINTER_ARG(v_current_max)
 OPTIONAL_NUMBER_ARG(v_speed, 1.0f)
 OPTIONAL_INT_ARG(v_min, 0)
 OPTIONAL_INT_ARG(v_max, 0)
-LABEL_ARG(format)
-OPTIONAL_LABEL_ARG(format_max)
+OPTIONAL_LABEL_ARG(format, "%d")
+OPTIONAL_LABEL_ARG(format_max, NULL)
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(DragIntRange2, bool, label, v_current_min, v_current_max, v_speed, v_min, v_max, format, format_max, flags)
 PUSH_BOOL(ret)
@@ -876,7 +881,7 @@ LABEL_ARG(label)
 FLOAT_POINTER_ARG(v)
 NUMBER_ARG(v_min)
 NUMBER_ARG(v_max)
-LABEL_ARG(format)
+OPTIONAL_LABEL_ARG(format, "%.3f")
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(SliderFloat, bool, label, v, v_min, v_max, format, flags)
 PUSH_BOOL(ret)
@@ -906,7 +911,7 @@ LABEL_ARG(label)
 INT_POINTER_ARG(v)
 INT_ARG(v_min)
 INT_ARG(v_max)
-LABEL_ARG(format)
+OPTIONAL_LABEL_ARG(format, "%d")
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(SliderInt, bool, label, v, v_min, v_max, format, flags)
 PUSH_BOOL(ret)
@@ -933,7 +938,7 @@ IM_VEC_2_ARG(size)
 FLOAT_POINTER_ARG(v)
 NUMBER_ARG(v_min)
 NUMBER_ARG(v_max)
-LABEL_ARG(format)
+OPTIONAL_LABEL_ARG(format, "%.3f")
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(VSliderFloat, bool, label, size, v, v_min, v_max, format, flags)
 PUSH_BOOL(ret)
@@ -946,7 +951,7 @@ IM_VEC_2_ARG(size)
 INT_POINTER_ARG(v)
 INT_ARG(v_min)
 INT_ARG(v_max)
-LABEL_ARG(format)
+OPTIONAL_LABEL_ARG(format, "%d")
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(VSliderInt, bool, label, size, v, v_min, v_max, format, flags)
 PUSH_BOOL(ret)
@@ -977,7 +982,7 @@ LABEL_ARG(label)
 FLOAT_POINTER_ARG(v)
 OPTIONAL_NUMBER_ARG(step, 0.0f)
 OPTIONAL_NUMBER_ARG(step_fast, 0.0f)
-LABEL_ARG(format)
+OPTIONAL_LABEL_ARG(format, "%.3f")
 OPTIONAL_INT_ARG(flags, 0)
 CALL_FUNCTION(InputFloat, bool, label, v, step, step_fast, format, flags)
 PUSH_BOOL(ret)
@@ -1158,7 +1163,7 @@ IMGUI_FUNCTION(PlotLines)
 LABEL_ARG(label)
 FLOAT_ARRAY_ARG(values)
 OPTIONAL_INT_ARG(values_offset, 0)
-OPTIONAL_LABEL_ARG(overlay_text)
+OPTIONAL_LABEL_ARG(overlay_text, NULL)
 OPTIONAL_NUMBER_ARG(scale_min, FLT_MAX)
 OPTIONAL_NUMBER_ARG(scale_max, FLT_MAX)
 OPTIONAL_IM_VEC_2_ARG(graph_size, 0, 0)
@@ -1174,7 +1179,7 @@ IMGUI_FUNCTION(PlotHistogram)
 LABEL_ARG(label)
 FLOAT_ARRAY_ARG(values)
 OPTIONAL_INT_ARG(values_offset, 0)
-OPTIONAL_LABEL_ARG(overlay_text)
+OPTIONAL_LABEL_ARG(overlay_text, NULL)
 OPTIONAL_NUMBER_ARG(scale_min, FLT_MAX)
 OPTIONAL_NUMBER_ARG(scale_max, FLT_MAX)
 OPTIONAL_IM_VEC_2_ARG(graph_size, 0, 0)
@@ -1207,7 +1212,7 @@ END_IMGUI_FUNC
 IMGUI_FUNCTION(Value_3)
 LABEL_ARG(prefix)
 NUMBER_ARG(v)
-OPTIONAL_LABEL_ARG(float_format)
+OPTIONAL_LABEL_ARG(float_format, NULL)
 CALL_FUNCTION_NO_RET(Value, prefix, v, float_format)
 END_IMGUI_FUNC
 //    IMGUI_API bool          BeginMenuBar();                                                     // append to menu-bar of current window (requires ImGuiWindowFlags_MenuBar flag set on parent window).
@@ -1248,7 +1253,7 @@ END_IMGUI_FUNC
 //    IMGUI_API bool          MenuItem(const char* label, const char* shortcut = NULL, bool selected = false, bool enabled = true);  // return true when activated.
 IMGUI_FUNCTION(MenuItem)
 LABEL_ARG(label)
-OPTIONAL_LABEL_ARG(shortcut)
+OPTIONAL_LABEL_ARG(shortcut, NULL)
 OPTIONAL_BOOL_ARG(selected, false)
 OPTIONAL_BOOL_ARG(enabled, true)
 CALL_FUNCTION(MenuItem, bool, label, shortcut, selected, enabled)
@@ -1264,12 +1269,13 @@ CALL_FUNCTION(MenuItem, bool, label, shortcut, p_selected, enabled)
 PUSH_BOOL(ret)
 END_BOOL_POINTER(p_selected)
 END_IMGUI_FUNC
-//    IMGUI_API void          BeginTooltip();                                                     // begin/append a tooltip window. to create full-featured tooltip (with any kind of items).
+//    IMGUI_API bool          BeginTooltip();                                                     // begin/append a tooltip window. to create full-featured tooltip (with any kind of items).
 IMGUI_FUNCTION(BeginTooltip)
-CALL_FUNCTION_NO_RET(BeginTooltip)
-ADD_END_STACK(11)
+CALL_FUNCTION(BeginTooltip, bool)
+IF_RET_ADD_END_STACK(11)
+PUSH_BOOL(ret)
 END_IMGUI_FUNC
-//    IMGUI_API void          EndTooltip();
+//    IMGUI_API void          EndTooltip();                                                       // only call EndTooltip() if BeginTooltip() returns true!
 IMGUI_FUNCTION(EndTooltip)
 CALL_FUNCTION_NO_RET(EndTooltip)
 POP_END_STACK(11)
@@ -1315,7 +1321,7 @@ CALL_FUNCTION_NO_RET(OpenPopup, id, popup_flags)
 END_IMGUI_FUNC
 //    IMGUI_API void          OpenPopupOnItemClick(const char* str_id = NULL, ImGuiPopupFlags popup_flags = 1);   // helper to open popup when clicked on last item. Default to ImGuiPopupFlags_MouseButtonRight == 1. (note: actually triggers on the mouse _released_ event to be consistent with popup behaviors)
 IMGUI_FUNCTION(OpenPopupOnItemClick)
-OPTIONAL_LABEL_ARG(str_id)
+OPTIONAL_LABEL_ARG(str_id, NULL)
 OPTIONAL_INT_ARG(popup_flags, 1)
 CALL_FUNCTION_NO_RET(OpenPopupOnItemClick, str_id, popup_flags)
 END_IMGUI_FUNC
@@ -1325,7 +1331,7 @@ CALL_FUNCTION_NO_RET(CloseCurrentPopup)
 END_IMGUI_FUNC
 //    IMGUI_API bool          BeginPopupContextItem(const char* str_id = NULL, ImGuiPopupFlags popup_flags = 1);  // open+begin popup when clicked on last item. Use str_id==NULL to associate the popup to previous item. If you want to use that on a non-interactive item such as Text() you need to pass in an explicit ID here. read comments in .cpp!
 IMGUI_FUNCTION(BeginPopupContextItem)
-OPTIONAL_LABEL_ARG(str_id)
+OPTIONAL_LABEL_ARG(str_id, NULL)
 OPTIONAL_INT_ARG(popup_flags, 1)
 CALL_FUNCTION(BeginPopupContextItem, bool, str_id, popup_flags)
 IF_RET_ADD_END_STACK(12)
@@ -1333,7 +1339,7 @@ PUSH_BOOL(ret)
 END_IMGUI_FUNC
 //    IMGUI_API bool          BeginPopupContextWindow(const char* str_id = NULL, ImGuiPopupFlags popup_flags = 1);// open+begin popup when clicked on current window.
 IMGUI_FUNCTION(BeginPopupContextWindow)
-OPTIONAL_LABEL_ARG(str_id)
+OPTIONAL_LABEL_ARG(str_id, NULL)
 OPTIONAL_INT_ARG(popup_flags, 1)
 CALL_FUNCTION(BeginPopupContextWindow, bool, str_id, popup_flags)
 IF_RET_ADD_END_STACK(12)
@@ -1341,7 +1347,7 @@ PUSH_BOOL(ret)
 END_IMGUI_FUNC
 //    IMGUI_API bool          BeginPopupContextVoid(const char* str_id = NULL, ImGuiPopupFlags popup_flags = 1);  // open+begin popup when clicked in void (where there are no windows).
 IMGUI_FUNCTION(BeginPopupContextVoid)
-OPTIONAL_LABEL_ARG(str_id)
+OPTIONAL_LABEL_ARG(str_id, NULL)
 OPTIONAL_INT_ARG(popup_flags, 1)
 CALL_FUNCTION(BeginPopupContextVoid, bool, str_id, popup_flags)
 IF_RET_ADD_END_STACK(12)
@@ -1442,7 +1448,7 @@ END_IMGUI_FUNC
 //    IMGUI_API void          Columns(int count = 1, const char* id = NULL, bool border = true);
 IMGUI_FUNCTION(Columns)
 OPTIONAL_INT_ARG(count, 1)
-OPTIONAL_LABEL_ARG(id)
+OPTIONAL_LABEL_ARG(id, NULL)
 OPTIONAL_BOOL_ARG(border, true)
 CALL_FUNCTION_NO_RET(Columns, count, id, border)
 END_IMGUI_FUNC
@@ -1549,7 +1555,7 @@ END_IMGUI_FUNC
 //    IMGUI_API void          LogToFile(int auto_open_depth = -1, const char* filename = NULL);   // start logging to file
 IMGUI_FUNCTION(LogToFile)
 OPTIONAL_INT_ARG(auto_open_depth, -1)
-OPTIONAL_LABEL_ARG(filename)
+OPTIONAL_LABEL_ARG(filename, NULL)
 CALL_FUNCTION_NO_RET(LogToFile, auto_open_depth, filename)
 END_IMGUI_FUNC
 //    IMGUI_API void          LogToClipboard(int auto_open_depth = -1);                           // start logging to OS clipboard
@@ -1697,6 +1703,11 @@ IMGUI_FUNCTION(IsAnyItemFocused)
 CALL_FUNCTION(IsAnyItemFocused, bool)
 PUSH_BOOL(ret)
 END_IMGUI_FUNC
+//    IMGUI_API ImGuiID       GetItemID();                                                        // get ID of last item (~~ often same ImGui::GetID(label) beforehand)
+IMGUI_FUNCTION(GetItemID)
+CALL_FUNCTION(GetItemID, unsigned int)
+PUSH_NUMBER(ret)
+END_IMGUI_FUNC
 //    IMGUI_API ImVec2        GetItemRectMin();                                                   // get upper-left bounding rectangle of the last item (screen space)
 IMGUI_FUNCTION(GetItemRectMin)
 CALL_FUNCTION(GetItemRectMin, ImVec2)
@@ -1777,7 +1788,7 @@ END_IMGUI_FUNC
 //    IMGUI_API ImVec2        CalcTextSize(const char* text, const char* text_end = NULL, bool hide_text_after_double_hash = false, float wrap_width = -1.0f);
 IMGUI_FUNCTION(CalcTextSize)
 LABEL_ARG(text)
-OPTIONAL_LABEL_ARG(text_end)
+OPTIONAL_LABEL_ARG(text_end, NULL)
 OPTIONAL_BOOL_ARG(hide_text_after_double_hash, false)
 OPTIONAL_NUMBER_ARG(wrap_width, -1.0f)
 CALL_FUNCTION(CalcTextSize, ImVec2, text, text_end, hide_text_after_double_hash, wrap_width)
@@ -2104,10 +2115,8 @@ MAKE_ENUM(ImGuiInputTextFlags_CharsScientific,CharsScientific)
 MAKE_ENUM(ImGuiInputTextFlags_CallbackResize,CallbackResize)
 //    ImGuiInputTextFlags_CallbackEdit        = 1 << 19,  // Callback on any edit (note that InputText() already returns true on edit, the callback is useful mainly to manipulate the underlying buffer while focus is active)
 MAKE_ENUM(ImGuiInputTextFlags_CallbackEdit,CallbackEdit)
-//    ImGuiInputTextFlags_EscapeClearsAll     = 1 << 20,  // Escape key clears content if not empty, and deactivate otherwise (constrast to default behavior of Escape to revert)
+//    ImGuiInputTextFlags_EscapeClearsAll     = 1 << 20,  // Escape key clears content if not empty, and deactivate otherwise (contrast to default behavior of Escape to revert)
 MAKE_ENUM(ImGuiInputTextFlags_EscapeClearsAll,EscapeClearsAll)
-//    ImGuiInputTextFlags_AlwaysInsertMode    = ImGuiInputTextFlags_AlwaysOverwrite   // [renamed in 1.82] name was not matching behavior
-MAKE_ENUM(ImGuiInputTextFlags_AlwaysInsertMode,AlwaysInsertMode)
 END_ENUM(InputTextFlags)
 //enum ImGuiTreeNodeFlags_
 
@@ -2468,7 +2477,7 @@ END_ENUM(DockNodeFlags)
 START_ENUM(DragDropFlags)
 //    ImGuiDragDropFlags_None                         = 0,
 MAKE_ENUM(ImGuiDragDropFlags_None,None)
-//    ImGuiDragDropFlags_SourceNoPreviewTooltip       = 1 << 0,   // By default, a successful call to BeginDragDropSource opens a tooltip so you can display a preview or description of the source contents. This flag disables this behavior.
+//    ImGuiDragDropFlags_SourceNoPreviewTooltip       = 1 << 0,   // Disable preview tooltip. By default, a successful call to BeginDragDropSource opens a tooltip so you can display a preview or description of the source contents. This flag disables this behavior.
 MAKE_ENUM(ImGuiDragDropFlags_SourceNoPreviewTooltip,SourceNoPreviewTooltip)
 //    ImGuiDragDropFlags_SourceNoDisableHover         = 1 << 1,   // By default, when dragging we clear data so that IsItemHovered() will return false, to avoid subsequent user code submitting tooltips. This flag disables this behavior so you can still call IsItemHovered() on the source item.
 MAKE_ENUM(ImGuiDragDropFlags_SourceNoDisableHover,SourceNoDisableHover)
@@ -2550,7 +2559,7 @@ END_ENUM(SortDirection)
 START_ENUM(ConfigFlags)
 //    ImGuiConfigFlags_None                   = 0,
 MAKE_ENUM(ImGuiConfigFlags_None,None)
-//    ImGuiConfigFlags_NavEnableKeyboard      = 1 << 0,   // Master keyboard navigation enable flag.
+//    ImGuiConfigFlags_NavEnableKeyboard      = 1 << 0,   // Master keyboard navigation enable flag. Enable full Tabbing + directional arrows + space/enter to activate.
 MAKE_ENUM(ImGuiConfigFlags_NavEnableKeyboard,NavEnableKeyboard)
 //    ImGuiConfigFlags_NavEnableGamepad       = 1 << 1,   // Master gamepad navigation enable flag. Backend also needs to set ImGuiBackendFlags_HasGamepad.
 MAKE_ENUM(ImGuiConfigFlags_NavEnableGamepad,NavEnableGamepad)
@@ -2764,6 +2773,12 @@ MAKE_ENUM(ImGuiStyleVar_TabRounding,TabRounding)
 MAKE_ENUM(ImGuiStyleVar_ButtonTextAlign,ButtonTextAlign)
 //    ImGuiStyleVar_SelectableTextAlign, // ImVec2    SelectableTextAlign
 MAKE_ENUM(ImGuiStyleVar_SelectableTextAlign,SelectableTextAlign)
+//    ImGuiStyleVar_SeparatorTextBorderSize,// float  SeparatorTextBorderSize
+MAKE_ENUM(ImGuiStyleVar_SeparatorTextBorderSize,SeparatorTextBorderSize)
+//    ImGuiStyleVar_SeparatorTextAlign,  // ImVec2    SeparatorTextAlign
+MAKE_ENUM(ImGuiStyleVar_SeparatorTextAlign,SeparatorTextAlign)
+//    ImGuiStyleVar_SeparatorTextPadding,// ImVec2    SeparatorTextPadding
+MAKE_ENUM(ImGuiStyleVar_SeparatorTextPadding,SeparatorTextPadding)
 //    ImGuiStyleVar_COUNT
 MAKE_ENUM(ImGuiStyleVar_COUNT,COUNT)
 END_ENUM(StyleVar)
@@ -2844,8 +2859,6 @@ MAKE_ENUM(ImGuiSliderFlags_Logarithmic,Logarithmic)
 MAKE_ENUM(ImGuiSliderFlags_NoRoundToFormat,NoRoundToFormat)
 //    ImGuiSliderFlags_NoInput                = 1 << 7,       // Disable CTRL+Click or Enter key allowing to input text directly into the widget
 MAKE_ENUM(ImGuiSliderFlags_NoInput,NoInput)
-//    ImGuiSliderFlags_ClampOnInput = ImGuiSliderFlags_AlwaysClamp, // [renamed in 1.79]
-MAKE_ENUM(ImGuiSliderFlags_ClampOnInput,ClampOnInput)
 END_ENUM(SliderFlags)
 //enum ImGuiMouseButton_
 
@@ -2885,6 +2898,8 @@ MAKE_ENUM(ImGuiMouseCursor_NotAllowed,NotAllowed)
 //    ImGuiMouseCursor_COUNT
 MAKE_ENUM(ImGuiMouseCursor_COUNT,COUNT)
 END_ENUM(MouseCursor)
+//enum ImGuiMouseSource : int
+
 //enum ImGuiCond_
 
 START_ENUM(Cond)
@@ -3087,7 +3102,7 @@ IMGUI_FUNCTION_DRAW_LIST(AddText)
 IM_VEC_2_ARG(pos)
 UINT_ARG(col)
 LABEL_ARG(text_begin)
-OPTIONAL_LABEL_ARG(text_end)
+OPTIONAL_LABEL_ARG(text_end, NULL)
 DRAW_LIST_CALL_FUNCTION_NO_RET(AddText, pos, col, text_begin, text_end)
 END_IMGUI_FUNC
 //    IMGUI_API void  AddText(const ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* text_begin, const char* text_end = NULL, float wrap_width = 0.0f, const ImVec4* cpu_fine_clip_rect = NULL);
@@ -3268,7 +3283,7 @@ DRAW_LIST_CALL_FUNCTION_NO_RET(PrimQuadUV, a, b, c, d, uv_a, uv_b, uv_c, uv_d, c
 END_IMGUI_FUNC
 //    inline    void  PrimVtx(const ImVec2& pos, const ImVec2& uv, ImU32 col)         { PrimWriteIdx((ImDrawIdx)_VtxCurrentIdx); PrimWriteVtx(pos, uv, col); } // Write vertex with unique index
 // Unsupported arg type  ImU32 col)         { PrimWriteIdx((ImDrawIdx)_VtxCurrentIdx
-//    inline    void  AddBezierCurve(const ImVec2& p1, const ImVec2& p2, const ImVec2& p3, const ImVec2& p4, ImU32 col, float thickness, int num_segments = 0) { AddBezierCubic(p1, p2, p3, p4, col, thickness, num_segments); } // OBSOLETED in 1.80 (Jan 2021)
+//    //inline  void  AddBezierCurve(const ImVec2& p1, const ImVec2& p2, const ImVec2& p3, const ImVec2& p4, ImU32 col, float thickness, int num_segments = 0) { AddBezierCubic(p1, p2, p3, p4, col, thickness, num_segments); } // OBSOLETED in 1.80 (Jan 2021)
 // Unsupported arg type  int num_segments = 0) { AddBezierCubic(p1
 // Unsupported arg type  p2
 // Unsupported arg type  p3
@@ -3276,7 +3291,7 @@ END_IMGUI_FUNC
 // Unsupported arg type  col
 // Unsupported arg type  thickness
 // Unsupported arg type  num_segments
-//    inline    void  PathBezierCurveTo(const ImVec2& p2, const ImVec2& p3, const ImVec2& p4, int num_segments = 0) { PathBezierCubicCurveTo(p2, p3, p4, num_segments); } // OBSOLETED in 1.80 (Jan 2021)
+//    //inline  void  PathBezierCurveTo(const ImVec2& p2, const ImVec2& p3, const ImVec2& p4, int num_segments = 0) { PathBezierCubicCurveTo(p2, p3, p4, num_segments); } // OBSOLETED in 1.80 (Jan 2021)
 // Unsupported arg type  int num_segments = 0) { PathBezierCubicCurveTo(p2
 // Unsupported arg type  p3
 // Unsupported arg type  p4
@@ -3352,7 +3367,7 @@ MAKE_ENUM(ImGuiViewportFlags_None,None)
 MAKE_ENUM(ImGuiViewportFlags_IsPlatformWindow,IsPlatformWindow)
 //    ImGuiViewportFlags_IsPlatformMonitor        = 1 << 1,   // Represent a Platform Monitor (unused yet)
 MAKE_ENUM(ImGuiViewportFlags_IsPlatformMonitor,IsPlatformMonitor)
-//    ImGuiViewportFlags_OwnedByApp               = 1 << 2,   // Platform Window: is created/managed by the application (rather than a dear imgui backend)
+//    ImGuiViewportFlags_OwnedByApp               = 1 << 2,   // Platform Window: Was created/managed by the user application? (rather than our backend)
 MAKE_ENUM(ImGuiViewportFlags_OwnedByApp,OwnedByApp)
 //    ImGuiViewportFlags_NoDecoration             = 1 << 3,   // Platform Window: Disable platform decorations: title bar, borders, etc. (generally set all windows, but if ImGuiConfigFlags_ViewportsDecoration is set we only set this on popups/tooltips)
 MAKE_ENUM(ImGuiViewportFlags_NoDecoration,NoDecoration)
@@ -3366,14 +3381,16 @@ MAKE_ENUM(ImGuiViewportFlags_NoFocusOnClick,NoFocusOnClick)
 MAKE_ENUM(ImGuiViewportFlags_NoInputs,NoInputs)
 //    ImGuiViewportFlags_NoRendererClear          = 1 << 8,   // Platform Window: Renderer doesn't need to clear the framebuffer ahead (because we will fill it entirely).
 MAKE_ENUM(ImGuiViewportFlags_NoRendererClear,NoRendererClear)
-//    ImGuiViewportFlags_TopMost                  = 1 << 9,   // Platform Window: Display on top (for tooltips only).
-MAKE_ENUM(ImGuiViewportFlags_TopMost,TopMost)
-//    ImGuiViewportFlags_Minimized                = 1 << 10,  // Platform Window: Window is minimized, can skip render. When minimized we tend to avoid using the viewport pos/size for clipping window or testing if they are contained in the viewport.
-MAKE_ENUM(ImGuiViewportFlags_Minimized,Minimized)
-//    ImGuiViewportFlags_NoAutoMerge              = 1 << 11,  // Platform Window: Avoid merging this window into another host window. This can only be set via ImGuiWindowClass viewport flags override (because we need to now ahead if we are going to create a viewport in the first place!).
+//    ImGuiViewportFlags_NoAutoMerge              = 1 << 9,   // Platform Window: Avoid merging this window into another host window. This can only be set via ImGuiWindowClass viewport flags override (because we need to now ahead if we are going to create a viewport in the first place!).
 MAKE_ENUM(ImGuiViewportFlags_NoAutoMerge,NoAutoMerge)
-//    ImGuiViewportFlags_CanHostOtherWindows      = 1 << 12,  // Main viewport: can host multiple imgui windows (secondary viewports are associated to a single window).
+//    ImGuiViewportFlags_TopMost                  = 1 << 10,  // Platform Window: Display on top (for tooltips only).
+MAKE_ENUM(ImGuiViewportFlags_TopMost,TopMost)
+//    ImGuiViewportFlags_CanHostOtherWindows      = 1 << 11,  // Viewport can host multiple imgui windows (secondary viewports are associated to a single window). // FIXME: In practice there's still probably code making the assumption that this is always and only on the MainViewport. Will fix once we add support for "no main viewport".
 MAKE_ENUM(ImGuiViewportFlags_CanHostOtherWindows,CanHostOtherWindows)
+//    ImGuiViewportFlags_IsMinimized              = 1 << 12,  // Platform Window: Window is minimized, can skip render. When minimized we tend to avoid using the viewport pos/size for clipping window or testing if they are contained in the viewport.
+MAKE_ENUM(ImGuiViewportFlags_IsMinimized,IsMinimized)
+//    ImGuiViewportFlags_IsFocused                = 1 << 13,  // Platform Window: Window is focused (last call to Platform_GetWindowFocus() returned true)
+MAKE_ENUM(ImGuiViewportFlags_IsFocused,IsFocused)
 END_ENUM(ViewportFlags)
 //struct ImGuiViewport
 

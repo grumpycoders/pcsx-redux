@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -37,8 +38,9 @@ namespace Widgets {
 
 class ShaderEditor {
   public:
-    ShaderEditor(const std::string& base, const std::string_view& dVS = "", const std::string_view& dPS = "",
-                 const std::string_view& dL = "");
+    ShaderEditor(const std::string& base, const std::string_view& dVS, const std::string_view& dPS,
+                 const std::string_view& dL);
+    ShaderEditor(const std::string& base);
     OpenGL::Status compile(GUI* gui, const std::vector<std::string_view>& mandatoryAttributes = {});
     bool isProgramCompiled() { return m_shaderProgram != 0; }
     GLuint getProgram() { return m_shaderProgram; }
@@ -47,11 +49,15 @@ class ShaderEditor {
 
     bool m_show = false;
 
-    void setText(const char* VS, const char* PS, const char* L) {
-        m_vertexShaderEditor.setText(VS);
-        m_pixelShaderEditor.setText(PS);
-        m_luaEditor.setText(L);
+    void setText(std::string_view VS, std::string_view PS, std::string_view L) {
+        setTextVS(VS);
+        setTextPS(PS);
+        setTextL(L);
     }
+
+    void setTextVS(std::string_view VS) { m_vertexShaderEditor.setText(std::string(VS)); }
+    void setTextPS(std::string_view PS) { m_pixelShaderEditor.setText(std::string(PS)); }
+    void setTextL(std::string_view L) { m_luaEditor.setText(std::string(L)); }
 
     void setDefaults();
     void setFallbacks();
@@ -60,7 +66,8 @@ class ShaderEditor {
 
     bool draw(GUI*, const char* title);
     void renderWithImgui(GUI* gui, ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
-    void render(GUI*, GLuint textureID, const ImVec2& srcLoc, const ImVec2& srcSize, const ImVec2& dstSize);
+    void render(GUI*, GLuint textureID, const ImVec2& srcLoc, const ImVec2& srcSize, const ImVec2& dstSize,
+                std::initializer_list<lua_Number> extraArgs = {});
 
     void setConfigure(bool configure = true);
     void configure(GUI*);

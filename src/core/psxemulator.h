@@ -69,6 +69,7 @@ class Counters;
 class Debug;
 class GdbServer;
 class GPU;
+class GPULogger;
 class GTE;
 class HW;
 class Lua;
@@ -148,8 +149,6 @@ class Emulator {
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
-    typedef Setting<bool, TYPESTRING("Stdout")> SettingStdout;
-    typedef SettingPath<TYPESTRING("Logfile")> SettingLogfile;
     typedef SettingPath<TYPESTRING("Mcd1")> SettingMcd1;
     typedef SettingPath<TYPESTRING("Mcd2")> SettingMcd2;
     typedef SettingPath<TYPESTRING("Bios")> SettingBios;
@@ -170,7 +169,8 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
-    typedef Setting<int, TYPESTRING("Dither"), 2> SettingDither;
+    typedef Setting<int, TYPESTRING("Dither"), 1> SettingDither;
+    typedef Setting<bool, TYPESTRING("UseCachedDithering"), false> SettingCachedDithering;
     typedef Setting<bool, TYPESTRING("ReportGLErrors"), false> SettingGLErrorReporting;
     typedef Setting<int, TYPESTRING("ReportGLErrorsSeverity"), 1> SettingGLErrorReportingSeverity;
     typedef Setting<bool, TYPESTRING("FullCaching"), false> SettingFullCaching;
@@ -206,20 +206,19 @@ class Emulator {
     typedef SettingPath<TYPESTRING("Mcd2B")> SettingMcd2B;
     typedef SettingPath<TYPESTRING("Mcd2C")> SettingMcd2C;
     typedef SettingPath<TYPESTRING("Mcd2D")> SettingMcd2D;
-    
 
-    Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
-             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
-             SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
-             SettingMcd2Inserted, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither, SettingGLErrorReporting,
+    Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
+             SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
+             SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec,
+             Setting8MB, SettingGUITheme, SettingDither, SettingCachedDithering, SettingGLErrorReporting,
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
              SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected, SettingMcd1BInserted, SettingMcd1CInserted, SettingMcd1DInserted, SettingMcd2BInserted,
-             SettingMcd2CInserted, SettingMcd2DInserted, SettingMcd1BPocketstation, SettingMcd1CPocketstation,
-             SettingMcd1DPocketstation, SettingMcd2BPocketstation, SettingMcd2CPocketstation, SettingMcd2DPocketstation,
-             SettingPort1Multitap, SettingPort2Multitap, SettingMcd1B, SettingMcd1C, SettingMcd1D, SettingMcd2B,
-             SettingMcd2C, SettingMcd2D>
+             SettingPIOConnected, SettingMcd1BInserted, SettingMcd1CInserted, SettingMcd1DInserted,
+             SettingMcd2BInserted, SettingMcd2CInserted, SettingMcd2DInserted, SettingMcd1BPocketstation,
+             SettingMcd1CPocketstation, SettingMcd1DPocketstation, SettingMcd2BPocketstation, SettingMcd2CPocketstation,
+             SettingMcd2DPocketstation, SettingPort1Multitap, SettingPort2Multitap, SettingMcd1B, SettingMcd1C,
+             SettingMcd1D, SettingMcd2B, SettingMcd2C, SettingMcd2D>
         settings;
     class PcsxConfig {
       public:
@@ -269,6 +268,7 @@ class Emulator {
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GPULogger> m_gpuLogger;
     std::unique_ptr<GTE> m_gte;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<Lua> m_lua;

@@ -1,0 +1,8 @@
+define info proc mappings
+echo 0x0 0xFFFFFFFF 0xFFFFFFFF 0x0 mem
+end
+
+define maintenance info sections
+echo Exec file: `PSX Binary', file type elf64-mips:3000. \n
+echo [0] 0x0->0xFFFFFFFF at 0x00000000: .interp ALLOC LOAD READWRITE DATA HAS_CONTENTS
+end

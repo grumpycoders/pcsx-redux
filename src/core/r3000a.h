@@ -22,6 +22,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <list>
 #include <map>
 #include <memory>
 #include <string>
@@ -269,7 +270,12 @@ struct psxRegisters {
 
 class R3000Acpu {
   public:
-    virtual ~R3000Acpu() { closeAllPCdevFiles(); }
+    virtual ~R3000Acpu() { m_pcdrvFiles.destroyAll(); };
+    R3000Acpu() {
+        for (unsigned i = 0; i < 65536; i++) {
+            m_availableFDs.push_back(i);
+        }
+    }
     virtual bool Init() { return false; }
     virtual void Execute() = 0; /* executes up to a debug break */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
@@ -284,7 +290,6 @@ class R3000Acpu {
 
     std::map<uint32_t, std::string> m_symbols;
 
-  public:
     static int psxInit();
     virtual bool isDynarec() = 0;
     void psxReset();
@@ -495,24 +500,29 @@ Formula One 2001
 
     struct PCdrvFile;
     typedef Intrusive::HashTable<uint32_t, PCdrvFile> PCdrvFiles;
-    struct PCdrvFile : public PosixFile, public PCdrvFiles::Node {
-        PCdrvFile(const std::filesystem::path &filename) : PosixFile(filename, FileOps::READWRITE) {}
-        PCdrvFile(const std::filesystem::path &filename, FileOps::Truncate) : PosixFile(filename, FileOps::TRUNCATE) {}
-        PCdrvFile(const std::filesystem::path &filename, FileOps::Create) : PosixFile(filename, FileOps::CREATE) {}
+    struct PCdrvFile : public IO<File>, public PCdrvFiles::Node {
+        PCdrvFile(const std::filesystem::path &filename) : IO<File>(new PosixFile(filename)) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::ReadWrite)
+            : IO<File>(new PosixFile(filename, FileOps::READWRITE)) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Truncate) : IO<File>(new PosixFile(filename, FileOps::TRUNCATE)) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Create) : IO<File>(new PosixFile(filename, FileOps::CREATE)) {}
         virtual ~PCdrvFile() = default;
         std::string m_relativeFilename;
     };
     PCdrvFiles m_pcdrvFiles;
-    uint16_t m_pcdrvIndex = 0;
+    std::list<uint16_t> m_availableFDs;
 
   public:
-    void closeAllPCdevFiles() {
-        for (auto &f : m_pcdrvFiles) f.close();
+    void closeAllPCdrvFiles() {
         m_pcdrvFiles.destroyAll();
+        m_availableFDs.clear();
+        for (unsigned i = 0; i < 65536; i++) {
+            m_availableFDs.push_back(i);
+        }
     }
-    void listAllPCdevFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
+    void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
-            walker(iter->getKey(), iter->m_relativeFilename, iter->writable());
+            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable());
         }
     }
     void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);

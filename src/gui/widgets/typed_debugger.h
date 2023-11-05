@@ -45,9 +45,9 @@ class TypedDebugger {
      * Data importation.
      */
     std::vector<PCSX::u8string> m_dataTypesFile;
-    Widgets::FileDialog m_importDataTypesFileDialog = {[]() { return _("Import data types"); }};
+    Widgets::FileDialog<> m_importDataTypesFileDialog = {[]() { return _("Import data types"); }};
     std::vector<PCSX::u8string> m_functionsFile;
-    Widgets::FileDialog m_importFunctionsFileDialog = {[]() { return _("Import functions"); }};
+    Widgets::FileDialog<> m_importFunctionsFileDialog = {[]() { return _("Import functions"); }};
     enum class ImportType { DataTypes, Functions };
     void import(std::string_view filename, ImportType importType);
 

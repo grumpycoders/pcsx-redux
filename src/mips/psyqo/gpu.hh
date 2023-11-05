@@ -32,7 +32,7 @@ SOFTWARE.
 #include <EASTL/utility.h>
 #include <stdint.h>
 
-#include "common/hardware/hwregs.h"
+#include "psyqo/hardware/gpu.hh"
 #include "psyqo/primitives.hh"
 
 namespace psyqo {
@@ -45,6 +45,23 @@ enum DmaCallback {
 };
 
 }
+
+namespace timer_literals {
+
+/**
+ * @brief Literal operators for time units.
+ *
+ * @details These operators can be used to specify time units suitable
+ * for the GPU's `armTimer` and `armPeriodicTimer` methods. For example,
+ * `gpu().armPeriodicTimer(1_s, callback)` will create a timer that
+ * fires every second.
+ */
+constexpr uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
+constexpr uint32_t operator""_us(unsigned long long int value) { return value; }
+constexpr uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
+constexpr uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+
+}  // namespace timer_literals
 
 /**
  * @brief The singleton GPU class.
@@ -220,10 +237,14 @@ class GPU {
     static void waitReady();
 
     /**
-     * @brief Sends a raw 32 bits value to the GP0 register of the GPU.
+     * @brief Waits until the GPU's FIFO is ready to receive data.
      */
-    static void sendRaw(uint32_t data) { GPU_DATA = data; }
-    template <typename Primitive>
+    static void waitFifo();
+
+    /**
+     * @brief Sends a raw 32 bits value to the Data register of the GPU.
+     */
+    static void sendRaw(uint32_t data) { Hardware::GPU::Data = data; }
 
     /**
      * @brief Sends a primitive to the GPU. This is a blocking call.
@@ -231,12 +252,14 @@ class GPU {
      * @details This method will immediately send the specified primitive to the GPU.
      * @param primitive The primitive to send to the GPU.
      */
+    template <typename Primitive>
     static void sendPrimitive(const Primitive &primitive) {
         static_assert((sizeof(Primitive) % 4) == 0, "Primitive's size must be a multiple of 4");
         waitReady();
         const uint32_t *ptr = reinterpret_cast<const uint32_t *>(&primitive);
         size_t size = sizeof(Primitive) / sizeof(uint32_t);
         for (int i = 0; i < size; i++) {
+            if constexpr (sizeof(Primitive) > 56) waitFifo();
             sendRaw(*ptr++);
         }
     }

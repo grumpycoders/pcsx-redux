@@ -178,7 +178,7 @@ static int buValidateEntryAndCorrect(int port, int entryId) {
     if ((blocks > 0) && (next != -1)) {
         int16_t ptr = next;
         int count = blocks;
-        while (mask != (entries[ptr].allocState) & 0xf0) {
+        while (mask != ((entries[ptr].allocState) & 0xf0)) {
             ptr = entries[ptr].nextBlock;
             if ((--count < 0) || (ptr == -1)) return 0;
         }
@@ -236,7 +236,8 @@ int buInit(int deviceId) {
     uint32_t entriesStates[15];
     for (unsigned i = 0; i < 15; i++) {
         entriesStates[i] = 0;
-        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52;  // this makes no sense
+        // this makes no sense, as it'll get overwritten by the next loop
+        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52;
     }
     for (unsigned i = 0; i < 15; i++) entriesStates[i] = 0;
     for (unsigned i = 0; i < 15; i++) {
@@ -344,7 +345,7 @@ void buLowLevelOpCompleted() {
             break;
         }
         case 6:
-            g_buOpBuffer[port] = 3;
+            g_buOperation[port] = 3;
             // fallthrough
         case 3: {
             if (--g_buOpSectorCount[port] == 0) {

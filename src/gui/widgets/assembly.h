@@ -59,7 +59,7 @@ class Assembly : private Disasm {
     int m_numColumns = 4;
     char m_jumpAddressString[20];
     uint32_t m_previousPC = 0;
-    FileDialog m_symbolsFileDialog = {[]() { return _("Load Symbols"); }};
+    FileDialog<> m_symbolsFileDialog = {[]() { return _("Load Symbols"); }};
     std::vector<std::pair<uint32_t, uint32_t>> m_arrows;
 
     // Disasm section
@@ -78,7 +78,8 @@ class Assembly : private Disasm {
     virtual void CP2D(uint8_t reg) final;
     virtual void HI() final;
     virtual void LO() final;
-    virtual void Imm(uint16_t value) final;
+    virtual void Imm16(int16_t value) final;
+    virtual void Imm16u(uint16_t value) final;
     virtual void Imm32(uint32_t value) final;
     virtual void Target(uint32_t value) final;
     virtual void Sa(uint8_t value) final;
