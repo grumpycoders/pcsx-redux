@@ -15,6 +15,15 @@ jobs:
         TEST_RESULTS: /tmp/test-results
         BUILD: Coverage
     steps:
+      - name: Update lcov, because https://bugs.launchpad.net/ubuntu/+source/lcov/+bug/2029924
+        run: |
+          apt install -y cpanminus
+          cpanm DateTime
+          cpanm Capture::Tiny
+          wget https://github.com/linux-test-project/lcov/releases/download/v2.0/lcov-2.0.tar.gz
+          tar xf lcov-2.0.tar.gz
+          cd lcov-2.0
+          make install
       - uses: actions/checkout@v3
         with:
           submodules: recursive
