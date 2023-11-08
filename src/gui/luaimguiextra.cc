@@ -65,11 +65,15 @@ void registerAllSymbols(PCSX::Lua L) {
 
 void PCSX::LuaFFI::open_imguiextra(Lua L) {
     registerAllSymbols(L);
-    static int lualoader = 1;
+    static int lualoader = 2;
     static const char* imguiextra = (
 #include "gui/imguiextraffi.lua"
     );
     L.load(imguiextra, "internal:gui/imguiextraffi.lua");
+    static const char* imguisafe = (
+#include "gui/imguisafe.lua"
+    );
+    L.load(imguisafe, "internal:gui/imguisafe.lua");
 
     L.getfieldtable("imgui", LUA_GLOBALSINDEX);
     L.getfieldtable("extra");
