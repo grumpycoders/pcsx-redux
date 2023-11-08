@@ -196,6 +196,50 @@ Some extra functions are bound to Lua beyond the API listed above:
   `imgui::InputTextWithHint` C++ function. The function will return a boolean
   indicating if the text has changed or not, and the new text.
 
+### Safety
+
+The ImGui API will frequently assert and crash the process if the API calls
+are imbalanced. For example, if the `imgui.BeginTable` function is called without
+calling the `imgui.EndTable` function, the process will most likely crash.
+
+This can be problematic when using the ImGui API from Lua, as the Lua code
+is not able to catch the crash, and the process will crash without any
+indication of what went wrong.
+
+The main reason for imbalanced API calls can be attributed to the user code
+throwing an exception, which will cause the Lua code to unwind the stack,
+and the ImGui API will not be able to properly clean up its state.
+
+For example, consider the following code:
+
+```lua
+function DrawImguiFrame()
+    imgui.Begin("My Window")
+    error("Something went wrong")
+    imgui.End()
+end
+```
+
+The `imgui.Begin` function will be called, but the `imgui.End` function will
+not be called, as the `error` function will unwind the stack, and the
+`imgui.End` function will never be called.
+
+In order to mitigate this, safe wrappers are provided for all of the ImGui
+Begin*/End* functions. The safe wrappers will catch any exception thrown
+by the user code, and will call the corresponding End* function if the
+Begin* function returned true. The error will be rethrown after the End* function
+is called.
+
+The example above can be rewritten as:
+
+```lua
+function DrawImguiFrame()
+    imgui.safe.Begin("My Window", function()
+        error("Something went wrong")
+    end)
+end
+```
+
 ## NanoVG
 
 The NanoVG library is bound to Lua, and can be used to draw arbitrary vector graphics
