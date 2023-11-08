@@ -225,9 +225,9 @@ not be called, as the `error` function will unwind the stack, and the
 `imgui.End` function will never be called.
 
 In order to mitigate this, safe wrappers are provided for all of the ImGui
-Begin*/End* functions. The safe wrappers will catch any exception thrown
-by the user code, and will call the corresponding End* function if the
-Begin* function returned true. The error will be rethrown after the End* function
+Begin\*/End\* functions. The safe wrappers will catch any exception thrown
+by the user code, and will call the corresponding End\* function if the
+Begin\* function returned true. The error will be rethrown after the End\* function
 is called.
 
 The example above can be rewritten as:
