@@ -302,6 +302,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\gui\imguiextraffi.lua" />
+    <None Include="..\..\src\gui\imguisafe.lua" />
     <None Include="..\..\src\gui\nvgffi-cdefs.lua" />
     <None Include="..\..\src\gui\nvgffi.lua" />
     <None Include="..\..\src\gui\shaders\crt-lottes-offscreen.lua" />

@@ -23,7 +23,6 @@
 #include <string>
 
 #include "cdrom/cdriso.h"
-#include "cdrom/iec-60908b.h"
 #include "core/decode_xa.h"
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
@@ -31,6 +30,7 @@
 #include "core/r3000a.h"
 #include "core/sstate.h"
 #include "core/system.h"
+#include "supportpsx/iec-60908b.h"
 
 namespace PCSX {
 
