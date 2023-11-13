@@ -213,6 +213,9 @@
     <None Include="..\..\src\gui\imguiextraffi.lua">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="..\..\src\gui\imguisafe.lua">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
