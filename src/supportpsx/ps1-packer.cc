@@ -171,7 +171,8 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, jr(Reg::T0));
         pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
     }
-    while (!options.cpe && !options.booty && !options.rom && !options.raw && ((dataOut.size() & 0x7ff) != 0)) {
+    while (!options.cpe && !options.booty && !options.rom && !options.raw && !options.nopad &&
+           ((dataOut.size() & 0x7ff) != 0)) {
         dataOut.push_back(0);
     }
 
