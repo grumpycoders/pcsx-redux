@@ -58,7 +58,6 @@ else
     LDFLAGS += -lstdc++fs
 endif
 
-LDFLAGS += -ldl
 LDFLAGS += -g
 
 ifeq ($(CC_IS_CLANG),true)
