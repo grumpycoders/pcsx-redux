@@ -37,6 +37,7 @@ namespace PS1Packer {
 struct Options {
     uint32_t tload = 0;
     bool shell = false;
+    bool nopad = false;
     bool booty = false;
     bool raw = false;
     bool rom = false;

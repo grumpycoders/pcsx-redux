@@ -44,6 +44,7 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     const bool booty = args.get<bool>("booty").value_or(false);
     const bool rom = args.get<bool>("rom").value_or(false);
     const bool cpe = args.get<bool>("cpe").value_or(false);
+    const bool nopad = args.get<bool>("nopad").value_or(false);
     unsigned outputTypeCount = (raw ? 1 : 0) + (booty ? 1 : 0) + (rom ? 1 : 0) + (cpe ? 1 : 0);
     if (asksForHelp || !oneInput || !hasOutput || (outputTypeCount > 1)) {
         fmt::print(R"(
@@ -53,6 +54,7 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell] [-raw | -booty | -rom | -cpe]
   -h                displays this help information and exit.
   -tload            force loading at this address instead of doing in-place.
   -shell            adds a kernel reset stub.
+  -nopad            disables padding of the output file to 2048 bytes. Only for PS-EXE output.
 
 These options control the output format, and are mutually exclusive:
   -raw              outputs a raw file.
@@ -99,6 +101,7 @@ Valid input binary files can be in the following formats:
     options.cpe = cpe;
     options.shell = shell;
     options.tload = tload;
+    options.nopad = nopad;
     PCSX::IO<PCSX::File> out(new PCSX::PosixFile(output.value().c_str(), PCSX::FileOps::TRUNCATE));
     PCSX::PS1Packer::pack(new PCSX::SubFile(memory, memory->lowestAddress(), memory->actualSize()), out,
                           memory->lowestAddress(), info.pc.value_or(0), info.gp.value_or(0), info.sp.value_or(0),

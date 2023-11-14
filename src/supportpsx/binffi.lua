@@ -37,6 +37,7 @@ struct BinaryLoaderInfo {
 struct PS1PackerOptions {
     uint32_t tload;
     bool shell;
+    bool nopad;
     bool booty;
     bool raw;
     bool rom;
@@ -99,6 +100,7 @@ PCSX.Binary.pack = function(src, dest, addr, pc, gp, sp, options)
     opts.tload = options.tload and options.tload or 0
     opts.booty = options.booty and true or false
     opts.shell = options.shell and true or false
+    opts.nopad = options.nopad and true or false
     opts.raw = options.raw and true or false
     opts.rom = options.rom and true or false
     opts.cpe = options.cpe and true or false
