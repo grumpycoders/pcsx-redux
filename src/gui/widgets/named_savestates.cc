@@ -33,14 +33,14 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
                                    ImVec2(-FLT_MIN, glyphWidth + style.FramePadding.y * 2),
                                    ImGuiButtonFlags_PressedOnClick | ImGuiButtonFlags_PressedOnDoubleClick)) {
             // Copy the name to the input box
-            strcpy_s(m_namedSaveNameString, 128, saveStatePair.second.c_str());
+            strcpy(m_namedSaveNameString, saveStatePair.second.c_str());
             // Load the save state if it was a double-click
             if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 loadSaveState(gui, saveStatePair.first);
             }
         }
         // Add a base coloured rect - highlight it if hovering over the button or the current InputText below matches it
-        bool matches = strcmpi(m_namedSaveNameString, saveStatePair.second.c_str()) == 0;
+        bool matches = StringsHelpers::strcasecmp(m_namedSaveNameString, saveStatePair.second.c_str());
         bool hovered = ImGui::IsItemHovered();
         ImGui::GetWindowDrawList()->AddRectFilled(
             ImGui::GetCurrentContext()->LastItemData.Rect.Min, ImGui::GetCurrentContext()->LastItemData.Rect.Max,
@@ -90,8 +90,8 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
         }
     };
 
-    ImGui::InputTextWithHint("##SaveNameInput", "Enter the name of your save state here", m_namedSaveNameString, 128,
-                             ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNonPathCharacters);
+    ImGui::InputTextWithHint("##SaveNameInput", "Enter the name of your save state here", m_namedSaveNameString,
+        NAMED_SAVE_STATE_LENGTH_MAX, ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNonPathCharacters);
     ImGui::SameLine(0.0f, 0.0f);
 
     // Trailing text alignment also needs adjusting, but in the opposite direction
@@ -102,7 +102,8 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
 
     // Add various buttons based on whether a save state exists with that name
     auto found = std::find_if(saveStates.begin(), saveStates.end(), [=](auto saveStatePair) {
-        return strlen(m_namedSaveNameString) > 0 && strcmpi(m_namedSaveNameString, saveStatePair.second.c_str()) == 0;
+        return strlen(m_namedSaveNameString) > 0 &&
+               StringsHelpers::strcasecmp(m_namedSaveNameString, saveStatePair.second.c_str());
         });
     bool exists = found != saveStates.end();
 
@@ -155,7 +156,10 @@ std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedS
                 if (filename.find(prefix) == 0 &&
                     filename.rfind(postfix) == filename.length() - postfix.length()) {
                     std::string niceName = filename.substr(prefix.length(), filename.length() - (prefix.length() + postfix.length()));
-                    names.emplace_back(entry.path(), niceName);
+                    // Only support names that fit within the character limit
+                    if (niceName.length() < NAMED_SAVE_STATE_LENGTH_MAX) {
+                        names.emplace_back(entry.path(), niceName);
+                    }
                 }
             }
         }

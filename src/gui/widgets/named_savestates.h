@@ -19,11 +19,14 @@ class NamedSaveStates {
     std::vector<std::pair<std::filesystem::path, std::string>> getNamedSaveStates(GUI* gui);
 
   private:
+
+      static constexpr int NAMED_SAVE_STATE_LENGTH_MAX = 128;
+
     void saveSaveState(GUI* gui, std::filesystem::path saveStatePath);
     void loadSaveState(GUI* gui, std::filesystem::path saveStatePath);
     void deleteSaveState(std::filesystem::path saveStatePath);
 
-    char m_namedSaveNameString[128] = "";
+    char m_namedSaveNameString[NAMED_SAVE_STATE_LENGTH_MAX] = "";
 };
 
 }  // namespace Widgets
