@@ -47,10 +47,13 @@ int startShell(uint32_t arg) {
     }
 #endif
 #ifdef OPENBIOS_FASTBOOT
-    return 0;
+    // Embed a simple jr $ra / nop to simulate a shell being copied and run,
+    // so cheat cart hooks and other tricks can still work properly.
+    static const uint32_t dummy[2] = {0x03e00008, 0};
+    memcpy((uint32_t *)0x80030000, dummy, sizeof(dummy));
 #else
     memcpy((uint32_t *)0x80030000, _binary_shell_bin_start, _binary_shell_bin_end - _binary_shell_bin_start);
+#endif
     flushCache();
     return ((int (*)(int))0x80030000)(arg);
-#endif
 }
