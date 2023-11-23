@@ -89,7 +89,46 @@ int PCSX::Memory::init() {
     m_readLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
     m_writeLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
 
+#ifdef _WIN32
+    size_t wramSize = 0x00800000;
+    bool doFallbackAlloc = true;
+
+    // Try to create a shared memory mapping, if enabled
+    const bool memoryMappingEnabled = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSharedMemoryMap>();
+    if (memoryMappingEnabled) {
+        // Create the name of our memory mapping handle which we can search for externally
+        auto handleName = fmt::format("pcsx-redux-{}", GetCurrentProcessId());
+        // Create the memory mapping handle
+        m_wramFileHandle = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0,
+            static_cast<uint32_t>(wramSize), handleName.c_str());
+        if (m_wramFileHandle != INVALID_HANDLE_VALUE) {
+            // Create a view of the memory mapping
+            void *base_pointer = MapViewOfFileEx(m_wramFileHandle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0,
+                static_cast<uint32_t>(wramSize), nullptr);
+            // Validate success and assign the view to m_wram
+            if (base_pointer != nullptr) {
+                doFallbackAlloc = false;
+                m_wram = (uint8_t *)base_pointer;
+            } else {
+                CloseHandle(m_wramFileHandle);
+                m_wramFileHandle = nullptr;
+                g_system->message("MapViewOfFileEx failed, falling back to memory alloc, last error: %d\n",
+                    (int)GetLastError());
+            }
+        } else {
+            m_wramFileHandle = nullptr;
+            g_system->message("CreateFileMappingA failed, falling back to memory alloc, last error: %d\n",
+                (int)GetLastError());
+        }
+    }
+
+    if (doFallbackAlloc) {
+        m_wram = (uint8_t *)calloc(wramSize, 1);
+    }
+#else
     m_wram = (uint8_t *)calloc(0x00800000, 1);
+#endif
+
     m_exp1 = (uint8_t *)calloc(0x00800000, 1);
     m_hard = (uint8_t *)calloc(0x00010000, 1);
     m_bios = (uint8_t *)calloc(0x00080000, 1);
@@ -239,7 +278,21 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 }
 
 void PCSX::Memory::shutdown() {
+#ifdef _WIN32
+    if (m_wramFileHandle != nullptr) {
+        bool result = static_cast<bool>(UnmapViewOfFile(m_wram));
+        if (!result) {
+            g_system->printf("Failed to unmap view of Kernel & User Memory.\n");
+        }
+        m_wram = nullptr;
+        CloseHandle(m_wramFileHandle);
+        m_wramFileHandle = nullptr;
+    } else {
+        free(m_wram);
+    }
+#else
     free(m_wram);
+#endif
     free(m_exp1);
     free(m_hard);
     free(m_bios);

@@ -266,6 +266,13 @@ int pcsxMain(int argc, char **argv) {
             emuSettings.get<PCSX::Emulator::Setting8MB>() = false;
         }
 
+        if (args.get<bool>("sharedmemorymap")) {
+            emuSettings.get<PCSX::Emulator::SettingSharedMemoryMap>() = true;
+        }
+        if (args.get<bool>("no-sharedmemorymap")) {
+            emuSettings.get<PCSX::Emulator::SettingSharedMemoryMap>() = false;
+        }
+
         if (args.get<bool>("fastboot")) {
             emuSettings.get<PCSX::Emulator::SettingFastBoot>() = true;
         }

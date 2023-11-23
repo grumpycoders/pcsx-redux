@@ -1900,6 +1900,12 @@ this setting may not have any effect for you.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
+        changed |= ImGui::Checkbox(_("Shared Memory Map"), &settings.get<Emulator::SettingSharedMemoryMap>().value);
+        ImGuiHelpers::ShowHelpMarker(_(R"(Wraps kernel & user memory in a named memory mapping,
+allowing it to be modified from external processes.
+Available on Windows platforms only, and requires a restart of the emulator to take effect.
+The mapping name is 'pcsx-redux-[process ID]', e.g. 'pcsx-redux-36722'.
+See Win32 app documentation for 'Creating Named Shared Memory' for more information.)"));
         changed |=
             ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
         ImGuiHelpers::ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
