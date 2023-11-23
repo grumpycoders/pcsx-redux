@@ -89,6 +89,8 @@ class CDRom {
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
 
+    std::shared_ptr<CDRIso> getIso() const { return m_iso; }
+
   protected:
     std::shared_ptr<CDRIso> m_iso;
     // savestate stuff starts here

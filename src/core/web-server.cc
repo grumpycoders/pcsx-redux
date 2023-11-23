@@ -25,6 +25,11 @@
 #include <string>
 
 #include "GL/gl3w.h"
+#include "cdrom/cdriso.h"
+#include "cdrom/file.h"
+#include "cdrom/iso9660-builder.h"
+#include "cdrom/iso9660-reader.h"
+#include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -237,14 +242,7 @@ class FlowExecutor : public PCSX::WebExecutor {
             j["isDynarec"] = PCSX::g_emulator->m_cpu->isDynarec();
             j["8mb"] = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>().value;
             j["debugger"] = debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value;
-
-            std::string json = j.dump();
-            std::string message = std::string(
-                                      "HTTP/1.1 200 OK\r\n"
-                                      "Content-Type: application/json\r\n"
-                                      "Content-Length: ") +
-                                  std::to_string(json.size()) + std::string("\r\n\r\n") + json;
-            client->write(std::move(message));
+            write200(client, j);
             return true;
         } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
             auto vars = parseQuery(request.urlData.query);
@@ -400,6 +398,92 @@ class LuaExecutor : public PCSX::WebExecutor {
     virtual ~LuaExecutor() = default;
 };
 
+class CDExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return PCSX::StringsHelpers::startsWith(urldata.path, c_prefix);
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        auto path = request.urlData.path.substr(c_prefix.length());
+        auto& cdrom = PCSX::g_emulator->m_cdrom;
+        auto iso = cdrom->getIso();
+        PCSX::ISO9660Reader reader(iso);
+
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
+            if (path == "info") {
+                nlohmann::json j;
+                j["id"] = cdrom->getCDRomID();
+                j["label"] = cdrom->getCDRomLabel();
+                j["iso"]["TN"] = iso->getTN();
+                for (unsigned t = 0; t <= iso->getTN(); t++) {
+                    if (t != 0) {
+                        j["iso"]["tracktype"][t] = magic_enum::enum_name(iso->getTrackType(t));
+                    }
+                    auto duration = iso->getTD(t);
+                    j["iso"]["TD"][t]["m"] = duration.m;
+                    j["iso"]["TD"][t]["s"] = duration.s;
+                    j["iso"]["TD"][t]["f"] = duration.f;
+                }
+                write200(client, j);
+                return true;
+            }
+            return false;
+        } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
+            if (path == "patch") {
+                auto vars = parseQuery(request.urlData.query);
+                auto filename = vars.find("filename");
+                auto sector = vars.find("sector");
+                auto modeStr = vars.find("mode");
+                PCSX::SectorMode mode = PCSX::SectorMode::GUESS;
+                if ((filename == vars.end()) && (sector == vars.end())) {
+                    client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                    return true;
+                }
+                if ((filename != vars.end()) && (sector != vars.end())) {
+                    client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                    return true;
+                }
+                if (modeStr != vars.end()) {
+                    auto modeCast = magic_enum::enum_cast<PCSX::SectorMode>(modeStr->second);
+                    if (modeCast.has_value()) {
+                        mode = modeCast.value();
+                    } else {
+                        client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                        return true;
+                    }
+                }
+
+                PCSX::IO<PCSX::File> file;
+
+                if (filename != vars.end()) {
+                    file = reader.open(filename->second);
+                }
+
+                if (sector != vars.end()) {
+                    auto sectorNumber = std::stoul(sector->second);
+                    file = new PCSX::CDRIsoFile(iso, sectorNumber, request.body.size(), mode);
+                }
+
+                if (file->failed()) {
+                    client->write("HTTP/1.1 404 File Not Found\r\n\r\n");
+                    return true;
+                }
+
+                file->write(request.body.data<uint8_t>(), request.body.size());
+                iso->getPPF()->save(iso->getIsoPath());
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
+
+  public:
+    const std::string_view c_prefix = "/api/v1/cd/";
+    CDExecutor() = default;
+    virtual ~CDExecutor() = default;
+};
+
 }  // namespace
 
 std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(const std::string& query) {
@@ -445,6 +529,16 @@ std::string PCSX::WebExecutor::percentDecode(std::string_view str) {
     return ret;
 }
 
+void PCSX::WebExecutor::write200(PCSX::WebClient* client, const nlohmann::json& j) {
+    std::string json = j.dump();
+    std::string message = std::string(
+                              "HTTP/1.1 200 OK\r\n"
+                              "Content-Type: application/json\r\n"
+                              "Content-Length: ") +
+                          std::to_string(json.size()) + std::string("\r\n\r\n") + json;
+    client->write(std::move(message));
+}
+
 PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new VramExecutor());
     m_executors.push_back(new RamExecutor());
@@ -452,6 +546,7 @@ PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new CacheExecutor());
     m_executors.push_back(new FlowExecutor());
     m_executors.push_back(new LuaExecutor());
+    m_executors.push_back(new CDExecutor());
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
         if (debugSettings.get<Emulator::DebugSettings::WebServer>() && (m_serverStatus != SERVER_STARTED)) {
