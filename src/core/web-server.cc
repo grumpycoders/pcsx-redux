@@ -513,6 +513,7 @@ std::string PCSX::WebExecutor::percentDecode(std::string_view str) {
                 auto [ptr, ec]{std::from_chars(hex.data(), hex.data() + hex.size(), result, 16)};
 
                 if (ec != std::errc()) return ret;
+                ret += result;
                 i += 2;
                 break;
             }
