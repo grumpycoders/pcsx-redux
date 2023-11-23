@@ -47,8 +47,33 @@ The above expects a `.map` file with symbols and addresses, which will be merged
 
 | Value | Type | Function |
 | :- | :- | :- |
-| pause | - | Pauses the emulator |
-| start | - | Starts/Resumes the emulator |
-| resume | - | Starts/Resumes the emulator |
-| reset | hard | Hard resets the emulator |
-| reset | soft | Soft resets the emulator |
+| pause | - | Pauses the emulator. |
+| start | - | Starts/Resumes the emulator. |
+| resume | - | Starts/Resumes the emulator. |
+| reset | hard | Hard resets the emulator. Equivalent to a power cycle of the console. |
+| reset | soft | Soft resets the emulator. Equivalent to pressing the reset button. |
+
+`/api/v1/cd/patch?filename=<value>`
+
+The above needs to also send a form with binary contents, which will patch the currently loaded iso file with the contents of the form. The server will look for the given filename in the iso file, and patch its contents. A ppf file will be written out as a result. All changes are cumulative. If the file is not found, a 404 error will be returned. The file name is case sensitive, and must be a valid ISO9660 filename, which means it can only contain uppercase letters, numbers, and underscores, and ends with `;1`.
+
+For example:
+
+```bash
+$ curl -d @newsystem.cnf http://localhost:8080/api/v1/cd/patch?filename=SYSTEM.CNF;1
+```
+
+`/api/v1/cd/patch?sector=<value>&mode=<value>`
+
+The above needs to also send a form with binary contents, which will patch the currently loaded iso file with the contents of the form. The iso sectors starting at the given value will be written to. The `mode` argument is optional, and can be of the following values:
+
+| Value | Function |
+| :- | :- |
+| GUESS | Tries to guess the sector's mode. This is the default. |
+| RAW | Writes the full sectors with no decoration, 2352 bytes per sector. |
+| M2_RAW | Writes 2336 bytes per sector, with the first 16 bytes being the subheader. |
+| M2_FORM1 | Writes 2048 bytes per sector. Will not update the subheader. |
+| M2_FORM2 | Writes 2324 bytes per sector. Will not update the subheader. |
+
+A ppf file will be written out as a result. All changes are cumulative.
+
