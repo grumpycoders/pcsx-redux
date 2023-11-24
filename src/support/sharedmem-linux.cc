@@ -30,6 +30,9 @@ SOFTWARE.
 #include "core/system.h"
 
 #include <assert.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 void PCSX::SharedMem::init(const char* name, size_t size) {
     assert(m_mem == nullptr);
