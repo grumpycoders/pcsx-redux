@@ -184,11 +184,6 @@ class Memory {
     friend class MemoryAsFile;
     IO<MemoryAsFile> m_memoryAsFile;
 
-#ifdef _WIN32
-    // Used to wrap wram in a shared memory map
-    void *m_wramFileHandle = nullptr;
-#endif
-
     int m_writeok = 1;
     uint32_t m_biosCRC = 0;
 
