@@ -36,15 +36,18 @@ class SharedMem {
     SharedMem() {}
     ~SharedMem();
 
-    void init(const char* name, size_t size);
+    void init(const char* id, size_t size);
+    std::string getSharedName(const char* id, uint32_t pid);
 
-  public:
+    uint8_t* getPtr() { return m_mem; }
+    size_t getSize() { return m_size; }
+
+  private:
     uint8_t* m_mem = nullptr;
     size_t m_size = 0;
 
-  private:
     void* m_fileHandle = nullptr;
-    std::string m_name;
+    std::string m_sharedName;
     int m_fd = -1;
 };
 

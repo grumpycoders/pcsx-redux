@@ -34,11 +34,14 @@ SOFTWARE.
 void PCSX::SharedMem::init(const char* name, size_t size) {
     assert(m_mem == nullptr);
     bool doRawAlloc = true;
+    m_size = size;
     // Try to create a shared memory mapping, if a name is provided
     if (name != nullptr) {
+        // Build the full name to share as
+        std::string fullname = getSharedName(name, static_cast<uint32_t>(GetCurrentProcessId()));
         // Create the memory mapping handle
         m_fileHandle = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
-            static_cast<uint32_t>(size >> 32), static_cast<uint32_t>(size), name);
+            static_cast<uint32_t>(size >> 32), static_cast<uint32_t>(size), fullname.c_str());
         if (m_fileHandle != INVALID_HANDLE_VALUE) {
             // Create a view of the memory mapping at 0 offset
             void* basePointer = MapViewOfFileEx(m_fileHandle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, size, nullptr);
@@ -58,8 +61,6 @@ void PCSX::SharedMem::init(const char* name, size_t size) {
                 (int)GetLastError(), m_size);
         }
     }
-    
-    m_size = size;
     // Alloc memory directly if we opted out or had problems creating the memory map
     if (doRawAlloc) {
         m_mem = (uint8_t *)calloc(size, 1);

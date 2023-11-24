@@ -573,9 +573,9 @@ settings, otherwise debugging features may not work.)");
             const char* section = "UNK";
             if (addr < 0x00800000) {
                 section = "RAM";
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_wram.m_mem + addr);
+                code = *reinterpret_cast<uint32_t*>(m_memory->m_wram + addr);
                 if (addr <= 0x007ffff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_wram.m_mem + addr + 4);
+                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_wram + addr + 4);
                 }
                 base = m_ramBase;
             } else if (addr < 0x00810000) {

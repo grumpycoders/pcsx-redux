@@ -1395,7 +1395,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_events.draw(g_emulator->m_mem->getMemoryAsFile(), _("Kernel events"));
     }
     if (m_handlers.m_show) {
-        m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram.m_mem), _("Kernel handlers"));
+        m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram), _("Kernel handlers"));
     }
     if (m_kernelLog.m_show) {
         changed |= m_kernelLog.draw(g_emulator->m_cpu.get(), _("Kernel Calls"));
@@ -1410,7 +1410,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             if (editor.m_show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(g_emulator->m_mem->m_wram.m_mem, 8 * 1024 * 1024);
+                editor.draw(g_emulator->m_mem->m_wram, 8 * 1024 * 1024);
             }
             counter++;
         }

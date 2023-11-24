@@ -97,13 +97,14 @@ int PCSX::Memory::init() {
 #endif
 
     // Init all memory as named mappings
-    m_wram.init(fmt::format("pcsx-redux-wram-{}", pid).c_str(), 0x00800000);
+    m_wramShared.init(_("wram"), 0x00800000);
+    m_wram = m_wramShared.getPtr();
 
     m_exp1 = (uint8_t *)calloc(0x00800000, 1);
     m_hard = (uint8_t *)calloc(0x00010000, 1);
     m_bios = (uint8_t *)calloc(0x00080000, 1);
 
-    if (m_readLUT == NULL || m_writeLUT == NULL || m_wram.m_mem == NULL || m_exp1 == NULL || m_bios == NULL ||
+    if (m_readLUT == NULL || m_writeLUT == NULL || m_wram == NULL || m_exp1 == NULL || m_bios == NULL ||
         m_hard == NULL) {
         g_system->message("%s", _("Error allocating memory!"));
         return -1;
@@ -164,7 +165,7 @@ bool PCSX::Memory::loadEXP1FromFile(std::filesystem::path rom_path) {
 void PCSX::Memory::reset() {
     const uint32_t bios_size = 0x00080000;
     const uint32_t exp1_size = 0x00040000;
-    memset(m_wram.m_mem, 0, 0x00800000);
+    memset(m_wram, 0, 0x00800000);
     memset(m_exp1, 0xff, exp1_size);
     memset(m_bios, 0, bios_size);
     static const uint32_t nobios[6] = {
@@ -656,7 +657,7 @@ const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
 void PCSX::Memory::setLuts() {
     int max = (m_hard[0x1061] & 0x1) ? 0x80 : 0x20;
     if (!g_emulator->settings.get<Emulator::Setting8MB>()) max = 0x20;
-    for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_wram.m_mem[(i & (max - 1)) << 16];
+    for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_wram[(i & (max - 1)) << 16];
     memcpy(m_readLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
     memcpy(m_readLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
     if (m_writeok) {

@@ -212,13 +212,13 @@
     <ClCompile Include="..\..\src\support\mem4g.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\support\sharedmem-linux.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\support\sharedmem-macos.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\support\sharedmem-windows.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\support\sharedmem-unix.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\support\sharedmem.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

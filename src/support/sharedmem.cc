@@ -24,20 +24,10 @@ SOFTWARE.
 
 */
 
-#if defined(__APPLE__) && defined(__MACH__)
-
 #include "support/sharedmem.h"
+#include "fmt/format.h"
 
-#include <assert.h>
-
-void PCSX::SharedMem::init(const char* name, uint64_t size) {
-    assert(m_mem == nullptr);
-    m_size = size;
-    m_mem = (uint8_t *)calloc(size, 1);
+std::string PCSX::SharedMem::getSharedName(const char* id, uint32_t pid) {
+    // Example name: pcsx-redux-wram-37045
+    return fmt::format("pcsx-redux-{}-{}", id, pid);
 }
-
-PCSX::SharedMem::~SharedMem() {
-    free(m_mem);
-}
-
-#endif

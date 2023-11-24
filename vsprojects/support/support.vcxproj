@@ -338,9 +338,9 @@
     <ClCompile Include="..\..\src\support\file.cc" />
     <ClCompile Include="..\..\src\support\md5.cc" />
     <ClCompile Include="..\..\src\support\mem4g.cc" />
-    <ClCompile Include="..\..\src\support\sharedmem-linux.cc" />
-    <ClCompile Include="..\..\src\support\sharedmem-macos.cc" />
+    <ClCompile Include="..\..\src\support\sharedmem-unix.cc" />
     <ClCompile Include="..\..\src\support\sharedmem-windows.cc" />
+    <ClCompile Include="..\..\src\support\sharedmem.cc" />
     <ClCompile Include="..\..\src\support\sjis_conv.cc" />
     <ClCompile Include="..\..\src\support\uvfile.cc" />
     <ClCompile Include="..\..\src\support\version-linux.cc" />

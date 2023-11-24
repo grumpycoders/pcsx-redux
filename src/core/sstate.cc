@@ -39,7 +39,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         },
         Thumbnail {},
         Memory {
-            RAM { g_emulator->m_mem->m_wram.m_mem },
+            RAM { g_emulator->m_mem->m_wram },
             ROM { g_emulator->m_mem->m_bios },
             EXP1 { g_emulator->m_mem->m_exp1 },
             HardwareMemory { g_emulator->m_mem->m_hard },
@@ -242,7 +242,7 @@ void PCSX::GPU::serialize(SaveStateWrapper* w) {
 
 void PCSX::MDEC::serialize(SaveStateWrapper* w) {
     using namespace SaveStates;
-    uint8_t* base = (uint8_t*)&PCSX::g_emulator->m_mem->m_wram.m_mem[0x100000];
+    uint8_t* base = (uint8_t*)&PCSX::g_emulator->m_mem->m_wram[0x100000];
     auto& mdecSave = w->state.get<MDECField>();
 
     mdecSave.get<MDECReg0>().value = mdec.reg0;
@@ -402,7 +402,7 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
 
 void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
     using namespace SaveStates;
-    uint8_t* base = (uint8_t*)&g_emulator->m_mem->m_wram.m_mem[0x100000];
+    uint8_t* base = (uint8_t*)&g_emulator->m_mem->m_wram[0x100000];
     auto& mdecSave = w->state.get<MDECField>();
 
     mdec.reg0 = mdecSave.get<MDECReg0>().value;
