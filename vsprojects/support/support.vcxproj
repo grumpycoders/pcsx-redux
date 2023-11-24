@@ -301,6 +301,7 @@
     <ClInclude Include="..\..\src\support\strings-helpers.h" />
     <ClInclude Include="..\..\src\support\protobuf.h" />
     <ClInclude Include="..\..\src\support\settings.h" />
+    <ClInclude Include="..\..\src\support\sharedmem.h" />
     <ClInclude Include="..\..\src\support\sjis_conv.h" />
     <ClInclude Include="..\..\src\support\slice.h" />
     <ClInclude Include="..\..\src\support\ssize_t.h" />
@@ -337,6 +338,9 @@
     <ClCompile Include="..\..\src\support\file.cc" />
     <ClCompile Include="..\..\src\support\md5.cc" />
     <ClCompile Include="..\..\src\support\mem4g.cc" />
+    <ClCompile Include="..\..\src\support\sharedmem-linux.cc" />
+    <ClCompile Include="..\..\src\support\sharedmem-macos.cc" />
+    <ClCompile Include="..\..\src\support\sharedmem-windows.cc" />
     <ClCompile Include="..\..\src\support\sjis_conv.cc" />
     <ClCompile Include="..\..\src\support\uvfile.cc" />
     <ClCompile Include="..\..\src\support\version-linux.cc" />

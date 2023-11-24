@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "core/psxemulator.h"
+#include "support/sharedmem.h"
 
 #if defined(__BIGENDIAN__)
 
@@ -193,7 +194,7 @@ class Memory {
 
     // hopefully this should become private eventually, with only certain classes having direct access.
   public:
-    uint8_t *m_wram = nullptr;  // Kernel & User Memory (8 Meg)
+    SharedMem m_wram;  // Kernel & User Memory (8 Meg)
     uint8_t *m_exp1 = nullptr;  // Expansion Region 1 (ROM/RAM) / Parallel Port (512K)
     uint8_t *m_bios = nullptr;  // BIOS ROM (512K)
     uint8_t *m_hard = nullptr;  // Scratch Pad (1K) & Hardware Registers (8K)

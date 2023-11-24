@@ -37,7 +37,8 @@ PCSX::Widgets::MemoryObserver::MemoryObserver(bool& show) : m_show(show), m_list
         for (const auto& addressValuePair : m_addressValuePairs) {
             if (addressValuePair.frozen) {
                 const auto dataSize = getStrideFromValueType(m_scanValueType);
-                memcpy(g_emulator->m_mem->m_wram + addressValuePair.address - 0x80000000, &addressValuePair.frozenValue,
+                memcpy(g_emulator->m_mem->m_wram.m_mem + addressValuePair.address - 0x80000000,
+                       &addressValuePair.frozenValue,
                        dataSize);
             }
         }
@@ -86,7 +87,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
     }
 
     if (ImGui::BeginTabBar("SearchTabBar")) {
-        const uint8_t* const memData = g_emulator->m_mem->m_wram;
+        const uint8_t* const memData = g_emulator->m_mem->m_wram.m_mem;
         const uint32_t memSize = 1024 * 1024 * (g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
         constexpr uint32_t memBase = 0x80000000;
 

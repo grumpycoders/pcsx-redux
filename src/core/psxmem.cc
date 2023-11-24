@@ -89,51 +89,21 @@ int PCSX::Memory::init() {
     m_readLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
     m_writeLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
 
-#ifdef _WIN32
-    size_t wramSize = 0x00800000;
-    bool doFallbackAlloc = true;
-
-    // Try to create a shared memory mapping, if enabled
-    const bool memoryMappingEnabled = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSharedMemoryMap>();
-    if (memoryMappingEnabled) {
-        // Create the name of our memory mapping handle which we can search for externally
-        auto handleName = fmt::format("pcsx-redux-{}", GetCurrentProcessId());
-        // Create the memory mapping handle
-        m_wramFileHandle = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0,
-            static_cast<uint32_t>(wramSize), handleName.c_str());
-        if (m_wramFileHandle != INVALID_HANDLE_VALUE) {
-            // Create a view of the memory mapping
-            void *base_pointer = MapViewOfFileEx(m_wramFileHandle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0,
-                static_cast<uint32_t>(wramSize), nullptr);
-            // Validate success and assign the view to m_wram
-            if (base_pointer != nullptr) {
-                doFallbackAlloc = false;
-                m_wram = (uint8_t *)base_pointer;
-            } else {
-                CloseHandle(m_wramFileHandle);
-                m_wramFileHandle = nullptr;
-                g_system->message("MapViewOfFileEx failed, falling back to memory alloc, last error: %d\n",
-                    (int)GetLastError());
-            }
-        } else {
-            m_wramFileHandle = nullptr;
-            g_system->message("CreateFileMappingA failed, falling back to memory alloc, last error: %d\n",
-                (int)GetLastError());
-        }
-    }
-
-    if (doFallbackAlloc) {
-        m_wram = (uint8_t *)calloc(wramSize, 1);
-    }
-#else
-    m_wram = (uint8_t *)calloc(0x00800000, 1);
+    uint32_t pid = 0;
+#if defined(_WIN32) || defined(_WIN64)
+    pid = static_cast<uint32_t>(GetCurrentProcessId());
+#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+    pid = static_cast<uint32_t>(getpid());
 #endif
+
+    // Init all memory as named mappings
+    m_wram.init(fmt::format("pcsx-redux-wram-{}", pid).c_str(), 0x00800000);
 
     m_exp1 = (uint8_t *)calloc(0x00800000, 1);
     m_hard = (uint8_t *)calloc(0x00010000, 1);
     m_bios = (uint8_t *)calloc(0x00080000, 1);
 
-    if (m_readLUT == NULL || m_writeLUT == NULL || m_wram == NULL || m_exp1 == NULL || m_bios == NULL ||
+    if (m_readLUT == NULL || m_writeLUT == NULL || m_wram.m_mem == NULL || m_exp1 == NULL || m_bios == NULL ||
         m_hard == NULL) {
         g_system->message("%s", _("Error allocating memory!"));
         return -1;
@@ -194,7 +164,7 @@ bool PCSX::Memory::loadEXP1FromFile(std::filesystem::path rom_path) {
 void PCSX::Memory::reset() {
     const uint32_t bios_size = 0x00080000;
     const uint32_t exp1_size = 0x00040000;
-    memset(m_wram, 0, 0x00800000);
+    memset(m_wram.m_mem, 0, 0x00800000);
     memset(m_exp1, 0xff, exp1_size);
     memset(m_bios, 0, bios_size);
     static const uint32_t nobios[6] = {
@@ -278,21 +248,6 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 }
 
 void PCSX::Memory::shutdown() {
-#ifdef _WIN32
-    if (m_wramFileHandle != nullptr) {
-        bool result = static_cast<bool>(UnmapViewOfFile(m_wram));
-        if (!result) {
-            g_system->printf("Failed to unmap view of Kernel & User Memory.\n");
-        }
-        m_wram = nullptr;
-        CloseHandle(m_wramFileHandle);
-        m_wramFileHandle = nullptr;
-    } else {
-        free(m_wram);
-    }
-#else
-    free(m_wram);
-#endif
     free(m_exp1);
     free(m_hard);
     free(m_bios);
@@ -701,7 +656,7 @@ const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
 void PCSX::Memory::setLuts() {
     int max = (m_hard[0x1061] & 0x1) ? 0x80 : 0x20;
     if (!g_emulator->settings.get<Emulator::Setting8MB>()) max = 0x20;
-    for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_wram[(i & (max - 1)) << 16];
+    for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_wram.m_mem[(i & (max - 1)) << 16];
     memcpy(m_readLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
     memcpy(m_readLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
     if (m_writeok) {

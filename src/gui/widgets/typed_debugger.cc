@@ -158,7 +158,7 @@ PCSX::Widgets::TypedDebugger::TypedDebugger(bool& show) : m_show(show), m_listen
     m_listener.listen<PCSX::Events::ExecutionFlow::SaveStateLoaded>([this](const auto& event) {
         // When loading a savestate, ensure instructions and functions that have been toggled off are disabled, just in
         // case they weren't when the savestate was created.
-        uint8_t* const memData = g_emulator->m_mem->m_wram;
+        uint8_t* const memData = g_emulator->m_mem->m_wram.m_mem;
         constexpr uint32_t memBase = 0x80000000;
 
         for (const auto& disabledInstruction : m_disabledInstructions) {
@@ -222,7 +222,7 @@ static bool isInRAM(uint32_t address) {
 static uint8_t* getMemoryPointerFor(uint32_t address, uint32_t& outMemBase) {
     if (isInRAM(address)) {
         outMemBase = 0x80000000;
-        return PCSX::g_emulator->m_mem->m_wram;
+        return PCSX::g_emulator->m_mem->m_wram.m_mem;
     }
 
     const uint32_t memBase = 0x1f800000;
@@ -763,7 +763,7 @@ void PCSX::Widgets::TypedDebugger::draw(const char* title, GUI* gui) {
     ImGui::SameLine();
     showReimportButton(_("Reimport functions from updated file"), m_functionsFile, ImportType::Functions);
 
-    uint8_t* const memData = g_emulator->m_mem->m_wram;
+    uint8_t* const memData = g_emulator->m_mem->m_wram.m_mem;
     const uint32_t memSize = 1024 * 1024 * (g_emulator->settings.get<PCSX::Emulator::Setting8MB>() ? 8 : 2);
     constexpr uint32_t memBase = 0x80000000;
 

@@ -1395,7 +1395,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_events.draw(g_emulator->m_mem->getMemoryAsFile(), _("Kernel events"));
     }
     if (m_handlers.m_show) {
-        m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram), _("Kernel handlers"));
+        m_handlers.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_mem->m_wram.m_mem), _("Kernel handlers"));
     }
     if (m_kernelLog.m_show) {
         changed |= m_kernelLog.draw(g_emulator->m_cpu.get(), _("Kernel Calls"));
@@ -1410,7 +1410,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             if (editor.m_show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(g_emulator->m_mem->m_wram, 8 * 1024 * 1024);
+                editor.draw(g_emulator->m_mem->m_wram.m_mem, 8 * 1024 * 1024);
             }
             counter++;
         }
@@ -1900,12 +1900,6 @@ this setting may not have any effect for you.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
-        changed |= ImGui::Checkbox(_("Shared Memory Map"), &settings.get<Emulator::SettingSharedMemoryMap>().value);
-        ImGuiHelpers::ShowHelpMarker(_(R"(Wraps kernel & user memory in a named memory mapping,
-allowing it to be modified from external processes.
-Available on Windows platforms only, and requires a restart of the emulator to take effect.
-The mapping name is 'pcsx-redux-[process ID]', e.g. 'pcsx-redux-36722'.
-See Win32 app documentation for 'Creating Named Shared Memory' for more information.)"));
         changed |=
             ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
         ImGuiHelpers::ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.

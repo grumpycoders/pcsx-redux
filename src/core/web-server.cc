@@ -107,7 +107,7 @@ class RamExecutor : public PCSX::WebExecutor {
             }
             uint32_t size = 1024 * 1024 * (ram8M ? 8 : 2);
             uint8_t* data = (uint8_t*)malloc(size);
-            memcpy(data, PCSX::g_emulator->m_mem->m_wram, size);
+            memcpy(data, PCSX::g_emulator->m_mem->m_wram.m_mem, size);
             PCSX::Slice slice;
             slice.acquire(data, size);
             client->write(std::move(slice));
@@ -132,7 +132,7 @@ class RamExecutor : public PCSX::WebExecutor {
                 return true;
             }
 
-            memcpy(PCSX::g_emulator->m_mem->m_wram + offset, request.body.data<uint8_t>(), size);
+            memcpy(PCSX::g_emulator->m_mem->m_wram.m_mem + offset, request.body.data<uint8_t>(), size);
             client->write("HTTP/1.1 200 OK\r\n\r\n");
             return true;
         }
