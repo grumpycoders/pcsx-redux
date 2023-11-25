@@ -37,7 +37,8 @@ PCSX::Widgets::MemoryObserver::MemoryObserver(bool& show) : m_show(show), m_list
         for (const auto& addressValuePair : m_addressValuePairs) {
             if (addressValuePair.frozen) {
                 const auto dataSize = getStrideFromValueType(m_scanValueType);
-                memcpy(g_emulator->m_mem->m_wram + addressValuePair.address - 0x80000000, &addressValuePair.frozenValue,
+                memcpy(g_emulator->m_mem->m_wram + addressValuePair.address - 0x80000000,
+                       &addressValuePair.frozenValue,
                        dataSize);
             }
         }
