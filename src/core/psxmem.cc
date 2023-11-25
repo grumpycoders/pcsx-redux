@@ -89,15 +89,9 @@ int PCSX::Memory::init() {
     m_readLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
     m_writeLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
 
-    uint32_t pid = 0;
-#if defined(_WIN32) || defined(_WIN64)
-    pid = static_cast<uint32_t>(GetCurrentProcessId());
-#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-    pid = static_cast<uint32_t>(getpid());
-#endif
-
     // Init all memory as named mappings
-    m_wramShared.init(_("wram"), 0x00800000);
+    bool success = m_wramShared.init("wram", 0x00800000, true);
+    if (success) g_system->message(_("SharedMem failed to share memory for wram, falling back to memory alloc\n"));
     m_wram = m_wramShared.getPtr();
 
     m_exp1 = (uint8_t *)calloc(0x00800000, 1);

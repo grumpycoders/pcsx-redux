@@ -27,18 +27,17 @@ SOFTWARE.
 
 #include "support/sharedmem.h"
 #include "support/windowswrapper.h"
-#include "core/system.h"
 
 #include <assert.h>
 
-void PCSX::SharedMem::init(const char* name, size_t size) {
+bool PCSX::SharedMem::init(const char* id, size_t size, bool initToZero) {
     assert(m_mem == nullptr);
     bool doRawAlloc = true;
     m_size = size;
-    // Try to create a shared memory mapping, if a name is provided
-    if (name != nullptr) {
+    // Try to create a shared memory mapping, if an id is provided
+    if (id != nullptr) {
         // Build the full name to share as
-        std::string fullname = getSharedName(name, static_cast<uint32_t>(GetCurrentProcessId()));
+        std::string fullname = getSharedName(id, static_cast<uint32_t>(GetCurrentProcessId()));
         // Create the memory mapping handle
         m_fileHandle = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
             static_cast<uint32_t>(size >> 32), static_cast<uint32_t>(size), fullname.c_str());
@@ -49,30 +48,30 @@ void PCSX::SharedMem::init(const char* name, size_t size) {
             if (basePointer != nullptr) {
                 doRawAlloc = false;
                 m_mem = static_cast<uint8_t *>(basePointer);
+                // Initialise memory to zero, if requested
+                if (initToZero) {
+                    memset(m_mem, 0, size);
+                }
             } else {
                 CloseHandle(m_fileHandle);
                 m_fileHandle = nullptr;
-                g_system->message("MapViewOfFileEx failed, falling back to memory alloc, last error: %d, size: %zu\n",
-                    (int)GetLastError(), m_size);
             }
         } else {
             m_fileHandle = nullptr;
-            g_system->message("CreateFileMappingA failed, falling back to memory alloc, last error: %d, size: %zu\n",
-                (int)GetLastError(), m_size);
         }
     }
     // Alloc memory directly if we opted out or had problems creating the memory map
     if (doRawAlloc) {
+        // calloc will automatically init memory to zero
         m_mem = (uint8_t *)calloc(size, 1);
     }
+    // Return false if we had to fall back to a raw alloc
+    return !(doRawAlloc && id != nullptr);
 }
 
 PCSX::SharedMem::~SharedMem() {
     if (m_fileHandle != nullptr) {
-        bool success = static_cast<bool>(UnmapViewOfFile(m_mem));
-        if (!success) {
-            g_system->printf("Failed to unmap view of allocated memory (size: %zu).\n", m_size);
-        }
+        UnmapViewOfFile(m_mem);
         m_mem = nullptr;
         CloseHandle(m_fileHandle);
         m_fileHandle = nullptr;

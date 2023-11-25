@@ -36,11 +36,20 @@ class SharedMem {
     SharedMem() {}
     ~SharedMem();
 
-    void init(const char* id, size_t size);
-    std::string getSharedName(const char* id, uint32_t pid);
+    /**
+     * Returns true if:
+     *  - the memory was sucessfully shared with the given ID, or
+     *  - no ID was given and a raw alloc was performed
+     * Returns false if:
+     *  - the memory failed to successfully share and defaulted to a raw alloc
+     */
+    bool init(const char* id, size_t size, bool initToZero);
 
     uint8_t* getPtr() { return m_mem; }
     size_t getSize() { return m_size; }
+
+  private:
+    std::string getSharedName(const char* id, uint32_t pid);
 
   private:
     uint8_t* m_mem = nullptr;
