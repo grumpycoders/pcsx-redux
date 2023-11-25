@@ -60,7 +60,7 @@ The above needs to also send a form with binary contents, which will patch the c
 For example:
 
 ```bash
-$ curl -d @newsystem.cnf http://localhost:8080/api/v1/cd/patch?filename=SYSTEM.CNF;1
+$ curl -F file=@newsystem.cnf http://localhost:8080/api/v1/cd/patch?filename=SYSTEM.CNF;1
 ```
 
 `/api/v1/cd/patch?sector=<value>&mode=<value>`
