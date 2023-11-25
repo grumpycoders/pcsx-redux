@@ -91,7 +91,7 @@ int PCSX::Memory::init() {
 
     // Init all memory as named mappings
     bool success = m_wramShared.init("wram", 0x00800000, true);
-    if (success) g_system->message(_("SharedMem failed to share memory for wram, falling back to memory alloc\n"));
+    if (!success) g_system->message(_("SharedMem failed to share memory for wram, falling back to memory alloc\n"));
     m_wram = m_wramShared.getPtr();
 
     m_exp1 = (uint8_t *)calloc(0x00800000, 1);
