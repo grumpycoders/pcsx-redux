@@ -78,7 +78,7 @@ The above needs to also send a form with binary contents, which will patch the c
 
 All changes are cumulative.
 
-`api/v1/cd/ppf?action=<value>`
+`api/v1/cd/ppf?function=<value>`
 
 | Value | Function |
 | :- | :- |
