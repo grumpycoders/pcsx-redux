@@ -504,17 +504,17 @@ class CDExecutor : public PCSX::WebExecutor {
                 return true;
             } else if (path == "ppf") {
                 auto vars = parseQuery(request.urlData.query);
-                auto action = vars.find("action");
-                if (action == vars.end()) {
+                auto function = vars.find("function");
+                if (function == vars.end()) {
                     client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                     return true;
                 }
-                if (action->second == "save") {
+                if (function->second == "save") {
                     iso->getPPF()->save(iso->getIsoPath());
-                } else if (action->second == "clear") {
+                } else if (function->second == "clear") {
                     iso->getPPF()->clear();
                 } else {
-                    client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                    client->write("HTTP/1.1 400 Bad Request\r\n\r\nUnknown function.");
                     return true;
                 }
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
