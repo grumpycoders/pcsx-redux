@@ -452,6 +452,11 @@ class CDExecutor : public PCSX::WebExecutor {
                     }
                 }
 
+                if (reader.failed()) {
+                    client->write("HTTP/1.1 404 File Not Found\r\n\r\nNo disc image currently loaded.");
+                    return true;
+                }
+
                 PCSX::IO<PCSX::File> file;
 
                 if (filename != vars.end()) {
@@ -464,13 +469,16 @@ class CDExecutor : public PCSX::WebExecutor {
                 }
 
                 if (file->failed()) {
-                    client->write("HTTP/1.1 404 File Not Found\r\n\r\n");
+                    std::string message = fmt::format(
+                        "HTTP/1.1 404 File Not Found\r\n\r\nFile {} was not found in the currently loaded disc image.",
+                        filename->second);
+                    client->write(std::move(message));
                     return true;
                 }
 
                 file->write(request.body.data<uint8_t>(), request.body.size());
                 iso->getPPF()->save(iso->getIsoPath());
-                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                client->write("HTTP/1.1 200 OK\r\n\r\nDisc image has been patched successfully.");
                 return true;
             }
             return false;
