@@ -425,6 +425,29 @@ class CDExecutor : public PCSX::WebExecutor {
                 }
                 write200(client, j);
                 return true;
+            } else if (path == "files") {
+                auto vars = parseQuery(request.urlData.query);
+                auto filename = vars.find("filename");
+                if (filename == vars.end()) {
+                    client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                    return true;
+                }
+                PCSX::IO<PCSX::File> file = reader.open(filename->second);
+                if (file->failed()) {
+                    std::string message = fmt::format(
+                        "HTTP/1.1 404 File Not Found\r\n\r\nFile {} was not found in the currently loaded disc image.",
+                        filename->second);
+                    client->write(std::move(message));
+                    return true;
+                }
+                auto size = file->size();
+                client->write(std::string("HTTP/1.1 200 OK\r\n"
+                                          "Content-Type: application/octet-stream\r\n"
+                                          "Content-Length: ") +
+                              std::to_string(size) + std::string("\r\n\r\n"));
+                auto buffer = file->read(size);
+                client->write(std::move(buffer));
+                return true;
             }
             return false;
         } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
@@ -477,9 +500,24 @@ class CDExecutor : public PCSX::WebExecutor {
                 }
 
                 file->write(request.body.data<uint8_t>(), request.body.size());
-                iso->getPPF()->save(iso->getIsoPath());
                 client->write("HTTP/1.1 200 OK\r\n\r\nDisc image has been patched successfully.");
                 return true;
+            } else if (path == "ppf") {
+                auto vars = parseQuery(request.urlData.query);
+                auto action = vars.find("action");
+                if (action == vars.end()) {
+                    client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                    return true;
+                }
+                if (action->second == "save") {
+                    iso->getPPF()->save(iso->getIsoPath());
+                } else if (action->second == "clear") {
+                    iso->getPPF()->clear();
+                } else {
+                    client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                    return true;
+                }
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
             }
             return false;
         }
