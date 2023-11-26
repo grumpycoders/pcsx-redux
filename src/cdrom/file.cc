@@ -191,7 +191,7 @@ ssize_t PCSX::CDRIsoFile::write(const void* buffer_, size_t size) {
     while (toCopy != 0) {
         if (m_cachedLBA != lba) {
             m_cachedLBA = lba;
-            auto res = m_iso->readSectors(lba++, m_cachedSector, 1);
+            auto res = m_iso->readSectors(lba, m_cachedSector, 1);
             if (res != 1) return -1;
         }
         uint8_t patched[2352];
