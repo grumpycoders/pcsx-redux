@@ -17,6 +17,7 @@ These GET methods are available:
 | [/api/v1/gpu/vram/raw](http://localhost:8080/api/v1/gpu/vram/raw) | Dump VRAM  |
 | [/api/v1/cpu/ram/raw](http://localhost:8080/api/v1/cpu/ram/raw) | Dump RAM |
 | [/api/v1/execution-flow](http://localhost:8080/api/v1/execution-flow) | Emulation Status |
+| [/api/v1/cd/files?filename=<value>](http://localhost:8080/api/v1/cd/files?filename=SYSTEM.CNF;1) | Dump a file from the loaded disc image |
 
 The following POST methods are available:
 
@@ -55,7 +56,7 @@ The above expects a `.map` file with symbols and addresses, which will be merged
 
 `/api/v1/cd/patch?filename=<value>`
 
-The above needs to also send a form with binary contents, which will patch the currently loaded iso file with the contents of the form. The server will look for the given filename in the iso file, and patch its contents. A ppf file will be written out as a result. All changes are cumulative. If the file is not found, a 404 error will be returned. The file name is case sensitive, and must be a valid ISO9660 filename, which means it can only contain uppercase letters, numbers, and underscores, and ends with `;1`.
+The above needs to also send a form with binary contents, which will patch the currently loaded iso file with the contents of the form. The server will look for the given filename in the iso file, and patch its contents. All changes are cumulative. If the file is not found, a 404 error will be returned. The file name is case sensitive, and must be a valid ISO9660 filename, which means it can only contain uppercase letters, numbers, and underscores, and ends with `;1`.
 
 For example:
 
@@ -75,5 +76,11 @@ The above needs to also send a form with binary contents, which will patch the c
 | M2_FORM1 | Writes 2048 bytes per sector. Will not update the subheader. |
 | M2_FORM2 | Writes 2324 bytes per sector. Will not update the subheader. |
 
-A ppf file will be written out as a result. All changes are cumulative.
+All changes are cumulative.
 
+`api/v1/cd/ppf?action=<value>`
+
+| Value | Function |
+| :- | :- |
+| save | Saves the current state of the disc image patches to a PPF file. |
+| clear | Clears the current list of patches. |
