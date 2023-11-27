@@ -1400,7 +1400,15 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
         }
         case PsyqExprOpcode::SUB: {
             if (expression->right->type == PsyqExprOpcode::VALUE) {
-                return check(expression->left.get(), -((int32_t)expression->right->value));
+                // Why
+                if (expression->left->type == PsyqExprOpcode::ADD) {
+                    if (expression->left->left->type == PsyqExprOpcode::VALUE) {
+                        return check(expression->left->right.get(),
+                                     expression->left->left->value - expression->right->value);
+                    }
+                } else {
+                    return check(expression->left.get(), -((int32_t)expression->right->value));
+                }
             } else {
                 psyq->setElfConversionError("Unsupported SUB operation in relocation");
                 return false;

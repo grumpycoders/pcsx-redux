@@ -49,6 +49,7 @@
 #include "gui/widgets/luaeditor.h"
 #include "gui/widgets/luainspector.h"
 #include "gui/widgets/memcard_manager.h"
+#include "gui/widgets/named_savestates.h"
 #include "gui/widgets/pio-cart.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
@@ -98,6 +99,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
     typedef Setting<bool, TYPESTRING("ShowDisassembly")> ShowDisassembly;
     typedef Setting<bool, TYPESTRING("ShowBreakpoints")> ShowBreakpoints;
+    typedef Setting<bool, TYPESTRING("ShowNamedSaveStates")> ShowNamedSaveStates;
     typedef Setting<bool, TYPESTRING("ShowEvents")> ShowEvents;
     typedef Setting<bool, TYPESTRING("ShowHandlers")> ShowHandlers;
     typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
@@ -146,8 +148,8 @@ class GUI final : public UI {
     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
-             ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowEvents,
-             ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, MainFontSize,
+             ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowNamedSaveStates,
+             ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, MainFontSize,
              MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig,
              ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5,
              ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor,
@@ -375,6 +377,7 @@ class GUI final : public UI {
     Widgets::FileDialog<> m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog<> m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::FileDialog<> m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
+    Widgets::NamedSaveStates m_namedSaveStates = {settings.get<ShowNamedSaveStates>().value};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
 
@@ -405,9 +408,15 @@ class GUI final : public UI {
     EventBus::Listener m_listener;
 
     std::string buildSaveStateFilename(int i);
+    bool saveStateExists(std::filesystem::path filename);
+
+  public:
     void saveSaveState(std::filesystem::path filename);
     void loadSaveState(std::filesystem::path filename);
+    std::string getSaveStatePrefix(bool includeSeparator);
+    static std::string getSaveStatePostfix();
 
+  private:
     void applyTheme(int theme);
     void cherryTheme();
     void monoTheme();

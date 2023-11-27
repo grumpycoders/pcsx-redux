@@ -1065,7 +1065,7 @@ void PCSX::GUI::endFrame() {
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
 
-                static constexpr char globalSaveState[] = "global.sstate";
+                const auto globalSaveStateName = fmt::format(f_("global{}"), getSaveStatePostfix());
 
                 if (ImGui::BeginMenu(_("Save state slots"))) {
                     if (ImGui::MenuItem(_("Quick-save slot"), "F1")) {
@@ -1079,25 +1079,44 @@ void PCSX::GUI::endFrame() {
                         }
                     }
 
+                    ImGui::Separator();
+                    ImGui::MenuItem(_("Show named save states"), nullptr, &m_namedSaveStates.m_show);
+
                     ImGui::EndMenu();
                 }
 
-                if (ImGui::MenuItem(_("Save global state"))) {
-                    saveSaveState(globalSaveState);
-                }
+                if (ImGui::MenuItem(_("Save global state"))) saveSaveState(globalSaveStateName);
 
                 if (ImGui::BeginMenu(_("Load state slots"))) {
-                    if (ImGui::MenuItem(_("Quick-save slot"), "F2")) loadSaveState(buildSaveStateFilename(0));
+                    auto saveFilename = buildSaveStateFilename(0);
+                    ImGui::BeginDisabled(!saveStateExists(saveFilename));
+                    if (ImGui::MenuItem(_("Quick-load slot"), "F2")) loadSaveState(saveFilename);
+                    ImGui::EndDisabled();
 
                     for (auto i = 1; i < 10; i++) {
                         const auto str = fmt::format(f_("Slot {}"), i);
-                        if (ImGui::MenuItem(str.c_str())) loadSaveState(buildSaveStateFilename(i));
+                        saveFilename = buildSaveStateFilename(i);
+                        ImGui::BeginDisabled(!saveStateExists(saveFilename));
+                        if (ImGui::MenuItem(str.c_str())) loadSaveState(saveFilename);
+                        ImGui::EndDisabled();
+                    }
+
+                    auto namedSaves = m_namedSaveStates.getNamedSaveStates(this);
+                    if (!namedSaves.empty()) {
+                        ImGui::Separator();
+                        for (auto filenamePair : namedSaves) {
+                            if (ImGui::MenuItem(filenamePair.second.c_str())) {
+                                loadSaveState(filenamePair.first);
+                            }
+                        }
                     }
 
                     ImGui::EndMenu();
                 }
 
-                if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveState);
+                ImGui::BeginDisabled(!saveStateExists(globalSaveStateName));
+                if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveStateName);
+                ImGui::EndDisabled();
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
@@ -1467,6 +1486,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
+    }
+
+    if (m_namedSaveStates.m_show) {
+        m_namedSaveStates.draw(this, _("Named Save States"));
     }
 
     if (m_memoryObserver.m_show) {
@@ -2431,22 +2454,29 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
     g_emulator->m_cdrom->check();
 }
 
-std::string PCSX::GUI::buildSaveStateFilename(int i) {
+std::string PCSX::GUI::getSaveStatePrefix(bool includeSeparator) {
     // the ID of the game. Every savestate is marked with the ID of the game it's from.
     const auto gameID = g_emulator->m_cdrom->getCDRomID();
-
     // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
     // EXEs don't have proper IDs
     if (!gameID.empty()) {
         // For games with an ID of SLUS00213 for example, this will generate a state named
         // SLUS00213.sstate
-        return fmt::format("{}.sstate{}", gameID, i);
+        return fmt::format("{}{}", gameID, includeSeparator ? "_" : "");
     } else {
         // For games without IDs, identify them via filename
-        const auto& iso = PCSX::g_emulator->m_cdrom->getIso()->getIsoPath().filename();
+        const auto& iso = g_emulator->m_cdrom->getIso()->getIsoPath().filename();
         const auto lastFile = iso.empty() ? "BIOS" : iso.string();
-        return fmt::format("{}.sstate{}", lastFile, i);
+        return fmt::format("{}{}", lastFile, includeSeparator ? "_" : "");
     }
+}
+
+std::string PCSX::GUI::getSaveStatePostfix() {
+    return ".sstate";
+}
+
+std::string PCSX::GUI::buildSaveStateFilename(int i) {
+    return fmt::format("{}{}{}", getSaveStatePrefix(false), getSaveStatePostfix(), i);
 }
 
 void PCSX::GUI::saveSaveState(std::filesystem::path filename) {
@@ -2484,7 +2514,15 @@ void PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     delete[] buff;
 
     if (!error) SaveStates::load(os.str());
-};
+}
+
+bool PCSX::GUI::saveStateExists(std::filesystem::path filename) {
+    if (filename.is_relative()) {
+        filename = g_system->getPersistentDir() / filename;
+    }
+    ZReader save(new PosixFile(filename));
+    return !save.failed();
+}
 
 void PCSX::GUI::byteRateToString(float rate, std::string& str) {
     if (rate >= 1000000000) {

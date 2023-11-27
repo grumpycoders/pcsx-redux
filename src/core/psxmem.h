@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "core/psxemulator.h"
+#include "support/sharedmem.h"
 
 #if defined(__BIGENDIAN__)
 
@@ -186,8 +187,12 @@ class Memory {
     int m_writeok = 1;
     uint32_t m_biosCRC = 0;
 
+    // Shared memory wrappers, pointers below point to these where appropriate
+    SharedMem m_wramShared;
+
     // hopefully this should become private eventually, with only certain classes having direct access.
   public:
+
     uint8_t *m_wram = nullptr;  // Kernel & User Memory (8 Meg)
     uint8_t *m_exp1 = nullptr;  // Expansion Region 1 (ROM/RAM) / Parallel Port (512K)
     uint8_t *m_bios = nullptr;  // BIOS ROM (512K)
