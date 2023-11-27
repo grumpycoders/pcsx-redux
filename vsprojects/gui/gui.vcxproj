@@ -258,6 +258,7 @@
     <ClCompile Include="..\..\src\gui\widgets\luainspector.cc" />
     <ClCompile Include="..\..\src\gui\widgets\memcard_manager.cc" />
     <ClCompile Include="..\..\src\gui\widgets\memory_observer.cc" />
+	<ClCompile Include="..\..\src\gui\widgets\named_savestates.cc" />
     <ClCompile Include="..\..\src\gui\widgets\pio-cart.cc" />
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
@@ -290,6 +291,7 @@
     <ClInclude Include="..\..\src\gui\widgets\luainspector.h" />
     <ClInclude Include="..\..\src\gui\widgets\memcard_manager.h" />
     <ClInclude Include="..\..\src\gui\widgets\memory_observer.h" />
+    <ClInclude Include="..\..\src\gui\widgets\named_savestates.h" />
     <ClInclude Include="..\..\src\gui\widgets\pio-cart.h" />
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h" />
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />
@@ -302,6 +304,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\gui\imguiextraffi.lua" />
+    <None Include="..\..\src\gui\imguisafe.lua" />
     <None Include="..\..\src\gui\nvgffi-cdefs.lua" />
     <None Include="..\..\src\gui\nvgffi.lua" />
     <None Include="..\..\src\gui\shaders\crt-lottes-offscreen.lua" />

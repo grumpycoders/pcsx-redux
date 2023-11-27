@@ -76,7 +76,7 @@ Usage: {} input.ps-exe [-h] -o output.elf
 
     std::vector<uint8_t> dataIn;
     dataIn.resize(memory->actualSize());
-    memory->readAt(dataIn.data(), dataIn.size(), memory->actualSize());
+    memory->readAt(dataIn.data(), dataIn.size(), memory->lowestAddress());
     while ((dataIn.size() & 3) != 0) dataIn.push_back(0);
     ELFIO::elfio writer;
 
