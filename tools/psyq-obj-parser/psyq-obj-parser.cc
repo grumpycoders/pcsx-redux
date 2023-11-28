@@ -1427,6 +1427,8 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
             return checkZero(expression.get());
         }
     }
+    psyq->setElfConversionError("Shouldn't happen");
+    return false;
 }
 
 int main(int argc, char** argv) {
