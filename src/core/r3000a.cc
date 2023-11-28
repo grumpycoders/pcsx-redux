@@ -90,6 +90,10 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
             uint32_t code = (memFile->readAt<uint32_t>(m_regs.pc) >> 6) & 0xfffff;
             auto& regs = m_regs.GPR.n;
             uint16_t fd = 0;
+            m_currentDelayedLoad ^= 1;
+            flushCurrentDelayedLoad();
+            m_currentDelayedLoad ^= 1;
+            flushCurrentDelayedLoad();
             switch (code) {
                 case 0x101: {  // PCinit
                     closeAllPCdrvFiles();

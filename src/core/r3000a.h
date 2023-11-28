@@ -366,6 +366,16 @@ class R3000Acpu {
         delayedLoad.pcValue = value;
         delayedLoad.fromLink = fromLink;
     }
+    void flushCurrentDelayedLoad() {
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        if (delayedLoad.active) {
+            uint32_t reg = m_regs.GPR.r[delayedLoad.index];
+            reg &= delayedLoad.mask;
+            reg |= delayedLoad.value;
+            m_regs.GPR.r[delayedLoad.index] = reg;
+            delayedLoad.active = false;
+        }
+    }
 
   protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
