@@ -913,6 +913,7 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
                                             ELFIO::symbol_section_accessor& syma) {
     ELFIO::Elf_Half elfSectionIndex = 0;
     bool isText = false;
+    bool isWeak = false;
 
     fmt::print("    :: Generating symbol {} {} {}\n", name, getOffset(psyq), sectionIndex);
     if (symbolType != Type::IMPORTED) {
@@ -924,6 +925,7 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
         }
         elfSectionIndex = section->section->get_index();
         isText = section->isText();
+        isWeak = symbolType != Type::EXPORTED;
     }
     uint32_t functionSize = 0;
     if (isText) {
@@ -933,7 +935,9 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
         }
     }
     elfSym = syma.add_symbol(stra, name.c_str(), getOffset(psyq), isText ? functionSize : size,
-                             symbolType == Type::LOCAL ? ELFIO::STB_LOCAL : ELFIO::STB_GLOBAL,
+                             isWeak                      ? ELFIO::STB_WEAK
+                             : symbolType == Type::LOCAL ? ELFIO::STB_LOCAL
+                                                         : ELFIO::STB_GLOBAL,
                              isText ? ELFIO::STT_FUNC : ELFIO::STT_NOTYPE, 0, elfSectionIndex);
     return true;
 }
@@ -1423,6 +1427,8 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
             return checkZero(expression.get());
         }
     }
+    psyq->setElfConversionError("Shouldn't happen");
+    return false;
 }
 
 int main(int argc, char** argv) {
