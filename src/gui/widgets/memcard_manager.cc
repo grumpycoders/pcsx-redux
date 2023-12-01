@@ -50,70 +50,16 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
 
     const auto card_size = MemoryCards::c_cardSize;
 
-    ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
-
-    if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
-        ImGui::End();
-        return false;
-    }
-
     bool showImportMemoryCardDialog = false;
     bool showExportMemoryCardDialog = false;
 
-    if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu(_("File"))) {
-            if (ImGui::MenuItem(_("Import file into memory card 1"))) {
-                showImportMemoryCardDialog = true;
-                m_memoryCardImportExportIndex = 1;
-            }
-            if (ImGui::MenuItem(_("Import file into memory card 2"))) {
-                showImportMemoryCardDialog = true;
-                m_memoryCardImportExportIndex = 2;
-            }
-            if (ImGui::MenuItem(_("Export memory card 1 to file"))) {
-                showExportMemoryCardDialog = true;
-                m_memoryCardImportExportIndex = 1;
-            }
-            if (ImGui::MenuItem(_("Export memory card 2 to file"))) {
-                showExportMemoryCardDialog = true;
-                m_memoryCardImportExportIndex = 2;
-            }
-            ImGui::EndMenu();
-        }
-        ImGui::EndMenuBar();
-    }
+    ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
 
-    if (showImportMemoryCardDialog) {
-        m_importMemoryCardDialog.openDialog();
+    if (!ImGui::Begin(title, &m_show)) {
+        ImGui::End();
+        return false;
     }
-
-    if (m_importMemoryCardDialog.draw()) {
-        std::vector<PCSX::u8string> fileToOpen = m_importMemoryCardDialog.selected();
-        if (!fileToOpen.empty()) {
-            g_emulator->m_memoryCards->loadMcd(fileToOpen[0], g_emulator->m_memoryCards->m_memoryCard[m_memoryCardImportExportIndex].getCardData());
-            g_emulator->m_memoryCards->saveMcd(m_memoryCardImportExportIndex);
-            clearUndoBuffer();
-        }
-    }
-
-    if (showExportMemoryCardDialog) {
-        m_exportMemoryCardDialog.openDialog();
-    }
-
-    if (m_exportMemoryCardDialog.draw()) {
-        std::vector<PCSX::u8string> fileToOpen = m_exportMemoryCardDialog.selected();
-        if (!fileToOpen.empty()) {
-            IO<File> out = new UvFile(fileToOpen[0], FileOps::TRUNCATE);
-            if (!out->failed()) {
-                const auto dataCard = g_emulator->m_memoryCards->getCardData(m_memoryCardImportExportIndex);
-                Slice slice;
-                slice.copy(dataCard, 128 * 1024);
-                out->writeAt(std::move(slice), 0);
-            }
-        }
-    }
-
     const bool undoDisabled = m_undo.size() == 0;
     if (undoDisabled) {
         ImGui::BeginDisabled();
@@ -230,7 +176,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                 buttonName = fmt::format(f_("Copy##{}"), i);
                 if (otherFreeSpace >= size) {
                     if (ImGui::SmallButton(buttonName.c_str())) {
-                        auto latest = getLatest();
+                         auto latest = getLatest();
                         bool success = g_emulator->m_memoryCards->copyMcdFile(block);
                         if (!success) {
                             gui->addNotification("Error while copying save file");
@@ -292,25 +238,23 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         const char* card_ids[] = {"1A", "2A", "1B", "1C", "1D", "2B", "2C", "2D"};
         const int draw_order[] = {0, 2, 3, 4, 1, 5, 6, 7};
 
-        bool* inserted_settings[] = {
-            &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd1BInserted>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd1CInserted>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd1DInserted>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd2BInserted>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd2CInserted>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd2DInserted>().value};
+        bool* inserted_settings[] = {&g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value,
+                                     &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value,
+                                     &g_emulator->settings.get<Emulator::SettingMcd1BInserted>().value,
+                                     &g_emulator->settings.get<Emulator::SettingMcd1CInserted>().value,
+                                     &g_emulator->settings.get<Emulator::SettingMcd1DInserted>().value,
+                                     &g_emulator->settings.get<Emulator::SettingMcd2BInserted>().value,
+                                     &g_emulator->settings.get<Emulator::SettingMcd2CInserted>().value,
+                                     &g_emulator->settings.get<Emulator::SettingMcd2DInserted>().value};
 
-        bool* pocketstation_settings[] = {
-            &g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd1BPocketstation>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd1CPocketstation>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd1DPocketstation>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd2BPocketstation>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd2CPocketstation>().value,
-            &g_emulator->settings.get<Emulator::SettingMcd2DPocketstation>().value};
+        bool* pocketstation_settings[] = {&g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value,
+                                          &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value,
+                                          &g_emulator->settings.get<Emulator::SettingMcd1BPocketstation>().value,
+                                          &g_emulator->settings.get<Emulator::SettingMcd1CPocketstation>().value,
+                                          &g_emulator->settings.get<Emulator::SettingMcd1DPocketstation>().value,
+                                          &g_emulator->settings.get<Emulator::SettingMcd2BPocketstation>().value,
+                                          &g_emulator->settings.get<Emulator::SettingMcd2CPocketstation>().value,
+                                          &g_emulator->settings.get<Emulator::SettingMcd2DPocketstation>().value};
 
         for (int i = 0; i < 8; i++) {
             const int card_index = draw_order[i];
@@ -335,6 +279,16 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
             }
 
             if (ImGui::BeginTabItem(fmt::format(f_("Memory Card {}"), display_name).c_str())) {
+                if (ImGui::Button(fmt::format(f_("Import file into memory card {}"), display_name).c_str())) {
+                    showImportMemoryCardDialog = true;
+                    m_memoryCardImportExportIndex = card_index;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(fmt::format(f_("Export memory card {} to file"), display_name).c_str())) {
+                    showExportMemoryCardDialog = true;
+                    m_memoryCardImportExportIndex = card_index;
+                }
+
                 // Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
                 if (ImGui::Checkbox(fmt::format(f_("Memory Card {} inserted"), display_name).c_str(),
                                     inserted_settings[card_index])) {
@@ -358,6 +312,37 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
             }
         }
         ImGui::EndTabBar();
+    }
+
+    if (showImportMemoryCardDialog) {
+        m_importMemoryCardDialog.openDialog();
+    }
+
+    if (m_importMemoryCardDialog.draw()) {
+        std::vector<PCSX::u8string> fileToOpen = m_importMemoryCardDialog.selected();
+        if (!fileToOpen.empty()) {
+            g_emulator->m_memoryCards->loadMcd(
+                fileToOpen[0], g_emulator->m_memoryCards->m_memoryCard[m_memoryCardImportExportIndex].getCardData());
+            g_emulator->m_memoryCards->saveMcd(m_memoryCardImportExportIndex);
+            clearUndoBuffer();
+        }
+    }
+
+    if (showExportMemoryCardDialog) {
+        m_exportMemoryCardDialog.openDialog();
+    }
+
+    if (m_exportMemoryCardDialog.draw()) {
+        std::vector<PCSX::u8string> fileToOpen = m_exportMemoryCardDialog.selected();
+        if (!fileToOpen.empty()) {
+            IO<File> out = new UvFile(fileToOpen[0], FileOps::TRUNCATE);
+            if (!out->failed()) {
+                const auto dataCard = g_emulator->m_memoryCards->getCardData(m_memoryCardImportExportIndex);
+                Slice slice;
+                slice.copy(dataCard, 128 * 1024);
+                out->writeAt(std::move(slice), 0);
+            }
+        }
     }
 
     m_frameCount = (m_frameCount + 1) % 60;
