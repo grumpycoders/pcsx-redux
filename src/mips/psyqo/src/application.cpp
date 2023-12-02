@@ -36,6 +36,7 @@ int psyqo::Application::run() {
     enterCriticalSection();
     Kernel::Internal::setCop0Status(Kernel::Internal::getCop0Status() | 0x40000000);
     syscall_puts("*** PSYQo Application - starting ***\n");
+    psyqo_free(psyqo_malloc(1));
     ramsyscall_printf("Current heap start: %p\n", psyqo_heap_start());
     ramsyscall_printf("Current heap end: %p\n", psyqo_heap_end());
     Kernel::Internal::prepare();
