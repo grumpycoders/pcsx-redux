@@ -43,9 +43,9 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
 
     std::string filename;
 
-    zip.listAllFiles([&zip, &filename, &tmp](const std::string_view& name) {
+    zip.listAllFiles([&zip, &filename, &tmp](std::string_view name) {
         IO<File> out(new UvFile(tmp / name, FileOps::TRUNCATE));
-        IO<File> in(zip.openFile(name));
+        IO<File> in(zip.openFile(std::string(name)));
         Slice data = in->read(in->size());
         out->write(std::move(data));
         filename = out->filename();
