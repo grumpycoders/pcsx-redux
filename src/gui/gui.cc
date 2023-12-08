@@ -427,7 +427,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_luaConsole.setCmdExec([this, luaStdout](const std::string& cmd) {
         ScopedOnlyLog scopedOnlyLog(this);
         try {
-            g_emulator->m_lua->load(cmd, "console", false);
+            g_emulator->m_lua->load(cmd, "console:", false);
             g_emulator->m_lua->pcall();
             for (const auto& error : m_glErrors) {
                 m_luaConsole.addError(error);

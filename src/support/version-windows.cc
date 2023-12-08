@@ -74,10 +74,10 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     script->writeString("$failed = $False\n");
 
     unsigned count = 0;
-    zip.listAllFiles([&zip, &script, &tmp, &binDir, &count](const std::string_view& name) {
+    zip.listAllFiles([&zip, &script, &tmp, &binDir, &count](std::string_view name) {
         auto filename = tmp / ("pcsx-update-file-" + std::to_string(count++) + ".tmp");
         IO<File> out(new UvFile(filename, FileOps::TRUNCATE));
-        IO<File> in(zip.openFile(name));
+        IO<File> in(zip.openFile(std::string(name)));
         Slice data = in->read(in->size());
         uint8_t digest[16];
         MD5 md5;

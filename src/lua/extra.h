@@ -20,11 +20,13 @@
 #pragma once
 
 #include "lua/luawrapper.h"
+#include "support/file.h"
 
 namespace PCSX {
 
 namespace LuaFFI {
 void open_extra(Lua);
+void addArchive(IO<File>);
 }
 
 }  // namespace PCSX
