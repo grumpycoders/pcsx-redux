@@ -85,7 +85,7 @@
 --      --> the current system font has 45 distinct bytes, well below the limit
 
 -- Run this code with, for example, the following command:
--- ./pcsx-redux -cli -exec "dofile 'font-compress.lua' compressFont 'font.raw' PCSX.quit()"
+-- ./pcsx-redux -cli -dofile font-compress.lua -exec "compressFont 'font.raw' PCSX.quit()"
 
 -- First part of this code is a generic min-heap class. It can easily be extracted
 -- into its own independant library for other means.
