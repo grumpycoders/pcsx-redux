@@ -37,3 +37,6 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-trace` | Activates the CPU trace logging. Will change the saved setting. |
 | `-no-trace` | Deactivates the CPU trace logging. Will change the saved setting. |
 | `-no-gui-log` | Fully disables logs to be sent to the GUI. |
+| `-archive` | Specifies a .zip file to load for the `Support.extra.dofile` function. |
+| `-dofile` | Specifies a Lua file to load through the `Support.extra.dofile` function. |
+| `-exec` | Specifies a Lua string to execute. |

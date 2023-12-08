@@ -138,6 +138,35 @@ struct ScreenShot {
 
 The `Slice` will contain the raw bytes of the screenshot data. It's meant to be written out using the `:writeMoveSlice()` method on a `File` object. The `width` and `height` will be the width and height of the screenshot, in pixels. The `bpp` will be either `BPP_16` or `BPP_24`, depending on the color depth of the screenshot. The size of the `data` Slice will be `height * width` multiplied by the number of bytes per pixel, depending on the `bpp`.
 
+## Loading and executing code
+
+While the basic Lua functions `dofile` and `loadfile` exist, some alternative functions are available to load and execute code in a more flexible way.
+
+- `Support.extra.addArchive(filename)` will load the given zip file, and will make it available to the `Support.extra.dofile` function. It is equivalent to the `-archive` command line flag.
+- `Support.extra.dofile(filename)` will load the given file, and execute it. It is equivalent to `dofile`, but will also search for the file next to the currently loaded Lua file which is calling this function, and will also search for the file in all of the loaded zip files, either through the command line, or through the `Support.extra.addArchive` function.
+- `Support.extra.loadfile(filename)` will load the given file, and return a function that can be called to execute the file. It is equivalent to `loadfile`, but will also search for the file next to the currently loaded Lua file which is calling this function, and will also search for the file in all of the loaded zip files, either through the command line, or through the `Support.extra.addArchive` function.
+
+If given the following directory structure:
+
+```
+.
+└── bar.zip
+    ├── test/baz.lua
+    └── test2/qux.lua
+```
+
+If `test/baz.lua` contains the following code:
+
+```lua
+Support.extra.dofile('../test2/qux.lua')
+```
+Then running the following code:
+```lua
+Support.extra.addArchive('bar.zip')
+Support.extra.dofile('test/baz.lua')
+```
+Will first load `test/baz.lua` from the zip file `bar.zip`, run it, which will in turn load `test2/qux.lua` from the zip file `bar.zip` again, and execute it.
+
 ## Miscellaneous
 
 - `PCSX.quit([code])` schedules the emulator to quit. It's not instantaneous, and will only quit after the current block of Lua code has finished executing, which will be before the next main loop iteration. The `code` parameter is optional, and will be the exit code of the emulator. If not specified, it'll default to 0.
