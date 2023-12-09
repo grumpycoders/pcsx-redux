@@ -39,21 +39,23 @@ class ZipArchive {
   public:
     ZipArchive(IO<File> file);
     bool failed() { return m_failed; }
-    void listAllFiles(std::function<void(const std::string_view &)> walker) {
-        listFiles([walker](const std::string_view &name) -> bool {
+    void listAllFiles(std::function<void(std::string_view)> walker) {
+        listFiles([walker](std::string_view name) -> bool {
             walker(name);
             return true;
         });
     }
-    void listAllDirectories(std::function<void(const std::string_view &)> walker) {
-        listDirectories([walker](const std::string_view &name) -> bool {
+    void listAllDirectories(std::function<void(std::string_view)> walker) {
+        listDirectories([walker](std::string_view name) -> bool {
             walker(name);
             return true;
         });
     }
-    void listFiles(std::function<bool(const std::string_view &)> walker);
-    void listDirectories(std::function<bool(const std::string_view &)> walker);
-    File *openFile(const std::string_view &path);
+    void listFiles(std::function<bool(std::string_view)> walker);
+    void listDirectories(std::function<bool(std::string_view)> walker);
+    File *openFile(std::string path);
+
+    std::filesystem::path archiveFilename() { return m_file->filename(); }
 
   private:
     IO<File> m_file;

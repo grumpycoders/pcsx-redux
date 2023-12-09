@@ -375,6 +375,7 @@ class GUI final : public UI {
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
     Widgets::FileDialog<> m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
     Widgets::FileDialog<> m_openBinaryDialog = {[]() { return _("Open Binary"); }};
+    Widgets::FileDialog<> m_openArchiveDialog = {[]() { return _("Open Archive"); }};
     Widgets::FileDialog<> m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::FileDialog<> m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
     Widgets::NamedSaveStates m_namedSaveStates = {settings.get<ShowNamedSaveStates>().value};
