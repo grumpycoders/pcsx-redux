@@ -74,6 +74,7 @@ extern "C" {
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "json.hpp"
+#include "lua/extra.h"
 #include "lua/glffi.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
@@ -1047,6 +1048,7 @@ void PCSX::GUI::endFrame() {
 
     bool showOpenIsoFileDialog = false;
     bool showOpenBinaryDialog = false;
+    bool showOpenArchiveDialog = false;
 
     if (m_showMenu || !m_fullWindowRender || !PCSX::g_system->running()) {
         if (ImGui::BeginMainMenuBar()) {
@@ -1058,6 +1060,9 @@ void PCSX::GUI::endFrame() {
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
                     showOpenBinaryDialog = true;
+                }
+                if (ImGui::MenuItem(_("Add Lua archive"))) {
+                    showOpenArchiveDialog = true;
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Dump save state proto schema"))) {
@@ -1375,6 +1380,29 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             std::filesystem::path p = fileToOpen[0];
             g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p.string());
             g_system->softReset();
+        }
+    }
+
+    if (showOpenArchiveDialog) {
+        if (!isoPath.empty()) {
+            m_openArchiveDialog.m_currentPath = isoPath.value;
+        }
+        m_openArchiveDialog.openDialog();
+    }
+    if (m_openArchiveDialog.draw()) {
+        isoPath.value = m_openArchiveDialog.m_currentPath;
+        changed = true;
+        std::vector<PCSX::u8string> fileToOpen = m_openArchiveDialog.selected();
+        if (!fileToOpen.empty()) {
+            IO<File> file = new PosixFile(fileToOpen[0]);
+            try {
+                auto& archive = LuaFFI::addArchive(*g_emulator->m_lua, file);
+                if (!archive.failed()) {
+                    g_system->log(LogClass::UI, "Added %s to our list of loaded archives.\n",
+                                  reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+                }
+            } catch (...) {
+            }
         }
     }
 
@@ -2446,6 +2474,26 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
             g_system->log(LogClass::UI, "Temporary overriding bios with %s and hard resetting.\n", path.string());
             file->readAt(g_emulator->m_mem->m_bios, 512 * 1024, 0);
             return;
+        }
+    }
+
+    // Maybe it's a zip file to add to our list of Lua archive ?
+    {
+        uint32_t signature = file->readAt<uint32_t>(0);
+        try {
+            switch (signature) {
+                case 0x02014b50:
+                case 0x04034b50:
+                case 0x06054b50: {
+                    auto& archive = LuaFFI::addArchive(*g_emulator->m_lua, file);
+                    if (!archive.failed()) {
+                        g_system->log(LogClass::UI, "Added %s to our list of loaded archives.\n", path.string());
+                        return;
+                    }
+                    break;
+                }
+            }
+        } catch (...) {
         }
     }
 
