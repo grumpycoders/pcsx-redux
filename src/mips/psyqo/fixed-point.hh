@@ -119,7 +119,7 @@ class FixedPoint {
      * @brief Construct a new Fixed Point number from a different
      * fixed point number.
      */
-    template<unsigned otherPrecisionBits = 12, std::integral U = int32_t>
+    template <unsigned otherPrecisionBits = 12, std::integral U = int32_t>
     explicit FixedPoint(FixedPoint<otherPrecisionBits, U> other) {
         if constexpr (precisionBits == otherPrecisionBits) {
             *this = other;
@@ -149,7 +149,7 @@ class FixedPoint {
         return (value + scale / 2) / scale;
     }
 
-    template<std::integral U>
+    template <std::integral U>
     constexpr U integer() const {
         if constexpr (std::is_signed<T>::value) {
             if (value < 0) {

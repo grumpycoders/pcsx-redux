@@ -32,7 +32,7 @@ namespace Bezier {
 
 /**
  * @brief Cubic Bezier curve helper function.
- * 
+ *
  * @param a Start of the Bezier curve.
  * @param b Control point 1.
  * @param c Control point 2.
@@ -43,6 +43,6 @@ namespace Bezier {
 Vec2 cubic(const Vec2& a, const Vec2& b, const Vec2& c, const Vec2& d, FixedPoint<> t);
 Vec3 cubic(const Vec3& a, const Vec3& b, const Vec3& c, const Vec3& d, FixedPoint<> t);
 
-}
+}  // namespace Bezier
 
 }  // namespace psyqo

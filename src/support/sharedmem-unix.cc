@@ -26,15 +26,14 @@ SOFTWARE.
 
 #if !defined(_WIN32) && !defined(_WIN64)
 
-#include "support/sharedmem.h"
-
 #include <assert.h>
 #include <fcntl.h>
 #include <string.h>
-#include <unistd.h>
-
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <unistd.h>
+
+#include "support/sharedmem.h"
 
 bool PCSX::SharedMem::init(const char* id, size_t size, bool initToZero) {
     assert(m_mem == nullptr);

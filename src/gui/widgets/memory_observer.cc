@@ -37,8 +37,7 @@ PCSX::Widgets::MemoryObserver::MemoryObserver(bool& show) : m_show(show), m_list
         for (const auto& addressValuePair : m_addressValuePairs) {
             if (addressValuePair.frozen) {
                 const auto dataSize = getStrideFromValueType(m_scanValueType);
-                memcpy(g_emulator->m_mem->m_wram + addressValuePair.address - 0x80000000,
-                       &addressValuePair.frozenValue,
+                memcpy(g_emulator->m_mem->m_wram + addressValuePair.address - 0x80000000, &addressValuePair.frozenValue,
                        dataSize);
             }
         }
@@ -335,9 +334,9 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 ImGui::TableHeadersRow();
 
                 bool as_uint = (m_scanValueType == ScanValueType::Uint);
-                const auto valueDisplayFormat = m_hex                          ? "%x"
-                                                : (m_fixedPoint && stride > 1) ? (as_uint ? "%u.%u" : "%i.%i")
-                                                                               : (as_uint ? "%u" : "%i");
+                const auto valueDisplayFormat =
+                    m_hex ? "%x"
+                          : (m_fixedPoint && stride > 1) ? (as_uint ? "%u.%u" : "%i.%i") : (as_uint ? "%u" : "%i");
 
                 ImGuiListClipper clipper;
                 clipper.Begin(m_addressValuePairs.size());

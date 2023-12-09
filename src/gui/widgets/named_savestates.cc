@@ -20,8 +20,8 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     const float footerHeight = (heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing()) * 4;
     const float glyphWidth = ImGui::GetFontSize();
 
-    // Any ImGui::Text() preceeding a ImGui::InputText() will be incorrectly aligned, use this value to awkwardly account for this
-    // Luckily this value is consistent no matter what the UI main font size is set to
+    // Any ImGui::Text() preceeding a ImGui::InputText() will be incorrectly aligned, use this value to awkwardly
+    // account for this Luckily this value is consistent no matter what the UI main font size is set to
     const float verticalAlignAdjust = 3.0f;
 
     // Create a button for each named save state
@@ -91,7 +91,8 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     };
 
     ImGui::InputTextWithHint("##SaveNameInput", "Enter the name of your save state here", m_namedSaveNameString,
-        NAMED_SAVE_STATE_LENGTH_MAX, ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNonPathCharacters);
+                             NAMED_SAVE_STATE_LENGTH_MAX, ImGuiInputTextFlags_CallbackCharFilter,
+                             TextFilters::FilterNonPathCharacters);
     ImGui::SameLine(0.0f, 0.0f);
 
     // Trailing text alignment also needs adjusting, but in the opposite direction
@@ -104,7 +105,7 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     auto found = std::find_if(saveStates.begin(), saveStates.end(), [=](auto saveStatePair) {
         return strlen(m_namedSaveNameString) > 0 &&
                StringsHelpers::strcasecmp(m_namedSaveNameString, saveStatePair.second.c_str());
-        });
+    });
     bool exists = found != saveStates.end();
 
     float width = ImGui::GetCurrentContext()->LastItemData.Rect.GetWidth();
@@ -114,7 +115,8 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     if (!exists) {
         if (strlen(m_namedSaveNameString) > 0) {
             // The save state doesn't exist, and the name is valid
-            std::string pathStr = fmt::format("{}{}{}", gui->getSaveStatePrefix(true), m_namedSaveNameString, gui->getSaveStatePostfix());
+            std::string pathStr =
+                fmt::format("{}{}{}", gui->getSaveStatePrefix(true), m_namedSaveNameString, gui->getSaveStatePostfix());
             std::filesystem::path newPath = pathStr;
             if (ImGui::Button(_("Create save"), buttonDims)) {
                 saveSaveState(gui, newPath);
@@ -140,10 +142,12 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     ImGui::End();
 }
 
-std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedSaveStates::getNamedSaveStates(GUI* gui) {
+std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedSaveStates::getNamedSaveStates(
+    GUI* gui) {
     std::vector<std::pair<std::filesystem::path, std::string>> names;
 
-    // Get the filename prefix to use, which follows the typical save state format, with a separator between gameID and name
+    // Get the filename prefix to use, which follows the typical save state format, with a separator between gameID and
+    // name
     std::string prefix = gui->getSaveStatePrefix(true);
     std::string postfix = gui->getSaveStatePostfix();
 
@@ -153,9 +157,9 @@ std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedS
         for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path(), ec)) {
             if (entry.is_regular_file()) {
                 std::string filename = entry.path().filename().string();
-                if (filename.find(prefix) == 0 &&
-                    filename.rfind(postfix) == filename.length() - postfix.length()) {
-                    std::string niceName = filename.substr(prefix.length(), filename.length() - (prefix.length() + postfix.length()));
+                if (filename.find(prefix) == 0 && filename.rfind(postfix) == filename.length() - postfix.length()) {
+                    std::string niceName =
+                        filename.substr(prefix.length(), filename.length() - (prefix.length() + postfix.length()));
                     // Only support names that fit within the character limit
                     if (niceName.length() < NAMED_SAVE_STATE_LENGTH_MAX) {
                         names.emplace_back(entry.path(), niceName);

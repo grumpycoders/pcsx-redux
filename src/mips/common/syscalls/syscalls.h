@@ -39,29 +39,20 @@ struct JmpBuf;
 static __attribute__((always_inline)) int enterCriticalSection() {
     register int n asm("a0") = 1;
     register int r asm("v0");
-    __asm__ volatile("syscall\n"
-                     : "=r"(r)
-                     : "r"(n)
-                     : "memory");
+    __asm__ volatile("syscall\n" : "=r"(r) : "r"(n) : "memory");
     return r;
 }
 
 static __attribute__((always_inline)) void leaveCriticalSection() {
     register int n asm("a0") = 2;
-    __asm__ volatile("syscall\n"
-                     :
-                     : "r"(n)
-                     : "memory");
+    __asm__ volatile("syscall\n" : : "r"(n) : "memory");
 }
 
 static __attribute__((always_inline)) int changeThreadSubFunction(uint32_t address) {
     register int n asm("a0") = 3;
     register int tcb asm("a1") = address;
     register int r asm("v0");
-    __asm__ volatile("syscall\n"
-                     : "=r"(r)
-                     : "r"(n), "r"(tcb)
-                     : "memory");
+    __asm__ volatile("syscall\n" : "=r"(r) : "r"(n), "r"(tcb) : "memory");
     return r;
 }
 

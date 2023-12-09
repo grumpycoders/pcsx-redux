@@ -41,7 +41,8 @@ struct BasicAccess {
     static volatile T* accessPtr(int index = 0) { return reinterpret_cast<volatile T*>(BaseAddress + offset + index); }
 };
 
-template <uint32_t offset, typename T = uint32_t, WriteQueue writeQueue = WriteQueue::Use, typename Access = BasicAccess<offset, writeQueue == WriteQueue::Use ? 0x1f801000 : 0xbf801000, T>>
+template <uint32_t offset, typename T = uint32_t, WriteQueue writeQueue = WriteQueue::Use,
+          typename Access = BasicAccess<offset, writeQueue == WriteQueue::Use ? 0x1f801000 : 0xbf801000, T>>
 struct Register {
     static constexpr uint32_t BaseAddress = writeQueue == WriteQueue::Use ? 0x1f801000 : 0xbf801000;
     void throwAway() const { *Access::accessPtr(); }
@@ -158,7 +159,7 @@ struct Register {
     bool operator>=(T value) const { return access() >= value; }
     T operator[](int index) const { return access(index); }
 
-    volatile T & access(int index = 0) const { return Access::access(index); }
+    volatile T& access(int index = 0) const { return Access::access(index); }
 };
 
-}
+}  // namespace psyqo::Hardware

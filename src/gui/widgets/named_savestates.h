@@ -1,9 +1,9 @@
 
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
-#include <filesystem>
 
 namespace PCSX {
 
@@ -19,8 +19,7 @@ class NamedSaveStates {
     std::vector<std::pair<std::filesystem::path, std::string>> getNamedSaveStates(GUI* gui);
 
   private:
-
-      static constexpr int NAMED_SAVE_STATE_LENGTH_MAX = 128;
+    static constexpr int NAMED_SAVE_STATE_LENGTH_MAX = 128;
 
     void saveSaveState(GUI* gui, std::filesystem::path saveStatePath);
     void loadSaveState(GUI* gui, std::filesystem::path saveStatePath);

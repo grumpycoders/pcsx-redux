@@ -24,7 +24,6 @@ SOFTWARE.
 
 */
 
-
 #include "supportpsx/binloader.h"
 
 #include <map>

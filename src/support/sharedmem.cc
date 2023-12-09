@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include "support/sharedmem.h"
+
 #include "fmt/format.h"
 
 std::string PCSX::SharedMem::getSharedName(const char* id, uint32_t pid) {

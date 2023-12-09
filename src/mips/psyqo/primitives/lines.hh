@@ -26,9 +26,8 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
-
 #include <EASTL/array.h>
+#include <stdint.h>
 
 #include "psyqo/primitives/common.hh"
 
@@ -161,7 +160,7 @@ struct PolyLineEnd {
  * @tparam N The number of segments in the polyline.
  */
 
-template<unsigned N>
+template <unsigned N>
 struct PolyLine {
     PolyLine() : command(0x48000000) {}
     PolyLine(Color c) : command(0x48000000 | c.packed) {}
