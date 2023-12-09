@@ -47,7 +47,8 @@ PCSX::File* load(std::string_view name, std::string_view from, bool inArchives =
     PCSX::File* file = nullptr;
 
     if (inArchives) {
-        for (auto& archive : s_archives) {
+        for (auto archivei = s_archives.rbegin(); archivei != s_archives.rend(); archivei++) {
+            auto& archive = *archivei;
             if (doRelative) {
                 file = archive.openFile(relativePath.string());
                 if (!file->failed()) return file;
@@ -58,7 +59,8 @@ PCSX::File* load(std::string_view name, std::string_view from, bool inArchives =
             delete file;
         }
     } else {
-        for (auto& archive : s_archives) {
+        for (auto archivei = s_archives.rbegin(); archivei != s_archives.rend(); archivei++) {
+            auto& archive = *archivei;
             std::filesystem::path fromPath(from);
             std::filesystem::path relativePath(archive.archiveFilename().parent_path() / name);
             relativePath = std::filesystem::weakly_canonical(relativePath);
