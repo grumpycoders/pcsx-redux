@@ -33,6 +33,7 @@
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
+#include "lua/extra.h"
 #include "lua/luawrapper.h"
 #include "main/textui.h"
 #include "spu/interface.h"
@@ -360,25 +361,30 @@ int pcsxMain(int argc, char **argv) {
             PCSX::g_system = nullptr;
         });
         try {
+            auto &L = emulator->m_lua;
             // Before going into the main loop, let's first load all of the Lua files
             // from the command-line specified using the -dofile switch.
-            auto dofiles = args.values("dofile");
-            for (auto &dofile : dofiles) {
-                std::string name = std::string(dofile);
-                std::ifstream in(name, std::ifstream::in);
-                if (!in) {
-                    throw std::runtime_error("Couldn't load file " + name);
+            auto archives = args.values("archive");
+            for (auto &archive : archives) {
+                PCSX::IO<PCSX::File> file = new PCSX::PosixFile(archive);
+                if (file->failed()) {
+                    throw std::runtime_error(fmt::format("Couldn't load file {}", archive));
                 }
-                std::ostringstream code;
-                code << in.rdbuf();
-                in.close();
-                emulator->m_lua->load(code.str(), name.c_str());
+                PCSX::LuaFFI::addArchive(*L, file);
             }
+            auto dofiles = args.values("dofile");
+            L->load("return function(name) Support.extra.dofile(name) end", "internal:");
+            for (auto &dofile : dofiles) {
+                L->copy(-1);
+                L->push(dofile);
+                L->pcall(1);
+            }
+            L->pop();
 
             // Then run all of the Lua "exec" commands.
             auto luaexecs = args.values("exec");
             for (auto &luaexec : luaexecs) {
-                emulator->m_lua->load(luaexec.data(), "cmdline");
+                L->load(luaexec.data(), "cmdline:");
             }
 
             system->m_inStartup = false;

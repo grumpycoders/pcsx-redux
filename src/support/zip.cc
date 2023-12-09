@@ -110,7 +110,7 @@ PCSX::ZipArchive::ZipArchive(IO<File> file) : m_file(file) {
     }
 }
 
-void PCSX::ZipArchive::listFiles(std::function<bool(const std::string_view&)> walker) {
+void PCSX::ZipArchive::listFiles(std::function<bool(std::string_view)> walker) {
     for (auto& file : m_files) {
         if (!file.isDirectory()) {
             if (!walker(file.name)) return;
@@ -118,7 +118,7 @@ void PCSX::ZipArchive::listFiles(std::function<bool(const std::string_view&)> wa
     }
 }
 
-void PCSX::ZipArchive::listDirectories(std::function<bool(const std::string_view&)> walker) {
+void PCSX::ZipArchive::listDirectories(std::function<bool(std::string_view)> walker) {
     for (auto& file : m_files) {
         if (file.isDirectory()) {
             if (!walker(std::string_view(file.name.c_str(), file.name.length() - 1))) return;
@@ -126,7 +126,10 @@ void PCSX::ZipArchive::listDirectories(std::function<bool(const std::string_view
     }
 }
 
-PCSX::File* PCSX::ZipArchive::openFile(const std::string_view& path) {
+PCSX::File* PCSX::ZipArchive::openFile(std::string path) {
+    for (auto& c : path) {
+        if (c == '\\') c = '/';
+    }
     File* ret = nullptr;
     for (auto& file : m_files) {
         if (file.name == path) {

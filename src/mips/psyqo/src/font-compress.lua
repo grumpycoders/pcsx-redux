@@ -34,8 +34,58 @@
 -- input file as a result. Most fonts files should work however, due to their low
 -- entropy nature.
 
+-- The exact format of the output is the following:
+--   - 1 byte indicating the offset to the lookup table
+--   - 1 byte indicating the offset to the bitstream
+--   - the huffman tree
+--   - the lookup table
+--   - the bitstream
+--
+-- The tree itself is made of nodes that are two bytes exactly. The root node is
+-- at offset 2 of the output, just past the two offset bytes.
+--
+-- The meaning of each byte in the nodes is the following:
+--   - each byte is signed
+--   - the first byte is the left "pointer" of the node (or bit 0 from the bitstream)
+--   - the second byte is the right "pointer" of the node (or bit 1 from the bitstream)
+--   - if a byte is strictly superior to 0, it represents the offset to the next node
+--      --> this means the first ever byte in the tree is most likely going to be 0x04
+--      --> this means all positive bytes are even, as each node is 2 bytes large
+--   - if a byte is negative or 0, it represents the negated value of the lut index
+--      --> a leaf node isn't stored in the tree, instead we flag its "pointer"
+--      --> signed pointers aren't big enough to store a full byte, hence the lut
+--
+-- This should explain the decompression algorithm:
+--
+--        // root node is at offset 2
+--        int8_t c = 2;
+--        // as long as we didn't hit a leaf, continue down the tree
+--        // this is a nice bgtz, at the end of the loop, which doesn't even
+--        // need to be primed, as c == 2 at first
+--        while (c > 0) {
+--            // refresh our bitbucket if needed
+--            // the constant 0x100 is easy to store in a register for a simple beq,
+--            // while the constant 0x10000 is easy to get from a lui
+--            if (bb == 0x100) bb = *data++ | 0x10000;
+--            // get the next pointer, and consume a bit off the bitbucket
+--            uint32_t bit = bb & 1;
+--            bb >>= 1;
+--            c = tree[c + bit];
+--        }
+--        // we hit a leaf, get the corresponding byte off the lut
+--        auto b = lut[-c];
+--
+-- Several notes:
+--   - this scheme doesn't allow for a lot of nodes in the tree (62 max)
+--   - however, this saves on instructions in the decompression code
+--      --> no need to multiply the "next" pointer by 2
+--      --> no need to adjust offsets from the root of the tree
+--   - these optimizations work well due to the nature of 8 pixels wide fonts
+--      --> entropy in a 1bpp encoding will be low enough
+--      --> the current system font has 45 distinct bytes, well below the limit
+
 -- Run this code with, for example, the following command:
--- ./pcsx-redux -cli -exec "dofile 'font-compress.lua' compressFont 'font.raw' PCSX.quit()"
+-- ./pcsx-redux -cli -dofile font-compress.lua -exec "compressFont 'font.raw' PCSX.quit()"
 
 -- First part of this code is a generic min-heap class. It can easily be extracted
 -- into its own independant library for other means.
@@ -210,11 +260,11 @@ function compressFont(fontfile)
     local bitstream = {}
     local bitbucket = 1
     local function pushBit(bit)
+        bitbucket = bitbucket * 2 + bit
         if bitbucket >= 256 then
             bitstream[#bitstream + 1] = bitbucket - 256
             bitbucket = 1
         end
-        bitbucket = bitbucket * 2 + bit
     end
     local function encode(byte)
         local function buildEncoding(node)
