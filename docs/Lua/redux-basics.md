@@ -142,9 +142,10 @@ The `Slice` will contain the raw bytes of the screenshot data. It's meant to be 
 
 While the basic Lua functions `dofile` and `loadfile` exist, some alternative functions are available to load and execute code in a more flexible way.
 
-- `Support.extra.addArchive(filename)` will load the given zip file, and will make it available to the `Support.extra.dofile` function. It is equivalent to the `-archive` command line flag.
+- `Support.extra.addArchive(filename)` will load the given zip file, and will make it available to the `Support.extra.dofile` function. It is equivalent to the `-archive` command line flag. Note that if a file named `autoexec.lua` is found in the zip file, it will be executed automatically.
 - `Support.extra.dofile(filename)` will load the given file, and execute it. It is equivalent to `dofile`, but will also search for the file next to the currently loaded Lua file which is calling this function, and will also search for the file in all of the loaded zip files, either through the command line, or through the `Support.extra.addArchive` function.
-- `Support.extra.loadfile(filename)` will load the given file, and return a function that can be called to execute the file. It is equivalent to `loadfile`, but will also search for the file next to the currently loaded Lua file which is calling this function, and will also search for the file in all of the loaded zip files, either through the command line, or through the `Support.extra.addArchive` function.
+- `Support.extra.loadfile(filename)` will load the given file, and return a function that can be called to execute the file. It is equivalent to `loadfile`, but has the same file search algorithm as `Support.extra.dofile`.
+- `Support.extra.open(filename)` will open the given file as read only, and return a `File` object. It is roughly equivalent to `Support.File.open`, but has the same file search algorithm as `Support.extra.dofile`.
 
 If given the following directory structure:
 
@@ -166,6 +167,8 @@ Support.extra.addArchive('bar.zip')
 Support.extra.dofile('test/baz.lua')
 ```
 Will first load `test/baz.lua` from the zip file `bar.zip`, run it, which will in turn load `test2/qux.lua` from the zip file `bar.zip` again, and execute it.
+
+This allows distributing complex "mods" as zip files, which can be loaded and executed from the command line or the console.
 
 ## Miscellaneous
 
