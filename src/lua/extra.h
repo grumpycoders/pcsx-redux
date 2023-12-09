@@ -21,12 +21,13 @@
 
 #include "lua/luawrapper.h"
 #include "support/file.h"
+#include "support/zip.h"
 
 namespace PCSX {
 
 namespace LuaFFI {
 void open_extra(Lua);
-void addArchive(IO<File>);
-}
+ZipArchive& addArchive(Lua, IO<File>);
+}  // namespace LuaFFI
 
 }  // namespace PCSX

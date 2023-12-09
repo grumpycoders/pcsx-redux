@@ -80,12 +80,18 @@ PCSX::File* load(std::string_view name, std::string_view from, bool inArchives =
 
 }  // namespace
 
-void PCSX::LuaFFI::addArchive(IO<File> file) {
+PCSX::ZipArchive& PCSX::LuaFFI::addArchive(Lua L, IO<File> file) {
     auto& newArchive = s_archives.emplace_back(file);
     if (newArchive.failed()) {
         s_archives.pop_back();
         throw std::runtime_error("Invalid zip file");
     }
+    IO<File> autoexec = newArchive.openFile("autoexec.lua");
+    if (!autoexec->failed()) {
+        std::string code = autoexec->readString(autoexec->size());
+        L.load(code, fmt::format("{}:@autoexec.lua", file->filename().string()).c_str());
+    }
+    return newArchive;
 }
 
 void PCSX::LuaFFI::open_extra(Lua L) {
@@ -166,16 +172,9 @@ end,
             Lua L(L_);
             auto ar = L.getinfo("S");
             auto name = L.tostring();
-            for (auto& c : name) {
-                if (c == '\\') c = '/';
-            }
             IO<File> file = load(name, ar.has_value() ? ar->source : "");
             if (file->failed()) return L.error("Unable to locate archive file");
-            auto& newArchive = s_archives.emplace_back(file);
-            if (newArchive.failed()) {
-                s_archives.pop_back();
-                return L.error("Invalid zip file");
-            }
+            addArchive(L, file);
             return 0;
         },
         -1);

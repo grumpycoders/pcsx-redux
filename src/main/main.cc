@@ -374,7 +374,7 @@ int pcsxMain(int argc, char **argv) {
             PCSX::g_system = nullptr;
         });
         try {
-            auto & L = emulator->m_lua;
+            auto &L = emulator->m_lua;
             // Before going into the main loop, let's first load all of the Lua files
             // from the command-line specified using the -dofile switch.
             auto archives = args.values("archive");
@@ -383,7 +383,7 @@ int pcsxMain(int argc, char **argv) {
                 if (file->failed()) {
                     throw std::runtime_error(fmt::format("Couldn't load file {}", archive));
                 }
-                PCSX::LuaFFI::addArchive(file);
+                PCSX::LuaFFI::addArchive(*L, file);
             }
             auto dofiles = args.values("dofile");
             L->load("return function(name) Support.extra.dofile(name) end", "internal:");
