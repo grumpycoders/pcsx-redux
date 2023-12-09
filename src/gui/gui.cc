@@ -2471,9 +2471,7 @@ std::string PCSX::GUI::getSaveStatePrefix(bool includeSeparator) {
     }
 }
 
-std::string PCSX::GUI::getSaveStatePostfix() {
-    return ".sstate";
-}
+std::string PCSX::GUI::getSaveStatePostfix() { return ".sstate"; }
 
 std::string PCSX::GUI::buildSaveStateFilename(int i) {
     return fmt::format("{}{}{}", getSaveStatePrefix(false), getSaveStatePostfix(), i);
