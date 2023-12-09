@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "lua-protobuf/pb.h"
+#include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "support/file.h"
 #include "support/strings-helpers.h"
@@ -161,6 +162,10 @@ dofile = function(name)
     error(msg)
 end,
 }
+
+Support.extra.open = function(name)
+    return Support.File._createFileWrapper(ffi.cast('LuaFile*', Support._internal.open(name)))
+end
 )",
            "internal:extra.lua");
 
@@ -180,6 +185,17 @@ end,
         -1);
     L.pop();
     L.getfieldtable("_internal");
+    L.declareFunc(
+        "open",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            auto ar = L.getinfo("S", 1);
+            auto name = L.tostring();
+            IO<File> file = load(name, ar.has_value() ? ar->source : "");
+            L.push(new LuaFile(file));
+            return 1;
+        },
+        -1);
     L.declareFunc(
         "loadfile",
         [](lua_State* L_) -> int {
