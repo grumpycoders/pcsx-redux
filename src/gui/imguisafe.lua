@@ -15,31 +15,20 @@
 --   along with this program; if not, write to the
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-if not imgui.safe then
-    imgui.safe = {}
-end
+if not imgui.safe then imgui.safe = {} end
 
 function imgui.safe.builder(proxy, finalIfShown, final)
     local function builder(...)
         local args = { ... }
         local lambda = args[#args]
-        if type(lambda) ~= 'function' then
-            error('Last argument must be a function')
-        end
+        if type(lambda) ~= 'function' then error('Last argument must be a function') end
         args[#args] = nil
         local rets = { proxy(...) }
         local shown = rets[1]
         local status, err = pcall(function() lambda(table.unpack(args)) end)
-        if shown and finalIfShown then
-            finalIfShown()
-        end
-        if final then
-            final()
-        end
-        if not status then
-            error(err)
-        end
+        if shown and finalIfShown then finalIfShown() end
+        if final then final() end
+        if not status then error(err) end
         return table.unpack(rets)
     end
     return builder

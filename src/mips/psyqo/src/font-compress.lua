@@ -19,7 +19,6 @@
 -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
-
 -- This is the code used to generate the file system-font.inc, from a raw font file.
 -- The compression system assumes font width of 8 pixels, but has otherwise no
 -- condition on the font height. The expected input file format is to be in raw
@@ -28,12 +27,10 @@
 -- the input image should be 3 lines of 32 characters, starting with the ascii
 -- character 0x20 (space), which has to remain completely blank. This also means
 -- we are only representing characters from 0x20 to 0x7f.
-
 -- Note that the compression system uses a lot of optimization tricks around its
 -- huffman representation, and it won't necessarily be able to handle any arbitrary
 -- input file as a result. Most fonts files should work however, due to their low
 -- entropy nature.
-
 -- The exact format of the output is the following:
 --   - 1 byte indicating the offset to the lookup table
 --   - 1 byte indicating the offset to the bitstream
@@ -83,13 +80,10 @@
 --   - these optimizations work well due to the nature of 8 pixels wide fonts
 --      --> entropy in a 1bpp encoding will be low enough
 --      --> the current system font has 45 distinct bytes, well below the limit
-
 -- Run this code with, for example, the following command:
 -- ./pcsx-redux -cli -dofile font-compress.lua -exec "compressFont 'font.raw' PCSX.quit()"
-
 -- First part of this code is a generic min-heap class. It can easily be extracted
 -- into its own independant library for other means.
-
 -- Helpers for the heap's tree navigation
 local function getParent(position) return (position - position % 2) / 2 end
 

@@ -548,7 +548,8 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
                                       address);
                     } else {
                         g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);
-                        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+                        if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                                .get<Emulator::DebugSettings::Debug>()) {
                             g_system->pause();
                         }
                     }

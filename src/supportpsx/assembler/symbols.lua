@@ -20,18 +20,10 @@
 -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
-
-PCSX.Assembler.Internals.resolveSymbol = function (name)
+PCSX.Assembler.Internals.resolveSymbol = function(name)
     -- This is a bit of a bad one, as it creates a circular dependency,
     -- but since it's Lua, it's not too much of an issue.
-    for k, v in PCSX.iterateSymbols() do
-        if v == name then
-            return {
-                address = k,
-                name = v,
-            }
-        end
-    end
+    for k, v in PCSX.iterateSymbols() do if v == name then return { address = k, name = v } end end
     return nil
 end
 

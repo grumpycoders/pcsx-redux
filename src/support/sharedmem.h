@@ -27,6 +27,7 @@ SOFTWARE.
 #pragma once
 
 #include <stdint.h>
+
 #include <string>
 
 namespace PCSX {

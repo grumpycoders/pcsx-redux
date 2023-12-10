@@ -258,7 +258,7 @@
     <ClCompile Include="..\..\src\gui\widgets\luainspector.cc" />
     <ClCompile Include="..\..\src\gui\widgets\memcard_manager.cc" />
     <ClCompile Include="..\..\src\gui\widgets\memory_observer.cc" />
-	<ClCompile Include="..\..\src\gui\widgets\named_savestates.cc" />
+        <ClCompile Include="..\..\src\gui\widgets\named_savestates.cc" />
     <ClCompile Include="..\..\src\gui\widgets\pio-cart.cc" />
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />

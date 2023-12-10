@@ -15,7 +15,6 @@
 --   along with this program; if not, write to the
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 PCSX.Helpers = PCSX.Helpers or {}
 PCSX.Helpers.UI = {
     imageCoordinates = function(x, y, w, h, imageW, imageH)

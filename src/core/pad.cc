@@ -1303,7 +1303,8 @@ void PadsImpl::setLua(PCSX::Lua L) {
         L.getfieldtable(1);
 
         L.declareFunc(
-            "getButton", [this, pad](PCSX::Lua L) -> int {
+            "getButton",
+            [this, pad](PCSX::Lua L) -> int {
                 int n = L.gettop();
                 if (n == 0) {
                     return L.error("Not enough arguments to getButton");
@@ -1316,9 +1317,11 @@ void PadsImpl::setLua(PCSX::Lua L) {
                 unsigned button = L.checknumber(1);
                 L.push(((overrides & buttons) & (1 << button)) == 0);
                 return 1;
-            }, -1);
+            },
+            -1);
         L.declareFunc(
-            "setOverride", [this, pad](PCSX::Lua L) -> int {
+            "setOverride",
+            [this, pad](PCSX::Lua L) -> int {
                 int n = L.gettop();
                 if (n == 0) {
                     return L.error("Not enough arguments to setOverride");
@@ -1331,9 +1334,11 @@ void PadsImpl::setLua(PCSX::Lua L) {
                 button = 1 << button;
                 overrides &= ~button;
                 return 0;
-            }, -1);
+            },
+            -1);
         L.declareFunc(
-            "clearOverride", [this, pad](PCSX::Lua L) -> int {
+            "clearOverride",
+            [this, pad](PCSX::Lua L) -> int {
                 int n = L.gettop();
                 if (n == 0) {
                     return L.error("Not enough arguments to clearOverride");
@@ -1346,9 +1351,11 @@ void PadsImpl::setLua(PCSX::Lua L) {
                 button = 1 << button;
                 overrides |= button;
                 return 0;
-            }, -1);
+            },
+            -1);
         L.declareFunc(
-            "setAnalogMode", [this, pad](PCSX::Lua L) -> int {
+            "setAnalogMode",
+            [this, pad](PCSX::Lua L) -> int {
                 int n = L.gettop();
                 if (n == 0) {
                     m_pads[pad].m_analogMode = false;
@@ -1356,12 +1363,15 @@ void PadsImpl::setLua(PCSX::Lua L) {
                     m_pads[pad].m_analogMode = L.toboolean();
                 }
                 return 0;
-            }, -1);
+            },
+            -1);
         L.declareFunc(
-            "map", [this, pad](PCSX::Lua L) -> int {
+            "map",
+            [this, pad](PCSX::Lua L) -> int {
                 m_pads[pad].map();
                 return 0;
-            }, -1);
+            },
+            -1);
 
         L.pop();
         L.pop();

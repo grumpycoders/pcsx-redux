@@ -14,7 +14,6 @@
 --   along with this program; if not, write to the
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 local ffi = require('ffi')
 
 -- This file can be used as a library to compress assets using the UCL library.
@@ -33,11 +32,11 @@ local ffi = require('ffi')
 function compress(input, output)
     local ownInput = false
     local ownOutput = false
-    if type(input) == "string" then
+    if type(input) == 'string' then
         input = Support.File.open(input)
         ownInput = true
     end
-    if type(output) == "string" then
+    if type(output) == 'string' then
         output = Support.File.open(output, 'TRUNCATE')
         ownOutput = true
     end
@@ -67,11 +66,7 @@ function compress(input, output)
     -- Write the compressed data.
     output:write(compressed:read(compressedSize))
 
-    if ownInput then
-        input:close()
-    end
+    if ownInput then input:close() end
 
-    if ownOutput then
-        output:close()
-    end
+    if ownOutput then output:close() end
 end

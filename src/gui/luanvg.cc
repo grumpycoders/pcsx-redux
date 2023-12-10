@@ -32,7 +32,9 @@ void guiDrawBezierArrow(PCSX::GUI* gui, float width, ImVec2 p1, ImVec2 c1, ImVec
 
 void nvgRGBWrapper(unsigned char r, unsigned char g, unsigned char b, NVGcolor* ret) { *ret = nvgRGB(r, g, b); }
 void nvgRGBfWrapper(float r, float g, float b, NVGcolor* ret) { *ret = nvgRGBf(r, g, b); }
-void nvgRGBAWrapper(unsigned char r, unsigned char g, unsigned char b, unsigned char a, NVGcolor* ret) { *ret = nvgRGBA(r, g, b, a); }
+void nvgRGBAWrapper(unsigned char r, unsigned char g, unsigned char b, unsigned char a, NVGcolor* ret) {
+    *ret = nvgRGBA(r, g, b, a);
+}
 void nvgRGBAfWrapper(float r, float g, float b, float a, NVGcolor* ret) { *ret = nvgRGBAf(r, g, b, a); }
 void nvgLerpRGBAWrapper(NVGcolor c0, NVGcolor c1, float u, NVGcolor* ret) { *ret = nvgLerpRGBA(c0, c1, u); }
 void nvgTransRGBAWrapper(NVGcolor c0, unsigned char a, NVGcolor* ret) { *ret = nvgTransRGBA(c0, a); }
@@ -40,16 +42,20 @@ void nvgTransRGBAfWrapper(NVGcolor c0, float a, NVGcolor* ret) { *ret = nvgTrans
 void nvgHSLWrapper(float h, float s, float l, NVGcolor* ret) { *ret = nvgHSL(h, s, l); }
 void nvgHSLAWrapper(float h, float s, float l, unsigned char a, NVGcolor* ret) { *ret = nvgHSLA(h, s, l, a); }
 
-void nvgLinearGradientWrapper(NVGcontext* ctx, float sx, float sy, float ex, float ey, NVGcolor icol, NVGcolor ocol, NVGpaint* ret) {
+void nvgLinearGradientWrapper(NVGcontext* ctx, float sx, float sy, float ex, float ey, NVGcolor icol, NVGcolor ocol,
+                              NVGpaint* ret) {
     *ret = nvgLinearGradient(ctx, sx, sy, ex, ey, icol, ocol);
 }
-void nvgBoxGradientWrapper(NVGcontext* ctx, float x, float y, float w, float h, float r, float f, NVGcolor icol, NVGcolor ocol, NVGpaint* ret) {
+void nvgBoxGradientWrapper(NVGcontext* ctx, float x, float y, float w, float h, float r, float f, NVGcolor icol,
+                           NVGcolor ocol, NVGpaint* ret) {
     *ret = nvgBoxGradient(ctx, x, y, w, h, r, f, icol, ocol);
 }
-void nvgRadialGradientWrapper(NVGcontext* ctx, float cx, float cy, float inr, float outr, NVGcolor icol, NVGcolor ocol, NVGpaint* ret) {
+void nvgRadialGradientWrapper(NVGcontext* ctx, float cx, float cy, float inr, float outr, NVGcolor icol, NVGcolor ocol,
+                              NVGpaint* ret) {
     *ret = nvgRadialGradient(ctx, cx, cy, inr, outr, icol, ocol);
 }
-void nvgImagePatternWrapper(NVGcontext* ctx, float ox, float oy, float ex, float ey, float angle, int image, float alpha, NVGpaint* ret) {
+void nvgImagePatternWrapper(NVGcontext* ctx, float ox, float oy, float ex, float ey, float angle, int image,
+                            float alpha, NVGpaint* ret) {
     *ret = nvgImagePattern(ctx, ox, oy, ex, ey, angle, image, alpha);
 }
 

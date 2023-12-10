@@ -34,4 +34,4 @@ extern Register<0x0014> Dev4Ctrl;
 extern Register<0x0018> Dev5Ctrl;
 extern Register<0x0020> ComCtrl;
 
-}
+}  // namespace psyqo::Hardware::SBus

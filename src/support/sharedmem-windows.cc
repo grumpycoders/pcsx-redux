@@ -25,10 +25,10 @@ SOFTWARE.
 */
 #if defined(_WIN32) || defined(_WIN64)
 
+#include <assert.h>
+
 #include "support/sharedmem.h"
 #include "support/windowswrapper.h"
-
-#include <assert.h>
 
 bool PCSX::SharedMem::init(const char* id, size_t size, bool initToZero) {
     assert(m_mem == nullptr);
@@ -39,15 +39,16 @@ bool PCSX::SharedMem::init(const char* id, size_t size, bool initToZero) {
         // Build the full name to share as
         std::string fullname = getSharedName(id, static_cast<uint32_t>(GetCurrentProcessId()));
         // Create the memory mapping handle
-        m_fileHandle = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
-            static_cast<uint32_t>(size >> 32), static_cast<uint32_t>(size), fullname.c_str());
+        m_fileHandle =
+            CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, static_cast<uint32_t>(size >> 32),
+                               static_cast<uint32_t>(size), fullname.c_str());
         if (m_fileHandle != INVALID_HANDLE_VALUE) {
             // Create a view of the memory mapping at 0 offset
             void* basePointer = MapViewOfFileEx(m_fileHandle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, size, nullptr);
             // Validate success and assign the view to m_mem
             if (basePointer != nullptr) {
                 doRawAlloc = false;
-                m_mem = static_cast<uint8_t *>(basePointer);
+                m_mem = static_cast<uint8_t*>(basePointer);
                 // Initialise memory to zero, if requested
                 if (initToZero) {
                     memset(m_mem, 0, size);
@@ -63,7 +64,7 @@ bool PCSX::SharedMem::init(const char* id, size_t size, bool initToZero) {
     // Alloc memory directly if we opted out or had problems creating the memory map
     if (doRawAlloc) {
         // calloc will automatically init memory to zero
-        m_mem = (uint8_t *)calloc(size, 1);
+        m_mem = (uint8_t*)calloc(size, 1);
     }
     // Return false if we had to fall back to a raw alloc
     return !(doRawAlloc && id != nullptr);

@@ -34,16 +34,16 @@ SOFTWARE.
 /* Found in Point Blank USA:
 
                              *************************************************************
-                             *                           FUNCTION                          
+                             *                           FUNCTION
                              *************************************************************
                              undefined  installCustomHandler ()
                                assume gp = 0x8009c180
-             undefined         v0:1           <RETURN>                                XREF[2]:     800606d4 (W) , 
-                                                                                                   800606f0 (W)   
-             dword *           v0:4           c0table                                 XREF[2]:     800606d4 (W) , 
-                                                                                                   800606f0 (W)   
-             dword *           v0:4           exceptionHandlerPtr                     XREF[1]:     800606f0 (W)   
-                             installCustomHandler                            XREF[1]:     FUN_800601bc:800602ac (c)   
+             undefined         v0:1           <RETURN>                                XREF[2]:     800606d4 (W) ,
+                                                                                                   800606f0 (W)
+             dword *           v0:4           c0table                                 XREF[2]:     800606d4 (W) ,
+                                                                                                   800606f0 (W)
+             dword *           v0:4           exceptionHandlerPtr                     XREF[1]:     800606f0 (W)
+                             installCustomHandler                            XREF[1]:     FUN_800601bc:800602ac (c)
         800606b4 0a  80  01  3c    lui        at,0x800a
         800606b8 ac  c3  3f  ac    sw         ra,-0x3c54 (at)=>DAT_8009c3ac
         800606bc 0a  80  01  3c    lui        at,0x800a
@@ -59,7 +59,7 @@ SOFTWARE.
         800606e4 18  00  42  8c    lw         c0table ,0x18 (c0table )
         800606e8 3c  08  4a  25    addiu      t2,t2,0x83c
         800606ec 4c  08  29  25    addiu      t1,t1,0x84c
-                             LAB_800606f0                                    XREF[1]:     800606fc (j)   
+                             LAB_800606f0                                    XREF[1]:     800606fc (j)
         800606f0 00  00  43  8d    lw         v1,0x0 (t2)=>LAB_8006083c
         800606f4 04  00  4a  25    addiu      t2,t2,0x4
         800606f8 04  00  42  24    addiu      exceptionHandlerPtr ,exceptionHandlerPtr ,0x4
@@ -73,7 +73,7 @@ SOFTWARE.
         80060718 00  00  00  00    _nop
         8006071c 80  00  0a  24    li         t2,0x80
         80060720 90  00  09  24    li         t1,0x90
-                             LAB_80060724                                    XREF[1]:     80060730 (j)   
+                             LAB_80060724                                    XREF[1]:     80060730 (j)
         80060724 00  00  43  8d    lw         v1,0x0 (t2)=>DAT_00000080
         80060728 04  00  4a  25    addiu      t2,t2,0x4
         8006072c 04  00  42  24    addiu      exceptionHandlerPtr ,exceptionHandlerPtr ,0x4
@@ -84,13 +84,13 @@ SOFTWARE.
         80060740 80  00  02  24    li         exceptionHandlerPtr ,0x80
         80060744 a0  09  4a  25    addiu      t2,t2,0x9a0
         80060748 b0  09  29  25    addiu      t1,t1,0x9b0
-                             LAB_8006074c                                    XREF[1]:     80060758 (j)   
+                             LAB_8006074c                                    XREF[1]:     80060758 (j)
         8006074c 00  00  43  8d    lw         v1,0x0 (t2)=>LAB_800609a0
         80060750 04  00  4a  25    addiu      t2,t2,0x4
         80060754 04  00  42  24    addiu      exceptionHandlerPtr ,exceptionHandlerPtr ,0x4
         80060758 fc  ff  49  15    bne        t2,t1,LAB_8006074c
         8006075c fc  ff  43  ac    _sw        v1,-0x4 (exceptionHandlerPtr )=>DAT_00000080
-                             LAB_80060760                                    XREF[1]:     80060714 (j)   
+                             LAB_80060760                                    XREF[1]:     80060714 (j)
         80060760 11  7c  01  0c    jal        FlushCache                                       void FlushCache(void)
         80060764 00  00  00  00    _nop
         80060768 0a  80  1f  3c    lui        ra,0x800a
@@ -112,9 +112,7 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-enum patch_behavior custom_handler_1_execute(uint32_t* ra) {
-    return PATCH_PASSTHROUGH;
-}
+enum patch_behavior custom_handler_1_execute(uint32_t* ra) { return PATCH_PASSTHROUGH; }
 
 #else
 
