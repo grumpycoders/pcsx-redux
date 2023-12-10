@@ -74,6 +74,7 @@ extern "C" {
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "json.hpp"
+#include "lua/extra.h"
 #include "lua/glffi.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
@@ -427,7 +428,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_luaConsole.setCmdExec([this, luaStdout](const std::string& cmd) {
         ScopedOnlyLog scopedOnlyLog(this);
         try {
-            g_emulator->m_lua->load(cmd, "console", false);
+            g_emulator->m_lua->load(cmd, "console:", false);
             g_emulator->m_lua->pcall();
             for (const auto& error : m_glErrors) {
                 m_luaConsole.addError(error);
@@ -1047,6 +1048,7 @@ void PCSX::GUI::endFrame() {
 
     bool showOpenIsoFileDialog = false;
     bool showOpenBinaryDialog = false;
+    bool showOpenArchiveDialog = false;
 
     if (m_showMenu || !m_fullWindowRender || !PCSX::g_system->running()) {
         if (ImGui::BeginMainMenuBar()) {
@@ -1059,11 +1061,16 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem(_("Load binary"))) {
                     showOpenBinaryDialog = true;
                 }
+                if (ImGui::MenuItem(_("Add Lua archive"))) {
+                    showOpenArchiveDialog = true;
+                }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Dump save state proto schema"))) {
                     std::ofstream schema("sstate.proto");
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
+
+                const auto globalSaveStateName = fmt::format(f_("global{}"), getSaveStatePostfix());
 
                 if (ImGui::BeginMenu(_("Save state slots"))) {
                     if (ImGui::MenuItem(_("Quick-save slot"), "F1")) {
@@ -1077,27 +1084,44 @@ void PCSX::GUI::endFrame() {
                         }
                     }
 
+                    ImGui::Separator();
+                    ImGui::MenuItem(_("Show named save states"), nullptr, &m_namedSaveStates.m_show);
+
                     ImGui::EndMenu();
                 }
 
+                if (ImGui::MenuItem(_("Save global state"))) saveSaveState(globalSaveStateName);
+
                 if (ImGui::BeginMenu(_("Load state slots"))) {
-                    if (ImGui::MenuItem(_("Quick-save slot"), "F2")) loadSaveState(buildSaveStateFilename(0));
+                    auto saveFilename = buildSaveStateFilename(0);
+                    ImGui::BeginDisabled(!saveStateExists(saveFilename));
+                    if (ImGui::MenuItem(_("Quick-load slot"), "F2")) loadSaveState(saveFilename);
+                    ImGui::EndDisabled();
 
                     for (auto i = 1; i < 10; i++) {
                         const auto str = fmt::format(f_("Slot {}"), i);
-                        if (ImGui::MenuItem(str.c_str())) loadSaveState(buildSaveStateFilename(i));
+                        saveFilename = buildSaveStateFilename(i);
+                        ImGui::BeginDisabled(!saveStateExists(saveFilename));
+                        if (ImGui::MenuItem(str.c_str())) loadSaveState(saveFilename);
+                        ImGui::EndDisabled();
+                    }
+
+                    auto namedSaves = m_namedSaveStates.getNamedSaveStates(this);
+                    if (!namedSaves.empty()) {
+                        ImGui::Separator();
+                        for (auto filenamePair : namedSaves) {
+                            if (ImGui::MenuItem(filenamePair.second.c_str())) {
+                                loadSaveState(filenamePair.first);
+                            }
+                        }
                     }
 
                     ImGui::EndMenu();
                 }
 
-                static constexpr char globalSaveState[] = "global.sstate";
-
-                if (ImGui::MenuItem(_("Save global state"))) {
-                    saveSaveState(globalSaveState);
-                }
-
-                if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveState);
+                ImGui::BeginDisabled(!saveStateExists(globalSaveStateName));
+                if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveStateName);
+                ImGui::EndDisabled();
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
@@ -1356,6 +1380,29 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         }
     }
 
+    if (showOpenArchiveDialog) {
+        if (!isoPath.empty()) {
+            m_openArchiveDialog.m_currentPath = isoPath.value;
+        }
+        m_openArchiveDialog.openDialog();
+    }
+    if (m_openArchiveDialog.draw()) {
+        isoPath.value = m_openArchiveDialog.m_currentPath;
+        changed = true;
+        std::vector<PCSX::u8string> fileToOpen = m_openArchiveDialog.selected();
+        if (!fileToOpen.empty()) {
+            IO<File> file = new PosixFile(fileToOpen[0]);
+            try {
+                auto& archive = LuaFFI::addArchive(*g_emulator->m_lua, file);
+                if (!archive.failed()) {
+                    g_system->log(LogClass::UI, "Added %s to our list of loaded archives.\n",
+                                  reinterpret_cast<const char*>(fileToOpen[0].c_str()));
+                }
+            } catch (...) {
+            }
+        }
+    }
+
     if (m_showDemo) ImGui::ShowDemoWindow();
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
@@ -1464,6 +1511,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
+    }
+
+    if (m_namedSaveStates.m_show) {
+        m_namedSaveStates.draw(this, _("Named Save States"));
     }
 
     if (m_memoryObserver.m_show) {
@@ -2422,27 +2473,52 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
         }
     }
 
+    // Maybe it's a zip file to add to our list of Lua archive ?
+    {
+        uint32_t signature = file->readAt<uint32_t>(0);
+        try {
+            switch (signature) {
+                case 0x02014b50:
+                case 0x04034b50:
+                case 0x06054b50: {
+                    auto& archive = LuaFFI::addArchive(*g_emulator->m_lua, file);
+                    if (!archive.failed()) {
+                        g_system->log(LogClass::UI, "Added %s to our list of loaded archives.\n", path.string());
+                        return;
+                    }
+                    break;
+                }
+            }
+        } catch (...) {
+        }
+    }
+
     // Iso loader is last because its detection is the most broken at the moment.
     g_emulator->m_cdrom->setIso(new CDRIso(path));
     g_emulator->m_cdrom->parseIso();
 }
 
-std::string PCSX::GUI::buildSaveStateFilename(int i) {
+std::string PCSX::GUI::getSaveStatePrefix(bool includeSeparator) {
     // the ID of the game. Every savestate is marked with the ID of the game it's from.
     const auto gameID = g_emulator->m_cdrom->getCDRomID();
-
     // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
     // EXEs don't have proper IDs
     if (!gameID.empty()) {
         // For games with an ID of SLUS00213 for example, this will generate a state named
         // SLUS00213.sstate
-        return fmt::format("{}.sstate{}", gameID, i);
+        return fmt::format("{}{}", gameID, includeSeparator ? "_" : "");
     } else {
         // For games without IDs, identify them via filename
-        const auto& iso = PCSX::g_emulator->m_cdrom->getIso()->getIsoPath().filename();
+        const auto& iso = g_emulator->m_cdrom->getIso()->getIsoPath().filename();
         const auto lastFile = iso.empty() ? "BIOS" : iso.string();
-        return fmt::format("{}.sstate{}", lastFile, i);
+        return fmt::format("{}{}", lastFile, includeSeparator ? "_" : "");
     }
+}
+
+std::string PCSX::GUI::getSaveStatePostfix() { return ".sstate"; }
+
+std::string PCSX::GUI::buildSaveStateFilename(int i) {
+    return fmt::format("{}{}{}", getSaveStatePrefix(false), getSaveStatePostfix(), i);
 }
 
 void PCSX::GUI::saveSaveState(std::filesystem::path filename) {
@@ -2480,7 +2556,15 @@ void PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     delete[] buff;
 
     if (!error) SaveStates::load(os.str());
-};
+}
+
+bool PCSX::GUI::saveStateExists(std::filesystem::path filename) {
+    if (filename.is_relative()) {
+        filename = g_system->getPersistentDir() / filename;
+    }
+    ZReader save(new PosixFile(filename));
+    return !save.failed();
+}
 
 void PCSX::GUI::byteRateToString(float rate, std::string& str) {
     if (rate >= 1000000000) {

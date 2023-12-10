@@ -19,11 +19,11 @@
 
 #include <stdint.h>
 
-#include "cdrom/iec-60908b.h"
 #include "flags.h"
 #include "fmt/format.h"
 #include "iec-60908b/edcecc.h"
 #include "support/file.h"
+#include "supportpsx/iec-60908b.h"
 
 static void storeU32(uint32_t value, uint8_t* buffer) {
     buffer[0] = value & 0xff;

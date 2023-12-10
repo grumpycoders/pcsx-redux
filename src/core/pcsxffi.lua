@@ -195,7 +195,12 @@ PCSX = {
     GPU = {
         takeScreenShot = function()
             local ss = C.takeScreenShot()
-            return { data = Support.File._createSliceWrapper(ss.data), width = ss.width, height = ss.height, bpp = ss.bpp }
+            return {
+                data = Support.File._createSliceWrapper(ss.data),
+                width = ss.width,
+                height = ss.height,
+                bpp = ss.bpp,
+            }
         end,
     },
     createSaveState = function()

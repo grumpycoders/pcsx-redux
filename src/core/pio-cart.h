@@ -31,9 +31,7 @@ namespace PCSX {
 
 class PIOCart {
   public:
-    PIOCart() : m_pal(this) {
-        memset(m_detachedMemory, 0xff, sizeof(m_detachedMemory));
-    }
+    PIOCart() : m_pal(this) { memset(m_detachedMemory, 0xff, sizeof(m_detachedMemory)); }
 
     void setLuts();
 

@@ -7,86 +7,107 @@ on:
 
 jobs:
   regen-i18n:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-        set-safe-directory: true
-    - uses: n1hility/cancel-previous-runs@v2
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Install gettext
-      run: sudo apt-get install -y gettext
-    - name: Regenerate i18n files
-      run: make regen-i18n
-    - name: Cleanup
-      run: rm -f i18n/*~
-    - name: Create Pull Request
-      id: cpr
-      uses: peter-evans/create-pull-request@v3
-      with:
-         token: ${{ secrets.PAT }}
-         commit-message: '[Chores] Regen i18n'
-         committer: GitHub <noreply@github.com>
-         author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-         signoff: false
-         branch: chores-i18n
-         delete-branch: true
-         title: '[Chores] Regen i18n'
-         draft: false
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          set-safe-directory: true
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install gettext
+        run: sudo apt-get install -y gettext
+      - name: Regenerate i18n files
+        run: make regen-i18n
+      - name: Cleanup
+        run: rm -f i18n/*~
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: "[Chores] Regen i18n"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          signoff: false
+          branch: chores-i18n
+          delete-branch: true
+          title: "[Chores] Regen i18n"
+          draft: false
 
   code-format:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-        set-safe-directory: true
-    - uses: n1hility/cancel-previous-runs@v2
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Format code
-      run: ./tools/code-format/format.sh
-    - name: Create Pull Request
-      id: cpr
-      uses: peter-evans/create-pull-request@v3
-      with:
-         token: ${{ secrets.PAT }}
-         commit-message: '[Chores] Format code'
-         committer: GitHub <noreply@github.com>
-         author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-         signoff: false
-         branch: chores-code-format
-         delete-branch: true
-         title: '[Chores] Format code'
-         draft: false
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          set-safe-directory: true
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Format code
+        run: ./tools/code-format/format.sh
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: "[Chores] Format code"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          signoff: false
+          branch: chores-code-format
+          delete-branch: true
+          title: "[Chores] Format code"
+          draft: false
 
   export-mips:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - uses: n1hility/cancel-previous-runs@v2
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Filter repository
-      env:
-        FILTER_BRANCH_SQUELCH_WARNING: 1
-      run: |
-        cp -rv .github/filter-mips /tmp
-        /tmp/filter-mips/filter.sh
-    - name: Pushing result
-      env:
-        PAT: ${{ secrets.PAT }}
-      run: |
-        git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
-        git remote add nugget https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git
-        git push --force https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git main
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Filter repository
+        env:
+          FILTER_BRANCH_SQUELCH_WARNING: 1
+        run: |
+          cp -rv .github/filter-mips /tmp
+          /tmp/filter-mips/filter.sh
+      - name: Pushing result
+        env:
+          PAT: ${{ secrets.PAT }}
+        run: |
+          git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
+          git remote add nugget https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git
+          git push --force https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git main
+
+  export-support:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Filter repository
+        env:
+          FILTER_BRANCH_SQUELCH_WARNING: 1
+        run: |
+          cp -rv .github/filter-support /tmp
+          /tmp/filter-support/filter.sh
+      - name: Pushing result
+        env:
+          PAT: ${{ secrets.PAT }}
+        run: |
+          git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
+          git remote add support https://nicolasnoble:$PAT@github.com/pcsx-redux/support.git
+          git push --force https://nicolasnoble:$PAT@github.com/pcsx-redux/support.git main

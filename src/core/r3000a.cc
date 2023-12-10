@@ -90,6 +90,10 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
             uint32_t code = (memFile->readAt<uint32_t>(m_regs.pc) >> 6) & 0xfffff;
             auto& regs = m_regs.GPR.n;
             uint16_t fd = 0;
+            m_currentDelayedLoad ^= 1;
+            flushCurrentDelayedLoad();
+            m_currentDelayedLoad ^= 1;
+            flushCurrentDelayedLoad();
             switch (code) {
                 case 0x101: {  // PCinit
                     closeAllPCdrvFiles();
@@ -161,6 +165,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                     } else {
+                        (*file)->close();
                         regs.v0 = 0;
                         regs.v1 = 0;
                         delete &*file;
@@ -170,20 +175,21 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     return;
                 }
                 case 0x105: {  // PCread
-                    auto file = m_pcdrvFiles.find(m_regs.GPR.n.a1);
-                    if (file == m_pcdrvFiles.end()) {
+                    auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a1);
+                    if (filei == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
                         return;
                     }
-                    if ((*file)->failed() || (*file)->eof()) {
+                    IO<File> file = *filei;
+                    if (file->failed() || file->eof()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
                         return;
                     }
-                    auto slice = (*file)->read(regs.a2);
+                    auto slice = file->read(regs.a2);
                     regs.v0 = 0;
                     regs.v1 = slice.size();
                     memFile->writeAt(std::move(slice), regs.a3);
@@ -191,15 +197,16 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     return;
                 }
                 case 0x106: {  // PCwrite
-                    auto file = m_pcdrvFiles.find(m_regs.GPR.n.a1);
-                    if (file == m_pcdrvFiles.end()) {
+                    auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a1);
+                    if (filei == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
                         return;
                     }
+                    IO<File> file = *filei;
                     auto slice = memFile->readAt(regs.a2, regs.a3);
-                    if ((regs.v1 = (*file)->write(slice.data(), slice.size())) < 0) {
+                    if ((regs.v1 = file->write(slice.data(), slice.size())) < 0) {
                         regs.v0 = -1;
                     } else {
                         regs.v0 = 0;
@@ -208,13 +215,14 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     return;
                 }
                 case 0x107: {  // PClseek
-                    auto file = m_pcdrvFiles.find(m_regs.GPR.n.a0);
-                    if (file == m_pcdrvFiles.end()) {
+                    auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a0);
+                    if (filei == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
                         return;
                     }
+                    IO<File> file = *filei;
                     int wheel;
                     switch (regs.a3) {
                         case 0:
@@ -232,10 +240,20 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                             m_regs.pc += 4;
                             return;
                     }
-                    auto ret = (*file)->writable() ? (*file)->wSeek(regs.a2, wheel) : (*file)->rSeek(regs.a2, wheel);
+                    ssize_t ret = file->rSeek(regs.a2, wheel);
+                    if (ret < 0) {
+                        regs.v0 = -1;
+                        regs.v1 = ret;
+                        m_regs.pc += 4;
+                        return;
+                    }
+                    if (file->writable()) {
+                        file->wSeek(regs.a2, wheel);
+                    }
+
                     if (ret >= 0) {
                         regs.v0 = 0;
-                        regs.v1 = (*file)->writable() ? (*file)->wTell() : (*file)->rTell();
+                        regs.v1 = file->rTell();
                     } else {
                         regs.v0 = -1;
                         regs.v1 = ret;

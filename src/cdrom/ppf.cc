@@ -229,6 +229,9 @@ void PCSX::PPF::calculatePatch(const uint8_t* in, const uint8_t* out, IEC60908b:
             pos = i + 1;
         }
     }
+    if (len != 0) {
+        injectPatch({reinterpret_cast<const char*>(out + pos), len}, pos, msf);
+    }
 }
 
 void PCSX::PPF::injectPatch(std::string_view data, uint32_t offset, IEC60908b::MSF msf) {

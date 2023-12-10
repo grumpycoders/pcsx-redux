@@ -115,7 +115,6 @@ class Debug {
     void clearMaps() {
         memset(m_mainMemoryMap, 0, sizeof(m_mainMemoryMap));
         memset(m_biosMemoryMap, 0, sizeof(m_biosMemoryMap));
-        memset(m_parpMemoryMap, 0, sizeof(m_parpMemoryMap));
         memset(m_scratchPadMap, 0, sizeof(m_scratchPadMap));
     }
 
@@ -146,7 +145,6 @@ class Debug {
 
     uint8_t m_mainMemoryMap[0x00800000] = {0};
     uint8_t m_biosMemoryMap[0x00080000] = {0};
-    uint8_t m_parpMemoryMap[0x00010000] = {0};
     uint8_t m_scratchPadMap[0x00000400] = {0};
 
     void markMap(uint32_t address, int mask);

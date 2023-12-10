@@ -55,5 +55,4 @@ extern IRQReg<0x0074> IMask;
 extern Register<0x00f0> DPCR;
 extern Register<0x00f4> DICR;
 
-
-}
+}  // namespace psyqo::Hardware::CPU

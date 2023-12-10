@@ -198,23 +198,28 @@ void psyqo::Kernel::Internal::prepare() {
 }
 
 namespace {
+uint32_t s_flag = 0;
 eastl::fixed_ring_buffer<eastl::function<void()>, 128> s_callbacks(128);
 }
 
 void psyqo::Kernel::queueCallback(eastl::function<void()>&& lambda) {
     fastEnterCriticalSection();
+    s_flag = 1;
     s_callbacks.push_back(eastl::move(lambda));
     fastLeaveCriticalSection();
 }
 
 void psyqo::Kernel::queueCallbackFromISR(eastl::function<void()>&& lambda) {
     s_callbacks.push_back() = eastl::move(lambda);
+    s_flag = 1;
     eastl::atomic_signal_fence(eastl::memory_order_release);
 }
 
 void psyqo::Kernel::Internal::pumpCallbacks() {
-    fastEnterCriticalSection();
     eastl::atomic_signal_fence(eastl::memory_order_acquire);
+    if (s_flag == 0) return;
+    fastEnterCriticalSection();
+    s_flag = 0;
     while (!s_callbacks.empty()) {
         auto& l = s_callbacks.front();
         fastLeaveCriticalSection();
