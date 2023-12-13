@@ -109,6 +109,7 @@ struct JmpBuf g_ioAbortJmpBuf;
 static __attribute__((noreturn)) void fatal(int code) {
     POST = 0x0f;
     syscall_exception(0x42, code);
+    __builtin_unreachable();
 }
 
 static char s_binaryPath[128];
