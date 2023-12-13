@@ -26,6 +26,12 @@ SOFTWARE.
 
 #pragma once
 
+/**
+ * @file primitives.hh
+ * @brief This file is a convenience header that includes all the primitive
+ * headers.
+ */
+
 #include "psyqo/primitives/control.hh"
 #include "psyqo/primitives/lines.hh"
 #include "psyqo/primitives/misc.hh"

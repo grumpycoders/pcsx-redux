@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2023 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,21 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
+#include <concepts>
+#include <cstddef>
 
-#include "common/psxlibc/direntry.h"
-#include "common/psxlibc/stdio.h"
+namespace psyqo {
 
-extern char g_cdromCWD[128];
+/**
+ * @brief The Primitive concept.
+ * @details This concept can be used as a template type constraint
+ * to ensure that a type is a valid primitive.
+ */
 
-int cdromReadPathTable();
-int dev_cd_open(struct File* file, const char* filename, int mode);
-int dev_cd_read(struct File* file, void* buffer, int size);
-struct DirEntry* dev_cd_firstFile(struct File* file, const char* filename, struct DirEntry* entry);
-struct DirEntry* dev_cd_nextFile(struct File* file, struct DirEntry* entry);
-int dev_cd_chdir(struct File* file, char* name);
+template <typename Prim>
+concept Primitive = requires {
+    { new int[(alignof(Prim) & 3) == 0 ? 1 : -1] };
+    { new int[(sizeof(Prim) & 3) == 0 ? 1 : -1] };
+};
+
+}  // namespace psyqo

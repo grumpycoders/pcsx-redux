@@ -63,10 +63,11 @@ static __attribute__((always_inline)) int syscall_setjmp(struct JmpBuf *buf) {
     return ((int (*)(struct JmpBuf * buf))0xa0)(buf);
 }
 
-static __attribute__((always_inline)) __attribute__((noreturn)) void syscall_longjmp(struct JmpBuf *buf, int ret) {
+static __attribute__((always_inline, noreturn)) void syscall_longjmp(struct JmpBuf *buf, int ret) {
     register int n asm("t1") = 0x14;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)(struct JmpBuf *, int))0xa0)(buf, ret);
+    __builtin_unreachable();
 }
 
 static __attribute__((always_inline)) char *syscall_strcat(char *dst, const char *src) {
@@ -396,10 +397,11 @@ static __attribute__((always_inline)) void syscall_stopPad() {
     ((void (*)())0xb0)();
 }
 
-static __attribute__((noreturn)) __attribute__((always_inline)) void syscall_returnFromException() {
+static __attribute__((always_inline, noreturn)) void syscall_returnFromException() {
     register int n asm("t1") = 0x17;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((__attribute__((noreturn)) void (*)())0xb0)();
+    __builtin_unreachable();
 }
 
 static __attribute__((always_inline)) void syscall_setDefaultExceptionJmpBuf() {

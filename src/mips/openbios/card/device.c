@@ -98,8 +98,7 @@ static __attribute__((noreturn)) void dev_bu_unimplemented(const char *function,
     osDbgPrintf("=== Unimplemented memory card function %s from %p ===\r\n", function, ra);
     osDbgPrintf("=== halting ===\r\n");
     pcsx_debugbreak();
-    while (1)
-        ;
+    while (1) asm("");
 }
 
 int dev_bu_open(struct File *file, const char *path, int mode) {

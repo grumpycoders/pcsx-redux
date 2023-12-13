@@ -29,6 +29,8 @@ SOFTWARE.
 #include <EASTL/array.h>
 #include <stdint.h>
 
+#include "psyqo/primitive-concept.hh"
+
 namespace psyqo {
 
 /**
@@ -60,17 +62,17 @@ namespace Fragments {
  * @tparam T The primitive type.
  */
 
-template <typename T>
+template <Primitive Prim>
 struct SimpleFragment {
     constexpr size_t maxSize() const { return 1; }
     SimpleFragment() {
-        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(T)),
+        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(Prim)),
                       "Spurious padding in simple fragment");
     }
-    typedef T FragmentBaseType;
-    constexpr size_t getActualFragmentSize() const { return sizeof(T) / sizeof(uint32_t); }
+    typedef Prim FragmentBaseType;
+    constexpr size_t getActualFragmentSize() const { return sizeof(Prim) / sizeof(uint32_t); }
     uint32_t head;
-    T primitive;
+    Prim primitive;
 };
 
 /**
@@ -84,18 +86,18 @@ struct SimpleFragment {
  * @tparam N The maximum number of primitives in the payload.
  */
 
-template <typename T, size_t N>
+template <Primitive Prim, size_t N>
 struct FixedFragment {
     constexpr size_t maxSize() const { return N; }
     FixedFragment() {
-        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(T) * N),
+        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(Prim) * N),
                       "Spurious padding in fixed fragment");
     }
-    typedef T FragmentBaseType;
-    size_t getActualFragmentSize() const { return (sizeof(T) * count) / sizeof(uint32_t); }
+    typedef Prim FragmentBaseType;
+    size_t getActualFragmentSize() const { return (sizeof(Prim) * count) / sizeof(uint32_t); }
     unsigned count = N;
     uint32_t head;
-    eastl::array<T, N> primitives;
+    eastl::array<Prim, N> primitives;
 };
 
 /**
@@ -112,19 +114,19 @@ struct FixedFragment {
  * @tparam N The maximum number of primitives in the payload.
  */
 
-template <typename P, typename T, size_t N>
+template <Primitive P, Primitive Prim, size_t N>
 struct FixedFragmentWithPrologue {
     constexpr size_t maxSize() const { return N; }
     FixedFragmentWithPrologue() {
-        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(P) + sizeof(T) * N),
+        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(P) + sizeof(Prim) * N),
                       "Spurious padding in fixed fragment");
     }
-    typedef T FragmentBaseType;
-    size_t getActualFragmentSize() const { return (sizeof(P) + sizeof(T) * count) / sizeof(uint32_t); }
+    typedef Prim FragmentBaseType;
+    size_t getActualFragmentSize() const { return (sizeof(P) + sizeof(Prim) * count) / sizeof(uint32_t); }
     unsigned count = N;
     uint32_t head;
     P prologue;
-    eastl::array<T, N> primitives;
+    eastl::array<Prim, N> primitives;
 };
 
 }  // namespace Fragments

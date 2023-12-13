@@ -32,8 +32,12 @@ SOFTWARE.
 #include <EASTL/utility.h>
 #include <stdint.h>
 
+#include "psyqo/fragment-concept.hh"
 #include "psyqo/hardware/gpu.hh"
-#include "psyqo/primitives.hh"
+#include "psyqo/primitive-concept.hh"
+#include "psyqo/primitives/common.hh"
+#include "psyqo/primitives/control.hh"
+#include "psyqo/primitives/misc.hh"
 
 namespace psyqo {
 
@@ -179,8 +183,8 @@ class GPU {
      *
      * @param fragment The fragment to send to the GPU.
      */
-    template <typename Fragment>
-    void sendFragment(const Fragment &fragment) {
+    template <Fragment Frag>
+    void sendFragment(const Frag &fragment) {
         sendFragment(&fragment.head + 1, fragment.getActualFragmentSize());
     }
 
@@ -193,8 +197,8 @@ class GPU {
      * @param callback The callback to call upon completion.
      * @param dmaCallback `DMA::FROM_MAIN_LOOP` or `DMA::FROM_ISR`.
      */
-    template <typename Fragment>
-    void sendFragment(const Fragment &fragment, eastl::function<void()> &&callback,
+    template <Fragment Frag>
+    void sendFragment(const Frag &fragment, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback = DMA::FROM_MAIN_LOOP) {
         sendFragment(&fragment.head + 1, fragment.getActualFragmentSize(), eastl::move(callback), dmaCallback);
     }
@@ -252,14 +256,13 @@ class GPU {
      * @details This method will immediately send the specified primitive to the GPU.
      * @param primitive The primitive to send to the GPU.
      */
-    template <typename Primitive>
-    static void sendPrimitive(const Primitive &primitive) {
-        static_assert((sizeof(Primitive) % 4) == 0, "Primitive's size must be a multiple of 4");
+    template <Primitive Prim>
+    static void sendPrimitive(const Prim &primitive) {
         waitReady();
         const uint32_t *ptr = reinterpret_cast<const uint32_t *>(&primitive);
-        size_t size = sizeof(Primitive) / sizeof(uint32_t);
+        constexpr size_t size = sizeof(Prim) / sizeof(uint32_t);
         for (int i = 0; i < size; i++) {
-            if constexpr (sizeof(Primitive) > 56) waitFifo();
+            if constexpr (sizeof(Prim) > 56) waitFifo();
             sendRaw(*ptr++);
         }
     }
@@ -277,8 +280,8 @@ class GPU {
      * if applicable.
      * @param fragment The fragment to chain.
      */
-    template <typename Fragment>
-    void chain(Fragment &fragment) {
+    template <Fragment Frag>
+    void chain(Frag &fragment) {
         chain(&fragment.head, fragment.getActualFragmentSize());
     }
 
