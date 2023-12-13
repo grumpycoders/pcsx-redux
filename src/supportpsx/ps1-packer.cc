@@ -101,9 +101,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
 
     if (options.raw) {
         std::vector<uint8_t> stub;
-        pushBytes(stub, lui(Reg::V0, getHI(newPC)));
-        pushBytes(stub, addiu(Reg::V0, Reg::V0, getLO(newPC)));
-        pushBytes(stub, jr(Reg::V0));
+        pushBytes(stub, j(newPC));
         pushBytes(stub, nop());
         std::copy(stub.begin(), stub.end(), dataOut.begin());
         compLoad += stub.size();
