@@ -141,6 +141,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
 
     // Now we start writing our decompressor stub.
     // First, dump the decompressor code.
+    size_t n2estart = dataOut.size();
     pushBytes(dataOut, n2e_d::code);
 
     // At this point in the dataOut buffer, we have the following:
@@ -171,7 +172,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     pushBytes(dataOut, lui(Reg::A0, getHI(compLoad)));
     pushBytes(dataOut, addiu(Reg::A0, Reg::A0, getLO(compLoad)));
     pushBytes(dataOut, lui(Reg::A1, getHI(addr)));
-    pushBytes(dataOut, bgezal(Reg::R0, -((int16_t)(sizeof(n2e_d::code) + 7 * 4))));
+    pushBytes(dataOut, bgezal(Reg::R0, -((int16_t)(dataOut.size() + 4 - n2estart))));
     pushBytes(dataOut, addiu(Reg::A1, Reg::A1, getLO(addr)));
 
     // Then, bootstrap our newly-decompressed binary.
