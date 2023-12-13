@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2022 PCSX-Redux authors
+Copyright (c) 2023 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,24 @@ SOFTWARE.
 
 #pragma once
 
+#include <concepts>
+#include <cstddef>
+
+namespace psyqo {
+
 /**
- * @file primitives.hh
- * @brief This file is a convenience header that includes all the primitive
- * headers.
+ * @brief The Fragment concept.
+ * @details This concept can be used as a template type constraint
+ * to ensure that a type is a valid fragment.
  */
 
-#include "psyqo/primitives/control.hh"
-#include "psyqo/primitives/lines.hh"
-#include "psyqo/primitives/misc.hh"
-#include "psyqo/primitives/quads.hh"
-#include "psyqo/primitives/rectangles.hh"
-#include "psyqo/primitives/sprites.hh"
-#include "psyqo/primitives/triangles.hh"
+template<typename Frag>
+concept Fragment = requires(Frag frag) {
+    { new int[(alignof(Frag) & 3) == 0 ? 1 : -1] };
+    { new int[(sizeof(Frag) & 3) == 0 ? 1 : -1] };
+    { new int[(sizeof(frag.head)) == 4 ? 1 : -1] };
+    { new int[((offsetof(Frag, head)) & 3) == 0 ? 1 : -1] };
+    { frag.getActualFragmentSize() } -> std::convertible_to<size_t>;
+};
+
+}  // namespace psyqo
