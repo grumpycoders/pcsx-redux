@@ -37,13 +37,14 @@ namespace psyqo {
  * to ensure that a type is a valid fragment.
  */
 
-template<typename Frag>
+template <typename Frag>
 concept Fragment = requires(Frag frag) {
-    { new int[(alignof(Frag) & 3) == 0 ? 1 : -1] };
-    { new int[(sizeof(Frag) & 3) == 0 ? 1 : -1] };
-    { new int[(sizeof(frag.head)) == 4 ? 1 : -1] };
-    { new int[((offsetof(Frag, head)) & 3) == 0 ? 1 : -1] };
-    { frag.getActualFragmentSize() } -> std::convertible_to<size_t>;
+    {new int[(alignof(Frag) & 3) == 0 ? 1 : -1]};
+    {new int[(sizeof(Frag) & 3) == 0 ? 1 : -1]};
+    {new int[(sizeof(frag.head)) == 4 ? 1 : -1]};
+    {new int[((offsetof(Frag, head)) & 3) == 0 ? 1 : -1]};
+    { frag.getActualFragmentSize() }
+    ->std::convertible_to<size_t>;
 };
 
 }  // namespace psyqo

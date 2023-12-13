@@ -263,7 +263,7 @@ int dev_cd_open(struct File *file, const char *filename, int mode) {
 }
 
 int dev_cd_read(struct File *file, void *buffer_, int size) {
-    char* buffer = (char*) buffer_;
+    char *buffer = (char *)buffer_;
     if ((size & 0x7ff) || (file->offset & 0x7ff) || (size < 0) || (file->offset >= file->length)) {
         file->errno = PSXEINVAL;
         return -1;
