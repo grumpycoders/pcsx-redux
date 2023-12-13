@@ -34,6 +34,7 @@ SOFTWARE.
 #include "common/psxlibc/string.h"
 #include "openbios/handlers/handlers.h"
 #include "openbios/kernel/events.h"
+#include "openbios/kernel/handlers.h"
 
 static int s_IRQsAutoAck[11];
 
