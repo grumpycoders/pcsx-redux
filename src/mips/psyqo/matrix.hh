@@ -26,21 +26,12 @@ SOFTWARE.
 
 #pragma once
 
-#include <concepts>
-#include <cstddef>
+#include "psyqo/vector.hh"
 
 namespace psyqo {
 
-/**
- * @brief The Primitive concept.
- * @details This concept can be used as a template type constraint
- * to ensure that a type is a valid primitive.
- */
-
-template <typename Prim>
-concept Primitive = requires {
-    {(alignof(Prim) & 3) == 0};
-    {(sizeof(Prim) & 3) == 0};
+struct Matrix33 {
+    Vec3 vs[3];
 };
 
 }  // namespace psyqo

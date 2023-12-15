@@ -39,10 +39,10 @@ namespace psyqo {
 
 template <typename Frag>
 concept Fragment = requires(Frag frag) {
-    {new int[(alignof(Frag) & 3) == 0 ? 1 : -1]};
-    {new int[(sizeof(Frag) & 3) == 0 ? 1 : -1]};
-    {new int[(sizeof(frag.head)) == 4 ? 1 : -1]};
-    {new int[((offsetof(Frag, head)) & 3) == 0 ? 1 : -1]};
+    {(alignof(Frag) & 3) == 0};
+    {(sizeof(Frag) & 3) == 0};
+    {(sizeof(frag.head)) == 4};
+    {((offsetof(Frag, head)) & 3) == 0};
     { frag.getActualFragmentSize() }
     ->std::convertible_to<size_t>;
 };
