@@ -39,8 +39,8 @@ namespace psyqo {
 
 template <typename Prim>
 concept Primitive = requires {
-    {new int[(alignof(Prim) & 3) == 0 ? 1 : -1]};
-    {new int[(sizeof(Prim) & 3) == 0 ? 1 : -1]};
+    {(alignof(Prim) & 3) == 0};
+    {(sizeof(Prim) & 3) == 0};
 };
 
 }  // namespace psyqo
