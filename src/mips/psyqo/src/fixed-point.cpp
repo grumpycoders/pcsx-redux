@@ -27,7 +27,7 @@ SOFTWARE.
 #include "psyqo/fixed-point.hh"
 
 uint32_t psyqo::FixedPointInternals::iDiv(uint64_t rem, uint32_t base, unsigned precisionBits) {
-    rem <<= precisionBits;
+    rem *= 1 << precisionBits;
     uint64_t b = base;
     uint64_t res, d = 1;
     uint32_t high = rem >> 32;
@@ -69,10 +69,10 @@ int32_t psyqo::FixedPointInternals::dDiv(int32_t a, int32_t b, unsigned precisio
     return iDiv(a, b, precisionBits) * s;
 }
 
-void psyqo::FixedPointInternals::printInt(uint32_t value, eastl::function<void(char)>& charPrinter,
+void psyqo::FixedPointInternals::printInt(uint32_t value, const eastl::function<void(char)>& charPrinter,
                                           unsigned precisionBits) {
     uint32_t integer = value >> precisionBits;
-    uint64_t fractional = value - (integer << precisionBits);
+    uint32_t fractional = value - (integer << precisionBits);
     if (integer == 0) {
         charPrinter('0');
     } else {
@@ -91,7 +91,7 @@ void psyqo::FixedPointInternals::printInt(uint32_t value, eastl::function<void(c
     charPrinter('.');
     for (unsigned i = 0; i < 5; i++) {
         fractional *= 10;
-        uint64_t copy = fractional;
+        uint32_t copy = fractional;
         copy >>= precisionBits;
         fractional -= copy << precisionBits;
         charPrinter((copy % 10) + '0');

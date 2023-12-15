@@ -39,7 +39,7 @@ namespace FixedPointInternals {
 
 uint32_t iDiv(uint64_t rem, uint32_t base, unsigned precisionBits);
 int32_t dDiv(int32_t a, int32_t b, unsigned precisionBits);
-void printInt(uint32_t value, eastl::function<void(char)>&, unsigned precisionBits);
+void printInt(uint32_t value, const eastl::function<void(char)>&, unsigned precisionBits);
 
 }  // namespace FixedPointInternals
 
@@ -76,6 +76,7 @@ class FixedPoint {
      * can be useful for some operations.
      */
     T value;
+    T raw() const { return value; }
 
     /**
      * @brief The scale of the fixed point number.
@@ -122,11 +123,11 @@ class FixedPoint {
     template <unsigned otherPrecisionBits = 12, std::integral U = int32_t>
     explicit FixedPoint(FixedPoint<otherPrecisionBits, U> other) {
         if constexpr (precisionBits == otherPrecisionBits) {
-            *this = other;
+            value = T(other.value);
         } else if constexpr (precisionBits > otherPrecisionBits) {
-            value = other.value << (precisionBits - otherPrecisionBits);
+            value = T(other.value << (precisionBits - otherPrecisionBits));
         } else if constexpr (precisionBits < otherPrecisionBits) {
-            value = other.value >> (otherPrecisionBits - precisionBits);
+            value = T(other.value >> (otherPrecisionBits - precisionBits));
         }
     }
 
@@ -171,7 +172,7 @@ class FixedPoint {
      * @param charPrinter A function that prints a single character, to
      * be used to print the fixed point number.
      */
-    void print(eastl::function<void(char)>& charPrinter) const {
+    void print(const eastl::function<void(char)>& charPrinter) const {
         T copy = value;
         if constexpr (std::is_signed<T>::value) {
             if (copy < 0) {
@@ -228,9 +229,9 @@ class FixedPoint {
         FixedPoint ret;
         if constexpr (sizeof(T) == 4) {
             if constexpr (std::is_signed<T>::value) {
-                ret.value = FixedPointInternals::iDiv(value, other.value);
+                ret.value = FixedPointInternals::iDiv(value, other.value, precisionBits);
             } else if constexpr (!std::is_signed<T>::value) {
-                ret.value = FixedPointInternals::dDiv(value, other.value);
+                ret.value = FixedPointInternals::dDiv(value, other.value, precisionBits);
             }
         } else if constexpr (sizeof(T) == 2) {
             upType t = value;
