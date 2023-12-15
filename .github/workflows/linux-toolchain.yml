@@ -24,4 +24,6 @@ jobs:
       - name: Build toolchains
         run: sudo bash tools/linux-mips/spawn-compiler.sh
       - name: Build OpenBIOS with it
-        run: make -C src/mips/openbios -j 2 all
+        run: make -C src/mips/openbios -j 6 all
+      - name: Build psyqo examples with it
+        run: for d in src/mips/psyqo/examples ; do make -C $d -j 6 all ; done
