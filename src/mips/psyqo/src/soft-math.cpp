@@ -214,7 +214,7 @@ psyqo::FixedPoint<> psyqo::SoftMath::normOfVec3(const Vec3 *v) {
     auto x = v->x;
     auto y = v->y;
     auto z = v->z;
-    psyqo::FixedPoint<> s = x * x + y * y + z * z;
+    auto s = x * x + y * y + z * z;
     return squareRoot(s);
 }
 
@@ -222,9 +222,12 @@ void psyqo::SoftMath::normalizeVec3(Vec3 *v) {
     auto x = v->x;
     auto y = v->y;
     auto z = v->z;
-    psyqo::FixedPoint<> s = x * x + y * y + z * z;
+    auto s = x * x + y * y + z * z;
     auto r = squareRoot(s);
-    v->x = x / r;
-    v->y = y / r;
-    v->z = z / r;
+    x = x / r;
+    y = y / r;
+    z = z / r;
+    v->x = x;
+    v->y = y;
+    v->z = z;
 }
