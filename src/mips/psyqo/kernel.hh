@@ -58,22 +58,14 @@ static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(
  * @details This function is technically equivalent to `enterCriticalSection`.
  * @return false if the critical section was already entered, true otherwise.
  */
-static inline bool fastEnterCriticalSection() {
-    uint32_t sr = Internal::getCop0Status();
-    Internal::setCop0Status(sr & ~0x401);
-    return (sr & 0x401) == 0x401;
-}
+static inline void fastEnterCriticalSection() { asm volatile("mtc0 %0, $12 ; nop ; nop" : : "r"(0x40000000)); }
 
 /**
  * @brief A faster version of `leaveCriticalSection`.
  *
  * @details This function is technically equivalent to `leaveCriticalSection`.
  */
-static inline void fastLeaveCriticalSection() {
-    uint32_t sr = Internal::getCop0Status();
-    sr |= 0x401;
-    Internal::setCop0Status(sr);
-}
+static inline void fastLeaveCriticalSection() { asm volatile("mtc0 %0, $12" : : "r"(0x40000401)); }
 
 enum class DMA : unsigned {
     MDECin,
