@@ -239,9 +239,9 @@ class FixedPoint {
         FixedPoint ret;
         if constexpr (sizeof(T) == 4) {
             if constexpr (std::is_signed<T>::value) {
-                ret.value = FixedPointInternals::iDiv(value, other.value, precisionBits);
-            } else if constexpr (!std::is_signed<T>::value) {
                 ret.value = FixedPointInternals::dDiv(value, other.value, precisionBits);
+            } else if constexpr (!std::is_signed<T>::value) {
+                ret.value = FixedPointInternals::iDiv(value, other.value, precisionBits);
             }
         } else if constexpr (sizeof(T) == 2) {
             upType t = value;
