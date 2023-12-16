@@ -183,6 +183,16 @@ class FixedPoint {
         FixedPointInternals::printInt(copy, charPrinter, precisionBits);
     }
 
+    constexpr FixedPoint abs() const {
+        FixedPoint ret = *this;
+        if constexpr (std::is_signed<T>::value) {
+            if (ret.value < 0) {
+                ret.value = -ret.value;
+            }
+        }
+        return ret;
+    }
+
     constexpr FixedPoint operator+(FixedPoint other) const {
         FixedPoint ret = *this;
         ret.value += other.value;
