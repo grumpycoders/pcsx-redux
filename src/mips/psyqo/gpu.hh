@@ -238,12 +238,12 @@ class GPU {
     /**
      * @brief Waits until the GPU is ready to send a command.
      */
-    static void waitReady();
+    void waitReady();
 
     /**
      * @brief Waits until the GPU's FIFO is ready to receive data.
      */
-    static void waitFifo();
+    void waitFifo();
 
     /**
      * @brief Sends a raw 32 bits value to the Data register of the GPU.
@@ -257,7 +257,7 @@ class GPU {
      * @param primitive The primitive to send to the GPU.
      */
     template <Primitive Prim>
-    static void sendPrimitive(const Prim &primitive) {
+    void sendPrimitive(const Prim &primitive) {
         waitReady();
         const uint32_t *ptr = reinterpret_cast<const uint32_t *>(&primitive);
         constexpr size_t size = sizeof(Prim) / sizeof(uint32_t);

@@ -39,13 +39,15 @@ SOFTWARE.
 #include "psyqo/kernel.hh"
 
 void psyqo::GPU::waitReady() {
-    while ((Hardware::GPU::Ctrl & uint32_t(0x04000000)) == 0)
-        ;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x04000000)) == 0) {
+        pumpCallbacks();
+    }
 }
 
 void psyqo::GPU::waitFifo() {
-    while ((Hardware::GPU::Ctrl & uint32_t(0x02000000)) == 0)
-        ;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x02000000)) == 0) {
+        pumpCallbacks();
+    }
 }
 
 void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
