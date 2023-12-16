@@ -39,13 +39,15 @@ SOFTWARE.
 #include "psyqo/kernel.hh"
 
 void psyqo::GPU::waitReady() {
-    while ((Hardware::GPU::Ctrl & uint32_t(0x04000000)) == 0)
-        ;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x04000000)) == 0) {
+        pumpCallbacks();
+    }
 }
 
 void psyqo::GPU::waitFifo() {
-    while ((Hardware::GPU::Ctrl & uint32_t(0x02000000)) == 0)
-        ;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x02000000)) == 0) {
+        pumpCallbacks();
+    }
 }
 
 void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
@@ -55,8 +57,8 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     Hardware::GPU::Ctrl = 0x04000001;
     // Display Mode
     Hardware::GPU::Ctrl = 0x08000000 | (config.config.hResolution << 0) | (config.config.vResolution << 2) |
-                 (config.config.videoMode << 3) | (config.config.colorDepth << 4) |
-                 (config.config.videoInterlace << 5) | (config.config.hResolutionExtended << 6);
+                          (config.config.videoMode << 3) | (config.config.colorDepth << 4) |
+                          (config.config.videoInterlace << 5) | (config.config.hResolutionExtended << 6);
     // Horizontal Range
     Hardware::GPU::Ctrl = 0x06000000 | 0x260 | (0xc60 << 12);
 
