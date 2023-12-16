@@ -200,11 +200,12 @@ psyqo::FixedPoint<> psyqo::SoftMath::matrixDeterminant3(const Matrix33 *m) {
 }
 
 psyqo::FixedPoint<> psyqo::SoftMath::squareRoot(psyqo::FixedPoint<> x) {
-    auto x0 = x;
-    auto x1 = (x0 + 1) >> 1;
-    while (x1 < x0) {
-        x0 = x1;
-        x1 = (x0 + x / x0) >> 1;
+    if (x.raw() <= 1) return 0;
+    auto x0 = x / 2;
+    auto x1 = x / x0;
+    while ((x1 - x0).abs().raw() > 1) {
+        x0 = (x0 + x1) / 2;
+        x1 = x / x0;
     }
     return x0;
 }
@@ -213,7 +214,7 @@ psyqo::FixedPoint<> psyqo::SoftMath::normOfVec3(const Vec3 *v) {
     auto x = v->x;
     auto y = v->y;
     auto z = v->z;
-    psyqo::FixedPoint<> s = x * x + y * y + z * z;
+    auto s = x * x + y * y + z * z;
     return squareRoot(s);
 }
 
@@ -221,9 +222,12 @@ void psyqo::SoftMath::normalizeVec3(Vec3 *v) {
     auto x = v->x;
     auto y = v->y;
     auto z = v->z;
-    psyqo::FixedPoint<> s = x * x + y * y + z * z;
+    auto s = x * x + y * y + z * z;
     auto r = squareRoot(s);
-    v->x = x / r;
-    v->y = y / r;
-    v->z = z / r;
+    x = x / r;
+    y = y / r;
+    z = z / r;
+    v->x = x;
+    v->y = y;
+    v->z = z;
 }
