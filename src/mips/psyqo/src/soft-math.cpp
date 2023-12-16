@@ -200,11 +200,12 @@ psyqo::FixedPoint<> psyqo::SoftMath::matrixDeterminant3(const Matrix33 *m) {
 }
 
 psyqo::FixedPoint<> psyqo::SoftMath::squareRoot(psyqo::FixedPoint<> x) {
-    auto x0 = x;
-    auto x1 = (x0 + 1) >> 1;
-    while (x1 < x0) {
-        x0 = x1;
-        x1 = (x0 + x / x0) >> 1;
+    if (x.raw() <= 1) return 0;
+    auto x0 = x / 2;
+    auto x1 = x / x0;
+    while ((x1 - x0).abs().raw() > 1) {
+        x0 = (x0 + x1) / 2;
+        x1 = x / x0;
     }
     return x0;
 }
