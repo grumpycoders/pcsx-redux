@@ -282,7 +282,21 @@ class GPU {
      */
     template <Fragment Frag>
     void chain(Frag &fragment) {
-        chain(&fragment.head, fragment.getActualFragmentSize());
+        chain(&fragment.head, &fragment.head, fragment.getActualFragmentSize());
+    }
+
+    /**
+     * @brief Chains an already constructed DMA chain to the next DMA chain transfer.
+     *
+     * @details This method will chain an already constructed DMA chain to the next DMA chain transfer.
+     * This is an even more complex operation than the previous `chain` method, as it requires the
+     * user to construct the DMA chain manually. Some helpers are provided in the `Fragments` namespace.
+     * @param first The pointer to the first fragment of the chain.
+     * @param last The pointer to the last fragment of the chain.
+     */
+    template <Fragment Frag1, Fragment Frag2>
+    void chain(Frag1 *first, Frag2 *last) {
+        chain(&first->head, &last->head, last->getActualFragmentSize());
     }
 
     /**
@@ -434,7 +448,7 @@ class GPU {
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
-    void chain(uint32_t *head, size_t count);
+    void chain(uint32_t *first, uint32_t *last, size_t count);
 
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
