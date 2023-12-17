@@ -373,7 +373,7 @@ void psyqo::GPU::chain(uint32_t *head, size_t count) {
     if (!m_chainHead) {
         m_chainHead = head;
     } else {
-        *m_chainTail = m_chainTailCount | (reinterpret_cast<uintptr_t>(head) & 0xff0000);
+        *m_chainTail = m_chainTailCount | (reinterpret_cast<uintptr_t>(first) & 0xffffff);
     }
     m_chainTail = head;
     m_chainTailCount = count;
