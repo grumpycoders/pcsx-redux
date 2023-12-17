@@ -79,7 +79,7 @@ int16_t getLO(uint32_t v) {
 
 void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp,
                            const Options& options) {
-    constexpr size_t stubSize = 16;
+    constexpr size_t stubSize = 8;
     std::vector<uint8_t> dataIn;
     dataIn.resize(src->size());
     src->read(dataIn.data(), dataIn.size());
