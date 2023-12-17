@@ -367,15 +367,15 @@ void psyqo::GPU::sendFragment(const uint32_t *data, size_t count, eastl::functio
     DMA_CTRL[DMA_GPU].CHCR = 0x01000201;
 }
 
-void psyqo::GPU::chain(uint32_t *head, size_t count) {
+void psyqo::GPU::chain(uint32_t *first, uint32_t *last, size_t count) {
     Kernel::assert(count < 256, "Fragment too big to be chained");
     count <<= 24;
     if (!m_chainHead) {
-        m_chainHead = head;
+        m_chainHead = first;
     } else {
         *m_chainTail = m_chainTailCount | (reinterpret_cast<uintptr_t>(first) & 0xffffff);
     }
-    m_chainTail = head;
+    m_chainTail = last;
     m_chainTailCount = count;
 }
 
