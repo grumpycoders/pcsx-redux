@@ -139,15 +139,22 @@ class FixedPoint {
      * as truncating the fixed point number, as it rounds to the
      * nearest integer, rather than towards zero.
      *
+     * @tparam factor The factor to scale the integer part by. This
+     * defaults to 1, which means that the integer part is returned
+     * as-is. It can be used to return the integer part scaled by
+     * some factor, which can be useful for some operations.
+     * The codegen for this will be bad if the factor is not a
+     * power of 2.
      * @return constexpr T The integer part of the fixed point number.
      */
+    template<size_t factor = 1>
     constexpr T integer() const {
         if constexpr (std::is_signed<T>::value) {
             if (value < 0) {
-                return (value - scale / 2) / scale;
+                return (value - scale / (2 * factor)) / (scale / factor);
             }
         }
-        return (value + scale / 2) / scale;
+        return (value + scale / (2 * factor)) / (scale / factor);
     }
 
     template <std::integral U>
