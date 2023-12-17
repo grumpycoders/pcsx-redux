@@ -111,7 +111,7 @@ FixedPoint<> matrixDeterminant3(const Matrix33 *m);
  * @param x The number to compute the square root of.
  * @return psyqo::FixedPoint<> The square root.
  */
-psyqo::FixedPoint<> squareRoot(psyqo::FixedPoint<> x);
+FixedPoint<> squareRoot(FixedPoint<> x);
 
 /**
  * @brief Computes the norm of a 3D vector.
@@ -119,7 +119,7 @@ psyqo::FixedPoint<> squareRoot(psyqo::FixedPoint<> x);
  * @param v The vector.
  * @return psyqo::FixedPoint<> The norm.
  */
-psyqo::FixedPoint<> normOfVec3(const Vec3 *v);
+FixedPoint<> normOfVec3(const Vec3 *v);
 
 /**
  * @brief Normalizes a 3D vector.
@@ -127,6 +127,15 @@ psyqo::FixedPoint<> normOfVec3(const Vec3 *v);
  * @param v The vector to normalize.
  */
 void normalizeVec3(Vec3 *v);
+
+/**
+ * @brief Projects a 3D point onto a 2D plane.
+ *
+ * @param v The vector to project.
+ * @param h The height of the plane.
+ * @param out The vector to store the result in.
+ */
+void project(const Vec3 *v, FixedPoint<> h, Vec2 *out);
 
 }  // namespace SoftMath
 
