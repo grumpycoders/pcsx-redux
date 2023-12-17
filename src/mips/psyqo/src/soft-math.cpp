@@ -231,3 +231,14 @@ void psyqo::SoftMath::normalizeVec3(Vec3 *v) {
     v->y = y;
     v->z = z;
 }
+
+void psyqo::SoftMath::project(const Vec3 *v, FixedPoint<> h, Vec2 *out) {
+    auto x = v->x;
+    auto y = v->y;
+    auto z = v->z;
+    auto r = h / z;
+    x = x * r;
+    y = y * r;
+    out->x = x;
+    out->y = y;
+}
