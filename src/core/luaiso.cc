@@ -23,12 +23,12 @@
 
 #include "cdrom/cdriso.h"
 #include "cdrom/file.h"
-#include "cdrom/iec-60908b.h"
 #include "cdrom/iso9660-builder.h"
 #include "cdrom/iso9660-reader.h"
 #include "core/cdrom.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
+#include "supportpsx/iec-60908b.h"
 
 namespace {
 
