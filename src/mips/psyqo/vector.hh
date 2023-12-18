@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#pragma once
+
 #include "psyqo/fixed-point.hh"
 #include "psyqo/primitives/common.hh"
 
@@ -32,14 +34,59 @@ namespace psyqo {
 struct Vec2 {
     FixedPoint<> x, y;
     operator Vertex() const { return {{.x = x.integer<int16_t>(), .y = y.integer<int16_t>()}}; }
+    Vec2& operator+=(const Vec2& rhs) {
+        x += rhs.x;
+        y += rhs.y;
+        return *this;
+    }
+    Vec2& operator-=(const Vec2& rhs) {
+        x -= rhs.x;
+        y -= rhs.y;
+        return *this;
+    }
+    Vec2 operator-() const { return {-x, -y}; }
+    Vec2 operator+(const Vec2& rhs) const { return {x + rhs.x, y + rhs.y}; }
+    Vec2 operator-(const Vec2& rhs) const { return {x - rhs.x, y - rhs.y}; }
 };
 
 struct Vec3 {
     FixedPoint<> x, y, z;
+    Vec3& operator+=(const Vec3& rhs) {
+        x += rhs.x;
+        y += rhs.y;
+        z += rhs.z;
+        return *this;
+    }
+    Vec3& operator-=(const Vec3& rhs) {
+        x -= rhs.x;
+        y -= rhs.y;
+        z -= rhs.z;
+        return *this;
+    }
+    Vec3 operator-() const { return {-x, -y, -z}; }
+    Vec3 operator+(const Vec3& rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z}; }
+    Vec3 operator-(const Vec3& rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z}; }
 };
 
 struct Vec4 {
     FixedPoint<> x, y, z, w;
+    Vec4& operator+=(const Vec4& rhs) {
+        x += rhs.x;
+        y += rhs.y;
+        z += rhs.z;
+        w += rhs.w;
+        return *this;
+    }
+    Vec4& operator-=(const Vec4& rhs) {
+        x -= rhs.x;
+        y -= rhs.y;
+        z -= rhs.z;
+        w -= rhs.w;
+        return *this;
+    }
+    Vec4 operator-() const { return {-x, -y, -z, -w}; }
+    Vec4 operator+(const Vec4& rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w}; }
+    Vec4 operator-(const Vec4& rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w}; }
 };
 
 }  // namespace psyqo

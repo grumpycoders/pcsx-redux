@@ -51,9 +51,9 @@ AppDir:
     - /lib/x86_64-linux-gnu/libXfixes.so.3
     - /lib/x86_64-linux-gnu/libXrender.so.1
     - /lib/x86_64-linux-gnu/libaom.so.3
-    - /lib/x86_64-linux-gnu/libavcodec.so.59
-    - /lib/x86_64-linux-gnu/libavformat.so.59
-    - /lib/x86_64-linux-gnu/libavutil.so.57
+    - /lib/x86_64-linux-gnu/libavcodec.so.60
+    - /lib/x86_64-linux-gnu/libavformat.so.60
+    - /lib/x86_64-linux-gnu/libavutil.so.58
     - /lib/x86_64-linux-gnu/libblkid.so.1
     - /lib/x86_64-linux-gnu/libbluray.so.2
     - /lib/x86_64-linux-gnu/libbrotlicommon.so.1

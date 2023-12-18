@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2023 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,12 @@ SOFTWARE.
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include "psyqo/vector.hh"
 
-static __attribute__((always_inline)) void* safeMemZero(void* ptr_, int size) {
-    uint8_t* ptr = (uint8_t*)ptr_;
-    if (!ptr || size <= 0) return NULL;
-    uint8_t* orig = ptr;
-    for (; size > 0; ptr++) {
-        size--;
-        *ptr = 0;
-    }
-    return orig;
-}
+namespace psyqo {
+
+struct Matrix33 {
+    Vec3 vs[3];
+};
+
+}  // namespace psyqo

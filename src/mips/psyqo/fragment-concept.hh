@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2023 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,25 @@ SOFTWARE.
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <concepts>
+#include <cstddef>
 
-static __attribute__((always_inline)) void* safeMemZero(void* ptr_, int size) {
-    uint8_t* ptr = (uint8_t*)ptr_;
-    if (!ptr || size <= 0) return NULL;
-    uint8_t* orig = ptr;
-    for (; size > 0; ptr++) {
-        size--;
-        *ptr = 0;
-    }
-    return orig;
-}
+namespace psyqo {
+
+/**
+ * @brief The Fragment concept.
+ * @details This concept can be used as a template type constraint
+ * to ensure that a type is a valid fragment.
+ */
+
+template <typename Frag>
+concept Fragment = requires(Frag frag) {
+    {(alignof(Frag) & 3) == 0};
+    {(sizeof(Frag) & 3) == 0};
+    {(sizeof(frag.head)) == 4};
+    {((offsetof(Frag, head)) & 3) == 0};
+    { frag.getActualFragmentSize() }
+    ->std::convertible_to<size_t>;
+};
+
+}  // namespace psyqo

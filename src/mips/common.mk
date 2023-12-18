@@ -50,11 +50,11 @@ LDFLAGS_Release += -Os
 CPPFLAGS_ReleaseFast += -O3
 LDFLAGS_ReleaseFast += -O3
 
-CPPFLAGS_LTO += -Os -flto
-LDFLAGS_LTO += -Os -flto
+CPPFLAGS_LTO += -Os -flto -ffat-lto-objects
+LDFLAGS_LTO += -Os -flto -ffat-lto-objects
 
-CPPFLAGS_LTOFast += -O3 -flto
-LDFLAGS_LTOFast += -O3 -flto
+CPPFLAGS_LTOFast += -O3 -flto -ffat-lto-objects
+LDFLAGS_LTOFast += -O3 -flto -ffat-lto-objects
 
 CPPFLAGS_Debug += -O0
 CPPFLAGS_SmallDebug += -Og
