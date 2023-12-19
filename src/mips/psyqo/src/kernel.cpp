@@ -163,7 +163,7 @@ void psyqo::Kernel::Internal::prepare() {
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
         uint32_t dicr = Hardware::CPU::DICR;
         uint32_t dirqs = dicr >> 24;
-        dicr &= 0xffffff;
+        dicr &= 0xff7fff;
         uint32_t ack = 0x80;
 
         for (unsigned irq = 0; irq < 7; irq++) {
