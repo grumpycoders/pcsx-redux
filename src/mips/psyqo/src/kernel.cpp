@@ -161,6 +161,7 @@ void psyqo::Kernel::Internal::prepare() {
     syscall_dequeueCDRomHandlers();
     syscall_setDefaultExceptionJmpBuf();
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
+        Hardware::CPU::IReg.clear(Hardware::CPU::IRQ::DMA);
         uint32_t dicr = Hardware::CPU::DICR;
         uint32_t dirqs = dicr >> 24;
         dicr &= 0xffffff;
@@ -192,7 +193,6 @@ void psyqo::Kernel::Internal::prepare() {
     dicr &= 0xffffff;
     dicr |= 0x800000;
     Hardware::CPU::DICR = dicr;
-    syscall_setIrqAutoAck(3, 1);
 
     for (auto& i : getInitializers()) i();
 }

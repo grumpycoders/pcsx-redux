@@ -531,6 +531,8 @@ static __attribute__((always_inline)) int syscall_enqueueIrqHandler(int priority
     return ((int (*)(int))0xc0)(priority);
 }
 
+// This syscall is broken beyond repair, as the kernel code contains a race
+// condition that can cause the kernel to lose IRQs. Please don't use it.
 static __attribute__((always_inline)) void syscall_setIrqAutoAck(uint32_t irq, int value) {
     register int n asm("t1") = 0x0d;
     __asm__ volatile("" : "=r"(n) : "r"(n));
