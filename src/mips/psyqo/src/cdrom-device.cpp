@@ -40,8 +40,10 @@ SOFTWARE.
 void psyqo::CDRomDevice::prepare() {
     Hardware::CPU::IMask.set(Hardware::CPU::IRQ::CDRom);
     Kernel::enableDma(Kernel::DMA::CDRom);
-    m_event = Kernel::openEvent(EVENT_CDROM, 0x1000, EVENT_MODE_CALLBACK, [this]() { irq(); });
-    syscall_setIrqAutoAck(2, 1);
+    m_event = Kernel::openEvent(EVENT_CDROM, 0x1000, EVENT_MODE_CALLBACK, [this]() {
+        Hardware::CPU::IReg.clear(Hardware::CPU::IRQ::CDRom);
+        irq();
+    });
     syscall_enableEvent(m_event);
 }
 
