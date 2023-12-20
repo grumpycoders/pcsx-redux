@@ -163,10 +163,10 @@ void psyqo::Kernel::Internal::prepare() {
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
         uint32_t dicr = Hardware::CPU::DICR;
         uint32_t dirqs = dicr >> 24;
-        dicr &= 0xffffff;
+        dicr &= 0xff7fff;
         uint32_t ack = 0x80;
 
-        for (unsigned irq = 0; irq < 7; irq++) {
+        for (unsigned irq = 0; irq < 6; irq++) {
             uint32_t mask = 1 << irq;
             if (dirqs & mask) {
                 ack |= mask;
@@ -177,7 +177,7 @@ void psyqo::Kernel::Internal::prepare() {
         dicr |= ack;
         Hardware::CPU::DICR = dicr;
 
-        for (unsigned irq = 0; irq < 7; irq++) {
+        for (unsigned irq = 0; irq < 6; irq++) {
             uint32_t mask = 1 << irq;
             if (dirqs & mask) {
                 for (auto& lambda : s_dmaCallbacks[irq]) {

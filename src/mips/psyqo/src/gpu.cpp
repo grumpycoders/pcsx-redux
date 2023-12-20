@@ -140,7 +140,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
         eastl::atomic_signal_fence(eastl::memory_order_release);
     });
     // Enable DMA interrupt for GPU
-    auto dicr = Hardware::CPU::DICR;
+    uint32_t dicr = Hardware::CPU::DICR;
     dicr &= 0xffffff;
     dicr |= 0x040000;
     Hardware::CPU::DICR = dicr;
