@@ -177,7 +177,7 @@ void psyqo::Kernel::Internal::prepare() {
         dicr |= ack;
         Hardware::CPU::DICR = dicr;
 
-        for (unsigned irq = 0; irq < 7; irq++) {
+        for (unsigned irq = 0; irq < 6; irq++) {
             uint32_t mask = 1 << irq;
             if (dirqs & mask) {
                 for (auto& lambda : s_dmaCallbacks[irq]) {
