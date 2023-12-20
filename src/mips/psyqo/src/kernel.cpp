@@ -166,7 +166,7 @@ void psyqo::Kernel::Internal::prepare() {
         dicr &= 0xff7fff;
         uint32_t ack = 0x80;
 
-        for (unsigned irq = 0; irq < 7; irq++) {
+        for (unsigned irq = 0; irq < 6; irq++) {
             uint32_t mask = 1 << irq;
             if (dirqs & mask) {
                 ack |= mask;
