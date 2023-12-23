@@ -34,6 +34,7 @@ SOFTWARE.
 #define CESTER_MAYBE_TEST CESTER_TEST
 #endif
 
+#include "common/hardware/hwregs.h"
 #include "common/syscalls/syscalls.h"
 
 #undef unix
