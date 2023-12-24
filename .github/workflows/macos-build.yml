@@ -52,7 +52,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/Library/Caches/Homebrew
-        key: brew-${{ hashFiles('.github/brew-formulae') }}
+        key: brew-${{ hashFiles('.github/scripts/install-brew-dependencies.sh') }}
         restore-keys: brew-
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
