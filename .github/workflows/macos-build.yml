@@ -47,7 +47,13 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Update brew
-      run: brew update
+      run: brew update --preinstall
+    - name: Cache brew
+      uses: actions/cache@v2
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: brew-${{ hashFiles('.github/brew-formulae') }}
+        restore-keys: brew-
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
