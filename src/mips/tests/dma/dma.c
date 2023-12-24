@@ -35,8 +35,9 @@ SOFTWARE.
 #endif
 
 #include "common/hardware/dma.h"
-#include "common/hardware/hwregs.h"
+
 #include "common/hardware/gpu.h"
+#include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"
 #include "common/syscalls/syscalls.h"
 
