@@ -147,7 +147,7 @@ class FixedPoint {
      * power of 2.
      * @return constexpr T The integer part of the fixed point number.
      */
-    template<size_t factor = 1>
+    template <size_t factor = 1>
     constexpr T integer() const {
         if constexpr (std::is_signed<T>::value) {
             if (value < 0) {
