@@ -268,6 +268,7 @@
     <ClCompile Include="..\..\src\supportpsx\assembler.cc" />
     <ClCompile Include="..\..\src\supportpsx\binloader.cc" />
     <ClCompile Include="..\..\src\supportpsx\binlua.cc" />
+    <ClCompile Include="..\..\src\supportpsx\iec-60908b.cc" />
     <ClCompile Include="..\..\src\supportpsx\ps1-packer.cc" />
     <ClCompile Include="..\..\src\supportpsx\ucl-glue.c" />
     <ClCompile Include="..\..\third_party\ucl\src\alloc.c" />
@@ -289,6 +290,7 @@
     <ClInclude Include="..\..\src\supportpsx\assembler.h" />
     <ClInclude Include="..\..\src\supportpsx\binloader.h" />
     <ClInclude Include="..\..\src\supportpsx\binlua.h" />
+    <ClInclude Include="..\..\src\supportpsx\iec-60908b.h" />
     <ClInclude Include="..\..\src\supportpsx\ps1-packer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

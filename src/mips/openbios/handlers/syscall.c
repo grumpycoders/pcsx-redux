@@ -31,9 +31,8 @@ SOFTWARE.
 #include "openbios/handlers/handlers.h"
 #include "openbios/kernel/events.h"
 #include "openbios/kernel/globals.h"
+#include "openbios/kernel/handlers.h"
 #include "openbios/kernel/threads.h"
-
-void __attribute__((noreturn)) returnFromException();
 
 static __attribute__((section(".ramtext"))) int syscallVerifier() {
     struct Thread* currentThread = __globals.processes[0].thread;

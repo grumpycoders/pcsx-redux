@@ -186,14 +186,14 @@ class Emulator {
     typedef SettingPath<TYPESTRING("EXP1BrowsePath")> SettingEXP1BrowsePath;
     typedef Setting<bool, TYPESTRING("PIOConnected")> SettingPIOConnected;
 
-    Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
-             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot,
-             SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
-             SettingMcd2Inserted, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither, SettingCachedDithering,
-             SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer,
-             SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode,
-             SettingMcd1Pocketstation, SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath,
-             SettingEXP1BrowsePath, SettingPIOConnected>
+    Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
+             SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
+             SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec,
+             Setting8MB, SettingGUITheme, SettingDither, SettingCachedDithering, SettingGLErrorReporting,
+             SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
+             SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
+             SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
+             SettingPIOConnected>
         settings;
     class PcsxConfig {
       public:

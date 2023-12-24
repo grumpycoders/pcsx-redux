@@ -54,14 +54,13 @@ void PCSX::Debug::markMap(uint32_t address, int mask) {
     address = normalizeAddress(address);
     uint32_t base = (address >> 20) & 0xffc;
     uint32_t real = address & 0x7fffff;
+    uint32_t shortReal = address & 0x3fffff;
     if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
         m_mainMemoryMap[real] |= mask;
-    } else if ((base == 0x1f0) && (real < sizeof(m_parpMemoryMap))) {
-        m_parpMemoryMap[real] |= mask;
     } else if ((base == 0x1f8) && (real < sizeof(m_scratchPadMap))) {
         m_scratchPadMap[real] |= mask;
-    } else if ((base == 0xbfc) && (real < sizeof(m_biosMemoryMap))) {
-        m_biosMemoryMap[real] |= mask;
+    } else if ((base == 0xbfc) && (shortReal < sizeof(m_biosMemoryMap))) {
+        m_biosMemoryMap[shortReal] |= mask;
     }
 }
 
@@ -69,14 +68,13 @@ bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
     address = normalizeAddress(address);
     uint32_t base = (address >> 20) & 0xffc;
     uint32_t real = address & 0x7fffff;
+    uint32_t shortReal = address & 0x3fffff;
     if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
         return m_mainMemoryMap[real] & mask;
-    } else if ((base == 0x1f0) && (real < sizeof(m_parpMemoryMap))) {
-        return m_parpMemoryMap[real] & mask;
     } else if ((base == 0x1f8) && (real < sizeof(m_scratchPadMap))) {
         return m_scratchPadMap[real] & mask;
-    } else if ((base == 0xbfc) && (real < sizeof(m_biosMemoryMap))) {
-        return m_biosMemoryMap[real] & mask;
+    } else if ((base == 0xbfc) && (shortReal < sizeof(m_biosMemoryMap))) {
+        return m_biosMemoryMap[shortReal] & mask;
     }
     return false;
 }

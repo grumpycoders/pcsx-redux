@@ -362,9 +362,7 @@ int __attribute__((section(".ramtext"))) mcInfoHandler() {
     return 0;
 }
 
-uint8_t __attribute__((section(".ramtext"))) getCardStatus(int port) {
-    return g_mcFlags[port];
-}
+uint8_t __attribute__((section(".ramtext"))) getCardStatus(int port) { return g_mcFlags[port]; }
 
 uint8_t __attribute__((section(".ramtext"))) waitCardStatus(int port) {
     while ((g_mcFlags[port] & 1) == 0) {

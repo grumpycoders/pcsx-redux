@@ -68,12 +68,13 @@ class CDRomLoader {
     }
 
   private:
-    void setupQueue(eastl::string_view path, GPU& gpu, ISO9660Parser& parser, eastl::function<void(eastl::vector<uint8_t> &&)> &&callback);
-    eastl::function<void(eastl::vector<uint8_t> &&)> m_callback;
+    void setupQueue(eastl::string_view path, GPU& gpu, ISO9660Parser& parser,
+                    eastl::function<void(eastl::vector<uint8_t>&&)>&& callback);
+    eastl::function<void(eastl::vector<uint8_t>&&)> m_callback;
     psyqo::TaskQueue m_queue;
     ISO9660Parser::ReadRequest m_request;
     eastl::vector<uint8_t> m_data;
     bool m_pending = false;
 };
 
-}
+}  // namespace psyqo::paths

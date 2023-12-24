@@ -16,19 +16,19 @@ AppDir:
   apt:
     arch:
     - amd64
-    allow_unauthenticated: true
     sources:
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic main restricted
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-updates main restricted
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic universe
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-updates universe
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic multiverse
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-updates multiverse
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ kinetic-backports main
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic main restricted
+      key_url: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic-updates main restricted
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic universe
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic-updates universe
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic multiverse
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic-updates multiverse
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic-backports main
         restricted universe multiverse
-    - sourceline: deb http://security.ubuntu.com/ubuntu kinetic-security main restricted
-    - sourceline: deb http://security.ubuntu.com/ubuntu kinetic-security universe
-    - sourceline: deb http://security.ubuntu.com/ubuntu kinetic-security multiverse
+    - sourceline: deb http://security.ubuntu.com/ubuntu mantic-security main restricted
+    - sourceline: deb http://security.ubuntu.com/ubuntu mantic-security universe
+    - sourceline: deb http://security.ubuntu.com/ubuntu mantic-security multiverse
     include:
     - libbz2-1.0:amd64
     - libcom-err2:amd64
@@ -51,9 +51,9 @@ AppDir:
     - /lib/x86_64-linux-gnu/libXfixes.so.3
     - /lib/x86_64-linux-gnu/libXrender.so.1
     - /lib/x86_64-linux-gnu/libaom.so.3
-    - /lib/x86_64-linux-gnu/libavcodec.so.59
-    - /lib/x86_64-linux-gnu/libavformat.so.59
-    - /lib/x86_64-linux-gnu/libavutil.so.57
+    - /lib/x86_64-linux-gnu/libavcodec.so.60
+    - /lib/x86_64-linux-gnu/libavformat.so.60
+    - /lib/x86_64-linux-gnu/libavutil.so.58
     - /lib/x86_64-linux-gnu/libblkid.so.1
     - /lib/x86_64-linux-gnu/libbluray.so.2
     - /lib/x86_64-linux-gnu/libbrotlicommon.so.1

@@ -161,12 +161,13 @@ void psyqo::Kernel::Internal::prepare() {
     syscall_dequeueCDRomHandlers();
     syscall_setDefaultExceptionJmpBuf();
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
+        Hardware::CPU::IReg.clear(Hardware::CPU::IRQ::DMA);
         uint32_t dicr = Hardware::CPU::DICR;
         uint32_t dirqs = dicr >> 24;
-        dicr &= 0xffffff;
+        dicr &= 0xff7fff;
         uint32_t ack = 0x80;
 
-        for (unsigned irq = 0; irq < 7; irq++) {
+        for (unsigned irq = 0; irq < 6; irq++) {
             uint32_t mask = 1 << irq;
             if (dirqs & mask) {
                 ack |= mask;
@@ -177,7 +178,7 @@ void psyqo::Kernel::Internal::prepare() {
         dicr |= ack;
         Hardware::CPU::DICR = dicr;
 
-        for (unsigned irq = 0; irq < 7; irq++) {
+        for (unsigned irq = 0; irq < 6; irq++) {
             uint32_t mask = 1 << irq;
             if (dirqs & mask) {
                 for (auto& lambda : s_dmaCallbacks[irq]) {
@@ -192,29 +193,33 @@ void psyqo::Kernel::Internal::prepare() {
     dicr &= 0xffffff;
     dicr |= 0x800000;
     Hardware::CPU::DICR = dicr;
-    syscall_setIrqAutoAck(3, 1);
 
     for (auto& i : getInitializers()) i();
 }
 
 namespace {
+uint32_t s_flag = 0;
 eastl::fixed_ring_buffer<eastl::function<void()>, 128> s_callbacks(128);
 }
 
 void psyqo::Kernel::queueCallback(eastl::function<void()>&& lambda) {
     fastEnterCriticalSection();
+    s_flag = 1;
     s_callbacks.push_back(eastl::move(lambda));
     fastLeaveCriticalSection();
 }
 
 void psyqo::Kernel::queueCallbackFromISR(eastl::function<void()>&& lambda) {
     s_callbacks.push_back() = eastl::move(lambda);
+    s_flag = 1;
     eastl::atomic_signal_fence(eastl::memory_order_release);
 }
 
 void psyqo::Kernel::Internal::pumpCallbacks() {
-    fastEnterCriticalSection();
     eastl::atomic_signal_fence(eastl::memory_order_acquire);
+    if (s_flag == 0) return;
+    fastEnterCriticalSection();
+    s_flag = 0;
     while (!s_callbacks.empty()) {
         auto& l = s_callbacks.front();
         fastLeaveCriticalSection();

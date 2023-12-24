@@ -2,6 +2,7 @@ PSYQODIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 LIBRARIES += $(PSYQODIR)libpsyqo.a
 CPPFLAGS += -I$(PSYQODIR)../../../third_party/EASTL/include -I$(PSYQODIR)../../../third_party/EABase/include/Common
+CXXFLAGS += -std=c++20
 
 EXTRA_CLEAN += clean-psyqo
 

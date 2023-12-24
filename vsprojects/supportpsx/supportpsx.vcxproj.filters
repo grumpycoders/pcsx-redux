@@ -36,6 +36,9 @@
     <ClCompile Include="..\..\src\supportpsx\ucl-glue.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\iec-60908b.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\supportpsx\assembler\assembler.lua">
@@ -78,6 +81,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\binlua.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\iec-60908b.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -134,7 +134,8 @@ void PCSX::SPU::impl::debug() {
             }
             ImGui::NextColumn();
             {
-                ImGui::TextUnformatted(_("Start pos:\nCurr pos:\nLoop pos:\n\nRight vol:\nLeft vol:\n\nAct freq:\nUsed freq:"));
+                ImGui::TextUnformatted(
+                    _("Start pos:\nCurr pos:\nLoop pos:\n\nRight vol:\nLeft vol:\n\nAct freq:\nUsed freq:"));
                 ImGui::SameLine();
                 ImGui::Text("%li\n%li\n%li\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", ch.pStart - spuMemC, ch.pCurr - spuMemC,
                             ch.pLoop - spuMemC, ch.data.get<Chan::RightVolume>().value,

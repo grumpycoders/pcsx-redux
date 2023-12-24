@@ -1097,9 +1097,10 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
         ImGui::SameLine();
         std::string label = fmt::format(f_("Go to texture##{}"), n);
         if (ImGui::Button(label.c_str())) {
-            const auto mode = tpage.texDepth == TexDepth::Tex16Bits  ? Events::GUI::VRAMFocus::VRAM_16BITS
-                              : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
-                                                                     : Events::GUI::VRAMFocus::VRAM_4BITS;
+            const auto mode = tpage.texDepth == TexDepth::Tex16Bits
+                                  ? Events::GUI::VRAMFocus::VRAM_16BITS
+                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
+                                                                         : Events::GUI::VRAMFocus::VRAM_4BITS;
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
             g_system->m_eventBus->signal(
                 Events::GUI::VRAMFocus{int(minU + tx), int(minV + ty), int(maxU + tx), int(maxV + ty), mode});
@@ -1193,9 +1194,10 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n)
         ImGui::SameLine();
         std::string label = fmt::format(f_("Go to texture##{}"), n);
         if (ImGui::Button(label.c_str())) {
-            const auto mode = tpage.texDepth == TexDepth::Tex16Bits  ? Events::GUI::VRAMFocus::VRAM_16BITS
-                              : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
-                                                                     : Events::GUI::VRAMFocus::VRAM_4BITS;
+            const auto mode = tpage.texDepth == TexDepth::Tex16Bits
+                                  ? Events::GUI::VRAMFocus::VRAM_16BITS
+                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
+                                                                         : Events::GUI::VRAMFocus::VRAM_4BITS;
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
             g_system->m_eventBus->signal(Events::GUI::VRAMFocus{int((u >> shift) + tx), int(v + ty),
                                                                 int(((u + w) >> shift) + tx), int(v + h + ty), mode});

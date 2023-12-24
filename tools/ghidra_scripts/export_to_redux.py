@@ -15,6 +15,8 @@ with open (root_dir + '/redux_data_types.txt', 'w') as f:
             type_name = component.getDataType().getName()
             print('type: ' + type_name)
             field_name = component.getFieldName()
+            if field_name is None:
+                field_name = component.getDefaultFieldName()
             print('field name: ' + field_name)
             field_length = str(component.getLength())
             print('field length: ' + field_length)

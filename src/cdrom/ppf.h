@@ -27,8 +27,8 @@
 #include <string_view>
 #include <utility>
 
-#include "cdrom/iec-60908b.h"
 #include "support/hashtable.h"
+#include "supportpsx/iec-60908b.h"
 
 namespace PCSX {
 

@@ -113,8 +113,6 @@ void unimplemented(uint32_t table, uint32_t call, uint32_t ra) {
 
 static void installExceptionHandler() { installHandler((uint32_t *)exceptionVector, (uint32_t *)0x80); }
 
-void __attribute__((noreturn)) returnFromException();
-
 #define EXCEPTION_STACK_SIZE 0x800
 
 static uint32_t s_exceptionStack[EXCEPTION_STACK_SIZE];

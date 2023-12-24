@@ -1,21 +1,25 @@
 -- lualoader, R"EOF(--
---   Copyright (C) 2023 PCSX-Redux authors
+-- MIT License
 --
---   This program is free software; you can redistribute it and/or modify
---   it under the terms of the GNU General Public License as published by
---   the Free Software Foundation; either version 2 of the License, or
---   (at your option) any later version.
+-- Copyright (c) 2023 PCSX-Redux authors
 --
---   This program is distributed in the hope that it will be useful,
---   but WITHOUT ANY WARRANTY; without even the implied warranty of
---   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---   GNU General Public License for more details.
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
---   You should have received a copy of the GNU General Public License
---   along with this program; if not, write to the
---   Free Software Foundation, Inc.,
---   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 local C = ffi.load 'SUPPORTPSX_BINARY'
 
 ffi.cdef [[
@@ -32,6 +36,7 @@ struct BinaryLoaderInfo {
 struct PS1PackerOptions {
     uint32_t tload;
     bool shell;
+    bool nopad;
     bool booty;
     bool raw;
     bool rom;
@@ -49,12 +54,8 @@ uint32_t writeUclDecomp(LuaFile* dest);
 PCSX.Binary = {}
 
 PCSX.Binary.load = function(src, dest)
-    if type(src) ~= 'table' or src._type ~= 'File' then
-        error('Expected a File object as first argument')
-    end
-    if type(dest) ~= 'table' or dest._type ~= 'File' then
-        error('Expected a File object as second argument')
-    end
+    if type(src) ~= 'table' or src._type ~= 'File' then error('Expected a File object as first argument') end
+    if type(dest) ~= 'table' or dest._type ~= 'File' then error('Expected a File object as second argument') end
     local info = ffi.new('struct BinaryLoaderInfo')
     if not C.binaryLoaderLoad(src._wrapper, dest._wrapper, info) then return nil end
     local ret = {}
@@ -66,34 +67,21 @@ PCSX.Binary.load = function(src, dest)
 end
 
 PCSX.Binary.pack = function(src, dest, addr, pc, gp, sp, options)
-    if type(src) ~= 'table' or src._type ~= 'File' then
-        error('Expected a File object as first argument')
-    end
-    if type(dest) ~= 'table' or dest._type ~= 'File' then
-        error('Expected a File object as second argument')
-    end
-    if type(addr) ~= 'number' then
-        error('Expected a number as third argument')
-    end
-    if type(pc) ~= 'number' then
-        error('Expected a number as fourth argument')
-    end
+    if type(src) ~= 'table' or src._type ~= 'File' then error('Expected a File object as first argument') end
+    if type(dest) ~= 'table' or dest._type ~= 'File' then error('Expected a File object as second argument') end
+    if type(addr) ~= 'number' then error('Expected a number as third argument') end
+    if type(pc) ~= 'number' then error('Expected a number as fourth argument') end
     if gp == nil then gp = 0 end
-    if type(gp) ~= 'number' then
-        error('Expected a number as fifth argument')
-    end
+    if type(gp) ~= 'number' then error('Expected a number as fifth argument') end
     if sp == nil then sp = 0 end
-    if type(sp) ~= 'number' then
-        error('Expected a number as sixth argument')
-    end
+    if type(sp) ~= 'number' then error('Expected a number as sixth argument') end
     if options == nil then options = {} end
-    if type(options) ~= 'table' then
-        error('Expected a table as seventh argument')
-    end
+    if type(options) ~= 'table' then error('Expected a table as seventh argument') end
     local opts = ffi.new('struct PS1PackerOptions')
     opts.tload = options.tload and options.tload or 0
     opts.booty = options.booty and true or false
     opts.shell = options.shell and true or false
+    opts.nopad = options.nopad and true or false
     opts.raw = options.raw and true or false
     opts.rom = options.rom and true or false
     opts.cpe = options.cpe and true or false
@@ -101,26 +89,14 @@ PCSX.Binary.pack = function(src, dest, addr, pc, gp, sp, options)
 end
 
 PCSX.Binary.createExe = function(src, dest, addr, pc, gp, sp)
-    if type(src) ~= 'table' or src._type ~= 'File' then
-        error('Expected a File object as first argument')
-    end
-    if type(dest) ~= 'table' or dest._type ~= 'File' then
-        error('Expected a File object as second argument')
-    end
-    if type(addr) ~= 'number' then
-        error('Expected a number as third argument')
-    end
-    if type(pc) ~= 'number' then
-        error('Expected a number as fourth argument')
-    end
+    if type(src) ~= 'table' or src._type ~= 'File' then error('Expected a File object as first argument') end
+    if type(dest) ~= 'table' or dest._type ~= 'File' then error('Expected a File object as second argument') end
+    if type(addr) ~= 'number' then error('Expected a number as third argument') end
+    if type(pc) ~= 'number' then error('Expected a number as fourth argument') end
     if gp == nil then gp = 0 end
-    if type(gp) ~= 'number' then
-        error('Expected a number as fifth argument')
-    end
+    if type(gp) ~= 'number' then error('Expected a number as fifth argument') end
     if sp == nil then sp = 0 end
-    if type(sp) ~= 'number' then
-        error('Expected a number as sixth argument')
-    end
+    if type(sp) ~= 'number' then error('Expected a number as sixth argument') end
 
     local size = src:size()
     size = bit.band(size + 0x7ff, bit.bnot(0x7ff))
@@ -138,28 +114,16 @@ PCSX.Binary.createExe = function(src, dest, addr, pc, gp, sp)
     dest:writeU32(0)
     dest:writeU32(0)
     dest:writeU32(sp)
-    while dest:size() < 0x800 do
-        dest:writeU8(0)
-    end
+    while dest:size() < 0x800 do dest:writeU8(0) end
     dest:write(src:read(src:size()))
-    while bit.band(dest:size(), 0x7ff) ~= 0 do
-        dest:writeU8(0)
-    end
+    while bit.band(dest:size(), 0x7ff) ~= 0 do dest:writeU8(0) end
 end
 
 PCSX.Binary.createCpe = function(src, dest, addr, pc)
-    if type(src) ~= 'table' or src._type ~= 'File' then
-        error('Expected a File object as first argument')
-    end
-    if type(dest) ~= 'table' or dest._type ~= 'File' then
-        error('Expected a File object as second argument')
-    end
-    if type(addr) ~= 'number' then
-        error('Expected a number as third argument')
-    end
-    if type(pc) ~= 'number' then
-        error('Expected a number as fourth argument')
-    end
+    if type(src) ~= 'table' or src._type ~= 'File' then error('Expected a File object as first argument') end
+    if type(dest) ~= 'table' or dest._type ~= 'File' then error('Expected a File object as second argument') end
+    if type(addr) ~= 'number' then error('Expected a number as third argument') end
+    if type(pc) ~= 'number' then error('Expected a number as fourth argument') end
 
     local size = src:size()
 
@@ -178,19 +142,13 @@ end
 if type(PCSX.Misc) ~= 'table' then PCSX.Misc = {} end
 
 PCSX.Misc.uclPack = function(src, dest)
-    if type(src) ~= 'table' or src._type ~= 'File' then
-        error('Expected a File object as first argument')
-    end
-    if type(dest) ~= 'table' or dest._type ~= 'File' then
-        error('Expected a File object as second argument')
-    end
+    if type(src) ~= 'table' or src._type ~= 'File' then error('Expected a File object as first argument') end
+    if type(dest) ~= 'table' or dest._type ~= 'File' then error('Expected a File object as second argument') end
     return C.uclPack(src._wrapper, dest._wrapper)
 end
 
 PCSX.Misc.writeUclDecomp = function(dest)
-    if type(dest) ~= 'table' or dest._type ~= 'File' then
-        error('Expected a File object as first argument')
-    end
+    if type(dest) ~= 'table' or dest._type ~= 'File' then error('Expected a File object as first argument') end
     return C.writeUclDecomp(dest._wrapper)
 end
 

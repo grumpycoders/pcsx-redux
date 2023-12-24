@@ -29,7 +29,8 @@ SOFTWARE.
 #include <stddef.h>
 #include <stdint.h>
 
-static __attribute__((always_inline)) uint8_t* safeMemZero(uint8_t* ptr, int size) {
+static __attribute__((always_inline)) void* safeMemZero(void* ptr_, int size) {
+    uint8_t* ptr = (uint8_t*)ptr_;
     if (!ptr || size <= 0) return NULL;
     uint8_t* orig = ptr;
     for (; size > 0; ptr++) {

@@ -39,29 +39,20 @@ struct JmpBuf;
 static __attribute__((always_inline)) int enterCriticalSection() {
     register int n asm("a0") = 1;
     register int r asm("v0");
-    __asm__ volatile("syscall\n"
-                     : "=r"(r)
-                     : "r"(n)
-                     : "memory");
+    __asm__ volatile("syscall\n" : "=r"(r) : "r"(n) : "memory");
     return r;
 }
 
 static __attribute__((always_inline)) void leaveCriticalSection() {
     register int n asm("a0") = 2;
-    __asm__ volatile("syscall\n"
-                     :
-                     : "r"(n)
-                     : "memory");
+    __asm__ volatile("syscall\n" : : "r"(n) : "memory");
 }
 
 static __attribute__((always_inline)) int changeThreadSubFunction(uint32_t address) {
     register int n asm("a0") = 3;
     register int tcb asm("a1") = address;
     register int r asm("v0");
-    __asm__ volatile("syscall\n"
-                     : "=r"(r)
-                     : "r"(n), "r"(tcb)
-                     : "memory");
+    __asm__ volatile("syscall\n" : "=r"(r) : "r"(n), "r"(tcb) : "memory");
     return r;
 }
 
@@ -72,10 +63,11 @@ static __attribute__((always_inline)) int syscall_setjmp(struct JmpBuf *buf) {
     return ((int (*)(struct JmpBuf * buf))0xa0)(buf);
 }
 
-static __attribute__((always_inline)) __attribute__((noreturn)) void syscall_longjmp(struct JmpBuf *buf, int ret) {
+static __attribute__((always_inline, noreturn)) void syscall_longjmp(struct JmpBuf *buf, int ret) {
     register int n asm("t1") = 0x14;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)(struct JmpBuf *, int))0xa0)(buf, ret);
+    __builtin_unreachable();
 }
 
 static __attribute__((always_inline)) char *syscall_strcat(char *dst, const char *src) {
@@ -405,10 +397,11 @@ static __attribute__((always_inline)) void syscall_stopPad() {
     ((void (*)())0xb0)();
 }
 
-static __attribute__((noreturn)) __attribute__((always_inline)) void syscall_returnFromException() {
+static __attribute__((always_inline, noreturn)) void syscall_returnFromException() {
     register int n asm("t1") = 0x17;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((__attribute__((noreturn)) void (*)())0xb0)();
+    __builtin_unreachable();
 }
 
 static __attribute__((always_inline)) void syscall_setDefaultExceptionJmpBuf() {
@@ -538,6 +531,8 @@ static __attribute__((always_inline)) int syscall_enqueueIrqHandler(int priority
     return ((int (*)(int))0xc0)(priority);
 }
 
+// This syscall is broken beyond repair, as the kernel code contains a race
+// condition that can cause the kernel to lose IRQs. Please don't use it.
 static __attribute__((always_inline)) void syscall_setIrqAutoAck(uint32_t irq, int value) {
     register int n asm("t1") = 0x0d;
     __asm__ volatile("" : "=r"(n) : "r"(n));

@@ -34,28 +34,35 @@ SOFTWARE.
 #include "common/psxlibc/string.h"
 #include "openbios/handlers/handlers.h"
 #include "openbios/kernel/events.h"
+#include "openbios/kernel/handlers.h"
 
 static int s_IRQsAutoAck[11];
 
+#if 0
 static __attribute__((section(".ramtext"))) int IRQVerifier(void) {
-    // The original code does read IMASK and IREG for every if,
-    // and recompute that same mask for every of them, which is
-    // a big waste of cycles. Since IMASK and IREG are volatiles,
-    // they can't be cached by the compiler, if this is what the
-    // original author was thinking.
-    uint32_t mask = IMASK & IREG;
-    if ((mask & IRQ_CDROM) != 0) deliverEvent(EVENT_CDROM, 0x1000);
-    if ((mask & IRQ_SPU) != 0) deliverEvent(EVENT_SPU, 0x1000);
-    if ((mask & IRQ_GPU) != 0) deliverEvent(EVENT_GPU, 0x1000);
-    if ((mask & IRQ_PIO) != 0) deliverEvent(EVENT_PIO, 0x1000);
-    if ((mask & IRQ_SIO) != 0) deliverEvent(EVENT_SIO, 0x1000);
-    if ((mask & IRQ_VBLANK) != 0) deliverEvent(EVENT_VBLANK, 0x1000);
-    if ((mask & IRQ_TIMER0) != 0) deliverEvent(EVENT_RTC0, 0x1000);
-    if ((mask & IRQ_TIMER1) != 0)
-        deliverEvent(EVENT_RTC1, 0x1000);  // Yes that's a copy-paste mistake from the BIOS code directly.
-    if ((mask & IRQ_TIMER2) != 0) deliverEvent(EVENT_RTC1, 0x1000);  // Keeping it this way to avoid breaking stuff.
-    if ((mask & IRQ_CONTROLLER) != 0) deliverEvent(EVENT_CONTROLLER, 0x1000);
-    if ((mask & IRQ_DMA) != 0) deliverEvent(EVENT_DMA, 0x1000);
+    // This is the original code from the retail BIOS, which is broken
+    // beyond repair. There is a race condition between the IRQs being
+    // checked and the IRQs being acknowledged. If an IRQ is issued
+    // after the IRQ is checked to call the event delivery, but before
+    // the IRQ is acknowledged, the IRQ will be lost. Disabling IRQs
+    // with cop0 will not help, as it merely prevents the CPU from
+    // jumping to the handler at 0x80, but the IREG register will still
+    // be mutated by the hardware. The only way to fix this is to
+    // acknowledge the IRQs during the same if statement that checks
+    // for them, which is what the code after the #else does.
+    // This defunct code is kept here for reference.
+    if ((IMASK & IREG & IRQ_CDROM) != 0) deliverEvent(EVENT_CDROM, 0x1000);
+    if ((IMASK & IREG & IRQ_SPU) != 0) deliverEvent(EVENT_SPU, 0x1000);
+    if ((IMASK & IREG & IRQ_GPU) != 0) deliverEvent(EVENT_GPU, 0x1000);
+    if ((IMASK & IREG & IRQ_PIO) != 0) deliverEvent(EVENT_PIO, 0x1000);
+    if ((IMASK & IREG & IRQ_SIO) != 0) deliverEvent(EVENT_SIO, 0x1000);
+    if ((IMASK & IREG & IRQ_VBLANK) != 0) deliverEvent(EVENT_VBLANK, 0x1000);
+    if ((IMASK & IREG & IRQ_TIMER0) != 0) deliverEvent(EVENT_RTC0, 0x1000);
+    if ((IMASK & IREG & IRQ_TIMER1) != 0) deliverEvent(EVENT_RTC1, 0x1000);
+    // Yes that's a copy-paste mistake from the BIOS code directly.
+    if ((IMASK & IREG & IRQ_TIMER2) != 0) deliverEvent(EVENT_RTC1, 0x1000);
+    if ((IMASK & IREG & IRQ_CONTROLLER) != 0) deliverEvent(EVENT_CONTROLLER, 0x1000);
+    if ((IMASK & IREG & IRQ_DMA) != 0) deliverEvent(EVENT_DMA, 0x1000);
     uint32_t ackMask = 0;
     int* ptr = s_IRQsAutoAck;
     for (int IRQ = 0; IRQ < 11; IRQ++, ptr++) {
@@ -64,6 +71,58 @@ static __attribute__((section(".ramtext"))) int IRQVerifier(void) {
     IREG = ~ackMask;
     return 0;
 }
+#else
+static __attribute__((section(".ramtext"))) int IRQVerifier(void) {
+    // This version of the IRQ verifier is a bit bigger, but it's
+    // guaranteed to not lose any IRQs.
+    if ((IMASK & IREG & IRQ_CDROM) != 0) {
+        deliverEvent(EVENT_CDROM, 0x1000);
+        if (s_IRQsAutoAck[IRQ_CDROM]) IREG &= ~IRQ_CDROM;
+    }
+    if ((IMASK & IREG & IRQ_SPU) != 0) {
+        deliverEvent(EVENT_SPU, 0x1000);
+        if (s_IRQsAutoAck[IRQ_SPU]) IREG &= ~IRQ_SPU;
+    }
+    if ((IMASK & IREG & IRQ_GPU) != 0) {
+        deliverEvent(EVENT_GPU, 0x1000);
+        if (s_IRQsAutoAck[IRQ_GPU]) IREG &= ~IRQ_GPU;
+    }
+    if ((IMASK & IREG & IRQ_PIO) != 0) {
+        deliverEvent(EVENT_PIO, 0x1000);
+        if (s_IRQsAutoAck[IRQ_PIO]) IREG &= ~IRQ_PIO;
+    }
+    if ((IMASK & IREG & IRQ_SIO) != 0) {
+        deliverEvent(EVENT_SIO, 0x1000);
+        if (s_IRQsAutoAck[IRQ_SIO]) IREG &= ~IRQ_SIO;
+    }
+    if ((IMASK & IREG & IRQ_VBLANK) != 0) {
+        deliverEvent(EVENT_VBLANK, 0x1000);
+        if (s_IRQsAutoAck[IRQ_VBLANK]) IREG &= ~IRQ_VBLANK;
+    }
+    if ((IMASK & IREG & IRQ_TIMER0) != 0) {
+        deliverEvent(EVENT_RTC0, 0x1000);
+        if (s_IRQsAutoAck[IRQ_TIMER0]) IREG &= ~IRQ_TIMER0;
+    }
+    if ((IMASK & IREG & IRQ_TIMER1) != 0) {
+        deliverEvent(EVENT_RTC1, 0x1000);
+        if (s_IRQsAutoAck[IRQ_TIMER1]) IREG &= ~IRQ_TIMER1;
+    }
+    if ((IMASK & IREG & IRQ_TIMER2) != 0) {
+        // Keeping this copy/paste mistake this way to avoid breaking stuff.
+        deliverEvent(EVENT_RTC1, 0x1000);
+        if (s_IRQsAutoAck[IRQ_TIMER2]) IREG &= ~IRQ_TIMER2;
+    }
+    if ((IMASK & IREG & IRQ_CONTROLLER) != 0) {
+        deliverEvent(EVENT_CONTROLLER, 0x1000);
+        if (s_IRQsAutoAck[IRQ_CONTROLLER]) IREG &= ~IRQ_CONTROLLER;
+    }
+    if ((IMASK & IREG & IRQ_DMA) != 0) {
+        deliverEvent(EVENT_DMA, 0x1000);
+        if (s_IRQsAutoAck[IRQ_DMA]) IREG &= ~IRQ_DMA;
+    }
+    return 0;
+}
+#endif
 
 static struct HandlerInfo s_IRQHandlerInfo = {
     .next = NULL,

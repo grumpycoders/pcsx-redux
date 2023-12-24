@@ -25,6 +25,7 @@
 #include <memory>
 #include <string>
 
+#include "json.hpp"
 #include "support/eventbus.h"
 #include "support/list.h"
 #include "support/slice.h"
@@ -93,6 +94,7 @@ class WebExecutor : public Intrusive::List<WebExecutor>::Node {
     virtual bool execute(WebClient* client, RequestData&) = 0;
     std::multimap<std::string, std::string> parseQuery(const std::string&);
     std::string percentDecode(std::string_view);
+    void write200(WebClient* client, const nlohmann::json& j);
 };
 
 class WebClient : public Intrusive::List<WebClient>::Node {

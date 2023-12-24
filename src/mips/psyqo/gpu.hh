@@ -32,8 +32,12 @@ SOFTWARE.
 #include <EASTL/utility.h>
 #include <stdint.h>
 
+#include "psyqo/fragment-concept.hh"
 #include "psyqo/hardware/gpu.hh"
-#include "psyqo/primitives.hh"
+#include "psyqo/primitive-concept.hh"
+#include "psyqo/primitives/common.hh"
+#include "psyqo/primitives/control.hh"
+#include "psyqo/primitives/misc.hh"
 
 namespace psyqo {
 
@@ -179,8 +183,8 @@ class GPU {
      *
      * @param fragment The fragment to send to the GPU.
      */
-    template <typename Fragment>
-    void sendFragment(const Fragment &fragment) {
+    template <Fragment Frag>
+    void sendFragment(const Frag &fragment) {
         sendFragment(&fragment.head + 1, fragment.getActualFragmentSize());
     }
 
@@ -193,8 +197,8 @@ class GPU {
      * @param callback The callback to call upon completion.
      * @param dmaCallback `DMA::FROM_MAIN_LOOP` or `DMA::FROM_ISR`.
      */
-    template <typename Fragment>
-    void sendFragment(const Fragment &fragment, eastl::function<void()> &&callback,
+    template <Fragment Frag>
+    void sendFragment(const Frag &fragment, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback = DMA::FROM_MAIN_LOOP) {
         sendFragment(&fragment.head + 1, fragment.getActualFragmentSize(), eastl::move(callback), dmaCallback);
     }
@@ -234,12 +238,12 @@ class GPU {
     /**
      * @brief Waits until the GPU is ready to send a command.
      */
-    static void waitReady();
+    void waitReady();
 
     /**
      * @brief Waits until the GPU's FIFO is ready to receive data.
      */
-    static void waitFifo();
+    void waitFifo();
 
     /**
      * @brief Sends a raw 32 bits value to the Data register of the GPU.
@@ -252,14 +256,13 @@ class GPU {
      * @details This method will immediately send the specified primitive to the GPU.
      * @param primitive The primitive to send to the GPU.
      */
-    template <typename Primitive>
-    static void sendPrimitive(const Primitive &primitive) {
-        static_assert((sizeof(Primitive) % 4) == 0, "Primitive's size must be a multiple of 4");
+    template <Primitive Prim>
+    void sendPrimitive(const Prim &primitive) {
         waitReady();
         const uint32_t *ptr = reinterpret_cast<const uint32_t *>(&primitive);
-        size_t size = sizeof(Primitive) / sizeof(uint32_t);
+        constexpr size_t size = sizeof(Prim) / sizeof(uint32_t);
         for (int i = 0; i < size; i++) {
-            if constexpr (sizeof(Primitive) > 56) waitFifo();
+            if constexpr (sizeof(Prim) > 56) waitFifo();
             sendRaw(*ptr++);
         }
     }
@@ -277,9 +280,23 @@ class GPU {
      * if applicable.
      * @param fragment The fragment to chain.
      */
-    template <typename Fragment>
-    void chain(Fragment &fragment) {
-        chain(&fragment.head, fragment.getActualFragmentSize());
+    template <Fragment Frag>
+    void chain(Frag &fragment) {
+        chain(&fragment.head, &fragment.head, fragment.getActualFragmentSize());
+    }
+
+    /**
+     * @brief Chains an already constructed DMA chain to the next DMA chain transfer.
+     *
+     * @details This method will chain an already constructed DMA chain to the next DMA chain transfer.
+     * This is an even more complex operation than the previous `chain` method, as it requires the
+     * user to construct the DMA chain manually. Some helpers are provided in the `Fragments` namespace.
+     * @param first The pointer to the first fragment of the chain.
+     * @param last The pointer to the last fragment of the chain.
+     */
+    template <Fragment Frag1, Fragment Frag2>
+    void chain(Frag1 *first, Frag2 *last) {
+        chain(&first->head, &last->head, last->getActualFragmentSize());
     }
 
     /**
@@ -431,7 +448,7 @@ class GPU {
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
-    void chain(uint32_t *head, size_t count);
+    void chain(uint32_t *first, uint32_t *last, size_t count);
 
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;

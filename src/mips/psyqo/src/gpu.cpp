@@ -39,13 +39,15 @@ SOFTWARE.
 #include "psyqo/kernel.hh"
 
 void psyqo::GPU::waitReady() {
-    while ((Hardware::GPU::Ctrl & uint32_t(0x04000000)) == 0)
-        ;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x04000000)) == 0) {
+        pumpCallbacks();
+    }
 }
 
 void psyqo::GPU::waitFifo() {
-    while ((Hardware::GPU::Ctrl & uint32_t(0x02000000)) == 0)
-        ;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x02000000)) == 0) {
+        pumpCallbacks();
+    }
 }
 
 void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
@@ -55,8 +57,8 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     Hardware::GPU::Ctrl = 0x04000001;
     // Display Mode
     Hardware::GPU::Ctrl = 0x08000000 | (config.config.hResolution << 0) | (config.config.vResolution << 2) |
-                 (config.config.videoMode << 3) | (config.config.colorDepth << 4) |
-                 (config.config.videoInterlace << 5) | (config.config.hResolutionExtended << 6);
+                          (config.config.videoMode << 3) | (config.config.colorDepth << 4) |
+                          (config.config.videoInterlace << 5) | (config.config.hResolutionExtended << 6);
     // Horizontal Range
     Hardware::GPU::Ctrl = 0x06000000 | 0x260 | (0xc60 << 12);
 
@@ -138,7 +140,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
         eastl::atomic_signal_fence(eastl::memory_order_release);
     });
     // Enable DMA interrupt for GPU
-    auto dicr = Hardware::CPU::DICR;
+    uint32_t dicr = Hardware::CPU::DICR;
     dicr &= 0xffffff;
     dicr |= 0x040000;
     Hardware::CPU::DICR = dicr;
@@ -365,15 +367,15 @@ void psyqo::GPU::sendFragment(const uint32_t *data, size_t count, eastl::functio
     DMA_CTRL[DMA_GPU].CHCR = 0x01000201;
 }
 
-void psyqo::GPU::chain(uint32_t *head, size_t count) {
+void psyqo::GPU::chain(uint32_t *first, uint32_t *last, size_t count) {
     Kernel::assert(count < 256, "Fragment too big to be chained");
     count <<= 24;
     if (!m_chainHead) {
-        m_chainHead = head;
+        m_chainHead = first;
     } else {
-        *m_chainTail = m_chainTailCount | (reinterpret_cast<uintptr_t>(head) & 0xff0000);
+        *m_chainTail = m_chainTailCount | (reinterpret_cast<uintptr_t>(first) & 0xffffff);
     }
-    m_chainTail = head;
+    m_chainTail = last;
     m_chainTailCount = count;
 }
 
