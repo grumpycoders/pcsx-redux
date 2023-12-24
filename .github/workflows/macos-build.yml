@@ -46,14 +46,13 @@ jobs:
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Update brew
-      run: brew update --preinstall
     - name: Cache brew
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/Library/Caches/Homebrew
         key: brew-${{ hashFiles('.github/scripts/install-brew-dependencies.sh') }}
-        restore-keys: brew-
+    - name: Update brew
+      run: brew update --preinstall
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
