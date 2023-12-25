@@ -68,7 +68,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     ImGuiStyle& style = ImGui::GetStyle();
     const float heightSeparator = style.ItemSpacing.y;
     float footerHeight = 0;
-    footerHeight += (heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing()) * 4;
+    footerHeight += (heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing()) * 5; // 5 footer rows
     float glyphWidth = ImGui::GetFontSize();
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
@@ -93,6 +93,13 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         } else {
             buttonLabel = _("Enable##") + name;
             if (ImGui::Button(buttonLabel.c_str())) bp->enable();
+        }
+        ImGui::SameLine();
+        const std::string& label = bp->label();
+        if (bp->enabled()) {
+            ImGui::Text(" %s", label.c_str());
+        } else {
+            ImGui::TextDisabled(" %s", label.c_str());
         }
         if (debugger->lastBP() != &*bp) continue;
         ImVec2 a, b, c, d, e;
@@ -123,12 +130,16 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         ImGui::EndCombo();
     }
     ImGui::SliderInt(_("Breakpoint Width"), &m_breakpointWidth, 1, 4);
+    ImGui::InputText(_("Label"), m_bpLabelString, 100);
     if (ImGui::Button(_("Add Breakpoint"))) {
         char* endPtr;
         uint32_t breakpointAddress = strtoul(m_bpAddressString, &endPtr, 16);
         if (*m_bpAddressString && !*endPtr) {
             debugger->addBreakpoint(breakpointAddress, Debug::BreakpointType(m_breakpointType), m_breakpointWidth,
-                                    _("GUI"));
+                                    _("GUI"), m_bpLabelString);
+            // we clear the label string because it seems more likely that the user would forget to clear the field
+            // than that they want to use the same label twice
+            m_bpLabelString[0] = 0;
         }
     }
     ImGui::End();

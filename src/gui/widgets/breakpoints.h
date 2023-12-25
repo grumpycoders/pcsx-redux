@@ -40,6 +40,7 @@ class Breakpoints {
     char m_bpAddressString[20] = "";
     int m_breakpointType = 0;
     int m_breakpointWidth = 1;
+    char m_bpLabelString[100] = "";
 };
 
 }  // namespace Widgets
