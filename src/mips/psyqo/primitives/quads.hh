@@ -103,7 +103,7 @@ static_assert(sizeof(Quad) == (sizeof(uint32_t) * 5), "Quad is not 5 words");
  * - `clutIndex`, `tpage`
  */
 struct TexturedQuad {
-    TexturedQuad() : command(0x2c000000) {}
+    TexturedQuad() : command(0x2d000000) {}
     TexturedQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -213,11 +213,11 @@ static_assert(sizeof(GouraudQuad) == (sizeof(uint32_t) * 8), "GouraudQuad is not
  * `setColorA` method.
  */
 struct GouraudTexturedQuad {
-    GouraudTexturedQuad() : command(0x3d000000) {}
-    GouraudTexturedQuad(Color c) : command(0x3d000000 | c.packed) {}
+    GouraudTexturedQuad() : command(0x3c000000) {}
+    GouraudTexturedQuad(Color c) : command(0x3c000000 | c.packed) {}
     GouraudTexturedQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x3d000000 | c.packed | wasSemiTrans;
+        command = 0x3c000000 | c.packed | wasSemiTrans;
         return *this;
     }
     GouraudTexturedQuad& setColorB(Color c) {
