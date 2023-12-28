@@ -178,7 +178,6 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
 
     if (!editorToOpen.empty()) {
         ImGui::OpenPopup(editorToOpen.c_str());
-        editorToOpen = "";
     }
     counter = 0;
     for (auto bp = tree.begin(); bp != tree.end(); bp++, counter++) {
