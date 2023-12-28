@@ -45,6 +45,15 @@ enum class Axis { X, Y, Z };
 void generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, Trig<> *trig);
 
 /**
+ * @brief Generate a rotation matrix for a given angle and axis.
+ * @param t The angle to rotate by.
+ * @param a The axis to rotate around.
+ * @param trig A trigonometry object to use for sine and cosine calculations.
+ * @return Matrix33 The rotation matrix.
+ */
+Matrix33 generateRotationMatrix33(Angle t, Axis a, Trig<> *trig);
+
+/**
  * @brief Multiply two 3x3 matrices.
  *
  * @param m1 The first matrix.

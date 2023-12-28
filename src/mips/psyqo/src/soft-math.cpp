@@ -69,6 +69,65 @@ void psyqo::SoftMath::generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, Tri
     }
 }
 
+psyqo::Matrix33 psyqo::SoftMath::generateRotationMatrix33(Angle t, Axis a, Trig<> *trig) {
+    auto s = trig->sin(t);
+    auto c = trig->cos(t);
+    switch (a) {
+        case Axis::X: {
+            return Matrix33{{{
+                                 .x = 1.0_fp,
+                                 .y = 0.0_fp,
+                                 .z = 0.0_fp,
+                             },
+                             {
+                                 .x = 0.0_fp,
+                                 .y = c,
+                                 .z = s,
+                             },
+                             {
+                                 .x = 0.0_fp,
+                                 .y = -s,
+                                 .z = c,
+                             }}};
+        } break;
+        case Axis::Y: {
+            return Matrix33{{{
+                                 .x = c,
+                                 .y = 0.0_fp,
+                                 .z = -s,
+                             },
+                             {
+                                 .x = 0.0_fp,
+                                 .y = 1.0_fp,
+                                 .z = 0.0_fp,
+                             },
+                             {
+                                 .x = s,
+                                 .y = 0.0_fp,
+                                 .z = c,
+                             }}};
+        } break;
+        case Axis::Z: {
+            return Matrix33{{{
+                                 .x = c,
+                                 .y = s,
+                                 .z = 0.0_fp,
+                             },
+                             {
+                                 .x = -s,
+                                 .y = c,
+                                 .z = 0.0_fp,
+                             },
+                             {
+                                 .x = 0.0_fp,
+                                 .y = 0.0_fp,
+                                 .z = 1.0_fp,
+                             }}};
+        } break;
+    }
+    __builtin_unreachable();
+}
+
 void psyqo::SoftMath::multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2, Matrix33 *out) {
     auto x0 = m1->vs[0].x * m2->vs[0].x + m1->vs[1].x * m2->vs[0].y + m1->vs[2].x * m2->vs[0].z;
     auto y0 = m1->vs[0].y * m2->vs[0].x + m1->vs[1].y * m2->vs[0].y + m1->vs[2].y * m2->vs[0].z;
