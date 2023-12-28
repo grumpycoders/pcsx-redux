@@ -206,7 +206,7 @@ enum class MX : unsigned { RT, LL, LC };
 enum class MV : unsigned { V0, V1, V2, IR };
 // Translation Vector: Translation, Back Color, Front Color, Zero
 enum class TV : unsigned { TR, BK, FC, Zero };
-template <MX mx, MV v, TV cv, SF sf = Shifted, LM lm = Unlimited>
+template <MX mx, MV v, TV cv = TV::Zero, SF sf = Shifted, LM lm = Unlimited>
 void mvmva() {
     constexpr uint32_t op =
         (4 << 20) | (sf << 19) | (uint32_t(mx) << 17) | (uint32_t(v) << 15) | (uint32_t(cv) << 13) | (lm << 10) | 18;
