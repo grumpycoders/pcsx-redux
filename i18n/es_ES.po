@@ -3494,11 +3494,11 @@ msgstr "Mostrar editor de shaders"
 
 #: src/gui/widgets/vram-viewer.cc:521
 msgid "Select read highlight color"
-msgstr "Seleccionar color de resaltado de lecturas"
+msgstr "Seleccionar color de lecturas resaltadas"
 
 #: src/gui/widgets/vram-viewer.cc:522
 msgid "Select written highlight color"
-msgstr "Seleccionar color de resaltado de escrituras"
+msgstr "Seleccionar color de escrituras resaltadas"
 
 #: src/gui/widgets/vram-viewer.cc:540 src/gui/widgets/vram-viewer.cc:542
 msgid "Read Highlight Color Picker"
