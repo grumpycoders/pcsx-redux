@@ -49,8 +49,7 @@ int psyqo::Application::run() {
         getCurrentScene()->frame();
         m_gpu.flip();
     }
-
-    return 0;
+    __builtin_unreachable();
 }
 
 psyqo::Scene* psyqo::Application::getCurrentScene() {
