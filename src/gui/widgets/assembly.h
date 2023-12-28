@@ -25,6 +25,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 
 #include "core/disr3000a.h"
 #include "core/r3000a.h"
@@ -71,7 +72,7 @@ class Assembly : private Disasm {
     uint16_t mem16(uint32_t addr);
     uint32_t mem32(uint32_t addr);
     virtual void Invalid() final;
-    virtual void OpCode(const char* str) final;
+    virtual void OpCode(std::string_view) final;
     virtual void GPR(uint8_t reg) final;
     virtual void CP0(uint8_t reg) final;
     virtual void CP2C(uint8_t reg) final;
