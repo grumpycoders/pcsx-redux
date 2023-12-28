@@ -362,6 +362,7 @@ static inline void read(uint32_t* ptr) {
 template <PseudoRegister reg>
 static inline PackedVec3 readSafe() {
     static_assert(false, "Unable to read pseudo register as vector");
+    __builtin_unreachable();
 }
 
 /**
@@ -374,6 +375,7 @@ static inline PackedVec3 readSafe() {
 template <PseudoRegister reg>
 static inline PackedVec3 readUnsafe() {
     static_assert(false, "Unable to read pseudo register as vector");
+    __builtin_unreachable();
 }
 
 // The following are template specializations for the various GTE registers.
