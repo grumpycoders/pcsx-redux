@@ -79,7 +79,7 @@ class Debug {
         void disable() const { m_enabled = false; }
         const std::string& source() const { return m_source; }
         const std::string& label() const { return m_label; }
-        void label(const std::string& label) { m_label = label; }
+        void label(const std::string& label) const { m_label = label; }
         uint32_t base() const { return m_base; }
 
       private:
