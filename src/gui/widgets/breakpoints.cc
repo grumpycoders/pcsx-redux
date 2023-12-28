@@ -89,7 +89,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
 
     ImGui::BeginChild("BreakpointsList", ImVec2(0, -footerHeight), true);
     const Debug::Breakpoint* toErase = nullptr;
-    std::string editorToOpen = "";
+    std::string editorToOpen;
     auto& tree = debugger->getTree();
     int counter = 0;
     for (auto bp = tree.begin(); bp != tree.end(); bp++, counter++) {
