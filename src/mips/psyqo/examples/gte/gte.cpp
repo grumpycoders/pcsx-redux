@@ -45,44 +45,91 @@ using namespace psyqo::trig_literals;
 
 namespace {
 
+// As usual, we need to create a class that inherits from psyqo::Application.
 class GTEDemo final : public psyqo::Application {
     void prepare() override;
     void createScene() override;
 
   public:
+    // We'll display some text on the screen, so we need a font.
     psyqo::Font<> m_font;
+    // We need a trigonometry object to perform the calculations.
     psyqo::Trig<> m_trig;
+    // We'll use a SimplePad to control the demo.
     psyqo::SimplePad m_pad;
 };
 
+GTEDemo gteDemo;
+
+// Our Torus will be a template class, so that we can easily change the number of circles and points.
 template <size_t Circles, size_t Points>
 struct TorusTemplate {
-    static constexpr size_t C = Circles;
-    static constexpr size_t P = Points;
     static constexpr size_t Count = Circles * Points;
     eastl::array<psyqo::GTE::PackedVec3, Circles * Points> vertices;
+    void generate() {
+        constexpr psyqo::Angle incrementOutside = 2.0_pi / Circles;
+        constexpr psyqo::Angle incrementInside = 2.0_pi / Points;
+
+        unsigned index = 0;
+        // We're going to generate circles, rotating them around the Z axis.
+        for (psyqo::Angle outside = 0.0_pi; outside < 2.0_pi; outside += incrementOutside) {
+            // Generate a rotation matrix for the current angle.
+            auto rot = psyqo::SoftMath::generateRotationMatrix33(outside, psyqo::SoftMath::Axis::Z, &gteDemo.m_trig);
+            // Uploading the matrix to the GTE. The matrix won't be used until we call mvmva, so we can use the unsafe
+            // GTE write version.
+            psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::Rotation>(rot);
+            // Generate the points for the current circle.
+            for (psyqo::Angle inside = 0; inside < 2.0_pi; inside += incrementInside) {
+                psyqo::Vec3 v;
+                auto c = gteDemo.m_trig.cos(inside);
+                auto s = gteDemo.m_trig.sin(inside);
+                // The circles are offset by 4.0 units along the Y axis, for a proper torus shape. They have a radius of
+                // 1.0 units.
+                v.x = 0.0_fp;
+                v.y = c + 4.0_fp;
+                v.z = s;
+                // We're multiplying the vector by the rotation matrix we uploaded earlier. We're uploading the vector
+                // to GTE's vector 0, and we are going to immediately use mvmva to multiply it by the rotation matrix,
+                // so we need to use the safe GTE write version.
+                psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(v);
+                // Call the mvmva kernel. This will multiply the vector by the rotation matrix, and store the result in
+                // the SV pseudo-register.
+                psyqo::GTE::Kernels::mvmva<psyqo::GTE::Kernels::MX::RT, psyqo::GTE::Kernels::MV::V0>();
+                // Read the result from the SV pseudo-register. We're using the unsafe GTE read version, because we
+                // know the codegen here will be fine. Also, the assembler should be able to know how to insert
+                // hazard stalls if needed.
+                vertices[index++] = psyqo::GTE::readUnsafe<psyqo::GTE::PseudoRegister::SV>();
+            }
+        }
+    }
 };
 
 class GTEScene final : public psyqo::Scene {
     void start(StartReason reason) override;
     void frame() override;
-    void generateTorus();
+    // Our torus will rotate around the X, Y and Z axes, so we need to keep track of the angles.
     psyqo::Angle m_angleX = 0.0_pi;
     psyqo::Angle m_angleY = 0.0_pi;
     psyqo::Angle m_angleZ = 0.0_pi;
+    // We'll rotate the torus by a small amount every frame.
     constexpr static psyqo::Angle c_angleXStep = 0.001_pi;
     constexpr static psyqo::Angle c_angleYStep = 0.002_pi;
     constexpr static psyqo::Angle c_angleZStep = 0.003_pi;
+    // We instantiate a TorusTemplate with 32 circles and 16 points per circle.
     typedef TorusTemplate<32, 16> Torus;
     Torus m_torus;
+    // We'll use the GTE to project the torus onto the screen. The Z translation and the H value control the
+    // projection. These values are stored in the GTE registers TRZ and H, respectively. These initial values
+    // give out a nice perspective projection. The d-pad will be used to change these values.
     int32_t m_trz = 60000;
     uint16_t m_h = 300;
+    // We'll just use a bunch of pixels to draw the torus, one pixel per vertex.
     psyqo::Fragments::FixedFragment<psyqo::Prim::Pixel, Torus::Count> m_pixels;
+    // We'll use the cross button to switch between perspective and orthographic projection, so we need to keep
+    // track of the current projection mode.
     bool m_projected = true;
 };
 
-// We're instantiating the two objects above right now.
-GTEDemo gteDemo;
 GTEScene gteScene;
 
 }  // namespace
@@ -102,37 +149,15 @@ void GTEDemo::createScene() {
     pushScene(&gteScene);
 }
 
-void GTEScene::generateTorus() {
-    constexpr psyqo::Angle incrementOutside = 2.0_pi / Torus::C;
-    constexpr psyqo::Angle incrementInside = 2.0_pi / Torus::P;
-    auto& torus = m_torus;
-
-    unsigned index = 0;
-    for (psyqo::Angle outside = 0.0_pi; outside < 2.0_pi; outside += incrementOutside) {
-        psyqo::Matrix33 rot =
-            psyqo::SoftMath::generateRotationMatrix33(outside, psyqo::SoftMath::Axis::Z, &gteDemo.m_trig);
-        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::Rotation>(rot);
-        for (psyqo::Angle inside = 0; inside < 2.0_pi; inside += incrementInside) {
-            psyqo::Vec3 v;
-            auto c = gteDemo.m_trig.cos(inside);
-            auto s = gteDemo.m_trig.sin(inside);
-            v.x = 0.0_fp;
-            v.y = c + 4.0_fp;
-            v.z = s;
-            psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(v);
-            psyqo::GTE::Kernels::mvmva<psyqo::GTE::Kernels::MX::RT, psyqo::GTE::Kernels::MV::V0>();
-            torus.vertices[index] = psyqo::GTE::readUnsafe<psyqo::GTE::PseudoRegister::SV>();
-            index++;
-        }
-    }
-}
-
 void GTEScene::start(StartReason reason) {
+    // We use the joypad to control the demo, so we need to set up the joypad event handler.
     gteDemo.m_pad.setOnEvent([this](auto event) {
         if (event.type != psyqo::SimplePad::Event::ButtonReleased) return;
+        // We'll use the cross button to switch between perspective and orthographic projection.
         if (event.button == psyqo::SimplePad::Button::Cross) {
             m_projected = !m_projected;
         }
+        // We'll use the d-pad to change the Z translation and the H value.
         if (event.button == psyqo::SimplePad::Button::Up) {
             m_trz += 1000;
         }
@@ -145,22 +170,34 @@ void GTEScene::start(StartReason reason) {
         if (event.button == psyqo::SimplePad::Button::Right) {
             m_h += 10;
         }
+        // Upload the new TRZ and H values to the GTE. The GTE will use these values the next time we call rtpt.
+        // We're using the unsafe GTE write version because the rtpt kernel will be called way later, so we don't
+        // need to worry about hazards.
         psyqo::GTE::write<psyqo::GTE::Register::TRZ, psyqo::GTE::Unsafe>(m_trz);
         psyqo::GTE::write<psyqo::GTE::Register::H, psyqo::GTE::Unsafe>(m_h);
     });
+    // Initialize our primitives.
     for (auto& pixel : m_pixels.primitives) {
         pixel.setColor({.r = 0xff, .g = 0x80, .b = 0x33});
     }
-    generateTorus();
+    // Generate the torus.
+    m_torus.generate();
+    // Set our GTE initial values. We're using the unsafe GTE write version because we're
+    // very far away from the rtpt kernel, so we don't need to worry about hazards.
+    // TRX and TRY are set to 0, as we're not going to do any translation on the X and Y axes.
     psyqo::GTE::clear<psyqo::GTE::Register::TRX, psyqo::GTE::Unsafe>();
     psyqo::GTE::clear<psyqo::GTE::Register::TRY, psyqo::GTE::Unsafe>();
     psyqo::GTE::write<psyqo::GTE::Register::TRZ, psyqo::GTE::Unsafe>(m_trz);
     psyqo::GTE::write<psyqo::GTE::Register::H, psyqo::GTE::Unsafe>(m_h);
+    // We're going to project the torus onto the screen, so we need to set up the projection
+    // parameters to offset the projection center to the center of the screen. We have a 320x240
+    // screen, so the center is at (160, 120).
     psyqo::GTE::write<psyqo::GTE::Register::OFX, psyqo::GTE::Unsafe>(psyqo::FixedPoint<16>(160.0).raw());
     psyqo::GTE::write<psyqo::GTE::Register::OFY, psyqo::GTE::Unsafe>(psyqo::FixedPoint<16>(120.0).raw());
 }
 
 void GTEScene::frame() {
+    // Bump the angles, and wrap them around if needed.
     m_angleX += c_angleXStep;
     m_angleY += c_angleYStep;
     m_angleZ += c_angleZStep;
@@ -174,22 +211,50 @@ void GTEScene::frame() {
         m_angleZ -= 2.0_pi;
     }
 
-    psyqo::Matrix33 transform =
-        psyqo::SoftMath::generateRotationMatrix33(m_angleX, psyqo::SoftMath::Axis::X, &gteDemo.m_trig);
-    psyqo::Matrix33 rot =
-        psyqo::SoftMath::generateRotationMatrix33(m_angleY, psyqo::SoftMath::Axis::Y, &gteDemo.m_trig);
+    // Generate the rotation matrix for the current angles, by multiplying the three rotation matrices. This
+    // is done in software, because the GTE doesn't have any way to multiply matrices. This is technically
+    // costly, but it is done only once per frame, so it's not a big deal.
+    auto transform = psyqo::SoftMath::generateRotationMatrix33(m_angleX, psyqo::SoftMath::Axis::X, &gteDemo.m_trig);
+    auto rot = psyqo::SoftMath::generateRotationMatrix33(m_angleY, psyqo::SoftMath::Axis::Y, &gteDemo.m_trig);
     psyqo::SoftMath::multiplyMatrix33(&transform, &rot, &transform);
     psyqo::SoftMath::generateRotationMatrix33(&rot, m_angleZ, psyqo::SoftMath::Axis::Z, &gteDemo.m_trig);
     psyqo::SoftMath::multiplyMatrix33(&transform, &rot, &transform);
 
+    // Upload the rotation matrix to the GTE. We're using the unsafe GTE write version because we're
+    // still away from the rtpt kernel.
     psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::Rotation>(transform);
 
-    if (m_projected) {
+    if (!m_projected) {
+        // In orthographic projection, we can just multiply the vertices by the rotation matrix, and
+        // use the result directly. The mvmva kernel works on only one vertex at a time, so we don't
+        // need any special trickery here.
+        for (unsigned i = 0; i < Torus::Count; i++) {
+            // Load the vertex into the GTE vector 0.
+            psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i]);
+            // Multiply the vertex by the rotation matrix, and store the result in the SV pseudo-register.
+            psyqo::GTE::Kernels::mvmva<psyqo::GTE::Kernels::MX::RT, psyqo::GTE::Kernels::MV::V0>();
+            auto v = psyqo::GTE::readUnsafe<psyqo::GTE::PseudoRegister::SV>();
+            // We'll need to scale the resulting vertex a bit, because the GTE functions using 3.12 fixed-point
+            // values, which means we're constrained to get values between -8.0 and 8.0. We'll scale the
+            // vertex by 16. We'll also offset the vertex by 160 and 120, to center it on the screen.
+            m_pixels.primitives[i].position = {
+                {.x = int16_t(v.x.integer<16>() + 160), .y = int16_t(v.y.integer<16>() + 120)}};
+        }
+    } else {
+        // When doing perspective projection, we want to use the rtpt kernel, which will project three
+        // vertices at a time. We could trick our input vertices buffer to be a multiple of three, but
+        // we want to demonstrate using both rtpt and rtps, so we'll just use the rtps kernel for the
+        // last two vertices.
         for (unsigned i = 0; i < (Torus::Count - 2); i += 3) {
-            psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i + 0]);
-            psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V1>(m_torus.vertices[i + 1]);
+            // Load the three vertices into the GTE vector 0, 1 and 2. Only v2 needs to be loaded using
+            // the safe GTE write version, because we're calling rtpt immediately after.
+            psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i + 0]);
+            psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V1>(m_torus.vertices[i + 1]);
             psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V2>(m_torus.vertices[i + 2]);
+            // Call the rtpt kernel. This will project the three vertices, and store the result in the
+            // SXY0, SXY1 and SXY2 registers.
             psyqo::GTE::Kernels::rtpt();
+            // Then, read the projected vertices from the SXY0, SXY1 and SXY2 registers.
             auto sxy0 = psyqo::GTE::read<psyqo::GTE::Register::SXY0, psyqo::GTE::Safe>();
             int16_t x0 = sxy0 & 0xffff;
             int16_t y0 = sxy0 >> 16;
@@ -199,10 +264,14 @@ void GTEScene::frame() {
             auto sxy2 = psyqo::GTE::read<psyqo::GTE::Register::SXY2, psyqo::GTE::Safe>();
             int16_t x2 = sxy2 & 0xffff;
             int16_t y2 = sxy2 >> 16;
+            // The kernel will have properly scaled and offset the vertices, so we can just use them
+            // directly.
             m_pixels.primitives[i + 0].position = {{.x = x0, .y = y0}};
             m_pixels.primitives[i + 1].position = {{.x = x1, .y = y1}};
             m_pixels.primitives[i + 2].position = {{.x = x2, .y = y2}};
         }
+        // For the last two vertices, we'll use the rtps kernel. This kernel will project a single
+        // vertex, and store the result in the SXY2 register.
         for (unsigned i = Torus::Count - 2; i < Torus::Count; i++) {
             psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i]);
             psyqo::GTE::Kernels::rtpt();
@@ -211,21 +280,14 @@ void GTEScene::frame() {
             int16_t y = sxy2 >> 16;
             m_pixels.primitives[i].position = {{.x = x, .y = y}};
         }
-    } else {
-        for (unsigned i = 0; i < Torus::Count; i++) {
-            psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i]);
-            psyqo::GTE::Kernels::mvmva<psyqo::GTE::Kernels::MX::RT, psyqo::GTE::Kernels::MV::V0>();
-            auto v = psyqo::GTE::readUnsafe<psyqo::GTE::PseudoRegister::SV>();
-            m_pixels.primitives[i].position = {
-                {.x = int16_t(v.x.integer<16>() + 160), .y = int16_t(v.y.integer<16>() + 120)}};
-        }
     }
 
-    gpu().clear({{.r = 0x68, .g = 0xb0, .b = 0xd8}});
+    // Finally, draw the frame.
+    gpu().clear({{.r = 0x34, .g = 0x58, .b = 0x6c}});
     if (m_projected) {
         gteDemo.m_font.print(gpu(), "Projection: Perspective", {{.x = 4, .y = 4}}, {.r = 0xff, .g = 0xff, .b = 0xff});
-        gteDemo.m_font.printf(gpu(), {{.x = 4, .y = 20}}, {.r = 0xff, .g = 0xff, .b = 0xff},
-                              "TRZ: %d, H: %d", m_trz, m_h);
+        gteDemo.m_font.printf(gpu(), {{.x = 4, .y = 20}}, {.r = 0xff, .g = 0xff, .b = 0xff}, "TRZ: %d, H: %d", m_trz,
+                              m_h);
     } else {
         gteDemo.m_font.print(gpu(), "Projection: Orthographic", {{.x = 4, .y = 4}}, {.r = 0xff, .g = 0xff, .b = 0xff});
     }
