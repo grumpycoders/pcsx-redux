@@ -116,6 +116,9 @@ class FixedPoint {
     constexpr FixedPoint(FixedPoint&&) = default;
     constexpr FixedPoint& operator=(const FixedPoint&) = default;
 
+    enum Raw { RAW };
+    constexpr FixedPoint(T raw, Raw) : value(raw) {}
+
     /**
      * @brief Construct a new Fixed Point number from a different
      * fixed point number.

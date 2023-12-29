@@ -53,7 +53,7 @@ union Vertex {
             int16_t y, v, t, h;
         };
     };
-    int32_t packed;
+    uint32_t packed;
 };
 static_assert(sizeof(Vertex) == sizeof(uint32_t), "Vertex is not 32 bits");
 

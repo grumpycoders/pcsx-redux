@@ -108,7 +108,7 @@ struct StringDisasm : public PCSX::Disasm {
         m_gotArg = true;
     }
     virtual void Invalid() final { strcpy(m_buf, "*** Bad OP ***"); }
-    virtual void OpCode(const char *name) final {
+    virtual void OpCode(std::string_view name) final {
         std::sprintf(m_buf, "%-7s", name);
         m_gotArg = false;
         m_len = 7;
@@ -241,6 +241,20 @@ struct StringDisasm : public PCSX::Disasm {
 };
 }  // namespace
 
+#define dOpCodeGTE(i)                                                                                        \
+    do {                                                                                                     \
+        reset();                                                                                             \
+        unsigned sf = (code >> 19) & 1;                                                                      \
+        unsigned lm = (code >> 10) & 1;                                                                      \
+        unsigned mxi = (code >> 17) & 3;                                                                     \
+        unsigned vi = (code >> 15) & 3;                                                                      \
+        unsigned cvi = (code >> 13) & 3;                                                                     \
+        static constexpr const char *mx[] = {"rt", "ll", "lc", "??"};                                        \
+        static constexpr const char *v[] = {"v0", "v1", "v2", "v3"};                                         \
+        static constexpr const char *cv[] = {"tr", "bk", "fc", "zr"};                                        \
+        std::string s = fmt::format("{}<sf:{},lm:{},mx:{},v:{},cv:{}>", i, sf, lm, mx[mxi], v[vi], cv[cvi]); \
+        OpCode(s);                                                                                           \
+    } while (0)
 #define dOpCode(i) \
     do {           \
         reset();   \
@@ -710,28 +724,28 @@ declare(disSYSCALL) {
     Imm32((code >> 6) & 0xfffff);
 }
 
-declare(disRTPS) { dOpCode("gte::rtps"); }
-declare(disOP) { dOpCode("gte::op"); }
-declare(disNCLIP) { dOpCode("gte::nclip"); }
-declare(disDPCS) { dOpCode("gte::dpcs"); }
-declare(disINTPL) { dOpCode("gte::intpl"); }
-declare(disMVMVA) { dOpCode("gte::mvmva"); }
-declare(disNCDS) { dOpCode("gte::ncds"); }
-declare(disCDP) { dOpCode("gte::cdp"); }
-declare(disNCDT) { dOpCode("gte::ncdt"); }
-declare(disNCCS) { dOpCode("gte::nccs"); }
-declare(disCC) { dOpCode("gte::cc"); }
-declare(disNCS) { dOpCode("gte::ncs"); }
-declare(disNCT) { dOpCode("gte::nct"); }
-declare(disSQR) { dOpCode("gte::sqr"); }
-declare(disDCPL) { dOpCode("gte::dcpl"); }
-declare(disDPCT) { dOpCode("gte::dpct"); }
-declare(disAVSZ3) { dOpCode("gte::avsz3"); }
-declare(disAVSZ4) { dOpCode("gte::avsz4"); }
-declare(disRTPT) { dOpCode("gte::rtpt"); }
-declare(disGPF) { dOpCode("gte::gpf"); }
-declare(disGPL) { dOpCode("gte::gpl"); }
-declare(disNCCT) { dOpCode("gte::ncct"); }
+declare(disRTPS) { dOpCodeGTE("gte::rtps"); }
+declare(disOP) { dOpCodeGTE("gte::op"); }
+declare(disNCLIP) { dOpCodeGTE("gte::nclip"); }
+declare(disDPCS) { dOpCodeGTE("gte::dpcs"); }
+declare(disINTPL) { dOpCodeGTE("gte::intpl"); }
+declare(disMVMVA) { dOpCodeGTE("gte::mvmva"); }
+declare(disNCDS) { dOpCodeGTE("gte::ncds"); }
+declare(disCDP) { dOpCodeGTE("gte::cdp"); }
+declare(disNCDT) { dOpCodeGTE("gte::ncdt"); }
+declare(disNCCS) { dOpCodeGTE("gte::nccs"); }
+declare(disCC) { dOpCodeGTE("gte::cc"); }
+declare(disNCS) { dOpCodeGTE("gte::ncs"); }
+declare(disNCT) { dOpCodeGTE("gte::nct"); }
+declare(disSQR) { dOpCodeGTE("gte::sqr"); }
+declare(disDCPL) { dOpCodeGTE("gte::dcpl"); }
+declare(disDPCT) { dOpCodeGTE("gte::dpct"); }
+declare(disAVSZ3) { dOpCodeGTE("gte::avsz3"); }
+declare(disAVSZ4) { dOpCodeGTE("gte::avsz4"); }
+declare(disRTPT) { dOpCodeGTE("gte::rtpt"); }
+declare(disGPF) { dOpCodeGTE("gte::gpf"); }
+declare(disGPL) { dOpCodeGTE("gte::gpl"); }
+declare(disNCCT) { dOpCodeGTE("gte::ncct"); }
 
 declare(disMFC2) {
     dOpCode("mfc2");
