@@ -50,7 +50,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ~/Library/Caches/Homebrew
-        key: brew-${{ hashFiles('.github/scripts/install-brew-dependencies.sh') }}
+        key: homebrew
     - name: Update brew
       run: brew update --preinstall
     - name: Install dependencies
@@ -123,7 +123,7 @@ jobs:
       if: github.event_name == 'push'
       with:
         path: ~/Library/Caches/Homebrew
-        key: brew-${{ hashFiles('.github/scripts/install-brew-dependencies.sh') }}
+        key: homebrew
 
   publish-app:
     runs-on: ubuntu-latest
