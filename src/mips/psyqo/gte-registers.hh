@@ -381,367 +381,367 @@ static inline PackedVec3 readUnsafe() {
 // The following are template specializations for the various GTE registers.
 template <>
 inline void writeSafe<Register::VXY0>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::VXY0, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::VZ0>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::VZ0, Safe>(z);
 }
 
 template <>
 inline void writeSafe<Register::VXY1>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::VXY1, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::VZ1>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::VZ1, Safe>(z);
 }
 
 template <>
 inline void writeSafe<Register::VXY2>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::VXY2, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::VZ2>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::VZ2, Safe>(z);
 }
 
 template <>
 inline void writeSafe<Register::OTZ>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::OTZ, Safe>(z);
 }
 
 template <>
 inline void writeSafe<Register::IR0>(Short x_) {
-    uint32_t x = x_.raw();
+    uint32_t x = uint16_t(x_.raw());
     write<Register::IR0, Safe>(x);
 }
 
 template <>
 inline void writeSafe<Register::IR1>(Short x_) {
-    uint32_t x = x_.raw();
+    uint32_t x = uint16_t(x_.raw());
     write<Register::IR1, Safe>(x);
 }
 
 template <>
 inline void writeSafe<Register::IR2>(Short x_) {
-    uint32_t x = x_.raw();
+    uint32_t x = uint16_t(x_.raw());
     write<Register::IR2, Safe>(x);
 }
 
 template <>
 inline void writeSafe<Register::IR3>(Short x_) {
-    uint32_t x = x_.raw();
+    uint32_t x = uint16_t(x_.raw());
     write<Register::IR3, Safe>(x);
 }
 
 template <>
 inline void writeSafe<Register::R11R12>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::R11R12, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::R13R21>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::R13R21, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::R22R23>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::R22R23, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::R31R32>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::R31R32, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::R33>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::R33, Safe>(z);
 }
 
 template <>
 inline void writeSafe<Register::L11L12>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::L11L12, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::L13L21>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::L13L21, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::L22L23>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::L22L23, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::L31L32>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::L31L32, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::L33>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::L33, Safe>(z);
 }
 
 template <>
 inline void writeSafe<Register::LR1LR2>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::LR1LR2, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::LR3LG1>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::LR3LG1, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::LG2LG3>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::LG2LG3, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::LB1LB2>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::LB1LB2, Safe>(x | (y << 16));
 }
 
 template <>
 inline void writeSafe<Register::LB3>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::LB3, Safe>(z);
 }
 
 template <>
 inline void writeSafe<Register::ZSF3>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::ZSF3, Safe>(z);
 }
 
 template <>
 inline void writeSafe<Register::ZSF4>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::ZSF4, Safe>(z);
 }
 
 template <>
 inline void writeUnsafe<Register::VXY0>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::VXY0, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::VZ0>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::VZ0, Unsafe>(z);
 }
 
 template <>
 inline void writeUnsafe<Register::VXY1>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::VXY1, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::VZ1>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::VZ1, Unsafe>(z);
 }
 
 template <>
 inline void writeUnsafe<Register::VXY2>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::VXY2, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::VZ2>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::VZ2, Unsafe>(z);
 }
 
 template <>
 inline void writeUnsafe<Register::OTZ>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::OTZ, Unsafe>(z);
 }
 
 template <>
 inline void writeUnsafe<Register::IR0>(Short x_) {
-    uint32_t x = x_.raw();
+    uint32_t x = uint16_t(x_.raw());
     write<Register::IR0, Unsafe>(x);
 }
 
 template <>
 inline void writeUnsafe<Register::IR1>(Short x_) {
-    uint32_t x = x_.raw();
+    uint32_t x = uint16_t(x_.raw());
     write<Register::IR1, Unsafe>(x);
 }
 
 template <>
 inline void writeUnsafe<Register::IR2>(Short x_) {
-    uint32_t x = x_.raw();
+    uint32_t x = uint16_t(x_.raw());
     write<Register::IR2, Unsafe>(x);
 }
 
 template <>
 inline void writeUnsafe<Register::IR3>(Short x_) {
-    uint32_t x = x_.raw();
+    uint32_t x = uint16_t(x_.raw());
     write<Register::IR3, Unsafe>(x);
 }
 
 template <>
 inline void writeUnsafe<Register::R11R12>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::R11R12, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::R13R21>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::R13R21, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::R22R23>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::R22R23, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::R31R32>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::R31R32, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::R33>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::R33, Unsafe>(z);
 }
 
 template <>
 inline void writeUnsafe<Register::L11L12>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::L11L12, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::L13L21>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::L13L21, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::L22L23>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::L22L23, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::L31L32>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::L31L32, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::L33>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::L33, Unsafe>(z);
 }
 
 template <>
 inline void writeUnsafe<Register::LR1LR2>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::LR1LR2, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::LR3LG1>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::LR3LG1, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::LG2LG3>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::LG2LG3, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::LB1LB2>(Short x_, Short y_) {
-    uint32_t x = x_.raw();
-    uint32_t y = y_.raw();
+    uint32_t x = uint16_t(x_.raw());
+    uint32_t y = uint16_t(y_.raw());
     write<Register::LB1LB2, Unsafe>(x | (y << 16));
 }
 
 template <>
 inline void writeUnsafe<Register::LB3>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::LB3, Unsafe>(z);
 }
 
 template <>
 inline void writeUnsafe<Register::ZSF3>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::ZSF3, Unsafe>(z);
 }
 
 template <>
 inline void writeUnsafe<Register::ZSF4>(Short z_) {
-    uint32_t z = z_.raw();
+    uint32_t z = uint16_t(z_.raw());
     write<Register::ZSF4, Unsafe>(z);
 }
 
