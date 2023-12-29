@@ -51,7 +51,7 @@ void generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, Trig<> *trig);
  * @param trig A trigonometry object to use for sine and cosine calculations.
  * @return Matrix33 The rotation matrix.
  */
-Matrix33 generateRotationMatrix33(Angle t, Axis a, Trig<> *trig);
+[[nodiscard]] Matrix33 generateRotationMatrix33(Angle t, Axis a, Trig<> *trig);
 
 /**
  * @brief Multiply two 3x3 matrices.
@@ -61,6 +61,15 @@ Matrix33 generateRotationMatrix33(Angle t, Axis a, Trig<> *trig);
  * @param out The matrix to store the result in. May be the same as m1 or m2.
  */
 void multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2, Matrix33 *out);
+
+/**
+ * @brief Multiply two 3x3 matrices.
+ *
+ * @param m1 The first matrix.
+ * @param m2 The second matrix.
+ * @param out The matrix to store the result in. May be the same as m1 or m2.
+ */
+[[nodiscard]] Matrix33 multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2);
 
 /**
  * @brief Scale a 3x3 matrix by a scalar.
