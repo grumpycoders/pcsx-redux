@@ -45,29 +45,6 @@ using namespace psyqo::trig_literals;
 
 namespace {
 
-template <typename T>
-void printVec(const T& v) {
-    ramsyscall_printf("x: ");
-    v.x.print([](char c) { syscall_putchar(c); });
-    ramsyscall_printf(", y: ");
-    v.y.print([](char c) { syscall_putchar(c); });
-    ramsyscall_printf(", z: ");
-    v.z.print([](char c) { syscall_putchar(c); });
-    syscall_putchar('\n');
-}
-
-void printMat(const psyqo::Matrix33& m) {
-    for (unsigned i = 0; i < 3; i++) {
-        ramsyscall_printf("| ");
-        m.vs[i].x.print([](char c) { syscall_putchar(c); });
-        ramsyscall_printf(" ");
-        m.vs[i].y.print([](char c) { syscall_putchar(c); });
-        ramsyscall_printf(" ");
-        m.vs[i].z.print([](char c) { syscall_putchar(c); });
-        ramsyscall_printf(" |\n");
-    }
-}
-
 class GTEDemo final : public psyqo::Application {
     void prepare() override;
     void createScene() override;
