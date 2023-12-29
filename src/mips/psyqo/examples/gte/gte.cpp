@@ -265,7 +265,7 @@ void GTEScene::frame() {
         // vertex, and store the result in the SXY2 register.
         for (unsigned i = Torus::Count - 2; i < Torus::Count; i++) {
             psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i]);
-            psyqo::GTE::Kernels::rtpt();
+            psyqo::GTE::Kernels::rtps();
             auto sxy2 = psyqo::GTE::read<psyqo::GTE::Register::SXY2, psyqo::GTE::Safe>();
             psyqo::GTE::read<psyqo::GTE::Register::SXY2>(&m_pixels.primitives[i].position.packed);
         }
