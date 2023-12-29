@@ -254,21 +254,12 @@ void GTEScene::frame() {
             // Call the rtpt kernel. This will project the three vertices, and store the result in the
             // SXY0, SXY1 and SXY2 registers.
             psyqo::GTE::Kernels::rtpt();
-            // Then, read the projected vertices from the SXY0, SXY1 and SXY2 registers.
-            auto sxy0 = psyqo::GTE::read<psyqo::GTE::Register::SXY0, psyqo::GTE::Safe>();
-            int16_t x0 = sxy0 & 0xffff;
-            int16_t y0 = sxy0 >> 16;
-            auto sxy1 = psyqo::GTE::read<psyqo::GTE::Register::SXY1, psyqo::GTE::Safe>();
-            int16_t x1 = sxy1 & 0xffff;
-            int16_t y1 = sxy1 >> 16;
-            auto sxy2 = psyqo::GTE::read<psyqo::GTE::Register::SXY2, psyqo::GTE::Safe>();
-            int16_t x2 = sxy2 & 0xffff;
-            int16_t y2 = sxy2 >> 16;
-            // The kernel will have properly scaled and offset the vertices, so we can just use them
-            // directly.
-            m_pixels.primitives[i + 0].position = {{.x = x0, .y = y0}};
-            m_pixels.primitives[i + 1].position = {{.x = x1, .y = y1}};
-            m_pixels.primitives[i + 2].position = {{.x = x2, .y = y2}};
+            // Then, read the projected vertices from the SXY0, SXY1 and SXY2 registers, into the
+            // primitives buffer. No adjustment is needed, because the kernel will have properly scaled
+            // and offset the vertices.
+            psyqo::GTE::read<psyqo::GTE::Register::SXY0>(&m_pixels.primitives[i + 0].position.packed);
+            psyqo::GTE::read<psyqo::GTE::Register::SXY1>(&m_pixels.primitives[i + 1].position.packed);
+            psyqo::GTE::read<psyqo::GTE::Register::SXY2>(&m_pixels.primitives[i + 2].position.packed);
         }
         // For the last two vertices, we'll use the rtps kernel. This kernel will project a single
         // vertex, and store the result in the SXY2 register.
@@ -276,9 +267,7 @@ void GTEScene::frame() {
             psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i]);
             psyqo::GTE::Kernels::rtpt();
             auto sxy2 = psyqo::GTE::read<psyqo::GTE::Register::SXY2, psyqo::GTE::Safe>();
-            int16_t x = sxy2 & 0xffff;
-            int16_t y = sxy2 >> 16;
-            m_pixels.primitives[i].position = {{.x = x, .y = y}};
+            psyqo::GTE::read<psyqo::GTE::Register::SXY2>(&m_pixels.primitives[i].position.packed);
         }
     }
 
