@@ -46,11 +46,11 @@ jobs:
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Cache brew
-      uses: actions/cache@v3
+    - name: Restore brew cache
+      uses: actions/cache/restore@v3
       with:
         path: ~/Library/Caches/Homebrew
-        key: brew-${{ hashFiles('.github/scripts/install-brew-dependencies.sh') }}
+        key: homebrew
     - name: Update brew
       run: brew update --preinstall
     - name: Install dependencies
@@ -118,6 +118,12 @@ jobs:
       with:
         name: Dmg
         path: '**/*.dmg'
+    - name: Saving brew cache
+      uses: actions/cache/save@v3
+      if: github.event_name == 'push'
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: homebrew
 
   publish-app:
     runs-on: ubuntu-latest
