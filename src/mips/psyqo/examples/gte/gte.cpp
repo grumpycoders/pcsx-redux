@@ -244,8 +244,10 @@ void GTEScene::frame() {
         // When doing perspective projection, we want to use the rtpt kernel, which will project three
         // vertices at a time. We could trick our input vertices buffer to be a multiple of three, but
         // we want to demonstrate using both rtpt and rtps, so we'll just use the rtps kernel for the
-        // last two vertices.
-        for (unsigned i = 0; i < (Torus::Count - 2); i += 3) {
+        // last few vertices. We do not make assumptions on the number of vertices, in order to keep
+        // our torus template generic.
+        unsigned i = 0;
+        for (; i < (Torus::Count - 2); i += 3) {
             // Load the three vertices into the GTE vector 0, 1 and 2. Only v2 needs to be loaded using
             // the safe GTE write version, because we're calling rtpt immediately after.
             psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i + 0]);
@@ -261,9 +263,10 @@ void GTEScene::frame() {
             psyqo::GTE::read<psyqo::GTE::Register::SXY1>(&m_pixels.primitives[i + 1].position.packed);
             psyqo::GTE::read<psyqo::GTE::Register::SXY2>(&m_pixels.primitives[i + 2].position.packed);
         }
-        // For the last two vertices, we'll use the rtps kernel. This kernel will project a single
-        // vertex, and store the result in the SXY2 register.
-        for (unsigned i = Torus::Count - 2; i < Torus::Count; i++) {
+        // For the last vertices, we'll use the rtps kernel. This kernel will project a single
+        // vertex, and store the result in the SXY2 register. Same as before, we can just read
+        // the result from the SXY2 register, and store it in the primitives buffer directly.
+        for (; i < Torus::Count; i++) {
             psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i]);
             psyqo::GTE::Kernels::rtps();
             auto sxy2 = psyqo::GTE::read<psyqo::GTE::Register::SXY2, psyqo::GTE::Safe>();
