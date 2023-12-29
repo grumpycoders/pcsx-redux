@@ -159,7 +159,7 @@ enum Safety {
 template <Register reg, Safety safety = Safe>
 static inline void clear() {
     if constexpr (reg < Register::R11R12) {
-        asm volatile("ctc2 $0, $%0" ::"i"(static_cast<uint32_t>(reg)));
+        asm volatile("mtc2 $0, $%0" ::"i"(static_cast<uint32_t>(reg)));
     } else if constexpr (reg >= Register::R11R12) {
         asm volatile("ctc2 $0, $%0" ::"i"(static_cast<uint32_t>(reg) - 32));
     }
