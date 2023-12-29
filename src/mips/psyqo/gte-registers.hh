@@ -324,15 +324,15 @@ static inline uint32_t read() {
     uint32_t value;
     if constexpr (reg < Register::R11R12) {
         if constexpr (safety == Safe) {
-            asm("mfc2 %0, $%1; nop" : "=r"(value) : "i"(static_cast<uint32_t>(reg)));
+            asm volatile("mfc2 %0, $%1; nop" : "=r"(value) : "i"(static_cast<uint32_t>(reg)));
         } else if constexpr (safety == Unsafe) {
-            asm("mfc2 %0, $%1" : "=r"(value) : "i"(static_cast<uint32_t>(reg)));
+            asm volatile("mfc2 %0, $%1" : "=r"(value) : "i"(static_cast<uint32_t>(reg)));
         }
     } else if constexpr (reg >= Register::R11R12) {
         if constexpr (safety == Safe) {
-            asm("cfc2 %0, $%1; nop" : "=r"(value) : "i"(static_cast<uint32_t>(reg) - 32));
+            asm volatile("cfc2 %0, $%1; nop" : "=r"(value) : "i"(static_cast<uint32_t>(reg) - 32));
         } else if constexpr (safety == Unsafe) {
-            asm("cfc2 %0, $%1" : "=r"(value) : "i"(static_cast<uint32_t>(reg) - 32));
+            asm volatile("cfc2 %0, $%1" : "=r"(value) : "i"(static_cast<uint32_t>(reg) - 32));
         }
     }
     return value;
@@ -348,7 +348,7 @@ template <Register reg>
 static inline void read(uint32_t* ptr) {
     static_assert(reg < Register::R11R12, "Unable to read from register to memory directly");
     if constexpr (reg < Register::R11R12) {
-        asm("swc2 $%1, 0(%0)" ::"r"(ptr), "i"(static_cast<uint32_t>(reg)));
+        asm volatile("swc2 $%1, 0(%0)" ::"r"(ptr), "i"(static_cast<uint32_t>(reg)));
     }
 }
 
