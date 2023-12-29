@@ -243,7 +243,7 @@ static inline void writeUnsafe(Short low, Short hi) {
 /**
  * @brief The list of available GTE pseudo registers.
  */
-enum class PseudoRegister { Rotation, Light, Color, V0, V1, V2, SV };
+enum class PseudoRegister { Rotation, Light, Color, V0, V1, V2, SV, LV };
 
 /**
  * @brief Write a 3x3 matrix to a GTE pseudo register, adding nops after the
@@ -842,10 +842,23 @@ inline PackedVec3 readSafe<PseudoRegister::SV>() {
 }
 
 template <>
+inline PackedVec3 readSafe<PseudoRegister::LV>() {
+    return PackedVec3(Short(read<Register::MAC1, Safe>(), Short::RAW), Short(read<Register::MAC2, Safe>(), Short::RAW),
+                      Short(read<Register::MAC3, Safe>(), Short::RAW));
+}
+
+template <>
 inline PackedVec3 readUnsafe<PseudoRegister::SV>() {
     return PackedVec3(Short(read<Register::IR1, Unsafe>(), Short::RAW),
                       Short(read<Register::IR2, Unsafe>(), Short::RAW),
                       Short(read<Register::IR3, Unsafe>(), Short::RAW));
+}
+
+template <>
+inline PackedVec3 readUnsafe<PseudoRegister::LV>() {
+    return PackedVec3(Short(read<Register::MAC1, Unsafe>(), Short::RAW),
+                      Short(read<Register::MAC2, Unsafe>(), Short::RAW),
+                      Short(read<Register::MAC3, Unsafe>(), Short::RAW));
 }
 
 }  // namespace GTE
