@@ -248,13 +248,13 @@ void GTEScene::frame() {
         // our torus template generic.
         unsigned i = 0;
         for (; i < (Torus::Count - 2); i += 3) {
-            // Load the three vertices into the GTE vector 0, 1 and 2. Only v2 needs to be loaded using
+            // Load the three vertices into the GTE vector 0, 1, and 2. Only v2 needs to be loaded using
             // the safe GTE write version, because we're calling rtpt immediately after.
             psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i + 0]);
             psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V1>(m_torus.vertices[i + 1]);
             psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V2>(m_torus.vertices[i + 2]);
             // Call the rtpt kernel. This will project the three vertices, and store the result in the
-            // SXY0, SXY1 and SXY2 registers.
+            // SXY0, SXY1, and SXY2 registers.
             psyqo::GTE::Kernels::rtpt();
             // Then, read the projected vertices from the SXY0, SXY1 and SXY2 registers, into the
             // primitives buffer. No adjustment is needed, because the kernel will have properly scaled
@@ -269,7 +269,6 @@ void GTEScene::frame() {
         for (; i < Torus::Count; i++) {
             psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_torus.vertices[i]);
             psyqo::GTE::Kernels::rtps();
-            auto sxy2 = psyqo::GTE::read<psyqo::GTE::Register::SXY2, psyqo::GTE::Safe>();
             psyqo::GTE::read<psyqo::GTE::Register::SXY2>(&m_pixels.primitives[i].position.packed);
         }
     }
