@@ -72,7 +72,8 @@ import {
           const hr2 = document.createElement('hr')
           templatesDiv.appendChild(hr2)
           const intro = document.createElement('h3')
-          intro.textContent = 'Fill in your project details above, then select a template category below, and finally select a template to create a new project.'
+          intro.textContent =
+            'Fill in your project details above, then select a template category below, and finally select a template to create a new project. If the create button is disabled, you need to install the required tools first.'
           templatesDiv.appendChild(intro)
           const categories = {}
           for (const [key, template] of Object.entries(templates)) {
@@ -131,7 +132,8 @@ import {
               templateDiv.appendChild(spaceTextNode1)
               const templateInstallRequiredTools =
                 document.createElement('vscode-button')
-              templateInstallRequiredTools.textContent = 'Install required tools'
+              templateInstallRequiredTools.textContent =
+                'Install required tools'
               templateInstallRequiredTools.appearance = 'secondary'
               templateInstallRequiredTools.addEventListener('click', () => {
                 vscode.postMessage({
@@ -150,7 +152,10 @@ import {
               templateInstallRecommendedTools.addEventListener('click', () => {
                 vscode.postMessage({
                   command: 'installTools',
-                  tools: [...template.recommendedTools, ...template.requiredTools]
+                  tools: [
+                    ...template.recommendedTools,
+                    ...template.requiredTools
+                  ]
                 })
               })
               templateDiv.appendChild(templateInstallRecommendedTools)
