@@ -5,7 +5,6 @@ const fs = require('fs-extra')
 const Mustache = require('mustache')
 const { simpleGit } = require('simple-git')
 const progressNotification = require('./progressnotification.js')
-const { type } = require('node:os')
 
 let extensionUri
 
