@@ -1,4 +1,4 @@
-TARGET = {{name}}
+TARGET = {{projectName}}
 TYPE = ps-exe
 
 SRCS = \
