@@ -46,11 +46,14 @@ jobs:
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Delete old brew installation
+      run: sudo rm -rf ~/Library/Caches/Homebrew
     - name: Restore brew cache
       uses: actions/cache/restore@v3
       with:
         path: ~/Library/Caches/Homebrew
         key: homebrew
+        fail-on-cache-miss: true
     - name: Update brew
       run: brew update --preinstall
     - name: Install dependencies
