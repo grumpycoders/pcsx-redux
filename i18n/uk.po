@@ -1387,7 +1387,7 @@ msgstr "Збір"
 msgid "DynaRec Disassembler"
 msgstr "Розбірник динамічної перекомпіляції"
 
-#: src/gui/gui.cc:1516 src/gui/widgets/breakpoints.cc:66
+#: src/gui/gui.cc:1516 src/gui/widgets/breakpoints.cc:81
 #: src/gui/widgets/typed_debugger.cc:864 src/gui/widgets/typed_debugger.cc:910
 #: src/gui/widgets/typed_debugger.cc:963
 msgid "Breakpoints"
@@ -1594,7 +1594,8 @@ msgid "An error has occured while downloading the update."
 msgstr "Помилка завантаження оновлення."
 
 #: src/gui/gui.cc:1713 src/gui/widgets/assembly.cc:947
-#: src/gui/widgets/registers.cc:381 src/gui/widgets/sio1.cc:203
+#: src/gui/widgets/breakpoints.cc:38 src/gui/widgets/registers.cc:339
+#: src/gui/widgets/sio1.cc:203
 msgid "Cancel"
 msgstr "Скасувати"
 
@@ -2241,7 +2242,7 @@ msgid "In ISR: %s"
 msgstr "В ISR: %s."
 
 #: src/gui/widgets/assembly.cc:709 src/gui/widgets/assembly.cc:737
-#: src/gui/widgets/breakpoints.cc:131
+#: src/gui/widgets/breakpoints.cc:171
 msgid "GUI"
 msgstr "Графічний інтерфейс користувача"
 
@@ -2278,7 +2279,7 @@ msgstr "Вилучити точку зупинки"
 msgid "Assemble"
 msgstr "Зібрати"
 
-#: src/gui/widgets/assembly.cc:887 src/gui/widgets/breakpoints.cc:116
+#: src/gui/widgets/assembly.cc:887 src/gui/widgets/breakpoints.cc:153
 #: src/gui/widgets/memory_observer.cc:170
 #: src/gui/widgets/memory_observer.cc:328
 #: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:961
@@ -2338,15 +2339,29 @@ msgstr "Код##{}{:08x}"
 msgid "Data##{}{:08x}"
 msgstr "Дані##{}{:08x}"
 
-#: src/gui/widgets/assembly.h:62
+#: src/gui/widgets/assembly.h:63
 msgid "Load Symbols"
 msgstr "Завантаження символів"
 
-#: src/gui/widgets/breakpoints.cc:36
+#: src/gui/widgets/breakpoints.cc:30 src/gui/widgets/breakpoints.cc:128
+#, fuzzy
+msgid "Edit label of breakpoint {}##{}"
+msgstr "Додати запис точки зупинки##{}"
+
+#: src/gui/widgets/breakpoints.cc:32
+#, fuzzy, c-format
+msgid "Change the label of breakpoint %s:"
+msgstr "Змінити значення регістру %s:"
+
+#: src/gui/widgets/breakpoints.cc:33 src/gui/widgets/breakpoints.cc:164
+msgid "Label"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:51
 msgid "Clear maps"
 msgstr "Очистити мапи"
 
-#: src/gui/widgets/breakpoints.cc:40
+#: src/gui/widgets/breakpoints.cc:55
 msgid ""
 "The mapping feature is a simple concept, but requires some amount of "
 "explanation. See the documentation website for more details, in the Misc "
@@ -2356,83 +2371,83 @@ msgstr ""
 "Докладно на веб-сайті документації в підрозділі \"Інші функції\" розділу "
 "\"Налагодження\"."
 
-#: src/gui/widgets/breakpoints.cc:42
+#: src/gui/widgets/breakpoints.cc:57
 msgid "Map execution"
 msgstr "Виконання мапи"
 
-#: src/gui/widgets/breakpoints.cc:43
+#: src/gui/widgets/breakpoints.cc:58
 msgid "Map byte reads         "
 msgstr "Читання мапи байтами         "
 
-#: src/gui/widgets/breakpoints.cc:45
+#: src/gui/widgets/breakpoints.cc:60
 msgid "Map half reads         "
 msgstr "Читання мапи половинами         "
 
-#: src/gui/widgets/breakpoints.cc:47
+#: src/gui/widgets/breakpoints.cc:62
 msgid "Map word reads         "
 msgstr "Читання мапи словами         "
 
-#: src/gui/widgets/breakpoints.cc:48
+#: src/gui/widgets/breakpoints.cc:63
 msgid "Map byte writes        "
 msgstr "Запис мапи байтами         "
 
-#: src/gui/widgets/breakpoints.cc:50
+#: src/gui/widgets/breakpoints.cc:65
 msgid "Map half writes        "
 msgstr "Запис мапи половинами         "
 
-#: src/gui/widgets/breakpoints.cc:52
+#: src/gui/widgets/breakpoints.cc:67
 msgid "Map word writes        "
 msgstr "Запис мапи словами         "
 
-#: src/gui/widgets/breakpoints.cc:54
+#: src/gui/widgets/breakpoints.cc:69
 msgid "Break on execution map"
 msgstr "Зупинка виконання мапи"
 
-#: src/gui/widgets/breakpoints.cc:55
+#: src/gui/widgets/breakpoints.cc:70
 msgid "Break on byte read map "
 msgstr "Зупинка читання мапи байтами"
 
-#: src/gui/widgets/breakpoints.cc:57
+#: src/gui/widgets/breakpoints.cc:72
 msgid "Break on half read map "
 msgstr "Зупинка читання мапи половинами"
 
-#: src/gui/widgets/breakpoints.cc:59
+#: src/gui/widgets/breakpoints.cc:74
 msgid "Break on word read map "
 msgstr "Зупинка читання мапи словами"
 
-#: src/gui/widgets/breakpoints.cc:60
+#: src/gui/widgets/breakpoints.cc:75
 msgid "Break on byte write map"
 msgstr "Зупинка запису мапи байтами"
 
-#: src/gui/widgets/breakpoints.cc:62
+#: src/gui/widgets/breakpoints.cc:77
 msgid "Break on half write map"
 msgstr "Зупинка запису мапи половинами"
 
-#: src/gui/widgets/breakpoints.cc:64
+#: src/gui/widgets/breakpoints.cc:79
 msgid "Break on word write map"
 msgstr "Зупинка запису мапи словами"
 
-#: src/gui/widgets/breakpoints.cc:87
+#: src/gui/widgets/breakpoints.cc:107
 msgid "Remove##"
 msgstr "Вилучити##"
 
-#: src/gui/widgets/breakpoints.cc:91
+#: src/gui/widgets/breakpoints.cc:111
 msgid "Disable##"
 msgstr "Вимкнути##"
 
-#: src/gui/widgets/breakpoints.cc:94
+#: src/gui/widgets/breakpoints.cc:114
 msgid "Enable##"
 msgstr "Увімкнути##"
 
-#: src/gui/widgets/breakpoints.cc:117
+#: src/gui/widgets/breakpoints.cc:155
 msgid "Breakpoint Type"
 msgstr "Тип точки зупинки"
 
-#: src/gui/widgets/breakpoints.cc:125
+#: src/gui/widgets/breakpoints.cc:163
 msgid "Breakpoint Width"
 msgstr "Ширина точки зупинки"
 
-#: src/gui/widgets/breakpoints.cc:126
+#: src/gui/widgets/breakpoints.cc:166
 msgid "Add Breakpoint"
 msgstr "Додати точку зупинки"
 
@@ -3140,25 +3155,25 @@ msgstr "Копіювати значення"
 msgid "Edit##{}"
 msgstr "Редагувати##{}"
 
-#: src/gui/widgets/registers.cc:52 src/gui/widgets/registers.cc:365
+#: src/gui/widgets/registers.cc:52 src/gui/widgets/registers.cc:323
 #: src/gui/widgets/sio1.cc:126
 msgid "Edit value of {}"
 msgstr "Редагувати значення {}"
 
-#: src/gui/widgets/registers.cc:104 src/gui/widgets/registers.cc:242
+#: src/gui/widgets/registers.cc:104 src/gui/widgets/registers.cc:200
 msgid "Show fixed point"
 msgstr "Показати закріплені точки"
 
-#: src/gui/widgets/registers.cc:328
+#: src/gui/widgets/registers.cc:286
 msgid "Misc"
 msgstr "Інше"
 
-#: src/gui/widgets/registers.cc:367
+#: src/gui/widgets/registers.cc:325
 #, c-format
 msgid "Change the value of register %s:"
 msgstr "Змінити значення регістру %s:"
 
-#: src/gui/widgets/registers.cc:368
+#: src/gui/widgets/registers.cc:326
 msgid "Register"
 msgstr "Регістр"
 
