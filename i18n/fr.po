@@ -1401,7 +1401,7 @@ msgstr "Assembleur"
 msgid "DynaRec Disassembler"
 msgstr ""
 
-#: src/gui/gui.cc:1516 src/gui/widgets/breakpoints.cc:66
+#: src/gui/gui.cc:1516 src/gui/widgets/breakpoints.cc:81
 #: src/gui/widgets/typed_debugger.cc:864 src/gui/widgets/typed_debugger.cc:910
 #: src/gui/widgets/typed_debugger.cc:963
 msgid "Breakpoints"
@@ -1581,7 +1581,8 @@ msgid "An error has occured while downloading the update."
 msgstr ""
 
 #: src/gui/gui.cc:1713 src/gui/widgets/assembly.cc:947
-#: src/gui/widgets/registers.cc:381 src/gui/widgets/sio1.cc:203
+#: src/gui/widgets/breakpoints.cc:38 src/gui/widgets/registers.cc:339
+#: src/gui/widgets/sio1.cc:203
 msgid "Cancel"
 msgstr "Annuler"
 
@@ -2204,7 +2205,7 @@ msgid "In ISR: %s"
 msgstr ""
 
 #: src/gui/widgets/assembly.cc:709 src/gui/widgets/assembly.cc:737
-#: src/gui/widgets/breakpoints.cc:131
+#: src/gui/widgets/breakpoints.cc:171
 #, fuzzy
 msgid "GUI"
 msgstr "GPU"
@@ -2249,7 +2250,7 @@ msgstr "Afficher les Breakpoints"
 msgid "Assemble"
 msgstr "Assembleur"
 
-#: src/gui/widgets/assembly.cc:887 src/gui/widgets/breakpoints.cc:116
+#: src/gui/widgets/assembly.cc:887 src/gui/widgets/breakpoints.cc:153
 #: src/gui/widgets/memory_observer.cc:170
 #: src/gui/widgets/memory_observer.cc:328
 #: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:961
@@ -2313,101 +2314,115 @@ msgstr ""
 msgid "Data##{}{:08x}"
 msgstr ""
 
-#: src/gui/widgets/assembly.h:62
+#: src/gui/widgets/assembly.h:63
 msgid "Load Symbols"
 msgstr "Charger les Symboles"
 
-#: src/gui/widgets/breakpoints.cc:36
+#: src/gui/widgets/breakpoints.cc:30 src/gui/widgets/breakpoints.cc:128
+#, fuzzy
+msgid "Edit label of breakpoint {}##{}"
+msgstr "Ajouter un Breakpoint"
+
+#: src/gui/widgets/breakpoints.cc:32
+#, c-format
+msgid "Change the label of breakpoint %s:"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:33 src/gui/widgets/breakpoints.cc:164
+msgid "Label"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:51
 #, fuzzy
 msgid "Clear maps"
 msgstr "Breakpoints"
 
-#: src/gui/widgets/breakpoints.cc:40
+#: src/gui/widgets/breakpoints.cc:55
 msgid ""
 "The mapping feature is a simple concept, but requires some amount of "
 "explanation. See the documentation website for more details, in the Misc "
 "Features subsection of the Debugging section."
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:42
+#: src/gui/widgets/breakpoints.cc:57
 msgid "Map execution"
 msgstr "Map execution"
 
-#: src/gui/widgets/breakpoints.cc:43
+#: src/gui/widgets/breakpoints.cc:58
 msgid "Map byte reads         "
 msgstr "Map byte reads"
 
-#: src/gui/widgets/breakpoints.cc:45
+#: src/gui/widgets/breakpoints.cc:60
 msgid "Map half reads         "
 msgstr "Map half reads"
 
-#: src/gui/widgets/breakpoints.cc:47
+#: src/gui/widgets/breakpoints.cc:62
 msgid "Map word reads         "
 msgstr "Map word reads"
 
-#: src/gui/widgets/breakpoints.cc:48
+#: src/gui/widgets/breakpoints.cc:63
 msgid "Map byte writes        "
 msgstr "Map byte writes"
 
-#: src/gui/widgets/breakpoints.cc:50
+#: src/gui/widgets/breakpoints.cc:65
 msgid "Map half writes        "
 msgstr "Map half writes"
 
-#: src/gui/widgets/breakpoints.cc:52
+#: src/gui/widgets/breakpoints.cc:67
 msgid "Map word writes        "
 msgstr "Map word writes"
 
-#: src/gui/widgets/breakpoints.cc:54
+#: src/gui/widgets/breakpoints.cc:69
 msgid "Break on execution map"
 msgstr "Break on execution map"
 
-#: src/gui/widgets/breakpoints.cc:55
+#: src/gui/widgets/breakpoints.cc:70
 msgid "Break on byte read map "
 msgstr "Break on byte read map"
 
-#: src/gui/widgets/breakpoints.cc:57
+#: src/gui/widgets/breakpoints.cc:72
 msgid "Break on half read map "
 msgstr "Break on half read map"
 
-#: src/gui/widgets/breakpoints.cc:59
+#: src/gui/widgets/breakpoints.cc:74
 msgid "Break on word read map "
 msgstr "Break on word read map"
 
-#: src/gui/widgets/breakpoints.cc:60
+#: src/gui/widgets/breakpoints.cc:75
 msgid "Break on byte write map"
 msgstr "Break on byte write map"
 
-#: src/gui/widgets/breakpoints.cc:62
+#: src/gui/widgets/breakpoints.cc:77
 msgid "Break on half write map"
 msgstr "Break on half write map"
 
-#: src/gui/widgets/breakpoints.cc:64
+#: src/gui/widgets/breakpoints.cc:79
 msgid "Break on word write map"
 msgstr "Break on word write map"
 
-#: src/gui/widgets/breakpoints.cc:87
+#: src/gui/widgets/breakpoints.cc:107
 msgid "Remove##"
 msgstr "Enlever##"
 
-#: src/gui/widgets/breakpoints.cc:91
+#: src/gui/widgets/breakpoints.cc:111
 #, fuzzy
 msgid "Disable##"
 msgstr "Désactivé"
 
-#: src/gui/widgets/breakpoints.cc:94
+#: src/gui/widgets/breakpoints.cc:114
 msgid "Enable##"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:117
+#: src/gui/widgets/breakpoints.cc:155
 msgid "Breakpoint Type"
 msgstr "Type de Breakpoint"
 
-#: src/gui/widgets/breakpoints.cc:125
+#: src/gui/widgets/breakpoints.cc:163
 #, fuzzy
 msgid "Breakpoint Width"
 msgstr "Breakpoints"
 
-#: src/gui/widgets/breakpoints.cc:126
+#: src/gui/widgets/breakpoints.cc:166
 msgid "Add Breakpoint"
 msgstr "Ajouter un Breakpoint"
 
@@ -3121,26 +3136,26 @@ msgstr ""
 msgid "Edit##{}"
 msgstr ""
 
-#: src/gui/widgets/registers.cc:52 src/gui/widgets/registers.cc:365
+#: src/gui/widgets/registers.cc:52 src/gui/widgets/registers.cc:323
 #: src/gui/widgets/sio1.cc:126
 msgid "Edit value of {}"
 msgstr ""
 
-#: src/gui/widgets/registers.cc:104 src/gui/widgets/registers.cc:242
+#: src/gui/widgets/registers.cc:104 src/gui/widgets/registers.cc:200
 #, fuzzy
 msgid "Show fixed point"
 msgstr "Afficher les Breakpoints"
 
-#: src/gui/widgets/registers.cc:328
+#: src/gui/widgets/registers.cc:286
 msgid "Misc"
 msgstr "Divers"
 
-#: src/gui/widgets/registers.cc:367
+#: src/gui/widgets/registers.cc:325
 #, c-format
 msgid "Change the value of register %s:"
 msgstr ""
 
-#: src/gui/widgets/registers.cc:368
+#: src/gui/widgets/registers.cc:326
 #, fuzzy
 msgid "Register"
 msgstr "Registres"
