@@ -319,6 +319,7 @@ async function installGit () {
           message: 'Installing Git requires root privileges.'
         })
       }
+    // eslint-disable-next-line no-fallthrough -- intentional
     default:
       return vscode.env.openExternal(
         vscode.Uri.parse('https://git-scm.com/downloads')

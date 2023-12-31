@@ -240,6 +240,7 @@ PSXDevPanel.viewType = 'psxDev'
 exports.activate = (context) => {
   tools.setExtensionUri(context.extensionUri)
   tools.setGlobalStorageUri(context.globalStorageUri)
+  templates.setExtensionUri(context.extensionUri)
   pcsxRedux.setGlobalStorageUri(context.globalStorageUri)
   globalStorageUri = context.globalStorageUri
 

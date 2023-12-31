@@ -2,7 +2,7 @@
   "name": "psx-dev",
   "displayName": "PSX.Dev",
   "description": "PlayStation 1 development made easy",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -107,6 +107,7 @@
     "dmg": "^0.1.0",
     "fs-extra": "^11.1.0",
     "JSONStream": "^1.3.5",
+    "mustache": "^4.2.0",
     "open-file-explorer": "^1.0.2",
     "simple-git": "^3.16.1",
     "unzipper": "^0.10.11",

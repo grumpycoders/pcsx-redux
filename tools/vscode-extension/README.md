@@ -19,6 +19,8 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.3.0
+  - Overhauled template system.
 - 0.2.8
   - Adding main page button to update submodules.
   - Creating categories for templates.
