@@ -55,7 +55,6 @@ jobs:
         key: homebrew
     - name: Update brew
       run: |
-        brew unlink $(brew list)
         brew link $(brew list)
         brew update --preinstall
     - name: Install dependencies
