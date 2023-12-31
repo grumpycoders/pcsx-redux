@@ -54,11 +54,15 @@ jobs:
         key: homebrew
     - name: Restore homebrew
       if: steps.homebrewcache.outputs.cache-hit == 'true'
-      run: brew bundle install --file=/tmp/Brewfile
+      run: |
+        brew bundle install --file=/tmp/Brewfile
         brew update-reset
         brew update
     - name: Update brew
-      run: brew update --preinstall
+      run: |
+        brew update
+        brew uninstall --ignore-dependencies --force aom libavif
+        brew install aom libavif
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
