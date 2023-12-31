@@ -37,7 +37,7 @@
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
-    g_system->printf(_("Copyright (C) 2019-2023 PCSX-Redux authors\n"));
+    g_system->printf(_("Copyright (C) 2019-2024 PCSX-Redux authors\n"));
     const auto& args = g_system->getArgs();
 
     if (g_emulator->settings.get<Emulator::SettingDynarec>()) {
