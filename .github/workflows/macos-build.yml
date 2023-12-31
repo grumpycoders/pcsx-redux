@@ -54,7 +54,9 @@ jobs:
           /usr/local/Cellar/
         key: homebrew
     - name: Update brew
-      run: brew update --preinstall
+      run: |
+        brew link capstone curl ffmpeg freetype glfw libuv pkg-config zlib
+        brew update --preinstall
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
