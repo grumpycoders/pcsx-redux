@@ -19,6 +19,8 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.3.1
+  - Fixing EASTL paths in PSYQo template for Unix-like systems.
 - 0.3.0
   - Overhauled template system.
 - 0.2.8

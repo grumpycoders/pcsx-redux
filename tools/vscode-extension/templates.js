@@ -220,15 +220,15 @@ const psyqoTemplate = combine(baseNuggetTemplate, {
         configurations: [
           {
             includePath: [
-              '${workspaceFolder}/third_party/nugget/third_party/eastl/include',
-              '${workspaceFolder}/third_party/nugget/third_party/eabase/include/common'
+              '${workspaceFolder}/third_party/nugget/third_party/EASTL/include',
+              '${workspaceFolder}/third_party/nugget/third_party/EABase/include/common'
             ],
             name: 'Win32'
           },
           {
             includePath: [
-              '${workspaceFolder}/third_party/nugget/third_party/eastl/include',
-              '${workspaceFolder}/third_party/nugget/third_party/eabase/include/common'
+              '${workspaceFolder}/third_party/nugget/third_party/EASTL/include',
+              '${workspaceFolder}/third_party/nugget/third_party/EABase/include/common'
             ],
             name: 'linux'
           }
