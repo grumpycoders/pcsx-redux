@@ -47,16 +47,18 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Restore brew cache
+      id: homebrewcache
       uses: actions/cache/restore@v3
       with:
-        path: |
-          ~/Library/Caches/Homebrew
-          /usr/local/Cellar/
+        path: /tmp/Brewfile
         key: homebrew
+    - name: Restore homebrew
+      if: steps.homebrewcache.outputs.cache-hit == 'true'
+      run: brew bundle install --file=/tmp/Brewfile
+        brew update-reset
+        brew update
     - name: Update brew
-      run: |
-        brew link capstone curl ffmpeg freetype glfw libuv pkg-config zlib
-        brew update --preinstall
+      run: brew update --preinstall
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
@@ -122,6 +124,9 @@ jobs:
       with:
         name: Dmg
         path: '**/*.dmg'
+    - name: Creating brew cache
+      if: github.event_name == 'push'
+      run: brew bundle dump --file=/tmp/Brewfile
     - name: Saving brew cache
       uses: actions/cache/save@v3
       if: github.event_name == 'push'
