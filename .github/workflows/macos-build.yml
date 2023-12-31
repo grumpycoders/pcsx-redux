@@ -55,7 +55,8 @@ jobs:
         key: homebrew
     - name: Update brew
       run: |
-        brew link capstone curl ffmpeg freetype glfw libuv pkg-config zlib
+        brew unlink $(brew list)
+        brew link $(brew list)
         brew update --preinstall
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
