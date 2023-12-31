@@ -68,7 +68,8 @@ class Debug {
 
     class Breakpoint : public BreakpointTreeType::Node, public BreakpointUserListType::Node {
       public:
-        Breakpoint(BreakpointType type, const std::string& source, BreakpointInvoker invoker, uint32_t base, std::string label = "")
+        Breakpoint(BreakpointType type, const std::string& source, BreakpointInvoker invoker, uint32_t base,
+                   std::string label = "")
             : m_type(type), m_source(source), m_invoker(invoker), m_base(base), m_label(label) {}
         std::string name() const;
         BreakpointType type() const { return m_type; }
