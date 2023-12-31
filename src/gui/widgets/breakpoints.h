@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "core/debug.h"
+
 namespace PCSX {
 
 namespace Widgets {
@@ -30,6 +32,8 @@ class Breakpoints {
     bool& m_show;
 
   private:
+    void showEditLabelPopup(const Debug::Breakpoint* bp, int counter);
+
     bool m_filterE = true;
     bool m_filterR1 = true;
     bool m_filterR2 = true;
@@ -40,6 +44,8 @@ class Breakpoints {
     char m_bpAddressString[20] = "";
     int m_breakpointType = 0;
     int m_breakpointWidth = 1;
+    char m_bpLabelString[100] = "";
+    char m_bpEditPopupLabel[100] = "";
 };
 
 }  // namespace Widgets
