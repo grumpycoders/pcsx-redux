@@ -53,10 +53,9 @@ PCSX.Assembler.Internals.pseudoInstructions = {
 
     la = function(args)
         if #args ~= 2 then error('la takes two arguments') end
-        if type(args[2]) ~= 'string' then error('la second argument must be a string') end
         return {
             { base = 0x3c000000, rt = checkGPR(args[1]), hi16 = args[2] },
-            { base = 0x24000000, rt = checkGPR(args[1]), lo16 = args[2] },
+            { base = 0x24000000, rt = checkGPR(args[1]), rs = checkGPR(args[1]), lo16 = args[2] },
         }
     end,
 
