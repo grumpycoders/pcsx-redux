@@ -457,6 +457,7 @@ void PCSX::R3000Acpu::processA0KernelCall(uint32_t call) {
         }
         case 0x3e: {  // puts
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+            memFile->rSeek(r.a0);
             auto str = memFile->gets<false>();
             for (auto c : str) {
                 g_system->biosPutc(c);
@@ -491,6 +492,7 @@ void PCSX::R3000Acpu::processB0KernelCall(uint32_t call) {
         }
         case 0x3f: {  // puts
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
+            memFile->rSeek(r.a0);
             auto str = memFile->gets<false>();
             for (auto c : str) {
                 g_system->biosPutc(c);
