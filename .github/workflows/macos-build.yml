@@ -46,16 +46,8 @@ jobs:
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Restore brew cache
-      uses: actions/cache/restore@v3
-      with:
-        path: |
-          ~/Library/Caches/Homebrew
-          /usr/local/Cellar/
-        key: homebrew
     - name: Update brew
       run: |
-        brew link capstone curl ffmpeg freetype glfw libuv pkg-config zlib
         brew update --preinstall
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
@@ -122,14 +114,6 @@ jobs:
       with:
         name: Dmg
         path: '**/*.dmg'
-    - name: Saving brew cache
-      uses: actions/cache/save@v3
-      if: github.event_name == 'push'
-      with:
-        path: |
-          ~/Library/Caches/Homebrew
-          /usr/local/Cellar/
-        key: homebrew
 
   publish-app:
     runs-on: ubuntu-latest
