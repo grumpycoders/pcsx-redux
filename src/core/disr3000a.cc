@@ -109,7 +109,7 @@ struct StringDisasm : public PCSX::Disasm {
     }
     virtual void Invalid() final { strcpy(m_buf, "*** Bad OP ***"); }
     virtual void OpCode(std::string_view name) final {
-        std::sprintf(m_buf, "%-7s", name);
+        std::sprintf(m_buf, "%-7s", name.data());
         m_gotArg = false;
         m_len = 7;
     }
