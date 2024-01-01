@@ -135,9 +135,7 @@ jobs:
       uses: actions/cache/save@v3
       if: github.event_name == 'push'
       with:
-        path: |
-          ~/Library/Caches/Homebrew
-          /usr/local/Cellar/
+        path: /tmp/Brewfile
         key: homebrew
 
   publish-app:
