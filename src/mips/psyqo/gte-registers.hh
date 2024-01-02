@@ -379,6 +379,12 @@ static inline PackedVec3 readUnsafe() {
     __builtin_unreachable();
 }
 
+template <PseudoRegister reg>
+static inline void read(Vec3* ptr) {
+    static_assert(false, "Unable to read pseudo register as vector");
+    __builtin_unreachable();
+}
+
 // The following are template specializations for the various GTE registers.
 template <>
 inline void writeSafe<Register::VXY0>(Short x_, Short y_) {
@@ -862,6 +868,11 @@ inline PackedVec3 readUnsafe<PseudoRegister::LV>() {
                       Short(readRaw<Register::MAC3, Unsafe>(), Short::RAW));
 }
 
+template <>
+inline void read<PseudoRegister::LV>(Vec3* ptr) {
+    read<Register::MAC1>(reinterpret_cast<uint32_t*>(&ptr->x));
+    read<Register::MAC2>(reinterpret_cast<uint32_t*>(&ptr->y));
+    read<Register::MAC3>(reinterpret_cast<uint32_t*>(&ptr->z));
 }
 
 }  // namespace GTE
