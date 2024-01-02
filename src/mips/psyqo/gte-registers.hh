@@ -321,7 +321,7 @@ static inline void write(const uint32_t* ptr) {
  * @return uint32_t The value read from the register.
  */
 template <Register reg, Safety safety = Safe>
-static inline uint32_t read() {
+static inline uint32_t readRaw() {
     uint32_t value;
     if constexpr (reg < Register::R11R12) {
         if constexpr (safety == Safe) {
@@ -838,28 +838,30 @@ inline void writeUnsafe<PseudoRegister::V2>(const Vec3& in) {
 
 template <>
 inline PackedVec3 readSafe<PseudoRegister::SV>() {
-    return PackedVec3(Short(read<Register::IR1, Safe>(), Short::RAW), Short(read<Register::IR2, Safe>(), Short::RAW),
-                      Short(read<Register::IR3, Safe>(), Short::RAW));
+    return PackedVec3(Short(readRaw<Register::IR1, Safe>(), Short::RAW), Short(readRaw<Register::IR2, Safe>(), Short::RAW),
+                      Short(readRaw<Register::IR3, Safe>(), Short::RAW));
 }
 
 template <>
 inline PackedVec3 readSafe<PseudoRegister::LV>() {
-    return PackedVec3(Short(read<Register::MAC1, Safe>(), Short::RAW), Short(read<Register::MAC2, Safe>(), Short::RAW),
-                      Short(read<Register::MAC3, Safe>(), Short::RAW));
+    return PackedVec3(Short(readRaw<Register::MAC1, Safe>(), Short::RAW), Short(readRaw<Register::MAC2, Safe>(), Short::RAW),
+                      Short(readRaw<Register::MAC3, Safe>(), Short::RAW));
 }
 
 template <>
 inline PackedVec3 readUnsafe<PseudoRegister::SV>() {
-    return PackedVec3(Short(read<Register::IR1, Unsafe>(), Short::RAW),
-                      Short(read<Register::IR2, Unsafe>(), Short::RAW),
-                      Short(read<Register::IR3, Unsafe>(), Short::RAW));
+    return PackedVec3(Short(readRaw<Register::IR1, Unsafe>(), Short::RAW),
+                      Short(readRaw<Register::IR2, Unsafe>(), Short::RAW),
+                      Short(readRaw<Register::IR3, Unsafe>(), Short::RAW));
 }
 
 template <>
 inline PackedVec3 readUnsafe<PseudoRegister::LV>() {
-    return PackedVec3(Short(read<Register::MAC1, Unsafe>(), Short::RAW),
-                      Short(read<Register::MAC2, Unsafe>(), Short::RAW),
-                      Short(read<Register::MAC3, Unsafe>(), Short::RAW));
+    return PackedVec3(Short(readRaw<Register::MAC1, Unsafe>(), Short::RAW),
+                      Short(readRaw<Register::MAC2, Unsafe>(), Short::RAW),
+                      Short(readRaw<Register::MAC3, Unsafe>(), Short::RAW));
+}
+
 }
 
 }  // namespace GTE
