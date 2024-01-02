@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include "psyqo/fixed-point.hh"
 #include "psyqo/matrix.hh"
+#include "psyqo/vector.hh"
 
 namespace psyqo {
 
