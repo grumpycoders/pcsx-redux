@@ -116,6 +116,15 @@ FixedPoint<> matrixVecMul3z(const Matrix33 *m, const Vec3 *v);
 void crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out);
 
 /**
+ * @brief Compute the cross product of two 3D vectors.
+ *
+ * @param v1 The first vector.
+ * @param v2 The second vector.
+ * @return psyqo::Vec3 The cross product.
+ */
+psyqo::Vec3 crossProductVec3(const Vec3 *v1, const Vec3 *v2);
+
+/**
  * @brief Compute the determinant of a 3x3 matrix.
  *
  * @param m The matrix.

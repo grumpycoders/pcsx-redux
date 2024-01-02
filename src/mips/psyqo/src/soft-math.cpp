@@ -256,6 +256,23 @@ void psyqo::SoftMath::crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out
     out->z = nz;
 }
 
+psyqo::Vec3 psyqo::SoftMath::crossProductVec3(const Vec3 *v1, const Vec3 *v2) {
+    Vec3 out;
+    auto x1 = v1->x;
+    auto y1 = v1->y;
+    auto z1 = v1->z;
+    auto x2 = v2->x;
+    auto y2 = v2->y;
+    auto z2 = v2->z;
+    auto nx = y1 * z2 - z1 * y2;
+    auto ny = z1 * x2 - x1 * z2;
+    auto nz = x1 * y2 - y1 * x2;
+    out.x = nx;
+    out.y = ny;
+    out.z = nz;
+    return out;
+}
+
 psyqo::FixedPoint<> psyqo::SoftMath::matrixDeterminant3(const Matrix33 *m) {
     auto x1 = m->vs[0].x;
     auto y1 = m->vs[0].y;
