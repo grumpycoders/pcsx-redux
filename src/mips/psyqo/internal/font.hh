@@ -29,7 +29,7 @@ SOFTWARE.
 template <size_t N>
 class psyqo::Font : public psyqo::FontBase {
   public:
-    virtual ~Font() {}
+    virtual ~Font() { static_assert(N > 0, "Needs to have at least one fragment"); }
 
   private:
     virtual GlyphsFragment& getGlyphFragment(bool increment) override {
