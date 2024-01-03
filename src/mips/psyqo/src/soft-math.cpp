@@ -289,15 +289,34 @@ psyqo::FixedPoint<> psyqo::SoftMath::matrixDeterminant3(const Matrix33 *m) {
     return nx - ny + nz;
 }
 
-psyqo::FixedPoint<> psyqo::SoftMath::squareRoot(psyqo::FixedPoint<> x) {
+psyqo::FixedPoint<> psyqo::SoftMath::squareRoot(psyqo::FixedPoint<> x, psyqo::FixedPoint<> y) {
     if (x.raw() <= 1) return 0;
-    auto x0 = x / 2;
+    auto x0 = y;
     auto x1 = x / x0;
     while ((x1 - x0).abs().raw() > 1) {
         x0 = (x0 + x1) / 2;
         x1 = x / x0;
     }
     return x0;
+}
+
+psyqo::FixedPoint<> psyqo::SoftMath::inverseSquareRoot(psyqo::FixedPoint<> x, psyqo::FixedPoint<> y) {
+    // Newton method, using f(y) = 1/y² - x
+    // Meaning we want to calculate y - f(y)/f'(y)
+    // which expands into (y * (3 - xy²)) / 2, and simplifies to y * (3/2 - x/2 * y²)
+
+    // It will converge only for x < 1 however.
+    if (x > 1) return 1 / squareRoot(x, 1 / y);
+
+    uint32_t diff;
+
+    do {
+        auto y2 = y * (1.5_fp - (x * y * y) / 2);
+        diff = (y - y2).abs().raw();
+        y = y2;
+    } while (diff > 3);
+
+    return y;
 }
 
 psyqo::FixedPoint<> psyqo::SoftMath::normOfVec3(const Vec3 *v) {
@@ -327,8 +346,8 @@ void psyqo::SoftMath::project(const Vec3 *v, FixedPoint<> h, Vec2 *out) {
     auto y = v->y;
     auto z = v->z;
     auto r = h / z;
-    x = x * r;
-    y = y * r;
+    x *= r;
+    y *= r;
     out->x = x;
     out->y = y;
 }
