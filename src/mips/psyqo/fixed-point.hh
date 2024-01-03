@@ -300,7 +300,7 @@ class FixedPoint {
     constexpr FixedPoint& operator*=(FixedPoint other) {
         upType t = value;
         t *= other.value;
-        t /= precisionBits;
+        t /= scale;
         value = t;
         return *this;
     }
