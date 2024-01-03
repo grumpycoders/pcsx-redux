@@ -332,10 +332,10 @@ void psyqo::SoftMath::normalizeVec3(Vec3 *v) {
     auto y = v->y;
     auto z = v->z;
     auto s = x * x + y * y + z * z;
-    auto r = squareRoot(s);
-    x = x / r;
-    y = y / r;
-    z = z / r;
+    auto r = inverseSquareRoot(s);
+    x *= r;
+    y *= r;
+    z *= r;
     v->x = x;
     v->y = y;
     v->z = z;
