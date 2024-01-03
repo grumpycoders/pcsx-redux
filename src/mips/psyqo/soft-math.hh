@@ -182,6 +182,13 @@ void crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out);
 void normalizeVec3(Vec3 *v);
 
 /**
+ * @brief Normalizes a 3D vector, using a faster but less accurate algorithm.
+ *
+ * @param v The vector to normalize.
+ */
+void fastNormalizeVec3(Vec3 *v);
+
+/**
  * @brief Projects a 3D point onto a 2D plane.
  *
  * @param v The vector to project.

@@ -308,12 +308,10 @@ psyqo::FixedPoint<> psyqo::SoftMath::inverseSquareRoot(psyqo::FixedPoint<> x, ps
     // It will converge only for x < 1 however.
     if (x > 1) return 1 / squareRoot(x, 1 / y);
 
-    uint32_t diff;
-
-    do {
-        auto y2 = y * (1.5_fp - (x * y * y) / 2);
-        diff = (y - y2).abs().raw();
-    } while (diff > 4);
+    y *= (1.5_fp - (x * y * y) / 2);
+    y *= (1.5_fp - (x * y * y) / 2);
+    y *= (1.5_fp - (x * y * y) / 2);
+    y *= (1.5_fp - (x * y * y) / 2);
 
     return y;
 }
@@ -327,6 +325,20 @@ psyqo::FixedPoint<> psyqo::SoftMath::normOfVec3(const Vec3 *v) {
 }
 
 void psyqo::SoftMath::normalizeVec3(Vec3 *v) {
+    auto x = v->x;
+    auto y = v->y;
+    auto z = v->z;
+    auto s = x * x + y * y + z * z;
+    auto r = 1 / squareRoot(s);
+    x *= r;
+    y *= r;
+    z *= r;
+    v->x = x;
+    v->y = y;
+    v->z = z;
+}
+
+void psyqo::SoftMath::fastNormalizeVec3(Vec3 *v) {
     auto x = v->x;
     auto y = v->y;
     auto z = v->z;
