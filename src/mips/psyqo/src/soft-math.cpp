@@ -313,8 +313,7 @@ psyqo::FixedPoint<> psyqo::SoftMath::inverseSquareRoot(psyqo::FixedPoint<> x, ps
     do {
         auto y2 = y * (1.5_fp - (x * y * y) / 2);
         diff = (y - y2).abs().raw();
-        y = y2;
-    } while (diff > 3);
+    } while (diff > 4);
 
     return y;
 }
