@@ -154,10 +154,10 @@ class FixedPoint {
     constexpr T integer() const {
         if constexpr (std::is_signed<T>::value) {
             if (value < 0) {
-                return (value - scale / (2 * factor)) / (scale / factor);
+                return T(value - scale / (2 * factor)) / T(scale / factor);
             }
         }
-        return (value + scale / (2 * factor)) / (scale / factor);
+        return T(value + scale / (2 * factor)) / T(scale / factor);
     }
 
     template <std::integral U>
