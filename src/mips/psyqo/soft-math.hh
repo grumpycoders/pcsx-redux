@@ -104,7 +104,7 @@ void matrixVecMul3xy(const Matrix33 *m, const Vec3 *v, Vec2 *out);
  * @param v The vector.
  * @return FixedPoint<> The z component of the result.
  */
-FixedPoint<> matrixVecMul3z(const Matrix33 *m, const Vec3 *v);
+[[nodiscard]] FixedPoint<> matrixVecMul3z(const Matrix33 *m, const Vec3 *v);
 
 /**
  * @brief Compute the cross product of two 3D vectors.
@@ -120,9 +120,9 @@ void crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out);
  *
  * @param v1 The first vector.
  * @param v2 The second vector.
- * @return psyqo::Vec3 The cross product.
+ * @return Vec3 The cross product.
  */
-psyqo::Vec3 crossProductVec3(const Vec3 *v1, const Vec3 *v2);
+[[nodiscard]] Vec3 crossProductVec3(const Vec3 *v1, const Vec3 *v2);
 
 /**
  * @brief Compute the determinant of a 3x3 matrix.
@@ -130,7 +130,15 @@ psyqo::Vec3 crossProductVec3(const Vec3 *v1, const Vec3 *v2);
  * @param m The matrix.
  * @return FixedPoint<> The determinant.
  */
-FixedPoint<> matrixDeterminant3(const Matrix33 *m);
+[[nodiscard]] FixedPoint<> matrixDeterminant3(const Matrix33 *m);
+
+/** @brief Computes the square root of a fixed point number, given an approximative hint.
+ *
+ * @param x The number to compute the square root of.
+ * @param y The approximative hint of the result.
+ * @return psyqo::FixedPoint<> The square root.
+ */
+[[nodiscard]] FixedPoint<> squareRoot(FixedPoint<> x, FixedPoint<> y);
 
 /**
  * @brief Computes the square root of a fixed point number.
@@ -138,7 +146,25 @@ FixedPoint<> matrixDeterminant3(const Matrix33 *m);
  * @param x The number to compute the square root of.
  * @return psyqo::FixedPoint<> The square root.
  */
-FixedPoint<> squareRoot(FixedPoint<> x);
+[[nodiscard]] static inline FixedPoint<> squareRoot(FixedPoint<> x) { return squareRoot(x, x / 2); }
+
+/**
+ * @brief Computes the inverse square root of a fixed point number, given an
+ * approximative hint.
+ *
+ * @param x The number to compute the inverse square root of.
+ * @param y The approximative hint of the result.
+ * @return psyqo::FixedPoint<> The inverse square root.
+ */
+[[nodiscard]] FixedPoint<> inverseSquareRoot(FixedPoint<> x, FixedPoint<> y);
+
+/**
+ * @brief Computes the inverse square root of a fixed point number.
+ *
+ * @param x The number to compute the inverse square root of.
+ * @return psyqo::FixedPoint<> The inverse square root.
+ */
+[[nodiscard]] static inline FixedPoint<> inverseSquareRoot(FixedPoint<> x) { return inverseSquareRoot(x, x * 2); }
 
 /**
  * @brief Computes the norm of a 3D vector.
@@ -146,7 +172,7 @@ FixedPoint<> squareRoot(FixedPoint<> x);
  * @param v The vector.
  * @return psyqo::FixedPoint<> The norm.
  */
-FixedPoint<> normOfVec3(const Vec3 *v);
+[[nodiscard]] FixedPoint<> normOfVec3(const Vec3 *v);
 
 /**
  * @brief Normalizes a 3D vector.
@@ -154,6 +180,13 @@ FixedPoint<> normOfVec3(const Vec3 *v);
  * @param v The vector to normalize.
  */
 void normalizeVec3(Vec3 *v);
+
+/**
+ * @brief Normalizes a 3D vector, using a faster but less accurate algorithm.
+ *
+ * @param v The vector to normalize.
+ */
+void fastNormalizeVec3(Vec3 *v);
 
 /**
  * @brief Projects a 3D point onto a 2D plane.

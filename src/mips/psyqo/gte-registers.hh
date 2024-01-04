@@ -844,13 +844,15 @@ inline void writeUnsafe<PseudoRegister::V2>(const Vec3& in) {
 
 template <>
 inline PackedVec3 readSafe<PseudoRegister::SV>() {
-    return PackedVec3(Short(readRaw<Register::IR1, Safe>(), Short::RAW), Short(readRaw<Register::IR2, Safe>(), Short::RAW),
+    return PackedVec3(Short(readRaw<Register::IR1, Safe>(), Short::RAW),
+                      Short(readRaw<Register::IR2, Safe>(), Short::RAW),
                       Short(readRaw<Register::IR3, Safe>(), Short::RAW));
 }
 
 template <>
 inline PackedVec3 readSafe<PseudoRegister::LV>() {
-    return PackedVec3(Short(readRaw<Register::MAC1, Safe>(), Short::RAW), Short(readRaw<Register::MAC2, Safe>(), Short::RAW),
+    return PackedVec3(Short(readRaw<Register::MAC1, Safe>(), Short::RAW),
+                      Short(readRaw<Register::MAC2, Safe>(), Short::RAW),
                       Short(readRaw<Register::MAC3, Safe>(), Short::RAW));
 }
 
