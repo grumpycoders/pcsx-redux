@@ -1,4 +1,4 @@
-#include <stdint.h>
+{{=<% %>=}}#include <stdint.h>
 
 #include "third_party/nugget/common/syscalls/syscalls.h"
 #include "third_party/nugget/psyqo/application.hh"
