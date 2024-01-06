@@ -123,6 +123,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     // Enable Display
     Hardware::GPU::Ctrl = 0x03000000;
     Kernel::enableDma(Kernel::DMA::GPU);
+    Kernel::enableDma(Kernel::DMA::OTC);
     Kernel::registerDmaEvent(Kernel::DMA::GPU, [this]() {
         // DMA disabled
         Hardware::GPU::Ctrl = 0x04000001;
@@ -132,6 +133,26 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
             sendPrimitive(fc);
             m_flushCacheAfterDMA = false;
         }
+        checkOTCAndTriggerCallback();
+    });
+    Kernel::registerDmaEvent(Kernel::DMA::OTC, [this]() { checkOTCAndTriggerCallback(); });
+    // Enable DMA interrupt for GPU
+    uint32_t dicr = Hardware::CPU::DICR;
+    dicr &= 0xffffff;
+    dicr |= 0x440000;
+    Hardware::CPU::DICR = dicr;
+}
+
+void psyqo::GPU::checkOTCAndTriggerCallback() {
+    auto &OTCs = m_OTCs[m_parity ^ 1];
+    if (!OTCs.empty()) {
+        auto &otc = OTCs.front();
+        DMA_CTRL[DMA_GPUOTC].MADR = uint32_t(otc.start);
+        DMA_CTRL[DMA_GPUOTC].BCR = otc.count;
+        OTCs.pop_front();
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+        DMA_CTRL[DMA_GPUOTC].CHCR = 0x11000002;
+    } else {
         if (m_fromISR) {
             m_dmaCallback();
             m_dmaCallback = nullptr;
@@ -139,12 +160,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
             Kernel::queueCallbackFromISR(eastl::move(m_dmaCallback));
         }
         eastl::atomic_signal_fence(eastl::memory_order_release);
-    });
-    // Enable DMA interrupt for GPU
-    uint32_t dicr = Hardware::CPU::DICR;
-    dicr &= 0xffffff;
-    dicr |= 0x040000;
-    Hardware::CPU::DICR = dicr;
+    }
 }
 
 void psyqo::GPU::flip() {
@@ -499,3 +515,5 @@ void psyqo::GPU::pumpCallbacks() {
     Kernel::Internal::pumpCallbacks();
     m_lastHSyncCounter = hsyncCounter;
 }
+
+void psyqo::GPU::scheduleOTC(uint32_t *start, uint32_t count) { m_OTCs[m_parity].emplace_back(start, count); }

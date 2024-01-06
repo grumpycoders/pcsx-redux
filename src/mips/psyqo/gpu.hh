@@ -466,6 +466,8 @@ class GPU {
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
     void chain(uint32_t *first, uint32_t *last, size_t count);
+    void scheduleOTC(uint32_t *start, uint32_t count);
+    void checkOTCAndTriggerCallback();
 
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
@@ -488,6 +490,11 @@ class GPU {
         bool paused = false;
     };
     eastl::fixed_list<Timer, 32> m_timers;
+    struct ScheduledOTC {
+        uint32_t *start;
+        uint32_t count;
+    };
+    eastl::fixed_list<ScheduledOTC, 32> m_OTCs[2];
 
     uint16_t m_lastHSyncCounter = 0;
     bool m_interlaced = false;
