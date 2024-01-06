@@ -38,6 +38,8 @@ SOFTWARE.
 #include "psyqo/hardware/cpu.hh"
 #include "psyqo/kernel.hh"
 
+psyqo::GPU::GPU() {}
+
 void psyqo::GPU::waitReady() {
     while ((Hardware::GPU::Ctrl & uint32_t(0x04000000)) == 0) {
         pumpCallbacks();

@@ -445,6 +445,7 @@ class GPU {
     void pumpCallbacks();
 
   private:
+    GPU();
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
