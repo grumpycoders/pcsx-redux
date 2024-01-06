@@ -29,47 +29,30 @@ SOFTWARE.
 #include <EASTL/atomic.h>
 #include <stdarg.h>
 
+#include <cstdint>
+
 #include "psyqo/gpu.hh"
 #include "system-font.inc"
 
-void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
-    const Vertex clutPosition = {{.x = 960, .y = 464}};
-    Prim::ClutIndex clut(clutPosition);
-    for (unsigned i = 0; i < 96; i++) {
-        Prim::TexInfo texInfo = {.u = 0, .v = 208, .clut = clut};
-        uint8_t l = i / 32;
-        texInfo.u = i * 8;
-        texInfo.v += 16 * l;
-        m_lut[i] = texInfo;
-    }
-    auto size = m_size = {{.w = 8, .h = 16}};
-    forEach([this, clutPosition](auto& fragment) {
-        fragment.prologue.upload.region.pos = clutPosition;
-        fragment.prologue.upload.region.size = {{.w = 2, .h = 1}};
-        fragment.prologue.pixel = 0x7fff0000;
-        psyqo::Prim::TPageAttr attr;
-        attr.setPageX(15).setPageY(1).set(psyqo::Prim::TPageAttr::Tex4Bits).setDithering(false).enableDisplayArea();
-        fragment.prologue.tpage.attr = attr;
-        for (auto& p : fragment.primitives) {
-            p.setColor({{.r = 0x80, .g = 0x80, .b = 0x80}});
-            p.size = m_size;
-        }
-    });
+void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu, psyqo::Vertex location) {
+    initialize(gpu, location, {{.w = 8, .h = 16}});
+    unpackFont(gpu, s_systemFont, location, {{.w = 256, .h = 48}});
+}
 
-    Rect region = {.pos = {{.x = 960, .y = 464}}, .size = {{.w = 64, .h = 48}}};
+void psyqo::FontBase::unpackFont(GPU& gpu, const uint8_t* data, Vertex location, Vertex size) {
+    Rect region = {.pos = location, .size = {{.w = int16_t(size.w / 4), .h = size.h}}};
     Prim::VRAMUpload upload;
     upload.region = region;
     gpu.sendPrimitive(upload);
 
-    // On the fly decompression of the system font.
     uint32_t d;
     uint32_t bb = 0x100;
-    const int8_t* tree = reinterpret_cast<const int8_t*>(s_systemFont);
-    const uint8_t* data = s_systemFont;
+    const int8_t* tree = reinterpret_cast<const int8_t*>(data);
     const uint8_t* lut = data;
     lut += data[0];
     data += data[1];
-    for (unsigned i = 0; i < 64 * 48 / 2; i++) {
+    unsigned amount = size.h * size.w / 8;
+    for (unsigned i = 0; i < amount; i++) {
         int8_t c = 2;
         while (c > 0) {
             if (bb == 0x100) bb = *data++ | 0x10000;
@@ -102,6 +85,38 @@ void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu) {
     }
 }
 
+void psyqo::FontBase::initialize(GPU& gpu, Vertex location, Vertex glyphSize) {
+    m_glyphSize = glyphSize;
+    Prim::ClutIndex clut(location);
+    unsigned glyphPerRow = 256 / glyphSize.w;
+    uint8_t baseV = location.y & 0xff;
+    for (unsigned i = 0; i < 224; i++) {
+        Prim::TexInfo texInfo = {.u = 0, .v = baseV, .clut = clut};
+        uint8_t l = i / glyphPerRow;
+        texInfo.u = i * glyphSize.w;
+        texInfo.v += glyphSize.h * l;
+        m_lut[i] = texInfo;
+    }
+    forEach([this, location](auto& fragment) {
+        fragment.prologue.upload.region.pos = location;
+        fragment.prologue.upload.region.size = {{.w = 2, .h = 1}};
+        fragment.prologue.pixel = 0x7fff0000;
+        psyqo::Prim::TPageAttr attr;
+        uint8_t pageX = location.x >> 6;
+        uint8_t pageY = location.y >> 8;
+        attr.setPageX(pageX)
+            .setPageY(pageY)
+            .set(psyqo::Prim::TPageAttr::Tex4Bits)
+            .setDithering(false)
+            .enableDisplayArea();
+        fragment.prologue.tpage.attr = attr;
+        for (auto& p : fragment.primitives) {
+            p.setColor({{.r = 0x80, .g = 0x80, .b = 0x80}});
+            p.size = m_glyphSize;
+        }
+    });
+}
+
 void psyqo::FontBase::print(GPU& gpu, eastl::string_view text, Vertex pos, Color color) {
     bool done = false;
     print(
@@ -132,8 +147,8 @@ void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color)
     }
 }
 
-void psyqo::FontBase::print(GPU& gpu, eastl::string_view text, Vertex pos, Color color, eastl::function<void()>&& callback,
-                            DMA::DmaCallback dmaCallback) {
+void psyqo::FontBase::print(GPU& gpu, eastl::string_view text, Vertex pos, Color color,
+                            eastl::function<void()>&& callback, DMA::DmaCallback dmaCallback) {
     auto& fragment = getGlyphFragment(false);
     innerprint(fragment, gpu, text, pos, color);
     gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
@@ -159,7 +174,7 @@ void psyqo::FontBase::chainprint(GPU& gpu, const char* text, Vertex pos, Color c
 }
 
 void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, eastl::string_view text, Vertex pos, Color color) {
-    auto size = m_size;
+    auto size = m_glyphSize;
     unsigned i = 0;
     auto maxSize = fragment.primitives.size();
 
@@ -187,14 +202,14 @@ void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, eastl::stri
 }
 
 void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, const char* text, Vertex pos, Color color) {
-    auto size = m_size;
+    auto size = m_glyphSize;
     unsigned i;
     auto maxSize = fragment.primitives.size();
 
     for (i = 0; i < maxSize; pos.x += size.w) {
-        auto c = *text++;
+        uint8_t c = *text++;
         if (c == 0) break;
-        if (c < 32 || c > 127) {
+        if (c < 32) {
             c = '?';
         }
         if (c == ' ') {
@@ -242,10 +257,10 @@ void psyqo::FontBase::chainvprintf(GPU& gpu, Vertex pos, Color color, const char
 }
 
 struct psyqo::FontBase::XPrintfInfo {
-    psyqo::FontBase::GlyphsFragment& fragment;
+    GlyphsFragment& fragment;
     GPU& gpu;
-    psyqo::Vertex pos;
-    psyqo::FontBase* self;
+    Vertex pos;
+    FontBase* self;
 };
 
 extern "C" int vxprintf(void (*func)(const char*, int, void*), void* arg, const char* format, va_list ap);
@@ -275,14 +290,14 @@ void psyqo::FontBase::innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex po
                     c = '?';
                 }
                 if (c == ' ') {
-                    pos.x += self->m_size.w;
+                    pos.x += self->m_glyphSize.w;
                     continue;
                 }
                 auto& f = primitives[fragment.count++];
                 auto p = self->m_lut[c - 32];
                 f.position = pos;
                 f.texInfo = p;
-                pos.x += self->m_size.w;
+                pos.x += self->m_glyphSize.w;
             }
         },
         &info, format, ap);
