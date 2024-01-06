@@ -35,6 +35,7 @@ SOFTWARE.
 
 #include "psyqo/fragment-concept.hh"
 #include "psyqo/hardware/gpu.hh"
+#include "psyqo/ordering-table.hh"
 #include "psyqo/primitive-concept.hh"
 #include "psyqo/primitives/common.hh"
 #include "psyqo/primitives/control.hh"
@@ -313,6 +314,20 @@ class GPU {
     template <Fragment Frag1, Fragment Frag2>
     void chain(Frag1 *first, Frag2 *last) {
         chain(&first->head, &last->head, last->getActualFragmentSize());
+    }
+
+    /**
+     * @brief Chains an ordering table to the next DMA chain transfer.
+     *
+     * @details This method will chain an ordering table to the next DMA chain transfer. The ordering table
+     * table will be cleared automatically after the transfer is complete.
+     *
+     * @param table The ordering table to chain.
+     */
+    template <size_t N>
+    void chain(OrderingTable<N> &table) {
+        chain(&table.m_table[N], &table.m_table[0], 0);
+        scheduleOTC(&table.m_table[N], N + 1);
     }
 
     /**
