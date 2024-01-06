@@ -106,6 +106,21 @@ class GPU {
     uint32_t getFrameCount() const { return m_frameCount; }
 
     /**
+     * @brief Get the index of the current display buffer.
+     *
+     * @details This method will return the index of the current display buffer.
+     * The index will be either 0 or 1, and will be updated during the frame
+     * flip operation. This is useful for double buffering: when designing an
+     * application which uses double buffering, the application should keep
+     * two sets of data, one for each display buffer. The application should
+     * then use the `getParity` method to determine which if its two sets
+     * of data should be used for the current frame.
+     *
+     * @return unsigned The index of the current display buffer, either 0 or 1.
+     */
+    unsigned getParity() const { return m_parity; }
+
+    /**
      * @brief Immediately clears the drawing buffer.
      *
      * @details This method will immediately clear the drawing buffer
