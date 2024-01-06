@@ -28,12 +28,14 @@ SOFTWARE.
 
 #include <EASTL/array.h>
 #include <EASTL/atomic.h>
+#include <EASTL/fixed_list.h>
 #include <EASTL/functional.h>
 #include <EASTL/utility.h>
 #include <stdint.h>
 
 #include "psyqo/fragment-concept.hh"
 #include "psyqo/hardware/gpu.hh"
+#include "psyqo/ordering-table.hh"
 #include "psyqo/primitive-concept.hh"
 #include "psyqo/primitives/common.hh"
 #include "psyqo/primitives/control.hh"
@@ -103,6 +105,21 @@ class GPU {
      * 28.27 seconds when running constantly at a 60Hz refresh rate.
      */
     uint32_t getFrameCount() const { return m_frameCount; }
+
+    /**
+     * @brief Get the index of the current display buffer.
+     *
+     * @details This method will return the index of the current display buffer.
+     * The index will be either 0 or 1, and will be updated during the frame
+     * flip operation. This is useful for double buffering: when designing an
+     * application which uses double buffering, the application should keep
+     * two sets of data, one for each display buffer. The application should
+     * then use the `getParity` method to determine which if its two sets
+     * of data should be used for the current frame.
+     *
+     * @return unsigned The index of the current display buffer, either 0 or 1.
+     */
+    unsigned getParity() const { return m_parity; }
 
     /**
      * @brief Immediately clears the drawing buffer.
@@ -300,6 +317,20 @@ class GPU {
     }
 
     /**
+     * @brief Chains an ordering table to the next DMA chain transfer.
+     *
+     * @details This method will chain an ordering table to the next DMA chain transfer. The ordering table
+     * table will be cleared automatically after the transfer is complete.
+     *
+     * @param table The ordering table to chain.
+     */
+    template <size_t N>
+    void chain(OrderingTable<N> &table) {
+        chain(&table.m_table[N], &table.m_table[0], 0);
+        scheduleOTC(&table.m_table[N], N + 1);
+    }
+
+    /**
      * @brief Immediately sends the current DMA chain
      *
      * @details This method will immediately send the current DMA chain to the GPU, and block until completion.
@@ -445,28 +476,46 @@ class GPU {
     void pumpCallbacks();
 
   private:
+    GPU();
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
     void chain(uint32_t *first, uint32_t *last, size_t count);
+    void scheduleOTC(uint32_t *start, uint32_t count);
+    void checkOTCAndTriggerCallback();
 
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
-    bool m_fromISR = false;
-    bool m_flushCacheAfterDMA = false;
     int m_width = 0;
     int m_height = 0;
     uint32_t m_currentTime = 0;
     uint32_t m_frameCount = 0;
     uint32_t m_previousFrameCount = 0;
-    int m_parity = 0;
+    unsigned m_parity = 0;
     uint32_t *m_chainHead = nullptr;
     uint32_t *m_chainTail = nullptr;
     size_t m_chainTailCount = 0;
     enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus;
+    struct Timer {
+        eastl::function<void(uint32_t)> callback;
+        uint32_t deadline;
+        uint32_t period;
+        int32_t pausedRemaining;
+        bool periodic;
+        bool paused = false;
+    };
+    eastl::fixed_list<Timer, 32> m_timers;
+    struct ScheduledOTC {
+        uint32_t *start;
+        uint32_t count;
+    };
+    eastl::fixed_list<ScheduledOTC, 32> m_OTCs[2];
 
     uint16_t m_lastHSyncCounter = 0;
     bool m_interlaced = false;
+    bool m_fromISR = false;
+    bool m_flushCacheAfterDMA = false;
+
     void flip();
     friend class Application;
 };

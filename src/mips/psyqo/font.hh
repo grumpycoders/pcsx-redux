@@ -83,7 +83,7 @@ class FontBase {
     void chainprintf(GPU& gpu, Vertex pos, Color color, const char* format, ...) {
         va_list args;
         va_start(args, format);
-        vprintf(gpu, pos, color, format, args);
+        chainvprintf(gpu, pos, color, format, args);
         va_end(args);
     }
     void chainvprintf(GPU& gpu, Vertex pos, Color color, const char* format, va_list ap);

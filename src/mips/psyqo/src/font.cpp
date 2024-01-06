@@ -162,7 +162,6 @@ void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, eastl::stri
     auto size = m_size;
     unsigned i = 0;
     auto maxSize = fragment.primitives.size();
-    fragment.count = 0;
 
     for (auto c : text) {
         if (i >= maxSize) break;
@@ -259,7 +258,7 @@ void psyqo::FontBase::innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex po
     color.b >>= 3;
     uint32_t pixel = color.r | (color.g << 5) | (color.b << 10);
     fragment.prologue.pixel = pixel << 16;
-    XPrintfInfo info{getGlyphFragment(false), gpu, pos, this};
+    XPrintfInfo info{fragment, gpu, pos, this};
     vxprintf(
         [](const char* str, int len, void* info_) {
             auto& info = *static_cast<XPrintfInfo*>(info_);

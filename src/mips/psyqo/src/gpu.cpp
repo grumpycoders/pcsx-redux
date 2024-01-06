@@ -27,7 +27,6 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 
 #include <EASTL/atomic.h>
-#include <EASTL/fixed_list.h>
 #include <EASTL/functional.h>
 
 #include "common/hardware/counters.h"
@@ -37,6 +36,8 @@ SOFTWARE.
 #include "common/syscalls/syscalls.h"
 #include "psyqo/hardware/cpu.hh"
 #include "psyqo/kernel.hh"
+
+psyqo::GPU::GPU() {}
 
 void psyqo::GPU::waitReady() {
     while ((Hardware::GPU::Ctrl & uint32_t(0x04000000)) == 0) {
@@ -122,6 +123,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     // Enable Display
     Hardware::GPU::Ctrl = 0x03000000;
     Kernel::enableDma(Kernel::DMA::GPU);
+    Kernel::enableDma(Kernel::DMA::OTC);
     Kernel::registerDmaEvent(Kernel::DMA::GPU, [this]() {
         // DMA disabled
         Hardware::GPU::Ctrl = 0x04000001;
@@ -131,6 +133,26 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
             sendPrimitive(fc);
             m_flushCacheAfterDMA = false;
         }
+        checkOTCAndTriggerCallback();
+    });
+    Kernel::registerDmaEvent(Kernel::DMA::OTC, [this]() { checkOTCAndTriggerCallback(); });
+    // Enable DMA interrupt for GPU
+    uint32_t dicr = Hardware::CPU::DICR;
+    dicr &= 0xffffff;
+    dicr |= 0x440000;
+    Hardware::CPU::DICR = dicr;
+}
+
+void psyqo::GPU::checkOTCAndTriggerCallback() {
+    auto &OTCs = m_OTCs[m_parity ^ 1];
+    if (!OTCs.empty()) {
+        auto &otc = OTCs.front();
+        DMA_CTRL[DMA_GPUOTC].MADR = uint32_t(otc.start);
+        DMA_CTRL[DMA_GPUOTC].BCR = otc.count;
+        OTCs.pop_front();
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+        DMA_CTRL[DMA_GPUOTC].CHCR = 0x11000002;
+    } else {
         if (m_fromISR) {
             m_dmaCallback();
             m_dmaCallback = nullptr;
@@ -138,25 +160,8 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
             Kernel::queueCallbackFromISR(eastl::move(m_dmaCallback));
         }
         eastl::atomic_signal_fence(eastl::memory_order_release);
-    });
-    // Enable DMA interrupt for GPU
-    uint32_t dicr = Hardware::CPU::DICR;
-    dicr &= 0xffffff;
-    dicr |= 0x040000;
-    Hardware::CPU::DICR = dicr;
+    }
 }
-
-namespace {
-struct Timer {
-    eastl::function<void(uint32_t)> callback;
-    uint32_t deadline;
-    uint32_t period;
-    int32_t pausedRemaining;
-    bool periodic;
-    bool paused = false;
-};
-eastl::fixed_list<Timer, 32> s_timers;
-}  // namespace
 
 void psyqo::GPU::flip() {
     do {
@@ -428,17 +433,17 @@ bool psyqo::GPU::isChainTransferred() const {
 }
 
 uintptr_t psyqo::GPU::armTimer(uint32_t deadline, eastl::function<void(uint32_t)> &&callback) {
-    s_timers.emplace_back(eastl::move(callback), deadline, 0, 0, false);
-    return reinterpret_cast<uintptr_t>(&s_timers.back());
+    m_timers.emplace_back(eastl::move(callback), deadline, 0, 0, false);
+    return reinterpret_cast<uintptr_t>(&m_timers.back());
 }
 
 uintptr_t psyqo::GPU::armPeriodicTimer(uint32_t interval, eastl::function<void(uint32_t)> &&callback) {
-    s_timers.emplace_back(eastl::move(callback), m_currentTime + interval, interval, 0, true);
-    return reinterpret_cast<uintptr_t>(&s_timers.back());
+    m_timers.emplace_back(eastl::move(callback), m_currentTime + interval, interval, 0, true);
+    return reinterpret_cast<uintptr_t>(&m_timers.back());
 }
 
 void psyqo::GPU::changeTimerPeriod(uintptr_t id, uint32_t period, bool reset) {
-    for (auto &timer : s_timers) {
+    for (auto &timer : m_timers) {
         if (reinterpret_cast<uintptr_t>(&timer) != id) continue;
         if (timer.period == period) continue;
         if (!timer.periodic) continue;
@@ -454,7 +459,7 @@ void psyqo::GPU::changeTimerPeriod(uintptr_t id, uint32_t period, bool reset) {
 }
 
 void psyqo::GPU::pauseTimer(uintptr_t id) {
-    for (auto &timer : s_timers) {
+    for (auto &timer : m_timers) {
         if (reinterpret_cast<uintptr_t>(&timer) != id) continue;
         if (timer.paused) return;
         timer.paused = true;
@@ -464,7 +469,7 @@ void psyqo::GPU::pauseTimer(uintptr_t id) {
 }
 
 void psyqo::GPU::resumeTimer(uintptr_t id) {
-    for (auto &timer : s_timers) {
+    for (auto &timer : m_timers) {
         if (reinterpret_cast<uintptr_t>(&timer) != id) continue;
         if (!timer.paused) return;
         timer.paused = false;
@@ -474,9 +479,9 @@ void psyqo::GPU::resumeTimer(uintptr_t id) {
 }
 
 void psyqo::GPU::cancelTimer(uintptr_t id) {
-    for (auto it = s_timers.begin(); it != s_timers.end(); ++it) {
+    for (auto it = m_timers.begin(); it != m_timers.end(); ++it) {
         if (reinterpret_cast<uintptr_t>(&*it) != id) continue;
-        s_timers.erase(it);
+        m_timers.erase(it);
         return;
     }
 }
@@ -491,7 +496,7 @@ void psyqo::GPU::pumpCallbacks() {
     bool done = false;
     while (!done) {
         done = true;
-        for (auto it = s_timers.begin(); it != s_timers.end(); it++) {
+        for (auto it = m_timers.begin(); it != m_timers.end(); it++) {
             auto &timer = *it;
             if (timer.paused) continue;
             if ((int32_t)(timer.deadline - currentTime) <= 0) {
@@ -500,7 +505,7 @@ void psyqo::GPU::pumpCallbacks() {
                 }
                 timer.callback(currentTime);
                 if (!timer.periodic) {
-                    s_timers.erase(it);
+                    m_timers.erase(it);
                 }
                 done = false;
                 break;
@@ -510,3 +515,5 @@ void psyqo::GPU::pumpCallbacks() {
     Kernel::Internal::pumpCallbacks();
     m_lastHSyncCounter = hsyncCounter;
 }
+
+void psyqo::GPU::scheduleOTC(uint32_t *start, uint32_t count) { m_OTCs[m_parity].emplace_back(start, count); }
