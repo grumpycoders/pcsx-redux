@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <EASTL/array.h>
 #include <EASTL/atomic.h>
+#include <EASTL/fixed_list.h>
 #include <EASTL/functional.h>
 #include <EASTL/utility.h>
 #include <stdint.h>
@@ -453,21 +454,31 @@ class GPU {
 
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
-    bool m_fromISR = false;
-    bool m_flushCacheAfterDMA = false;
     int m_width = 0;
     int m_height = 0;
     uint32_t m_currentTime = 0;
     uint32_t m_frameCount = 0;
     uint32_t m_previousFrameCount = 0;
-    int m_parity = 0;
+    unsigned m_parity = 0;
     uint32_t *m_chainHead = nullptr;
     uint32_t *m_chainTail = nullptr;
     size_t m_chainTailCount = 0;
     enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus;
+    struct Timer {
+        eastl::function<void(uint32_t)> callback;
+        uint32_t deadline;
+        uint32_t period;
+        int32_t pausedRemaining;
+        bool periodic;
+        bool paused = false;
+    };
+    eastl::fixed_list<Timer, 32> m_timers;
 
     uint16_t m_lastHSyncCounter = 0;
     bool m_interlaced = false;
+    bool m_fromISR = false;
+    bool m_flushCacheAfterDMA = false;
+
     void flip();
     friend class Application;
 };
