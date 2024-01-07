@@ -267,6 +267,48 @@ const psyqTemplate = combine(baseNuggetTemplate, {
     }
   ]
 })
+
+const netyarozeTemplate = combine(baseNuggetTemplate, {
+  files: [
+    {
+      name: '.vscode/c_cpp_properties.json',
+      content: {
+        configurations: [
+          {
+			 includePath: [
+              '${workspaceFolder}/',
+              '${workspaceFolder}/third_party/psyq-iwyu/include',
+              '${workspaceFolder}/third_party/net-yaroze/include'
+            ],
+            name: 'Win32'
+          },
+          {
+             includePath: [
+              '${workspaceFolder}/',
+              '${workspaceFolder}/third_party/psyq-iwyu/include',
+              '${workspaceFolder}/third_party/net-yaroze/include'
+            ],
+            name: 'linux'
+          }
+        ]
+      }
+    },
+    {
+      name: '.gitignore',
+      content: ['third_party/psyq']
+    }
+  ],
+  modules: [
+    {
+      name: 'third_party/psyq-iwyu',
+      url: 'https://github.com/johnbaumann/psyq_include_what_you_use.git'
+    },
+	 {
+      name: 'third_party/net-yaroze',
+      url: 'https://github.com/gwald/psyq_to_netyaroze.git'
+    }
+  ]
+})
 /* eslint-enable no-template-curly-in-string */
 
 async function createGitRepository (fullPath, template, progressReporter) {
@@ -399,6 +441,33 @@ const templates = {
         path.join(extensionUri.fsPath, 'templates', 'psyqo', 'hello'),
         { projectName: name }
       )
+    }
+  },
+   psyq_netyaroze: {
+    name: 'Net Yaroze Sprite',
+    category: 'Psy-Q SDK',
+    description:
+      'A SCEE Net Yaroze tutorial showing 2D sprite movement, scaling and rotation using a subset of Psy-Q SDK (full compatibilty is still Work In Progress). Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.',
+    url: 'https://github.com/gwald/psyq_to_netyaroze/',
+    examples: 'https://github.com/gwald/netyaroze_demo',
+    requiredTools: ['git', 'make', 'toolchain', 'psyq'],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter, tools) {
+      const git = await createGitRepository(
+        fullPath,
+        netyarozeTemplate,
+        progressReporter
+      )
+	  
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        path.join(extensionUri.fsPath, 'templates', 'psyq', 'net-yaroze'),
+        { projectName: name }
+      )
+      progressReporter.report({ message: 'Unpacking Net Yaroze...' })
+      await tools.psyq.unpack(path.join(fullPath, 'third_party', 'psyq'))
     }
   }
 }
