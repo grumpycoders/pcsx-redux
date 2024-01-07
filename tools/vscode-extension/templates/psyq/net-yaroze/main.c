@@ -69,7 +69,7 @@ int main( void )
     while( !DONE )
       {
 		 	     
-		 FntPrint(fnt_id[0], "~c900 Graphic Example 9 - Move, Scale, and Rotate Sprites ");
+		 FntPrint(fnt_id[0], (char*)"~c900 Graphic Example 9 - Move, Scale, and Rotate Sprites ");
 		 
          if( PAD_PRESS(buffer1,PAD_LEFT) )
 		   {

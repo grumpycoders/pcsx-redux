@@ -4,14 +4,15 @@ TYPE = ps-exe
 SRCS = \
 third_party/nugget/common/crt0/crt0.s \
 main.c
+#-fpermissive
 
-CPPFLAGS += -w -fpermissive -msoft-float -Ithird_party/net-yaroze/include -Ithird_party/psyq-iwyu/include 
+CPPFLAGS += -Wfatal-errors -Werror -msoft-float -Ithird_party/psyq-iwyu/include -Ithird_party/net-yaroze/include
 LDFLAGS=-Xlinker --defsym=TLOAD_ADDR=0x80090000 
 LDFLAGS += -Lthird_party/psyq/lib
 LDFLAGS += -Wl,--start-group
-LDFLAGS += -lapi
 LDFLAGS += -lc
 LDFLAGS += -lc2
+LDFLAGS += -lapi
 LDFLAGS += -lcard
 LDFLAGS += -lcd
 LDFLAGS += -lcomb
