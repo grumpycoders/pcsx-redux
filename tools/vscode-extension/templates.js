@@ -81,7 +81,7 @@ function combine (a, b) {
 }
 
 /* eslint-disable no-template-curly-in-string */
-const baseNuggetTemplate = {
+const baseTemplate = {
   files: [
     {
       name: '.vscode/c_cpp_properties.json',
@@ -95,8 +95,6 @@ const baseNuggetTemplate = {
             cppStandard: 'c++20',
             defines: ['__STDC_HOSTED__ = 0'],
             includePath: [
-              '${workspaceFolder}/',
-              '${workspaceFolder}/third_party/nugget',
               '${env:AppData}/mips/mips/include'
             ],
             intelliSenseMode: 'gcc-x86',
@@ -108,9 +106,8 @@ const baseNuggetTemplate = {
             cppStandard: 'c++20',
             defines: ['__STDC_HOSTED__ = 0'],
             includePath: [
-              '${workspaceFolder}/',
-              '${workspaceFolder}/third_party/nugget',
-              '/usr/mipsel-linux-gnu/include'
+              '/usr/mipsel-linux-gnu/include',
+              '/usr/mipsel-none-elf/include'
             ],
             intelliSenseMode: 'gcc-x86',
             name: 'linux'
@@ -133,7 +130,6 @@ const baseNuggetTemplate = {
             remote: true,
             cwd: '${workspaceRoot}',
             valuesFormatting: 'parseText',
-            executable: '${workspaceRoot}/${workspaceRootFolderName}.elf',
             stopAtConnect: true,
             gdbpath: 'gdb-multiarch',
             windows: {
@@ -141,7 +137,44 @@ const baseNuggetTemplate = {
             },
             osx: {
               gdbpath: 'gdb'
-            },
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+const baseNuggetTemplate = combine(baseTemplate, {
+  files: [
+    {
+      name: '.vscode/c_cpp_properties.json',
+      content: {
+        configurations: [
+          {
+            includePath: [
+              '${workspaceFolder}/',
+              '${workspaceFolder}/third_party/nugget'
+            ],
+            name: 'Win32'
+          },
+          {
+            includePath: [
+              '${workspaceFolder}/',
+              '${workspaceFolder}/third_party/nugget'
+            ],
+            name: 'linux'
+          }
+        ]
+      }
+    },
+    {
+      name: '.vscode/launch.json',
+      content: {
+        configurations: [
+          {
+            name: 'Debug',
+            executable: '${workspaceRoot}/${workspaceRootFolderName}.elf',
             autorun: [
               'monitor reset shellhalt',
               'load ${workspaceRootFolderName}.elf',
@@ -210,7 +243,178 @@ const baseNuggetTemplate = {
       url: 'https://github.com/pcsx-redux/nugget.git'
     }
   ]
-}
+})
+
+const baseCMakeTemplate = combine(baseTemplate, {
+  files: [
+    {
+      name: '.vscode/c_cpp_properties.json',
+      content: {
+        configurations: [
+          {
+            configurationProvider: 'ms-vscode.cmake-tools',
+            includePath: ['${workspaceFolder}/src'],
+            name: 'Win32'
+          },
+          {
+            configurationProvider: 'ms-vscode.cmake-tools',
+            includePath: ['${workspaceFolder}/src'],
+            name: 'linux'
+          }
+        ]
+      }
+    },
+    {
+      name: '.vscode/launch.json',
+      content: {
+        configurations: [
+          {
+            name: 'Debug',
+            executable: '${workspaceRoot}/build/${workspaceRootFolderName}.elf',
+            autorun: [
+              'monitor reset shellhalt',
+              'load build/${workspaceRootFolderName}.elf',
+              'tbreak main',
+              'continue'
+            ]
+          }
+        ]
+      }
+    },
+    {
+      name: '.vscode/settings.json',
+      type: 'json',
+      content: {
+        'C_Cpp.default.configurationProvider': 'ms-vscode.cmake-tools'
+      }
+    },
+    {
+      name: '.vscode/tasks.json',
+      type: 'json',
+      content: {
+        version: '2.0.0',
+        tasks: [
+          {
+            label: 'Configure Debug',
+            type: 'cmake',
+            command: 'configure',
+            preset: 'debug',
+            group: {
+              kind: 'build'
+            }
+          },
+          {
+            label: 'Configure Release',
+            type: 'cmake',
+            command: 'configure',
+            preset: 'release',
+            group: {
+              kind: 'build'
+            }
+          },
+          {
+            label: 'Configure Minimum Size Release',
+            type: 'cmake',
+            command: 'configure',
+            preset: 'min-size-release',
+            group: {
+              kind: 'build'
+            }
+          },
+          {
+            label: 'Build Debug',
+            type: 'cmake',
+            command: 'build',
+            targets: ['all'],
+            dependsOn: 'Configure Debug',
+            group: {
+              kind: 'build',
+              isDefault: true
+            },
+            problemMatcher: ['$gcc']
+          },
+          {
+            label: 'Build Release',
+            type: 'cmake',
+            command: 'build',
+            targets: ['all'],
+            dependsOn: 'Configure Release',
+            group: {
+              kind: 'build',
+              isDefault: true
+            },
+            problemMatcher: ['$gcc']
+          },
+          {
+            label: 'Build Minimum Size Release',
+            type: 'cmake',
+            command: 'build',
+            targets: ['all'],
+            dependsOn: 'Configure Minimum Size Release',
+            group: {
+              kind: 'build',
+              isDefault: true
+            },
+            problemMatcher: ['$gcc']
+          },
+          {
+            label: 'Clean',
+            type: 'cmake',
+            command: 'clean',
+            group: {
+              kind: 'build'
+            }
+          }
+        ]
+      }
+    },
+    {
+      name: '.gitignore',
+      type: 'textarray',
+      content: [
+        'build/',
+        '.cache/',
+        '__pycache__/',
+        '*.pyc',
+        '*.pyo',
+        'CMakeUserPresets.json',
+        'PSX.Dev-README.md'
+      ]
+    }
+  ]
+})
+
+const bareMetalCMakeTemplate = combine(baseCMakeTemplate, {
+  files: [
+    {
+      name: '.vscode/c_cpp_properties.json',
+      content: {
+        configurations: [
+          {
+            includePath: [
+              '${workspaceFolder}/ps1-bare-metal/src',
+              '${workspaceFolder}/ps1-bare-metal/src/libc'
+            ],
+            name: 'Win32'
+          },
+          {
+            includePath: [
+              '${workspaceFolder}/ps1-bare-metal/src',
+              '${workspaceFolder}/ps1-bare-metal/src/libc'
+            ],
+            name: 'linux'
+          }
+        ]
+      }
+    }
+  ],
+  modules: [
+    {
+      name: 'ps1-bare-metal',
+      url: 'https://github.com/spicyjpeg/ps1-bare-metal.git'
+    }
+  ]
+})
 
 const psyqoTemplate = combine(baseNuggetTemplate, {
   files: [
@@ -342,7 +546,7 @@ async function copyTemplateDirectory (git, fullPath, name, template, data) {
       const content = await fs.readFile(filePath, 'utf8')
       const rendered = Mustache.render(content, data)
       await fs.writeFile(path.join(fullPath, file), rendered)
-      await git.add(file)
+      await git.add(path.join(fullPath, file))
     } else if (stats.isDirectory()) {
       await fs.mkdirp(path.join(fullPath, file))
       await copyTemplateDirectory(
@@ -356,8 +560,8 @@ async function copyTemplateDirectory (git, fullPath, name, template, data) {
 }
 
 const templates = {
-  empty: {
-    name: 'Empty',
+  empty_nugget: {
+    name: 'Empty (Nugget)',
     category: 'Bare metal',
     description:
       'An empty project, with just the barebone setup to get started.',
@@ -375,7 +579,31 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty'),
+        path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty-nugget'),
+        { projectName: name }
+      )
+    }
+  },
+  empty_cmake: {
+    name: 'Empty (CMake)',
+    category: 'Bare metal',
+    description:
+      'An empty project, with just the barebone setup to get started using a CMake-based build system.',
+    url: 'https://github.com/spicyjpeg/ps1-bare-metal',
+    examples: 'https://github.com/spicyjpeg/ps1-bare-metal/blob/main/README.md',
+    requiredTools: ['git', 'make', 'cmake', 'toolchain'],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter) {
+      const git = await createGitRepository(
+        fullPath,
+        bareMetalCMakeTemplate,
+        progressReporter
+      )
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty-cmake'),
         { projectName: name }
       )
     }

@@ -1,0 +1,40 @@
+{
+	"version": 6,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 25,
+		"patch": 0
+	},
+	"configurePresets": [
+		{
+			"name":        "debug",
+			"displayName": "Debug build",
+			"description": "Build the project with no optimization and assertions enabled.",
+			"generator":   "Unix Makefiles",
+			"binaryDir":   "${sourceDir}/build",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name":        "release",
+			"displayName": "Release build",
+			"description": "Build the project with performance optimization and assertions stripped.",
+			"generator":   "Unix Makefiles",
+			"binaryDir":   "${sourceDir}/build",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+		{
+			"name":        "min-size-release",
+			"displayName": "Minimum size release build",
+			"description": "Build the project with size optimization and assertions stripped.",
+			"generator":   "Unix Makefiles",
+			"binaryDir":   "${sourceDir}/build",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "MinSizeRel"
+			}
+		}
+	]
+}

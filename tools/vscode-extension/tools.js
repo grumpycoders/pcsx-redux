@@ -288,6 +288,82 @@ async function installMake () {
   }
 }
 
+async function installCMake () {
+  switch (process.platform) {
+    case 'win32':
+      const release = await octokit.rest.repos.getLatestRelease({
+        owner: 'Kitware',
+        repo: 'CMake'
+      })
+      const asset = release.data.assets.find((asset) => {
+        return /^cmake-.*-windows-x86_64\.msi/.test(asset.name)
+      })
+      if (!asset) {
+        vscode.window.showErrorMessage(
+          'Could not find the latest CMake release. Please install it manually.'
+        )
+        return
+      }
+      const filename = path.join(
+        os.tmpdir(),
+        asset.browser_download_url.split('/').pop()
+      )
+      await downloader.downloadFile(asset.browser_download_url, filename)
+      await exec(`start ${filename}`)
+      requiresReboot = true
+      break
+    case 'linux':
+      try {
+        if (await checkInstalled('apt')) {
+          await terminal.run('sudo', ['apt', 'install', 'cmake'], {
+            message: 'Installing CMake requires root privileges.'
+          })
+        } else if (await checkInstalled('trizen')) {
+          await terminal.run('trizen', ['-S', 'cmake'])
+        } else if (await checkInstalled('brew')) {
+          await terminal.run('brew', ['install', 'cmake'])
+        } else {
+          vscode.window.showErrorMessage(
+            'Your Linux distribution is not supported. You need to install CMake manually. Alternatively, you can install linuxbrew, and refresh this panel.'
+          )
+          throw new Error('Unsupported platform')
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          'An error occurred while installing CMake. Please install it manually.'
+        )
+        throw error
+      }
+      break
+    case 'darwin':
+      try {
+        if (await checkInstalled('brew')) {
+          await terminal.run('brew', ['install', 'cmake'])
+        } else {
+          await terminal.run('/bin/bash', [
+            '-c',
+            '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'
+          ])
+          requiresReboot = true
+          vscode.window.showInformationMessage(
+            'Installing the Brew tool requires a reboot. Please reboot your computer before proceeding further.'
+          )
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          'An error occurred while installing CMake. Please install it manually. Alternatively, you can install linuxbrew, and refresh this panel.'
+        )
+        throw error
+      }
+      break
+    default:
+      vscode.window.showErrorMessage(
+        'Your platform is not supported by this extension. Please install CMake manually.'
+      )
+      throw new Error('Unsupported platform')
+  }
+}
+
 async function installGit () {
   switch (process.platform) {
     case 'win32': {
@@ -393,6 +469,14 @@ const tools = {
     install: installMake,
     check: () => checkSimpleCommand('make --version')
   },
+  cmake: {
+    type: 'package',
+    name: 'CMake',
+    description: 'A more advanced building tool for projects that require it',
+    homepage: 'https://cmake.org/',
+    install: installCMake,
+    check: () => checkSimpleCommand('cmake --version')
+  },
   git: {
     type: 'package',
     name: 'Git',
@@ -410,6 +494,15 @@ const tools = {
     homepage:
       'https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd',
     id: 'llvm-vs-code-extensions.vscode-clangd'
+  },
+  cmaketools: {
+    type: 'extension',
+    name: 'CMake Tools',
+    description:
+      'A VSCode extension providing support for configuring and building CMake-based projects',
+    homepage:
+      'https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools',
+    id: 'ms-vscode.cmake-tools'
   },
   debugger: {
     type: 'extension',
