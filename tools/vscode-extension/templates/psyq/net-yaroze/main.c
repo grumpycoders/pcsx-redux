@@ -21,8 +21,8 @@
 #include "main.h" // Prototypes and controller stuff
 
 /* 
-	Embedded data isn't required with Net Yaroze but used here for simplisity.
-	Normally data is loaded via a Siocons script into RAM locations and packaged as a sinle executable with yarexe. 
+	Embedded data isn't required with Net Yaroze but used here for simplicity.
+	Normally data is loaded via a Siocons script into RAM locations and packaged as a single executable with yarexe. 
 
 */
 #include "image.h" // contains yar8bit.tim as a char array.

@@ -68,7 +68,8 @@ class PSXDevPanel {
           case 'getTemplates':
             this._panel.webview.postMessage({
               command: 'templates',
-              templates: templates.list
+              templates: templates.list,
+              categories: templates.categories
             })
             break
           case 'refreshTools':

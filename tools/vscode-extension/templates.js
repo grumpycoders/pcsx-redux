@@ -268,42 +268,30 @@ const psyqTemplate = combine(baseNuggetTemplate, {
   ]
 })
 
-const netyarozeTemplate = combine(baseNuggetTemplate, {
+const netyarozeTemplate = combine(psyqTemplate, {
   files: [
     {
       name: '.vscode/c_cpp_properties.json',
       content: {
         configurations: [
           {
-			 includePath: [
-              '${workspaceFolder}/',
-              '${workspaceFolder}/third_party/psyq-iwyu/include',
+            includePath: [
               '${workspaceFolder}/third_party/net-yaroze/include'
             ],
             name: 'Win32'
           },
           {
-             includePath: [
-              '${workspaceFolder}/',
-              '${workspaceFolder}/third_party/psyq-iwyu/include',
+            includePath: [
               '${workspaceFolder}/third_party/net-yaroze/include'
             ],
             name: 'linux'
           }
         ]
       }
-    },
-    {
-      name: '.gitignore',
-      content: ['third_party/psyq']
     }
   ],
   modules: [
     {
-      name: 'third_party/psyq-iwyu',
-      url: 'https://github.com/johnbaumann/psyq_include_what_you_use.git'
-    },
-	 {
       name: 'third_party/net-yaroze',
       url: 'https://github.com/gwald/psyq_to_netyaroze.git'
     }
@@ -396,7 +384,7 @@ const templates = {
     name: 'Psy-Q Cube',
     category: 'Psy-Q SDK',
     description:
-      'A project showing a spinning cube using the Psy-Q SDK. Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.',
+      'A project showing a spinning cube using the Psy-Q SDK.',
     url: 'https://psx.arthus.net/sdk/Psy-Q/DOCS/',
     examples: 'https://github.com/ABelliqueux/nolibgs_hello_worlds',
     requiredTools: ['git', 'make', 'toolchain', 'psyq'],
@@ -422,7 +410,7 @@ const templates = {
     name: 'PSYQo Hello World',
     category: 'PSYQo SDK',
     description:
-      'A project simply displaying Hello World using the PSYQo SDK. The PSYQo library is a C++-20 MIT-licensed framework cleanly written from scratch, allowing you to write modern, readable code targeting the PlayStation 1, while still being efficient. Additionally, you will have access to the EASTL library, which is a BSD-3-Clause licensed implementation of the C++ Standard Template Library.',
+      'A project simply displaying Hello World using the PSYQo SDK.',
     url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
     examples:
       'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
@@ -443,11 +431,11 @@ const templates = {
       )
     }
   },
-   psyq_netyaroze: {
+  psyq_netyaroze: {
     name: 'Net Yaroze Sprite',
     category: 'Psy-Q SDK',
     description:
-      'A SCEE Net Yaroze tutorial showing 2D sprite movement, scaling and rotation using a subset of Psy-Q SDK (full compatibilty is still Work In Progress). Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.',
+      'A SCEE Net Yaroze tutorial showing 2D sprite movement, scaling and rotation using a subset of Psy-Q SDK (full compatibility is still Work In Progress).',
     url: 'https://github.com/gwald/psyq_to_netyaroze/',
     examples: 'https://github.com/gwald/netyaroze_demo',
     requiredTools: ['git', 'make', 'toolchain', 'psyq'],
@@ -458,7 +446,7 @@ const templates = {
         netyarozeTemplate,
         progressReporter
       )
-	  
+
       await copyTemplateDirectory(
         git,
         fullPath,
@@ -473,7 +461,17 @@ const templates = {
 }
 
 exports.list = templates
-
+exports.categories = {
+  'Bare metal': {
+    description: 'Bare metal projects. These examples are using little to no external dependencies to work.'
+  },
+  'Psy-Q SDK': {
+    description: 'Projects using the Psy-Q SDK. This SDK was the original one published by Sony to create software for the PlayStation 1. Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.'
+  },
+  'PSYQo SDK': {
+    description: 'Projects using the PSYQo SDK. The PSYQo library is a C++-20 MIT-licensed framework cleanly written from scratch, allowing you to write modern, readable code targeting the PlayStation 1, while still being efficient. Additionally, you will have access to the EASTL library, which is a BSD-3-Clause licensed implementation of the C++ Standard Template Library.'
+  }
+}
 exports.createProjectFromTemplate = async function (tools, options) {
   const fullPath = path.join(options.path, options.name)
   const template = templates[options.template]
