@@ -270,10 +270,10 @@ const baseCMakeTemplate = combine(baseTemplate, {
         configurations: [
           {
             name: 'Debug',
-            executable: '${workspaceRoot}/build/${workspaceRootFolderName}.elf',
+            executable: '${command:cmake.launchTargetPath}',
             autorun: [
               'monitor reset shellhalt',
-              'load build/${workspaceRootFolderName}.elf',
+              'load ${command:cmake.launchTargetPath}',
               'tbreak main',
               'continue'
             ]
@@ -285,7 +285,8 @@ const baseCMakeTemplate = combine(baseTemplate, {
       name: '.vscode/settings.json',
       type: 'json',
       content: {
-        'C_Cpp.default.configurationProvider': 'ms-vscode.cmake-tools'
+        'C_Cpp.default.configurationProvider': 'ms-vscode.cmake-tools',
+        'cmake.buildDirectory': '${workspaceFolder}/build'
       }
     },
     {
@@ -325,37 +326,34 @@ const baseCMakeTemplate = combine(baseTemplate, {
             label: 'Build Debug',
             type: 'cmake',
             command: 'build',
-            targets: ['all'],
+            preset: 'build',
             dependsOn: 'Configure Debug',
             group: {
               kind: 'build',
               isDefault: true
-            },
-            problemMatcher: ['$gcc']
+            }
           },
           {
             label: 'Build Release',
             type: 'cmake',
             command: 'build',
-            targets: ['all'],
+            preset: 'build',
             dependsOn: 'Configure Release',
             group: {
               kind: 'build',
               isDefault: true
-            },
-            problemMatcher: ['$gcc']
+            }
           },
           {
             label: 'Build Minimum Size Release',
             type: 'cmake',
             command: 'build',
-            targets: ['all'],
+            preset: 'build',
             dependsOn: 'Configure Minimum Size Release',
             group: {
               kind: 'build',
               isDefault: true
-            },
-            problemMatcher: ['$gcc']
+            }
           },
           {
             label: 'Clean',
@@ -508,10 +506,6 @@ async function createGitRepository (fullPath, template, progressReporter) {
   await fs.mkdirp(fullPath)
   const git = simpleGit(fullPath)
   await git.init()
-  await fs.copy(
-    path.join(extensionUri.fsPath, 'templates', 'common', 'PSX.Dev-README.md'),
-    path.join(fullPath, 'PSX.Dev-README.md')
-  )
   if (template.files) {
     for (const file of template.files) {
       await fs.mkdirp(path.join(fullPath, path.dirname(file.name)))
@@ -537,24 +531,33 @@ async function createGitRepository (fullPath, template, progressReporter) {
   return git
 }
 
-async function copyTemplateDirectory (git, fullPath, name, template, data) {
-  const files = await fs.readdir(template)
-  for (const file of files) {
-    const filePath = path.join(template, file)
-    const stats = await fs.stat(filePath)
-    if (stats.isFile()) {
-      const content = await fs.readFile(filePath, 'utf8')
-      const rendered = Mustache.render(content, data)
-      await fs.writeFile(path.join(fullPath, file), rendered)
-      await git.add(path.join(fullPath, file))
-    } else if (stats.isDirectory()) {
-      await fs.mkdirp(path.join(fullPath, file))
-      await copyTemplateDirectory(
-        git,
-        path.join(fullPath, file),
-        name,
-        filePath
-      )
+async function copyTemplateDirectory (git, fullPath, name, templates, data) {
+  const ignoredFiles = [
+    'PSX.Dev-README.md'
+  ]
+
+  for (const template of templates) {
+    const files = await fs.readdir(template)
+    for (const file of files) {
+      const filePath = path.join(template, file)
+      const stats = await fs.stat(filePath)
+      if (stats.isFile()) {
+        const content = await fs.readFile(filePath, 'utf8')
+        const rendered = Mustache.render(content, data)
+        await fs.writeFile(path.join(fullPath, file), rendered)
+        if (!ignoredFiles.includes(file)) {
+          await git.add(path.join(fullPath, file))
+        }
+      } else if (stats.isDirectory()) {
+        await fs.mkdirp(path.join(fullPath, file))
+        await copyTemplateDirectory(
+          git,
+          path.join(fullPath, file),
+          name,
+          [filePath],
+          data
+        )
+      }
     }
   }
 }
@@ -579,8 +582,11 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty-nugget'),
-        { projectName: name }
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty-nugget')
+        ],
+        { projectName: name, isCMake: false }
       )
     }
   },
@@ -591,7 +597,7 @@ const templates = {
       'An empty project, with just the barebone setup to get started using a CMake-based build system.',
     url: 'https://github.com/spicyjpeg/ps1-bare-metal',
     examples: 'https://github.com/spicyjpeg/ps1-bare-metal/blob/main/README.md',
-    requiredTools: ['git', 'make', 'cmake', 'toolchain'],
+    requiredTools: ['git', 'make', 'cmake', 'cmaketools', 'python', 'toolchain'],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: async function (fullPath, name, progressReporter) {
       const git = await createGitRepository(
@@ -603,8 +609,11 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty-cmake'),
-        { projectName: name }
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty-cmake')
+        ],
+        { projectName: name, isCMake: true }
       )
     }
   },
@@ -627,8 +636,11 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'psyq', 'cube'),
-        { projectName: name }
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyq', 'cube')
+        ],
+        { projectName: name, isCMake: false }
       )
       progressReporter.report({ message: 'Unpacking psyq...' })
       await tools.psyq.unpack(path.join(fullPath, 'third_party', 'psyq'))
@@ -654,8 +666,11 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'psyqo', 'hello'),
-        { projectName: name }
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyqo', 'hello')
+        ],
+        { projectName: name, isCMake: false }
       )
     }
   },
@@ -679,8 +694,11 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'psyq', 'net-yaroze'),
-        { projectName: name }
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyq', 'net-yaroze')
+        ],
+        { projectName: name, isCMake: false }
       )
       progressReporter.report({ message: 'Unpacking Net Yaroze...' })
       await tools.psyq.unpack(path.join(fullPath, 'third_party', 'psyq'))

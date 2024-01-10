@@ -403,6 +403,80 @@ async function installGit () {
   }
 }
 
+async function installPython () {
+  switch (process.platform) {
+    case 'win32':
+      const tags = await octokit.rest.repos.listTags({
+        owner: 'python',
+        repo: 'cpython'
+      })
+      let latestVersion = [3, 12, 0]
+      for (const release of tags.data) {
+        const match = /v(3)\.([0-9]+)\.([0-9]+)$/.exec(release.name)
+        if (!match) {
+          continue
+        }
+        const version = match.slice(1).map((value) => parseInt(value))
+        if (version > latestVersion) {
+          latestVersion = version
+        }
+      }
+      const versionStr = latestVersion.join('.')
+      const url = `https://python.org/ftp/python/${versionStr}/python-${versionStr}-amd64.exe`
+      const filename = path.join(
+        os.tmpdir(),
+        url.split('/').pop()
+      )
+      await downloader.downloadFile(url, filename)
+      await exec(filename)
+      requiresReboot = true
+      break
+    case 'linux':
+      try {
+        if (await checkInstalled('apt')) {
+          await terminal.run('sudo', ['apt', 'install', 'python3'], {
+            message: 'Installing Python requires root privileges.'
+          })
+        } else if (await checkInstalled('brew')) {
+          await terminal.run('brew', ['install', 'python@3.12'])
+        } else {
+          vscode.window.showErrorMessage(
+            'Your Linux distribution is not supported. You need to install Python manually. Alternatively, you can install linuxbrew, and refresh this panel.'
+          )
+          throw new Error('Unsupported platform')
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          'An error occurred while installing Python. Please install it manually. Alternatively, you can install linuxbrew, and refresh this panel.'
+        )
+        throw error
+      }
+      break
+    default:
+      vscode.window.showErrorMessage(
+        'Your platform is not supported by this extension. Please install Python manually.'
+      )
+      throw new Error('Unsupported platform')
+  }
+}
+
+function checkPython () {
+  switch (process.platform) {
+    case 'win32':
+      // On Windows "python" and "python3" are aliased to a script that opens
+      // the Microsoft Store by default, so we must check for the "py" launcher
+      // provided by the official installers instead.
+      // TODO: try to detect other Python installations that do not come with
+      // the py launcher (e.g. ones from MSys2)
+      return checkSimpleCommand('py -3 --version')
+    default:
+      return Promise.any([
+        exec('python --version'),
+        exec('python3 --version')
+      ])
+  }
+}
+
 function unpackPsyq (destination) {
   const filename = vscode.Uri.joinPath(
     globalStorageUri,
@@ -486,6 +560,15 @@ const tools = {
     install: installGit,
     check: () => checkSimpleCommand('git --version')
   },
+  python: {
+    type: 'package',
+    name: 'Python',
+    description:
+      'Python language runtime, required to run some project templates\' scripts',
+    homepage: 'https://python.org/',
+    install: installPython,
+    check: checkPython
+  },
   clangd: {
     type: 'extension',
     name: 'clangd',
@@ -497,7 +580,7 @@ const tools = {
   },
   cmaketools: {
     type: 'extension',
-    name: 'CMake Tools',
+    name: 'CMake Tools extension',
     description:
       'A VSCode extension providing support for configuring and building CMake-based projects',
     homepage:

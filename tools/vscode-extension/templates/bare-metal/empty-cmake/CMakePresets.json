@@ -36,5 +36,13 @@
 				"CMAKE_BUILD_TYPE": "MinSizeRel"
 			}
 		}
+	],
+	"buildPresets": [
+		{
+			"name":            "build",
+			"displayName":     "Build",
+			"description":     "Run the build from the default build directory.",
+			"configurePreset": "debug"
+		}
 	]
 }
