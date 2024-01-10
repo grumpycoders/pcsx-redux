@@ -107,7 +107,9 @@ const baseTemplate = {
             defines: ['__STDC_HOSTED__ = 0'],
             includePath: [
               '/usr/mipsel-linux-gnu/include',
-              '/usr/mipsel-none-elf/include'
+              '/usr/local/mipsel-linux-gnu/include',
+              '/usr/mipsel-none-elf/include',
+              '/usr/local/mipsel-none-elf/include'
             ],
             intelliSenseMode: 'gcc-x86',
             name: 'linux'
@@ -270,10 +272,10 @@ const baseCMakeTemplate = combine(baseTemplate, {
         configurations: [
           {
             name: 'Debug',
-            executable: '${command:cmake.launchTargetPath}',
+            executable: '${workspaceRoot}/build/${workspaceRootFolderName}.elf',
             autorun: [
               'monitor reset shellhalt',
-              'load ${command:cmake.launchTargetPath}',
+              'load build/${workspaceRootFolderName}.elf',
               'tbreak main',
               'continue'
             ]
@@ -532,6 +534,9 @@ async function createGitRepository (fullPath, template, progressReporter) {
 }
 
 async function copyTemplateDirectory (git, fullPath, name, templates, data) {
+  const binaryExtensions = [
+    '.bin', '.dat', '.png', '.tim'
+  ]
   const ignoredFiles = [
     'PSX.Dev-README.md'
   ]
@@ -539,22 +544,27 @@ async function copyTemplateDirectory (git, fullPath, name, templates, data) {
   for (const template of templates) {
     const files = await fs.readdir(template)
     for (const file of files) {
-      const filePath = path.join(template, file)
-      const stats = await fs.stat(filePath)
+      const sourcePath = path.join(template, file)
+      const destPath = path.join(fullPath, file)
+      const stats = await fs.stat(sourcePath)
       if (stats.isFile()) {
-        const content = await fs.readFile(filePath, 'utf8')
-        const rendered = Mustache.render(content, data)
-        await fs.writeFile(path.join(fullPath, file), rendered)
+        if (!binaryExtensions.includes(path.extname(file))) {
+          const content = await fs.readFile(sourcePath, 'utf8')
+          const rendered = Mustache.render(content, data)
+          await fs.writeFile(destPath, rendered)
+        } else {
+          await fs.copyFile(sourcePath, destPath)
+        }
         if (!ignoredFiles.includes(file)) {
-          await git.add(path.join(fullPath, file))
+          await git.add(destPath)
         }
       } else if (stats.isDirectory()) {
-        await fs.mkdirp(path.join(fullPath, file))
+        await fs.mkdirp(destPath)
         await copyTemplateDirectory(
           git,
-          path.join(fullPath, file),
+          destPath,
           name,
-          [filePath],
+          [sourcePath],
           data
         )
       }
@@ -563,7 +573,7 @@ async function copyTemplateDirectory (git, fullPath, name, templates, data) {
 }
 
 const templates = {
-  empty_nugget: {
+  nugget_empty: {
     name: 'Empty (Nugget)',
     category: 'Bare metal',
     description:
@@ -590,7 +600,7 @@ const templates = {
       )
     }
   },
-  empty_cmake: {
+  cmake_empty: {
     name: 'Empty (CMake)',
     category: 'Bare metal',
     description:
@@ -612,6 +622,33 @@ const templates = {
         [
           path.join(extensionUri.fsPath, 'templates', 'common'),
           path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty-cmake')
+        ],
+        { projectName: name, isCMake: true }
+      )
+    }
+  },
+  cmake_cube: {
+    name: 'Cube (CMake)',
+    category: 'Bare metal',
+    description:
+      'A project showing a spinning cube using a CMake-based build system. Includes a minimal GPU and font library.',
+    url: 'https://github.com/spicyjpeg/ps1-bare-metal',
+    examples: 'https://github.com/spicyjpeg/ps1-bare-metal/blob/main/README.md',
+    requiredTools: ['git', 'make', 'cmake', 'cmaketools', 'python', 'toolchain'],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter) {
+      const git = await createGitRepository(
+        fullPath,
+        bareMetalCMakeTemplate,
+        progressReporter
+      )
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'cmake-cube')
         ],
         { projectName: name, isCMake: true }
       )
