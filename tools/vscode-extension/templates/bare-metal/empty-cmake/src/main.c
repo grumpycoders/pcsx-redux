@@ -14,14 +14,14 @@
 #define BIOS_API_TABLE ((void **) 0x80000200)
 
 int main(int argc, const char **argv) {
-	int (*kernelPrintf)(const char *, ...) =
-		(int (*)(const char *, ...)) BIOS_API_TABLE[0x3f];
+    int (*kernelPrintf)(const char *, ...) =
+        (int (*)(const char *, ...)) BIOS_API_TABLE[0x3f];
 
-	for (;;)
-		kernelPrintf("Hello world!\n");
+    for (;;)
+        kernelPrintf("Hello world!\n");
 
-	// We're not actually going to return. Unless a loader was used to launch
-	// the program, returning from main() would crash the console as there would
-	// be nothing to return to.
-	return 0;
+    // We're not actually going to return. Unless a loader was used to launch
+    // the program, returning from main() would crash the console as there would
+    // be nothing to return to.
+    return 0;
 }

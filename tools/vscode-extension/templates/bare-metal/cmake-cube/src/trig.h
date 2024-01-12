@@ -14,10 +14,10 @@ int isin(int x);
 int isin2(int x);
 
 static inline int icos(int x) {
-	return isin(x + (1 << ISIN_SHIFT));
+    return isin(x + (1 << ISIN_SHIFT));
 }
 static inline int icos2(int x) {
-	return isin2(x + (1 << ISIN2_SHIFT));
+    return isin2(x + (1 << ISIN2_SHIFT));
 }
 
 #ifdef __cplusplus

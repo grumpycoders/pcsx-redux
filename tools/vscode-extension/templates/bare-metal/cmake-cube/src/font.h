@@ -10,7 +10,7 @@
 #define FONT_LINE_HEIGHT      10
 
 typedef struct {
-	uint8_t x, y, width, height;
+    uint8_t x, y, width, height;
 } SpriteInfo;
 
 #ifdef __cplusplus
@@ -18,8 +18,8 @@ extern "C" {
 #endif
 
 void printString(
-	DMAChain *chain, const TextureInfo *font, int x, int y, int zIndex,
-	const char *str
+    DMAChain *chain, const TextureInfo *font, int x, int y, int zIndex,
+    const char *str
 );
 
 #ifdef __cplusplus
