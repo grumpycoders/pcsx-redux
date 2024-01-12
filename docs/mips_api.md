@@ -7,6 +7,7 @@ PCSX-Redux has a special API that mips binaries can use :
 ```cpp
 static __inline__ void pcsx_putc(int c) { *((volatile char* const)0x1f802080) = c; }
 static __inline__ void pcsx_debugbreak() { *((volatile char* const)0x1f802081) = 0; }
+static __inline__ void pcsx_execSlot(uint8_t slot) { *((volatile uint8_t* const)0x1f802081) = slot; }
 static __inline__ void pcsx_exit(int code) { *((volatile int16_t* const)0x1f802082) = code; }
 static __inline__ void pcsx_message(const char* msg) { *((volatile char** const)0x1f802084) = msg; }
 
@@ -40,7 +41,8 @@ The following functions are available :
 | Function | Usage |
 | :- | :- | 
 |`pcsx_putc(int c)` | Print ASCII character with code `c` to console/stdout. | 
-|`pcsx_debugbreak()` | Break execution (Pause emulation). | 
+|`pcsx_debugbreak()` | Break execution (Pause emulation). |
+|`pcsx_execSlot(uint8_t slot)` | Executes Lua function at `PCSX.execSlots[slot]`. |
 |`pcsx_exit(int code)` | Exit emulator and forward `code` as exit code. | 
 |`pcsx_message(const char* msg)` | Create a UI dialog displaying `msg` | 
 |`pcsx_present()` | Returns 1 if code is running in PCSX-Redux |
