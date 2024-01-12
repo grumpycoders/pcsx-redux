@@ -90,11 +90,19 @@ import {
           }
           for (const [category, templateKeys] of Object.entries(categories)) {
             const panel = document.createElement('vscode-panel-view')
+            const panelDiv = document.createElement('div')
+            panelDiv.className = 'templatespanel'
+            if (message.categories[category] !== undefined) {
+              const categoryDescription = document.createElement('h3')
+              categoryDescription.textContent =
+                message.categories[category].description
+              panelDiv.appendChild(categoryDescription)
+            }
             for (const key of templateKeys) {
               const template = templates[key]
               const templateDiv = document.createElement('div')
               templateDiv.className = 'template'
-              const templateName = document.createElement('h3')
+              const templateName = document.createElement('h2')
               templateName.textContent = template.name
               templateDiv.appendChild(templateName)
               const templateDescription = document.createElement('p')
@@ -176,8 +184,9 @@ import {
               templateDiv.appendChild(templateCreate)
               const hr = document.createElement('hr')
               templateDiv.appendChild(hr)
-              panel.appendChild(templateDiv)
+              panelDiv.appendChild(templateDiv)
             }
+            panel.appendChild(panelDiv)
             panels.appendChild(panel)
           }
           templatesDiv.appendChild(panels)
