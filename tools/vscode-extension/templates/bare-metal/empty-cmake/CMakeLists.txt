@@ -18,7 +18,7 @@ project(
 
 # Locate a working Python installation in order to run the scripts in the tools
 # directory.
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
 
 # Build a "common" library containing basic support code. We are going to link
 # this library into our executable.
@@ -55,7 +55,8 @@ add_custom_command(
     TARGET     {{projectName}} POST_BUILD
     BYPRODUCTS {{projectName}}.psexe
     COMMAND
-        "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/ps1-bare-metal/tools/convertExecutable.py"
+        "${Python3_EXECUTABLE}"
+        "${PROJECT_SOURCE_DIR}/ps1-bare-metal/tools/convertExecutable.py"
         "$<TARGET_FILE:{{projectName}}>" {{projectName}}.psexe
     VERBATIM
 )

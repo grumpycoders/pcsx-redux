@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "font.h"
 #include "gpu.h"
+#include "ps1/gpucmd.h"
 
 static const SpriteInfo fontSprites[] = {
     { .x =  6, .y =  0, .width = 2, .height = 9 }, // !

@@ -12,7 +12,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include "font.h"
 #include "gpu.h"
 #include "ps1/cop0gte.h"

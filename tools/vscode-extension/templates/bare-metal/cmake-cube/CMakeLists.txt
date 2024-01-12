@@ -18,7 +18,7 @@ project(
 
 # Locate a working Python installation in order to run the scripts in the tools
 # directory.
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
 
 # Build a "common" library containing basic support code. We are going to link
 # this library into our executable.
@@ -41,7 +41,7 @@ target_include_directories(
 
 # Define a helper function to embed the contents of a file into the executable.
 function(addBinaryFile target name path)
-    set(_file "${PROJECT_BINARY_DIR}/${target}_${name}.s")
+    set(_file "${PROJECT_BINARY_DIR}/includes/${target}_${name}.s")
     cmake_path(ABSOLUTE_PATH path OUTPUT_VARIABLE _path)
 
     # Generate an assembly listing that uses the .incbin directive to embed the
@@ -62,7 +62,7 @@ function(addBinaryFile target name path)
 ${name}:
     .incbin "${_path}"
 ${name}_end:
-        ]]
+]]
         ESCAPE_QUOTES
         NEWLINE_STYLE LF
     )
@@ -93,7 +93,8 @@ add_custom_command(
     TARGET     {{projectName}} POST_BUILD
     BYPRODUCTS {{projectName}}.psexe
     COMMAND
-        "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/ps1-bare-metal/tools/convertExecutable.py"
+        "${Python3_EXECUTABLE}"
+        "${PROJECT_SOURCE_DIR}/ps1-bare-metal/tools/convertExecutable.py"
         "$<TARGET_FILE:{{projectName}}>" {{projectName}}.psexe
     VERBATIM
 )
