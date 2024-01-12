@@ -42,7 +42,7 @@ The following functions are available :
 | :- | :- | 
 |`pcsx_putc(int c)` | Print ASCII character with code `c` to console/stdout. | 
 |`pcsx_debugbreak()` | Break execution (Pause emulation). |
-|`pcsx_execSlot(uint8_t slot)` | Executes Lua function at `PCSX.execSlots[slot]`. |
+|`pcsx_execSlot(uint8_t slot)` | Executes Lua function at `PCSX.execSlots[slot]`. The `slot` value can be between 1 and 255. If no Lua function exists within a slot, then this behaves the same as `pcsx_debugbreak()`. |
 |`pcsx_exit(int code)` | Exit emulator and forward `code` as exit code. | 
 |`pcsx_message(const char* msg)` | Create a UI dialog displaying `msg` | 
 |`pcsx_present()` | Returns 1 if code is running in PCSX-Redux |
