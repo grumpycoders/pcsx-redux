@@ -596,6 +596,15 @@ const tools = {
       'https://marketplace.visualstudio.com/items?itemName=webfreak.debug',
     id: 'webfreak.debug'
   },
+  mipsassembly: {
+    type: 'extension',
+    name: 'MIPS assembly extension',
+    description:
+      'A VSCode extension that provides syntax highlighting for MIPS assembly code',
+    homepage:
+      'https://marketplace.visualstudio.com/items?itemName=kdarkhan.mips',
+    id: 'kdarkhan.mips'
+  },
   psyq: {
     type: 'archive',
     name: 'Psy-Q SDK',
