@@ -94,9 +94,7 @@ const baseTemplate = {
             cStandard: 'c17',
             cppStandard: 'c++20',
             defines: ['__STDC_HOSTED__ = 0'],
-            includePath: [
-              '${env:AppData}/mips/mips/include'
-            ],
+            includePath: ['${env:AppData}/mips/mips/include'],
             intelliSenseMode: 'gcc-x86',
             name: 'Win32'
           },
@@ -143,6 +141,11 @@ const baseTemplate = {
           }
         ]
       }
+    },
+    {
+      name: '.gitignore',
+      type: 'textarray',
+      content: ['PSX.Dev-README.md']
     }
   ]
 }
@@ -226,17 +229,7 @@ const baseNuggetTemplate = combine(baseTemplate, {
     },
     {
       name: '.gitignore',
-      type: 'textarray',
-      content: [
-        '*.elf',
-        '*.map',
-        '*.cpe',
-        '*.ps-exe',
-        '*.dep',
-        '*.o',
-        '*.a',
-        'PSX.Dev-README.md'
-      ]
+      content: ['*.elf', '*.map', '*.cpe', '*.ps-exe', '*.dep', '*.o', '*.a']
     }
   ],
   modules: [
@@ -370,15 +363,13 @@ const baseCMakeTemplate = combine(baseTemplate, {
     },
     {
       name: '.gitignore',
-      type: 'textarray',
       content: [
         'build/',
         '.cache/',
         '__pycache__/',
         '*.pyc',
         '*.pyo',
-        'CMakeUserPresets.json',
-        'PSX.Dev-README.md'
+        'CMakeUserPresets.json'
       ]
     }
   ]
@@ -479,15 +470,11 @@ const netyarozeTemplate = combine(psyqTemplate, {
       content: {
         configurations: [
           {
-            includePath: [
-              '${workspaceFolder}/third_party/net-yaroze/include'
-            ],
+            includePath: ['${workspaceFolder}/third_party/net-yaroze/include'],
             name: 'Win32'
           },
           {
-            includePath: [
-              '${workspaceFolder}/third_party/net-yaroze/include'
-            ],
+            includePath: ['${workspaceFolder}/third_party/net-yaroze/include'],
             name: 'linux'
           }
         ]
@@ -528,18 +515,15 @@ async function createGitRepository (fullPath, template, progressReporter) {
       await fs.mkdirp(path.join(fullPath, path.dirname(module.name)))
       await git.submoduleAdd(module.url, module.name)
     }
+    git.submoduleUpdate({ '--init': null, '--recursive': null })
   }
 
   return git
 }
 
 async function copyTemplateDirectory (git, fullPath, name, templates, data) {
-  const binaryExtensions = [
-    '.bin', '.dat', '.png', '.tim'
-  ]
-  const ignoredFiles = [
-    'PSX.Dev-README.md'
-  ]
+  const binaryExtensions = ['.bin', '.dat', '.png', '.tim']
+  const ignoredFiles = ['PSX.Dev-README.md']
 
   for (const template of templates) {
     const files = await fs.readdir(template)
@@ -560,13 +544,7 @@ async function copyTemplateDirectory (git, fullPath, name, templates, data) {
         }
       } else if (stats.isDirectory()) {
         await fs.mkdirp(destPath)
-        await copyTemplateDirectory(
-          git,
-          destPath,
-          name,
-          [sourcePath],
-          data
-        )
+        await copyTemplateDirectory(git, destPath, name, [sourcePath], data)
       }
     }
   }
@@ -594,7 +572,12 @@ const templates = {
         name,
         [
           path.join(extensionUri.fsPath, 'templates', 'common'),
-          path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty-nugget')
+          path.join(
+            extensionUri.fsPath,
+            'templates',
+            'bare-metal',
+            'empty-nugget'
+          )
         ],
         { projectName: name, isCMake: false }
       )
@@ -607,7 +590,14 @@ const templates = {
       'An empty project, with just the barebone setup to get started using a CMake-based build system.',
     url: 'https://github.com/spicyjpeg/ps1-bare-metal',
     examples: 'https://github.com/spicyjpeg/ps1-bare-metal/blob/main/README.md',
-    requiredTools: ['git', 'make', 'cmake', 'cmaketools', 'python', 'toolchain'],
+    requiredTools: [
+      'git',
+      'make',
+      'cmake',
+      'cmaketools',
+      'python',
+      'toolchain'
+    ],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: async function (fullPath, name, progressReporter) {
       const git = await createGitRepository(
@@ -621,7 +611,12 @@ const templates = {
         name,
         [
           path.join(extensionUri.fsPath, 'templates', 'common'),
-          path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty-cmake')
+          path.join(
+            extensionUri.fsPath,
+            'templates',
+            'bare-metal',
+            'empty-cmake'
+          )
         ],
         { projectName: name, isCMake: true }
       )
@@ -634,7 +629,14 @@ const templates = {
       'A project showing a spinning cube using a CMake-based build system. Includes a minimal GPU and font library.',
     url: 'https://github.com/spicyjpeg/ps1-bare-metal',
     examples: 'https://github.com/spicyjpeg/ps1-bare-metal/blob/main/README.md',
-    requiredTools: ['git', 'make', 'cmake', 'cmaketools', 'python', 'toolchain'],
+    requiredTools: [
+      'git',
+      'make',
+      'cmake',
+      'cmaketools',
+      'python',
+      'toolchain'
+    ],
     recommendedTools: ['gdb', 'debugger', 'redux'],
     create: async function (fullPath, name, progressReporter) {
       const git = await createGitRepository(
@@ -648,7 +650,12 @@ const templates = {
         name,
         [
           path.join(extensionUri.fsPath, 'templates', 'common'),
-          path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'cmake-cube')
+          path.join(
+            extensionUri.fsPath,
+            'templates',
+            'bare-metal',
+            'cmake-cube'
+          )
         ],
         { projectName: name, isCMake: true }
       )
@@ -657,8 +664,7 @@ const templates = {
   psyq_cube: {
     name: 'Psy-Q Cube',
     category: 'Psy-Q SDK',
-    description:
-      'A project showing a spinning cube using the Psy-Q SDK.',
+    description: 'A project showing a spinning cube using the Psy-Q SDK.',
     url: 'https://psx.arthus.net/sdk/Psy-Q/DOCS/',
     examples: 'https://github.com/ABelliqueux/nolibgs_hello_worlds',
     requiredTools: ['git', 'make', 'toolchain', 'psyq'],
@@ -686,8 +692,7 @@ const templates = {
   psyqo_hello: {
     name: 'PSYQo Hello World',
     category: 'PSYQo SDK',
-    description:
-      'A project simply displaying Hello World using the PSYQo SDK.',
+    description: 'A project simply displaying Hello World using the PSYQo SDK.',
     url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
     examples:
       'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
@@ -746,13 +751,16 @@ const templates = {
 exports.list = templates
 exports.categories = {
   'Bare metal': {
-    description: 'Bare metal projects. These examples are using little to no external dependencies to work.'
+    description:
+      'Bare metal projects. These examples are using little to no external dependencies to work.'
   },
   'Psy-Q SDK': {
-    description: 'Projects using the Psy-Q SDK. This SDK was the original one published by Sony to create software for the PlayStation 1. Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.'
+    description:
+      'Projects using the Psy-Q SDK. This SDK was the original one published by Sony to create software for the PlayStation 1. Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.'
   },
   'PSYQo SDK': {
-    description: 'Projects using the PSYQo SDK. The PSYQo library is a C++-20 MIT-licensed framework cleanly written from scratch, allowing you to write modern, readable code targeting the PlayStation 1, while still being efficient. Additionally, you will have access to the EASTL library, which is a BSD-3-Clause licensed implementation of the C++ Standard Template Library.'
+    description:
+      'Projects using the PSYQo SDK. The PSYQo library is a C++-20 MIT-licensed framework cleanly written from scratch, allowing you to write modern, readable code targeting the PlayStation 1, while still being efficient. Additionally, you will have access to the EASTL library, which is a BSD-3-Clause licensed implementation of the C++ Standard Template Library.'
   }
 }
 exports.createProjectFromTemplate = async function (tools, options) {
