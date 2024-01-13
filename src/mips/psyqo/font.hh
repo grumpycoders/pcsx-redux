@@ -30,6 +30,7 @@ SOFTWARE.
 #include <EASTL/functional.h>
 #include <EASTL/string_view.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 #include "psyqo/fragments.hh"
 #include "psyqo/gpu.hh"
@@ -50,7 +51,8 @@ class Font;
  * to VRAM before use. It is expected to be a 4bpp texture, 256 pixels wide. While the location and size are
  * user-defined, it is the user's responsibility to ensure that the font properly fits in a texture page. It should be
  * in ASCII order, with the first character being ASCII 0x20 (space), which has to be completely transparent. Even
- * though the font is 4bpp, the system is expecting it to be really only 1bpp, with the other 3 bits being unused.
+ * though the font is 4bpp, it really should be monochrome, with the color being set by the color parameter of the
+ * various print methods.
  */
 class FontBase {
   public:
@@ -61,9 +63,24 @@ class FontBase {
      *
      * @details This method uploads the built-in system font to VRAM, and initializes the object.
      * There is no need to call this method if you are using your own font. Also, when using this
-     * method, you should not call initialize() afterwards.
+     * method, you should not call initialize() afterwards. The footprint for this font is 877 bytes
+     * of read-only data, and a 256x48x4bpp texture. It is a 8x16 clean and simple ASCII font called
+     * mig68000, available for free with attribution, made by Zingot Games. See
+     * https://www.zingot.com/ and https://zingot.itch.io/fontpack
      */
     void uploadSystemFont(GPU& gpu, Vertex location = {{.x = 960, .y = 464}});
+
+    /**
+     * @brief Uploads the Kernel rom font to VRAM, and initializes the object.
+     *
+     * @details This method uploads the built-in Kernel rom font to VRAM, and initializes the object.
+     * There is no need to call this method if you are using your own font. Also, when using this
+     * method, you should not call initialize() afterwards. The Kernel rom font is a 16x15 font created
+     * by Sony, and built into the PSX rom chip. Its appearance is variable, depending on the version
+     * of the PSX bios. It may not be available on all PSX models. The footprint for this font is 192
+     * bytes of read-only data, and a 256x90x4bpp texture.
+     */
+    void uploadKromFont(GPU& gpu, Vertex location = {{.x = 960, .y = 422}});
 
     /**
      * @brief Unpacks and uploads a font to VRAM.
