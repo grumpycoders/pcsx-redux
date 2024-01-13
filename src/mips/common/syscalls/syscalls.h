@@ -476,6 +476,12 @@ static __attribute__((always_inline)) void syscall_mcAllowNewCard() {
     ((void (*)())0xb0)();
 }
 
+static __attribute__((always_inline)) const uint8_t *syscall_Krom2RawAdd(uint32_t c) {
+    register int n asm("t1") = 0x51;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((uint8_t *(*)(uint32_t))0xb0)(c);
+}
+
 static __attribute__((always_inline)) int syscall_mcGetLastDevice() {
     register int n asm("t1") = 0x58;
     __asm__ volatile("" : "=r"(n) : "r"(n));
