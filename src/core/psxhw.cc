@@ -464,8 +464,7 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
                 if (L.isfunction()) {
                     try {
                         L.pcall();
-                    }
-                    catch(...) {
+                    } catch (...) {
                         g_system->pause();
                     }
                 } else {
