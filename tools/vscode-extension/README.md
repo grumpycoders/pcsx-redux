@@ -19,6 +19,10 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.3.4
+  - Added CMake bare-metal templates.
+  - Added support for detecting and installing CMake and Python.
+  - Added the CMake Tools and MIPS Assembly extensions.
 - 0.3.3
   - Adding Net Yaroze template.
   - Refactored the template panel page a bit.

@@ -81,7 +81,7 @@ function combine (a, b) {
 }
 
 /* eslint-disable no-template-curly-in-string */
-const baseNuggetTemplate = {
+const baseTemplate = {
   files: [
     {
       name: '.vscode/c_cpp_properties.json',
@@ -94,11 +94,7 @@ const baseNuggetTemplate = {
             cStandard: 'c17',
             cppStandard: 'c++20',
             defines: ['__STDC_HOSTED__ = 0'],
-            includePath: [
-              '${workspaceFolder}/',
-              '${workspaceFolder}/third_party/nugget',
-              '${env:AppData}/mips/mips/include'
-            ],
+            includePath: ['${env:AppData}/mips/mips/include'],
             intelliSenseMode: 'gcc-x86',
             name: 'Win32'
           },
@@ -108,9 +104,10 @@ const baseNuggetTemplate = {
             cppStandard: 'c++20',
             defines: ['__STDC_HOSTED__ = 0'],
             includePath: [
-              '${workspaceFolder}/',
-              '${workspaceFolder}/third_party/nugget',
-              '/usr/mipsel-linux-gnu/include'
+              '/usr/mipsel-linux-gnu/include',
+              '/usr/local/mipsel-linux-gnu/include',
+              '/usr/mipsel-none-elf/include',
+              '/usr/local/mipsel-none-elf/include'
             ],
             intelliSenseMode: 'gcc-x86',
             name: 'linux'
@@ -133,7 +130,6 @@ const baseNuggetTemplate = {
             remote: true,
             cwd: '${workspaceRoot}',
             valuesFormatting: 'parseText',
-            executable: '${workspaceRoot}/${workspaceRootFolderName}.elf',
             stopAtConnect: true,
             gdbpath: 'gdb-multiarch',
             windows: {
@@ -141,7 +137,49 @@ const baseNuggetTemplate = {
             },
             osx: {
               gdbpath: 'gdb'
-            },
+            }
+          }
+        ]
+      }
+    },
+    {
+      name: '.gitignore',
+      type: 'textarray',
+      content: ['PSX.Dev-README.md']
+    }
+  ]
+}
+
+const baseNuggetTemplate = combine(baseTemplate, {
+  files: [
+    {
+      name: '.vscode/c_cpp_properties.json',
+      content: {
+        configurations: [
+          {
+            includePath: [
+              '${workspaceFolder}/',
+              '${workspaceFolder}/third_party/nugget'
+            ],
+            name: 'Win32'
+          },
+          {
+            includePath: [
+              '${workspaceFolder}/',
+              '${workspaceFolder}/third_party/nugget'
+            ],
+            name: 'linux'
+          }
+        ]
+      }
+    },
+    {
+      name: '.vscode/launch.json',
+      content: {
+        configurations: [
+          {
+            name: 'Debug',
+            executable: '${workspaceRoot}/${workspaceRootFolderName}.elf',
             autorun: [
               'monitor reset shellhalt',
               'load ${workspaceRootFolderName}.elf',
@@ -191,17 +229,7 @@ const baseNuggetTemplate = {
     },
     {
       name: '.gitignore',
-      type: 'textarray',
-      content: [
-        '*.elf',
-        '*.map',
-        '*.cpe',
-        '*.ps-exe',
-        '*.dep',
-        '*.o',
-        '*.a',
-        'PSX.Dev-README.md'
-      ]
+      content: ['*.elf', '*.map', '*.cpe', '*.ps-exe', '*.dep', '*.o', '*.a']
     }
   ],
   modules: [
@@ -210,7 +238,174 @@ const baseNuggetTemplate = {
       url: 'https://github.com/pcsx-redux/nugget.git'
     }
   ]
-}
+})
+
+const baseCMakeTemplate = combine(baseTemplate, {
+  files: [
+    {
+      name: '.vscode/c_cpp_properties.json',
+      content: {
+        configurations: [
+          {
+            configurationProvider: 'ms-vscode.cmake-tools',
+            includePath: ['${workspaceFolder}/src'],
+            name: 'Win32'
+          },
+          {
+            configurationProvider: 'ms-vscode.cmake-tools',
+            includePath: ['${workspaceFolder}/src'],
+            name: 'linux'
+          }
+        ]
+      }
+    },
+    {
+      name: '.vscode/launch.json',
+      content: {
+        configurations: [
+          {
+            name: 'Debug',
+            executable: '${workspaceRoot}/build/${workspaceRootFolderName}.elf',
+            autorun: [
+              'monitor reset shellhalt',
+              'load build/${workspaceRootFolderName}.elf',
+              'tbreak main',
+              'continue'
+            ]
+          }
+        ]
+      }
+    },
+    {
+      name: '.vscode/settings.json',
+      type: 'json',
+      content: {
+        'C_Cpp.default.configurationProvider': 'ms-vscode.cmake-tools',
+        'cmake.buildDirectory': '${workspaceFolder}/build'
+      }
+    },
+    {
+      name: '.vscode/tasks.json',
+      type: 'json',
+      content: {
+        version: '2.0.0',
+        tasks: [
+          {
+            label: 'Configure Debug',
+            type: 'cmake',
+            command: 'configure',
+            preset: 'debug',
+            group: {
+              kind: 'build'
+            }
+          },
+          {
+            label: 'Configure Release',
+            type: 'cmake',
+            command: 'configure',
+            preset: 'release',
+            group: {
+              kind: 'build'
+            }
+          },
+          {
+            label: 'Configure Minimum Size Release',
+            type: 'cmake',
+            command: 'configure',
+            preset: 'min-size-release',
+            group: {
+              kind: 'build'
+            }
+          },
+          {
+            label: 'Build Debug',
+            type: 'cmake',
+            command: 'build',
+            preset: 'build',
+            dependsOn: 'Configure Debug',
+            group: {
+              kind: 'build',
+              isDefault: true
+            }
+          },
+          {
+            label: 'Build Release',
+            type: 'cmake',
+            command: 'build',
+            preset: 'build',
+            dependsOn: 'Configure Release',
+            group: {
+              kind: 'build',
+              isDefault: true
+            }
+          },
+          {
+            label: 'Build Minimum Size Release',
+            type: 'cmake',
+            command: 'build',
+            preset: 'build',
+            dependsOn: 'Configure Minimum Size Release',
+            group: {
+              kind: 'build',
+              isDefault: true
+            }
+          },
+          {
+            label: 'Clean',
+            type: 'cmake',
+            command: 'clean',
+            group: {
+              kind: 'build'
+            }
+          }
+        ]
+      }
+    },
+    {
+      name: '.gitignore',
+      content: [
+        'build/',
+        '.cache/',
+        '__pycache__/',
+        '*.pyc',
+        '*.pyo',
+        'CMakeUserPresets.json'
+      ]
+    }
+  ]
+})
+
+const bareMetalCMakeTemplate = combine(baseCMakeTemplate, {
+  files: [
+    {
+      name: '.vscode/c_cpp_properties.json',
+      content: {
+        configurations: [
+          {
+            includePath: [
+              '${workspaceFolder}/ps1-bare-metal/src',
+              '${workspaceFolder}/ps1-bare-metal/src/libc'
+            ],
+            name: 'Win32'
+          },
+          {
+            includePath: [
+              '${workspaceFolder}/ps1-bare-metal/src',
+              '${workspaceFolder}/ps1-bare-metal/src/libc'
+            ],
+            name: 'linux'
+          }
+        ]
+      }
+    }
+  ],
+  modules: [
+    {
+      name: 'ps1-bare-metal',
+      url: 'https://github.com/spicyjpeg/ps1-bare-metal.git'
+    }
+  ]
+})
 
 const psyqoTemplate = combine(baseNuggetTemplate, {
   files: [
@@ -275,15 +470,11 @@ const netyarozeTemplate = combine(psyqTemplate, {
       content: {
         configurations: [
           {
-            includePath: [
-              '${workspaceFolder}/third_party/net-yaroze/include'
-            ],
+            includePath: ['${workspaceFolder}/third_party/net-yaroze/include'],
             name: 'Win32'
           },
           {
-            includePath: [
-              '${workspaceFolder}/third_party/net-yaroze/include'
-            ],
+            includePath: ['${workspaceFolder}/third_party/net-yaroze/include'],
             name: 'linux'
           }
         ]
@@ -304,10 +495,6 @@ async function createGitRepository (fullPath, template, progressReporter) {
   await fs.mkdirp(fullPath)
   const git = simpleGit(fullPath)
   await git.init()
-  await fs.copy(
-    path.join(extensionUri.fsPath, 'templates', 'common', 'PSX.Dev-README.md'),
-    path.join(fullPath, 'PSX.Dev-README.md')
-  )
   if (template.files) {
     for (const file of template.files) {
       await fs.mkdirp(path.join(fullPath, path.dirname(file.name)))
@@ -328,36 +515,44 @@ async function createGitRepository (fullPath, template, progressReporter) {
       await fs.mkdirp(path.join(fullPath, path.dirname(module.name)))
       await git.submoduleAdd(module.url, module.name)
     }
+    git.submoduleUpdate({ '--init': null, '--recursive': null })
   }
 
   return git
 }
 
-async function copyTemplateDirectory (git, fullPath, name, template, data) {
-  const files = await fs.readdir(template)
-  for (const file of files) {
-    const filePath = path.join(template, file)
-    const stats = await fs.stat(filePath)
-    if (stats.isFile()) {
-      const content = await fs.readFile(filePath, 'utf8')
-      const rendered = Mustache.render(content, data)
-      await fs.writeFile(path.join(fullPath, file), rendered)
-      await git.add(file)
-    } else if (stats.isDirectory()) {
-      await fs.mkdirp(path.join(fullPath, file))
-      await copyTemplateDirectory(
-        git,
-        path.join(fullPath, file),
-        name,
-        filePath
-      )
+async function copyTemplateDirectory (git, fullPath, name, templates, data) {
+  const binaryExtensions = ['.bin', '.dat', '.png', '.tim']
+  const ignoredFiles = ['PSX.Dev-README.md']
+
+  for (const template of templates) {
+    const files = await fs.readdir(template)
+    for (const file of files) {
+      const sourcePath = path.join(template, file)
+      const destPath = path.join(fullPath, file)
+      const stats = await fs.stat(sourcePath)
+      if (stats.isFile()) {
+        if (!binaryExtensions.includes(path.extname(file))) {
+          const content = await fs.readFile(sourcePath, 'utf8')
+          const rendered = Mustache.render(content, data)
+          await fs.writeFile(destPath, rendered)
+        } else {
+          await fs.copyFile(sourcePath, destPath)
+        }
+        if (!ignoredFiles.includes(file)) {
+          await git.add(destPath)
+        }
+      } else if (stats.isDirectory()) {
+        await fs.mkdirp(destPath)
+        await copyTemplateDirectory(git, destPath, name, [sourcePath], data)
+      }
     }
   }
 }
 
 const templates = {
-  empty: {
-    name: 'Empty',
+  nugget_empty: {
+    name: 'Empty (Nugget)',
     category: 'Bare metal',
     description:
       'An empty project, with just the barebone setup to get started.',
@@ -375,16 +570,101 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'bare-metal', 'empty'),
-        { projectName: name }
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(
+            extensionUri.fsPath,
+            'templates',
+            'bare-metal',
+            'empty-nugget'
+          )
+        ],
+        { projectName: name, isCMake: false }
+      )
+    }
+  },
+  cmake_empty: {
+    name: 'Empty (CMake)',
+    category: 'Bare metal',
+    description:
+      'An empty project, with just the barebone setup to get started using a CMake-based build system.',
+    url: 'https://github.com/spicyjpeg/ps1-bare-metal',
+    examples: 'https://github.com/spicyjpeg/ps1-bare-metal/blob/main/README.md',
+    requiredTools: [
+      'git',
+      'make',
+      'cmake',
+      'cmaketools',
+      'python',
+      'toolchain'
+    ],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter) {
+      const git = await createGitRepository(
+        fullPath,
+        bareMetalCMakeTemplate,
+        progressReporter
+      )
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(
+            extensionUri.fsPath,
+            'templates',
+            'bare-metal',
+            'empty-cmake'
+          )
+        ],
+        { projectName: name, isCMake: true }
+      )
+    }
+  },
+  cmake_cube: {
+    name: 'Cube (CMake)',
+    category: 'Bare metal',
+    description:
+      'A project showing a spinning cube using a CMake-based build system. Includes a minimal GPU and font library.',
+    url: 'https://github.com/spicyjpeg/ps1-bare-metal',
+    examples: 'https://github.com/spicyjpeg/ps1-bare-metal/blob/main/README.md',
+    requiredTools: [
+      'git',
+      'make',
+      'cmake',
+      'cmaketools',
+      'python',
+      'toolchain'
+    ],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter) {
+      const git = await createGitRepository(
+        fullPath,
+        bareMetalCMakeTemplate,
+        progressReporter
+      )
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(
+            extensionUri.fsPath,
+            'templates',
+            'bare-metal',
+            'cmake-cube'
+          )
+        ],
+        { projectName: name, isCMake: true }
       )
     }
   },
   psyq_cube: {
     name: 'Psy-Q Cube',
     category: 'Psy-Q SDK',
-    description:
-      'A project showing a spinning cube using the Psy-Q SDK.',
+    description: 'A project showing a spinning cube using the Psy-Q SDK.',
     url: 'https://psx.arthus.net/sdk/Psy-Q/DOCS/',
     examples: 'https://github.com/ABelliqueux/nolibgs_hello_worlds',
     requiredTools: ['git', 'make', 'toolchain', 'psyq'],
@@ -399,8 +679,11 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'psyq', 'cube'),
-        { projectName: name }
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyq', 'cube')
+        ],
+        { projectName: name, isCMake: false }
       )
       progressReporter.report({ message: 'Unpacking psyq...' })
       await tools.psyq.unpack(path.join(fullPath, 'third_party', 'psyq'))
@@ -409,8 +692,7 @@ const templates = {
   psyqo_hello: {
     name: 'PSYQo Hello World',
     category: 'PSYQo SDK',
-    description:
-      'A project simply displaying Hello World using the PSYQo SDK.',
+    description: 'A project simply displaying Hello World using the PSYQo SDK.',
     url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
     examples:
       'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
@@ -426,8 +708,11 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'psyqo', 'hello'),
-        { projectName: name }
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyqo', 'hello')
+        ],
+        { projectName: name, isCMake: false }
       )
     }
   },
@@ -451,8 +736,11 @@ const templates = {
         git,
         fullPath,
         name,
-        path.join(extensionUri.fsPath, 'templates', 'psyq', 'net-yaroze'),
-        { projectName: name }
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyq', 'net-yaroze')
+        ],
+        { projectName: name, isCMake: false }
       )
       progressReporter.report({ message: 'Unpacking Net Yaroze...' })
       await tools.psyq.unpack(path.join(fullPath, 'third_party', 'psyq'))
@@ -463,13 +751,16 @@ const templates = {
 exports.list = templates
 exports.categories = {
   'Bare metal': {
-    description: 'Bare metal projects. These examples are using little to no external dependencies to work.'
+    description:
+      'Bare metal projects. These examples are using little to no external dependencies to work.'
   },
   'Psy-Q SDK': {
-    description: 'Projects using the Psy-Q SDK. This SDK was the original one published by Sony to create software for the PlayStation 1. Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.'
+    description:
+      'Projects using the Psy-Q SDK. This SDK was the original one published by Sony to create software for the PlayStation 1. Please note that while it is probably considered abandonware at this point, you will not receive a proper license from Sony. Use it at your own risk. Additionally, while the project folder on your harddrive will have the SDK installed on it, the created git repository will not. If you publish the created git repository, users who clone it will need to restore the SDK using the WELCOME page button.'
   },
   'PSYQo SDK': {
-    description: 'Projects using the PSYQo SDK. The PSYQo library is a C++-20 MIT-licensed framework cleanly written from scratch, allowing you to write modern, readable code targeting the PlayStation 1, while still being efficient. Additionally, you will have access to the EASTL library, which is a BSD-3-Clause licensed implementation of the C++ Standard Template Library.'
+    description:
+      'Projects using the PSYQo SDK. The PSYQo library is a C++-20 MIT-licensed framework cleanly written from scratch, allowing you to write modern, readable code targeting the PlayStation 1, while still being efficient. Additionally, you will have access to the EASTL library, which is a BSD-3-Clause licensed implementation of the C++ Standard Template Library.'
   }
 }
 exports.createProjectFromTemplate = async function (tools, options) {

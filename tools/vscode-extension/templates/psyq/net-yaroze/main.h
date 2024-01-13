@@ -141,12 +141,12 @@ void InitSprite( void );
 
 typedef struct guncon_tag
  {
-	// 2 bytes
-	u_short buttons;   // button A, B, and TRIGGER
-	  
- 	u_short guncon_x;			// x offset
-	u_short guncon_y;		    // y offset	
- 	
+    // 2 bytes
+    u_short buttons;   // button A, B, and TRIGGER
+      
+     u_short guncon_x;			// x offset
+    u_short guncon_y;		    // y offset	
+     
  }guncon_data;
 
 
@@ -189,22 +189,22 @@ typedef u_short pad_data; // 14 button controller
 
 typedef struct packet_tag
  {
-	// 0-7
-	u_char status; // 0xff: no controller, 0x00 controller connected
-	u_char type;   // upper 4 bits: terminal type
-				   // lower 4 bits: size of data received / 2
+    // 0-7
+    u_char status; // 0xff: no controller, 0x00 controller connected
+    u_char type;   // upper 4 bits: terminal type
+                   // lower 4 bits: size of data received / 2
 
-	// 2-6 bytes of data
-	// 2 bytes for 14 button controller	
-	// add 4 bytes for analog, now total of 6 bytes of received data	
+    // 2-6 bytes of data
+    // 2 bytes for 14 button controller	
+    // add 4 bytes for analog, now total of 6 bytes of received data	
 
-	union 
-	 {
-	   pad_data pad;
-	   mouse_data mouse;
-	   analog_data analog;
-	   negcon_data negcon;
-	   guncon_data guncon;
+    union 
+     {
+       pad_data pad;
+       mouse_data mouse;
+       analog_data analog;
+       negcon_data negcon;
+       guncon_data guncon;
      }data;		
 
  }cntrl_data, *cntrl_ptr;

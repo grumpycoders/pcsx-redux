@@ -21,12 +21,12 @@
 #include "main.h" // Prototypes and controller stuff
 
 /* 
-	Embedded data isn't required with Net Yaroze but used here for simplicity.
-	Normally data is loaded via a Siocons script into RAM locations and packaged as a single executable with yarexe. 
+    Embedded data isn't required with Net Yaroze but used here for simplicity.
+    Normally data is loaded via a Siocons script into RAM locations and packaged as a single executable with yarexe. 
 
 */
 #include "image.h" // contains yar8bit.tim as a char array.
-	
+    
 //--------------------------------------------------------------------------
 // D E F I N E S 
 //-------------------------------------------------------------------------- 
@@ -59,72 +59,72 @@ GsSPRITE sprite;					// our sprite
 int main( void )
  {	            
 
-   	InitGame();  
-   	 
-	ReadTIM( (u_long *)TIM_ADDR );
+       InitGame();  
+        
+    ReadTIM( (u_long *)TIM_ADDR );
 
-	InitSprite();     
+    InitSprite();     
 
-	// main loop
+    // main loop
     while( !DONE )
       {
-		 	     
-		 FntPrint(fnt_id[0], (char*)"~c900 Graphic Example 9 - Move, Scale, and Rotate Sprites ");
-		 
+                  
+         FntPrint(fnt_id[0], (char*)"~c900 Graphic Example 9 - Move, Scale, and Rotate Sprites ");
+         
          if( PAD_PRESS(buffer1,PAD_LEFT) )
-		   {
-			sprite.x -=5;
+           {
+            sprite.x -=5;
 
-		   }
-		 if( PAD_PRESS(buffer1,PAD_RIGHT) )
-		   {
-			sprite.x +=5;
+           }
+         if( PAD_PRESS(buffer1,PAD_RIGHT) )
+           {
+            sprite.x +=5;
 
-		   }
-		 if( PAD_PRESS(buffer1,PAD_UP) )
-		   {
-			sprite.y -=5;
+           }
+         if( PAD_PRESS(buffer1,PAD_UP) )
+           {
+            sprite.y -=5;
 
-		   }
-		 if( PAD_PRESS(buffer1,PAD_DOWN) )
-		   {
-			sprite.y +=5;
+           }
+         if( PAD_PRESS(buffer1,PAD_DOWN) )
+           {
+            sprite.y +=5;
 
-		   }
-		 if( PAD_PRESS(buffer1,PAD_SQUARE) )
-		   {
-			 sprite.scalex -= 20; 
-		   }
-		 if( PAD_PRESS(buffer1,PAD_CIRCLE) )
-		   {
-			 sprite.scalex += 20; 
-		   }
+           }
+         if( PAD_PRESS(buffer1,PAD_SQUARE) )
+           {
+             sprite.scalex -= 20; 
+           }
+         if( PAD_PRESS(buffer1,PAD_CIRCLE) )
+           {
+             sprite.scalex += 20; 
+           }
 
          if( PAD_PRESS(buffer1,PAD_TRIANGLE) )
-		   {
-			 sprite.scaley -= 20; 
-		   }
-		 if( PAD_PRESS(buffer1,PAD_CROSS) )
-		   {
-			 sprite.scaley += 20; 
-		   }
-		   
-		 if( PAD_PRESS(buffer1,PAD_L1) )
-		   {
-			 sprite.rotate -= ONE;
-		   }
+           {
+             sprite.scaley -= 20; 
+           }
+         if( PAD_PRESS(buffer1,PAD_CROSS) )
+           {
+             sprite.scaley += 20; 
+           }
+           
+         if( PAD_PRESS(buffer1,PAD_L1) )
+           {
+             sprite.rotate -= ONE;
+           }
 
-	   	 if( PAD_PRESS(buffer1,PAD_R1) )
-		   {
-			 sprite.rotate += ONE;
-		   }
+            if( PAD_PRESS(buffer1,PAD_R1) )
+           {
+             sprite.rotate += ONE;
+           }
 
-	   	 UpdateScreen();
+            UpdateScreen();
 
       }// end while loop
 
     DeInitGame();   // de-init the game
-	
+    
 
     return(0);      // success
 
@@ -145,32 +145,32 @@ int main( void )
 void InitSprite( void )
  {
 
-	sprite.attribute |= (1<<24);   // 8-bit sprite
-	
-	sprite.x = 0;
-	sprite.y = 50;
+    sprite.attribute |= (1<<24);   // 8-bit sprite
+    
+    sprite.x = 0;
+    sprite.y = 50;
 
-	sprite.w = (tim.pw*2);  // (width*2) = rendered 8bit width
-	sprite.h = tim.ph;
+    sprite.w = (tim.pw*2);  // (width*2) = rendered 8bit width
+    sprite.h = tim.ph;
 
-	sprite.tpage = GetTPage(1,0,tim.px,tim.py);
+    sprite.tpage = GetTPage(1,0,tim.px,tim.py);
 
-	sprite.u = 0;
-	sprite.v = 0;
+    sprite.u = 0;
+    sprite.v = 0;
 
-	sprite.cx = tim.cx;
-	sprite.cy = tim.cy;;
+    sprite.cx = tim.cx;
+    sprite.cy = tim.cy;;
 
-	sprite.r = 0x80;
-	sprite.g = 0x80;
-	sprite.b = 0x80;
+    sprite.r = 0x80;
+    sprite.g = 0x80;
+    sprite.b = 0x80;
 
-	sprite.mx = (tim.pw*2) /2;
-	sprite.my = (tim.ph/2);
+    sprite.mx = (tim.pw*2) /2;
+    sprite.my = (tim.ph/2);
 
-	sprite.scalex = ONE;
-	sprite.scaley = ONE;
-	sprite.rotate = 0;
+    sprite.scalex = ONE;
+    sprite.scaley = ONE;
+    sprite.rotate = 0;
 
 
  }// end InitSprite
@@ -190,28 +190,28 @@ void InitSprite( void )
 void ReadTIM( u_long *addr )
  { 	
    
-	// skip id and initialize image structure 
-	addr ++;
-	GsGetTimInfo(addr, &tim);
-	DrawSync(0);
-			
-	// transfer pixel data to VRAM 
-	rect.x = tim.px;
-	rect.y = tim.py;
-	rect.w = tim.pw;
-	rect.h = tim.ph;
-	LoadImage(&rect, tim.pixel);
-	DrawSync(0);
-			
+    // skip id and initialize image structure 
+    addr ++;
+    GsGetTimInfo(addr, &tim);
+    DrawSync(0);
+            
+    // transfer pixel data to VRAM 
+    rect.x = tim.px;
+    rect.y = tim.py;
+    rect.w = tim.pw;
+    rect.h = tim.ph;
+    LoadImage(&rect, tim.pixel);
+    DrawSync(0);
+            
     // if CLUT exists, transfer it to VRAM 
- 	if( (tim.pmode >> 3) & 0x01 ) 
- 	  {
- 	  	rect.x = tim.cx;
-	  	rect.y = tim.cy;
-	  	rect.w = tim.cw;
-	  	rect.h = tim.ch;
-	  	LoadImage(&rect, tim.clut);
-	  }	 
+     if( (tim.pmode >> 3) & 0x01 ) 
+       {
+           rect.x = tim.cx;
+          rect.y = tim.cy;
+          rect.w = tim.cw;
+          rect.h = tim.ch;
+          LoadImage(&rect, tim.clut);
+      }	 
   
    DrawSync(0);
 
@@ -237,74 +237,74 @@ void ReadTIM( u_long *addr )
 void InitGame( void )
  {
 
-	 int count;
+     int count;
      
-	 printf("Starting InitGame() \n");
-	
+     printf("Starting InitGame() \n");
+    
   
-	 // all reset, the drawing environment and display are initialised
-	 ResetGraph(0);
+     // all reset, the drawing environment and display are initialised
+     ResetGraph(0);
 
-	//This function MUST be called before using other libGS functions!
-	 GsInitGraph( SCREEN_WIDTH, SCREEN_HEIGHT,
-			      GsOFSGPU|GsINTER, 0, 0 );
+    //This function MUST be called before using other libGS functions!
+     GsInitGraph( SCREEN_WIDTH, SCREEN_HEIGHT,
+                  GsOFSGPU|GsINTER, 0, 0 );
 
 
-	 // load in the font pattern
-	 FntLoad(960,256);
+     // load in the font pattern
+     FntLoad(960,256);
      printf("Fonts loaded: \n");
 
-	 fnt_id[0] = FntOpen(0,10,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
-	 fnt_id[1] = FntOpen(0,20,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
-	 fnt_id[2] = FntOpen(0,30,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
-	 fnt_id[3] = FntOpen(0,40,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
+     fnt_id[0] = FntOpen(0,10,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
+     fnt_id[1] = FntOpen(0,20,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
+     fnt_id[2] = FntOpen(0,30,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
+     fnt_id[3] = FntOpen(0,40,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
 
-	 fnt_id[4] = FntOpen(0,120,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
-	 fnt_id[5] = FntOpen(0,130,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
-	 fnt_id[6] = FntOpen(0,140,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
-	 fnt_id[7] = FntOpen(0,150,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
-	  
-   	 // save current video mode
-	 prev_mode = GetVideoMode();
+     fnt_id[4] = FntOpen(0,120,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
+     fnt_id[5] = FntOpen(0,130,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
+     fnt_id[6] = FntOpen(0,140,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
+     fnt_id[7] = FntOpen(0,150,SCREEN_WIDTH, SCREEN_HEIGHT,0,80);
+      
+        // save current video mode
+     prev_mode = GetVideoMode();
 
-	 // init graphic mode
-	 SetVideoMode( MODE_PAL );
-	 printf("Set video mode complete: \n");
+     // init graphic mode
+     SetVideoMode( MODE_PAL );
+     printf("Set video mode complete: \n");
 
-	 // init the controller buffers
-	 GetPadBuf((volatile unsigned char **)&buffer1,(volatile unsigned char **)&buffer2); 
-	 printf("Set controller buffers complete: \n");
+     // init the controller buffers
+     GetPadBuf((volatile unsigned char **)&buffer1,(volatile unsigned char **)&buffer2); 
+     printf("Set controller buffers complete: \n");
 
-	 printf("Screen size setup complete: \n");
+     printf("Screen size setup complete: \n");
 
-	 // double buffer definition
-	 GsDefDispBuff( 0, 0, 0, 0 );
-	 printf("Double buffer setup complete: \n");
+     // double buffer definition
+     GsDefDispBuff( 0, 0, 0, 0 );
+     printf("Double buffer setup complete: \n");
 
-	 
-	 // set display output on t.v 
-	 GsDISPENV.screen.x = 10;
-	 GsDISPENV.screen.y = 18;
-	 GsDISPENV.screen.w = 255;
-	 GsDISPENV.screen.h = 255; 
-	 
-	 // set bg clear color and flag
-  	 GsDRAWENV.r0 = 0x00;
-	 GsDRAWENV.g0 = 0x00;
-	 GsDRAWENV.b0 = 0x80;
-	 GsDRAWENV.isbg = 1;	  	
-  	
-	 // set up the ordering table handlers
-	 for( count=0; count < 2; count++ )
-	    {
-		  world_ordering_table[count].length = 1;
-		  world_ordering_table[count].org = ordering_table[count];
-	    }
+     
+     // set display output on t.v 
+     GsDISPENV.screen.x = 10;
+     GsDISPENV.screen.y = 18;
+     GsDISPENV.screen.w = 255;
+     GsDISPENV.screen.h = 255; 
+     
+     // set bg clear color and flag
+       GsDRAWENV.r0 = 0x00;
+     GsDRAWENV.g0 = 0x00;
+     GsDRAWENV.b0 = 0x80;
+     GsDRAWENV.isbg = 1;	  	
+      
+     // set up the ordering table handlers
+     for( count=0; count < 2; count++ )
+        {
+          world_ordering_table[count].length = 1;
+          world_ordering_table[count].org = ordering_table[count];
+        }
 
-	 // initialises the ordering table
-	 GsClearOt( 0, 0, &world_ordering_table[output_buffer_index]);
-	 GsClearOt( 0, 0, &world_ordering_table[output_buffer_index+1]);
-	 printf("WOT is setup and complete: \n");
+     // initialises the ordering table
+     GsClearOt( 0, 0, &world_ordering_table[output_buffer_index]);
+     GsClearOt( 0, 0, &world_ordering_table[output_buffer_index+1]);
+     printf("WOT is setup and complete: \n");
      printf("Game setup is complete: \n");
 
  }// end InitGame
@@ -324,14 +324,14 @@ void InitGame( void )
 void DeInitGame( void )
  {
 
- 	 // set previous video mode
-	 SetVideoMode( prev_mode );
+      // set previous video mode
+     SetVideoMode( prev_mode );
 
-	 // current drawing is canvelled and the command queue is flushed
-	 ResetGraph(3);	   
+     // current drawing is canvelled and the command queue is flushed
+     ResetGraph(3);	   
 
-	 printf("Graphics flushed: \n");
-	 printf("Game now de-int: \n");
+     printf("Graphics flushed: \n");
+     printf("Game now de-int: \n");
  
  }// end DeInitGame
 
@@ -356,9 +356,9 @@ void DeInitGame( void )
 void UpdateScreen( void )
  {
 
-	int count;
+    int count;
 
-	// get the active buffer
+    // get the active buffer
     output_buffer_index = GsGetActiveBuff();
 
     // sets drawing command storage address
@@ -369,18 +369,18 @@ void UpdateScreen( void )
 
     // rendering done here
     
-	for( count =0; count <8; count++ )
+    for( count =0; count <8; count++ )
          FntFlush(fnt_id[count]);         
          
     GsSortSprite(&sprite, &world_ordering_table[output_buffer_index], 0);           
-		
+        
     // wait for vertical synchronisation
     VSync(0);    // 0: blocking until vertical synch occurs
 
     // swap double buffers, (changes the display buffer and drawing buffer)
     GsSwapDispBuff(); 
        
-	// start execution of the drawing command registered in OT
+    // start execution of the drawing command registered in OT
     GsDrawOt(&world_ordering_table[output_buffer_index]);
 
  }// end UpdateScreen 
