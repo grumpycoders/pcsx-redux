@@ -21,6 +21,7 @@
 
 #if defined(DYNAREC_X86_64)
 #include <cassert>
+#include <utility>
 
 bool DynaRecCPU::Init() {
     // Initialize recompiler memory
@@ -625,8 +626,6 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
                                                 : LoadDelayDependencyType::NoDependency;
     }
 
-    // Unreachable, but returning nothing would technically be UB.
-    abort();
-    return LoadDelayDependencyType::NoDependency;
+    std::unreachable();
 }
 #endif  // DYNAREC_X86_64
