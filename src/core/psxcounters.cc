@@ -277,6 +277,7 @@ uint32_t PCSX::Counters::readCounter(uint32_t index) {
     update();
     uint32_t count = readCounterInternal(index);
 
+#if 0
     // Parasite Eve 2 fix - artificial clock jitter based on PCSX::Emulator::BIAS
     // TODO: any other games depend on getting excepted value from RCNT?
     if (PCSX::g_emulator->config().HackFix && index == 2 && m_rcnts[index].counterState == CountToTarget &&
@@ -305,6 +306,7 @@ uint32_t PCSX::Counters::readCounter(uint32_t index) {
         cylast = PCSX::g_emulator->m_cpu->m_regs.cycle;
         clast = count;
     }
+#endif
 
     verboseLog(2, "[RCNT %i] rcount: %x\n", index, count);
     return count;
@@ -331,9 +333,11 @@ void PCSX::Counters::calculateHsync() {
     if (PCSX::g_emulator->config().VSyncWA) {
         m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] =
             m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] / PCSX::Emulator::BIAS;
+#if 0
     } else if (PCSX::g_emulator->config().HackFix) {
         m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] =
             m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] + 1;
+#endif
     }
 }
 
