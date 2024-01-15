@@ -88,7 +88,7 @@ void DButton(const char* label, bool enabled, std::function<void(void)> clicked)
 
 class DummyAsm : public PCSX::Disasm {
     virtual void Invalid() final {}
-    virtual void OpCode(const char* str) final {}
+    virtual void OpCode(std::string_view str) final {}
     virtual void GPR(uint8_t reg) final {}
     virtual void CP0(uint8_t reg) final {}
     virtual void CP2C(uint8_t reg) final {}
@@ -126,7 +126,7 @@ void PCSX::Widgets::Assembly::Invalid() {
     ImGui::PopStyleColor();
 }
 
-void PCSX::Widgets::Assembly::OpCode(const char* str) {
+void PCSX::Widgets::Assembly::OpCode(std::string_view str) {
     m_gotArg = false;
     sameLine();
     if (m_notch || m_notchAfterSkip[0]) {
@@ -134,9 +134,9 @@ void PCSX::Widgets::Assembly::OpCode(const char* str) {
         ImGui::TextUnformatted("~ ");
         ImGui::PopStyleColor();
         sameLine();
-        ImGui::Text("%-6s", str);
+        ImGui::Text("%-6s", str.data());
     } else {
-        ImGui::Text("%-8s", str);
+        ImGui::Text("%-8s", str.data());
     }
 }
 void PCSX::Widgets::Assembly::GPR(uint8_t reg) {

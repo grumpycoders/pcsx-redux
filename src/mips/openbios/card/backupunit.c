@@ -53,8 +53,7 @@ static __attribute__((noreturn)) void buUnimplemented(const char *function, int 
     osDbgPrintf("=== Unimplemented backup unit function %s, op %i ===\r\n", function, op);
     osDbgPrintf("=== halting ===\r\n");
     pcsx_debugbreak();
-    while (1)
-        ;
+    while (1) asm("");
 }
 
 static void buClear() {

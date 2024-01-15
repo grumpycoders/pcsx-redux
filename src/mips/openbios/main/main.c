@@ -109,6 +109,7 @@ struct JmpBuf g_ioAbortJmpBuf;
 static __attribute__((noreturn)) void fatal(int code) {
     POST = 0x0f;
     syscall_exception(0x42, code);
+    __builtin_unreachable();
 }
 
 static char s_binaryPath[128];
@@ -313,7 +314,7 @@ static void boot(char *systemCnfPath, char *binaryPath) {
             }
             buildIDstring[count * 2] = 0;
         }
-        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2023 PCSX-Redux authors.\n",
+        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2024 PCSX-Redux authors.\n",
                   buildIDstring);
     }
     POST = 6;

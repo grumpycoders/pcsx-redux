@@ -366,6 +366,16 @@ class R3000Acpu {
         delayedLoad.pcValue = value;
         delayedLoad.fromLink = fromLink;
     }
+    void flushCurrentDelayedLoad() {
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        if (delayedLoad.active) {
+            uint32_t reg = m_regs.GPR.r[delayedLoad.index];
+            reg &= delayedLoad.mask;
+            reg |= delayedLoad.value;
+            m_regs.GPR.r[delayedLoad.index] = reg;
+            delayedLoad.active = false;
+        }
+    }
 
   protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
@@ -456,8 +466,8 @@ Formula One 2001
         uint32_t pcOffset = pc & 0xffffff;
         uint32_t pcCache = pc & 0xfff;
 
-        uint8_t * iAddr = m_regs.iCacheAddr;
-        uint8_t * iCode = m_regs.iCacheCode;
+        uint8_t *iAddr = m_regs.iCacheAddr;
+        uint8_t *iCode = m_regs.iCacheCode;
 
         // cached - RAM
         if (pcBank == 0x00 || pcBank == 0x80) {
@@ -504,8 +514,10 @@ Formula One 2001
         PCdrvFile(const std::filesystem::path &filename) : IO<File>(new PosixFile(filename)) {}
         PCdrvFile(const std::filesystem::path &filename, FileOps::ReadWrite)
             : IO<File>(new PosixFile(filename, FileOps::READWRITE)) {}
-        PCdrvFile(const std::filesystem::path &filename, FileOps::Truncate) : IO<File>(new PosixFile(filename, FileOps::TRUNCATE)) {}
-        PCdrvFile(const std::filesystem::path &filename, FileOps::Create) : IO<File>(new PosixFile(filename, FileOps::CREATE)) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Truncate)
+            : IO<File>(new PosixFile(filename, FileOps::TRUNCATE)) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Create)
+            : IO<File>(new PosixFile(filename, FileOps::CREATE)) {}
         virtual ~PCdrvFile() = default;
         std::string m_relativeFilename;
     };

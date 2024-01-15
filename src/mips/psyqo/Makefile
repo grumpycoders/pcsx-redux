@@ -12,8 +12,12 @@ $(wildcard src/hardware/*.cpp) \
 $(wildcard src/*.cpp) \
 $(wildcard src/*.c) \
 
-CPPFLAGS = -Werror -I../../../third_party/EASTL/include -I../../../third_party/EABase/include/Common
+CPPFLAGS = -I../../../third_party/EASTL/include -I../../../third_party/EABase/include/Common
 CXXFLAGS = -std=c++20
+
+ifeq ($(TEST),true)
+CPPFLAGS += -Werror
+endif
 
 EXTRA_DEPS += $(PSYQODIR)Makefile
 

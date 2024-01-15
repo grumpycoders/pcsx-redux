@@ -29,6 +29,7 @@
 #include "core/psxemulator.h"
 #include "core/sio.h"
 #include "core/sio1.h"
+#include "lua/luawrapper.h"
 #include "spu/interface.h"
 
 static constexpr bool between(uint32_t val, uint32_t beg, uint32_t end) {
@@ -451,7 +452,26 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             g_system->biosPutc(value);
             break;
         case 0x1f802081:
-            g_system->pause();
+            if (value == 0) {
+                g_system->pause();
+            } else {
+                auto L = *g_emulator->m_lua;
+                auto top = L.gettop();
+                L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+                L.getfieldtable("execSlots");
+                L.push(lua_Number(value));
+                L.gettable();
+                if (L.isfunction()) {
+                    try {
+                        L.pcall();
+                    } catch (...) {
+                        g_system->pause();
+                    }
+                } else {
+                    g_system->pause();
+                }
+                while (top != L.gettop()) L.pop();
+            }
             break;
 
         default:

@@ -1613,14 +1613,8 @@ inline void InterpretedCPU::execBlock() {
         (*this.*func)(code);
 
         m_currentDelayedLoad ^= 1;
+        flushCurrentDelayedLoad();
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        if (delayedLoad.active) {
-            uint32_t reg = m_regs.GPR.r[delayedLoad.index];
-            reg &= delayedLoad.mask;
-            reg |= delayedLoad.value;
-            m_regs.GPR.r[delayedLoad.index] = reg;
-            delayedLoad.active = false;
-        }
         bool fromLink = false;
         if (delayedLoad.pcActive) {
             m_regs.pc = delayedLoad.pcValue;

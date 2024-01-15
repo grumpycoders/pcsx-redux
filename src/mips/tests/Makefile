@@ -4,6 +4,7 @@ all:
 	$(MAKE) -C cpu all
 	$(MAKE) -C cop0 all
 	$(MAKE) -C pcdrv all
+	$(MAKE) -C dma all
 
 clean:
 	$(MAKE) -C basic clean
@@ -11,3 +12,4 @@ clean:
 	$(MAKE) -C cpu clean
 	$(MAKE) -C cop0 clean
 	$(MAKE) -C pcdrv clean
+	$(MAKE) -C dma clean

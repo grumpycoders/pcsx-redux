@@ -21,6 +21,7 @@
 
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -233,6 +234,15 @@ class Lua {
     int setfenv(int index = -2) { return lua_setfenv(L, index); }
 
     bool newmetatable(const char* name) { return luaL_newmetatable(L, name) != 0; }
+
+    std::optional<lua_Debug> getinfo(const char* what, int level = 1) {
+        lua_Debug ar;
+        int r = lua_getstack(L, level, &ar);
+        if (!r) return std::nullopt;
+        r = lua_getinfo(L, what, &ar);
+        if (!r) return std::nullopt;
+        return ar;
+    }
 
   private:
     lua_State* L;

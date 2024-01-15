@@ -26,9 +26,9 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/array.h>
 #include <stdint.h>
 
-#include <EASTL/array.h>
 #include "psyqo/fixed-point.hh"
 
 namespace psyqo {
@@ -51,7 +51,7 @@ namespace trig_literals {
 
 /**
  * @brief A user-defined literal for angle values.
- * 
+ *
  * @param angle The angle in fractions of Pi.
  * @return consteval Angle The constructed angle.
  */
@@ -77,7 +77,7 @@ class Trig {
 
     /**
      * @brief Calculate the cosine of an angle.
-     * 
+     *
      * @param a The angle to calculate the cosine of.
      * @return FixedPoint<precisionBits> The cosine of the angle.
      */
@@ -106,7 +106,7 @@ class Trig {
 
     /**
      * @brief Calculate the sine of an angle.
-     * 
+     *
      * @param a The angle to calculate the sine of.
      * @return FixedPoint<precisionBits> The sine of the angle.
      */

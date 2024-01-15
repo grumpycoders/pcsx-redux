@@ -15,7 +15,6 @@
 --   along with this program; if not, write to the
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 local C = ffi.load 'SUPPORT_FILE'
 
 local sliceMeta = {
@@ -342,8 +341,10 @@ end
 
 local function ffmpegAudioFile(file, options)
     if type(options) ~= 'table' then options = {} end
-    local channels, endianness, sampleFormat, frequency = options.channels, options.endianness, options.sampleFormat, options.frequency
-    return createFileWrapper(C.ffmpegAudioFile(file._wrapper, channels or 'Stereo', endianness or 'Little', sampleFormat or 'S16', frequency or 44100))
+    local channels, endianness, sampleFormat, frequency = options.channels, options.endianness, options.sampleFormat,
+                                                          options.frequency
+    return createFileWrapper(C.ffmpegAudioFile(file._wrapper, channels or 'Stereo', endianness or 'Little',
+                                               sampleFormat or 'S16', frequency or 44100))
 end
 
 if (type(Support) ~= 'table') then Support = {} end

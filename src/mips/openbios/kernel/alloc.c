@@ -291,14 +291,14 @@ static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr, size_
 
     if (!ptr) return multi_malloc(size, heap);
 
-    size = (size + sizeof(heap_t) + 7) & ~7;
+    size_t block_size = (size + sizeof(heap_t) + 7) & ~7;
 
     prev = (heap_t *)((uintptr_t)ptr - sizeof(heap_t));
 
     // New memory block shorter ?
-    if (prev->size >= size) {
-        prev->size = size;
-        if (!prev->next) sbrk(ptr + size - sbrk(0, heap), heap);
+    if (prev->size >= block_size) {
+        prev->size = block_size;
+        if (!prev->next) sbrk(ptr + block_size - sbrk(0, heap), heap);
 
         return ptr;
     }
@@ -306,16 +306,16 @@ static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr, size_
     // New memory block larger
     // Is it the last one ?
     if (!prev->next) {
-        new = sbrk(size - prev->size, heap);
+        new = sbrk(block_size - prev->size, heap);
         if (!new) return NULL;
 
-        prev->size = size;
+        prev->size = block_size;
         return ptr;
     }
 
     // Do we have free memory after it ?
-    if ((prev->next->ptr - ptr) > size) {
-        prev->size = size;
+    if ((prev->next->ptr - ptr) > block_size) {
+        prev->size = block_size;
         return ptr;
     }
 
