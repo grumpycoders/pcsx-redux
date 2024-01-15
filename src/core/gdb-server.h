@@ -238,6 +238,9 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     bool m_waitingForTrap = false;
     bool m_waitingForShell = false;
     bool m_exception = false;
+    // Not sure about the logic here; we need to keep an eye on when
+    // gdb complains about invalid responses, and toggle this accordingly.
+    bool m_canReceiveLogs = false;
     std::string m_cmd;
     uint8_t m_crc;
     EventBus::Listener m_listener;

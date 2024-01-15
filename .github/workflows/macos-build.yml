@@ -39,13 +39,16 @@ jobs:
         path: '**/*.ps-exe'
 
   macos-build-and-test:
-    runs-on: macos-11
+    runs-on: macos-12
     needs: build-openbios
     steps:
     - uses: actions/checkout@v1
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Update brew
+      run: |
+        brew update --preinstall
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules

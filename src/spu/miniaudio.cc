@@ -197,22 +197,22 @@ void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 
         }
     }
 
-        for (ma_uint32 f = 0; f < frameCount; f++) {
-            float l = 0.0f, r = 0.0f;
-            for (unsigned i = 0; i < STREAMS; i++) {
-                l += static_cast<float>(buffers[i][f].L) / static_cast<float>(std::numeric_limits<int16_t>::max());
-                r += static_cast<float>(buffers[i][f].R) / static_cast<float>(std::numeric_limits<int16_t>::max());
-            }
-
-            if (mono) {
-                const float lr = (l+r)*0.5f;
-                output[f * 2 + 0] = lr;
-                output[f * 2 + 1] = lr;
-            } else {
-                output[f * 2 + 0] = l;
-                output[f * 2 + 1] = r;
-            }
+    for (ma_uint32 f = 0; f < frameCount; f++) {
+        float l = 0.0f, r = 0.0f;
+        for (unsigned i = 0; i < STREAMS; i++) {
+            l += static_cast<float>(buffers[i][f].L) / static_cast<float>(std::numeric_limits<int16_t>::max());
+            r += static_cast<float>(buffers[i][f].R) / static_cast<float>(std::numeric_limits<int16_t>::max());
         }
+
+        if (mono) {
+            const float lr = (l + r) * 0.5f;
+            output[f * 2 + 0] = lr;
+            output[f * 2 + 1] = lr;
+        } else {
+            output[f * 2 + 0] = l;
+            output[f * 2 + 1] = r;
+        }
+    }
 
     if (m_settings.get<NullSync>()) return;
 

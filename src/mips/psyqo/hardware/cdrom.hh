@@ -90,9 +90,7 @@ struct CommandFifo {
     }
 
   private:
-    void recursiveSend(uint8_t arg) {
-        Fifo = arg;
-    }
+    void recursiveSend(uint8_t arg) { Fifo = arg; }
     template <typename... Args>
     void recursiveSend(uint8_t arg, Args... args) {
         Fifo = arg;
@@ -105,4 +103,4 @@ extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0803, 0xbf8
 extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0802, 0xbf801000, uint8_t>, 1>> CauseMask;
 extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0803, 0xbf801000, uint8_t>, 1>> Cause;
 
-}
+}  // namespace psyqo::Hardware::CDRom

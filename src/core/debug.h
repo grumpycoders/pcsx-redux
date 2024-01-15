@@ -68,8 +68,9 @@ class Debug {
 
     class Breakpoint : public BreakpointTreeType::Node, public BreakpointUserListType::Node {
       public:
-        Breakpoint(BreakpointType type, const std::string& source, BreakpointInvoker invoker, uint32_t base)
-            : m_type(type), m_source(source), m_invoker(invoker), m_base(base) {}
+        Breakpoint(BreakpointType type, const std::string& source, BreakpointInvoker invoker, uint32_t base,
+                   std::string label = "")
+            : m_type(type), m_source(source), m_invoker(invoker), m_base(base), m_label(label) {}
         std::string name() const;
         BreakpointType type() const { return m_type; }
         unsigned width() const { return getHigh() - getLow() + 1; }
@@ -78,6 +79,8 @@ class Debug {
         void enable() const { m_enabled = true; }
         void disable() const { m_enabled = false; }
         const std::string& source() const { return m_source; }
+        const std::string& label() const { return m_label; }
+        void label(const std::string& label) const { m_label = label; }
         uint32_t base() const { return m_base; }
 
       private:
@@ -89,6 +92,7 @@ class Debug {
         const BreakpointType m_type;
         const std::string m_source;
         const BreakpointInvoker m_invoker;
+        mutable std::string m_label;
         uint32_t m_base;
         mutable bool m_enabled = true;
 
@@ -115,7 +119,6 @@ class Debug {
     void clearMaps() {
         memset(m_mainMemoryMap, 0, sizeof(m_mainMemoryMap));
         memset(m_biosMemoryMap, 0, sizeof(m_biosMemoryMap));
-        memset(m_parpMemoryMap, 0, sizeof(m_parpMemoryMap));
         memset(m_scratchPadMap, 0, sizeof(m_scratchPadMap));
     }
 
@@ -133,6 +136,16 @@ class Debug {
         address &= ~0xe0000000;
         return &*m_breakpoints.insert(address, address + width - 1, new Breakpoint(type, source, invoker, base));
     }
+    inline Breakpoint* addBreakpoint(
+        uint32_t address, BreakpointType type, unsigned width, const std::string& source, std::string label,
+        BreakpointInvoker invoker = [](const Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
+            g_system->pause();
+            return true;
+        }) {
+        uint32_t base = address & 0xe0000000;
+        address &= ~0xe0000000;
+        return &*m_breakpoints.insert(address, address + width - 1, new Breakpoint(type, source, invoker, base, label));
+    }
     const BreakpointTreeType& getTree() { return m_breakpoints; }
     const Breakpoint* lastBP() { return m_lastBP; }
     void removeBreakpoint(const Breakpoint* bp) {
@@ -146,7 +159,6 @@ class Debug {
 
     uint8_t m_mainMemoryMap[0x00800000] = {0};
     uint8_t m_biosMemoryMap[0x00080000] = {0};
-    uint8_t m_parpMemoryMap[0x00010000] = {0};
     uint8_t m_scratchPadMap[0x00000400] = {0};
 
     void markMap(uint32_t address, int mask);

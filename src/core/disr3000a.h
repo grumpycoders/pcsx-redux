@@ -26,6 +26,7 @@
 #include <stdint.h>
 
 #include <string>
+#include <string_view>
 
 namespace PCSX {
 
@@ -56,7 +57,7 @@ class Disasm {
 
   protected:
     virtual void Invalid() = 0;
-    virtual void OpCode(const char *str) = 0;
+    virtual void OpCode(std::string_view) = 0;
     virtual void GPR(uint8_t reg) = 0;
     virtual void CP0(uint8_t reg) = 0;
     virtual void CP2C(uint8_t reg) = 0;

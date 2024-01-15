@@ -20,8 +20,8 @@
 #pragma once
 
 #include "cdrom/common.h"
-#include "cdrom/iec-60908b.h"
 #include "support/file.h"
+#include "supportpsx/iec-60908b.h"
 
 namespace PCSX {
 

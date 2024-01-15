@@ -1,0 +1,9 @@
+# As clang/clangd's MIPS-I support is still experimental, some minor changes to
+# the GCC arguments it picks up from CMake are required in order to prevent it
+# from erroring out. Additionally, specifying the target architecture manually
+# fixes some edge cases (such as CMake emitting 8.3 format paths on Windows and
+# breaking clangd's target autodetection).
+
+CompileFlags:
+  Add:    [ --target=mipsel-none-elf, -march=mips1 ]
+  Remove: [ -march, -mno-llsc, -mdivide-breaks ]

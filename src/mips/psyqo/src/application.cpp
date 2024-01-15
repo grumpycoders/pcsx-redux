@@ -33,13 +33,14 @@ SOFTWARE.
 #include "psyqo/scene.hh"
 
 int psyqo::Application::run() {
-    enterCriticalSection();
+    Kernel::fastEnterCriticalSection();
     syscall_puts("*** PSYQo Application - starting ***\n");
+    psyqo_free(psyqo_malloc(1));
     ramsyscall_printf("Current heap start: %p\n", psyqo_heap_start());
     ramsyscall_printf("Current heap end: %p\n", psyqo_heap_end());
     Kernel::Internal::prepare();
     prepare();
-    leaveCriticalSection();
+    Kernel::fastLeaveCriticalSection();
     while (true) {
         if (m_scenesStack.empty()) {
             createScene();
@@ -48,8 +49,7 @@ int psyqo::Application::run() {
         getCurrentScene()->frame();
         m_gpu.flip();
     }
-
-    return 0;
+    __builtin_unreachable();
 }
 
 psyqo::Scene* psyqo::Application::getCurrentScene() {

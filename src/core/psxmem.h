@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "core/psxemulator.h"
+#include "support/sharedmem.h"
 
 #if defined(__BIGENDIAN__)
 
@@ -185,6 +186,9 @@ class Memory {
 
     int m_writeok = 1;
     uint32_t m_biosCRC = 0;
+
+    // Shared memory wrappers, pointers below point to these where appropriate
+    SharedMem m_wramShared;
 
     // hopefully this should become private eventually, with only certain classes having direct access.
   public:

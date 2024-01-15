@@ -84,16 +84,17 @@ end
 
 local function createIsoBuilderWrapper(wrapper)
     local iso = {
-        _wrapper = ffi.gc(wrapper, function(self) C.isoBuilderClose(self) C.deleteIsoBuilder(self) end),
+        _wrapper = ffi.gc(wrapper, function(self)
+            C.isoBuilderClose(self)
+            C.deleteIsoBuilder(self)
+        end),
         writeLicense = function(self, file)
             if not file then file = Support.File.failedFile() end
             C.isoBuilderWriteLicense(self._wrapper, file._wrapper)
         end,
         writeSector = function(self, sectorData, mode)
             if not mode then mode = 'M2_FORM1' end
-            if Support.isLuaBuffer(sectorData) then
-                sectorData = sectorData.data
-            end
+            if Support.isLuaBuffer(sectorData) then sectorData = sectorData.data end
             C.isoBuilderWriteSector(self._wrapper, sectorData, mode)
         end,
         close = function(self) C.isoBuilderClose(self._wrapper) end,
@@ -116,9 +117,7 @@ PCSX.isoTools = {
         local mul = 1
         while bcd ~= 0 do
             local digit = bcd % 16
-            if digit >= 10 then
-                error('Invalid BCD digit: ' .. digit)
-            end
+            if digit >= 10 then error('Invalid BCD digit: ' .. digit) end
             dec = dec + mul * digit
             mul = mul * 10
             bcd = math.floor(bcd / 16)
@@ -140,12 +139,8 @@ PCSX.isoTools = {
         m = PCSX.isoTools.fromBCD(m)
         s = PCSX.isoTools.fromBCD(s)
         f = PCSX.isoTools.fromBCD(f)
-        if s >= 60 then
-            error('Invalid MSF seconds: ' .. s)
-        end
-        if f >= 75 then
-            error('Invalid MSF frames: ' .. f)
-        end
+        if s >= 60 then error('Invalid MSF seconds: ' .. s) end
+        if f >= 75 then error('Invalid MSF frames: ' .. f) end
         return (m * 60 + s) * 75 + f - 150
     end,
     toMSF = function(lba)

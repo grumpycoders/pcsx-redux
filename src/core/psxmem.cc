@@ -89,7 +89,11 @@ int PCSX::Memory::init() {
     m_readLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
     m_writeLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
 
-    m_wram = (uint8_t *)calloc(0x00800000, 1);
+    // Init all memory as named mappings
+    bool success = m_wramShared.init("wram", 0x00800000, true);
+    if (!success) g_system->message(_("SharedMem failed to share memory for wram, falling back to memory alloc\n"));
+    m_wram = m_wramShared.getPtr();
+
     m_exp1 = (uint8_t *)calloc(0x00800000, 1);
     m_hard = (uint8_t *)calloc(0x00010000, 1);
     m_bios = (uint8_t *)calloc(0x00080000, 1);
@@ -239,7 +243,6 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 }
 
 void PCSX::Memory::shutdown() {
-    free(m_wram);
     free(m_exp1);
     free(m_hard);
     free(m_bios);
@@ -545,7 +548,8 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
                                       address);
                     } else {
                         g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);
-                        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+                        if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                                .get<Emulator::DebugSettings::Debug>()) {
                             g_system->pause();
                         }
                     }
