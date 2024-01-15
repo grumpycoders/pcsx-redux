@@ -142,18 +142,6 @@
     <ClCompile Include="..\..\src\core\arguments.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_aa64\gte_aa64.cc">
-      <Filter>Source Files\Dynarec Aarch64</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_aa64\instructions.cc">
-      <Filter>Source Files\Dynarec Aarch64</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_aa64\recompiler.cc">
-      <Filter>Source Files\Dynarec Aarch64</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_aa64\regAllocation.cc">
-      <Filter>Source Files\Dynarec Aarch64</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\web-server.h">
@@ -331,9 +319,6 @@
     </Filter>
     <Filter Include="Source Files\OpenGL GPU">
       <UniqueIdentifier>{ebb716f7-976b-493e-bc9a-24df0d2a881d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Dynarec Aarch64">
-      <UniqueIdentifier>{c7adf652-3137-4f94-9929-bdd885c04de0}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\Dynarec Aarch64">
       <UniqueIdentifier>{6ceacdfa-e9cd-423a-a320-f97015d17218}</UniqueIdentifier>
