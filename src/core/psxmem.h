@@ -27,9 +27,9 @@
 
 #if defined(__BIGENDIAN__)
 
-#define SWAP_LE16(v) ((((v)&0xff00) >> 8) | (((v)&0xff) << 8))
+#define SWAP_LE16(v) ((((v) & 0xff00) >> 8) | (((v) & 0xff) << 8))
 #define SWAP_LE32(v) \
-    ((((v)&0xff000000ul) >> 24) | (((v)&0xff0000ul) >> 8) | (((v)&0xff00ul) << 8) | (((v)&0xfful) << 24))
+    ((((v) & 0xff000000ul) >> 24) | (((v) & 0xff0000ul) >> 8) | (((v) & 0xff00ul) << 8) | (((v) & 0xfful) << 24))
 #define SWAP_LEu16(v) SWAP_LE16((uint16_t)(v))
 #define SWAP_LEu32(v) SWAP_LE32((uint32_t)(v))
 
@@ -67,16 +67,39 @@ class Memory {
     static constexpr uint16_t IMASK = 0x1074;
 
     static constexpr uint16_t DMA_BASE = 0x1080;
+    static constexpr uint16_t DMA_MADR = 0;
+    static constexpr uint16_t DMA_BCR = 4;
     static constexpr uint16_t DMA_CHCR = 8;
+    static constexpr uint16_t DMA_PCR = 0x10f0;
     static constexpr uint16_t DMA_ICR = 0x10f4;
 
     template <unsigned n>
     void dmaInterrupt() {
         uint32_t icr = readHardwareRegister<DMA_ICR>();
+        if ((icr & 0x00800000) == 0) return;
+        bool triggeredIRQ = false;
         if (icr & (1 << (16 + n))) {
-            writeHardwareRegister<DMA_ICR>(icr | (1 << (24 + n)));
-            setIRQ(8);
+            icr |= (1 << (24 + n));
+            triggeredIRQ = true;
         }
+        if (triggeredIRQ) {
+            writeHardwareRegister<DMA_ICR>(icr | 0x80000000);
+            if ((icr & 0x80000000) == 0) {
+                setIRQ(8);
+            }
+        }
+    }
+
+    void dmaInterruptError() {
+        uint32_t icr = readHardwareRegister<DMA_ICR>();
+        writeHardwareRegister<DMA_ICR>(icr | 0x00008000);
+        setIRQ(8);
+    }
+
+    template <unsigned n>
+    bool isDMAEnabled() {
+        uint32_t pcr = readHardwareRegister<DMA_PCR>();
+        return pcr & (8 << (n * 4));
     }
 
     template <unsigned n>
@@ -95,6 +118,26 @@ class Memory {
     void clearDMABusy() {
         uint32_t chcr = readHardwareRegister<DMA_BASE + DMA_CHCR + n * 0x10>();
         writeHardwareRegister<DMA_BASE + DMA_CHCR + n * 0x10>(chcr & ~0x01000000);
+    }
+
+    template <unsigned n>
+    uint32_t getMADR() {
+        return readHardwareRegister<DMA_BASE + DMA_MADR + n * 0x10>();
+    }
+
+    template <unsigned n>
+    void setMADR(uint32_t value) {
+        writeHardwareRegister<DMA_BASE + DMA_MADR + n * 0x10>(value);
+    }
+
+    template <unsigned n>
+    uint32_t getBCR() {
+        return readHardwareRegister<DMA_BASE + DMA_BCR + n * 0x10>();
+    }
+
+    template <unsigned n>
+    void setBCR(uint32_t value) {
+        writeHardwareRegister<DMA_BASE + DMA_BCR + n * 0x10>(value);
     }
 
     template <unsigned n>
