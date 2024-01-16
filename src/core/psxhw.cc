@@ -625,7 +625,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         case 0x1f801088:
             PSXHW_LOG("DMA0 CHCR 32bit write %x\n", value);
             dmaExec<0>(value);  // DMA0 chcr (MDEC in DMA)
-            break;
+            return;
         case 0x1f801090:
             PSXHW_LOG("DMA1 MADR 32bit write %x\n", value);
             g_emulator->m_mem->setMADR<1>(value & 0xffffff);
@@ -633,7 +633,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         case 0x1f801098:
             PSXHW_LOG("DMA1 CHCR 32bit write %x\n", value);
             dmaExec<1>(value);  // DMA1 chcr (MDEC out DMA)
-            break;
+            return;
         case 0x1f8010a0:
             PSXHW_LOG("DMA2 MADR 32bit write %x\n", value);
             g_emulator->m_mem->setMADR<2>(value & 0xffffff);
@@ -641,7 +641,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         case 0x1f8010a8:
             PSXHW_LOG("DMA2 CHCR 32bit write %x\n", value);
             dmaExec<2>(value);  // DMA2 chcr (GPU DMA)
-            break;
+            return;
         case 0x1f8010b0:
             PSXHW_LOG("DMA3 MADR 32bit write %x\n", value);
             g_emulator->m_mem->setMADR<3>(value & 0xffffff);
@@ -649,7 +649,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         case 0x1f8010b8:
             PSXHW_LOG("DMA3 CHCR 32bit write %x\n", value);
             dmaExec<3>(value);  // DMA3 chcr (CDROM DMA)
-            break;
+            return;
         case 0x1f8010c0:
             PSXHW_LOG("DMA4 MADR 32bit write %x\n", value);
             g_emulator->m_mem->setMADR<4>(value & 0xffffff);
@@ -657,7 +657,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         case 0x1f8010c8:
             PSXHW_LOG("DMA4 CHCR 32bit write %x\n", value);
             dmaExec<4>(value);  // DMA4 chcr (SPU DMA)
-            break;
+            return;
         case 0x1f8010d0:
             PSXHW_LOG("DMA5 MADR 32bit write %x\n", value);
             g_emulator->m_mem->setMADR<5>(value & 0xffffff);
@@ -666,7 +666,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         case 0x1f8010d8:
             PSXHW_LOG("DMA5 CHCR 32bit write %x\n", value);
             dmaExec<5>(value);  // DMA5 chcr (PIO DMA)
-            break;
+            return;
 #endif
         case 0x1f8010e0:
             PSXHW_LOG("DMA6 MADR 32bit write %x\n", value);
@@ -675,7 +675,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         case 0x1f8010e8:
             PSXHW_LOG("DMA6 CHCR 32bit write %x\n", value);
             dmaExec<6>(value);  // DMA6 chcr (OT clear)
-            break;
+            return;
         case 0x1f8010f0:
             // TODO: check if toggling PCR triggers pending DMAs.
             PSXHW_LOG("DMA PCR 32bit write %x\n", value);
