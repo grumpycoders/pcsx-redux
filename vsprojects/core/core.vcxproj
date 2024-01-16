@@ -292,6 +292,9 @@
     <ClInclude Include="..\..\src\core\decode_xa.h" />
     <ClInclude Include="..\..\src\core\display.h" />
     <ClInclude Include="..\..\src\core\disr3000a.h" />
+    <ClInclude Include="..\..\src\core\DynaRec_aa64\emitter.h" />
+    <ClInclude Include="..\..\src\core\DynaRec_aa64\recompiler.h" />
+    <ClInclude Include="..\..\src\core\DynaRec_aa64\regAllocation.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\profiler.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h" />

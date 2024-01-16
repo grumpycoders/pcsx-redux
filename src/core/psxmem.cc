@@ -618,19 +618,12 @@ const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
                 // IO regs that are safe to write to directly. For some of these,
                 // Writing a 8-bit/16-bit value actually writes the entire 32-bit reg, so they're not safe to write
                 // directly
-                case 0x1f801080:
                 case 0x1f801084:
-                case 0x1f801090:
                 case 0x1f801094:
-                case 0x1f8010a0:
                 case 0x1f8010a4:
-                case 0x1f8010b0:
                 case 0x1f8010b4:
-                case 0x1f8010c0:
                 case 0x1f8010c4:
-                case 0x1f8010d0:
                 case 0x1f8010d4:
-                case 0x1f8010e0:
                 case 0x1f8010e4:
                 case 0x1f801074:
                 case 0x1f8010f0:

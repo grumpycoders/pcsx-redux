@@ -435,7 +435,7 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     size = 1;
 
     do {
-        addr &= 0x1ffffc;
+        addr &= 0x7ffffc;
 
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
@@ -446,7 +446,7 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
         size += head >> 24;
 
         // next 32-bit pointer
-        addr = head & 0xffffff;
+        addr = head & 0xfffffc;
         size += 1;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
@@ -663,7 +663,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
         }
 
         // next 32-bit pointer
-        addr = header & 0xffffff;
+        addr = header & 0xfffffc;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
 }
