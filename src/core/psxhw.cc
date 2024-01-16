@@ -570,6 +570,7 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
 
 inline void PCSX::HW::dma0(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PSXDMA_LOG("*** DMA0 MDEC *** %x addr = %x size = %x\n", chcr, madr, bcr);
+    g_emulator->m_mdec->dma0(madr, bcr, chcr);
 }
 
 inline void PCSX::HW::dma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
