@@ -81,6 +81,7 @@ class OrderingTable : private OrderingTableBase {
      */
     template <Fragment Frag>
     void insert(Frag& frag, int32_t z) {
+        // TODO: cater for big packets
         OrderingTableBase::insert(m_table, N, &frag.head, uint32_t(frag.getActualFragmentSize() << 24), z);
     }
 

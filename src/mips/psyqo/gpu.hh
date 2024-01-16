@@ -35,6 +35,7 @@ SOFTWARE.
 
 #include "psyqo/fragment-concept.hh"
 #include "psyqo/hardware/gpu.hh"
+#include "psyqo/kernel.hh"
 #include "psyqo/ordering-table.hh"
 #include "psyqo/primitive-concept.hh"
 #include "psyqo/primitives/common.hh"
@@ -87,6 +88,7 @@ class GPU {
     void initialize(const Configuration &config);
 
     static constexpr uint32_t US_PER_HBLANK = 64;
+    static constexpr unsigned c_chainThreshold = 56;
 
     /**
      * @brief Returns the refresh rate of the GPU.
@@ -279,7 +281,7 @@ class GPU {
         const uint32_t *ptr = reinterpret_cast<const uint32_t *>(&primitive);
         constexpr size_t size = sizeof(Prim) / sizeof(uint32_t);
         for (int i = 0; i < size; i++) {
-            if constexpr (sizeof(Prim) > 56) waitFifo();
+            if constexpr (sizeof(Prim) > c_chainThreshold) waitFifo();
             sendRaw(*ptr++);
         }
     }
@@ -313,6 +315,8 @@ class GPU {
      */
     template <Fragment Frag1, Fragment Frag2>
     void chain(Frag1 *first, Frag2 *last) {
+        auto count = last->getActualFragmentSize();
+        Kernel::assert(count <= (c_chainThreshold / 4), "Last element of the chain is too big");
         chain(&first->head, &last->head, last->getActualFragmentSize());
     }
 
@@ -480,6 +484,8 @@ class GPU {
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
+    void scheduleNormalDMA(uintptr_t data, size_t count);
+    void scheduleChainedDMA(uintptr_t head);
     void chain(uint32_t *first, uint32_t *last, size_t count);
     void scheduleOTC(uint32_t *start, uint32_t count);
     void checkOTCAndTriggerCallback();
@@ -510,6 +516,7 @@ class GPU {
         uint32_t count;
     };
     eastl::fixed_list<ScheduledOTC, 32> m_OTCs[2];
+    uint32_t *m_chainNext = nullptr;
 
     uint16_t m_lastHSyncCounter = 0;
     bool m_interlaced = false;
