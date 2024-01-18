@@ -2338,7 +2338,7 @@ msgstr "Завантаження символів"
 
 #: src/gui/widgets/breakpoints.cc:30 src/gui/widgets/breakpoints.cc:128
 msgid "Edit label of breakpoint {}##{}"
-msgstr "Редагувати позначку точки зупинки ##{}"
+msgstr "Редагувати позначку точки зупинки {}##{}"
 
 #: src/gui/widgets/breakpoints.cc:32
 #, c-format
