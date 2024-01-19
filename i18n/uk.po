@@ -2,27 +2,23 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
 # Translators:
-# Stanley Kid, 2023
-#
+# Stanley Kid, 2024
+# 
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2021-03-27 04:53+0000\n"
-"Last-Translator: Stanley Kid, 2023\n"
-"Language-Team: Ukrainian (https://app.transifex.com/grumpycoders/teams/99251/"
-"uk/)\n"
-"Language: uk\n"
+"Last-Translator: Stanley Kid, 2024\n"
+"Language-Team: Ukrainian (https://app.transifex.com/grumpycoders/teams/99251/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != "
-"11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % "
-"100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || "
-"(n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+"Language: uk\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
 
 #: src/cdrom/cdriso-ecm.cc:282
 #, c-format
@@ -41,8 +37,7 @@ msgstr "Завантажено SBI: %s.\n"
 #: src/cdrom/cdriso.cc:252
 #, c-format
 msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
-msgstr ""
-"Трек %.2d (%s) - початок: %.2d:%.2d:%.2d, тривалість: %.2d:%.2d:%.2d.\n"
+msgstr "Трек %.2d (%s) - початок: %.2d:%.2d:%.2d, тривалість: %.2d:%.2d:%.2d.\n"
 
 #: src/cdrom/cdriso.cc:268
 #, c-format
@@ -424,8 +419,8 @@ msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
 msgstr ""
-"Курсор буде приховано та захоплено при роботі емулятора. Корисно для ігор із "
-"керуванням мишею."
+"Курсор буде приховано та захоплено при роботі емулятора. Корисно для ігор із"
+" керуванням мишею."
 
 #: src/core/pad.cc:918
 msgid "Allow mouse capture toggle"
@@ -741,15 +736,13 @@ msgid ""
 "\n"
 "                   No BIOS loaded, emulation halted.\n"
 "\n"
-"Set a BIOS file into the configuration, and do a hard reset of the "
-"emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 "\n"
 "                   BIOS не завантажено, емуляцію зупинено.\n"
 "\n"
-"Встанови BIOS у конфігурації та виконай апаратне перезавантаження "
-"емулятора.\n"
+"Встанови BIOS у конфігурації та виконай апаратне перезавантаження емулятора.\n"
 "Поширений OpenBIOS.bin може бути відповідною заміною BIOS.\n"
 
 #: src/core/psxmem.cc:200
@@ -922,8 +915,7 @@ msgid ""
 "Debugging features are not supported when using the software renderer yet\n"
 "Consider enabling the OpenGL GPU option instead."
 msgstr ""
-"Функції налагодження ще не підтримувані при використанні програмного "
-"опрацьовувача.\n"
+"Функції налагодження ще не підтримувані при використанні програмного опрацьовувача.\n"
 "Натомість розглянь увімкнення опції Open GL GPU."
 
 #: src/gui/gui.cc:307
@@ -935,7 +927,8 @@ msgid ""
 "The argument to the setText* functions need to be convertible to a string, "
 "or be a File object"
 msgstr ""
-"Аргумент для setText*-функцій необхідно конвертовати до рядка чи бути файлом."
+"Аргумент для setText*-функцій необхідно конвертовати до рядка чи бути "
+"файлом."
 
 #: src/gui/gui.cc:330
 msgid "Error compiling new shader code: {}"
@@ -946,8 +939,8 @@ msgid ""
 "Warning: OpenGL error reporting disabled. See About dialog for more "
 "information.\n"
 msgstr ""
-"Попередження: звітність помилок Open GL вимкнено. Докладні відомості у вікні "
-"\"Про додаток\".\n"
+"Попередження: звітність помилок Open GL вимкнено. Докладні відомості у вікні"
+" \"Про додаток\".\n"
 
 #: src/gui/gui.cc:666
 msgid "Main VRAM Viewer"
@@ -1182,8 +1175,7 @@ msgstr "Показати розбір динамічної перекомпіл�
 
 #: src/gui/gui.cc:1231
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
-"[Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
 "Розбірник динамічної перекомпіляції недоступний у режимі\n"
@@ -1975,8 +1967,8 @@ msgid ""
 "be able to properly report problems accurately."
 msgstr ""
 "Звітність помилок Open GL вимкнено. Драйвер дуже старий, необхідно Open GL "
-"4.3+. Онови графічні драйвери чи зв'яжися з постачальником GPU для отримання "
-"найновіших драйверів. Вимкнення не матиме негативного впливу на "
+"4.3+. Онови графічні драйвери чи зв'яжися з постачальником GPU для отримання"
+" найновіших драйверів. Вимкнення не матиме негативного впливу на "
 "продуктивність програмного забезпечення, але код користувача, наприклад, "
 "редактор шейдерів, не зможе належно точно повідомляти проблеми."
 
@@ -1990,8 +1982,8 @@ msgid ""
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
 "some computers. (Requires a restart of the emulator)"
 msgstr ""
-"Звітність помилок OpenGL необхідна для правильного звітності проблем. Однак, "
-"необхідний Open GL 4.3+, і можливий вплив на продуктивність деяких "
+"Звітність помилок OpenGL необхідна для правильного звітності проблем. Однак,"
+" необхідний Open GL 4.3+, і можливий вплив на продуктивність деяких "
 "комп'ютерів (необхідний перезапуск емулятора)."
 
 #: src/gui/gui.cc:2314
@@ -2282,7 +2274,8 @@ msgstr "Зібрати"
 #: src/gui/widgets/assembly.cc:887 src/gui/widgets/breakpoints.cc:153
 #: src/gui/widgets/memory_observer.cc:170
 #: src/gui/widgets/memory_observer.cc:328
-#: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:961
+#: src/gui/widgets/memory_observer.cc:424
+#: src/gui/widgets/typed_debugger.cc:961
 msgid "Address"
 msgstr "Адреса"
 
@@ -2344,18 +2337,17 @@ msgid "Load Symbols"
 msgstr "Завантаження символів"
 
 #: src/gui/widgets/breakpoints.cc:30 src/gui/widgets/breakpoints.cc:128
-#, fuzzy
 msgid "Edit label of breakpoint {}##{}"
-msgstr "Додати запис точки зупинки##{}"
+msgstr "Редагувати позначку точки зупинки {}##{}"
 
 #: src/gui/widgets/breakpoints.cc:32
-#, fuzzy, c-format
+#, c-format
 msgid "Change the label of breakpoint %s:"
-msgstr "Змінити значення регістру %s:"
+msgstr "Змінити позначку точки зупинки %s:"
 
 #: src/gui/widgets/breakpoints.cc:33 src/gui/widgets/breakpoints.cc:164
 msgid "Label"
-msgstr ""
+msgstr "Позначка"
 
 #: src/gui/widgets/breakpoints.cc:51
 msgid "Clear maps"
@@ -2536,13 +2528,13 @@ msgstr "GPU-реєстрація"
 
 #: src/gui/widgets/gpulogger.cc:42
 msgid ""
-"Logs each frame's draw calls. When enabled, all the commands sent to the GPU "
-"will be logged and displayed here. This will contain only a single frame "
+"Logs each frame's draw calls. When enabled, all the commands sent to the GPU"
+" will be logged and displayed here. This will contain only a single frame "
 "worth of commands. The feature can be pretty demanding in CPU and memory."
 msgstr ""
 "Реєстрація кожного виклику показу кадру. Усі надіслані до графічного "
-"процесора команди буде зареєстровано та відображено. Міститиметься лише один "
-"кадр зі значеннями командам. Функція може бути досить вимогливою до "
+"процесора команди буде зареєстровано та відображено. Міститиметься лише один"
+" кадр зі значеннями командам. Функція може бути досить вимогливою до "
 "центрального процесора та пам'яті."
 
 #: src/gui/widgets/gpulogger.cc:45
@@ -2557,16 +2549,17 @@ msgstr "Повторити кадр"
 msgid ""
 "When enabled, the framebuffer will be constantly redrawned using the "
 "selected commands, allowing to see the resulting output immediately. This "
-"doesn't make sense to have this enabled when: (1) the CPU is running and (2) "
-"the GPU logging isn't enabled. Selection of which commands to replay is done "
-"using the first checkbox in the logger display below. The [T] button will "
-"select all commands for replay from the top and until this command."
+"doesn't make sense to have this enabled when: (1) the CPU is running and (2)"
+" the GPU logging isn't enabled. Selection of which commands to replay is "
+"done using the first checkbox in the logger display below. The [T] button "
+"will select all commands for replay from the top and until this command."
 msgstr ""
 "Буфер кадрів буде постійно перепоказано вибраними командами для дозволу "
 "негайного показу результату. Безсенсово вмикати функцію при роботі "
 "центрального процесора та вимкненому журналі графічного процесора. Вибір "
 "команд для повтору буде виконано першою позначкою наведеного дисплею "
-"реєстратора. Кнопка [T] - вибір усіх команди для повтору спочатку до команди."
+"реєстратора. Кнопка [T] - вибір усіх команди для повтору спочатку до "
+"команди."
 
 #: src/gui/widgets/gpulogger.cc:57
 msgid "Show origins"
@@ -2578,8 +2571,8 @@ msgid ""
 "from, which can be useful to debug or reverse engineer, but will also "
 "clutter the logger view."
 msgstr ""
-"У дисплеї реєстратора також буде показано, звідки надіслано команду, що може "
-"бути корисно для налагодження чи зворотного проектування, але також буде "
+"У дисплеї реєстратора також буде показано, звідки надіслано команду, що може"
+" бути корисно для налагодження чи зворотного проектування, але також буде "
 "заважати перегляду реєстратора."
 
 #: src/gui/widgets/gpulogger.cc:72
@@ -2608,15 +2601,15 @@ msgstr "Виділити при наведенні"
 
 #: src/gui/widgets/gpulogger.cc:92
 msgid ""
-"When enabled, hovering a command in the logger view will highlight it in the "
-"vram display. Individual commands can be selected for highlight by using the "
-"second checkbox in the logger view. The [B] and [E] buttons can be used to "
-"specify the beginning and the end of a span of commands to highlight."
+"When enabled, hovering a command in the logger view will highlight it in the"
+" vram display. Individual commands can be selected for highlight by using "
+"the second checkbox in the logger view. The [B] and [E] buttons can be used "
+"to specify the beginning and the end of a span of commands to highlight."
 msgstr ""
 "Наведення на команду в режимі реєстратора для виділення її на vram-дисплеї. "
 "Можливий вибір окремих команд для виділення другою позначкою у вікні "
-"реєстратора. Кнопки [B] і [E] вказують початок і кінець діапазону команд для "
-"виділення."
+"реєстратора. Кнопки [B] і [E] вказують початок і кінець діапазону команд для"
+" виділення."
 
 #: src/gui/widgets/gpulogger.cc:99
 msgid "Frame {}###FrameCounterNode"
@@ -2864,7 +2857,8 @@ msgstr "Остання"
 msgid "Clear Undo buffer"
 msgstr "Очистити буфер скасувань"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
+#. happens as well.
 #: src/gui/widgets/memcard_manager.cc:156
 msgid "Memory Card 1 inserted"
 msgstr "Карту пам'яті 1 вставлено."
@@ -2985,7 +2979,8 @@ msgstr "Простий пошук"
 msgid "Pattern"
 msgstr "Шаблон"
 
-#: src/gui/widgets/memory_observer.cc:99 src/gui/widgets/memory_observer.cc:288
+#: src/gui/widgets/memory_observer.cc:99
+#: src/gui/widgets/memory_observer.cc:288
 msgid "Hex"
 msgstr "Hex"
 
@@ -3273,11 +3268,13 @@ msgstr "Пауза запису"
 msgid "Display log entries##{}{}"
 msgstr "Відобразити записи журналу##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:336 src/gui/widgets/typed_debugger.cc:1067
+#: src/gui/widgets/typed_debugger.cc:336
+#: src/gui/widgets/typed_debugger.cc:1067
 msgid "Re-enable##{}"
 msgstr "Повторно увімкнути##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:337 src/gui/widgets/typed_debugger.cc:1068
+#: src/gui/widgets/typed_debugger.cc:337
+#: src/gui/widgets/typed_debugger.cc:1068
 msgid "Disable##{}"
 msgstr "Вимкнути##{}{}"
 
@@ -3306,19 +3303,11 @@ msgstr "Нове значення##{}"
 
 #: src/gui/widgets/typed_debugger.cc:652
 msgid ""
-"Data types can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will generate a redux_data_types.txt file in its "
-"folder, or from any text file where each line specifies the data type's name "
-"and fields, separated by semi-colons; fields are specified in type-name-size "
-"tuples whose elements are separated by commas.\n"
+"Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
-"Можливий імпорт типів даних із Ghidra, використовуючи tools/ghidra_scripts/"
-"export_redux.py для генерації файлу redux_data_types.txt у теці чи з будь-"
-"якого текстового файлу, де кожен рядок визначає ім'я типу даних і поля, "
-"розділені крапкою з комою; поля вказано в кортежах тип-назва-розмір, "
-"елементи яких розділено комами.\n"
+"Можливий імпорт типів даних із Ghidra, використовуючи tools/ghidra_scripts/export_redux.py для генерації файлу redux_data_types.txt у теці чи з будь-якого текстового файлу, де кожен рядок визначає ім'я типу даних і поля, розділені крапкою з комою; поля вказано в кортежах тип-назва-розмір, елементи яких розділено комами.\n"
 "\n"
 "Наприклад:\n"
 
@@ -3336,19 +3325,11 @@ msgstr "Імпортувати типи даних"
 
 #: src/gui/widgets/typed_debugger.cc:688
 msgid ""
-"Functions can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will generate a redux_funcs.txt file in its folder, "
-"or from any text file where each line specifies the function address, name "
-"and arguments, separated by semi-colons; arguments are specified in type-"
-"name-size tuples whose elements are separated by commas.\n"
+"Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate a redux_funcs.txt file in its folder, or from any text file where each line specifies the function address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
 msgstr ""
-"Можливий імпорт функцій із Ghidra, використовуючи tools/ghidra_scripts/"
-"export_redux.py для генерації файлу redux_funcs.txt у теці чи з будь-якого "
-"текстового файлу, де кожен рядок визначає адресу функції, ім'я й аргументи, "
-"розділені крапкою з комою; аргументи вказано в кортежах тип-назва-розмір, "
-"елементи яких розділено комами.\n"
+"Можливий імпорт функцій із Ghidra, використовуючи tools/ghidra_scripts/export_redux.py для генерації файлу redux_funcs.txt у теці чи з будь-якого текстового файлу, де кожен рядок визначає адресу функції, ім'я й аргументи, розділені крапкою з комою; аргументи вказано в кортежах тип-назва-розмір, елементи яких розділено комами.\n"
 "\n"
 "Наприклад:\n"
 
@@ -3624,8 +3605,8 @@ msgstr "Буфер захоплення / декодування IRQ"
 
 #: src/spu/cfg.cc:90
 msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
-"is necessary for some games."
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
+" is necessary for some games."
 msgstr ""
 "Активація SPU IRQ на основі запису до буфера декодування / захоплення. "
 "Необхідно для деяких ігор."
