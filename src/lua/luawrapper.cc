@@ -28,8 +28,6 @@ static int callwrap(lua_State* raw, lua_CFunction func) {
         return func(raw);
     } catch (std::exception& e) {
         return L.error(std::string("LuaException: ") + e.what());
-    } catch (...) {
-        return L.error("LuaException: unknown exception");
     }
 }
 
@@ -230,7 +228,8 @@ void PCSX::Lua::call(int nargs) {
 int PCSX::Lua::pcall(int nargs) {
     push([](lua_State* L_) -> int {
         Lua L(L_);
-        return L.pushLuaContext(true);
+        L.pushLuaContext(true);
+        return 1;
     });
 
     const int errfunc = gettop() - (nargs + 1);
@@ -316,25 +315,26 @@ void PCSX::Lua::getfieldtable(int idx, int tableIdx, bool raw) {
     settable(tableIdx, raw);
 }
 
-int PCSX::Lua::pushLuaContext(bool inTable) {
+void PCSX::Lua::pushLuaContext(bool inTable) {
     struct lua_Debug ar;
     bool got_error = false;
     int level = 0;
     int n = 1;
     if (inTable) {
+        auto nargs = gettop();
         newtable();
-        insert(1);
-        push(lua_Number(n));
-        insert(2);
-        settable();
+        for (auto i = 1; i <= nargs; i++) {
+            push(lua_Number(n++));
+            copy(i);
+            settable();
+        }
     }
 
     do {
         if (lua_getstack(L, level, &ar) == 1) {
             if (lua_getinfo(L, "nSl", &ar) != 0) {
-                n++;
                 if (inTable) {
-                    push(lua_Number(n));
+                    push(lua_Number(n++));
                 }
                 std::string ctx = "at ";
                 ctx += ar.source;
@@ -355,8 +355,6 @@ int PCSX::Lua::pushLuaContext(bool inTable) {
         }
         level++;
     } while (!got_error);
-
-    return inTable ? 1 : n;
 }
 
 int PCSX::Lua::error(std::string_view msg) {
