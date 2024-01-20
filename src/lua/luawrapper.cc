@@ -453,14 +453,22 @@ void PCSX::Lua::displayStack(bool error) {
     if (n == 0) {
         if ((normalPrinter && !error) || (errorPrinter && error)) {
             if (error) {
-                errorPrinter("Stack empty");
+                errorPrinter(
+                    "Got an error but stack is empty: FFI code probably threw an exception. Please report this bug "
+                    "with a reproduction case.");
             } else {
                 normalPrinter("Stack empty");
             }
         }
 
         if (isInDisplayStackAlready) {
-            printf("Stack empty");
+            if (error) {
+                printf(
+                    "Got an error but stack is empty: FFI code probably threw an exception. Please report this bug "
+                    "with a reproduction case.");
+            } else {
+                printf("Stack empty");
+            }
             return;
         }
 
@@ -469,7 +477,13 @@ void PCSX::Lua::displayStack(bool error) {
         setfield("IN_DISPLAY_STACK", LUA_REGISTRYINDEX);
         lua_pushstring(L, error ? "printError" : "print");
         lua_gettable(L, LUA_GLOBALSINDEX);
-        push("Stack empty");
+        if (error) {
+            push(
+                "Got an error but stack is empty: FFI code probably threw an exception. Please report this bug with a "
+                "reproduction case.");
+        } else {
+            push("Stack empty");
+        }
         pcall(1);
         push(false);
         setfield("IN_DISPLAY_STACK", LUA_REGISTRYINDEX);

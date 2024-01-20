@@ -17,78 +17,27 @@
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 local C = ffi.load 'SUPPORT_FILE'
 
-local sliceMeta = {
-    __tostring = function(slice) return ffi.string(C.getSliceData(slice._wrapper), C.getSliceSize(slice._wrapper)) end,
-    __len = function(slice) return tonumber(C.getSliceSize(slice._wrapper)) end,
-    __index = function(slice, index)
-        if type(index) == 'number' and index >= 0 and index < C.getSliceSize(slice._wrapper) then
-            local data = C.getSliceData(slice._wrapper)
-            local buffer = ffi.cast('const uint8_t*', data)
-            return buffer[index]
-        elseif index == 'data' then
-            return C.getSliceData(slice._wrapper)
-        elseif index == 'size' then
-            return tonumber(C.getSliceSize(slice._wrapper))
-        end
-        error('Unknown index `' .. index .. '` for LuaSlice')
-    end,
-    __newindex = function(slice, index, value) end,
-}
-
-local function createSliceWrapper(wrapper)
-    local slice = { _wrapper = ffi.gc(wrapper, C.destroySlice), _type = 'Slice' }
-    return setmetatable(slice, sliceMeta)
-end
-
-local bufferMeta = {
-    __tostring = function(buffer) return ffi.string(buffer.data, buffer.size) end,
-    __len = function(buffer) return buffer.size end,
-    __index = function(buffer, index)
-        if type(index) == 'number' and index >= 0 and index < buffer.size then
-            return buffer.data[index]
-        elseif index == 'maxsize' then
-            return function(buffer) return ffi.sizeof(buffer) - 4 end
-        elseif index == 'resize' then
-            return function(buffer, size)
-                if size > buffer:maxsize() then error('buffer size too large') end
-                buffer.size = size
-            end
-        elseif index == 'pbSlice' then
-            return Support._internal.createPBSliceFromBuffer(buffer)
-        end
-        error('Unknown index `' .. index .. '` for LuaBuffer')
-    end,
-    __newindex = function(buffer, index, value)
-        if type(index) == 'number' and index >= 0 and index < buffer.size then
-            buffer.data[index] = value
-        else
-            error('Unknown or immutable index `' .. index .. '` for LuaBuffer')
-        end
-    end,
-}
-
 local function validateBuffer(buffer)
     if buffer:maxsize() < buffer.size then
         error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' ..
-                  buffer:maxsize())
+            buffer:maxsize())
     end
     return buffer
 end
-local LuaBuffer = ffi.metatype('LuaBuffer', bufferMeta)
 
 local function read(self, ptr, size)
     if type(ptr) == 'number' and size == nil then
         size = ptr
         local buf = Support.NewLuaBuffer(size)
-        size = C.readFileBuffer(self._wrapper, buf)
+        size = Support.extra.safeFFI('File::read(C.readFileBuffer)', C.readFileBuffer, self._wrapper, buf)
         buf.size = size
         return validateBuffer(buf)
-    elseif type(ptr) == 'cdata' and size == nil and ffi.typeof(ptr) == LuaBuffer then
-        return C.readFileBuffer(self._wrapper, validateBuffer(ptr))
+    elseif type(ptr) == 'cdata' and size == nil and ffi.typeof(ptr) == Support.File._LuaBuffer then
+        return Support.extra.safeFFI('File::read(C.readFileBuffer)', C.readFileBuffer, self._wrapper, validateBuffer(ptr))
     elseif type(ptr) == 'userdata' and size == nil then
         return Support._internal.readFileUserData(self._wrapper, ptr)
     end
-    return C.readFileRawPtr(self._wrapper, ptr, size)
+    return Support.extra.safeFFI('File::read(C.readFileRawPtr)', C.readFileRawPtr, self._wrapper, ptr, size)
 end
 
 local function readAt(self, ptr, size, pos)
@@ -96,39 +45,39 @@ local function readAt(self, ptr, size, pos)
         pos = size
         size = ptr
         local buf = Support.NewLuaBuffer(size)
-        size = C.readFileAtBuffer(self._wrapper, buf, pos)
+        size = Support.extra.safeFFI('File::readAt(C.readFileAtBuffer)', C.readFileAtBuffer, self._wrapper, buf, pos)
         buf.size = size
         return validateBuffer(buf)
     elseif type(ptr) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(ptr) == LuaBuffer then
-        return C.readFileAtBuffer(self._wrapper, validateBuffer(ptr), size)
+        return Support.extra.safeFFI('File::readAt(C.readFileAtBuffer)', C.readFileAtBuffer, self._wrapper, validateBuffer(ptr), size)
     elseif type(ptr) == 'userdata' and type(size) == 'number' and pos == nil then
         return Support._internal.readFileAtUserData(self._wrapper, ptr, size)
     end
-    return C.readFileAtRawPtr(self._wrapper, ptr, size, pos)
+    return Support.extra.safeFFI('File::readAt(C.readFileAtRawPtr)', C.readFileAtRawPtr, self._wrapper, ptr, size, pos)
 end
 
 local function write(self, data, size)
     if type(data) == 'cdata' and size == nil and ffi.typeof(data) == LuaBuffer then
-        return C.writeFileBuffer(self._wrapper, validateBuffer(data))
+        return Support.extra.safeFFI('File::write(C.writeFileBuffer)', C.writeFileBuffer, self._wrapper, validateBuffer(data))
     elseif type(data) == 'userdata' and size == nil then
         return Support._internal.writeFileUserData(self._wrapper, data)
     elseif type(size) == 'number' then
-        return C.writeFileRawPtr(self._wrapper, data, size)
+        return Support.extra.safeFFI('File::write(C.writeFileRawPtr)', C.writeFileRawPtr, self._wrapper, data, size)
     end
     if type(data) ~= 'string' then data = tostring(data) end
-    return C.writeFileRawPtr(self._wrapper, data, string.len(data))
+    return Support.extra.safeFFI('File::write(C.writeFileRawPtr)', C.writeFileRawPtr, self._wrapper, data, string.len(data))
 end
 
 local function writeAt(self, data, size, pos)
     if type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == LuaBuffer then
-        return C.writeFileAtBuffer(self._wrapper, validateBuffer(data), size)
+        return Support.extra.safeFFI('File::writeAt(C.writeFileAtBuffer)', C.writeFileAtBuffer, self._wrapper, validateBuffer(data), size)
     elseif type(data) == 'userdata' and type(size) == 'number' and pos == nil then
         return Support._internal.writeFileAtUserData(self._wrapper, data, size)
     elseif type(size) == 'number' and type(pos) == 'number' then
-        return C.writeFileAtRawPtr(self._wrapper, data, size, pos)
+        return Support.extra.safeFFI('File::writeAt(C.writeFileAtRawPtr)', C.writeFileAtRawPtr, self._wrapper, data, size, pos)
     end
     if type(data) ~= 'string' then data = tostring(data) end
-    return C.writeFileAtRawPtr(self._wrapper, data, string.len(data), size)
+    return Support.extra.safeFFI('File::writeAt(C.writeFileAtRawPtr)', C.writeFileAtRawPtr, self._wrapper, data, string.len(data), size)
 end
 
 local function writeMoveSlice(self, slice) C.writeFileMoveSlice(self._wrapper, slice._wrapper) end
@@ -137,21 +86,21 @@ local function writeAtMoveSlice(self, slice, pos) C.writeFileAtMoveSlice(self._w
 
 local function rSeek(self, pos, wheel)
     if wheel == nil then wheel = 'SEEK_SET' end
-    return C.rSeek(self._wrapper, pos, wheel)
+    return Support.extra.safeFFI('File::rSeek', C.rSeek, self._wrapper, pos, wheel)
 end
 
 local function wSeek(self, pos, wheel)
     if wheel == nil then wheel = 'SEEK_SET' end
-    return C.wSeek(self._wrapper, pos, wheel)
+    return Support.extra.safeFFI('File::wSeek', C.wSeek, self._wrapper, pos, wheel)
 end
 
 local function readNum(self, ctype, pos)
     local size = ffi.sizeof(ctype)
     local buf = ctype()
     if pos == nil then
-        C.readFileRawPtr(self._wrapper, ffi.cast('void*', buf), size)
+        Support.extra.safeFFI('File::readX', C.readFileRawPtr, self._wrapper, ffi.cast('void*', buf), size)
     else
-        C.readFileAtRawPtr(self._wrapper, ffi.cast('void*', buf), size, pos)
+        Support.extra.safeFFI('File::readXAt', C.readFileAtRawPtr, self._wrapper, ffi.cast('void*', buf), size, pos)
     end
     if (ffi.abi('be')) and size ~= 1 then
         local n = ctype()
@@ -175,9 +124,9 @@ local function writeNum(self, num, ctype, pos)
         buf = n
     end
     if pos == nil then
-        C.writeFileRawPtr(self._wrapper, ffi.cast('void*', buf), size)
+        Support.extra.safeFFI('File::writeX', C.writeFileRawPtr, self._wrapper, ffi.cast('void*', buf), size)
     else
-        C.writeFileAtRawPtr(self._wrapper, ffi.cast('void*', buf), size, pos)
+        Support.extra.safeFFI('File::writeXAt', C.writeFileAtRawPtr, self._wrapper, ffi.cast('void*', buf), size, pos)
     end
 end
 
@@ -208,11 +157,15 @@ local int16_t = ffi.typeof('int16_t[1]');
 local int32_t = ffi.typeof('int32_t[1]');
 local int64_t = ffi.typeof('int64_t[1]');
 
+local function deleteFile(wrapper)
+    Support.extra.safeFFI('File::~File', C.deleteFile, wrapper)
+end
+
 local function createFileWrapper(wrapper)
     local file = {
-        _wrapper = ffi.gc(wrapper, C.deleteFile),
+        _wrapper = ffi.gc(wrapper, deleteFile),
         _type = 'File',
-        close = function(self) C.closeFile(self._wrapper) end,
+        close = function(self) Support.extra.safeFFI('File::close', C.closeFile, self._wrapper) end,
         read = read,
         readAt = readAt,
         write = write,
@@ -220,13 +173,13 @@ local function createFileWrapper(wrapper)
         writeMoveSlice = writeMoveSlice,
         writeAtMoveSlice = writeAtMoveSlice,
         rSeek = rSeek,
-        rTell = function(self) return C.rTell(self._wrapper) end,
+        rTell = function(self) return Support.extra.safeFFI('File::rTell', C.rTell, self._wrapper) end,
         wSeek = wSeek,
-        wTell = function(self) return C.wTell(self._wrapper) end,
-        size = function(self) return tonumber(C.getFileSize(self._wrapper)) end,
-        seekable = function(self) return C.isFileSeekable(self._wrapper) end,
-        writable = function(self) return C.isFileWritable(self._wrapper) end,
-        eof = function(self) return C.isFileEOF(self._wrapper) end,
+        wTell = function(self) return Support.extra.safeFFI('File::wTell', C.wTell, self._wrapper) end,
+        size = function(self) return tonumber(Support.extra.safeFFI('File::size', C.getFileSize, self._wrapper)) end,
+        seekable = function(self) return Support.extra.safeFFI('File::seekable', C.isFileSeekable, self._wrapper) end,
+        writable = function(self) return Support.extra.safeFFI('File::writable', C.isFileWritable, self._wrapper) end,
+        eof = function(self) return Support.extra.safeFFI('File::eof', C.isFileEOF, self._wrapper) end,
         failed = function(self) return C.isFileFailed(self._wrapper) end,
         cacheable = function(self) return C.isFileCacheable(self._wrapper) end,
         caching = function(self) return C.isFileCaching(self._wrapper) end,
@@ -342,15 +295,15 @@ end
 local function ffmpegAudioFile(file, options)
     if type(options) ~= 'table' then options = {} end
     local channels, endianness, sampleFormat, frequency = options.channels, options.endianness, options.sampleFormat,
-                                                          options.frequency
-    return createFileWrapper(C.ffmpegAudioFile(file._wrapper, channels or 'Stereo', endianness or 'Little',
-                                               sampleFormat or 'S16', frequency or 44100))
+        options.frequency
+    return createFileWrapper(Support.extra.safeFFI('Support.File.ffmpegAudioFile', C.ffmpegAudioFile, file._wrapper, channels or 'Stereo', endianness or 'Little',
+        sampleFormat or 'S16', frequency or 44100))
 end
 
 if (type(Support) ~= 'table') then Support = {} end
 
 Support.NewLuaBuffer = function(size)
-    local buf = LuaBuffer(size)
+    local buf = Support.File._LuaBuffer(size)
     buf.size = size
     return buf
 end
@@ -366,7 +319,6 @@ Support.File = {
     failedFile = function() return createFileWrapper(C.failedFile()) end,
     ffmpegAudioFile = ffmpegAudioFile,
     _createFileWrapper = createFileWrapper,
-    _createSliceWrapper = createSliceWrapper,
 }
 
 -- )EOF"

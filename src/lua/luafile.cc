@@ -348,12 +348,15 @@ static void registerAllSymbols(PCSX::Lua L) {
 }
 
 void PCSX::LuaFFI::open_file(Lua L) {
-    static int lualoader = 1;
+    static int lualoader = 3;
     static const char* fileFFICDef = (
 #include "lua/fileffi-cdef.lua"
     );
     static const char* fileFFI = (
 #include "lua/fileffi.lua"
+    );
+    static const char* fileFFIMeta = (
+#include "lua/fileffimeta.lua"
     );
     registerAllSymbols(L);
     L.getfieldtable("Support", LUA_GLOBALSINDEX);
@@ -380,4 +383,5 @@ void PCSX::LuaFFI::open_file(Lua L) {
     L.pop();
     L.load(fileFFICDef, "internal:lua/fileffi-cdef.lua");
     L.load(fileFFI, "internal:lua/fileffi.lua");
+    L.load(fileFFIMeta, "internal:lua/fileffimeta.lua");
 }
