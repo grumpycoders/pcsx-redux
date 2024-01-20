@@ -55,6 +55,7 @@
   <ItemGroup>
     <None Include="..\..\src\lua\fileffi-cdef.lua" />
     <None Include="..\..\src\lua\fileffi.lua" />
+    <None Include="..\..\src\lua\fileffimeta.lua" />
     <None Include="..\..\third_party\ffi-reflect\reflect.lua" />
     <None Include="..\..\third_party\glffi\glffi-def1.lua" />
     <None Include="..\..\third_party\glffi\glffi-def2.lua" />

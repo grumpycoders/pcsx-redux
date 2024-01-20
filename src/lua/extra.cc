@@ -168,6 +168,12 @@ end,
 Support.extra.open = function(name)
     return Support.File._createFileWrapper(ffi.cast('LuaFile*', Support._internal.open(name)))
 end
+
+Support.extra.safeFFI = function(name, func, ...)
+    local status, ret = pcall(func, ...)
+    if status then return ret end
+    error('FFI call failed in ' .. name .. ': ' .. ret)
+end
 )",
            "internal:extra.lua");
 
