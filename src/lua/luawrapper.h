@@ -175,7 +175,7 @@ class Lua {
     void rawgeti(int idx, int tableIdx = -1) { lua_rawgeti(L, tableIdx, idx); }
     void setvar() { lua_settable(L, LUA_GLOBALSINDEX); }
     int gettop() { return lua_gettop(L); }
-    int pushLuaContext(bool inTable = false);
+    void pushLuaContext(bool inTable = false);
     int error(std::string_view msg);
 
     int type(int i = -1) { return lua_type(L, i); }
