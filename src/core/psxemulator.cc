@@ -71,7 +71,10 @@ PCSX::Emulator::Emulator()
       m_sio1Server(new PCSX::SIO1Server()),
       m_sio1Client(new PCSX::SIO1Client()),
       m_spu(new PCSX::SPU::impl()),
-      m_webServer(new PCSX::WebServer()) {}
+      m_webServer(new PCSX::WebServer()) {
+    auto L = *m_lua;
+    L.openlibs();
+}
 
 void PCSX::Emulator::setLua() {
     auto L = *m_lua;
@@ -87,7 +90,6 @@ void PCSX::Emulator::setLua() {
         L.push(g_system->getStr(djbHash::hash(str), str.c_str()));
         return 1;
     });
-    L.openlibs();
     L.load("ffi = require('ffi')", "internal:setffi.lua");
     LuaFFI::open_zlib(L);
     luv_set_loop(L.getState(), g_system->getLoop());
