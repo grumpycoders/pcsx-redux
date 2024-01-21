@@ -43,5 +43,9 @@ jobs:
           xvfb-run catchsegv ./pcsx-redux-tests
       - name: Produce code coverage
         run: |
+          apt install -y luarocks luajit
+          luarocks install luacov
+          luarocks install luacov-reporter-lcov
+          luacov -r lcov
           lcov --ignore-errors mismatch --directory . --capture --output-file coverage.info
       - uses: codecov/codecov-action@v2
