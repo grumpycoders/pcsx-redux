@@ -176,7 +176,7 @@ void PCSX::LuaFFI::open_extra(Lua L) {
         "open",
         [](lua_State* L_) -> int {
             Lua L(L_);
-            auto ar = L.getinfo("S", 1);
+            auto ar = L.getinfo("S", 2);
             auto name = L.tostring();
             IO<File> file = load(name, ar.has_value() ? ar->source : "");
             L.push(new LuaFile(file));
