@@ -641,12 +641,12 @@ void PCSX::LuaFFI::open_gl(Lua L) {
     static const char* glFFI_def4 = (
 #include "third_party/glffi/glffi-def4.lua"
     );
-    L.load(glFFI_enum1, "internal:third_party/glffi/glffi-enum1.lua");
-    L.load(glFFI_enum2, "internal:third_party/glffi/glffi-enum2.lua");
-    L.load(glFFI_enum3, "internal:third_party/glffi/glffi-enum3.lua");
-    L.load(glFFI_typedefs, "internal:third_party/glffi/glffi-typedefs.lua");
-    L.load(glFFI_def1, "internal:third_party/glffi/glffi-def1.lua");
-    L.load(glFFI_def2, "internal:third_party/glffi/glffi-def2.lua");
-    L.load(glFFI_def3, "internal:third_party/glffi/glffi-def3.lua");
-    L.load(glFFI_def4, "internal:third_party/glffi/glffi-def4.lua");
+    L.load(glFFI_enum1, "third_party:glffi/glffi-enum1.lua");
+    L.load(glFFI_enum2, "third_party:glffi/glffi-enum2.lua");
+    L.load(glFFI_enum3, "third_party:glffi/glffi-enum3.lua");
+    L.load(glFFI_typedefs, "third_party:glffi/glffi-typedefs.lua");
+    L.load(glFFI_def1, "third_party:glffi/glffi-def1.lua");
+    L.load(glFFI_def2, "third_party:glffi/glffi-def2.lua");
+    L.load(glFFI_def3, "third_party:glffi/glffi-def3.lua");
+    L.load(glFFI_def4, "third_party:glffi/glffi-def4.lua");
 }

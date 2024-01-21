@@ -386,7 +386,7 @@ int pcsxMain(int argc, char **argv) {
                 PCSX::LuaFFI::addArchive(*L, file);
             }
             auto dofiles = args.values("dofile");
-            L->load("return function(name) Support.extra.dofile(name) end", "internal:");
+            L->load("return function(name) Support.extra.dofile(name) end", "internal:dofile.lua");
             for (auto &dofile : dofiles) {
                 L->copy(-1);
                 L->push(dofile);
