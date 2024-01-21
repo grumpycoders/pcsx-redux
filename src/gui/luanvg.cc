@@ -186,6 +186,6 @@ void PCSX::LuaFFI::open_nvg(Lua L) {
     static const char* nvg = (
 #include "gui/nvgffi.lua"
     );
-    L.load(nvg_cdefs, "internal:gui/nvgffi-cdefs.lua");
-    L.load(nvg, "internal:gui/nvgffi.lua");
+    L.load(nvg_cdefs, "src:gui/nvgffi-cdefs.lua");
+    L.load(nvg, "src:gui/nvgffi.lua");
 }

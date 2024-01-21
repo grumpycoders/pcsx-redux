@@ -69,11 +69,11 @@ void PCSX::LuaFFI::open_imguiextra(Lua L) {
     static const char* imguiextra = (
 #include "gui/imguiextraffi.lua"
     );
-    L.load(imguiextra, "internal:gui/imguiextraffi.lua");
+    L.load(imguiextra, "src:gui/imguiextraffi.lua");
     static const char* imguisafe = (
 #include "gui/imguisafe.lua"
     );
-    L.load(imguisafe, "internal:gui/imguisafe.lua");
+    L.load(imguisafe, "src:gui/imguisafe.lua");
 
     L.getfieldtable("imgui", LUA_GLOBALSINDEX);
     L.getfieldtable("extra");

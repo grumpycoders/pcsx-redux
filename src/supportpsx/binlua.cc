@@ -122,5 +122,5 @@ void PCSX::LuaSupportPSX::open_binaries(Lua L) {
 #include "supportpsx/binffi.lua"
     );
     registerAllSymbols(L);
-    L.load(binffi, "internal:supportpsx/binffi.lua");
+    L.load(binffi, "src:supportpsx/binffi.lua");
 }

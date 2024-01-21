@@ -88,3 +88,6 @@
 [submodule "third_party/luafilesystem"]
 	path = third_party/luafilesystem
 	url = https://github.com/lunarmodules/luafilesystem.git
+[submodule "third_party/luacov"]
+	path = third_party/luacov
+	url = https://github.com/grumpycoders/luacov.git

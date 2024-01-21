@@ -330,6 +330,30 @@ int pcsxMain(int argc, char **argv) {
     emulator->m_spu->init();
 
     // Make sure the Lua environment is set.
+    bool luacovEnabled = false;
+    if (args.get<bool>("luacov")) {
+        auto L = *emulator->m_lua;
+        L.load("package.path = package.path .. ';./lua_modules/share/lua/5.1/?.lua;./third_party/luacov/src/?.lua'",
+               "internal:package.path.lua");
+        try {
+            L.load(R"(
+local runner = require 'luacov.runner'
+runner.init({
+    nameparser = function(name)
+        if name:sub(1, 4) == 'src:' then
+            return 'src/' .. name:sub(5)
+        elseif name:sub(1, 12) == 'third_party:' then
+            return 'third_party/' .. name:sub(13)
+        end
+        return nil
+    end,
+}))",
+                   "internal:luacov.lua");
+            luacovEnabled = true;
+        } catch (...) {
+            luacovEnabled = false;
+        }
+    }
     emulator->setLua();
     s_ui->setLua(*emulator->m_lua);
     emulator->m_spu->setLua(*emulator->m_lua);
@@ -356,7 +380,7 @@ int pcsxMain(int argc, char **argv) {
         // First, set up a closer. This makes sure that everything is shut down gracefully,
         // in the right order, once we exit the scope. This is because of how we're still
         // allowing exceptions to occur.
-        Cleaner cleaner([&emulator, &system, &exitCode]() {
+        Cleaner cleaner([&emulator, &system, &exitCode, luacovEnabled]() {
             emulator->m_spu->close();
             emulator->m_cdrom->clearIso();
 
@@ -365,6 +389,11 @@ int pcsxMain(int argc, char **argv) {
             emulator->shutdown();
             s_ui->close();
             delete s_ui;
+
+            if (luacovEnabled) {
+                auto L = *emulator->m_lua;
+                L.load("(require 'luacov.runner').shutdown()", "internal:luacov-shutdown.lua");
+            }
 
             delete emulator;
             PCSX::g_emulator = nullptr;
@@ -386,7 +415,7 @@ int pcsxMain(int argc, char **argv) {
                 PCSX::LuaFFI::addArchive(*L, file);
             }
             auto dofiles = args.values("dofile");
-            L->load("return function(name) Support.extra.dofile(name) end", "internal:");
+            L->load("return function(name) Support.extra.dofile(name) end", "internal:dofile.lua");
             for (auto &dofile : dofiles) {
                 L->copy(-1);
                 L->push(dofile);

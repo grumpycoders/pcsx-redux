@@ -381,7 +381,7 @@ void PCSX::LuaFFI::open_file(Lua L) {
         },
         -1);
     L.pop();
-    L.load(fileFFICDef, "internal:lua/fileffi-cdef.lua");
-    L.load(fileFFI, "internal:lua/fileffi.lua");
-    L.load(fileFFIMeta, "internal:lua/fileffimeta.lua");
+    L.load(fileFFICDef, "src:lua/fileffi-cdef.lua");
+    L.load(fileFFI, "src:lua/fileffi.lua");
+    L.load(fileFFIMeta, "src:lua/fileffimeta.lua");
 }
