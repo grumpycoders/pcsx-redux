@@ -56,8 +56,8 @@ class SystemImpl final : public PCSX::System {
         if (m_args.isGUILogsEnabled()) s_ui->addNotification(s.c_str());
         if (s_ui->addLog(PCSX::LogClass::UI, s)) {
             if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
-            m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
             if (m_logfile) m_logfile->write(std::move(s));
+            m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
         }
     }
 
@@ -66,8 +66,8 @@ class SystemImpl final : public PCSX::System {
             if (!s_ui->addLog(logClass, s)) return;
         }
         if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
-        m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
         if (m_logfile) m_logfile->write(std::move(s));
+        m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
     }
 
     virtual void printf(std::string &&s) final override {
@@ -75,8 +75,8 @@ class SystemImpl final : public PCSX::System {
             if (!s_ui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
         }
         if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
-        m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
         if (m_logfile) m_logfile->write(std::move(s));
+        m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
     }
 
     virtual void luaMessage(const std::string &s, bool error) final override {
@@ -100,14 +100,14 @@ class SystemImpl final : public PCSX::System {
 
     virtual void softReset() final override {
         // debugger or UI is requesting a reset
-        m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{});
         PCSX::g_emulator->m_cpu->psxReset();
+        m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{});
     }
 
     virtual void hardReset() final override {
         // debugger or UI is requesting a reset
-        m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
         PCSX::g_emulator->reset();
+        m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
     }
 
     virtual void close() final override {
