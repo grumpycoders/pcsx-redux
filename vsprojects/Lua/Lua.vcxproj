@@ -53,6 +53,7 @@
     <ClInclude Include="..\..\third_party\luafilesystem\src\lfs.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\lua\extra.lua" />
     <None Include="..\..\src\lua\fileffi-cdef.lua" />
     <None Include="..\..\src\lua\fileffi.lua" />
     <None Include="..\..\src\lua\fileffimeta.lua" />
