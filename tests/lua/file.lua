@@ -17,17 +17,14 @@
 
 local lu = require 'luaunit'
 
-TestBasic = {}
+TestFile = {}
 
-function TestBasic:test_basic()
-    lu.assertEquals(1, 1)
-end
-
-function TestBasic:test_coroutine()
-    local testCoroutine = coroutine.running()
-    PCSX.nextTick(function()
-        coroutine.resume(testCoroutine, 42)
-    end)
-    local r = coroutine.yield()
-    lu.assertEquals(r, 42)
+function TestFile:test_buffer()
+    local buf = Support.File.buffer()
+    buf:write('hello')
+    buf:write(' ')
+    buf:write('world')
+    lu.assertEquals(buf:size(), 11)
+    local r = buf:read(buf:size())
+    lu.assertEquals(tostring(r), 'hello world')
 end

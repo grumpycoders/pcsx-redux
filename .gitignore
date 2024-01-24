@@ -110,3 +110,6 @@ comport.txt
 
 # NVIDIA Nsight
 GPUCache
+
+# Lua tests results
+luacov.stats.out

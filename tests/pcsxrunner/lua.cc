@@ -21,23 +21,48 @@
 #include "main/main.h"
 
 static const char prefix[] = R"(
-    os.exit = PCSX.quit
-    package.path = package.path .. ';../../../third_party/luaunit/?.lua'
-    package.path = package.path .. ';./third_party/luaunit/?.lua'
-    package.path = package.path .. ';../../../tests/lua/?.lua'
-    package.path = package.path .. ';./tests/lua/?.lua'
+package.path = package.path
+    .. ';../../../third_party/luaunit/?.lua'
+    .. ';./third_party/luaunit/?.lua'
+    .. ';../../../?.lua'
+    .. ';./?.lua'
 )";
 
-TEST(LuaBasic, Interpreter) {
-    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
-                        "-luacov", "-exec", prefix, "-exec", "require 'basic'");
-    int ret = invoker.invoke();
-    EXPECT_EQ(ret, 0);
+static const char suffix[] = R"(
+coroutine.resume(coroutine.create(function()
+    PCSX.quit(require('luaunit').LuaUnit.new():runSuite '--verbose')
+end))
+)";
+
+template <typename... Args>
+int runLuaInt(Args... args) {
+    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter", "-luacov",
+                        "-exec", prefix, args..., "-exec", suffix);
+    return invoker.invoke();
 }
 
-TEST(LuaBasic, Dynarec) {
-    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec", "-luacov",
-                        "-exec", prefix, "-exec", "require 'basic'");
-    int ret = invoker.invoke();
-    EXPECT_EQ(ret, 0);
+template <typename... Args>
+int runLuaDyn(Args... args) {
+    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec", "-luacov",
+                        "-exec", prefix, args..., "-exec", suffix);
+    return invoker.invoke();
 }
+
+static int runLuaIntTest(const char* name) {
+    std::string req = "require '";
+    req += name;
+    req += "'";
+    return runLuaInt("-exec", req.c_str());
+}
+
+static int runLuaDynTest(const char* name) {
+    std::string req = "require '";
+    req += name;
+    req += "'";
+    return runLuaDyn("-exec", req.c_str());
+}
+
+TEST(LuaBasic, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.basic"), 0); }
+TEST(LuaBasic, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.basic"), 0); }
+TEST(LuaFile, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.file"), 0); }
+TEST(LuaFile, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.file"), 0); }
