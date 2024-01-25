@@ -426,8 +426,7 @@ runner.init({
             // Then run all of the Lua "exec" commands.
             auto luaexecs = args.values("exec");
             for (auto &luaexec : luaexecs) {
-                L->load(luaexec.data(), "cmdline:", false);
-                L->call();
+                L->load(std::string(luaexec), "cmdline:");
             }
 
             system->m_inStartup = false;
