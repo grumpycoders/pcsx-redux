@@ -113,3 +113,9 @@ GPUCache
 
 # Lua tests results
 luacov.stats.out
+
+# luarocks stuff
+/luarocks
+/lua
+/lua_modules
+/.luarocks
