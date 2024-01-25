@@ -2,17 +2,17 @@
 
 #include <algorithm>
 #include <array>
+#include <map>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace CommandLine {
 namespace detail {
 using argument_map =
-    std::unordered_multimap<std::string_view, std::optional<std::string_view>>;
+    std::multimap<std::string_view, std::optional<std::string_view>>;
 
 // Non-destructively parses the argv tokens.
 // * If the token begins with a -, it will be considered an option.
