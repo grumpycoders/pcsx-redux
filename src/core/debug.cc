@@ -247,11 +247,19 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
     auto end = m_breakpoints.end();
     uint32_t normalizedAddress = normalizeAddress(address & ~0xe0000000);
 
+    BreakpointUserListType torun;
     for (auto it = m_breakpoints.find(normalizedAddress, normalizedAddress + width - 1); it != end; it++) {
         if (it->type() != type) continue;
-        if (!triggerBP(&*it, address, width, cause)) m_todelete.push_back(&*it);
+        auto bp = &*it;
+        torun.push_back(bp);
     }
-    m_todelete.destroyAll();
+
+    while (!torun.empty()) {
+        auto it = torun.begin();
+        auto bp = &*it;
+        torun.erase(it);
+        if (!triggerBP(bp, address, width, cause)) delete bp; 
+    }
 }
 
 std::string PCSX::Debug::generateFlowIDC() {
