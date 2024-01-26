@@ -58,3 +58,5 @@ end)
 ```
 
 This will ensure that the breakpoint will never crash the emulator, and will instead display the error in the logs, but it will also slow down the execution of the breakpoint. It's up to the user to decide whether or not this is acceptable.
+
+It is safe to add or remove breakpoints from within a breakpoint callback, but it's not safe to remove the breakpoint that is currently being executed. For this specific case, simply return `false` from the invoker callback, and the breakpoint will be removed after the callback returns.
