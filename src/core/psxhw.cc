@@ -707,14 +707,22 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
                 auto &mem = g_emulator->m_mem;
                 uint32_t icr = mem->readHardwareRegister<Memory::DMA_ICR>();
                 uint32_t ack = value & 0b0'1111111'000000000'000000000'000000;
+                bool wasNotTriggered = (icr & 0x80000000) == 0;
+                bool isTriggered = false;
+                bool hasError = value & 0x00008000;
+                bool isEnabled = value & 0x00800000;
                 ack ^= 0b0'1111111'000000000'000000000'000000;
                 value &= 0b0'0000000'111111111'000000000'111111;
                 icr &= ack;
                 icr |= value;
-                if ((icr & 0x7f008000) != 0) {
+                if (((icr & 0x7f008000) != 0) && (hasError || isEnabled)) {
                     icr |= 0x80000000;
+                    isTriggered = true;
                 }
                 mem->writeHardwareRegister<Memory::DMA_ICR>(icr);
+                if (wasNotTriggered && isTriggered) {
+                    mem->setIRQ(8);
+                };
                 return;
             }
         case 0x1f801014:
