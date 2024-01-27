@@ -189,6 +189,38 @@ CESTER_TEST(normal_dma_dicr_toggle, dma_tests,
     IREG = 0;
     cester_assert_uint_eq(0, timeout);
     cester_assert_uint_eq(0x84800000, dicr);
+    DICR = 0x00008000;
+    dicr = DICR;
+    count = 0;
+    timeout = 0;
+    while (1) {
+        while ((IREG & (IRQ_VBLANK | IRQ_DMA)) == 0);
+        if (IREG & IRQ_DMA) break;
+        IREG &= ~IRQ_VBLANK;
+        if (count++ == 32) {
+            timeout = 1;
+            break;
+        }
+    }
+    IREG = 0;
+    cester_assert_uint_eq(1, timeout);
+    cester_assert_uint_eq(0x84008000, dicr);
+    DICR = 0x00800000;
+    dicr = DICR;
+    count = 0;
+    timeout = 0;
+    while (1) {
+        while ((IREG & (IRQ_VBLANK | IRQ_DMA)) == 0);
+        if (IREG & IRQ_DMA) break;
+        IREG &= ~IRQ_VBLANK;
+        if (count++ == 32) {
+            timeout = 1;
+            break;
+        }
+    }
+    IREG = 0;
+    cester_assert_uint_eq(1, timeout);
+    cester_assert_uint_eq(0x84800000, dicr);
 )
 
 CESTER_TEST(normal_dma_with_3_upper_bits, dma_tests,
