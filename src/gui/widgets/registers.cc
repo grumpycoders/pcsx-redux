@@ -125,11 +125,7 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             }
             auto rgb = registers->CP2D.n.rgb;
             ImGui::Text("rgb : {%i, %i, %i, %i}", rgb.r, rgb.g, rgb.b, rgb.c);
-            if (m_showFixed) {
-                ImGui::Text("otz : % 3.5f", fixedToFloat(registers->CP2D.n.otz));
-            } else {
-                ImGui::Text("otz : %i", registers->CP2D.n.otz);
-            }
+            ImGui::Text("otz : %i", registers->CP2D.n.otz);
             if (m_showFixed) {
                 ImGui::Text("ir0 : % 3.5f", fixedToFloat(registers->CP2D.n.ir0));
             } else {
@@ -151,53 +147,21 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                 ImGui::Text("ir3 : %i", registers->CP2D.n.ir3);
             }
             auto sxy0 = registers->CP2D.n.sxy0;
-            if (m_showFixed) {
-                ImGui::Text("sxy0: {% 3.5f, % 3.5f}", fixedToFloat(sxy0.x), fixedToFloat(sxy0.y));
-            } else {
-                ImGui::Text("sxy0: {%i, %i}", sxy0.x, sxy0.y);
-            }
+            ImGui::Text("sxy0: {%i, %i}", sxy0.x, sxy0.y);
             auto sxy1 = registers->CP2D.n.sxy1;
-            if (m_showFixed) {
-                ImGui::Text("sxy1: {% 3.5f, % 3.5f}", fixedToFloat(sxy1.x), fixedToFloat(sxy1.y));
-            } else {
-                ImGui::Text("sxy1: {%i, %i}", sxy1.x, sxy1.y);
-            }
+            ImGui::Text("sxy1: {%i, %i}", sxy1.x, sxy1.y);
             auto sxy2 = registers->CP2D.n.sxy2;
-            if (m_showFixed) {
-                ImGui::Text("sxy2: {% 3.5f, % 3.5f}", fixedToFloat(sxy2.x), fixedToFloat(sxy2.y));
-            } else {
-                ImGui::Text("sxy2: {%i, %i}", sxy2.x, sxy2.y);
-            }
+            ImGui::Text("sxy2: {%i, %i}", sxy2.x, sxy2.y);
             auto sxyp = registers->CP2D.n.sxyp;
-            if (m_showFixed) {
-                ImGui::Text("sxyp: {% 3.5f, % 3.5f}", fixedToFloat(sxyp.x), fixedToFloat(sxyp.y));
-            } else {
-                ImGui::Text("sxyp: {%i, %i}", sxyp.x, sxyp.y);
-            }
+            ImGui::Text("sxyp: {%i, %i}", sxyp.x, sxyp.y);
             auto sz0 = registers->CP2D.n.sz0;
-            if (m_showFixed) {
-                ImGui::Text("sz0 : % 3.5f", fixedToFloat(sz0.z));
-            } else {
-                ImGui::Text("sz0 : %i", sz0.z);
-            }
+            ImGui::Text("sz0 : %i", sz0.z);
             auto sz1 = registers->CP2D.n.sz1;
-            if (m_showFixed) {
-                ImGui::Text("sz1 : % 3.5f", fixedToFloat(sz1.z));
-            } else {
-                ImGui::Text("sz1 : %i", sz1.z);
-            }
+            ImGui::Text("sz1 : %i", sz1.z);
             auto sz2 = registers->CP2D.n.sz2;
-            if (m_showFixed) {
-                ImGui::Text("sz2 : % 3.5f", fixedToFloat(sz2.z));
-            } else {
-                ImGui::Text("sz2 : %i", sz2.z);
-            }
+            ImGui::Text("sz2 : %i", sz2.z);
             auto sz3 = registers->CP2D.n.sz3;
-            if (m_showFixed) {
-                ImGui::Text("sz3 : % 3.5f", fixedToFloat(sz3.z));
-            } else {
-                ImGui::Text("sz3 : %i", sz3.z);
-            }
+            ImGui::Text("sz3 : %i", sz3.z);
             auto rgb0 = registers->CP2D.n.rgb0;
             ImGui::Text("rgb0: {%i, %i, %i, %i}", rgb0.r, rgb0.g, rgb0.b, rgb0.c);
             auto rgb1 = registers->CP2D.n.rgb0;
@@ -224,18 +188,12 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             } else {
                 ImGui::Text("mac3: %i", registers->CP2D.n.mac3);
             }
-            ImGui::Text("irgb: %u", registers->CP2D.n.irgb);
-            ImGui::Text("orgb: %u", registers->CP2D.n.orgb);
-            if (m_showFixed) {
-                ImGui::Text("lzcs: % 3.5f", fixedToFloat(registers->CP2D.n.lzcs));
-            } else {
-                ImGui::Text("lzcs: %i", registers->CP2D.n.lzcs);
-            }
-            if (m_showFixed) {
-                ImGui::Text("lzcr: % 3.5f", fixedToFloat(registers->CP2D.n.lzcr));
-            } else {
-                ImGui::Text("lzcr: %i", registers->CP2D.n.lzcr);
-            }
+            auto irgb = registers->CP2D.n.irgb;
+            ImGui::Text("irgb: {%i, %i, %i}", irgb & 0x1f, (irgb >> 5) & 0x1f, (irgb >> 10) & 0x1f);
+            auto orgb = registers->CP2D.n.orgb;
+            ImGui::Text("orgb: {%i, %i, %i}", orgb & 0x1f, (orgb >> 5) & 0x1f, (orgb >> 10) & 0x1f);
+            ImGui::Text("lzcs: %i", registers->CP2D.n.lzcs);
+            ImGui::Text("lzcr: %i", registers->CP2D.n.lzcr);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("CP2C")) {
@@ -303,8 +261,8 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                 ImGui::Text("rfc : % 3.5f", fixedToFloat<4>(registers->CP2C.n.rfc));
                 ImGui::Text("gfc : % 3.5f", fixedToFloat<4>(registers->CP2C.n.gfc));
                 ImGui::Text("bfc : % 3.5f", fixedToFloat<4>(registers->CP2C.n.bfc));
-                ImGui::Text("ofx : % 3.5f", fixedToFloat<15>(registers->CP2C.n.ofx));
-                ImGui::Text("ofy : % 3.5f", fixedToFloat<15>(registers->CP2C.n.ofy));
+                ImGui::Text("ofx : % 3.5f", fixedToFloat<16>(registers->CP2C.n.ofx));
+                ImGui::Text("ofy : % 3.5f", fixedToFloat<16>(registers->CP2C.n.ofy));
                 ImGui::Text("h   : % i", registers->CP2C.n.h);
                 ImGui::Text("dqa : % 3.5f", fixedToFloat<8>(registers->CP2C.n.dqa));
                 ImGui::Text("dqb : % 3.5f", fixedToFloat<24>(registers->CP2C.n.dqb));

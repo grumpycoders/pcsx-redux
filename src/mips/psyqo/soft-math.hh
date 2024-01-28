@@ -45,6 +45,15 @@ enum class Axis { X, Y, Z };
 void generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, Trig<> *trig);
 
 /**
+ * @brief Generate a rotation matrix for a given angle and axis.
+ * @param t The angle to rotate by.
+ * @param a The axis to rotate around.
+ * @param trig A trigonometry object to use for sine and cosine calculations.
+ * @return Matrix33 The rotation matrix.
+ */
+[[nodiscard]] Matrix33 generateRotationMatrix33(Angle t, Axis a, Trig<> *trig);
+
+/**
  * @brief Multiply two 3x3 matrices.
  *
  * @param m1 The first matrix.
@@ -52,6 +61,15 @@ void generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, Trig<> *trig);
  * @param out The matrix to store the result in. May be the same as m1 or m2.
  */
 void multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2, Matrix33 *out);
+
+/**
+ * @brief Multiply two 3x3 matrices.
+ *
+ * @param m1 The first matrix.
+ * @param m2 The second matrix.
+ * @param out The matrix to store the result in. May be the same as m1 or m2.
+ */
+[[nodiscard]] Matrix33 multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2);
 
 /**
  * @brief Scale a 3x3 matrix by a scalar.
@@ -86,7 +104,7 @@ void matrixVecMul3xy(const Matrix33 *m, const Vec3 *v, Vec2 *out);
  * @param v The vector.
  * @return FixedPoint<> The z component of the result.
  */
-FixedPoint<> matrixVecMul3z(const Matrix33 *m, const Vec3 *v);
+[[nodiscard]] FixedPoint<> matrixVecMul3z(const Matrix33 *m, const Vec3 *v);
 
 /**
  * @brief Compute the cross product of two 3D vectors.
@@ -98,12 +116,29 @@ FixedPoint<> matrixVecMul3z(const Matrix33 *m, const Vec3 *v);
 void crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out);
 
 /**
+ * @brief Compute the cross product of two 3D vectors.
+ *
+ * @param v1 The first vector.
+ * @param v2 The second vector.
+ * @return Vec3 The cross product.
+ */
+[[nodiscard]] Vec3 crossProductVec3(const Vec3 *v1, const Vec3 *v2);
+
+/**
  * @brief Compute the determinant of a 3x3 matrix.
  *
  * @param m The matrix.
  * @return FixedPoint<> The determinant.
  */
-FixedPoint<> matrixDeterminant3(const Matrix33 *m);
+[[nodiscard]] FixedPoint<> matrixDeterminant3(const Matrix33 *m);
+
+/** @brief Computes the square root of a fixed point number, given an approximative hint.
+ *
+ * @param x The number to compute the square root of.
+ * @param y The approximative hint of the result.
+ * @return psyqo::FixedPoint<> The square root.
+ */
+[[nodiscard]] FixedPoint<> squareRoot(FixedPoint<> x, FixedPoint<> y);
 
 /**
  * @brief Computes the square root of a fixed point number.
@@ -111,7 +146,25 @@ FixedPoint<> matrixDeterminant3(const Matrix33 *m);
  * @param x The number to compute the square root of.
  * @return psyqo::FixedPoint<> The square root.
  */
-FixedPoint<> squareRoot(FixedPoint<> x);
+[[nodiscard]] static inline FixedPoint<> squareRoot(FixedPoint<> x) { return squareRoot(x, x / 2); }
+
+/**
+ * @brief Computes the inverse square root of a fixed point number, given an
+ * approximative hint.
+ *
+ * @param x The number to compute the inverse square root of.
+ * @param y The approximative hint of the result.
+ * @return psyqo::FixedPoint<> The inverse square root.
+ */
+[[nodiscard]] FixedPoint<> inverseSquareRoot(FixedPoint<> x, FixedPoint<> y);
+
+/**
+ * @brief Computes the inverse square root of a fixed point number.
+ *
+ * @param x The number to compute the inverse square root of.
+ * @return psyqo::FixedPoint<> The inverse square root.
+ */
+[[nodiscard]] static inline FixedPoint<> inverseSquareRoot(FixedPoint<> x) { return inverseSquareRoot(x, x * 2); }
 
 /**
  * @brief Computes the norm of a 3D vector.
@@ -119,7 +172,7 @@ FixedPoint<> squareRoot(FixedPoint<> x);
  * @param v The vector.
  * @return psyqo::FixedPoint<> The norm.
  */
-FixedPoint<> normOfVec3(const Vec3 *v);
+[[nodiscard]] FixedPoint<> normOfVec3(const Vec3 *v);
 
 /**
  * @brief Normalizes a 3D vector.
@@ -127,6 +180,13 @@ FixedPoint<> normOfVec3(const Vec3 *v);
  * @param v The vector to normalize.
  */
 void normalizeVec3(Vec3 *v);
+
+/**
+ * @brief Normalizes a 3D vector, using a faster but less accurate algorithm.
+ *
+ * @param v The vector to normalize.
+ */
+void fastNormalizeVec3(Vec3 *v);
 
 /**
  * @brief Projects a 3D point onto a 2D plane.

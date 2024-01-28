@@ -68,7 +68,8 @@ class PSXDevPanel {
           case 'getTemplates':
             this._panel.webview.postMessage({
               command: 'templates',
-              templates: templates.list
+              templates: templates.list,
+              categories: templates.categories
             })
             break
           case 'refreshTools':
@@ -240,6 +241,7 @@ PSXDevPanel.viewType = 'psxDev'
 exports.activate = (context) => {
   tools.setExtensionUri(context.extensionUri)
   tools.setGlobalStorageUri(context.globalStorageUri)
+  templates.setExtensionUri(context.extensionUri)
   pcsxRedux.setGlobalStorageUri(context.globalStorageUri)
   globalStorageUri = context.globalStorageUri
 

@@ -116,6 +116,9 @@ class FixedPoint {
     constexpr FixedPoint(FixedPoint&&) = default;
     constexpr FixedPoint& operator=(const FixedPoint&) = default;
 
+    enum Raw { RAW };
+    constexpr FixedPoint(T raw, Raw) : value(raw) {}
+
     /**
      * @brief Construct a new Fixed Point number from a different
      * fixed point number.
@@ -147,14 +150,14 @@ class FixedPoint {
      * power of 2.
      * @return constexpr T The integer part of the fixed point number.
      */
-    template<size_t factor = 1>
+    template <size_t factor = 1>
     constexpr T integer() const {
         if constexpr (std::is_signed<T>::value) {
             if (value < 0) {
-                return (value - scale / (2 * factor)) / (scale / factor);
+                return T(value - scale / (2 * factor)) / T(scale / factor);
             }
         }
-        return (value + scale / (2 * factor)) / (scale / factor);
+        return T(value + scale / (2 * factor)) / T(scale / factor);
     }
 
     template <std::integral U>
@@ -297,7 +300,7 @@ class FixedPoint {
     constexpr FixedPoint& operator*=(FixedPoint other) {
         upType t = value;
         t *= other.value;
-        t /= precisionBits;
+        t /= scale;
         value = t;
         return *this;
     }
@@ -311,9 +314,9 @@ class FixedPoint {
     constexpr FixedPoint& operator/=(FixedPoint other) {
         if constexpr (sizeof(T) == 4) {
             if constexpr (std::is_signed<T>::value) {
-                value = FixedPointInternals::iDiv(value, other.value);
+                value = FixedPointInternals::dDiv(value, other.value, precisionBits);
             } else if constexpr (!std::is_signed<T>::value) {
-                value = FixedPointInternals::dDiv(value, other.value);
+                value = FixedPointInternals::iDiv(value, other.value, precisionBits);
             }
         } else if constexpr (sizeof(T) == 2) {
             upType t = value;
@@ -399,12 +402,12 @@ constexpr FixedPoint<precisionBits, T> operator/(U a, FixedPoint<precisionBits, 
     FixedPoint<precisionBits, T> ret;
     if constexpr (sizeof(T) == 4) {
         if constexpr (std::is_signed<T>::value || std::is_signed<U>::value) {
-            ret.set(FixedPointInternals::iDiv(a, b.get()));
+            ret.value = FixedPointInternals::dDiv(a * FixedPoint<precisionBits, T>::scale, b.raw(), precisionBits);
         } else if constexpr (!std::is_signed<T>::value && !std::is_signed<U>::value) {
-            ret.set(FixedPointInternals::dDiv(a, b.get()));
+            ret.value = FixedPointInternals::iDiv(a * FixedPoint<precisionBits, T>::scale, b.raw(), precisionBits);
         }
     } else if constexpr (sizeof(T) == 2) {
-        ret.set(a * FixedPoint<precisionBits, T>::scale / b.get());
+        ret.value = a * FixedPoint<precisionBits, T>::scale / b.raw();
     }
     return ret;
 }

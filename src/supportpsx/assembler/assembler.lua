@@ -90,7 +90,7 @@ PCSX.Assembler.New = function()
                 if not symbol then error('Unknown symbol: ' .. lo16) end
                 lo16 = symbol.address
             end
-            ret = bit.bor(ret, bit.band(lo16, 16))
+            ret = bit.bor(ret, bit.band(lo16, 0xffff))
         end
         local imm26 = code.imm26
         if imm26 then
@@ -138,7 +138,7 @@ PCSX.Assembler.New = function()
         for str in string.gmatch(str, '([^' .. sep .. ']+)') do table.insert(ret, str) end
         return ret
     end
-    local function trim(str) return string.gsub(str, '^%s*(.-)%s*$', '%1') end
+    local function trim(str) return string.gsub(string.gsub(str, '^(.-)#.*$', '%1'), '^%s*(.-)%s*$', '%1') end
     local function parseOneString(self, line)
         local parts = split(line, ' \\(\\),')
         local args = {}

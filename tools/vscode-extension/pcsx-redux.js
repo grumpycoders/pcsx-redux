@@ -46,7 +46,7 @@ const updateInfo = {
 
 let globalStorageUri
 
-function isSupported() {
+function isSupported () {
   let supported = false
   if (process.arch === 'x64') supported = true
   if (process.platform === 'darwin' && process.arch === 'arm64') {
@@ -55,7 +55,7 @@ function isSupported() {
   return supported
 }
 
-function binaryPath() {
+function binaryPath () {
   switch (process.platform) {
     case 'win32':
       return vscode.Uri.joinPath(
@@ -79,7 +79,7 @@ function binaryPath() {
   }
 }
 
-function checkLocalFile(filename) {
+function checkLocalFile (filename) {
   return new Promise((resolve) => {
     fs.access(filename, fs.constants.F_OK, (err) => {
       resolve(!err)

@@ -126,5 +126,5 @@ void PCSX::LuaFFI::open_iso(Lua L) {
 #include "core/isoffi.lua"
     );
     registerAllSymbols(L);
-    L.load(isoFFI, "internal:core/isoffi.lua");
+    L.load(isoFFI, "src:core/isoffi.lua");
 }

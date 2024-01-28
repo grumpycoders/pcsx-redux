@@ -38,8 +38,6 @@ class HW {
     void write32(uint32_t add, uint32_t value);
 
   private:
-    bool m_dmaGpuListHackEn = false;
-
     void dma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
@@ -49,10 +47,11 @@ class HW {
     void dmaExec(uint32_t chcr) {
         auto &mem = g_emulator->m_mem;
         mem->setCHCR<n>(chcr);
-        uint32_t pcr = mem->readHardwareRegister<0x10f0>();
-        if ((chcr & 0x01000000) && (pcr & (8 << (n * 4)))) {
-            uint32_t madr = mem->readHardwareRegister<0x1080 + n * 0x10>();
-            uint32_t bcr = mem->readHardwareRegister<0x1084 + n * 0x10>();
+        if ((chcr & 0x01000000) && mem->template isDMAEnabled<n>()) {
+            uint32_t madr = mem->template getMADR<n>();
+            madr &= 0x7ffffc;
+            uint32_t bcr = mem->template getBCR<n>();
+            uint32_t mode = (chcr & 0x00000600) >> 9;
             if constexpr (n == 0) {
                 dma0(madr, bcr, chcr);
             } else if constexpr (n == 1) {
@@ -65,6 +64,41 @@ class HW {
                 dma4(madr, bcr, chcr);
             } else if constexpr (n == 6) {
                 dma6(madr, bcr, chcr);
+            }
+            if (mode == 2) {
+                uint32_t usedAddr[3] = {0xffffff, 0xffffff, 0xffffff};
+                uint32_t DMACommandCounter = 0;
+
+                do {
+                    madr &= 0x7ffffc;
+
+                    if (DMACommandCounter++ > 2000000) break;
+                    if (madr == usedAddr[1]) break;
+                    if (madr == usedAddr[2]) break;
+
+                    if (madr < usedAddr[0]) {
+                        usedAddr[1] = madr;
+                    } else {
+                        usedAddr[2] = madr;
+                    }
+
+                    usedAddr[0] = madr;
+                    madr = SWAP_LEu32(*mem->getPointer<uint32_t>(madr)) & 0xffffff;
+                } while (!(madr & 0x800000));
+                if ((madr & 0xffffff) != 0xffffff) {
+                    mem->dmaInterruptError();
+                }
+            } else {
+                uint32_t blocSize = bcr >> 16;
+                if (blocSize == 0) blocSize = 0x10000;
+                uint32_t size = blocSize * (bcr & 0xffff);
+                madr = madr + size * 4;
+            }
+            mem->template setMADR<n>(madr);
+            if (mode == 0) {
+                mem->template setBCR<n>(bcr & 0xffff0000);
+            } else if (mode == 1) {
+                mem->template setBCR<n>(bcr & 0x0000ffff);
             }
         }
     }

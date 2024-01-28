@@ -205,8 +205,8 @@ void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer & buf, Lo
                 value = buf.get();
                 [[fallthrough]];
         case READ_HW:
-                w = GPU::signExtend<int, 11>(value & 0xffff);
-                h = GPU::signExtend<int, 11>(value >> 16);
+                w = value & 0xffff;
+                h = value >> 16;
             }
     }
     m_state = READ_COLOR;
@@ -435,7 +435,7 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     size = 1;
 
     do {
-        addr &= 0x1ffffc;
+        addr &= 0x7ffffc;
 
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
@@ -446,7 +446,7 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
         size += head >> 24;
 
         // next 32-bit pointer
-        addr = head & 0xffffff;
+        addr = head & 0xfffffc;
         size += 1;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
@@ -663,7 +663,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
         }
 
         // next 32-bit pointer
-        addr = header & 0xffffff;
+        addr = header & 0xfffffc;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
                                    // 0xFF'FFFF any pointer with bit 23 set will do.
 }
@@ -824,8 +824,8 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf, Logged::Origin origin, u
             [[fallthrough]];
         case READ_HW:
             value = buf.get();
-            w = signExtend<int, 11>(value & 0xffff);
-            h = signExtend<int, 11>(value >> 16);
+            w = value & 0xffff;
+            h = value >> 16;
             raw.sX = sX;
             raw.sY = sY;
             raw.dX = dX;
@@ -844,7 +844,7 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf, Logged::Origin origin, u
 
 void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value;
-    size_t size;
+    size_t size = (w * h + 1) / 2;
     bool done = false;
     switch (m_state) {
         case READ_COMMAND:
@@ -860,25 +860,23 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, ui
             [[fallthrough]];
         case READ_HW:
             value = buf.get();
-            w = signExtend<int, 11>(value & 0xffff);
-            h = signExtend<int, 11>(value >> 16);
+            w = value & 0xffff;
+            h = value >> 16;
             size = (w * h + 1) / 2;
-            size *= 4;
             m_data.clear();
             m_data.reserve(size * 4);
             m_state = READ_PIXELS;
             if (buf.isEmpty()) return;
             [[fallthrough]];
         case READ_PIXELS:
-            size = (w * h + 1) / 2;
             if ((buf.size() >= size) && (m_data.empty())) {
                 data.borrow(buf.data(), size * 4);
                 buf.consume(size);
                 done = true;
             } else {
-                size_t toConsume = std::min(buf.size(), size - (m_data.size() / 4));
+                size_t toConsume = std::min(buf.size(), size - m_data.size() / 4);
                 m_data.append(reinterpret_cast<const char *>(buf.data()), toConsume * 4);
-                done = m_data.size() == (size * 4);
+                done = m_data.size() == size * 4;
                 buf.consume(toConsume);
                 if (done) {
                     data.acquire(std::move(m_data));
@@ -919,8 +917,8 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, ui
             [[fallthrough]];
         case READ_HW:
             value = buf.get();
-            w = signExtend<int, 11>(value & 0xffff);
-            h = signExtend<int, 11>(value >> 16);
+            w = value & 0xffff;
+            h = value >> 16;
             raw.x = x;
             raw.y = y;
             raw.w = w;

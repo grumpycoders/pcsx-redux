@@ -19,6 +19,19 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.3.4
+  - Added CMake bare-metal templates.
+  - Added support for detecting and installing CMake and Python.
+  - Added the CMake Tools and MIPS Assembly extensions.
+- 0.3.3
+  - Adding Net Yaroze template.
+  - Refactored the template panel page a bit.
+- 0.3.2
+  - Fixing PSYQo's template.
+- 0.3.1
+  - Fixing EASTL paths in PSYQo template for Unix-like systems.
+- 0.3.0
+  - Overhauled template system.
 - 0.2.8
   - Adding main page button to update submodules.
   - Creating categories for templates.

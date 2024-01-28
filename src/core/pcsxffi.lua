@@ -57,7 +57,7 @@ uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
 uint8_t** getReadLUT();
 uint8_t** getWriteLUT();
-Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause));
+Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label);
 void enableBreakpoint(Breakpoint*);
 void disableBreakpoint(Breakpoint*);
 bool breakpointEnabled(Breakpoint*);
@@ -109,7 +109,7 @@ end
 
 local validBpTypes = { Exec = true, Read = true, Write = true }
 
-local function addBreakpoint(address, bptype, width, cause, invoker)
+local function addBreakpoint(address, bptype, width, cause, invoker, label)
     if type(address) ~= 'number' then error 'PCSX.addBreakpoint needs an address' end
     if bptype == nil then bptype = 'Exec' end
     if not validBpTypes[bptype] then error 'PCSX.addBreakpoint needs a valid breakpoint type' end
@@ -134,8 +134,10 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
             end
         end
     end
+    if label == nil then label = '' end
+    if type(label) ~= 'string' then error 'PCSX.addBreakpoint needs a label that is a string' end
     invokercb = ffi.cast('bool (*)(uint32_t address, unsigned width, const char* cause)', invokercb)
-    local wrapper = C.addBreakpoint(address, bptype, width, cause, invokercb)
+    local wrapper = C.addBreakpoint(address, bptype, width, cause, invokercb, label)
     local bp = {
         _wrapper = wrapper,
         _proxy = newproxy(),

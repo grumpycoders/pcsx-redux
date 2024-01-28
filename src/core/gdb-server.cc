@@ -126,6 +126,7 @@ PCSX::GdbClient::GdbClient(uv_tcp_t* srv) : m_listener(g_system->m_eventBus) {
         write("OK");
     });
     m_listener.listen<Events::LogMessage>([this](const auto& event) {
+        if (!m_canReceiveLogs) return;
         auto& emuSettings = PCSX::g_emulator->settings;
         auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
         auto gdbLog = debugSettings.get<Emulator::DebugSettings::GdbLogSetting>().value;
@@ -535,6 +536,7 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
     } else if (m_cmd == "c") {
         // continue - this doesn't technically have a reply, only when the target stops later, using T05.
+        m_canReceiveLogs = true;
         g_system->resume();
         m_waitingForTrap = true;
     } else if (m_cmd[0] == 'M') {

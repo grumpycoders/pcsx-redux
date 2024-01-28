@@ -288,6 +288,82 @@ async function installMake () {
   }
 }
 
+async function installCMake () {
+  switch (process.platform) {
+    case 'win32':
+      const release = await octokit.rest.repos.getLatestRelease({
+        owner: 'Kitware',
+        repo: 'CMake'
+      })
+      const asset = release.data.assets.find((asset) => {
+        return /^cmake-.*-windows-x86_64\.msi/.test(asset.name)
+      })
+      if (!asset) {
+        vscode.window.showErrorMessage(
+          'Could not find the latest CMake release. Please install it manually.'
+        )
+        return
+      }
+      const filename = path.join(
+        os.tmpdir(),
+        asset.browser_download_url.split('/').pop()
+      )
+      await downloader.downloadFile(asset.browser_download_url, filename)
+      await exec(`start ${filename}`)
+      requiresReboot = true
+      break
+    case 'linux':
+      try {
+        if (await checkInstalled('apt')) {
+          await terminal.run('sudo', ['apt', 'install', 'cmake'], {
+            message: 'Installing CMake requires root privileges.'
+          })
+        } else if (await checkInstalled('trizen')) {
+          await terminal.run('trizen', ['-S', 'cmake'])
+        } else if (await checkInstalled('brew')) {
+          await terminal.run('brew', ['install', 'cmake'])
+        } else {
+          vscode.window.showErrorMessage(
+            'Your Linux distribution is not supported. You need to install CMake manually. Alternatively, you can install linuxbrew, and refresh this panel.'
+          )
+          throw new Error('Unsupported platform')
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          'An error occurred while installing CMake. Please install it manually.'
+        )
+        throw error
+      }
+      break
+    case 'darwin':
+      try {
+        if (await checkInstalled('brew')) {
+          await terminal.run('brew', ['install', 'cmake'])
+        } else {
+          await terminal.run('/bin/bash', [
+            '-c',
+            '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'
+          ])
+          requiresReboot = true
+          vscode.window.showInformationMessage(
+            'Installing the Brew tool requires a reboot. Please reboot your computer before proceeding further.'
+          )
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          'An error occurred while installing CMake. Please install it manually. Alternatively, you can install linuxbrew, and refresh this panel.'
+        )
+        throw error
+      }
+      break
+    default:
+      vscode.window.showErrorMessage(
+        'Your platform is not supported by this extension. Please install CMake manually.'
+      )
+      throw new Error('Unsupported platform')
+  }
+}
+
 async function installGit () {
   switch (process.platform) {
     case 'win32': {
@@ -319,10 +395,85 @@ async function installGit () {
           message: 'Installing Git requires root privileges.'
         })
       }
+    // eslint-disable-next-line no-fallthrough -- intentional
     default:
       return vscode.env.openExternal(
         vscode.Uri.parse('https://git-scm.com/downloads')
       )
+  }
+}
+
+async function installPython () {
+  switch (process.platform) {
+    case 'win32':
+      const tags = await octokit.rest.repos.listTags({
+        owner: 'python',
+        repo: 'cpython'
+      })
+      let latestVersion = [3, 12, 0]
+      for (const release of tags.data) {
+        const match = /v(3)\.([0-9]+)\.([0-9]+)$/.exec(release.name)
+        if (!match) {
+          continue
+        }
+        const version = match.slice(1).map((value) => parseInt(value))
+        if (version > latestVersion) {
+          latestVersion = version
+        }
+      }
+      const versionStr = latestVersion.join('.')
+      const url = `https://python.org/ftp/python/${versionStr}/python-${versionStr}-amd64.exe`
+      const filename = path.join(
+        os.tmpdir(),
+        url.split('/').pop()
+      )
+      await downloader.downloadFile(url, filename)
+      await exec(filename)
+      requiresReboot = true
+      break
+    case 'linux':
+      try {
+        if (await checkInstalled('apt')) {
+          await terminal.run('sudo', ['apt', 'install', 'python3'], {
+            message: 'Installing Python requires root privileges.'
+          })
+        } else if (await checkInstalled('brew')) {
+          await terminal.run('brew', ['install', 'python@3.12'])
+        } else {
+          vscode.window.showErrorMessage(
+            'Your Linux distribution is not supported. You need to install Python manually. Alternatively, you can install linuxbrew, and refresh this panel.'
+          )
+          throw new Error('Unsupported platform')
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          'An error occurred while installing Python. Please install it manually. Alternatively, you can install linuxbrew, and refresh this panel.'
+        )
+        throw error
+      }
+      break
+    default:
+      vscode.window.showErrorMessage(
+        'Your platform is not supported by this extension. Please install Python manually.'
+      )
+      throw new Error('Unsupported platform')
+  }
+}
+
+function checkPython () {
+  switch (process.platform) {
+    case 'win32':
+      // On Windows "python" and "python3" are aliased to a script that opens
+      // the Microsoft Store by default, so we must check for the "py" launcher
+      // provided by the official installers instead.
+      // TODO: try to detect other Python installations that do not come with
+      // the py launcher (e.g. ones from MSys2)
+      return checkSimpleCommand('py -3 --version')
+    default:
+      return Promise.any([
+        exec('python --version'),
+        exec('python3 --version')
+      ])
   }
 }
 
@@ -392,6 +543,14 @@ const tools = {
     install: installMake,
     check: () => checkSimpleCommand('make --version')
   },
+  cmake: {
+    type: 'package',
+    name: 'CMake',
+    description: 'A more advanced building tool for projects that require it',
+    homepage: 'https://cmake.org/',
+    install: installCMake,
+    check: () => checkSimpleCommand('cmake --version')
+  },
   git: {
     type: 'package',
     name: 'Git',
@@ -400,6 +559,15 @@ const tools = {
     homepage: 'https://git-scm.com/',
     install: installGit,
     check: () => checkSimpleCommand('git --version')
+  },
+  python: {
+    type: 'package',
+    name: 'Python',
+    description:
+      'Python language runtime, required to run some project templates\' scripts',
+    homepage: 'https://python.org/',
+    install: installPython,
+    check: checkPython
   },
   clangd: {
     type: 'extension',
@@ -410,6 +578,15 @@ const tools = {
       'https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd',
     id: 'llvm-vs-code-extensions.vscode-clangd'
   },
+  cmaketools: {
+    type: 'extension',
+    name: 'CMake Tools extension',
+    description:
+      'A VSCode extension providing support for configuring and building CMake-based projects',
+    homepage:
+      'https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools',
+    id: 'ms-vscode.cmake-tools'
+  },
   debugger: {
     type: 'extension',
     name: 'Debugger connector',
@@ -418,6 +595,15 @@ const tools = {
     homepage:
       'https://marketplace.visualstudio.com/items?itemName=webfreak.debug',
     id: 'webfreak.debug'
+  },
+  mipsassembly: {
+    type: 'extension',
+    name: 'MIPS assembly extension',
+    description:
+      'A VSCode extension that provides syntax highlighting for MIPS assembly code',
+    homepage:
+      'https://marketplace.visualstudio.com/items?itemName=kdarkhan.mips',
+    id: 'kdarkhan.mips'
   },
   psyq: {
     type: 'archive',

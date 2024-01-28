@@ -66,8 +66,7 @@ template <Primitive Prim>
 struct SimpleFragment {
     constexpr size_t maxSize() const { return 1; }
     SimpleFragment() {
-        static_assert(sizeof(*this) == (sizeof(uint32_t) + sizeof(Prim)),
-                      "Spurious padding in simple fragment");
+        static_assert(sizeof(*this) == (sizeof(uint32_t) + sizeof(Prim)), "Spurious padding in simple fragment");
     }
     typedef Prim FragmentBaseType;
     constexpr size_t getActualFragmentSize() const { return sizeof(Prim) / sizeof(uint32_t); }

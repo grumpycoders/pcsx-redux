@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2022 PCSX-Redux authors
+Copyright (c) 2024 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,28 +24,19 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include "psyqo/ordering-table.hh"
 
-template <size_t N>
-class psyqo::Font : public psyqo::FontBase {
-  public:
-    virtual ~Font() {}
+#include <EASTL/algorithm.h>
 
-  private:
-    virtual GlyphsFragment& getGlyphFragment(bool increment) override {
-        auto& fragment = m_fragments[m_index];
-        if (increment) {
-            if (++m_index == N) {
-                m_index = 0;
-            }
-        }
-        return fragment;
+void psyqo::OrderingTableBase::clear(uint32_t* table, size_t size) {
+    table[0] = 0xffffff;
+    for (size_t i = 1; i <= size; i++) {
+        table[i] = reinterpret_cast<uint32_t>(&table[i - 1]) & 0xffffff;
     }
-    virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) override {
-        for (auto& fragment : m_fragments) {
-            cb(fragment);
-        }
-    }
-    eastl::array<GlyphsFragment, N> m_fragments;
-    unsigned m_index = 0;
-};
+}
+
+void psyqo::OrderingTableBase::insert(uint32_t* table, int32_t size, uint32_t* head, uint32_t shiftedFragmentSize, int32_t z) {
+    z = eastl::clamp(z, int32_t(0), size) + 1;
+    *head = shiftedFragmentSize | table[z];
+    table[z] = reinterpret_cast<uint32_t>(head) & 0xffffff;
+}

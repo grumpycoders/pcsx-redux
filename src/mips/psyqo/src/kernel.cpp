@@ -87,7 +87,7 @@ uint32_t psyqo::Kernel::openEvent(uint32_t classId, uint32_t spec, uint32_t mode
 }
 
 namespace {
-eastl::function<void()> s_dmaCallbacks[7][SLOTS];
+eastl::function<void()> s_dmaCallbacks[static_cast<unsigned>(psyqo::Kernel::DMA::Max)][4];
 }
 
 unsigned psyqo::Kernel::registerDmaEvent(DMA channel_, eastl::function<void()>&& lambda) {
@@ -161,12 +161,13 @@ void psyqo::Kernel::Internal::prepare() {
     syscall_dequeueCDRomHandlers();
     syscall_setDefaultExceptionJmpBuf();
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
+        Hardware::CPU::IReg.clear(Hardware::CPU::IRQ::DMA);
         uint32_t dicr = Hardware::CPU::DICR;
         uint32_t dirqs = dicr >> 24;
-        dicr &= 0xffffff;
+        dicr &= 0xff7fff;
         uint32_t ack = 0x80;
 
-        for (unsigned irq = 0; irq < 7; irq++) {
+        for (unsigned irq = 0; irq < static_cast<unsigned>(DMA::Max); irq++) {
             uint32_t mask = 1 << irq;
             if (dirqs & mask) {
                 ack |= mask;
@@ -177,7 +178,7 @@ void psyqo::Kernel::Internal::prepare() {
         dicr |= ack;
         Hardware::CPU::DICR = dicr;
 
-        for (unsigned irq = 0; irq < 7; irq++) {
+        for (unsigned irq = 0; irq < static_cast<unsigned>(DMA::Max); irq++) {
             uint32_t mask = 1 << irq;
             if (dirqs & mask) {
                 for (auto& lambda : s_dmaCallbacks[irq]) {
@@ -192,7 +193,6 @@ void psyqo::Kernel::Internal::prepare() {
     dicr &= 0xffffff;
     dicr |= 0x800000;
     Hardware::CPU::DICR = dicr;
-    syscall_setIrqAutoAck(3, 1);
 
     for (auto& i : getInitializers()) i();
 }
@@ -200,7 +200,7 @@ void psyqo::Kernel::Internal::prepare() {
 namespace {
 uint32_t s_flag = 0;
 eastl::fixed_ring_buffer<eastl::function<void()>, 128> s_callbacks(128);
-}
+}  // namespace
 
 void psyqo::Kernel::queueCallback(eastl::function<void()>&& lambda) {
     fastEnterCriticalSection();

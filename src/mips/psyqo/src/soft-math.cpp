@@ -69,6 +69,65 @@ void psyqo::SoftMath::generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, Tri
     }
 }
 
+psyqo::Matrix33 psyqo::SoftMath::generateRotationMatrix33(Angle t, Axis a, Trig<> *trig) {
+    auto s = trig->sin(t);
+    auto c = trig->cos(t);
+    switch (a) {
+        case Axis::X: {
+            return Matrix33{{{
+                                 .x = 1.0_fp,
+                                 .y = 0.0_fp,
+                                 .z = 0.0_fp,
+                             },
+                             {
+                                 .x = 0.0_fp,
+                                 .y = c,
+                                 .z = s,
+                             },
+                             {
+                                 .x = 0.0_fp,
+                                 .y = -s,
+                                 .z = c,
+                             }}};
+        } break;
+        case Axis::Y: {
+            return Matrix33{{{
+                                 .x = c,
+                                 .y = 0.0_fp,
+                                 .z = -s,
+                             },
+                             {
+                                 .x = 0.0_fp,
+                                 .y = 1.0_fp,
+                                 .z = 0.0_fp,
+                             },
+                             {
+                                 .x = s,
+                                 .y = 0.0_fp,
+                                 .z = c,
+                             }}};
+        } break;
+        case Axis::Z: {
+            return Matrix33{{{
+                                 .x = c,
+                                 .y = s,
+                                 .z = 0.0_fp,
+                             },
+                             {
+                                 .x = -s,
+                                 .y = c,
+                                 .z = 0.0_fp,
+                             },
+                             {
+                                 .x = 0.0_fp,
+                                 .y = 0.0_fp,
+                                 .z = 1.0_fp,
+                             }}};
+        } break;
+    }
+    __builtin_unreachable();
+}
+
 void psyqo::SoftMath::multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2, Matrix33 *out) {
     auto x0 = m1->vs[0].x * m2->vs[0].x + m1->vs[1].x * m2->vs[0].y + m1->vs[2].x * m2->vs[0].z;
     auto y0 = m1->vs[0].y * m2->vs[0].x + m1->vs[1].y * m2->vs[0].y + m1->vs[2].y * m2->vs[0].z;
@@ -89,6 +148,20 @@ void psyqo::SoftMath::multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2, M
     out->vs[2].x = x2;
     out->vs[2].y = y2;
     out->vs[2].z = z2;
+}
+
+psyqo::Matrix33 psyqo::SoftMath::multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2) {
+    auto x0 = m1->vs[0].x * m2->vs[0].x + m1->vs[1].x * m2->vs[0].y + m1->vs[2].x * m2->vs[0].z;
+    auto y0 = m1->vs[0].y * m2->vs[0].x + m1->vs[1].y * m2->vs[0].y + m1->vs[2].y * m2->vs[0].z;
+    auto z0 = m1->vs[0].z * m2->vs[0].x + m1->vs[1].z * m2->vs[0].y + m1->vs[2].z * m2->vs[0].z;
+    auto x1 = m1->vs[0].x * m2->vs[1].x + m1->vs[1].x * m2->vs[1].y + m1->vs[2].x * m2->vs[1].z;
+    auto y1 = m1->vs[0].y * m2->vs[1].x + m1->vs[1].y * m2->vs[1].y + m1->vs[2].y * m2->vs[1].z;
+    auto z1 = m1->vs[0].z * m2->vs[1].x + m1->vs[1].z * m2->vs[1].y + m1->vs[2].z * m2->vs[1].z;
+    auto x2 = m1->vs[0].x * m2->vs[2].x + m1->vs[1].x * m2->vs[2].y + m1->vs[2].x * m2->vs[2].z;
+    auto y2 = m1->vs[0].y * m2->vs[2].x + m1->vs[1].y * m2->vs[2].y + m1->vs[2].y * m2->vs[2].z;
+    auto z2 = m1->vs[0].z * m2->vs[2].x + m1->vs[1].z * m2->vs[2].y + m1->vs[2].z * m2->vs[2].z;
+
+    return Matrix33{{{.x = x0, .y = y0, .z = z0}, {.x = x1, .y = y1, .z = z1}, {.x = x2, .y = y2, .z = z2}}};
 }
 
 void psyqo::SoftMath::scaleMatrix33(Matrix33 *m, psyqo::FixedPoint<> s) {
@@ -183,6 +256,23 @@ void psyqo::SoftMath::crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out
     out->z = nz;
 }
 
+psyqo::Vec3 psyqo::SoftMath::crossProductVec3(const Vec3 *v1, const Vec3 *v2) {
+    Vec3 out;
+    auto x1 = v1->x;
+    auto y1 = v1->y;
+    auto z1 = v1->z;
+    auto x2 = v2->x;
+    auto y2 = v2->y;
+    auto z2 = v2->z;
+    auto nx = y1 * z2 - z1 * y2;
+    auto ny = z1 * x2 - x1 * z2;
+    auto nz = x1 * y2 - y1 * x2;
+    out.x = nx;
+    out.y = ny;
+    out.z = nz;
+    return out;
+}
+
 psyqo::FixedPoint<> psyqo::SoftMath::matrixDeterminant3(const Matrix33 *m) {
     auto x1 = m->vs[0].x;
     auto y1 = m->vs[0].y;
@@ -199,15 +289,31 @@ psyqo::FixedPoint<> psyqo::SoftMath::matrixDeterminant3(const Matrix33 *m) {
     return nx - ny + nz;
 }
 
-psyqo::FixedPoint<> psyqo::SoftMath::squareRoot(psyqo::FixedPoint<> x) {
+psyqo::FixedPoint<> psyqo::SoftMath::squareRoot(psyqo::FixedPoint<> x, psyqo::FixedPoint<> y) {
     if (x.raw() <= 1) return 0;
-    auto x0 = x / 2;
+    auto x0 = y;
     auto x1 = x / x0;
     while ((x1 - x0).abs().raw() > 1) {
         x0 = (x0 + x1) / 2;
         x1 = x / x0;
     }
     return x0;
+}
+
+psyqo::FixedPoint<> psyqo::SoftMath::inverseSquareRoot(psyqo::FixedPoint<> x, psyqo::FixedPoint<> y) {
+    // Newton method, using f(y) = 1/y² - x
+    // Meaning we want to calculate y - f(y)/f'(y)
+    // which expands into (y * (3 - xy²)) / 2, and simplifies to y * (3/2 - x/2 * y²)
+
+    // It will converge only for x < 1 however.
+    if (x > 1) return 1 / squareRoot(x, 1 / y);
+
+    y *= (1.5_fp - (x * y * y) / 2);
+    y *= (1.5_fp - (x * y * y) / 2);
+    y *= (1.5_fp - (x * y * y) / 2);
+    y *= (1.5_fp - (x * y * y) / 2);
+
+    return y;
 }
 
 psyqo::FixedPoint<> psyqo::SoftMath::normOfVec3(const Vec3 *v) {
@@ -223,10 +329,24 @@ void psyqo::SoftMath::normalizeVec3(Vec3 *v) {
     auto y = v->y;
     auto z = v->z;
     auto s = x * x + y * y + z * z;
-    auto r = squareRoot(s);
-    x = x / r;
-    y = y / r;
-    z = z / r;
+    auto r = 1 / squareRoot(s);
+    x *= r;
+    y *= r;
+    z *= r;
+    v->x = x;
+    v->y = y;
+    v->z = z;
+}
+
+void psyqo::SoftMath::fastNormalizeVec3(Vec3 *v) {
+    auto x = v->x;
+    auto y = v->y;
+    auto z = v->z;
+    auto s = x * x + y * y + z * z;
+    auto r = inverseSquareRoot(s);
+    x *= r;
+    y *= r;
+    z *= r;
     v->x = x;
     v->y = y;
     v->z = z;
@@ -237,8 +357,8 @@ void psyqo::SoftMath::project(const Vec3 *v, FixedPoint<> h, Vec2 *out) {
     auto y = v->y;
     auto z = v->z;
     auto r = h / z;
-    x = x * r;
-    y = y * r;
+    x *= r;
+    y *= r;
     out->x = x;
     out->y = y;
 }

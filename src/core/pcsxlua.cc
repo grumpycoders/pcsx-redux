@@ -43,10 +43,10 @@ void* getReadLUT() { return PCSX::g_emulator->m_mem->m_readLUT; }
 void* getWriteLUT() { return PCSX::g_emulator->m_mem->m_writeLUT; }
 
 LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type, unsigned width, const char* cause,
-                             bool (*invoker)(uint32_t address, unsigned width, const char* cause)) {
+                             bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label) {
     LuaBreakpoint* ret = new LuaBreakpoint();
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
-        address, type, width, std::string("Lua Breakpoint ") + cause,
+        address, type, width, std::string("Lua Breakpoint ") + cause, label,
         [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
             try {
                 return invoker(address, width, cause);
@@ -174,7 +174,7 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
 #include "core/pcsxffi.lua"
     );
     registerAllSymbols(L);
-    L.load(pcsxFFI, "internal:core/pcsxffi.lua");
+    L.load(pcsxFFI, "src:core/pcsxffi.lua");
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.declareFunc(
         "getSaveStateProtoSchema",

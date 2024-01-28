@@ -92,7 +92,7 @@ static_assert(sizeof(Triangle) == (sizeof(uint32_t) * 4), "Triangle is not 4 wor
  * - `clutIndex`, `tpage`
  */
 struct TexturedTriangle {
-    TexturedTriangle() : command(0x24000000) {}
+    TexturedTriangle() : command(0x25000000) {}
     TexturedTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -189,11 +189,11 @@ static_assert(sizeof(GouraudTriangle) == (sizeof(uint32_t) * 6), "GouraudTriangl
  * - `clutIndex`, `tpage`
  */
 struct GouraudTexturedTriangle {
-    GouraudTexturedTriangle() : command(0x35000000) {}
-    GouraudTexturedTriangle(Color c) : command(0x35000000 | c.packed) {}
+    GouraudTexturedTriangle() : command(0x34000000) {}
+    GouraudTexturedTriangle(Color c) : command(0x34000000 | c.packed) {}
     GouraudTexturedTriangle& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x35000000 | c.packed | wasSemiTrans;
+        command = 0x34000000 | c.packed | wasSemiTrans;
         return *this;
     }
     GouraudTexturedTriangle& setColorB(Color c) {

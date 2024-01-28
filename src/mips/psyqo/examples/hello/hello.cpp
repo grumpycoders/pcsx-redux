@@ -40,7 +40,8 @@ class Hello final : public psyqo::Application {
     void createScene() override;
 
   public:
-    psyqo::Font<> m_font;
+    psyqo::Font<> m_systemFont;
+    psyqo::Font<> m_romFont;
 };
 
 // And we need at least one scene to be created.
@@ -70,7 +71,15 @@ void Hello::prepare() {
 }
 
 void Hello::createScene() {
-    m_font.uploadSystemFont(gpu());
+    // We're going to use two fonts, one from the system, and one from the kernel rom.
+    // We need to upload them to VRAM first. The system font is 256x48x4bpp, and the
+    // kernel rom font is 256x90x4bpp. We're going to upload them to the same texture
+    // page, so we need to make sure they don't overlap. The default location for the
+    // system font is {{.x = 960, .y = 464}}, and the default location for the kernel
+    // rom font is {{.x = 960, .y = 422}}, so we need to nudge the kernel rom
+    // font up a bit.
+    m_systemFont.uploadSystemFont(gpu());
+    m_romFont.uploadKromFont(gpu(), {{.x = 960, .y = int16_t(512 - 48 - 90)}});
     pushScene(&helloScene);
 }
 
@@ -90,7 +99,8 @@ void HelloScene::frame() {
     }
 
     psyqo::Color c = {{.r = 255, .g = 255, .b = uint8_t(255 - m_anim)}};
-    hello.m_font.print(hello.gpu(), "Hello World!", {{.x = 16, .y = 32}}, c);
+    hello.m_systemFont.print(hello.gpu(), "Hello World!", {{.x = 16, .y = 32}}, c);
+    hello.m_romFont.print(hello.gpu(), "Hello World!", {{.x = 16, .y = 64}}, c);
 }
 
 int main() { return hello.run(); }

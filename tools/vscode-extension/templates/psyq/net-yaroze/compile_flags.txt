@@ -1,0 +1,5 @@
+-m32
+-I.
+-Ithird_party/net-yaroze/include
+-Ithird_party/nugget
+-Ithird_party/psyq-iwyu/include

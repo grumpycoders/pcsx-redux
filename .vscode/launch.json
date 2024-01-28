@@ -197,9 +197,29 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/pcsx-redux",
-            "args": [],
+            "args": ["-stdout", "-lua_stdout"],
             "stopAtEntry": false,
             "preLaunchTask": "make",
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+
+        {
+            "name": "(gdb) Launch PCSX-Redux DMA test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/pcsx-redux-tests",
+            "args": ["--gtest_filter=DMA.Interpreter*"],
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": true,

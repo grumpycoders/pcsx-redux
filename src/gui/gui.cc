@@ -293,7 +293,7 @@ void PCSX::GUI::setLua(Lua L) {
         static const char* guiextra = (
 #include "gui/extra.lua"
         );
-        L.load(guiextra, "internal:gui/extra.lua");
+        L.load(guiextra, "src:gui/extra.lua");
     }
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");

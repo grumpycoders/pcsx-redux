@@ -208,7 +208,6 @@ class Emulator {
         uint32_t RewindInterval = 0;
         uint32_t AltSpeed1 = 0;  // Percent relative to natural speed.
         uint32_t AltSpeed2 = 0;
-        uint8_t HackFix = 0;
         bool OverClock = false;  // enable overclocking
         float PsxClock = 0.0f;
         // PGXP variables
