@@ -34,6 +34,7 @@ struct LuaBreakpoint {
     PCSX::Debug::BreakpointUserListType wrapper;
 };
 
+uint32_t getCPUCycles() { return PCSX::g_emulator->m_cpu->m_regs.cycle;  }
 void* getMemPtr() { return PCSX::g_emulator->m_mem->m_wram; }
 void* getParPtr() { return PCSX::g_emulator->m_mem->m_exp1; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
@@ -137,6 +138,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("PCSX");
     L.newtable();
+    REGISTER(L, getCPUCycles);
     REGISTER(L, getMemPtr);
     REGISTER(L, getParPtr);
     REGISTER(L, getRomPtr);
