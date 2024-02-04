@@ -135,27 +135,35 @@ __attribute__((weak)) void __cxa_atexit(void (*func)(void*), void* arg, void* ds
 // no, we're not going to have shared libraries
 __attribute__((weak)) void* __dso_handle = NULL;
 
-__attribute__((weak)) void* memcpy(void* s1_, const void* s2_, size_t n) {
-    uint8_t* s1 = (uint8_t*)s1_;
-    const uint8_t* s2 = (uint8_t*)s2_;
-    size_t i;
+// These are the 4 essential functions expected by gcc for a naked build.
+// The implementation of memcpy is in memory.s, and the rest are here.
+// The weak attribute is used to allow the user to override these functions
+// with their own implementation if they so desire. The memory.s implementation
+// is a simple byte copy, and is not optimized for speed. The file also contains
+// a faster but bigger implementation that can be used instead, called
+// __wrap_memcpy. The user can override memcpy with __wrap_memcpy to use it using
+// the -Wl,--wrap=memcpy switch to the linker using LDFLAGS.
 
-    for (i = 0; i < n; i++) *s1++ = *s2++;
-
-    return s1_;
-}
+void* memcpy(void* s1_, const void* s2_, size_t n);
 
 __attribute__((weak)) void* memmove(void* s1_, const void* s2_, size_t n) {
     uint8_t* s1 = (uint8_t*)s1_;
     const uint8_t* s2 = (uint8_t*)s2_;
     size_t i;
 
-    if (s1 < s2) {
-        for (i = 0; i < n; i++) *s1++ = *s2++;
-    } else if (s1 > s2) {
-        s1 += n;
-        s2 += n;
-        for (i = 0; i < n; i++) *--s1 = *--s2;
+    uint8_t* e1 = s1 + n;
+    const uint8_t* e2 = s2 + n;
+
+    if ((s1 <= s2) && (s2 <= e1) || ((s2 <= s1) && (s1 <= e2))) {
+        if (s1 < s2) {
+            for (i = 0; i < n; i++) *s1++ = *s2++;
+        } else if (s1 > s2) {
+            s1 += n;
+            s2 += n;
+            for (i = 0; i < n; i++) *--s1 = *--s2;
+        }
+    } else {
+        return memcpy(s1_, s2_, n);
     }
 
     return s1_;

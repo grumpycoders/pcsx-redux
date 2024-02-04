@@ -80,7 +80,7 @@ $(BINDIR)$(TARGET).elf: $(OBJS) $(LIBRARIES) $(EXTRA_DEPS)
 ifneq ($(strip $(BINDIR)),)
 	mkdir -p $(BINDIR)
 endif
-	$(CC) -g -o $(BINDIR)$(TARGET).elf $(OBJS) $(LDFLAGS) $(LIBRARIES)
+	$(CC) $(LDFLAGS) -g -o $(BINDIR)$(TARGET).elf $(OBJS) $(LIBRARIES)
 
 $(BINDIR)lib$(TARGET).a: $(OBJS) $(EXTRA_DEPS)
 	$(AR) rcs $(BINDIR)lib$(TARGET).a $(OBJS)
