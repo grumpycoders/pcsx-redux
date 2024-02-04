@@ -173,3 +173,4 @@ This allows distributing complex "mods" as zip files, which can be loaded and ex
 ## Miscellaneous
 
 - `PCSX.quit([code])` schedules the emulator to quit. It's not instantaneous, and will only quit after the current block of Lua code has finished executing, which will be before the next main loop iteration. The `code` parameter is optional, and will be the exit code of the emulator. If not specified, it'll default to 0.
+- `PCSX.getCPUCycles()` returns an unsigned 32-bit number indicating how many CPU cycles have elapsed. This can be paired with the `PCSX.CONSTS.CPU.CLOCKSPEED` constant to determine how much emulated time has passed.
