@@ -5,6 +5,7 @@ all:
 	$(MAKE) -C dma all
 	$(MAKE) -C libc all
 	$(MAKE) -C memcpy all
+	$(MAKE) -C memset all
 	$(MAKE) -C pcdrv all
 
 clean:
@@ -14,4 +15,5 @@ clean:
 	$(MAKE) -C dma clean
 	$(MAKE) -C libc clean
 	$(MAKE) -C memcpy clean
+	$(MAKE) -C memset clean
 	$(MAKE) -C pcdrv clean

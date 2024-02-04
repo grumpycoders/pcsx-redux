@@ -197,20 +197,92 @@ __wrap_memcpy:
     .weak memcpy
     .type memcpy, @function
 memcpy:
-    beqz  $a2, 2f
-    move  $v0, $a0
-    addu  $a3, $a1, $a2
+    beqz   $a2, 2f
+    move   $v0, $a0
+    addu   $a3, $a1, $a2
 
 1:
-
-    lbu   $v1, 0($a1)
-    addiu $a1, 1
-    sb    $v1, 0($a0)
-    bne   $a1, $a3, 1b
-    addiu $a2, 1
+    lbu    $v1, 0($a1)
+    addiu  $a1, 1
+    sb     $v1, 0($a0)
+    bne    $a1, $a3, 1b
+    addiu  $a2, 1
 
 2:
-    jr    $ra
+    jr     $ra
     nop
 
     .size memcpy, .-memcpy
+
+    .section .text___wrap_memset, "ax", @progbits
+    .align 2
+    .global __wrap_memset
+    .type __wrap_memset, @function
+__wrap_memset:
+    bltu   $a2, 4, .Lmemset_last4
+    move   $v0, $a0
+
+    andi   $a1, 255
+    sll    $v1, $a1, 8
+    or     $a1, $v1
+    sll    $v1, $a1, 16
+    or     $a1, $v1
+
+    li     $t0, 4
+    andi   $v1, $a0, 3
+    subu   $t0, $v1
+
+    subu   $a2, $t0
+    swr    $a1, 0($a0)
+    addu   $a0, $t0
+
+    addu   $a3, $a0, $a2
+    addiu  $a3, -32
+
+    bltu   $a2, 32, .Lmemset_last32
+    andi   $a2, 31
+
+.Lmemset_loop32:
+    addiu  $a0, 32
+    sw     $a1, -32($a0)
+    sw     $a1, -28($a0)
+    sw     $a1, -24($a0)
+    sw     $a1, -20($a0)
+    sw     $a1, -16($a0)
+    sw     $a1, -12($a0)
+    sw     $a1, -8($a0)
+    bltu   $a0, $a3, .Lmemset_loop32
+    sw     $a1, -4($a0)
+
+.Lmemset_last32:
+    bltu   $a2, 4, .Lmemset_last4
+    addu   $a3, $a0, $a2
+    addiu  $a3, -4
+
+.Lmemset_loop4:
+    sw     $a1, 0($a0)
+    addiu  $a0, 4
+    bltu   $a0, $a3, .Lmemset_loop4
+    addiu  $a2, -4
+
+.Lmemset_last4:
+    beqz   $a2, .Lmemset_done
+    nop
+
+.Lmemset_loop1:
+    addiu  $a2, -1
+    sb     $a1, 0($a0)
+    bnez   $a2, .Lmemset_loop1
+    addiu  $a0, 1
+
+.Lmemset_done:
+    jr     $ra
+    nop
+
+    .size __wrap_memset, .-__wrap_memset
+
+    .section .text_memset, "ax", @progbits
+    .align 2
+    .global memset
+    .weak memset
+    .type memset, @function

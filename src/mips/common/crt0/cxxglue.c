@@ -142,7 +142,9 @@ __attribute__((weak)) void* __dso_handle = NULL;
 // is a simple byte copy, and is not optimized for speed. The file also contains
 // a faster but bigger implementation that can be used instead, called
 // __wrap_memcpy. The user can override memcpy with __wrap_memcpy to use it using
-// the -Wl,--wrap=memcpy switch to the linker using LDFLAGS.
+// the -Wl,--wrap=memcpy switch to the linker using LDFLAGS. The same file also
+// contains a fast implementation of memset, called __wrap_memset, that can be
+// used in the same way.
 
 void* memcpy(void* s1_, const void* s2_, size_t n);
 
