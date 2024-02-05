@@ -280,9 +280,3 @@ __wrap_memset:
     nop
 
     .size __wrap_memset, .-__wrap_memset
-
-    .section .text_memset, "ax", @progbits
-    .align 2
-    .global memset
-    .weak memset
-    .type memset, @function

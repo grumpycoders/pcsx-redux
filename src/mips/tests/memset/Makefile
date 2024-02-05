@@ -41,7 +41,7 @@ CPPFLAGS += -I../../openbios/uC-sdk-glue
 SRCS += \
 ../../common/syscalls/printf.s \
 ../../common/crt0/uC-sdk-crt0.s \
-../../common/crt0/memory.s \
+../../common/crt0/memory-s.s \
 memset.c \
 
 include ../../common.mk
