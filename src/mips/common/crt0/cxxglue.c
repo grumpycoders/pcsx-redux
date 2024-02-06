@@ -25,13 +25,11 @@ SOFTWARE.
 */
 
 /* Properly using C++ on the PSX requires a form of the libstdc++ that's
-typically called "freestanding", which isn't really buildable at the moment.
-See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100057 for details.
-This means however that using a full linux compiler such as the Ubuntu
-mipsel compiler package will bring in a libstdc++ that utilizes all of
-the existing libc. Properly filling in portions of the required ABI, while
-avoiding the bits that won't work can be tricky, but is doable. Using a
-freestanding compiler won't have the libstdc++, and this wouldn't work. */
+typically called "freestanding". While it would contain enough to support
+metaprogramming and other C++ features, it would not contain any of the
+standard library, as the PSX doesn't have an operating system to speak of.
+This code is a minimal implementation of the C++ ABI that's required to
+fill in the gaps that the freestanding libstdc++ would have. */
 
 #include <stdatomic.h>
 #include <stddef.h>
