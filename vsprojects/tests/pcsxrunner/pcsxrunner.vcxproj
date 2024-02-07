@@ -391,6 +391,8 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\dumpproto.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\libc.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\lua.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\memcpy.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\memset.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\pcdrv.cc" />
   </ItemGroup>
   <ItemGroup>

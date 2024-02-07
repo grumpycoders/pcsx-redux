@@ -191,11 +191,12 @@ class List final {
             push_back(&*list.begin());
         }
     }
+    bool isLinked(const Node* node) const { return node->m_parent == this; }
     iterator buildIterator(Node* node) const {
         if (!isLinked(node)) return end();
         return iterator(node);
     }
-    const_iterator buildConstIterator(Node* node) const {
+    const_iterator buildConstIterator(const Node* node) const {
         if (!contains(node)) return end();
         return const_iterator(node);
     }

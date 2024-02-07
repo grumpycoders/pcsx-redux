@@ -13,9 +13,9 @@ set -ex
 
 PREFIX=${PREFIX:-"/usr/local"}
 
-wget https://ftp.gnu.org/gnu/binutils/binutils-2.41.tar.gz
-tar xvfz binutils-2.41.tar.gz
-cd binutils-2.41
+wget https://ftp.gnu.org/gnu/binutils/binutils-2.42.tar.gz
+tar xvfz binutils-2.42.tar.gz
+cd binutils-2.42
 ./configure --target=mipsel-none-elf --disable-multilib --disable-nls --disable-werror --prefix=$PREFIX
 make
 make install-strip

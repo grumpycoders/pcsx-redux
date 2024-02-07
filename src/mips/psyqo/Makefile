@@ -7,6 +7,8 @@ SRCS = \
 ../../../third_party/EASTL/source/fixed_pool.cpp \
 ../common/crt0/crt0cxx.s \
 ../common/crt0/cxxglue.c \
+../common/crt0/memory-c.c \
+../common/crt0/memory-s.s \
 ../common/syscalls/printf.s \
 $(wildcard src/hardware/*.cpp) \
 $(wildcard src/*.cpp) \

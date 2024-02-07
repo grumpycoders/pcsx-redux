@@ -45,13 +45,13 @@ RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-python mingw-w64-x86_64-readline'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -Scc --noconfirm'
 
-ARG BINUTILS=https://ftp.gnu.org/gnu/binutils/binutils-2.41.tar.xz
+ARG BINUTILS=https://ftp.gnu.org/gnu/binutils/binutils-2.42.tar.xz
 ARG GCC=https://ftp.gnu.org/gnu/gcc/gcc-13.2.0/gcc-13.2.0.tar.xz
 
 RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; `
-    Invoke-WebRequest $env:BINUTILS -OutFile "C:\Windows\Temp\binutils-2.41.tar.xz"; `
-    Start-Process -FilePath "C:\7-Zip\7z.exe" -ArgumentList e, "C:\Windows\Temp\binutils-2.41.tar.xz", `-y, `-oC:\Windows\Temp\ -NoNewWindow -PassThru -Wait; `
-    Start-Process -FilePath "C:\7-Zip\7z.exe" -ArgumentList x, "C:\Windows\Temp\binutils-2.41.tar", `-y, `-oC:\ -NoNewWindow -PassThru -Wait; `
+    Invoke-WebRequest $env:BINUTILS -OutFile "C:\Windows\Temp\binutils-2.42.tar.xz"; `
+    Start-Process -FilePath "C:\7-Zip\7z.exe" -ArgumentList e, "C:\Windows\Temp\binutils-2.42.tar.xz", `-y, `-oC:\Windows\Temp\ -NoNewWindow -PassThru -Wait; `
+    Start-Process -FilePath "C:\7-Zip\7z.exe" -ArgumentList x, "C:\Windows\Temp\binutils-2.42.tar", `-y, `-oC:\ -NoNewWindow -PassThru -Wait; `
     Remove-Item @('C:\Windows\Temp\*', 'C:\Users\*\Appdata\Local\Temp\*') -Force -Recurse;
 
 RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; `
@@ -62,13 +62,13 @@ RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tl
 
 ENV MSYSTEM MINGW64
 
-RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /c/binutils-2.41 && /c/binutils-2.41/configure --target=mipsel-none-elf --disable-multilib --disable-nls --disable-werror --prefix=/DIST || (cat /BUILD/config.log && exit 1)'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /c/binutils-2.42 && /c/binutils-2.42/configure --target=mipsel-none-elf --disable-multilib --disable-nls --disable-werror --prefix=/DIST || (cat /BUILD/config.log && exit 1)'
 
-RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /c/binutils-2.41/libiberty && sed -i s/\\\\buint\\\\b/unsigned/ rust-demangle.c'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /c/binutils-2.42/libiberty && sed -i s/\\\\buint\\\\b/unsigned/ rust-demangle.c'
 
-RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/binutils-2.41 all -j8'
-RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/binutils-2.41 install-strip'
-RUN C:\msys64\usr\bin\bash.exe -l -c 'cp /c/binutils-2.41/COPYING* /DIST'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/binutils-2.42 all -j8'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/binutils-2.42 install-strip'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'cp /c/binutils-2.42/COPYING* /DIST'
 
 RUN C:\msys64\usr\bin\bash.exe -l -c 'mkdir /c/gcc-13.2.0/build && cd /c/gcc-13.2.0/build && ../configure --target=mipsel-none-elf --without-isl --disable-nls --disable-threads --disable-shared --disable-libssp --disable-libstdcxx-pch --disable-libgomp --disable-werror --without-headers --disable-hosted-libstdcxx --with-as=/DIST/bin/mipsel-none-elf-as --with-ld=/DIST/bin/mipsel-none-elf-ld --enable-languages=c,c++ --prefix=/DIST || (cat /BUILD/config.log && exit 1)'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-13.2.0/build all-gcc -j4'

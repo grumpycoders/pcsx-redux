@@ -3378,7 +3378,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(int16_t x1, int16_t y1, int16_t x2
                     auto dnY = ((posY >> 16) & maskY) + globalTextAddrY + textureWindow.y0;
                     uint32_t color = vram16[upX + (upY << 10)];
                     color <<= 16;
-                    color |= vram[dnX + (dnY << 10)];
+                    color |= vram16[dnX + (dnY << 10)];
                     getTextureTransColShade32Solid(pdest, color);
 
                     posX += difX2;
