@@ -38,6 +38,9 @@ namespace {
 
 using namespace std::literals;
 
+// The buffer/decoder chip the PSX CPU will talk to is the CXD1199, which
+// datasheet can be found at https://archive.org/details/cxd-1199
+
 class CDRomImpl final : public PCSX::CDRom {
     enum Commands {
         CdlSync = 0,
@@ -104,14 +107,14 @@ class CDRomImpl final : public PCSX::CDRom {
         m_seed = 9223521712174600777ull;
         m_dataFIFOIndex = 0;
         m_dataFIFOSize = 0;
-        m_registerIndex = 0;
+        m_registerAddress = 0;
         m_currentPosition.reset();
         m_seekPosition.reset();
         m_speed = Speed::Simple;
         m_speedChanged = false;
         m_status = Status::Idle;
         m_dataRequested = false;
-        m_causeMask = 0x1f;
+        m_interruptCauseMask = 0x1f;
         m_subheaderFilter = false;
         m_realtime = false;
         m_commandFifo.clear();
@@ -279,7 +282,7 @@ class CDRomImpl final : public PCSX::CDRom {
     void maybeTriggerIRQ(Cause cause, QueueElement &element) {
         uint8_t causeValue = static_cast<uint8_t>(cause);
         uint8_t bit = 1 << (causeValue - 1);
-        if (m_causeMask & bit) {
+        if (m_interruptCauseMask & bit) {
             element.setValue(cause);
             bool actuallyTriggering = false;
             if (maybeEnqueueResponse(element)) {
@@ -329,15 +332,49 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     uint8_t read0() override {
-        uint8_t v01 = m_registerIndex & 3;
-        uint8_t adpcmPlaying = 0;
-        uint8_t v3 = m_commandFifo.isPayloadEmpty() ? 0x08 : 0;
-        uint8_t v4 = !m_commandFifo.isPayloadFull() ? 0x10 : 0;
-        uint8_t v5 = !m_responseFifo[0].isPayloadEmpty() ? 0x20 : 0;
-        uint8_t v6 = m_dataFIFOSize != m_dataFIFOIndex ? 0x40 : 0;
+        // HSTS (host status) register
+        /*
+          bit 7: BUSYSTS (busy status)
+                 This is high when the host writes a command into the command register and low when the sub
+                 CPU sets the CLRBUSY bit (bit 6) of the CLRCTL register.
+         */
         uint8_t v7 = m_commandFifo.hasValue ? 0x80 : 0;
+        /*
+          bit 6: DRQSTS (data request status)
+                 Indicates to the host that the buffer memory data transfer request status is established. When
+                 transferring data in the I/O mode, the host should confirm that this bit is high before accessing the
+                 WRDATA or RDDATA register.
+         */
+        uint8_t v6 = m_dataFIFOSize != m_dataFIFOIndex ? 0x40 : 0;
+        /*
+          bit 5: RSLRRDY (result read ready)
+                 The result register is not empty when this bit is high. At this time, the host can read the result
+                 register.
+         */
+        uint8_t v5 = !m_responseFifo[0].isPayloadEmpty() ? 0x20 : 0;
+        /*
+          bit 4: PRMWRDY (parameter write ready)
+                 The PARAMETER register is not full when this bit is high. At this time, the host writes data into the
+                 PARAMETER register.
+         */
+        uint8_t v4 = !m_commandFifo.isPayloadFull() ? 0x10 : 0;
+        /*
+          bit 3: PRMEMPT (parameter empty)
+                 The PARAMETER register is empty when this bit is high.
+         */
+        uint8_t v3 = m_commandFifo.isPayloadEmpty() ? 0x08 : 0;
+        /*
+          bit 2: ADPBUSY (ADPCM busy)
+                 This bit is set high for ADPCM decoding.
+         */
+        uint8_t v2 = 0; /* adpcmPlaying */
+        /*
+          bits 1, 0: RA1, 0
+                 The values of the RA1 and 0 bits for the ADDRESS register can be read from these bits.
+         */
+        uint8_t v01 = m_registerAddress & 3;
 
-        uint8_t ret = v01 | adpcmPlaying | v3 | v4 | v5 | v6 | v7;
+        uint8_t ret = v01 | v2 | v3 | v4 | v5 | v6 | v7;
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
         if (debug) {
@@ -349,6 +386,7 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     uint8_t read1() override {
+        // RESULT
         uint8_t ret = m_responseFifo[0].readPayloadByte();
         maybeScheduleNextCommand();
 
@@ -362,6 +400,7 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     uint8_t read2() override {
+        // RD DATA
         uint8_t ret = 0;
         if (!dataFIFOHasData()) {
             ret = 0;
@@ -379,15 +418,32 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     uint8_t read3() override {
+        /*
+         * bit 4: BFWRDY (buffer write ready)
+         *        The BFWRDY status is established if there is area where writing is possible in the buffer of 1 sector
+         *        or more for sound map playback. It is established in any of the following cases:
+         *        (1) When the host has set the SMEN bit (bit 5) of the HCHPCTL register high
+         *        (2) When there is sound map data area of 1 sector or more in the buffer memory (when the buffer
+         *            is not full) after the sound map data equivalent to 1 sector from the host has been written into
+         *            the buffer memory
+         *        (3) When an area for writing the sound map data has been created in the buffer memory by the
+         *            completion of the sound map ADPCM decoding of one sector
+         * bit 3: BFEMPT (buffer empty)
+         *        The BFEMPT status is established when there is no more sector data in the buffer memory upon
+         *        completion of the sound map ADPCM decoding of one sector for sound map playback.
+         * bits 2 to 0: INTSTS#2 to 0
+         *        The values of these bits are those of the corresponding bits for the sub CPU HIFCTL register.
+         */
+
         uint8_t ret = 0;
-        switch (m_registerIndex & 1) {
+        switch (m_registerAddress & 1) {
             case 0: {
-                ret = m_causeMask | 0xe0;
+                // HINT MSK (host interrupt mask)
+                ret = m_interruptCauseMask;
             } break;
             case 1: {
-                // cause
-                // TODO: add bit 4
-                ret = m_responseFifo[0].getValue() | 0xe0;
+                // HINT STS (host interrupt status)
+                ret = m_responseFifo[0].getValue();
             } break;
         }
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -395,19 +451,20 @@ class CDRomImpl final : public PCSX::CDRom {
         if (debug) {
             auto &regs = PCSX::g_emulator->m_cpu->m_regs;
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] r3.%i: %02x\n", regs.pc, regs.cycle,
-                                m_registerIndex & 1, ret);
+                                m_registerAddress & 1, ret);
         }
-        return ret;
+        return ret | 0xe0;
     }
 
     void write0(uint8_t value) override {
+        // ADDRESS
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
         if (debug) {
             auto &regs = PCSX::g_emulator->m_cpu->m_regs;
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w0: %02x\n", regs.pc, regs.cycle, value);
         }
-        m_registerIndex = value & 3;
+        m_registerAddress = value & 3;
     }
 
     void write1(uint8_t value) override {
@@ -416,10 +473,11 @@ class CDRomImpl final : public PCSX::CDRom {
         if (debug) {
             auto &regs = PCSX::g_emulator->m_cpu->m_regs;
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w1.%i: %02x\n", regs.pc, regs.cycle,
-                                m_registerIndex, value);
+                                m_registerAddress, value);
         }
-        switch (m_registerIndex) {
+        switch (m_registerAddress) {
             case 0:
+                // COMMAND
                 m_commandFifo.value = value;
                 if (!m_commandFifo.hasValue) {
                     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -431,18 +489,35 @@ class CDRomImpl final : public PCSX::CDRom {
                 m_commandFifo.hasValue = true;
                 break;
             case 1: {
-                // ??
+                // WR DATA
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w1:1 not available yet\n");
                 PCSX::g_system->pause();
             } break;
             case 2: {
-                // ??
+                /*
+                CI (coding information)
+                This sets the coding information for sound map playback. The bit allocation is the same as that for the
+                coding information bytes of the sub header.
+                  bits 7, 5, 3, 1: Reserved
+                  bit 6: EMPHASIS
+                      High: Emphasis ON
+                      Low : Emphasis OFF
+                  bit 4: BITLNGTH
+                      High: 8 bits
+                      Low : 4 bits
+                  bit 2: FS
+                      High: 18.9 kHz
+                      Low : 37.8 kHz
+                  bit 0: S/M (stereo/mono)
+                      High: Stereo
+                      Low : Mono
+                */
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w1:2 not available yet\n");
                 PCSX::g_system->pause();
             } break;
             case 3: {
-                // Volume setting RR
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w1:3 not available yet\n");
+                // ATV2 Right-to-Right
+                m_atv[2] = value;
             } break;
         }
     }
@@ -453,22 +528,24 @@ class CDRomImpl final : public PCSX::CDRom {
         if (debug) {
             auto &regs = PCSX::g_emulator->m_cpu->m_regs;
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w2.%i: %02x\n", regs.pc, regs.cycle,
-                                m_registerIndex, value);
+                                m_registerAddress, value);
         }
-        switch (m_registerIndex) {
+        switch (m_registerAddress) {
             case 0: {
+                // PARAMETER
                 m_commandFifo.pushPayloadData(value);
             } break;
             case 1: {
-                m_causeMask = value;
+                // HINT MSK (host interrupt mask)
+                m_interruptCauseMask = value;
             } break;
             case 2: {
-                // Volume setting LL
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w2:2 not available yet\n");
+                // ATV0 Left-to-Left
+                m_atv[0] = value;
             } break;
             case 3: {
-                // Volume setting RL
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w2:3 not available yet\n");
+                // ATV3 Right-to-Left
+                m_atv[3] = value;
             } break;
         }
     }
@@ -479,26 +556,66 @@ class CDRomImpl final : public PCSX::CDRom {
         if (debug) {
             auto &regs = PCSX::g_emulator->m_cpu->m_regs;
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w3.%i: %02x\n", regs.pc, regs.cycle,
-                                m_registerIndex, value);
+                                m_registerAddress, value);
         }
-        switch (m_registerIndex) {
+        switch (m_registerAddress) {
             case 0: {
-                // ??
-                if (value == 0) {
+                // clang-format off
+                /*
+                HCHPCTL (host chip control) register
+                  bit 7: BFRD (buffer read)
+                         The transfer of (drive) data from the buffer memory to the host is started by setting this bit high.
+                         The bit is automatically set low upon completion of the transfer.
+                  bit 6: BFWR (buffer write)
+                         The transfer of data from the host to the buffer memory is started by setting this bit high. The bit is
+                         automatically set low upon completion of the transfer.
+                  bit 5: SMEN (sound map En)
+                         This is set high to perform sound map ADPCM playback.
+                */
+                // clang-format on
+                bool bfrd = value & 0x80;
+                bool bfwr = value & 0x40;
+                bool smen = value & 0x20;
+                if (bfrd) {
+                    m_dataRequested = true;
+                    m_dataFIFOSize = m_dataFIFOPending;
+                } else {
                     m_dataRequested = false;
                     m_dataFIFOSize = 0;
                     m_dataFIFOIndex = 0;
-                    return;
                 }
-                if (value == 0x80) {
-                    m_dataRequested = true;
-                    m_dataFIFOSize = m_dataFIFOPending;
-                    return;
-                }
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:0(%02x) not available yet\n", value);
-                PCSX::g_system->pause();
+                m_soundMapEnabled = smen;
             } break;
             case 1: {
+                // clang-format off
+                /*
+                HCLRCTL (host clear control)
+                When each bit of this register is set high, the chip, status, register, interrupt status and interrupt request to
+                the host generated by the status are cleared.
+                  bit 7: CHPRST (chip reset)
+                         The inside of the IC is initialized by setting this bit high. The bit is automatically set low upon
+                         completion of the initialization of the IC. There is therefore no need for the host to reset low. When
+                         the inside of the IC is initialized by setting bit high, the XHRS pin is set low.
+                  bit 6: CLRPRM (clear parameter)
+                         The parameter register is cleared by setting this bit high. The bit is automatically set low upon
+                         completion of the clearing for the parameter register. There is therefore no need for the host to
+                         reset low.
+                  bit 5: SMADPCLR (sound map ADPCM clear)
+                         This bit is set high to terminate sound map ADPCM decoding forcibly.
+                         (1) When this bit has been set high for sound map ADPCM playback (when both SMEN and
+                             ADPBSY (HSTS register bit 2) are high):
+                             • ADPCM decoding during playback is suspended. (Noise may be generated).
+                             • The sound map and buffer management circuits in the IC are cleared, making the buffer
+                               empty. The BFEMPT interrupt status is established.
+                             (Note) Set the SMEN bit low at the same time as this bit is set high.
+                         (2) Setting this bit high when the sound map ADPCM playback is not being performed has no
+                             effect whatsoever
+                  bit 4: CLRBFWRDY (clear buffer write ready interrupt)
+                  bit 3: CLRBFEMPT (clear buffer write empty interrupt)
+                  bits 2 to 0: CLRINT#2 to 0 (clear interrupt #2 to 0)
+                      bit 4 clears the corresponding interrupt status.
+                */
+                // clang-format on
                 bool ack = false;
                 // cause ack
                 if (value == 0x07) {
@@ -534,11 +651,23 @@ class CDRomImpl final : public PCSX::CDRom {
                 PCSX::g_system->pause();
             } break;
             case 2: {
-                // Volume setting LR
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:2 not available yet\n");
+                // ATV1 Left-to-Right
+                m_atv[1] = value;
             } break;
             case 3: {
-                // SPU settings latch
+                // clang-format off
+                /*
+                ADPCTL (ADPCM control) register
+                  bit 5: CHNGATV (change ATV register)
+                         The host sets this bit high after the changes of the ATV 3 to 0 registers have been completed. The
+                         attenuator value in the IC is switched for the first time. There is no need for the host to set this bit
+                         low. The bit used to set the ATV3 to 0 registers of the host and to synchronize the IC audio
+                         playback.
+                  bit 0: ADPMUTE (ADPCM mute)
+                         Set high to mute the ADPCM sound for ADPCM decoding.
+                  bits 7, 6, 4 to 1: Reserved
+                */
+                // clang-format on
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:3 not available yet\n");
             } break;
         }
@@ -742,7 +871,7 @@ class CDRomImpl final : public PCSX::CDRom {
             m_invalidLocL = false;
             m_speed = Speed::Simple;
             m_status = Status::Idle;
-            m_causeMask = 0x1f;
+            m_interruptCauseMask = 0x1f;
             m_readingState = ReadingState::None;
             memset(m_lastLocP, 0, sizeof(m_lastLocP));
             // Probably need to cancel other scheduled tasks here.

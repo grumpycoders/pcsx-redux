@@ -113,7 +113,7 @@ class CDRom {
     uint32_t m_dataFIFOIndex = 0;
     uint32_t m_dataFIFOSize = 0;
     uint32_t m_dataFIFOPending = 0;
-    uint8_t m_registerIndex = 0;
+    uint8_t m_registerAddress = 0;
     bool m_motorOn = false;
     bool m_speedChanged = false;
     bool m_invalidLocL = false;
@@ -139,7 +139,9 @@ class CDRom {
     } m_status = Status::Idle;
     enum class Speed : uint8_t { Simple, Double } m_speed;
     enum class ReadSpan : uint8_t { S2048, S2328, S2340 } m_readSpan;
-    uint8_t m_causeMask = 0x1f;
+    uint8_t m_interruptCauseMask = 0x1f;
+    uint8_t m_atv[4] = {0};
+    bool m_soundMapEnabled = false;
 
     enum class Cause : uint8_t {
         None = 0,
