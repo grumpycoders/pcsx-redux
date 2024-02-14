@@ -27,6 +27,7 @@ SOFTWARE.
 #include "supportpsx/adpcm.h"
 
 #include <algorithm>
+#include <cstring>
 #include <stdexcept>
 
 void PCSX::ADPCM::Encoder::reset(Mode mode) {
