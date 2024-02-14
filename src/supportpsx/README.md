@@ -10,6 +10,7 @@ The code in this folder is licensed under the terms of the MIT license.
 
 ## Contents
 
+* `adpcm.h` & `adpcm.cc` - Provides a simple ADPCM encoder. It is a re-creation of the original encvag.dll from Sony's development kit for the PlayStation 1, and is meant to produce similar results with a similar API.
 * `binloader.h` & `binloader.cc` - Loads a PlayStation 1 binary file from a `File` abstraction to another `File` abstraction. The binary file can be of the following formats:
   * PlayStation 1 executable file (needs the "PS-X EXE" signature)
   * ELF

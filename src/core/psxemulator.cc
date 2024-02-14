@@ -47,6 +47,7 @@ extern "C" {
 #include "luv/src/luv.h"
 }
 #include "spu/interface.h"
+#include "supportpsx/adpcmlua.h"
 #include "supportpsx/assembler.h"
 #include "supportpsx/binlua.h"
 
@@ -105,6 +106,7 @@ void PCSX::Emulator::setLua() {
     LuaFFI::open_iso(L);
     LuaFFI::open_extra(L);
     LuaBindings::open_events(L);
+    LuaSupportPSX::open_adpcm(L);
     LuaSupportPSX::open_assembler(L);
     LuaSupportPSX::open_binaries(L);
 
