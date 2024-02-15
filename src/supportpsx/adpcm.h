@@ -108,6 +108,18 @@ class Encoder {
     // samples, only when using one shot blocks.
     void finishSPU(uint8_t* output);
 
+    // Process enough samples to fill a single XA block, and write the final output. The XA mode selects between 4-bit
+    // and 8-bit ADPCM. The channels parameter can be either 1 or 2. An XA block is exactly 128 bytes long, and the
+    // size of the input buffer will vary depending on the encoding mode and number of channels. The input buffer
+    // will require the following number of samples and bytes:
+    //      4-bit mono: 224 samples aka 448 bytes
+    //      4-bit stereo: 112 samples aka 448 bytes
+    //      8-bit mono: 112 samples aka 224 bytes
+    //      8-bit stereo: 56 samples aka 224 bytes
+    // The XA mode is an addition to the original encvag API, and requires the encoder to be reset with the XA mode.
+    // When writing XA audio, a single MODE2 FORM2 sector is expected to contain 18 blocks of 128 bytes each, for a
+    // total of 2304 bytes. The subheader encoding isn't covered by this API, and is expected to be handled by the
+    // user. The last 4 bytes of the MODE2 FORM2 sector should either be the yellow book checksum, or set to 0.
     void processXABlock(const int16_t* input, uint8_t* output, XAMode xaMode, unsigned channels);
 
   private:
