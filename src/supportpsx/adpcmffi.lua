@@ -39,8 +39,8 @@ enum AdpcmEncoderBlockAttribute {
 };
 
 enum XAMode {
-    FourBits,
-    EightBits,
+    XAFourBits,
+    XAEightBits,
 };
 
 typedef struct { char opaque[?]; } LuaAdpcmEncoder;
@@ -170,7 +170,7 @@ PCSX.Adpcm = {
                 local inp = inData
                 local out = outData
                 if Support.isLuaBuffer(inp) then
-                    local theoreticalSize = 28 * 4 * (mode == 'FourBits' and 2 or 1)
+                    local theoreticalSize = 28 * 4 * (mode == 'XAFourBits' and 2 or 1)
                     local size = #inp
                     if size < theoreticalSize then
                         inp = Support.NewLuaBuffer(theoreticalSize)
