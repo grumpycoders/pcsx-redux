@@ -224,7 +224,7 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
                 processBlock(input + i * 28, encoded, &filter, &shift, 1);
                 uint8_t h = (shift & 0x0f) | ((filter & 0x0f) << 4);
                 unsigned offset = (i & 3) + (i >> 2) * 8;
-                output[offset] = h;
+                output[offset + 0] = h;
                 output[offset + 4] = h;
                 blockTo4Bit(encoded, output + 16 + 14 * i, 1);
             }
@@ -232,7 +232,7 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             for (unsigned i = 0; i < 4; i++) {
                 processBlock(input + i * 28, encoded, &filter, &shift, 1);
                 uint8_t h = (shift & 0x0f) | ((filter & 0x0f) << 4);
-                output[i] = h;
+                output[i + 0] = h;
                 output[i + 4] = h;
                 output[i + 8] = h;
                 output[i + 12] = h;
