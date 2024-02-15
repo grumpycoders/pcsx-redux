@@ -206,8 +206,8 @@ void PCSX::ADPCM::Encoder::processSPUBlock(const int16_t* input, uint8_t* output
 }
 
 void PCSX::ADPCM::Encoder::finishSPU(uint8_t* output) {
-    output[0] = 7;
-    output[1] = 0;
+    output[0] = 0;
+    output[1] = 7;
     std::memset(output + 2, 0x77, 14);
 }
 
