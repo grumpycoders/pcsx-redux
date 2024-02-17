@@ -20,6 +20,15 @@ local ffi = require 'ffi'
 
 TestAdpcm = {}
 
+local function swapEndian32(x)
+    return bit.bor(
+        bit.lshift(bit.band(x, 0x000000FF), 24),
+        bit.lshift(bit.band(x, 0x0000FF00), 8),
+        bit.rshift(bit.band(x, 0x00FF0000), 8),
+        bit.rshift(bit.band(x, 0xFF000000), 24)
+    )
+end
+
 local function generateToneSample(frequency, sampleRate, t)
     return math.sin(2 * math.pi * frequency * t / sampleRate)
 end
@@ -57,8 +66,8 @@ local function generateMonoWaveform(frequency1, frequency2, sampleRate, duration
 end
 
 local function generateStereoWaveform(frequency1, frequency2, frequency3, frequency4, sampleRate, duration)
-    local size = 2 * duration * sampleRate
-    local samples = ffi.new('int16_t[?]', size)
+    local size = duration * sampleRate
+    local samples = ffi.new('int16_t[?]', size * 2)
     for t = 0, duration * sampleRate - 1 do
         samples[2 * t + 0] = 10000 * generateDTMF(frequency1, frequency2, sampleRate, t)
         samples[2 * t + 1] = 10000 * generateDTMF(frequency3, frequency4, sampleRate, t)
@@ -72,6 +81,12 @@ local function generateDTMF1(sampleRate, duration)
     return samples, size
 end
 
+local function generateDTMFStereo(sampleRate, duration)
+    local samples, size = generateStereoWaveform(DTMFFrequencies[1][1], DTMFFrequencies[1][2], DTMFFrequencies[6][1], DTMFFrequencies[6][2], sampleRate, duration)
+    lu.assertEquals(size % 28, 0)
+    return samples, size
+end
+
 function TestAdpcm:test_simpleSPU()
     local sampleRate = 44100
     local duration = 1
@@ -80,10 +95,55 @@ function TestAdpcm:test_simpleSPU()
     e:reset 'Normal'
     local blockCount = size / 28
     local ptr = ffi.cast('int16_t *', samples)
+    local file = Support.File.buffer()
+    file:write('VAGp')
+    file:writeU32(0)
+    file:writeU32(0)
+    file:writeU32(swapEndian32((blockCount + 4) * 16))
+    file:writeU32(swapEndian32(sampleRate))
+    for i = 1, 11 do
+        file:writeU32(0)
+    end
     local out = Support.NewLuaBuffer(16)
     for i = 1, blockCount do
         e:processSPUBlock(ptr, out, i == blockCount and 'OneShotEnd' or 'OneShot')
         ptr = ptr + 28
+        file:write(out)
     end
     e:finishSPU(out)
+    file:write(out)
+    file:close()
+end
+
+function TestAdpcm:test_simpleXA()
+    local sampleRate = 37800
+    local duration = 20
+    local samples, size = generateDTMFStereo(sampleRate, duration)
+    local e = PCSX.Adpcm.NewEncoder()
+    e:reset 'XA'
+    local blockCount = size / 112
+    local ptr = ffi.cast('int16_t *', samples)
+    local file = Support.File.buffer()
+    local out = Support.NewLuaBuffer(128)
+    for i = 1, blockCount do
+        if (i % 18) == 1 then
+            file:writeU8(0)
+            file:writeU32(0xffffffff)
+            file:writeU32(0xffffffff)
+            file:writeU16(0xffff)
+            file:writeU32(0)
+            file:writeU8(2)
+            file:writeU32(0x01640001)
+            file:writeU32(0x01640001)
+        end
+        e:processXABlock(ptr, out, 'XAFourBits', 2)
+        ptr = ptr + 112 * 2
+        file:write(out)
+        if (i % 18) == 0 then
+            for j = 1, 6 do
+                file:writeU32(0)
+            end
+        end
+    end
+    file:close()
 end
