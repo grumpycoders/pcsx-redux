@@ -83,23 +83,21 @@ class Encoder {
     // the shift value will need to be adjusted to be between 0 and 8, with the following formula:
     //      shift8 = max(0, shift - 4)
     // The channels parameter is used to specify the number of channels in the input block. The input block
-    // is expected to be interleaved, and the output buffer will be similarly interlaced. The maximum number
-    // of channels is 2, for stereo audio, and the default is 1, for mono audio. This means that the input
-    // and output blocks are expected to be 28 * channels * sizeof(int16_t) bytes long. The filterPtr and
-    // shiftPtr are used to store the filter and shift values for the current block, and are expected to be
-    // 1 or 2 bytes long, depending on the number of channels.
+    // is expected to be interleaved, but the output buffer will NOT be interlaced. The maximum number of
+    // channels is 2, for stereo audio, and the default is 1, for mono audio. This means that the input and
+    // output blocks are expected to be 28 * channels * sizeof(int16_t) bytes long. The filterPtr and shiftPtr
+    // are used to store the filter and shift values for the current block, and are expected to be 1 or 2 bytes
+    // long, depending on the number of channels.
     void processBlock(const int16_t* input, int16_t* output, uint8_t* filterPtr, uint8_t* shiftPtr,
                       unsigned channels = 1);
 
     // Process a block of 28 pre-processed samples into 4-bit ADPCM audio. This will pack the input samples
-    // into proper ADPCM format, and the output buffer will be either 14 or 28 bytes long, depending on the
-    // number of channels. The channels parameter can be either 1 or 2.
-    void blockTo4Bit(const int16_t* input, uint8_t* output, unsigned channels = 1);
+    // into proper ADPCM format, and the output buffer needs to be 14 bytes long.
+    void blockTo4Bit(const int16_t* input, uint8_t* output);
 
     // Process a block of 28 pre-processed samples into 8-bit ADPCM audio. This will pack the input samples
-    // into proper ADPCM format, and the output buffer will be either 28 or 56 bytes long, depending on the
-    // number of channels. The channels parameter can be either 1 or 2.
-    void blockTo8Bit(const int16_t* input, uint8_t* output, unsigned channels = 1);
+    // into proper ADPCM format, and the output buffer needs to be 28 bytes long.
+    void blockTo8Bit(const int16_t* input, uint8_t* output);
 
     // Process a block of 28 samples into 16 bytes of output, suitable for SPU decoding.
     void processSPUBlock(const int16_t* input, uint8_t* output, BlockAttribute blockAttribute);
@@ -143,7 +141,7 @@ class Encoder {
     void findFilterAndShift(std::span<const double> input, std::span<double> output, uint8_t* filterPtr,
                             uint8_t* shiftPtr, unsigned channel);
     void convert(std::span<const double> input, std::span<int16_t> output, uint8_t filter, uint8_t shift,
-                 unsigned channel, unsigned channels);
+                 unsigned channel);
 };
 
 }  // namespace ADPCM

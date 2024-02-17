@@ -121,14 +121,14 @@ void PCSX::ADPCM::Encoder::findFilterAndShift(std::span<const double> input, std
 }
 
 void PCSX::ADPCM::Encoder::convert(std::span<const double> input, std::span<int16_t> output, uint8_t filter,
-                                   uint8_t shift, unsigned channel, unsigned channels) {
+                                   uint8_t shift, unsigned channel) {
     double multiplier = 1 << shift;
     auto& anomalies = m_anomalies[channel];
     for (unsigned i = 0; i < 28; i++) {
         auto sample = anomalies[0] * c_filters[filter][0] + anomalies[1] * c_filters[filter][1] + input[i];
         int sampleI = sample * multiplier;
         sampleI = std::clamp(sampleI, -32768, 32767);
-        output[i * channels + channel] = sampleI;
+        output[i] = sampleI;
         anomalies[1] = anomalies[0];
         anomalies[0] = (sampleI >> shift) - sample;
     }
@@ -148,27 +148,21 @@ void PCSX::ADPCM::Encoder::processBlock(const int16_t* input, int16_t* output, u
     }
     for (unsigned channel = 0; channel < channels; channel++) {
         findFilterAndShift(converted[channel], filtered[channel], filterPtr + channel, shiftPtr + channel, channel);
-        convert(filtered[channel], std::span<int16_t>(output, 28 * channels), filterPtr[channel], shiftPtr[channel],
-                channel, channels);
+        convert(filtered[channel], std::span<int16_t>(output + channel * 28, 28), filterPtr[channel], shiftPtr[channel],
+                channel);
     }
 }
 
-void PCSX::ADPCM::Encoder::blockTo4Bit(const int16_t* input, uint8_t* output, unsigned channels) {
-    if (channels > 2) {
-        throw std::invalid_argument("Channels must be 1 or 2");
-    }
-    for (unsigned i = 0; i < (14 * channels); i++) {
+void PCSX::ADPCM::Encoder::blockTo4Bit(const int16_t* input, uint8_t* output) {
+    for (unsigned i = 0; i < 14; i++) {
         auto s1 = (input[i * 2 + 0] + 2048) >> 12;
         auto s2 = (input[i * 2 + 1] + 2048) >> 12;
-        output[i] = s1 | (s2 << 4);
+        output[i] = (s1 & 0x0f) | ((s2 & 0x0f) << 4);
     }
 }
 
-void PCSX::ADPCM::Encoder::blockTo8Bit(const int16_t* input, uint8_t* output, unsigned channels) {
-    if (channels > 2) {
-        throw std::invalid_argument("Channels must be 1 or 2");
-    }
-    for (unsigned i = 0; i < (28 * channels); i++) {
+void PCSX::ADPCM::Encoder::blockTo8Bit(const int16_t* input, uint8_t* output) {
+    for (unsigned i = 0; i < 28; i++) {
         output[i] = (input[i] + 128) >> 8;
     }
 }
@@ -218,57 +212,91 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
     if (channels == 1) {
         uint8_t filter;
         uint8_t shift;
-        int16_t encoded[28];
         if (xaMode == XAMode::FourBits) {
-            for (unsigned i = 0; i < 8; i++) {
-                processBlock(input + i * 28, encoded, &filter, &shift, 1);
+            // A 4-bit, mono XA block is made of 8 interlaced 28-samples blocks
+            int16_t encoded[28 * 8];
+            // Process all of the 8 28-samples block
+            for (unsigned b = 0; b < 8; b++) {
+                processBlock(input + b * 28, encoded + b * 28, &filter, &shift, 1);
                 uint8_t h = (shift & 0x0f) | ((filter & 0x0f) << 4);
-                unsigned offset = (i & 3) + (i >> 2) * 8;
+                unsigned offset = (b & 3) + (b >> 2) * 8;
                 output[offset + 0] = h;
                 output[offset + 4] = h;
-                blockTo4Bit(encoded, output + 16 + 14 * i, 1);
+            }
+            // Then convert and interlace the 4-bit samples
+            for (unsigned s = 0; s < 28; s++) {
+                for (unsigned b = 0; b < 4; b++) {
+                    auto s1 = (encoded[s + (b * 2 + 0) * 28] + 2048) >> 12;
+                    auto s2 = (encoded[s + (b * 2 + 1) * 28] + 2048) >> 12;
+                    output[16 + s * 4 + b] = (s1 & 0x0f) | ((s2 & 0x0f) << 4);
+                }
             }
         } else {
-            for (unsigned i = 0; i < 4; i++) {
-                processBlock(input + i * 28, encoded, &filter, &shift, 1);
+            // An 8-bit, mono XA block is made of 4 interlaced 28-samples blocks
+            int16_t encoded[28 * 4];
+            // Process all of the 4 28-samples block
+            for (unsigned b = 0; b < 4; b++) {
+                processBlock(input + b * 28, encoded + b * 28, &filter, &shift, 1);
                 uint8_t h = (shift & 0x0f) | ((filter & 0x0f) << 4);
-                output[i + 0] = h;
-                output[i + 4] = h;
-                output[i + 8] = h;
-                output[i + 12] = h;
-                blockTo8Bit(encoded, output + 16 + 28 * i, 1);
+                output[b + 0] = h;
+                output[b + 4] = h;
+                output[b + 8] = h;
+                output[b + 12] = h;
+            }
+            // Then convert and interlace the 8-bit samples
+            for (unsigned s = 0; s < 28; s++) {
+                for (unsigned b = 0; b < 4; b++) {
+                    output[16 + s * 4 + b] = (encoded[s + b * 28] + 128) >> 8;
+                }
             }
         }
     } else {
         uint8_t filter[2];
         uint8_t shift[2];
-        int16_t encoded[56];
         if (xaMode == XAMode::FourBits) {
-            for (unsigned i = 0; i < 4; i++) {
-                processBlock(input + i * 56, encoded, filter, shift, 2);
+            // A 4-bit, stereo XA block is made of 4 interlaced 28-samples blocks, spanning two channels
+            int16_t encoded[56 * 4];
+            // Process all the 4 input blocks
+            for (unsigned b = 0; b < 4; b++) {
+                processBlock(input + b * 56, encoded + b * 56, filter, shift, 2);
                 uint8_t h0 = (shift[0] & 0x0f) | ((filter[0] & 0x0f) << 4);
                 uint8_t h1 = (shift[1] & 0x0f) | ((filter[1] & 0x0f) << 4);
-                unsigned offset = (i & 1) + (i >> 1) * 4;
+                unsigned offset = (b & 1) + (b >> 1) * 4;
                 output[offset * 2 + 0] = h0;
                 output[offset * 2 + 1] = h1;
                 output[offset * 2 + 4] = h0;
                 output[offset * 2 + 5] = h1;
-                blockTo4Bit(encoded, output + 16 + 28 * i, 2);
+            }
+            // Then convert and interlace the 4-bit samples
+            for (unsigned s = 0; s < 28; s++) {
+                for (unsigned b = 0; b < 4; b++) {
+                    auto s1 = (encoded[s + (b * 2 + 0) * 28] + 2048) >> 12;
+                    auto s2 = (encoded[s + (b * 2 + 1) * 28] + 2048) >> 12;
+                    output[16 + s * 4 + b] = (s1 & 0x0f) | ((s2 & 0x0f) << 4);
+                }
             }
         } else {
-            for (unsigned i = 0; i < 2; i++) {
-                processBlock(input + i * 56, encoded, filter, shift, 2);
+            // An 8-bit, stereo XA block is made of 2 interlaced 28-samples blocks, spanning two channels
+            int16_t encoded[56 * 2];
+            // Process all the 2 input blocks
+            for (unsigned b = 0; b < 2; b++) {
+                processBlock(input + b * 56, encoded + b * 56, filter, shift, 2);
                 uint8_t h0 = (shift[0] & 0x0f) | ((filter[0] & 0x0f) << 4);
                 uint8_t h1 = (shift[1] & 0x0f) | ((filter[1] & 0x0f) << 4);
-                output[i * 2 + 0] = h0;
-                output[i * 2 + 1] = h1;
-                output[i * 2 + 4] = h0;
-                output[i * 2 + 5] = h1;
-                output[i * 2 + 8] = h0;
-                output[i * 2 + 9] = h1;
-                output[i * 2 + 12] = h0;
-                output[i * 2 + 13] = h1;
-                blockTo8Bit(encoded, output + 16 + 56 * i, 2);
+                output[b * 2 + 0] = h0;
+                output[b * 2 + 1] = h1;
+                output[b * 2 + 4] = h0;
+                output[b * 2 + 5] = h1;
+                output[b * 2 + 8] = h0;
+                output[b * 2 + 9] = h1;
+                output[b * 2 + 12] = h0;
+                output[b * 2 + 13] = h1;
+            }
+            // Then convert and interlace the 8-bit samples
+            for (unsigned s = 0; s < 28; s++) {
+                for (unsigned b = 0; b < 4; b++) {
+                    output[16 + s * 4 + b] = (encoded[s + b * 28] + 128) >> 8;
+                }
             }
         }
     }
