@@ -57,7 +57,7 @@ void closeFile(LuaFile* wrapper);
 uint64_t readFileRawPtr(LuaFile* wrapper, void* dst, uint64_t size);
 uint64_t readFileBuffer(LuaFile* wrapper, LuaBuffer* buffer);
 
-uint64_t writeFileRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size);
+uint64_t writeFileRawPtr(LuaFile* wrapper, const const void* data, uint64_t size);
 uint64_t writeFileBuffer(LuaFile* wrapper, const LuaBuffer* buffer);
 void writeFileMoveSlice(LuaFile* wrapper, LuaSlice* slice);
 
@@ -71,7 +71,7 @@ uint64_t getFileSize(LuaFile*);
 uint64_t readFileAtRawPtr(LuaFile* wrapper, void* dst, uint64_t size, uint64_t pos);
 uint64_t readFileAtBuffer(LuaFile* wrapper, LuaBuffer* buffer, uint64_t pos);
 
-uint64_t writeFileAtRawPtr(LuaFile* wrapper, const const uint8_t* data, uint64_t size, uint64_t pos);
+uint64_t writeFileAtRawPtr(LuaFile* wrapper, const const void* data, uint64_t size, uint64_t pos);
 uint64_t writeFileAtBuffer(LuaFile* wrapper, const LuaBuffer* buffer, uint64_t pos);
 void writeFileAtMoveSlice(LuaFile* wrapper, LuaSlice* slice, uint64_t pos);
 
