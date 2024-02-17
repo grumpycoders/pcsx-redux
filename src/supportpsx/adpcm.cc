@@ -237,6 +237,7 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             // Process all of the 4 28-samples block
             for (unsigned b = 0; b < 4; b++) {
                 processBlock(input + b * 28, encoded + b * 28, &filter, &shift, 1);
+                shift = std::max(0, int(shift) - 4);
                 uint8_t h = (shift & 0x0f) | ((filter & 0x0f) << 4);
                 output[b + 0] = h;
                 output[b + 4] = h;
@@ -281,6 +282,8 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             // Process all the 2 input blocks
             for (unsigned b = 0; b < 2; b++) {
                 processBlock(input + b * 56, encoded + b * 56, filter, shift, 2);
+                shift[0] = std::max(0, int(shift[0]) - 4);
+                shift[1] = std::max(0, int(shift[1]) - 4);
                 uint8_t h0 = (shift[0] & 0x0f) | ((filter[0] & 0x0f) << 4);
                 uint8_t h1 = (shift[1] & 0x0f) | ((filter[1] & 0x0f) << 4);
                 output[b * 2 + 0] = h0;
