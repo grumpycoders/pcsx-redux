@@ -71,7 +71,7 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/modconv/
     auto amplification = args.get<unsigned>("a").value_or(175);
     if (asksForHelp || !oneInput || !hasOutput) {
         fmt::print(R"(
-Usage: {} input.mod [-h] [-s output.ins] [-a amp] -o output.hit
+Usage: {} input.mod [-h] [-s output.smp] [-a amp] -o output.hit
   input.mod         mandatory: specify the input mod file
   -o output.hit     mandatory: name of the output hit file.
   -h                displays this help information and exit.
