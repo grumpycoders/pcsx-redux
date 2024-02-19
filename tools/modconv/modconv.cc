@@ -127,6 +127,7 @@ both the pattern and sample data.
     auto patternData = file->read(channels * (maxPatternID + 1) * 256);
 
     fmt::print("Title:     {}\n", modFile.get<ModTitle>().value);
+    fmt::print("Channels:  {}\n", channels);
     fmt::print("Positions: {}\n", modFile.get<Positions>().value);
     fmt::print("Patterns:  {}\n", maxPatternID + 1);
     fmt::print("Converting samples...\n");
