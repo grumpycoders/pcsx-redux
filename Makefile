@@ -169,7 +169,7 @@ SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
 OBJECTS := third_party/luajit/src/libluajit.a
 
-TOOLS = exe2elf exe2iso ps1-packer psyq-obj-parser
+TOOLS = exe2elf exe2iso modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
 

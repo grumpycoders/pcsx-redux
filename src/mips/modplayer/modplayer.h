@@ -76,6 +76,17 @@ unsigned MOD_Check(const struct MODFileFormat* module);
 // the SPU.
 uint32_t MOD_Load(const struct MODFileFormat* module);
 
+// Loads the specified module and gets it ready for
+// playback. The pointers have to be aligned to a
+// 4-bytes boundary. Will also setup the SPU. This
+// call is meant to be used with the separate .smp
+// file, which the new modconv.exe tool can generate.
+// Returns the number of channels from the module,
+// or 0 if the module is invalid. No relocation is
+// needed, and the sampleData pointer can simply be
+// freed after this call.
+unsigned MOD_LoadEx(const struct MODFileFormat* module, const uint8_t* sampleData);
+
 // Call this function periodically to play sound. The
 // frequency at which this is called will determine the
 // actual playback speed of the module. Most modules will
