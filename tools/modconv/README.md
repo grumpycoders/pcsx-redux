@@ -16,7 +16,7 @@ modconv input.mod [-s output.smp] [-a amp] -o output.hit
 | input.mod | mandatory | Specify the input mod file. |
 | -o output.hit | mandatory | Name of the output file. |
 | -s output.smp | optional | Name of the output samples data file. |
-| -a amp | optional | Amplification factor. Default is 175 |
+| -a amp | optional | Amplification factor. Default is 175. |
 | -h | optional | Show help. |
 
-If the `-i` argument is not provided, the sample data will be written to the .hit file itself, and can be loaded with the `MOD_Load` function from the modplayer library or the old Hitmen implementation. If the `-i` argument is provided, the sample data will be written into a separate file. Both will need to be loaded with the `MOD_LoadEx` function from the modplayer library, and is not backwards compatible with the old Hitmen implementation. This allows the user to have a simple way to unload the samples data from the main ram after the call to `MOD_LoadEx`, only keeping the .hit file in memory.
+If the `-s` argument is not provided, the sample data will be written to the .hit file itself, and can be loaded with the `MOD_Load` function from the modplayer library or the old Hitmen implementation. If the `-s` argument is provided, the sample data will be written into a separate file. Both will need to be loaded with the `MOD_LoadEx` function from the modplayer library, and is not backwards compatible with the old Hitmen implementation. This allows the user to have a simple way to unload the samples data from the main ram after the call to `MOD_LoadEx`, only keeping the .hit file in memory.
