@@ -55,6 +55,10 @@ local bufferMeta = {
             end
         elseif index == 'pbSlice' then
             return Support._internal.createPBSliceFromBuffer(buffer)
+        elseif index == 'cast' then
+            return function(buffer, ctype)
+                return ffi.cast(ctype, buffer.data)
+            end
         end
         error('Unknown index `' .. index .. '` for LuaBuffer')
     end,
