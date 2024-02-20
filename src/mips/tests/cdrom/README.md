@@ -5,7 +5,7 @@ This directory contains tests for the CDRom controller of the PS1. They are assu
 The script can be run using the following command:
 
 ```bash
-pcsx-redux -cli -iso UNIROM_BOOTDISC.bin -exec "dofile 'create-test-iso.lua'"
+pcsx-redux -cli -iso UNIROM_BOOTDISC.bin -dofile create-test-iso.lua
 ```
 
 This will emit a `test.cue` file, and multiple corresponding tracks. The data track will contain Unirom itself, for potentially booting on a retail machine and be able to upload the tests to the machine using [`nops`](https://github.com/JonathanDotCel/NOTPSXSerial).
