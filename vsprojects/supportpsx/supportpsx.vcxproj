@@ -265,6 +265,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\supportpsx\adpcm.cc" />
+    <ClCompile Include="..\..\src\supportpsx\adpcmlua.cc" />
     <ClCompile Include="..\..\src\supportpsx\assembler.cc" />
     <ClCompile Include="..\..\src\supportpsx\binloader.cc" />
     <ClCompile Include="..\..\src\supportpsx\binlua.cc" />
@@ -275,6 +277,7 @@
     <ClCompile Include="..\..\third_party\ucl\src\n2e_99.c" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\supportpsx\adpcmffi.lua" />
     <None Include="..\..\src\supportpsx\assembler\assembler.lua" />
     <None Include="..\..\src\supportpsx\assembler\extra.lua" />
     <None Include="..\..\src\supportpsx\assembler\gte.lua" />
@@ -287,6 +290,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\supportpsx\adpcm.h" />
+    <ClInclude Include="..\..\src\supportpsx\adpcmlua.h" />
     <ClInclude Include="..\..\src\supportpsx\assembler.h" />
     <ClInclude Include="..\..\src\supportpsx\binloader.h" />
     <ClInclude Include="..\..\src\supportpsx\binlua.h" />

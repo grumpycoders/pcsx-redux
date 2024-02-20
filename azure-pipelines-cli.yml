@@ -64,8 +64,9 @@ steps:
       vsprojects/x64/ReleaseCLI/crashpad_handler.exe
       vsprojects/x64/ReleaseCLI/exe2elf.exe
       vsprojects/x64/ReleaseCLI/exe2iso.exe
-      vsprojects/x64/ReleaseCLI/psyq-obj-parser.exe
+      vsprojects/x64/ReleaseCLI/modconv.exe
       vsprojects/x64/ReleaseCLI/ps1-packer.exe
+      vsprojects/x64/ReleaseCLI/psyq-obj-parser.exe
       vsprojects/x64/ReleaseCLI/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
@@ -83,11 +84,12 @@ steps:
       !**\crashpad_handler.exe
       !**\exe2elf.exe
       !**\exe2iso.exe
-      !**\pcsxrunner.exe
-      !**\pcsx-wrapper.exe
+      !**\modconv.exe
       !**\pcsx-redux.exe
-      !**\psyq-obj-parser.exe
+      !**\pcsx-wrapper.exe
+      !**\pcsxrunner.exe
       !**\ps1-packer.exe
+      !**\psyq-obj-parser.exe
       !third_party\**\*.exe
     searchFolder: '$(System.DefaultWorkingDirectory)'
     pathtoCustomTestAdapters: 'GoogleTestAdapter'

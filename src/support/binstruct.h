@@ -29,6 +29,7 @@ SOFTWARE.
 #include <stdint.h>
 
 #include <bit>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -91,10 +92,6 @@ struct UInt64 : public BasicFieldType<uint64_t, std::endian::little> {
     static constexpr char const typeName[] = "uint64_t";
 };
 
-struct BEInt8 : public BasicFieldType<int8_t, std::endian::big> {
-    static constexpr char const typeName[] = "int8_t";
-};
-
 struct BEInt16 : public BasicFieldType<int16_t, std::endian::big> {
     static constexpr char const typeName[] = "int16_t";
 };
@@ -105,10 +102,6 @@ struct BEInt32 : public BasicFieldType<int32_t, std::endian::big> {
 
 struct BEInt64 : public BasicFieldType<int64_t, std::endian::big> {
     static constexpr char const typeName[] = "int64_t";
-};
-
-struct BEUInt8 : public BasicFieldType<uint8_t, std::endian::big> {
-    static constexpr char const typeName[] = "uint8_t";
 };
 
 struct BEUInt16 : public BasicFieldType<uint16_t, std::endian::big> {
@@ -160,11 +153,17 @@ struct CString {
         memcpy(value, v.data(), S);
         return *this;
     }
-    void set(const type &v) { memcpy(value, v.data(), S); }
+    void set(const type &v) {
+        value[S] = 0;
+        memcpy(value, v.data(), S);
+    }
     void serialize(IO<File> f) const { f->write(value, S); }
-    void deserialize(IO<File> f) { f->read(value, S); }
-    void reset() { memset(value, 0, S); }
-    char value[S];
+    void deserialize(IO<File> f) {
+        value[S] = 0;
+        f->read(value, S);
+    }
+    void reset() { memset(value, 0, S + 1); }
+    char value[S + 1];
 };
 
 template <typename FieldType, typename name>
@@ -181,6 +180,70 @@ template <typename StructType, char... C>
 struct StructField<StructType, irqus::typestring<C...>> : public StructType {
     StructField() {}
     typedef irqus::typestring<C...> fieldName;
+};
+
+template <typename FieldType, typename name, size_t N>
+struct RepeatedField;
+template <typename FieldType, char... C, size_t N>
+struct RepeatedField<FieldType, irqus::typestring<C...>, N> {
+    RepeatedField() {}
+    typedef irqus::typestring<C...> fieldName;
+    FieldType value[N];
+    FieldType &operator[](size_t i) {
+        if (i >= N) throw std::out_of_range("Index out of range");
+        return value[i];
+    }
+    const FieldType &operator[](size_t i) const {
+        if (i >= N) throw std::out_of_range("Index out of range");
+        return value[i];
+    }
+    void serialize(IO<File> f) const {
+        for (size_t i = 0; i < N; i++) {
+            value[i].serialize(f);
+        }
+    }
+    void deserialize(IO<File> f) {
+        for (size_t i = 0; i < N; i++) {
+            value[i].deserialize(f);
+        }
+    }
+    void reset() {
+        for (size_t i = 0; i < N; i++) {
+            value[i].reset();
+        }
+    }
+};
+
+template <typename FieldType, typename name, size_t N>
+struct RepeatedStruct;
+template <typename FieldType, char... C, size_t N>
+struct RepeatedStruct<FieldType, irqus::typestring<C...>, N> {
+    RepeatedStruct() {}
+    typedef irqus::typestring<C...> fieldName;
+    FieldType value[N];
+    FieldType &operator[](size_t i) {
+        if (i >= N) throw std::out_of_range("Index out of range");
+        return value[i];
+    }
+    const FieldType &operator[](size_t i) const {
+        if (i >= N) throw std::out_of_range("Index out of range");
+        return value[i];
+    }
+    void serialize(IO<File> f) const {
+        for (size_t i = 0; i < N; i++) {
+            value[i].serialize(f);
+        }
+    }
+    void deserialize(IO<File> f) {
+        for (size_t i = 0; i < N; i++) {
+            value[i].deserialize(f);
+        }
+    }
+    void reset() {
+        for (size_t i = 0; i < N; i++) {
+            value[i].reset();
+        }
+    }
 };
 
 template <typename name, typename... fields>
@@ -208,8 +271,8 @@ class Struct<irqus::typestring<C...>, fields...> : private std::tuple<fields...>
     constexpr void reset() {}
     template <size_t index, typename FieldType, typename... nestedFields>
     constexpr void reset() {
-        FieldType &setting = std::get<index>(*this);
-        setting.reset();
+        FieldType &field = std::get<index>(*this);
+        field.reset();
         reset<index + 1, nestedFields...>();
     }
     template <size_t index>

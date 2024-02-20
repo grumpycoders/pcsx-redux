@@ -148,14 +148,14 @@ local function startCachingAndWait(self)
     end
 end
 
-local uint8_t = ffi.typeof('uint8_t[1]');
-local uint16_t = ffi.typeof('uint16_t[1]');
-local uint32_t = ffi.typeof('uint32_t[1]');
-local uint64_t = ffi.typeof('uint64_t[1]');
-local int8_t = ffi.typeof('int8_t[1]');
-local int16_t = ffi.typeof('int16_t[1]');
-local int32_t = ffi.typeof('int32_t[1]');
-local int64_t = ffi.typeof('int64_t[1]');
+local uint8_t = ffi.typeof 'uint8_t[1]'
+local uint16_t = ffi.typeof 'uint16_t[1]'
+local uint32_t = ffi.typeof 'uint32_t[1]'
+local uint64_t = ffi.typeof 'uint64_t[1]'
+local int8_t = ffi.typeof 'int8_t[1]'
+local int16_t = ffi.typeof 'int16_t[1]'
+local int32_t = ffi.typeof 'int32_t[1]'
+local int64_t = ffi.typeof 'int64_t[1]'
 
 local function deleteFile(wrapper)
     Support.extra.safeFFI('File::~File', C.deleteFile, wrapper)

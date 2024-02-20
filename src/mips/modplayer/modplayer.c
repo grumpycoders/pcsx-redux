@@ -218,7 +218,7 @@ static void MOD_SetBPM(unsigned bpm) {
 
 static struct SPUChannelData s_channelData[24];
 
-uint32_t MOD_Load(const struct MODFileFormat* module) {
+static uint32_t loadInternal(const struct MODFileFormat* module, const uint8_t* sampleData) {
     SPUInit();
     MOD_Channels = MOD_Check(module);
 
@@ -241,8 +241,12 @@ uint32_t MOD_Load(const struct MODFileFormat* module) {
 
     MOD_ModuleData = (const uint8_t*)&module->patternTable[0];
 
-    SPUUploadInstruments(0x1010, MOD_ModuleData + 4 + 128 + MOD_Channels * 0x100 * (maxPatternID + 1),
-                         currentSpuAddress - 0x1010);
+    if (sampleData) {
+        SPUUploadInstruments(0x1010, sampleData, currentSpuAddress - 0x1010);
+    } else {
+        SPUUploadInstruments(0x1010, MOD_ModuleData + 4 + 128 + MOD_Channels * 0x100 * (maxPatternID + 1),
+                             currentSpuAddress - 0x1010);
+    }
 
     MOD_CurrentOrder = 0;
     MOD_CurrentPattern = module->patternTable[0];
@@ -272,6 +276,13 @@ uint32_t MOD_Load(const struct MODFileFormat* module) {
     // return MOD_Channels;
     // but we are returning the size for the MOD_Relocate call
     return 4 + 128 + MOD_Channels * 0x100 * (maxPatternID + 1);
+}
+
+uint32_t MOD_Load(const struct MODFileFormat* module) { return loadInternal(module, NULL); }
+
+unsigned MOD_LoadEx(const struct MODFileFormat* module, const uint8_t* sampleData) {
+    loadInternal(module, sampleData);
+    return MOD_Channels;
 }
 
 void MOD_Silence() {
