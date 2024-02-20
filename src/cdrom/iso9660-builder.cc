@@ -68,6 +68,7 @@ PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorDa
             msf.toBCD(ptr + 12);
             ptr[15] = 2;
             memcpy(ptr + 16, sectorData, 2336);
+            compute_edcecc(ptr);
             m_out->writeAt(std::move(slice), lba * IEC60908b::FRAMESIZE_RAW);
             break;
         case SectorMode::M2_FORM1:
