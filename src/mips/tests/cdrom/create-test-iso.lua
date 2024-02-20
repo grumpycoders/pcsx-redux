@@ -17,9 +17,11 @@
 
 -- This script creates a test ISO image for the CDROM unit tests.
 
+local ffi = require 'ffi'
+local bit = require 'bit'
 local uniromDisc = PCSX.getCurrentIso()
 local uniromDiscReader = uniromDisc:createReader()
-local uniromFile = uniromDiscReader:open('UNIROM_B.EXE;1')
+local uniromFile = uniromDiscReader:open 'UNIROM_B.EXE;1'
 local licenseFile = uniromDisc:open(0, 2352 * 16, 'RAW')
 local iso = PCSX.isoBuilder(Support.File.open('test.bin', 'TRUNCATE'))
 iso:writeLicense(licenseFile)
@@ -65,7 +67,48 @@ while not uniromFile:eof() do
 end
 
 ffi.fill(b.data, 2048)
-for i = count, 70 * 60 * 75 - 1 do
+for i = count, 30 * 60 * 75 - 1 do
+    b[0] = bit.band(i, 0xff)
+    b[1] = bit.band(bit.rshift(i, 8), 0xff)
+    b[2] = bit.band(bit.rshift(i, 16), 0xff)
+    iso:writeSector(b)
+end
+
+local function generateToneSample(frequency, sampleRate, t)
+    return math.sin(2 * math.pi * frequency * t / sampleRate)
+end
+
+local xa = Support.NewLuaBuffer(2336)
+ffi.fill(xa.data, 2336)
+local e = PCSX.Adpcm.NewEncoder()
+e:reset 'XA'
+local samples = ffi.new('int16_t[?]', 224 * 18)
+for t = 0, 224 * 18 - 1 do
+    samples[t] = 25000 * generateToneSample(504, 37800, t)
+end
+for i = 0, 18 - 1 do
+    e:processXABlock(samples + 224 * i, xa:cast 'uint8_t *' + 8 + 128 * i, 'XAFourBits', 1)
+end
+xa[0] = 0x01
+xa[1] = 0x00
+xa[2] = 0x64
+xa[3] = 0x00
+xa[4] = 0x01
+xa[5] = 0x00
+xa[6] = 0x64
+xa[7] = 0x00
+for i = 30 * 60 * 75, 40 * 60 * 75 - 1 do
+    if i % 16 == 0 then
+        iso:writeSector(xa, 'M2_RAW')
+    else
+        b[0] = bit.band(i, 0xff)
+        b[1] = bit.band(bit.rshift(i, 8), 0xff)
+        b[2] = bit.band(bit.rshift(i, 16), 0xff)
+        iso:writeSector(b)
+    end
+end
+
+for i = 40 * 60 * 75, 70 * 60 * 75 - 1 do
     b[0] = bit.band(i, 0xff)
     b[1] = bit.band(bit.rshift(i, 8), 0xff)
     b[2] = bit.band(bit.rshift(i, 16), 0xff)
@@ -73,6 +116,13 @@ for i = count, 70 * 60 * 75 - 1 do
 end
 
 b:resize(2352)
+for i = 0, 588 - 1 do
+    local s = 25000 * generateToneSample(450, 44100, i)
+    b[i * 4 + 0] = bit.band(s, 0xff)
+    b[i * 4 + 1] = bit.band(bit.rshift(s, 8), 0xff)
+    b[i * 4 + 2] = b[i * 4 + 0]
+    b[i * 4 + 3] = b[i * 4 + 1]
+end
 local audioTrack
 audioTrack = Support.File.open('test-t2.bin', 'TRUNCATE')
 for i = 1, 75 * 5 do
@@ -96,7 +146,7 @@ for i = 1, 75 * 5 + 15 do
 end
 
 local cue = Support.File.open('test.cue', 'TRUNCATE')
-cue:write([[
+cue:write [[
 FILE "test.bin" BINARY
   TRACK 01 MODE2/2352
     INDEX 01 00:00:00
@@ -118,7 +168,7 @@ FILE "test-t6.bin" BINARY
   TRACK 06 AUDIO
     INDEX 00 00:00:00
     INDEX 01 00:02:00
-]])
+]]
 
 for i = 7, 25 do
     audioTrack = Support.File.open(string.format('test-t%d.bin', i), 'TRUNCATE')
@@ -127,7 +177,7 @@ for i = 7, 25 do
     end
     cue:write(string.format('FILE "test-t%d.bin" BINARY\n', i))
     cue:write(string.format('  TRACK %02d AUDIO\n', i))
-    cue:write('    INDEX 01 00:02:00\n')
+    cue:write '    INDEX 01 00:02:00\n'
 end
 
 PCSX.quit()
