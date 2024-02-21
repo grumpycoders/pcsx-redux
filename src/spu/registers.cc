@@ -85,14 +85,15 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 SetPitch(ch, val);
                 break;
             case 6:  // Sample start address
-                s_chan[ch].pStart = spuMemC + ((uint32_t)val << 3);
+                // Brain Dead 13 - align to 16 boundary
+                s_chan[ch].pStart = spuMemC + (uint32_t)((val << 3) & ~0xf);
                 break;
             case 8: {  // Attack/Decay/Sustain/Release (ADSR)
                 //---------------------------------------------//
                 s_chan[ch].ADSRX.get<exAttackModeExp>().value = (val & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exAttackRate>().value = ((val >> 8) & 0x007f) ^ 0x7f;
-                s_chan[ch].ADSRX.get<exDecayRate>().value = 4 * (((val >> 4) & 0x000f) ^ 0x1f);
-                s_chan[ch].ADSRX.get<exSustainLevel>().value = (val & 0x000f) << 27;
+                s_chan[ch].ADSRX.get<exAttackRate>().value = (val >> 8) & 0x007f;
+                s_chan[ch].ADSRX.get<exDecayRate>().value = (val >> 4) & 0x000f;
+                s_chan[ch].ADSRX.get<exSustainLevel>().value = val & 0x000f;
                 //---------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.get<AttackModeExp>().value = (val & 0x8000) ? 1 : 0;  // 0x007f
@@ -101,11 +102,14 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 lx = std::min(31U, lx);                      // no overflow on shift!
                 if (lx) {
                     lx = (1 << lx);
-                    if (lx < 2147483)
+                    if (lx < 2147483) {
                         lx = (lx * ATTACK_MS) / 10000L;  // another overflow check
-                    else
+                    } else {
                         lx = (lx / 10000L) * ATTACK_MS;
-                    if (!lx) lx = 1;
+                    }
+                    if (!lx) {
+                        lx = 1;
+                    }
                 }
                 s_chan[ch].ADSR.get<AttackTime>().value = lx;
 
@@ -116,7 +120,9 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 if (lx)                    // our const decay value is time it takes from 100% to 0% of volume
                 {
                     lx = ((1 << (lx)) * DECAY_MS) / 10000L;
-                    if (!lx) lx = 1;
+                    if (!lx) {
+                        lx = 1;
+                    }
                 }
                 s_chan[ch].ADSR.get<DecayTime>().value =  // so calc how long does it take to run from 100% to the
                                                           // wanted sus level
@@ -127,9 +133,9 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 //----------------------------------------------//
                 s_chan[ch].ADSRX.get<exSustainModeExp>().value = (val & 0x8000) ? 1 : 0;
                 s_chan[ch].ADSRX.get<exSustainIncrease>().value = (val & 0x4000) ? 0 : 1;
-                s_chan[ch].ADSRX.get<exSustainRate>().value = ((val >> 6) & 0x007f) ^ 0x7f;
+                s_chan[ch].ADSRX.get<exSustainRate>().value = (val >> 6) & 0x007f;
                 s_chan[ch].ADSRX.get<exReleaseModeExp>().value = (val & 0x0020) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exReleaseRate>().value = 4 * ((val & 0x001f) ^ 0x1f);
+                s_chan[ch].ADSRX.get<exReleaseRate>().value = val & 0x001f;
                 //----------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.get<SustainModeExp>().value = (val & 0x8000) ? 1 : 0;
@@ -140,11 +146,14 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 if (lx)                                        // until a sound stop occurs
                 {                                              // the highest value we reach (due to
                     lx = (1 << lx);                            // overflow checking) is:
-                    if (lx < 2147483)
+                    if (lx < 2147483) {
                         lx = (lx * SUSTAIN_MS) / 10000L;  // 94704 seconds = 1578 minutes = 26 hours...
-                    else
+                    } else {
                         lx = (lx / 10000L) * SUSTAIN_MS;  // should be enuff... if the stop doesn't
-                    if (!lx) lx = 1;                      // come in this time span, I don't care :)
+                    }
+                    if (!lx) {
+                        lx = 1;  // come in this time span, I don't care :)
+                    }
                 }
                 s_chan[ch].ADSR.get<SustainTime>().value = lx;
 
@@ -153,25 +162,31 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 if (lx)              // release time from 100% to 0%
                 {                    // note: the release time will be
                     lx = (1 << lx);  // adjusted when a stop is coming,
-                    if (lx < 2147483)
+                    if (lx < 2147483) {
                         lx = (lx * RELEASE_MS) / 10000L;  // so at this time the adsr vol will
-                    else
+                    } else {
                         lx = (lx / 10000L) * RELEASE_MS;  // run from (current volume) to 0%
-                    if (!lx) lx = 1;
+                    }
+                    if (!lx) {
+                        lx = 1;
+                    }
                 }
                 s_chan[ch].ADSR.get<ReleaseTime>().value = lx;
 
                 if (val & 0x4000)  // add/dec flag
+                {
                     s_chan[ch].ADSR.get<SustainModeDec>().value = -1;
-                else
+                } else {
                     s_chan[ch].ADSR.get<SustainModeDec>().value = 1;
+                }
             } break;
             case 12:  // TODO: Emulate ADSR Volume
                 break;
             //------------------------------------------------//
             case 14:  // loop?
                 // WaitForSingleObject(s_chan[ch].hMutex,2000);        // -> no multithread fuckups
-                s_chan[ch].pLoop = spuMemC + ((uint32_t)val << 3);
+                // align to 16-byte boundary
+                s_chan[ch].pLoop = spuMemC + ((uint32_t)((val << 3) & ~0xf));
                 s_chan[ch].data.get<Chan::IgnoreLoop>().value = true;
                 // ReleaseMutex(s_chan[ch].hMutex);                    // -> oki, on with the thread
                 break;
@@ -184,13 +199,15 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
     switch (r) {
         case H_SPUaddr:
-            spuAddr = (uint32_t)val << 3;
+            spuAddr = (uint32_t)val * 8;
             break;
 
         case H_SPUdata:
             spuMem[spuAddr >> 1] = val;
             spuAddr += 2;
-            if (spuAddr > 0x7ffff) spuAddr = 0;
+            if (spuAddr > 0x7ffff) {
+                spuAddr = 0;
+            }
             break;
 
         case H_SPUctrl:
@@ -438,7 +455,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
                                                                // return 1 as well
                     !s_chan[ch].ADSRX.get<exEnvelopeVol>().value)
                     return 1;
-                return (uint16_t)(s_chan[ch].ADSRX.get<exEnvelopeVol>().value >> 16);
+                return (uint16_t)s_chan[ch].ADSRX.get<exEnvelopeVol>().value;
             }
 
             case 14:  // get loop address
@@ -455,7 +472,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             return spuCtrl;
 
         case H_SPUstat:
-            return (spuStat & ~0x3F) | (spuCtrl & 0x3F);
+            return (spuStat & ~StatusFlags::SPUMode) | (spuCtrl & StatusFlags::SPUMode);
 
         case H_SPUaddr:
             return (uint16_t)(spuAddr >> 3);
@@ -463,7 +480,10 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
         case H_SPUdata: {
             uint16_t s = spuMem[spuAddr >> 1];
             spuAddr += 2;
-            if (spuAddr > 0x7ffff) spuAddr = 0;
+
+            if (spuAddr > 0x7ffff) {
+                spuAddr = 0;
+            }
             return s;
         }
 
@@ -527,19 +547,27 @@ void PCSX::SPU::impl::SetVolumeL(uint8_t ch, int16_t vol)  // LEFT VOLUME
 {
     s_chan[ch].data.get<Chan::LeftVolRaw>().value = vol;
 
-    if (vol & 0x8000)  // sweep?
+    if (vol & VolumeFlags::VolumeMode)  // sweep?
     {
-        int16_t sInc = 1;                 // -> sweep up?
-        if (vol & 0x2000) sInc = -1;      // -> or down?
-        if (vol & 0x1000) vol ^= 0xffff;  // -> mmm... phase inverted? have to investigate this
-        vol = ((vol & 0x7f) + 1) / 2;     // -> sweep: 0..127 -> 0..64
+        int16_t sInc;
+        if (vol & VolumeFlags::SweepDirection) {
+            sInc = -1;  // Decrease
+        } else {
+            sInc = 1;  // Increase
+        }
+        if (vol & VolumeFlags::SweepPhase) {
+            // Negative Phase
+            vol ^= 0xffff;                    // -> mmm... phase inverted? have to investigate this
+        }
+        vol = ((vol & 0x7f) + 1) / 2;  // -> sweep: 0..127 -> 0..64
         vol += vol / (2 * sInc);  // -> HACK: we don't sweep right now, so we just raise/lower the volume by the half!
         vol *= 128;
     } else  // no sweep:
     {
         if (vol & 0x4000)  // -> mmm... phase inverted? have to investigate this
-            // vol^=0xffff;
-            vol = 0x3fff - (vol & 0x3fff);
+        {
+            vol = (vol & 0x3fff) - 0x4000;
+        }
     }
 
     vol &= 0x3fff;
@@ -554,17 +582,26 @@ void PCSX::SPU::impl::SetVolumeR(uint8_t ch, int16_t vol)  // RIGHT VOLUME
 {
     s_chan[ch].data.get<Chan::RightVolRaw>().value = vol;
 
-    if (vol & 0x8000)  // comments... see above :)
+    if (vol & VolumeFlags::VolumeMode)  // sweep? - Arc the Lad III
     {
-        int16_t sInc = 1;
-        if (vol & 0x2000) sInc = -1;
-        if (vol & 0x1000) vol ^= 0xffff;
-        vol = ((vol & 0x7f) + 1) / 2;
-        vol += vol / (2 * sInc);
+        int16_t sInc;
+        if (vol & VolumeFlags::SweepDirection) {
+            sInc = -1;  // Decrease
+        } else {
+            sInc = 1;  // Increase
+        }
+        if (vol & VolumeFlags::SweepPhase) {  // Negative Phase
+            vol ^= 0xffff;                    // -> mmm... phase inverted? have to investigate this
+        }
+        vol = ((vol & 0x7f) + 1) / 2;  // -> sweep: 0..127 -> 0..64
+        vol += vol / (2 * sInc);  // -> HACK: we don't sweep right now, so we just raise/lower the volume by the half!
         vol *= 128;
-    } else {
-        if (vol & 0x4000)  // vol=vol^=0xffff;
-            vol = 0x3fff - (vol & 0x3fff);
+    } else  // no sweep:
+    {
+        if (vol & 0x4000)  // -> mmm... phase inverted? have to investigate this
+        {
+            vol = (vol & 0x3fff) - 0x4000;
+        }
     }
 
     vol &= 0x3fff;
@@ -579,15 +616,18 @@ void PCSX::SPU::impl::SetVolumeR(uint8_t ch, int16_t vol)  // RIGHT VOLUME
 void PCSX::SPU::impl::SetPitch(int ch, uint16_t val)  // SET PITCH
 {
     int NP;
-    if (val > 0x3fff)
+    if (val > 0x3fff) {
         NP = 0x3fff;  // get pitch val
-    else
+    } else {
         NP = val;
+    }
 
     s_chan[ch].data.get<Chan::RawPitch>().value = NP;
 
-    NP = (44100L * NP) / 4096L;                       // calc frequency
-    if (NP < 1) NP = 1;                               // some security
+    NP = (44100L * NP) / 4096L;  // calc frequency
+    if (NP < 1) {
+        NP = 1;  // some security
+    }
     s_chan[ch].data.get<Chan::ActFreq>().value = NP;  // store frequency
 }
 

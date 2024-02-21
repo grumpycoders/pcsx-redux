@@ -101,18 +101,27 @@ class impl final : public SPUInterface {
 
     struct StatusFlags {
         enum : uint16_t {
-            // 5-0 Current SPU Mode(same as SPUCNT.Bit5 - 0, but, applied a bit delayed)
-            CDAudioEnable = 1 << 0,         // 0 0x0001 (0=Off, 1=On) (for CD-DA and XA-ADPCM)
-            ExternalAudioEnable = 1 << 1,   // 1 0x0002 (0=Off, 1=On)
-            CDReverbEnable = 1 << 2,        // 2 0x0004 (0=Off, 1=On) (for CD-DA and XA-ADPCM)
-            ExternalReverbEnable = 1 << 3,  // 3 0x0008 (0=Off, 1=On)
-            RAMTransferMode = 0x0030,  // 5-4 0x0030 RAM Transfer Mode (0=Stop, 1=ManualWrite, 2=DMAwrite, 3=DMAread)
+            SPUMode = 0x3f,            // 5-0 Current SPU Mode(same as SPUCNT.Bit5 - 0, but, applied a bit delayed)
             IRQFlag = 1 << 6,          // 6 0x0040 IRQ9 Flag (0=No, 1=Interrupt Request)
             DMARWRequest = 1 << 7,     // 7 Data Transfer DMA Read/Write Request seems to be same as SPUCNT.Bit5
             DMAWriteRequest = 1 << 8,  // 8 Data Transfer DMA Write Request (0=No, 1=Yes)
             DMAReadRequest = 1 << 9,   // 9 Data Transfer DMA Read Request (0=No, 1=Yes)
             DMABusy = 1 << 10,         // 10 Data Transfer Busy Flag (0=Ready, 1=Busy)
-            CBIndex = 11 << 11,        // 11 Writing to First/Second half of Capture Buffers
+            CBIndex = 11 << 11,        // 11 Writing to First/Second half of Capture Buffers (0=First, 1=Second)
+            // 15-12 Unknown/Unused (seems to be usually zero)
+        };
+    };
+
+    struct VolumeFlags {
+        enum : uint16_t {
+            VolumeMode = 1 << 15,      // 15 1=Sweep Mode
+            SweepMode = 1 << 14,       // 14 0=Linear, 1=Exponential
+            SweepDirection = 1 << 13,  // 13 0=Increase, 1=Decrease
+            SweepPhase = 1 << 12,      // 12 0=Positive, 1=Negative
+            Unknown = 0xf80,           // 7-11 Not used? (should be zero)
+            SweepShift = 0x7c,         // 6-2 0..1Fh = Fast..Slow
+            SweepStep = 0x3            // 1-0 0..3 = "+7,+6,+5,+4" or "-8,-7,-6,-5") (inc/dec)
+
         };
     };
 
