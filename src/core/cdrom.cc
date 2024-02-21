@@ -788,6 +788,13 @@ class CDRomImpl final : public PCSX::CDRom {
 
     std::chrono::nanoseconds computeReadDelay() { return m_speed == Speed::Simple ? 13333us : 6666us; }
 
+    // "Command" 0, which doesn't actually exist.
+    bool cdlSync(const QueueElement &command, bool start) {
+        maybeEnqueueError(1, 0x40);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
     // Command 1.
     bool cdlNop(const QueueElement &command, bool start) {
         QueueElement response;
@@ -1152,7 +1159,7 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlGetClock, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS, // 24
         &CDRomImpl::cdlReset, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
 #else
-        nullptr, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, nullptr,                        // 0
+        &CDRomImpl::cdlSync, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, nullptr,            // 0
             nullptr, nullptr, &CDRomImpl::cdlReadN, nullptr,                                // 4
             nullptr, &CDRomImpl::cdlPause, &CDRomImpl::cdlInit, &CDRomImpl::cdlMute,        // 8
             &CDRomImpl::cdlDemute, nullptr, &CDRomImpl::cdlSetMode, nullptr,                // 12
