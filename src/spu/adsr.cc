@@ -35,16 +35,50 @@
 
 #include "spu/adsr.h"
 
+#include <stdint.h>
+
+#include <utility>
+
 #include "spu/externals.h"
 #include "spu/interface.h"
 
-enum ADSRState : int32_t {
-    Attack = 0,
-    Decay = 1,
-    Sustain = 2,
-    Release = 3,
-    Stopped = 4,
+namespace EnvelopeTables {
+// Generate ADSR envelope tables at compile time with some magic(thanks Nic)
+template <std::size_t N>
+struct Table {
+    int32_t data[N];
 };
+
+template <std::size_t N, typename Generator, std::size_t... Is>
+constexpr Table<N> generateTable(std::index_sequence<Is...>) {
+    return {{Generator::calculateValue(Is)...}};
+}
+
+template <std::size_t N, typename Generator>
+constexpr Table<N> generateTable() {
+    return generateTable<N, Generator>(std::make_index_sequence<128>{});
+}
+
+struct DenominatorGenerator {
+    static constexpr int32_t calculateValue(std::size_t rate) { return (rate < 48) ? 1 : (1 << ((rate >> 2) - 11)); }
+};
+
+struct NumeratorIncreaseGenerator {
+    static constexpr int32_t calculateValue(std::size_t rate) {
+        return (rate < 48) ? (7 - (rate & 3)) << (11 - (rate >> 2)) : (7 - (rate & 3));
+    }
+};
+
+struct NumeratorDecreaseGenerator {
+    static constexpr int32_t calculateValue(std::size_t rate) {
+        return (rate < 48) ? (-8 + (rate & 3)) << (11 - (rate >> 2)) : (-8 + (rate & 3));
+    }
+};
+
+constexpr auto denominator = generateTable<128, DenominatorGenerator>();
+constexpr auto numerator_increase = generateTable<128, NumeratorIncreaseGenerator>();
+constexpr auto numerator_decrease = generateTable<128, NumeratorDecreaseGenerator>();
+}  // namespace EnvelopeTables
 
 inline int PCSX::SPU::ADSR::Attack(SPUCHAN *ch) {
     int rate = ch->ADSRX.get<exAttackRate>().value;
@@ -58,9 +92,9 @@ inline int PCSX::SPU::ADSR::Attack(SPUCHAN *ch) {
     }
 
     EnvelopeVolF++;
-    if (EnvelopeVolF >= m_denominator[rate]) {
+    if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
         EnvelopeVolF = 0;
-        EnvelopeVol += m_numeratorIncrease[rate];
+        EnvelopeVol += EnvelopeTables::numerator_increase.data[rate];
     }
 
     if (EnvelopeVol >= 32767L) {
@@ -82,14 +116,14 @@ inline int PCSX::SPU::ADSR::Decay(SPUCHAN *ch) {
     const int32_t release_mode_exp = ch->ADSRX.get<exReleaseModeExp>().value;
 
     EnvelopeVolF++;
-    if (EnvelopeVolF >= m_denominator[rate]) {
+    if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
         EnvelopeVolF = 0;
 
         if (release_mode_exp) {
             // Exponential decrease
-            EnvelopeVol += (m_numeratorDecrease[rate] * EnvelopeVol) >> 15;
+            EnvelopeVol += (EnvelopeTables::numerator_decrease.data[rate] * EnvelopeVol) >> 15;
         } else {
-            EnvelopeVol += m_numeratorDecrease[rate];
+            EnvelopeVol += EnvelopeTables::numerator_decrease.data[rate];
         }
     }
 
@@ -122,9 +156,9 @@ inline int PCSX::SPU::ADSR::Sustain(SPUCHAN *ch) {
         }
 
         EnvelopeVolF++;
-        if (EnvelopeVolF >= m_denominator[rate]) {
+        if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
             EnvelopeVolF = 0;
-            EnvelopeVol += m_numeratorIncrease[rate];
+            EnvelopeVol += EnvelopeTables::numerator_increase.data[rate];
         }
 
         if (EnvelopeVol > 32767L) {
@@ -133,14 +167,14 @@ inline int PCSX::SPU::ADSR::Sustain(SPUCHAN *ch) {
 
     } else {
         EnvelopeVolF++;
-        if (EnvelopeVolF >= m_denominator[rate]) {
+        if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
             EnvelopeVolF = 0;
 
             // Exponential decrease
             if (sustain_mode_exp) {
-                EnvelopeVol += (m_numeratorDecrease[rate] * EnvelopeVol) >> 15;
+                EnvelopeVol += (EnvelopeTables::numerator_decrease.data[rate] * EnvelopeVol) >> 15;
             } else {
-                EnvelopeVol += m_numeratorDecrease[rate];
+                EnvelopeVol += EnvelopeTables::numerator_decrease.data[rate];
             }
         }
 
@@ -163,14 +197,14 @@ inline int PCSX::SPU::ADSR::Release(SPUCHAN *ch) {
     const int32_t release_mode_exp = ch->ADSRX.get<exReleaseModeExp>().value;
 
     EnvelopeVolF++;
-    if (EnvelopeVolF >= m_denominator[rate]) {
+    if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
         EnvelopeVolF = 0;
 
         // Exponential decrease
         if (release_mode_exp) {
-            EnvelopeVol += (m_numeratorDecrease[rate] * EnvelopeVol) >> 15;
+            EnvelopeVol += (EnvelopeTables::numerator_decrease.data[rate] * EnvelopeVol) >> 15;
         } else {
-            EnvelopeVol += m_numeratorDecrease[rate];
+            EnvelopeVol += EnvelopeTables::numerator_decrease.data[rate];
         }
     }
 
@@ -185,35 +219,6 @@ inline int PCSX::SPU::ADSR::Release(SPUCHAN *ch) {
     ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 5);
 
     return EnvelopeVol;
-}
-
-// Init ADSR
-PCSX::SPU::ADSR::Table::Table() {
-    memset(m_table, 0,
-           sizeof(uint32_t) * 160);  // build the rate table according to Neill's rules (see at bottom of file)
-
-    uint32_t r = 3;
-    uint32_t rs = 1;
-    uint32_t rd = 0;
-
-    // we start at pos 32 with the real values... everything before is 0
-    for (int i = 32; i < 160; i++) {
-        if (r < 0x3FFFFFFF) {
-            r += rs;
-            rd++;
-
-            if (rd == 5) {
-                rd = 1;
-                rs *= 2;
-            }
-        }
-
-        if (r > 0x3FFFFFFF) {
-            r = 0x3FFFFFFF;
-        }
-
-        m_table[i] = r;
-    }
 }
 
 void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
