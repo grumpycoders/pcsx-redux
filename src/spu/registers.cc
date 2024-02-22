@@ -90,16 +90,17 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 break;
             case 8: {  // Attack/Decay/Sustain/Release (ADSR)
                 //---------------------------------------------//
-                s_chan[ch].ADSRX.get<exAttackModeExp>().value = (val & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exAttackRate>().value = (val >> 8) & 0x007f;
-                s_chan[ch].ADSRX.get<exDecayRate>().value = (val >> 4) & 0x000f;
-                s_chan[ch].ADSRX.get<exSustainLevel>().value = val & 0x000f;
+                s_chan[ch].ADSRX.get<exAttackModeExp>().value = (val & ADSRFlags::AttackMode) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exAttackRate>().value =
+                    (val & (ADSRFlags::AttackShiftMask | ADSRFlags::AttackStepMask)) >> 8;
+                s_chan[ch].ADSRX.get<exDecayRate>().value = (val & ADSRFlags::DecayShiftMask) >> 4;
+                s_chan[ch].ADSRX.get<exSustainLevel>().value = val & ADSRFlags::SustainLevelMask;
                 //---------------------------------------------// stuff below is only for debug mode
 
-                s_chan[ch].ADSR.get<AttackModeExp>().value = (val & 0x8000) ? 1 : 0;  // 0x007f
+                s_chan[ch].ADSR.get<AttackModeExp>().value = (val & ADSRFlags::AttackMode) ? 1 : 0;
 
-                uint32_t lx = (((val >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
-                lx = std::min(31U, lx);                      // no overflow on shift!
+                uint32_t lx = (val & ADSRFlags::AttackShiftMask) >> 10;  // attack time to run from 0 to 100% volume
+                lx = std::min(31U, lx);                                  // no overflow on shift!
                 if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483) {
@@ -114,10 +115,10 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].ADSR.get<AttackTime>().value = lx;
 
                 // our adsr vol runs from 0 to 1024, so scale the sustain level
-                s_chan[ch].ADSR.get<SustainLevel>().value = (1024 * (val & 0xf)) / 15;
+                s_chan[ch].ADSR.get<SustainLevel>().value = (1024 * (val & ADSRFlags::SustainLevelMask)) / 15;
 
-                lx = (val >> 4) & 0x000f;  // decay:
-                if (lx)                    // our const decay value is time it takes from 100% to 0% of volume
+                lx = (val & ADSRFlags::DecayShiftMask) >> 4;  // decay:
+                if (lx)  // our const decay value is time it takes from 100% to 0% of volume
                 {
                     lx = ((1 << (lx)) * DECAY_MS) / 10000L;
                     if (!lx) {
@@ -131,21 +132,22 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             //------------------------------------------------// adsr times with pre-calcs
             case 10: {
                 //----------------------------------------------//
-                s_chan[ch].ADSRX.get<exSustainModeExp>().value = (val & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exSustainIncrease>().value = (val & 0x4000) ? 0 : 1;
-                s_chan[ch].ADSRX.get<exSustainRate>().value = (val >> 6) & 0x007f;
-                s_chan[ch].ADSRX.get<exReleaseModeExp>().value = (val & 0x0020) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exReleaseRate>().value = val & 0x001f;
+                s_chan[ch].ADSRX.get<exSustainModeExp>().value = (val & ADSRFlags::SustainMode) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exSustainIncrease>().value = (val & ADSRFlags::SustainDirection) ? 0 : 1;
+                s_chan[ch].ADSRX.get<exSustainRate>().value =
+                    (val & (ADSRFlags::SustainShiftMask | ADSRFlags::SustainStepMask)) >> 6;
+                s_chan[ch].ADSRX.get<exReleaseModeExp>().value = (val & ADSRFlags::ReleaseMode) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exReleaseRate>().value = val & ADSRFlags::ReleaseShiftMask;
                 //----------------------------------------------// stuff below is only for debug mode
 
-                s_chan[ch].ADSR.get<SustainModeExp>().value = (val & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSR.get<ReleaseModeExp>().value = (val & 0x0020) ? 1 : 0;
+                s_chan[ch].ADSR.get<SustainModeExp>().value = (val & ADSRFlags::SustainMode) ? 1 : 0;
+                s_chan[ch].ADSR.get<ReleaseModeExp>().value = (val & ADSRFlags::ReleaseMode) ? 1 : 0;
 
-                uint32_t lx = ((((val >> 6) & 0x007f) >> 2));  // sustain time... often very high
-                lx = std::min(31U, lx);                        // values are used to hold the volume
-                if (lx)                                        // until a sound stop occurs
-                {                                              // the highest value we reach (due to
-                    lx = (1 << lx);                            // overflow checking) is:
+                uint32_t lx = (val & ADSRFlags::SustainShiftMask) >> 8;  // sustain time... often very high
+                lx = std::min(31U, lx);                                  // values are used to hold the volume
+                if (lx)                                                  // until a sound stop occurs
+                {                                                        // the highest value we reach (due to
+                    lx = (1 << lx);                                      // overflow checking) is:
                     if (lx < 2147483) {
                         lx = (lx * SUSTAIN_MS) / 10000L;  // 94704 seconds = 1578 minutes = 26 hours...
                     } else {
@@ -157,7 +159,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 }
                 s_chan[ch].ADSR.get<SustainTime>().value = lx;
 
-                lx = (val & 0x001f);
+                lx = (val & ADSRFlags::ReleaseShiftMask);
                 s_chan[ch].ADSR.get<ReleaseVal>().value = lx;
                 if (lx)              // release time from 100% to 0%
                 {                    // note: the release time will be
@@ -212,7 +214,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
         case H_SPUctrl:
             spuCtrl = val;
-            m_noiseClock = (spuCtrl & (ControlFlags::NoiseShift | ControlFlags::NoiseStep)) >> 8;
+            m_noiseClock = (spuCtrl & (ControlFlags::NoiseShiftMask | ControlFlags::NoiseStepMask)) >> 8;
             break;
 
         case H_SPUstat:
@@ -472,7 +474,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             return spuCtrl;
 
         case H_SPUstat:
-            return (spuStat & ~StatusFlags::SPUMode) | (spuCtrl & StatusFlags::SPUMode);
+            return (spuStat & ~StatusFlags::SPUModeMask) | (spuCtrl & StatusFlags::SPUModeMask);
 
         case H_SPUaddr:
             return (uint16_t)(spuAddr >> 3);
@@ -557,7 +559,7 @@ void PCSX::SPU::impl::SetVolumeL(uint8_t ch, int16_t vol)  // LEFT VOLUME
         }
         if (vol & VolumeFlags::SweepPhase) {
             // Negative Phase
-            vol ^= 0xffff;                    // -> mmm... phase inverted? have to investigate this
+            vol ^= 0xffff;  // -> mmm... phase inverted? have to investigate this
         }
         vol = ((vol & 0x7f) + 1) / 2;  // -> sweep: 0..127 -> 0..64
         vol += vol / (2 * sInc);  // -> HACK: we don't sweep right now, so we just raise/lower the volume by the half!
