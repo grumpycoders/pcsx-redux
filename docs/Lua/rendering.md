@@ -196,6 +196,15 @@ Some extra functions are bound to Lua beyond the API listed above:
   `imgui::InputTextWithHint` C++ function. The function will return a boolean
   indicating if the text has changed or not, and the new text.
 
+  - `imgui.extra.logText(text)` will call the `imgui::LogText` C++ function,
+  which will add the given text to current log buffer.
+
+  - `PCSX.GUI.useMainFont()` will call the `imgui::PushFont` C++ function with
+  the proportional font. It will need to be followed by a call to `imgui.PopFont()`.
+
+  - `PCSX.GUI.useMonoFont()` will call the `imgui::PushFont` C++ function with
+  the monospace font. It will need to be followed by a call to `imgui.PopFont()`.
+
 ### Safety
 
 The ImGui API will frequently assert and crash the process if the API calls
