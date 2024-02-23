@@ -19,11 +19,14 @@
 
 #include "gui/luaimguiextra.h"
 
+#include "gui/gui.h"
 #include "imgui/imgui.h"
 #include "imgui_stdlib.h"
 #include "lua/luawrapper.h"
 
 namespace {
+
+PCSX::GUI* s_gui = nullptr;
 
 unsigned imguiGetCurrentViewportId() { return ImGui::GetWindowViewport()->ID; }
 unsigned imguiGetViewportFlags(unsigned id) { return ImGui::FindViewportByID(id)->Flags; }
@@ -33,6 +36,9 @@ void imguiGetViewportSize(unsigned id, ImVec2* ret) { *ret = ImGui::FindViewport
 void imguiGetViewportWorkPos(unsigned id, ImVec2* ret) { *ret = ImGui::FindViewportByID(id)->WorkPos; }
 void imguiGetViewportWorkSize(unsigned id, ImVec2* ret) { *ret = ImGui::FindViewportByID(id)->WorkSize; }
 float imguiGetViewportDpiScale(unsigned id) { return ImGui::FindViewportByID(id)->DpiScale; }
+void imguiLogText(const char* text) { ImGui::LogText("%s", text); }
+void guiUseMainFont() { s_gui->useMainFont(); }
+void guiUseMonoFont() { s_gui->useMonoFont(); }
 
 template <typename T, size_t S>
 void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
@@ -56,6 +62,9 @@ void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, imguiGetViewportWorkPos);
     REGISTER(L, imguiGetViewportWorkSize);
     REGISTER(L, imguiGetViewportDpiScale);
+    REGISTER(L, imguiLogText);
+    REGISTER(L, guiUseMainFont);
+    REGISTER(L, guiUseMonoFont);
 
     L.settable();
     L.pop();
@@ -63,7 +72,8 @@ void registerAllSymbols(PCSX::Lua L) {
 
 }  // namespace
 
-void PCSX::LuaFFI::open_imguiextra(Lua L) {
+void PCSX::LuaFFI::open_imguiextra(GUI* gui, Lua L) {
+    s_gui = gui;
     registerAllSymbols(L);
     static int lualoader = 2;
     static const char* imguiextra = (
