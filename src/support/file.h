@@ -326,7 +326,8 @@ class IO : public IOBase {
         if (!r) throw std::runtime_error("operator-> used with incompatible type - shouldn't happen");
         return r;
     }
-    bool isNull() { return dynamic_cast<T*>(m_file); }
+    bool isNull() const { return !dynamic_cast<T*>(m_file); }
+    operator bool() const { return !isNull(); }
 };
 
 class FailedFile : public File {
