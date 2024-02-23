@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include "typestring.hh"
 
-#if defined(_MSC_VER) && !defined(__clang__)
+#if defined(_MSC_VER) // && !defined(__clang__)
 #define TYPESTRING_MAX_CONST_CHAR 63
 
 #define TYPESTRING_MIN(a, b) (a) < (b) ? (a) : (b)
