@@ -162,7 +162,7 @@ PCSX.Adpcm = {
                     outData = Support.NewLuaBuffer(128)
                 end
                 if mode == nil then
-                    mode = 'FourBits'
+                    mode = 'XAFourBits'
                 end
                 if channels == nil then
                     channels = 1
