@@ -83,36 +83,62 @@ class impl final : public SPUInterface {
     void waitForGoal(uint32_t goal) override { m_audioOut.waitForGoal(goal); }
 
   private:
+    struct ADSRFlags {
+        enum : uint16_t {
+            AttackMode = 1 << 15,      // 15 0=Linear, 1=Exponential
+            AttackShiftMask = 0x7c00,  // 14-10 0..1Fh = Fast..Slow
+            AttackStepMask = 0x300,    // 9-8 0..3 = "+7,+6,+5,+4"
+            DecayShiftMask = 0xf0,     // 7-4 0..0Fh = Fast..Slow
+            SustainLevelMask = 0xf,    // 3-0 0..0Fh  ;Level=(N+1)*800h
+            // Flags for upper 16-bits of reg, shifted right 16-bits
+            SustainMode = 1 << 15,       // 31 0=Linear, 1=Exponential
+            SustainDirection = 1 << 14,  // 30  0=Increase, 1=Decrease (until Key OFF flag)
+            SustainShiftMask = 0x1f00,   // 28-24 0..1Fh = Fast..Slow
+            SustainStepMask = 0xc0,      // 23-22 0..3 = "+7,+6,+5,+4" or "-8,-7,-6,-5") (inc/dec)
+            ReleaseMode = 1 << 5,        // 21 0=Linear, 1=Exponential
+            ReleaseShiftMask = 0x1f      // 20-16 0..1Fh = Fast..Slow
+        };
+    };
+
     struct ControlFlags {
         enum : uint16_t {
-            CDAudioEnable = 1 << 0,         // 0 0x0001 (0=Off, 1=On) (for CD-DA and XA-ADPCM)
-            ExternalAudioEnable = 1 << 1,   // 1 0x0002 (0=Off, 1=On)
-            CDReverbEnable = 1 << 2,        // 2 0x0004 (0=Off, 1=On) (for CD-DA and XA-ADPCM)
-            ExternalReverbEnable = 1 << 3,  // 3 0x0008 (0=Off, 1=On)
-            RAMTransferMode = 0x0030,     // 5-4 0x0030 RAM Transfer Mode (0=Stop, 1=ManualWrite, 2=DMAwrite, 3=DMAread)
-            IRQEnable = 1 << 6,           // 6 0x0040 (0=Disabled/Acknowledge, 1=Enabled; only when Bit15=1)
-            ReverbMasterEnable = 1 << 7,  // 7 0x0080 (0=Disabled, 1=Enabled)
-            NoiseStep = 0x0300,           // 9-8 0x0300 Noise Frequency Step (0..03h = Step "4,5,6,7")
-            NoiseShift = 0x3c00,          // 13-10 0x3c00 Noise Frequency Shift (0..0Fh = Low .. High Frequency)
-            Mute = 1 << 14,               // 14 0x4000 (0=Mute, 1=Unmute)
-            Enable = 1 << 15              // 15 0x8000 (0=Off, 1=On)
+            CDAudioEnable = 1 << 0,         // 0 0=Off, 1=On (for CD-DA and XA-ADPCM)
+            ExternalAudioEnable = 1 << 1,   // 1 0=Off, 1=On
+            CDReverbEnable = 1 << 2,        // 20=Off, 1=On (for CD-DA and XA-ADPCM)
+            ExternalReverbEnable = 1 << 3,  // 3 0=Off, 1=On
+            RAMTransferModeMask = 0x0030,   // 5-4 0=Stop, 1=ManualWrite, 2=DMAwrite, 3=DMAread
+            IRQEnable = 1 << 6,             // 6 0=Disabled/Acknowledge, 1=Enabled; only when Bit15=1
+            ReverbMasterEnable = 1 << 7,    // 7 0=Disabled, 1=Enabled
+            NoiseStepMask = 0x0300,         // 9-8 0..03h = Step "4,5,6,7"
+            NoiseShiftMask = 0x3c00,        // 13-10 0..0Fh = Low .. High Frequency
+            Mute = 1 << 14,                 // 14 0=Mute, 1=Unmute
+            Enable = 1 << 15                // 15 0=Off, 1=On
         };
     };
 
     struct StatusFlags {
         enum : uint16_t {
-            // 5-0 Current SPU Mode(same as SPUCNT.Bit5 - 0, but, applied a bit delayed)
-            CDAudioEnable = 1 << 0,         // 0 0x0001 (0=Off, 1=On) (for CD-DA and XA-ADPCM)
-            ExternalAudioEnable = 1 << 1,   // 1 0x0002 (0=Off, 1=On)
-            CDReverbEnable = 1 << 2,        // 2 0x0004 (0=Off, 1=On) (for CD-DA and XA-ADPCM)
-            ExternalReverbEnable = 1 << 3,  // 3 0x0008 (0=Off, 1=On)
-            RAMTransferMode = 0x0030,  // 5-4 0x0030 RAM Transfer Mode (0=Stop, 1=ManualWrite, 2=DMAwrite, 3=DMAread)
-            IRQFlag = 1 << 6,          // 6 0x0040 IRQ9 Flag (0=No, 1=Interrupt Request)
+            SPUModeMask = 0x3f,        // 5-0 Current SPU Mode(same as SPUCNT.Bit5 - 0, but, applied a bit delayed)
+            IRQFlag = 1 << 6,          // 6 IRQ9 Flag (0=No, 1=Interrupt Request)
             DMARWRequest = 1 << 7,     // 7 Data Transfer DMA Read/Write Request seems to be same as SPUCNT.Bit5
             DMAWriteRequest = 1 << 8,  // 8 Data Transfer DMA Write Request (0=No, 1=Yes)
             DMAReadRequest = 1 << 9,   // 9 Data Transfer DMA Read Request (0=No, 1=Yes)
             DMABusy = 1 << 10,         // 10 Data Transfer Busy Flag (0=Ready, 1=Busy)
-            CBIndex = 11 << 11,        // 11 Writing to First/Second half of Capture Buffers
+            CBIndex = 11 << 11,        // 11 Writing to First/Second half of Capture Buffers (0=First, 1=Second)
+            // 15-12 Unknown/Unused (seems to be usually zero)
+        };
+    };
+
+    struct VolumeFlags {
+        enum : uint16_t {
+            VolumeMode = 1 << 15,      // 15 1=Sweep Mode
+            SweepMode = 1 << 14,       // 14 0=Linear, 1=Exponential
+            SweepDirection = 1 << 13,  // 13 0=Increase, 1=Decrease
+            SweepPhase = 1 << 12,      // 12 0=Positive, 1=Negative
+            Unknown = 0xf80,           // 7-11 Not used? (should be zero)
+            SweepShiftMask = 0x7c,     // 6-2 0..1Fh = Fast..Slow
+            SweepStepMask = 0x3        // 1-0 0..3 = "+7,+6,+5,+4" or "-8,-7,-6,-5") (inc/dec)
+
         };
     };
 
