@@ -223,8 +223,9 @@ For example, consider the following code:
 
 ```lua
 function DrawImguiFrame()
-    imgui.Begin("My Window")
-    error("Something went wrong")
+    if imgui.Begin("My Window") then
+        error("Something went wrong")
+    end
     imgui.End()
 end
 ```
@@ -237,7 +238,8 @@ In order to mitigate this, safe wrappers are provided for all of the ImGui
 Begin\*/End\* functions. The safe wrappers will catch any exception thrown
 by the user code, and will call the corresponding End\* function if the
 Begin\* function returned true. The error will be rethrown after the End\* function
-is called.
+is called. The wrapped lambda will only be called if the Begin\* function
+returned true.
 
 The example above can be rewritten as:
 
