@@ -25,8 +25,11 @@ function imgui.safe.builder(proxy, finalIfShown, final)
         args[#args] = nil
         local rets = { proxy(...) }
         local shown = rets[1]
-        local status, err = pcall(function() lambda(table.unpack(args)) end)
-        if shown and finalIfShown then finalIfShown() end
+        local status, err = true
+        if shown then
+            status, err = pcall(function() lambda(table.unpack(args)) end)
+            if finalIfShown then finalIfShown() end
+        end
         if final then final() end
         if not status then error(err) end
         return table.unpack(rets)
