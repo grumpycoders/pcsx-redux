@@ -258,7 +258,7 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
         auto it = torun.begin();
         auto bp = &*it;
         torun.erase(it);
-        if (!triggerBP(bp, address, width, cause)) delete bp; 
+        if (!triggerBP(bp, address, width, cause)) delete bp;
     }
 }
 

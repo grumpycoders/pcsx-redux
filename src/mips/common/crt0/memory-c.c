@@ -24,8 +24,8 @@ SOFTWARE.
 
 */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 // These are the 4 essential functions expected by gcc for a naked build.
 // The implementation of memcpy is in memory-s.s, and the rest are here.
@@ -87,4 +87,3 @@ __attribute__((weak)) void* memset(void* s_, int c, size_t n) {
 
     return s_;
 }
-

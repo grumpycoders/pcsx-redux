@@ -79,12 +79,8 @@ PCSX.Adpcm = {
                     channels = outData
                     outData = nil
                 end
-                if outData == nil then
-                    outData = Support.NewLuaBuffer(56)
-                end
-                if channels == nil then
-                    channels = 1
-                end
+                if outData == nil then outData = Support.NewLuaBuffer(56) end
+                if channels == nil then channels = 1 end
                 local inp = inData
                 local out = outData
                 if Support.isLuaBuffer(inp) then
@@ -109,12 +105,8 @@ PCSX.Adpcm = {
                     blockAttribute = outData
                     outData = nil
                 end
-                if outData == nil then
-                    outData = Support.NewLuaBuffer(16)
-                end
-                if blockAttribute == nil then
-                    blockAttribute = 'OneShot'
-                end
+                if outData == nil then outData = Support.NewLuaBuffer(16) end
+                if blockAttribute == nil then blockAttribute = 'OneShot' end
                 local inp = inData
                 local out = outData
                 if Support.isLuaBuffer(inp) then
@@ -135,13 +127,9 @@ PCSX.Adpcm = {
                 return outData
             end,
             finishSPU = function(self, outData)
-                if outData == nil then
-                    outData = Support.NewLuaBuffer(16)
-                end
+                if outData == nil then outData = Support.NewLuaBuffer(16) end
                 local out = outData
-                if Support.isLuaBuffer(out) then
-                    out = out.data
-                end
+                if Support.isLuaBuffer(out) then out = out.data end
                 C.adpcmEncoderFinishSPU(self._wrapped, out)
                 return outData
             end,
@@ -158,15 +146,9 @@ PCSX.Adpcm = {
                     channels = mode
                     mode = nil
                 end
-                if outData == nil then
-                    outData = Support.NewLuaBuffer(128)
-                end
-                if mode == nil then
-                    mode = 'XAFourBits'
-                end
-                if channels == nil then
-                    channels = 1
-                end
+                if outData == nil then outData = Support.NewLuaBuffer(128) end
+                if mode == nil then mode = 'XAFourBits' end
+                if channels == nil then channels = 1 end
                 local inp = inData
                 local out = outData
                 if Support.isLuaBuffer(inp) then
@@ -190,7 +172,7 @@ PCSX.Adpcm = {
         }
         debug.setmetatable(encoder._proxy, { __gc = function() C.destroyAdpcmEncoder(encoder._wrapped) end })
         return encoder
-    end
+    end,
 }
 
 -- )EOF"

@@ -333,8 +333,10 @@ int pcsxMain(int argc, char **argv) {
     bool luacovEnabled = false;
     if (args.get<bool>("luacov")) {
         auto L = *emulator->m_lua;
-        L.load("package.path = package.path .. ';./lua_modules/share/lua/5.1/?.lua;../../../third_party/luacov/src/?.lua;./third_party/luacov/src/?.lua'",
-               "internal:package.path.lua");
+        L.load(
+            "package.path = package.path .. "
+            "';./lua_modules/share/lua/5.1/?.lua;../../../third_party/luacov/src/?.lua;./third_party/luacov/src/?.lua'",
+            "internal:package.path.lua");
         try {
             L.load(R"(
 local runner = require 'luacov.runner'
