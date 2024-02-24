@@ -17,9 +17,7 @@
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 Support.extra = {
 
-    loadfile = function(name)
-        return loadstring(Support._internal.loadfile(name), '@' .. name)
-    end,
+    loadfile = function(name) return loadstring(Support._internal.loadfile(name), '@' .. name) end,
 
     dofile = function(name)
         local func, msg = loadstring(Support._internal.loadfile(name), '@' .. name)
@@ -27,15 +25,13 @@ Support.extra = {
         error(msg)
     end,
 
-    open = function(name)
-        return Support.File._createFileWrapper(ffi.cast('LuaFile*', Support._internal.open(name)))
-    end,
+    open = function(name) return Support.File._createFileWrapper(ffi.cast('LuaFile*', Support._internal.open(name))) end,
 
     safeFFI = function(name, func, ...)
         local status, ret = pcall(func, ...)
         if status then return ret end
         error('FFI call failed in ' .. name .. ': ' .. ret)
-    end
+    end,
 
 }
 -- )EOF"
