@@ -26,7 +26,11 @@ SOFTWARE.
 
 #include "support/md5.h"
 
+#include <cmath>
 #include <cstring>
+#include <numbers>
+
+#include "support/table-generator.h"
 
 PCSX::MD5::MD5() {
     m_state[0] = 0x67452301;
@@ -117,6 +121,7 @@ static inline uint32_t get32(const uint8_t* src, unsigned pos) {
 
 static constexpr inline uint32_t rotl(uint32_t x, unsigned n) { return (x << n) | (x >> (32 - n)); }
 
+#if 1
 static const uint32_t c_sine[64] = {
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
     0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
@@ -127,6 +132,15 @@ static const uint32_t c_sine[64] = {
     0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
     0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
 };
+#else
+struct MD5Generator {
+    static consteval uint32_t calculateValue(std::size_t i) {
+        return std::floor(std::abs(std::sin(double(i + 1))) * double(4294967296ULL));
+    }
+};
+
+static constexpr auto c_sine = PCSX::generateTable<64, MD5Generator>();
+#endif
 
 static constexpr inline uint32_t F(uint32_t x, uint32_t y, uint32_t z) { return (x & y) | (~x & z); }
 static constexpr inline uint32_t G(uint32_t x, uint32_t y, uint32_t z) { return (x & z) | (y & ~z); }

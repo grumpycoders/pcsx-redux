@@ -41,43 +41,29 @@
 
 #include "spu/externals.h"
 #include "spu/interface.h"
+#include "support/table-generator.h"
 
 namespace EnvelopeTables {
 // Generate ADSR envelope tables at compile time with some magic(thanks Nic)
-template <std::size_t N>
-struct Table {
-    int32_t data[N];
-};
-
-template <std::size_t N, typename Generator, std::size_t... Is>
-constexpr Table<N> generateTable(std::index_sequence<Is...>) {
-    return {{Generator::calculateValue(Is)...}};
-}
-
-template <std::size_t N, typename Generator>
-constexpr Table<N> generateTable() {
-    return generateTable<N, Generator>(std::make_index_sequence<128>{});
-}
-
 struct DenominatorGenerator {
-    static constexpr int32_t calculateValue(std::size_t rate) { return (rate < 48) ? 1 : (1 << ((rate >> 2) - 11)); }
+    static consteval int32_t calculateValue(std::size_t rate) { return (rate < 48) ? 1 : (1 << ((rate >> 2) - 11)); }
 };
 
 struct NumeratorIncreaseGenerator {
-    static constexpr int32_t calculateValue(std::size_t rate) {
+    static consteval int32_t calculateValue(std::size_t rate) {
         return (rate < 48) ? (7 - (rate & 3)) << (11 - (rate >> 2)) : (7 - (rate & 3));
     }
 };
 
 struct NumeratorDecreaseGenerator {
-    static constexpr int32_t calculateValue(std::size_t rate) {
+    static consteval int32_t calculateValue(std::size_t rate) {
         return (rate < 48) ? (-8 + (rate & 3)) << (11 - (rate >> 2)) : (-8 + (rate & 3));
     }
 };
 
-constexpr auto denominator = generateTable<128, DenominatorGenerator>();
-constexpr auto numerator_increase = generateTable<128, NumeratorIncreaseGenerator>();
-constexpr auto numerator_decrease = generateTable<128, NumeratorDecreaseGenerator>();
+constexpr auto denominator = PCSX::generateTable<128, DenominatorGenerator>();
+constexpr auto numerator_increase = PCSX::generateTable<128, NumeratorIncreaseGenerator>();
+constexpr auto numerator_decrease = PCSX::generateTable<128, NumeratorDecreaseGenerator>();
 }  // namespace EnvelopeTables
 
 inline int PCSX::SPU::ADSR::Attack(SPUCHAN *ch) {

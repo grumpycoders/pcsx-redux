@@ -305,6 +305,7 @@
     <ClInclude Include="..\..\src\support\sjis_conv.h" />
     <ClInclude Include="..\..\src\support\slice.h" />
     <ClInclude Include="..\..\src\support\ssize_t.h" />
+    <ClInclude Include="..\..\src\support\table-generator.h" />
     <ClInclude Include="..\..\src\support\tree.h" />
     <ClInclude Include="..\..\src\support\uvfile.h" />
     <ClInclude Include="..\..\src\support\version.h" />
@@ -352,6 +353,7 @@
     <ClCompile Include="..\..\third_party\cq\reclaimer.cc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\support\README.md" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
