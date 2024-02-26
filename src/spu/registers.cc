@@ -506,19 +506,31 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             {
                 const int ch = (r >> 4) - 0xc0;
 
-                if (s_chan[ch].data.get<Chan::New>().value) return 1;  // we are started, but not processed? return 1
+                if (s_chan[ch].data.get<Chan::New>().value) {
+                    PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] Current ADSR Volume = 00001\n", ch);
+                    return 1;  // we are started, but not processed? return 1
+                }
                 if (s_chan[ch].ADSRX.get<exVolume>().value &&  // same here... we haven't decoded one sample yet, so no
                                                                // envelope yet.
                                                                // return 1 as well
-                    !s_chan[ch].ADSRX.get<exEnvelopeVol>().value)
+                    !s_chan[ch].ADSRX.get<exEnvelopeVol>().value) {
+                    PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] Current ADSR Volume = 00001\n", ch);
                     return 1;
+                }
+                PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] Current ADSR Volume = %04x\n", ch,
+                                         (uint16_t)s_chan[ch].ADSRX.get<exEnvelopeVol>().value);
                 return (uint16_t)s_chan[ch].ADSRX.get<exEnvelopeVol>().value;
             }
 
             case 14:  // get loop address
             {
                 const int ch = (r >> 4) - 0xc0;
-                if (s_chan[ch].pLoop == nullptr) return 0;
+                if (s_chan[ch].pLoop == nullptr) {
+                    PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] ADPCM Repeat Address = 00000\n", ch);
+                    return 0;
+                }
+                PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] ADPCM Repeat Address = %04x\n", ch,
+                                         (uint16_t)((s_chan[ch].pLoop - spuMemC) >> 3));
                 return (uint16_t)((s_chan[ch].pLoop - spuMemC) >> 3);
             }
         }
@@ -526,12 +538,16 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
 
     switch (r) {
         case H_SPUctrl:
+            PCSX::PSXSPU_LOGGER::Log("SPU.read, CTRL = %04x\n", spuCtrl);
             return spuCtrl;
 
         case H_SPUstat:
+            PCSX::PSXSPU_LOGGER::Log("SPU.read, STAT = %04x\n",
+                                     (spuStat & ~StatusFlags::SPUModeMask) | (spuCtrl & StatusFlags::SPUModeMask));
             return (spuStat & ~StatusFlags::SPUModeMask) | (spuCtrl & StatusFlags::SPUModeMask);
 
         case H_SPUaddr:
+            PCSX::PSXSPU_LOGGER::Log("SPU.read, Data Transfer Address = %04x\n", (uint16_t)(spuAddr >> 3));
             return (uint16_t)(spuAddr >> 3);
 
         case H_SPUdata: {
@@ -541,13 +557,16 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             if (spuAddr > 0x7ffff) {
                 spuAddr = 0;
             }
+            PCSX::PSXSPU_LOGGER::Log("SPU.read, Data Transfer Fifo = %04x\n", s);
             return s;
         }
 
         case H_SPUirqAddr:
+            PCSX::PSXSPU_LOGGER::Log("SPU.read, Data Transfer Fifo = %04x\n", spuIrq);
             return spuIrq;
     }
 
+    PCSX::PSXSPU_LOGGER::Log("SPU.read, regArea[%03x] = %04x\n",r, regArea[(r - 0xc00) >> 1]);
     return regArea[(r - 0xc00) >> 1];
 }
 
