@@ -58,11 +58,11 @@ class Encoder {
     // the SPU how to handle the block. The semantics of the block attributes is the same as the original
     // encvag API.
     enum class BlockAttribute {
-        OneShot,
-        OneShotEnd,
-        LoopStart,
-        LoopBody,
-        LoopEnd,
+        OneShot,     // Block flags 0x00
+        OneShotEnd,  // Block flags 0x01
+        LoopStart,   // Block flags 0x06
+        LoopBody,    // Block flags 0x02
+        LoopEnd,     // Block flags 0x03
     };
 
     enum class XAMode {
@@ -89,7 +89,7 @@ class Encoder {
     // are used to store the filter and shift values for the current block, and are expected to be 1 or 2 bytes
     // long, depending on the number of channels.
     void processBlock(const int16_t* input, int16_t* output, uint8_t* filterPtr, uint8_t* shiftPtr,
-                      unsigned channels = 1);
+                      unsigned channels = 1, XAMode mode = XAMode::FourBits);
 
     // Process a block of 28 pre-processed samples into 4-bit ADPCM audio. This will pack the input samples
     // into proper ADPCM format, and the output buffer needs to be 14 bytes long.
@@ -141,7 +141,7 @@ class Encoder {
     void findFilterAndShift(std::span<const double> input, std::span<double> output, uint8_t* filterPtr,
                             uint8_t* shiftPtr, unsigned channel);
     void convert(std::span<const double> input, std::span<int16_t> output, uint8_t filter, uint8_t shift,
-                 unsigned channel);
+                 unsigned channel, XAMode xaMode);
 };
 
 }  // namespace ADPCM
