@@ -206,7 +206,7 @@ memcpy:
     addiu  $a1, 1
     sb     $v1, 0($a0)
     bne    $a1, $a3, 1b
-    addiu  $a2, 1
+    addiu  $a0, 1
 
 2:
     jr     $ra

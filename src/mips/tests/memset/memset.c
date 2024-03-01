@@ -41,7 +41,7 @@ CESTER_BODY(
     void* __wrap_memset(void* dest, int c, size_t n);
 )
 
-CESTER_TEST(memsetSmall, test_instance,
+CESTER_TEST(fastmemsetSmall, test_instance,
     char buf[] = { 0, 0, 0, 0 };
     void * result = __wrap_memset(buf, 0x55, 3);
     for (unsigned i = 0; i < 3; i++) {
@@ -51,7 +51,7 @@ CESTER_TEST(memsetSmall, test_instance,
     cester_assert_ptr_equal(result, buf);
 )
 
-CESTER_TEST(memsetLarger, test_instance,
+CESTER_TEST(fastmemsetLarger, test_instance,
     char buf[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     void * result = __wrap_memset(buf, 0x55, 11);
     for (unsigned i = 0; i < 11; i++) {
@@ -61,7 +61,7 @@ CESTER_TEST(memsetLarger, test_instance,
     cester_assert_ptr_equal(result, buf);
 )
 
-CESTER_TEST(memsetLargest, test_instance,
+CESTER_TEST(fastmemsetLargest, test_instance,
     char buf[1000] = { 0 };
     void * result = __wrap_memset(buf, 0x55, sizeof(buf));
     for (unsigned i = 0; i < sizeof(buf); i++) {
@@ -70,9 +70,48 @@ CESTER_TEST(memsetLargest, test_instance,
     cester_assert_ptr_equal(result, buf);
 )
 
-CESTER_TEST(memsetUnaligned, test_instance,
+CESTER_TEST(fastmemsetUnaligned, test_instance,
     char buf[1000] = { 0 };
     void * result = __wrap_memset(buf + 1, 0x55, sizeof(buf) - 1);
+    cester_assert_uint_eq(buf[0], 0);
+    for (unsigned i = 1; i < sizeof(buf); i++) {
+        cester_assert_uint_eq(buf[i], 0x55);
+    }
+    cester_assert_ptr_equal(result, buf + 1);
+)
+
+CESTER_TEST(memsetSmall, test_instance,
+    char buf[] = { 0, 0, 0, 0 };
+    void * result = __builtin_memset(buf, 0x55, 3);
+    for (unsigned i = 0; i < 3; i++) {
+        cester_assert_uint_eq(buf[i], 0x55);
+    }
+    cester_assert_uint_eq(buf[3], 0);
+    cester_assert_ptr_equal(result, buf);
+)
+
+CESTER_TEST(memsetLarger, test_instance,
+    char buf[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    void * result = __builtin_memset(buf, 0x55, 11);
+    for (unsigned i = 0; i < 11; i++) {
+        cester_assert_uint_eq(buf[i], 0x55);
+    }
+    cester_assert_uint_eq(buf[11], 0);
+    cester_assert_ptr_equal(result, buf);
+)
+
+CESTER_TEST(memsetLargest, test_instance,
+    char buf[1000] = { 0 };
+    void * result = __builtin_memset(buf, 0x55, sizeof(buf));
+    for (unsigned i = 0; i < sizeof(buf); i++) {
+        cester_assert_uint_eq(buf[i], 0x55);
+    }
+    cester_assert_ptr_equal(result, buf);
+)
+
+CESTER_TEST(memsetUnaligned, test_instance,
+    char buf[1000] = { 0 };
+    void * result = __builtin_memset(buf + 1, 0x55, sizeof(buf) - 1);
     cester_assert_uint_eq(buf[0], 0);
     for (unsigned i = 1; i < sizeof(buf); i++) {
         cester_assert_uint_eq(buf[i], 0x55);
