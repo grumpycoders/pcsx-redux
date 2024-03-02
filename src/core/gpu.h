@@ -31,7 +31,7 @@
 
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/eventbus.h"
 #include "support/file.h"
 #include "support/list.h"

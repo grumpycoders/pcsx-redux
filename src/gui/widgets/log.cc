@@ -25,7 +25,7 @@
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 PCSX::Widgets::Log::json PCSX::Widgets::Log::serialize() const {
     json ret;

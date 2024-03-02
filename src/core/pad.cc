@@ -33,7 +33,7 @@
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "imgui.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/file.h"
 #include "support/imgui-helpers.h"
 
