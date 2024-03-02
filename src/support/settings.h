@@ -41,7 +41,7 @@ SOFTWARE.
 #include "core/system.h"
 #include "json.hpp"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/typestring-wrapper.h"
 #include "typestring.hh"
 

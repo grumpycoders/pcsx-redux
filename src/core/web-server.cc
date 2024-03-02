@@ -37,7 +37,7 @@
 #include "core/system.h"
 #include "http-parser/http_parser.h"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "multipart-parser-c/multipart_parser.h"
 #include "support/file.h"
 #include "support/hashtable.h"

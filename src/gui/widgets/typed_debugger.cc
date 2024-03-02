@@ -21,7 +21,7 @@
 #include "gui/widgets/typed_debugger.h"
 
 #include <fstream>
-#include <magic_enum/include/magic_enum.hpp>
+#include <magic_enum/include/magic_enum/magic_enum_all.hpp>
 #include <regex>
 #include <sstream>
 
