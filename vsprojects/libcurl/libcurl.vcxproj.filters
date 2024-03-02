@@ -57,9 +57,6 @@
     <ClCompile Include="..\..\third_party\curl\lib\vtls\bearssl.c">
       <Filter>Source Files\vtls</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\third_party\curl\lib\vtls\gskit.c">
-      <Filter>Source Files\vtls</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\third_party\curl\lib\vtls\gtls.c">
       <Filter>Source Files\vtls</Filter>
     </ClCompile>
@@ -73,9 +70,6 @@
       <Filter>Source Files\vtls</Filter>
     </ClCompile>
     <ClCompile Include="..\..\third_party\curl\lib\vtls\mbedtls_threadlock.c">
-      <Filter>Source Files\vtls</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\third_party\curl\lib\vtls\nss.c">
       <Filter>Source Files\vtls</Filter>
     </ClCompile>
     <ClCompile Include="..\..\third_party\curl\lib\vtls\openssl.c">
@@ -214,9 +208,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\third_party\curl\lib\curl_gssapi.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\third_party\curl\lib\curl_log.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\third_party\curl\lib\curl_memrchr.c">
@@ -528,6 +519,27 @@
     <ClCompile Include="..\..\third_party\curl\lib\ws.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\curl_msh3.c">
+      <Filter>Source Files\vquic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\curl_ngtcp2.c">
+      <Filter>Source Files\vquic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\curl_osslq.c">
+      <Filter>Source Files\vquic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\curl_quiche.c">
+      <Filter>Source Files\vquic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\vquic-tls.c">
+      <Filter>Source Files\vquic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\curl\lib\curl_trc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\curl\lib\macos.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\third_party\curl\lib\altsvc.h">
@@ -639,9 +651,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\third_party\curl\lib\curl_ldap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\third_party\curl\lib\curl_log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\third_party\curl\lib\curl_md4.h">
@@ -983,9 +992,6 @@
     <ClInclude Include="..\..\third_party\curl\lib\vtls\bearssl.h">
       <Filter>Header Files\vtls</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\third_party\curl\lib\vtls\gskit.h">
-      <Filter>Header Files\vtls</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\third_party\curl\lib\vtls\gtls.h">
       <Filter>Header Files\vtls</Filter>
     </ClInclude>
@@ -999,9 +1005,6 @@
       <Filter>Header Files\vtls</Filter>
     </ClInclude>
     <ClInclude Include="..\..\third_party\curl\lib\vtls\mbedtls_threadlock.h">
-      <Filter>Header Files\vtls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\third_party\curl\lib\vtls\nssg.h">
       <Filter>Header Files\vtls</Filter>
     </ClInclude>
     <ClInclude Include="..\..\third_party\curl\lib\vtls\openssl.h">
@@ -1063,6 +1066,21 @@
     </ClInclude>
     <ClInclude Include="..\..\third_party\curl\include\curl\websockets.h">
       <Filter>Public Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\curl\lib\curl_trc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\curl\lib\macos.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\curl\lib\vquic\curl_osslq.h">
+      <Filter>Header Files\vquic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\curl\lib\vquic\vquic-tls.h">
+      <Filter>Header Files\vquic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\curl\lib\vtls\schannel_int.h">
+      <Filter>Header Files\vtls</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
