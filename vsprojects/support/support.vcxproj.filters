@@ -168,6 +168,9 @@
     <ClInclude Include="..\..\src\support\sharedmem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\support\table-generator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\support\file.cc">
@@ -224,5 +227,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\..\src\support\README.md" />
   </ItemGroup>
 </Project>

@@ -1,25 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseWithTracy|Win32">
-      <Configuration>ReleaseWithTracy</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="ReleaseWithTracy|x64">
       <Configuration>ReleaseWithTracy</Configuration>
       <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseWithClangCL|Win32">
-      <Configuration>ReleaseWithClangCL</Configuration>
-      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -42,33 +26,6 @@
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>ClangCl</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -101,23 +58,6 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\common.props" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\common.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\common.props" />
-    <Import Project="..\tracy.props" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\common.props" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\common.props" />
@@ -136,18 +76,6 @@
     <Import Project="..\common.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
@@ -160,70 +88,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\curl\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\curl\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\curl\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\curl\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -314,7 +178,6 @@
     <ClCompile Include="..\..\third_party\curl\lib\curl_gethostname.c" />
     <ClCompile Include="..\..\third_party\curl\lib\curl_get_line.c" />
     <ClCompile Include="..\..\third_party\curl\lib\curl_gssapi.c" />
-    <ClCompile Include="..\..\third_party\curl\lib\curl_log.c" />
     <ClCompile Include="..\..\third_party\curl\lib\curl_memrchr.c" />
     <ClCompile Include="..\..\third_party\curl\lib\curl_multibyte.c" />
     <ClCompile Include="..\..\third_party\curl\lib\curl_ntlm_core.c" />
@@ -325,6 +188,7 @@
     <ClCompile Include="..\..\third_party\curl\lib\curl_sasl.c" />
     <ClCompile Include="..\..\third_party\curl\lib\curl_sspi.c" />
     <ClCompile Include="..\..\third_party\curl\lib\curl_threads.c" />
+    <ClCompile Include="..\..\third_party\curl\lib\curl_trc.c" />
     <ClCompile Include="..\..\third_party\curl\lib\dict.c" />
     <ClCompile Include="..\..\third_party\curl\lib\doh.c" />
     <ClCompile Include="..\..\third_party\curl\lib\dynbuf.c" />
@@ -368,6 +232,7 @@
     <ClCompile Include="..\..\third_party\curl\lib\krb5.c" />
     <ClCompile Include="..\..\third_party\curl\lib\ldap.c" />
     <ClCompile Include="..\..\third_party\curl\lib\llist.c" />
+    <ClCompile Include="..\..\third_party\curl\lib\macos.c" />
     <ClCompile Include="..\..\third_party\curl\lib\md4.c" />
     <ClCompile Include="..\..\third_party\curl\lib\md5.c" />
     <ClCompile Include="..\..\third_party\curl\lib\memdebug.c" />
@@ -429,18 +294,21 @@
     <ClCompile Include="..\..\third_party\curl\lib\vauth\vauth.c" />
     <ClCompile Include="..\..\third_party\curl\lib\version.c" />
     <ClCompile Include="..\..\third_party\curl\lib\version_win32.c" />
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\curl_msh3.c" />
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\curl_ngtcp2.c" />
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\curl_osslq.c" />
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\curl_quiche.c" />
+    <ClCompile Include="..\..\third_party\curl\lib\vquic\vquic-tls.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vquic\vquic.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vssh\libssh.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vssh\libssh2.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vssh\wolfssh.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vtls\bearssl.c" />
-    <ClCompile Include="..\..\third_party\curl\lib\vtls\gskit.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vtls\gtls.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vtls\hostcheck.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vtls\keylog.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vtls\mbedtls.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vtls\mbedtls_threadlock.c" />
-    <ClCompile Include="..\..\third_party\curl\lib\vtls\nss.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vtls\openssl.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vtls\rustls.c" />
     <ClCompile Include="..\..\third_party\curl\lib\vtls\schannel.c" />
@@ -503,7 +371,6 @@
     <ClInclude Include="..\..\third_party\curl\lib\curl_hmac.h" />
     <ClInclude Include="..\..\third_party\curl\lib\curl_krb5.h" />
     <ClInclude Include="..\..\third_party\curl\lib\curl_ldap.h" />
-    <ClInclude Include="..\..\third_party\curl\lib\curl_log.h" />
     <ClInclude Include="..\..\third_party\curl\lib\curl_md4.h" />
     <ClInclude Include="..\..\third_party\curl\lib\curl_md5.h" />
     <ClInclude Include="..\..\third_party\curl\lib\curl_memory.h" />
@@ -521,6 +388,7 @@
     <ClInclude Include="..\..\third_party\curl\lib\curl_sha256.h" />
     <ClInclude Include="..\..\third_party\curl\lib\curl_sspi.h" />
     <ClInclude Include="..\..\third_party\curl\lib\curl_threads.h" />
+    <ClInclude Include="..\..\third_party\curl\lib\curl_trc.h" />
     <ClInclude Include="..\..\third_party\curl\lib\dict.h" />
     <ClInclude Include="..\..\third_party\curl\lib\doh.h" />
     <ClInclude Include="..\..\third_party\curl\lib\dynbuf.h" />
@@ -557,6 +425,7 @@
     <ClInclude Include="..\..\third_party\curl\lib\inet_ntop.h" />
     <ClInclude Include="..\..\third_party\curl\lib\inet_pton.h" />
     <ClInclude Include="..\..\third_party\curl\lib\llist.h" />
+    <ClInclude Include="..\..\third_party\curl\lib\macos.h" />
     <ClInclude Include="..\..\third_party\curl\lib\memdebug.h" />
     <ClInclude Include="..\..\third_party\curl\lib\mime.h" />
     <ClInclude Include="..\..\third_party\curl\lib\mqtt.h" />
@@ -609,21 +478,22 @@
     <ClInclude Include="..\..\third_party\curl\lib\version_win32.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vquic\curl_msh3.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vquic\curl_ngtcp2.h" />
+    <ClInclude Include="..\..\third_party\curl\lib\vquic\curl_osslq.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vquic\curl_quiche.h" />
+    <ClInclude Include="..\..\third_party\curl\lib\vquic\vquic-tls.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vquic\vquic.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vquic\vquic_int.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vssh\ssh.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\bearssl.h" />
-    <ClInclude Include="..\..\third_party\curl\lib\vtls\gskit.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\gtls.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\hostcheck.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\keylog.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\mbedtls.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\mbedtls_threadlock.h" />
-    <ClInclude Include="..\..\third_party\curl\lib\vtls\nssg.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\openssl.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\rustls.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\schannel.h" />
+    <ClInclude Include="..\..\third_party\curl\lib\vtls\schannel_int.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\sectransp.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\vtls.h" />
     <ClInclude Include="..\..\third_party\curl\lib\vtls\vtls_int.h" />

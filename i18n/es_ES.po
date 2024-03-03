@@ -6,7 +6,7 @@
 # Translators:
 # Name LastName, 2022
 # Whitehole <javi_del_95@hotmail.com>, 2022
-# Víctor González, 2023
+# Víctor González, 2024
 # 
 #, fuzzy
 msgid ""
@@ -14,7 +14,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2021-03-27 04:53+0000\n"
-"Last-Translator: Víctor González, 2023\n"
+"Last-Translator: Víctor González, 2024\n"
 "Language-Team: Spanish (Spain) (https://app.transifex.com/grumpycoders/teams/99251/es_ES/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -167,7 +167,7 @@ msgstr "Saltar una (sin pila de llamadas)"
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
 msgstr "Interrupción activada: PC=0x%08x - Motivo: %s %s\n"
 
-#: src/core/debug.cc:311 src/gui/widgets/assembly.cc:455
+#: src/core/debug.cc:319 src/gui/widgets/assembly.cc:455
 #: src/gui/widgets/assembly.cc:533
 msgid "Step Out"
 msgstr "Saltar una"
@@ -184,44 +184,44 @@ msgstr "Lectura"
 msgid "Write"
 msgstr "Escritura"
 
-#: src/core/gdb-server.cc:602
+#: src/core/gdb-server.cc:604
 msgid "GDB client"
 msgstr "Cliente GDB"
 
-#: src/core/gpu.cc:1039 src/core/gpu.cc:1124
+#: src/core/gpu.cc:1037 src/core/gpu.cc:1122
 msgid "Shading: Flat"
 msgstr "Sombreado: plano"
 
-#: src/core/gpu.cc:1043 src/core/gpu.cc:1128
+#: src/core/gpu.cc:1041 src/core/gpu.cc:1126
 msgid "Shading: Gouraud"
 msgstr "Sombreado: Gouraud"
 
-#: src/core/gpu.cc:1047
+#: src/core/gpu.cc:1045
 msgid "Textured"
 msgstr "Texturización"
 
-#: src/core/gpu.cc:1050 src/core/gpu.cc:1131 src/core/gpu.cc:1172
+#: src/core/gpu.cc:1048 src/core/gpu.cc:1129 src/core/gpu.cc:1170
 msgid "Semi-transparency blending"
 msgstr "Mezcla de semitransparencias"
 
-#: src/core/gpu.cc:1066
+#: src/core/gpu.cc:1064
 #, c-format
 msgid "Vertex %i"
 msgstr "Vértice %i"
 
-#: src/core/gpu.cc:1090 src/core/gpu.cc:1156 src/core/gpu.cc:1185
+#: src/core/gpu.cc:1088 src/core/gpu.cc:1154 src/core/gpu.cc:1183
 msgid "Go to primitive##{}"
 msgstr "Ir a primitivo##{}"
 
-#: src/core/gpu.cc:1098 src/core/gpu.cc:1195
+#: src/core/gpu.cc:1096 src/core/gpu.cc:1193
 msgid "Go to texture##{}"
 msgstr "Ir a textura##{}"
 
-#: src/core/gpu.cc:1110 src/core/gpu.cc:1207
+#: src/core/gpu.cc:1108 src/core/gpu.cc:1205
 msgid "Go to CLUT##{}"
 msgstr "Ir a CLUT##{}"
 
-#: src/core/gpu.cc:1136
+#: src/core/gpu.cc:1134
 #, c-format
 msgid "Line %i"
 msgstr "Línea %i"
@@ -855,8 +855,8 @@ msgstr "Arrancando PCSX-Redux\n"
 
 #: src/core/r3000a.cc:40
 #, c-format
-msgid "Copyright (C) 2019-2023 PCSX-Redux authors\n"
-msgstr "Copyright (C) 2019-2023 los autores de PCSX-Redux\n"
+msgid "Copyright (C) 2019-2024 PCSX-Redux authors\n"
+msgstr "Copyright (C) 2019-2024 los autores de PCSX-Redux\n"
 
 #: src/core/r3000a.cc:50
 #, c-format

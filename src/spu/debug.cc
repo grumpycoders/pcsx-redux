@@ -64,7 +64,7 @@ void PCSX::SPU::impl::debug() {
         return;
     }
     {
-        ImGui::BeginChild("##debugSPUleft", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0), true);
+        ImGui::BeginChild("##debugSPUleft", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0), true);
         ImGui::Columns(2);
         for (unsigned i = 0; i < MAXCHAN / 2; i++) {
             for (unsigned j = 0; j < 2; j++) {
@@ -81,7 +81,7 @@ void PCSX::SPU::impl::debug() {
             }
         }
         ImGui::Columns(1);
-        if (ImGui::Button(_("Mute all"), ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0))) {
+        if (ImGui::Button(_("Mute all"), ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
             for (unsigned ch = 0; ch < MAXCHAN; ch++) {
                 s_chan[ch].data.get<Chan::Mute>().value = true;
             }
@@ -144,7 +144,7 @@ void PCSX::SPU::impl::debug() {
                             ch.data.get<Chan::UsedFreq>().value);
             }
             ImGui::Columns(1);
-            ImGui::BeginChild("##debugSPUXA", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0), true);
+            ImGui::BeginChild("##debugSPUXA", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0), true);
             {
                 ImGui::TextUnformatted("XA");
                 ImGui::TextUnformatted(_("Freq:\nStereo:\nSamples:\nVolume:\n"));

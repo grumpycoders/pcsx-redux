@@ -36,8 +36,8 @@ void PCSX::ADPCM::Encoder::reset(Mode mode) {
     m_lastBlockSamples[1][0] = 0.0;
     m_lastBlockSamples[1][1] = 0.0;
     m_anomalies[0][0] = 0.0;
-    m_anomalies[0][0] = 0.0;
-    m_anomalies[1][1] = 0.0;
+    m_anomalies[0][1] = 0.0;
+    m_anomalies[1][0] = 0.0;
     m_anomalies[1][1] = 0.0;
     for (unsigned i = 0; i < 10; i++) {
         m_factors[i] = 1.0;
@@ -121,21 +121,26 @@ void PCSX::ADPCM::Encoder::findFilterAndShift(std::span<const double> input, std
 }
 
 void PCSX::ADPCM::Encoder::convert(std::span<const double> input, std::span<int16_t> output, uint8_t filter,
-                                   uint8_t shift, unsigned channel) {
+                                   uint8_t shift, unsigned channel, XAMode xaMode) {
     double multiplier = 1 << shift;
     auto& anomalies = m_anomalies[channel];
     for (unsigned i = 0; i < 28; i++) {
         auto sample = anomalies[0] * c_filters[filter][0] + anomalies[1] * c_filters[filter][1] + input[i];
         int sampleI = sample * multiplier;
+        if (xaMode == XAMode::FourBits) {
+            sampleI = (sampleI + 2048) & 0xfffff000;
+        } else {
+            sampleI = (sampleI + 128) & 0xffffff00;
+        }
         sampleI = std::clamp(sampleI, -32768, 32767);
         output[i] = sampleI;
         anomalies[1] = anomalies[0];
-        anomalies[0] = (sampleI >> shift) - sample;
+        anomalies[0] = double(sampleI >> shift) - sample;
     }
 }
 
 void PCSX::ADPCM::Encoder::processBlock(const int16_t* input, int16_t* output, uint8_t* filterPtr, uint8_t* shiftPtr,
-                                        unsigned channels) {
+                                        unsigned channels, XAMode xaMode) {
     if (channels > 2) {
         throw std::invalid_argument("Channels must be 1 or 2");
     }
@@ -149,21 +154,21 @@ void PCSX::ADPCM::Encoder::processBlock(const int16_t* input, int16_t* output, u
     for (unsigned channel = 0; channel < channels; channel++) {
         findFilterAndShift(converted[channel], filtered[channel], filterPtr + channel, shiftPtr + channel, channel);
         convert(filtered[channel], std::span<int16_t>(output + channel * 28, 28), filterPtr[channel], shiftPtr[channel],
-                channel);
+                channel, xaMode);
     }
 }
 
 void PCSX::ADPCM::Encoder::blockTo4Bit(const int16_t* input, uint8_t* output) {
     for (unsigned i = 0; i < 14; i++) {
-        auto s1 = (input[i * 2 + 0] + 2048) >> 12;
-        auto s2 = (input[i * 2 + 1] + 2048) >> 12;
+        auto s1 = input[i * 2 + 0] >> 12;
+        auto s2 = input[i * 2 + 1] >> 12;
         output[i] = (s1 & 0x0f) | ((s2 & 0x0f) << 4);
     }
 }
 
 void PCSX::ADPCM::Encoder::blockTo8Bit(const int16_t* input, uint8_t* output) {
     for (unsigned i = 0; i < 28; i++) {
-        output[i] = (input[i] + 128) >> 8;
+        output[i] = input[i] >> 8;
     }
 }
 
@@ -200,8 +205,8 @@ void PCSX::ADPCM::Encoder::processSPUBlock(const int16_t* input, uint8_t* output
 }
 
 void PCSX::ADPCM::Encoder::finishSPU(uint8_t* output) {
-    output[0] = 0;
-    output[1] = 7;
+    output[0] = 7;
+    output[1] = 0;
     std::memset(output + 2, 0x77, 14);
 }
 
@@ -217,7 +222,7 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             int16_t encoded[28 * 8];
             // Process all of the 8 28-samples block
             for (unsigned b = 0; b < 8; b++) {
-                processBlock(input + b * 28, encoded + b * 28, &filter, &shift, 1);
+                processBlock(input + b * 28, encoded + b * 28, &filter, &shift, channels, xaMode);
                 uint8_t h = (shift & 0x0f) | ((filter & 0x0f) << 4);
                 unsigned offset = (b & 3) + (b >> 2) * 8;
                 output[offset + 0] = h;
@@ -236,7 +241,7 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             int16_t encoded[28 * 4];
             // Process all of the 4 28-samples block
             for (unsigned b = 0; b < 4; b++) {
-                processBlock(input + b * 28, encoded + b * 28, &filter, &shift, 1);
+                processBlock(input + b * 28, encoded + b * 28, &filter, &shift, channels, xaMode);
                 shift = std::max(0, int(shift) - 4);
                 uint8_t h = (shift & 0x0f) | ((filter & 0x0f) << 4);
                 output[b + 0] = h;
@@ -259,7 +264,7 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             int16_t encoded[56 * 4];
             // Process all the 4 input blocks
             for (unsigned b = 0; b < 4; b++) {
-                processBlock(input + b * 56, encoded + b * 56, filter, shift, 2);
+                processBlock(input + b * 56, encoded + b * 56, filter, shift, channels, xaMode);
                 uint8_t h0 = (shift[0] & 0x0f) | ((filter[0] & 0x0f) << 4);
                 uint8_t h1 = (shift[1] & 0x0f) | ((filter[1] & 0x0f) << 4);
                 unsigned offset = (b & 1) + (b >> 1) * 4;
@@ -281,7 +286,7 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             int16_t encoded[56 * 2];
             // Process all the 2 input blocks
             for (unsigned b = 0; b < 2; b++) {
-                processBlock(input + b * 56, encoded + b * 56, filter, shift, 2);
+                processBlock(input + b * 56, encoded + b * 56, filter, shift, channels, xaMode);
                 shift[0] = std::max(0, int(shift[0]) - 4);
                 shift[1] = std::max(0, int(shift[1]) - 4);
                 uint8_t h0 = (shift[0] & 0x0f) | ((filter[0] & 0x0f) << 4);

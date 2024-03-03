@@ -165,7 +165,7 @@ msgstr "Вийти (без стека викликів)"
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
 msgstr "Викликано точку зупинки: PC = 0x%08x - Причина: %s %s.\n"
 
-#: src/core/debug.cc:311 src/gui/widgets/assembly.cc:455
+#: src/core/debug.cc:319 src/gui/widgets/assembly.cc:455
 #: src/gui/widgets/assembly.cc:533
 msgid "Step Out"
 msgstr "Вийти"
@@ -182,44 +182,44 @@ msgstr "Читання"
 msgid "Write"
 msgstr "Запис"
 
-#: src/core/gdb-server.cc:602
+#: src/core/gdb-server.cc:604
 msgid "GDB client"
 msgstr "GDB-клієнт"
 
-#: src/core/gpu.cc:1039 src/core/gpu.cc:1124
+#: src/core/gpu.cc:1037 src/core/gpu.cc:1122
 msgid "Shading: Flat"
 msgstr "Затемнення: плоске"
 
-#: src/core/gpu.cc:1043 src/core/gpu.cc:1128
+#: src/core/gpu.cc:1041 src/core/gpu.cc:1126
 msgid "Shading: Gouraud"
 msgstr "Затемнення: Гуро"
 
-#: src/core/gpu.cc:1047
+#: src/core/gpu.cc:1045
 msgid "Textured"
 msgstr "Текстурний"
 
-#: src/core/gpu.cc:1050 src/core/gpu.cc:1131 src/core/gpu.cc:1172
+#: src/core/gpu.cc:1048 src/core/gpu.cc:1129 src/core/gpu.cc:1170
 msgid "Semi-transparency blending"
 msgstr "Напівпрозоре накладання"
 
-#: src/core/gpu.cc:1066
+#: src/core/gpu.cc:1064
 #, c-format
 msgid "Vertex %i"
 msgstr "Вершинний %i"
 
-#: src/core/gpu.cc:1090 src/core/gpu.cc:1156 src/core/gpu.cc:1185
+#: src/core/gpu.cc:1088 src/core/gpu.cc:1154 src/core/gpu.cc:1183
 msgid "Go to primitive##{}"
 msgstr "Перейти до первісного##{}"
 
-#: src/core/gpu.cc:1098 src/core/gpu.cc:1195
+#: src/core/gpu.cc:1096 src/core/gpu.cc:1193
 msgid "Go to texture##{}"
 msgstr "Перейти до текстури##{}"
 
-#: src/core/gpu.cc:1110 src/core/gpu.cc:1207
+#: src/core/gpu.cc:1108 src/core/gpu.cc:1205
 msgid "Go to CLUT##{}"
 msgstr "Перейти до таблиці пошуку кольорів (CLUT)##{}"
 
-#: src/core/gpu.cc:1136
+#: src/core/gpu.cc:1134
 #, c-format
 msgid "Line %i"
 msgstr "Лінія %i"
@@ -846,8 +846,8 @@ msgstr "Завантаження PCSX-Redux.\n"
 
 #: src/core/r3000a.cc:40
 #, c-format
-msgid "Copyright (C) 2019-2023 PCSX-Redux authors\n"
-msgstr "Автори PCSX-Redux, 2019-2023\n"
+msgid "Copyright (C) 2019-2024 PCSX-Redux authors\n"
+msgstr "Автори PCSX-Redux, 2019-2024\n"
 
 #: src/core/r3000a.cc:50
 #, c-format

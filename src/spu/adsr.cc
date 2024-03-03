@@ -35,138 +35,176 @@
 
 #include "spu/adsr.h"
 
+#include <stdint.h>
+
+#include <utility>
+
 #include "spu/externals.h"
 #include "spu/interface.h"
+#include "support/table-generator.h"
 
-enum ADSRState : int32_t {
-    Attack = 0,
-    Decay = 1,
-    Sustain = 2,
-    Release = 3,
+namespace EnvelopeTables {
+// Generate ADSR envelope tables at compile time with some magic(thanks Nic)
+struct DenominatorGenerator {
+    static consteval int32_t calculateValue(std::size_t rate) { return (rate < 48) ? 1 : (1 << ((rate >> 2) - 11)); }
 };
 
-inline int PCSX::SPU::ADSR::Attack(SPUCHAN *ch) {
-    uint32_t disp;
-    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+struct NumeratorIncreaseGenerator {
+    static consteval int32_t calculateValue(std::size_t rate) {
+        return (rate < 48) ? (7 - (rate & 3)) << (11 - (rate >> 2)) : (7 - (rate & 3));
+    }
+};
 
-    if (ch->ADSRX.get<exAttackModeExp>().value && EnvelopeVol >= 0x60000000) {
-        // Exponential Increase
-        disp = -0x18 + 32;
-    } else {
-        // Linear Increase
-        disp = -0x10 + 32;
+struct NumeratorDecreaseGenerator {
+    static consteval int32_t calculateValue(std::size_t rate) {
+        return (rate < 48) ? (-8 + (rate & 3)) << (11 - (rate >> 2)) : (-8 + (rate & 3));
+    }
+};
+
+constexpr auto denominator = PCSX::generateTable<128, DenominatorGenerator>();
+constexpr auto numerator_increase = PCSX::generateTable<128, NumeratorIncreaseGenerator>();
+constexpr auto numerator_decrease = PCSX::generateTable<128, NumeratorDecreaseGenerator>();
+}  // namespace EnvelopeTables
+
+inline int PCSX::SPU::ADSR::Attack(SPUCHAN *ch) {
+    int rate = ch->ADSRX.get<exAttackRate>().value;
+    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+    int32_t EnvelopeVolF = ch->ADSRX.get<exEnvelopeVolF>().value;
+    const int32_t attack_mode_exp = ch->ADSRX.get<exAttackModeExp>().value;
+
+    // Exponential increase
+    if (attack_mode_exp && EnvelopeVol >= 0x6000) {
+        rate += 8;
     }
 
-    EnvelopeVol += m_table[ch->ADSRX.get<exAttackRate>().value + disp];
+    EnvelopeVolF++;
+    if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
+        EnvelopeVolF = 0;
+        EnvelopeVol += EnvelopeTables::numerator_increase.data[rate];
+    }
 
-    if (EnvelopeVol < 0) {
-        EnvelopeVol = 0x7FFFFFFF;
+    if (EnvelopeVol >= 32767L) {
+        EnvelopeVol = 32767L;
         ch->ADSRX.get<exState>().value = ADSRState::Decay;
     }
 
     ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
+    ch->ADSRX.get<exEnvelopeVolF>().value = EnvelopeVolF;
+    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 5);
+
     return EnvelopeVol;
 }
 
 inline int PCSX::SPU::ADSR::Decay(SPUCHAN *ch) {
-    uint32_t disp;
+    const int rate = ch->ADSRX.get<exDecayRate>().value * 4;
     int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+    int32_t EnvelopeVolF = ch->ADSRX.get<exEnvelopeVolF>().value;
+    const int32_t release_mode_exp = ch->ADSRX.get<exReleaseModeExp>().value;
 
-    disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
-    EnvelopeVol -= m_table[ch->ADSRX.get<exDecayRate>().value + disp];
+    EnvelopeVolF++;
+    if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
+        EnvelopeVolF = 0;
 
-    if (EnvelopeVol < 0) EnvelopeVol = 0;
+        if (release_mode_exp) {
+            // Exponential decrease
+            EnvelopeVol += (EnvelopeTables::numerator_decrease.data[rate] * EnvelopeVol) >> 15;
+        } else {
+            EnvelopeVol += EnvelopeTables::numerator_decrease.data[rate];
+        }
+    }
 
-    // FF7 Cursor / Vagrant Story footsteps - use Neill's 4-bit accuracy
-    if ((EnvelopeVol & 0x78000000) <= ch->ADSRX.get<exSustainLevel>().value) {
+    if (EnvelopeVol < 0) {
+        EnvelopeVol = 0;
+    }
+
+    if (((EnvelopeVol >> 11) & 0xf) <= ch->ADSRX.get<exSustainLevel>().value) {
         ch->ADSRX.get<exState>().value = ADSRState::Sustain;
     }
 
     ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
+    ch->ADSRX.get<exEnvelopeVolF>().value = EnvelopeVolF;
+    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 5);
+
     return EnvelopeVol;
 }
 
 inline int PCSX::SPU::ADSR::Sustain(SPUCHAN *ch) {
-    uint32_t disp;
+    int rate = ch->ADSRX.get<exSustainRate>().value;
     int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+    int32_t EnvelopeVolF = ch->ADSRX.get<exEnvelopeVolF>().value;
+    const int32_t sustain_mode_exp = ch->ADSRX.get<exSustainModeExp>().value;
+    const int32_t sustain_increase = ch->ADSRX.get<exSustainIncrease>().value;
 
-    if (ch->ADSRX.get<exSustainIncrease>().value) {
-        disp = -0x10 + 32;
-        if (ch->ADSRX.get<exSustainModeExp>().value) {
-            if (EnvelopeVol >= 0x60000000) disp = -0x18 + 32;
+    if (sustain_increase) {
+        // Exponential increase
+        if (sustain_mode_exp && (EnvelopeVol >= 0x6000)) {
+            rate += 8;
         }
-        EnvelopeVol += m_table[ch->ADSRX.get<exSustainRate>().value + disp];
 
-        if (EnvelopeVol < 0) {
-            EnvelopeVol = 0x7FFFFFFF;
+        EnvelopeVolF++;
+        if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
+            EnvelopeVolF = 0;
+            EnvelopeVol += EnvelopeTables::numerator_increase.data[rate];
         }
+
+        if (EnvelopeVol > 32767L) {
+            EnvelopeVol = 32767L;
+        }
+
     } else {
-        if (ch->ADSRX.get<exSustainModeExp>().value) {
-            disp = m_tableDisp[((EnvelopeVol >> 28) & 0x7) + 8];
-        } else {
-            disp = -0x0F + 32;
-        }
-        EnvelopeVol -= m_table[ch->ADSRX.get<exSustainRate>().value + disp];
+        EnvelopeVolF++;
+        if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
+            EnvelopeVolF = 0;
 
-        if (EnvelopeVol < 0) {
+            // Exponential decrease
+            if (sustain_mode_exp) {
+                EnvelopeVol += (EnvelopeTables::numerator_decrease.data[rate] * EnvelopeVol) >> 15;
+            } else {
+                EnvelopeVol += EnvelopeTables::numerator_decrease.data[rate];
+            }
+        }
+
+        if (EnvelopeVol < 0L) {
             EnvelopeVol = 0;
         }
     }
+
     ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
+    ch->ADSRX.get<exEnvelopeVolF>().value = EnvelopeVolF;
+    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 5);
+
     return EnvelopeVol;
 }
 
 inline int PCSX::SPU::ADSR::Release(SPUCHAN *ch) {
-    uint32_t disp;
+    int rate = ch->ADSRX.get<exReleaseRate>().value * 4;
     int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+    int32_t EnvelopeVolF = ch->ADSRX.get<exEnvelopeVolF>().value;
+    const int32_t release_mode_exp = ch->ADSRX.get<exReleaseModeExp>().value;
 
-    if (ch->ADSRX.get<exReleaseModeExp>().value) {
-        disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
-    } else {
-        disp = -0x0C + 32;
+    EnvelopeVolF++;
+    if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
+        EnvelopeVolF = 0;
+
+        // Exponential decrease
+        if (release_mode_exp) {
+            EnvelopeVol += (EnvelopeTables::numerator_decrease.data[rate] * EnvelopeVol) >> 15;
+        } else {
+            EnvelopeVol += EnvelopeTables::numerator_decrease.data[rate];
+        }
     }
-    EnvelopeVol -= m_table[ch->ADSRX.get<exReleaseRate>().value + disp];
 
-    if (EnvelopeVol < 0) {
+    if (EnvelopeVol < 0L) {
+        ch->ADSRX.get<exState>().value = ADSRState::Stopped;
         EnvelopeVol = 0;
         ch->data.get<Chan::On>().value = false;
     }
 
     ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
+    ch->ADSRX.get<exEnvelopeVolF>().value = EnvelopeVolF;
+    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 5);
+
     return EnvelopeVol;
-}
-
-// Init ADSR
-PCSX::SPU::ADSR::Table::Table() {
-    memset(m_table, 0,
-           sizeof(uint32_t) * 160);  // build the rate table according to Neill's rules (see at bottom of file)
-
-    uint32_t r = 3;
-    uint32_t rs = 1;
-    uint32_t rd = 0;
-
-    // we start at pos 32 with the real values... everything before is 0
-    for (int i = 32; i < 160; i++) {
-        if (r < 0x3FFFFFFF) {
-            r += rs;
-            rd++;
-
-            if (rd == 5) {
-                rd = 1;
-                rs *= 2;
-            }
-        }
-
-        if (r > 0x3FFFFFFF) {
-            r = 0x3FFFFFFF;
-        }
-
-        m_table[i] = r;
-    }
 }
 
 void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
@@ -174,6 +212,7 @@ void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
     pChannel->ADSRX.get<exVolume>().value = 1;  // and init some adsr vars
     pChannel->ADSRX.get<exState>().value = ADSRState::Attack;
     pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
+    pChannel->ADSRX.get<exEnvelopeVolF>().value = 0;
 }
 
 int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
