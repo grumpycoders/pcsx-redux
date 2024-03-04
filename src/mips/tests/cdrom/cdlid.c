@@ -136,8 +136,8 @@ CESTER_TEST(cdlIdReadsTooMuch, test_instance,
     uint32_t completeTime = waitCDRomIRQ();
     uint8_t cause2 = ackCDRomCause();
     uint8_t ctrl3 = CDROM_REG0 & ~3;
-    uint8_t response2[12];
-    for (unsigned i = 0; i < 12; i++) {
+    uint8_t response2[17];
+    for (unsigned i = 0; i < 17; i++) {
         response2[i] = CDROM_REG1;
     }
     uint8_t ctrl4 = CDROM_REG0 & ~3;
