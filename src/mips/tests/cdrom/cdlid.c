@@ -144,7 +144,6 @@ CESTER_TEST(cdlIdReadsTooMuchThencdlGetTN, test_instance,
     CDROM_REG0 = 1;
     uint8_t cause2b = CDROM_REG3_UC;
 
-
     CDROM_REG0 = 0;
     CDROM_REG1 = CDL_GETTN;
 

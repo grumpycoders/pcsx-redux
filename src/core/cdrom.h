@@ -164,7 +164,8 @@ class CDRom {
         bool hasValue = false;
         uint8_t payloadSize = 0;
         uint8_t payloadIndex = 0;
-        bool isPayloadEmpty() const { return payloadSize == payloadIndex; }
+        bool isPayloadAtEnd() const { return payloadIndex == payloadSize; } 
+        bool isPayloadEmpty() const { return payloadSize <= payloadIndex; }
         bool isPayloadFull() const { return payloadSize == sizeof(payload); }
         bool empty() const { return valueEmpty() && isPayloadEmpty(); }
         bool valueEmpty() const { return !hasValue || valueRead; }
@@ -189,9 +190,11 @@ class CDRom {
         }
         uint8_t getValue() const { return valueRead ? 0 : value; }
         uint8_t readPayloadByte() {
+            while (payloadIndex >= 16) payloadIndex -= 16;
             if (payloadIndex < payloadSize) {
                 return payload[payloadIndex++];
             }
+            payloadIndex++;
             return 0;
         }
     };

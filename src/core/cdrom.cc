@@ -351,7 +351,7 @@ class CDRomImpl final : public PCSX::CDRom {
                  The result register is not empty when this bit is high. At this time, the host can read the result
                  register.
          */
-        uint8_t v5 = !m_responseFifo[0].isPayloadEmpty() ? 0x20 : 0;
+        uint8_t v5 = !m_responseFifo[0].isPayloadAtEnd() ? 0x20 : 0;
         /*
           bit 4: PRMWRDY (parameter write ready)
                  The PARAMETER register is not full when this bit is high. At this time, the host writes data into the
