@@ -158,14 +158,15 @@ class CDRom {
     uint8_t m_lastLocL[8] = {0};
 
     struct QueueElement {
-        uint8_t value;
         uint8_t payload[16];
+        uint8_t value;
         bool valueRead = false;
         bool hasValue = false;
+        bool hitMax = false;
         uint8_t payloadSize = 0;
         uint8_t payloadIndex = 0;
-        bool isPayloadAtEnd() const { return payloadIndex == payloadSize; } 
-        bool isPayloadEmpty() const { return payloadSize <= payloadIndex; }
+        bool isPayloadAtEnd() const { return payloadIndex == payloadSize; }
+        bool isPayloadEmpty() const { return (payloadSize == 0) || hitMax; }
         bool isPayloadFull() const { return payloadSize == sizeof(payload); }
         bool empty() const { return valueEmpty() && isPayloadEmpty(); }
         bool valueEmpty() const { return !hasValue || valueRead; }
@@ -191,11 +192,12 @@ class CDRom {
         uint8_t getValue() const { return valueRead ? 0 : value; }
         uint8_t readPayloadByte() {
             while (payloadIndex >= 16) payloadIndex -= 16;
+            uint8_t r = 0;
             if (payloadIndex < payloadSize) {
-                return payload[payloadIndex++];
+                r = payload[payloadIndex];
             }
-            payloadIndex++;
-            return 0;
+            if (++payloadIndex == payloadSize) hitMax = true;
+            return r;
         }
     };
 
