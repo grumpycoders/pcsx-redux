@@ -32,6 +32,29 @@ SOFTWARE.
 #include <stdint.h>
 
 CESTER_BODY(
+    static void hexdump(const void* data_, unsigned size) {
+        const uint8_t* data = (const uint8_t*)data_;
+        char ascii[17];
+        ascii[16] = 0;
+        for (unsigned i = 0; i < size; i++) {
+            if (i % 16 == 0) ramsyscall_printf("%08x  |", i);
+            ramsyscall_printf("%02X ", data[i]);
+            ascii[i % 16] = data[i] >= ' ' && data[i] <= '~' ? data[i] : '.';
+            unsigned j = i + 1;
+            if ((j % 8 == 0) || (j == size)) {
+                ramsyscall_printf(" ");
+                if (j % 16 == 0) {
+                    ramsyscall_printf("|  %s \n", ascii);
+                } else if (j == size) {
+                    ascii[j % 16] = 0;
+                    if (j % 16 <= 8) ramsyscall_printf(" ");
+                    for (j %= 16; j < 16; j++) ramsyscall_printf("   ");
+                    ramsyscall_printf("|  %s \n", ascii);
+                }
+            }
+        }
+    }
+
     static int s_interruptsWereEnabled = 0;
     static uint16_t s_oldMode = 0;
     static uint32_t s_lastHSyncCounter = 0;
