@@ -112,7 +112,72 @@ CESTER_TEST(cdlIdTooManyArgs, test_instance,
     ramsyscall_printf("Basic cdlId with too many args, errored in %ius\n", errorTime);
 )
 
-CESTER_TEST(cdlIdReadsTooMuch, test_instance,
+CESTER_TEST(cdlIdReads12BytesThenGetTN, test_instance,
+    int resetDone = resetCDRom();
+    if (!resetDone) {
+        cester_assert_true(resetDone);
+        return;
+    }
+
+    initializeTime();
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_GETID;
+
+    uint32_t ackTime = waitCDRomIRQ();
+    uint8_t cause1 = ackCDRomCause();
+    uint8_t ctrl1 = CDROM_REG0 & ~3;
+    uint8_t response1[16];
+    uint8_t responseSize1 = readResponse(response1);
+    uint8_t ctrl2 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause1b = CDROM_REG3_UC;
+
+    uint32_t completeTime = waitCDRomIRQ();
+    uint8_t cause2 = ackCDRomCause();
+    uint8_t ctrl3 = CDROM_REG0 & ~3;
+    uint8_t response2[12];
+    for (unsigned i = 0; i < 12; i++) {
+        response2[i] = CDROM_REG1;
+    }
+    uint8_t ctrl4 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause2b = CDROM_REG3_UC;
+
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_GETTN;
+
+    waitCDRomIRQ();
+    uint8_t cause3 = ackCDRomCause();
+    uint8_t response3[16];
+    uint8_t responseSize3 = readResponse(response3);
+    uint8_t ctrl5 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause3b = CDROM_REG3_UC;
+
+    cester_assert_uint_eq(3, cause1);
+    cester_assert_uint_eq(2, cause2);
+    cester_assert_uint_eq(3, cause3);
+    cester_assert_uint_eq(0xe0, cause1b);
+    cester_assert_uint_eq(0xe0, cause2b);
+    cester_assert_uint_eq(0xe0, cause3b);
+    cester_assert_uint_eq(2, response1[0]);
+    cester_assert_uint_eq(1, responseSize1);
+    cester_assert_uint_eq(0x38, ctrl1);
+    cester_assert_uint_eq(0x18, ctrl2);
+    cester_assert_uint_eq(0x38, ctrl3);
+    cester_assert_uint_eq(0x38, ctrl4);
+    cester_assert_uint_eq(0x18, ctrl5);
+    cester_assert_uint_ge(ackTime, 500);
+    cester_assert_uint_lt(ackTime, 7000);
+    cester_assert_uint_eq(2, response3[0]);
+    cester_assert_uint_eq(1, response3[1]);
+    cester_assert_uint_eq(0x25, response3[2]);
+    cester_assert_uint_eq(3, responseSize3);
+    ramsyscall_printf("cdlId reading 12 bytes then cdlGetTN, ack in %ius, complete in %ius\n", ackTime, completeTime);
+)
+
+CESTER_TEST(cdlIdReads17BytesThenGetTN, test_instance,
     int resetDone = resetCDRom();
     if (!resetDone) {
         cester_assert_true(resetDone);
@@ -144,19 +209,37 @@ CESTER_TEST(cdlIdReadsTooMuch, test_instance,
     CDROM_REG0 = 1;
     uint8_t cause2b = CDROM_REG3_UC;
 
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_GETTN;
+
+    waitCDRomIRQ();
+    uint8_t cause3 = ackCDRomCause();
+    uint8_t response3[16];
+    uint8_t responseSize3 = readResponse(response3);
+    uint8_t ctrl5 = CDROM_REG0 & ~3;
+    CDROM_REG0 = 1;
+    uint8_t cause3b = CDROM_REG3_UC;
+
     cester_assert_uint_eq(3, cause1);
     cester_assert_uint_eq(2, cause2);
+    cester_assert_uint_eq(3, cause3);
     cester_assert_uint_eq(0xe0, cause1b);
     cester_assert_uint_eq(0xe0, cause2b);
+    cester_assert_uint_eq(0xe0, cause3b);
     cester_assert_uint_eq(2, response1[0]);
     cester_assert_uint_eq(1, responseSize1);
     cester_assert_uint_eq(0x38, ctrl1);
     cester_assert_uint_eq(0x18, ctrl2);
     cester_assert_uint_eq(0x38, ctrl3);
     cester_assert_uint_eq(0x38, ctrl4);
+    cester_assert_uint_eq(0x18, ctrl5);
     cester_assert_uint_ge(ackTime, 500);
     cester_assert_uint_lt(ackTime, 7000);
-    ramsyscall_printf("cdlId reading too much data, ack in %ius, complete in %ius\n", ackTime, completeTime);
+    cester_assert_uint_eq(2, response3[0]);
+    cester_assert_uint_eq(1, response3[1]);
+    cester_assert_uint_eq(0x25, response3[2]);
+    cester_assert_uint_eq(3, responseSize3);
+    ramsyscall_printf("cdlId reading 17 bytes then cdlGetTN, ack in %ius, complete in %ius\n", ackTime, completeTime);
 )
 
 CESTER_TEST(cdlIdReadsWayTooMuchThencdlGetTN, test_instance,
