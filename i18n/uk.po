@@ -2763,7 +2763,7 @@ msgstr "Попередній розрив"
 
 #: src/gui/widgets/log.cc:67
 msgid "Enabled"
-msgstr "Увімкнено."
+msgstr "Увімкнено"
 
 #: src/gui/widgets/log.cc:69
 msgid "Enable all"
@@ -2787,7 +2787,7 @@ msgstr "Приховати все"
 
 #: src/gui/widgets/log.cc:105
 msgid "Special"
-msgstr "Особливі"
+msgstr "Додаткова"
 
 #: src/gui/widgets/log.cc:108
 msgid "Log CD-ROM commands"
