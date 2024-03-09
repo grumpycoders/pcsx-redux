@@ -44,7 +44,9 @@ RUN wget https://github.com/AppImage/AppImageKit/releases/download/continuous/ap
     ln -s /opt/appimage-tool.AppDir/AppRun /usr/bin/appimagetool && \
     rm /tmp/appimagetool-x86_64.AppImage
 WORKDIR /
-RUN pip3 install --break-system-packages appimage-builder
+RUN pip3 install --break-system-packages appimage-builder pydpkg
+COPY appimage-dpkg.patch /appimage-dpkg.patch
+RUN patch -p 1 < appimage-dpkg.patch
 RUN apt install -y imagemagick-6.q16 gtk-update-icon-cache appstream
 ENV NVM_DIR /usr/local/nvm
 ENV NODE_VERSION 14.17.0
