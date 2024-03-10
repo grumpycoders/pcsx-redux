@@ -56,14 +56,14 @@ class PadTest final : public psyqo::Application {
 
 // We only have a single since to display the status of the pads.
 class PadTestScene final : public psyqo::Scene {
-    // Since there's only a single scene, we won't need to override the `start`
-    // or `teardown` methods. We will do all the initialization in the application.
-    unsigned framecount = 1;
-    unsigned padindex = 0;
+    psyqo::AdvancedPad::Pad m_padIndex = psyqo::AdvancedPad::Pad::Pad1a;
+    uintptr_t m_timerId;
 
     void frame() override;
+    void start(Scene::StartReason reason) override;
 
     // Couple of small helpers.
+    void nextPad();
     void print(int x, int y, bool enabled, const char *text);
     void printPadStatus(psyqo::AdvancedPad::Pad pad, int column, const char *name);
     void printPadConnectionStatus(psyqo::AdvancedPad::Pad pad, int row, const char *name);
@@ -94,11 +94,23 @@ void PadTest::prepare() {
 void PadTest::createScene() {
     // We don't have a specific font, so let's just use the built-in system one.
     m_font.uploadSystemFont(gpu());
-    // During `createScene`, interrupts are enabled, so it's okay to call `SimplePad::initialize`.
+    // During `createScene`, interrupts are enabled, so it's okay to call `AdvancedPad::initialize`.
     m_input.initialize();
     // And finally we call `pushScene` with the address of our one and only scene. This last
     // call is mandatory for everything to function properly.
     pushScene(&padTestScene);
+}
+
+// Cycle through the pads to find the next one connected
+void PadTestScene::nextPad() {
+    for (unsigned i = 0; i < 8; i++) {
+        if (padTest.m_input.isPadConnected(++m_padIndex)) {
+            return;  // Found a connected pad
+        }
+    }
+
+    // No connected pad found, reset index to first pad
+    m_padIndex = psyqo::AdvancedPad::Pad::Pad1a;
 }
 
 // Using the system font, our display is roughly 40 columns by 15 lines of text. Although the
@@ -144,21 +156,21 @@ void PadTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column, const
     print(column + 10, 8, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Triangle), "Triangle");
 }
 
+void PadTestScene::start(Scene::StartReason reason) {
+    if (reason == Scene::StartReason::Create) {
+        // If we are getting created, create a 5 second periodic timer.
+        using namespace psyqo::timer_literals;
+        m_timerId = padTest.gpu().armPeriodicTimer(5_s, [this](auto) { nextPad(); });
+    }
+}
+
 // Our rendering function that'll be called periodically.
 void PadTestScene::frame() {
     padTest.gpu().clear();
 
-    if (framecount++ % (60 * 5) == 0 ||
-        !padTest.m_input.isPadConnected(static_cast<psyqo::AdvancedPad::Pad>(padindex))) {
-        // Iterate through the pads, stop on next connected pad
-        while (!(padTest.m_input.isPadConnected(static_cast<psyqo::AdvancedPad::Pad>(++padindex))) && padindex < 8)
-            ;
-        if (padindex > 7) {
-            padindex = 0;
-        }
+    if (padTest.m_input.isPadConnected(m_padIndex)) {
+        print(7, m_padIndex, true, ">");
     }
-
-    print(7, padindex, true, ">");
 
     printPadConnectionStatus(psyqo::AdvancedPad::Pad1a, 0, "Pad 1a");
     printPadConnectionStatus(psyqo::AdvancedPad::Pad1b, 1, "Pad 1b");
@@ -169,7 +181,7 @@ void PadTestScene::frame() {
     printPadConnectionStatus(psyqo::AdvancedPad::Pad2c, 6, "Pad 2c");
     printPadConnectionStatus(psyqo::AdvancedPad::Pad2d, 7, "Pad 2d");
 
-    printPadStatus(static_cast<psyqo::AdvancedPad::Pad>(padindex), 20, "Pad Status");
+    printPadStatus(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 20, "Pad Status");
 }
 
 int main() { return padTest.run(); }
