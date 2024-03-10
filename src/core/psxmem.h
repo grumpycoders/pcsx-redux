@@ -27,9 +27,9 @@
 
 #if defined(__BIGENDIAN__)
 
-#define SWAP_LE16(v) ((((v) & 0xff00) >> 8) | (((v) & 0xff) << 8))
+#define SWAP_LE16(v) ((((v)&0xff00) >> 8) | (((v)&0xff) << 8))
 #define SWAP_LE32(v) \
-    ((((v) & 0xff000000ul) >> 24) | (((v) & 0xff0000ul) >> 8) | (((v) & 0xff00ul) << 8) | (((v) & 0xfful) << 24))
+    ((((v)&0xff000000ul) >> 24) | (((v)&0xff0000ul) >> 8) | (((v)&0xff00ul) << 8) | (((v)&0xfful) << 24))
 #define SWAP_LEu16(v) SWAP_LE16((uint16_t)(v))
 #define SWAP_LEu32(v) SWAP_LE32((uint32_t)(v))
 
