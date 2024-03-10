@@ -120,6 +120,12 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         // ensure this property.
         newPC = addr + dataIn.size() + 16;
         compLoad = newPC - dataOut.size();
+        uint32_t rawCompLoad = compLoad & 0x1fffffff;
+        if (rawCompLoad < 0x10000) {
+            // We're loading inside the kernel, bump out of it.
+            newPC += 0x10000 - rawCompLoad;
+            compLoad += 0x10000 - rawCompLoad;
+        }
     }
     newPC += sizeof(n2e_d::code);
 
