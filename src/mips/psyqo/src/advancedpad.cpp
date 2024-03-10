@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2023 PCSX-Redux authors
+Copyright (c) 2024 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,19 +37,13 @@ void psyqo::AdvancedPad::initialize() {
     // Stop the kernel from processing pad(and card) events
     syscall_stopPad();
 
-    for (int i = 0; i < 8; i++) {
-        __builtin_memset(m_padData[i], 0xff, sizeof(m_padData[i]));
-    }
-
-    // Init Pad
-    syscall_memset(m_padData[0], 0xff, sizeof(m_padData[0]));
+    // Init Pads
+    __builtin_memset(m_padData, 0xff, sizeof(m_padData));
 
     SIO::Ctrl = SIO::Control::CTRL_IR;
     SIO::Baud = 0x88;  // 250kHz
     SIO::Mode = 0xd;   // MUL1, 8bit, no parity, normal polarity
     SIO::Ctrl = 0;
-
-    using namespace timer_literals;
 
     Kernel::Internal::addOnFrame([this]() {
         readPad();
@@ -69,19 +63,11 @@ void psyqo::AdvancedPad::initialize() {
 
 inline void psyqo::AdvancedPad::flushRxBuffer() {
     while (SIO::Stat & SIO::Status::STAT_RXRDY) {
-        SIO::Data;  // throwaway read
+        SIO::Data.throwAway();  // throwaway read
     }
 }
 
-constexpr uint8_t psyqo::AdvancedPad::output_analog(uint8_t ticks) {
-    uint8_t data_out = 0xff;
-
-    switch (ticks) {}
-
-    return data_out;
-}
-
-constexpr uint8_t psyqo::AdvancedPad::output_default(uint8_t ticks) {
+constexpr uint8_t psyqo::AdvancedPad::outputDefault(unsigned ticks) {
     uint8_t data_out = 0x00;
     switch (ticks) {
         case 0:
@@ -96,7 +82,7 @@ constexpr uint8_t psyqo::AdvancedPad::output_default(uint8_t ticks) {
     return data_out;
 }
 
-constexpr uint8_t psyqo::AdvancedPad::output_multitap(uint8_t ticks) {
+constexpr uint8_t psyqo::AdvancedPad::outputMultitap(unsigned ticks) {
     uint8_t data_out = 0x00;
 
     switch (ticks) {
@@ -168,14 +154,14 @@ void psyqo::AdvancedPad::readPad() {
     uint8_t data_in, data_out;
     uint8_t port_dev_type[2] = {PadType::None, PadType::None};
 
-    syscall_memset(m_padData, 0xff, sizeof(m_padData));
+    __builtin_memset(m_padData, 0xff, sizeof(m_padData));
 
     uint8_t *pad_data;
     static constexpr unsigned pad_data_width = 8;
 
-    for (uint16_t port = 0; port < 2; port++) {
+    for (unsigned port = 0; port < 2; port++) {
         // Select enable on current port
-        SIO::Ctrl = (port << 13) | SIO::Control::CTRL_DTR;
+        SIO::Ctrl = (static_cast<uint16_t>(port) << 13) | SIO::Control::CTRL_DTR;
 
         // Set baud 250kHz
         SIO::Baud = 0x88;
@@ -189,14 +175,14 @@ void psyqo::AdvancedPad::readPad() {
         busyLoop(100);
 
         pad_data = reinterpret_cast<uint8_t *>(&m_padData[port * 4][0]);
-        for (unsigned int ticks = 0, max_ticks = 5; ticks < max_ticks; ticks++) {
+        for (unsigned ticks = 0, max_ticks = 5; ticks < max_ticks; ticks++) {
             SIO::Ctrl |= SIO::Control::CTRL_ERRRES;  // Clear error
             CPU::IReg.clear(CPU::IRQ::Controller);   // Clear IRQ
 
             if (port_dev_type[port] == PadType::Multitap) {
-                data_out = output_multitap(ticks);
+                data_out = outputMultitap(ticks);
             } else {
-                data_out = output_default(ticks);
+                data_out = outputDefault(ticks);
             }
             data_in = transceive(data_out);
 

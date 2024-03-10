@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2023 PCSX-Redux authors
+Copyright (c) 2024 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,8 +39,7 @@ namespace psyqo {
  * @details This class is meant to be used as a singleton, probably in
  * the `Application` derived class. It does not use the BIOS'
  * PAD interface. Instead, it uses the SIO interface directly, and
- * can therefore support more device types including multitaps. Polling
- * alternates between the two pads/ports on each frame.
+ * can therefore support more device types including multitaps.
  */
 
 class AdvancedPad {
@@ -79,9 +78,6 @@ class AdvancedPad {
         GetSupportedModes = 0x4C,     // 'L' Allegedly get supported modes
         ConfigRequestFormat = 0x4D,   // 'M' Allegedly configure poll request format
         ConfigResponseFormat = 0x4F,  // 'O' Allegedly configure poll response format
-
-        // Config mode commands
-
     };
 
     enum PadType : uint8_t {
@@ -165,26 +161,24 @@ class AdvancedPad {
     bool isButtonPressed(Pad pad, Button button) const { return (m_padData[pad][1] & (1 << button)) == 0; }
 
   private:
-    void busyLoop(uint16_t delay) {
-        uint16_t cycles = 0;
+    void busyLoop(unsigned delay) {
+        unsigned cycles = 0;
         while (++cycles < delay) {
-            __asm__ volatile("");
+            asm("");
         }
     };
 
     void flushRxBuffer();
-    constexpr uint8_t output_analog(uint8_t ticks);
-    constexpr uint8_t output_multitap(uint8_t ticks);
-    constexpr uint8_t output_default(uint8_t ticks);
+    constexpr uint8_t outputDefault(unsigned ticks);
+    constexpr uint8_t outputMultitap(unsigned ticks);
     void processChanges(Pad pad);
     void readPad();
     uint8_t transceive(uint8_t data_out);
     bool waitForAck();  // true if ack received, false if timeout
 
-    // bool m_configMode[8] = {false, false, false, false, false, false, false, false};
     uint16_t m_padData[8][4];
     eastl::function<void(Event)> m_callback;
-    bool m_connected[8] = {false, false};
+    bool m_connected[8] = {false, false, false, false, false, false};
     uint16_t m_buttons[8] = {
         0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
     };
