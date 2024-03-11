@@ -223,15 +223,18 @@ class Memory {
 
     IO<MemoryAsFile> getMemoryAsFile() { return m_memoryAsFile; }
 
+    bool isiCacheEnabled() { return m_BIU == 0x1e988; }
+
   private:
     friend class MemoryAsFile;
     IO<MemoryAsFile> m_memoryAsFile;
 
-    int m_writeok = 1;
     uint32_t m_biosCRC = 0;
 
     // Shared memory wrappers, pointers below point to these where appropriate
     SharedMem m_wramShared;
+
+    uint32_t m_BIU = 0;
 
     // hopefully this should become private eventually, with only certain classes having direct access.
   public:

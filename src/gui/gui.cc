@@ -170,7 +170,10 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 
 void LoadImguiBindings(lua_State* lState);
 
-ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine) {
+ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine,
+                            bool isBaseFont) {
+    if (!ranges) ranges = io.Fonts->GetGlyphRangesDefault();
+
     const System::Range knownRange = System::Range(reinterpret_cast<uintptr_t>(ranges));
     if (knownRange == System::Range::KOREAN) ranges = io.Fonts->GetGlyphRangesKorean();
     if (knownRange == System::Range::JAPANESE) ranges = io.Fonts->GetGlyphRangesJapanese();
@@ -179,6 +182,28 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     if (knownRange == System::Range::CYRILLIC) ranges = io.Fonts->GetGlyphRangesCyrillic();
     if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
     if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
+
+    static std::vector<ImWchar> rangesVector;
+
+    if (isBaseFont) {
+        for (unsigned i = 0; ranges[i] != 0; i++) {
+            rangesVector.push_back(ranges[i]);
+        }
+
+        rangesVector.push_back(0x2190);  // ←: U+2190   ↑: U+2191
+        rangesVector.push_back(0x2193);  // →: U+2192   ↓: U+2193
+        rangesVector.push_back(0x25b3);  // △: U+25B3
+        rangesVector.push_back(0x25b3);
+        rangesVector.push_back(0x25ef);  // ◯: U+25EF
+        rangesVector.push_back(0x25ef);
+        rangesVector.push_back(0x2610);  // ☐: U+2610
+        rangesVector.push_back(0x2610);
+        rangesVector.push_back(0x2715);  // ✕: U+2715
+        rangesVector.push_back(0x2715);
+
+        rangesVector.push_back(0);
+        ranges = rangesVector.data();
+    }
 
     decltype(s_imguiUserErrorFunctor) backup = [](const char*) {};
     std::swap(backup, s_imguiUserErrorFunctor);
@@ -852,15 +877,15 @@ void PCSX::GUI::startFrame() {
         io.Fonts->AddFontDefault();
         for (auto& scale : scales) {
             m_mainFonts[scale] = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value * scale,
-                                          io, g_system->getLocaleRanges());
+                                          io, g_system->getLocaleRanges(), false, true);
             for (auto e : g_system->getLocaleExtra()) {
-                loadFont(e.first, settings.get<MainFontSize>().value * scale, io, e.second, true);
+                loadFont(e.first, settings.get<MainFontSize>().value * scale, io, e.second, true, false);
             }
             // try loading the japanese font for memory card manager
             m_hasJapanese = loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MainFontSize>().value * scale,
-                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true);
-            m_monoFonts[scale] =
-                loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale, io, nullptr);
+                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true, false);
+            m_monoFonts[scale] = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale,
+                                          io, nullptr, false, false);
         }
         io.Fonts->Build();
         io.FontDefault = m_mainFonts.begin()->second;

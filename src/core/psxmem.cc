@@ -240,6 +240,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
     } else if (crc != nobioscrc) {
         g_system->printf(_("Unknown bios loaded (%08x)\n"), crc);
     }
+    m_BIU = 0;
 }
 
 void PCSX::Memory::shutdown() {
@@ -260,33 +261,31 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
         return *(pointer + offset);
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                return m_hard[address & 0x3ff];
-            } else {
-                return g_emulator->m_hw->read8(address);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            return g_emulator->m_pioCart->read8(address);
-        } else if (sendReadToLua(address, 1)) {
-            auto L = *g_emulator->m_lua;
-            const uint8_t ret = L.tonumber();
-            L.pop();
-            g_system->log(LogClass::HARDWARE, _("8-bit read redirected to Lua for address: %8.8lx\n"), address);
-            return ret;
-        } else if (address == 0x1f000004 || address == 0x1f000084) {
-            // EXP1 not mapped, likely the bios looking for pre/post boot entry point
-            // We probably don't want to pause here so just throw it a dummy value
-            return 0xff;
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            return m_hard[address & 0x3ff];
         } else {
-            g_system->log(LogClass::CPU, _("8-bit read from unknown address: %8.8lx\n"), address);
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                g_system->pause();
-            }
-            return 0xff;
+            return g_emulator->m_hw->read8(address);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        return g_emulator->m_pioCart->read8(address);
+    } else if (sendReadToLua(address, 1)) {
+        auto L = *g_emulator->m_lua;
+        const uint8_t ret = L.tonumber();
+        L.pop();
+        g_system->log(LogClass::HARDWARE, _("8-bit read redirected to Lua for address: %8.8lx\n"), address);
+        return ret;
+    } else if (address == 0x1f000004 || address == 0x1f000084) {
+        // EXP1 not mapped, likely the bios looking for pre/post boot entry point
+        // We probably don't want to pause here so just throw it a dummy value
+        return 0xff;
+    } else if (isiCacheEnabled()) {
+        g_system->log(LogClass::CPU, _("8-bit read from unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
+    return 0xff;
 }
 
 uint16_t PCSX::Memory::read16(uint32_t address) {
@@ -298,30 +297,28 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
         return SWAP_LEu16(*(uint16_t *)(pointer + offset));
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
-                return SWAP_LEu16(*ptr);
-            } else {
-                return g_emulator->m_hw->read16(address);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            return g_emulator->m_pioCart->read8(address);
-        } else if (sendReadToLua(address, 2)) {
-            auto L = *g_emulator->m_lua;
-            const uint16_t ret = L.tonumber();
-            L.pop();
-            g_system->log(LogClass::HARDWARE, _("16-bit read redirected to Lua for address: %8.8lx\n"), address);
-            return ret;
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
+            return SWAP_LEu16(*ptr);
         } else {
-            g_system->log(LogClass::CPU, _("16-bit read from unknown address: %8.8lx\n"), address);
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                g_system->pause();
-            }
-            return 0xffff;
+            return g_emulator->m_hw->read16(address);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        return g_emulator->m_pioCart->read8(address);
+    } else if (sendReadToLua(address, 2)) {
+        auto L = *g_emulator->m_lua;
+        const uint16_t ret = L.tonumber();
+        L.pop();
+        g_system->log(LogClass::HARDWARE, _("16-bit read redirected to Lua for address: %8.8lx\n"), address);
+        return ret;
+    } else if (isiCacheEnabled()) {
+        g_system->log(LogClass::CPU, _("16-bit read from unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
+    return 0xffff;
 }
 
 uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
@@ -333,32 +330,30 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
     if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
         return SWAP_LEu32(*(uint32_t *)(pointer + offset));
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
-                return SWAP_LEu32(*ptr);
-            } else {
-                return g_emulator->m_hw->read32(address);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            return g_emulator->m_pioCart->read32(address);
-        } else if (sendReadToLua(address, 4)) {
-            auto L = *g_emulator->m_lua;
-            const uint32_t ret = L.tonumber();
-            L.pop();
-            g_system->log(LogClass::HARDWARE, _("32-bit read redirected to Lua for address: %8.8lx\n"), address);
-            return ret;
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
+            return SWAP_LEu32(*ptr);
         } else {
-            if (m_writeok) {
-                g_system->log(LogClass::CPU, _("32-bit read from unknown address: %8.8lx\n"), address);
-                if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                    g_system->pause();
-                }
-            }
-            return 0xffffffff;
+            return g_emulator->m_hw->read32(address);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        return g_emulator->m_pioCart->read32(address);
+    } else if (address == 0xfffe0130) {
+        return m_BIU;
+    } else if (sendReadToLua(address, 4)) {
+        auto L = *g_emulator->m_lua;
+        const uint32_t ret = L.tonumber();
+        L.pop();
+        g_system->log(LogClass::HARDWARE, _("32-bit read redirected to Lua for address: %8.8lx\n"), address);
+        return ret;
+    } else if (isiCacheEnabled()) {
+        g_system->log(LogClass::CPU, _("32-bit read from unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
+    return 0xffffffff;
 }
 
 int PCSX::Memory::sendReadToLua(const uint32_t address, const size_t size) {
@@ -445,22 +440,21 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
         const uint32_t offset = address & 0xffff;
         *(pointer + offset) = static_cast<uint8_t>(value);
         g_emulator->m_cpu->Clear((address & (~3)), 1);
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                m_hard[address & 0x3ff] = value;
-            } else {
-                g_emulator->m_hw->write8(address, value);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            g_emulator->m_pioCart->write8(address, value);
-        } else if (sendWriteToLua(address, 1, value)) {
-            g_system->log(LogClass::HARDWARE, _("8-bit write redirected to Lua for address: %8.8lx\n"), address);
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            m_hard[address & 0x3ff] = value;
         } else {
-            g_system->log(LogClass::CPU, _("8-bit write to unknown address: %8.8lx\n"), address);
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                g_system->pause();
-            }
+            g_emulator->m_hw->write8(address, value);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        g_emulator->m_pioCart->write8(address, value);
+    } else if (sendWriteToLua(address, 1, value)) {
+        g_system->log(LogClass::HARDWARE, _("8-bit write redirected to Lua for address: %8.8lx\n"), address);
+    } else if (isiCacheEnabled()) {
+        g_emulator->m_cpu->Clear(address, 1);
+        g_system->log(LogClass::CPU, _("8-bit write to unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
 }
@@ -475,23 +469,22 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
         const uint32_t offset = address & 0xffff;
         *(uint16_t *)(pointer + offset) = SWAP_LEu16(static_cast<uint16_t>(value));
         g_emulator->m_cpu->Clear((address & (~3)), 1);
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
-                *ptr = SWAP_LEu16(value);
-            } else {
-                g_emulator->m_hw->write16(address, value);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            g_emulator->m_pioCart->write16(address, value);
-        } else if (sendWriteToLua(address, 2, value)) {
-            g_system->log(LogClass::HARDWARE, _("16-bit write redirected to Lua for address: %8.8lx\n"), address);
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
+            *ptr = SWAP_LEu16(value);
         } else {
-            g_system->log(LogClass::CPU, _("16-bit write to unknown address: %8.8lx\n"), address);
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                g_system->pause();
-            }
+            g_emulator->m_hw->write16(address, value);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        g_emulator->m_pioCart->write16(address, value);
+    } else if (sendWriteToLua(address, 2, value)) {
+        g_system->log(LogClass::HARDWARE, _("16-bit write redirected to Lua for address: %8.8lx\n"), address);
+    } else if (isiCacheEnabled()) {
+        g_emulator->m_cpu->Clear(address, 1);
+        g_system->log(LogClass::CPU, _("16-bit write to unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
 }
@@ -506,55 +499,40 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
         const uint32_t offset = address & 0xffff;
         *(uint32_t *)(pointer + offset) = SWAP_LEu32(value);
         g_emulator->m_cpu->Clear((address & (~3)), 1);
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
-                *ptr = SWAP_LEu32(value);
-            } else {
-                g_emulator->m_hw->write32(address, value);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            g_emulator->m_pioCart->write32(address, value);
-        } else if (address != 0xfffe0130) {
-            if (!m_writeok) g_emulator->m_cpu->Clear(address, 1);
-
-            if (m_writeok) {
-                g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
+            *ptr = SWAP_LEu32(value);
+        } else {
+            g_emulator->m_hw->write32(address, value);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        g_emulator->m_pioCart->write32(address, value);
+    } else if (address == 0xfffe0130) {
+        m_BIU = value;
+        switch (value) {
+            case 0x00000800:
+            case 0x00000804:
+            case 0x0001e90c:  // TOCA World Touring Cars, SLES-02572, FlushCache at 0xa002f79c
+                g_emulator->m_cpu->invalidateCache();
+                [[fallthrough]];
+            case 0x0001e988:
+                setLuts();
+                break;
+            default:
+                g_system->log(LogClass::CPU, _("Unknown BIU value: %8.8lx\n"), value);
                 if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                     g_system->pause();
                 }
-            }
-        } else {
-            // a0-44: used for cache flushing
-            switch (value) {
-                case 0x800:
-                case 0x804:
-                    if (m_writeok == 0) break;
-                    m_writeok = 0;
-                    setLuts();
-
-                    g_emulator->m_cpu->invalidateCache();
-                    break;
-                case 0x00:
-                case 0x1e988:
-                    if (m_writeok == 1) break;
-                    m_writeok = 1;
-                    setLuts();
-                    break;
-                default:
-                    if (sendWriteToLua(address, 4, value)) {
-                        g_system->log(LogClass::HARDWARE, _("32-bit write redirected to Lua for address: %8.8lx\n"),
-                                      address);
-                    } else {
-                        g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);
-                        if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                .get<Emulator::DebugSettings::Debug>()) {
-                            g_system->pause();
-                        }
-                    }
-                    break;
-            }
+                break;
+        }
+    } else if (sendWriteToLua(address, 4, value)) {
+        g_system->log(LogClass::HARDWARE, _("32-bit write redirected to Lua for address: %8.8lx\n"), address);
+    } else if (isiCacheEnabled()) {
+        g_emulator->m_cpu->Clear(address, 1);
+        g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
 }
@@ -648,7 +626,7 @@ void PCSX::Memory::setLuts() {
     for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_wram[(i & (max - 1)) << 16];
     memcpy(m_readLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
     memcpy(m_readLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
-    if (m_writeok) {
+    if (isiCacheEnabled()) {
         memcpy(m_writeLUT + 0x0000, m_readLUT, 0x80 * sizeof(void *));
         memcpy(m_writeLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
         memcpy(m_writeLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));

@@ -44,7 +44,9 @@ _reset:
     sw    $t0, RAM_SIZE
 
     /* this may be here to let the hardware pick up the new bus settings
-       before moving on with the actual code. */
+       before moving on with the actual code. Also, some tools like IDA
+       or even PCSX-Redux use it as a signature to detect this is a PS1
+       BIOS file. */
     nop
     nop
     nop
@@ -71,7 +73,7 @@ _reset:
 
 .ascii "OpenBIOS"
 
-    .section .text, "ax", @progbits
+    .section .text._boot, "ax", @progbits
     .align 2
     .global _boot
     .type _boot, @function
@@ -105,14 +107,6 @@ _boot:
        to avoid crashes on the real hardware. */
     li    $t0, 0x80777
     sw    $t0, SBUS_DEV8_CTRL
-
-    /* Extra from OpenBIOS, not in the original BIOS:
-       in case we booted from a cart, we move the
-       flushCache pointer at 0x310 to our own storage,
-       so we can use it later. */
-    lw    $t0, 0x310($0)
-    lui   $t1, %hi(__flush_cache_real_bios_ptr)
-    sw    $t0, %lo(__flush_cache_real_bios_ptr)($t1)
 
     /* clearing out all registers */
     .set push
@@ -227,54 +221,12 @@ bss_init_skip:
 stop:
     b     stop
 
+    .section .text._cartBoot, "ax", @progbits
     .set noreorder
     .global _cartBoot
-    .global cartBootCop0Hook
     .type _cartBoot, @function
 
 _cartBoot:
-    /* place a rough breakpoint at 0x314, which will capture
-       the memcpy call writing the A0 table, after it's done
-       copying the flushCache pointer in memory */
-    lui   $t0, 0b1100101010000000
-    li    $t1, 0x0314
-    li    $t2, 0xffff
-    mtc0  $0, $7
-    mtc0  $t1, $5
-    mtc0  $t2, $9
-    mtc0  $t0, $7
-    lui   $t9, %hi(cartBootCop0Hook)
-    lw    $t0, (%lo(cartBootCop0Hook)+0x00)($t9)
-    lw    $t1, (%lo(cartBootCop0Hook)+0x04)($t9)
-    lw    $t2, (%lo(cartBootCop0Hook)+0x08)($t9)
-    lw    $t3, (%lo(cartBootCop0Hook)+0x0c)($t9)
-    sw    $t0, 0x40($0)
-    sw    $t1, 0x44($0)
-    sw    $t2, 0x48($0)
-    /* ironically, what we just did technically requires
-       calling flushCache, but since our whole point here
-       is to grab its pointer, we obviously cannot, and
-       we're going to rely on determinicity instead, which
-       means some emulators may break on this  */
-    jr    $ra
-    sw    $t3, 0x4c($0)
-
-cartBootCop0Hook:
-    /* and finally, after the above breakpoint triggers,
-       we jump to _reset in order to boot our own
-       version of the bios and kernel, but don't
-       forget to disable the breakpoint, otherwise
-       we'll be in trouble */
     la    $t0, _reset
     j     $t0
     mtc0  $0, $7
-
-    .global flushCacheFromRealBios
-    .type flushCacheFromRealBios, @function
-
-flushCacheFromRealBios:
-    lui   $t0, %hi(__flush_cache_real_bios_ptr)
-    lw    $t0, %lo(__flush_cache_real_bios_ptr)($t0)
-    nop
-    jr    $t0
-    nop
