@@ -186,62 +186,25 @@ class AdvancedPad {
 
 // prefix increment operator
 inline psyqo::AdvancedPad::Pad& operator++(psyqo::AdvancedPad::Pad& pad) {
-    switch (pad) {
-        case psyqo::AdvancedPad::Pad::Pad1a:
-            return pad = psyqo::AdvancedPad::Pad::Pad1b;
-        case psyqo::AdvancedPad::Pad::Pad1b:
-            return pad = psyqo::AdvancedPad::Pad::Pad1c;
-        case psyqo::AdvancedPad::Pad::Pad1c:
-            return pad = psyqo::AdvancedPad::Pad::Pad1d;
-        case psyqo::AdvancedPad::Pad::Pad1d:
-            return pad = psyqo::AdvancedPad::Pad::Pad2a;
-        case psyqo::AdvancedPad::Pad::Pad2a:
-            return pad = psyqo::AdvancedPad::Pad::Pad2b;
-        case psyqo::AdvancedPad::Pad::Pad2b:
-            return pad = psyqo::AdvancedPad::Pad::Pad2c;
-        case psyqo::AdvancedPad::Pad::Pad2c:
-            return pad = psyqo::AdvancedPad::Pad::Pad2d;
-        case psyqo::AdvancedPad::Pad::Pad2d:
-            return pad = psyqo::AdvancedPad::Pad::Pad1a;
-
-        default:
-            return pad = psyqo::AdvancedPad::Pad::Pad1a;
-    }
+    return pad = static_cast<psyqo::AdvancedPad::Pad>((static_cast<unsigned>(pad) + 1) & 7);
 }
 
 // postfix increment operator
 inline psyqo::AdvancedPad::Pad operator++(psyqo::AdvancedPad::Pad& pad, int) {
     psyqo::AdvancedPad::Pad copy(pad);
-    switch (pad) {
-        case psyqo::AdvancedPad::Pad::Pad1a:
-            pad = psyqo::AdvancedPad::Pad::Pad1b;
-            break;
-        case psyqo::AdvancedPad::Pad::Pad1b:
-            pad = psyqo::AdvancedPad::Pad::Pad1c;
-            break;
-        case psyqo::AdvancedPad::Pad::Pad1c:
-            pad = psyqo::AdvancedPad::Pad::Pad1d;
-            break;
-        case psyqo::AdvancedPad::Pad::Pad1d:
-            pad = psyqo::AdvancedPad::Pad::Pad2a;
-            break;
-        case psyqo::AdvancedPad::Pad::Pad2a:
-            pad = psyqo::AdvancedPad::Pad::Pad2b;
-            break;
-        case psyqo::AdvancedPad::Pad::Pad2b:
-            pad = psyqo::AdvancedPad::Pad::Pad2c;
-            break;
-        case psyqo::AdvancedPad::Pad::Pad2c:
-            pad = psyqo::AdvancedPad::Pad::Pad2d;
-            break;
-        case psyqo::AdvancedPad::Pad::Pad2d:
-            pad = psyqo::AdvancedPad::Pad::Pad1a;
-            break;
+    pad = static_cast<psyqo::AdvancedPad::Pad>((static_cast<unsigned>(pad) + 1) & 7);
+    return copy;
+}
 
-        default:
-            pad = psyqo::AdvancedPad::Pad::Pad1a;
-    }
+// prefix decrement operator
+inline psyqo::AdvancedPad::Pad& operator--(psyqo::AdvancedPad::Pad& pad) {
+    return pad = static_cast<psyqo::AdvancedPad::Pad>((static_cast<unsigned>(pad) - 1) & 7);
+}
 
+// postfix decrement operator
+inline psyqo::AdvancedPad::Pad operator--(psyqo::AdvancedPad::Pad& pad, int) {
+    psyqo::AdvancedPad::Pad copy(pad);
+    pad = static_cast<psyqo::AdvancedPad::Pad>((static_cast<unsigned>(pad) - 1) & 7);
     return copy;
 }
 
