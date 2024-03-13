@@ -69,7 +69,7 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     },
     {
         "Nihongo",
-        {"jp.po", {}, nullptr},
+        {"ja.po", {}, nullptr},
     },
     {
         "Polski",
