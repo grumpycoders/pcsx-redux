@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pcsx-redux\n"
 "Report-Msgid-Bugs-To: \n"
-"PO-Revision-Date: 2024-03-12 17:32\n"
+"PO-Revision-Date: 2024-03-14 20:50\n"
 "Last-Translator: \n"
 "Language-Team: Japanese\n"
 "Language: ja_JP\n"
@@ -389,7 +389,7 @@ msgstr ""
 
 #: src/core/pad.cc:898
 msgid "Pad configuration"
-msgstr ""
+msgstr "コントローラー設定"
 
 #: src/core/pad.cc:904
 msgid "Pad 1"
@@ -1020,11 +1020,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1149 src/gui/gui.cc:1166
 msgid "Emulation"
-msgstr ""
+msgstr "エミュレーション"
 
 #: src/gui/gui.cc:1150
 msgid "Start emulation"
-msgstr ""
+msgstr "エミュレーション開始"
 
 #: src/gui/gui.cc:1153
 msgid "Pause emulation"
@@ -1040,7 +1040,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1165 src/gui/widgets/vram-viewer.cc:520
 msgid "Configuration"
-msgstr ""
+msgstr "設定"
 
 #: src/gui/gui.cc:1167
 msgid "Manage Memory Cards"
@@ -1080,7 +1080,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1206
 msgid "Configure Shaders"
-msgstr ""
+msgstr "シェーダー設定"
 
 #: src/gui/gui.cc:1210
 msgid "PIO Cartridge"
