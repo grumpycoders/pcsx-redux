@@ -2,17 +2,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pcsx-redux\n"
 "Report-Msgid-Bugs-To: \n"
-"PO-Revision-Date: 2024-03-12 17:32\n"
+"PO-Revision-Date: 2024-03-12 17:37\n"
 "Last-Translator: \n"
-"Language-Team: French\n"
-"Language: fr_FR\n"
+"Language-Team: Spanish\n"
+"Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Crowdin-Project: pcsx-redux\n"
 "X-Crowdin-Project-ID: 655690\n"
-"X-Crowdin-Language: fr\n"
+"X-Crowdin-Language: es-ES\n"
 "X-Crowdin-File: /[grumpycoders.pcsx-redux] main/i18n/pcsx-redux.pot\n"
 "X-Crowdin-File-ID: 10\n"
 
@@ -20,23 +20,22 @@ msgstr ""
 #, c-format
 msgid "\n"
 "Detected ECM file with proper header and filename suffix.\n"
-msgstr "\n"
-"Fichier ECM détecté avec l'en-tête et le suffixe du nom de fichier appropriés.\n"
+msgstr ""
 
 #: src/cdrom/cdriso-sbi.cc:41
 #, c-format
 msgid "Loaded SBI file: %s.\n"
-msgstr "Fichier SBI chargé : %s.\n"
+msgstr ""
 
 #: src/cdrom/cdriso.cc:252
 #, c-format
 msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
-msgstr "Piste %.2d (%s) - Commence à %.2d:%.2d:%.2d, Durée %.2d:%.2d:%.2d\n"
+msgstr ""
 
 #: src/cdrom/cdriso.cc:268
 #, c-format
 msgid "Loaded CD Image: %s"
-msgstr "Image CD chargée : %s"
+msgstr ""
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:463
 msgid "OpenGL GPU configuration"
@@ -97,17 +96,17 @@ msgstr ""
 #: src/core/cdrom.cc:1708
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
-msgstr "Titre du CD-ROM : %.32s\n"
+msgstr ""
 
 #: src/core/cdrom.cc:1709
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
-msgstr "ID du CD-ROM : %.9s\n"
+msgstr ""
 
 #: src/core/cdrom.cc:1710
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
-msgstr "Nom de l'EXE du CD-ROM : %.255s\n"
+msgstr ""
 
 #: src/core/debug.cc:89
 msgid "Execution map"
@@ -362,7 +361,7 @@ msgstr ""
 #: src/core/memorycard.cc:348
 #, c-format
 msgid "The memory card %s doesn't exist - creating it\n"
-msgstr "La carte mémoire %s n'existe pas - création en cours\n"
+msgstr ""
 
 #: src/core/memorycard.cc:367 src/core/memorycard.cc:385
 msgid "Error reading memory card."
@@ -371,17 +370,17 @@ msgstr ""
 #: src/core/memorycard.cc:370
 #, c-format
 msgid "Memory card %s failed to load!\n"
-msgstr "Impossible de charger la carte mémoire %s !\n"
+msgstr ""
 
 #: src/core/memorycard.cc:374
 #, c-format
 msgid "Loading memory card %s\n"
-msgstr "Chargement de la carte mémoire %s\n"
+msgstr ""
 
 #: src/core/memorycard.cc:417
 #, c-format
 msgid "Saving memory card %s\n"
-msgstr "Sauvegarde de la carte mémoire %s\n"
+msgstr ""
 
 #: src/core/pad.cc:703 src/core/pad.cc:796
 #, c-format
@@ -506,7 +505,7 @@ msgstr ""
 
 #: src/core/pad.cc:993 src/gui/widgets/isobrowser.cc:149
 msgid "Start"
-msgstr "Démarrer"
+msgstr ""
 
 #: src/core/pad.cc:994
 msgid "L1"
@@ -701,7 +700,7 @@ msgstr ""
 
 #: src/core/psxmem.cc:103
 msgid "Error allocating memory!"
-msgstr "Erreur d'allocation de mémoire !"
+msgstr ""
 
 #: src/core/psxmem.cc:135
 #, c-format
@@ -734,7 +733,7 @@ msgstr ""
 #: src/core/psxmem.cc:225
 #, c-format
 msgid "Loaded BIOS: %s\n"
-msgstr "BIOS chargé :%s\n"
+msgstr ""
 
 #: src/core/psxmem.cc:237
 #, c-format
@@ -814,7 +813,7 @@ msgstr ""
 #: src/core/r3000a.cc:39
 #, c-format
 msgid "PCSX-Redux booting\n"
-msgstr "Démarrage de PCSX-Redux\n"
+msgstr ""
 
 #: src/core/r3000a.cc:40
 #, c-format
@@ -910,11 +909,11 @@ msgstr ""
 
 #: src/gui/gui.cc:681
 msgid "Memory Editor #"
-msgstr "Editeur de Mémoire #"
+msgstr ""
 
 #: src/gui/gui.cc:686
 msgid "Parallel Port"
-msgstr "Port Parallèle"
+msgstr ""
 
 #: src/gui/gui.cc:687
 msgid "Scratch Pad"
@@ -922,7 +921,7 @@ msgstr ""
 
 #: src/gui/gui.cc:688
 msgid "Hardware Registers"
-msgstr "Registres Matériel"
+msgstr ""
 
 #: src/gui/gui.cc:689
 msgid "BIOS"
@@ -934,13 +933,13 @@ msgstr ""
 
 #: src/gui/gui.cc:1030
 msgid "Output"
-msgstr "Sortie"
+msgstr ""
 
 #: src/gui/gui.cc:1055 src/gui/widgets/assembly.cc:442
 #: src/gui/widgets/isobrowser.cc:66 src/gui/widgets/memcard_manager.cc:63
 #: src/gui/widgets/vram-viewer.cc:482
 msgid "File"
-msgstr "Fichier"
+msgstr ""
 
 #: src/gui/gui.cc:1056 src/gui/gui.h:377 src/gui/widgets/isobrowser.cc:67
 #: src/gui/widgets/isobrowser.h:50
@@ -1001,15 +1000,15 @@ msgstr ""
 
 #: src/gui/gui.cc:1127
 msgid "Open LID"
-msgstr "Ouvrir le CAPOT"
+msgstr ""
 
 #: src/gui/gui.cc:1131
 msgid "Close LID"
-msgstr "Fermer le CAPOT"
+msgstr ""
 
 #: src/gui/gui.cc:1135
 msgid "Open and close LID"
-msgstr "Ouvrir et refermer le CAPOT"
+msgstr ""
 
 #: src/gui/gui.cc:1140
 msgid "Reboot"
@@ -1017,7 +1016,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1143
 msgid "Quit"
-msgstr "Quitter"
+msgstr ""
 
 #: src/gui/gui.cc:1149 src/gui/gui.cc:1166
 msgid "Emulation"
@@ -1033,11 +1032,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1156
 msgid "Soft Reset"
-msgstr "Redémarrage du CPU"
+msgstr ""
 
 #: src/gui/gui.cc:1159
 msgid "Hard Reset"
-msgstr "Bouton 'Reset'"
+msgstr ""
 
 #: src/gui/gui.cc:1165 src/gui/widgets/vram-viewer.cc:520
 msgid "Configuration"
@@ -1089,11 +1088,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1214 src/gui/widgets/assembly.cc:449
 msgid "Debug"
-msgstr "Débug"
+msgstr ""
 
 #: src/gui/gui.cc:1215
 msgid "Show Logs"
-msgstr "Afficher les journaux"
+msgstr ""
 
 #: src/gui/gui.cc:1216
 msgid "Lua"
@@ -1117,11 +1116,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1224
 msgid "Show Registers"
-msgstr "Afficher les Registres"
+msgstr ""
 
 #: src/gui/gui.cc:1225
 msgid "Show Assembly"
-msgstr "Afficher l'Assembleur"
+msgstr ""
 
 #: src/gui/gui.cc:1227 src/gui/gui.cc:1229
 msgid "Show DynaRec Disassembly"
@@ -1134,7 +1133,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1234
 msgid "Show Breakpoints"
-msgstr "Afficher les Breakpoints"
+msgstr ""
 
 #: src/gui/gui.cc:1235
 msgid "Show Callstacks"
@@ -1142,7 +1141,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1236
 msgid "Memory Editors"
-msgstr "Editeurs de Mémoire"
+msgstr ""
 
 #: src/gui/gui.cc:1247
 msgid "Show Memory Observer"
@@ -1186,7 +1185,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1287
 msgid "Show SPU debug"
-msgstr "Afficher le debug du SPU"
+msgstr ""
 
 #: src/gui/gui.cc:1290
 msgid "CD-Rom"
@@ -1246,11 +1245,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1323
 msgid "Help"
-msgstr "Aide"
+msgstr ""
 
 #: src/gui/gui.cc:1324
 msgid "Show ImGui Demo"
-msgstr "Afficher la démo du ImGui"
+msgstr ""
 
 #: src/gui/gui.cc:1326
 msgid "Show UvFile information"
@@ -1258,7 +1257,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1328 src/gui/gui.cc:2238
 msgid "About"
-msgstr "À propos de PCSX-Redux"
+msgstr ""
 
 #: src/gui/gui.cc:1333
 #, c-format
@@ -1286,7 +1285,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1424
 msgid "Logs"
-msgstr "Journaux"
+msgstr ""
 
 #: src/gui/gui.cc:1430
 msgid "Lua Console"
@@ -1318,11 +1317,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1504 src/gui/widgets/registers.cc:65
 msgid "Registers"
-msgstr "Registres"
+msgstr ""
 
 #: src/gui/gui.cc:1508
 msgid "Assembly"
-msgstr "Assembleur"
+msgstr ""
 
 #: src/gui/gui.cc:1512
 msgid "DynaRec Disassembler"
@@ -1377,11 +1376,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1572
 msgid "Locale"
-msgstr "Langue"
+msgstr ""
 
 #: src/gui/gui.cc:1587
 msgid "Reload locales"
-msgstr "Recharger les langues"
+msgstr ""
 
 #: src/gui/gui.cc:1592
 msgid "Main Font Size"
@@ -1487,7 +1486,7 @@ msgstr ""
 #: src/gui/widgets/breakpoints.cc:38 src/gui/widgets/registers.cc:339
 #: src/gui/widgets/sio1.cc:203
 msgid "Cancel"
-msgstr "Annuler"
+msgstr ""
 
 #: src/gui/gui.cc:1722
 msgid "UvFiles"
@@ -1518,7 +1517,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1919
 msgid "Emulation Configuration"
-msgstr "Configuration de l'Emulation"
+msgstr ""
 
 #: src/gui/gui.cc:1920
 msgid "Idle Swap Interval"
@@ -1534,15 +1533,15 @@ msgstr ""
 
 #: src/gui/gui.cc:1933
 msgid "Enable XA decoder"
-msgstr "Activer le décodeur XA"
+msgstr ""
 
 #: src/gui/gui.cc:1934
 msgid "Always enable SPU IRQ"
-msgstr "Toujours activer l'IRQ du SPU"
+msgstr ""
 
 #: src/gui/gui.cc:1935
 msgid "Decode MDEC videos in B&W"
-msgstr "Décoder les vidéos MDEC en N&B"
+msgstr ""
 
 #: src/gui/gui.cc:1936
 msgid "Dynarec CPU"
@@ -1589,11 +1588,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1975
 msgid "System Type"
-msgstr "Type de système"
+msgstr ""
 
 #: src/gui/gui.cc:1994
 msgid "Fast boot"
-msgstr "Démarrage rapide"
+msgstr ""
 
 #: src/gui/gui.cc:1995
 msgid "This will cause the BIOS to skip the shell,\n"
@@ -1604,7 +1603,7 @@ msgstr ""
 
 #: src/gui/gui.cc:2000
 msgid "BIOS file"
-msgstr "Fichier du BIOS"
+msgstr ""
 
 #: src/gui/gui.cc:2004 src/gui/widgets/assembly.cc:507
 msgid "Enable Debugger"
@@ -1791,7 +1790,7 @@ msgstr ""
 
 #: src/gui/gui.cc:2292
 msgid "OpenGL information"
-msgstr "Information sur l'OpenGL"
+msgstr ""
 
 #: src/gui/gui.cc:2294
 msgid "OpenGL error reporting: enabled"
@@ -1892,7 +1891,7 @@ msgstr ""
 
 #: src/gui/gui.h:380
 msgid "Select BIOS"
-msgstr "Sélection du BIOS"
+msgstr ""
 
 #: src/gui/gui.h:381 src/gui/widgets/pio-cart.h:36
 msgid "Select EXP1"
@@ -1965,7 +1964,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:443
 msgid "Load symbols map"
-msgstr "Charger les symboles de la map"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:444
 msgid "Reset symbols map"
@@ -1978,7 +1977,7 @@ msgstr ""
 #: src/gui/widgets/assembly.cc:451 src/gui/widgets/assembly.cc:527
 #: src/gui/widgets/gpulogger.cc:47
 msgid "Resume"
-msgstr "Reprendre"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:453 src/gui/widgets/assembly.cc:529
 msgid "Step In"
@@ -1992,11 +1991,11 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:460
 msgid "Combined pseudo-instructions"
-msgstr "Pseudo-instructions combinées"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:465
 msgid "When two instructions are detected to be a single pseudo-instruction, combine them into the actual pseudo-instruction."
-msgstr "Quand deux instructions sont détectées comme étant une seule pseudo-instruction, les combiner dans l'actuelle pseudo-instruction."
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:470
 msgid "Pseudo-instructions filling"
@@ -2004,7 +2003,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:475
 msgid "When combining two instructions into a single pseudo-instruction, add a placeholder for the second one."
-msgstr "En combinant deux instructions en une seule pseudo-instruction, ajouter un espace réservé pour la seconde."
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:480
 msgid "Delay slot notch"
@@ -2012,7 +2011,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:485
 msgid "Add a small visible notch to indicate instructions that are on the delay slot of a branch."
-msgstr "Ajouter une marque visible pour indiquer les instructions qui se trouvent à l'emplacement d'un Delay Slot."
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:489
 msgid "Draw arrows for jumps"
@@ -2024,7 +2023,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:497
 msgid "Columns"
-msgstr "Colonnes"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:516 src/gui/widgets/log.cc:111
 msgid "CPU trace"
@@ -2036,7 +2035,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:520
 msgid "Follow PC"
-msgstr "Suivre PC"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:522
 msgid "Jump to PC"
@@ -2090,11 +2089,11 @@ msgstr ""
 #: src/gui/widgets/memory_observer.cc:328
 #: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:961
 msgid "Address"
-msgstr "Adresse"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:901
 msgid "RAM base"
-msgstr "Base de la RAM"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:910 src/gui/widgets/assembly.cc:1011
 msgid "Symbols"
@@ -2123,7 +2122,7 @@ msgstr ""
 #: src/gui/widgets/dynarec_disassembly.cc:90 src/gui/widgets/log.cc:128
 #: src/gui/widgets/pio-cart.cc:41 src/gui/widgets/typed_debugger.cc:827
 msgid "Clear"
-msgstr "Effacer"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:984 src/gui/widgets/dynarec_disassembly.cc:73
 msgid "Close"
@@ -2135,7 +2134,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:1014
 msgid "Filter"
-msgstr "Filtre"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:1028
 msgid "Code##{}{:08x}"
@@ -2147,7 +2146,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.h:63
 msgid "Load Symbols"
-msgstr "Charger les Symboles"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:30 src/gui/widgets/breakpoints.cc:128
 msgid "Edit label of breakpoint {}##{}"
@@ -2176,27 +2175,27 @@ msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:58
 msgid "Map byte reads         "
-msgstr "Map byte reads"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:60
 msgid "Map half reads         "
-msgstr "Map half reads"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:62
 msgid "Map word reads         "
-msgstr "Map word reads"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:63
 msgid "Map byte writes        "
-msgstr "Map byte writes"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:65
 msgid "Map half writes        "
-msgstr "Map half writes"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:67
 msgid "Map word writes        "
-msgstr "Map word writes"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:69
 msgid "Break on execution map"
@@ -2204,15 +2203,15 @@ msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:70
 msgid "Break on byte read map "
-msgstr "Break on byte read map"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:72
 msgid "Break on half read map "
-msgstr "Break on half read map"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:74
 msgid "Break on word read map "
-msgstr "Break on word read map"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:75
 msgid "Break on byte write map"
@@ -2228,7 +2227,7 @@ msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:107
 msgid "Remove##"
-msgstr "Enlever##"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:111
 msgid "Disable##"
@@ -2240,7 +2239,7 @@ msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:155
 msgid "Breakpoint Type"
-msgstr "Type de Breakpoint"
+msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:163
 msgid "Breakpoint Width"
@@ -2248,7 +2247,7 @@ msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:166
 msgid "Add Breakpoint"
-msgstr "Ajouter un Breakpoint"
+msgstr ""
 
 #: src/gui/widgets/console.cc:34
 msgid "Close Console"
@@ -2257,7 +2256,7 @@ msgstr ""
 #: src/gui/widgets/console.cc:41 src/gui/widgets/dynarec_disassembly.cc:95
 #: src/gui/widgets/log.cc:130
 msgid "Copy"
-msgstr "Copier"
+msgstr ""
 
 #: src/gui/widgets/console.cc:47 src/gui/widgets/dynarec_disassembly.cc:99
 msgid "Auto-scroll"
@@ -2565,7 +2564,7 @@ msgstr ""
 
 #: src/gui/widgets/log.cc:124
 msgid "Follow"
-msgstr "Suivre"
+msgstr ""
 
 #: src/gui/widgets/luaeditor.cc:58
 msgid "Auto run"
@@ -2917,7 +2916,7 @@ msgstr ""
 
 #: src/gui/widgets/registers.cc:286
 msgid "Misc"
-msgstr "Divers"
+msgstr ""
 
 #: src/gui/widgets/registers.cc:325
 #, c-format
@@ -3224,7 +3223,7 @@ msgstr ""
 
 #: src/spu/cfg.cc:28
 msgid "SPU configuration"
-msgstr "Configuration du SPU"
+msgstr ""
 
 #: src/spu/cfg.cc:39
 msgid "Backend"
@@ -3245,35 +3244,33 @@ msgstr ""
 
 #: src/spu/cfg.cc:65
 msgid "Muted"
-msgstr "Muet"
+msgstr ""
 
 #: src/spu/cfg.cc:66
 msgid "Enable streaming"
-msgstr "Active le flux audio"
+msgstr ""
 
 #: src/spu/cfg.cc:67
 msgid "Uncheck this to mute the streaming channel\n"
 "from the main CPU to the SPU. This includes\n"
 "XA audio and audio tracks."
-msgstr "Décochez cette case pour couper le canal du flux audio\n"
-"du CPU principal vers le SPU. Cela inclut\n"
-"l'audio XA et les pistes audio."
+msgstr ""
 
 #: src/spu/cfg.cc:70
 msgid "Loud"
-msgstr "Fort"
+msgstr ""
 
 #: src/spu/cfg.cc:70
 msgid "Loudest"
-msgstr "Très fort"
+msgstr ""
 
 #: src/spu/cfg.cc:70
 msgid "Low"
-msgstr "Faible"
+msgstr ""
 
 #: src/spu/cfg.cc:70
 msgid "Medium"
-msgstr "Moyen"
+msgstr ""
 
 #: src/spu/cfg.cc:71
 msgid "Volume"
@@ -3282,47 +3279,45 @@ msgstr ""
 #: src/spu/cfg.cc:72
 msgid "Attempts to make the CPU-to-SPU audio stream\n"
 "in sync, by changing its pitch. Consumes more CPU."
-msgstr "Tente de synchroniser le flux audio du CPU vers le SPU en modifiant sa hauteur. Consomme plus de CPU."
+msgstr ""
 
 #: src/spu/cfg.cc:74
 msgid "Pause SPU waiting for CPU IRQ"
-msgstr "Suspendre le SPU en attendant l'IRQ du CPU"
+msgstr ""
 
 #: src/spu/cfg.cc:75
 msgid "Suspends the SPU processing during an IRQ, waiting\n"
 "for the main CPU to acknowledge it. Fixes issues\n"
 "with some games, but slows SPU processing."
-msgstr "Suspend le traitement du SPU pendant un IRQ, en attendant\n"
-" que le CPU principal le reconnaisse. Corrige des problèmes\n"
-" avec certains jeux, mais ralentit le traitement du SPU."
+msgstr ""
 
 #: src/spu/cfg.cc:78 src/spu/cfg.cc:81
 msgid "None - fastest"
-msgstr "Sans - plus rapide"
+msgstr ""
 
 #: src/spu/cfg.cc:78
 msgid "Simple - only handles the most common effects"
-msgstr "Simple - ne gère que les effets les plus courants"
+msgstr ""
 
 #: src/spu/cfg.cc:79
 msgid "Accurate - best quality, but slower"
-msgstr "Fidèle - meilleure qualité, mais plus lent"
+msgstr ""
 
 #: src/spu/cfg.cc:80
 msgid "Reverb"
-msgstr "Réverbération"
+msgstr ""
 
 #: src/spu/cfg.cc:81
 msgid "Simple interpolation"
-msgstr "Interpolation simple"
+msgstr ""
 
 #: src/spu/cfg.cc:82
 msgid "Gaussian interpolation - good quality"
-msgstr "Interpolation gaussienne - bonne qualité"
+msgstr ""
 
 #: src/spu/cfg.cc:83
 msgid "Cubic interpolation - better treble"
-msgstr "Interpolation cubique - meilleurs aigus"
+msgstr ""
 
 #: src/spu/cfg.cc:84
 msgid "Interpolation"
@@ -3330,7 +3325,7 @@ msgstr ""
 
 #: src/spu/cfg.cc:87
 msgid "Downmixes stereo to mono."
-msgstr "Flux audio en mono au lieu de stéréo."
+msgstr ""
 
 #: src/spu/cfg.cc:88
 msgid "Capture/decode buffer IRQ"
