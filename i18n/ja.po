@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pcsx-redux\n"
 "Report-Msgid-Bugs-To: \n"
-"PO-Revision-Date: 2024-03-14 20:50\n"
+"PO-Revision-Date: 2024-03-14 22:10\n"
 "Last-Translator: \n"
 "Language-Team: Japanese\n"
 "Language: ja_JP\n"
@@ -20,12 +20,13 @@ msgstr ""
 #, c-format
 msgid "\n"
 "Detected ECM file with proper header and filename suffix.\n"
-msgstr ""
+msgstr "\n"
+" 正しいヘッダとファイルネームがあるECMファイルを認識しました。\n"
 
 #: src/cdrom/cdriso-sbi.cc:41
 #, c-format
 msgid "Loaded SBI file: %s.\n"
-msgstr ""
+msgstr "SBI ファイルをロードしました: %s.\n"
 
 #: src/cdrom/cdriso.cc:252
 #, c-format
@@ -35,11 +36,11 @@ msgstr ""
 #: src/cdrom/cdriso.cc:268
 #, c-format
 msgid "Loaded CD Image: %s"
-msgstr ""
+msgstr "読み込まれた CD イメージ: %s"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:463
 msgid "OpenGL GPU configuration"
-msgstr ""
+msgstr "OpenGL GPU 設定"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:467
 msgid "Polygon rendering mode"
@@ -47,43 +48,43 @@ msgstr ""
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:478 src/core/OpenGL_GPU/gpu_opengl.cc:483
 msgid "No MSAA"
-msgstr ""
+msgstr "MSAA なし"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:478
 msgid "{}x MSAA"
-msgstr ""
+msgstr "{}x MSAA"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:480
 msgid "MSAA"
-msgstr ""
+msgstr "MSAA"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:498 src/gpu/soft/gpu.cc:261
 msgid "Use linear filtering"
-msgstr ""
+msgstr "リニアフィルタリングを使用"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:511
 msgid "OpenGL GPU Debugger"
-msgstr ""
+msgstr "OpenGL GPU デバッガー"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:517
 #, c-format
 msgid "Display horizontal range: %d-%d"
-msgstr ""
+msgstr "水平表示範囲: %d-%d"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:518
 #, c-format
 msgid "Display vertical range: %d-%d"
-msgstr ""
+msgstr "垂直表示範囲: %d-%d"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:519
 #, c-format
 msgid "Drawing area offset: (%d, %d)"
-msgstr ""
+msgstr "描画領域オフセット: (%d, %d)"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:520
 #, c-format
 msgid "Resolution: %dx%d"
-msgstr ""
+msgstr "解像度: %dx%d"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:522
 msgid "Clear colour"
@@ -91,12 +92,12 @@ msgstr ""
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:523
 msgid "Clear VRAM"
-msgstr ""
+msgstr "VRAM をクリア"
 
 #: src/core/cdrom.cc:1708
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
-msgstr ""
+msgstr "CD-ROM ラベル: %.32s\n"
 
 #: src/core/cdrom.cc:1709
 #, c-format
@@ -106,7 +107,7 @@ msgstr ""
 #: src/core/cdrom.cc:1710
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
-msgstr ""
+msgstr "CD-ROM EXE 名: %.255s\n"
 
 #: src/core/debug.cc:89
 msgid "Execution map"
@@ -138,20 +139,20 @@ msgstr ""
 
 #: src/core/debug.cc:170
 msgid "Step in"
-msgstr ""
+msgstr "ステップイン"
 
 #: src/core/debug.cc:178 src/gui/widgets/assembly.cc:454
 #: src/gui/widgets/assembly.cc:531
 msgid "Step Over"
-msgstr ""
+msgstr "ステップオーバー"
 
 #: src/core/debug.cc:186
 msgid "Step over"
-msgstr ""
+msgstr "ステップオーバー"
 
 #: src/core/debug.cc:192
 msgid "Step out (no callstack)"
-msgstr ""
+msgstr "ステップアウト (コールスタックなし)"
 
 #: src/core/debug.cc:219
 #, c-format
@@ -161,7 +162,7 @@ msgstr ""
 #: src/core/debug.cc:319 src/gui/widgets/assembly.cc:455
 #: src/gui/widgets/assembly.cc:533
 msgid "Step Out"
-msgstr ""
+msgstr "ステップアウト"
 
 #: src/core/debug.h:37
 msgid "Exec"
@@ -177,15 +178,15 @@ msgstr ""
 
 #: src/core/gdb-server.cc:604
 msgid "GDB client"
-msgstr ""
+msgstr "GDB クライアント"
 
 #: src/core/gpu.cc:1037 src/core/gpu.cc:1122
 msgid "Shading: Flat"
-msgstr ""
+msgstr "シェーディング: フラット"
 
 #: src/core/gpu.cc:1041 src/core/gpu.cc:1126
 msgid "Shading: Gouraud"
-msgstr ""
+msgstr "シェーディング: グーロー"
 
 #: src/core/gpu.cc:1045
 msgid "Textured"
@@ -292,7 +293,7 @@ msgstr ""
 
 #: src/core/gpulogger.cc:355
 msgid "FIFO Query"
-msgstr ""
+msgstr "FIFO クエリ"
 
 #: src/core/gpulogger.cc:358
 msgid "DMA Read"
@@ -300,7 +301,7 @@ msgstr ""
 
 #: src/core/gpulogger.cc:361
 msgid "DMA Write"
-msgstr ""
+msgstr "DMA 書き込み"
 
 #: src/core/gpulogger.cc:371
 msgid "Horizontal resolution:"
@@ -322,11 +323,11 @@ msgstr ""
 
 #: src/core/gpulogger.cc:405
 msgid "15 bits"
-msgstr ""
+msgstr "15 ビット"
 
 #: src/core/gpulogger.cc:405
 msgid "24 bits"
-msgstr ""
+msgstr "24 ビット"
 
 #: src/core/gpulogger.cc:405
 #, c-format
@@ -365,12 +366,12 @@ msgstr ""
 
 #: src/core/memorycard.cc:367 src/core/memorycard.cc:385
 msgid "Error reading memory card."
-msgstr ""
+msgstr "メモリーカードの読み取り中にエラーが発生しました。"
 
 #: src/core/memorycard.cc:370
 #, c-format
 msgid "Memory card %s failed to load!\n"
-msgstr ""
+msgstr "メモリーカード %s の読み込みに失敗しました!\n"
 
 #: src/core/memorycard.cc:374
 #, c-format
@@ -393,11 +394,11 @@ msgstr "コントローラー設定"
 
 #: src/core/pad.cc:904
 msgid "Pad 1"
-msgstr ""
+msgstr "コントローラー 1"
 
 #: src/core/pad.cc:905
 msgid "Pad 2"
-msgstr ""
+msgstr "コントローラー 2"
 
 #: src/core/pad.cc:908
 msgid "Rescan gamepads and re-read game controllers database"
@@ -405,11 +406,11 @@ msgstr ""
 
 #: src/core/pad.cc:914
 msgid "Use raw input for mouse"
-msgstr ""
+msgstr "マウスに raw 入力を使用"
 
 #: src/core/pad.cc:916
 msgid "When enabled, the cursor will be hidden and captured when the emulator is running. This is useful for games that require mouse input."
-msgstr ""
+msgstr "有効にすると、エミュレーターの実行中にマウスカーソルが非表示になり、キャプチャされます。マウス入力が必要なゲームに便利です。"
 
 #: src/core/pad.cc:918
 msgid "Allow mouse capture toggle"
@@ -421,7 +422,7 @@ msgstr ""
 
 #: src/core/pad.cc:922
 msgid "Pad"
-msgstr ""
+msgstr "コントローラー"
 
 #: src/core/pad.cc:931
 msgid "Set defaults"
@@ -429,143 +430,143 @@ msgstr ""
 
 #: src/core/pad.cc:946
 msgid "Keyboard Up"
-msgstr ""
+msgstr "キーボード 上"
 
 #: src/core/pad.cc:948
 msgid "Keyboard Right"
-msgstr ""
+msgstr "キーボード 右"
 
 #: src/core/pad.cc:950
 msgid "Keyboard Down"
-msgstr ""
+msgstr "キーボード 下"
 
 #: src/core/pad.cc:952
 msgid "Keyboard Left"
-msgstr ""
+msgstr "キーボード 左"
 
 #: src/core/pad.cc:954
 msgid "Keyboard Backspace"
-msgstr ""
+msgstr "キーボード Backspace"
 
 #: src/core/pad.cc:956
 msgid "Keyboard Enter"
-msgstr ""
+msgstr "キーボード Enter"
 
 #: src/core/pad.cc:958
 msgid "Keyboard Space"
-msgstr ""
+msgstr "キーボード スペース"
 
 #: src/core/pad.cc:960
 msgid "Keyboard Escape"
-msgstr ""
+msgstr "キーボード Esc"
 
 #: src/core/pad.cc:962
 msgid "Unbound"
-msgstr ""
+msgstr "未割り当て"
 
 #: src/core/pad.cc:967
 msgid "Unknown keyboard key {}"
-msgstr ""
+msgstr "不明なキーボードキー {}"
 
 #: src/core/pad.cc:972
 msgid "Keyboard {}"
-msgstr ""
+msgstr "キーボード {}"
 
 #: src/core/pad.cc:987 src/gui/gui.cc:1969
 msgid "Auto"
-msgstr ""
+msgstr "オート"
 
 #: src/core/pad.cc:988
 msgid "Controller"
-msgstr ""
+msgstr "コントローラー"
 
 #: src/core/pad.cc:989
 msgid "Keyboard"
-msgstr ""
+msgstr "キーボード"
 
 #: src/core/pad.cc:992
 msgid "Cross"
-msgstr ""
+msgstr "✕"
 
 #: src/core/pad.cc:992
 msgid "Square"
-msgstr ""
+msgstr "□"
 
 #: src/core/pad.cc:992
 msgid "Triangle"
-msgstr ""
+msgstr "△"
 
 #: src/core/pad.cc:993
 msgid "Circle"
-msgstr ""
+msgstr "◯"
 
 #: src/core/pad.cc:993
 msgid "Select"
-msgstr ""
+msgstr "SELECT"
 
 #: src/core/pad.cc:993 src/gui/widgets/isobrowser.cc:149
 msgid "Start"
-msgstr ""
+msgstr "START"
 
 #: src/core/pad.cc:994
 msgid "L1"
-msgstr ""
+msgstr "L1ボタン"
 
 #: src/core/pad.cc:994
 msgid "L2"
-msgstr ""
+msgstr "L2ボタン"
 
 #: src/core/pad.cc:994
 msgid "R1"
-msgstr ""
+msgstr "R1ボタン"
 
 #: src/core/pad.cc:995
 msgid "L3"
-msgstr ""
+msgstr "L3ボタン"
 
 #: src/core/pad.cc:995
 msgid "R2"
-msgstr ""
+msgstr "R2ボタン"
 
 #: src/core/pad.cc:995
 msgid "R3"
-msgstr ""
+msgstr "R3ボタン"
 
 #: src/core/pad.cc:996
 msgid "Analog Mode"
-msgstr ""
+msgstr "アナログモード"
 
 #: src/core/pad.cc:999
 msgid "Up"
-msgstr ""
+msgstr "上"
 
 #: src/core/pad.cc:1000
 msgid "Right"
-msgstr ""
+msgstr "右"
 
 #: src/core/pad.cc:1001
 msgid "Down"
-msgstr ""
+msgstr "下"
 
 #: src/core/pad.cc:1002
 msgid "Left"
-msgstr ""
+msgstr "左"
 
 #: src/core/pad.cc:1005
 msgid "Digital"
-msgstr ""
+msgstr "デジタル"
 
 #: src/core/pad.cc:1006
 msgid "Analog"
-msgstr ""
+msgstr "アナログ"
 
 #: src/core/pad.cc:1007
 msgid "Mouse"
-msgstr ""
+msgstr "マウス"
 
 #: src/core/pad.cc:1008
 msgid "Negcon (Unimplemented)"
-msgstr ""
+msgstr "ネジコン (未実装)"
 
 #: src/core/pad.cc:1009
 msgid "Gun (Unimplemented)"
@@ -573,35 +574,35 @@ msgstr ""
 
 #: src/core/pad.cc:1010
 msgid "Guncon (Unimplemented"
-msgstr ""
+msgstr "ガンコン (未実装)"
 
 #: src/core/pad.cc:1014 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
-msgstr ""
+msgstr "接続済み"
 
 #: src/core/pad.cc:1023
 msgid "Analog mode"
-msgstr ""
+msgstr "アナログモード"
 
 #: src/core/pad.cc:1031
 msgid "Controller Type"
-msgstr ""
+msgstr "コントローラーの種類"
 
 #: src/core/pad.cc:1047
 msgid "Device type"
-msgstr ""
+msgstr "デバイスの種類"
 
 #: src/core/pad.cc:1058
 msgid "Mouse sensitivity X"
-msgstr ""
+msgstr "マウス感度 X"
 
 #: src/core/pad.cc:1060
 msgid "Mouse sensitivity Y"
-msgstr ""
+msgstr "マウス感度 Y"
 
 #: src/core/pad.cc:1062
 msgid "Keyboard mapping"
-msgstr ""
+msgstr "キーボードの割り当て"
 
 #: src/core/pad.cc:1064
 msgid "Computer button mapping"
@@ -609,7 +610,7 @@ msgstr ""
 
 #: src/core/pad.cc:1065
 msgid "Gamepad button"
-msgstr ""
+msgstr "コントローラーのボタン"
 
 #: src/core/pad.cc:1115
 msgid "No gamepad selected or connected"
@@ -617,7 +618,7 @@ msgstr ""
 
 #: src/core/pad.cc:1132
 msgid "Gamepad"
-msgstr ""
+msgstr "コントローラー"
 
 #: src/core/pio-cart.cc:214
 #, c-format
@@ -700,7 +701,7 @@ msgstr ""
 
 #: src/core/psxmem.cc:103
 msgid "Error allocating memory!"
-msgstr ""
+msgstr "メモリ割り当てエラー!"
 
 #: src/core/psxmem.cc:135
 #, c-format
@@ -717,7 +718,10 @@ msgid "\n"
 "                   No BIOS loaded, emulation halted.\n\n"
 "Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
-msgstr ""
+msgstr "\n"
+"                   BIOSが読み込まれていないため、エミュレーションを中断しました。\n\n"
+"設定からBIOSファイルを指定し、ハードリセットしてください。\n"
+"配布されている OpenBIOS.bin は適切なBIOSの代わりになります。\n"
 
 #: src/core/psxmem.cc:200
 #, c-format
@@ -738,17 +742,17 @@ msgstr ""
 #: src/core/psxmem.cc:237
 #, c-format
 msgid "Known BIOS detected: %s (%08x)\n"
-msgstr ""
+msgstr "既知の BIOS が検出されました: %s (%08x)\n"
 
 #: src/core/psxmem.cc:239
 #, c-format
 msgid "OpenBIOS detected (%08x)\n"
-msgstr ""
+msgstr "OpenBIOSが検出されました (%08x)\n"
 
 #: src/core/psxmem.cc:241
 #, c-format
 msgid "Unknown bios loaded (%08x)\n"
-msgstr ""
+msgstr "不明な BIOS が読み込まれました (%08x)\n"
 
 #: src/core/psxmem.cc:276
 #, c-format
@@ -827,15 +831,15 @@ msgstr ""
 
 #: src/core/sio.cc:367
 msgid "Wrong block number"
-msgstr ""
+msgstr "不正なブロック番号"
 
 #: src/core/sio1-server.cc:126
 msgid "SIO1 client disconnected\n"
-msgstr ""
+msgstr "SIO1 クライアントが切断されました"
 
 #: src/core/sio1.cc:74
 msgid "SIO1 client connected\n"
-msgstr ""
+msgstr "SIO1 クライアントが接続されました"
 
 #: src/core/sio1.cc:90
 msgid "SIO1 TCP session closing due to unreliable connection.\n"
@@ -848,7 +852,7 @@ msgstr ""
 
 #: src/gpu/soft/gpu.cc:243
 msgid "No dithering (fastest)"
-msgstr ""
+msgstr "ディザリングなし (最速)"
 
 #: src/gpu/soft/gpu.cc:244
 msgid "Always dither g-shaded polygons (slowest)"
@@ -856,23 +860,23 @@ msgstr ""
 
 #: src/gpu/soft/gpu.cc:246
 msgid "Soft GPU configuration"
-msgstr ""
+msgstr "ソフトウェア GPU 設定"
 
 #: src/gpu/soft/gpu.cc:247
 msgid "Dithering"
-msgstr ""
+msgstr "ディザリング"
 
 #: src/gpu/soft/gpu.cc:252
 msgid "Use cached dithering tables"
-msgstr ""
+msgstr "キャッシュ済みディザリングテーブルを使用"
 
 #: src/gpu/soft/gpu.cc:258
 msgid "Dithering tables are cached in memory for faster processing. Dithering will be done much faster, at the cost of a 512MB cache."
-msgstr ""
+msgstr "より高速な処理のために、ディザリングテーブルをメモリにキャッシュします。512 MBのキャッシュを消費する代わりに、ディザリングがはるかに高速に行われるようになります。"
 
 #: src/gpu/soft/gpu.cc:273
 msgid "Soft GPU debugger"
-msgstr ""
+msgstr "ソフト GPU デバッガー"
 
 #: src/gpu/soft/gpu.cc:275
 msgid "Debugging features are not supported when using the software renderer yet\n"
@@ -913,19 +917,19 @@ msgstr ""
 
 #: src/gui/gui.cc:686
 msgid "Parallel Port"
-msgstr ""
+msgstr "パラレルポート"
 
 #: src/gui/gui.cc:687
 msgid "Scratch Pad"
-msgstr ""
+msgstr "スクラッチパッド"
 
 #: src/gui/gui.cc:688
 msgid "Hardware Registers"
-msgstr ""
+msgstr "ハードウェアレジスタ"
 
 #: src/gui/gui.cc:689
 msgid "BIOS"
-msgstr ""
+msgstr "BIOS"
 
 #: src/gui/gui.cc:690
 msgid "VRAM"
@@ -933,30 +937,30 @@ msgstr ""
 
 #: src/gui/gui.cc:1030
 msgid "Output"
-msgstr ""
+msgstr "出力"
 
 #: src/gui/gui.cc:1055 src/gui/widgets/assembly.cc:442
 #: src/gui/widgets/isobrowser.cc:66 src/gui/widgets/memcard_manager.cc:63
 #: src/gui/widgets/vram-viewer.cc:482
 msgid "File"
-msgstr ""
+msgstr "ファイル"
 
 #: src/gui/gui.cc:1056 src/gui/gui.h:377 src/gui/widgets/isobrowser.cc:67
 #: src/gui/widgets/isobrowser.h:50
 msgid "Open Disk Image"
-msgstr ""
+msgstr "ディスクイメージを開く"
 
 #: src/gui/gui.cc:1057 src/gui/widgets/isobrowser.cc:68
 msgid "Close Disk Image"
-msgstr ""
+msgstr "ディスクイメージを閉じる"
 
 #: src/gui/gui.cc:1061
 msgid "Load binary"
-msgstr ""
+msgstr "バイナリファイル読み込み"
 
 #: src/gui/gui.cc:1064
 msgid "Add Lua archive"
-msgstr ""
+msgstr "Lua アーカイブを追加"
 
 #: src/gui/gui.cc:1068
 msgid "Dump save state proto schema"
@@ -968,19 +972,19 @@ msgstr ""
 
 #: src/gui/gui.cc:1075
 msgid "Save state slots"
-msgstr ""
+msgstr "セーブステート"
 
 #: src/gui/gui.cc:1076
 msgid "Quick-save slot"
-msgstr ""
+msgstr "クイックセーブスロット"
 
 #: src/gui/gui.cc:1081 src/gui/gui.cc:1102
 msgid "Slot {}"
-msgstr ""
+msgstr "スロット {}"
 
 #: src/gui/gui.cc:1088
 msgid "Show named save states"
-msgstr ""
+msgstr "名前付きセーブステートを表示"
 
 #: src/gui/gui.cc:1093
 msgid "Save global state"
@@ -988,11 +992,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1095
 msgid "Load state slots"
-msgstr ""
+msgstr "ロードステート"
 
 #: src/gui/gui.cc:1098
 msgid "Quick-load slot"
-msgstr ""
+msgstr "クイックロードスロット"
 
 #: src/gui/gui.cc:1123
 msgid "Load global state"
@@ -1012,11 +1016,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1140
 msgid "Reboot"
-msgstr ""
+msgstr "再起動"
 
 #: src/gui/gui.cc:1143
 msgid "Quit"
-msgstr ""
+msgstr "終了"
 
 #: src/gui/gui.cc:1149 src/gui/gui.cc:1166
 msgid "Emulation"
@@ -1028,15 +1032,15 @@ msgstr "エミュレーション開始"
 
 #: src/gui/gui.cc:1153
 msgid "Pause emulation"
-msgstr ""
+msgstr "エミュレーション一時停止"
 
 #: src/gui/gui.cc:1156
 msgid "Soft Reset"
-msgstr ""
+msgstr "ソフトリセット"
 
 #: src/gui/gui.cc:1159
 msgid "Hard Reset"
-msgstr ""
+msgstr "ハードリセット"
 
 #: src/gui/gui.cc:1165 src/gui/widgets/vram-viewer.cc:520
 msgid "Configuration"
@@ -1044,7 +1048,7 @@ msgstr "設定"
 
 #: src/gui/gui.cc:1167
 msgid "Manage Memory Cards"
-msgstr ""
+msgstr "メモリーカード管理"
 
 #: src/gui/gui.cc:1170 src/gui/gui.cc:1270
 msgid "GPU"
@@ -1056,27 +1060,27 @@ msgstr ""
 
 #: src/gui/gui.cc:1172
 msgid "UI"
-msgstr ""
+msgstr "インターフェイス"
 
 #: src/gui/gui.cc:1173
 msgid "System"
-msgstr ""
+msgstr "システム"
 
 #: src/gui/gui.cc:1174
 msgid "Controls"
-msgstr ""
+msgstr "コントローラー設定"
 
 #: src/gui/gui.cc:1175
 msgid "Shader presets"
-msgstr ""
+msgstr "シェーダープリセット"
 
 #: src/gui/gui.cc:1176
 msgid "Default shader"
-msgstr ""
+msgstr "デフォルトシェーダー"
 
 #: src/gui/gui.cc:1179
 msgid "CRT-lottes shader"
-msgstr ""
+msgstr "CRT-lottes シェーダー"
 
 #: src/gui/gui.cc:1206
 msgid "Configure Shaders"
@@ -1084,31 +1088,31 @@ msgstr "シェーダー設定"
 
 #: src/gui/gui.cc:1210
 msgid "PIO Cartridge"
-msgstr ""
+msgstr "パラレルポート カートリッジ"
 
 #: src/gui/gui.cc:1214 src/gui/widgets/assembly.cc:449
 msgid "Debug"
-msgstr ""
+msgstr "デバッグ"
 
 #: src/gui/gui.cc:1215
 msgid "Show Logs"
-msgstr ""
+msgstr "ログを表示"
 
 #: src/gui/gui.cc:1216
 msgid "Lua"
-msgstr ""
+msgstr "Lua"
 
 #: src/gui/gui.cc:1217
 msgid "Show Lua Console"
-msgstr ""
+msgstr "Lua コンソールを表示"
 
 #: src/gui/gui.cc:1218
 msgid "Show Lua Inspector"
-msgstr ""
+msgstr "Lua インスペクターを表示"
 
 #: src/gui/gui.cc:1219
 msgid "Show Lua editor"
-msgstr ""
+msgstr "Lua エディターを表示"
 
 #: src/gui/gui.cc:1223
 msgid "CPU"
@@ -1116,15 +1120,15 @@ msgstr ""
 
 #: src/gui/gui.cc:1224
 msgid "Show Registers"
-msgstr ""
+msgstr "レジスタを表示"
 
 #: src/gui/gui.cc:1225
 msgid "Show Assembly"
-msgstr ""
+msgstr "アセンブリを表示"
 
 #: src/gui/gui.cc:1227 src/gui/gui.cc:1229
 msgid "Show DynaRec Disassembly"
-msgstr ""
+msgstr "DynaRec 逆アセンブリを表示"
 
 #: src/gui/gui.cc:1231
 msgid "DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
@@ -1133,11 +1137,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1234
 msgid "Show Breakpoints"
-msgstr ""
+msgstr "ブレークポイントを表示"
 
 #: src/gui/gui.cc:1235
 msgid "Show Callstacks"
-msgstr ""
+msgstr "コールスタックを表示"
 
 #: src/gui/gui.cc:1236
 msgid "Memory Editors"
@@ -1145,7 +1149,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1247
 msgid "Show Memory Observer"
-msgstr ""
+msgstr "メモリオブザーバを表示"
 
 #: src/gui/gui.cc:1248
 msgid "Show Typed Debugger"
@@ -1161,19 +1165,19 @@ msgstr ""
 
 #: src/gui/gui.cc:1271
 msgid "VRAM viewers"
-msgstr ""
+msgstr "VRAM ビューアー"
 
 #: src/gui/gui.cc:1272
 msgid "Show main VRAM viewer"
-msgstr ""
+msgstr "メイン VRAM ビューアを表示"
 
 #: src/gui/gui.cc:1273
 msgid "Show CLUT VRAM viewer"
-msgstr ""
+msgstr "CLUT VRAM ビューアを表示"
 
 #: src/gui/gui.cc:1276
 msgid "Show VRAM viewer #"
-msgstr ""
+msgstr "VRAM ビューアを表示 #"
 
 #: src/gui/gui.cc:1282
 msgid "Show GPU logger"
@@ -1181,15 +1185,15 @@ msgstr ""
 
 #: src/gui/gui.cc:1283
 msgid "Show GPU debug"
-msgstr ""
+msgstr "GPU デバッグを表示"
 
 #: src/gui/gui.cc:1287
 msgid "Show SPU debug"
-msgstr ""
+msgstr "SPU デバッグを表示"
 
 #: src/gui/gui.cc:1290
 msgid "CD-Rom"
-msgstr ""
+msgstr "CD-ROM"
 
 #: src/gui/gui.cc:1291
 msgid "Show Iso Browser"
@@ -1197,7 +1201,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1294
 msgid "Misc hardware"
-msgstr ""
+msgstr "その他のハードウェア"
 
 #: src/gui/gui.cc:1295
 msgid "Show SIO1 debug"
@@ -1205,31 +1209,31 @@ msgstr ""
 
 #: src/gui/gui.cc:1299
 msgid "Kernel"
-msgstr ""
+msgstr "カーネル"
 
 #: src/gui/gui.cc:1300
 msgid "Kernel Events"
-msgstr ""
+msgstr "カーネルイベント"
 
 #: src/gui/gui.cc:1301
 msgid "Kernel Handlers"
-msgstr ""
+msgstr "カーネルハンドラ"
 
 #: src/gui/gui.cc:1302 src/gui/gui.cc:1448
 msgid "Kernel Calls"
-msgstr ""
+msgstr "カーネル呼び出し"
 
 #: src/gui/gui.cc:1305
 msgid "Rendering"
-msgstr ""
+msgstr "レンダリング"
 
 #: src/gui/gui.cc:1306
 msgid "Full window render"
-msgstr ""
+msgstr "ウィンドウ全体にレンダリング"
 
 #: src/gui/gui.cc:1309
 msgid "Fullscreen"
-msgstr ""
+msgstr "全画面表示"
 
 #: src/gui/gui.cc:1313
 msgid "Show Output Shader Editor"
@@ -1241,23 +1245,23 @@ msgstr ""
 
 #: src/gui/gui.cc:1315
 msgid "Reset shaders"
-msgstr ""
+msgstr "シェーダーをリセット"
 
 #: src/gui/gui.cc:1323
 msgid "Help"
-msgstr ""
+msgstr "ヘルプ"
 
 #: src/gui/gui.cc:1324
 msgid "Show ImGui Demo"
-msgstr ""
+msgstr "ImGui のデモを表示"
 
 #: src/gui/gui.cc:1326
 msgid "Show UvFile information"
-msgstr ""
+msgstr "UvFile 情報を表示"
 
 #: src/gui/gui.cc:1328 src/gui/gui.cc:2238
 msgid "About"
-msgstr ""
+msgstr "このアプリについて"
 
 #: src/gui/gui.cc:1333
 #, c-format
@@ -1267,7 +1271,7 @@ msgstr ""
 #: src/gui/gui.cc:1335 src/gui/widgets/isobrowser.cc:102
 #, c-format
 msgid "GAME ID: %s"
-msgstr ""
+msgstr "ゲームID: %s"
 
 #: src/gui/gui.cc:1338
 #, c-format
@@ -1277,35 +1281,35 @@ msgstr ""
 #: src/gui/gui.cc:1341
 #, c-format
 msgid "%.2f ms audio buffer (%i frames)"
-msgstr ""
+msgstr "%.2fms オーディオバッファ (%i フレーム)"
 
 #: src/gui/gui.cc:1343
 msgid "Idle"
-msgstr ""
+msgstr "アイドル"
 
 #: src/gui/gui.cc:1424
 msgid "Logs"
-msgstr ""
+msgstr "ログ"
 
 #: src/gui/gui.cc:1430
 msgid "Lua Console"
-msgstr ""
+msgstr "Lua コンソール"
 
 #: src/gui/gui.cc:1436
 msgid "Lua Inspector"
-msgstr ""
+msgstr "Lua インスペクター"
 
 #: src/gui/gui.cc:1439
 msgid "Lua Editor"
-msgstr ""
+msgstr "Lua エディター"
 
 #: src/gui/gui.cc:1442
 msgid "Kernel events"
-msgstr ""
+msgstr "カーネルイベント"
 
 #: src/gui/gui.cc:1445
 msgid "Kernel handlers"
-msgstr ""
+msgstr "カーネルハンドラ"
 
 #: src/gui/gui.cc:1451
 msgid "Callstacks"
@@ -1313,29 +1317,29 @@ msgstr ""
 
 #: src/gui/gui.cc:1500
 msgid "Memory Card Manager"
-msgstr ""
+msgstr "メモリーカードマネージャー"
 
 #: src/gui/gui.cc:1504 src/gui/widgets/registers.cc:65
 msgid "Registers"
-msgstr ""
+msgstr "レジスタ"
 
 #: src/gui/gui.cc:1508
 msgid "Assembly"
-msgstr ""
+msgstr "アセンブリ"
 
 #: src/gui/gui.cc:1512
 msgid "DynaRec Disassembler"
-msgstr ""
+msgstr "DynaRec 逆アセンブラ"
 
 #: src/gui/gui.cc:1516 src/gui/widgets/breakpoints.cc:81
 #: src/gui/widgets/typed_debugger.cc:864 src/gui/widgets/typed_debugger.cc:910
 #: src/gui/widgets/typed_debugger.cc:963
 msgid "Breakpoints"
-msgstr ""
+msgstr "ブレークポイント"
 
 #: src/gui/gui.cc:1520
 msgid "Named Save States"
-msgstr ""
+msgstr "名前付きセーブステート"
 
 #: src/gui/gui.cc:1524 src/gui/widgets/memory_observer.cc:382
 #: src/gui/widgets/memory_observer.cc:388
@@ -1348,7 +1352,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1534
 msgid "Output Video"
-msgstr ""
+msgstr "ビデオ出力"
 
 #: src/gui/gui.cc:1539
 msgid "Offscreen Render"
@@ -1372,27 +1376,27 @@ msgstr ""
 
 #: src/gui/gui.cc:1566
 msgid "UI Configuration"
-msgstr ""
+msgstr "インターフェイス設定"
 
 #: src/gui/gui.cc:1572
 msgid "Locale"
-msgstr ""
+msgstr "言語"
 
 #: src/gui/gui.cc:1587
 msgid "Reload locales"
-msgstr ""
+msgstr "言語の再読み込み"
 
 #: src/gui/gui.cc:1592
 msgid "Main Font Size"
-msgstr ""
+msgstr "メインフォントサイズ"
 
 #: src/gui/gui.cc:1593
 msgid "Mono Font Size"
-msgstr ""
+msgstr "等幅フォントサイズ"
 
 #: src/gui/gui.cc:1595
 msgid "Use Widescreen Aspect Ratio"
-msgstr ""
+msgstr "ワイドスクリーンアスペクト比を使用"
 
 #: src/gui/gui.cc:1596
 msgid "Sets the output screen ratio to 16:9 instead of 4:3.\n\n"
@@ -1408,15 +1412,15 @@ msgstr ""
 
 #: src/gui/gui.cc:1615
 msgid "System Configuration"
-msgstr ""
+msgstr "システム設定"
 
 #: src/gui/gui.cc:1617
 msgid "Preload Disk Image files"
-msgstr ""
+msgstr "ディスクイメージファイルを事前に読み込む"
 
 #: src/gui/gui.cc:1618
 msgid "Enable Auto Update"
-msgstr ""
+msgstr "自動更新を有効にする"
 
 #: src/gui/gui.cc:1625
 msgid "Update configuration"
@@ -1437,7 +1441,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1639
 msgid "Enable auto update"
-msgstr ""
+msgstr "自動更新を有効化"
 
 #: src/gui/gui.cc:1645
 msgid "No thanks"
@@ -1445,7 +1449,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1654
 msgid "Update available"
-msgstr ""
+msgstr "更新が利用できます"
 
 #: src/gui/gui.cc:1656
 msgid "An update is available.\n"
@@ -1463,11 +1467,17 @@ msgid "An update is available.\n"
 "PCSX-Redux will quit once the update is downloaded.\n\n"
 "Click 'Download' to use your browser to download\n"
 "the update and manually apply it."
-msgstr ""
+msgstr "アップデートが可能です。\n"
+"更新をクリックしてダウンロードしてください。アップデートをダウンロードできますが\n"
+"自動的に適用されるわけではありません。\n"
+"そのため手動でインストールする必要があります。\n"
+"アップデートのダウンロードが完了すると、PCSX-Reduxは終了します。\n\n"
+"更新をクリックし、ブラウザーを用いてアップデートをダウンロードし\n"
+"手動で適用してください。"
 
 #: src/gui/gui.cc:1674
 msgid "Update"
-msgstr ""
+msgstr "更新"
 
 #: src/gui/gui.cc:1686 src/gui/gui.cc:1691
 msgid "An error has occured while downloading\n"
@@ -1476,7 +1486,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1697
 msgid "Download"
-msgstr ""
+msgstr "ダウンロード"
 
 #: src/gui/gui.cc:1707
 msgid "An error has occured while downloading the update."
@@ -1490,7 +1500,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1722
 msgid "UvFiles"
-msgstr ""
+msgstr "UvFiles"
 
 #: src/gui/gui.cc:1725
 #, c-format
@@ -1513,11 +1523,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1732 src/gui/widgets/memcard_manager.cc:206
 msgid "Filename"
-msgstr ""
+msgstr "ファイル名"
 
 #: src/gui/gui.cc:1919
 msgid "Emulation Configuration"
-msgstr ""
+msgstr "エミュレーション設定"
 
 #: src/gui/gui.cc:1920
 msgid "Idle Swap Interval"
@@ -1525,27 +1535,27 @@ msgstr ""
 
 #: src/gui/gui.cc:1925
 msgid "Reset Scaler"
-msgstr ""
+msgstr "倍率のリセット"
 
 #: src/gui/gui.cc:1931
 msgid "Speed Scaler"
-msgstr ""
+msgstr "速度倍率"
 
 #: src/gui/gui.cc:1933
 msgid "Enable XA decoder"
-msgstr ""
+msgstr "XA デコーダーを有効にする"
 
 #: src/gui/gui.cc:1934
 msgid "Always enable SPU IRQ"
-msgstr ""
+msgstr "SPU IRQを常時有効にする"
 
 #: src/gui/gui.cc:1935
 msgid "Decode MDEC videos in B&W"
-msgstr ""
+msgstr "MDEC ビデオを白黒でデコードする"
 
 #: src/gui/gui.cc:1936
 msgid "Dynarec CPU"
-msgstr ""
+msgstr "Dynarec CPU (動的リコンパイラ)"
 
 #: src/gui/gui.cc:1944
 msgid "Activates the dynamic recompiler CPU core.\n"
@@ -1554,21 +1564,21 @@ msgid "Activates the dynamic recompiler CPU core.\n"
 "Changing this setting requires a reboot to take effect.\n"
 "The dynarec core isn't available for all CPUs, so\n"
 "this setting may not have any effect for you."
-msgstr ""
+msgstr "CPU の動的リコンパイラを有効にします。インタプリタより大幅に高速化しますが、デバッガーがうまく動作しなくなります。設定を反映するには再起動が必要です。動的リコンパイラはすべての CPU で使用できるわけではないため、設定しても効果がない場合があります。"
 
 #: src/gui/gui.cc:1950
 msgid "8MB"
-msgstr ""
+msgstr "8MB"
 
 #: src/gui/gui.cc:1951
 msgid "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
 "with development binaries and games."
-msgstr ""
+msgstr "通常の2 MBの代わりにメモリが8 MBのシステムをエミュレーションします。開発用バイナリやゲームでの作業に有用です。"
 
 #: src/gui/gui.cc:1955
 msgid "OpenGL GPU *ALPHA STATE*"
-msgstr ""
+msgstr "OpenGL GPU *アルファ版*"
 
 #: src/gui/gui.cc:1956
 msgid "Enables the OpenGL GPU renderer.\n"
@@ -1576,7 +1586,8 @@ msgid "Enables the OpenGL GPU renderer.\n"
 "as it is not fully implemented yet. It is recommended\n"
 "to use the software renderer instead. Requires a restart\n"
 "when changing this setting."
-msgstr ""
+msgstr "OpenGL GPUレンダラーを有効にします。\n"
+"現時点では通常使用には非推奨です。代わりにソフトウェアレンダラーを使用してください。設定を反映するには再起動が必要です。"
 
 #: src/gui/gui.cc:1970
 msgid "NTSC"
@@ -1588,11 +1599,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1975
 msgid "System Type"
-msgstr ""
+msgstr "システムの種類"
 
 #: src/gui/gui.cc:1994
 msgid "Fast boot"
-msgstr ""
+msgstr "高速起動"
 
 #: src/gui/gui.cc:1995
 msgid "This will cause the BIOS to skip the shell,\n"
@@ -1603,11 +1614,11 @@ msgstr ""
 
 #: src/gui/gui.cc:2000
 msgid "BIOS file"
-msgstr ""
+msgstr "BIOS ファイル"
 
 #: src/gui/gui.cc:2004 src/gui/widgets/assembly.cc:507
 msgid "Enable Debugger"
-msgstr ""
+msgstr "デバッガーを有効にする"
 
 #: src/gui/gui.cc:2011
 msgid "This will enable the usage of various breakpoints\n"
@@ -1617,7 +1628,7 @@ msgstr ""
 
 #: src/gui/gui.cc:2014
 msgid "Enable GDB Server"
-msgstr ""
+msgstr "GDB サーバーを有効にする"
 
 #: src/gui/gui.cc:2023
 msgid "This will activate a gdb-server that you can\n"
@@ -1638,11 +1649,11 @@ msgstr ""
 
 #: src/gui/gui.cc:2035
 msgid "PCSX Logs to GDB"
-msgstr ""
+msgstr "GDB に PCSX ログを記録"
 
 #: src/gui/gui.cc:2051
 msgid "GDB Server Port"
-msgstr ""
+msgstr "GDB サーバーポート"
 
 #: src/gui/gui.cc:2053
 msgid "GDB Server Trace"
@@ -1656,7 +1667,7 @@ msgstr ""
 
 #: src/gui/gui.cc:2057
 msgid "Enable Web Server"
-msgstr ""
+msgstr "Web サーバーを有効にする"
 
 #: src/gui/gui.cc:2066
 msgid "This will activate a web-server, that you can\n"
@@ -1666,11 +1677,11 @@ msgstr ""
 
 #: src/gui/gui.cc:2070
 msgid "Web Server Port"
-msgstr ""
+msgstr "Web サーバーのポート"
 
 #: src/gui/gui.cc:2071
 msgid "Enable SIO1 Server"
-msgstr ""
+msgstr "SIO1 サーバーを有効にする"
 
 #: src/gui/gui.cc:2080
 msgid "This will activate a tcp server, that will\n"
@@ -1680,11 +1691,11 @@ msgstr ""
 
 #: src/gui/gui.cc:2084
 msgid "SIO1 Server Port"
-msgstr ""
+msgstr "SIO1 サーバーポート"
 
 #: src/gui/gui.cc:2085
 msgid "Enable SIO1 Client"
-msgstr ""
+msgstr "SIO1 クライアントを有効化"
 
 #: src/gui/gui.cc:2098
 msgid "This will activate a tcp client, that can connect\n"
@@ -1694,19 +1705,19 @@ msgstr ""
 
 #: src/gui/gui.cc:2102
 msgid "SIO1 Client Host"
-msgstr ""
+msgstr "SIO1 クライアントホスト"
 
 #: src/gui/gui.cc:2105
 msgid "SIO1 Client Port"
-msgstr ""
+msgstr "SIO1 クライアントポート"
 
 #: src/gui/gui.cc:2109
 msgid "Reset SIO"
-msgstr ""
+msgstr "SIO リセット"
 
 #: src/gui/gui.cc:2120
 msgid "Reconnect"
-msgstr ""
+msgstr "再接続"
 
 #: src/gui/gui.cc:2133
 msgid "SIO1Mode"
@@ -1718,57 +1729,58 @@ msgstr ""
 
 #: src/gui/gui.cc:2192
 msgid "Reset all"
-msgstr ""
+msgstr "全て初期状態に戻す"
 
 #: src/gui/gui.cc:2208
 msgid "Classic"
-msgstr ""
+msgstr "クラシック"
 
 #: src/gui/gui.cc:2208
 msgid "Default theme"
-msgstr ""
+msgstr "デフォルト"
 
 #: src/gui/gui.cc:2208
 msgid "Light"
-msgstr ""
+msgstr "ライト"
 
 #: src/gui/gui.cc:2209
 msgid "Cherry"
-msgstr ""
+msgstr "チェリー"
 
 #: src/gui/gui.cc:2209
 msgid "Dracula"
-msgstr ""
+msgstr "ドラキュラ"
 
 #: src/gui/gui.cc:2209 src/spu/cfg.cc:86
 msgid "Mono"
-msgstr ""
+msgstr "モノ"
 
 #: src/gui/gui.cc:2210
 msgid "Olive"
-msgstr ""
+msgstr "オリーブ"
 
 #: src/gui/gui.cc:2215
 msgid "Themes"
-msgstr ""
+msgstr "テーマ"
 
 #: src/gui/gui.cc:2246 src/gui/gui.cc:2320
 msgid "Version"
-msgstr ""
+msgstr "バージョン"
 
 #: src/gui/gui.cc:2251
 msgid "Copy to clipboard"
-msgstr ""
+msgstr "クリップボードにコピー"
 
 #: src/gui/gui.cc:2257
 msgid "No version information.\n\n"
 "Probably built from source."
-msgstr ""
+msgstr "バージョン情報がありません。\n\n"
+"おそらくソースからビルドされています。"
 
 #: src/gui/gui.cc:2259 src/gui/gui.cc:2337
 #, c-format
 msgid "Version: %s"
-msgstr ""
+msgstr "バージョン: %s"
 
 #: src/gui/gui.cc:2260
 #, c-format
@@ -1778,27 +1790,27 @@ msgstr ""
 #: src/gui/gui.cc:2263
 #, c-format
 msgid "Date & time: %s"
-msgstr ""
+msgstr "日時: %s"
 
 #: src/gui/gui.cc:2272
 msgid "Authors"
-msgstr ""
+msgstr "作者"
 
 #: src/gui/gui.cc:2280
 msgid "Licenses"
-msgstr ""
+msgstr "ライセンス"
 
 #: src/gui/gui.cc:2292
 msgid "OpenGL information"
-msgstr ""
+msgstr "OpenGL 情報"
 
 #: src/gui/gui.cc:2294
 msgid "OpenGL error reporting: enabled"
-msgstr ""
+msgstr "OpenGL エラーレポート: 無効"
 
 #: src/gui/gui.cc:2296
 msgid "OpenGL error reporting: disabled"
-msgstr ""
+msgstr "OpenGL エラーレポート: 無効"
 
 #: src/gui/gui.cc:2299
 msgid "OpenGL error reporting has been disabled because your OpenGL driver is too old. Error reporting requires at least OpenGL 4.3. Please update your graphics drivers, or contact your GPU vendor for up to date OpenGL drivers. Disabled OpenGL error reporting won't have a negative impact on the performance of this software, but user code such as the shader editor won't be able to properly report problems accurately."
@@ -1806,7 +1818,7 @@ msgstr ""
 
 #: src/gui/gui.cc:2307
 msgid "Enable OpenGL error reporting"
-msgstr ""
+msgstr "OpenGL エラーレポートを有効にする"
 
 #: src/gui/gui.cc:2310
 msgid "OpenGL error reporting is necessary for properly reporting OpenGL problems. However it requires OpenGL 4.3+ and might have performance repercussions on some computers. (Requires a restart of the emulator)"
@@ -1831,46 +1843,46 @@ msgstr ""
 
 #: src/gui/gui.cc:2318
 msgid "Vendor"
-msgstr ""
+msgstr "ベンダー"
 
 #: src/gui/gui.cc:2319
 msgid "Renderer"
-msgstr ""
+msgstr "レンダラー"
 
 #: src/gui/gui.cc:2321
 msgid "Shading language version"
-msgstr ""
+msgstr "シェーディング言語バージョン"
 
 #: src/gui/gui.cc:2324
 #, c-format
 msgid "Texture units: %d"
-msgstr ""
+msgstr "テクスチャユニット: %d"
 
 #: src/gui/gui.cc:2327
 msgid "Extensions:"
-msgstr ""
+msgstr "拡張:"
 
 #: src/gui/gui.cc:2336
 msgid "FFmpeg information"
-msgstr ""
+msgstr "FFmpeg 情報"
 
 #: src/gui/gui.cc:2338
 #, c-format
 msgid "License: %s"
-msgstr ""
+msgstr "ライセンス: %s"
 
 #: src/gui/gui.cc:2339
 #, c-format
 msgid "Configuration: %s"
-msgstr ""
+msgstr "ビルドオプション: %s"
 
 #: src/gui/gui.cc:2342
 msgid "List of supported formats:"
-msgstr ""
+msgstr "サポートされているフォーマットの一覧:"
 
 #: src/gui/gui.cc:2360
 msgid "List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"
-msgstr ""
+msgstr "サポートされているコーデックの一覧: (D: デコーダー、E: エンコーダー、L: 非可逆圧縮、S: ロスレス圧縮)"
 
 #: src/gui/gui.cc:2400
 #, c-format
@@ -1879,19 +1891,19 @@ msgstr ""
 
 #: src/gui/gui.h:253
 msgid "Ok"
-msgstr ""
+msgstr "OK"
 
 #: src/gui/gui.h:378
 msgid "Open Binary"
-msgstr ""
+msgstr "バイナリを開く"
 
 #: src/gui/gui.h:379
 msgid "Open Archive"
-msgstr ""
+msgstr "アーカイブを開く"
 
 #: src/gui/gui.h:380
 msgid "Select BIOS"
-msgstr ""
+msgstr "BIOS を選択"
 
 #: src/gui/gui.h:381 src/gui/widgets/pio-cart.h:36
 msgid "Select EXP1"
@@ -1899,7 +1911,7 @@ msgstr ""
 
 #: src/gui/gui.h:428
 msgid "Notification"
-msgstr ""
+msgstr "通知"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:53
 msgid "Offscreen CRT shader Configuration"
@@ -1907,7 +1919,7 @@ msgstr ""
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:59
 msgid "Enable gaussian blur"
-msgstr ""
+msgstr "ガウスぼかしを有効化"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:61
 msgid "Hard Pixel factor"
@@ -1919,7 +1931,7 @@ msgstr ""
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:65
 msgid "Enable Scanlines"
-msgstr ""
+msgstr "スキャンラインを有効化"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:67
 msgid "Use S-rgb"
@@ -1928,7 +1940,7 @@ msgstr ""
 #: src/gui/shaders/crt-lottes-offscreen.lua:70
 #: src/gui/shaders/crt-lottes-output.lua:83
 msgid "Reset to defaults"
-msgstr ""
+msgstr "初期設定に戻す"
 
 #: src/gui/shaders/crt-lottes-output.lua:58
 msgid "Output CRT Shader Configuration"
@@ -1944,23 +1956,23 @@ msgstr ""
 
 #: src/gui/shaders/crt-lottes-output.lua:68
 msgid "Greyscale"
-msgstr ""
+msgstr "白黒"
 
 #: src/gui/shaders/crt-lottes-output.lua:70
 msgid "Trinitron"
-msgstr ""
+msgstr "トリニトロン"
 
 #: src/gui/shaders/crt-lottes-output.lua:70
 msgid "Trinitron 2x"
-msgstr ""
+msgstr "トリニトロン 2x"
 
 #: src/gui/shaders/crt-lottes-output.lua:70
 msgid "Trio"
-msgstr ""
+msgstr "シャドーマスク"
 
 #: src/gui/shaders/crt-lottes-output.lua:72
 msgid "Mask type"
-msgstr ""
+msgstr "マスクの種類"
 
 #: src/gui/widgets/assembly.cc:443
 msgid "Load symbols map"
@@ -1972,22 +1984,22 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:450 src/gui/widgets/assembly.cc:525
 msgid "Pause"
-msgstr ""
+msgstr "一時停止"
 
 #: src/gui/widgets/assembly.cc:451 src/gui/widgets/assembly.cc:527
 #: src/gui/widgets/gpulogger.cc:47
 msgid "Resume"
-msgstr ""
+msgstr "再開"
 
 #: src/gui/widgets/assembly.cc:453 src/gui/widgets/assembly.cc:529
 msgid "Step In"
-msgstr ""
+msgstr "ステップイン"
 
 #. Options, Filter
 #: src/gui/widgets/assembly.cc:459 src/gui/widgets/console.cc:53
 #: src/gui/widgets/dynarec_disassembly.cc:106
 msgid "Options"
-msgstr ""
+msgstr "オプション"
 
 #: src/gui/widgets/assembly.cc:460
 msgid "Combined pseudo-instructions"
@@ -2011,7 +2023,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:485
 msgid "Add a small visible notch to indicate instructions that are on the delay slot of a branch."
-msgstr ""
+msgstr "小さいノッチを分岐遅延スロットで実行される命令に表示。"
 
 #: src/gui/widgets/assembly.cc:489
 msgid "Draw arrows for jumps"
@@ -2027,7 +2039,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:516 src/gui/widgets/log.cc:111
 msgid "CPU trace"
-msgstr ""
+msgstr "CPU トレース"
 
 #: src/gui/widgets/assembly.cc:518
 msgid "Skip ISR"
@@ -2089,7 +2101,7 @@ msgstr ""
 #: src/gui/widgets/memory_observer.cc:328
 #: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:961
 msgid "Address"
-msgstr ""
+msgstr "アドレス"
 
 #: src/gui/widgets/assembly.cc:901
 msgid "RAM base"
@@ -2122,7 +2134,7 @@ msgstr ""
 #: src/gui/widgets/dynarec_disassembly.cc:90 src/gui/widgets/log.cc:128
 #: src/gui/widgets/pio-cart.cc:41 src/gui/widgets/typed_debugger.cc:827
 msgid "Clear"
-msgstr ""
+msgstr "消去"
 
 #: src/gui/widgets/assembly.cc:984 src/gui/widgets/dynarec_disassembly.cc:73
 msgid "Close"
@@ -2146,7 +2158,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.h:63
 msgid "Load Symbols"
-msgstr ""
+msgstr "シンボルの読み込み"
 
 #: src/gui/widgets/breakpoints.cc:30 src/gui/widgets/breakpoints.cc:128
 msgid "Edit label of breakpoint {}##{}"
@@ -2247,7 +2259,7 @@ msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:166
 msgid "Add Breakpoint"
-msgstr ""
+msgstr "ブレークポイントを追加"
 
 #: src/gui/widgets/console.cc:34
 msgid "Close Console"
@@ -2256,16 +2268,16 @@ msgstr ""
 #: src/gui/widgets/console.cc:41 src/gui/widgets/dynarec_disassembly.cc:95
 #: src/gui/widgets/log.cc:130
 msgid "Copy"
-msgstr ""
+msgstr "コピー"
 
 #: src/gui/widgets/console.cc:47 src/gui/widgets/dynarec_disassembly.cc:99
 msgid "Auto-scroll"
-msgstr ""
+msgstr "自動スクロール"
 
 #: src/gui/widgets/console.cc:48 src/gui/widgets/dynarec_disassembly.cc:100
 #: src/gui/widgets/log.cc:126
 msgid "Monospace"
-msgstr ""
+msgstr "等幅フォント"
 
 #: src/gui/widgets/console.cc:97
 msgid "Input"
@@ -2279,12 +2291,12 @@ msgstr ""
 #. Save to File button
 #: src/gui/widgets/dynarec_disassembly.cc:65
 msgid "Save to File"
-msgstr ""
+msgstr "ファイルへ保存"
 
 #: src/gui/widgets/dynarec_disassembly.cc:70
 #: src/gui/widgets/dynarec_disassembly.cc:71
 msgid "Disassembler Error"
-msgstr ""
+msgstr "逆アセンブラ エラー"
 
 #: src/gui/widgets/dynarec_disassembly.cc:72
 msgid "Disassembly Failed.\n"
@@ -2293,13 +2305,13 @@ msgstr ""
 
 #: src/gui/widgets/dynarec_disassembly.cc:82
 msgid "Close Disassembler"
-msgstr ""
+msgstr "逆アセンブラを閉じる"
 
 #. Show buffer size returned from disassembly function
 #: src/gui/widgets/dynarec_disassembly.cc:112
 #, c-format
 msgid "Code size: %.2fMB"
-msgstr ""
+msgstr "コードサイズ: %.2fMB"
 
 #: src/gui/widgets/events.cc:38 src/gui/widgets/memcard_manager.cc:205
 msgid "ID"
@@ -2482,7 +2494,7 @@ msgstr ""
 
 #: src/gui/widgets/isobrowser.cc:97
 msgid "No iso or invalid iso loaded."
-msgstr ""
+msgstr "ISOがないか、無効なISOがロードされました。"
 
 #: src/gui/widgets/isobrowser.cc:103
 #, c-format
@@ -2548,7 +2560,7 @@ msgstr ""
 
 #: src/gui/widgets/log.cc:105
 msgid "Special"
-msgstr ""
+msgstr "特別"
 
 #: src/gui/widgets/log.cc:108
 msgid "Log CD-ROM commands"
@@ -2568,11 +2580,11 @@ msgstr ""
 
 #: src/gui/widgets/luaeditor.cc:58
 msgid "Auto run"
-msgstr ""
+msgstr "自動実行"
 
 #: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:492
 msgid "Auto save"
-msgstr ""
+msgstr "自動保存"
 
 #: src/gui/widgets/luaeditor.cc:62
 msgid "> Run"
@@ -2621,15 +2633,15 @@ msgstr ""
 #. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
 #: src/gui/widgets/memcard_manager.cc:156
 msgid "Memory Card 1 inserted"
-msgstr ""
+msgstr "差込口1にメモリーカードを挿入"
 
 #: src/gui/widgets/memcard_manager.cc:161
 msgid "Memory Card 2 inserted"
-msgstr ""
+msgstr "差込口2にメモリーカードを挿入"
 
 #: src/gui/widgets/memcard_manager.cc:166
 msgid "Card 1 Pocketstation"
-msgstr ""
+msgstr "カード1 を PocketStation にする"
 
 #: src/gui/widgets/memcard_manager.cc:173
 #: src/gui/widgets/memcard_manager.cc:183
@@ -2638,27 +2650,27 @@ msgstr ""
 
 #: src/gui/widgets/memcard_manager.cc:176
 msgid "Card 2 Pocketstation"
-msgstr ""
+msgstr "カード2 を PocketStation にする"
 
 #: src/gui/widgets/memcard_manager.cc:186
 msgid "Icon size"
-msgstr ""
+msgstr "アイコンの大きさ"
 
 #: src/gui/widgets/memcard_manager.cc:188
 msgid "Draw Pocketstation icons"
-msgstr ""
+msgstr "PocketStation アイコンを描画"
 
 #: src/gui/widgets/memcard_manager.cc:202
 msgid "Block number"
-msgstr ""
+msgstr "ブロック番号"
 
 #: src/gui/widgets/memcard_manager.cc:203
 msgid "Icon"
-msgstr ""
+msgstr "アイコン"
 
 #: src/gui/widgets/memcard_manager.cc:204
 msgid "Title"
-msgstr ""
+msgstr "タイトル"
 
 #: src/gui/widgets/memcard_manager.cc:207
 msgid "Action"
@@ -2670,7 +2682,7 @@ msgstr ""
 
 #: src/gui/widgets/memcard_manager.cc:230
 msgid "Free block"
-msgstr ""
+msgstr "空きブロック"
 
 #: src/gui/widgets/memcard_manager.cc:243
 #, c-format
@@ -2713,19 +2725,19 @@ msgstr ""
 
 #: src/gui/widgets/memcard_manager.cc:321
 msgid "Memory Card 1"
-msgstr ""
+msgstr "メモリーカード 1"
 
 #: src/gui/widgets/memcard_manager.cc:325
 msgid "Memory Card 2"
-msgstr ""
+msgstr "メモリーカード 2"
 
 #: src/gui/widgets/memcard_manager.h:76
 msgid "Import Memory Card file"
-msgstr ""
+msgstr "メモリーカードファイルをインポート"
 
 #: src/gui/widgets/memcard_manager.h:78
 msgid "Export Memory Card file"
-msgstr ""
+msgstr "メモリーカードファイルをエクスポート"
 
 #: src/gui/widgets/memory_observer.cc:97
 msgid "Plain search"
@@ -2850,11 +2862,11 @@ msgstr ""
 
 #: src/gui/widgets/memory_observer.cc:411
 msgid "Step"
-msgstr ""
+msgstr "ステップ"
 
 #: src/gui/widgets/named_savestates.cc:62
 msgid "Filename: "
-msgstr ""
+msgstr "ファイル名: "
 
 #: src/gui/widgets/named_savestates.cc:121
 msgid "Create save"
@@ -2863,7 +2875,7 @@ msgstr ""
 #. The save state exists
 #: src/gui/widgets/named_savestates.cc:127
 msgid "Overwrite save"
-msgstr ""
+msgstr "セーブを上書き"
 
 #: src/gui/widgets/named_savestates.cc:131
 msgid "Load save"
@@ -2929,11 +2941,11 @@ msgstr ""
 
 #: src/gui/widgets/shader-editor.cc:322
 msgid "Vertex Shader compilation error: {}\n"
-msgstr ""
+msgstr "頂点シェーダー コンパイルエラー: {}\n"
 
 #: src/gui/widgets/shader-editor.cc:343
 msgid "Pixel Shader compilation error: {}\n"
-msgstr ""
+msgstr "ピクセルシェーダー コンパイルエラー: {}\n"
 
 #: src/gui/widgets/shader-editor.cc:365
 msgid "Link error: {}\n"
@@ -2945,11 +2957,11 @@ msgstr ""
 
 #: src/gui/widgets/shader-editor.cc:490
 msgid "Auto compile"
-msgstr ""
+msgstr "自動コンパイル"
 
 #: src/gui/widgets/shader-editor.cc:494
 msgid "Show all"
-msgstr ""
+msgstr "すべて表示"
 
 #: src/gui/widgets/shader-editor.cc:496
 msgid "Configure shader"
@@ -2957,11 +2969,11 @@ msgstr ""
 
 #: src/gui/widgets/shader-editor.cc:521
 msgid "Vertex Shader"
-msgstr ""
+msgstr "頂点シェーダー"
 
 #: src/gui/widgets/shader-editor.cc:527
 msgid "Pixel Shader"
-msgstr ""
+msgstr "ピクセルシェーダー"
 
 #: src/gui/widgets/shader-editor.cc:533
 msgid "Lua Invoker"
@@ -2969,7 +2981,7 @@ msgstr ""
 
 #: src/gui/widgets/sio1.cc:142
 msgid "Edit"
-msgstr ""
+msgstr "編集"
 
 #: src/gui/widgets/sio1.cc:148
 msgid "Bit"
@@ -3171,7 +3183,7 @@ msgstr ""
 
 #: src/gui/widgets/vram-viewer.cc:490
 msgid "24 bits shift"
-msgstr ""
+msgstr "24ビットシフト"
 
 #: src/gui/widgets/vram-viewer.cc:491
 msgid "View VRAM in 24 bits"
@@ -3223,15 +3235,15 @@ msgstr ""
 
 #: src/spu/cfg.cc:28
 msgid "SPU configuration"
-msgstr ""
+msgstr "SPU 設定"
 
 #: src/spu/cfg.cc:39
 msgid "Backend"
-msgstr ""
+msgstr "バックエンド"
 
 #: src/spu/cfg.cc:48
 msgid "Device"
-msgstr ""
+msgstr "デバイス"
 
 #: src/spu/cfg.cc:57
 msgid "Use Null Sync"
@@ -3240,50 +3252,50 @@ msgstr ""
 #: src/spu/cfg.cc:58
 msgid "More precise CPU-SPU synchronization,\n"
 "at the cost of extra power required."
-msgstr ""
+msgstr "より正確な CPU-SPU 同期。より高い処理能力が必要になります。"
 
 #: src/spu/cfg.cc:65
 msgid "Muted"
-msgstr ""
+msgstr "ミュート"
 
 #: src/spu/cfg.cc:66
 msgid "Enable streaming"
-msgstr ""
+msgstr "ストリーミングの有効化"
 
 #: src/spu/cfg.cc:67
 msgid "Uncheck this to mute the streaming channel\n"
 "from the main CPU to the SPU. This includes\n"
 "XA audio and audio tracks."
-msgstr ""
+msgstr "メイン CPU から SPU へのストリーミングチャンネルをミュートするには、このチェックを外してください。これには XA オーディオとオーディオトラックも含まれます。"
 
 #: src/spu/cfg.cc:70
 msgid "Loud"
-msgstr ""
+msgstr "大"
 
 #: src/spu/cfg.cc:70
 msgid "Loudest"
-msgstr ""
+msgstr "最大"
 
 #: src/spu/cfg.cc:70
 msgid "Low"
-msgstr ""
+msgstr "小"
 
 #: src/spu/cfg.cc:70
 msgid "Medium"
-msgstr ""
+msgstr "中"
 
 #: src/spu/cfg.cc:71
 msgid "Volume"
-msgstr ""
+msgstr "音量"
 
 #: src/spu/cfg.cc:72
 msgid "Attempts to make the CPU-to-SPU audio stream\n"
 "in sync, by changing its pitch. Consumes more CPU."
-msgstr ""
+msgstr "CPUからSPUへのオーディオストリームの同期を試みます。より多くのCPUを消費します。"
 
 #: src/spu/cfg.cc:74
 msgid "Pause SPU waiting for CPU IRQ"
-msgstr ""
+msgstr "CPU の IRQ 待機中に SPU を一時停止"
 
 #: src/spu/cfg.cc:75
 msgid "Suspends the SPU processing during an IRQ, waiting\n"
@@ -3293,39 +3305,39 @@ msgstr ""
 
 #: src/spu/cfg.cc:78 src/spu/cfg.cc:81
 msgid "None - fastest"
-msgstr ""
+msgstr "なし - 最速"
 
 #: src/spu/cfg.cc:78
 msgid "Simple - only handles the most common effects"
-msgstr ""
+msgstr "シンプル - よくあるエフェクトだけ処理"
 
 #: src/spu/cfg.cc:79
 msgid "Accurate - best quality, but slower"
-msgstr ""
+msgstr "正確 - 最高品質だが遅い"
 
 #: src/spu/cfg.cc:80
 msgid "Reverb"
-msgstr ""
+msgstr "リバーブ"
 
 #: src/spu/cfg.cc:81
 msgid "Simple interpolation"
-msgstr ""
+msgstr "シンプルな補間"
 
 #: src/spu/cfg.cc:82
 msgid "Gaussian interpolation - good quality"
-msgstr ""
+msgstr "ガウス補間 - 高品質"
 
 #: src/spu/cfg.cc:83
 msgid "Cubic interpolation - better treble"
-msgstr ""
+msgstr "キュービック補間 - より良い高音"
 
 #: src/spu/cfg.cc:84
 msgid "Interpolation"
-msgstr ""
+msgstr "補間"
 
 #: src/spu/cfg.cc:87
 msgid "Downmixes stereo to mono."
-msgstr ""
+msgstr "ステレオをモノラルにダウンミックスします。"
 
 #: src/spu/cfg.cc:88
 msgid "Capture/decode buffer IRQ"
@@ -3333,7 +3345,7 @@ msgstr ""
 
 #: src/spu/cfg.cc:90
 msgid "Activates SPU IRQs based on writes to the decode/capture buffer. This option is necessary for some games."
-msgstr ""
+msgstr "デコード/キャプチャバッファの書き込みに合わせて SPU の IRQ を有効にします。一部のゲームではこのオプションが必要です。"
 
 #: src/spu/debug.cc:62
 msgid "SPU Debug"
@@ -3341,22 +3353,25 @@ msgstr ""
 
 #: src/spu/debug.cc:84
 msgid "Mute all"
-msgstr ""
+msgstr "すべてミュート"
 
 #: src/spu/debug.cc:90
 msgid "Unmute all"
-msgstr ""
+msgstr "すべてのミュートを解除"
 
 #: src/spu/debug.cc:104
 msgid "ADSR channel info"
-msgstr ""
+msgstr "ADSR チャンネル情報"
 
 #: src/spu/debug.cc:107
 msgid "Attack:\n"
 "Decay:\n"
 "Sustain:\n"
 "Release:"
-msgstr ""
+msgstr "アタック:\n"
+"ディケイ:\n"
+"サスティン:\n"
+"リリース:"
 
 #: src/spu/debug.cc:115
 msgid "Sustain level:\n"
@@ -3400,7 +3415,7 @@ msgstr ""
 
 #: src/spu/debug.cc:159
 msgid "Spu states"
-msgstr ""
+msgstr "SPU 状態"
 
 #: src/spu/debug.cc:160
 msgid "Irq addr:\n"
