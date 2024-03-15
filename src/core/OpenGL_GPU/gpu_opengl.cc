@@ -461,12 +461,12 @@ bool PCSX::OpenGL_GPU::configure() {
     }
 
     if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
-        static const char *polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
+        static std::function<const char*()> const c_polygonModeNames[] = {_("Fill polygons"), _("Wireframe"), _("Vertices only")};
         constexpr OpenGL::FillMode polygonModes[] = {OpenGL::FillPoly, OpenGL::DrawWire, OpenGL::DrawPoints};
 
-        if (ImGui::BeginCombo(_("Polygon rendering mode"), polygonModeNames[m_polygonModeIndex])) {
+        if (ImGui::BeginCombo(_("Polygon rendering mode"), c_polygonModeNames[m_polygonModeIndex]())) {
             for (auto i = 0; i < 3; i++) {
-                if (ImGui::Selectable(polygonModeNames[i])) {
+                if (ImGui::Selectable(c_polygonModeNames[i]())) {
                     m_polygonMode = polygonModes[i];
                     m_polygonModeIndex = i;
                 }
@@ -500,7 +500,7 @@ bool PCSX::OpenGL_GPU::configure() {
             changed = true;
             setLinearFiltering();
         }
-        ImGui::Checkbox("Edit OpenGL GPU shaders", &m_shaderEditor.m_show);
+        ImGui::Checkbox(_("Edit OpenGL GPU shaders"), &m_shaderEditor.m_show);
         ImGui::End();
     }
 
