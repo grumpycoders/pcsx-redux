@@ -69,6 +69,8 @@ class PadsImpl : public PCSX::Pads {
 
   private:
     PCSX::EventBus::Listener m_listener;
+    // This is a list of all of the valid GLFW gamepad IDs that we have found querying GLFW.
+    // A value of -1 means that there is no gamepad at that index.
     int m_gamepadsMap[16] = {0};
 
     static constexpr int GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 1;
@@ -181,7 +183,7 @@ class PadsImpl : public PCSX::Pads {
         PadType m_type;
         PadData m_data;
 
-        int m_padID = 0;
+        int m_padID = -1;
         int m_buttonToWait = -1;
         bool m_changed = false;
 
@@ -592,15 +594,12 @@ void PadsImpl::Pad::getButtons() {
         return;
     }
 
-    if (m_padID >= 0) {
-        int glfwID = s_pads->m_gamepadsMap[m_padID];
-        if ((glfwID >= GLFW_JOYSTICK_1) && (glfwID <= GLFW_JOYSTICK_LAST)) {
-            hasPad = glfwGetGamepadState(glfwID, &state);
-            if (!hasPad) {
-                const char* guid = glfwGetJoystickGUID(glfwID);
-                PCSX::g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
-                m_padID = -1;
-            }
+    if ((m_padID >= GLFW_JOYSTICK_1) && (m_padID <= GLFW_JOYSTICK_LAST)) {
+        hasPad = glfwGetGamepadState(m_padID, &state);
+        if (!hasPad) {
+            const char* guid = glfwGetJoystickGUID(m_padID);
+            PCSX::g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
+            m_padID = -1;
         }
     }
 
