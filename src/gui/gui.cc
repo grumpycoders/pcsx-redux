@@ -2230,9 +2230,10 @@ void PCSX::GUI::interruptsScaler() {
 
 bool PCSX::GUI::showThemes() {
     static const std::function<const char*()> imgui_themes[] = {
-        []() { return _("Default theme"); }, []() { return _("Classic"); }, []() { return _("Light"); },
-        []() { return _("Cherry"); },        []() { return _("Mono"); },    []() { return _("Dracula"); },
-        []() { return _("Olive"); },
+        []() { return _("Default theme##Theme name"); }, []() { return _("Classic##Theme name"); },
+        []() { return _("Light##Theme name"); },         []() { return _("Cherry##Theme name"); },
+        []() { return _("Mono##Theme name"); },          []() { return _("Dracula##Theme name"); },
+        []() { return _("Olive##Theme name"); },
     };
     auto changed = false;
     auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;

@@ -1007,7 +1007,7 @@ bool PadsImpl::Pad::configure() {
         []() { return _("Mouse"); },
         []() { return _("Negcon (Unimplemented)"); },
         []() { return _("Gun (Unimplemented)"); },
-        []() { return _("Guncon (Unimplemented"); },
+        []() { return _("Guncon (Unimplemented)"); },
     };
 
     bool changed = false;
