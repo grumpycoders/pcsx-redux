@@ -286,7 +286,7 @@ endef
 
 regen-i18n:
 	find src -name *.cc -or -name *.c -or -name *.h | sort -u > pcsx-src-list.txt
-	xgettext --keyword=_ --keyword=f_ --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
+	xgettext --keyword=_ --keyword=f_ --keyword=l_ --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	find src -name *.lua | sort -u > pcsx-src-list.txt
 	xgettext --keyword=t_ --language=Lua --join-existing --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	sed '/POT-Creation-Date/d' -i i18n/pcsx-redux.pot

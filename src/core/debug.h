@@ -34,7 +34,7 @@ class Debug {
   public:
     uint32_t normalizeAddress(uint32_t address);
     static inline std::function<const char*()> s_breakpoint_type_names[] = {
-        []() { return _("Exec"); }, []() { return _("Read"); }, []() { return _("Write"); }};
+        l_("Exec"), l_("Read"), l_("Write")};
     enum class BreakpointType { Exec, Read, Write };
 
     void checkDMAread(unsigned c, uint32_t address, uint32_t len) {

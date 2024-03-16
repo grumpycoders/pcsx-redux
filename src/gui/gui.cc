@@ -688,8 +688,8 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
 
     m_mainVRAMviewer.setMain();
-    m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
-    m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
+    m_mainVRAMviewer.setTitle(l_("Main VRAM Viewer"));
+    m_clutVRAMviewer.setTitle(l_("CLUT VRAM selector"));
     m_memcardManager.initTextures();
 
     unsigned counter = 1;
@@ -708,11 +708,11 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         };
         counter++;
     }
-    m_parallelPortEditor.title = []() { return _("Parallel Port"); };
-    m_scratchPadEditor.title = []() { return _("Scratch Pad"); };
-    m_hwrEditor.title = []() { return _("Hardware Registers"); };
-    m_biosEditor.title = []() { return _("BIOS"); };
-    m_vramEditor.title = []() { return _("VRAM"); };
+    m_parallelPortEditor.title = l_("Parallel Port");
+    m_scratchPadEditor.title = l_("Scratch Pad");
+    m_hwrEditor.title = l_("Hardware Registers");
+    m_biosEditor.title = l_("BIOS");
+    m_vramEditor.title = l_("VRAM");
     m_vramEditor.editor.WriteFn = [](uint8_t* data, size_t offset, uint8_t writtenByte) {
         constexpr size_t vramWidth = 1024;
         constexpr size_t stride = vramWidth * sizeof(uint16_t);  // Number of bytes per line of VRAM
@@ -1990,11 +1990,7 @@ when changing this setting.)"));
         }
 
         {
-            static const std::function<const char*()> types[] = {
-                []() { return _("Auto"); },
-                []() { return _("NTSC"); },
-                []() { return _("PAL"); },
-            };
+            static const std::function<const char*()> types[] = {l_("Auto"), l_("NTSC"), l_("PAL")};
             auto& autodetect = settings.get<Emulator::SettingAutoVideo>().value;
             auto& type = settings.get<Emulator::SettingVideo>().value;
             if (ImGui::BeginCombo(_("System Type"), types[autodetect ? 0 : (type + 1)]())) {
@@ -2230,10 +2226,8 @@ void PCSX::GUI::interruptsScaler() {
 
 bool PCSX::GUI::showThemes() {
     static const std::function<const char*()> imgui_themes[] = {
-        []() { return _("Default theme##Theme name"); }, []() { return _("Classic##Theme name"); },
-        []() { return _("Light##Theme name"); },         []() { return _("Cherry##Theme name"); },
-        []() { return _("Mono##Theme name"); },          []() { return _("Dracula##Theme name"); },
-        []() { return _("Olive##Theme name"); },
+        l_("Default theme##Theme name"), l_("Classic##Theme name"), l_("Light##Theme name"), l_("Cherry##Theme name"),
+        l_("Mono##Theme name"),          l_("Dracula##Theme name"), l_("Olive##Theme name"),
     };
     auto changed = false;
     auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;

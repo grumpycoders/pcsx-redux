@@ -461,7 +461,8 @@ bool PCSX::OpenGL_GPU::configure() {
     }
 
     if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
-        static std::function<const char*()> const c_polygonModeNames[] = {_("Fill polygons"), _("Wireframe"), _("Vertices only")};
+        static std::function<const char *()> const c_polygonModeNames[] = {l_("Fill polygons"), l_("Wireframe"),
+                                                                           l_("Vertices only")};
         constexpr OpenGL::FillMode polygonModes[] = {OpenGL::FillPoly, OpenGL::DrawWire, OpenGL::DrawPoints};
 
         if (ImGui::BeginCombo(_("Polygon rendering mode"), c_polygonModeNames[m_polygonModeIndex]())) {

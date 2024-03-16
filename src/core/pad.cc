@@ -901,8 +901,8 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
     }
 
     static std::function<const char*()> const c_padNames[] = {
-        []() { return _("Pad 1"); },
-        []() { return _("Pad 2"); },
+        l_("Pad 1"),
+        l_("Pad 2"),
     };
 
     if (ImGui::Button(_("Rescan gamepads and re-read game controllers database"))) {
@@ -984,30 +984,27 @@ void PadsImpl::Pad::keyboardEvent(const PCSX::Events::Keyboard& event) {
 
 bool PadsImpl::Pad::configure() {
     static std::function<const char*()> const c_inputDevices[] = {
-        []() { return _("Auto"); },
-        []() { return _("Controller"); },
-        []() { return _("Keyboard"); },
+        l_("Auto"),
+        l_("Controller"),
+        l_("Keyboard"),
     };
     static std::function<const char*()> const c_buttonNames[] = {
-        []() { return _("Cross"); },       []() { return _("Square"); }, []() { return _("Triangle"); },
-        []() { return _("Circle"); },      []() { return _("Select"); }, []() { return _("Start"); },
-        []() { return _("L1"); },          []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); },          []() { return _("L3"); },     []() { return _("R3"); },
-        []() { return _("Analog Mode"); },
+        l_("Cross"), l_("Square"), l_("Triangle"), l_("Circle"), l_("Select"), l_("Start"),       l_("L1"),
+        l_("R1"),    l_("L2"),     l_("R2"),       l_("L3"),     l_("R3"),     l_("Analog Mode"),
     };
     static std::function<const char*()> const c_dpadDirections[] = {
-        []() { return _("Up"); },
-        []() { return _("Right"); },
-        []() { return _("Down"); },
-        []() { return _("Left"); },
+        l_("Up"),
+        l_("Right"),
+        l_("Down"),
+        l_("Left"),
     };
     static std::function<const char*()> const c_controllerTypes[] = {
-        []() { return _("Digital"); },
-        []() { return _("Analog"); },
-        []() { return _("Mouse"); },
-        []() { return _("Negcon (Unimplemented)"); },
-        []() { return _("Gun (Unimplemented)"); },
-        []() { return _("Guncon (Unimplemented)"); },
+        l_("Digital"),
+        l_("Analog"),
+        l_("Mouse"),
+        l_("Negcon (Unimplemented)"),
+        l_("Gun (Unimplemented)"),
+        l_("Guncon (Unimplemented)"),
     };
 
     bool changed = false;
