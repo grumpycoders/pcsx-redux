@@ -374,11 +374,11 @@ class GUI final : public UI {
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
     Widgets::Assembly m_assembly = {settings.get<ShowAssembly>().value};
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
-    Widgets::FileDialog<> m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
-    Widgets::FileDialog<> m_openBinaryDialog = {[]() { return _("Open Binary"); }};
-    Widgets::FileDialog<> m_openArchiveDialog = {[]() { return _("Open Archive"); }};
-    Widgets::FileDialog<> m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
-    Widgets::FileDialog<> m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
+    Widgets::FileDialog<> m_openIsoFileDialog = {l_("Open Disk Image")};
+    Widgets::FileDialog<> m_openBinaryDialog = {l_("Open Binary")};
+    Widgets::FileDialog<> m_openArchiveDialog = {l_("Open Archive")};
+    Widgets::FileDialog<> m_selectBiosDialog = {l_("Select BIOS")};
+    Widgets::FileDialog<> m_selectEXP1Dialog = {l_("Select EXP1")};
     Widgets::NamedSaveStates m_namedSaveStates = {settings.get<ShowNamedSaveStates>().value};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
@@ -425,7 +425,7 @@ class GUI final : public UI {
     void draculaTheme();
     void oliveTheme();
 
-    Notifier m_notifier = {[]() { return _("Notification"); }};
+    Notifier m_notifier = {l_("Notification")};
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
 
@@ -470,6 +470,6 @@ class GUI final : public UI {
 
     void drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end,
                          ImVec4 innerColor = {1.0f, 1.0f, 1.0f, 1.0f}, ImVec4 outerColor = {0.5f, 0.5f, 0.5f, 1.0f});
-};
+};  // namespace PCSX
 
 }  // namespace PCSX
