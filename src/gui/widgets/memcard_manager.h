@@ -74,8 +74,7 @@ class MemcardManager {
     int m_undoIndex = 0;
     std::unique_ptr<uint8_t[]> m_latest;
     Widgets::FileDialog<> m_importMemoryCardDialog = {l_("Import Memory Card file")};
-    Widgets::FileDialog<FileDialogMode::Save> m_exportMemoryCardDialog = {
-        l_("Export Memory Card file")};
+    Widgets::FileDialog<FileDialogMode::Save> m_exportMemoryCardDialog = {l_("Export Memory Card file")};
     unsigned m_memoryCardImportExportIndex = 0;
 
     void clearUndoBuffer() {
