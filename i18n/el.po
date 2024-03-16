@@ -183,16 +183,16 @@ msgstr "Πυροδότηση Breakpoint. PC=0x%08x - Cause: %s\n"
 msgid "Step Out"
 msgstr ""
 
-#: src/core/debug.h:37
+#: src/core/debug.h:36
 msgid "Exec"
 msgstr ""
 
-#: src/core/debug.h:37 src/gui/widgets/typed_debugger.cc:285
+#: src/core/debug.h:36 src/gui/widgets/typed_debugger.cc:285
 #, fuzzy
 msgid "Read"
 msgstr "Ανάγνωση Byte"
 
-#: src/core/debug.h:37 src/gui/widgets/typed_debugger.cc:287
+#: src/core/debug.h:36 src/gui/widgets/typed_debugger.cc:287
 #, fuzzy
 msgid "Write"
 msgstr "Γραφή Byte"
@@ -2959,7 +2959,7 @@ msgstr "Σύνδεση της κάρτας μνήμης 2"
 msgid "Import Memory Card file"
 msgstr "Σύνδεση της κάρτας μνήμης 1"
 
-#: src/gui/widgets/memcard_manager.h:78
+#: src/gui/widgets/memcard_manager.h:77
 #, fuzzy
 msgid "Export Memory Card file"
 msgstr "Σύνδεση της κάρτας μνήμης 1"

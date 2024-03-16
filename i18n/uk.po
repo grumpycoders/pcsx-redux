@@ -193,15 +193,15 @@ msgstr "Викликано точку зупинки: PC = 0x%08x - Причин
 msgid "Step Out"
 msgstr "Вийти"
 
-#: src/core/debug.h:37
+#: src/core/debug.h:36
 msgid "Exec"
 msgstr "Виконання"
 
-#: src/core/debug.h:37 src/gui/widgets/typed_debugger.cc:285
+#: src/core/debug.h:36 src/gui/widgets/typed_debugger.cc:285
 msgid "Read"
 msgstr "Читання"
 
-#: src/core/debug.h:37 src/gui/widgets/typed_debugger.cc:287
+#: src/core/debug.h:36 src/gui/widgets/typed_debugger.cc:287
 msgid "Write"
 msgstr "Запис"
 
@@ -2997,7 +2997,7 @@ msgstr "Карта пам'яті 2"
 msgid "Import Memory Card file"
 msgstr "Імпорт файлу карти пам'яті"
 
-#: src/gui/widgets/memcard_manager.h:78
+#: src/gui/widgets/memcard_manager.h:77
 msgid "Export Memory Card file"
 msgstr "Експорт файлу карти пам'яті"
 
