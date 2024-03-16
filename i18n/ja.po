@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pcsx-redux\n"
 "Report-Msgid-Bugs-To: \n"
-"PO-Revision-Date: 2024-03-16 04:06\n"
+"PO-Revision-Date: 2024-03-16 22:41\n"
 "Last-Translator: \n"
 "Language-Team: Japanese\n"
 "Language: ja_JP\n"
@@ -44,19 +44,19 @@ msgstr "OpenGL GPU 設定"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:464
 msgid "Fill polygons"
-msgstr ""
+msgstr "面を塗りつぶす"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:464
 msgid "Wireframe"
-msgstr ""
+msgstr "ワイヤーフレーム"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:465
 msgid "Vertices only"
-msgstr ""
+msgstr "頂点のみ"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:468
 msgid "Polygon rendering mode"
-msgstr ""
+msgstr "ポリゴンレンダリングモード"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:479 src/core/OpenGL_GPU/gpu_opengl.cc:484
 msgid "No MSAA"
@@ -76,7 +76,7 @@ msgstr "リニアフィルタリングを使用"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:504
 msgid "Edit OpenGL GPU shaders"
-msgstr ""
+msgstr "OpenGL GPU シェーダーの編集"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:512
 msgid "OpenGL GPU Debugger"
@@ -104,7 +104,7 @@ msgstr "解像度: %dx%d"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:523
 msgid "Clear colour"
-msgstr ""
+msgstr "色をクリア"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:524
 msgid "Clear VRAM"
@@ -210,12 +210,12 @@ msgstr ""
 
 #: src/core/gpu.cc:1048 src/core/gpu.cc:1129 src/core/gpu.cc:1170
 msgid "Semi-transparency blending"
-msgstr ""
+msgstr "半透明ブレンディング"
 
 #: src/core/gpu.cc:1064
 #, c-format
 msgid "Vertex %i"
-msgstr ""
+msgstr "頂点 %i"
 
 #: src/core/gpu.cc:1088 src/core/gpu.cc:1154 src/core/gpu.cc:1183
 msgid "Go to primitive##{}"
@@ -241,7 +241,7 @@ msgstr ""
 
 #: src/core/gpulogger.cc:286
 msgid "Blending:"
-msgstr ""
+msgstr "ブレンディング:"
 
 #: src/core/gpulogger.cc:290
 msgid "50% Back + 50% Front"
@@ -265,15 +265,15 @@ msgstr ""
 
 #: src/core/gpulogger.cc:306
 msgid "4 bits"
-msgstr ""
+msgstr "4 ビット"
 
 #: src/core/gpulogger.cc:309
 msgid "8 bits"
-msgstr ""
+msgstr "8 ビット"
 
 #: src/core/gpulogger.cc:312
 msgid "16 bits"
-msgstr ""
+msgstr "16 ビット"
 
 #: src/core/gpulogger.cc:319
 #, c-format
@@ -353,7 +353,7 @@ msgstr ""
 #: src/core/gpulogger.cc:406
 #, c-format
 msgid "Interlaced: %s"
-msgstr ""
+msgstr "インターレース: %s"
 
 #: src/core/gpulogger.cc:412
 msgid "Texture Window"
@@ -373,12 +373,12 @@ msgstr ""
 
 #: src/core/gpulogger.cc:424
 msgid "Unknown"
-msgstr ""
+msgstr "不明"
 
 #: src/core/memorycard.cc:348
 #, c-format
 msgid "The memory card %s doesn't exist - creating it\n"
-msgstr ""
+msgstr "メモリーカード %s がありません - 作成します\n"
 
 #: src/core/memorycard.cc:367 src/core/memorycard.cc:385
 msgid "Error reading memory card."
@@ -426,7 +426,8 @@ msgstr "マウスに raw 入力を使用"
 
 #: src/core/pad.cc:915
 msgid "When enabled, the cursor will be hidden and captured when the emulator is running. This is useful for games that require mouse input."
-msgstr "有効にすると、エミュレーターの実行中にマウスカーソルが非表示になり、キャプチャされます。マウス入力が必要なゲームに便利です。"
+msgstr "有効にすると、エミュレーターの実行中にマウスカーソルが非表示になり、キャプチャされます。\n"
+"マウス入力が必要なゲームに便利です。"
 
 #: src/core/pad.cc:917
 msgid "Allow mouse capture toggle"
@@ -622,7 +623,7 @@ msgstr "キーボードの割り当て"
 
 #: src/core/pad.cc:1060
 msgid "Computer button mapping"
-msgstr ""
+msgstr "PC上のボタン割り当て"
 
 #: src/core/pad.cc:1061
 msgid "Gamepad button"
@@ -922,7 +923,7 @@ msgstr ""
 
 #: src/gui/gui.cc:691
 msgid "Main VRAM Viewer"
-msgstr ""
+msgstr "メイン VRAM ビューアー"
 
 #: src/gui/gui.cc:692
 msgid "CLUT VRAM selector"
@@ -930,11 +931,11 @@ msgstr ""
 
 #: src/gui/gui.cc:697
 msgid "Vram Viewer #"
-msgstr ""
+msgstr "Vram ビューアー #"
 
 #: src/gui/gui.cc:706
 msgid "Memory Editor #"
-msgstr ""
+msgstr "メモリエディタ #"
 
 #: src/gui/gui.cc:711
 msgid "Parallel Port"
@@ -954,7 +955,7 @@ msgstr "BIOS"
 
 #: src/gui/gui.cc:715
 msgid "VRAM"
-msgstr ""
+msgstr "VRAM"
 
 #: src/gui/gui.cc:1055
 msgid "Output"
@@ -1073,7 +1074,7 @@ msgstr "メモリーカード管理"
 
 #: src/gui/gui.cc:1195 src/gui/gui.cc:1295
 msgid "GPU"
-msgstr ""
+msgstr "GPU"
 
 #: src/gui/gui.cc:1196 src/gui/gui.cc:1311
 msgid "SPU"
@@ -1166,7 +1167,7 @@ msgstr "コールスタックを表示"
 
 #: src/gui/gui.cc:1261
 msgid "Memory Editors"
-msgstr ""
+msgstr "メモリエディタ"
 
 #: src/gui/gui.cc:1272
 msgid "Show Memory Observer"
@@ -1174,11 +1175,11 @@ msgstr "メモリオブザーバを表示"
 
 #: src/gui/gui.cc:1273
 msgid "Show Typed Debugger"
-msgstr ""
+msgstr "型付きデバッガを表示"
 
 #: src/gui/gui.cc:1274
 msgid "Show Interrupts Scaler"
-msgstr ""
+msgstr "割り込みスケーラを表示"
 
 #: src/gui/gui.cc:1275
 msgid "First Chance Exceptions"
@@ -1202,7 +1203,7 @@ msgstr "VRAM ビューアを表示 #"
 
 #: src/gui/gui.cc:1307
 msgid "Show GPU logger"
-msgstr ""
+msgstr "GPU ロガーを表示"
 
 #: src/gui/gui.cc:1308
 msgid "Show GPU debug"
@@ -1218,7 +1219,7 @@ msgstr "CD-ROM"
 
 #: src/gui/gui.cc:1316
 msgid "Show Iso Browser"
-msgstr ""
+msgstr "ISO ブラウザを表示"
 
 #: src/gui/gui.cc:1319
 msgid "Misc hardware"
@@ -1258,11 +1259,11 @@ msgstr "全画面表示"
 
 #: src/gui/gui.cc:1338
 msgid "Show Output Shader Editor"
-msgstr ""
+msgstr "出力シェーダーエディターを表示"
 
 #: src/gui/gui.cc:1339
 msgid "Show Offscreen Shader Editor"
-msgstr ""
+msgstr "オフスクリーンシェーダーエディターを表示"
 
 #: src/gui/gui.cc:1340
 msgid "Reset shaders"
@@ -1365,7 +1366,7 @@ msgstr "名前付きセーブステート"
 #: src/gui/gui.cc:1549 src/gui/widgets/memory_observer.cc:382
 #: src/gui/widgets/memory_observer.cc:388
 msgid "Memory Observer"
-msgstr ""
+msgstr "メモリオブザーバ"
 
 #: src/gui/gui.cc:1553 src/gui/widgets/typed_debugger.cc:1062
 msgid "Typed Debugger"
@@ -1381,7 +1382,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1570
 msgid "PIO Cartridge Configuration"
-msgstr ""
+msgstr "パラレルポート カートリッジ設定"
 
 #: src/gui/gui.cc:1574
 msgid "SIO1 Debug"
@@ -1389,11 +1390,11 @@ msgstr ""
 
 #: src/gui/gui.cc:1578
 msgid "ISO Browser"
-msgstr ""
+msgstr "ISO ブラウザ"
 
 #: src/gui/gui.cc:1588
 msgid "GPU Logger"
-msgstr ""
+msgstr "GPU ロガー"
 
 #: src/gui/gui.cc:1591
 msgid "UI Configuration"
@@ -1595,7 +1596,8 @@ msgstr "8MB"
 msgid "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
 "with development binaries and games."
-msgstr "通常の2 MBの代わりにメモリが8 MBのシステムをエミュレーションします。開発用バイナリやゲームでの作業に有用です。"
+msgstr "通常の2 MBの代わりにメモリが8 MBのシステムをエミュレーションします。\n"
+"開発用バイナリやゲームでの作業に有用です。"
 
 #: src/gui/gui.cc:1980
 msgid "OpenGL GPU *ALPHA STATE*"
@@ -1612,11 +1614,11 @@ msgstr "OpenGL GPUレンダラーを有効にします。\n"
 
 #: src/gui/gui.cc:1993
 msgid "NTSC"
-msgstr ""
+msgstr "NTSC"
 
 #: src/gui/gui.cc:1993
 msgid "PAL"
-msgstr ""
+msgstr "PAL"
 
 #: src/gui/gui.cc:1996
 msgid "System Type"
@@ -1774,7 +1776,7 @@ msgstr ""
 
 #: src/gui/gui.cc:2230
 msgid "Mono##Theme name"
-msgstr ""
+msgstr "モノ"
 
 #: src/gui/gui.cc:2230
 msgid "Olive##Theme name"
@@ -1928,7 +1930,7 @@ msgstr "BIOS を選択"
 
 #: src/gui/gui.h:381 src/gui/widgets/pio-cart.h:36
 msgid "Select EXP1"
-msgstr ""
+msgstr "EXP1 の選択"
 
 #: src/gui/gui.h:428
 msgid "Notification"
@@ -1936,7 +1938,7 @@ msgstr "通知"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:53
 msgid "Offscreen CRT shader Configuration"
-msgstr ""
+msgstr "ブラウン管風オフスクリーンシェーダー設定"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:59
 msgid "Enable gaussian blur"
@@ -1965,7 +1967,7 @@ msgstr "初期設定に戻す"
 
 #: src/gui/shaders/crt-lottes-output.lua:58
 msgid "Output CRT Shader Configuration"
-msgstr ""
+msgstr "ブラウン管風出力シェーダー設定"
 
 #: src/gui/shaders/crt-lottes-output.lua:64
 msgid "Warp intensity"
@@ -1997,11 +1999,11 @@ msgstr "マスクの種類"
 
 #: src/gui/widgets/assembly.cc:443
 msgid "Load symbols map"
-msgstr ""
+msgstr "シンボルマップを読み込む"
 
 #: src/gui/widgets/assembly.cc:444
 msgid "Reset symbols map"
-msgstr ""
+msgstr "シンボルマップをリセット"
 
 #: src/gui/widgets/assembly.cc:450 src/gui/widgets/assembly.cc:525
 msgid "Pause"
@@ -2064,7 +2066,7 @@ msgstr "CPU トレース"
 
 #: src/gui/widgets/assembly.cc:518
 msgid "Skip ISR"
-msgstr ""
+msgstr "ISR をスキップ"
 
 #: src/gui/widgets/assembly.cc:520
 msgid "Follow PC"
@@ -2094,7 +2096,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:727
 msgid "Copy Address"
-msgstr ""
+msgstr "アドレスをコピー"
 
 #: src/gui/widgets/assembly.cc:732 src/gui/widgets/registers.cc:39
 msgid "Go to in Memory Editor"
@@ -2307,7 +2309,7 @@ msgstr ""
 #. Disassemble button
 #: src/gui/widgets/dynarec_disassembly.cc:60
 msgid "Disassemble Buffer"
-msgstr ""
+msgstr "バッファの逆アセンブル"
 
 #. Save to File button
 #: src/gui/widgets/dynarec_disassembly.cc:65
@@ -2360,7 +2362,7 @@ msgstr ""
 
 #: src/gui/widgets/gpulogger.cc:34
 msgid "GPU logging"
-msgstr ""
+msgstr "GPU ログ"
 
 #: src/gui/widgets/gpulogger.cc:42
 msgid "Logs each frame's draw calls. When enabled, all the commands sent to the GPU will be logged and displayed here. This will contain only a single frame worth of commands. The feature can be pretty demanding in CPU and memory."
@@ -2388,19 +2390,19 @@ msgstr ""
 
 #: src/gui/widgets/gpulogger.cc:72
 msgid "Collapse all nodes"
-msgstr ""
+msgstr "すべてのノードを折りたたむ"
 
 #: src/gui/widgets/gpulogger.cc:76
 msgid "Keep collapsed"
-msgstr ""
+msgstr "折りたたまれたままにする"
 
 #: src/gui/widgets/gpulogger.cc:79
 msgid "Expand all nodes"
-msgstr ""
+msgstr "すべてのノードを展開"
 
 #: src/gui/widgets/gpulogger.cc:83
 msgid "Keep expanded"
-msgstr ""
+msgstr "展開したままにする"
 
 #: src/gui/widgets/gpulogger.cc:87
 msgid "Remove all highlight selections"
@@ -2408,7 +2410,7 @@ msgstr ""
 
 #: src/gui/widgets/gpulogger.cc:90
 msgid "Highlight on hover"
-msgstr ""
+msgstr "ホバーでハイライト"
 
 #: src/gui/widgets/gpulogger.cc:92
 msgid "When enabled, hovering a command in the logger view will highlight it in the vram display. Individual commands can be selected for highlight by using the second checkbox in the logger view. The [B] and [E] buttons can be used to specify the beginning and the end of a span of commands to highlight."
@@ -2425,37 +2427,37 @@ msgstr ""
 #: src/gui/widgets/gpulogger.cc:104
 #, c-format
 msgid "%i primitives"
-msgstr ""
+msgstr "%i プリミティブ"
 
 #: src/gui/widgets/gpulogger.cc:109
 #, c-format
 msgid "%i triangles"
-msgstr ""
+msgstr "%i 三角形"
 
 #: src/gui/widgets/gpulogger.cc:110
 #, c-format
 msgid "%i textured triangles"
-msgstr ""
+msgstr "%i テクスチャ付き三角形"
 
 #: src/gui/widgets/gpulogger.cc:111
 #, c-format
 msgid "%i rectangles"
-msgstr ""
+msgstr "%i 矩形"
 
 #: src/gui/widgets/gpulogger.cc:112
 #, c-format
 msgid "%i sprites"
-msgstr ""
+msgstr "%i スプライト"
 
 #: src/gui/widgets/gpulogger.cc:113
 #, c-format
 msgid "%i pixel writes"
-msgstr ""
+msgstr "%i ピクセル書き込み"
 
 #: src/gui/widgets/gpulogger.cc:114
 #, c-format
 msgid "%i pixel reads"
-msgstr ""
+msgstr "%i ピクセル読み取り"
 
 #: src/gui/widgets/gpulogger.cc:115
 #, c-format
@@ -2515,7 +2517,7 @@ msgstr ""
 
 #: src/gui/widgets/isobrowser.cc:97
 msgid "No iso or invalid iso loaded."
-msgstr "ISOがないか、無効なISOがロードされました。"
+msgstr "ISOがないか、無効なISOがロードされています。"
 
 #: src/gui/widgets/isobrowser.cc:103
 #, c-format
@@ -2545,39 +2547,39 @@ msgstr ""
 
 #: src/gui/widgets/isobrowser.cc:148
 msgid "Track"
-msgstr ""
+msgstr "トラック"
 
 #: src/gui/widgets/isobrowser.cc:150
 msgid "Length"
-msgstr ""
+msgstr "長さ"
 
 #: src/gui/widgets/isobrowser.cc:151
 msgid "Pregap"
-msgstr ""
+msgstr "プリギャップ"
 
 #: src/gui/widgets/log.cc:67
 msgid "Enabled"
-msgstr ""
+msgstr "有効"
 
 #: src/gui/widgets/log.cc:69
 msgid "Enable all"
-msgstr ""
+msgstr "すべて有効"
 
 #: src/gui/widgets/log.cc:73
 msgid "Disable all"
-msgstr ""
+msgstr "すべて無効"
 
 #: src/gui/widgets/log.cc:86
 msgid "Displayed"
-msgstr ""
+msgstr "表示"
 
 #: src/gui/widgets/log.cc:88
 msgid "Display all"
-msgstr ""
+msgstr "すべて表示"
 
 #: src/gui/widgets/log.cc:92
 msgid "Hide all"
-msgstr ""
+msgstr "すべて非表示"
 
 #: src/gui/widgets/log.cc:105
 msgid "Special"
@@ -2585,15 +2587,15 @@ msgstr "特別"
 
 #: src/gui/widgets/log.cc:108
 msgid "Log CD-ROM commands"
-msgstr ""
+msgstr "CD-ROM コマンドのログ"
 
 #: src/gui/widgets/log.cc:112
 msgid "Skip ISR during CPU traces"
-msgstr ""
+msgstr "CPU トレース中に ISR をスキップ"
 
 #: src/gui/widgets/log.cc:114
 msgid "Log kernel calls"
-msgstr ""
+msgstr "カーネル呼び出しのログ"
 
 #: src/gui/widgets/log.cc:124
 msgid "Follow"
@@ -2621,35 +2623,35 @@ msgstr ""
 
 #: src/gui/widgets/memcard_manager.cc:64
 msgid "Import file into memory card 1"
-msgstr ""
+msgstr "メモリーカード 1 にファイルをインポート"
 
 #: src/gui/widgets/memcard_manager.cc:68
 msgid "Import file into memory card 2"
-msgstr ""
+msgstr "メモリーカード 2 にファイルをインポート"
 
 #: src/gui/widgets/memcard_manager.cc:72
 msgid "Export memory card 1 to file"
-msgstr ""
+msgstr "メモリーカード 1 にファイルをエクスポート"
 
 #: src/gui/widgets/memcard_manager.cc:76
 msgid "Export memory card 2 to file"
-msgstr ""
+msgstr "メモリーカード 2 にファイルをエクスポート"
 
 #: src/gui/widgets/memcard_manager.cc:121
 msgid "Undo"
-msgstr ""
+msgstr "元に戻す"
 
 #: src/gui/widgets/memcard_manager.cc:141
 msgid "Undo version: "
-msgstr ""
+msgstr "巻き戻しバージョン: "
 
 #: src/gui/widgets/memcard_manager.cc:144
 msgid "Latest"
-msgstr ""
+msgstr "最新"
 
 #: src/gui/widgets/memcard_manager.cc:151
 msgid "Clear Undo buffer"
-msgstr ""
+msgstr "巻き戻しバッファをクリア"
 
 #. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
 #: src/gui/widgets/memcard_manager.cc:156
@@ -2667,7 +2669,8 @@ msgstr "カード1 を PocketStation にする"
 #: src/gui/widgets/memcard_manager.cc:171
 #: src/gui/widgets/memcard_manager.cc:179
 msgid "Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly allowing apps to be saved/exported."
-msgstr ""
+msgstr "実験的。エミュレーターがPocketStationコマンドに人工的なレスポンスの送信を試みます。\n"
+"アプリを保存したりエクスポートすることが可能になるかもしれません。"
 
 #: src/gui/widgets/memcard_manager.cc:173
 msgid "Card 2 Pocketstation"
@@ -2762,7 +2765,7 @@ msgstr "メモリーカードファイルをエクスポート"
 
 #: src/gui/widgets/memory_observer.cc:97
 msgid "Plain search"
-msgstr ""
+msgstr "単純検索"
 
 #: src/gui/widgets/memory_observer.cc:98
 msgid "Pattern"
@@ -2793,7 +2796,7 @@ msgstr ""
 #: src/gui/widgets/memory_observer.cc:373
 #: src/gui/widgets/memory_observer.cc:438
 msgid "Show in memory editor##{}"
-msgstr ""
+msgstr "メモリエディタで表示"
 
 #: src/gui/widgets/memory_observer.cc:197
 msgid "Delta-over-time search"
@@ -2827,7 +2830,7 @@ msgstr ""
 
 #: src/gui/widgets/memory_observer.cc:324
 msgid "Display as fixed-point values"
-msgstr ""
+msgstr "固定小数点として表示"
 
 #: src/gui/widgets/memory_observer.cc:329
 msgid "Current value"
@@ -2891,11 +2894,11 @@ msgstr "ファイル名: "
 
 #: src/gui/widgets/named_savestates.cc:111
 msgid "Enter the name of your save state here"
-msgstr ""
+msgstr "ここにステートセーブの名前を入力"
 
 #: src/gui/widgets/named_savestates.cc:139
 msgid "Create save"
-msgstr ""
+msgstr "新規セーブを作成"
 
 #. The save state exists
 #: src/gui/widgets/named_savestates.cc:145
@@ -2912,19 +2915,19 @@ msgstr ""
 
 #: src/gui/widgets/pio-cart.cc:36
 msgid "ROM"
-msgstr ""
+msgstr "ROM"
 
 #: src/gui/widgets/pio-cart.cc:47
 msgid "On/Off Switch:"
-msgstr ""
+msgstr "オン/オフスイッチ"
 
 #: src/gui/widgets/pio-cart.cc:53
 msgid "Off"
-msgstr ""
+msgstr "オフ"
 
 #: src/gui/widgets/pio-cart.cc:53
 msgid "On"
-msgstr ""
+msgstr "オン"
 
 #: src/gui/widgets/registers.cc:34
 msgid "Context##{}"
@@ -2990,7 +2993,7 @@ msgstr "すべて表示"
 
 #: src/gui/widgets/shader-editor.cc:496
 msgid "Configure shader"
-msgstr ""
+msgstr "シェーダー設定"
 
 #: src/gui/widgets/shader-editor.cc:521
 msgid "Vertex Shader"
@@ -3025,7 +3028,7 @@ msgstr ""
 #: src/gui/widgets/sio1.cc:192 src/gui/widgets/vram-viewer.cc:546
 #: src/gui/widgets/vram-viewer.cc:558
 msgid "OK"
-msgstr ""
+msgstr "OK"
 
 #: src/gui/widgets/sio1.cc:223
 msgid "Status"
@@ -3196,67 +3199,67 @@ msgstr ""
 
 #: src/gui/widgets/vram-viewer.cc:390
 msgid "VRAM Shader Editor"
-msgstr ""
+msgstr "VRAM シェーダーエディター"
 
 #: src/gui/widgets/vram-viewer.cc:486
 msgid "View"
-msgstr ""
+msgstr "表示"
 
 #: src/gui/widgets/vram-viewer.cc:487
 msgid "Reset view"
-msgstr ""
+msgstr "表示をリセット"
 
 #: src/gui/widgets/vram-viewer.cc:490
 msgid "24 bits shift"
-msgstr "24ビットシフト"
+msgstr "24 ビットシフト"
 
 #: src/gui/widgets/vram-viewer.cc:491
 msgid "View VRAM in 24 bits"
-msgstr ""
+msgstr "24 ビットで VRAM を表示"
 
 #: src/gui/widgets/vram-viewer.cc:495
 msgid "View VRAM in 16 bits"
-msgstr ""
+msgstr "16 ビットで VRAM を表示"
 
 #: src/gui/widgets/vram-viewer.cc:499
 msgid "View VRAM in 8 bits"
-msgstr ""
+msgstr "8 ビットで VRAM を表示"
 
 #: src/gui/widgets/vram-viewer.cc:503
 msgid "View VRAM in 4 bits"
-msgstr ""
+msgstr "4 ビットで VRAM を表示"
 
 #: src/gui/widgets/vram-viewer.cc:508
 msgid "Select a CLUT"
-msgstr ""
+msgstr "CLUT の選択"
 
 #: src/gui/widgets/vram-viewer.cc:510
 msgid "Enable Alpha channel view"
-msgstr ""
+msgstr "アルファチャンネル表示を有効化"
 
 #: src/gui/widgets/vram-viewer.cc:511
 msgid "Enable greyscale"
-msgstr ""
+msgstr "グレースケールを有効化"
 
 #: src/gui/widgets/vram-viewer.cc:514
 msgid "Show Shader Editor"
-msgstr ""
+msgstr "シェーダーエディターを表示"
 
 #: src/gui/widgets/vram-viewer.cc:521
 msgid "Select read highlight color"
-msgstr ""
+msgstr "読み取りのハイライト色を選択"
 
 #: src/gui/widgets/vram-viewer.cc:522
 msgid "Select written highlight color"
-msgstr ""
+msgstr "書き込みのハイライト色を選択"
 
 #: src/gui/widgets/vram-viewer.cc:540 src/gui/widgets/vram-viewer.cc:542
 msgid "Read Highlight Color Picker"
-msgstr ""
+msgstr "読み取りハイライト カラーピッカー"
 
 #: src/gui/widgets/vram-viewer.cc:552 src/gui/widgets/vram-viewer.cc:554
 msgid "Written Highlight Color Picker"
-msgstr ""
+msgstr "書き込みハイライト カラーピッカー"
 
 #: src/spu/cfg.cc:28
 msgid "SPU configuration"
@@ -3272,7 +3275,7 @@ msgstr "デバイス"
 
 #: src/spu/cfg.cc:57
 msgid "Use Null Sync"
-msgstr ""
+msgstr "ヌル同期の使用"
 
 #: src/spu/cfg.cc:58
 msgid "More precise CPU-SPU synchronization,\n"
@@ -3362,7 +3365,7 @@ msgstr "補間"
 
 #: src/spu/cfg.cc:86
 msgid "Mono"
-msgstr "モノ"
+msgstr "モノラル"
 
 #: src/spu/cfg.cc:87
 msgid "Downmixes stereo to mono."
@@ -3370,15 +3373,16 @@ msgstr "ステレオをモノラルにダウンミックスします。"
 
 #: src/spu/cfg.cc:88
 msgid "Capture/decode buffer IRQ"
-msgstr ""
+msgstr "バッファ IRQ のキャプチャ/デコード"
 
 #: src/spu/cfg.cc:90
 msgid "Activates SPU IRQs based on writes to the decode/capture buffer. This option is necessary for some games."
-msgstr "デコード/キャプチャバッファの書き込みに合わせて SPU の IRQ を有効にします。一部のゲームではこのオプションが必要です。"
+msgstr "デコード/キャプチャバッファの書き込みに合わせて SPU の IRQ を有効にします。\n"
+"一部のゲームではこのオプションが必要です。"
 
 #: src/spu/debug.cc:62
 msgid "SPU Debug"
-msgstr ""
+msgstr "SPU デバッグ"
 
 #: src/spu/debug.cc:84
 msgid "Mute all"
