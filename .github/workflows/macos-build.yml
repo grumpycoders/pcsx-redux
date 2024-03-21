@@ -122,9 +122,9 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Install node
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v4
       with:
-        node-version: '14'
+        node-version: 'lts'
         check-latest: true
     - name: Install appcenter
       run: npm install -g appcenter-cli
