@@ -184,15 +184,15 @@ msgstr "Ponto de Interrupção engatilhado: PC=0x%08x - Causa: %s %s\n"
 msgid "Step Out"
 msgstr "Sair"
 
-#: src/core/debug.h:37
+#: src/core/debug.h:36
 msgid "Exec"
 msgstr "Exec"
 
-#: src/core/debug.h:37 src/gui/widgets/typed_debugger.cc:285
+#: src/core/debug.h:36 src/gui/widgets/typed_debugger.cc:285
 msgid "Read"
 msgstr "Leitura"
 
-#: src/core/debug.h:37 src/gui/widgets/typed_debugger.cc:287
+#: src/core/debug.h:36 src/gui/widgets/typed_debugger.cc:287
 msgid "Write"
 msgstr "Gravação"
 
@@ -3003,7 +3003,7 @@ msgstr "Memory Card 2"
 msgid "Import Memory Card file"
 msgstr "Memory Card 1"
 
-#: src/gui/widgets/memcard_manager.h:78
+#: src/gui/widgets/memcard_manager.h:77
 #, fuzzy
 msgid "Export Memory Card file"
 msgstr "Memory Card 1"
