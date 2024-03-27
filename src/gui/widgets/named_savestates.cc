@@ -77,9 +77,9 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     float posY = ImGui::GetCursorPosY();
     ImGui::SetCursorPosY(posY + verticalAlignAdjust);
 
-    ImGui::Text(_("Filename: "));
+    ImGui::TextUnformatted(_("Filename: "));
     ImGui::SameLine();
-    ImGui::Text(gui->getSaveStatePrefix(true).c_str());
+    ImGui::TextUnformatted(gui->getSaveStatePrefix(true).c_str());
     ImGui::SameLine(0.0f, 0.0f);
 
     // Restore the vertical value
@@ -115,7 +115,7 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
 
     // Trailing text alignment also needs adjusting, but in the opposite direction
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalAlignAdjust);
-    ImGui::Text(gui->getSaveStatePostfix().c_str());
+    ImGui::TextUnformatted(gui->getSaveStatePostfix().c_str());
 
     ImGui::Separator();
 
