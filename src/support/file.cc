@@ -171,7 +171,7 @@ static FILE *openwrapper(const char *filename, const wchar_t *mode) {
     int needed = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
     if (needed <= 0) return nullptr;
     LPWSTR str = (LPWSTR)_malloca(needed * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, filename, -1, str, needed * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, filename, -1, str, needed);
     FILE *ret = _wfopen(str, mode);
     _freea(str);
     return ret;
