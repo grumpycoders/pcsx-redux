@@ -545,7 +545,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     if (vg) {
         g_system->findResource(
             [vg](auto path) -> bool {
-                int res = nvgCreateFont(vg, "noto-sans-regular", (const char *)(path.u8string().c_str()));
+                int res = nvgCreateFont(vg, "noto-sans-regular", (const char*)(path.u8string().c_str()));
                 return res >= 0;
             },
             MAKEU8("NotoSans-Regular.ttf"), "fonts", std::filesystem::path("third_party") / "noto");
