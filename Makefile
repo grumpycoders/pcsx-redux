@@ -312,7 +312,7 @@ tools: $(TOOLS)
 .PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage tools
 
 DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
-DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
+DEPS += $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
 DEPS += $(patsubst %.cpp,%.dep,$(filter %.cpp,$(SRCS)))
 
 dep: $(DEPS)
