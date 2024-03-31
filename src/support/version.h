@@ -47,6 +47,7 @@ struct VersionInfo {
     std::string updateInfoBase;
     void loadFromFile(IO<File> file);
     bool failed() const { return version.empty(); }
+    bool hasUpdateInfo() const { return !updateInfoBase.empty(); }
     void clear() {
         version.clear();
         changeset.clear();

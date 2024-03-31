@@ -598,7 +598,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         finishLoadSettings();
 
         if (!g_system->getArgs().isUpdateDisabled() && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
-            !g_system->getVersion().failed()) {
+            !g_system->getVersion().failed() && g_system->getVersion().hasUpdateInfo()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
                 [this](bool success) {
@@ -1646,7 +1646,7 @@ their TV set to match the aspect ratio of the game.)"));
     }
 
     if (!g_system->getArgs().isUpdateDisabled() && !g_system->getVersion().failed() &&
-        !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
+        g_system->getVersion().hasUpdateInfo() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
         if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
 

@@ -42,16 +42,22 @@ void PCSX::VersionInfo::loadFromFile(IO<File> file) {
         version = json["version"].template get<std::string>();
         changeset = json["changeset"].template get<std::string>();
         timestamp = json["timestamp"].template get<std::time_t>();
+    } catch (...) {
+        clear();
+        return;
+    }
+    try {
         updateCatalog = json["updateInfo"][0]["updateCatalog"].template get<std::string>();
         updateInfoBase = json["updateInfo"][0]["updateInfoBase"].template get<std::string>();
     } catch (...) {
-        clear();
+        updateCatalog.clear();
+        updateInfoBase.clear();
     }
 }
 
 bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::function<void(bool)> callback,
                                       uv_loop_t* loop) {
-    if (versionInfo.failed()) return false;
+    if (versionInfo.failed() || !versionInfo.hasUpdateInfo()) return false;
     m_hasUpdate = false;
     m_download = new UvFile(
         versionInfo.updateCatalog,
@@ -89,7 +95,7 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
 
 bool PCSX::Update::downloadAndApplyUpdate(const VersionInfo& versionInfo, std::function<void(bool)> callback,
                                           uv_loop_t* loop) {
-    if (versionInfo.failed()) return false;
+    if (versionInfo.failed() || !versionInfo.hasUpdateInfo()) return false;
     m_hasUpdate = false;
     m_download = new UvFile(
         versionInfo.updateInfoBase + std::to_string(m_updateId),
@@ -124,7 +130,7 @@ bool PCSX::Update::downloadAndApplyUpdate(const VersionInfo& versionInfo, std::f
 
 bool PCSX::Update::getDownloadUrl(const VersionInfo& versionInfo, std::function<void(std::string)> callback,
                                   uv_loop_t* loop) {
-    if (versionInfo.failed()) return false;
+    if (versionInfo.failed() || !versionInfo.hasUpdateInfo()) return false;
     m_hasUpdate = false;
     m_download = new UvFile(
         versionInfo.updateInfoBase + std::to_string(m_updateId),
