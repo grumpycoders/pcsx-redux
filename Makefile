@@ -280,7 +280,7 @@ gitclean:
 	git submodule foreach --recursive git clean -f -d -x
 
 define msgmerge
-msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
+-msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
 
 endef
 

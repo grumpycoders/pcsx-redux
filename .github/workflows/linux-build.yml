@@ -22,7 +22,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
-          make -j 2 all pcsx-redux-tests
+          make -j 2 all pcsx-redux-tests tools
           make -C src/mips/tests -j 2 PCSX_TESTS=true
           make -C src/mips/openbios -j 2 clean all
       - name: Packaging
