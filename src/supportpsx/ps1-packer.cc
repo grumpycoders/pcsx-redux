@@ -79,7 +79,7 @@ int16_t getLO(uint32_t v) {
 
 void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp,
                            const Options& options) {
-    constexpr size_t stubSize = 8;
+    constexpr size_t stubSize = 7 * 4;
     std::vector<uint8_t> dataIn;
     dataIn.resize(src->size());
     src->read(dataIn.data(), dataIn.size());
@@ -98,21 +98,21 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     if (r != UCL_E_OK) {
         throw std::runtime_error("Fatal error during data compression.\n");
     }
-    dataOut.resize(outSize + (options.raw ? 16 : 0));
-    uint32_t newPC;
-    uint32_t compLoad;
-
+    dataOut.resize(outSize + (options.raw ? stubSize : 0));
     while ((dataOut.size() & 3) != 0) {
         dataOut.push_back(0);
     }
+    uint32_t newPC = dataOut.size();
+    uint32_t compLoad = 0;
+
     // If we're outputting a rom file, our tload will be fixed
     // at 0x1f000110, after the license string.
-    uint32_t tload = options.rom ? 0x1f000110 : options.tload;
+    uint32_t tload = options.raw ? 0 : options.rom ? 0x1f000110 : options.tload;
 
     if (tload != 0) {
         newPC = tload + dataOut.size();
         compLoad = tload;
-    } else {
+    } else if (!options.raw) {
         // If we don't have a tload, it means we're doing
         // in-place decompression. We need to make sure
         // we have enough space to decompress our binary
@@ -132,10 +132,18 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     if (options.raw) {
         // If outputting a raw file, our start address is going
         // to be the same as our tload address, so we need to inject
-        // a jump to the start of our code.
+        // a jump to the start of our code. We are doing this in
+        // a fully position-independent way, so raw files can be
+        // loaded anywhere in memory.
+        auto offset = newPC - 4 * 4;
         std::vector<uint8_t> stub;
-        pushBytes(stub, j(newPC));
-        pushBytes(stub, nop());
+        pushBytes(stub, addiu(Reg::T8, Reg::RA, 0));
+        pushBytes(stub, lui(Reg::T1, getHI(offset)));
+        pushBytes(stub, bgezal(Reg::R0, 4));
+        pushBytes(stub, addiu(Reg::T1, Reg::T1, getLO(offset)));
+        pushBytes(stub, addu(Reg::T0, Reg::RA, Reg::T1));
+        pushBytes(stub, jr(Reg::T0));
+        pushBytes(stub, addiu(Reg::A0, Reg::RA, 12));
 
         assert(stub.size() == stubSize);
 
@@ -163,7 +171,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     // binary file, and so the next instructions will
     // be the very first our binary will run.
 
-    if (!options.shell) {
+    if (!options.shell && !options.raw) {
         // We save $ra to $t8, so we can restore it later. This breaks ABI,
         // but the ucl-nrv2e decompressor won't use it. This isn't useful
         // for the shell trick, since we're just going to reboot the machine.
@@ -173,8 +181,10 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     pushBytes(dataOut, lui(Reg::V1, 0x1f80));
     pushBytes(dataOut, sw(Reg::R0, 0x1074, Reg::V1));
     // Calls the ucl-nrv2e decompressor.
-    pushBytes(dataOut, lui(Reg::A0, getHI(compLoad)));
-    pushBytes(dataOut, addiu(Reg::A0, Reg::A0, getLO(compLoad)));
+    if (!options.raw) {
+        pushBytes(dataOut, lui(Reg::A0, getHI(compLoad)));
+        pushBytes(dataOut, addiu(Reg::A0, Reg::A0, getLO(compLoad)));
+    }
     pushBytes(dataOut, lui(Reg::A1, getHI(addr)));
     pushBytes(dataOut, bgezal(Reg::R0, -((int16_t)(dataOut.size() + 4 - n2estart))));
     pushBytes(dataOut, addiu(Reg::A1, Reg::A1, getLO(addr)));
