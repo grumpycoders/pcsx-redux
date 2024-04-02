@@ -124,8 +124,7 @@ jobs:
     - name: Install node
       uses: actions/setup-node@v4
       with:
-        node-version: 'lts'
-        check-latest: true
+        node-version: 'latest'
     - name: Install appcenter
       run: npm install -g appcenter-cli
     - name: Create BUILD environment
