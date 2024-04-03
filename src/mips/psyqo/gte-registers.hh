@@ -199,9 +199,9 @@ static inline void write(uint32_t value) {
  * @tparam reg The register to write to.
  * @param fp The fixed point number to write.
  */
-template <Register reg>
+template <Register reg, bool valid = false>
 static inline void writeSafe(Short fp) {
-    static_assert(false, "Unable to write single fixed point to register");
+    static_assert(valid, "Unable to write single fixed point to register");
 }
 
 /**
@@ -211,9 +211,9 @@ static inline void writeSafe(Short fp) {
  * @tparam reg The register to write to.
  * @param fp The fixed point number to write.
  */
-template <Register reg>
+template <Register reg, bool valid = false>
 static inline void writeUnsafe(Short fp) {
-    static_assert(false, "Unable to write single fixed point to register");
+    static_assert(valid, "Unable to write single fixed point to register");
 }
 
 /**
@@ -223,9 +223,9 @@ static inline void writeUnsafe(Short fp) {
  * @param low The value to write to the lower 16 bits of the register.
  * @param hi The value to write to the higher 16 bits of the register.
  */
-template <Register reg>
+template <Register reg, bool valid = false>
 static inline void writeSafe(Short low, Short hi) {
-    static_assert(false, "Unable to write double fixed point to register");
+    static_assert(valid, "Unable to write double fixed point to register");
 }
 
 /**
@@ -236,9 +236,9 @@ static inline void writeSafe(Short low, Short hi) {
  * @param low The value to write to the lower 16 bits of the register.
  * @param hi The value to write to the higher 16 bits of the register.
  */
-template <Register reg>
+template <Register reg, bool valid = false>
 static inline void writeUnsafe(Short low, Short hi) {
-    static_assert(false, "Unable to write double fixed point to register");
+    static_assert(valid, "Unable to write double fixed point to register");
 }
 
 /**
@@ -253,9 +253,9 @@ enum class PseudoRegister { Rotation, Light, Color, V0, V1, V2, SV, LV };
  * @tparam reg The pseudo register to write to.
  * @param in The matrix to write.
  */
-template <PseudoRegister reg>
+template <PseudoRegister reg, bool valid = false>
 static inline void writeSafe(const Matrix33& in) {
-    static_assert(false, "Unable to write matrix to pseudo register");
+    static_assert(valid, "Unable to write matrix to pseudo register");
 }
 
 /**
@@ -265,9 +265,9 @@ static inline void writeSafe(const Matrix33& in) {
  * @tparam reg The pseudo register to write to.
  * @param in The matrix to write.
  */
-template <PseudoRegister reg>
+template <PseudoRegister reg, bool valid = false>
 static inline void writeUnsafe(const Matrix33& in) {
-    static_assert(false, "Unable to write matrix to pseudo register");
+    static_assert(valid, "Unable to write matrix to pseudo register");
 }
 
 /**
@@ -277,9 +277,9 @@ static inline void writeUnsafe(const Matrix33& in) {
  * @tparam reg The pseudo register to write to.
  * @param in The vector to write.
  */
-template <PseudoRegister reg>
+template <PseudoRegister reg, bool valid = false>
 static inline void writeSafe(const Vec3& in) {
-    static_assert(false, "Unable to write vector to pseudo register");
+    static_assert(valid, "Unable to write vector to pseudo register");
 }
 
 /**
@@ -289,9 +289,9 @@ static inline void writeSafe(const Vec3& in) {
  * @tparam reg The pseudo register to write to.
  * @param in The vector to write.
  */
-template <PseudoRegister reg>
+template <PseudoRegister reg, bool valid = false>
 static inline void writeUnsafe(const Vec3& in) {
-    static_assert(false, "Unable to write vector to pseudo register");
+    static_assert(valid, "Unable to write vector to pseudo register");
 }
 
 /**
@@ -360,9 +360,9 @@ static inline void read(uint32_t* ptr) {
  * @tparam reg The pseudo register to read from.
  * @return PackedVec3 The vector read from the pseudo register.
  */
-template <PseudoRegister reg>
+template <PseudoRegister reg, bool valid = false>
 static inline PackedVec3 readSafe() {
-    static_assert(false, "Unable to read pseudo register as vector");
+    static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
 }
 
@@ -373,15 +373,15 @@ static inline PackedVec3 readSafe() {
  * @tparam reg The pseudo register to read from.
  * @return PackedVec3 The vector read from the pseudo register.
  */
-template <PseudoRegister reg>
+template <PseudoRegister reg, bool valid = false>
 static inline PackedVec3 readUnsafe() {
-    static_assert(false, "Unable to read pseudo register as vector");
+    static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
 }
 
-template <PseudoRegister reg>
+template <PseudoRegister reg, bool valid = false>
 static inline void read(Vec3* ptr) {
-    static_assert(false, "Unable to read pseudo register as vector");
+    static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
 }
 
