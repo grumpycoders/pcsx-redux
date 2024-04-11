@@ -28,7 +28,7 @@ jobs:
 
   macos-arm64-build-and-test-toolchain:
 
-    runs-on: macOS-arm64
+    runs-on: macOS-14
 
     steps:
     - uses: actions/checkout@v3
