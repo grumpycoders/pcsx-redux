@@ -38,6 +38,8 @@ jobs:
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+    - name: This should be arm64
+      run: uname -m
     - name: build mips binutils
       run: brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb --debug
     - name: build mips gcc
