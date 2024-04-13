@@ -86,10 +86,10 @@ uC-sdk-glue/init.c \
 ../../../third_party/uC-sdk/os/src/osdebug.c \
 
 ifeq ($(BOOT),rom)
-LDSCRIPT = psx-bios.ld
+LDSCRIPT = $(ROOTDIR)openbios/psx-bios.ld
 SRCS += font1.o font2.o
 else
-LDSCRIPT = psx-bios-as-cart.ld
+LDSCRIPT = $(ROOTDIR)openbios/psx-bios-as-cart.ld
 endif
 
 CPPFLAGS = -DNOFLOATINGPOINT -DXPRINTFNOALLOC -DXPRINTFNOSTDIO
