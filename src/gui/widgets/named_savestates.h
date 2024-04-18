@@ -23,6 +23,8 @@
 #include <string>
 #include <vector>
 
+#include "imgui.h"
+
 namespace PCSX {
 
 class GUI;
@@ -34,14 +36,24 @@ class NamedSaveStates {
     void draw(GUI* gui, const char* title);
     bool& m_show;
 
-    std::vector<std::pair<std::filesystem::path, std::string>> getNamedSaveStates(GUI* gui);
-
-  private:
     static constexpr int NAMED_SAVE_STATE_LENGTH_MAX = 128;
 
-    void saveSaveState(GUI* gui, std::filesystem::path saveStatePath);
-    void loadSaveState(GUI* gui, std::filesystem::path saveStatePath);
-    void deleteSaveState(std::filesystem::path saveStatePath);
+    static std::filesystem::path createSaveStatePath(GUI* gui, std::string saveStateName);
+
+    std::vector<std::pair<std::filesystem::path, std::string>> getNamedSaveStates(GUI* gui);
+
+    struct TextFilters {
+        static int filterNonPathCharacters(ImGuiInputTextCallbackData* data) { return testChar(data->EventChar); }
+        static int testChar(char c) { return testChar((ImWchar)c); }
+        static int testChar(ImWchar c);
+        static bool isValid(char c) { return testChar((ImWchar)c) == 0; }
+        static bool isValid(ImWchar c) { return testChar(c) == 0; }
+    };
+
+  private:
+    bool saveSaveState(GUI* gui, std::filesystem::path saveStatePath);
+    bool loadSaveState(GUI* gui, std::filesystem::path saveStatePath);
+    bool deleteSaveState(GUI* gui, std::filesystem::path saveStatePath);
 
     char m_namedSaveNameString[NAMED_SAVE_STATE_LENGTH_MAX] = "";
 };
