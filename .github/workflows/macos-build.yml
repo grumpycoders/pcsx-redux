@@ -149,4 +149,4 @@ jobs:
         APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
       run: |
         npx @appdistrib/cli -m version.json upload PCSX-Redux-$BUILD-Intel.dmg
-        npx appcenter distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD-Intel.dmg -g 'Public' -a grumpycoders/pcsx-redux-macos --disable-telemetry
+        npx appcenter-cli distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD-Intel.dmg -g 'Public' -a grumpycoders/pcsx-redux-macos --disable-telemetry
