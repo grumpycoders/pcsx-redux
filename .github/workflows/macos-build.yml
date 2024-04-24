@@ -68,20 +68,21 @@ jobs:
       run: cp openbios.bin PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources
     - name: Packaging
       run: |
-        echo '{' > PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '  "changeset": "'`git rev-parse HEAD`'",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '  "timestamp": '`date '+%s'`',' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '  "channel": "dev",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '  "updateInfo": [' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '    {' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '      "channel": "dev",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '      "method": "appcenter",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '      "updateCatalog": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/public_releases",' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '      "updateInfoBase": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/releases/"' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '    }' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '  ]' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
-        echo '}' >> PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        echo '{' > version.json
+        echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> version.json
+        echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
+        echo '  "timestamp": '`date '+%s'`',' >> version.json
+        echo '  "channel": "dev",' >> version.json
+        echo '  "updateInfo": [' >> version.json
+        echo '    {' >> version.json
+        echo '      "channel": "dev",' >> version.json
+        echo '      "method": "appcenter",' >> version.json
+        echo '      "updateCatalog": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/public_releases",' >> version.json
+        echo '      "updateInfoBase": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/releases/"' >> version.json
+        echo '    }' >> version.json
+        echo '  ]' >> version.json
+        echo '}' >> version.json
+        cp version.json PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
     - name: Signing Application
       run: codesign --force -s - -vvvv PCSX-Redux.app
     - name: Adjusting for dmg folder
@@ -115,7 +116,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Version
-        path: PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+        path: version.json
 
   publish-app:
     runs-on: ubuntu-latest
@@ -147,5 +148,5 @@ jobs:
         APPDISTRIB_PROJECT: macos-x64
         APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
       run: |
-        npx @appdistrib/cli -m PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json upload PCSX-Redux-$BUILD-Intel.dmg
+        npx @appdistrib/cli -m version.json upload PCSX-Redux-$BUILD-Intel.dmg
         npx appcenter distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD-Intel.dmg -g 'Public' -a grumpycoders/pcsx-redux-macos --disable-telemetry
