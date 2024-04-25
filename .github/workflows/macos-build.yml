@@ -143,9 +143,9 @@ jobs:
         name: Version
     - name: Distribute app
       env:
-        APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_MACOS_X64 }}
+        APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_MACOS_X64 }}
         APPDISTRIB_ORGANIZATION: pcsx-redux
-        APPDISTRIB_PROJECT: macos-x64
+        APPDISTRIB_PROJECT: dev-macos-x64
         APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
       run: |
         npx @appdistrib/cli -m version.json upload PCSX-Redux-$BUILD-Intel.dmg

@@ -56,9 +56,9 @@ jobs:
       - name: Deploy
         if: github.event_name == 'push'
         env:
-          APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_LINUX_X64 }}
+          APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_LINUX_X64 }}
           APPDISTRIB_ORGANIZATION: pcsx-redux
-          APPDISTRIB_PROJECT: linux-x64
+          APPDISTRIB_PROJECT: dev-linux-x64
           APPCENTER_ACCESS_TOKEN: ${{ secrets.LINUX_APPCENTER_ACCESS_TOKEN }}
         run: |
           git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
