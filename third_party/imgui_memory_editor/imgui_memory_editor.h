@@ -85,6 +85,7 @@ struct MemoryEditor
     bool            (*HighlightFn)(const ImU8* data, size_t off);//= 0      // optional handler to return Highlight property (to support non-contiguous highlighting).
     std::function<void()> PushMonoFont = nullptr;
     size_t&          OffsetAddr; // referenced from PCSX-Redux Settings
+    std::function<void(ImU8* data, size_t len, size_t base)> ExportFn = nullptr; // optional handler to export all memory data.
 
 private:
     // [Internal State]
@@ -129,7 +130,7 @@ public:
     void DrawWindow(const char* title, void* mem_data, size_t mem_size);
     // Memory Editor contents only
     void DrawContents(void* mem_data_void, size_t mem_size);
-    void DrawOptionsLine(const Sizes& s, void* mem_data, size_t mem_size);
+    void DrawOptionsLine(const Sizes& s, void* mem_data_void, size_t mem_size);
     void DrawPreviewLine(const Sizes& s, void* mem_data_void, size_t mem_size);
     // Utilities for Data Preview
     const char* DataTypeGetDesc(ImGuiDataType data_type) const;

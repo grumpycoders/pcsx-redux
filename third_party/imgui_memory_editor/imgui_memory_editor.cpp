@@ -361,9 +361,9 @@ void MemoryEditor::DrawContents(void* mem_data_void, size_t mem_size)
 	}
 }
 
-void MemoryEditor::DrawOptionsLine(const Sizes& s, void* mem_data, size_t mem_size)
+void MemoryEditor::DrawOptionsLine(const Sizes& s, void* mem_data_void, size_t mem_size)
 {
-	IM_UNUSED(mem_data);
+	ImU8* mem_data = (ImU8*)mem_data_void;
 	ImGuiStyle& style = ImGui::GetStyle();
 	const char* format_range = OptUpperCaseHex ? "Range %0*" _PRISizeT "X..%0*" _PRISizeT "X" : "Range %0*" _PRISizeT "x..%0*" _PRISizeT "x";
 
@@ -422,6 +422,14 @@ void MemoryEditor::DrawOptionsLine(const Sizes& s, void* mem_data, size_t mem_si
                 AddrInputBuf.clear();
                 GotoAddr = 0;
                 OffsetAddr = 0;
+    }
+
+    // Export memory via a function, if available
+    if (ExportFn) {
+        ImGui::SameLine();
+        if (ImGui::Button("Export Memory")) {
+            ExportFn(mem_data, mem_size, BaseAddr);
+        }
     }
 }
 
