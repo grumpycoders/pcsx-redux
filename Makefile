@@ -10,7 +10,7 @@ CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo fals
 
 PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
 
-LOCALES := el es_ES fr pt_BR uk zh_CN
+LOCALES := el es_ES fr ja pt_BR uk zh_CN
 
 ifeq ($(wildcard third_party/imgui/imgui.h),)
 HAS_SUBMODULES = false
@@ -163,7 +163,7 @@ ifeq ($(CROSS),arm64)
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
 SUPPORT_SRCS := src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
-SUPPORT_SRCS += src/supportpsx/binloader.cc src/supportpsx/ps1-packer.cc
+SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/ps1-packer.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
@@ -280,13 +280,13 @@ gitclean:
 	git submodule foreach --recursive git clean -f -d -x
 
 define msgmerge
-msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
+-msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
 
 endef
 
 regen-i18n:
 	find src -name *.cc -or -name *.c -or -name *.h | sort -u > pcsx-src-list.txt
-	xgettext --keyword=_ --keyword=f_ --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
+	xgettext --keyword=_ --keyword=f_ --keyword=l_ --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	find src -name *.lua | sort -u > pcsx-src-list.txt
 	xgettext --keyword=t_ --language=Lua --join-existing --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	sed '/POT-Creation-Date/d' -i i18n/pcsx-redux.pot
@@ -312,7 +312,7 @@ tools: $(TOOLS)
 .PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage tools
 
 DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
-DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
+DEPS += $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
 DEPS += $(patsubst %.cpp,%.dep,$(filter %.cpp,$(SRCS)))
 
 dep: $(DEPS)

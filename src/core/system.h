@@ -88,6 +88,8 @@ struct JumpToPC {
 struct JumpToMemory {
     uint32_t address;
     unsigned size;
+    unsigned editorNum;
+    bool forceShowEditor;
 };
 struct SelectClut {
     unsigned x, y;
@@ -266,5 +268,10 @@ extern System *g_system;
 
 }  // namespace PCSX
 
+// i18n macros
+// Normal string lookup to const char *
 #define _(str) PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str)
+// Formatting string lookup to use with fmt::format or fmt::printf
 #define f_(str) fmt::runtime(PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str))
+// Lambda string lookup to use with static arrays of strings
+#define l_(str) []() { return PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str); }

@@ -37,6 +37,7 @@
 #include "lua/luawrapper.h"
 #include "main/textui.h"
 #include "spu/interface.h"
+#include "support/binpath.h"
 #include "support/uvfile.h"
 #include "support/version.h"
 #include "tracy/Tracy.hpp"
@@ -194,7 +195,7 @@ int pcsxMain(int argc, char **argv) {
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     if (!logfileArg.empty()) system->useLogfile(logfileArg);
     PCSX::g_system = system;
-    std::filesystem::path self = argv[0];
+    std::filesystem::path self = PCSX::BinPath::getExecutablePath();
     std::filesystem::path binDir = std::filesystem::absolute(self).parent_path();
     system->setBinDir(binDir);
     system->loadAllLocales();

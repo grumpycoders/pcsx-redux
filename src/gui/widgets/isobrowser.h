@@ -47,7 +47,7 @@ class IsoBrowser {
     float m_crcProgress = 0.0f;
 
     Coroutine<> computeCRC(CDRIso*);
-    FileDialog<> m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
+    FileDialog<> m_openIsoFileDialog = {l_("Open Disk Image")};
 };
 
 }  // namespace Widgets
