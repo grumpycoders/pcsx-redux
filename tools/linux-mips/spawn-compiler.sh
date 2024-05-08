@@ -21,9 +21,9 @@ make
 make install-strip
 cd ..
 
-wget https://ftp.gnu.org/gnu/gcc/gcc-13.2.0/gcc-13.2.0.tar.gz
-tar xvfz gcc-13.2.0.tar.gz
-cd gcc-13.2.0
+wget https://ftp.gnu.org/gnu/gcc/gcc-14.1.0/gcc-14.1.0.tar.gz
+tar xvfz gcc-14.1.0.tar.gz
+cd gcc-14.1.0
 ./contrib/download_prerequisites
 mkdir build
 cd build
