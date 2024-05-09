@@ -53,7 +53,8 @@ void initializeCDRomHandlersAndEvents() {
 
 static void initializeSoftwareAndHardware() {
     initializeCDRomHandlersAndEvents();
-    while (!syscall_cdromInnerInit());
+    while (!syscall_cdromInnerInit())
+        ;
 }
 
 void initCDRom() {
@@ -77,7 +78,8 @@ int cdromBlockGetStatus() {
     uint8_t status;
 
     int cyclesToWait = 9;
-    while (!syscall_cdromGetStatus(&status) && (--cyclesToWait > 0));
+    while (!syscall_cdromGetStatus(&status) && (--cyclesToWait > 0))
+        ;
     if (cyclesToWait < 1) {
         syscall_exception(0x44, 0x1f);
         return -1;
