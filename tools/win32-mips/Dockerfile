@@ -2,7 +2,7 @@
 
 # Dockerfile to generate the Windows g++-mipsel-none-elf-14.1.0.zip package.
 
-FROM mcr.microsoft.com/windows/servercore:ltsc2019
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
 WORKDIR C:\windows\temp
 SHELL ["powershell", "-command"]
 
