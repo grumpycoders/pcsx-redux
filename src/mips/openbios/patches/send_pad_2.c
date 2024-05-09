@@ -115,7 +115,7 @@ enum patch_behavior send_pad_2_execute(uint32_t* ra) {
     ptr <<= 16;
     addend = ra[7] & 0xffff;
     ptr += addend;
-    *((uint32_t*)ptr) = patch_setPadOutputData;
+    *((uint32_t*)ptr) = (uint32_t)patch_setPadOutputData;
 
     ra[2] = 12 | 0x10000000;
     ra[3] = 0;

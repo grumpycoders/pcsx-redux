@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <alloca.h>
 #include <ctype.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "common/hardware/cop0.h"
@@ -130,7 +131,8 @@ static char s_binaryPath[128];
 // the tabulation character ('\t', or character 9) or a space.
 // Last but not least, the retail bios will screw things up
 // fairly badly if the file isn't terminated using CRLFs.
-static void findWordItem(const char *systemCnf, uint32_t *item, const char *name) {
+static void findWordItem(const char *systemCnf, void *item_, const char *name) {
+    uint32_t *item = (uint32_t *)item_;
     char c;
     const unsigned size = strlen(name);
     while (strncmp(systemCnf, name, size) != 0) {
@@ -378,7 +380,7 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     psxprintf("EXEC:PC0(%08x)  T_ADDR(%08x)  T_SIZE(%08x)\n", s_binaryInfo.pc, s_binaryInfo.text_addr,
               s_binaryInfo.text_size);
     psxprintf("boot address  : %08x %08x\nExecute !\n\n", s_binaryInfo.pc, s_configuration.stackBase);
-    s_binaryInfo.stack_start = s_configuration.stackBase;
+    s_binaryInfo.stack_start = (uintptr_t)s_configuration.stackBase;
     s_binaryInfo.stack_size = 0;
     // the original format string says S_SIZE(%08), which is obviously wrong...
     psxprintf("                S_ADDR(%08x)  S_SIZE(%08x)\n", s_configuration.stackBase, 0);
