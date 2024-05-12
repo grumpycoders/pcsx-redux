@@ -482,7 +482,7 @@ void PadsImpl::reset() {
 }
 
 void PadsImpl::Pad::reset() {
-    //m_analogMode = false;
+    // m_analogMode = false;
     m_configMode = false;
     m_cmd = magic_enum::enum_integer(PadCommands::Idle);
     m_bufferLen = 0;
