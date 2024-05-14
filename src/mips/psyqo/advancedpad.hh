@@ -108,12 +108,8 @@ class AdvancedPad {
     /**
      * @brief Initializes the pads.
      *
-     * @details This will initialize the pads polling by calling the BIOS'
-     * interface. This means this method cannot be called from the `prepare`
-     * method of the `Application` class, but rather from the `start` method
-     * of the root `Scene` object. Also, there can be interference with
-     * the BIOS' memory card functions, so this method is explicit to be
-     * called in the right order.
+     * @details This will stop the BIOS driver and start psyqo's driver.
+     * This method should be called once at the beginning of the program.
      */
     void initialize();
 
@@ -178,7 +174,7 @@ class AdvancedPad {
 
     uint16_t m_padData[8][4];
     eastl::function<void(Event)> m_callback;
-    bool m_connected[8] = {false, false, false, false, false, false};
+    bool m_connected[8] = {false, false, false, false, false, false, false, false};
     uint16_t m_buttons[8] = {
         0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
     };
