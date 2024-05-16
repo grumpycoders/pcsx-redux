@@ -69,7 +69,6 @@ void PCSX::SPU::impl::debug() {
         for (unsigned ch = 0; ch < MAXCHAN; ch++) {
             std::string label0 = "##Tag" + std::to_string(ch);
             std::string label1 = "##Channel" + std::to_string(ch);
-            std::string label2 = "##Mute" + std::to_string(ch);
             std::string label3 = std::to_string(ch);
             constexpr int widthTag = 100;
             constexpr int widthInf = 75;
@@ -80,8 +79,6 @@ void PCSX::SPU::impl::debug() {
             ImGui::SameLine();
             constexpr ImVec2 plotSize(-widthTag - widthInf, 0);
             ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
-            ImGui::SameLine();
-            ImGui::Checkbox(label2.c_str(), &s_chan[ch].data.get<Chan::Mute>().value);
 
             /* M/S buttons (mono/solo) */
 
