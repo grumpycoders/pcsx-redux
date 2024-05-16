@@ -290,6 +290,8 @@ class impl final : public SPUInterface {
     static const unsigned DEBUG_SAMPLES = 1024;
     enum { EMPTY = 0, DATA, NOISE, FMOD1, FMOD2, IRQ, MUTED } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];
     float m_channelDebugData[MAXCHAN][DEBUG_SAMPLES];
+    static constexpr unsigned CHANNEL_TAG = 32;
+    char m_channelTag[MAXCHAN][CHANNEL_TAG] = {};
     unsigned m_currentDebugSample = 0;
 };
 

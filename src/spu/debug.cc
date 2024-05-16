@@ -67,10 +67,16 @@ void PCSX::SPU::impl::debug() {
         ImGui::BeginChild("##debugSPUleft", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0), true);
         ImGui::Columns(1);
         for (unsigned ch = 0; ch < MAXCHAN; ch++) {
+            std::string label0 = "##Tag" + std::to_string(ch);
             std::string label1 = "##Channel" + std::to_string(ch);
             std::string label2 = "##Mute" + std::to_string(ch);
             std::string label3 = "Ch" + std::to_string(ch);
-            ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f);
+            constexpr int widthTag = 75;
+            ImGui::PushItemWidth(widthTag);
+            ImGui::InputText(label0.c_str(), m_channelTag[ch], CHANNEL_TAG, ImGuiInputTextFlags_None);
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
+            ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, ImVec2(-widthTag * 2, 0));
             ImGui::SameLine();
             ImGui::Checkbox(label2.c_str(), &s_chan[ch].data.get<Chan::Mute>().value);
             ImGui::SameLine();
