@@ -65,20 +65,17 @@ void PCSX::SPU::impl::debug() {
     }
     {
         ImGui::BeginChild("##debugSPUleft", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0), true);
-        ImGui::Columns(2);
-        for (unsigned i = 0; i < MAXCHAN / 2; i++) {
-            for (unsigned j = 0; j < 2; j++) {
-                unsigned ch = j * MAXCHAN / 2 + i;
-                std::string label1 = "##Channel" + std::to_string(ch);
-                std::string label2 = "##Mute" + std::to_string(ch);
-                std::string label3 = "Ch" + std::to_string(ch);
-                ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f);
-                ImGui::SameLine();
-                ImGui::Checkbox(label2.c_str(), &s_chan[ch].data.get<Chan::Mute>().value);
-                ImGui::SameLine();
-                if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == ch)) m_selectedChannel = ch;
-                ImGui::NextColumn();
-            }
+        ImGui::Columns(1);
+        for (unsigned i = 0; i < MAXCHAN; i++) {
+            const unsigned ch = i;
+            std::string label1 = "##Channel" + std::to_string(ch);
+            std::string label2 = "##Mute" + std::to_string(ch);
+            std::string label3 = "Ch" + std::to_string(ch);
+            ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f);
+            ImGui::SameLine();
+            ImGui::Checkbox(label2.c_str(), &s_chan[ch].data.get<Chan::Mute>().value);
+            ImGui::SameLine();
+            if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == ch)) m_selectedChannel = ch;
         }
         ImGui::Columns(1);
         if (ImGui::Button(_("Mute all"), ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
