@@ -71,7 +71,7 @@ void PCSX::SPU::impl::debug() {
             std::string label1 = "##Channel" + std::to_string(ch);
             std::string label2 = "##Mute" + std::to_string(ch);
             std::string label3 = std::to_string(ch);
-            constexpr int widthTag = 75;
+            constexpr int widthTag = 100;
             ImGui::PushItemWidth(widthTag);
             ImGui::InputText(label0.c_str(), m_channelTag[ch], CHANNEL_TAG, ImGuiInputTextFlags_None);
             ImGui::PopItemWidth();
