@@ -69,7 +69,6 @@ void PCSX::SPU::impl::debug() {
         for (unsigned ch = 0; ch < MAXCHAN; ch++) {
             std::string label0 = "##Tag" + std::to_string(ch);
             std::string label1 = "##Channel" + std::to_string(ch);
-            std::string label3 = std::to_string(ch);
             constexpr int widthTag = 100;
             constexpr int widthInf = 40;
             ImGui::PushItemWidth(widthTag);
@@ -144,8 +143,11 @@ void PCSX::SPU::impl::debug() {
             }
             ImGui::PopStyleColor(2);
 
+            const auto infoLabel = std::to_string(ch) + "##Info" + std::to_string(ch);
             ImGui::SameLine();
-            if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == ch)) m_selectedChannel = ch;
+            if (ImGui::RadioButton(infoLabel.c_str(), m_selectedChannel == ch)) {
+                m_selectedChannel = ch;
+            }
         }
         ImGui::Columns(1);
         if (ImGui::Button(_("Mute all"), ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
