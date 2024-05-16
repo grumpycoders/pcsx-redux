@@ -79,8 +79,6 @@ void PCSX::SPU::impl::debug() {
             ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, ImVec2(-widthTag * 2, 0));
             ImGui::SameLine();
             ImGui::Checkbox(label2.c_str(), &s_chan[ch].data.get<Chan::Mute>().value);
-            ImGui::SameLine();
-            if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == ch)) m_selectedChannel = ch;
 
             /* M/S buttons (mono/solo) */
 
@@ -145,6 +143,9 @@ void PCSX::SPU::impl::debug() {
                 }
             }
             ImGui::PopStyleColor(2);
+
+            ImGui::SameLine();
+            if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == ch)) m_selectedChannel = ch;
         }
         ImGui::Columns(1);
         if (ImGui::Button(_("Mute all"), ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
