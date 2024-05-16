@@ -68,16 +68,17 @@ void PCSX::SPU::impl::debug() {
         ImGui::Columns(1);
         for (unsigned ch = 0; ch < MAXCHAN; ch++) {
             std::string label0 = "##Tag" + std::to_string(ch);
-            std::string label1 = "##Channel" + std::to_string(ch);
             constexpr int widthTag = 100;
             constexpr int widthInf = 40;
             ImGui::PushItemWidth(widthTag);
             std::string tagHint = "Channel " + std::to_string(ch);
             ImGui::InputTextWithHint(label0.c_str(), tagHint.c_str(), m_channelTag[ch], CHANNEL_TAG);
             ImGui::PopItemWidth();
-            ImGui::SameLine();
+
+            const auto plotLabel = "##Channel" + std::to_string(ch);
             constexpr ImVec2 plotSize(-widthTag - widthInf, 0);
-            ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
+            ImGui::SameLine();
+            ImGui::PlotHistogram(plotLabel.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
 
             /* M/S buttons (mono/solo) */
 
