@@ -66,8 +66,7 @@ void PCSX::SPU::impl::debug() {
     {
         ImGui::BeginChild("##debugSPUleft", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0), true);
         ImGui::Columns(1);
-        for (unsigned i = 0; i < MAXCHAN; i++) {
-            const unsigned ch = i;
+        for (unsigned ch = 0; ch < MAXCHAN; ch++) {
             std::string label1 = "##Channel" + std::to_string(ch);
             std::string label2 = "##Mute" + std::to_string(ch);
             std::string label3 = "Ch" + std::to_string(ch);
