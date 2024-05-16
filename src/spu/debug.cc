@@ -81,6 +81,70 @@ void PCSX::SPU::impl::debug() {
             ImGui::Checkbox(label2.c_str(), &s_chan[ch].data.get<Chan::Mute>().value);
             ImGui::SameLine();
             if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == ch)) m_selectedChannel = ch;
+
+            /* M/S buttons (mono/solo) */
+
+            const auto buttonSize = ImVec2(ImGui::GetTextLineHeightWithSpacing(), 0);
+            const auto buttonTint = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+            auto& dataThis = s_chan[ch].data;
+            auto& muteThis = dataThis.get<Chan::Mute>().value;
+            auto& soloThis = dataThis.get<Chan::Solo>().value;
+
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, muteThis ? ImVec4(0.6f, 0.0f, 0.0f, 1.0f) : buttonTint);
+            std::string muteLabel = "M##" + std::to_string(ch);
+            if (ImGui::Button(muteLabel.c_str(), buttonSize)) {
+                muteThis = !muteThis;
+                if (muteThis) {
+                    soloThis = false;
+                }
+            }
+
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, soloThis ? ImVec4(0.0f, 0.6f, 0.0f, 1.0f) : buttonTint);
+            std::string soloLabel = "S##" + std::to_string(ch);
+            if (ImGui::Button(soloLabel.c_str(), buttonSize)) {
+                soloThis = !soloThis;
+                if (soloThis) {
+                    muteThis = false;
+                }
+                for (unsigned i = 0; i < MAXCHAN; i++) {
+                    if (i == ch) {
+                        continue;
+                    }
+                    auto& dataOther = s_chan[i].data;
+                    auto& muteOther = dataOther.get<Chan::Mute>().value;
+                    auto& soloOther = dataOther.get<Chan::Solo>().value;
+                    if (soloThis) {
+                        // multi/single solo
+                        if (ImGui::GetIO().KeyShift) {
+                            if (soloOther == false) {
+                                muteOther = true;
+                            }
+                        } else {
+                            muteOther = true;
+                            soloOther = false;
+                        }
+                    } else {
+                        // mute this to keep solo ones correct
+                        if (std::ranges::any_of(s_chan, s_chan + MAXCHAN, [](const SPUCHAN& c) {
+                            return c.data.get<Chan::Solo>().value;
+                        })) {
+                            muteThis = true;
+                        }
+                    }
+                }
+
+                // no more solo channels -> ensure none are muted
+                if (std::ranges::all_of(s_chan, [](const SPUCHAN& c) {
+                    return c.data.get<Chan::Solo>().value == false;
+                })) {
+                    std::ranges::for_each(s_chan, s_chan + MAXCHAN, [](SPUCHAN& c) {
+                        c.data.get<Chan::Mute>().value = false;
+                    });
+                }
+            }
+            ImGui::PopStyleColor(2);
         }
         ImGui::Columns(1);
         if (ImGui::Button(_("Mute all"), ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
