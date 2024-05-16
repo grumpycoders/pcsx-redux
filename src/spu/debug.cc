@@ -71,7 +71,7 @@ void PCSX::SPU::impl::debug() {
             std::string label1 = "##Channel" + std::to_string(ch);
             std::string label3 = std::to_string(ch);
             constexpr int widthTag = 100;
-            constexpr int widthInf = 75;
+            constexpr int widthInf = 40;
             ImGui::PushItemWidth(widthTag);
             std::string tagHint = "Channel " + std::to_string(ch);
             ImGui::InputTextWithHint(label0.c_str(), tagHint.c_str(), m_channelTag[ch], CHANNEL_TAG);
