@@ -74,7 +74,8 @@ void PCSX::SPU::impl::debug() {
             constexpr int widthTag = 100;
             constexpr int widthInf = 75;
             ImGui::PushItemWidth(widthTag);
-            ImGui::InputText(label0.c_str(), m_channelTag[ch], CHANNEL_TAG, ImGuiInputTextFlags_None);
+            std::string tagHint = "Channel " + std::to_string(ch);
+            ImGui::InputTextWithHint(label0.c_str(), tagHint.c_str(), m_channelTag[ch], CHANNEL_TAG);
             ImGui::PopItemWidth();
             ImGui::SameLine();
             constexpr ImVec2 plotSize(-widthTag - widthInf, 0);
