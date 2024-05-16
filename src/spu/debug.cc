@@ -67,12 +67,13 @@ void PCSX::SPU::impl::debug() {
         ImGui::BeginChild("##debugSPUleft", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0), true);
         ImGui::Columns(1);
         for (unsigned ch = 0; ch < MAXCHAN; ch++) {
-            std::string label0 = "##Tag" + std::to_string(ch);
             constexpr int widthTag = 100;
             constexpr int widthInf = 40;
+
+            const auto tagLabel = "##Tag" + std::to_string(ch);
+            const auto tagHint = "Channel " + std::to_string(ch);
             ImGui::PushItemWidth(widthTag);
-            std::string tagHint = "Channel " + std::to_string(ch);
-            ImGui::InputTextWithHint(label0.c_str(), tagHint.c_str(), m_channelTag[ch], CHANNEL_TAG);
+            ImGui::InputTextWithHint(tagLabel.c_str(), tagHint.c_str(), m_channelTag[ch], CHANNEL_TAG);
             ImGui::PopItemWidth();
 
             const auto plotLabel = "##Channel" + std::to_string(ch);
