@@ -1346,6 +1346,10 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                         uint8_t* sectionData = (uint8_t*)malloc(size);
                         memcpy(sectionData, section->section->get_data(), size);
                         fmt::print("      :: Altering bytestream to account for HI symbol+addend relocation\n");
+                        if (addend < 0) {
+                            fmt::print("        :: Adjusting for negative addend\n");
+                            addend += 0x10000;
+                        }
                         addend >>= 16;
                         sectionData[offset + 0] = addend & 0xff;
                         addend >>= 8;
