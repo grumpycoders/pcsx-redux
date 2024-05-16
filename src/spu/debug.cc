@@ -72,11 +72,13 @@ void PCSX::SPU::impl::debug() {
             std::string label2 = "##Mute" + std::to_string(ch);
             std::string label3 = std::to_string(ch);
             constexpr int widthTag = 100;
+            constexpr int widthInf = 75;
             ImGui::PushItemWidth(widthTag);
             ImGui::InputText(label0.c_str(), m_channelTag[ch], CHANNEL_TAG, ImGuiInputTextFlags_None);
             ImGui::PopItemWidth();
             ImGui::SameLine();
-            ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, ImVec2(-widthTag * 2, 0));
+            constexpr ImVec2 plotSize(-widthTag - widthInf, 0);
+            ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
             ImGui::SameLine();
             ImGui::Checkbox(label2.c_str(), &s_chan[ch].data.get<Chan::Mute>().value);
 
