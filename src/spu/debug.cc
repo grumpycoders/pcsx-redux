@@ -97,6 +97,14 @@ void PCSX::SPU::impl::debug() {
                 if (muteThis) {
                     soloThis = false;
                 }
+                if (ImGui::GetIO().KeyShift) {
+                    std::ranges::for_each(s_chan, s_chan + MAXCHAN, [muteThis](SPUCHAN& c) {
+                        c.data.get<Chan::Mute>().value = muteThis;
+                        if (muteThis) {
+                            c.data.get<Chan::Solo>().value = false;
+                        }
+                    });
+                }
             }
 
             ImGui::SameLine();
