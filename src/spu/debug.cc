@@ -30,7 +30,7 @@ struct Grid {
         ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
 
     static constexpr auto FlagsTableOuter = FlagsTable | ImGuiTableFlags_NoBordersInBody | ImGuiTableFlags_ScrollX;
-    static constexpr auto FlagsTableInner = FlagsTable | ImGuiTableFlags_Borders;
+    static constexpr auto FlagsTableInner = ImGuiTableFlags_Borders;
 
     static constexpr auto WidthGeneralIndex = 22.0f;
     static constexpr auto WidthGeneralOn = 30.0f;
