@@ -154,7 +154,7 @@ void PCSX::SPU::impl::debug() {
         constexpr auto simpleTableFlags = ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_NoHostExtendX;
         constexpr auto simpleTableWidth = 150;
 
-        if (ImGui::CollapsingHeader("SPU")) {
+        if (ImGui::CollapsingHeader("SPU", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (ImGui::BeginTable("SpuBase", 4, simpleTableFlags)) {
                 ImGui::TableSetupColumn("IRQ", 0, simpleTableWidth);
                 ImGui::TableSetupColumn("CTRL", 0, simpleTableWidth);
@@ -170,7 +170,7 @@ void PCSX::SPU::impl::debug() {
                 ImGui::EndTable();
             }
         }
-        if (ImGui::CollapsingHeader("XA")) {
+        if (ImGui::CollapsingHeader("XA", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (ImGui::BeginTable("SpuXa", 5, simpleTableFlags)) {
                 ImGui::TableSetupColumn("Frequency", 0, simpleTableWidth);
                 ImGui::TableSetupColumn("Stereo", 0, simpleTableWidth);
