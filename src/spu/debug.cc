@@ -150,6 +150,46 @@ void PCSX::SPU::impl::debug() {
         return;
     }
 
+    {
+        constexpr auto simpleTableFlags = ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_NoHostExtendX;
+        constexpr auto simpleTableWidth = 150;
+
+        if (ImGui::CollapsingHeader("SPU")) {
+            if (ImGui::BeginTable("SpuBase", 4, simpleTableFlags)) {
+                ImGui::TableSetupColumn("IRQ", 0, simpleTableWidth);
+                ImGui::TableSetupColumn("CTRL", 0, simpleTableWidth);
+                ImGui::TableSetupColumn("STAT", 0, simpleTableWidth);
+                ImGui::TableSetupColumn("MEM", 0, simpleTableWidth);
+                ImGui::TableHeadersRow();
+                // @formatter:off
+                ImGui::TableNextColumn(); ImGui::Text("%08X", static_cast<long>(pSpuIrq ? -1 : pSpuIrq - spuMemC));
+                ImGui::TableNextColumn(); ImGui::Text("%04X", spuCtrl);
+                ImGui::TableNextColumn(); ImGui::Text("%04X", spuStat);
+                ImGui::TableNextColumn(); ImGui::Text("%i", spuAddr);
+                // @formatter:on
+                ImGui::EndTable();
+            }
+        }
+        if (ImGui::CollapsingHeader("XA")) {
+            if (ImGui::BeginTable("SpuXa", 5, simpleTableFlags)) {
+                ImGui::TableSetupColumn("Frequency", 0, simpleTableWidth);
+                ImGui::TableSetupColumn("Stereo", 0, simpleTableWidth);
+                ImGui::TableSetupColumn("Samples", 0, simpleTableWidth);
+                ImGui::TableSetupColumn("Volume L", 0, simpleTableWidth);
+                ImGui::TableSetupColumn("Volume R", 0, simpleTableWidth);
+                ImGui::TableHeadersRow();
+                // @formatter:off
+                ImGui::TableNextColumn(); ImGui::Text("%i", xapGlobal ? xapGlobal->freq : 0);
+                ImGui::TableNextColumn(); ImGui::Text("%i", xapGlobal ? xapGlobal->stereo : 0);
+                ImGui::TableNextColumn(); ImGui::Text("%i", xapGlobal ? xapGlobal->nsamples : 0);
+                ImGui::TableNextColumn(); ImGui::Text("%i", iLeftXAVol);
+                ImGui::TableNextColumn(); ImGui::Text("%i", iRightXAVol);
+                // @formatter:on
+                ImGui::EndTable();
+            }
+        }
+    }
+
     if (ImGui::CollapsingHeader("Channels", ImGuiTreeNodeFlags_DefaultOpen)) {
         const auto style = ImGui::GetStyle();
         const auto rowHeight = ImGui::GetFrameHeightWithSpacing();
