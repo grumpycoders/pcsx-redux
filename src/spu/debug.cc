@@ -482,7 +482,6 @@ void PCSX::SPU::impl::debug() {
             }
             ImGui::EndTable();
         }
-        ImGui::Text("Tip: hold 'Shift' key to group mute/solo actions.");
     }
 
     ImGui::End();
