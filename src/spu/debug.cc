@@ -450,6 +450,41 @@ void DrawTableReverb(SPU_CHANNELS_INFO channels, const float rowHeight) {
     }
 }
 
+void DrawSectionChannels(
+    SPU_CHANNELS_INFO channels, SPU_CHANNELS_TAGS tags, SPU_CHANNELS_PLOT plot, const uint8_t* spuMemC) {
+    if (ImGui::CollapsingHeader("Channels", ImGuiTreeNodeFlags_DefaultOpen)) {
+        const auto style = ImGui::GetStyle();
+        const auto rowHeight = ImGui::GetFrameHeightWithSpacing();
+        const auto headerHeight = ImGui::GetTextLineHeightWithSpacing();
+        const auto tableHeight = rowHeight * SPU_CHANNELS_SIZE + headerHeight * 2 + 4 + style.ScrollbarSize;
+
+        // BUG ImGui hides last column border when scrolling (off by 1px)
+        if (ImGui::BeginTable("SpuChannels", 8, Grid::FlagsTableOuter, ImVec2(0, tableHeight))) {
+            ImGui::TableSetupColumn("General", Grid::FlagsColumn, Grid::WidthGeneral + TablePadding * TableColumnFix);
+            ImGui::TableSetupColumn("Frequency", Grid::FlagsColumn, Grid::WidthFrequency + TablePadding);
+            ImGui::TableSetupColumn("Position", Grid::FlagsColumn, Grid::WidthPosition + TablePadding);
+            ImGui::TableSetupColumn("Volume", Grid::FlagsColumn, Grid::WidthVolume + TablePadding);
+            ImGui::TableSetupColumn("ADSR", Grid::FlagsColumn, Grid::WidthAdsr + TablePadding * TableColumnFix);
+            ImGui::TableSetupColumn("ADSR Sustain", Grid::FlagsColumn, Grid::WidthAdsrSustain + TablePadding);
+            ImGui::TableSetupColumn("ADSR Volume", Grid::FlagsColumn, Grid::WidthAdsrVolume + TablePadding);
+            ImGui::TableSetupColumn("Reverb", Grid::FlagsColumn, Grid::WidthReverb + TablePadding * TableColumnFix);
+            ImGui::TableHeadersRow();
+
+            // @formatter:off
+            ImGui::TableNextColumn(); DrawTableGeneral(channels, rowHeight, tags, plot);
+            ImGui::TableNextColumn(); DrawTableFrequency(channels, rowHeight);
+            ImGui::TableNextColumn(); DrawTablePosition(channels, rowHeight, spuMemC);
+            ImGui::TableNextColumn(); DrawTableVolume(channels, rowHeight);
+            ImGui::TableNextColumn(); DrawTableAdsr(channels, rowHeight);
+            ImGui::TableNextColumn(); DrawTableAdsrSustain(channels, rowHeight);
+            ImGui::TableNextColumn(); DrawTableAdsrVolume(channels, rowHeight);
+            ImGui::TableNextColumn(); DrawTableReverb(channels, rowHeight);
+            // @formatter:on
+            ImGui::EndTable();
+        }
+    }
+}
+
 void impl::debug() {
     auto delta = std::chrono::steady_clock::now() - m_lastUpdated;
     using namespace std::chrono_literals;
@@ -533,37 +568,7 @@ void impl::debug() {
         }
     }
 
-    if (ImGui::CollapsingHeader("Channels", ImGuiTreeNodeFlags_DefaultOpen)) {
-        const auto style = ImGui::GetStyle();
-        const auto rowHeight = ImGui::GetFrameHeightWithSpacing();
-        const auto headerHeight = ImGui::GetTextLineHeightWithSpacing();
-        const auto tableHeight = rowHeight * MAXCHAN + headerHeight * 2 + 4 + style.ScrollbarSize;
-
-        // BUG ImGui hides last column border when scrolling (off by 1px)
-        if (ImGui::BeginTable("SpuChannels", 8, Grid::FlagsTableOuter, ImVec2(0, tableHeight))) {
-            ImGui::TableSetupColumn("General", Grid::FlagsColumn, Grid::WidthGeneral + TablePadding * TableColumnFix);
-            ImGui::TableSetupColumn("Frequency", Grid::FlagsColumn, Grid::WidthFrequency + TablePadding);
-            ImGui::TableSetupColumn("Position", Grid::FlagsColumn, Grid::WidthPosition + TablePadding);
-            ImGui::TableSetupColumn("Volume", Grid::FlagsColumn, Grid::WidthVolume + TablePadding);
-            ImGui::TableSetupColumn("ADSR", Grid::FlagsColumn, Grid::WidthAdsr + TablePadding * TableColumnFix);
-            ImGui::TableSetupColumn("ADSR Sustain", Grid::FlagsColumn, Grid::WidthAdsrSustain + TablePadding);
-            ImGui::TableSetupColumn("ADSR Volume", Grid::FlagsColumn, Grid::WidthAdsrVolume + TablePadding);
-            ImGui::TableSetupColumn("Reverb", Grid::FlagsColumn, Grid::WidthReverb + TablePadding * TableColumnFix);
-            ImGui::TableHeadersRow();
-
-            // @formatter:off
-            ImGui::TableNextColumn(); DrawTableGeneral(s_chan, rowHeight, m_channelTag, m_channelDebugData);
-            ImGui::TableNextColumn(); DrawTableFrequency(s_chan, rowHeight);
-            ImGui::TableNextColumn(); DrawTablePosition(s_chan, rowHeight, spuMemC);
-            ImGui::TableNextColumn(); DrawTableVolume(s_chan, rowHeight);
-            ImGui::TableNextColumn(); DrawTableAdsr(s_chan, rowHeight);
-            ImGui::TableNextColumn(); DrawTableAdsrSustain(s_chan, rowHeight);
-            ImGui::TableNextColumn(); DrawTableAdsrVolume(s_chan, rowHeight);
-            ImGui::TableNextColumn(); DrawTableReverb(s_chan, rowHeight);
-            // @formatter:on
-            ImGui::EndTable();
-        }
-    }
+    DrawSectionChannels(s_chan, m_channelTag, m_channelDebugData, spuMemC);
 
     ImGui::End();
 }
