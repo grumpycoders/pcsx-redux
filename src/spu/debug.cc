@@ -115,6 +115,37 @@ using SPU_CHANNELS_PLOT = float (&)[impl::MAXCHAN][impl::DEBUG_SAMPLES];
 void DrawTable(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
 }
 
+void DrawTableGeneralIndex(const unsigned channel)
+{
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("%02i", channel);
+}
+
+void DrawTableGeneralTag(const unsigned channel, SPU_CHANNELS_TAGS &tags)
+{
+    ImGui::PushItemWidth(Grid::WidthGeneralTag);
+    const auto tagLabel = "##SpuChannelTag" + std::to_string(channel);
+    const auto tagHint = "Channel " + std::to_string(channel);
+    ImGui::InputTextWithHint(tagLabel.c_str(), tagHint.c_str(), tags[channel], impl::CHANNEL_TAG);
+    ImGui::PopItemWidth();
+}
+
+void DrawTableGeneralOn(const Chan::Data& data)
+{
+    ImGui::BeginDisabled();
+    auto bit1 = data.get<Chan::On>().value;
+    ImGui::Checkbox("", &bit1);
+    ImGui::EndDisabled();
+}
+
+void DrawTableGeneralOff(const Chan::Data& data)
+{
+    auto bit2 = data.get<Chan::Stop>().value;
+    ImGui::BeginDisabled();
+    ImGui::Checkbox("", &bit2);
+    ImGui::EndDisabled();
+}
+
 void DrawTableGeneral(
     SPU_CHANNELS& channels,
     size_t channelsCount,
@@ -138,30 +169,12 @@ void DrawTableGeneral(
             const auto& data = channels[i].data;
 
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
-
-            ImGui::TableNextColumn();
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("%02i", i);
-
-            ImGui::TableNextColumn();
-            ImGui::PushItemWidth(Grid::WidthGeneralTag);
-            const auto tagLabel = "##SpuChannelTag" + std::to_string(i);
-            const auto tagHint = "Channel " + std::to_string(i);
-            ImGui::InputTextWithHint(tagLabel.c_str(), tagHint.c_str(), tags[i], impl::CHANNEL_TAG);
-            ImGui::PopItemWidth();
-
-            ImGui::TableNextColumn();
-            ImGui::BeginDisabled();
-            auto bit1 = data.get<Chan::On>().value;
-            ImGui::Checkbox("", &bit1);
-            ImGui::EndDisabled();
-
-            ImGui::TableNextColumn();
-            auto bit2 = data.get<Chan::Stop>().value;
-            ImGui::BeginDisabled();
-            ImGui::Checkbox("", &bit2);
-            ImGui::EndDisabled();
-
+            // @formatter:off
+            ImGui::TableNextColumn(); DrawTableGeneralIndex(i);
+            ImGui::TableNextColumn(); DrawTableGeneralTag(i, tags);
+            ImGui::TableNextColumn(); DrawTableGeneralOn(data);
+            ImGui::TableNextColumn(); DrawTableGeneralOff(data);
+            // @formatter:on
             const auto ch = std::to_string(i);
             const auto buttonSize = ImVec2(rowHeight, 0);
             const auto buttonTint = ImGui::GetStyleColorVec4(ImGuiCol_Button);
