@@ -112,6 +112,66 @@ using SPU_CHANNELS = SPUCHAN(&)[impl::MAXCHAN + 1];
 
 using SPU_CHANNELS_TAGS = char (&)[impl::MAXCHAN][impl::CHANNEL_TAG];
 using SPU_CHANNELS_PLOT = float (&)[impl::MAXCHAN][impl::DEBUG_SAMPLES];
+
+void HandleChannelMute(SPU_CHANNELS channels, size_t channelsCount, bool& muteThis, bool& soloThis)
+{
+    muteThis = !muteThis;
+    if (muteThis) {
+        soloThis = false;
+    }
+    if (ImGui::GetIO().KeyShift) {
+        std::for_each(channels, channels + channelsCount, [muteThis](SPUCHAN& c) {
+            c.data.get<Chan::Mute>().value = muteThis;
+            if (muteThis) {
+                c.data.get<Chan::Solo>().value = false;
+            }
+        });
+    }
+}
+
+void HandleChannelSolo(SPU_CHANNELS channels, size_t channelsCount, unsigned i, bool& muteThis, bool& soloThis)
+{
+    soloThis = !soloThis;
+    if (soloThis) {
+        muteThis = false;
+    }
+    for (unsigned j = 0; j < channelsCount; j++) {
+        if (j == i) {
+            continue;
+        }
+        auto& dataOther = channels[j].data;
+        auto& muteOther = dataOther.get<Chan::Mute>().value;
+        auto& soloOther = dataOther.get<Chan::Solo>().value;
+        if (soloThis) {
+            // multi/single solo
+            if (ImGui::GetIO().KeyShift) {
+                if (soloOther == false) {
+                    muteOther = true;
+                }
+            } else {
+                muteOther = true;
+                soloOther = false;
+            }
+        } else {
+            // mute this to keep solo ones correct
+            if (std::ranges::any_of(channels, channels + channelsCount, [](const SPUCHAN& c) {
+                return c.data.get<Chan::Solo>().value;
+            })) {
+                muteThis = true;
+            }
+        }
+    }
+
+    // no more solo channels -> ensure none are muted
+    if (std::ranges::all_of(channels, [](const SPUCHAN& c) {
+        return c.data.get<Chan::Solo>().value == false;
+    })) {
+        std::for_each(channels, channels + channelsCount, [](SPUCHAN& c) {
+            c.data.get<Chan::Mute>().value = false;
+        });
+    }
+}
+
 void DrawTable(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
 }
 
@@ -155,18 +215,7 @@ void DrawTableGeneralMute(SPU_CHANNELS channels, size_t channelsCount, const std
     ImGui::Dummy(muteSize);
     ImGui::SameLine();
     if (ImGui::Button(muteLabel.c_str(), buttonSize)) {
-        muteThis = !muteThis;
-        if (muteThis) {
-            soloThis = false;
-        }
-        if (ImGui::GetIO().KeyShift) {
-            std::for_each(channels, channels + channelsCount, [muteThis](SPUCHAN& c) {
-                c.data.get<Chan::Mute>().value = muteThis;
-                if (muteThis) {
-                    c.data.get<Chan::Solo>().value = false;
-                }
-            });
-        }
+        HandleChannelMute(channels, channelsCount, muteThis, soloThis);
     }
     ImGui::PopStyleColor();
 }
@@ -180,45 +229,7 @@ void DrawTableGeneralSolo(SPU_CHANNELS channels, size_t channelsCount, unsigned 
     ImGui::Dummy(soloSize);
     ImGui::SameLine();
     if (ImGui::Button(soloLabel.c_str(), buttonSize)) {
-        soloThis = !soloThis;
-        if (soloThis) {
-            muteThis = false;
-        }
-        for (unsigned j = 0; j < channelsCount; j++) {
-            if (j == i) {
-                continue;
-            }
-            auto& dataOther = channels[j].data;
-            auto& muteOther = dataOther.get<Chan::Mute>().value;
-            auto& soloOther = dataOther.get<Chan::Solo>().value;
-            if (soloThis) {
-                // multi/single solo
-                if (ImGui::GetIO().KeyShift) {
-                    if (soloOther == false) {
-                        muteOther = true;
-                    }
-                } else {
-                    muteOther = true;
-                    soloOther = false;
-                }
-            } else {
-                // mute this to keep solo ones correct
-                if (std::ranges::any_of(channels, channels + channelsCount, [](const SPUCHAN& c) {
-                    return c.data.get<Chan::Solo>().value;
-                })) {
-                    muteThis = true;
-                }
-            }
-        }
-
-        // no more solo channels -> ensure none are muted
-        if (std::ranges::all_of(channels, [](const SPUCHAN& c) {
-            return c.data.get<Chan::Solo>().value == false;
-        })) {
-            std::for_each(channels, channels + channelsCount, [](SPUCHAN& c) {
-                c.data.get<Chan::Mute>().value = false;
-            });
-        }
+        HandleChannelSolo(channels, channelsCount, i, muteThis, soloThis);
     }
     ImGui::PopStyleColor();
 }
