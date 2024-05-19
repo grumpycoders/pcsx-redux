@@ -110,6 +110,126 @@ struct Grid {
 using namespace PCSX::SPU;
 using SPU_CHANNELS = SPUCHAN(&)[impl::MAXCHAN + 1];
 
+void DrawTable(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+}
+
+void DrawTableFrequency(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+    if (ImGui::BeginTable("TableFrequency", 2, Grid::FlagsTableInner)) {
+        ImGui::TableSetupColumn("Active", Grid::FlagsColumn, Grid::WidthFrequencyActive);
+        ImGui::TableSetupColumn("Used", Grid::FlagsColumn, Grid::WidthFrequencyUsed);
+        ImGui::TableHeadersRow();
+        for (auto i = 0u; i < channelsCount; ++i) {
+            const auto& data = channels[i].data;
+            ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", data.get<Chan::ActFreq>().value);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<Chan::UsedFreq>().value);
+        }
+        ImGui::EndTable();
+    }
+}
+
+void DrawTablePosition(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight, const uint8_t* spuMemC) {
+    if (ImGui::BeginTable("TablePosition", 3, Grid::FlagsTableInner)) {
+        ImGui::TableSetupColumn("Start", Grid::FlagsColumn, Grid::WidthPositionStart);
+        ImGui::TableSetupColumn("Current", Grid::FlagsColumn, Grid::WidthPositionCurrent);
+        ImGui::TableSetupColumn("Loop", Grid::FlagsColumn, Grid::WidthPositionLoop);
+        ImGui::TableHeadersRow();
+        for (auto i = 0u; i < channelsCount; ++i) {
+            const auto& chan = channels[i];
+            ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", static_cast<int>(chan.pStart - spuMemC));
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", static_cast<int>(chan.pCurr - spuMemC));
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", static_cast<int>(chan.pLoop - spuMemC));
+        }
+        ImGui::EndTable();
+    }
+}
+
+void DrawTableVolume(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+    if (ImGui::BeginTable("TableVolume", 2, Grid::FlagsTableInner)) {
+        ImGui::TableSetupColumn("L", Grid::FlagsColumn, Grid::WidthVolumeL);
+        ImGui::TableSetupColumn("R", Grid::FlagsColumn, Grid::WidthVolumeR);
+        ImGui::TableHeadersRow();
+        for (auto i = 0u; i < channelsCount; ++i) {
+            const auto& data = channels[i].data;
+            ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", data.get<Chan::LeftVolume>().value);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<Chan::RightVolume>().value);
+        }
+        ImGui::EndTable();
+    }
+}
+
+void DrawTableAdsr(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+    if (ImGui::BeginTable("TableAdsr", 4, Grid::FlagsTableInner)) {
+        ImGui::TableSetupColumn("A", Grid::FlagsColumn, Grid::WidthAdsrA);
+        ImGui::TableSetupColumn("D", Grid::FlagsColumn, Grid::WidthAdsrD);
+        ImGui::TableSetupColumn("S", Grid::FlagsColumn, Grid::WidthAdsrS);
+        ImGui::TableSetupColumn("R", Grid::FlagsColumn, Grid::WidthAdsrR);
+        ImGui::TableHeadersRow();
+        for (auto i = 0u; i < channelsCount; ++i) {
+            const auto& data = channels[i].ADSRX;
+            ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", data.get<exAttackRate>().value ^ 0x7F);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", (data.get<exDecayRate>().value ^ 0x1F) / 4);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<exSustainRate>().value ^ 0x7F);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", (data.get<exReleaseRate>().value ^ 0x1F) / 4);
+        }
+        ImGui::EndTable();
+    }
+}
+
+void DrawTableAdsrSustain(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+    if (ImGui::BeginTable("TableAdsrSustain", 2, Grid::FlagsTableInner)) {
+        ImGui::TableSetupColumn("Level", Grid::FlagsColumn, Grid::WidthAdsrSustainLevel);
+        ImGui::TableSetupColumn("Increase", Grid::FlagsColumn, Grid::WidthAdsrSustainIncrease);
+        ImGui::TableHeadersRow();
+        for (auto i = 0u; i < channelsCount; ++i) {
+            const auto& data = channels[i].ADSRX;
+            ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", data.get<exSustainLevel>().value >> 27);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<exSustainIncrease>().value);
+        }
+        ImGui::EndTable();
+    }
+}
+
+void DrawTableAdsrVolume(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+    if (ImGui::BeginTable("TableAdsrVolume", 2, Grid::FlagsTableInner)) {
+        ImGui::TableSetupColumn("Current", Grid::FlagsColumn, Grid::WidthAdsrVolumeCurrent);
+        ImGui::TableSetupColumn("Envelope", Grid::FlagsColumn, Grid::WidthAdsrVolumeEnvelope);
+        ImGui::TableHeadersRow();
+        for (auto i = 0u; i < channelsCount; ++i) {
+            const auto& data = channels[i].ADSRX;
+            ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", data.get<exVolume>().value);
+            ImGui::TableNextColumn();
+            ImGui::Text("%08X", data.get<exEnvelopeVol>().value);
+        }
+        ImGui::EndTable();
+    }
+}
+
 void DrawTableReverb(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
     if (ImGui::BeginTable("TableReverb", 5, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("Allowed", Grid::FlagsColumn, Grid::WidthReverbAllowed);
@@ -375,115 +495,22 @@ void PCSX::SPU::impl::debug() {
             }
 
             ImGui::TableNextColumn();
-            if (ImGui::BeginTable("TableFrequency", 2, Grid::FlagsTableInner)) {
-                ImGui::TableSetupColumn("Active", Grid::FlagsColumn, Grid::WidthFrequencyActive);
-                ImGui::TableSetupColumn("Used", Grid::FlagsColumn, Grid::WidthFrequencyUsed);
-                ImGui::TableHeadersRow();
-                for (auto i = 0u; i < MAXCHAN; ++i) {
-                    const auto& data = s_chan[i].data;
-                    ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
-                    ImGui::TableNextColumn();
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("%i", data.get<Chan::ActFreq>().value);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<Chan::UsedFreq>().value);
-                }
-                ImGui::EndTable();
-            }
+            DrawTableFrequency(s_chan, MAXCHAN, rowHeight);
 
             ImGui::TableNextColumn();
-            if (ImGui::BeginTable("TablePosition", 3, Grid::FlagsTableInner)) {
-                ImGui::TableSetupColumn("Start", Grid::FlagsColumn, Grid::WidthPositionStart);
-                ImGui::TableSetupColumn("Current", Grid::FlagsColumn, Grid::WidthPositionCurrent);
-                ImGui::TableSetupColumn("Loop", Grid::FlagsColumn, Grid::WidthPositionLoop);
-                ImGui::TableHeadersRow();
-                for (auto i = 0u; i < MAXCHAN; ++i) {
-                    const auto& chan = s_chan[i];
-                    ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
-                    ImGui::TableNextColumn();
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("%i", static_cast<int>(chan.pStart - spuMemC));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", static_cast<int>(chan.pCurr - spuMemC));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", static_cast<int>(chan.pLoop - spuMemC));
-                }
-                ImGui::EndTable();
-            }
+            DrawTablePosition(s_chan, MAXCHAN, rowHeight, spuMemC);
 
             ImGui::TableNextColumn();
-            if (ImGui::BeginTable("TableVolume", 2, Grid::FlagsTableInner)) {
-                ImGui::TableSetupColumn("L", Grid::FlagsColumn, Grid::WidthVolumeL);
-                ImGui::TableSetupColumn("R", Grid::FlagsColumn, Grid::WidthVolumeR);
-                ImGui::TableHeadersRow();
-                for (auto i = 0u; i < MAXCHAN; ++i) {
-                    const auto& data = s_chan[i].data;
-                    ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
-                    ImGui::TableNextColumn();
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("%i", data.get<Chan::LeftVolume>().value);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<Chan::RightVolume>().value);
-                }
-                ImGui::EndTable();
-            }
+            DrawTableVolume(s_chan, MAXCHAN, rowHeight);
 
             ImGui::TableNextColumn();
-            if (ImGui::BeginTable("TableAdsr", 4, Grid::FlagsTableInner)) {
-                ImGui::TableSetupColumn("A", Grid::FlagsColumn, Grid::WidthAdsrA);
-                ImGui::TableSetupColumn("D", Grid::FlagsColumn, Grid::WidthAdsrD);
-                ImGui::TableSetupColumn("S", Grid::FlagsColumn, Grid::WidthAdsrS);
-                ImGui::TableSetupColumn("R", Grid::FlagsColumn, Grid::WidthAdsrR);
-                ImGui::TableHeadersRow();
-                for (auto i = 0u; i < MAXCHAN; ++i) {
-                    const auto& data = s_chan[i].ADSRX;
-                    ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
-                    ImGui::TableNextColumn();
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("%i", data.get<exAttackRate>().value ^ 0x7F);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", (data.get<exDecayRate>().value ^ 0x1F) / 4);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<exSustainRate>().value ^ 0x7F);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", (data.get<exReleaseRate>().value ^ 0x1F) / 4);
-                }
-                ImGui::EndTable();
-            }
+            DrawTableAdsr(s_chan, MAXCHAN, rowHeight);
 
             ImGui::TableNextColumn();
-            if (ImGui::BeginTable("TableAdsrSustain", 2, Grid::FlagsTableInner)) {
-                ImGui::TableSetupColumn("Level", Grid::FlagsColumn, Grid::WidthAdsrSustainLevel);
-                ImGui::TableSetupColumn("Increase", Grid::FlagsColumn, Grid::WidthAdsrSustainIncrease);
-                ImGui::TableHeadersRow();
-                for (auto i = 0u; i < MAXCHAN; ++i) {
-                    const auto& data = s_chan[i].ADSRX;
-                    ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
-                    ImGui::TableNextColumn();
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("%i", data.get<exSustainLevel>().value >> 27);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<exSustainIncrease>().value);
-                }
-                ImGui::EndTable();
-            }
+            DrawTableAdsrSustain(s_chan, MAXCHAN, rowHeight);
 
             ImGui::TableNextColumn();
-            if (ImGui::BeginTable("TableAdsrVolume", 2, Grid::FlagsTableInner)) {
-                ImGui::TableSetupColumn("Current", Grid::FlagsColumn, Grid::WidthAdsrVolumeCurrent);
-                ImGui::TableSetupColumn("Envelope", Grid::FlagsColumn, Grid::WidthAdsrVolumeEnvelope);
-                ImGui::TableHeadersRow();
-                for (auto i = 0u; i < MAXCHAN; ++i) {
-                    const auto& data = s_chan[i].ADSRX;
-                    ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
-                    ImGui::TableNextColumn();
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("%i", data.get<exVolume>().value);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%08X", data.get<exEnvelopeVol>().value);
-                }
-                ImGui::EndTable();
-            }
+            DrawTableAdsrVolume(s_chan, MAXCHAN, rowHeight);
 
             ImGui::TableNextColumn();
             DrawTableReverb(s_chan, MAXCHAN, rowHeight);
