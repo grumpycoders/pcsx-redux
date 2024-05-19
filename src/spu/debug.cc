@@ -271,7 +271,7 @@ void PCSX::SPU::impl::debug() {
                             soloThis = false;
                         }
                         if (ImGui::GetIO().KeyShift) {
-                            std::ranges::for_each(s_chan, s_chan + MAXCHAN, [muteThis](SPUCHAN& c) {
+                            std::for_each(s_chan, s_chan + MAXCHAN, [muteThis](SPUCHAN& c) {
                                 c.data.get<Chan::Mute>().value = muteThis;
                                 if (muteThis) {
                                     c.data.get<Chan::Solo>().value = false;
@@ -324,7 +324,7 @@ void PCSX::SPU::impl::debug() {
                         if (std::ranges::all_of(s_chan, [](const SPUCHAN& c) {
                             return c.data.get<Chan::Solo>().value == false;
                         })) {
-                            std::ranges::for_each(s_chan, s_chan + MAXCHAN, [](SPUCHAN& c) {
+                            std::for_each(s_chan, s_chan + MAXCHAN, [](SPUCHAN& c) {
                                 c.data.get<Chan::Mute>().value = false;
                             });
                         }
