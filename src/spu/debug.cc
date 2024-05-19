@@ -115,13 +115,13 @@ using SPU_CHANNELS_TAGS = char (&)[impl::MAXCHAN][impl::CHANNEL_TAG];
 using SPU_CHANNELS_PLOT = float (&)[impl::MAXCHAN][impl::DEBUG_SAMPLES];
 
 void HandleChannelMute(
-    SPU_CHANNELS& channels, const unsigned channelsCount, bool& muteThis, bool& soloThis) {
+    SPU_CHANNELS& channels, bool& muteThis, bool& soloThis) {
     muteThis = !muteThis;
     if (muteThis) {
         soloThis = false;
     }
     if (ImGui::GetIO().KeyShift) {
-        std::for_each(channels, channels + channelsCount, [muteThis](SPUCHAN& c) {
+        std::for_each(channels, channels + SPU_CHANNELS_SIZE, [muteThis](SPUCHAN& c) {
             c.data.get<Chan::Mute>().value = muteThis;
             if (muteThis) {
                 c.data.get<Chan::Solo>().value = false;
@@ -131,7 +131,7 @@ void HandleChannelMute(
 }
 
 void HandleChannelSoloMute(
-    SPU_CHANNELS& channels, const unsigned channelsCount, bool& muteThis, bool& soloThis, bool& muteOther, bool& soloOther) {
+    SPU_CHANNELS& channels, bool& muteThis, bool& soloThis, bool& muteOther, bool& soloOther) {
     if (soloThis) {
         // multi/single solo
         if (ImGui::GetIO().KeyShift) {
@@ -144,7 +144,7 @@ void HandleChannelSoloMute(
         }
     } else {
         // mute this to keep solo ones correct
-        if (std::ranges::any_of(channels, channels + channelsCount, [](const SPUCHAN& c) {
+        if (std::ranges::any_of(channels, channels + SPU_CHANNELS_SIZE, [](const SPUCHAN& c) {
             return c.data.get<Chan::Solo>().value;
         })) {
             muteThis = true;
@@ -153,32 +153,32 @@ void HandleChannelSoloMute(
 }
 
 void HandleChannelSolo(
-    SPU_CHANNELS& channels, const unsigned channelsCount, unsigned i, bool& muteThis, bool& soloThis) {
+    SPU_CHANNELS& channels, unsigned i, bool& muteThis, bool& soloThis) {
     soloThis = !soloThis;
     if (soloThis) {
         muteThis = false;
     }
-    for (unsigned j = 0; j < channelsCount; j++) {
+    for (unsigned j = 0; j < SPU_CHANNELS_SIZE; j++) {
         if (j == i) {
             continue;
         }
         auto& dataOther = channels[j].data;
         auto& muteOther = dataOther.get<Chan::Mute>().value;
         auto& soloOther = dataOther.get<Chan::Solo>().value;
-        HandleChannelSoloMute(channels, channelsCount, muteThis, soloThis, muteOther, soloOther);
+        HandleChannelSoloMute(channels, muteThis, soloThis, muteOther, soloOther);
     }
 
     // no more solo channels -> ensure none are muted
     if (std::ranges::all_of(channels, [](const SPUCHAN& c) {
         return c.data.get<Chan::Solo>().value == false;
     })) {
-        std::for_each(channels, channels + channelsCount, [](SPUCHAN& c) {
+        std::for_each(channels, channels + SPU_CHANNELS_SIZE, [](SPUCHAN& c) {
             c.data.get<Chan::Mute>().value = false;
         });
     }
 }
 
-void DrawTable(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+void DrawTable(SPU_CHANNELS& channels, size_t SPU_CHANNELS_SIZE, const float rowHeight) {
 }
 
 void DrawTableGeneralIndex(const unsigned channel) {
@@ -243,7 +243,7 @@ void DrawTableGeneralMute(SPU_CHANNELS channels, const unsigned channel, const M
     auto& mute = GetChannelMute(channels, channel);
     auto& solo = GetChannelSolo(channels, channel);
     if (DrawMuteSoloButton(channel, button, mute)) {
-        HandleChannelMute(channels, SPU_CHANNELS_SIZE, mute, solo);
+        HandleChannelMute(channels, mute, solo);
     }
 }
 
@@ -251,7 +251,7 @@ void DrawTableGeneralSolo(SPU_CHANNELS channels, const unsigned channel, const M
     auto& mute = GetChannelMute(channels, channel);
     auto& solo = GetChannelSolo(channels, channel);
     if (DrawMuteSoloButton(channel, button, solo)) {
-        HandleChannelSolo(channels, SPU_CHANNELS_SIZE, channel, mute, solo);
+        HandleChannelSolo(channels, channel, mute, solo);
     }
 }
 
@@ -270,7 +270,6 @@ void DrawTableGeneralPlot(SPU_CHANNELS_PLOT plot, float padding, unsigned i) {
 
 void DrawTableGeneral(
     SPU_CHANNELS& channels,
-    size_t channelsCount,
     const float rowHeight,
     SPU_CHANNELS_TAGS& tags,
     SPU_CHANNELS_PLOT& plot,
@@ -287,7 +286,7 @@ void DrawTableGeneral(
         ImGui::TableSetupColumn("Plot", Grid::FlagsColumn, Grid::WidthGeneralPlot);
 
         ImGui::TableHeadersRow();
-        for (auto i = 0u; i < channelsCount; ++i) {
+        for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
             const auto& data = channels[i].data;
 
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
@@ -311,12 +310,12 @@ void DrawTableGeneral(
     }
 }
 
-void DrawTableFrequency(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+void DrawTableFrequency(SPU_CHANNELS& channels, const float rowHeight) {
     if (ImGui::BeginTable("TableFrequency", 2, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("Active", Grid::FlagsColumn, Grid::WidthFrequencyActive);
         ImGui::TableSetupColumn("Used", Grid::FlagsColumn, Grid::WidthFrequencyUsed);
         ImGui::TableHeadersRow();
-        for (auto i = 0u; i < channelsCount; ++i) {
+        for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
             const auto& data = channels[i].data;
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::TableNextColumn();
@@ -329,13 +328,13 @@ void DrawTableFrequency(SPU_CHANNELS& channels, size_t channelsCount, const floa
     }
 }
 
-void DrawTablePosition(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight, const uint8_t* spuMemC) {
+void DrawTablePosition(SPU_CHANNELS& channels, const float rowHeight, const uint8_t* spuMemC) {
     if (ImGui::BeginTable("TablePosition", 3, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("Start", Grid::FlagsColumn, Grid::WidthPositionStart);
         ImGui::TableSetupColumn("Current", Grid::FlagsColumn, Grid::WidthPositionCurrent);
         ImGui::TableSetupColumn("Loop", Grid::FlagsColumn, Grid::WidthPositionLoop);
         ImGui::TableHeadersRow();
-        for (auto i = 0u; i < channelsCount; ++i) {
+        for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
             const auto& chan = channels[i];
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::TableNextColumn();
@@ -350,12 +349,12 @@ void DrawTablePosition(SPU_CHANNELS& channels, size_t channelsCount, const float
     }
 }
 
-void DrawTableVolume(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+void DrawTableVolume(SPU_CHANNELS& channels, const float rowHeight) {
     if (ImGui::BeginTable("TableVolume", 2, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("L", Grid::FlagsColumn, Grid::WidthVolumeL);
         ImGui::TableSetupColumn("R", Grid::FlagsColumn, Grid::WidthVolumeR);
         ImGui::TableHeadersRow();
-        for (auto i = 0u; i < channelsCount; ++i) {
+        for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
             const auto& data = channels[i].data;
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::TableNextColumn();
@@ -368,14 +367,14 @@ void DrawTableVolume(SPU_CHANNELS& channels, size_t channelsCount, const float r
     }
 }
 
-void DrawTableAdsr(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+void DrawTableAdsr(SPU_CHANNELS& channels, const float rowHeight) {
     if (ImGui::BeginTable("TableAdsr", 4, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("A", Grid::FlagsColumn, Grid::WidthAdsrA);
         ImGui::TableSetupColumn("D", Grid::FlagsColumn, Grid::WidthAdsrD);
         ImGui::TableSetupColumn("S", Grid::FlagsColumn, Grid::WidthAdsrS);
         ImGui::TableSetupColumn("R", Grid::FlagsColumn, Grid::WidthAdsrR);
         ImGui::TableHeadersRow();
-        for (auto i = 0u; i < channelsCount; ++i) {
+        for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
             const auto& data = channels[i].ADSRX;
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::TableNextColumn();
@@ -392,12 +391,12 @@ void DrawTableAdsr(SPU_CHANNELS& channels, size_t channelsCount, const float row
     }
 }
 
-void DrawTableAdsrSustain(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+void DrawTableAdsrSustain(SPU_CHANNELS& channels, const float rowHeight) {
     if (ImGui::BeginTable("TableAdsrSustain", 2, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("Level", Grid::FlagsColumn, Grid::WidthAdsrSustainLevel);
         ImGui::TableSetupColumn("Increase", Grid::FlagsColumn, Grid::WidthAdsrSustainIncrease);
         ImGui::TableHeadersRow();
-        for (auto i = 0u; i < channelsCount; ++i) {
+        for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
             const auto& data = channels[i].ADSRX;
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::TableNextColumn();
@@ -410,12 +409,12 @@ void DrawTableAdsrSustain(SPU_CHANNELS& channels, size_t channelsCount, const fl
     }
 }
 
-void DrawTableAdsrVolume(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+void DrawTableAdsrVolume(SPU_CHANNELS& channels, const float rowHeight) {
     if (ImGui::BeginTable("TableAdsrVolume", 2, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("Current", Grid::FlagsColumn, Grid::WidthAdsrVolumeCurrent);
         ImGui::TableSetupColumn("Envelope", Grid::FlagsColumn, Grid::WidthAdsrVolumeEnvelope);
         ImGui::TableHeadersRow();
-        for (auto i = 0u; i < channelsCount; ++i) {
+        for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
             const auto& data = channels[i].ADSRX;
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::TableNextColumn();
@@ -428,7 +427,7 @@ void DrawTableAdsrVolume(SPU_CHANNELS& channels, size_t channelsCount, const flo
     }
 }
 
-void DrawTableReverb(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+void DrawTableReverb(SPU_CHANNELS& channels, const float rowHeight) {
     if (ImGui::BeginTable("TableReverb", 5, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("Allowed", Grid::FlagsColumn, Grid::WidthReverbAllowed);
         ImGui::TableSetupColumn("Active", Grid::FlagsColumn, Grid::WidthReverbActive);
@@ -436,7 +435,7 @@ void DrawTableReverb(SPU_CHANNELS& channels, size_t channelsCount, const float r
         ImGui::TableSetupColumn("Offset", Grid::FlagsColumn, Grid::WidthReverbOffset);
         ImGui::TableSetupColumn("Repeat", Grid::FlagsColumn, Grid::WidthReverbRepeat);
         ImGui::TableHeadersRow();
-        for (auto i = 0u; i < channelsCount; ++i) {
+        for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
             const auto& data = channels[i].data;
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::TableNextColumn();
@@ -559,28 +558,28 @@ void impl::debug() {
             ImGui::TableHeadersRow();
 
             ImGui::TableNextColumn();
-            DrawTableGeneral(s_chan, MAXCHAN, rowHeight, m_channelTag, m_channelDebugData, pad);
+            DrawTableGeneral(s_chan, rowHeight, m_channelTag, m_channelDebugData, pad);
 
             ImGui::TableNextColumn();
-            DrawTableFrequency(s_chan, MAXCHAN, rowHeight);
+            DrawTableFrequency(s_chan, rowHeight);
 
             ImGui::TableNextColumn();
-            DrawTablePosition(s_chan, MAXCHAN, rowHeight, spuMemC);
+            DrawTablePosition(s_chan, rowHeight, spuMemC);
 
             ImGui::TableNextColumn();
-            DrawTableVolume(s_chan, MAXCHAN, rowHeight);
+            DrawTableVolume(s_chan, rowHeight);
 
             ImGui::TableNextColumn();
-            DrawTableAdsr(s_chan, MAXCHAN, rowHeight);
+            DrawTableAdsr(s_chan, rowHeight);
 
             ImGui::TableNextColumn();
-            DrawTableAdsrSustain(s_chan, MAXCHAN, rowHeight);
+            DrawTableAdsrSustain(s_chan, rowHeight);
 
             ImGui::TableNextColumn();
-            DrawTableAdsrVolume(s_chan, MAXCHAN, rowHeight);
+            DrawTableAdsrVolume(s_chan, rowHeight);
 
             ImGui::TableNextColumn();
-            DrawTableReverb(s_chan, MAXCHAN, rowHeight);
+            DrawTableReverb(s_chan, rowHeight);
             ImGui::EndTable();
         }
     }
