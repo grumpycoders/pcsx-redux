@@ -107,6 +107,36 @@ struct Grid {
         WidthReverbRepeat;
 };
 
+using namespace PCSX::SPU;
+using SPU_CHANNELS = SPUCHAN(&)[impl::MAXCHAN + 1];
+
+void DrawTableReverb(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+    if (ImGui::BeginTable("TableReverb", 5, Grid::FlagsTableInner)) {
+        ImGui::TableSetupColumn("Allowed", Grid::FlagsColumn, Grid::WidthReverbAllowed);
+        ImGui::TableSetupColumn("Active", Grid::FlagsColumn, Grid::WidthReverbActive);
+        ImGui::TableSetupColumn("Number", Grid::FlagsColumn, Grid::WidthReverbNumber);
+        ImGui::TableSetupColumn("Offset", Grid::FlagsColumn, Grid::WidthReverbOffset);
+        ImGui::TableSetupColumn("Repeat", Grid::FlagsColumn, Grid::WidthReverbRepeat);
+        ImGui::TableHeadersRow();
+        for (auto i = 0u; i < channelsCount; ++i) {
+            const auto& data = channels[i].data;
+            ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", data.get<Chan::Reverb>().value);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<Chan::RVBActive>().value);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<Chan::RVBNum>().value);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<Chan::RVBOffset>().value);
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<Chan::RVBRepeat>().value);
+        }
+        ImGui::EndTable();
+    }
+}
+
 void PCSX::SPU::impl::debug() {
     auto delta = std::chrono::steady_clock::now() - m_lastUpdated;
     using namespace std::chrono_literals;
@@ -456,30 +486,7 @@ void PCSX::SPU::impl::debug() {
             }
 
             ImGui::TableNextColumn();
-            if (ImGui::BeginTable("TableReverb", 5, Grid::FlagsTableInner)) {
-                ImGui::TableSetupColumn("Allowed", Grid::FlagsColumn, Grid::WidthReverbAllowed);
-                ImGui::TableSetupColumn("Active", Grid::FlagsColumn, Grid::WidthReverbActive);
-                ImGui::TableSetupColumn("Number", Grid::FlagsColumn, Grid::WidthReverbNumber);
-                ImGui::TableSetupColumn("Offset", Grid::FlagsColumn, Grid::WidthReverbOffset);
-                ImGui::TableSetupColumn("Repeat", Grid::FlagsColumn, Grid::WidthReverbRepeat);
-                ImGui::TableHeadersRow();
-                for (auto i = 0u; i < MAXCHAN; ++i) {
-                    const auto& data = s_chan[i].data;
-                    ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
-                    ImGui::TableNextColumn();
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("%i", data.get<Chan::Reverb>().value);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<Chan::RVBActive>().value);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<Chan::RVBNum>().value);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<Chan::RVBOffset>().value);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<Chan::RVBRepeat>().value);
-                }
-                ImGui::EndTable();
-            }
+            DrawTableReverb(s_chan, MAXCHAN, rowHeight);
             ImGui::EndTable();
         }
     }
