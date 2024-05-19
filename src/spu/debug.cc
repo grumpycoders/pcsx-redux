@@ -116,6 +116,9 @@ using SPU_CHANNELS_PLOT = float (&)[SPU_CHANNELS_SIZE][impl::DEBUG_SAMPLES];
 constexpr auto TableColumnFix = 2; // fixes ImGui possibly screwing last column width
 constexpr auto TablePadding = 18;  // inner padding to make it look neat
 
+constexpr auto BasicTableFlags = ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_NoHostExtendX;
+constexpr auto BasicTableColumnWidth = 150;
+
 template <typename T>
 T& GetChannelData(SPU_CHANNELS_INFO channels, const size_t channel) {
     return channels[channel].data.get<T>();
@@ -485,6 +488,48 @@ void DrawSectionChannels(
     }
 }
 
+void DrawSectionSpu(
+    const uint16_t spuCtrl, const uint16_t spuStat, const uint32_t spuAddr,
+    const uint8_t* spuMemC, const uint8_t* pSpuIrq) {
+    if (ImGui::CollapsingHeader("SPU", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::BeginTable("SpuBase", 4, BasicTableFlags)) {
+            ImGui::TableSetupColumn("IRQ", 0, BasicTableColumnWidth);
+            ImGui::TableSetupColumn("CTRL", 0, BasicTableColumnWidth);
+            ImGui::TableSetupColumn("STAT", 0, BasicTableColumnWidth);
+            ImGui::TableSetupColumn("MEM", 0, BasicTableColumnWidth);
+            ImGui::TableHeadersRow();
+            // @formatter:off
+            ImGui::TableNextColumn(); ImGui::Text("%08X", static_cast<uint32_t>(pSpuIrq ? -1 : pSpuIrq - spuMemC));
+            ImGui::TableNextColumn(); ImGui::Text("%04X", spuCtrl);
+            ImGui::TableNextColumn(); ImGui::Text("%04X", spuStat);
+            ImGui::TableNextColumn(); ImGui::Text("%i", spuAddr);
+            // @formatter:on
+            ImGui::EndTable();
+        }
+    }
+}
+
+void DrawSectionXa(const xa_decode_t* xapGlobal, const int iLeftXAVol, const int iRightXAVol) {
+    if (ImGui::CollapsingHeader("XA", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::BeginTable("SpuXa", 5, BasicTableFlags)) {
+            ImGui::TableSetupColumn("Frequency", 0, BasicTableColumnWidth);
+            ImGui::TableSetupColumn("Stereo", 0, BasicTableColumnWidth);
+            ImGui::TableSetupColumn("Samples", 0, BasicTableColumnWidth);
+            ImGui::TableSetupColumn("Volume L", 0, BasicTableColumnWidth);
+            ImGui::TableSetupColumn("Volume R", 0, BasicTableColumnWidth);
+            ImGui::TableHeadersRow();
+            // @formatter:off
+            ImGui::TableNextColumn(); ImGui::Text("%i", xapGlobal ? xapGlobal->freq : 0);
+            ImGui::TableNextColumn(); ImGui::Text("%i", xapGlobal ? xapGlobal->stereo : 0);
+            ImGui::TableNextColumn(); ImGui::Text("%i", xapGlobal ? xapGlobal->nsamples : 0);
+            ImGui::TableNextColumn(); ImGui::Text("%i", iLeftXAVol);
+            ImGui::TableNextColumn(); ImGui::Text("%i", iRightXAVol);
+            // @formatter:on
+            ImGui::EndTable();
+        }
+    }
+}
+
 void impl::debug() {
     auto delta = std::chrono::steady_clock::now() - m_lastUpdated;
     using namespace std::chrono_literals;
@@ -528,46 +573,8 @@ void impl::debug() {
         return;
     }
 
-    {
-        constexpr auto simpleTableFlags = ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_NoHostExtendX;
-        constexpr auto simpleTableWidth = 150;
-
-        if (ImGui::CollapsingHeader("SPU", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (ImGui::BeginTable("SpuBase", 4, simpleTableFlags)) {
-                ImGui::TableSetupColumn("IRQ", 0, simpleTableWidth);
-                ImGui::TableSetupColumn("CTRL", 0, simpleTableWidth);
-                ImGui::TableSetupColumn("STAT", 0, simpleTableWidth);
-                ImGui::TableSetupColumn("MEM", 0, simpleTableWidth);
-                ImGui::TableHeadersRow();
-                // @formatter:off
-                ImGui::TableNextColumn(); ImGui::Text("%08X", static_cast<uint32_t>(pSpuIrq ? -1 : pSpuIrq - spuMemC));
-                ImGui::TableNextColumn(); ImGui::Text("%04X", spuCtrl);
-                ImGui::TableNextColumn(); ImGui::Text("%04X", spuStat);
-                ImGui::TableNextColumn(); ImGui::Text("%i", spuAddr);
-                // @formatter:on
-                ImGui::EndTable();
-            }
-        }
-        if (ImGui::CollapsingHeader("XA", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (ImGui::BeginTable("SpuXa", 5, simpleTableFlags)) {
-                ImGui::TableSetupColumn("Frequency", 0, simpleTableWidth);
-                ImGui::TableSetupColumn("Stereo", 0, simpleTableWidth);
-                ImGui::TableSetupColumn("Samples", 0, simpleTableWidth);
-                ImGui::TableSetupColumn("Volume L", 0, simpleTableWidth);
-                ImGui::TableSetupColumn("Volume R", 0, simpleTableWidth);
-                ImGui::TableHeadersRow();
-                // @formatter:off
-                ImGui::TableNextColumn(); ImGui::Text("%i", xapGlobal ? xapGlobal->freq : 0);
-                ImGui::TableNextColumn(); ImGui::Text("%i", xapGlobal ? xapGlobal->stereo : 0);
-                ImGui::TableNextColumn(); ImGui::Text("%i", xapGlobal ? xapGlobal->nsamples : 0);
-                ImGui::TableNextColumn(); ImGui::Text("%i", iLeftXAVol);
-                ImGui::TableNextColumn(); ImGui::Text("%i", iRightXAVol);
-                // @formatter:on
-                ImGui::EndTable();
-            }
-        }
-    }
-
+    DrawSectionSpu(spuCtrl, spuStat, spuAddr, spuMemC, pSpuIrq);
+    DrawSectionXa(xapGlobal, iLeftXAVol, iRightXAVol);
     DrawSectionChannels(s_chan, m_channelTag, m_channelDebugData, spuMemC);
 
     ImGui::End();
