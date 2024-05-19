@@ -114,6 +114,9 @@ constexpr auto SPU_CHANNELS_SIZE = impl::MAXCHAN;
 using SPU_CHANNELS_TAGS = char (&)[impl::MAXCHAN][impl::CHANNEL_TAG];
 using SPU_CHANNELS_PLOT = float (&)[impl::MAXCHAN][impl::DEBUG_SAMPLES];
 
+constexpr auto TableColumnFix = 2; // fixes ImGui possibly screwing last column width
+constexpr auto TablePadding = 18; // inner padding to make it look neat
+
 template <typename T>
 T& GetChannelData(SPU_CHANNELS channels, const unsigned channel) {
     return channels[channel].data.get<T>();
@@ -272,8 +275,8 @@ void DrawTableGeneralFMod(const Chan::Data& data) {
     ImGui::Text("%i", data.get<Chan::FMod>().value);
 }
 
-void DrawTableGeneralPlot(SPU_CHANNELS_PLOT plot, float padding, unsigned i) {
-    const auto plotSize = ImVec2(Grid::WidthGeneralPlot - padding, 0);
+void DrawTableGeneralPlot(SPU_CHANNELS_PLOT plot, unsigned i) {
+    constexpr auto plotSize = ImVec2(Grid::WidthGeneralPlot - TablePadding, 0);
     ImGui::PlotHistogram("", plot[i], impl::DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
 }
 
@@ -281,8 +284,7 @@ void DrawTableGeneral(
     SPU_CHANNELS channels,
     const float rowHeight,
     SPU_CHANNELS_TAGS tags,
-    SPU_CHANNELS_PLOT plot,
-    float padding) {
+    SPU_CHANNELS_PLOT plot) {
     if (ImGui::BeginTable("TableGeneral", 9, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("#", Grid::FlagsColumn, Grid::WidthGeneralIndex);
         ImGui::TableSetupColumn("Tag", Grid::FlagsColumn, Grid::WidthGeneralTag);
@@ -312,7 +314,7 @@ void DrawTableGeneral(
             ImGui::TableNextColumn(); DrawTableGeneralSolo(channels, i, solo);
             ImGui::TableNextColumn(); DrawTableGeneralNoise(data);
             ImGui::TableNextColumn(); DrawTableGeneralFMod(data);
-            ImGui::TableNextColumn(); DrawTableGeneralPlot(plot, padding, i);
+            ImGui::TableNextColumn(); DrawTableGeneralPlot(plot, i);
             // @formatter:on
         }
         ImGui::EndTable();
@@ -554,20 +556,18 @@ void impl::debug() {
 
         // BUG ImGui hides last column border when scrolling (off by 1px)
         if (ImGui::BeginTable("SpuChannels", 8, Grid::FlagsTableOuter, ImVec2(0, tableHeight))) {
-            constexpr auto fix = 2; // BUG ImGui may screw up last column width
-            constexpr auto pad = 18;
-            ImGui::TableSetupColumn("General", Grid::FlagsColumn, Grid::WidthGeneral + pad * fix);
-            ImGui::TableSetupColumn("Frequency", Grid::FlagsColumn, Grid::WidthFrequency + pad);
-            ImGui::TableSetupColumn("Position", Grid::FlagsColumn, Grid::WidthPosition + pad);
-            ImGui::TableSetupColumn("Volume", Grid::FlagsColumn, Grid::WidthVolume + pad);
-            ImGui::TableSetupColumn("ADSR", Grid::FlagsColumn, Grid::WidthAdsr + pad * fix);
-            ImGui::TableSetupColumn("ADSR Sustain", Grid::FlagsColumn, Grid::WidthAdsrSustain + pad);
-            ImGui::TableSetupColumn("ADSR Volume", Grid::FlagsColumn, Grid::WidthAdsrVolume + pad);
-            ImGui::TableSetupColumn("Reverb", Grid::FlagsColumn, Grid::WidthReverb + pad * fix);
+            ImGui::TableSetupColumn("General", Grid::FlagsColumn, Grid::WidthGeneral + TablePadding * TableColumnFix);
+            ImGui::TableSetupColumn("Frequency", Grid::FlagsColumn, Grid::WidthFrequency + TablePadding);
+            ImGui::TableSetupColumn("Position", Grid::FlagsColumn, Grid::WidthPosition + TablePadding);
+            ImGui::TableSetupColumn("Volume", Grid::FlagsColumn, Grid::WidthVolume + TablePadding);
+            ImGui::TableSetupColumn("ADSR", Grid::FlagsColumn, Grid::WidthAdsr + TablePadding * TableColumnFix);
+            ImGui::TableSetupColumn("ADSR Sustain", Grid::FlagsColumn, Grid::WidthAdsrSustain + TablePadding);
+            ImGui::TableSetupColumn("ADSR Volume", Grid::FlagsColumn, Grid::WidthAdsrVolume + TablePadding);
+            ImGui::TableSetupColumn("Reverb", Grid::FlagsColumn, Grid::WidthReverb + TablePadding * TableColumnFix);
             ImGui::TableHeadersRow();
 
             ImGui::TableNextColumn();
-            DrawTableGeneral(s_chan, rowHeight, m_channelTag, m_channelDebugData, pad);
+            DrawTableGeneral(s_chan, rowHeight, m_channelTag, m_channelDebugData);
 
             ImGui::TableNextColumn();
             DrawTableFrequency(s_chan, rowHeight);
