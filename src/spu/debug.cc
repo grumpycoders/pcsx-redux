@@ -181,14 +181,12 @@ void HandleChannelSolo(
 void DrawTable(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
 }
 
-void DrawTableGeneralIndex(const unsigned channel)
-{
+void DrawTableGeneralIndex(const unsigned channel) {
     ImGui::AlignTextToFramePadding();
     ImGui::Text("%02i", channel);
 }
 
-void DrawTableGeneralTag(const unsigned channel, SPU_CHANNELS_TAGS &tags)
-{
+void DrawTableGeneralTag(const unsigned channel, SPU_CHANNELS_TAGS& tags) {
     ImGui::PushItemWidth(Grid::WidthGeneralTag);
     const auto tagLabel = "##SpuChannelTag" + std::to_string(channel);
     const auto tagHint = "Channel " + std::to_string(channel);
@@ -196,16 +194,14 @@ void DrawTableGeneralTag(const unsigned channel, SPU_CHANNELS_TAGS &tags)
     ImGui::PopItemWidth();
 }
 
-void DrawTableGeneralOn(const Chan::Data& data)
-{
+void DrawTableGeneralOn(const Chan::Data& data) {
     ImGui::BeginDisabled();
     auto bit1 = data.get<Chan::On>().value;
     ImGui::Checkbox("", &bit1);
     ImGui::EndDisabled();
 }
 
-void DrawTableGeneralOff(const Chan::Data& data)
-{
+void DrawTableGeneralOff(const Chan::Data& data) {
     auto bit2 = data.get<Chan::Stop>().value;
     ImGui::BeginDisabled();
     ImGui::Checkbox("", &bit2);
@@ -259,18 +255,15 @@ void DrawTableGeneralSolo(SPU_CHANNELS channels, const unsigned channel, const M
     }
 }
 
-void DrawTableGeneralNoise(const Chan::Data& data)
-{
+void DrawTableGeneralNoise(const Chan::Data& data) {
     ImGui::Text("%i", data.get<Chan::Noise>().value);
 }
 
-void DrawTableGeneralFMod(const Chan::Data& data)
-{
+void DrawTableGeneralFMod(const Chan::Data& data) {
     ImGui::Text("%i", data.get<Chan::FMod>().value);
 }
 
-void DrawTableGeneralPlot(SPU_CHANNELS_PLOT plot, float padding, unsigned i)
-{
+void DrawTableGeneralPlot(SPU_CHANNELS_PLOT plot, float padding, unsigned i) {
     const auto plotSize = ImVec2(Grid::WidthGeneralPlot - padding, 0);
     ImGui::PlotHistogram("", plot[i], impl::DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
 }
@@ -462,7 +455,7 @@ void DrawTableReverb(SPU_CHANNELS& channels, size_t channelsCount, const float r
     }
 }
 
-void PCSX::SPU::impl::debug() {
+void impl::debug() {
     auto delta = std::chrono::steady_clock::now() - m_lastUpdated;
     using namespace std::chrono_literals;
     while (delta >= 50ms) {
@@ -472,7 +465,7 @@ void PCSX::SPU::impl::debug() {
             if (!s_chan[ch].data.get<Chan::On>().value) {
                 m_channelDebugTypes[ch][m_currentDebugSample] = EMPTY;
                 m_channelDebugData[ch][m_currentDebugSample] = 0.0f;
-            };
+            }
             if (s_chan[ch].data.get<Chan::IrqDone>().value) {
                 m_channelDebugTypes[ch][m_currentDebugSample] = IRQ;
                 m_channelDebugData[ch][m_currentDebugSample] = 0.0f;
@@ -493,7 +486,7 @@ void PCSX::SPU::impl::debug() {
             }
 
             m_channelDebugData[ch][m_currentDebugSample] =
-                fabsf((float)s_chan[ch].data.get<Chan::sval>().value / 32768.0f);
+                fabsf(static_cast<float>(s_chan[ch].data.get<Chan::sval>().value) / 32768.0f);
         }
         if (++m_currentDebugSample == DEBUG_SAMPLES) m_currentDebugSample = 0;
     }
