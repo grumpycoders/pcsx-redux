@@ -144,8 +144,12 @@ void HandleChannelMute(
 }
 
 void HandleChannelSoloMute(
-    SPU_CHANNELS channels, bool& muteThis, bool& soloThis, bool& muteOther, bool& soloOther) {
-    if (soloThis) {
+    SPU_CHANNELS channels, const unsigned channel1, const unsigned channel2) {
+
+    auto &muteOther = GetChannelMute(channels, channel2);
+    auto &soloOther = GetChannelSolo(channels, channel2);
+
+    if (GetChannelSolo(channels, channel1)) {
         // multi/single solo
         if (ImGui::GetIO().KeyShift) {
             if (soloOther == false) {
@@ -160,7 +164,7 @@ void HandleChannelSoloMute(
         if (std::ranges::any_of(channels, channels + SPU_CHANNELS_SIZE, [](const SPUCHAN& c) {
             return c.data.get<Chan::Solo>().value;
         })) {
-            muteThis = true;
+            GetChannelMute(channels, channel1) = true;
         }
     }
 }
@@ -178,7 +182,7 @@ void HandleChannelSolo(
         auto& dataOther = channels[j].data;
         auto& muteOther = dataOther.get<Chan::Mute>().value;
         auto& soloOther = dataOther.get<Chan::Solo>().value;
-        HandleChannelSoloMute(channels, muteThis, soloThis, muteOther, soloOther);
+        HandleChannelSoloMute(channels, muteThis, soloThis);
     }
 
     // no more solo channels -> ensure none are muted
