@@ -110,11 +110,12 @@ struct Grid {
 using namespace PCSX::SPU;
 using SPU_CHANNELS = SPUCHAN(&)[impl::MAXCHAN + 1];
 
+constexpr auto SPU_CHANNELS_SIZE = impl::MAXCHAN;
 using SPU_CHANNELS_TAGS = char (&)[impl::MAXCHAN][impl::CHANNEL_TAG];
 using SPU_CHANNELS_PLOT = float (&)[impl::MAXCHAN][impl::DEBUG_SAMPLES];
 
-void HandleChannelMute(SPU_CHANNELS channels, size_t channelsCount, bool& muteThis, bool& soloThis)
-{
+void HandleChannelMute(
+    SPU_CHANNELS& channels, const unsigned channelsCount, bool& muteThis, bool& soloThis) {
     muteThis = !muteThis;
     if (muteThis) {
         soloThis = false;
@@ -129,8 +130,8 @@ void HandleChannelMute(SPU_CHANNELS channels, size_t channelsCount, bool& muteTh
     }
 }
 
-void HandleChannelSoloMute(SPU_CHANNELS channels, size_t channelsCount, bool& muteThis, bool& soloThis, bool& muteOther, bool& soloOther)
-{
+void HandleChannelSoloMute(
+    SPU_CHANNELS& channels, const unsigned channelsCount, bool& muteThis, bool& soloThis, bool& muteOther, bool& soloOther) {
     if (soloThis) {
         // multi/single solo
         if (ImGui::GetIO().KeyShift) {
@@ -151,8 +152,8 @@ void HandleChannelSoloMute(SPU_CHANNELS channels, size_t channelsCount, bool& mu
     }
 }
 
-void HandleChannelSolo(SPU_CHANNELS channels, size_t channelsCount, unsigned i, bool& muteThis, bool& soloThis)
-{
+void HandleChannelSolo(
+    SPU_CHANNELS& channels, const unsigned channelsCount, unsigned i, bool& muteThis, bool& soloThis) {
     soloThis = !soloThis;
     if (soloThis) {
         muteThis = false;
@@ -211,32 +212,51 @@ void DrawTableGeneralOff(const Chan::Data& data)
     ImGui::EndDisabled();
 }
 
-void DrawTableGeneralMute(SPU_CHANNELS channels, size_t channelsCount, const std::string ch, const ImVec2 buttonSize, const ImVec4 buttonTint, bool& muteThis, bool& soloThis, const ImGuiStyle style)
-{
-    ImGui::PushStyleColor(ImGuiCol_Button, muteThis ? ImVec4(0.6f, 0.0f, 0.0f, 1.0f) : buttonTint);
-    std::string muteLabel = "M##SpuMute" + ch;
-    const auto muteSize = ImVec2(
-        (Grid::WidthGeneralMute - buttonSize.x) * 0.5f - style.FramePadding.x * 2.0f, 0);
-    ImGui::Dummy(muteSize);
-    ImGui::SameLine();
-    if (ImGui::Button(muteLabel.c_str(), buttonSize)) {
-        HandleChannelMute(channels, channelsCount, muteThis, soloThis);
-    }
-    ImGui::PopStyleColor();
+ImVec4 GetMuteSoloButtonTint(const bool down, const ImVec4& downTint) {
+    return down ? downTint : ImGui::GetStyleColorVec4(ImGuiCol_Button);
 }
 
-void DrawTableGeneralSolo(SPU_CHANNELS channels, size_t channelsCount, unsigned i, const std::string ch, const ImVec2 buttonSize, const ImVec4 buttonTint, bool& muteThis, bool& soloThis, const ImGuiStyle style)
-{
-    ImGui::PushStyleColor(ImGuiCol_Button, soloThis ? ImVec4(0.0f, 0.6f, 0.0f, 1.0f) : buttonTint);
-    std::string soloLabel = "S##SpuSolo" + ch;
-    const auto soloSize = ImVec2(
-        (Grid::WidthGeneralSolo - buttonSize.x) * 0.5f - style.FramePadding.x * 2.0f, 0);
-    ImGui::Dummy(soloSize);
+bool& GetChannelMute(SPU_CHANNELS& channels, const unsigned channelIndex) {
+    return channels[channelIndex].data.get<Chan::Mute>().value;
+}
+
+bool& GetChannelSolo(SPU_CHANNELS& channels, const unsigned channelIndex) {
+    return channels[channelIndex].data.get<Chan::Solo>().value;
+}
+
+struct MSButton {
+    const char* Text;
+    const ImVec4 Tint;
+    const float Size;
+};
+
+bool DrawMuteSoloButton(const unsigned channel, const MSButton& button, const bool& active) {
+    const auto size = ImVec2(ImGui::GetFrameHeightWithSpacing(), 0);
+    const auto temp = ImVec2((button.Size - size.x) * 0.5f - ImGui::GetStyle().FramePadding.x * 2.0f, 0);
+    ImGui::Dummy(temp);
     ImGui::SameLine();
-    if (ImGui::Button(soloLabel.c_str(), buttonSize)) {
-        HandleChannelSolo(channels, channelsCount, i, muteThis, soloThis);
-    }
+    const auto tint = GetMuteSoloButtonTint(active, button.Tint);
+    ImGui::PushStyleColor(ImGuiCol_Button, tint);
+    const auto text = button.Text + std::to_string(channel);
+    const auto pressed = ImGui::Button(text.c_str(), size);
     ImGui::PopStyleColor();
+    return pressed;
+}
+
+void DrawTableGeneralMute(SPU_CHANNELS channels, const unsigned channel, const MSButton& button) {
+    auto& mute = GetChannelMute(channels, channel);
+    auto& solo = GetChannelSolo(channels, channel);
+    if (DrawMuteSoloButton(channel, button, mute)) {
+        HandleChannelMute(channels, SPU_CHANNELS_SIZE, mute, solo);
+    }
+}
+
+void DrawTableGeneralSolo(SPU_CHANNELS channels, const unsigned channel, const MSButton& button) {
+    auto& mute = GetChannelMute(channels, channel);
+    auto& solo = GetChannelSolo(channels, channel);
+    if (DrawMuteSoloButton(channel, button, solo)) {
+        HandleChannelSolo(channels, SPU_CHANNELS_SIZE, channel, mute, solo);
+    }
 }
 
 void DrawTableGeneralNoise(const Chan::Data& data)
@@ -278,23 +298,17 @@ void DrawTableGeneral(
             const auto& data = channels[i].data;
 
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
+
+            constexpr auto mute = MSButton{"M##SpuMute", ImVec4(0.6f, 0.0f, 0.0f, 1.0f), Grid::WidthGeneralMute};
+            constexpr auto solo = MSButton{"S##SpuSolo", ImVec4(0.0f, 0.6f, 0.0f, 1.0f), Grid::WidthGeneralSolo};
+
             // @formatter:off
             ImGui::TableNextColumn(); DrawTableGeneralIndex(i);
             ImGui::TableNextColumn(); DrawTableGeneralTag(i, tags);
             ImGui::TableNextColumn(); DrawTableGeneralOn(data);
             ImGui::TableNextColumn(); DrawTableGeneralOff(data);
-            // @formatter:on
-            const auto ch = std::to_string(i);
-            const auto buttonSize = ImVec2(rowHeight, 0);
-            const auto buttonTint = ImGui::GetStyleColorVec4(ImGuiCol_Button);
-            auto& dataThis = channels[i].data;
-            auto& muteThis = dataThis.get<Chan::Mute>().value;
-            auto& soloThis = dataThis.get<Chan::Solo>().value;
-
-            const auto style = ImGui::GetStyle();
-            // @formatter:off
-            ImGui::TableNextColumn(); DrawTableGeneralMute(channels, channelsCount, ch, buttonSize, buttonTint, muteThis, soloThis, style);
-            ImGui::TableNextColumn(); DrawTableGeneralSolo(channels, channelsCount, i, ch, buttonSize, buttonTint, muteThis, soloThis, style);
+            ImGui::TableNextColumn(); DrawTableGeneralMute(channels, i, mute);
+            ImGui::TableNextColumn(); DrawTableGeneralSolo(channels, i, solo);
             ImGui::TableNextColumn(); DrawTableGeneralNoise(data);
             ImGui::TableNextColumn(); DrawTableGeneralFMod(data);
             ImGui::TableNextColumn(); DrawTableGeneralPlot(plot, padding, i);
