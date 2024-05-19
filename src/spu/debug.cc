@@ -165,7 +165,7 @@ void HandleChannelSoloMute(
         }
     } else {
         // mute this to keep solo ones correct
-        if (std::ranges::any_of(channels, channels + SPU_CHANNELS_SIZE, [](const SPUCHAN& c) {
+        if (std::any_of(channels, channels + SPU_CHANNELS_SIZE, [](const SPUCHAN& c) {
             return c.data.get<Chan::Solo>().value;
         })) {
             GetChannelMute(channels, channel1) = true;
@@ -186,7 +186,7 @@ void HandleChannelSolo(
     }
 
     // no more solo channels -> ensure none are muted
-    if (std::ranges::all_of(channels, [](const SPUCHAN& c) {
+    if (std::all_of(channels, channels + SPU_CHANNELS_SIZE, [](const SPUCHAN& c) {
         return c.data.get<Chan::Solo>().value == false;
     })) {
         std::for_each(channels, channels + SPU_CHANNELS_SIZE, [](SPUCHAN& c) {
