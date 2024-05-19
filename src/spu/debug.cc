@@ -114,6 +114,19 @@ constexpr auto SPU_CHANNELS_SIZE = impl::MAXCHAN;
 using SPU_CHANNELS_TAGS = char (&)[impl::MAXCHAN][impl::CHANNEL_TAG];
 using SPU_CHANNELS_PLOT = float (&)[impl::MAXCHAN][impl::DEBUG_SAMPLES];
 
+template <typename T>
+T& GetChannelData(SPU_CHANNELS channels, const unsigned channel) {
+    return channels[channel].data.get<T>();
+}
+
+bool& GetChannelMute(SPU_CHANNELS channels, const unsigned channel) {
+    return GetChannelData<Chan::Mute>(channels, channel).value;
+}
+
+bool& GetChannelSolo(SPU_CHANNELS channels, const unsigned channel) {
+    return GetChannelData<Chan::Solo>(channels, channel).value;
+}
+
 void HandleChannelMute(
     SPU_CHANNELS channels, bool& muteThis, bool& soloThis) {
     muteThis = !muteThis;
@@ -210,14 +223,6 @@ void DrawTableGeneralOff(const Chan::Data& data) {
 
 ImVec4 GetMuteSoloButtonTint(const bool down, const ImVec4& downTint) {
     return down ? downTint : ImGui::GetStyleColorVec4(ImGuiCol_Button);
-}
-
-bool& GetChannelMute(SPU_CHANNELS channels, const unsigned channelIndex) {
-    return channels[channelIndex].data.get<Chan::Mute>().value;
-}
-
-bool& GetChannelSolo(SPU_CHANNELS channels, const unsigned channelIndex) {
-    return channels[channelIndex].data.get<Chan::Solo>().value;
 }
 
 struct MSButton {
