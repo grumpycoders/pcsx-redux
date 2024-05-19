@@ -110,7 +110,152 @@ struct Grid {
 using namespace PCSX::SPU;
 using SPU_CHANNELS = SPUCHAN(&)[impl::MAXCHAN + 1];
 
+using SPU_CHANNELS_TAGS = char (&)[impl::MAXCHAN][impl::CHANNEL_TAG];
+using SPU_CHANNELS_PLOT = float (&)[impl::MAXCHAN][impl::DEBUG_SAMPLES];
 void DrawTable(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
+}
+
+void DrawTableGeneral(
+    SPU_CHANNELS& channels,
+    size_t channelsCount,
+    const float rowHeight,
+    SPU_CHANNELS_TAGS& tags,
+    SPU_CHANNELS_PLOT& plot,
+    float padding) {
+    if (ImGui::BeginTable("TableGeneral", 9, Grid::FlagsTableInner)) {
+        ImGui::TableSetupColumn("#", Grid::FlagsColumn, Grid::WidthGeneralIndex);
+        ImGui::TableSetupColumn("Tag", Grid::FlagsColumn, Grid::WidthGeneralTag);
+        ImGui::TableSetupColumn("On", Grid::FlagsColumn, Grid::WidthGeneralOn);
+        ImGui::TableSetupColumn("Off", Grid::FlagsColumn, Grid::WidthGeneralOff);
+        ImGui::TableSetupColumn("Mute", Grid::FlagsColumn, Grid::WidthGeneralMute);
+        ImGui::TableSetupColumn("Solo", Grid::FlagsColumn, Grid::WidthGeneralSolo);
+        ImGui::TableSetupColumn("Noise", Grid::FlagsColumn, Grid::WidthGeneralNoise);
+        ImGui::TableSetupColumn("FMod", Grid::FlagsColumn, Grid::WidthGeneralFMod);
+        ImGui::TableSetupColumn("Plot", Grid::FlagsColumn, Grid::WidthGeneralPlot);
+
+        ImGui::TableHeadersRow();
+        for (auto i = 0u; i < channelsCount; ++i) {
+            const auto& data = channels[i].data;
+
+            ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%02i", i);
+
+            ImGui::TableNextColumn();
+            ImGui::PushItemWidth(Grid::WidthGeneralTag);
+            const auto tagLabel = "##SpuChannelTag" + std::to_string(i);
+            const auto tagHint = "Channel " + std::to_string(i);
+            ImGui::InputTextWithHint(tagLabel.c_str(), tagHint.c_str(), tags[i], impl::CHANNEL_TAG);
+            ImGui::PopItemWidth();
+
+            ImGui::TableNextColumn();
+            ImGui::BeginDisabled();
+            auto bit1 = data.get<Chan::On>().value;
+            ImGui::Checkbox("", &bit1);
+            ImGui::EndDisabled();
+
+            ImGui::TableNextColumn();
+            auto bit2 = data.get<Chan::Stop>().value;
+            ImGui::BeginDisabled();
+            ImGui::Checkbox("", &bit2);
+            ImGui::EndDisabled();
+
+            const auto ch = std::to_string(i);
+            const auto buttonSize = ImVec2(rowHeight, 0);
+            const auto buttonTint = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+            auto& dataThis = channels[i].data;
+            auto& muteThis = dataThis.get<Chan::Mute>().value;
+            auto& soloThis = dataThis.get<Chan::Solo>().value;
+
+            const auto style = ImGui::GetStyle();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, muteThis ? ImVec4(0.6f, 0.0f, 0.0f, 1.0f) : buttonTint);
+            std::string muteLabel = "M##SpuMute" + ch;
+            ImGui::TableNextColumn();
+            const auto muteSize = ImVec2(
+                (Grid::WidthGeneralMute - buttonSize.x) * 0.5f - style.FramePadding.x * 2.0f, 0);
+            ImGui::Dummy(muteSize);
+            ImGui::SameLine();
+            if (ImGui::Button(muteLabel.c_str(), buttonSize)) {
+                muteThis = !muteThis;
+                if (muteThis) {
+                    soloThis = false;
+                }
+                if (ImGui::GetIO().KeyShift) {
+                    std::for_each(channels, channels + channelsCount, [muteThis](SPUCHAN& c) {
+                        c.data.get<Chan::Mute>().value = muteThis;
+                        if (muteThis) {
+                            c.data.get<Chan::Solo>().value = false;
+                        }
+                    });
+                }
+            }
+            ImGui::PopStyleColor();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, soloThis ? ImVec4(0.0f, 0.6f, 0.0f, 1.0f) : buttonTint);
+            std::string soloLabel = "S##SpuSolo" + ch;
+            ImGui::TableNextColumn();
+            const auto soloSize = ImVec2(
+                (Grid::WidthGeneralSolo - buttonSize.x) * 0.5f - style.FramePadding.x * 2.0f, 0);
+            ImGui::Dummy(soloSize);
+            ImGui::SameLine();
+            if (ImGui::Button(soloLabel.c_str(), buttonSize)) {
+                soloThis = !soloThis;
+                if (soloThis) {
+                    muteThis = false;
+                }
+                for (unsigned j = 0; j < channelsCount; j++) {
+                    if (j == i) {
+                        continue;
+                    }
+                    auto& dataOther = channels[j].data;
+                    auto& muteOther = dataOther.get<Chan::Mute>().value;
+                    auto& soloOther = dataOther.get<Chan::Solo>().value;
+                    if (soloThis) {
+                        // multi/single solo
+                        if (ImGui::GetIO().KeyShift) {
+                            if (soloOther == false) {
+                                muteOther = true;
+                            }
+                        } else {
+                            muteOther = true;
+                            soloOther = false;
+                        }
+                    } else {
+                        // mute this to keep solo ones correct
+                        if (std::ranges::any_of(channels, channels + channelsCount, [](const SPUCHAN& c) {
+                            return c.data.get<Chan::Solo>().value;
+                        })) {
+                            muteThis = true;
+                        }
+                    }
+                }
+
+                // no more solo channels -> ensure none are muted
+                if (std::ranges::all_of(channels, [](const SPUCHAN& c) {
+                    return c.data.get<Chan::Solo>().value == false;
+                })) {
+                    std::for_each(channels, channels + channelsCount, [](SPUCHAN& c) {
+                        c.data.get<Chan::Mute>().value = false;
+                    });
+                }
+            }
+            ImGui::PopStyleColor();
+
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<Chan::Noise>().value);
+
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", data.get<Chan::FMod>().value);
+
+            ImGui::TableNextColumn();
+            const auto plotSize = ImVec2(Grid::WidthGeneralPlot - padding, 0);
+            ImGui::PlotHistogram("", plot[i], impl::DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
+        }
+        ImGui::EndTable();
+    }
 }
 
 void DrawTableFrequency(SPU_CHANNELS& channels, size_t channelsCount, const float rowHeight) {
@@ -361,138 +506,7 @@ void PCSX::SPU::impl::debug() {
             ImGui::TableHeadersRow();
 
             ImGui::TableNextColumn();
-            if (ImGui::BeginTable("TableGeneral", 9, Grid::FlagsTableInner)) {
-                ImGui::TableSetupColumn("#", Grid::FlagsColumn, Grid::WidthGeneralIndex);
-                ImGui::TableSetupColumn("Tag", Grid::FlagsColumn, Grid::WidthGeneralTag);
-                ImGui::TableSetupColumn("On", Grid::FlagsColumn, Grid::WidthGeneralOn);
-                ImGui::TableSetupColumn("Off", Grid::FlagsColumn, Grid::WidthGeneralOff);
-                ImGui::TableSetupColumn("Mute", Grid::FlagsColumn, Grid::WidthGeneralMute);
-                ImGui::TableSetupColumn("Solo", Grid::FlagsColumn, Grid::WidthGeneralSolo);
-                ImGui::TableSetupColumn("Noise", Grid::FlagsColumn, Grid::WidthGeneralNoise);
-                ImGui::TableSetupColumn("FMod", Grid::FlagsColumn, Grid::WidthGeneralFMod);
-                ImGui::TableSetupColumn("Plot", Grid::FlagsColumn, Grid::WidthGeneralPlot);
-
-                ImGui::TableHeadersRow();
-                for (auto i = 0u; i < MAXCHAN; ++i) {
-                    const auto& data = s_chan[i].data;
-
-                    ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
-
-                    ImGui::TableNextColumn();
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("%02i", i);
-
-                    ImGui::TableNextColumn();
-                    ImGui::PushItemWidth(Grid::WidthGeneralTag);
-                    const auto tagLabel = "##SpuChannelTag" + std::to_string(i);
-                    const auto tagHint = "Channel " + std::to_string(i);
-                    ImGui::InputTextWithHint(tagLabel.c_str(), tagHint.c_str(), m_channelTag[i], CHANNEL_TAG);
-                    ImGui::PopItemWidth();
-
-                    ImGui::TableNextColumn();
-                    ImGui::BeginDisabled();
-                    auto bit1 = data.get<Chan::On>().value;
-                    ImGui::Checkbox("", &bit1);
-                    ImGui::EndDisabled();
-
-                    ImGui::TableNextColumn();
-                    auto bit2 = data.get<Chan::Stop>().value;
-                    ImGui::BeginDisabled();
-                    ImGui::Checkbox("", &bit2);
-                    ImGui::EndDisabled();
-
-                    const auto ch = std::to_string(i);
-                    const auto buttonSize = ImVec2(rowHeight, 0);
-                    const auto buttonTint = ImGui::GetStyleColorVec4(ImGuiCol_Button);
-                    auto& dataThis = s_chan[i].data;
-                    auto& muteThis = dataThis.get<Chan::Mute>().value;
-                    auto& soloThis = dataThis.get<Chan::Solo>().value;
-
-                    ImGui::PushStyleColor(ImGuiCol_Button, muteThis ? ImVec4(0.6f, 0.0f, 0.0f, 1.0f) : buttonTint);
-                    std::string muteLabel = "M##SpuMute" + ch;
-                    ImGui::TableNextColumn();
-                    const auto muteSize = ImVec2(
-                        (Grid::WidthGeneralMute - buttonSize.x) * 0.5f - style.FramePadding.x * 2.0f, 0);
-                    ImGui::Dummy(muteSize);
-                    ImGui::SameLine();
-                    if (ImGui::Button(muteLabel.c_str(), buttonSize)) {
-                        muteThis = !muteThis;
-                        if (muteThis) {
-                            soloThis = false;
-                        }
-                        if (ImGui::GetIO().KeyShift) {
-                            std::for_each(s_chan, s_chan + MAXCHAN, [muteThis](SPUCHAN& c) {
-                                c.data.get<Chan::Mute>().value = muteThis;
-                                if (muteThis) {
-                                    c.data.get<Chan::Solo>().value = false;
-                                }
-                            });
-                        }
-                    }
-                    ImGui::PopStyleColor();
-
-                    ImGui::PushStyleColor(ImGuiCol_Button, soloThis ? ImVec4(0.0f, 0.6f, 0.0f, 1.0f) : buttonTint);
-                    std::string soloLabel = "S##SpuSolo" + ch;
-                    ImGui::TableNextColumn();
-                    const auto soloSize = ImVec2(
-                        (Grid::WidthGeneralSolo - buttonSize.x) * 0.5f - style.FramePadding.x * 2.0f, 0);
-                    ImGui::Dummy(soloSize);
-                    ImGui::SameLine();
-                    if (ImGui::Button(soloLabel.c_str(), buttonSize)) {
-                        soloThis = !soloThis;
-                        if (soloThis) {
-                            muteThis = false;
-                        }
-                        for (unsigned j = 0; j < MAXCHAN; j++) {
-                            if (j == i) {
-                                continue;
-                            }
-                            auto& dataOther = s_chan[j].data;
-                            auto& muteOther = dataOther.get<Chan::Mute>().value;
-                            auto& soloOther = dataOther.get<Chan::Solo>().value;
-                            if (soloThis) {
-                                // multi/single solo
-                                if (ImGui::GetIO().KeyShift) {
-                                    if (soloOther == false) {
-                                        muteOther = true;
-                                    }
-                                } else {
-                                    muteOther = true;
-                                    soloOther = false;
-                                }
-                            } else {
-                                // mute this to keep solo ones correct
-                                if (std::ranges::any_of(s_chan, s_chan + MAXCHAN, [](const SPUCHAN& c) {
-                                    return c.data.get<Chan::Solo>().value;
-                                })) {
-                                    muteThis = true;
-                                }
-                            }
-                        }
-
-                        // no more solo channels -> ensure none are muted
-                        if (std::ranges::all_of(s_chan, [](const SPUCHAN& c) {
-                            return c.data.get<Chan::Solo>().value == false;
-                        })) {
-                            std::for_each(s_chan, s_chan + MAXCHAN, [](SPUCHAN& c) {
-                                c.data.get<Chan::Mute>().value = false;
-                            });
-                        }
-                    }
-                    ImGui::PopStyleColor();
-
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<Chan::Noise>().value);
-
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", data.get<Chan::FMod>().value);
-
-                    ImGui::TableNextColumn();
-                    constexpr auto plotSize = ImVec2(Grid::WidthGeneralPlot - pad, 0);
-                    ImGui::PlotHistogram("", m_channelDebugData[i], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
-                }
-                ImGui::EndTable();
-            }
+            DrawTableGeneral(s_chan, MAXCHAN, rowHeight, m_channelTag, m_channelDebugData, pad);
 
             ImGui::TableNextColumn();
             DrawTableFrequency(s_chan, MAXCHAN, rowHeight);
