@@ -107,6 +107,8 @@ struct Grid {
         WidthReverbRepeat;
 };
 
+namespace {
+
 using namespace PCSX::SPU;
 constexpr auto SPU_CHANNELS_SIZE = impl::MAXCHAN;
 using SPU_CHANNELS_INFO = SPUCHAN(&)[SPU_CHANNELS_SIZE + 1];
@@ -528,6 +530,8 @@ void DrawSectionXa(const xa_decode_t* xapGlobal, const int iLeftXAVol, const int
             ImGui::EndTable();
         }
     }
+}
+
 }
 
 void impl::debug() {
