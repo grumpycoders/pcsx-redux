@@ -26,7 +26,15 @@ SOFTWARE.
 
 #pragma once
 
+#include "common/hardware/hwregs.h"
+
 #include "common/psxlibc/setjmp.h"
+
+static inline void clearWatchdog() {
+#ifdef OPENBIOS_BOARD_SYS573
+    SYS573_WATCHDOG = 0;
+#endif
+}
 
 void setConfiguration(int eventsCount, int taskCount, void* stackBase);
 void getConfiguration(int* eventsCount, int* taskCount, void** stackBase);

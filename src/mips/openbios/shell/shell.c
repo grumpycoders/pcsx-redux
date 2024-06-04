@@ -24,9 +24,11 @@ SOFTWARE.
 
 */
 
+#include "openbios/main/main.h"
 #include "openbios/shell/shell.h"
 
 #include <memory.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -37,22 +39,37 @@ extern const uint8_t _binary_shell_bin_end[];
 extern const uint32_t _binary_psexe_bin_start[];
 extern const uint32_t _binary_psexe_bin_end[];
 
+static void copyExecutableData(uintptr_t dest, uintptr_t source, size_t length) {
+    // Larger binaries need to be copied in smaller chunks in order to make sure
+    // the watchdog is cleared frequently enough.
+    while (length > 0) {
+        size_t chunkLength = (length > 0x8000) ? 0x8000 : length;
+        memcpy((void *)dest, (const void *)source, chunkLength);
+        clearWatchdog();
+        dest += chunkLength;
+        source += chunkLength;
+        length -= chunkLength;
+    }
+}
+
 int startShell(uint32_t arg) {
+    clearWatchdog();
 #ifdef OPENBIOS_USE_EMBEDDED_PSEXE
     if (strncmp("PS-X EXE", (const char *)_binary_psexe_bin_start, 8) == 0) {
         const uint32_t *header = _binary_psexe_bin_start;
-        memcpy((uint8_t *)header[6], &_binary_psexe_bin_start[512], header[7]);
+        copyExecutableData(header[6], (uintptr_t)&_binary_psexe_bin_start[512], header[7]);
         flushCache();
         ((void (*)(int, char **))header[4])(0, NULL);
     }
 #endif
-#ifdef OPENBIOS_FASTBOOT
+#ifdef OPENBIOS_BOOT_MODE_NO_SHELL
     // Embed a simple jr $ra / nop to simulate a shell being copied and run,
     // so cheat cart hooks and other tricks can still work properly.
-    static const uint32_t dummy[2] = {0x03e00008, 0};
-    memcpy((uint32_t *)0x80030000, dummy, sizeof(dummy));
+    uint32_t *shell = (uint32_t *)0x80030000;
+    shell[0] = 0x03e00008;
+    shell[1] = 0;
 #else
-    memcpy((uint32_t *)0x80030000, _binary_shell_bin_start, _binary_shell_bin_end - _binary_shell_bin_start);
+    copyExecutableData(0x80030000, (uintptr_t)_binary_shell_bin_start, _binary_shell_bin_end - _binary_shell_bin_start);
 #endif
     flushCache();
     return ((int (*)(int))0x80030000)(arg);

@@ -54,6 +54,9 @@ SOFTWARE.
 static void boot(char *systemCnfPath, char *binaryPath);
 
 void bootThunk() {
+#ifdef OPENBIOS_BOOT_MODE_NO_CDROM
+    boot(NULL, NULL);
+#else
     char binaryPath[80];
     char systemCnfPath[80];
 
@@ -62,6 +65,7 @@ void bootThunk() {
     strcpy(binaryPath, "cdrom:");
     strcat(binaryPath, "PSX.EXE;1");
     boot(systemCnfPath, binaryPath);
+#endif
 }
 
 int main() {
@@ -75,7 +79,7 @@ int main() {
     POST = 0x0f;
     muteSpu();
 
-    if (checkExp1PreHookLicense()) runExp1PreHook();
+    runExp1PreHook();
     POST = 0x0e;
     g_installTTY = 0;
     bootThunk();
@@ -284,8 +288,10 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     writeCOP0Status(readCOP0Status() & ~0x401);
     muteSpu();
     POST = 2;
+    clearWatchdog();
     copyDataAndInitializeBSS();
     POST = 3;
+    clearWatchdog();
     copyA0table();
     installKernelHandlers();
     syscall_patchA0table();
@@ -341,12 +347,14 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     // always passed down to the shell is 0x07, due to the POST
     // set just above, and the way this is deterministic.
     startShell(7);
+
+#ifndef OPENBIOS_BOOT_MODE_NO_CDROM
     POST = 8;
     IMASK = 0;
     IREG = 0;
     initCDRom();
     SETJMPFATAL(0x399);
-    if (checkExp1PostHookLicense()) runExp1PostHook();
+    runExp1PostHook();
     psxprintf("\nBOOTSTRAP LOADER\n");
     SETJMPFATAL(0x386);
     POST = 9;
@@ -387,6 +395,8 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     enterCriticalSection();
     SETJMPFATAL(0x38b);
     gameMainThunk(&s_binaryInfo, 1, NULL);
+#endif
+
     psxprintf("End of Main\n");
     fatal(0x38c);
 }
