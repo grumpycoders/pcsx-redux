@@ -157,4 +157,4 @@ shell:
 deepclean: clean
 	$(MAKE) -C ../shell clean
 
-.PHONY: deepclean shell
+.PHONY: deepclean shell clean-openbios
