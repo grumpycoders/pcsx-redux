@@ -87,6 +87,14 @@ uC-sdk-glue/init.c \
 ../../../third_party/uC-sdk/os/src/init.c \
 ../../../third_party/uC-sdk/os/src/osdebug.c \
 
+# Ensure all files are always cleaned up.
+ifeq ($(MAKECMDGOALS),clean)
+SRCS += boot/psx.s boot/system573.s font1.o font2.o ./psexe_data.o
+endif
+ifeq ($(MAKECMDGOALS),deepclean)
+SRCS += boot/psx.s boot/system573.s font1.o font2.o ./psexe_data.o
+endif
+
 CPPFLAGS =
 
 ifeq ($(BOARD),system573)
@@ -131,8 +139,6 @@ ifneq ($(INSTALL_TTY_CONSOLE),)
 CPPFLAGS += -DOPENBIOS_INSTALL_TTY_CONSOLE
 endif
 
-EXTRA_CLEAN += clean-openbios
-
 include ../common.mk
 
 ../shell/shell_data.o: shell
@@ -148,13 +154,10 @@ include ../common.mk
 ./font2.o: charset/font2.raw
 	$(PREFIX)-objcopy -I binary --set-section-alignment .data=4 --rename-section .data=.font2,alloc,load,readonly,data,contents -O $(FORMAT) -B mips charset/font2.raw font2.o
 
-clean-openbios:
-	rm -f boot/psx.dep boot/psx.o boot/system573.dep boot/system573.o psexe_data.o font1.o font2.o
-
 shell:
 	$(MAKE) -C ../shell shell_data.o
 
 deepclean: clean
 	$(MAKE) -C ../shell clean
 
-.PHONY: deepclean shell clean-openbios
+.PHONY: deepclean shell
