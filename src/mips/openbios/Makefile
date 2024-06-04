@@ -36,6 +36,7 @@ kernel/threads.c \
 kernel/util.c \
 kernel/vectors.s \
 main/main.c \
+main/splash.c \
 pio/pio.c \
 shell/shell.c \
 sio0/busyloop.s \
@@ -120,6 +121,10 @@ ifeq ($(BOOT_MODE),fast)
 CPPFLAGS += -DOPENBIOS_BOOT_MODE_NO_SHELL
 else ifeq ($(BOOT_MODE),psexe)
 CPPFLAGS += -DOPENBIOS_BOOT_MODE_NO_SHELL -DOPENBIOS_BOOT_MODE_NO_CDROM
+endif
+
+ifneq ($(SPLASH_SCREEN),)
+CPPFLAGS += -DOPENBIOS_SHOW_SPLASH_SCREEN
 endif
 
 ifneq ($(INSTALL_TTY_CONSOLE),)

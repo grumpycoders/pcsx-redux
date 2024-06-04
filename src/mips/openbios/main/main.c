@@ -47,6 +47,7 @@ SOFTWARE.
 #include "openbios/kernel/setjmp.h"
 #include "openbios/kernel/threads.h"
 #include "openbios/kernel/util.h"
+#include "openbios/main/splash.h"
 #include "openbios/pio/pio.h"
 #include "openbios/shell/shell.h"
 #include "openbios/tty/tty.h"
@@ -81,6 +82,7 @@ int main() {
 
     runExp1PreHook();
     POST = 0x0e;
+    drawSplashScreen();
     g_installTTY = 0;
     bootThunk();
 }
