@@ -143,9 +143,11 @@ include ../common.mk
 
 ../shell/shell_data.o: shell
 
+# The executable is aligned to 32 bytes in order to make it easier for tools and
+# homebrew apps to locate it by searching the ROM.
 ./psexe_data.o: $(EMBED_PSEXE)
 	cp $(EMBED_PSEXE) psexe.bin
-	$(PREFIX)-objcopy -I binary --set-section-alignment .data=4 --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips psexe.bin psexe_data.o
+	$(PREFIX)-objcopy -I binary --set-section-alignment .data=32 --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips psexe.bin psexe_data.o
 	rm -f psexe.bin
 
 ./font1.o: charset/font1.raw
