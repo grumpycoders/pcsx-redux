@@ -74,5 +74,5 @@ jobs:
           git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
           export BUILD=`git rev-parse HEAD | cut -c 1-8`
           zip PCSX-Redux-$BUILD-linux-x86_64.zip *.AppImage
-          npx @appdistrib/cli -m AppDir/usr/share/pcsx-redux/resources/version.json upload PCSX-Redux-$BUILD-linux-x86_64.zip
           npx appcenter-cli distribute release -b $BUILD -f PCSX-Redux-$BUILD-linux-x86_64.zip -g public -a grumpycoders/pcsx-redux-linux64 --disable-telemetry
+          npx @appdistrib/cli -m AppDir/usr/share/pcsx-redux/resources/version.json upload PCSX-Redux-$BUILD-linux-x86_64.zip

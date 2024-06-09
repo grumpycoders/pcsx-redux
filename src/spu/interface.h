@@ -66,6 +66,10 @@ class impl final : public SPUInterface {
 
     // num of channels
     static const size_t MAXCHAN = 24;
+    // number of characters for a channel tag
+    static constexpr unsigned CHANNEL_TAG = 32;
+    // number of samples for debugger wave plot
+    static const unsigned DEBUG_SAMPLES = 1024;
 
     uint32_t getFrameCount() override { return m_audioOut.getFrameCount(); }
 
@@ -287,9 +291,9 @@ class impl final : public SPUInterface {
     // debug window
     unsigned m_selectedChannel = 0;
     std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated;
-    static const unsigned DEBUG_SAMPLES = 1024;
     enum { EMPTY = 0, DATA, NOISE, FMOD1, FMOD2, IRQ, MUTED } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];
     float m_channelDebugData[MAXCHAN][DEBUG_SAMPLES];
+    char m_channelTag[MAXCHAN][CHANNEL_TAG] = {};
     unsigned m_currentDebugSample = 0;
 };
 
