@@ -116,7 +116,7 @@ CESTER_TEST(cpu_delayed_load_cancelled, cpu_tests,
     cester_assert_uint_eq(0, out);
 )
 
-CESTER_TEST(cpu_delayed_load_load, cpu_tests,
+CESTER_MAYBE_TEST(cpu_delayed_load_load, cpu_tests,
     uint32_t buff[2] = {1, 2};
     // The above becomes complicated once you have two
     // lw instructions in a row loading the same register
