@@ -32,6 +32,7 @@ SOFTWARE.
     .type cpu_delayed_load, @function
 
 /* This can happen. */
+/* uint32_t cpu_delayed_load(uint32_t buff[], uint32_t override); */
 cpu_delayed_load:
     lw    $a1, 0($a0)
     move  $v0, $a1
@@ -43,8 +44,23 @@ cpu_delayed_load:
     .type cpu_delayed_load_cancelled, @function
 
 /* This happens even more frequently. */
+/* uint32_t cpu_delayed_load_cancelled(uint32_t buff[], uint32_t override); */
 cpu_delayed_load_cancelled:
     lw    $v0, 0($a0)
     move  $v0, $a1
+    jr    $ra
+    nop
+
+    .align 2
+    .global cpu_delayed_load_load
+    .type cpu_delayed_load_load, @function
+
+/* This is extremely infrequent */
+/* uint64_t cpu_delayed_load_load(uint32_t buff[], uint32_t override); */
+cpu_delayed_load_load:
+    lw    $a1, 0($a0)
+    lw    $a1, 4($a0)
+    move  $v0, $a1
+    move  $v1, $a1
     jr    $ra
     nop
