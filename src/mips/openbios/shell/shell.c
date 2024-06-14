@@ -40,8 +40,12 @@ extern const uint32_t _binary_psexe_bin_start[];
 extern const uint32_t _binary_psexe_bin_end[];
 
 static void copyExecutableData(uintptr_t dest, uintptr_t source, size_t length) {
-    // Larger binaries need to be copied in smaller chunks in order to make sure
-    // the watchdog is cleared frequently enough.
+    // On platforms with a watchdog (currently only the 573), larger binaries
+    // must be copied in smaller chunks in order to make sure the watchdog is
+    // cleared frequently enough. Konami's kernel offloads this task to a
+    // separate binary in the BIOS ROM - with a "Lisenced by Sony" [sic]
+    // signature similar to the one required for EXP1 hooks - which then
+    // proceeds to chainload the actual shell into memory.
     while (length > 0) {
         size_t chunkLength = (length > 0x8000) ? 0x8000 : length;
         memcpy((void *)dest, (const void *)source, chunkLength);

@@ -42,9 +42,11 @@ static const union Color s_colors[] = {
     { .r =   0, .g =   0, .b =   0 }
 };
 
-// The original version of this function (from the 573 BIOS) has several
-// completely unnecessary layers of indirection. This is a much simpler and more
-// straightforward implementation that does the same thing.
+// The original version of this function (as found in the 573 BIOS) invokes a
+// subroutine repeatedly in order to draw each color bar, rather than using an
+// array and a loop, and has several completely unnecessary checks. This is a
+// much simpler and more straightforward but functionally equivalent
+// implementation.
 void drawSplashScreen() {
 #ifdef OPENBIOS_SHOW_SPLASH_SCREEN
     struct DisplayModeConfig config = {

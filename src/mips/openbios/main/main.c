@@ -80,8 +80,19 @@ int main() {
     POST = 0x0f;
     muteSpu();
 
+    // Pre- and post-boot hooks are implemented in the retail BIOS through two
+    // separate functions for each hook, one in charge of validating the
+    // signature and the other actually jumping to the vector. For simplicity's
+    // sake, both steps are combined into a call to a single function here. The
+    // 573 kernel lacks these calls completely (rather than stubbing out the
+    // function's body as done here).
     runExp1PreHook();
     POST = 0x0e;
+
+    // Same as above, the retail BIOS lacks the drawSplashScreen() call
+    // completely instead of merely stubbing out the function. Note that this
+    // functionality is in no way 573-specific, so it makes sense to allow
+    // enabling it regardless of the target platform.
     drawSplashScreen();
     g_installTTY = 0;
     bootThunk();
@@ -290,6 +301,10 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     writeCOP0Status(readCOP0Status() & ~0x401);
     muteSpu();
     POST = 2;
+    // The 573 kernel kicks the watchdog before, after and in the middle of
+    // copyDataAndInitializeBSS(), as it is by far the slowest part of the
+    // initialization sequence. clearWatchdog() is an inline function that does
+    // nothing in non-573 builds (see main.h).
     clearWatchdog();
     copyDataAndInitializeBSS();
     POST = 3;
@@ -356,6 +371,7 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     IREG = 0;
     initCDRom();
     SETJMPFATAL(0x399);
+    // See the note about hooks in main().
     runExp1PostHook();
     psxprintf("\nBOOTSTRAP LOADER\n");
     SETJMPFATAL(0x386);

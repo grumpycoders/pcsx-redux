@@ -37,6 +37,8 @@ _reset:
     li    $t0, (19 << 16) | 0x243f
     sw    $t0, SBUS_DEV2_CTRL
 
+    /* psx.s configures the DRAM controller here, but we are going to do that
+       after setting up DEV0/EXP1 as we have to probe a bit in there first. */
     nop
     nop
     nop
@@ -88,6 +90,7 @@ _boot:
     li    $t0, 0x1f802000
     sw    $t0, SBUS_DEV8_ADDR
 
+    /* 8 MB with a 16-bit bus, different value from the default one in psx.s */
     li    $t0, 0x24173f47
     sw    $t0, SBUS_DEV0_CTRL
 
@@ -112,7 +115,8 @@ _boot:
 
     /* The 700B01 BIOS uses the following code to determine whether the board
        is an older one with eight 512 KB RAM chips, or a revision D populated
-       with two 2 MB chips. */
+       with two 2 MB chips. The 700A01 BIOS predates such revision and always
+       sets the RAM size register to 0xc80. */
     lhu   $t1, SYS573_JAMMA_P2_EXT
     li    $t0, 0xc80
     andi  $t1, 1 << 10
