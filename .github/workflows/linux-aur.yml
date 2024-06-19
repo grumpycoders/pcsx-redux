@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: | 
-          pacman -Syu --noconfirm --needed capstone curl ffmpeg freetype2 glfw libuv sdl2 zlib git make pkg-config sudo
+          pacman -Syu --noconfirm --needed capstone curl ffmpeg freetype2 glfw libuv sdl2 zlib git make pkg-config sudo base-devel pacman-contrib
       - name: Create builduser
         run: |
           useradd builduser -m
