@@ -22,6 +22,7 @@ jobs:
           passwd -d builduser
       - name: Build AUR Package
         run: |
-          sudo -u builduser git clone https://aur.archlinux.org/pcsx-redux-git.git
+          git clone https://aur.archlinux.org/pcsx-redux-git.git
+          chown -R builduser:builduser pcsx-redux-git
           cd pcsx-redux-git
-          sudo -u makepkg
+          sudo -u builduser makepkg
