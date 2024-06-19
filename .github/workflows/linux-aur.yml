@@ -1,0 +1,19 @@
+name: Linux CI AUR
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: arch-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Build AUR package
+      - run: |
+          pacman -S capstone curl ffmpeg freetype2 glfw libuv sdl2 zlib git make pkg-config
+          git clone https://aur.archlinux.org/pcsx-redux-git.git
+          cd pcsx-redux-git && makepkg
