@@ -9,12 +9,12 @@ on:
 
 jobs:
   build:
-    runs-on: arch-latest
+    runs-on: ubuntu-latest
     container:
       image: archlinux:latest
     steps:
       - name: Build AUR Package
         run: |
-          pacman -S capstone curl ffmpeg freetype2 glfw libuv sdl2 zlib git make pkg-config
+          pacman -S --noconfirm pcapstone curl ffmpeg freetype2 glfw libuv sdl2 zlib git make pkg-config
           git clone https://aur.archlinux.org/pcsx-redux-git.git
           cd pcsx-redux-git && makepkg
