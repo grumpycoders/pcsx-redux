@@ -31,16 +31,10 @@ SOFTWARE.
 #include "common/hardware/gpu.h"
 #include "common/hardware/hwregs.h"
 
-static const union Color s_colors[] = {
-    { .r = 255, .g = 255, .b = 255 },
-    { .r = 255, .g = 255, .b =   0 },
-    { .r =   0, .g = 255, .b = 255 },
-    { .r =   0, .g = 255, .b =   0 },
-    { .r = 255, .g =   0, .b = 255 },
-    { .r = 255, .g =   0, .b =   0 },
-    { .r =   0, .g =   0, .b = 255 },
-    { .r =   0, .g =   0, .b =   0 }
-};
+static const union Color s_colors[] = {{.r = 255, .g = 255, .b = 255}, {.r = 255, .g = 255, .b = 0},
+                                       {.r = 0, .g = 255, .b = 255},   {.r = 0, .g = 255, .b = 0},
+                                       {.r = 255, .g = 0, .b = 255},   {.r = 255, .g = 0, .b = 0},
+                                       {.r = 0, .g = 0, .b = 255},     {.r = 0, .g = 0, .b = 0}};
 
 // The original version of this function (as found in the 573 BIOS) invokes a
 // subroutine repeatedly in order to draw each color bar, rather than using an
@@ -49,29 +43,21 @@ static const union Color s_colors[] = {
 // implementation.
 void drawSplashScreen() {
 #ifdef OPENBIOS_SHOW_SPLASH_SCREEN
-    struct DisplayModeConfig config = {
-        .hResolution = HR_256,
-        .vResolution = VR_240,
-        .videoMode = VM_NTSC,
-        .colorDepth = CD_15BITS,
-        .videoInterlace = VI_OFF,
-        .hResolutionExtended = HRE_NORMAL
-    };
+    struct DisplayModeConfig config = {.hResolution = HR_256,
+                                       .vResolution = VR_240,
+                                       .videoMode = VM_NTSC,
+                                       .colorDepth = CD_15BITS,
+                                       .videoInterlace = VI_OFF,
+                                       .hResolutionExtended = HRE_NORMAL};
 
-    GPU_STATUS = 0x00000000; // Reset
+    GPU_STATUS = 0x00000000;  // Reset
     setDisplayArea(0, 0);
     setHorizontalRange(0, 256 * 10);
     setVerticalRange(16, 255);
     setDisplayMode(&config);
 
     const int barCount = sizeof(s_colors) / sizeof(union Color);
-    struct FastFill ff = {
-        .c = 0,
-        .x = 0,
-        .y = 0,
-        .w = 256 / barCount,
-        .h = 240
-    };
+    struct FastFill ff = {.c = 0, .x = 0, .y = 0, .w = 256 / barCount, .h = 240};
 
     for (int i = 0; i < barCount; i++, ff.x += ff.w) {
         ff.c.packed = s_colors[i].packed;

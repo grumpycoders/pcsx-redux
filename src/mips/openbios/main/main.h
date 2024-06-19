@@ -27,7 +27,6 @@ SOFTWARE.
 #pragma once
 
 #include "common/hardware/hwregs.h"
-
 #include "common/psxlibc/setjmp.h"
 
 // The original 700B01 kernel clears the watchdog using inline code in some
