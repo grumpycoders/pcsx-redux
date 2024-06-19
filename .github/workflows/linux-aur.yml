@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - aur-package-ci
   pull_request:
 
 jobs:
