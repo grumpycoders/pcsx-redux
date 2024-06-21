@@ -44,14 +44,12 @@ static const char *const licenseText = "Licensed by Sony Computer Entertainment 
 
 void runExp1PreHook() {
 #ifndef OPENBIOS_BOARD_SYS573
-    if (is_running_from_rom() && (strcmp(preHookInfo->signature, licenseText) == 0))
-        preHookInfo->vector();
+    if (is_running_from_rom() && (strcmp(preHookInfo->signature, licenseText) == 0)) preHookInfo->vector();
 #endif
 }
 
 void runExp1PostHook() {
 #ifndef OPENBIOS_BOARD_SYS573
-    if (is_running_from_rom() && (strcmp(postHookInfo->signature, licenseText) == 0))
-        postHookInfo->vector();
+    if (is_running_from_rom() && (strcmp(postHookInfo->signature, licenseText) == 0)) postHookInfo->vector();
 #endif
 }

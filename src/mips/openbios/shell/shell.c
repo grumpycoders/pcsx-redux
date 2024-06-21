@@ -24,7 +24,6 @@ SOFTWARE.
 
 */
 
-#include "openbios/main/main.h"
 #include "openbios/shell/shell.h"
 
 #include <memory.h>
@@ -33,6 +32,7 @@ SOFTWARE.
 #include <string.h>
 
 #include "openbios/kernel/flushcache.h"
+#include "openbios/main/main.h"
 
 extern const uint8_t _binary_shell_bin_start[];
 extern const uint8_t _binary_shell_bin_end[];
