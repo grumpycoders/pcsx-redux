@@ -165,7 +165,10 @@ void beginFrame();
  * @brief A simple `assert` macro.
  */
 inline void assert(bool condition, const char* message) {
-    if (!condition) abort(message);
+    if (!condition) {
+        abort(message);
+        __builtin_unreachable();
+    }
 }
 
 }  // namespace Kernel
