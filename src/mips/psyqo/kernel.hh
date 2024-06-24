@@ -168,7 +168,10 @@ void beginFrame();
  */
 inline void assert(bool condition, const char* message,
                    std::source_location location = std::source_location::current()) {
-    if (!condition) abort(message, location);
+    if (!condition) {
+        abort(message, location);
+        __builtin_unreachable();
+    }
 }
 
 }  // namespace Kernel

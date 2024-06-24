@@ -64,7 +64,7 @@ KernelEventFunction allocateEventFunction(eastl::function<void()>&& lambda) {
         }
     }
     psyqo::Kernel::abort("allocateEventFunction: no function slot available");
-    return reinterpret_cast<void (*)()>(-1);
+    __builtin_unreachable();
 }
 
 }  // namespace
@@ -75,6 +75,7 @@ KernelEventFunction allocateEventFunction(eastl::function<void()>&& lambda) {
     pcsx_message(msg);
     pcsx_debugbreak();
     while (1) asm("");
+    __builtin_unreachable();
 }
 
 uint32_t psyqo::Kernel::openEvent(uint32_t classId, uint32_t spec, uint32_t mode, eastl::function<void()>&& lambda) {
@@ -90,6 +91,7 @@ unsigned psyqo::Kernel::registerDmaEvent(DMA channel_, eastl::function<void()>&&
     unsigned channel = static_cast<unsigned>(channel_);
     if (channel >= static_cast<unsigned>(DMA::Max)) {
         psyqo::Kernel::abort("registerDmaEvent: invalid dma channel");
+        __builtin_unreachable();
     }
     auto& slots = s_dmaCallbacks[channel];
     for (unsigned slot = 0; slot < SLOTS; slot++) {
@@ -100,13 +102,14 @@ unsigned psyqo::Kernel::registerDmaEvent(DMA channel_, eastl::function<void()>&&
     }
 
     psyqo::Kernel::abort("registerDmaEvent: no function slot available");
-    return 0xffffffff;
+    __builtin_unreachable();
 }
 
 void psyqo::Kernel::enableDma(DMA channel_, unsigned priority) {
     unsigned channel = static_cast<unsigned>(channel_);
     if (channel >= static_cast<unsigned>(DMA::Max)) {
         psyqo::Kernel::abort("enableDma: invalid dma channel");
+        __builtin_unreachable();
     }
     uint32_t dpcr = Hardware::CPU::DPCR;
     if (priority > 7) priority = 7;
@@ -124,6 +127,7 @@ void psyqo::Kernel::disableDma(DMA channel_) {
     unsigned channel = static_cast<unsigned>(channel_);
     if (channel >= static_cast<unsigned>(DMA::Max)) {
         psyqo::Kernel::abort("disableDma: invalid dma channel");
+        __builtin_unreachable();
     }
     uint32_t dpcr = Hardware::CPU::DPCR;
     unsigned shift = channel * 4;
@@ -138,6 +142,7 @@ void psyqo::Kernel::unregisterDmaEvent(unsigned slot) {
 
     if ((channel >= static_cast<unsigned>(DMA::Max)) || (slot >= SLOTS) || !s_dmaCallbacks[channel][slot]) {
         psyqo::Kernel::abort("unregisterDmaEvent: function wasn't previously allocated.");
+        __builtin_unreachable();
     }
     s_dmaCallbacks[channel][slot] = nullptr;
 }
