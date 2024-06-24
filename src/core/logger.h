@@ -48,6 +48,7 @@ enum class LogClass : unsigned {
     LUA,            // logs emitted by the Lua VM
     SPU,            // spu information
     GPU,            // gpu information
+    WEBSERVER,      // web server information
 };
 
 template <LogClass logClass, bool enabled>
