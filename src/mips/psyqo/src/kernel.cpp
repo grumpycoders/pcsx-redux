@@ -59,10 +59,7 @@ void trampoline(int slot) { s_functions[slot].lambda(); }
 KernelEventFunction allocateEventFunction(eastl::function<void()>&& lambda) {
     for (unsigned slot = 0; slot < SLOTS; slot++) {
         if (!s_functions[slot].lambda) {
-            s_functions[slot].code[0] = Mips::Encoder::j(reinterpret_cast<uint32_t>(trampoline));
-            s_functions[slot].code[1] = Mips::Encoder::addiu(Mips::Encoder::Reg::A0, Mips::Encoder::Reg::R0, slot);
             s_functions[slot].lambda = eastl::move(lambda);
-            syscall_flushCache();
             return s_functions[slot].getFunction();
         }
     }
@@ -158,6 +155,11 @@ void psyqo::Kernel::Internal::addInitializer(eastl::function<void()>&& lambda) {
 }
 
 void psyqo::Kernel::Internal::prepare() {
+    for (unsigned slot = 0; slot < SLOTS; slot++) {
+        s_functions[slot].code[0] = Mips::Encoder::j(reinterpret_cast<uint32_t>(trampoline));
+        s_functions[slot].code[1] = Mips::Encoder::addiu(Mips::Encoder::Reg::A0, Mips::Encoder::Reg::R0, slot);
+    }
+    syscall_flushCache();
     syscall_dequeueCDRomHandlers();
     syscall_setDefaultExceptionJmpBuf();
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
