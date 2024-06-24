@@ -105,7 +105,7 @@ unsigned psyqo::Kernel::registerDmaEvent(DMA channel_, eastl::function<void()>&&
     }
 
     psyqo::Kernel::abort("registerDmaEvent: no function slot available");
-    return 0xffffffff;
+    __builtin_unreachable();
 }
 
 void psyqo::Kernel::enableDma(DMA channel_, unsigned priority) {
