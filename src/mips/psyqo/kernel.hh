@@ -29,6 +29,8 @@ SOFTWARE.
 #include <EASTL/functional.h>
 #include <stdint.h>
 
+#include <source_location>
+
 namespace psyqo {
 
 /**
@@ -81,7 +83,7 @@ enum class DMA : unsigned {
 /**
  * @brief Stops the execution of the application.
  */
-[[noreturn]] void abort(const char* msg);
+[[noreturn]] void abort(const char* msg, std::source_location location = std::source_location::current());
 
 /**
  * @brief A C++ wrapper around the `openEvent` syscall.
@@ -164,9 +166,10 @@ void beginFrame();
 /**
  * @brief A simple `assert` macro.
  */
-inline void assert(bool condition, const char* message) {
+inline void assert(bool condition, const char* message,
+                   std::source_location location = std::source_location::current()) {
     if (!condition) {
-        abort(message);
+        abort(message, location);
         __builtin_unreachable();
     }
 }

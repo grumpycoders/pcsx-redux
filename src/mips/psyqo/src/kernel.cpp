@@ -72,12 +72,11 @@ KernelEventFunction allocateEventFunction(eastl::function<void()>&& lambda) {
 
 }  // namespace
 
-[[noreturn]] void psyqo::Kernel::abort(const char* msg) {
+[[noreturn]] void psyqo::Kernel::abort(const char* msg, std::source_location loc) {
     fastEnterCriticalSection();
+    ramsyscall_printf("Abort at %s:%i: %s\n", loc.file_name(), loc.line(), msg);
     pcsx_message(msg);
     pcsx_debugbreak();
-    syscall_puts(msg);
-    syscall_putchar('\n');
     while (1) asm("");
     __builtin_unreachable();
 }
